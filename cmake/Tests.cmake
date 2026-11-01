@@ -30,6 +30,7 @@ if (DEMOVRPLAYER_BUILD_TESTS)
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayPlayer/command_line.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayPlayer/eye_image_buffer.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayPlayer/quit_handler.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/StereoLauncher/command_line.cpp"
                                      "${APIInterceptor_SOURCE_DIR}/src/Common/api_call_gate.cpp"
                                      "${APIInterceptor_SOURCE_DIR}/src/Common/callback_registry.cpp"
                                      "${APIInterceptor_SOURCE_DIR}/src/Common/callbacks.cpp"

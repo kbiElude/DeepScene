@@ -52,3 +52,16 @@ add_library(StereoConverterDLL SHARED ${StereoConverterDLLSources}
 target_link_libraries(StereoConverterDLL APIDumpAnalysisFrontends APIInterceptor D3D8Utils StereoCore StereoSession StereoTransport)
 
 source_group ("StereoConverterDLL source files" FILES ${StereoConverterDLLSources})
+
+file(GLOB StereoLauncherSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/StereoLauncher/*.cpp"
+                                                  "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/StereoLauncher/*.h")
+
+# The launcher which puts the converter in the application.
+add_executable(StereoLauncher ${StereoLauncherSources})
+
+target_include_directories(StereoLauncher PRIVATE "${DemoVRPlayer_SOURCE_DIR}/src")
+target_link_libraries     (StereoLauncher RecipeLoader InjectionLauncher StereoSession)
+
+add_dependencies(StereoLauncher StereoConverterDLL)
+
+source_group ("StereoLauncher source files" FILES ${StereoLauncherSources})
