@@ -7,9 +7,9 @@
  */
 #include <gtest/gtest.h>
 #include "data_fixtures.h"
-#include "Stereo/StereoD3D12/d3d12_frame_uploader.h"
-#include "Stereo/StereoTransport/frame_channel.h"
-#include "Stereo/StereoTransport/host_memory_importer.h"
+#include "Stereo/D3D12/d3d12_frame_uploader.h"
+#include "Stereo/Transport/frame_channel.h"
+#include "Stereo/Transport/host_memory_importer.h"
 #include <vector>
 #include <d3d12.h>
 #include <wrl/client.h>
@@ -82,7 +82,7 @@ protected:
         Microsoft::WRL::ComPtr<ID3D12Fence>               fence_ptr;
         D3D12_HEAP_PROPERTIES                             heap_properties = {};
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> list_ptr;
-        const uint32_t                                    pitch           = Stereo::StereoTransport::FrameChannel::get_pitch(EYE_WIDTH);
+        const uint32_t                                    pitch           = Stereo::Transport::FrameChannel::get_pitch(EYE_WIDTH);
         Microsoft::WRL::ComPtr<ID3D12Resource>            readback_ptr;
         D3D12_RESOURCE_DESC                               readback_desc   = {};
         std::vector<uint8_t>                              result_vec;
@@ -190,11 +190,11 @@ protected:
     }
 
     /* A frame of the eyes (one or two) as the producer writes it. */
-    static void write_frame(Stereo::StereoTransport::FrameChannel* in_channel_ptr,
+    static void write_frame(Stereo::Transport::FrameChannel* in_channel_ptr,
                             const uint32_t&                in_n_eyes,
                             const uint32_t&                in_frame)
     {
-        Stereo::StereoTransport::FrameInfo info;
+        Stereo::Transport::FrameInfo info;
 
         info.frame_index = in_frame;
         info.height      = EYE_HEIGHT;
@@ -202,7 +202,7 @@ protected:
         info.width       = EYE_WIDTH * in_n_eyes;
 
         uint8_t* const pixel_ptr = in_channel_ptr->begin_write_ptr(info);
-        const uint32_t pitch     = Stereo::StereoTransport::FrameChannel::get_pitch(info.width);
+        const uint32_t pitch = Stereo::Transport::FrameChannel::get_pitch(info.width);
 
         ASSERT_NE(pixel_ptr,
                   nullptr);
@@ -259,22 +259,22 @@ TEST_F(D3D12FrameUploaderTest, TheEyesOfAFrameAreInTheTexturesAndTheTexturesAreI
 {
     std::string error;
     const auto  session_id   = Tests::DataFixtures::make_session_id("eyes");
-    auto        producer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session_id,
-                                                                              &error);
-    auto        consumer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session_id,
-                                                                              &error);
+    auto        producer_ptr = Stereo::Transport::FrameChannel::open_ptr(session_id,
+                                                                        &error);
+    auto        consumer_ptr = Stereo::Transport::FrameChannel::open_ptr(session_id,
+                                                                        &error);
 
     ASSERT_NE(producer_ptr,
               nullptr) << error;
     ASSERT_NE(consumer_ptr,
               nullptr) << error;
 
-    Stereo::StereoTransport::HostMemoryImporter importer(std::move(consumer_ptr) );
-    Stereo::StereoD3D12::D3D12FrameUploader     uploader(m_device_ptr.Get(),
-                                                         m_queue_ptr.Get() );
-    Stereo::StereoTransport::ImportedFrame frame;
-    auto                                   left_ptr  = create_texture(DXGI_FORMAT_B8G8R8A8_UNORM);
-    auto                                   right_ptr = create_texture(DXGI_FORMAT_B8G8R8A8_UNORM_SRGB);
+    Stereo::Transport::HostMemoryImporter importer(std::move(consumer_ptr) );
+    Stereo::D3D12::D3D12FrameUploader     uploader(m_device_ptr.Get(),
+                                                   m_queue_ptr.Get() );
+    Stereo::Transport::ImportedFrame      frame;
+    auto                                  left_ptr  = create_texture(DXGI_FORMAT_B8G8R8A8_UNORM);
+    auto                                  right_ptr = create_texture(DXGI_FORMAT_B8G8R8A8_UNORM_SRGB);
 
     ASSERT_TRUE(uploader.is_ok(&error) ) << error;
 
@@ -304,22 +304,22 @@ TEST_F(D3D12FrameUploaderTest, FramesOfOtherSlotsAndOfOneEyeAreUploadedToo)
 {
     std::string error;
     const auto  session_id   = Tests::DataFixtures::make_session_id("slots");
-    auto        producer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session_id,
-                                                                              &error);
-    auto        consumer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session_id,
-                                                                              &error);
+    auto        producer_ptr = Stereo::Transport::FrameChannel::open_ptr(session_id,
+                                                                        &error);
+    auto        consumer_ptr = Stereo::Transport::FrameChannel::open_ptr(session_id,
+                                                                        &error);
 
     ASSERT_NE(producer_ptr,
               nullptr) << error;
     ASSERT_NE(consumer_ptr,
               nullptr) << error;
 
-    Stereo::StereoTransport::HostMemoryImporter importer(std::move(consumer_ptr) );
-    Stereo::StereoD3D12::D3D12FrameUploader     uploader(m_device_ptr.Get(),
-                                                         m_queue_ptr.Get() );
-    Stereo::StereoTransport::ImportedFrame frame;
-    auto                                   left_ptr  = create_texture(DXGI_FORMAT_B8G8R8A8_UNORM);
-    auto                                   right_ptr = create_texture(DXGI_FORMAT_B8G8R8A8_UNORM);
+    Stereo::Transport::HostMemoryImporter importer(std::move(consumer_ptr) );
+    Stereo::D3D12::D3D12FrameUploader     uploader(m_device_ptr.Get(),
+                                                   m_queue_ptr.Get() );
+    Stereo::Transport::ImportedFrame      frame;
+    auto                                  left_ptr  = create_texture(DXGI_FORMAT_B8G8R8A8_UNORM);
+    auto                                  right_ptr = create_texture(DXGI_FORMAT_B8G8R8A8_UNORM);
 
     /* Each frame is written to the next slot of the channel, so these are three different pieces of memory, and then the first again. */
     for (uint32_t n_frame = 1;
@@ -354,24 +354,24 @@ TEST_F(D3D12FrameUploaderTest, ATextureSmallerThanAnEyeIsRefused)
 {
     std::string error;
     const auto  session_id   = Tests::DataFixtures::make_session_id("small");
-    auto        producer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session_id,
-                                                                              &error);
-    auto        consumer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session_id,
-                                                                              &error);
+    auto        producer_ptr = Stereo::Transport::FrameChannel::open_ptr(session_id,
+                                                                        &error);
+    auto        consumer_ptr = Stereo::Transport::FrameChannel::open_ptr(session_id,
+                                                                        &error);
 
     ASSERT_NE(producer_ptr,
               nullptr) << error;
     ASSERT_NE(consumer_ptr,
               nullptr) << error;
 
-    Stereo::StereoTransport::HostMemoryImporter importer(std::move(consumer_ptr) );
-    Stereo::StereoD3D12::D3D12FrameUploader     uploader(m_device_ptr.Get(),
-                                                         m_queue_ptr.Get() );
-    Stereo::StereoTransport::ImportedFrame frame;
-    auto                                   texture_ptr = create_texture(DXGI_FORMAT_B8G8R8A8_UNORM);
+    Stereo::Transport::HostMemoryImporter importer(std::move(consumer_ptr) );
+    Stereo::D3D12::D3D12FrameUploader     uploader(m_device_ptr.Get(),
+                                                   m_queue_ptr.Get() );
+    Stereo::Transport::ImportedFrame      frame;
+    auto                                  texture_ptr = create_texture(DXGI_FORMAT_B8G8R8A8_UNORM);
 
     /* An eye which is wider than the texture. */
-    Stereo::StereoTransport::FrameInfo info;
+    Stereo::Transport::FrameInfo info;
 
     info.height = EYE_HEIGHT;
     info.n_eyes = 2;

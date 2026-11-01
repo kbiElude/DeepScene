@@ -14,10 +14,10 @@
 
 TEST(ListenerList, ListenersAreCalledInTheOrderTheyWereAdded)
 {
-    Replay::StereoReplayEngineDLL::ListenerList<Tests::CountingListener> list;
-    Tests::CountingListener                                        first;
-    Tests::CountingListener                                        second;
-    std::vector<Tests::CountingListener*>                          called_vec;
+    Stereo::Replay::EngineDLL::ListenerList<Tests::CountingListener> list;
+    Tests::CountingListener                                          first;
+    Tests::CountingListener                                          second;
+    std::vector<Tests::CountingListener*>                            called_vec;
 
     list.add(&first);
     list.add(&second);
@@ -33,8 +33,8 @@ TEST(ListenerList, ListenersAreCalledInTheOrderTheyWereAdded)
 
 TEST(ListenerList, ARemovedListenerIsNotCalled)
 {
-    Replay::StereoReplayEngineDLL::ListenerList<Tests::CountingListener> list;
-    Tests::CountingListener                                        listener;
+    Stereo::Replay::EngineDLL::ListenerList<Tests::CountingListener> list;
+    Tests::CountingListener                                          listener;
 
     list.add   (&listener);
     list.remove(&listener);
@@ -49,9 +49,9 @@ TEST(ListenerList, ARemovedListenerIsNotCalled)
 
 TEST(ListenerList, AListenerRemovedByAnEarlierCallOfTheRoundIsNotCalled)
 {
-    Replay::StereoReplayEngineDLL::ListenerList<Tests::CountingListener> list;
-    Tests::CountingListener                                        first;
-    Tests::CountingListener                                        second;
+    Stereo::Replay::EngineDLL::ListenerList<Tests::CountingListener> list;
+    Tests::CountingListener                                          first;
+    Tests::CountingListener                                          second;
 
     list.add(&first);
     list.add(&second);
@@ -71,12 +71,12 @@ TEST(ListenerList, AListenerRemovedByAnEarlierCallOfTheRoundIsNotCalled)
 
 TEST(ListenerList, RemovingWaitsForACallInProgress)
 {
-    Replay::StereoReplayEngineDLL::ListenerList<Tests::CountingListener> list;
-    Tests::CountingListener                                        listener;
-    std::promise<void>                      call_started_promise;
-    std::promise<void>                      let_call_end_promise;
-    std::atomic<bool>                       has_call_ended(false);
-    std::atomic<bool>                       has_remove_returned(false);
+    Stereo::Replay::EngineDLL::ListenerList<Tests::CountingListener> list;
+    Tests::CountingListener                                          listener;
+    std::promise<void>                                               call_started_promise;
+    std::promise<void>                                               let_call_end_promise;
+    std::atomic<bool>                                                has_call_ended(false);
+    std::atomic<bool>                                                has_remove_returned(false);
 
     list.add(&listener);
 

@@ -5,12 +5,12 @@
  * Tests for ConvergenceModel: the distance the eyes converge at, and the limit of how far apart they may be.
  */
 #include <gtest/gtest.h>
-#include "Stereo/StereoCore/convergence_model.h"
+#include "Stereo/Core/convergence_model.h"
 #include <math.h>
 
 TEST(ConvergenceModel, TheSeparationIsAThirtiethOfTheDistanceTimesTheStrengthWhenThereIsNoLimit)
 {
-    Stereo::StereoCore::ConvergenceModel model;
+    Stereo::Core::ConvergenceModel model;
 
     model.set_convergence_distance(60.0f);
     model.set_depth_strength      (1.5f);
@@ -21,7 +21,7 @@ TEST(ConvergenceModel, TheSeparationIsAThirtiethOfTheDistanceTimesTheStrengthWhe
 
 TEST(ConvergenceModel, TheLimitOfTheSceneIsACeilingWhichNoStrengthLifts)
 {
-    Stereo::StereoCore::ConvergenceModel model;
+    Stereo::Core::ConvergenceModel model;
 
     model.set_convergence_distance(60.0f);
     model.set_depth_strength      (2.0f);
@@ -58,7 +58,7 @@ TEST(ConvergenceModel, TheLimitOfTheSceneIsACeilingWhichNoStrengthLifts)
 
 TEST(ConvergenceModel, ASceneWithNoLimitLiftsItAtOnce)
 {
-    Stereo::StereoCore::ConvergenceModel model;
+    Stereo::Core::ConvergenceModel model;
 
     model.set_convergence_distance(30.0f);
     model.set_depth_strength      (1.0f);
@@ -75,7 +75,7 @@ TEST(ConvergenceModel, ASceneWithNoLimitLiftsItAtOnce)
 
 TEST(ConvergenceModel, TheLimitIsTakenAtOnceAtFirstAndThenEasedTowardTheNextOneAlongTheLogarithm)
 {
-    Stereo::StereoCore::ConvergenceModel model;
+    Stereo::Core::ConvergenceModel model;
 
     model.set_convergence_distance(300.0f); /* 10 without a limit */
     model.set_depth_strength      (1.0f);
@@ -106,7 +106,7 @@ TEST(ConvergenceModel, TheLimitIsTakenAtOnceAtFirstAndThenEasedTowardTheNextOneA
 
 TEST(ConvergenceModel, TheLimitDoesNotApplyToASeparationThatWasSet)
 {
-    Stereo::StereoCore::ConvergenceModel model;
+    Stereo::Core::ConvergenceModel model;
 
     model.set_eye_separation(0.8f);
     model.follow_scene_max_separation(0.1f);
@@ -117,7 +117,7 @@ TEST(ConvergenceModel, TheLimitDoesNotApplyToASeparationThatWasSet)
 
 TEST(ConvergenceModel, TheEyesOfThePersonScaleTheNaturalSeparationButNotTheLimitOfTheScene)
 {
-    Stereo::StereoCore::ConvergenceModel model;
+    Stereo::Core::ConvergenceModel model;
 
     model.set_convergence_distance(30.0f);
     model.set_depth_strength      (1.0f);

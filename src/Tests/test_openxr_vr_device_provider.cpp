@@ -6,14 +6,14 @@
  * not known to the test, so it checks what holds either way.
  */
 #include <gtest/gtest.h>
-#include "Stereo/StereoXR/headset_session.h"
-#include "Stereo/StereoXR/openxr_vr_device_provider.h"
+#include "Stereo/XR/headset_session.h"
+#include "Stereo/XR/openxr_vr_device_provider.h"
 
 TEST(OpenXrVrDeviceProviderTest, WithNoRuntimeOrNoHeadsetThereAreNoDevicesAndThatIsNotAnError)
 {
-    const Stereo::StereoXR::OpenXrVrDeviceProvider provider;
-    std::vector<VR::VRDevices::VrDevice>           device_vec = {VR::VRDevices::VrDevice()};
-    std::string                                    error;
+    const Stereo::XR::OpenXrVrDeviceProvider provider;
+    std::vector<VR::VRDevices::VrDevice>     device_vec = {VR::VRDevices::VrDevice()};
+    std::string                              error;
 
     ASSERT_TRUE(provider.enumerate(&device_vec,
                                    &error) ) << error;
@@ -34,11 +34,11 @@ TEST(OpenXrVrDeviceProviderTest, WithNoRuntimeOrNoHeadsetThereAreNoDevicesAndTha
 
 TEST(OpenXrVrDeviceProviderTest, AProbeOfTheHeadsetSaysWhyThereIsNoneOrWhatItIs)
 {
-    Stereo::StereoXR::HeadsetInfo info;
-    std::string                   error;
+    Stereo::XR::HeadsetInfo info;
+    std::string             error;
 
-    if (Stereo::StereoXR::HeadsetSession::probe(&info,
-                                                &error) )
+    if (Stereo::XR::HeadsetSession::probe(&info,
+                                          &error) )
     {
         EXPECT_FALSE(info.system_name.empty() );
     }

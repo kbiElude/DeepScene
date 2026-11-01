@@ -12,8 +12,8 @@ set(DYNAMIC_LOADER           OFF CACHE BOOL "" FORCE)
 
 add_subdirectory(deps/OpenXR-SDK EXCLUDE_FROM_ALL)
 
-file(GLOB StereoXRIncludes CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/include/Stereo/StereoXR/*.h")
-file(GLOB StereoXRSources CONFIGURE_DEPENDS  "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/StereoXR/*.cpp")
+file(GLOB StereoXRIncludes CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/include/Stereo/XR/*.h")
+file(GLOB StereoXRSources CONFIGURE_DEPENDS  "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/XR/*.cpp")
 
 # The headset: a screen in the room, in the OpenXR runtime of whichever headset there is, which shows the images of the eyes.
 add_library(StereoXR STATIC ${StereoXRIncludes} ${StereoXRSources})
@@ -25,8 +25,8 @@ target_link_libraries     (StereoXR PUBLIC openxr_loader StereoD3D12 VRDevices)
 source_group ("StereoXR include files" FILES ${StereoXRIncludes})
 source_group ("StereoXR source files"  FILES ${StereoXRSources})
 
-file(GLOB StereoPresenterSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/StereoPresenter/*.cpp"
-                                                   "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/StereoPresenter/*.h")
+file(GLOB StereoPresenterSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Presenter/*.cpp"
+                                                   "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Presenter/*.h")
 
 # The window which shows what the converter of an application passes on.
 add_executable(StereoPresenter WIN32 ${StereoPresenterSources})

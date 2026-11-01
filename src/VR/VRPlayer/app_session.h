@@ -6,7 +6,7 @@
 #define VRPLAYER_APP_SESSION_H
 
 #include "VR/AppCatalog/types.h"
-#include "Stereo/StereoTransport/frame_channel.h"
+#include "Stereo/Transport/frame_channel.h"
 #include "VR/VRPlayer/types.h"
 #include <memory>
 #include <string>
@@ -32,7 +32,7 @@ namespace VR
 
             SessionState get_state() const;
 
-            /* How strong the 3D is: 1 is the natural one the converter works out for each scene (see StereoCore::set_depth_strength), 0 is
+            /* How strong the 3D is: 1 is the natural one the converter works out for each scene (see Stereo::Core::set_depth_strength), 0 is
              * none. It can be said while the application plays; it is ignored when none does.
              */
             void set_depth_strength(const float& in_depth_strength);
@@ -71,17 +71,17 @@ namespace VR
             static std::string quote_argument(const std::string& in_argument);
             static std::string read_output   (const HANDLE&      in_pipe);
 
-            std::unique_ptr<Stereo::StereoTransport::FrameChannel> m_channel_ptr; /* what the converter and the window share */
-            float                                                  m_depth_strength; /* the last one said, if m_has_depth_strength */
-            bool                                                   m_has_depth_strength;
-            bool                                                   m_has_is_overlay_pushed;
-            bool                                                   m_is_overlay_pushed; /* the last one said, if m_has_is_overlay_pushed */
-            HANDLE                                                 m_job;
-            HANDLE                                                 m_launcher_process;
-            std::string                                            m_message;
-            HANDLE                                                 m_output_pipe;
-            SessionState                                           m_state;
-            HANDLE                                                 m_presenter_process;
+            std::unique_ptr<Stereo::Transport::FrameChannel> m_channel_ptr; /* what the converter and the window share */
+            float                                            m_depth_strength; /* the last one said, if m_has_depth_strength */
+            bool                                             m_has_depth_strength;
+            bool                                             m_has_is_overlay_pushed;
+            bool                                             m_is_overlay_pushed; /* the last one said, if m_has_is_overlay_pushed */
+            HANDLE                                           m_job;
+            HANDLE                                           m_launcher_process;
+            std::string                                      m_message;
+            HANDLE                                           m_output_pipe;
+            SessionState                                     m_state;
+            HANDLE                                           m_presenter_process;
         };
     }
 }

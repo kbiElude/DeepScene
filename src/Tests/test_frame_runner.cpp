@@ -17,18 +17,18 @@ protected:
     class Executor : public Tests::StubCallExecutor
     {
     public:
-        Replay::StereoReplayEngineDLL::ExecutionClass get_execution_class(const Capture::APIDumpLoader::DumpedAPICall& in_call) const override
+        Stereo::Replay::EngineDLL::ExecutionClass get_execution_class(const Capture::APIDumpLoader::DumpedAPICall& in_call) const override
         {
-            Replay::StereoReplayEngineDLL::ExecutionClass result = Replay::StereoReplayEngineDLL::ExecutionClass::FIRST_TIME_ONLY;
+            Stereo::Replay::EngineDLL::ExecutionClass result = Stereo::Replay::EngineDLL::ExecutionClass::FIRST_TIME_ONLY;
 
             if (in_call.func == AFTER_ALL_FUNCTION)
             {
-                result = Replay::StereoReplayEngineDLL::ExecutionClass::AFTER_ALL;
+                result = Stereo::Replay::EngineDLL::ExecutionClass::AFTER_ALL;
             }
             else
             if (in_call.func == EVERY_TIME_FUNCTION)
             {
-                result = Replay::StereoReplayEngineDLL::ExecutionClass::EVERY_TIME;
+                result = Stereo::Replay::EngineDLL::ExecutionClass::EVERY_TIME;
             }
 
             return result;
@@ -67,42 +67,42 @@ protected:
     {
         m_executor.event_vec = &m_event_vec;
 
-        return Replay::StereoReplayEngineDLL::FrameRunner::run(m_buffer,
-                                                               in_is_complete,
-                                                               m_skips_repeated_calls,
-                                                               m_options,
-                                                               {&m_executor},
-                                                               [this](const uint32_t& in_n_execution)
-                                                               {
-                                                                   (void) in_n_execution;
+        return Stereo::Replay::EngineDLL::FrameRunner::run(m_buffer,
+                                                           in_is_complete,
+                                                           m_skips_repeated_calls,
+                                                           m_options,
+                                                           {&m_executor},
+                                                           [this](const uint32_t& in_n_execution)
+                                                           {
+                                                               (void) in_n_execution;
 
-                                                                   return m_begin_succeeds;
-                                                               },
-                                                               [this](const Capture::APIDumpLoader::DumpedAPICall& in_call)
-                                                               {
-                                                                   (void) in_call;
+                                                               return m_begin_succeeds;
+                                                           },
+                                                           [this](const Capture::APIDumpLoader::DumpedAPICall& in_call)
+                                                           {
+                                                               (void) in_call;
 
-                                                                   return &m_executor;
-                                                               },
-                                                               [this](const Capture::APIDumpLoader::DumpedAPICall&     in_call,
-                                                                      const Replay::StereoReplayEngineDLL::IChunkSource& in_chunk_source,
-                                                                      const size_t&                                in_n_call,
-                                                                      const uint32_t&                         in_n_execution)
-                                                               {
-                                                                   (void) in_chunk_source;
-                                                                   (void) in_n_call;
-                                                                   (void) in_n_execution;
+                                                               return &m_executor;
+                                                           },
+                                                           [this](const Capture::APIDumpLoader::DumpedAPICall&     in_call,
+                                                                  const Stereo::Replay::EngineDLL::IChunkSource& in_chunk_source,
+                                                                  const size_t&                                in_n_call,
+                                                                  const uint32_t&                         in_n_execution)
+                                                           {
+                                                               (void) in_chunk_source;
+                                                               (void) in_n_call;
+                                                               (void) in_n_execution;
 
-                                                                   m_event_vec.push_back(get_name(in_call.func) );
+                                                               m_event_vec.push_back(get_name(in_call.func) );
 
-                                                                   return (m_event_vec.size() != m_failing_event_count);
-                                                               },
-                                                               [this](const uint32_t& in_n_execution)
-                                                               {
-                                                                   m_event_vec.push_back("capture" + std::to_string(in_n_execution) );
+                                                               return (m_event_vec.size() != m_failing_event_count);
+                                                           },
+                                                           [this](const uint32_t& in_n_execution)
+                                                           {
+                                                               m_event_vec.push_back("capture" + std::to_string(in_n_execution) );
 
-                                                                   return m_capture_succeeds;
-                                                               });
+                                                               return m_capture_succeeds;
+                                                           });
     }
 
     /* A frame of a call of each class, in the order of a real one: the present comes last. */
@@ -136,15 +136,15 @@ protected:
         return result;
     }
 
-    Replay::StereoReplayEngineDLL::FrameBuffer m_buffer;
-    bool                                 m_begin_succeeds       = true;
-    bool                                 m_capture_succeeds     = true;
-    std::vector<std::string>             m_event_vec;
-    Executor                             m_executor;
-    size_t                               m_failing_event_count = 0;
-    bool                                 m_skips_repeated_calls = false;
-    Replay::StereoReplayEngineDLL::FrameExecutionOptions m_options;
-    Tests::MapChunkSource                 m_source;
+    Stereo::Replay::EngineDLL::FrameBuffer           m_buffer;
+    bool                                             m_begin_succeeds       = true;
+    bool                                             m_capture_succeeds     = true;
+    std::vector<std::string>                         m_event_vec;
+    Executor                                         m_executor;
+    size_t                                           m_failing_event_count  = 0;
+    bool                                             m_skips_repeated_calls = false;
+    Stereo::Replay::EngineDLL::FrameExecutionOptions m_options;
+    Tests::MapChunkSource                            m_source;
 };
 
 const APIInterceptor::APIFunction FrameRunnerTest::AFTER_ALL_FUNCTION  = APIInterceptor::APIFUNCTION_GL_GLALPHAFUNC;
@@ -153,7 +153,7 @@ const APIInterceptor::APIFunction FrameRunnerTest::FIRST_TIME_FUNCTION = APIInte
 
 TEST_F(FrameRunnerTest, AFrameExecutedOnceRunsEveryCallOnceAndThePresentLast)
 {
-    m_options.mode = Replay::StereoReplayEngineDLL::FrameExecution::BUFFERED_ONCE;
+    m_options.mode = Stereo::Replay::EngineDLL::FrameExecution::BUFFERED_ONCE;
 
     add_typical_frame();
 
@@ -165,7 +165,7 @@ TEST_F(FrameRunnerTest, AFrameExecutedOnceRunsEveryCallOnceAndThePresentLast)
 
 TEST_F(FrameRunnerTest, AFrameExecutedTwiceRepeatsWhatIsToBeRepeated)
 {
-    m_options.mode = Replay::StereoReplayEngineDLL::FrameExecution::TWICE;
+    m_options.mode = Stereo::Replay::EngineDLL::FrameExecution::TWICE;
 
     add_typical_frame();
 
@@ -179,7 +179,7 @@ TEST_F(FrameRunnerTest, AFrameExecutedTwiceRepeatsWhatIsToBeRepeated)
 
 TEST_F(FrameRunnerTest, TheOptionToRestoreTheStateSavesItOnceAndRestoresItBeforeTheSecondExecution)
 {
-    m_options.mode           = Replay::StereoReplayEngineDLL::FrameExecution::TWICE;
+    m_options.mode           = Stereo::Replay::EngineDLL::FrameExecution::TWICE;
     m_options.restores_state = true;
 
     add_typical_frame();
@@ -196,7 +196,7 @@ TEST_F(FrameRunnerTest, TheOptionToRestoreTheStateSavesItOnceAndRestoresItBefore
 
 TEST_F(FrameRunnerTest, TheStateIsLeftAloneIfTheFrameIsExecutedOnce)
 {
-    m_options.mode           = Replay::StereoReplayEngineDLL::FrameExecution::BUFFERED_ONCE;
+    m_options.mode           = Stereo::Replay::EngineDLL::FrameExecution::BUFFERED_ONCE;
     m_options.restores_state = true;
 
     add_typical_frame();
@@ -211,7 +211,7 @@ TEST_F(FrameRunnerTest, TheStateIsLeftAloneIfTheFrameIsExecutedOnce)
 
 TEST_F(FrameRunnerTest, AFrameCutShortIsExecutedOnceInItsOrderAndNotCaptured)
 {
-    m_options.mode = Replay::StereoReplayEngineDLL::FrameExecution::TWICE;
+    m_options.mode = Stereo::Replay::EngineDLL::FrameExecution::TWICE;
 
     add_typical_frame();
 
@@ -223,7 +223,7 @@ TEST_F(FrameRunnerTest, AFrameCutShortIsExecutedOnceInItsOrderAndNotCaptured)
 
 TEST_F(FrameRunnerTest, ACallThatFailsEndsTheRun)
 {
-    m_options.mode        = Replay::StereoReplayEngineDLL::FrameExecution::TWICE;
+    m_options.mode        = Stereo::Replay::EngineDLL::FrameExecution::TWICE;
     m_failing_event_count = 3;
 
     add_typical_frame();
@@ -235,7 +235,7 @@ TEST_F(FrameRunnerTest, ACallThatFailsEndsTheRun)
 
 TEST_F(FrameRunnerTest, ACallThatFailsInTheSecondExecutionEndsTheRunBeforeThePresent)
 {
-    m_options.mode        = Replay::StereoReplayEngineDLL::FrameExecution::TWICE;
+    m_options.mode        = Stereo::Replay::EngineDLL::FrameExecution::TWICE;
     m_failing_event_count = 6; /* the first call of the second execution */
 
     add_typical_frame();
@@ -251,7 +251,7 @@ TEST_F(FrameRunnerTest, ACallThatFailsInTheSecondExecutionEndsTheRunBeforeThePre
 
 TEST_F(FrameRunnerTest, DestroyingCallsInTheMiddleOfAFrameWaitForTheLastExecution)
 {
-    m_options.mode = Replay::StereoReplayEngineDLL::FrameExecution::TWICE;
+    m_options.mode = Stereo::Replay::EngineDLL::FrameExecution::TWICE;
 
     add_call(EVERY_TIME_FUNCTION);
     add_call(AFTER_ALL_FUNCTION); /* the frame destroys an object, say */
@@ -268,7 +268,7 @@ TEST_F(FrameRunnerTest, DestroyingCallsInTheMiddleOfAFrameWaitForTheLastExecutio
 
 TEST_F(FrameRunnerTest, AnEmptyFrameIsNothing)
 {
-    m_options.mode = Replay::StereoReplayEngineDLL::FrameExecution::TWICE;
+    m_options.mode = Stereo::Replay::EngineDLL::FrameExecution::TWICE;
 
     ASSERT_TRUE(run(true) );
 
@@ -278,7 +278,7 @@ TEST_F(FrameRunnerTest, AnEmptyFrameIsNothing)
 
 TEST_F(FrameRunnerTest, AFrameThatSkipsTheRepeatedCallsIsExecutedOnceWithoutThem)
 {
-    m_options.mode         = Replay::StereoReplayEngineDLL::FrameExecution::TWICE;
+    m_options.mode         = Stereo::Replay::EngineDLL::FrameExecution::TWICE;
     m_skips_repeated_calls = true;
 
     add_typical_frame();
@@ -293,48 +293,48 @@ TEST_F(FrameRunnerTest, TheCallsAreToldTheirPositionAndTheExecution)
 {
     std::vector<std::pair<size_t, uint32_t>> position_vec;
 
-    m_options.mode = Replay::StereoReplayEngineDLL::FrameExecution::TWICE;
+    m_options.mode = Stereo::Replay::EngineDLL::FrameExecution::TWICE;
 
     add_typical_frame();
 
     m_executor.event_vec = &m_event_vec;
 
-    ASSERT_TRUE(Replay::StereoReplayEngineDLL::FrameRunner::run(m_buffer,
-                                                                true,
-                                                                false,
-                                                                m_options,
-                                                                {&m_executor},
-                                                                [](const uint32_t& in_n_execution)
-                                                                {
-                                                                    (void) in_n_execution;
+    ASSERT_TRUE(Stereo::Replay::EngineDLL::FrameRunner::run(m_buffer,
+                                                            true,
+                                                            false,
+                                                            m_options,
+                                                            {&m_executor},
+                                                            [](const uint32_t& in_n_execution)
+                                                            {
+                                                                (void) in_n_execution;
 
-                                                                    return true;
-                                                                },
-                                                                [this](const Capture::APIDumpLoader::DumpedAPICall& in_call)
-                                                                {
-                                                                    (void) in_call;
+                                                                return true;
+                                                            },
+                                                            [this](const Capture::APIDumpLoader::DumpedAPICall& in_call)
+                                                            {
+                                                                (void) in_call;
 
-                                                                    return &m_executor;
-                                                                },
-                                                                [&](const Capture::APIDumpLoader::DumpedAPICall&  in_call,
-                                                                    const Replay::StereoReplayEngineDLL::IChunkSource& in_chunk_source,
-                                                                    const size_t&                                in_n_call,
-                                                                    const uint32_t&                      in_n_execution)
-                                                                {
-                                                                    (void) in_call;
-                                                                    (void) in_chunk_source;
+                                                                return &m_executor;
+                                                            },
+                                                            [&](const Capture::APIDumpLoader::DumpedAPICall&  in_call,
+                                                                const Stereo::Replay::EngineDLL::IChunkSource& in_chunk_source,
+                                                                const size_t&                                in_n_call,
+                                                                const uint32_t&                      in_n_execution)
+                                                            {
+                                                                (void) in_call;
+                                                                (void) in_chunk_source;
 
-                                                                    position_vec.push_back({in_n_call,
-                                                                                            in_n_execution});
+                                                                position_vec.push_back({in_n_call,
+                                                                                        in_n_execution});
 
-                                                                    return true;
-                                                                },
-                                                                [](const uint32_t& in_n_execution)
-                                                                {
-                                                                    (void) in_n_execution;
+                                                                return true;
+                                                            },
+                                                            [](const uint32_t& in_n_execution)
+                                                            {
+                                                                (void) in_n_execution;
 
-                                                                    return true;
-                                                                }) );
+                                                                return true;
+                                                            }) );
 
     /* every, first, every | every, every | after (the last execution) */
     const std::vector<std::pair<size_t, uint32_t>> expected_vec =
@@ -360,7 +360,7 @@ TEST_F(FrameRunnerTest, AFrameStopsWhenAnExecutionCannotBegin)
 
 TEST_F(FrameRunnerTest, AFrameStopsWhenACaptureFails)
 {
-    m_options.mode = Replay::StereoReplayEngineDLL::FrameExecution::TWICE;
+    m_options.mode = Stereo::Replay::EngineDLL::FrameExecution::TWICE;
 
     add_typical_frame();
 

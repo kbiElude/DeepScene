@@ -11,7 +11,7 @@
 
 TEST(ExecutorRegistryTest, AnApiWithNoExecutorGetsOneWhichDoesNothing)
 {
-    const Replay::StereoReplayEngineDLL::ExecutorRegistry registry;
+    const Stereo::Replay::EngineDLL::ExecutorRegistry registry;
 
     EXPECT_FALSE(registry.has_executor(Capture::APIDumpLoader::APIGroup::UNKNOWN) );
     EXPECT_NE(registry.get_executor_ptr(Capture::APIDumpLoader::APIGroup::UNKNOWN),
@@ -21,9 +21,9 @@ TEST(ExecutorRegistryTest, AnApiWithNoExecutorGetsOneWhichDoesNothing)
 
 TEST(ExecutorRegistryTest, AnExecutorWhichServesSeveralApisIsListedOnce)
 {
-    Replay::StereoReplayEngineDLL::ExecutorRegistry registry;
-    const auto                                shared_ptr = std::make_shared<Tests::StubCallExecutor>();
-    const auto                                single_ptr = std::make_shared<Tests::StubCallExecutor>();
+    Stereo::Replay::EngineDLL::ExecutorRegistry registry;
+    const auto                                  shared_ptr = std::make_shared<Tests::StubCallExecutor>();
+    const auto                                  single_ptr = std::make_shared<Tests::StubCallExecutor>();
 
     registry.add(Capture::APIDumpLoader::APIGroup::GDI32,
                  shared_ptr);
@@ -32,7 +32,7 @@ TEST(ExecutorRegistryTest, AnExecutorWhichServesSeveralApisIsListedOnce)
     registry.add(Capture::APIDumpLoader::APIGroup::USER32,
                  shared_ptr);
 
-    const std::vector<Replay::StereoReplayEngineDLL::ICallExecutor*> expected_vec = {shared_ptr.get(), single_ptr.get()};
+    const std::vector<Stereo::Replay::EngineDLL::ICallExecutor*> expected_vec = {shared_ptr.get(), single_ptr.get()};
 
     EXPECT_EQ(registry.get_executor_ptr_vec(),
               expected_vec);
@@ -44,16 +44,16 @@ TEST(ExecutorRegistryTest, AnExecutorWhichServesSeveralApisIsListedOnce)
 
 TEST(ExecutorRegistryTest, AddingAnExecutorForAnApiReplacesTheOldOne)
 {
-    Replay::StereoReplayEngineDLL::ExecutorRegistry registry;
-    const auto                                new_ptr = std::make_shared<Tests::StubCallExecutor>();
-    const auto                                old_ptr = std::make_shared<Tests::StubCallExecutor>();
+    Stereo::Replay::EngineDLL::ExecutorRegistry registry;
+    const auto                                  new_ptr = std::make_shared<Tests::StubCallExecutor>();
+    const auto                                  old_ptr = std::make_shared<Tests::StubCallExecutor>();
 
     registry.add(Capture::APIDumpLoader::APIGroup::GL,
                  old_ptr);
     registry.add(Capture::APIDumpLoader::APIGroup::GL,
                  new_ptr);
 
-    const std::vector<Replay::StereoReplayEngineDLL::ICallExecutor*> expected_vec = {new_ptr.get()};
+    const std::vector<Stereo::Replay::EngineDLL::ICallExecutor*> expected_vec = {new_ptr.get()};
 
     EXPECT_EQ(registry.get_executor_ptr_vec(),
               expected_vec);

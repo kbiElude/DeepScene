@@ -214,21 +214,21 @@ bool VR::VRPlayer::AppSession::start(const VR::AppCatalog::AppEntry& in_app,
                                      const bool&                     in_write_log,
                                      std::string*                    out_error_ptr)
 {
-    Capture::InjectionLauncher::TargetArchitecture architecture      = Capture::InjectionLauncher::TargetArchitecture::UNKNOWN;
-    std::unique_ptr<Stereo::StereoTransport::FrameChannel> channel_ptr;
-    HANDLE                                job                   = nullptr;
-    JOBOBJECT_EXTENDED_LIMIT_INFORMATION  job_limit             = {};
-    std::string                           launcher_command_line;
-    PROCESS_INFORMATION                   launcher_info         = {};
-    HANDLE                                pipe_read             = nullptr;
-    HANDLE                                pipe_write            = nullptr;
-    SessionRequest                        request;
-    bool                                  result                = false;
-    SECURITY_ATTRIBUTES                   security              = {};
-    STARTUPINFOA                          startup_info          = {};
-    std::string                           presenter_command_line;
-    PROCESS_INFORMATION                   presenter_info           = {};
-    HANDLE                                presenter_process        = nullptr;
+    Capture::InjectionLauncher::TargetArchitecture   architecture      = Capture::InjectionLauncher::TargetArchitecture::UNKNOWN;
+    std::unique_ptr<Stereo::Transport::FrameChannel> channel_ptr;
+    HANDLE                                           job               = nullptr;
+    JOBOBJECT_EXTENDED_LIMIT_INFORMATION             job_limit         = {};
+    std::string                                      launcher_command_line;
+    PROCESS_INFORMATION                              launcher_info     = {};
+    HANDLE                                           pipe_read         = nullptr;
+    HANDLE                                           pipe_write        = nullptr;
+    SessionRequest                                   request;
+    bool                                             result            = false;
+    SECURITY_ATTRIBUTES                              security          = {};
+    STARTUPINFOA                                     startup_info      = {};
+    std::string                                      presenter_command_line;
+    PROCESS_INFORMATION                              presenter_info    = {};
+    HANDLE                                           presenter_process = nullptr;
 
     if (m_state == SessionState::RUNNING)
     {
@@ -274,8 +274,8 @@ bool VR::VRPlayer::AppSession::start(const VR::AppCatalog::AppEntry& in_app,
     }
 
     /* The channel is made before anything is started, so that what is said through it is there when the converter first looks. */
-    channel_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(request.session_id,
-                                                                  out_error_ptr);
+    channel_ptr = Stereo::Transport::FrameChannel::open_ptr(request.session_id,
+                                                            out_error_ptr);
 
     if (channel_ptr == nullptr)
     {
@@ -287,9 +287,9 @@ bool VR::VRPlayer::AppSession::start(const VR::AppCatalog::AppEntry& in_app,
         in_target_eye_height > 0)
     {
         channel_ptr->set_target_eye_size(std::min<uint32_t>(in_target_eye_width,
-                                                            Stereo::StereoTransport::FrameChannel::get_max_width() / 2),
+                                                            Stereo::Transport::FrameChannel::get_max_width() / 2),
                                          std::min<uint32_t>(in_target_eye_height,
-                                                            Stereo::StereoTransport::FrameChannel::get_max_height() ));
+                                                            Stereo::Transport::FrameChannel::get_max_height() ));
     }
 
     /* Everything which is started belongs to a job, which ends it all when the session ends. */

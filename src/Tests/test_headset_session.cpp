@@ -6,12 +6,12 @@
  * not is said in words.
  */
 #include <gtest/gtest.h>
-#include "Stereo/StereoXR/headset_session.h"
+#include "Stereo/XR/headset_session.h"
 
 TEST(HeadsetSessionTest, ItStartsIfThereIsAHeadsetAndSaysWhyItDoesNotIfThereIsNot)
 {
     std::string error;
-    auto        session_ptr = Stereo::StereoXR::HeadsetSession::create_ptr(&error);
+    auto        session_ptr = Stereo::XR::HeadsetSession::create_ptr(&error);
 
     if (session_ptr == nullptr)
     {
@@ -30,7 +30,7 @@ TEST(HeadsetSessionTest, ItStartsIfThereIsAHeadsetAndSaysWhyItDoesNotIfThereIsNo
 TEST(HeadsetSessionTest, ASessionWhichIsAskedToEndEndsAtTheNextFrame)
 {
     std::string error;
-    auto        session_ptr = Stereo::StereoXR::HeadsetSession::create_ptr(&error);
+    auto        session_ptr = Stereo::XR::HeadsetSession::create_ptr(&error);
 
     if (session_ptr == nullptr)
     {
@@ -44,10 +44,10 @@ TEST(HeadsetSessionTest, ASessionWhichIsAskedToEndEndsAtTheNextFrame)
 
 TEST(HeadsetSessionTest, NoTexturesAreGivenBeforeTheSessionRuns)
 {
-    ID3D12Resource* left_ptr  = nullptr;
-    ID3D12Resource* right_ptr = nullptr;
+    ID3D12Resource* left_ptr    = nullptr;
+    ID3D12Resource* right_ptr   = nullptr;
     std::string     error;
-    auto            session_ptr = Stereo::StereoXR::HeadsetSession::create_ptr(&error);
+    auto            session_ptr = Stereo::XR::HeadsetSession::create_ptr(&error);
 
     if (session_ptr == nullptr)
     {

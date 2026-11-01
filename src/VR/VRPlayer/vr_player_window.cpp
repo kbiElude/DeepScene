@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "VR/VRPlayer/vr_player_window.h"
-#include "Stereo/StereoCore/resolution_policy.h"
+#include "Stereo/Core/resolution_policy.h"
 #include "VR/AppInstaller/file_system.h"
 #include "imgui.h"
 #include <algorithm>

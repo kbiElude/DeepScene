@@ -55,32 +55,32 @@ protected:
         }
 
         m_applier_ptr.reset(new Analysis::RecipeApplier::RecipeApplier(m_recipe) );
-        m_rewriter_ptr.reset(new Replay::StereoReplayEngineDLL::FrameRewriter(*m_applier_ptr) );
-        m_binder_ptr.reset(new Replay::StereoReplayEngineDLL::EyeMatrixBinder(*m_rewriter_ptr,
-                                                                              [this](const Capture::APIDumpLoader::DumpedAPICall&   in_call,
-                                                                                     const Replay::StereoReplayEngineDLL::IChunkSource& in_chunk_source)
+        m_rewriter_ptr.reset(new Stereo::Replay::EngineDLL::FrameRewriter(*m_applier_ptr) );
+        m_binder_ptr.reset(new Stereo::Replay::EngineDLL::EyeMatrixBinder(*m_rewriter_ptr,
+                                                                          [this](const Capture::APIDumpLoader::DumpedAPICall&   in_call,
+                                                                                 const Stereo::Replay::EngineDLL::IChunkSource& in_chunk_source)
+                                                                          {
+                                                                              Executed executed = {};
+
+                                                                              executed.state = in_call.arg_in_vec.at(1).get_u32();
+
+                                                                              const auto* chunk_ptr = in_chunk_source.get_data_chunk_ptr(in_call.arg_in_vec.at(2).get_data_chunk_id() );
+
+                                                                              if (chunk_ptr != nullptr)
                                                                               {
-                                                                                  Executed executed = {};
+                                                                                  float matrix[16];
 
-                                                                                  executed.state = in_call.arg_in_vec.at(1).get_u32();
+                                                                                  ::memcpy(matrix,
+                                                                                           chunk_ptr->data(),
+                                                                                           sizeof(matrix) );
 
-                                                                                  const auto* chunk_ptr = in_chunk_source.get_data_chunk_ptr(in_call.arg_in_vec.at(2).get_data_chunk_id() );
+                                                                                  executed.translation_x = matrix[12];
+                                                                              }
 
-                                                                                  if (chunk_ptr != nullptr)
-                                                                                  {
-                                                                                      float matrix[16];
+                                                                              m_executed_vec.push_back(executed);
 
-                                                                                      ::memcpy(matrix,
-                                                                                               chunk_ptr->data(),
-                                                                                               sizeof(matrix) );
-
-                                                                                      executed.translation_x = matrix[12];
-                                                                                  }
-
-                                                                                  m_executed_vec.push_back(executed);
-
-                                                                                  return m_execute_succeeds;
-                                                                              }) );
+                                                                              return m_execute_succeeds;
+                                                                          }) );
     }
 
     static std::array<float, 16> make_translation(const float& in_x)
@@ -125,10 +125,10 @@ protected:
     Tests::MapChunkSource       m_source;
 
     /* Each one refers to the one before it, so they are made and destroyed in this order. */
-    Analysis::RecipeLoader::Recipe                            m_recipe;
-    std::unique_ptr<Analysis::RecipeApplier::RecipeApplier>   m_applier_ptr;
-    std::unique_ptr<Replay::StereoReplayEngineDLL::FrameRewriter>   m_rewriter_ptr;
-    std::unique_ptr<Replay::StereoReplayEngineDLL::EyeMatrixBinder> m_binder_ptr;
+    Analysis::RecipeLoader::Recipe                              m_recipe;
+    std::unique_ptr<Analysis::RecipeApplier::RecipeApplier>     m_applier_ptr;
+    std::unique_ptr<Stereo::Replay::EngineDLL::FrameRewriter>   m_rewriter_ptr;
+    std::unique_ptr<Stereo::Replay::EngineDLL::EyeMatrixBinder> m_binder_ptr;
 };
 
 TEST_F(EyeMatrixBinderTest, ACallNoRuleIsAboutIsNotTaken)
@@ -258,15 +258,15 @@ TEST_F(EyeMatrixBinderTest, ACallTheRecipeDoesNotChangeIsLeftToTheCallerAndDrops
     m_recipe.rule_vec.at(0).matrix_kind = Analysis::RecipeLoader::MatrixKind::PERSPECTIVE;
 
     m_applier_ptr.reset(new Analysis::RecipeApplier::RecipeApplier(m_recipe) );
-    m_rewriter_ptr.reset(new Replay::StereoReplayEngineDLL::FrameRewriter(*m_applier_ptr) );
-    m_binder_ptr.reset(new Replay::StereoReplayEngineDLL::EyeMatrixBinder(*m_rewriter_ptr,
-                                                                          [this](const Capture::APIDumpLoader::DumpedAPICall&,
-                                                                                 const Replay::StereoReplayEngineDLL::IChunkSource&)
-                                                                          {
-                                                                              m_executed_vec.push_back({});
+    m_rewriter_ptr.reset(new Stereo::Replay::EngineDLL::FrameRewriter(*m_applier_ptr) );
+    m_binder_ptr.reset(new Stereo::Replay::EngineDLL::EyeMatrixBinder(*m_rewriter_ptr,
+                                                                      [this](const Capture::APIDumpLoader::DumpedAPICall&,
+                                                                             const Stereo::Replay::EngineDLL::IChunkSource&)
+                                                                      {
+                                                                          m_executed_vec.push_back({});
 
-                                                                              return true;
-                                                                          }) );
+                                                                          return true;
+                                                                      }) );
 
     set_transform(Interception::Hooks::D3D8::D3DTS_VIEW,
                   10.0f);
@@ -319,23 +319,23 @@ TEST_F(EyeMatrixBinderTest, AMatrixMadeForAnotherSeparationIsMadeAgainWhenTheSep
     m_recipe.rule_vec.push_back(rule);
 
     m_applier_ptr.reset(new Analysis::RecipeApplier::RecipeApplier(m_recipe) );
-    m_rewriter_ptr.reset(new Replay::StereoReplayEngineDLL::FrameRewriter(*m_applier_ptr) );
-    m_binder_ptr.reset(new Replay::StereoReplayEngineDLL::EyeMatrixBinder(*m_rewriter_ptr,
-                                                                          [this](const Capture::APIDumpLoader::DumpedAPICall&   in_call,
-                                                                                 const Replay::StereoReplayEngineDLL::IChunkSource& in_chunk_source)
-                                                                          {
-                                                                              float matrix[16];
+    m_rewriter_ptr.reset(new Stereo::Replay::EngineDLL::FrameRewriter(*m_applier_ptr) );
+    m_binder_ptr.reset(new Stereo::Replay::EngineDLL::EyeMatrixBinder(*m_rewriter_ptr,
+                                                                      [this](const Capture::APIDumpLoader::DumpedAPICall&   in_call,
+                                                                             const Stereo::Replay::EngineDLL::IChunkSource& in_chunk_source)
+                                                                      {
+                                                                          float matrix[16];
 
-                                                                              const auto* chunk_ptr = in_chunk_source.get_data_chunk_ptr(in_call.arg_in_vec.at(2).get_data_chunk_id() );
+                                                                          const auto* chunk_ptr = in_chunk_source.get_data_chunk_ptr(in_call.arg_in_vec.at(2).get_data_chunk_id() );
 
-                                                                              ::memcpy(matrix,
-                                                                                       chunk_ptr->data(),
-                                                                                       sizeof(matrix) );
+                                                                          ::memcpy(matrix,
+                                                                                   chunk_ptr->data(),
+                                                                                   sizeof(matrix) );
 
-                                                                              m_executed_vec.push_back({matrix[12], Interception::Hooks::D3D8::D3DTS_VIEW});
+                                                                          m_executed_vec.push_back({matrix[12], Interception::Hooks::D3D8::D3DTS_VIEW});
 
-                                                                              return true;
-                                                                          }) );
+                                                                          return true;
+                                                                      }) );
 
     set_transform(Interception::Hooks::D3D8::D3DTS_VIEW,
                   10.0f,

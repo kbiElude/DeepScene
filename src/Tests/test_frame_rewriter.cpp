@@ -84,12 +84,12 @@ protected:
 
 TEST_F(FrameRewriterTest, TheMatrixOfTheCallIsChangedForTheEye)
 {
-    const Analysis::RecipeApplier::RecipeApplier applier(m_recipe);
-    Replay::StereoReplayEngineDLL::OverlayChunkSource  left_overlay(m_source);
-    Replay::StereoReplayEngineDLL::OverlayChunkSource  right_overlay(m_source);
-    const Replay::StereoReplayEngineDLL::FrameRewriter rewriter(applier);
-    Capture::APIDumpLoader::DumpedAPICall     left_call;
-    Capture::APIDumpLoader::DumpedAPICall     right_call;
+    const Analysis::RecipeApplier::RecipeApplier   applier(m_recipe);
+    Stereo::Replay::EngineDLL::OverlayChunkSource  left_overlay(m_source);
+    Stereo::Replay::EngineDLL::OverlayChunkSource  right_overlay(m_source);
+    const Stereo::Replay::EngineDLL::FrameRewriter rewriter(applier);
+    Capture::APIDumpLoader::DumpedAPICall          left_call;
+    Capture::APIDumpLoader::DumpedAPICall          right_call;
 
     ASSERT_TRUE(rewriter.rewrite(m_call,
                                  {},
@@ -119,10 +119,10 @@ TEST_F(FrameRewriterTest, TheMatrixOfTheCallIsChangedForTheEye)
 
 TEST_F(FrameRewriterTest, TheCallIsCopiedWithOnlyTheMatrixArgumentChanged)
 {
-    const Analysis::RecipeApplier::RecipeApplier applier(m_recipe);
-    Replay::StereoReplayEngineDLL::OverlayChunkSource  overlay(m_source);
-    const Replay::StereoReplayEngineDLL::FrameRewriter rewriter(applier);
-    Capture::APIDumpLoader::DumpedAPICall              rewritten;
+    const Analysis::RecipeApplier::RecipeApplier   applier(m_recipe);
+    Stereo::Replay::EngineDLL::OverlayChunkSource  overlay(m_source);
+    const Stereo::Replay::EngineDLL::FrameRewriter rewriter(applier);
+    Capture::APIDumpLoader::DumpedAPICall          rewritten;
 
     ASSERT_TRUE(rewriter.rewrite(m_call,
                                  {},
@@ -147,10 +147,10 @@ TEST_F(FrameRewriterTest, TheCallIsCopiedWithOnlyTheMatrixArgumentChanged)
 
 TEST_F(FrameRewriterTest, WhatWasPlayedIsLeftAsItWas)
 {
-    const Analysis::RecipeApplier::RecipeApplier applier(m_recipe);
-    Replay::StereoReplayEngineDLL::OverlayChunkSource  overlay(m_source);
-    const Replay::StereoReplayEngineDLL::FrameRewriter rewriter(applier);
-    Capture::APIDumpLoader::DumpedAPICall              rewritten;
+    const Analysis::RecipeApplier::RecipeApplier   applier(m_recipe);
+    Stereo::Replay::EngineDLL::OverlayChunkSource  overlay(m_source);
+    const Stereo::Replay::EngineDLL::FrameRewriter rewriter(applier);
+    Capture::APIDumpLoader::DumpedAPICall          rewritten;
 
     ASSERT_TRUE(rewriter.rewrite(m_call,
                                  {},
@@ -171,10 +171,10 @@ TEST_F(FrameRewriterTest, WhatWasPlayedIsLeftAsItWas)
 
 TEST_F(FrameRewriterTest, ACallNoRuleIsAboutIsNotRewritten)
 {
-    const Analysis::RecipeApplier::RecipeApplier applier(m_recipe);
-    Replay::StereoReplayEngineDLL::OverlayChunkSource  overlay(m_source);
-    const Replay::StereoReplayEngineDLL::FrameRewriter rewriter(applier);
-    Capture::APIDumpLoader::DumpedAPICall              rewritten;
+    const Analysis::RecipeApplier::RecipeApplier   applier(m_recipe);
+    Stereo::Replay::EngineDLL::OverlayChunkSource  overlay(m_source);
+    const Stereo::Replay::EngineDLL::FrameRewriter rewriter(applier);
+    Capture::APIDumpLoader::DumpedAPICall          rewritten;
 
     m_call.arg_in_vec.at(1) = APIInterceptor::APIFunctionArgument::create_u32(Interception::Hooks::D3D8::D3DTS_PROJECTION);
 
@@ -188,8 +188,8 @@ TEST_F(FrameRewriterTest, ACallNoRuleIsAboutIsNotRewritten)
 
 TEST_F(FrameRewriterTest, OnlyACallARuleIsAboutHasAMatchingRule)
 {
-    const Analysis::RecipeApplier::RecipeApplier applier(m_recipe);
-    const Replay::StereoReplayEngineDLL::FrameRewriter      rewriter(applier);
+    const Analysis::RecipeApplier::RecipeApplier   applier(m_recipe);
+    const Stereo::Replay::EngineDLL::FrameRewriter rewriter(applier);
 
     EXPECT_TRUE(rewriter.has_matching_rule(m_call,
                                            {}) );
@@ -202,10 +202,10 @@ TEST_F(FrameRewriterTest, OnlyACallARuleIsAboutHasAMatchingRule)
 
 TEST_F(FrameRewriterTest, ACallWhoseMatrixIsNotThereOrNotAMatrixIsNotRewritten)
 {
-    const Analysis::RecipeApplier::RecipeApplier applier(m_recipe);
-    Replay::StereoReplayEngineDLL::OverlayChunkSource  overlay(m_source);
-    const Replay::StereoReplayEngineDLL::FrameRewriter rewriter(applier);
-    Capture::APIDumpLoader::DumpedAPICall              rewritten;
+    const Analysis::RecipeApplier::RecipeApplier   applier(m_recipe);
+    Stereo::Replay::EngineDLL::OverlayChunkSource  overlay(m_source);
+    const Stereo::Replay::EngineDLL::FrameRewriter rewriter(applier);
+    Capture::APIDumpLoader::DumpedAPICall          rewritten;
 
     m_source.chunk_map[MATRIX_CHUNK_ID] = Capture::APIDumpLoader::DataChunk(12);
 
@@ -230,11 +230,11 @@ TEST_F(FrameRewriterTest, ARuleForAPassRewritesOnlyTheCallsOfThatPass)
 {
     m_recipe.rule_vec.at(0).pass_key_vec = {0xabc};
 
-    const Analysis::RecipeApplier::RecipeApplier applier(m_recipe);
-    Replay::StereoReplayEngineDLL::OverlayChunkSource  overlay(m_source);
-    const Replay::StereoReplayEngineDLL::FrameRewriter rewriter(applier);
-    Capture::APIDumpLoader::DumpedAPICall rewritten;
-    Analysis::RecipeApplier::CallPlace    place;
+    const Analysis::RecipeApplier::RecipeApplier   applier(m_recipe);
+    Stereo::Replay::EngineDLL::OverlayChunkSource  overlay(m_source);
+    const Stereo::Replay::EngineDLL::FrameRewriter rewriter(applier);
+    Capture::APIDumpLoader::DumpedAPICall          rewritten;
+    Analysis::RecipeApplier::CallPlace             place;
 
     place.has_pass = true;
     place.pass_key = 0xdef;
@@ -260,10 +260,10 @@ TEST_F(FrameRewriterTest, ARuleForAKindOfMatrixLeavesTheCallAloneIfItIsAnother)
 {
     m_recipe.rule_vec.at(0).matrix_kind = Analysis::RecipeLoader::MatrixKind::PERSPECTIVE;
 
-    const Analysis::RecipeApplier::RecipeApplier applier(m_recipe);
-    Replay::StereoReplayEngineDLL::OverlayChunkSource  overlay(m_source);
-    const Replay::StereoReplayEngineDLL::FrameRewriter rewriter(applier);
-    Capture::APIDumpLoader::DumpedAPICall              rewritten;
+    const Analysis::RecipeApplier::RecipeApplier   applier(m_recipe);
+    Stereo::Replay::EngineDLL::OverlayChunkSource  overlay(m_source);
+    const Stereo::Replay::EngineDLL::FrameRewriter rewriter(applier);
+    Capture::APIDumpLoader::DumpedAPICall          rewritten;
 
     /* A translation is not a perspective projection. */
     EXPECT_FALSE(rewriter.rewrite(m_call,
@@ -278,10 +278,10 @@ TEST_F(FrameRewriterTest, RulesApplyOneAfterTheOtherToTheMatrixTheLastLeft)
 {
     m_recipe.rule_vec.push_back(m_recipe.rule_vec.at(0) );
 
-    const Analysis::RecipeApplier::RecipeApplier applier(m_recipe);
-    Replay::StereoReplayEngineDLL::OverlayChunkSource  overlay(m_source);
-    const Replay::StereoReplayEngineDLL::FrameRewriter rewriter(applier);
-    Capture::APIDumpLoader::DumpedAPICall              rewritten;
+    const Analysis::RecipeApplier::RecipeApplier   applier(m_recipe);
+    Stereo::Replay::EngineDLL::OverlayChunkSource  overlay(m_source);
+    const Stereo::Replay::EngineDLL::FrameRewriter rewriter(applier);
+    Capture::APIDumpLoader::DumpedAPICall          rewritten;
 
     ASSERT_TRUE(rewriter.rewrite(m_call,
                                  {},

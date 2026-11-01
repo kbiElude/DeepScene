@@ -26,7 +26,7 @@ static Capture::APIDumpLoader::DumpedAPICall make_call(const std::vector<uint32_
 
 TEST(FrameBuffer, ACallAndItsChunksOutliveTheSource)
 {
-    Replay::StereoReplayEngineDLL::FrameBuffer buffer;
+    Stereo::Replay::EngineDLL::FrameBuffer buffer;
 
     {
         Tests::MapChunkSource source;
@@ -56,8 +56,8 @@ TEST(FrameBuffer, ACallAndItsChunksOutliveTheSource)
 
 TEST(FrameBuffer, CallsKeepTheirOrder)
 {
-    Replay::StereoReplayEngineDLL::FrameBuffer buffer;
-    Tests::MapChunkSource              source;
+    Stereo::Replay::EngineDLL::FrameBuffer buffer;
+    Tests::MapChunkSource                  source;
 
     for (uint32_t n_call = 0;
                   n_call < 5;
@@ -85,8 +85,8 @@ TEST(FrameBuffer, CallsKeepTheirOrder)
 
 TEST(FrameBuffer, AChunkThatSeveralCallsUseIsKeptOnce)
 {
-    Replay::StereoReplayEngineDLL::FrameBuffer buffer;
-    Tests::MapChunkSource              source;
+    Stereo::Replay::EngineDLL::FrameBuffer buffer;
+    Tests::MapChunkSource                  source;
 
     source.chunk_map[9] = {1, 2};
 
@@ -105,9 +105,9 @@ TEST(FrameBuffer, AChunkThatSeveralCallsUseIsKeptOnce)
 
 TEST(FrameBuffer, AChunkOfAnOutputArgumentIsCopiedToo)
 {
-    Replay::StereoReplayEngineDLL::FrameBuffer buffer;
-    auto                                 call = make_call({});
-    Tests::MapChunkSource              source;
+    Stereo::Replay::EngineDLL::FrameBuffer buffer;
+    auto                                   call = make_call({});
+    Tests::MapChunkSource                  source;
 
     source.chunk_map[3] = {8, 8};
 
@@ -124,8 +124,8 @@ TEST(FrameBuffer, AChunkOfAnOutputArgumentIsCopiedToo)
 
 TEST(FrameBuffer, AChunkTheSourceDoesNotHaveIsNotThereEither)
 {
-    Replay::StereoReplayEngineDLL::FrameBuffer buffer;
-    Tests::MapChunkSource              source;
+    Stereo::Replay::EngineDLL::FrameBuffer buffer;
+    Tests::MapChunkSource                  source;
 
     buffer.add_call(make_call({42}),
                     source);
@@ -138,9 +138,9 @@ TEST(FrameBuffer, AChunkTheSourceDoesNotHaveIsNotThereEither)
 
 TEST(FrameBuffer, TheReturnedValueIsCopied)
 {
-    Replay::StereoReplayEngineDLL::FrameBuffer buffer;
-    auto                                 call = make_call({});
-    Tests::MapChunkSource              source;
+    Stereo::Replay::EngineDLL::FrameBuffer buffer;
+    auto                                   call = make_call({});
+    Tests::MapChunkSource                  source;
 
     call.returned_value_ptr.reset(new APIInterceptor::APIFunctionArgument(APIInterceptor::APIFunctionArgument::create_fp32(2.5f) ));
 
@@ -157,8 +157,8 @@ TEST(FrameBuffer, TheReturnedValueIsCopied)
 
 TEST(FrameBuffer, ThePointerSizeIsThatOfTheSource)
 {
-    Replay::StereoReplayEngineDLL::FrameBuffer buffer;
-    Tests::MapChunkSource              source;
+    Stereo::Replay::EngineDLL::FrameBuffer buffer;
+    Tests::MapChunkSource                  source;
 
     source.pointer_n_bytes = 8;
 
@@ -171,8 +171,8 @@ TEST(FrameBuffer, ThePointerSizeIsThatOfTheSource)
 
 TEST(FrameBuffer, ClearingMakesItEmpty)
 {
-    Replay::StereoReplayEngineDLL::FrameBuffer buffer;
-    Tests::MapChunkSource              source;
+    Stereo::Replay::EngineDLL::FrameBuffer buffer;
+    Tests::MapChunkSource                  source;
 
     source.chunk_map[1] = {1};
 

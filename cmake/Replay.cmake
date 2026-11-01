@@ -2,14 +2,14 @@
 # interceptor (D3D8Utils) and the analysis of a capture; the window is the one of UIHost (see VR.cmake), drawn with the Dear ImGui of the
 # interceptor. The 32-bit pair has its own names, so that the 64-bit player can find it next to itself (see PlayerLauncher).
 
-file(GLOB StereoReplayEngineDLLIncludes CONFIGURE_DEPENDS        "${DemoVRPlayer_SOURCE_DIR}/include/Replay/StereoReplayEngineDLL/*.h")
-file(GLOB StereoReplayEngineDLLPrivateIncludes CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayEngineDLL/*.h")
-file(GLOB StereoReplayEngineDLLSources CONFIGURE_DEPENDS         "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayEngineDLL/*.cpp")
+file(GLOB StereoReplayEngineDLLIncludes CONFIGURE_DEPENDS        "${DemoVRPlayer_SOURCE_DIR}/include/Stereo/Replay/EngineDLL/*.h")
+file(GLOB StereoReplayEngineDLLPrivateIncludes CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/EngineDLL/*.h")
+file(GLOB StereoReplayEngineDLLSources CONFIGURE_DEPENDS         "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/EngineDLL/*.cpp")
 
 add_library(StereoReplayEngineDLL SHARED ${StereoReplayEngineDLLIncludes} ${StereoReplayEngineDLLPrivateIncludes} ${StereoReplayEngineDLLSources})
 
 target_compile_definitions(StereoReplayEngineDLL PRIVATE STEREOREPLAYENGINEDLL_BUILDING_DLL)
-target_include_directories(StereoReplayEngineDLL PRIVATE "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayEngineDLL")
+target_include_directories(StereoReplayEngineDLL PRIVATE "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/EngineDLL")
 target_link_libraries     (StereoReplayEngineDLL APIDumpAnalysisFrontends APIDumpLoader RecipeApplier D3D8Utils gdi32 opengl32 user32 winmm)
 
 if (CMAKE_SIZEOF_VOID_P EQUAL 4)
@@ -19,8 +19,8 @@ endif()
 source_group ("Stereo Replay Engine include files" FILES ${StereoReplayEngineDLLIncludes} ${StereoReplayEngineDLLPrivateIncludes})
 source_group ("Stereo Replay Engine source files"  FILES ${StereoReplayEngineDLLSources})
 
-file(GLOB StereoReplayPlayerSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayPlayer/*.cpp"
-                                                      "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayPlayer/*.h")
+file(GLOB StereoReplayPlayerSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/Player/*.cpp"
+                                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/Player/*.h")
 
 add_executable(StereoReplayPlayer ${StereoReplayPlayerSources})
 
@@ -32,8 +32,8 @@ endif()
 
 source_group ("StereoReplayPlayer source files" FILES ${StereoReplayPlayerSources})
 
-file(GLOB StereoReplayConsistencyCheckerSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayConsistencyChecker/*.cpp"
-                                                                  "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayConsistencyChecker/*.h")
+file(GLOB StereoReplayConsistencyCheckerSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/ConsistencyChecker/*.cpp"
+                                                                  "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/ConsistencyChecker/*.h")
 
 add_executable(StereoReplayConsistencyChecker ${StereoReplayConsistencyCheckerSources})
 

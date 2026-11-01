@@ -9,10 +9,10 @@
 
 TEST(LiveObjectList, TheObjectsComeOutNewestFirst)
 {
-    Replay::StereoReplayEngineDLL::LiveObjectList list;
-    int                                     a = 0;
-    int                                     b = 0;
-    int                                     c = 0;
+    Stereo::Replay::EngineDLL::LiveObjectList list;
+    int                                       a = 0;
+    int                                       b = 0;
+    int                                       c = 0;
 
     /* The addresses of the objects are not in the order of their creation. */
     list.add(&b);
@@ -25,9 +25,9 @@ TEST(LiveObjectList, TheObjectsComeOutNewestFirst)
 
 TEST(LiveObjectList, AddingAnObjectAgainLeavesItWhereItIs)
 {
-    Replay::StereoReplayEngineDLL::LiveObjectList list;
-    int                                     a = 0;
-    int                                     b = 0;
+    Stereo::Replay::EngineDLL::LiveObjectList list;
+    int                                       a = 0;
+    int                                       b = 0;
 
     list.add(&a);
     list.add(&b);
@@ -39,9 +39,9 @@ TEST(LiveObjectList, AddingAnObjectAgainLeavesItWhereItIs)
 
 TEST(LiveObjectList, ARemovedObjectIsGoneAndOneAddedAfterItIsNewest)
 {
-    Replay::StereoReplayEngineDLL::LiveObjectList list;
-    int                                     a = 0;
-    int                                     b = 0;
+    Stereo::Replay::EngineDLL::LiveObjectList list;
+    int                                       a = 0;
+    int                                       b = 0;
 
     list.add   (&a);
     list.add   (&b);
@@ -61,8 +61,8 @@ TEST(LiveObjectList, ManyObjectsAreAddedAndRemovedWithoutAScan)
 {
     constexpr size_t N_OBJECTS = 20000;
 
-    Replay::StereoReplayEngineDLL::LiveObjectList list;
-    std::vector<int>                object_vec(N_OBJECTS);
+    Stereo::Replay::EngineDLL::LiveObjectList list;
+    std::vector<int>                          object_vec(N_OBJECTS);
 
     for (auto& object : object_vec)
     {

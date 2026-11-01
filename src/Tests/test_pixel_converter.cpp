@@ -15,12 +15,12 @@ TEST(PixelConverter, A32BitFormatKeepsItsColorsAndIsOpaque)
     const uint8_t        pixel_array[] = {10, 20, 30, 0,   40, 50, 60, 7};
     std::vector<uint8_t> out_vec;
 
-    ASSERT_TRUE(Replay::StereoReplayEngineDLL::PixelConverter::convert_to_bgra8(Interception::Hooks::D3D8::D3DFMT_X8R8G8B8,
-                                                                                2,
-                                                                                1,
-                                                                                sizeof(pixel_array),
-                                                                                pixel_array,
-                                                                               &out_vec) );
+    ASSERT_TRUE(Stereo::Replay::EngineDLL::PixelConverter::convert_to_bgra8(Interception::Hooks::D3D8::D3DFMT_X8R8G8B8,
+                                                                            2,
+                                                                            1,
+                                                                            sizeof(pixel_array),
+                                                                            pixel_array,
+                                                                           &out_vec) );
     EXPECT_EQ(out_vec,
               (std::vector<uint8_t>{10, 20, 30, 255,   40, 50, 60, 255}) );
 }
@@ -31,12 +31,12 @@ TEST(PixelConverter, A16BitFormatIsExpandedToEightBitsPerChannel)
     const uint16_t       pixel_array[] = {0xffff, 0x001f};
     std::vector<uint8_t> out_vec;
 
-    ASSERT_TRUE(Replay::StereoReplayEngineDLL::PixelConverter::convert_to_bgra8(Interception::Hooks::D3D8::D3DFMT_R5G6B5,
-                                                                                2,
-                                                                                1,
-                                                                                sizeof(pixel_array),
-                                                                                reinterpret_cast<const uint8_t*>(pixel_array),
-                                                                               &out_vec) );
+    ASSERT_TRUE(Stereo::Replay::EngineDLL::PixelConverter::convert_to_bgra8(Interception::Hooks::D3D8::D3DFMT_R5G6B5,
+                                                                            2,
+                                                                            1,
+                                                                            sizeof(pixel_array),
+                                                                            reinterpret_cast<const uint8_t*>(pixel_array),
+                                                                           &out_vec) );
     EXPECT_EQ(out_vec,
               (std::vector<uint8_t>{255, 255, 255, 255,   255, 0, 0, 255}) );
 }
@@ -47,21 +47,21 @@ TEST(PixelConverter, TheFourBitAndFiveBitFormatsAreExpandedToo)
     const uint16_t       xrgb1555[] = {0x7c00};         /* R 31 */
     std::vector<uint8_t> out_vec;
 
-    ASSERT_TRUE(Replay::StereoReplayEngineDLL::PixelConverter::convert_to_bgra8(Interception::Hooks::D3D8::D3DFMT_A4R4G4B4,
-                                                                                1,
-                                                                                1,
-                                                                                sizeof(argb4444),
-                                                                                reinterpret_cast<const uint8_t*>(argb4444),
-                                                                               &out_vec) );
+    ASSERT_TRUE(Stereo::Replay::EngineDLL::PixelConverter::convert_to_bgra8(Interception::Hooks::D3D8::D3DFMT_A4R4G4B4,
+                                                                            1,
+                                                                            1,
+                                                                            sizeof(argb4444),
+                                                                            reinterpret_cast<const uint8_t*>(argb4444),
+                                                                           &out_vec) );
     EXPECT_EQ(out_vec,
               (std::vector<uint8_t>{0, 255, 0, 255}) );
 
-    ASSERT_TRUE(Replay::StereoReplayEngineDLL::PixelConverter::convert_to_bgra8(Interception::Hooks::D3D8::D3DFMT_X1R5G5B5,
-                                                                                1,
-                                                                                1,
-                                                                                sizeof(xrgb1555),
-                                                                                reinterpret_cast<const uint8_t*>(xrgb1555),
-                                                                               &out_vec) );
+    ASSERT_TRUE(Stereo::Replay::EngineDLL::PixelConverter::convert_to_bgra8(Interception::Hooks::D3D8::D3DFMT_X1R5G5B5,
+                                                                            1,
+                                                                            1,
+                                                                            sizeof(xrgb1555),
+                                                                            reinterpret_cast<const uint8_t*>(xrgb1555),
+                                                                           &out_vec) );
     EXPECT_EQ(out_vec,
               (std::vector<uint8_t>{0, 0, 255, 255}) );
 }
@@ -79,12 +79,12 @@ TEST(PixelConverter, RowsAreReadWhereThePitchSaysAndWrittenWithoutPadding)
     pixel_array[9] = 5;
     pixel_array[10] = 6;
 
-    ASSERT_TRUE(Replay::StereoReplayEngineDLL::PixelConverter::convert_to_bgra8(Interception::Hooks::D3D8::D3DFMT_A8R8G8B8,
-                                                                                1,
-                                                                                2,
-                                                                                8,
-                                                                                pixel_array,
-                                                                               &out_vec) );
+    ASSERT_TRUE(Stereo::Replay::EngineDLL::PixelConverter::convert_to_bgra8(Interception::Hooks::D3D8::D3DFMT_A8R8G8B8,
+                                                                            1,
+                                                                            2,
+                                                                            8,
+                                                                            pixel_array,
+                                                                           &out_vec) );
     EXPECT_EQ(out_vec,
               (std::vector<uint8_t>{1, 2, 3, 255,   4, 5, 6, 255}) );
 }
@@ -94,12 +94,12 @@ TEST(PixelConverter, AFormatThatIsNotConvertedGivesNothing)
     const uint8_t        pixel_array[4] = {};
     std::vector<uint8_t> out_vec       = {1, 2, 3};
 
-    EXPECT_FALSE(Replay::StereoReplayEngineDLL::PixelConverter::convert_to_bgra8(Interception::Hooks::D3D8::D3DFMT_UNKNOWN,
-                                                                                 1,
-                                                                                 1,
-                                                                                 4,
-                                                                                 pixel_array,
-                                                                                &out_vec) );
+    EXPECT_FALSE(Stereo::Replay::EngineDLL::PixelConverter::convert_to_bgra8(Interception::Hooks::D3D8::D3DFMT_UNKNOWN,
+                                                                             1,
+                                                                             1,
+                                                                             4,
+                                                                             pixel_array,
+                                                                            &out_vec) );
     EXPECT_TRUE (out_vec.empty() );
 }
 
@@ -148,12 +148,12 @@ TEST(PixelConverter, EveryValueOfEvery16BitFormatIsConvertedAsTheFormatSays)
     {
         std::vector<uint8_t> out_vec;
 
-        ASSERT_TRUE(Replay::StereoReplayEngineDLL::PixelConverter::convert_to_bgra8(format.format,
-                                                                                    N_VALUES,
-                                                                                    1,
-                                                                                    N_VALUES * sizeof(uint16_t),
-                                                                                    reinterpret_cast<const uint8_t*>(value_vec.data() ),
-                                                                                   &out_vec) );
+        ASSERT_TRUE(Stereo::Replay::EngineDLL::PixelConverter::convert_to_bgra8(format.format,
+                                                                                N_VALUES,
+                                                                                1,
+                                                                                N_VALUES * sizeof(uint16_t),
+                                                                                reinterpret_cast<const uint8_t*>(value_vec.data() ),
+                                                                               &out_vec) );
         ASSERT_EQ(out_vec.size(),
                   static_cast<size_t>(N_VALUES) * 4);
 
@@ -202,12 +202,12 @@ TEST(PixelConverter, RowsWithPaddingAreReadByTheirPitchAndTheOutputHasNone)
         }
     }
 
-    ASSERT_TRUE(Replay::StereoReplayEngineDLL::PixelConverter::convert_to_bgra8(Interception::Hooks::D3D8::D3DFMT_X8R8G8B8,
-                                                                                WIDTH,
-                                                                                HEIGHT,
-                                                                                PITCH,
-                                                                                in_vec.data(),
-                                                                               &out_vec) );
+    ASSERT_TRUE(Stereo::Replay::EngineDLL::PixelConverter::convert_to_bgra8(Interception::Hooks::D3D8::D3DFMT_X8R8G8B8,
+                                                                            WIDTH,
+                                                                            HEIGHT,
+                                                                            PITCH,
+                                                                            in_vec.data(),
+                                                                           &out_vec) );
     ASSERT_EQ(out_vec.size(),
               static_cast<size_t>(WIDTH * HEIGHT * 4) );
 
@@ -239,11 +239,11 @@ TEST(PixelConverter, AFormatWhichIsNotConvertedLeavesTheOutputEmptyEvenIfItHeldA
     std::vector<uint8_t> out_vec(100,
                                  1);
 
-    EXPECT_FALSE(Replay::StereoReplayEngineDLL::PixelConverter::convert_to_bgra8(Interception::Hooks::D3D8::D3DFMT_D24S8,
-                                                                                 1,
-                                                                                 1,
-                                                                                 sizeof(pixel_array),
-                                                                                 pixel_array,
-                                                                                &out_vec) );
+    EXPECT_FALSE(Stereo::Replay::EngineDLL::PixelConverter::convert_to_bgra8(Interception::Hooks::D3D8::D3DFMT_D24S8,
+                                                                             1,
+                                                                             1,
+                                                                             sizeof(pixel_array),
+                                                                             pixel_array,
+                                                                            &out_vec) );
     EXPECT_TRUE(out_vec.empty() );
 }

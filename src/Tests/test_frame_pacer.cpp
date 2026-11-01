@@ -11,9 +11,9 @@
 constexpr uint64_t QPC_FREQUENCY = 1000; /* a tick is a millisecond */
 
 /* Waits for n_frames frames, gap_ticks apart. Returns the milliseconds that took. */
-static double wait_for_frames(Replay::StereoReplayEngineDLL::FramePacer* inout_pacer_ptr,
-                                    const uint32_t&                      in_n_frames,
-                                    const uint64_t&                      in_gap_ticks)
+static double wait_for_frames(Stereo::Replay::EngineDLL::FramePacer* inout_pacer_ptr,
+                              const uint32_t&                        in_n_frames,
+                              const uint64_t&                        in_gap_ticks)
 {
     const auto start = std::chrono::steady_clock::now();
 
@@ -30,7 +30,7 @@ static double wait_for_frames(Replay::StereoReplayEngineDLL::FramePacer* inout_p
 
 TEST(FramePacer, FramesComeAtTheRecordedPace)
 {
-    Replay::StereoReplayEngineDLL::FramePacer pacer;
+    Stereo::Replay::EngineDLL::FramePacer pacer;
 
     /* The first frame does not wait: 10 frames, 9 gaps of 10 ms. */
     EXPECT_GE(wait_for_frames(&pacer,
@@ -41,7 +41,7 @@ TEST(FramePacer, FramesComeAtTheRecordedPace)
 
 TEST(FramePacer, TwiceTheSpeedHalvesTheTime)
 {
-    Replay::StereoReplayEngineDLL::FramePacer pacer;
+    Stereo::Replay::EngineDLL::FramePacer pacer;
 
     pacer.set_speed(2.0);
 
@@ -57,7 +57,7 @@ TEST(FramePacer, TwiceTheSpeedHalvesTheTime)
 
 TEST(FramePacer, ZeroSpeedDoesNotWait)
 {
-    Replay::StereoReplayEngineDLL::FramePacer pacer;
+    Stereo::Replay::EngineDLL::FramePacer pacer;
 
     pacer.set_speed(0.0);
 
@@ -69,7 +69,7 @@ TEST(FramePacer, ZeroSpeedDoesNotWait)
 
 TEST(FramePacer, ALongGapIsCutShort)
 {
-    Replay::StereoReplayEngineDLL::FramePacer pacer;
+    Stereo::Replay::EngineDLL::FramePacer pacer;
 
     /* Two frames, 10 seconds apart. */
     EXPECT_LT(wait_for_frames(&pacer,

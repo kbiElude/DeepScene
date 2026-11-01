@@ -12,7 +12,7 @@ Tests::GlContextFixture::GlContextFixture()
     info.has_explicit_program = false;
     info.ignored_param_mask   = 0;
     info.name_ptr             = "glTest";
-    info.return_kind          = Replay::StereoReplayEngineDLL::ObjectKind::NONE;
+    info.return_kind          = Stereo::Replay::EngineDLL::ObjectKind::NONE;
 
     call.func = APIInterceptor::APIFUNCTION_GL_GLACCUM;
 
@@ -32,9 +32,9 @@ Tests::GlIndexFixture::GlIndexFixture()
     context.set_current_program(PROGRAM);
 }
 
-Tests::PausingInterceptor::PausingInterceptor(Replay::StereoReplayEngineDLL::IPlaybackController* in_controller_ptr,
-                                                    const bool&                                   in_should_pause_on_first_call,
-                                                    const bool&                                   in_should_skip_calls)
+Tests::PausingInterceptor::PausingInterceptor(Stereo::Replay::EngineDLL::IPlaybackController* in_controller_ptr,
+                                              const bool&                                     in_should_pause_on_first_call,
+                                              const bool&                                     in_should_skip_calls)
     :m_controller_ptr            (in_controller_ptr),
      m_should_pause_on_first_call(in_should_pause_on_first_call),
      m_should_skip_calls         (in_should_skip_calls)
@@ -42,9 +42,9 @@ Tests::PausingInterceptor::PausingInterceptor(Replay::StereoReplayEngineDLL::IPl
     /* Stub */
 }
 
-bool Tests::StubCallExecutor::execute(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                      const Replay::StereoReplayEngineDLL::IChunkSource& in_chunk_source,
-                                      std::string*                                 out_error_ptr)
+bool Tests::StubCallExecutor::execute(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
+                                      const Stereo::Replay::EngineDLL::IChunkSource& in_chunk_source,
+                                      std::string*                                   out_error_ptr)
 {
     (void) in_call;
     (void) in_chunk_source;

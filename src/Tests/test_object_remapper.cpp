@@ -9,56 +9,56 @@
 
 TEST(ObjectRemapper, ZeroStandsForItself)
 {
-    Replay::StereoReplayEngineDLL::ObjectRemapper remapper;
-    uint64_t                                live_value = 123;
+    Stereo::Replay::EngineDLL::ObjectRemapper remapper;
+    uint64_t                                  live_value = 123;
 
-    EXPECT_TRUE(remapper.get(Replay::StereoReplayEngineDLL::ObjectKind::HWND,
-                                   0,
-                                  &live_value) );
+    EXPECT_TRUE(remapper.get(Stereo::Replay::EngineDLL::ObjectKind::HWND,
+                             0,
+                            &live_value) );
     EXPECT_EQ  (live_value,
                 0u);
 }
 
 TEST(ObjectRemapper, KindsAreMappedApart)
 {
-    Replay::StereoReplayEngineDLL::ObjectRemapper remapper;
-    uint64_t                                live_value = 0;
+    Stereo::Replay::EngineDLL::ObjectRemapper remapper;
+    uint64_t                                  live_value = 0;
 
-    remapper.add(Replay::StereoReplayEngineDLL::ObjectKind::HDC,
-                       10,
-                       20);
+    remapper.add(Stereo::Replay::EngineDLL::ObjectKind::HDC,
+                 10,
+                 20);
 
-    EXPECT_TRUE (remapper.get(Replay::StereoReplayEngineDLL::ObjectKind::HDC,
-                                    10,
-                                   &live_value) );
+    EXPECT_TRUE (remapper.get(Stereo::Replay::EngineDLL::ObjectKind::HDC,
+                              10,
+                             &live_value) );
     EXPECT_EQ   (live_value,
                  20u);
-    EXPECT_FALSE(remapper.get(Replay::StereoReplayEngineDLL::ObjectKind::HWND,
-                                    10,
-                                   &live_value) );
+    EXPECT_FALSE(remapper.get(Stereo::Replay::EngineDLL::ObjectKind::HWND,
+                              10,
+                             &live_value) );
 }
 
 TEST(ObjectRemapper, ARemovedOrClearedValueIsUnknown)
 {
-    Replay::StereoReplayEngineDLL::ObjectRemapper remapper;
-    uint64_t                                live_value = 0;
+    Stereo::Replay::EngineDLL::ObjectRemapper remapper;
+    uint64_t                                  live_value = 0;
 
-    remapper.add   (Replay::StereoReplayEngineDLL::ObjectKind::HDC,
-                          1,
-                          2);
-    remapper.add   (Replay::StereoReplayEngineDLL::ObjectKind::HDC,
-                          3,
-                          4);
-    remapper.remove(Replay::StereoReplayEngineDLL::ObjectKind::HDC,
-                          1);
+    remapper.add   (Stereo::Replay::EngineDLL::ObjectKind::HDC,
+                    1,
+                    2);
+    remapper.add   (Stereo::Replay::EngineDLL::ObjectKind::HDC,
+                    3,
+                    4);
+    remapper.remove(Stereo::Replay::EngineDLL::ObjectKind::HDC,
+                    1);
 
-    EXPECT_FALSE(remapper.get(Replay::StereoReplayEngineDLL::ObjectKind::HDC,
-                                    1,
-                                   &live_value) );
+    EXPECT_FALSE(remapper.get(Stereo::Replay::EngineDLL::ObjectKind::HDC,
+                              1,
+                             &live_value) );
 
     remapper.clear();
 
-    EXPECT_FALSE(remapper.get(Replay::StereoReplayEngineDLL::ObjectKind::HDC,
-                                    3,
-                                   &live_value) );
+    EXPECT_FALSE(remapper.get(Stereo::Replay::EngineDLL::ObjectKind::HDC,
+                              3,
+                             &live_value) );
 }

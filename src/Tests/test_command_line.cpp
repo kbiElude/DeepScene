@@ -7,23 +7,23 @@
 #include <gtest/gtest.h>
 #include "command_line.h"
 
-static bool parse(std::vector<const char*>       in_argument_vec,
-                  Replay::StereoReplayPlayer::Options* out_options_ptr,
-                  std::string*                   out_error_ptr)
+static bool parse(std::vector<const char*>         in_argument_vec,
+                  Stereo::Replay::Player::Options* out_options_ptr,
+                  std::string*                     out_error_ptr)
 {
     in_argument_vec.insert(in_argument_vec.begin(),
                            "StereoReplayPlayer");
 
-    return Replay::StereoReplayPlayer::CommandLine::parse(static_cast<int>(in_argument_vec.size() ),
-                                                          const_cast<char**>(in_argument_vec.data() ),
-                                                          out_options_ptr,
-                                                          out_error_ptr);
+    return Stereo::Replay::Player::CommandLine::parse(static_cast<int>(in_argument_vec.size() ),
+                                                      const_cast<char**>(in_argument_vec.data() ),
+                                                      out_options_ptr,
+                                                      out_error_ptr);
 }
 
 TEST(CommandLineTest, AWorkloadAloneIsPlayedAsItIs)
 {
-    Replay::StereoReplayPlayer::Options options;
-    std::string                   error;
+    Stereo::Replay::Player::Options options;
+    std::string                     error;
 
     ASSERT_TRUE(parse({"a.workload"},
                       &options,
@@ -39,8 +39,8 @@ TEST(CommandLineTest, AWorkloadAloneIsPlayedAsItIs)
 
 TEST(CommandLineTest, TheRecipeAndTheEyeAreRead)
 {
-    Replay::StereoReplayPlayer::Options options;
-    std::string                   error;
+    Stereo::Replay::Player::Options options;
+    std::string                     error;
 
     ASSERT_TRUE(parse({"--recipe", "r.json", "--eye", "right", "a.workload"},
                       &options,
@@ -50,13 +50,13 @@ TEST(CommandLineTest, TheRecipeAndTheEyeAreRead)
               "r.json");
     EXPECT_TRUE(options.has_eye_mode);
     EXPECT_EQ(options.eye_mode,
-              Replay::StereoReplayPlayer::EyeMode::RIGHT);
+              Stereo::Replay::Player::EyeMode::RIGHT);
 }
 
 TEST(CommandLineTest, AnEyeWithoutARecipeIsRefused)
 {
-    Replay::StereoReplayPlayer::Options options;
-    std::string                   error;
+    Stereo::Replay::Player::Options options;
+    std::string                     error;
 
     EXPECT_FALSE(parse({"--eye", "left"},
                        &options,
@@ -66,8 +66,8 @@ TEST(CommandLineTest, AnEyeWithoutARecipeIsRefused)
 
 TEST(CommandLineTest, TheEyeSeparationIsReadAndNeedsARecipeAndANumber)
 {
-    Replay::StereoReplayPlayer::Options options;
-    std::string                   error;
+    Stereo::Replay::Player::Options options;
+    std::string                     error;
 
     ASSERT_TRUE(parse({"--recipe", "r.json", "--eye-separation", "0.25"},
                       &options,
@@ -93,8 +93,8 @@ TEST(CommandLineTest, TheEyeSeparationIsReadAndNeedsARecipeAndANumber)
 
 TEST(CommandLineTest, TheFrameRangeIsRead)
 {
-    Replay::StereoReplayPlayer::Options options;
-    std::string                   error;
+    Stereo::Replay::Player::Options options;
+    std::string                     error;
 
     ASSERT_TRUE(parse({"--frames", "20-35"},
                       &options,
@@ -109,8 +109,8 @@ TEST(CommandLineTest, TheFrameRangeIsRead)
 
 TEST(CommandLineTest, AFrameRangeOfOneFrameIsAllowed)
 {
-    Replay::StereoReplayPlayer::Options options;
-    std::string                   error;
+    Stereo::Replay::Player::Options options;
+    std::string                     error;
 
     ASSERT_TRUE(parse({"--frames", "7-7"},
                       &options,
@@ -123,8 +123,8 @@ TEST(CommandLineTest, AFrameRangeWhichIsNotOneIsRefused)
 
     for (const auto& range : range_vec)
     {
-        Replay::StereoReplayPlayer::Options options;
-        std::string                   error;
+        Stereo::Replay::Player::Options options;
+        std::string                     error;
 
         EXPECT_FALSE(parse({"--frames", range},
                            &options,
@@ -132,8 +132,8 @@ TEST(CommandLineTest, AFrameRangeWhichIsNotOneIsRefused)
     }
 
     {
-        Replay::StereoReplayPlayer::Options options;
-        std::string                   error;
+        Stereo::Replay::Player::Options options;
+        std::string                     error;
 
         EXPECT_FALSE(parse({"--frames"},
                            &options,
@@ -143,8 +143,8 @@ TEST(CommandLineTest, AFrameRangeWhichIsNotOneIsRefused)
 
 TEST(CommandLineTest, UnknownOptionsAndSecondWorkloadsAreRefused)
 {
-    Replay::StereoReplayPlayer::Options options;
-    std::string                   error;
+    Stereo::Replay::Player::Options options;
+    std::string                     error;
 
     EXPECT_FALSE(parse({"--nope"},
                        &options,
@@ -156,8 +156,8 @@ TEST(CommandLineTest, UnknownOptionsAndSecondWorkloadsAreRefused)
 
 TEST(CommandLineTest, EverythingButTheWorkloadIsHandedOver)
 {
-    Replay::StereoReplayPlayer::Options options;
-    std::string                   error;
+    Stereo::Replay::Player::Options options;
+    std::string                     error;
 
     ASSERT_TRUE(parse({"--console", "--recipe", "r.json", "--eye", "both", "--eye-separation", "0.25", "--frames", "2-9", "a.workload"},
                       &options,
@@ -165,6 +165,6 @@ TEST(CommandLineTest, EverythingButTheWorkloadIsHandedOver)
 
     const std::vector<std::string> expected_vec = {"--console", "--recipe", "r.json", "--eye", "both", "--eye-separation", "0.250000", "--frames", "2-9"};
 
-    EXPECT_EQ(Replay::StereoReplayPlayer::CommandLine::get_handover_argument_vec(options),
-                    expected_vec);
+    EXPECT_EQ(Stereo::Replay::Player::CommandLine::get_handover_argument_vec(options),
+              expected_vec);
 }

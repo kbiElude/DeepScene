@@ -5,19 +5,19 @@
  * Tests for how the launcher hands a playback over to the converter in the application: through the environment.
  */
 #include <gtest/gtest.h>
-#include "Stereo/StereoSession/session_environment.h"
+#include "Stereo/Session/session_environment.h"
 #include <Windows.h>
 
 TEST(SessionEnvironmentTest, ThePlaybackIsHandedOverThroughTheEnvironment)
 {
-    Stereo::StereoSession::SessionInfo read_info;
-    Stereo::StereoSession::SessionInfo written_info;
+    Stereo::Session::SessionInfo read_info;
+    Stereo::Session::SessionInfo written_info;
 
     written_info.recipe_path = "C:\\recipes\\fr08.json";
     written_info.session_id  = "1234-5678";
 
-    ASSERT_TRUE(Stereo::StereoSession::SessionEnvironment::write(written_info) );
-    ASSERT_TRUE(Stereo::StereoSession::SessionEnvironment::read(&read_info) );
+    ASSERT_TRUE(Stereo::Session::SessionEnvironment::write(written_info) );
+    ASSERT_TRUE(Stereo::Session::SessionEnvironment::read(&read_info) );
 
     EXPECT_EQ(read_info.recipe_path,
               written_info.recipe_path);
@@ -29,15 +29,15 @@ TEST(SessionEnvironmentTest, ThePlaybackIsHandedOverThroughTheEnvironment)
 
     written_info.is_logging = true;
 
-    ASSERT_TRUE(Stereo::StereoSession::SessionEnvironment::write(written_info) );
-    ASSERT_TRUE(Stereo::StereoSession::SessionEnvironment::read(&read_info) );
+    ASSERT_TRUE(Stereo::Session::SessionEnvironment::write(written_info) );
+    ASSERT_TRUE(Stereo::Session::SessionEnvironment::read(&read_info) );
 
     EXPECT_TRUE(read_info.is_logging);
 
     written_info.is_logging = false;
 
-    ASSERT_TRUE(Stereo::StereoSession::SessionEnvironment::write(written_info) );
-    ASSERT_TRUE(Stereo::StereoSession::SessionEnvironment::read(&read_info) );
+    ASSERT_TRUE(Stereo::Session::SessionEnvironment::write(written_info) );
+    ASSERT_TRUE(Stereo::Session::SessionEnvironment::read(&read_info) );
 
     EXPECT_FALSE(read_info.is_logging);
 
@@ -45,7 +45,7 @@ TEST(SessionEnvironmentTest, ThePlaybackIsHandedOverThroughTheEnvironment)
     ::SetEnvironmentVariableA("APISTEREO_SESSION",
                               nullptr);
 
-    EXPECT_FALSE(Stereo::StereoSession::SessionEnvironment::read(&read_info) );
+    EXPECT_FALSE(Stereo::Session::SessionEnvironment::read(&read_info) );
 
     ::SetEnvironmentVariableA("APISTEREO_RECIPE",
                               nullptr);
@@ -53,10 +53,10 @@ TEST(SessionEnvironmentTest, ThePlaybackIsHandedOverThroughTheEnvironment)
 
 TEST(SessionEnvironmentTest, TheLogOfASessionIsInTheTemporaryDirectoryUnderItsNameAndTheExitCodeOfAStoppedApplicationIsNotZero)
 {
-    const std::string path = Stereo::StereoSession::SessionEnvironment::get_log_path("12-34");
+    const std::string path = Stereo::Session::SessionEnvironment::get_log_path("12-34");
 
     EXPECT_NE(path.find("apistereo_12-34.log"),
               std::string::npos);
-    EXPECT_NE(Stereo::StereoSession::SessionEnvironment::get_converter_failed_exit_code(),
+    EXPECT_NE(Stereo::Session::SessionEnvironment::get_converter_failed_exit_code(),
               0u);
 }

@@ -10,7 +10,7 @@
 
 TEST(QuitHandlerTest, ARequestFromAnotherThreadEndsTheWait)
 {
-    Replay::StereoReplayPlayer::QuitHandler handler;
+    Stereo::Replay::Player::QuitHandler handler;
 
     EXPECT_FALSE(handler.is_requested() );
 
@@ -27,8 +27,8 @@ TEST(QuitHandlerTest, ARequestFromAnotherThreadEndsTheWait)
 
 TEST(QuitHandlerTest, TheTargetIsCalledByEveryRequestAndAtOnceIfOneWasMadeBeforeIt)
 {
-    Replay::StereoReplayPlayer::QuitHandler handler;
-    uint32_t                          n_calls = 0;
+    Stereo::Replay::Player::QuitHandler handler;
+    uint32_t                            n_calls = 0;
 
     handler.set_target([&n_calls]()
                        {

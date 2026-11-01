@@ -5,7 +5,7 @@
  * Checks of the playback control of the replay engine: frame-boundary pausing, resetting and interception.
  */
 #include <gtest/gtest.h>
-#include "Replay/StereoReplayEngineDLL/entrypoints.h"
+#include "Stereo/Replay/EngineDLL/entrypoints.h"
 #include "test_doubles.h"
 #include "workload_file_builder.h"
 #include <chrono>
@@ -26,17 +26,17 @@ protected:
                                                  N_CALLS_PER_FRAME);
         Tests::WorkloadFileBuilder::write_file  (file_u8_vec);
 
-        m_engine_ptr = Replay::StereoReplayEngineDLL::aiCreateReplayEngine();
+        m_engine_ptr = Stereo::Replay::EngineDLL::aiCreateReplayEngine();
     }
 
     void TearDown() override
     {
-        Replay::StereoReplayEngineDLL::aiDestroyReplayEngine(m_engine_ptr);
+        Stereo::Replay::EngineDLL::aiDestroyReplayEngine(m_engine_ptr);
         ::remove(Tests::WorkloadFileBuilder::get_filename_ptr() );
     }
 
     /* Polls: the replay runs on a thread of its own. */
-    bool wait_for_state(const Replay::StereoReplayEngineDLL::PlaybackState& in_state)
+    bool wait_for_state(const Stereo::Replay::EngineDLL::PlaybackState& in_state)
     {
         constexpr auto TIMEOUT = std::chrono::seconds(10);
 
@@ -58,7 +58,7 @@ protected:
         return result;
     }
 
-    Replay::StereoReplayEngineDLL::IReplayEngine* m_engine_ptr = nullptr;
+    Stereo::Replay::EngineDLL::IReplayEngine* m_engine_ptr = nullptr;
 };
 
 const uint32_t ReplayEngineTest::N_CALLS_PER_FRAME = 2;
@@ -81,11 +81,11 @@ TEST_F(ReplayEngineTest, PlaysTheWholeWorkload)
     auto* controller_ptr = m_engine_ptr->get_playback_controller_ptr();
 
     EXPECT_EQ(controller_ptr->get_status().state,
-              Replay::StereoReplayEngineDLL::PlaybackState::IDLE);
+              Stereo::Replay::EngineDLL::PlaybackState::IDLE);
 
     controller_ptr->play();
 
-    ASSERT_TRUE(wait_for_state(Replay::StereoReplayEngineDLL::PlaybackState::FINISHED) );
+    ASSERT_TRUE(wait_for_state(Stereo::Replay::EngineDLL::PlaybackState::FINISHED) );
 
     EXPECT_EQ(controller_ptr->get_status().n_calls_executed,
               static_cast<uint64_t>(N_FRAMES * (N_CALLS_PER_FRAME + 1) ));
@@ -107,7 +107,7 @@ TEST_F(ReplayEngineTest, PausesAtTheNextFrameBoundary)
 
     controller_ptr->play();
 
-    ASSERT_TRUE(wait_for_state(Replay::StereoReplayEngineDLL::PlaybackState::PAUSED) );
+    ASSERT_TRUE(wait_for_state(Stereo::Replay::EngineDLL::PlaybackState::PAUSED) );
 
     /* The first frame was replayed in full, and nothing of the second one. */
     EXPECT_EQ(controller_ptr->get_status().n_calls_executed,
@@ -117,7 +117,7 @@ TEST_F(ReplayEngineTest, PausesAtTheNextFrameBoundary)
 
     controller_ptr->play();
 
-    ASSERT_TRUE(wait_for_state(Replay::StereoReplayEngineDLL::PlaybackState::FINISHED) );
+    ASSERT_TRUE(wait_for_state(Stereo::Replay::EngineDLL::PlaybackState::FINISHED) );
 
     EXPECT_EQ(controller_ptr->get_status().n_frames_presented,
               N_FRAMES);
@@ -134,12 +134,12 @@ TEST_F(ReplayEngineTest, ResetShowsTheFirstFrameAndWaits)
 
     controller_ptr->play();
 
-    ASSERT_TRUE(wait_for_state(Replay::StereoReplayEngineDLL::PlaybackState::FINISHED) );
+    ASSERT_TRUE(wait_for_state(Stereo::Replay::EngineDLL::PlaybackState::FINISHED) );
 
     controller_ptr->reset();
 
     /* The first frame is replayed, and the replay waits for play(). */
-    ASSERT_TRUE(wait_for_state(Replay::StereoReplayEngineDLL::PlaybackState::PAUSED) );
+    ASSERT_TRUE(wait_for_state(Stereo::Replay::EngineDLL::PlaybackState::PAUSED) );
 
     EXPECT_EQ(controller_ptr->get_status().n_calls_executed,
               static_cast<uint64_t>(N_CALLS_PER_FRAME + 1) );
@@ -148,7 +148,7 @@ TEST_F(ReplayEngineTest, ResetShowsTheFirstFrameAndWaits)
 
     controller_ptr->play();
 
-    ASSERT_TRUE(wait_for_state(Replay::StereoReplayEngineDLL::PlaybackState::FINISHED) );
+    ASSERT_TRUE(wait_for_state(Stereo::Replay::EngineDLL::PlaybackState::FINISHED) );
 
     EXPECT_EQ(controller_ptr->get_status().n_frames_presented,
               N_FRAMES);
@@ -168,7 +168,7 @@ TEST_F(ReplayEngineTest, SkippedCallsAreNotExecuted)
 
     controller_ptr->play();
 
-    ASSERT_TRUE(wait_for_state(Replay::StereoReplayEngineDLL::PlaybackState::FINISHED) );
+    ASSERT_TRUE(wait_for_state(Stereo::Replay::EngineDLL::PlaybackState::FINISHED) );
 
     EXPECT_EQ(controller_ptr->get_status().n_calls_executed,
               0u);

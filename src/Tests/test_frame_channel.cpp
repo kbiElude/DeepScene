@@ -8,17 +8,17 @@
  */
 #include <gtest/gtest.h>
 #include "data_fixtures.h"
-#include "Stereo/StereoTransport/frame_channel.h"
+#include "Stereo/Transport/frame_channel.h"
 #include <atomic>
 #include <chrono>
 #include <string.h>
 #include <thread>
 
-static Stereo::StereoTransport::FrameInfo make_info(const uint64_t& in_frame_index,
-                                                    const uint32_t& in_width,
-                                                    const uint32_t& in_height)
+static Stereo::Transport::FrameInfo make_info(const uint64_t& in_frame_index,
+                                              const uint32_t& in_width,
+                                              const uint32_t& in_height)
 {
-    Stereo::StereoTransport::FrameInfo result;
+    Stereo::Transport::FrameInfo result;
 
     result.frame_index       = in_frame_index;
     result.height            = in_height;
@@ -29,11 +29,11 @@ static Stereo::StereoTransport::FrameInfo make_info(const uint64_t& in_frame_ind
 }
 
 /* Writes an image of which every byte is the value. */
-static bool write_frame(Stereo::StereoTransport::FrameChannel* inout_channel_ptr,
-                        const uint64_t&                        in_frame_index,
-                        const uint32_t&                        in_width,
-                        const uint32_t&                        in_height,
-                        const uint8_t&                         in_value)
+static bool write_frame(Stereo::Transport::FrameChannel* inout_channel_ptr,
+                        const uint64_t&                  in_frame_index,
+                        const uint32_t&                  in_width,
+                        const uint32_t&                  in_height,
+                        const uint8_t&                   in_value)
 {
     uint8_t* const pixel_ptr = inout_channel_ptr->begin_write_ptr(make_info(in_frame_index,
                                                                             in_width,
@@ -53,14 +53,14 @@ static bool write_frame(Stereo::StereoTransport::FrameChannel* inout_channel_ptr
 
 TEST(FrameChannelTest, AnImageWhichIsWrittenIsRead)
 {
-    std::string                                    error;
-    const std::string                              session = Tests::DataFixtures::make_session_id("roundtrip");
-    const auto                                     consumer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session,
-                                                                                                                  &error);
-    const auto                                     producer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session,
-                                                                                                                  &error);
-    Stereo::StereoTransport::FrameInfo             info;
-    const uint8_t*                                 pixel_ptr = nullptr;
+    std::string                  error;
+    const std::string            session      = Tests::DataFixtures::make_session_id("roundtrip");
+    const auto                   consumer_ptr = Stereo::Transport::FrameChannel::open_ptr(session,
+                                                                                          &error);
+    const auto                   producer_ptr = Stereo::Transport::FrameChannel::open_ptr(session,
+                                                                                          &error);
+    Stereo::Transport::FrameInfo info;
+    const uint8_t*               pixel_ptr    = nullptr;
 
     ASSERT_NE(consumer_ptr,
               nullptr) << error;
@@ -118,14 +118,14 @@ TEST(FrameChannelTest, AnImageWhichIsWrittenIsRead)
 
 TEST(FrameChannelTest, TheNewestImageIsTheOneWhichIsRead)
 {
-    std::string                    error;
-    const std::string              session      = Tests::DataFixtures::make_session_id("newest");
-    const auto                     consumer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session,
-                                                                                                  &error);
-    const auto                     producer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session,
-                                                                                                  &error);
-    Stereo::StereoTransport::FrameInfo info;
-    const uint8_t*                     pixel_ptr    = nullptr;
+    std::string                  error;
+    const std::string            session      = Tests::DataFixtures::make_session_id("newest");
+    const auto                   consumer_ptr = Stereo::Transport::FrameChannel::open_ptr(session,
+                                                                                          &error);
+    const auto                   producer_ptr = Stereo::Transport::FrameChannel::open_ptr(session,
+                                                                                          &error);
+    Stereo::Transport::FrameInfo info;
+    const uint8_t*               pixel_ptr    = nullptr;
 
     ASSERT_NE(producer_ptr,
               nullptr) << error;
@@ -154,14 +154,14 @@ TEST(FrameChannelTest, TheNewestImageIsTheOneWhichIsRead)
 
 TEST(FrameChannelTest, AnImageWhichIsBeingReadIsNotWrittenOver)
 {
-    std::string                    error;
-    const std::string              session      = Tests::DataFixtures::make_session_id("held");
-    const auto                     consumer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session,
-                                                                                                  &error);
-    const auto                     producer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session,
-                                                                                                  &error);
-    Stereo::StereoTransport::FrameInfo info;
-    const uint8_t*                     pixel_ptr    = nullptr;
+    std::string                  error;
+    const std::string            session      = Tests::DataFixtures::make_session_id("held");
+    const auto                   consumer_ptr = Stereo::Transport::FrameChannel::open_ptr(session,
+                                                                                          &error);
+    const auto                   producer_ptr = Stereo::Transport::FrameChannel::open_ptr(session,
+                                                                                          &error);
+    Stereo::Transport::FrameInfo info;
+    const uint8_t*               pixel_ptr    = nullptr;
 
     ASSERT_NE(producer_ptr,
               nullptr) << error;
@@ -199,20 +199,20 @@ TEST(FrameChannelTest, AnImageWhichIsBeingReadIsNotWrittenOver)
 
 TEST(FrameChannelTest, AnImageWhichDoesNotFitIsRefused)
 {
-    std::string       error;
-    const auto        producer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(Tests::DataFixtures::make_session_id("big"),
-                                                                                         &error);
+    std::string error;
+    const auto  producer_ptr = Stereo::Transport::FrameChannel::open_ptr(Tests::DataFixtures::make_session_id("big"),
+                                                                        &error);
 
     ASSERT_NE(producer_ptr,
               nullptr) << error;
 
     EXPECT_EQ(producer_ptr->begin_write_ptr(make_info(0,
-                                                      Stereo::StereoTransport::FrameChannel::get_max_width() + 1,
+                                                      Stereo::Transport::FrameChannel::get_max_width() + 1,
                                                       4) ),
               nullptr);
     EXPECT_EQ(producer_ptr->begin_write_ptr(make_info(0,
                                                       4,
-                                                      Stereo::StereoTransport::FrameChannel::get_max_height() + 1) ),
+                                                      Stereo::Transport::FrameChannel::get_max_height() + 1) ),
               nullptr);
     EXPECT_EQ(producer_ptr->begin_write_ptr(make_info(0,
                                                       0,
@@ -222,20 +222,20 @@ TEST(FrameChannelTest, AnImageWhichDoesNotFitIsRefused)
     /* The largest image does fit. */
     EXPECT_TRUE(write_frame(producer_ptr.get(),
                             0,
-                            Stereo::StereoTransport::FrameChannel::get_max_width(),
-                            Stereo::StereoTransport::FrameChannel::get_max_height(),
+                            Stereo::Transport::FrameChannel::get_max_width(),
+                            Stereo::Transport::FrameChannel::get_max_height(),
                             1) );
 }
 
 TEST(FrameChannelTest, SessionsDoNotShareImages)
 {
-    std::string                    error;
-    const auto                     first_ptr  = Stereo::StereoTransport::FrameChannel::open_ptr(Tests::DataFixtures::make_session_id("first"),
-                                                                                                    &error);
-    const auto                     second_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(Tests::DataFixtures::make_session_id("second"),
-                                                                                                    &error);
-    Stereo::StereoTransport::FrameInfo info;
-    const uint8_t*                     pixel_ptr  = nullptr;
+    std::string                  error;
+    const auto                   first_ptr  = Stereo::Transport::FrameChannel::open_ptr(Tests::DataFixtures::make_session_id("first"),
+                                                                                       &error);
+    const auto                   second_ptr = Stereo::Transport::FrameChannel::open_ptr(Tests::DataFixtures::make_session_id("second"),
+                                                                                       &error);
+    Stereo::Transport::FrameInfo info;
+    const uint8_t*               pixel_ptr  = nullptr;
 
     ASSERT_NE(first_ptr,
               nullptr) << error;
@@ -254,15 +254,15 @@ TEST(FrameChannelTest, SessionsDoNotShareImages)
 
 TEST(FrameChannelTest, AnImageIsNeverSeenHalfWrittenWhileTheProducerRuns)
 {
-    std::atomic<bool>              is_running(true);
-    std::string                    error;
-    const std::string              session      = Tests::DataFixtures::make_session_id("stress");
-    const auto                     consumer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session,
-                                                                                                  &error);
-    const auto                     producer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session,
-                                                                                                  &error);
-    uint64_t                       n_reads      = 0;
-    bool                           is_torn      = false;
+    std::atomic<bool> is_running(true);
+    std::string       error;
+    const std::string session      = Tests::DataFixtures::make_session_id("stress");
+    const auto        consumer_ptr = Stereo::Transport::FrameChannel::open_ptr(session,
+                                                                               &error);
+    const auto        producer_ptr = Stereo::Transport::FrameChannel::open_ptr(session,
+                                                                               &error);
+    uint64_t          n_reads      = 0;
+    bool              is_torn      = false;
 
     ASSERT_NE(producer_ptr,
               nullptr) << error;
@@ -286,8 +286,8 @@ TEST(FrameChannelTest, AnImageIsNeverSeenHalfWrittenWhileTheProducerRuns)
 
     while (std::chrono::steady_clock::now() - start < std::chrono::milliseconds(300) )
     {
-        Stereo::StereoTransport::FrameInfo info;
-        const uint8_t*                     pixel_ptr = nullptr;
+        Stereo::Transport::FrameInfo info;
+        const uint8_t*               pixel_ptr = nullptr;
 
         if (consumer_ptr->begin_read(&info,
                                      &pixel_ptr) )
@@ -318,14 +318,14 @@ TEST(FrameChannelTest, AnImageIsNeverSeenHalfWrittenWhileTheProducerRuns)
 
 TEST(FrameChannelTest, TheNumberOfEyesOfAnImageIsRead)
 {
-    std::string                    error;
-    auto                           channel_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(Tests::DataFixtures::make_session_id("eyes"),
-                                                                                                    &error);
-    Stereo::StereoTransport::FrameInfo     info        = make_info(7,
-                                                                   8,
-                                                                   2);
-    Stereo::StereoTransport::FrameInfo read_info;
-    const uint8_t*                     pixel_ptr   = nullptr;
+    std::string                  error;
+    auto                         channel_ptr = Stereo::Transport::FrameChannel::open_ptr(Tests::DataFixtures::make_session_id("eyes"),
+                                                                                        &error);
+    Stereo::Transport::FrameInfo info        = make_info(7,
+                                                         8,
+                                                         2);
+    Stereo::Transport::FrameInfo read_info;
+    const uint8_t*               pixel_ptr   = nullptr;
 
     ASSERT_NE(channel_ptr,
               nullptr) << error;
@@ -350,12 +350,12 @@ TEST(FrameChannelTest, TheNumberOfEyesOfAnImageIsRead)
 
 TEST(FrameChannelTest, AnImageWhoseEyesDoNotShareItsWidthIsRefused)
 {
-    std::string                    error;
-    auto                           channel_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(Tests::DataFixtures::make_session_id("badeyes"),
-                                                                                                    &error);
-    Stereo::StereoTransport::FrameInfo     info        = make_info(1,
-                                                                   9,
-                                                                   2);
+    std::string                  error;
+    auto                         channel_ptr = Stereo::Transport::FrameChannel::open_ptr(Tests::DataFixtures::make_session_id("badeyes"),
+                                                                                        &error);
+    Stereo::Transport::FrameInfo info        = make_info(1,
+                                                         9,
+                                                         2);
 
     ASSERT_NE(channel_ptr,
               nullptr) << error;
@@ -380,12 +380,12 @@ TEST(FrameChannelTest, AnImageWhoseEyesDoNotShareItsWidthIsRefused)
 TEST(FrameChannelTest, TheEyeSeparationIsNotThereUntilItIsSetAndThenReachesTheOtherSide)
 {
     std::string error;
-    const auto  session_id        = Tests::DataFixtures::make_session_id("separation");
-    auto        consumer_ptr      = Stereo::StereoTransport::FrameChannel::open_ptr(session_id,
-                                                                                   &error);
-    auto        producer_ptr      = Stereo::StereoTransport::FrameChannel::open_ptr(session_id,
-                                                                                   &error);
-    float       eye_separation    = 0.0f;
+    const auto  session_id     = Tests::DataFixtures::make_session_id("separation");
+    auto        consumer_ptr   = Stereo::Transport::FrameChannel::open_ptr(session_id,
+                                                                          &error);
+    auto        producer_ptr   = Stereo::Transport::FrameChannel::open_ptr(session_id,
+                                                                          &error);
+    float       eye_separation = 0.0f;
 
     ASSERT_NE(consumer_ptr,
               nullptr) << error;
@@ -411,29 +411,29 @@ TEST(FrameChannelTest, TheEyeSeparationIsNotThereUntilItIsSetAndThenReachesTheOt
 TEST(FrameChannelTest, ARowStartsAtAMultipleOf256BytesAndIsReadBackWithItsPitch)
 {
     std::string error;
-    auto        channel_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(Tests::DataFixtures::make_session_id("pitch"),
-                                                                                 &error);
+    auto        channel_ptr = Stereo::Transport::FrameChannel::open_ptr(Tests::DataFixtures::make_session_id("pitch"),
+                                                                       &error);
 
     ASSERT_NE(channel_ptr,
               nullptr) << error;
 
     /* A row is rounded up to what a GPU takes for a row of a buffer it copies to a texture. */
-    EXPECT_EQ(Stereo::StereoTransport::FrameChannel::get_pitch(1),
+    EXPECT_EQ(Stereo::Transport::FrameChannel::get_pitch(1),
               256u);
-    EXPECT_EQ(Stereo::StereoTransport::FrameChannel::get_pitch(64),
+    EXPECT_EQ(Stereo::Transport::FrameChannel::get_pitch(64),
               256u);
-    EXPECT_EQ(Stereo::StereoTransport::FrameChannel::get_pitch(65),
+    EXPECT_EQ(Stereo::Transport::FrameChannel::get_pitch(65),
               512u);
-    EXPECT_EQ(Stereo::StereoTransport::FrameChannel::get_pitch(800),
+    EXPECT_EQ(Stereo::Transport::FrameChannel::get_pitch(800),
               3328u);
-    EXPECT_EQ(Stereo::StereoTransport::FrameChannel::get_pitch(1600),
+    EXPECT_EQ(Stereo::Transport::FrameChannel::get_pitch(1600),
               6400u);
 
-    Stereo::StereoTransport::FrameInfo     info = make_info(1,
-                                                            800,
-                                                            4);
-    Stereo::StereoTransport::FrameInfo read_info;
-    const uint8_t*                     pixel_ptr = nullptr;
+    Stereo::Transport::FrameInfo info      = make_info(1,
+                                                       800,
+                                                       4);
+    Stereo::Transport::FrameInfo read_info;
+    const uint8_t*               pixel_ptr = nullptr;
 
     ASSERT_NE(channel_ptr->begin_write_ptr(info),
               nullptr);
@@ -445,9 +445,9 @@ TEST(FrameChannelTest, ARowStartsAtAMultipleOf256BytesAndIsReadBackWithItsPitch)
     EXPECT_EQ(read_info.pitch,
               3328u);
     EXPECT_EQ(read_info.kind,
-              Stereo::StereoTransport::TransportKind::HOST_MEMORY);
+              Stereo::Transport::TransportKind::HOST_MEMORY);
     EXPECT_EQ(read_info.pixel_format,
-              Stereo::StereoTransport::PixelFormat::B8G8R8A8);
+              Stereo::Transport::PixelFormat::B8G8R8A8);
 
     channel_ptr->end_read();
 }
@@ -455,8 +455,8 @@ TEST(FrameChannelTest, ARowStartsAtAMultipleOf256BytesAndIsReadBackWithItsPitch)
 TEST(FrameChannelTest, TheImagesStartWhereAGPUPlacesTheBuffersOfAHeap)
 {
     std::string error;
-    auto        channel_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(Tests::DataFixtures::make_session_id("alignment"),
-                                                                                 &error);
+    auto        channel_ptr = Stereo::Transport::FrameChannel::open_ptr(Tests::DataFixtures::make_session_id("alignment"),
+                                                                       &error);
 
     ASSERT_NE(channel_ptr,
               nullptr) << error;
@@ -485,14 +485,14 @@ TEST(FrameChannelTest, TheImagesStartWhereAGPUPlacesTheBuffersOfAHeap)
 
 TEST(FrameChannelTest, NothingIsAgreedOnUntilBothSidesHaveSaidWhatTheyCan)
 {
-    constexpr Stereo::StereoTransport::TransportKindMask HOST_MEMORY = static_cast<Stereo::StereoTransport::TransportKindMask>(Stereo::StereoTransport::TransportKind::HOST_MEMORY);
+    constexpr Stereo::Transport::TransportKindMask HOST_MEMORY = static_cast<Stereo::Transport::TransportKindMask>(Stereo::Transport::TransportKind::HOST_MEMORY);
 
     std::string error;
     const auto  session_id   = Tests::DataFixtures::make_session_id("negotiation");
-    auto        consumer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session_id,
-                                                                              &error);
-    auto        producer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session_id,
-                                                                              &error);
+    auto        consumer_ptr = Stereo::Transport::FrameChannel::open_ptr(session_id,
+                                                                        &error);
+    auto        producer_ptr = Stereo::Transport::FrameChannel::open_ptr(session_id,
+                                                                        &error);
 
     ASSERT_NE(consumer_ptr,
               nullptr) << error;
@@ -500,30 +500,30 @@ TEST(FrameChannelTest, NothingIsAgreedOnUntilBothSidesHaveSaidWhatTheyCan)
               nullptr) << error;
 
     EXPECT_EQ(producer_ptr->get_negotiated_kind(),
-              Stereo::StereoTransport::TransportKind::NONE);
+              Stereo::Transport::TransportKind::NONE);
 
     producer_ptr->set_offered_kinds(HOST_MEMORY);
 
     EXPECT_EQ(consumer_ptr->get_offered_kinds(),
               HOST_MEMORY);
     EXPECT_EQ(producer_ptr->get_negotiated_kind(),
-              Stereo::StereoTransport::TransportKind::NONE);
+              Stereo::Transport::TransportKind::NONE);
 
     consumer_ptr->set_accepted_kinds(HOST_MEMORY);
 
     EXPECT_EQ(producer_ptr->get_accepted_kinds(),
               HOST_MEMORY);
     EXPECT_EQ(producer_ptr->get_negotiated_kind(),
-              Stereo::StereoTransport::TransportKind::HOST_MEMORY);
+              Stereo::Transport::TransportKind::HOST_MEMORY);
     EXPECT_EQ(consumer_ptr->get_negotiated_kind(),
-              Stereo::StereoTransport::TransportKind::HOST_MEMORY);
+              Stereo::Transport::TransportKind::HOST_MEMORY);
 }
 
 TEST(FrameChannelTest, TheBestKindBothSidesHaveIsTheOneAgreedOn)
 {
     std::string error;
-    auto        channel_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(Tests::DataFixtures::make_session_id("best"),
-                                                                                 &error);
+    auto        channel_ptr = Stereo::Transport::FrameChannel::open_ptr(Tests::DataFixtures::make_session_id("best"),
+                                                                       &error);
 
     ASSERT_NE(channel_ptr,
               nullptr) << error;
@@ -539,23 +539,23 @@ TEST(FrameChannelTest, TheBestKindBothSidesHaveIsTheOneAgreedOn)
     channel_ptr->set_accepted_kinds(1 | 2);
 
     EXPECT_EQ(channel_ptr->get_negotiated_kind(),
-              Stereo::StereoTransport::TransportKind::HOST_MEMORY);
+              Stereo::Transport::TransportKind::HOST_MEMORY);
 
     /* No kind in common is none. */
     channel_ptr->set_accepted_kinds(2);
 
     EXPECT_EQ(channel_ptr->get_negotiated_kind(),
-              Stereo::StereoTransport::TransportKind::NONE);
+              Stereo::Transport::TransportKind::NONE);
 }
 
 TEST(FrameChannelTest, TheTargetSizeOfAnEyeIsNotThereUntilItIsSetAndThenReachesTheOtherSide)
 {
     std::string error;
-    const auto  session_id   = Tests::DataFixtures::make_session_id("scale");
-    auto        consumer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session_id,
-                                                                              &error);
-    auto        producer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session_id,
-                                                                              &error);
+    const auto  session_id    = Tests::DataFixtures::make_session_id("scale");
+    auto        consumer_ptr  = Stereo::Transport::FrameChannel::open_ptr(session_id,
+                                                                         &error);
+    auto        producer_ptr  = Stereo::Transport::FrameChannel::open_ptr(session_id,
+                                                                         &error);
     uint32_t    target_height = 0;
     uint32_t    target_width  = 0;
 
@@ -587,10 +587,10 @@ TEST(FrameChannelTest, TheConvergenceDistanceIsNotThereUntilItIsSetAndThenReache
 {
     std::string error;
     const auto  session_id   = Tests::DataFixtures::make_session_id("convergence");
-    auto        consumer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session_id,
-                                                                              &error);
-    auto        producer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session_id,
-                                                                              &error);
+    auto        consumer_ptr = Stereo::Transport::FrameChannel::open_ptr(session_id,
+                                                                        &error);
+    auto        producer_ptr = Stereo::Transport::FrameChannel::open_ptr(session_id,
+                                                                        &error);
     float       distance     = 0.0f;
 
     ASSERT_NE(consumer_ptr,
@@ -616,10 +616,10 @@ TEST(FrameChannelTest, TheStrengthOfThe3DIsNotThereUntilItIsSetAndThenReachesThe
 {
     std::string error;
     const auto  session_id   = Tests::DataFixtures::make_session_id("strength");
-    auto        consumer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session_id,
-                                                                              &error);
-    auto        producer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session_id,
-                                                                              &error);
+    auto        consumer_ptr = Stereo::Transport::FrameChannel::open_ptr(session_id,
+                                                                        &error);
+    auto        producer_ptr = Stereo::Transport::FrameChannel::open_ptr(session_id,
+                                                                        &error);
     float       strength     = 0.0f;
 
     ASSERT_NE(consumer_ptr,
@@ -645,10 +645,10 @@ TEST(FrameChannelTest, AProducerDoesNotWaitForAConsumerThatHasNotSignalled)
 {
     std::string       error;
     const std::string session      = Tests::DataFixtures::make_session_id("pace_none");
-    const auto        consumer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session,
-                                                                                    &error);
-    const auto        producer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session,
-                                                                                    &error);
+    const auto        consumer_ptr = Stereo::Transport::FrameChannel::open_ptr(session,
+                                                                              &error);
+    const auto        producer_ptr = Stereo::Transport::FrameChannel::open_ptr(session,
+                                                                              &error);
 
     ASSERT_NE(consumer_ptr,
               nullptr) << error;
@@ -667,10 +667,10 @@ TEST(FrameChannelTest, AProducerWaitsForTheSignalOfTheConsumerAndThenForItsDelay
 {
     std::string       error;
     const std::string session      = Tests::DataFixtures::make_session_id("pace_wait");
-    const auto        consumer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session,
-                                                                                    &error);
-    const auto        producer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session,
-                                                                                    &error);
+    const auto        consumer_ptr = Stereo::Transport::FrameChannel::open_ptr(session,
+                                                                              &error);
+    const auto        producer_ptr = Stereo::Transport::FrameChannel::open_ptr(session,
+                                                                              &error);
 
     ASSERT_NE(consumer_ptr,
               nullptr) << error;
@@ -710,10 +710,10 @@ TEST(FrameChannelTest, TheDelayIsCountedFromTheSignalAndNotFromTheMomentTheProdu
 {
     std::string       error;
     const std::string session      = Tests::DataFixtures::make_session_id("pace_late");
-    const auto        consumer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session,
-                                                                                    &error);
-    const auto        producer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session,
-                                                                                    &error);
+    const auto        consumer_ptr = Stereo::Transport::FrameChannel::open_ptr(session,
+                                                                              &error);
+    const auto        producer_ptr = Stereo::Transport::FrameChannel::open_ptr(session,
+                                                                              &error);
 
     ASSERT_NE(consumer_ptr,
               nullptr) << error;
@@ -751,10 +751,10 @@ TEST(FrameChannelTest, TheScaleOfTheEyesOfThePersonIsNotThereUntilItIsSetAndThen
 {
     std::string error;
     const auto  session_id   = Tests::DataFixtures::make_session_id("ipd");
-    auto        consumer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session_id,
-                                                                              &error);
-    auto        producer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session_id,
-                                                                              &error);
+    auto        consumer_ptr = Stereo::Transport::FrameChannel::open_ptr(session_id,
+                                                                        &error);
+    auto        producer_ptr = Stereo::Transport::FrameChannel::open_ptr(session_id,
+                                                                        &error);
     float       ipd_scale    = 0.0f;
 
     ASSERT_NE(consumer_ptr,
@@ -775,10 +775,10 @@ TEST(FrameChannelTest, TheOverlayIsNotPushedUntilTheConsumerSaysSoAndThenItIs)
 {
     std::string error;
     const auto  session_id   = Tests::DataFixtures::make_session_id("overlay");
-    auto        consumer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session_id,
-                                                                              &error);
-    auto        producer_ptr = Stereo::StereoTransport::FrameChannel::open_ptr(session_id,
-                                                                              &error);
+    auto        consumer_ptr = Stereo::Transport::FrameChannel::open_ptr(session_id,
+                                                                        &error);
+    auto        producer_ptr = Stereo::Transport::FrameChannel::open_ptr(session_id,
+                                                                        &error);
 
     ASSERT_NE(consumer_ptr,
               nullptr) << error;
