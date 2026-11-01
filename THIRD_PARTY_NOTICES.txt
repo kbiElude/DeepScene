@@ -1,0 +1,8 @@
+Third-party software bundled with Demo VR Player (see deps/). Each component is used under its own licence, whose
+full text is kept in the component's directory.
+
+API Interceptor   (deps/APIInterceptor)  MIT License       Copyright (c) Dominik Witczak
+                                         (its own third-party software, Detours, Dear ImGui, Google Test and
+                                         Zstandard, is listed in deps/APIInterceptor/THIRD_PARTY_NOTICES.txt)
+OpenXR SDK        (deps/OpenXR-SDK)      Apache License 2.0 (parts under the licences in LICENSES/)
+                                         Copyright (c) The Khronos Group Inc.

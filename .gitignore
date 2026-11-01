@@ -1,0 +1,15 @@
+# Build trees and the collected outputs (see build.bat)
+/build_x86/
+/build_x64/
+/build_final/
+
+# Temporary files
+*.tmp
+*.passes
+*.workload
+!src/Tests/data/*.workload
+
+# Visual Studio
+.vs/
+*.user
+*.suo

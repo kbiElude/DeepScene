@@ -1,0 +1,6 @@
+[submodule "deps/APIInterceptor"]
+	path = deps/APIInterceptor
+	url = ../APIInterceptor
+[submodule "deps/OpenXR-SDK"]
+	path = deps/OpenXR-SDK
+	url = https://github.com/KhronosGroup/OpenXR-SDK.git
