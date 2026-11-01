@@ -26,3 +26,5 @@ add_custom_target(CaptureTools ALL DEPENDS APIDumper APIDumperDLL APIDumpPrinter
 
 include_directories("${DemoVRPlayer_SOURCE_DIR}/include")
 
+include(cmake/Analysis.cmake)
+include(cmake/Tests.cmake)
