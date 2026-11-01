@@ -20,3 +20,12 @@ target_link_libraries(StereoCore PUBLIC RecipeApplier)
 
 source_group ("Stereo Core include files" FILES ${StereoCoreIncludes})
 source_group ("Stereo Core source files"  FILES ${StereoCoreSources})
+
+file(GLOB StereoTransportIncludes CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/include/Stereo/StereoTransport/*.h")
+file(GLOB StereoTransportSources CONFIGURE_DEPENDS  "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/StereoTransport/*.cpp")
+
+# The images which go from the application to the program which shows them.
+add_library(StereoTransport STATIC ${StereoTransportIncludes} ${StereoTransportSources})
+
+source_group ("StereoTransport include files" FILES ${StereoTransportIncludes})
+source_group ("StereoTransport source files"  FILES ${StereoTransportSources})
