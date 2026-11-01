@@ -4,7 +4,19 @@
     {
       "id": "fr08",
       "recipe": "recipes/fr08.json",
-      "executable": "fr08/fr08v101.exe"
+      "executable": "fr08/fr08v101.exe",
+      "download": {
+        "urls": [
+          "https://archive.scene.org/pub/demos/groups/farbrausch/fr08_final.zip",
+          "https://mirror.netcologne.de/scene.org/demos/groups/farbrausch/fr08_final.zip",
+          "https://mirror.scenesat.com/scene.org/demos/groups/farbrausch/fr08_final.zip",
+          "https://http.jp.scene.org/demos/groups/farbrausch/fr08_final.zip"
+        ],
+        "sha256": "12a3a2099555c31f7235aea409ede4b648b1f4e98b5cdc00fad002f084c543cc",
+        "size": 66454,
+        "unpacked_size": 69184,
+        "page": "https://files.scene.org/view/demos/groups/farbrausch/fr08_final.zip"
+      }
     }
   ]
 }

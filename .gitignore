@@ -13,3 +13,7 @@
 .vs/
 *.user
 *.suo
+
+# What is downloaded the first time an application is launched (see apps/apps.json)
+/apps/*/
+!/apps/recipes/

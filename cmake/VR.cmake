@@ -20,3 +20,14 @@ add_library(VRDevices STATIC ${VRDevicesIncludes} ${VRDevicesSources})
 
 source_group ("VRDevices include files" FILES ${VRDevicesIncludes})
 source_group ("VRDevices source files"  FILES ${VRDevicesSources})
+
+file(GLOB AppCatalogIncludes CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/include/VR/AppCatalog/*.h")
+file(GLOB AppCatalogSources CONFIGURE_DEPENDS  "${DemoVRPlayer_SOURCE_DIR}/src/VR/AppCatalog/*.cpp")
+
+# The applications which the VR player lists.
+add_library(AppCatalog STATIC ${AppCatalogIncludes} ${AppCatalogSources})
+
+target_link_libraries(AppCatalog PUBLIC AppInstaller RecipeLoader)
+
+source_group ("AppCatalog include files" FILES ${AppCatalogIncludes})
+source_group ("AppCatalog source files"  FILES ${AppCatalogSources})
