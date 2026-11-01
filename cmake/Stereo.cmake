@@ -29,3 +29,14 @@ add_library(StereoTransport STATIC ${StereoTransportIncludes} ${StereoTransportS
 
 source_group ("StereoTransport include files" FILES ${StereoTransportIncludes})
 source_group ("StereoTransport source files"  FILES ${StereoTransportSources})
+
+file(GLOB StereoD3D12Includes CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/include/Stereo/StereoD3D12/*.h")
+file(GLOB StereoD3D12Sources CONFIGURE_DEPENDS  "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/StereoD3D12/*.cpp")
+
+# The images of the eyes on the GPU: what the memory of the channel is opened as, to be copied to the textures of a device.
+add_library(StereoD3D12 STATIC ${StereoD3D12Includes} ${StereoD3D12Sources})
+
+target_link_libraries(StereoD3D12 PUBLIC StereoTransport d3d12 dxgi)
+
+source_group ("StereoD3D12 include files" FILES ${StereoD3D12Includes})
+source_group ("StereoD3D12 source files"  FILES ${StereoD3D12Sources})

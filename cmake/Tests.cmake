@@ -55,7 +55,7 @@ if (DEMOVRPLAYER_BUILD_TESTS)
                                                          "${APIInterceptor_SOURCE_DIR}/src/Tests")
     target_compile_definitions(DemoVRPlayerTests PRIVATE DEMOVRPLAYER_APPS_DIR="${DemoVRPlayer_SOURCE_DIR}/apps"
                                                          DEMOVRPLAYER_TESTS_DATA_DIR="${DemoVRPlayer_SOURCE_DIR}/src/Tests/data")
-    target_link_libraries(DemoVRPlayerTests gtest_main APIInterceptorTestSupport APIDumpAnalysis APIDumpAnalysisFrontends APIDumpLoader D3D8Utils InjectionLauncher ws2_32 RecipeApplier RecipeLoader StereoCore StereoReplayEngineDLL StereoSession StereoTransport)
+    target_link_libraries(DemoVRPlayerTests gtest_main APIInterceptorTestSupport APIDumpAnalysis APIDumpAnalysisFrontends APIDumpLoader D3D8Utils InjectionLauncher ws2_32 RecipeApplier RecipeLoader StereoCore StereoD3D12 StereoReplayEngineDLL StereoSession StereoTransport)
 
     enable_testing()
     add_test(NAME DemoVRPlayerTests COMMAND DemoVRPlayerTests)
