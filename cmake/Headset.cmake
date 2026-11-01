@@ -35,3 +35,14 @@ target_include_directories(StereoPresenter PRIVATE "${DemoVRPlayer_SOURCE_DIR}/s
 target_link_libraries     (StereoPresenter StereoD3D12 StereoSession StereoTransport StereoXR UIHost winmm)
 
 source_group ("StereoPresenter source files" FILES ${StereoPresenterSources})
+
+file(GLOB VRPlayerSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/VR/VRPlayer/*.cpp"
+                                            "${DemoVRPlayer_SOURCE_DIR}/src/VR/VRPlayer/*.h")
+
+# The front-end of the VR playback: a window.
+add_executable(VRPlayer WIN32 ${VRPlayerSources})
+
+target_include_directories(VRPlayer PRIVATE "${DemoVRPlayer_SOURCE_DIR}/src")
+target_link_libraries     (VRPlayer AppCatalog InjectionLauncher StereoCore StereoTransport StereoXR UIHost VRDevices)
+
+source_group ("VRPlayer source files" FILES ${VRPlayerSources})
