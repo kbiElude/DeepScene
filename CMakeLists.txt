@@ -28,5 +28,6 @@ include_directories("${DemoVRPlayer_SOURCE_DIR}/include")
 
 include(cmake/Analysis.cmake)
 include(cmake/Replay.cmake)
+include(cmake/Stereo.cmake)
 include(cmake/VR.cmake)
 include(cmake/Tests.cmake)
