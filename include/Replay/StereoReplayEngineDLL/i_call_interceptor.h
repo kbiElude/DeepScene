@@ -21,12 +21,12 @@ namespace Replay
 
             /* Called after the call was replayed, or skipped. */
             virtual void on_call_replayed(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                   const uint32_t&                     in_n_frame,
-                                                   const bool&                         in_was_executed) = 0;
+                                          const uint32_t&                              in_n_frame,
+                                          const bool&                                  in_was_executed) = 0;
 
             /* Returns false to skip the call. The call is skipped if any interceptor says so. */
             virtual bool should_execute_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                      const uint32_t&                     in_n_frame) = 0;
+                                             const uint32_t&                              in_n_frame) = 0;
         };
     }
 }

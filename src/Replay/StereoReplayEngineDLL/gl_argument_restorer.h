@@ -36,12 +36,12 @@ namespace Replay
             template<typename T>
             struct ArgumentCategoryOf
             {
-                static const ArgumentCategory value = (std::is_arithmetic<T>::value || std::is_enum<T>::value)                          ? ArgumentCategory::NUMBER
-                                                    : std::is_same<T, GLsync>::value                                                    ? ArgumentCategory::SYNC
-                                                    : std::is_same<T, const GLchar*>::value                                             ? ArgumentCategory::STRING
-                                                    : std::is_same<T, const GLchar* const*>::value                                      ? ArgumentCategory::STRING_ARRAY
-                                                    : (std::is_pointer<T>::value && std::is_function<typename std::remove_pointer<T>::type>::value) ? ArgumentCategory::FUNCTION
-                                                                                                                                          : ArgumentCategory::POINTER;
+                static const ArgumentCategory value = (std::is_arithmetic<T>::value                 || std::is_enum<T>::value)                                         ? ArgumentCategory::NUMBER
+                                                    :  std::is_same<T, GLsync>::value                                                                                  ? ArgumentCategory::SYNC
+                                                    :  std::is_same<T, const GLchar*>::value                                                                           ? ArgumentCategory::STRING
+                                                    :  std::is_same<T, const GLchar* const*>::value                                                                    ? ArgumentCategory::STRING_ARRAY
+                                                    : (std::is_pointer<T>::value                    && std::is_function<typename std::remove_pointer<T>::type>::value) ? ArgumentCategory::FUNCTION
+                                                                                                                                                                       : ArgumentCategory::POINTER;
             };
 
             /* The restorers which have nothing to do after the call. */
@@ -105,12 +105,17 @@ namespace Replay
                              std::string*     out_error_ptr)
                 {
                     const auto argument_ptr = in_context_ptr->get_in_argument_ptr(in_n_argument);
-                    const auto kind         = in_context_ptr->get_param_kind(in_n_argument);
+                    bool       is_read      = false;
+                    const auto kind         = in_context_ptr->get_param_kind     (in_n_argument);
                     bool       result       = false;
 
-                    if (argument_ptr == nullptr ||
-                        read_number(*argument_ptr,
-                                    &m_value) == false)
+                    if (argument_ptr != nullptr)
+                    {
+                        is_read = read_number(*argument_ptr,
+                                             &m_value);
+                    }
+
+                    if (is_read == false)
                     {
                         *out_error_ptr = "A GL call has an argument of an unexpected kind.";
 
@@ -154,9 +159,9 @@ namespace Replay
                 {
                     const auto kind = in_context_ptr->get_param_kind(in_n_argument);
 
-                    if (in_is_success              &&
-                        m_scratch_ptr      != nullptr &&
-                        m_dumped_names_ptr != nullptr &&
+                    if (in_is_success                          &&
+                        m_scratch_ptr      != nullptr          &&
+                        m_dumped_names_ptr != nullptr          &&
                         kind               != ObjectKind::NONE)
                     {
                         const size_t n_names = m_n_dumped_bytes / sizeof(uint32_t);
@@ -225,14 +230,14 @@ namespace Replay
 
             private:
                 /* Data the dumper copied. An array of names has to be mapped, the rest is passed as it is. */
-                void prepare_array(GlReplayContext*                          in_context_ptr,
-                                   const size_t&                             in_n_argument,
+                void prepare_array(GlReplayContext*                           in_context_ptr,
+                                   const size_t&                              in_n_argument,
                                    const APIInterceptor::APIFunctionArgument& in_argument)
                 {
                     size_t         n_bytes  = 0;
                     const uint8_t* data_ptr = in_context_ptr->get_chunk_data_ptr(&in_argument,
                                                                                  &n_bytes);
-                    const auto     kind     = in_context_ptr->get_param_kind(in_n_argument);
+                    const auto     kind     = in_context_ptr->get_param_kind    (in_n_argument);
 
                     if (data_ptr == nullptr)
                     {
@@ -271,8 +276,8 @@ namespace Replay
                 }
 
                 /* An offset, or memory of the dumped process: the driver writes to it, and the dump holds what it wrote. */
-                void prepare_pointer(GlReplayContext*                          in_context_ptr,
-                                     const size_t&                             in_n_argument,
+                void prepare_pointer(GlReplayContext*                           in_context_ptr,
+                                     const size_t&                              in_n_argument,
                                      const APIInterceptor::APIFunctionArgument& in_argument)
                 {
                     /* A pointer value below this is an offset in a buffer; the one above is an address of the dumped process. */
@@ -280,16 +285,16 @@ namespace Replay
 
                     size_t     n_bytes          = 0;
                     const auto out_argument_ptr = in_context_ptr->get_out_argument_ptr(in_n_argument);
-                    const auto pointer_value    = in_argument.get_ptr_as_u64();
-                    const auto out_data_ptr     = in_context_ptr->get_chunk_data_ptr(out_argument_ptr,
-                                                                                     &n_bytes);
+                    const auto pointer_value    = in_argument.get_ptr_as_u64          ();
+                    const auto out_data_ptr     = in_context_ptr->get_chunk_data_ptr  (out_argument_ptr,
+                                                                                       &n_bytes);
 
                     if (out_data_ptr != nullptr)
                     {
                         m_dumped_names_ptr = out_data_ptr;
                         m_n_dumped_bytes   = n_bytes;
                         m_scratch_ptr      = in_context_ptr->allocate_scratch(n_bytes);
-                        m_value            = reinterpret_cast<T>(m_scratch_ptr->data() );
+                        m_value            = reinterpret_cast<T>             (m_scratch_ptr->data() );
                     }
                     else
                     if (pointer_value == 0)

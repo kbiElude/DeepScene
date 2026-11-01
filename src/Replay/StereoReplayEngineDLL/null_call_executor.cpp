@@ -10,11 +10,11 @@ Replay::StereoReplayEngineDLL::NullCallExecutor::NullCallExecutor()
 }
 
 bool Replay::StereoReplayEngineDLL::NullCallExecutor::execute(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                       const CallWalker&                   in_walker,
-                                                                       std::string*                        out_error_ptr)
+                                                              const IChunkSource&                          in_chunk_source,
+                                                              std::string*                                 out_error_ptr)
 {
     (void) in_call;
-    (void) in_walker;
+    (void) in_chunk_source;
     (void) out_error_ptr;
 
     return true;

@@ -30,7 +30,7 @@ namespace Replay
 
         private:
             /* One array of a snapshot, as the dumper wrote it. */
-            #pragma pack(push, 1)
+#pragma pack(push, 1)
             struct SnapshotArray
             {
                 uint32_t kind;
@@ -45,7 +45,7 @@ namespace Replay
                 uint32_t n_elements;
                 uint32_t n_bytes;
             };
-            #pragma pack(pop)
+#pragma pack(pop)
 
             static_assert(sizeof(SnapshotArray) == 48,
                           "Unexpected layout of an array of a snapshot");

@@ -6,8 +6,10 @@
 #define STEREOREPLAYENGINEDLL_I_REPLAY_ENGINE_H
 
 #include "Replay/StereoReplayEngineDLL/i_call_interceptor.h"
+#include "Replay/StereoReplayEngineDLL/i_frame_image_sink.h"
 #include "Replay/StereoReplayEngineDLL/i_playback_controller.h"
 #include "Replay/StereoReplayEngineDLL/i_replay_observer.h"
+#include "Analysis/RecipeLoader/types.h"
 
 namespace Replay
 {
@@ -31,6 +33,20 @@ namespace Replay
 
             virtual void remove_call_interceptor(ICallInterceptor* in_interceptor_ptr) = 0;
             virtual void remove_replay_observer (IReplayObserver*  in_observer_ptr)    = 0;
+
+            /* Both must be set before the replay is played. */
+            virtual void set_frame_execution (const FrameExecutionOptions& in_options)  = 0;
+            virtual void set_frame_image_sink(IFrameImageSink*             in_sink_ptr) = 0;
+
+            /* Changes the matrices of the calls of the buffered frames (see FrameExecutionOptions) as the recipe says. Frames are told
+             * apart as they are played, so every call is analyzed, and playing is slower. Must be set before the replay is played.
+             */
+            virtual void set_recipe(const Analysis::RecipeLoader::Recipe& in_recipe) = 0;
+
+            /* Hides the windows of the replayed application (it still renders to them), for when the images are shown some other way.
+             * Must be set before the replay is played.
+             */
+            virtual void set_windows_visible(const bool& in_are_visible) = 0;
         };
     }
 }

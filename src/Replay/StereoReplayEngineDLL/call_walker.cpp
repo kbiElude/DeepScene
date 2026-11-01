@@ -21,6 +21,11 @@ const Capture::APIDumpLoader::DataChunk* Replay::StereoReplayEngineDLL::CallWalk
                                                       in_data_chunk_id);
 }
 
+uint32_t Replay::StereoReplayEngineDLL::CallWalker::get_pointer_n_bytes() const
+{
+    return m_segment.pointer_n_bytes;
+}
+
 const Capture::APIDumpLoader::Workload& Replay::StereoReplayEngineDLL::CallWalker::get_segment() const
 {
     return m_segment;
@@ -29,10 +34,10 @@ const Capture::APIDumpLoader::Workload& Replay::StereoReplayEngineDLL::CallWalke
 bool Replay::StereoReplayEngineDLL::CallWalker::open(const char*  in_filename_ptr,
                                                      std::string* out_error_ptr)
 {
-    std::string                            error;
+    std::string                                     error;
     Capture::APIDumpLoader::WorkloadReaderUniquePtr reader_ptr = Capture::APIDumpLoader::WorkloadReader::create(in_filename_ptr,
-                                                                                                       &error);
-    bool                                   result     = false;
+                                                                                                                &error);
+    bool                                            result     = false;
 
     if (reader_ptr == nullptr)
     {
@@ -76,7 +81,7 @@ void Replay::StereoReplayEngineDLL::CallWalker::prefetch_main()
     {
         Capture::APIDumpLoader::Workload next_segment;
         Capture::APIDumpLoader::Workload old_segment;
-        bool                    is_read = false;
+        bool                             is_read = false;
 
         {
             std::unique_lock<std::mutex> lock(m_prefetch.mutex);
@@ -99,7 +104,7 @@ void Replay::StereoReplayEngineDLL::CallWalker::prefetch_main()
 
         /* Free the memory of the old segment (it takes a while), then read the next one. */
         old_segment = Capture::APIDumpLoader::Workload();
-        is_read     = m_reader_ptr->read_next_segment(&next_segment);
+        is_read     = m_reader_ptr->read_next_segment (&next_segment);
 
         {
             std::lock_guard<std::mutex> lock(m_prefetch.mutex);
@@ -136,7 +141,7 @@ bool Replay::StereoReplayEngineDLL::CallWalker::read_next_call(const Capture::AP
     }
 
     /* A segment may hold no calls; skip those. */
-    while (m_segment.dumped_api_call_vec_ptr == nullptr ||
+    while (m_segment.dumped_api_call_vec_ptr == nullptr                                   ||
            m_n_next_call                     >= m_segment.dumped_api_call_vec_ptr->size() )
     {
         if (read_next_segment() == false)
@@ -147,7 +152,8 @@ bool Replay::StereoReplayEngineDLL::CallWalker::read_next_call(const Capture::AP
 
     *out_call_ptr_ptr = &m_segment.dumped_api_call_vec_ptr->at(m_n_next_call);
     m_n_next_call++;
-    result            = true;
+
+    result = true;
 
 end:
     return result;

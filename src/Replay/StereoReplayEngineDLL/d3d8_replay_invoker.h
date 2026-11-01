@@ -131,9 +131,9 @@ namespace Replay
                                         std::index_sequence<Indices...>)
                 {
                     std::tuple<D3D8Restore::ArgumentRestorer<Arguments, Interception::Core::D3D8Utils::ArgumentCategoryOf<Arguments>::value>...> restorers;
-                    bool                                                                                                    is_ok  = true;
-                    ReturnHolder<ReturnType>                                                                                holder;
-                    bool                                                                                                    result = false;
+                    bool                                                                                                                         is_ok  = true;
+                    ReturnHolder<ReturnType>                                                                                                     holder;
+                    bool                                                                                                                         result = false;
 
                     /* Left to right, and no further once an argument cannot be restored. */
                     const bool prepared_dummy_bvec[] = {true, (is_ok = (is_ok && std::get<Indices>(restorers).prepare(in_context_ptr,
@@ -158,7 +158,7 @@ namespace Replay
                     }
 
                     {
-                        const bool is_success      = holder.is_success();
+                        const bool is_success            = holder.is_success();
                         const int  finished_dummy_ivec[] = {0, (std::get<Indices>(restorers).finish(in_context_ptr,
                                                                                                     Indices,
                                                                                                     is_success), 0)...};
@@ -167,19 +167,27 @@ namespace Replay
                     }
 
                     /* The dump got its object; so should the replay. */
-                    if (holder.is_success() == false &&
-                        in_context_ptr->is_creation_expected())
                     {
-                        char message_i8vec96[96];
+                        const bool has_failed = (holder.is_success() == false);
 
-                        ::snprintf(message_i8vec96,
-                                   sizeof(message_i8vec96),
-                                   "A D3D8 method which creates an object failed (%08X).",
-                                   static_cast<unsigned int>(holder.to_number() ));
+                        if (has_failed)
+                        {
+                            const bool is_creation_expected = in_context_ptr->is_creation_expected();
 
-                        *out_error_ptr = message_i8vec96;
+                            if (is_creation_expected)
+                            {
+                                char message_i8vec96[96];
 
-                        goto end;
+                                ::snprintf(message_i8vec96,
+                                           sizeof(message_i8vec96),
+                                           "A D3D8 method which creates an object failed (%08X).",
+                                           static_cast<unsigned int>(holder.to_number() ));
+
+                                *out_error_ptr = message_i8vec96;
+
+                                goto end;
+                            }
+                        }
                     }
 
                     result = true;

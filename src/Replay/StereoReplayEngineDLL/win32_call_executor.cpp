@@ -9,13 +9,19 @@
 /* The window class of the windows whose class the dump does not name (an atom). */
 static const wchar_t DEFAULT_WINDOW_CLASS_NAME[] = L"StereoReplayEngineDLLWindow";
 
+/* The property of a window which holds the executor it belongs to. */
+static const wchar_t EXECUTOR_PROPERTY_NAME[]    = L"StereoReplayEngineDLLExecutor";
+
 typedef HGLRC (WINAPI* PFNWGLCREATECONTEXTATTRIBSARBPROC)(HDC, HGLRC, const int*);
 typedef BOOL  (WINAPI* PFNWGLSWAPINTERVALEXTPROC)        (int);
 
 Replay::StereoReplayEngineDLL::Win32CallExecutor::Win32CallExecutor(ObjectRemapper*         in_remapper_ptr,
+                                                                    const WindowClosedFunc& in_window_closed_func,
                                                                     const WindowPlacedFunc& in_window_placed_func)
-    :m_has_last_placement(false),
+    :m_are_windows_visible(true),
+     m_has_last_placement(false),
      m_remapper_ptr      (in_remapper_ptr),
+     m_window_closed_func(in_window_closed_func),
      m_window_placed_func(in_window_placed_func)
 {
     const struct
@@ -63,9 +69,9 @@ Replay::StereoReplayEngineDLL::Win32CallExecutor::~Win32CallExecutor()
 }
 
 bool Replay::StereoReplayEngineDLL::Win32CallExecutor::create_window_ex(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                 const CallWalker&                   in_walker,
-                                                                                 const bool&                         in_is_wide,
-                                                                                 std::string*                        out_error_ptr)
+                                                                        const IChunkSource&                          in_chunk_source,
+                                                                        const bool&                                  in_is_wide,
+                                                                        std::string*                                 out_error_ptr)
 {
     constexpr size_t N_ARGUMENTS         = 12;
     constexpr size_t N_ARGUMENT_EX_STYLE = 0;
@@ -97,9 +103,9 @@ bool Replay::StereoReplayEngineDLL::Win32CallExecutor::create_window_ex(const Ca
     /* A class is told by a name, or by an atom, which means nothing to another process. */
     if (in_call.arg_in_vec.at(1).type == APIInterceptor::ARGTYPE_DATA_CHUNK_ID)
     {
-        const auto chunk_ptr = in_walker.get_data_chunk_ptr(in_call.arg_in_vec.at(1).get_data_chunk_id() );
+        const auto chunk_ptr = in_chunk_source.get_data_chunk_ptr(in_call.arg_in_vec.at(1).get_data_chunk_id() );
 
-        if (chunk_ptr != nullptr &&
+        if (chunk_ptr          != nullptr &&
             chunk_ptr->empty() == false)
         {
             class_name = get_wide_string(*chunk_ptr,
@@ -108,9 +114,9 @@ bool Replay::StereoReplayEngineDLL::Win32CallExecutor::create_window_ex(const Ca
     }
 
     {
-        const auto chunk_ptr = in_walker.get_data_chunk_ptr(in_call.arg_in_vec.at(2).get_data_chunk_id() );
+        const auto chunk_ptr = in_chunk_source.get_data_chunk_ptr(in_call.arg_in_vec.at(2).get_data_chunk_id() );
 
-        if (chunk_ptr != nullptr &&
+        if (chunk_ptr          != nullptr &&
             chunk_ptr->empty() == false)
         {
             window_name = get_wide_string(*chunk_ptr,
@@ -120,7 +126,7 @@ bool Replay::StereoReplayEngineDLL::Win32CallExecutor::create_window_ex(const Ca
 
     /* A window whose parent the replay does not know (e.g. a message-only window of the system) is not the app's. */
     if (get_live_handle(ObjectKind::HWND,
-                        in_call.arg_in_vec.at(N_ARGUMENT_PARENT),
+                        in_call.arg_in_vec.at   (N_ARGUMENT_PARENT),
                         reinterpret_cast<void**>(&live_parent),
                         out_error_ptr) == false)
     {
@@ -140,7 +146,7 @@ bool Replay::StereoReplayEngineDLL::Win32CallExecutor::create_window_ex(const Ca
 
     signature.class_name = class_name;
     signature.ex_style   = in_call.arg_in_vec.at(N_ARGUMENT_EX_STYLE).get_u32();
-    signature.height     = static_cast<int>(in_call.arg_in_vec.at(N_ARGUMENT_HEIGHT).get_u32() );
+    signature.height     = static_cast<int>     (in_call.arg_in_vec.at(N_ARGUMENT_HEIGHT).get_u32() );
     signature.style      = in_call.arg_in_vec.at(N_ARGUMENT_STYLE).get_u32();
     signature.title      = window_name;
     signature.width      = static_cast<int>(in_call.arg_in_vec.at(N_ARGUMENT_WIDTH).get_u32() );
@@ -183,6 +189,10 @@ bool Replay::StereoReplayEngineDLL::Win32CallExecutor::create_window_ex(const Ca
 
     m_window_signature_map[live_window] = signature;
 
+    ::SetPropW(live_window,
+               EXECUTOR_PROPERTY_NAME,
+               this);
+
     if (in_call.returned_value_ptr != nullptr)
     {
         m_remapper_ptr->add(ObjectKind::HWND,
@@ -193,7 +203,8 @@ bool Replay::StereoReplayEngineDLL::Win32CallExecutor::create_window_ex(const Ca
     /* The app shows its windows with ShowWindow(), which is not part of the dump: the windows of the app have a title
      * bar, or are visible from the start; the others belong to the system's libraries.
      */
-    if (is_reused                                     == false &&
+    if (m_are_windows_visible                                  &&
+        is_reused                                     == false &&
         (signature.style & WS_CHILD)                  == 0     &&
         (signature.style & (WS_CAPTION | WS_VISIBLE)) != 0)
     {
@@ -220,8 +231,8 @@ void Replay::StereoReplayEngineDLL::Win32CallExecutor::destroy_parked_windows()
 }
 
 bool Replay::StereoReplayEngineDLL::Win32CallExecutor::execute(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                        const CallWalker&                   in_walker,
-                                                                        std::string*                        out_error_ptr)
+                                                               const IChunkSource&                          in_chunk_source,
+                                                               std::string*                                 out_error_ptr)
 {
     const auto handler_iterator = m_handler_func_ptr_map.find(in_call.func);
     bool       result           = false;
@@ -234,7 +245,7 @@ bool Replay::StereoReplayEngineDLL::Win32CallExecutor::execute(const Capture::AP
     }
 
     result = (this->*handler_iterator->second)(in_call,
-                                               in_walker,
+                                               in_chunk_source,
                                                out_error_ptr);
 
 end:
@@ -269,21 +280,25 @@ void* Replay::StereoReplayEngineDLL::Win32CallExecutor::get_wgl_function_ptr(con
     void* result_ptr = reinterpret_cast<void*>(::wglGetProcAddress(in_name_ptr) );
 
     /* The functions can be asked for only while a context is current: use a throw-away one. */
-    if (result_ptr           == nullptr &&
-        ::wglGetCurrentContext() == nullptr)
+    if (result_ptr == nullptr)
     {
-        const HGLRC temporary_context = ::wglCreateContext(in_hdc);
+        const HGLRC current_context = ::wglGetCurrentContext();
 
-        if (temporary_context != nullptr)
+        if (current_context == nullptr)
         {
-            ::wglMakeCurrent(in_hdc,
-                             temporary_context);
+            const HGLRC temporary_context = ::wglCreateContext(in_hdc);
 
-            result_ptr = reinterpret_cast<void*>(::wglGetProcAddress(in_name_ptr) );
+            if (temporary_context != nullptr)
+            {
+                ::wglMakeCurrent(in_hdc,
+                                 temporary_context);
 
-            ::wglMakeCurrent (nullptr,
-                              nullptr);
-            ::wglDeleteContext(temporary_context);
+                result_ptr = reinterpret_cast<void*>(::wglGetProcAddress(in_name_ptr) );
+
+                ::wglMakeCurrent  (nullptr,
+                                   nullptr);
+                ::wglDeleteContext(temporary_context);
+            }
         }
     }
 
@@ -291,7 +306,7 @@ void* Replay::StereoReplayEngineDLL::Win32CallExecutor::get_wgl_function_ptr(con
 }
 
 std::wstring Replay::StereoReplayEngineDLL::Win32CallExecutor::get_wide_string(const Capture::APIDumpLoader::DataChunk& in_chunk,
-                                                                                        const bool&                     in_is_wide)
+                                                                               const bool&                              in_is_wide)
 {
     std::wstring result;
 
@@ -341,8 +356,8 @@ void Replay::StereoReplayEngineDLL::Win32CallExecutor::make_non_scalable(const D
     RECT        old_frame = {};
 
     /* The size of a window the user can pull is not the app's to keep: only a window with a title bar is made so. */
-    if ((*inout_style_ptr & WS_CAPTION) != 0 &&
-        (*inout_style_ptr & WS_CHILD)   == 0 &&
+    if ((*inout_style_ptr & WS_CAPTION) != 0             &&
+        (*inout_style_ptr & WS_CHILD)   == 0             &&
         *inout_width_ptr                != CW_USEDEFAULT &&
         *inout_height_ptr               != CW_USEDEFAULT)
     {
@@ -358,19 +373,19 @@ void Replay::StereoReplayEngineDLL::Win32CallExecutor::make_non_scalable(const D
         /* The thin border takes less room: the window grows by the difference, and the area for drawing stays as big. */
         *inout_height_ptr += (new_frame.bottom - new_frame.top) - (old_frame.bottom - old_frame.top);
         *inout_width_ptr  += (new_frame.right  - new_frame.left) - (old_frame.right  - old_frame.left);
-        *inout_style_ptr   = new_style;
+        *inout_style_ptr   =  new_style;
     }
 }
 
 bool Replay::StereoReplayEngineDLL::Win32CallExecutor::on_copy_context(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                const CallWalker&                   in_walker,
-                                                                                std::string*                        out_error_ptr)
+                                                                       const IChunkSource&                          in_chunk_source,
+                                                                       std::string*                                 out_error_ptr)
 {
     HGLRC destination = nullptr;
     bool  result      = false;
     HGLRC source      = nullptr;
 
-    (void) in_walker;
+    (void) in_chunk_source;
 
     if (get_live_handle(ObjectKind::HGLRC,
                         in_call.arg_in_vec.at(0),
@@ -399,19 +414,19 @@ end:
 }
 
 bool Replay::StereoReplayEngineDLL::Win32CallExecutor::on_create_context(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                  const CallWalker&                   in_walker,
-                                                                                  std::string*                        out_error_ptr)
+                                                                         const IChunkSource&                          in_chunk_source,
+                                                                         std::string*                                 out_error_ptr)
 {
     HDC   live_hdc = nullptr;
     HGLRC live_rc  = nullptr;
     bool  result   = false;
 
-    (void) in_walker;
+    (void) in_chunk_source;
 
     if (get_live_handle(ObjectKind::HDC,
-                        in_call.arg_in_vec.at(0),
+                        in_call.arg_in_vec.at   (0),
                         reinterpret_cast<void**>(&live_hdc),
-                        out_error_ptr) == false)
+                        out_error_ptr)                      == false)
     {
         goto end;
     }
@@ -441,8 +456,8 @@ end:
 }
 
 bool Replay::StereoReplayEngineDLL::Win32CallExecutor::on_create_context_attribs_arb(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                              const CallWalker&                   in_walker,
-                                                                                              std::string*                        out_error_ptr)
+                                                                                     const IChunkSource&                          in_chunk_source,
+                                                                                     std::string*                                 out_error_ptr)
 {
     const int*                        attrib_list_ptr = nullptr;
     PFNWGLCREATECONTEXTATTRIBSARBPROC create_func_ptr = nullptr;
@@ -468,9 +483,9 @@ bool Replay::StereoReplayEngineDLL::Win32CallExecutor::on_create_context_attribs
     }
 
     {
-        const auto chunk_ptr = in_walker.get_data_chunk_ptr(in_call.arg_in_vec.at(2).get_data_chunk_id() );
+        const auto chunk_ptr = in_chunk_source.get_data_chunk_ptr(in_call.arg_in_vec.at(2).get_data_chunk_id() );
 
-        if (chunk_ptr != nullptr &&
+        if (chunk_ptr          != nullptr &&
             chunk_ptr->empty() == false)
         {
             attrib_list_ptr = reinterpret_cast<const int*>(chunk_ptr->data() );
@@ -514,14 +529,14 @@ end:
 }
 
 bool Replay::StereoReplayEngineDLL::Win32CallExecutor::on_create_layer_context(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                        const CallWalker&                   in_walker,
-                                                                                        std::string*                        out_error_ptr)
+                                                                               const IChunkSource&                          in_chunk_source,
+                                                                               std::string*                                 out_error_ptr)
 {
     HDC   live_hdc = nullptr;
     HGLRC live_rc  = nullptr;
     bool  result   = false;
 
-    (void) in_walker;
+    (void) in_chunk_source;
 
     if (get_live_handle(ObjectKind::HDC,
                         in_call.arg_in_vec.at(0),
@@ -557,38 +572,38 @@ end:
 }
 
 bool Replay::StereoReplayEngineDLL::Win32CallExecutor::on_create_window_ex_a(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                      const CallWalker&                   in_walker,
-                                                                                      std::string*                        out_error_ptr)
+                                                                             const IChunkSource&                          in_chunk_source,
+                                                                             std::string*                                 out_error_ptr)
 {
     return create_window_ex(in_call,
-                            in_walker,
+                            in_chunk_source,
                             false, /* in_is_wide */
                             out_error_ptr);
 }
 
 bool Replay::StereoReplayEngineDLL::Win32CallExecutor::on_create_window_ex_w(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                      const CallWalker&                   in_walker,
-                                                                                      std::string*                        out_error_ptr)
+                                                                             const IChunkSource&                          in_chunk_source,
+                                                                             std::string*                                 out_error_ptr)
 {
     return create_window_ex(in_call,
-                            in_walker,
+                            in_chunk_source,
                             true, /* in_is_wide */
                             out_error_ptr);
 }
 
 bool Replay::StereoReplayEngineDLL::Win32CallExecutor::on_delete_context(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                  const CallWalker&                   in_walker,
-                                                                                  std::string*                        out_error_ptr)
+                                                                         const IChunkSource&                          in_chunk_source,
+                                                                         std::string*                                 out_error_ptr)
 {
     HGLRC live_rc = nullptr;
     bool  result  = false;
 
-    (void) in_walker;
+    (void) in_chunk_source;
 
     if (get_live_handle(ObjectKind::HGLRC,
                         in_call.arg_in_vec.at(0),
                         reinterpret_cast<void**>(&live_rc),
-                        out_error_ptr) == false)
+                        out_error_ptr)                     == false)
     {
         goto end;
     }
@@ -618,14 +633,14 @@ void Replay::StereoReplayEngineDLL::Win32CallExecutor::on_frame_presented()
 }
 
 bool Replay::StereoReplayEngineDLL::Win32CallExecutor::on_get_dc(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                          const CallWalker&                   in_walker,
-                                                                          std::string*                        out_error_ptr)
+                                                                 const IChunkSource&                          in_chunk_source,
+                                                                 std::string*                                 out_error_ptr)
 {
     HDC  live_hdc  = nullptr;
     HWND live_hwnd = nullptr;
     bool result    = false;
 
-    (void) in_walker;
+    (void) in_chunk_source;
 
     /* GetDC(NULL) is the driver's: it asks for the screen. */
     if (in_call.arg_in_vec.at(0).get_ptr_as_u64() == 0)
@@ -645,7 +660,7 @@ bool Replay::StereoReplayEngineDLL::Win32CallExecutor::on_get_dc(const Capture::
 
     live_hdc = ::GetDC(live_hwnd);
 
-    if (live_hdc != nullptr &&
+    if (live_hdc                   != nullptr &&
         in_call.returned_value_ptr != nullptr)
     {
         m_remapper_ptr->add(ObjectKind::HDC,
@@ -665,25 +680,25 @@ void Replay::StereoReplayEngineDLL::Win32CallExecutor::on_idle()
 }
 
 bool Replay::StereoReplayEngineDLL::Win32CallExecutor::on_ignored_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                const CallWalker&                   in_walker,
-                                                                                std::string*                        out_error_ptr)
+                                                                       const IChunkSource&                          in_chunk_source,
+                                                                       std::string*                                 out_error_ptr)
 {
     (void) in_call;
-    (void) in_walker;
+    (void) in_chunk_source;
     (void) out_error_ptr;
 
     return true;
 }
 
 bool Replay::StereoReplayEngineDLL::Win32CallExecutor::on_make_current(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                const CallWalker&                   in_walker,
-                                                                                std::string*                        out_error_ptr)
+                                                                       const IChunkSource&                          in_chunk_source,
+                                                                       std::string*                                 out_error_ptr)
 {
     HDC   live_hdc = nullptr;
     HGLRC live_rc  = nullptr;
     bool  result   = false;
 
-    (void) in_walker;
+    (void) in_chunk_source;
 
     if (get_live_handle(ObjectKind::HDC,
                         in_call.arg_in_vec.at(0),
@@ -716,14 +731,14 @@ end:
 }
 
 bool Replay::StereoReplayEngineDLL::Win32CallExecutor::on_release_dc(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                              const CallWalker&                   in_walker,
-                                                                              std::string*                        out_error_ptr)
+                                                                     const IChunkSource&                          in_chunk_source,
+                                                                     std::string*                                 out_error_ptr)
 {
     uint64_t live_hdc  = 0;
     uint64_t live_hwnd = 0;
     bool     result    = true;
 
-    (void) in_walker;
+    (void) in_chunk_source;
     (void) out_error_ptr;
 
     /* Neither the driver's calls (no window), nor a DC which the replay has not got are replayed. */
@@ -757,8 +772,8 @@ end:
 }
 
 bool Replay::StereoReplayEngineDLL::Win32CallExecutor::on_set_pixel_format(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                    const CallWalker&                   in_walker,
-                                                                                    std::string*                        out_error_ptr)
+                                                                           const IChunkSource&                          in_chunk_source,
+                                                                           std::string*                                 out_error_ptr)
 {
     int                   live_format = 0;
     HDC                   live_hdc    = nullptr;
@@ -774,10 +789,10 @@ bool Replay::StereoReplayEngineDLL::Win32CallExecutor::on_set_pixel_format(const
     }
 
     {
-        const auto chunk_ptr = in_walker.get_data_chunk_ptr(in_call.arg_in_vec.at(2).get_data_chunk_id() );
+        const auto chunk_ptr = in_chunk_source.get_data_chunk_ptr(in_call.arg_in_vec.at(2).get_data_chunk_id() );
 
-        if (chunk_ptr == nullptr ||
-            chunk_ptr->size() < sizeof(pixel_format_descriptor) )
+        if (chunk_ptr         == nullptr                         ||
+            chunk_ptr->size() <  sizeof(pixel_format_descriptor) )
         {
             *out_error_ptr = "SetPixelFormat: the pixel format descriptor was not dumped.";
 
@@ -811,17 +826,17 @@ end:
 }
 
 bool Replay::StereoReplayEngineDLL::Win32CallExecutor::on_share_lists(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                               const CallWalker&                   in_walker,
-                                                                               std::string*                        out_error_ptr)
+                                                                      const IChunkSource&                          in_chunk_source,
+                                                                      std::string*                                 out_error_ptr)
 {
     HGLRC first  = nullptr;
     bool  result = false;
     HGLRC second = nullptr;
 
-    (void) in_walker;
+    (void) in_chunk_source;
 
     if (get_live_handle(ObjectKind::HGLRC,
-                        in_call.arg_in_vec.at(0),
+                        in_call.arg_in_vec.at   (0),
                         reinterpret_cast<void**>(&first),
                         out_error_ptr) == false)
     {
@@ -829,7 +844,7 @@ bool Replay::StereoReplayEngineDLL::Win32CallExecutor::on_share_lists(const Capt
     }
 
     if (get_live_handle(ObjectKind::HGLRC,
-                        in_call.arg_in_vec.at(1),
+                        in_call.arg_in_vec.at   (1),
                         reinterpret_cast<void**>(&second),
                         out_error_ptr) == false)
     {
@@ -846,16 +861,16 @@ end:
 }
 
 bool Replay::StereoReplayEngineDLL::Win32CallExecutor::on_swap_buffers(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                const CallWalker&                   in_walker,
-                                                                                std::string*                        out_error_ptr)
+                                                                       const IChunkSource&                          in_chunk_source,
+                                                                       std::string*                                 out_error_ptr)
 {
     HDC  live_hdc = nullptr;
     bool result   = false;
 
-    (void) in_walker;
+    (void) in_chunk_source;
 
     if (get_live_handle(ObjectKind::HDC,
-                        in_call.arg_in_vec.at(0),
+                        in_call.arg_in_vec.at   (0),
                         reinterpret_cast<void**>(&live_hdc),
                         out_error_ptr) == false)
     {
@@ -871,14 +886,14 @@ end:
 }
 
 bool Replay::StereoReplayEngineDLL::Win32CallExecutor::on_swap_interval_ext(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                     const CallWalker&                   in_walker,
-                                                                                     std::string*                        out_error_ptr)
+                                                                            const IChunkSource&                          in_chunk_source,
+                                                                            std::string*                                 out_error_ptr)
 {
     const HDC                 live_hdc      = ::wglGetCurrentDC();
     bool                      result        = true;
     PFNWGLSWAPINTERVALEXTPROC swap_func_ptr = nullptr;
 
-    (void) in_walker;
+    (void) in_chunk_source;
     (void) out_error_ptr;
 
     /* Without a current context, there is nothing to set the interval of. */
@@ -897,13 +912,13 @@ bool Replay::StereoReplayEngineDLL::Win32CallExecutor::on_swap_interval_ext(cons
 }
 
 bool Replay::StereoReplayEngineDLL::Win32CallExecutor::on_swap_layer_buffers(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                      const CallWalker&                   in_walker,
-                                                                                      std::string*                        out_error_ptr)
+                                                                             const IChunkSource&                          in_chunk_source,
+                                                                             std::string*                                 out_error_ptr)
 {
     HDC  live_hdc = nullptr;
     bool result   = false;
 
-    (void) in_walker;
+    (void) in_chunk_source;
 
     if (get_live_handle(ObjectKind::HDC,
                         in_call.arg_in_vec.at(0),
@@ -1012,17 +1027,18 @@ bool Replay::StereoReplayEngineDLL::Win32CallExecutor::register_window_class(con
 
     if (m_registered_class_name_set.find(in_name) == m_registered_class_name_set.end() )
     {
-        window_class.cbSize        = sizeof(window_class);
-        window_class.hCursor       = ::LoadCursorW(nullptr,
-                                                   reinterpret_cast<LPCWSTR>(IDC_ARROW) );
+        window_class.cbSize        = sizeof            (window_class);
+        window_class.hCursor       = ::LoadCursorW     (nullptr,
+                                                        reinterpret_cast<LPCWSTR>(IDC_ARROW) );
         window_class.hInstance     = ::GetModuleHandleW(nullptr);
         window_class.lpfnWndProc   = &Win32CallExecutor::window_proc;
         window_class.lpszClassName = in_name.c_str();
+
         /* An OpenGL window must keep its DC, so that the pixel format sticks. The replay ignores WM_CLOSE: no button. */
         window_class.style         = CS_HREDRAW | CS_NOCLOSE | CS_OWNDC | CS_VREDRAW;
 
-        result = (::RegisterClassExW(&window_class) != 0 ||
-                  ::GetLastError() == ERROR_CLASS_ALREADY_EXISTS);
+        result = (::RegisterClassExW(&window_class) != 0                           ||
+                  ::GetLastError    ()              == ERROR_CLASS_ALREADY_EXISTS);
 
         if (result)
         {
@@ -1046,12 +1062,12 @@ void Replay::StereoReplayEngineDLL::Win32CallExecutor::reset()
     /* Where the window of the app is now is where a window made anew goes. */
     for (const auto& window : m_window_signature_map)
     {
-        const bool is_iconic    = (::IsIconic(window.first) != FALSE);
+        const bool is_iconic    = (::IsIconic(window.first)  != FALSE);
         const bool is_top_level = (::GetParent(window.first) == nullptr);
         RECT       outer_rect   = {};
 
-        if (is_top_level                         &&
-            is_iconic                           == false &&
+        if (is_top_level                                &&
+            is_iconic                          == false &&
             (window.second.style & WS_CAPTION) != 0)
         {
             ::GetWindowRect(window.first,
@@ -1082,8 +1098,13 @@ void Replay::StereoReplayEngineDLL::Win32CallExecutor::reset()
         }
     }
 
-    m_context_set.clear();
+    m_context_set.clear         ();
     m_window_signature_map.clear();
+}
+
+void Replay::StereoReplayEngineDLL::Win32CallExecutor::set_windows_visible(const bool& in_are_visible)
+{
+    m_are_windows_visible = in_are_visible;
 }
 
 void Replay::StereoReplayEngineDLL::Win32CallExecutor::shutdown()
@@ -1102,20 +1123,24 @@ bool Replay::StereoReplayEngineDLL::Win32CallExecutor::take_parked_window(const 
               iterator != m_parked_window_map.end  ();
             ++iterator)
     {
-        if (::IsWindow(iterator->first)   != FALSE                 &&
-            iterator->second.class_name == in_signature.class_name &&
-            iterator->second.ex_style   == in_signature.ex_style   &&
-            iterator->second.height     == in_signature.height     &&
-            iterator->second.style      == in_signature.style      &&
-            iterator->second.title      == in_signature.title      &&
-            iterator->second.width      == in_signature.width)
+        const BOOL is_window = ::IsWindow(iterator->first);
+
+        if (is_window != FALSE)
         {
-            *out_window_ptr = iterator->first;
-            result          = true;
+            if (iterator->second.class_name == in_signature.class_name &&
+                iterator->second.ex_style   == in_signature.ex_style   &&
+                iterator->second.height     == in_signature.height     &&
+                iterator->second.style      == in_signature.style      &&
+                iterator->second.title      == in_signature.title      &&
+                iterator->second.width      == in_signature.width)
+            {
+                *out_window_ptr = iterator->first;
+                result          = true;
 
-            m_parked_window_map.erase(iterator);
+                m_parked_window_map.erase(iterator);
 
-            break;
+                break;
+            }
         }
     }
 
@@ -1129,9 +1154,28 @@ LRESULT CALLBACK Replay::StereoReplayEngineDLL::Win32CallExecutor::window_proc(H
 {
     LRESULT result = 0;
 
-    /* A window the user closes would break the calls which follow; the replay destroys the windows itself. */
-    if (in_message != WM_CLOSE)
+    /* A window the user closes would break the calls which follow; the replay destroys the windows itself, and only says that
+     * the user asked.
+     */
+    if (in_message == WM_CLOSE)
     {
+        const auto executor_ptr = static_cast<Win32CallExecutor*>(::GetPropW(in_hwnd,
+                                                                             EXECUTOR_PROPERTY_NAME) );
+
+        if (executor_ptr                       != nullptr &&
+            executor_ptr->m_window_closed_func != nullptr)
+        {
+            executor_ptr->m_window_closed_func();
+        }
+    }
+    else
+    {
+        if (in_message == WM_NCDESTROY)
+        {
+            ::RemovePropW(in_hwnd,
+                          EXECUTOR_PROPERTY_NAME);
+        }
+
         result = ::DefWindowProcW(in_hwnd,
                                   in_message,
                                   in_wparam,

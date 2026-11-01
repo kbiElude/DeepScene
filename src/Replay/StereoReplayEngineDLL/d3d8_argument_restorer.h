@@ -47,10 +47,10 @@ namespace Replay
                     typedef HRESULT (__stdcall* PFNGETADAPTERDISPLAYMODEPROC)(void*, UINT, Interception::Hooks::D3D8::D3DDISPLAYMODE*);
                     typedef HRESULT (__stdcall* PFNGETDISPLAYMODEPROC)       (void*, Interception::Hooks::D3D8::D3DDISPLAYMODE*);
 
-                    const auto&          call   = in_context_ptr->get_call();
-                    std::string          error;
+                    const auto&                               call   = in_context_ptr->get_call();
+                    std::string                               error;
                     Interception::Hooks::D3D8::D3DDISPLAYMODE mode   = {};
-                    void*                object = nullptr;
+                    void*                                     object = nullptr;
                     Interception::Hooks::D3D8::D3DFORMAT      result = Interception::Hooks::D3D8::D3DFMT_X8R8G8B8;
 
                     if (in_context_ptr->get_live_object(call.arg_in_vec.at(0),
@@ -83,7 +83,7 @@ namespace Replay
                 }
 
                 static void apply(Interception::Hooks::D3D8::D3DPRESENT_PARAMETERS* inout_value_ptr,
-                                                       D3D8ReplayContext*           in_context_ptr)
+                                  D3D8ReplayContext*           in_context_ptr)
                 {
                     uint64_t live_window = 0;
 
@@ -343,7 +343,7 @@ namespace Replay
                 {
                     const auto out_argument_ptr = in_context_ptr->get_out_argument_ptr(in_n_argument);
 
-                    if (in_is_success            &&
+                    if (in_is_success               &&
                         m_value          != nullptr &&
                         out_argument_ptr != nullptr)
                     {

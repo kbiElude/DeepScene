@@ -19,6 +19,9 @@ namespace Replay
         public:
             virtual ~IPlaybackController() = default;
 
+            /* The distance between the eyes, in the units of the camera of the application. */
+            virtual float get_eye_separation() const = 0;
+
             virtual PlaybackStatus get_status() const = 0;
 
             /* Stops at the next frame boundary. */
@@ -31,6 +34,12 @@ namespace Replay
              * rendered, so it can be seen. Takes effect at the next frame boundary if the replay is running.
              */
             virtual void reset() = 0;
+
+            /* Changes the distance between the eyes of the frames that are rendered for two eyes; 0 renders the same image for both.
+             * Takes effect from the next frame, and is not part of any recipe: a recipe says in which direction the eyes are moved
+             * apart (an eye offset), and this says how far. It starts as 0.
+             */
+            virtual void set_eye_separation(const float& in_eye_separation) = 0;
 
             /* The pace of the replay: 1 is the pace at which the dumped process presented its frames, 2 is twice as fast, 0 is as
              * fast as the machine can go. Takes effect at once.

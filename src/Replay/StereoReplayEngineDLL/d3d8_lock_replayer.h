@@ -25,10 +25,11 @@ namespace Replay
             D3D8LockReplayer(D3D8ReplayContext* in_context_ptr);
 
             bool lock  (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                 std::string*                        out_error_ptr);
+                        std::string*                                 out_error_ptr);
             void reset ();
             bool unlock(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                 std::string*                        out_error_ptr);
+                        std::string*                                 out_error_ptr);
+
 
             /* True if the function locks, or unlocks, something. */
             static bool is_lock_function(const APIInterceptor::APIFunction& in_function);
@@ -79,17 +80,18 @@ namespace Replay
             typedef std::tuple<void*, uint32_t, uint32_t> LockKey;
 
             bool lock_box   (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                      void*                               in_object_ptr,
-                                      const LockKey&                      in_key,
-                                      std::string*                        out_error_ptr);
+                             void*                                        in_object_ptr,
+                             const LockKey&                               in_key,
+                             std::string*                                 out_error_ptr);
             bool lock_buffer(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                      void*                               in_object_ptr,
-                                      const LockKey&                      in_key,
-                                      std::string*                        out_error_ptr);
+                             void*                                        in_object_ptr,
+                             const LockKey&                               in_key,
+                             std::string*                                 out_error_ptr);
             bool lock_rect  (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                      void*                               in_object_ptr,
-                                      const LockKey&                      in_key,
-                                      std::string*                        out_error_ptr);
+                             void*                                        in_object_ptr,
+                             const LockKey&                               in_key,
+                             std::string*                                 out_error_ptr);
+
 
             /* The value of an argument slot of a LockSpec which the call does not have. */
             static const int ARGUMENT_ABSENT;

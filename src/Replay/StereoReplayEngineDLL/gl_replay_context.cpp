@@ -38,30 +38,30 @@ std::vector<const char*>* Replay::StereoReplayEngineDLL::GlReplayContext::alloca
 }
 
 void Replay::StereoReplayEngineDLL::GlReplayContext::begin_call(const Capture::APIDumpLoader::DumpedAPICall* in_call_ptr,
-                                                                         const CallWalker*                   in_walker_ptr,
-                                                                         const size_t&                       in_n_head_arguments,
-                                                                         const GlFunctionInfo*               in_function_info_ptr)
+                                                                const IChunkSource*                          in_chunk_source_ptr,
+                                                                const size_t&                                in_n_head_arguments,
+                                                                const GlFunctionInfo*                        in_function_info_ptr)
 {
     CallContext::begin_call(in_call_ptr,
-                            in_walker_ptr,
+                            in_chunk_source_ptr,
                             in_n_head_arguments);
 
     m_function_info_ptr = in_function_info_ptr;
     m_is_skipped        = false;
     m_live_return       = 0;
 
-    m_scratch_deque.clear();
-    m_string_deque.clear();
+    m_scratch_deque.clear        ();
+    m_string_deque.clear         ();
     m_string_pointers_deque.clear();
 }
 
 void Replay::StereoReplayEngineDLL::GlReplayContext::forget_locations()
 {
-    m_attrib_location_map.clear();
-    m_current_program = 0;
-    m_index_map.clear();
-
+    m_attrib_location_map.clear ();
+    m_index_map.clear           ();
     m_uniform_location_map.clear();
+
+    m_current_program = 0;
 }
 
 uint64_t Replay::StereoReplayEngineDLL::GlReplayContext::get_current_program() const
@@ -74,8 +74,8 @@ uint64_t Replay::StereoReplayEngineDLL::GlReplayContext::get_index_program() con
     uint64_t result = m_current_program;
 
     /* The call that names the program it asks the index of (e.g. glUniformBlockBinding()) says which one. */
-    if (m_function_info_ptr->param_kind_vec.empty() == false &&
-        m_function_info_ptr->param_kind_vec.at(0)   == ObjectKind::PROGRAM)
+    if (m_function_info_ptr->param_kind_vec.empty()  == false               &&
+        m_function_info_ptr->param_kind_vec.at   (0) == ObjectKind::PROGRAM)
     {
         const auto argument_ptr = get_in_argument_ptr(0);
 
@@ -121,7 +121,7 @@ uint64_t Replay::StereoReplayEngineDLL::GlReplayContext::get_uniform_program() c
 
 bool Replay::StereoReplayEngineDLL::GlReplayContext::is_param_ignored(const size_t& in_n_argument) const
 {
-    return (in_n_argument < sizeof(m_function_info_ptr->ignored_param_mask) * CHAR_BIT &&
+    return (in_n_argument                                                     <  sizeof(m_function_info_ptr->ignored_param_mask) * CHAR_BIT &&
             (m_function_info_ptr->ignored_param_mask & (1u << in_n_argument)) != 0);
 }
 
@@ -143,14 +143,18 @@ uint32_t Replay::StereoReplayEngineDLL::GlReplayContext::map_argument(const size
         uint32_t buffer = COMPAT_GL_COLOR;
 
         /* The draw buffers are those of the color buffer; the depth and the stencil have just one (the 0-th). */
-        if (kind == ObjectKind::FRAG_DATA_LOCATION &&
-            in_n_argument > 0                      &&
-            ::strncmp(m_function_info_ptr->name_ptr,
-                      "glClear",
-                      ::strlen("glClear") ) == 0)
+        if (kind          == ObjectKind::FRAG_DATA_LOCATION &&
+            in_n_argument >  0)
         {
-            read_number(*get_in_argument_ptr(in_n_argument - 1),
-                        &buffer);
+            const int clear_difference = ::strncmp(m_function_info_ptr->name_ptr,
+                                                   "glClear",
+                                                   ::strlen("glClear") );
+
+            if (clear_difference == 0)
+            {
+                read_number(*get_in_argument_ptr(in_n_argument - 1),
+                            &buffer);
+            }
         }
 
         if (buffer == COMPAT_GL_COLOR)
@@ -300,7 +304,7 @@ void Replay::StereoReplayEngineDLL::GlReplayContext::register_returned_name(cons
     const auto  kind     = m_function_info_ptr->return_kind;
     const auto& returned = get_call().returned_value_ptr;
 
-    if (kind != ObjectKind::NONE &&
+    if (kind     != ObjectKind::NONE &&
         returned != nullptr)
     {
         if (kind == ObjectKind::SYNC)

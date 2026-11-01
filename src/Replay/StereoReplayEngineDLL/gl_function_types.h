@@ -10,8 +10,10 @@
 
 #include <Windows.h>
 #include "Khronos/GL/glcorearb.h"
+
 #undef GL_VERSION_1_3  /* allow glext.h to define its compat-profile 1.3 typedefs */
 #undef GL_VERSION_1_4  /* allow glext.h to define its compat-profile 1.4 typedefs */
+
 #include "Khronos/GL/glext.h"
 
 #define AI_APIENTRY KHRONOS_APIENTRY

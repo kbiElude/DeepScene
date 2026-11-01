@@ -6,105 +6,63 @@
  */
 #include <gtest/gtest.h>
 #include "Replay/StereoReplayEngineDLL/entrypoints.h"
+#include "test_doubles.h"
 #include "workload_file_builder.h"
 #include <chrono>
 #include <thread>
 
-namespace
+class ReplayEngineTest : public ::testing::Test
 {
-    constexpr uint32_t N_CALLS_PER_FRAME = 2;
-    constexpr uint32_t N_FRAMES          = 3;
+protected:
+    static const uint32_t N_CALLS_PER_FRAME;
+    static const uint32_t N_FRAMES;
 
-    /* Pauses the replay, or skips the calls, as told. */
-    class TestInterceptor : public Replay::StereoReplayEngineDLL::ICallInterceptor
+    void SetUp() override
     {
-    public:
-        TestInterceptor(Replay::StereoReplayEngineDLL::IPlaybackController* in_controller_ptr,
-                                      const bool&                           in_should_pause_on_first_call,
-                                      const bool&                           in_should_skip_calls)
-            :m_controller_ptr            (in_controller_ptr),
-             m_should_pause_on_first_call(in_should_pause_on_first_call),
-             m_should_skip_calls         (in_should_skip_calls)
-        {
-            /* Stub */
-        }
+        std::vector<uint8_t> file_u8_vec;
 
-        void on_call_replayed(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                       const uint32_t&                     in_n_frame,
-                                       const bool&                         in_was_executed) override
-        {
-            (void) in_call;
-            (void) in_was_executed;
+        Tests::WorkloadFileBuilder::build_frames(&file_u8_vec,
+                                                 N_FRAMES,
+                                                 N_CALLS_PER_FRAME);
+        Tests::WorkloadFileBuilder::write_file  (file_u8_vec);
 
-            if (m_should_pause_on_first_call &&
-                in_n_frame == 0)
-            {
-                m_controller_ptr->pause();
-            }
-        }
+        m_engine_ptr = Replay::StereoReplayEngineDLL::aiCreateReplayEngine();
+    }
 
-        bool should_execute_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                          const uint32_t&                     in_n_frame) override
-        {
-            (void) in_call;
-            (void) in_n_frame;
-
-            return (m_should_skip_calls == false);
-        }
-
-    private:
-        Replay::StereoReplayEngineDLL::IPlaybackController* m_controller_ptr;
-        bool                                  m_should_pause_on_first_call;
-        bool                                  m_should_skip_calls;
-    };
-
-    class ReplayEngineTest : public ::testing::Test
+    void TearDown() override
     {
-    protected:
-        void SetUp() override
+        Replay::StereoReplayEngineDLL::aiDestroyReplayEngine(m_engine_ptr);
+        ::remove(Tests::WorkloadFileBuilder::get_filename_ptr() );
+    }
+
+    /* Polls: the replay runs on a thread of its own. */
+    bool wait_for_state(const Replay::StereoReplayEngineDLL::PlaybackState& in_state)
+    {
+        constexpr auto TIMEOUT = std::chrono::seconds(10);
+
+        const auto deadline = std::chrono::steady_clock::now() + TIMEOUT;
+        bool       result   = false;
+
+        while (std::chrono::steady_clock::now() < deadline)
         {
-            std::vector<uint8_t> file_u8_vec;
-
-            Tests::WorkloadFileBuilder::build_frames(&file_u8_vec,
-                                                     N_FRAMES,
-                                                     N_CALLS_PER_FRAME);
-            Tests::WorkloadFileBuilder::write_file  (file_u8_vec);
-
-            m_engine_ptr = Replay::StereoReplayEngineDLL::aiCreateReplayEngine();
-        }
-
-        void TearDown() override
-        {
-            Replay::StereoReplayEngineDLL::aiDestroyReplayEngine(m_engine_ptr);
-            ::remove(Tests::WorkloadFileBuilder::get_filename_ptr() );
-        }
-
-        /* Polls: the replay runs on a thread of its own. */
-        bool wait_for_state(const Replay::StereoReplayEngineDLL::PlaybackState& in_state)
-        {
-            constexpr auto TIMEOUT = std::chrono::seconds(10);
-
-            const auto deadline = std::chrono::steady_clock::now() + TIMEOUT;
-            bool       result   = false;
-
-            while (std::chrono::steady_clock::now() < deadline)
+            if (m_engine_ptr->get_playback_controller_ptr()->get_status().state == in_state)
             {
-                if (m_engine_ptr->get_playback_controller_ptr()->get_status().state == in_state)
-                {
-                    result = true;
+                result = true;
 
-                    break;
-                }
-
-                std::this_thread::sleep_for(std::chrono::milliseconds(1) );
+                break;
             }
 
-            return result;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1) );
         }
 
-        Replay::StereoReplayEngineDLL::IReplayEngine* m_engine_ptr = nullptr;
-    };
-}
+        return result;
+    }
+
+    Replay::StereoReplayEngineDLL::IReplayEngine* m_engine_ptr = nullptr;
+};
+
+const uint32_t ReplayEngineTest::N_CALLS_PER_FRAME = 2;
+const uint32_t ReplayEngineTest::N_FRAMES          = 3;
 
 TEST_F(ReplayEngineTest, LoadFailsForMissingFile)
 {
@@ -141,7 +99,7 @@ TEST_F(ReplayEngineTest, PausesAtTheNextFrameBoundary)
                                    nullptr) );
 
     auto*           controller_ptr = m_engine_ptr->get_playback_controller_ptr();
-    TestInterceptor interceptor    (controller_ptr,
+    Tests::PausingInterceptor interceptor    (controller_ptr,
                                     true,   /* in_should_pause_on_first_call */
                                     false); /* in_should_skip_calls          */
 
@@ -202,7 +160,7 @@ TEST_F(ReplayEngineTest, SkippedCallsAreNotExecuted)
                                    nullptr) );
 
     auto*           controller_ptr = m_engine_ptr->get_playback_controller_ptr();
-    TestInterceptor interceptor    (controller_ptr,
+    Tests::PausingInterceptor interceptor    (controller_ptr,
                                     false,  /* in_should_pause_on_first_call */
                                     true);  /* in_should_skip_calls          */
 

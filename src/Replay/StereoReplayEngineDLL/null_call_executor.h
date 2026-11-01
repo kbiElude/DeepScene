@@ -18,8 +18,8 @@ namespace Replay
             NullCallExecutor();
 
             bool execute           (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                             const CallWalker&                   in_walker,
-                                             std::string*                        out_error_ptr) override;
+                                    const IChunkSource&                          in_chunk_source,
+                                    std::string*                                 out_error_ptr) override;
             void on_frame_presented() override;
             void reset             () override;
         };

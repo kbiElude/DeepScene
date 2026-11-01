@@ -32,21 +32,24 @@ namespace Replay
                                           const uint32_t&              in_empty_value) const;
 
             bool replay(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                 std::string*                        out_error_ptr);
+                        std::string*                                 out_error_ptr);
+
 
             /* True if the function takes such an array. */
             static bool is_index_function(const APIInterceptor::APIFunction& in_function);
 
         private:
+            bool replay_draw_buffers       (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                            const bool&                                  in_is_named,
+                                            std::string*                                 out_error_ptr);
+            bool replay_uniform_subroutines(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                            std::string*                                 out_error_ptr);
+
+
             /* The elements of an array of 32-bit numbers which the dump holds. */
             static std::vector<uint32_t> get_numbers(const GlReplayContext& in_context,
                                                      const size_t&          in_n_argument);
 
-            bool replay_draw_buffers       (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                     const bool&                         in_is_named,
-                                                     std::string*                        out_error_ptr);
-            bool replay_uniform_subroutines(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                     std::string*                        out_error_ptr);
 
             GlReplayContext* m_context_ptr;
             ResolveFunc      m_resolve_func;

@@ -8,18 +8,18 @@ Replay::StereoReplayEngineDLL::CallContext::CallContext(ObjectRemapper* in_remap
     :m_call_ptr        (nullptr),
      m_n_head_arguments(0),
      m_remapper_ptr    (in_remapper_ptr),
-     m_walker_ptr      (nullptr)
+     m_chunk_source_ptr      (nullptr)
 {
     /* Stub */
 }
 
 void Replay::StereoReplayEngineDLL::CallContext::begin_call(const Capture::APIDumpLoader::DumpedAPICall* in_call_ptr,
-                                                                     const CallWalker*                   in_walker_ptr,
-                                                                     const size_t&                       in_n_head_arguments)
+                                                            const IChunkSource*                          in_chunk_source_ptr,
+                                                            const size_t&                                in_n_head_arguments)
 {
     m_call_ptr         = in_call_ptr;
     m_n_head_arguments = in_n_head_arguments;
-    m_walker_ptr       = in_walker_ptr;
+    m_chunk_source_ptr = in_chunk_source_ptr;
 }
 
 const Capture::APIDumpLoader::DumpedAPICall& Replay::StereoReplayEngineDLL::CallContext::get_call() const
@@ -34,12 +34,12 @@ const uint8_t* Replay::StereoReplayEngineDLL::CallContext::get_chunk_data_ptr(co
 
     *out_n_bytes_ptr = 0;
 
-    if (in_argument_ptr       != nullptr &&
+    if (in_argument_ptr       != nullptr                               &&
         in_argument_ptr->type == APIInterceptor::ARGTYPE_DATA_CHUNK_ID)
     {
-        const auto chunk_ptr = m_walker_ptr->get_data_chunk_ptr(in_argument_ptr->get_data_chunk_id() );
+        const auto chunk_ptr = m_chunk_source_ptr->get_data_chunk_ptr(in_argument_ptr->get_data_chunk_id() );
 
-        if (chunk_ptr != nullptr &&
+        if (chunk_ptr          != nullptr &&
             chunk_ptr->empty() == false)
         {
             result_ptr       = chunk_ptr->data();

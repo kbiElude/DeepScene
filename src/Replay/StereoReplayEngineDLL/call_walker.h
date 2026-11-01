@@ -7,6 +7,7 @@
 
 #include "Capture/APIDumpLoader/APIDumpLoader.h"
 #include "Capture/APIDumpLoader/WorkloadReader.h"
+#include "i_chunk_source.h"
 #include <condition_variable>
 #include <mutex>
 #include <string>
@@ -16,18 +17,19 @@ namespace Replay
 {
     namespace StereoReplayEngineDLL
     {
-        /* Walks the calls of a workload file in the order they were made. A segment holds up to hundreds of thousands of
-         * calls, and takes a while to read: a thread of its own reads the next segment (and destroys the previous one) while
-         * the calls of the current one are replayed, so that the replay never waits for the disk or for the parsing.
+        /* Walks the calls of a workload file in the order they were made. A thread of its own reads the next segment (and frees
+         * the previous one) while the current one is replayed, so the replay does not wait for the disk.
          */
-        class CallWalker
+        class CallWalker : public IChunkSource
         {
         public:
-            CallWalker();
+             CallWalker();
             ~CallWalker();
 
             /* Returns nullptr for a chunk which is not part of the segment of the current call. */
-            const Capture::APIDumpLoader::DataChunk* get_data_chunk_ptr(const uint32_t& in_data_chunk_id) const;
+            const Capture::APIDumpLoader::DataChunk* get_data_chunk_ptr(const uint32_t& in_data_chunk_id) const override;
+
+            uint32_t get_pointer_n_bytes() const override;
 
             const Capture::APIDumpLoader::Workload& get_segment() const;
 
@@ -45,11 +47,11 @@ namespace Replay
             /* The segment which the thread has read ahead, shared with it. */
             struct Prefetch
             {
-                std::condition_variable cv;
-                bool                    is_finished       = false; /* the file has no segment left                         */
-                bool                    is_ready          = false; /* segment is the next one; otherwise, one to destroy */
-                bool                    is_stop_requested = false;
-                std::mutex              mutex;
+                std::condition_variable          cv;
+                bool                             is_finished       = false; /* the file has no segment left                         */
+                bool                             is_ready          = false; /* segment is the next one; otherwise, one to destroy */
+                bool                             is_stop_requested = false;
+                std::mutex                       mutex;
                 Capture::APIDumpLoader::Workload segment;
             };
 
@@ -57,10 +59,10 @@ namespace Replay
             bool read_next_segment();
             void stop_prefetching ();
 
-            std::string                            m_filename;
-            size_t                                 m_n_next_call;
-            Prefetch                               m_prefetch;
-            std::thread                            m_prefetch_thread;
+            std::string                                     m_filename;
+            size_t                                          m_n_next_call;
+            Prefetch                                        m_prefetch;
+            std::thread                                     m_prefetch_thread;
             Capture::APIDumpLoader::WorkloadReaderUniquePtr m_reader_ptr;
             Capture::APIDumpLoader::Workload                m_segment;
         };

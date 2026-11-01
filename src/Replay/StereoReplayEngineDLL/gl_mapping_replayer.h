@@ -26,7 +26,7 @@ namespace Replay
                               ResolveFunc      in_resolve_func);
 
             bool replay(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                 std::string*                        out_error_ptr);
+                        std::string*                                 out_error_ptr);
             void reset ();
 
             /* True if the function maps, unmaps or flushes a buffer. */
@@ -41,19 +41,21 @@ namespace Replay
             };
 
             bool     flush          (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                              const bool&                         in_is_named,
-                                              std::string*                        out_error_ptr);
+                                     const bool&                                  in_is_named,
+                                     std::string*                                 out_error_ptr);
             uint64_t get_mapping_key(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                              const bool&                         in_is_named) const;
+                                     const bool&                                  in_is_named) const;
             bool     map            (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                              const bool&                         in_is_named,
-                                              const bool&                         in_is_range,
-                                              std::string*                        out_error_ptr);
+                                     const bool&                                  in_is_named,
+                                     const bool&                                  in_is_range,
+                                     std::string*                                 out_error_ptr);
             bool     unmap          (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                              const bool&                         in_is_named,
-                                              std::string*                        out_error_ptr);
+                                     const bool&                                  in_is_named,
+                                     std::string*                                 out_error_ptr);
+
 
             static uint32_t get_first_argument(const Capture::APIDumpLoader::DumpedAPICall& in_call);
+
 
             GlReplayContext*            m_context_ptr;
             std::map<uint64_t, Mapping> m_mapping_map;

@@ -45,9 +45,9 @@ namespace Replay
 
             /* Starts the call: what the previous one asked for is gone. */
             void begin_call(const Capture::APIDumpLoader::DumpedAPICall* in_call_ptr,
-                                     const CallWalker*                   in_walker_ptr,
-                                     const size_t&                       in_n_head_arguments,
-                                     const GlFunctionInfo*               in_function_info_ptr);
+                            const IChunkSource*                          in_chunk_source_ptr,
+                            const size_t&                                in_n_head_arguments,
+                            const GlFunctionInfo*                        in_function_info_ptr);
 
             void forget_locations();
 
@@ -77,7 +77,7 @@ namespace Replay
                                const uint32_t&   in_dumped_index) const;
 
             uint32_t map_name                (const ObjectKind& in_kind,
-                                              const uint32_t&   in_dumped_name) const;
+                                              const uint32_t&   in_dumped_name)     const;
             int32_t  map_uniform_location    (const int32_t&    in_dumped_location) const;
             void     register_attrib_location(const uint32_t&   in_dumped_location,
                                               const uint32_t&   in_live_location);

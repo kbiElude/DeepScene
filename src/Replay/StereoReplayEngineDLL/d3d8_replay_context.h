@@ -6,6 +6,7 @@
 #define STEREOREPLAYENGINEDLL_D3D8_REPLAY_CONTEXT_H
 
 #include "call_context.h"
+#include "live_object_list.h"
 #include <string>
 #include <vector>
 
@@ -23,14 +24,17 @@ namespace Replay
 
             /* Starts the call: the expectations of the previous one are gone. */
             void begin_call(const Capture::APIDumpLoader::DumpedAPICall* in_call_ptr,
-                                     const CallWalker*                   in_walker_ptr,
-                                     const size_t&                       in_n_head_arguments);
+                            const IChunkSource*                          in_chunk_source_ptr,
+                            const size_t&                                in_n_head_arguments);
 
             /* An argument asks for an object: if the call fails, so does the replay. */
             void expect_creation();
 
             /* The object has been destroyed (its last reference is gone). */
             void forget_object(const uint64_t& in_dumped_value);
+
+            /* The device that the replay has created; nullptr if there is none. */
+            void* get_device_ptr() const;
 
             const uint8_t* get_extra_data_ptr  (const size_t&                              in_n_argument,
                                                 size_t*                                    out_n_bytes_ptr) const;
@@ -58,6 +62,9 @@ namespace Replay
             /* Releases what is left of the objects, the latest ones first. */
             void release_all_objects();
 
+            /* The object that the output argument stands for, after the call has created it, is the device. */
+            void set_device_from_argument(const size_t& in_n_argument);
+
         private:
             /* An argument of a method which points to data that the dumper stored in an argument after the method's own. */
             struct ExtraBinding
@@ -76,12 +83,15 @@ namespace Replay
                 size_t                      n_argument;
             };
 
+
             static const HandleBinding* get_handle_binding_ptr(const APIInterceptor::APIFunction& in_function,
                                                                const size_t&                      in_n_argument,
                                                                const bool&                        in_is_output);
 
+
+            void*                               m_device_ptr;
             bool                                m_is_creation_expected;
-            std::vector<void*>                  m_live_object_ptr_vec;
+            LiveObjectList                      m_live_objects;
         };
     }
 }

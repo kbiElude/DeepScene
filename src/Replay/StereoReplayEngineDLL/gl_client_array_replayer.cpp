@@ -5,6 +5,7 @@
 #include "gl_client_array_replayer.h"
 #include <string.h>
 #include <Windows.h>
+#include "Common/macros.h"
 #include "Khronos/GL/glcorearb.h"
 
 Replay::StereoReplayEngineDLL::GlClientArrayReplayer::GlClientArrayReplayer(GlReplayContext* in_context_ptr,
@@ -25,18 +26,18 @@ bool Replay::StereoReplayEngineDLL::GlClientArrayReplayer::apply(const uint8_t* 
     typedef void (APIENTRY* PFNCLIENTACTIVETEXTUREPROC)(GLenum);
     typedef void (APIENTRY* PFNGETINTEGERVPROC)        (GLenum, GLint*);
 
-    const auto bind_buffer_func_ptr   = reinterpret_cast<PFNBINDBUFFERPROC>(m_resolve_func("glBindBuffer") );
+    const auto bind_buffer_func_ptr   = reinterpret_cast<PFNBINDBUFFERPROC>         (m_resolve_func("glBindBuffer") );
     const auto client_active_func_ptr = reinterpret_cast<PFNCLIENTACTIVETEXTUREPROC>(m_resolve_func("glClientActiveTexture") );
-    const auto get_integer_func_ptr   = reinterpret_cast<PFNGETINTEGERVPROC>(m_resolve_func("glGetIntegerv") );
+    const auto get_integer_func_ptr   = reinterpret_cast<PFNGETINTEGERVPROC>        (m_resolve_func("glGetIntegerv") );
     uint32_t   n_arrays               = 0;
     size_t     offset                 = sizeof(n_arrays);
     bool       result                 = false;
     GLint      saved_array_buffer     = 0;
     GLint      saved_client_active    = GL_TEXTURE0;
 
-    if (in_snapshot_ptr      == nullptr ||
-        bind_buffer_func_ptr == nullptr ||
-        get_integer_func_ptr == nullptr ||
+    if (in_snapshot_ptr      == nullptr          ||
+        bind_buffer_func_ptr == nullptr          ||
+        get_integer_func_ptr == nullptr          ||
         in_n_bytes           <  sizeof(n_arrays) )
     {
         goto end;
@@ -114,7 +115,7 @@ void Replay::StereoReplayEngineDLL::GlClientArrayReplayer::apply_array(const Sna
     };
 
     /* The data starts at the first element which was copied, so the pointer is the one of the (missing) element 0. */
-    const uintptr_t base    = reinterpret_cast<uintptr_t>(in_data_ptr) - static_cast<uintptr_t>(in_array.first_element) * get_element_stride(in_array);
+    const uintptr_t base    = reinterpret_cast<uintptr_t>  (in_data_ptr) - static_cast<uintptr_t>(in_array.first_element) * get_element_stride(in_array);
     const void*     pointer = reinterpret_cast<const void*>(base);
 
     switch (static_cast<ArrayKind>(in_array.kind) )
@@ -199,6 +200,8 @@ void Replay::StereoReplayEngineDLL::GlClientArrayReplayer::apply_array(const Sna
 
         default:
         {
+            AI_FAIL_UNSUPPORTED(in_array.kind);
+
             break;
         }
     }
@@ -208,7 +211,7 @@ uint32_t Replay::StereoReplayEngineDLL::GlClientArrayReplayer::get_element_strid
 {
     uint32_t result = in_array.stride;
 
-    if (result == 0 &&
+    if (result              == 0 &&
         in_array.n_elements != 0)
     {
         result = in_array.n_bytes / in_array.n_elements;
@@ -275,7 +278,7 @@ void Replay::StereoReplayEngineDLL::GlClientArrayReplayer::point_generic(const S
     else
     {
         const GLboolean normalized       = ((in_array.flags & FLAG_IS_NORMALIZED) != 0) ? GL_TRUE
-                                                                                         : GL_FALSE;
+                                                                                        : GL_FALSE;
         const auto      pointer_func_ptr = reinterpret_cast<PFNVERTEXATTRIBPOINTERPROC>(m_resolve_func("glVertexAttribPointer") );
 
         if (pointer_func_ptr != nullptr)

@@ -5,65 +5,38 @@
  * Checks of the mapping of the names and locations of GL objects from the dump to the replay.
  */
 #include <gtest/gtest.h>
+#include "call_walker.h"
 #include "gl_replay_context.h"
-
-namespace
-{
-    /* A call of a function with the given kinds of parameters. */
-    struct ContextFixture
-    {
-        Capture::APIDumpLoader::DumpedAPICall call;
-        Replay::StereoReplayEngineDLL::CallWalker  walker;
-        Replay::StereoReplayEngineDLL::GlFunctionInfo info;
-        Replay::StereoReplayEngineDLL::ObjectRemapper remapper;
-        Replay::StereoReplayEngineDLL::GlReplayContext context;
-
-        ContextFixture()
-            :context(&remapper)
-        {
-            info.has_explicit_program = false;
-            info.ignored_param_mask   = 0;
-            info.name_ptr             = "glTest";
-            info.return_kind          = Replay::StereoReplayEngineDLL::ObjectKind::NONE;
-
-            call.func = APIInterceptor::APIFUNCTION_GL_GLACCUM;
-
-            context.begin_call(&call,
-                               &walker,
-                               0,
-                               &info);
-        }
-    };
-}
+#include "test_doubles.h"
 
 TEST(GlReplayContext, UnknownNamesPassThrough)
 {
-    ContextFixture fixture;
+    Tests::GlContextFixture fixture;
 
     EXPECT_EQ(fixture.context.map_name(Replay::StereoReplayEngineDLL::ObjectKind::TEXTURE,
-                                                     7),
-                            7u);
+                                             7),
+                    7u);
 }
 
 TEST(GlReplayContext, NamesAreMappedPerKind)
 {
-    ContextFixture fixture;
+    Tests::GlContextFixture fixture;
 
     fixture.context.register_name(Replay::StereoReplayEngineDLL::ObjectKind::TEXTURE,
-                                                1,
-                                                5);
+                                        1,
+                                        5);
 
     EXPECT_EQ(fixture.context.map_name(Replay::StereoReplayEngineDLL::ObjectKind::TEXTURE,
-                                                     1),
-                            5u);
+                                             1),
+                    5u);
     EXPECT_EQ(fixture.context.map_name(Replay::StereoReplayEngineDLL::ObjectKind::BUFFER,
-                                                     1),
-                            1u);
+                                             1),
+                    1u);
 }
 
 TEST(GlReplayContext, ElementsOfAUniformArrayFollowTheFirstOne)
 {
-    ContextFixture fixture;
+    Tests::GlContextFixture fixture;
 
     fixture.context.set_current_program(3);
     fixture.context.register_uniform_location(3,
@@ -78,7 +51,7 @@ TEST(GlReplayContext, ElementsOfAUniformArrayFollowTheFirstOne)
 
 TEST(GlReplayContext, LocationsOfAnotherProgramAreNotUsed)
 {
-    ContextFixture fixture;
+    Tests::GlContextFixture fixture;
 
     fixture.context.register_uniform_location(3,
                                               4,
@@ -91,7 +64,7 @@ TEST(GlReplayContext, LocationsOfAnotherProgramAreNotUsed)
 
 TEST(GlReplayContext, ARangeOfDisplayListsIsMappedOneByOne)
 {
-    ContextFixture fixture;
+    Tests::GlContextFixture fixture;
 
     fixture.info.return_kind = Replay::StereoReplayEngineDLL::ObjectKind::DISPLAY_LIST;
 
@@ -105,9 +78,9 @@ TEST(GlReplayContext, ARangeOfDisplayListsIsMappedOneByOne)
     fixture.context.register_returned_name(100);
 
     EXPECT_EQ(fixture.context.map_name(Replay::StereoReplayEngineDLL::ObjectKind::DISPLAY_LIST,
-                                                     10),
-                            100u);
+                                             10),
+                    100u);
     EXPECT_EQ(fixture.context.map_name(Replay::StereoReplayEngineDLL::ObjectKind::DISPLAY_LIST,
-                                                     12),
-                            102u);
+                                             12),
+                    102u);
 }
