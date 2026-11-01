@@ -11,3 +11,12 @@ target_link_libraries(UIHost PUBLIC ImGui)
 
 source_group ("UIHost include files" FILES ${UIHostIncludes})
 source_group ("UIHost source files"  FILES ${UIHostSources})
+
+file(GLOB VRDevicesIncludes CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/include/VR/VRDevices/*.h")
+file(GLOB VRDevicesSources CONFIGURE_DEPENDS  "${DemoVRPlayer_SOURCE_DIR}/src/VR/VRDevices/*.cpp")
+
+# The devices which the VR player can play on.
+add_library(VRDevices STATIC ${VRDevicesIncludes} ${VRDevicesSources})
+
+source_group ("VRDevices include files" FILES ${VRDevicesIncludes})
+source_group ("VRDevices source files"  FILES ${VRDevicesSources})
