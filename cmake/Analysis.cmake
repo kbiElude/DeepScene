@@ -24,3 +24,21 @@ target_link_libraries(APIDumpAnalysisFrontends PUBLIC APIDumpAnalysis D3D8Utils)
 
 source_group ("APIDump Analysis Frontends include files" FILES ${APIDumpAnalysisFrontendsIncludes})
 source_group ("APIDump Analysis Frontends source files"  FILES ${APIDumpAnalysisFrontendsSources})
+
+file(GLOB APIDumpAnalysisExtractorSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpAnalysisExtractor/*.cpp"
+                                                            "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpAnalysisExtractor/*.h")
+
+add_executable(APIDumpAnalysisExtractor ${APIDumpAnalysisExtractorSources})
+
+target_link_libraries(APIDumpAnalysisExtractor APIDumpAnalysis APIDumpAnalysisFrontends)
+
+source_group ("APIDumpAnalysisExtractor source files" FILES ${APIDumpAnalysisExtractorSources})
+
+file(GLOB APIDumpAnalysisQuerySources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpAnalysisQuery/*.cpp"
+                                                        "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpAnalysisQuery/*.h")
+
+add_executable(APIDumpAnalysisQuery ${APIDumpAnalysisQuerySources})
+
+target_link_libraries(APIDumpAnalysisQuery APIDumpAnalysis)
+
+source_group ("APIDumpAnalysisQuery source files" FILES ${APIDumpAnalysisQuerySources})
