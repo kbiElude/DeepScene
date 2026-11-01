@@ -11,6 +11,13 @@ if (DEMOVRPLAYER_BUILD_TESTS)
     add_executable(DemoVRPlayerTests ${DemoVRPlayerTestsSources}
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/RecipeBake/command_line.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/RecipeBake/recipe_baker.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayEngineDLL/call_context.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayEngineDLL/call_walker.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayEngineDLL/frame_pacer.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayEngineDLL/gl_index_replayer.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayEngineDLL/gl_replay_context.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayEngineDLL/null_call_executor.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayEngineDLL/object_remapper.cpp"
                                      "${APIInterceptor_SOURCE_DIR}/src/Common/api_call_gate.cpp"
                                      "${APIInterceptor_SOURCE_DIR}/src/Common/callback_registry.cpp"
                                      "${APIInterceptor_SOURCE_DIR}/src/Common/callbacks.cpp"
@@ -31,10 +38,11 @@ if (DEMOVRPLAYER_BUILD_TESTS)
                                      "${APIInterceptor_SOURCE_DIR}/src/Tests/workload_file_builder.cpp")
 
     target_include_directories(DemoVRPlayerTests PRIVATE "${DemoVRPlayer_SOURCE_DIR}/src"
+                                                         "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayEngineDLL"
                                                          "${APIInterceptor_SOURCE_DIR}/src/Tests")
     target_compile_definitions(DemoVRPlayerTests PRIVATE DEMOVRPLAYER_APPS_DIR="${DemoVRPlayer_SOURCE_DIR}/apps"
                                                          DEMOVRPLAYER_TESTS_DATA_DIR="${DemoVRPlayer_SOURCE_DIR}/src/Tests/data")
-    target_link_libraries(DemoVRPlayerTests gtest_main APIInterceptorTestSupport APIDumpAnalysis APIDumpAnalysisFrontends APIDumpLoader D3D8Utils InjectionLauncher ws2_32 RecipeApplier RecipeLoader)
+    target_link_libraries(DemoVRPlayerTests gtest_main APIInterceptorTestSupport APIDumpAnalysis APIDumpAnalysisFrontends APIDumpLoader D3D8Utils InjectionLauncher ws2_32 RecipeApplier RecipeLoader StereoReplayEngineDLL)
 
     enable_testing()
     add_test(NAME DemoVRPlayerTests COMMAND DemoVRPlayerTests)
