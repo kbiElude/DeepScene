@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recipe format</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site"><nav>
+  <a class="brand" href="index.html">Demo VR Player</a>
+  <a href="index.html">Overview</a>
+  <a href="analysis-and-recipes.html">Analysis &amp; recipes</a>
+  <a href="replay.html">Replay</a>
+  <a href="live-stereo.html">Live stereo</a>
+  <a href="vr-player.html">VR player</a>
+  <a href="adding-an-app.html">Adding an app</a>
+  <a href="components.html">Components</a>
+  <a href="building.html">Building</a>
+  <a href="../deps/APIInterceptor/docs/index.html">API Interceptor</a>
+</nav></header>
+<main>
+<h1>Recipe format</h1>
+<p class="lead">A recipe is JSON. <code>RecipeLoader</code> checks everything that needs no application: names, numbers and keys are valid, and no unknown field is left. See <a href="analysis-and-recipes.html">Analysis &amp; recipes</a> for how one is made.</p>
+<div class="note">The keys and the <code>baked</code> section do not depend on the API. The <code>rules</code> section does: a rule names the call it applies to (and the state of that call) in the terms of its API. The example below is Direct3D 8, the first API with a front end and the only one whose calls a rule can name today; a recipe for another API would name that API's calls.</div>
+<pre><code>  {
+    "recipe_version": 0,
+    "key_scheme_version": 1,                       must equal this build's, or the keys would not match
+    "target": { "name": "fr08", "description": "text for people" },                                     (optional)
+    "known_shape_keys": [ "0x0123456789abcdef" ],  the frame shapes the recipe was made for              (optional)
+    "on_unknown_frame": "mono",                    for a frame not in known_shape_keys: mono (default), skip or fail
+    "comfort": {                                    how much the eyes can be asked to do; without it, no scene has a limit
+      "max_near_parallax": 0.03,                   how far apart the pictures of the eyes may be at the nearest surface of a
+                                                   scene, as a part of the width of the picture (above 0, up to 1)
+      "near_fraction": 0.001,                      which part of the surfaces of a scene (by vertices) is its nearest: the
+                                                   nearest thousandth (above 0, below 1; default 0.001)
+      "overlay_parallax": 0.04                     how far toward the viewer the draws that are left alone (unaffected) can be pushed, if
+                                                   they are made to what is presented: the two pictures of them are that far apart,
+                                                   as a part of the width of the picture (0 to 0.5). What the application wants: VR Player
+                                                   pushes by it unless the person turns it off; 0 or left out: the application wants none
+    },
+    "unaffected": {                                draws which the rules leave alone (a 2D overlay): all others are affected
+      "pass_keys": [ "0x..." ],                    every draw of these passes
+      "draw_keys": [ "0x..." ]                     these draws, wherever they are
+    },
+    "affected": { "draw_keys": [ "0x..." ] },      draws which are affected inside an unaffected pass (a draw key beats a pass key)
+    "baked": {                                     made from the lists above by RecipeBake; do not edit
+      "signature_scheme_version": 1,               must equal this build's, or the signatures would not match
+      "known_signatures": [ "0x..." ],             the signatures the analysis saw; a draw of another is one the recipe knows nothing of
+      "covering_draws": [ "0x..." ],        the keys (signature and size) of the draws that cover the whole of the view (a flash, a
+                                                   fade): found by the analysis, and not pushed toward the viewer, since moving them would
+                                                   leave a strip bare
+      "scene_convergence": [                       the distance at which the eyes converge in a kind of frame (a scene), by the shape
+        { "shape": "0x...", "distance": 12.5 }     key of its frames; the converter follows the frame before, and uses the distance
+      ],                                           of the draw (below) for a shape that is not listed
+      "scene_max_separation": [                    how far apart the eyes may be in a scene, in the units of the camera,
+        { "shape": "0x...", "separation": 0.5 }    by the shape key of its frames: baked from comfort and the nearest surfaces
+      ],                                           of the scene; a scene that is not listed has no limit
+      "convergence": [                             the distance at which the eyes converge, for the draws of a signature
+        { "signature": "0x...", "distance": 12.5 } measured from how deep the passes that draw it are; in the units of the camera
+      ],
+      "draw_rules": [                              what a draw is, by what is known when it is issued; tried in order, and a
+        {                                          draw which none applies to is affected
+          "signature": "0x...",
+          "class": "unaffected",                   affected, skipped or unaffected
+          "when": {                                                                                      (optional)
+            "constant": "view_matrix",             the only constant known so far
+            "equals_any": [ [ 16 numbers ] ]       the rule applies while the constant has one of these values
+          }
+        }
+      ]
+    },
+    "skipped": {                                   draws which are not played, in either eye (the calls which set their state are)
+      "pass_keys": [ "0x..." ],                    every draw of these passes
+      "draw_keys": [ "0x..." ]                     these draws, wherever they are
+    },
+    "rules": [
+      {
+        "name": "scene camera",                                                                        (optional)
+        "call": "IDirect3DDevice8::SetTransform",
+        "when": {                                                                                      (optional)
+          "state": "D3DTS_VIEW",                   a D3DTS_* name, or a number
+          "matrix": "perspective",                 any (default), perspective or orthographic
+          "pass_keys": [ "0x..." ],                the call is in one of these pass structures
+          "shape_keys": [ "0x..." ]                the frame is one of these shapes
+        },
+        "action": {
+          "type": "multiply",                      multiply, replace, eye_offset or eye_convergence
+          "order": "post",                         post (M * X) or pre (X * M); multiply and eye_offset only
+          "left":  [ 16 numbers, row by row ],     X for the left eye                  (multiply and replace)
+          "right": [ 16 numbers, row by row ]      X for the right eye                 (multiply and replace)
+        }
+        for eye_offset, X is a translation along "axis" ("x", "y" or "z") by half of the eye separation, which is a setting of
+        the replay (a command-line option, the depth choice), not a part of the recipe:
+        "action": {
+          "type": "eye_offset",
+          "order": "post",
+          "axis": "x"
+        }
+        eye_convergence takes nothing: for a rule about the perspective projection (D3DTS_PROJECTION), the projection of each eye is
+        sheared so that what is at the convergence distance is at the same place in both eyes (it
+        seems to be at the screen). The distance of a draw is the one the baked section has for its signature (measured, see
+        "convergence" above), unless the replay sets one for all; with neither, the rule changes nothing. The rule for the view has
+        to be eye_offset.
+        "action": {
+          "type": "eye_convergence"
+        }
+      }
+    ]
+  }</code></pre>
+<p>Keys are the strings <code>APIDumpAnalysisQuery</code> prints. The functions a rule can apply to, and the conditions each allows, are listed in <code>recipe_loader.cpp</code>.</p>
+</main>
+</body>
+</html>

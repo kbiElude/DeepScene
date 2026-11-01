@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Replay</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site"><nav>
+  <a class="brand" href="index.html">Demo VR Player</a>
+  <a href="index.html">Overview</a>
+  <a href="analysis-and-recipes.html">Analysis &amp; recipes</a>
+  <a class="current" href="replay.html">Replay</a>
+  <a href="live-stereo.html">Live stereo</a>
+  <a href="vr-player.html">VR player</a>
+  <a href="adding-an-app.html">Adding an app</a>
+  <a href="components.html">Components</a>
+  <a href="building.html">Building</a>
+  <a href="../deps/APIInterceptor/docs/index.html">API Interceptor</a>
+</nav></header>
+<main>
+<h1>Replay</h1>
+<p class="lead">Executing the calls of a workload again, without the program. Here it is done for both eyes: it is what the recipes are tried on, and what checks that a frame can be drawn twice.</p>
+
+<div class="note">The interceptor has a plain replay of its own (an engine and a player), to check what a capture holds; see its <a href="../deps/APIInterceptor/docs/capture.html">documentation</a>. The engine described here is this project's: it does what that one does, and also draws a frame once for each eye.</div>
+
+<h2>The replay engine</h2>
+<p><code>StereoReplayEngineDLL</code> reads calls from a workload (in segments if it is large; see <code>WorkloadReader</code>) and executes each through an <code>ICallExecutor</code>. Observers hear about frames and calls, and the pacing of the frames is one.</p>
+<p>Each API has an executor of its own, registered by its API group in the <code>ExecutorRegistry</code>: today Direct3D 8, OpenGL and the Win32 windowing calls (GDI32, User32, WGL), and another API is added with its own. There is no translation of one API to another. The engine remaps the objects of the dump onto the live ones, restores the arguments a call needs, replays locks and client arrays, and paces the frames.</p>
+
+<h2>Two eyes</h2>
+<p>With a recipe, the engine executes a frame twice: the recipe tells, for each draw, whether it is drawn once, for each eye, or not at all (<code>RecipeApplier</code>), and the matrix of the eye is bound to the draws that are drawn per eye (<code>EyeMatrixBinder</code>). A frame is rewritten (<code>FrameRewriter</code>) before it is run, and the images of both eyes are handed to a sink (<code>IFrameImageSink</code>), which is how the player shows them.</p>
+
+<h2>The programs</h2>
+<table>
+<tr><th>Program</th><th>Use</th></tr>
+<tr><td><code>StereoReplayPlayer</code></td><td>A control window (ImGui, through <code>UIHost</code>) around the engine: choose a workload and optionally a recipe, play and pause, and see the images of both eyes in a preview. A 64-bit player starts the 32-bit one for a 32-bit workload.</td></tr>
+<tr><td><code>StereoReplayConsistencyChecker</code></td><td>No window. Replays a workload several ways, hashes the images of each frame and compares the ways: that a replay is repeatable, and that a frame executed twice draws the same as once. It can write the images of a frame that differs.</td></tr>
+</table>
+</main>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API Interceptor</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site"><nav>
+  <a class="brand" href="index.html">Demo VR Player</a>
+  <a class="current" href="index.html">Overview</a>
+  <a href="analysis-and-recipes.html">Analysis &amp; recipes</a>
+  <a href="replay.html">Replay</a>
+  <a href="live-stereo.html">Live stereo</a>
+  <a href="vr-player.html">VR player</a>
+  <a href="adding-an-app.html">Adding an app</a>
+  <a href="components.html">Components</a>
+  <a href="building.html">Building</a>
+  <a href="../deps/APIInterceptor/docs/index.html">API Interceptor</a>
+</nav></header>
+<main>
+<h1>Demo VR Player</h1>
+<p class="lead">A set of tools to capture the graphics API calls of a Windows program, study them, and use what was learned to turn a plain 3D demo into stereo 3D, live, on a monitor or in a VR headset.</p>
+
+<div class="note">The capture is done by <a href="../deps/APIInterceptor/docs/index.html">API Interceptor</a>, a library which this project has as a submodule. Everything else is here.</div>
+
+<h2>The jobs</h2>
+<div class="cards">
+  <div class="card"><h3><a href="../deps/APIInterceptor/docs/capture.html">Capture</a></h3><p>Record every call of a program into a workload file, with the dumper of API Interceptor.</p></div>
+  <div class="card"><h3><a href="replay.html">Replay</a></h3><p>Play a workload back without the program, for both eyes, to try a recipe and to check that a frame can be drawn twice.</p></div>
+  <div class="card"><h3><a href="analysis-and-recipes.html">Analysis &amp; recipes</a></h3><p>Turn a workload into a <code>.passes</code> file, then bake a recipe that says how each draw is to be treated.</p></div>
+  <div class="card"><h3><a href="live-stereo.html">Live stereo</a></h3><p>Inject a converter into the running program: it renders two eyes and passes the images on.</p></div>
+  <div class="card"><h3><a href="vr-player.html">VR player</a></h3><p>Launch programs, show the stereo image in a window, or in a headset through OpenXR.</p></div>
+</div>
+
+<h2>How the parts fit</h2>
+<figure>
+<svg viewBox="0 0 900 430" role="img" aria-label="Overview of the data flow between the tools">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+
+  <rect class="group" x="10" y="10" width="880" height="150" rx="10"/>
+  <text class="title" x="24" y="32">Offline: study a program</text>
+  <rect class="box" x="30" y="50" width="130" height="50" rx="6"/><text x="95" y="80" text-anchor="middle">APIDumper</text>
+  <rect class="box3" x="210" y="50" width="140" height="50" rx="6"/><text x="280" y="72" text-anchor="middle">workload file</text><text class="small" x="280" y="88" text-anchor="middle">every call + data</text>
+  <rect class="box" x="400" y="50" width="150" height="50" rx="6"/><text x="475" y="72" text-anchor="middle">Extractor</text><text class="small" x="475" y="88" text-anchor="middle">analysis passes</text>
+  <rect class="box3" x="600" y="50" width="120" height="50" rx="6"/><text x="660" y="72" text-anchor="middle">.passes</text><text class="small" x="660" y="88" text-anchor="middle">model of the program</text>
+  <rect class="box" x="760" y="50" width="110" height="50" rx="6"/><text x="815" y="72" text-anchor="middle">RecipeBake</text><text class="small" x="815" y="88" text-anchor="middle">+ rules</text>
+  <path class="arrow" d="M160 75H208"/><path class="arrow" d="M350 75H398"/><path class="arrow" d="M550 75H598"/><path class="arrow" d="M720 75H758"/>
+  <rect class="box2" x="30" y="115" width="130" height="34" rx="6"/><text x="95" y="137" text-anchor="middle">StereoReplayPlayer</text>
+  <path class="arrow" d="M280 100V132H162"/>
+  <rect class="box2" x="400" y="115" width="150" height="34" rx="6"/><text x="475" y="137" text-anchor="middle">Query / Printer</text>
+  <path class="arrow" d="M660 100V132H552"/>
+
+  <rect class="box3" x="760" y="190" width="110" height="46" rx="6"/><text x="815" y="211" text-anchor="middle">recipe</text><text class="small" x="815" y="226" text-anchor="middle">JSON</text>
+  <path class="arrow" d="M815 100V188"/>
+
+  <rect class="group" x="10" y="260" width="880" height="160" rx="10"/>
+  <text class="title" x="24" y="282">Live: convert a running program</text>
+  <rect class="box" x="30" y="305" width="130" height="50" rx="6"/><text x="95" y="327" text-anchor="middle">StereoLauncher</text><text class="small" x="95" y="343" text-anchor="middle">32-bit</text>
+  <rect class="box4" x="210" y="305" width="160" height="90" rx="6"/><text x="290" y="327" text-anchor="middle">Program + StereoConverterDLL</text><text class="small" x="290" y="345" text-anchor="middle">hooks, analysis,</text><text class="small" x="290" y="359" text-anchor="middle">two-eye rendering</text><text class="small" x="290" y="373" text-anchor="middle">32-bit</text>
+  <rect class="box3" x="420" y="305" width="140" height="50" rx="6"/><text x="490" y="327" text-anchor="middle">frame channel</text><text class="small" x="490" y="343" text-anchor="middle">shared memory</text>
+  <rect class="box" x="610" y="305" width="130" height="50" rx="6"/><text x="675" y="327" text-anchor="middle">StereoPresenter</text><text class="small" x="675" y="343" text-anchor="middle">64-bit</text>
+  <rect class="box2" x="770" y="290" width="110" height="34" rx="6"/><text x="825" y="312" text-anchor="middle">preview window</text>
+  <rect class="box2" x="770" y="336" width="110" height="34" rx="6"/><text x="825" y="358" text-anchor="middle">headset (OpenXR)</text>
+  <path class="arrow" d="M160 330H208"/><path class="arrow" d="M370 330H418"/><path class="arrow" d="M560 330H608"/><path class="arrow" d="M740 322L768 310"/><path class="arrow" d="M740 340L768 352"/>
+  <path class="arrow" d="M815 236V262H95V303" />
+  <text class="small" x="450" y="256" text-anchor="middle">recipe is read by the launcher</text>
+</svg>
+<figcaption>Offline tools study a program once; the recipe they produce is what the live converter reads.</figcaption>
+</figure>
+
+<h2 id="api">One API is not all of them</h2>
+<p>Direct3D 8 is the first API the tools support, and the demos are what drove the work, but the code is arranged for more. The parts that depend on an API are the ones listed in the table; everything else (the model of the analysis, the keys, the <code>.passes</code> file, the recipe format, the stereo decisions of <code>StereoCore</code>, the frame channel, the presenter and the VR player) does not know which API a program uses.</p>
+<table>
+<tr><th>API</th><th>Hooks and dump</th><th>Printer</th><th>Analysis</th><th>Replay</th><th>Stereo conversion</th></tr>
+<tr><td>Direct3D 8</td><td>yes</td><td>yes</td><td>yes (front end)</td><td>yes (executor)</td><td>yes (adapter)</td></tr>
+<tr><td>OpenGL</td><td>yes</td><td>yes</td><td>not yet</td><td>yes (executor)</td><td>not yet</td></tr>
+<tr><td>Win32 windows (GDI32, User32, WGL)</td><td>yes</td><td>yes</td><td>not applicable</td><td>yes (window handling)</td><td>not applicable</td></tr>
+</table>
+<p>Adding an API means adding its row: its hooks, the front end that follows its state, its names for the printer, its replay executor and its converter adapter. The page <a href="analysis-and-recipes.html#frontends">Analysis &amp; recipes</a> lists what each piece is and where it goes.</p>
+
+<h2>Where the code is</h2>
+<p>Each project is described in <a href="components.html">Components</a>.</p>
+<table>
+<tr><th>Group</th><th>Projects</th><th>What they do</th></tr>
+<tr><td>Capture (API Interceptor)</td><td><code>APIDumper</code>, <code>APIDumperDLL</code>, <code>APIDumpLoader</code>, <code>APIDumpPrinter</code>, <code>InjectionLauncher</code>, and the hooks</td><td>The submodule: capture a program, read and print a workload.</td></tr>
+<tr><td>Analysis</td><td><code>APIDumpAnalysis*</code>, <code>Recipe*</code></td><td>Passes, queries, recipe baking and applying.</td></tr>
+<tr><td>Replay</td><td><code>StereoReplayEngineDLL</code>, <code>StereoReplayPlayer</code>, <code>StereoReplayConsistencyChecker</code></td><td>Execute a workload's calls again.</td></tr>
+<tr><td>Stereo</td><td><code>StereoCore</code>, <code>StereoConverterDLL</code>, <code>StereoTransport</code>, <code>StereoD3D12</code>, <code>StereoSession</code>, <code>StereoXR</code>, <code>StereoLauncher</code>, <code>StereoPresenter</code></td><td>The live converter and what carries its images to the screen.</td></tr>
+<tr><td>VR player</td><td><code>VRPlayer</code>, <code>VRDevices</code>, <code>AppCatalog</code>, <code>UIHost</code></td><td>The front end that launches programs and chooses the output.</td></tr>
+</table>
+
+<div class="note">The project is C++14. Some programs are 32-bit (the injected parts, because the demos are) and some 64-bit (the presenter and the players), so the build makes both and collects them in <code>build_final</code>.</div>
+</main>
+</body>
+</html>

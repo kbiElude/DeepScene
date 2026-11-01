@@ -1,0 +1,121 @@
+:root {
+  --bg: #fafaf8;
+  --fg: #1d1f23;
+  --muted: #5d636d;
+  --line: #d8dad6;
+  --card: #ffffff;
+  --accent: #1f6feb;
+  --accent-soft: #e6effd;
+  --warn-soft: #fff4d6;
+  --code-bg: #f0f1ee;
+  --box-fill: #eef3fc;
+  --box-stroke: #1f6feb;
+  --box2-fill: #eaf6ee;
+  --box2-stroke: #2a8a4a;
+  --box3-fill: #fff4d6;
+  --box3-stroke: #b7791f;
+  --box4-fill: #f4ecfa;
+  --box4-stroke: #7b45b0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15171a;
+    --fg: #e6e7e9;
+    --muted: #9aa0aa;
+    --line: #34383e;
+    --card: #1d2024;
+    --accent: #6ea8ff;
+    --accent-soft: #1b2a44;
+    --warn-soft: #3a3118;
+    --code-bg: #24272c;
+    --box-fill: #1b2a44;
+    --box-stroke: #6ea8ff;
+    --box2-fill: #17301f;
+    --box2-stroke: #5fc07f;
+    --box3-fill: #3a3118;
+    --box3-stroke: #e0a846;
+    --box4-fill: #2d2038;
+    --box4-stroke: #c096e6;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+header.site {
+  border-bottom: 1px solid var(--line);
+  background: var(--card);
+}
+
+header.site nav {
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  align-items: center;
+}
+
+header.site .brand { font-weight: 700; margin-right: auto; color: var(--fg); text-decoration: none; }
+header.site a { color: var(--muted); text-decoration: none; }
+header.site a:hover, header.site a.current { color: var(--accent); }
+
+main {
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 4rem;
+}
+
+h1 { font-size: 2rem; line-height: 1.2; margin: 1rem 0 0.5rem; }
+h2 { font-size: 1.4rem; margin: 2.5rem 0 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--line); }
+h3 { font-size: 1.1rem; margin: 1.5rem 0 0.25rem; }
+
+p.lead { font-size: 1.1rem; color: var(--muted); margin-top: 0; }
+
+a { color: var(--accent); }
+
+code, pre { font: 0.9em/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace; }
+code { background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px; }
+pre { background: var(--code-bg); padding: 0.75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 0.95rem; }
+th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 0.9rem 1rem; }
+.card h3 { margin-top: 0; }
+.card a { text-decoration: none; }
+.card p { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.95rem; }
+
+.note { background: var(--warn-soft); border-radius: 6px; padding: 0.6rem 0.9rem; margin: 1rem 0; }
+
+figure { margin: 1.5rem 0; }
+figure svg { width: 100%; height: auto; display: block; background: var(--card); border: 1px solid var(--line); border-radius: 8px; }
+figcaption { color: var(--muted); font-size: 0.9rem; margin-top: 0.4rem; }
+
+/* diagram parts */
+svg text { fill: var(--fg); font: 13px system-ui, -apple-system, "Segoe UI", sans-serif; }
+svg text.small { font-size: 11px; fill: var(--muted); }
+svg text.title { font-weight: 700; }
+svg .box { fill: var(--box-fill); stroke: var(--box-stroke); stroke-width: 1.5; }
+svg .box2 { fill: var(--box2-fill); stroke: var(--box2-stroke); stroke-width: 1.5; }
+svg .box3 { fill: var(--box3-fill); stroke: var(--box3-stroke); stroke-width: 1.5; }
+svg .box4 { fill: var(--box4-fill); stroke: var(--box4-stroke); stroke-width: 1.5; }
+svg .group { fill: none; stroke: var(--line); stroke-width: 1.5; stroke-dasharray: 5 4; }
+svg .arrow { stroke: var(--muted); stroke-width: 1.5; fill: none; marker-end: url(#arrowhead); }
+svg .arrowline { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+svg marker path { fill: var(--muted); }
+
+@media (max-width: 40rem) {
+  h1 { font-size: 1.6rem; }
+}

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VR player</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site"><nav>
+  <a class="brand" href="index.html">Demo VR Player</a>
+  <a href="index.html">Overview</a>
+  <a href="analysis-and-recipes.html">Analysis &amp; recipes</a>
+  <a href="replay.html">Replay</a>
+  <a href="live-stereo.html">Live stereo</a>
+  <a class="current" href="vr-player.html">VR player</a>
+  <a href="adding-an-app.html">Adding an app</a>
+  <a href="components.html">Components</a>
+  <a href="building.html">Building</a>
+  <a href="../deps/APIInterceptor/docs/index.html">API Interceptor</a>
+</nav></header>
+<main>
+<h1>VR player</h1>
+<p class="lead">The front end: pick a program from the catalog, pick an output, choose the depth and the image quality, press Launch.</p>
+
+<h2 id="download">The first launch</h2>
+<p>A program of the catalog which is not on the computer yet is marked so, with the size of what is downloaded. Launch starts the download (the zip file, from the addresses of the catalog, one after the other until one works), and the window shows the progress, with a button to cancel. The file is checked against the hash of the catalog and unpacked into <code>apps\&lt;id&gt;\</code> beside <code>VRPlayer.exe</code>, and the program then starts by itself. The next launches start it at once. If something goes wrong (the network, a file which is not the expected one, a folder which cannot be written to, a virus scanner which removes the program), a window says what, and nothing is left half done.</p>
+
+<h2>Pieces</h2>
+<figure>
+<svg viewBox="0 0 900 300" role="img" aria-label="VR player and viewer components">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="box" x="10" y="30" width="190" height="90" rx="8"/><text class="title" x="105" y="52" text-anchor="middle">VRPlayer (64-bit)</text><text class="small" x="105" y="72" text-anchor="middle">ImGui window</text><text class="small" x="105" y="88" text-anchor="middle">AppCatalog, VRDevices</text><text class="small" x="105" y="104" text-anchor="middle">AppSession</text>
+  <rect class="box" x="270" y="30" width="170" height="50" rx="6"/><text x="355" y="52" text-anchor="middle">StereoLauncher</text><text class="small" x="355" y="68" text-anchor="middle">32-bit, injects</text>
+  <rect class="box4" x="270" y="100" width="170" height="50" rx="6"/><text x="355" y="122" text-anchor="middle">Program + StereoConverterDLL</text><text class="small" x="355" y="138" text-anchor="middle">32-bit</text>
+  <rect class="box" x="520" y="60" width="150" height="60" rx="6"/><text x="595" y="82" text-anchor="middle">StereoPresenter</text><text class="small" x="595" y="98" text-anchor="middle">64-bit</text><text class="small" x="595" y="112" text-anchor="middle">sinks</text>
+  <rect class="box2" x="730" y="20" width="150" height="40" rx="6"/><text x="805" y="45" text-anchor="middle">preview window</text>
+  <rect class="box2" x="730" y="75" width="150" height="40" rx="6"/><text x="805" y="100" text-anchor="middle">HeadsetSink</text>
+  <rect class="box2" x="730" y="130" width="150" height="40" rx="6"/><text x="805" y="148" text-anchor="middle">D3D12FrameUploader</text>
+  <rect class="box2" x="730" y="185" width="150" height="40" rx="6"/><text x="805" y="203" text-anchor="middle">HeadsetSession (OpenXR)</text>
+  <path class="arrow" d="M200 60H268"/><path class="arrow" d="M355 80V98"/><path class="arrow" d="M440 125L518 100"/>
+  <path class="arrow" d="M670 85L728 45"/><path class="arrow" d="M670 95L728 95"/><path class="arrow" d="M805 115V128"/><path class="arrow" d="M805 170V183"/>
+  <path class="arrow" d="M200 100Q230 160 518 125"/>
+  <text class="small" x="380" y="195">VR player controls (depth, IPD scale, overlay push, eye size, pace) travel through the frame channel</text>
+</svg>
+<figcaption>The presenter shows the preview window; when a headset is chosen the headset sink reads the frames instead (the channel has room for one reader), and the window says so.</figcaption>
+<p>While the headset is shown, the window says <em>Frame N</em> (the presents of the application, counted from 0 by the converter, as the replay counts frames) and <em>t</em> (seconds since the converter started, which is about the first call of the application). They travel with each frame through the channel, so a glitch can be named by frame and time; <em>t</em> is close to the times of the analysis timelines for a run of the same demo, but not equal, since the two runs differ in what they wait for.</p>
+</figure>
+
+<h2>Controls</h2>
+<table>
+<tr><th>Control</th><th>What it does</th></tr>
+<tr><td><em>Device</em></td><td>The output: a headset found through OpenXR, or the preview window alone.</td></tr>
+<tr><td><em>Depth</em></td><td>Reduced, Natural or More: a strength that scales the eye separation of each scene. The comfort limit of the recipe is a ceiling that no choice passes. It can be changed while the program runs.</td></tr>
+<tr><td><em>Image quality</em></td><td>Full renders at the native resolution of the headset (from OpenXR), with the proportions of the program; Half and A quarter of the pixels are for a graphics card that cannot keep up. Set when the program starts; no effect without a headset.</td></tr>
+</table>
+<p>Three things have no control: the 2D overlays are pushed toward the viewer by the amount the recipe gives (<code>comfort.overlay_parallax</code>) for a program whose recipe has one, the program is paced to the headset, and no log is written. The last two are options of the programs that VR Player starts (<code>--no-pacing</code>, <code>--log</code>).</p>
+<p>The distance between the eyes of the person is read from OpenXR while the program runs, and its ratio to 64 mm (limited to 0.7 to 1.4) scales the separation, so a narrow or wide IPD is followed without a control.</p>
+
+<h2>Headset path</h2>
+<ol>
+  <li>The presenter maps the frame channel and the uploader opens its memory as a D3D12 heap (at the allocation base of the mapped view; a pointer inside the view does not work) and places a cross-adapter buffer over it.</li>
+  <li>A thread of the headset sink takes the newest frame from the channel about every millisecond, so that nothing which waits for the screen of the PC (a window that is drawn once a refresh) sets its pace.</li>
+  <li>For each new frame, each eye is copied from the buffer (a source box per eye, footprint offset = pixel pointer minus base) into the eye's OpenXR swapchain image.</li>
+  <li>The screen is a world-locked quad, or a cylinder if the runtime supports <code>XR_KHR_composition_layer_cylinder</code>, two metres away and sized to fill about 92% of the shared field of view. One layer per eye with <code>eyeVisibility</code>.</li>
+  <li>A recenter action puts the screen in front of the viewer again.</li>
+</ol>
+
+<h2>Code map</h2>
+<p><code>HeadsetSession</code> keeps its state in a private <code>Impl</code> (<code>headset_session_impl.h</code>) and is implemented in four files: <code>headset_session.cpp</code> (interface, logging), <code>headset_session_setup.cpp</code> (runtime, device, session, spaces, swap chain format, recenter action), <code>headset_session_swapchains.cpp</code> (the images of the eyes) and <code>headset_session_frame.cpp</code> (events and the frames of the compositor, the screen layers).</p>
+
+<h2>Devices</h2>
+<p>The device dropdown is filled by <code>OpenXrVrDeviceProvider</code>. With no OpenXR runtime or headset it shows only <em>2D preview only</em> and is disabled; Launch still works.</p>
+<div class="note"><strong>Windows:</strong> the active OpenXR runtime must be set in the vendor's software (for a Quest, Meta Quest Link). If the registry names a runtime that is not installed, the loader finds none and the presenter logs “The headset is not used” and keeps showing frames in the window.</div>
+
+<h2>Logs</h2>
+<p>With <code>--log</code> on StereoLauncher (VR Player writes none), a session writes <code>%TEMP%\apistereo_&lt;session&gt;.log</code>; without it, only what stops the application or the headset is written. Lines ending in “(presenter)” come from the headset path. Each second it has three lines of timings, in milliseconds, as count, mean, worst and how many were late: <em>Pacing</em> (the converter: the presents of the program, the frames passed on, what the copies cost, the wait for the screen), <em>Frames to the headset</em> (the presenter: when the frames arrive, taking the images, the copy to them, how far into a frame the images are ready, the delay of the pace) and <em>Frames of the compositor</em> (the frames of the headset, and how many showed new images, repeated ones or none). They tell where a stutter comes from.</p>
+</main>
+</body>
+</html>

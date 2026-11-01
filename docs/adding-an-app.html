@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adding an app</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site"><nav>
+  <a class="brand" href="index.html">Demo VR Player</a>
+  <a href="index.html">Overview</a>
+  <a href="analysis-and-recipes.html">Analysis &amp; recipes</a>
+  <a href="replay.html">Replay</a>
+  <a href="live-stereo.html">Live stereo</a>
+  <a href="vr-player.html">VR player</a>
+  <a class="current" href="adding-an-app.html">Adding an app</a>
+  <a href="components.html">Components</a>
+  <a href="building.html">Building</a>
+  <a href="../deps/APIInterceptor/docs/index.html">API Interceptor</a>
+</nav></header>
+<main>
+<h1>Adding an app</h1>
+<p class="lead">How to take a 2D program from nothing to a recipe that turns it into stereo 3D, and to a line in the catalog of the VR player. The facts about the program are read from its analysis by an LLM; a person decides, and looks at the pictures.</p>
+
+<div class="note">Today the converter handles Direct3D 8 programs whose camera is set with <code>SetTransform</code> (see <a href="#limits">What this does not cover</a>). The steps are the same for another API once it has its front end and its converter adapter (<a href="analysis-and-recipes.html#frontends">What adding an API takes</a>); only what the rules can name changes.</div>
+
+<div class="note">The commands are written from the folder of a release (<code>build_final</code>): the programs are in <code>tools\APIDumper</code>, <code>tools\Analysis</code> and <code>tools\Replay</code> (see <a href="building.html#release">The collected build</a>).</div>
+
+<h2>The steps</h2>
+<figure>
+<svg viewBox="0 0 900 215" role="img" aria-label="The steps of adding an app">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="box"  x="10"  y="20" width="100" height="60" rx="6"/><text x="60"  y="46" text-anchor="middle">1 Capture</text><text class="small" x="60"  y="64" text-anchor="middle">APIDumper</text>
+  <rect class="box"  x="124" y="20" width="100" height="60" rx="6"/><text x="174" y="46" text-anchor="middle">2 Extract</text><text class="small" x="174" y="64" text-anchor="middle">Extractor</text>
+  <rect class="box2" x="238" y="20" width="100" height="60" rx="6"/><text x="288" y="46" text-anchor="middle">3 Investigate</text><text class="small" x="288" y="64" text-anchor="middle">Query + LLM</text>
+  <rect class="box2" x="352" y="20" width="100" height="60" rx="6"/><text x="402" y="46" text-anchor="middle">4 Draft rules</text><text class="small" x="402" y="64" text-anchor="middle">LLM, you review</text>
+  <rect class="box"  x="466" y="20" width="100" height="60" rx="6"/><text x="516" y="46" text-anchor="middle">5 Bake</text><text class="small" x="516" y="64" text-anchor="middle">RecipeBake</text>
+  <rect class="box4" x="580" y="20" width="100" height="60" rx="6"/><text x="630" y="46" text-anchor="middle">6 Check offline</text><text class="small" x="630" y="64" text-anchor="middle">Player, Checker</text>
+  <rect class="box4" x="694" y="20" width="100" height="60" rx="6"/><text x="744" y="46" text-anchor="middle">7 Try live</text><text class="small" x="744" y="64" text-anchor="middle">VRPlayer</text>
+  <rect class="box3" x="808" y="20" width="82"  height="60" rx="6"/><text x="849" y="46" text-anchor="middle">8 Catalog</text><text class="small" x="849" y="64" text-anchor="middle">apps.json</text>
+  <path class="arrow" d="M110 50H122"/><path class="arrow" d="M224 50H236"/><path class="arrow" d="M338 50H350"/><path class="arrow" d="M452 50H464"/><path class="arrow" d="M566 50H578"/><path class="arrow" d="M680 50H692"/><path class="arrow" d="M794 50H806"/>
+  <path class="arrow" d="M630 80V130H288V82"/>
+  <text class="small" x="460" y="148" text-anchor="middle">something looks wrong: go back to the facts, not to the pictures</text>
+  <text class="small" x="10" y="190">boxes: programs · led by an LLM, reviewed by a person · a person looks · a file</text>
+</svg>
+<figcaption>Steps 1, 2 and 5 are programs that give the same answer every time. Steps 3 and 4 are where an LLM reads and proposes; steps 6 and 7 are where a person decides.</figcaption>
+</figure>
+
+<h2 id="capture">1. Capture the program</h2>
+<pre><code>tools\APIDumper\APIDumper_x86.exe --dump-n-frames 3000 --dump-swapchain-on-present c:\path\to\app.exe [app arguments]</code></pre>
+<p>Use <code>APIDumper_x86.exe</code> for a 32-bit program and <code>APIDumper_x64.exe</code> for a 64-bit one. The workload is written as <code>result_dump.workload</code> in the working directory of the program, when the frame count is reached or when it exits. A capture can be large (a few minutes of a demo is gigabytes); <code>--spill-threshold-mb</code> keeps a 32-bit program from running out of memory while it is written. <code>--dump-swapchain-on-present</code> stores the back buffer of each frame, which is what lets anyone later see what a frame looked like.</p>
+<p>What to capture decides what the recipe knows. The analysis groups frames into <em>shapes</em> (the kinds of passes a frame is made of), and a recipe knows only the shapes it saw; any other frame is treated as the recipe says (<code>on_unknown_frame</code>, mono by default). So one capture should walk through every kind of screen the program has: the loader, the menu, each scene, the transitions. Play it the way a user would, once.</p>
+
+<h2 id="extract">2. Extract the passes</h2>
+<pre><code>tools\Analysis\APIDumpAnalysisExtractor result_dump.workload -o app.passes --stats</code></pre>
+<p>Before going on, look at the summary it prints, or at <code>APIDumpAnalysisQuery app.passes info</code>. A capture is good for the next steps when:</p>
+<ul>
+  <li><code>n_unfollowed_calls</code> and <code>n_unsupported_calls</code> are <strong>0</strong>. The first counts calls that the analysis could not make sense of (a call whose arguments were not as expected); the second, calls of an API that the front end does not know. Either means the passes found may be wrong, and the cause is a bug or a gap in the front end, not something a recipe can fix.</li>
+  <li><code>key_collisions</code> is <strong>0</strong> (two different structures with the same key would be taken for one).</li>
+  <li><code>n_resolution_hazards</code> is empty, or it is understood: a hazard is a call whose meaning depends on the size of the target in pixels, so rendering larger than the program asks would break it (see <a href="analysis-and-recipes.html#frontend">the Direct3D 8 front end</a>).</li>
+  <li><code>frame_shapes</code> is a small number. Hundreds of shapes mean that something that varies from frame to frame (a particle pass, a loading bar) is cutting the frames up; that is worth understanding before writing any rule.</li>
+</ul>
+
+<h2 id="investigate">3. Investigate with an LLM</h2>
+<p>The question is the one the analysis deliberately does not answer (<a href="analysis-and-recipes.html#limits">What it does not do</a>): <strong>which passes of this program are the 3D scene, and which are an interface that must not be shifted?</strong> The analysis gives the facts; deciding is the work of whoever reads them. An LLM is good at this reading, for three reasons that the tools are built around:</p>
+<ul>
+  <li><code>APIDumpAnalysisQuery</code> prints <strong>JSON</strong>, with <code>--compact</code> for one line, and pages it with <code>--limit</code> and <code>--offset</code>, so that no answer is larger than the model can hold.</li>
+  <li>Everything is named by a <strong>key</strong> (a hex string) or an id that the model copies and does not have to understand. It never reads pixels, and of vertices only a few positions per draw, for the depth of surfaces; contents appear only as hashes.</li>
+  <li>The commands go from the whole to the part, so the model can spend its reading where the facts are unclear: <code>info</code> (what is in the file), <code>pipelines</code> (the kinds of frames, each made of which kinds of passes), <code>overlays</code> (passes whose camera never changes: candidates for an interface), <code>pass &lt;id&gt;</code> (one kind of pass in full: its targets, clears, viewport, camera constants and their values over time), <code>frame --shape &lt;id&gt;</code> (one real frame of a shape), <code>resources</code> (what is written and read), <code>depth</code> (how deep the draws of each pass are: the near, median and far depth, and the vertices counted), and <code>timeline</code> (which shape is on screen when).</li>
+</ul>
+
+<h3>Facts that tell a scene from an interface</h3>
+<table>
+<tr><th>Fact (command)</th><th>Points to</th></tr>
+<tr><td>A <code>view_matrix</code> constant whose value changes from frame to frame (<code>pass</code>: <code>series</code>)</td><td>a scene: the camera moves</td></tr>
+<tr><td>A <code>projection_matrix</code> that is perspective, and a depth buffer that is cleared and used (<code>pass</code>: <code>clears</code>, <code>depth_stencil_view_key</code>)</td><td>a scene</td></tr>
+<tr><td>No depth buffer, an orthographic projection, a camera that never changes, a few draws of a few vertices (<code>overlays</code>, <code>pass</code>)</td><td>an interface (HUD, menu, text, a full-screen quad)</td></tr>
+<tr><td>The pass is listed by <code>depth</code>, with a spread between <code>depth_near</code> and <code>depth_far</code> (only a pass with a perspective camera and draws in front of it is listed; the <code>surface_depth_*</code> fields tell the same for the vertices, and <code>surface_depth_nearest</code> for the nearest 0.05% of them)</td><td>a scene; an overlay has no depth at all, or one depth</td></tr>
+<tr><td>A viewport that covers only a part of the target (<code>pass</code>: <code>viewport</code>)</td><td>a scene drawn into a window, or a panel of an interface; look at the others</td></tr>
+<tr><td>A pass that reads a target that another pass of the frame wrote (<code>resources</code> with <code>--class frame_local</code>, <code>pass</code>)</td><td>post-processing or a composite; it follows the pass that made its input (see step 6)</td></tr>
+<tr><td>A pass with a camera that never changes but is deep, with many vertices</td><td>probably a scene seen from one place: <code>overlays</code> says so itself, “a hint, not a fact”</td></tr>
+<tr><td>How often it occurs (<code>pipelines</code>: <code>n_frames</code>; <code>timeline</code>)</td><td>a pass in every frame is part of the program's pipeline; one in a few frames is a transition or an effect</td></tr>
+</table>
+
+<h3>Giving the model its job</h3>
+<p>Give it a shell where it can run the query tool, the text of <code>APIDumpAnalysisQuery</code>'s usage, the <a href="recipe-format.html">recipe format</a>, and the table above. Ask for evidence, not for a verdict. A prompt that works:</p>
+<pre><code>You are helping to make a stereo-3D recipe for a 2D Direct3D 8 program.
+The analysis of its capture is in app.passes. Run APIDumpAnalysisQuery on it
+(usage and recipe format attached), with --compact and --limit, and do not
+read anything else: you have no access to the program, its code or its pixels.
+
+Decide for every kind of pass whether it is
+  scene      - 3D, to be drawn once for each eye
+  interface  - 2D (HUD, menu, text, full-screen quad), to be drawn once
+  unclear    - the facts do not say
+
+For each, give the pass id and its key, the facts that decided it (command and
+field), and your confidence. Start from `pipelines`, then `overlays`, then `pass`
+for every pass that is in a shape. Look at one representative frame of each shape
+(`frame --shape`) before you finish.
+
+Copy keys exactly as printed: a key you typed from memory or shortened is wrong.
+Do not infer a pass from the name of a resource. If two passes look alike, say so.
+When you are done, write the "unaffected" part of the recipe (pass_keys and, where a
+single draw inside an affected pass is an interface, draw_keys) and list every pass you
+marked unclear, with the question that would settle it.</code></pre>
+<p>Two habits make the answers good. The first is to ask for the <em>unclear</em> list: a model that has to say what it does not know checks more than one that has to decide everything. The second is to read the evidence, not the verdict: the facts are fields of the JSON that you can run again yourself, and a verdict that rests on none of them is a guess. Where the facts are not enough, a multimodal model can be given the back buffers of the frames (<code>APIDumpPrinter</code> writes the surface dumps of a workload to its working directory), and a person can always look.</p>
+
+<h2 id="draft">4. Draft the rules</h2>
+<p>The input of the baker is a recipe <em>without</em> the <code>baked</code> section: what the person knows, and what the analysis cannot. For a program that sets its camera with <code>SetTransform</code> it is nearly always the same shape (this is how <code>apps/recipes/fr08.json</code> starts):</p>
+<pre><code>{
+  "recipe_version": 0,
+  "key_scheme_version": 1,
+  "target": { "name": "myapp", "description": "text for people" },
+  "known_shape_keys": [ "0x..." ],        the shapes of step 2 that the recipe is made for
+  "on_unknown_frame": "mono",             what a frame of another shape does: mono, skip or fail
+  "unaffected": {
+    "pass_keys": [ "0x..." ]              the interface passes, from step 3
+  },
+  "rules": [
+    { "name": "view", "call": "IDirect3DDevice8::SetTransform",
+      "when": { "state": "D3DTS_VIEW" },
+      "action": { "type": "eye_offset", "order": "post", "axis": "x" } },
+    { "name": "projection", "call": "IDirect3DDevice8::SetTransform",
+      "when": { "state": "D3DTS_PROJECTION", "matrix": "perspective" },
+      "action": { "type": "eye_convergence" } }
+  ]
+}</code></pre>
+<ul>
+  <li><code>unaffected</code> is the answer of step 3. Everything not listed is a scene draw, so a missed interface pass shows as an interface that is doubled; a pass wrongly listed shows as a scene that does not move between the eyes.</li>
+  <li>The <code>eye_offset</code> rule moves each eye along an axis by half of the separation, which is a setting of the VR player (the depth choice), not of the recipe. <code>eye_convergence</code> shears the projection so that what is at the convergence distance is at the screen; the distance is measured and baked in step 5. See <a href="recipe-format.html">Recipe format</a> for every action.</li>
+  <li><code>known_shape_keys</code> should be the shapes of the capture. Leave <code>on_unknown_frame</code> at <code>mono</code> unless a program has screens that must not appear at all (<code>skip</code>) or that should never occur (<code>fail</code>, which stops the converter with a message, useful while testing).</li>
+</ul>
+<p>An LLM can write this file, and the model of step 3 usually already has what it needs. Check three things in what it wrote: that every key is one from the output of <code>APIDumpAnalysisQuery</code> (the loader checks that a key is well formed, but it cannot know that the program has it), that <code>known_shape_keys</code> are shapes and not pass keys, and that nothing was added that the evidence did not support.</p>
+
+<h2 id="bake">5. Bake the recipe</h2>
+<pre><code>tools\Analysis\RecipeBake recipe.json app.passes -o myapp.json</code></pre>
+<p>A converter in the running program can use only what is known when a draw is issued, and a pass or a shape is not (the pass is not over yet). The baker therefore turns what is known offline into what is known live: for every draw signature the analysis saw, whether it is an interface or a scene (<code>draw_rules</code>, with the view matrix where one signature is both), the distance at which the eyes converge for each signature and for each shape (the median depth by vertices of what it draws), and the list of signatures it knew. It prints a summary: the number of signatures, of rules, of signatures that only the view matrix tells apart, and how many have a distance.</p>
+<ul>
+  <li><strong>Exit 3</strong> means the recipe cannot be baked, and says why. The usual one: a signature that is drawn as an interface in one pass and as a scene in another, with the same view matrix, so that nothing known when it is issued tells the two apart. The message names the signature; the remedy is in the rules (<code>draw_keys</code> say which draws of an affected pass are an interface).</li>
+  <li>Signatures with <em>no</em> distance are draws that were never in front of the camera in the capture; they will use the distance of their frame's shape.</li>
+  <li>Bake again whenever the capture changes. The baked part is generated; do not edit it.</li>
+</ul>
+
+<h2 id="check">6. Check it offline</h2>
+<p>The offline replay tools take a recipe, so a recipe can be checked on the capture before it meets the program. This is the step where a person looks.</p>
+<pre><code>tools\Replay\StereoReplayPlayer_x86.exe --recipe myapp.json --eye both --eye-separation 0.1 result_dump.workload
+tools\Replay\StereoReplayConsistencyChecker_x86 result_dump.workload --recipe myapp.json --from 0 --to 200 --dump-dir out</code></pre>
+<ul>
+  <li><strong>StereoReplayPlayer</strong> renders the frames for both eyes and shows the images side by side. Look for the things below, with <code>--eye left</code> and <code>--eye right</code> to see one at a time.</li>
+  <li><strong>StereoReplayConsistencyChecker</strong> replays the frames twice, the first time for the left eye and the second for the right, and compares the images with those of a replay without the recipe. With a recipe that changes nothing it must find no difference; with the real one, differences are expected, and the checker's job is to say where the replay itself is unstable (a frame that cannot be executed twice is not one that stereo conversion can handle). Mind that some frames of any program differ on a second execution; compare with the same run without the recipe before blaming the recipe.</li>
+</ul>
+<table>
+<tr><th>What you see</th><th>Likely cause</th><th>Go back to</th></tr>
+<tr><td>An interface element appears twice, or in different places in the two eyes</td><td>its pass is not in <code>unaffected</code></td><td>step 3: ask the model for the facts of that pass</td></tr>
+<tr><td>The scene is flat: no depth between the eyes</td><td>a scene pass is listed as unaffected, or the eye separation is 0</td><td>step 3; the separation (the depth choice or <code>--eye-separation</code>)</td></tr>
+<tr><td>The world is right but a post-processed result or a reflection is off by an eye</td><td>a pass that reads a target was not drawn for the eye that made it</td><td>step 3: <code>resources</code> and <code>pass</code> for the pass that reads it</td></tr>
+<tr><td>Everything appears behind the screen, or far in front of it</td><td>the convergence distance does not suit the scene</td><td>step 5: the <code>convergence</code> of the signatures; <code>pass</code> shows the depth of what it draws</td></tr>
+<tr><td>Something near (a wall at arm's length, an object that fills the view) has an extreme shift between the eyes</td><td>the limit of the eye separation of the scene is too generous, or the scene has none</td><td>the <code>comfort</code> of the recipe: lower <code>max_near_parallax</code> (0.03 is three in a hundred of the width of the picture), or make <code>near_fraction</code> larger to count more of the surfaces as near; bake again. <code>depth</code> shows <code>surface_depth_nearest</code> for the pass</td></tr>
+<tr><td>An interface or text appears inside the scene, at the depth of the screen, though things in the scene are nearer</td><td>the draws that the rules leave alone have no parallax of their own</td><td>the <code>comfort</code> of the recipe: <code>overlay_parallax</code> says how far they can be pushed toward the viewer (0.04 is four in a hundred of the width of the picture), and VR Player pushes them by it (there is no control for it); 0 or leaving it out means the application wants none</td></tr>
+<tr><td>A screen of the program is mono</td><td>its frame shape is not in <code>known_shape_keys</code></td><td>step 1: capture it, and 2 to 5 again</td></tr>
+</table>
+
+<h2 id="live">7. Try it live</h2>
+<p>Add the program to the catalog (step 8) and start it from <code>VRPlayer</code>, or start <code>StereoLauncher</code> yourself. With <code>--log</code> on StereoLauncher (VR Player has no control for it, and the log is off), the converter writes a session log, <code>%TEMP%\apistereo_&lt;session&gt;.log</code>; lines ending in “(presenter)” come from the headset path. What to look for in it:</p>
+<ul>
+  <li>Frames of a scene the recipe has no distance for (<code>scene_convergence</code>): the statistics line counts them. A program that is mostly in such frames is in screens that were not in the capture (step 1).</li>
+  <li>A refusal: a rule that depends on a pass or a frame shape (<code>pass_keys</code> or <code>shape_keys</code> in the <code>when</code> of a rule) cannot be followed live, since neither is known when a draw is issued, and the converter then stops with a message instead of drawing wrong images. The interface passes of <code>unaffected</code> are not of this kind: the baker turns them into rules by signature.</li>
+  <li>The statistics line at the end: the numbers of affected, unaffected and skipped draws, of draws of a signature the recipe does not know, of frames of a scene it has no distance for, and of matrices kept. A large count of unknown draws means that the program draws things in play that were not in the capture.</li>
+</ul>
+<p>Judge what you see in the window first and in the headset second: the window shows the same images, and it is where a fault is easiest to tell from discomfort.</p>
+
+<h2 id="catalog">8. Put it in the catalog</h2>
+<p>The catalog is <code>apps/apps.json</code>, and the recipes it names are in <code>apps/recipes/</code>; <code>build.bat</code> copies both to <code>build_final\apps\</code>, so a release has them. The program itself is not kept in the repository: the entry says where it can be downloaded, and <code>VRPlayer</code> gets it the first time it is launched, into <code>apps/&lt;id&gt;/</code> (see <a href="vr-player.html#download">VR player</a>). Copy the baked recipe to <code>apps/recipes/myapp.json</code>, and add an entry:</p>
+<pre><code>{
+  "catalog_version": 0,
+  "apps": [
+    {
+      "id": "myapp",                            letters, digits, '-' and '_'
+      "recipe": "recipes/myapp.json",           relative to the catalog
+      "executable": "myapp/myapp.exe",          where it is once it is downloaded: in apps/&lt;id&gt;/
+      "arguments": "-fullscreen=0",             (optional) the command line of the application
+      "working_directory": "myapp",            (optional) relative to the catalog; the directory of the executable by default
+      "title": "My app",                       (optional) the title in the list: otherwise, the name of the recipe's target
+      "download": {                             (optional) where the program comes from, if it is not there
+        "urls": ["https://mirror.example/myapp.zip"],   https only; one after the other until one works
+        "sha256": "...",                       of the zip file, in hex: what is not that is not used
+        "size": 12345,                        bytes of the zip file
+        "unpacked_size": 23456,               the most that the files may take together
+        "page": "https://example/myapp"        (optional) where it can be got by hand
+      }
+    }
+  ]
+}</code></pre>
+<p>An entry whose recipe cannot be found, or whose executable cannot be found and has no <code>download</code>, is listed as unavailable, with the reason. The zip file has to hold the program with the paths of <code>executable</code> under <code>apps/&lt;id&gt;/</code>. Get its <code>sha256</code> from a copy you trust (<code>certutil -hashfile myapp.zip SHA256</code>), and check that the program may be downloaded by whoever uses the catalog.</p>
+
+<h2 id="loop">Doing it again</h2>
+<p>A recipe is made for one version of a program. When the program changes, or when a screen of it is missing, capture again (step 1), extract again, and give the model the new analysis <em>and the old recipe</em>: keys of passes whose structure did not change are the same, so what is already decided stays decided, and the model only has to look at what is new (the shapes and passes not in <code>known_shape_keys</code>). When the analysis tools themselves change in a way that changes keys, <code>key_scheme_version</code> changes, the loader refuses the old recipe, and the whole of steps 2 to 5 is done again from the same capture.</p>
+
+<h2 id="limits">What this does not cover</h2>
+<ul>
+  <li><strong>The camera has to be set with <code>SetTransform</code>.</strong> The only call a rule can apply to today is <code>IDirect3DDevice8::SetTransform</code>. A program that passes its matrices to a vertex shader as constants (<code>SetVertexShaderConstant</code>) has a camera that the converter cannot move yet: the analysis follows such constants, but a rule that changes them is new work in the loader, the baker and the converter, not a recipe.</li>
+  <li><strong>Direct3D 8 only.</strong> An OpenGL program can be captured, analysed in part and replayed, but there is no front end that gives it passes, and no converter adapter. See <a href="index.html#api">One API is not all of them</a>.</li>
+  <li><strong>The LLM reads facts; it does not see the program.</strong> A fault that the facts cannot show (a pass that is an interface in some frames and a scene in others, with the same structure) is found by a person, in step 6.</li>
+</ul>
+
+<h2>Checklist</h2>
+<ul>
+  <li>Captured every screen of the program, with <code>--dump-swapchain-on-present</code>.</li>
+  <li><code>info</code>: no unfollowed or unsupported calls, no key collisions, hazards understood, a small number of shapes.</li>
+  <li>Every pass has a decision with evidence; the unclear ones are settled by a person.</li>
+  <li>The recipe's keys are all from the query output; <code>known_shape_keys</code> are the shapes of the capture.</li>
+  <li>Baked without error; the signatures without a distance are understood.</li>
+  <li>StereoReplayPlayer shows no doubled interface and a scene with depth, in both eyes, on frames of every shape.</li>
+  <li>The live session log shows no refusal and few unknown frames or draws.</li>
+  <li>The recipe is in <code>apps/recipes/</code>, the entry (with where the program is downloaded from, and its hash) in <code>apps/apps.json</code>, and <code>build.bat</code> was run.</li>
+</ul>
+</main>
+</body>
+</html>

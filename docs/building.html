@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Building &amp; testing</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site"><nav>
+  <a class="brand" href="index.html">Demo VR Player</a>
+  <a href="index.html">Overview</a>
+  <a href="analysis-and-recipes.html">Analysis &amp; recipes</a>
+  <a href="replay.html">Replay</a>
+  <a href="live-stereo.html">Live stereo</a>
+  <a href="vr-player.html">VR player</a>
+  <a href="adding-an-app.html">Adding an app</a>
+  <a href="components.html">Components</a>
+  <a class="current" href="building.html">Building</a>
+  <a href="../deps/APIInterceptor/docs/index.html">API Interceptor</a>
+</nav></header>
+<main>
+<h1>Building &amp; testing</h1>
+<p class="lead">CMake, MSVC, C++14. Two builds (32-bit and 64-bit) are needed because the injected parts are 32-bit and the presenter and the player 64-bit.</p>
+
+<h2>Get the code</h2>
+<pre><code>git clone --recurse-submodules &lt;this repository&gt;</code></pre>
+<p>Two submodules are in <code>deps/</code>: <code>APIInterceptor</code>, which has submodules of its own (Detours, googletest, Zstd, Dear ImGui), and <code>OpenXR-SDK</code>. A clone without <code>--recurse-submodules</code> needs <code>git submodule update --init --recursive</code>.</p>
+
+<h2>Build</h2>
+<pre><code>build.bat                    :: incremental, x86 + x64, outputs in build_final\
+build.bat --from-scratch     :: wipe, configure, build
+build.bat --debug            :: Debug instead of Release</code></pre>
+<p><code>build.bat</code> is a line which runs the script of API Interceptor, <code>deps\APIInterceptor\build.bat</code>, on this project (<code>--source-dir</code>): the two build trees and the release are made here. The OpenXR loader is built statically in the 64-bit build only.</p>
+<p>Of API Interceptor only what a program of this project needs is built (its libraries and hooks), and the tools which capture a program, which a release has. Its tests are built when the tests of this project are. The options are set in the root <code>CMakeLists.txt</code> before the submodule is added.</p>
+
+<h2 id="release">The collected build</h2>
+<p><code>build_final\</code> is what a release is, so that it can be zipped as it is and unpacked anywhere. <code>build.bat</code> empties it at the start of its collecting step, and then installs both build trees into it (<code>cmake --install</code> with <code>--prefix build_final</code>, once for <code>build_x86</code> and once for <code>build_x64</code>):</p>
+<ul>
+  <li>at the root, <code>VRPlayer.exe</code>;</li>
+  <li><code>runtime\</code>: the programs it starts, <code>StereoPresenter.exe</code>, and <code>StereoLauncher</code> and <code>StereoConverterDLL</code> of both architectures;</li>
+  <li><code>apps\</code>, with the catalog, the recipes and the applications;</li>
+  <li><code>tools\APIDumper\</code>: what captures a program, the dumper and its DLL of both architectures and the printer (from API Interceptor);</li>
+  <li><code>tools\Analysis\</code>: the extractor and the query tool of the analysis, and the baker of the recipes;</li>
+  <li><code>tools\Replay\</code>: the replay player, the replay engine and the consistency checker, of both architectures.</li>
+</ul>
+<p>Where a program has both architectures, the 64-bit one has the suffix <code>_x64</code> and the 32-bit one <code>_x86</code>. A program looks for the ones it starts or loads next to itself (the launcher for the converter), which is why a group is installed as a whole. <code>VRPlayer</code> looks for the launchers and the presenter in <code>runtime\</code> beside itself, and next to itself when there is none (a build folder). What goes where, and under which name, is written in <code>cmake/Install.cmake</code>, as an install rule for each program, with the helpers of API Interceptor (<code>InstallHelpers.cmake</code>). Only the programs named there are installed, so a program that is not a target any more cannot end up in <code>build_final</code>, and a program that is missing makes the install fail instead of leaving a hole.</p>
+<p>The files that the programs read are in one place, <code>apps/</code> of the repository: the catalog <code>apps.json</code> and the recipes in <code>apps/recipes/</code>. The install copies both to <code>build_final\apps\</code>, where <code>VRPlayer</code> looks first; run from the build tree, it finds <code>apps\</code> of the repository. The applications themselves are not part of either: each is downloaded into <code>apps\&lt;id&gt;\</code> the first time it is launched, so the folder of <code>VRPlayer</code> has to be one which can be written to (nothing is written anywhere else, and if it cannot be written, the window says so).</p>
+
+<h2>Source layout</h2>
+<p>Public headers are in <code>include/</code> and sources in <code>src/</code>; both have the same groups, and a module is <code>include/&lt;Group&gt;/&lt;Module&gt;</code> and <code>src/&lt;Group&gt;/&lt;Module&gt;</code>. An include names the group: <code>#include "Stereo/StereoCore/stereo_core.h"</code>. The namespaces follow the same path. The headers of API Interceptor are found through its libraries, with the same rule (<code>#include "Analysis/RecipeLoader/recipe_loader.h"</code>).</p>
+<table>
+<tr><th>Group</th><th>Modules</th></tr>
+<tr><td>Analysis</td><td>APIDumpAnalysis, APIDumpAnalysisExtractor, APIDumpAnalysisQuery, RecipeApplier, RecipeBake, RecipeLoader</td></tr>
+<tr><td>Replay</td><td>StereoReplayConsistencyChecker, StereoReplayEngineDLL, StereoReplayPlayer</td></tr>
+<tr><td>Stereo</td><td>StereoConverterDLL, StereoCore, StereoD3D12, StereoLauncher, StereoSession, StereoTransport, StereoPresenter, StereoXR</td></tr>
+<tr><td>VR</td><td>AppCatalog, UIHost, VRDevices, VRPlayer</td></tr>
+<tr><td>Tests</td><td>the tests (in <code>src/</code> only)</td></tr>
+</table>
+<p>Programs have sources only.</p>
+
+<h2>CMake layout</h2>
+<p>The root <code>CMakeLists.txt</code> holds the settings every project shares and adds API Interceptor as a subproject (<code>add_subdirectory</code> with <code>EXCLUDE_FROM_ALL</code>), then includes one file per group from <code>cmake/</code>, in this order: <code>Analysis.cmake</code> (the analysis, the recipes and their tools), <code>Replay.cmake</code> (the replay engine, the player and the checker), <code>Stereo.cmake</code> (the converter, the transport and the launcher), <code>VR.cmake</code> (the window of the tools, the player, the catalog, the devices, the headset and the presenter), <code>Tests.cmake</code>, <code>Install.cmake</code> (what the release holds) and <code>Folders.cmake</code> (the folders of the solution). The order matters: the files share variables, and a target must exist before it is given a folder.</p>
+
+<h2>Solution layout</h2>
+<p>The generated Visual Studio solution groups projects in folders: Analysis (Libraries, Tools), Replay, Stereo (Libraries, Programs), VR Player, Tests, and the folders of API Interceptor and of the third party code. File lists are globbed with <code>CONFIGURE_DEPENDS</code>, so a new file is picked up by the next build.</p>
+
+<h2 id="tests">Tests</h2>
+<p>One test program, <code>DemoVRPlayerTests</code>, with googletest; it is built with <code>-DDEMOVRPLAYER_BUILD_TESTS=ON</code> (64-bit only). The data files of the tests (a slice of a capture of fr08, and recipes) are reached through <code>Tests::DataFixtures</code>. The test support of API Interceptor (<code>APIInterceptorTestSupport</code>) and its googletest are used, which is why API Interceptor builds its tests target (not run, and not part of <code>ALL</code>) when the tests of this project are asked for. The 32-bit build has no tests.</p>
+
+<h2>Code conventions</h2>
+<p>The conventions of API Interceptor apply (see its <a href="../deps/APIInterceptor/docs/building.html#conventions">Building &amp; testing</a>): named namespaces and qualified definitions, no anonymous namespaces, alphabetical members, one return per function, aligned runs of statements.</p>
+</main>
+</body>
+</html>
