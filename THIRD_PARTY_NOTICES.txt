@@ -6,3 +6,5 @@ API Interceptor   (deps/APIInterceptor)  MIT License       Copyright (c) Dominik
                                          Zstandard, is listed in deps/APIInterceptor/THIRD_PARTY_NOTICES.txt)
 OpenXR SDK        (deps/OpenXR-SDK)      Apache License 2.0 (parts under the licences in LICENSES/)
                                          Copyright (c) The Khronos Group Inc.
+miniz             (deps/miniz)           MIT License       Copyright 2013-2014 RAD Game Tools and Valve Software
+                                         Copyright 2010-2014 Rich Geldreich and Tenacious Software LLC
