@@ -116,7 +116,7 @@ void VR::VRPlayer::show_error(const std::string& in_message)
 {
     ::MessageBoxA(nullptr,
                   in_message.c_str(),
-                  "VR Player",
+                  "DeepScene",
                   MB_OK | MB_ICONERROR);
 }
 

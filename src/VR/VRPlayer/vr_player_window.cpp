@@ -407,7 +407,7 @@ void VR::VRPlayer::VrPlayerWindow::draw_header()
 
     ImGui::PushFont(nullptr,
                     style.FontSizeBase * PAGE_TITLE_SCALE);
-    ImGui::TextUnformatted("VR Player");
+    ImGui::TextUnformatted("DeepScene");
     ImGui::PopFont();
 
     ImGui::PushStyleColor(ImGuiCol_Text,
@@ -675,7 +675,7 @@ VR::UIHost::WindowOptions VR::VRPlayer::VrPlayerWindow::get_window_options()
     result.client_height = CLIENT_HEIGHT;
     result.client_width  = CLIENT_WIDTH;
     result.is_resizable       = true;
-    result.title              = "VR Player";
+    result.title              = "DeepScene";
     result.uses_system_font   = true;
 
     return result;

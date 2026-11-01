@@ -48,7 +48,7 @@ int WINAPI WinMain(HINSTANCE in_instance,
     {
         ::MessageBoxA(nullptr,
                       (error + "\n\n" + Stereo::Presenter::CommandLine::get_usage_ptr() ).c_str(),
-                      "VR Player",
+                      "DeepScene",
                       MB_OK | MB_ICONERROR);
 
         goto end;
@@ -61,7 +61,7 @@ int WINAPI WinMain(HINSTANCE in_instance,
     {
         ::MessageBoxA(nullptr,
                       error.c_str(),
-                      "VR Player",
+                      "DeepScene",
                       MB_OK | MB_ICONERROR);
 
         goto end;
@@ -77,7 +77,7 @@ int WINAPI WinMain(HINSTANCE in_instance,
     {
         ::MessageBoxA(nullptr,
                       error.c_str(),
-                      "VR Player",
+                      "DeepScene",
                       MB_OK | MB_ICONERROR);
 
         goto end;

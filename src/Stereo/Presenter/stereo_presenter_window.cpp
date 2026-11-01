@@ -160,7 +160,7 @@ VR::UIHost::WindowOptions Stereo::Presenter::StereoPresenterWindow::get_window_o
     result.client_height = CLIENT_HEIGHT;
     result.client_width  = CLIENT_WIDTH;
     result.is_resizable  = true;
-    result.title         = (in_title.empty() ) ? "VR Player" : in_title;
+    result.title         = (in_title.empty() ) ? "DeepScene" : in_title;
 
     return result;
 }

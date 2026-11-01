@@ -67,7 +67,7 @@ void VR::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spec)
     std::string       staging_directory   = in_spec.install_directory + ".download";
     std::string       unpacked_directory  = staging_directory + "\\unpacked";
 
-    /* One installation of a directory at a time, whichever Demo VR Player it is started by. */
+    /* One installation of a directory at a time, whichever DeepScene it is started by. */
     {
         std::string lower_directory = in_spec.install_directory;
 
@@ -83,7 +83,7 @@ void VR::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spec)
             directory_name_hash = (directory_name_hash ^ static_cast<unsigned char>(lower_directory.at(n_character) ) ) * 1099511628211ull;
         }
 
-        lock_name = "Local\\DemoVRPlayer.Install." + std::to_string(directory_name_hash);
+        lock_name = "Local\\DeepScene.Install." + std::to_string(directory_name_hash);
     }
 
     lock_handle = ::CreateMutexW(nullptr,
@@ -95,7 +95,7 @@ void VR::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spec)
     if (lock_handle == nullptr                ||
         lock_error  == ERROR_ALREADY_EXISTS)
     {
-        error = "Another Demo VR Player is installing this application.";
+        error = "Another DeepScene is installing this application.";
 
         goto end;
     }
@@ -314,8 +314,8 @@ bool VR::AppInstaller::AppInstaller::start(const InstallSpec& in_spec,
     if (FileSystem::create_directories(parent_directory,
                                        out_error_ptr) == false)
     {
-        *out_error_ptr = "Demo VR Player cannot write to " + parent_directory + ", so the application cannot be downloaded there.\n\nMove the folder "
-                         "of Demo VR Player to a place which you can write to, and start it again.";
+        *out_error_ptr = "DeepScene cannot write to " + parent_directory + ", so the application cannot be downloaded there.\n\nMove the folder "
+                         "of DeepScene to a place which you can write to, and start it again.";
 
         goto end;
     }
@@ -323,8 +323,8 @@ bool VR::AppInstaller::AppInstaller::start(const InstallSpec& in_spec,
     if (FileSystem::test_write(parent_directory,
                                out_error_ptr) == false)
     {
-        *out_error_ptr = "Demo VR Player cannot write to " + parent_directory + ", so the application cannot be downloaded there.\n\nMove the folder "
-                         "of Demo VR Player to a place which you can write to, and start it again.";
+        *out_error_ptr = "DeepScene cannot write to " + parent_directory + ", so the application cannot be downloaded there.\n\nMove the folder "
+                         "of DeepScene to a place which you can write to, and start it again.";
 
         goto end;
     }

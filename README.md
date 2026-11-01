@@ -1,4 +1,4 @@
-# Demo VR Player
+# DeepScene
 
 A set of tools that turns a plain 3D demo into stereo 3D, live, on a monitor or in a VR headset (OpenXR), without changing the demo.
 

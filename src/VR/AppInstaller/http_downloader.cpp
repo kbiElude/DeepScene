@@ -80,7 +80,7 @@ bool VR::AppInstaller::HttpDownloader::download(const std::string&       in_url,
     resource_path_and_query = std::wstring(url_components.lpszUrlPath,
                                            url_components.dwUrlPathLength + url_components.dwExtraInfoLength);
 
-    session_handle = ::WinHttpOpen(L"DemoVRPlayer/1.0",
+    session_handle = ::WinHttpOpen(L"DeepScene/1.0",
                                    WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
                                    WINHTTP_NO_PROXY_NAME,
                                    WINHTTP_NO_PROXY_BYPASS,

@@ -1,4 +1,4 @@
-Third-party software bundled with Demo VR Player (see deps/). Each component is used under its own licence, whose
+Third-party software bundled with DeepScene (see deps/). Each component is used under its own licence, whose
 full text is kept in the component's directory.
 
 API Interceptor   (deps/APIInterceptor)  MIT License       Copyright (c) Dominik Witczak
