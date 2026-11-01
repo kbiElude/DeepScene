@@ -18,82 +18,82 @@ bool VR::AppInstaller::ZipExtractor::extract(const std::string&       in_archive
                                              const ProgressCallback&  in_progress_func,
                                              std::string*             out_error_ptr)
 {
-    FILE*                 file_ptr          = nullptr;
-    std::set<std::string> lower_name_set;
-    mz_uint               n_entries         = 0;
-    uint64_t              n_bytes_total     = 0;
+    FILE*                 archive_file_ptr   = nullptr;
+    bool                  is_zip_reader_open = false;
+    std::set<std::string> lower_case_entry_name_set;
+    mz_uint               n_archive_entries  = 0;
+    uint64_t              n_bytes_total      = 0;
     uint64_t              n_bytes_total_done = 0;
-    bool                  result            = false;
-    bool                  is_zip_open       = false;
-    mz_zip_archive        zip;
+    bool                  result             = false;
+    mz_zip_archive        zip_archive;
 
-    mz_zip_zero_struct(&zip);
+    mz_zip_zero_struct(&zip_archive);
 
-    file_ptr = ::_wfopen(FileSystem::to_wide(in_archive_path).c_str(),
-                         L"rb");
+    archive_file_ptr = ::_wfopen(FileSystem::to_wide(in_archive_path).c_str(),
+                                 L"rb");
 
-    if (file_ptr == nullptr)
+    if (archive_file_ptr == nullptr)
     {
         *out_error_ptr = "Cannot open " + in_archive_path;
 
         goto end;
     }
 
-    if (mz_zip_reader_init_cfile(&zip,
-                                 file_ptr,
+    if (mz_zip_reader_init_cfile(&zip_archive,
+                                 archive_file_ptr,
                                  0, /* archive_size: from the file */
                                  0) == MZ_FALSE)
     {
-        *out_error_ptr = std::string("Not a zip file: ") + mz_zip_get_error_string(mz_zip_get_last_error(&zip) );
+        *out_error_ptr = std::string("Not a zip file: ") + mz_zip_get_error_string(mz_zip_get_last_error(&zip_archive) );
 
         goto end;
     }
 
-    is_zip_open = true;
-    n_entries   = mz_zip_reader_get_num_files(&zip);
+    is_zip_reader_open = true;
+    n_archive_entries   = mz_zip_reader_get_num_files(&zip_archive);
 
     /* Everything is looked at before anything is written. */
     for (mz_uint n_entry = 0;
-                 n_entry < n_entries;
+                 n_entry < n_archive_entries;
                ++n_entry)
     {
-        mz_zip_archive_file_stat stat;
-        std::string              lower_name;
+        mz_zip_archive_file_stat entry_stat;
+        std::string              lower_case_entry_name;
 
-        if (mz_zip_reader_file_stat(&zip,
+        if (mz_zip_reader_file_stat(&zip_archive,
                                     n_entry,
-                                   &stat) == MZ_FALSE)
+                                   &entry_stat) == MZ_FALSE)
         {
             *out_error_ptr = "The zip file is damaged";
 
             goto end;
         }
 
-        if (is_name_safe(stat.m_filename) == false)
+        if (is_name_safe(entry_stat.m_filename) == false)
         {
-            *out_error_ptr = std::string("The zip file has a name which is not allowed: ") + stat.m_filename;
+            *out_error_ptr = std::string("The zip file has a name which is not allowed: ") + entry_stat.m_filename;
 
             goto end;
         }
 
-        if (stat.m_is_encrypted != 0 ||
-            stat.m_is_supported == 0)
+        if (entry_stat.m_is_encrypted != 0 ||
+            entry_stat.m_is_supported == 0)
         {
-            *out_error_ptr = std::string("The zip file has an entry which cannot be unpacked: ") + stat.m_filename;
+            *out_error_ptr = std::string("The zip file has an entry which cannot be unpacked: ") + entry_stat.m_filename;
 
             goto end;
         }
 
-        lower_name = to_lower(stat.m_filename);
+        lower_case_entry_name = to_lower(entry_stat.m_filename);
 
-        if (lower_name_set.insert(lower_name).second == false)
+        if (lower_case_entry_name_set.insert(lower_case_entry_name).second == false)
         {
-            *out_error_ptr = std::string("The zip file has a name twice: ") + stat.m_filename;
+            *out_error_ptr = std::string("The zip file has a name twice: ") + entry_stat.m_filename;
 
             goto end;
         }
 
-        n_bytes_total += stat.m_uncomp_size;
+        n_bytes_total += entry_stat.m_uncomp_size;
 
         if (n_bytes_total > in_n_unpacked_bytes_max)
         {
@@ -110,26 +110,26 @@ bool VR::AppInstaller::ZipExtractor::extract(const std::string&       in_archive
     }
 
     for (mz_uint n_entry = 0;
-                 n_entry < n_entries;
+                 n_entry < n_archive_entries;
                ++n_entry)
     {
-        mz_zip_archive_file_stat stat;
-        std::string              path;
+        std::string              entry_path;
+        mz_zip_archive_file_stat entry_stat;
 
-        mz_zip_reader_file_stat(&zip,
+        mz_zip_reader_file_stat(&zip_archive,
                                 n_entry,
-                               &stat);
+                               &entry_stat);
 
-        path = in_directory + "\\" + stat.m_filename;
+        entry_path = in_directory + "\\" + entry_stat.m_filename;
 
-        std::replace(path.begin(),
-                     path.end  (),
+        std::replace(entry_path.begin(),
+                     entry_path.end  (),
                      '/',
                      '\\');
 
-        if (stat.m_is_directory != 0)
+        if (entry_stat.m_is_directory != 0)
         {
-            if (FileSystem::create_directories(path,
+            if (FileSystem::create_directories(entry_path,
                                                out_error_ptr) == false)
             {
                 goto end;
@@ -137,19 +137,19 @@ bool VR::AppInstaller::ZipExtractor::extract(const std::string&       in_archive
         }
         else
         {
-            const size_t n_separator = path.find_last_of('\\');
-            WriteContext context;
-            HANDLE       file_handle = INVALID_HANDLE_VALUE;
-            mz_bool      is_extracted = MZ_FALSE;
+            HANDLE       file_handle                = INVALID_HANDLE_VALUE;
+            mz_bool      is_entry_extracted         = MZ_FALSE;
+            const size_t n_last_separator_character = entry_path.find_last_of('\\');
+            WriteContext write_context;
 
-            if (FileSystem::create_directories(path.substr(0,
-                                                           n_separator),
+            if (FileSystem::create_directories(entry_path.substr(0,
+                                                                 n_last_separator_character),
                                                out_error_ptr) == false)
             {
                 goto end;
             }
 
-            file_handle = ::CreateFileW(FileSystem::to_wide(path).c_str(),
+            file_handle = ::CreateFileW(FileSystem::to_wide(entry_path).c_str(),
                                         GENERIC_WRITE,
                                         0, /* share mode */
                                         nullptr,
@@ -159,24 +159,24 @@ bool VR::AppInstaller::ZipExtractor::extract(const std::string&       in_archive
 
             if (file_handle == INVALID_HANDLE_VALUE)
             {
-                *out_error_ptr = "Cannot write " + path + " (error " + std::to_string(::GetLastError() ) + ")";
+                *out_error_ptr = "Cannot write " + entry_path + " (error " + std::to_string(::GetLastError() ) + ")";
 
                 goto end;
             }
 
-            context.file_handle        = file_handle;
-            context.is_cancelled_ptr   = &in_is_cancelled;
-            context.n_bytes_declared   = stat.m_uncomp_size;
-            context.n_bytes_total      = n_bytes_total;
-            context.n_bytes_total_done = n_bytes_total_done;
-            context.n_bytes_written    = 0;
-            context.progress_func_ptr  = &in_progress_func;
+            write_context.file_handle_ptr    = file_handle;
+            write_context.is_cancelled_ptr   = &in_is_cancelled;
+            write_context.n_bytes_declared   = entry_stat.m_uncomp_size;
+            write_context.n_bytes_total      = n_bytes_total;
+            write_context.n_bytes_total_done = n_bytes_total_done;
+            write_context.n_bytes_written    = 0;
+            write_context.progress_func_ptr  = &in_progress_func;
 
-            is_extracted = mz_zip_reader_extract_to_callback(&zip,
-                                                             n_entry,
-                                                             &write,
-                                                             &context,
-                                                             0); /* flags */
+            is_entry_extracted = mz_zip_reader_extract_to_callback(&zip_archive,
+                                                                   n_entry,
+                                                                   &write,
+                                                                   &write_context,
+                                                                   0); /* flags */
 
             ::CloseHandle(file_handle);
 
@@ -187,30 +187,30 @@ bool VR::AppInstaller::ZipExtractor::extract(const std::string&       in_archive
                 goto end;
             }
 
-            if (is_extracted == MZ_FALSE                          ||
-                context.n_bytes_written != context.n_bytes_declared)
+            if (is_entry_extracted == MZ_FALSE ||
+                write_context.n_bytes_written != write_context.n_bytes_declared)
             {
-                *out_error_ptr = std::string("Cannot unpack ") + stat.m_filename + ": " +
-                                 mz_zip_get_error_string(mz_zip_get_last_error(&zip) );
+                *out_error_ptr = std::string("Cannot unpack ") + entry_stat.m_filename + ": " +
+                                 mz_zip_get_error_string(mz_zip_get_last_error(&zip_archive) );
 
                 goto end;
             }
 
-            n_bytes_total_done += context.n_bytes_written;
+            n_bytes_total_done += write_context.n_bytes_written;
         }
     }
 
     result = true;
 
 end:
-    if (is_zip_open)
+    if (is_zip_reader_open)
     {
-        mz_zip_reader_end(&zip);
+        mz_zip_reader_end(&zip_archive);
     }
 
-    if (file_ptr != nullptr)
+    if (archive_file_ptr != nullptr)
     {
-        ::fclose(file_ptr);
+        ::fclose(archive_file_ptr);
     }
 
     return result;
@@ -218,22 +218,22 @@ end:
 
 bool VR::AppInstaller::ZipExtractor::is_name_safe(const std::string& in_name)
 {
-    static const char* const DEVICE_NAME_ARRAY[] = {"con", "prn", "aux", "nul", "com1", "com2", "com3", "com4", "com5", "com6", "com7", "com8",
+    static const std::string DEVICE_NAME_ARRAY[] = {"con", "prn", "aux", "nul", "com1", "com2", "com3", "com4", "com5", "com6", "com7", "com8",
                                                     "com9", "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8", "lpt9"};
 
-    std::string normalized = in_name;
-    bool        result     = false;
-    size_t      start      = 0;
+    size_t      n_part_start_character    = 0;
+    std::string name_with_forward_slashes = in_name;
+    bool        result                    = false;
 
-    std::replace(normalized.begin(),
-                 normalized.end  (),
+    std::replace(name_with_forward_slashes.begin(),
+                 name_with_forward_slashes.end  (),
                  '\\',
                  '/');
 
-    if (normalized.empty()                                         ||
-        normalized.at(0) == '/'                                    ||
-        normalized.find(':')  != std::string::npos                 ||
-        normalized.find('\0') != std::string::npos)
+    if (name_with_forward_slashes.empty()                         ||
+        name_with_forward_slashes.at(0) == '/'                    ||
+        name_with_forward_slashes.find(':')  != std::string::npos ||
+        name_with_forward_slashes.find('\0') != std::string::npos)
     {
         goto end;
     }
@@ -241,42 +241,44 @@ bool VR::AppInstaller::ZipExtractor::is_name_safe(const std::string& in_name)
     /* Each part of the name: not empty (but for the end of a directory), not "." or "..", not a device, and not ending with a dot or a space,
      * which the system does not keep.
      */
-    while (start < normalized.size() )
+    while (n_part_start_character < name_with_forward_slashes.size() )
     {
-        const size_t      end  = normalized.find('/',
-                                                 start);
-        const size_t      stop = (end == std::string::npos) ? normalized.size()
-                                                            : end;
-        std::string       part = normalized.substr(start,
-                                                   stop - start);
-        const size_t      n_dot = part.find('.');
-        std::string       base  = (n_dot == std::string::npos) ? part
-                                                               : part.substr(0,
-                                                                             n_dot);
+        const size_t n_separator_character = name_with_forward_slashes.find('/',
+                                                                            n_part_start_character);
 
-        if (part.empty() && end != std::string::npos)
+        const size_t n_part_stop_character = (n_separator_character == std::string::npos) ? name_with_forward_slashes.size()
+                                                                                          : n_separator_character;
+        std::string name_part = name_with_forward_slashes.substr(n_part_start_character,
+                                                                 n_part_stop_character - n_part_start_character);
+
+        const size_t n_first_dot_character = name_part.find('.');
+        std::string  name_part_before_dot  = (n_first_dot_character == std::string::npos) ? name_part
+                                                                                          : name_part.substr(0,
+                                                                                                             n_first_dot_character);
+
+        if (name_part.empty() && n_separator_character != std::string::npos)
         {
             goto end;
         }
 
-        if (part == "."  ||
-            part == ".." ||
-            (part.empty() == false && (part.back() == '.' || part.back() == ' ') ) )
+        if (name_part == "."  ||
+            name_part == ".." ||
+            (name_part.empty() == false && (name_part.back() == '.' || name_part.back() == ' ') ) )
         {
             goto end;
         }
 
-        base = to_lower(base);
+        name_part_before_dot = to_lower(name_part_before_dot);
 
-        for (const char* device_ptr : DEVICE_NAME_ARRAY)
+        for (const std::string& device_name : DEVICE_NAME_ARRAY)
         {
-            if (base == device_ptr)
+            if (name_part_before_dot == device_name)
             {
                 goto end;
             }
         }
 
-        start = stop + 1;
+        n_part_start_character = n_part_stop_character + 1;
     }
 
     result = true;
@@ -305,9 +307,9 @@ size_t VR::AppInstaller::ZipExtractor::write(void*       in_context_ptr,
                                              const void* in_bytes_ptr,
                                              size_t      in_n_bytes)
 {
-    WriteContext* context_ptr = static_cast<WriteContext*>(in_context_ptr);
-    DWORD         n_written   = 0;
-    size_t        result      = 0;
+    WriteContext* context_ptr             = static_cast<WriteContext*>(in_context_ptr);
+    DWORD         n_bytes_written_by_call = 0;
+    size_t        result                  = 0;
 
     /* An entry is not written beyond its size, and not at all once it is cancelled; the caller sees the difference. */
     if (context_ptr->is_cancelled_ptr->load()                                                      ||
@@ -317,17 +319,17 @@ size_t VR::AppInstaller::ZipExtractor::write(void*       in_context_ptr,
         goto end;
     }
 
-    if (::WriteFile(static_cast<HANDLE>(context_ptr->file_handle),
+    if (::WriteFile(static_cast<HANDLE>(context_ptr->file_handle_ptr),
                     in_bytes_ptr,
                     static_cast<DWORD>(in_n_bytes),
-                   &n_written,
+                   &n_bytes_written_by_call,
                     nullptr) == FALSE)
     {
         goto end;
     }
 
-    context_ptr->n_bytes_written += n_written;
-    result                        = n_written;
+    context_ptr->n_bytes_written += n_bytes_written_by_call;
+    result                        = n_bytes_written_by_call;
 
     if (*context_ptr->progress_func_ptr)
     {

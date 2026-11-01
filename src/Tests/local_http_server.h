@@ -22,11 +22,11 @@ namespace Tests
     public:
         struct Answer
         {
-            std::string body;
-            std::string location;            /* of a redirect, if there is one                                               */
-            uint64_t    n_declared_bytes = 0; /* the length which is said, if it is not the one of the body (0: the real one) */
-            bool        should_stall     = false; /* half of the body is sent, and then nothing until the server is stopped  */
-            int         status           = 200;
+            int         http_status_code = 200;
+            uint64_t    n_declared_bytes = 0;     /* the length which is said, if it is not the one of the body (0: the real one) */
+            std::string redirect_location;        /* of a redirect, if there is one                                               */
+            std::string response_body;
+            bool        should_stall     = false; /* half of the body is sent, and then nothing until the server is stopped       */
         };
 
         LocalHttpServer();

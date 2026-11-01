@@ -34,19 +34,19 @@ public:
                   const VR::AppInstaller::ProgressCallback& in_progress_func,
                   std::string*                          out_error_ptr) override
     {
-        const auto iterator = m_bytes_map.find(in_url);
-        bool       result   = false;
+        const auto answer_iterator = m_bytes_map.find(in_url);
+        bool       result          = false;
 
         ++m_n_calls;
 
-        if (iterator == m_bytes_map.end() )
+        if (answer_iterator == m_bytes_map.end() )
         {
             *out_error_ptr = "no answer";
 
             goto end;
         }
 
-        if (iterator->second == "stall")
+        if (answer_iterator->second == "stall")
         {
             while (in_is_cancelled.load() == false)
             {
@@ -59,15 +59,15 @@ public:
         }
 
         {
-            std::ofstream file(in_file_path,
-                               std::ios::binary);
+            std::ofstream output_file(in_file_path,
+                                      std::ios::binary);
 
-            file.write(iterator->second.data(),
-                       static_cast<std::streamsize>(iterator->second.size() ) );
+            output_file.write(answer_iterator->second.data(),
+                              static_cast<std::streamsize>(answer_iterator->second.size() ) );
         }
 
-        in_progress_func(iterator->second.size(),
-                         iterator->second.size() );
+        in_progress_func(answer_iterator->second.size(),
+                         answer_iterator->second.size() );
 
         result = true;
 
@@ -104,12 +104,12 @@ protected:
     }
 
     /* Waits for the end of the installation: DONE, FAILED or CANCELLED. */
-    VR::AppInstaller::InstallProgress wait()
+    VR::AppInstaller::InstallProgress wait_for_end_of_installation()
     {
-        const auto start = std::chrono::steady_clock::now();
+        const auto start_time = std::chrono::steady_clock::now();
 
         while (m_installer.is_busy() &&
-               std::chrono::steady_clock::now() - start < std::chrono::seconds(20) )
+               std::chrono::steady_clock::now() - start_time < std::chrono::seconds(20) )
         {
             ::Sleep(5);
         }
@@ -119,13 +119,13 @@ protected:
 
     std::string get_text(const std::string& in_path) const
     {
-        std::ifstream      file(in_path,
-                                std::ios::binary);
-        std::ostringstream text;
+        std::ostringstream file_text;
+        std::ifstream      input_file(in_path,
+                                      std::ios::binary);
 
-        text << file.rdbuf();
+        file_text << input_file.rdbuf();
 
-        return text.str();
+        return file_text.str();
     }
 
     Tests::TempDirectory                m_directory;
@@ -142,7 +142,7 @@ TEST_F(AppInstallerTest, TheApplicationIsPutInItsDirectoryAndNothingIsLeftNextTo
     ASSERT_TRUE(m_installer.start(m_spec,
                                  &error) ) << error;
 
-    const VR::AppInstaller::InstallProgress progress = wait();
+    const VR::AppInstaller::InstallProgress progress = wait_for_end_of_installation();
 
     ASSERT_EQ(progress.phase,
               VR::AppInstaller::InstallPhase::DONE) << progress.message;
@@ -164,7 +164,7 @@ TEST_F(AppInstallerTest, AFileWhichIsNotTheExpectedOneIsNotUsed)
     ASSERT_TRUE(m_installer.start(m_spec,
                                  &error) ) << error;
 
-    const VR::AppInstaller::InstallProgress progress = wait();
+    const VR::AppInstaller::InstallProgress progress = wait_for_end_of_installation();
 
     EXPECT_EQ(progress.phase,
               VR::AppInstaller::InstallPhase::FAILED);
@@ -184,7 +184,7 @@ TEST_F(AppInstallerTest, TheNextAddressIsTriedWhenOneFailsAndAllFailingSaysSoWit
     ASSERT_TRUE(m_installer.start(m_spec,
                                  &error) ) << error;
 
-    EXPECT_EQ(wait().phase,
+    EXPECT_EQ(wait_for_end_of_installation().phase,
               VR::AppInstaller::InstallPhase::DONE);
     EXPECT_EQ(m_downloader.m_n_calls,
               2);
@@ -197,7 +197,7 @@ TEST_F(AppInstallerTest, TheNextAddressIsTriedWhenOneFailsAndAllFailingSaysSoWit
     ASSERT_TRUE(m_installer.start(m_spec,
                                  &error) ) << error;
 
-    const VR::AppInstaller::InstallProgress progress = wait();
+    const VR::AppInstaller::InstallProgress progress = wait_for_end_of_installation();
 
     EXPECT_EQ(progress.phase,
               VR::AppInstaller::InstallPhase::FAILED);
@@ -209,24 +209,24 @@ TEST_F(AppInstallerTest, TheNextAddressIsTriedWhenOneFailsAndAllFailingSaysSoWit
 
 TEST_F(AppInstallerTest, AnArchiveWhichWritesOutsideItsDirectoryIsRefusedAndWritesNothing)
 {
-    Tests::ZipBuilder evil;
     std::string       error;
+    Tests::ZipBuilder evil_zip_builder;
 
-    evil.add_file("app.exe",
-                  "program");
-    evil.add_file("../../escaped.txt",
-                  "evil");
+    evil_zip_builder.add_file("app.exe",
+                              "program");
+    evil_zip_builder.add_file("../../escaped.txt",
+                              "evil");
 
-    m_downloader.m_bytes_map["https://one.example/app.zip"] = evil.get_bytes();
+    m_downloader.m_bytes_map["https://one.example/app.zip"] = evil_zip_builder.get_bytes();
 
-    VR::AppInstaller::Sha256::hash_bytes(evil.get_bytes().data(),
-                                         evil.get_bytes().size(),
+    VR::AppInstaller::Sha256::hash_bytes(evil_zip_builder.get_bytes().data(),
+                                         evil_zip_builder.get_bytes().size(),
                                         &m_spec.sha256_hex);
 
     ASSERT_TRUE(m_installer.start(m_spec,
                                  &error) ) << error;
 
-    const VR::AppInstaller::InstallProgress progress = wait();
+    const VR::AppInstaller::InstallProgress progress = wait_for_end_of_installation();
 
     EXPECT_EQ(progress.phase,
               VR::AppInstaller::InstallPhase::FAILED);
@@ -241,9 +241,9 @@ TEST_F(AppInstallerTest, ADirectoryWhichCannotBeWrittenToIsReportedAtTheStartAnd
     std::string error;
 
     {
-        std::ofstream file(m_directory.get_path() + "\\blocker");
+        std::ofstream output_file(m_directory.get_path() + "\\blocker");
 
-        file << "x";
+        output_file << "x";
     }
 
     m_spec.install_directory = m_directory.get_path() + "\\blocker\\apps\\app";
@@ -265,7 +265,7 @@ TEST_F(AppInstallerTest, AnApplicationWhoseDirectoryIsTakenOrWhichIsNotWellDescr
                                                                 &error) );
     EXPECT_TRUE(m_installer.start(m_spec,
                                  &error) ) << "an empty directory can be used";
-    EXPECT_EQ  (wait().phase,
+    EXPECT_EQ  (wait_for_end_of_installation().phase,
                 VR::AppInstaller::InstallPhase::DONE);
 
     EXPECT_FALSE(m_installer.start(m_spec,
@@ -300,7 +300,7 @@ TEST_F(AppInstallerTest, ACancelEndsTheInstallationAndLeavesNothing)
 
     m_installer.cancel();
 
-    EXPECT_EQ(wait().phase,
+    EXPECT_EQ(wait_for_end_of_installation().phase,
               VR::AppInstaller::InstallPhase::CANCELLED);
     EXPECT_FALSE(VR::AppInstaller::FileSystem::is_directory(m_spec.install_directory) );
     EXPECT_FALSE(VR::AppInstaller::FileSystem::is_directory(m_spec.install_directory + ".download") );
@@ -321,5 +321,5 @@ TEST_F(AppInstallerTest, OneInstallationIsRunAtATime)
                  std::string::npos) << error;
 
     m_installer.cancel();
-    wait();
+    wait_for_end_of_installation();
 }

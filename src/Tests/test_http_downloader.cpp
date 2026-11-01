@@ -18,13 +18,13 @@
 
 static std::string get_text(const std::string& in_path)
 {
-    std::ifstream      file(in_path,
-                            std::ios::binary);
-    std::ostringstream text;
+    std::ostringstream file_text;
+    std::ifstream      input_file(in_path,
+                                  std::ios::binary);
 
-    text << file.rdbuf();
+    file_text << input_file.rdbuf();
 
-    return text.str();
+    return file_text.str();
 }
 
 class HttpDownloaderTest : public ::testing::Test
@@ -39,7 +39,7 @@ protected:
     {
         Tests::LocalHttpServer::Answer result;
 
-        result.body = in_body;
+        result.response_body = in_body;
 
         return result;
     }
@@ -50,24 +50,24 @@ protected:
         /* Nothing to do. */
     }
 
-    std::atomic<bool>        m_is_cancelled;
-    std::string              m_error;
-    Tests::LocalHttpServer   m_server;
-    Tests::TempDirectory     m_directory;
+    Tests::TempDirectory   m_directory;
+    std::string            m_error;
+    std::atomic<bool>      m_is_cancelled;
+    Tests::LocalHttpServer m_server;
 };
 
 TEST_F(HttpDownloaderTest, TheBytesAreWrittenAndTheProgressReachesTheLength)
 {
-    const std::string                body(300000,
-                                          'q');
     VR::AppInstaller::HttpDownloader downloader(true /* in_is_http_allowed */);
+    bool                             is_monotonic  = true;
     uint64_t                         n_bytes_done  = 0;
     uint64_t                         n_bytes_total = 0;
     uint64_t                         n_previous    = 0;
-    bool                             is_monotonic  = true;
+    const std::string                response_body(300000,
+                                                   'q');
 
     m_server.set_answer("/file",
-                        get_answer(body) );
+                        get_answer(response_body) );
 
     ASSERT_TRUE(downloader.download(m_server.get_url("/file"),
                                     m_directory.get_path() + "\\file.bin",
@@ -82,26 +82,26 @@ TEST_F(HttpDownloaderTest, TheBytesAreWrittenAndTheProgressReachesTheLength)
                                    &m_error) ) << m_error;
 
     EXPECT_EQ(get_text(m_directory.get_path() + "\\file.bin"),
-              body);
+              response_body);
     EXPECT_EQ(n_bytes_done,
-              body.size() );
+              response_body.size() );
     EXPECT_EQ(n_bytes_total,
-              body.size() );
+              response_body.size() );
     EXPECT_TRUE(is_monotonic);
 }
 
 TEST_F(HttpDownloaderTest, ARedirectIsFollowed)
 {
     VR::AppInstaller::HttpDownloader downloader(true /* in_is_http_allowed */);
-    Tests::LocalHttpServer::Answer   redirect;
+    Tests::LocalHttpServer::Answer   redirect_answer;
 
-    redirect.status   = 302;
-    redirect.location = m_server.get_url("/file");
+    redirect_answer.http_status_code   = 302;
+    redirect_answer.redirect_location = m_server.get_url("/file");
 
     m_server.set_answer("/file",
                         get_answer("the file") );
     m_server.set_answer("/old",
-                        redirect);
+                        redirect_answer);
 
     ASSERT_TRUE(downloader.download(m_server.get_url("/old"),
                                     m_directory.get_path() + "\\file.bin",
@@ -128,12 +128,12 @@ TEST_F(HttpDownloaderTest, AnAnswerWhichIsNotOkFailsTheDownload)
 TEST_F(HttpDownloaderTest, ADownloadWhichEndsBeforeItsLengthFails)
 {
     VR::AppInstaller::HttpDownloader downloader(true /* in_is_http_allowed */);
-    Tests::LocalHttpServer::Answer   answer = get_answer("short");
+    Tests::LocalHttpServer::Answer   short_answer = get_answer("short");
 
-    answer.n_declared_bytes = 1000;
+    short_answer.n_declared_bytes = 1000;
 
     m_server.set_answer("/short",
-                        answer);
+                        short_answer);
 
     EXPECT_FALSE(downloader.download(m_server.get_url("/short"),
                                      m_directory.get_path() + "\\file.bin",
@@ -170,24 +170,24 @@ TEST_F(HttpDownloaderTest, ACancelWhileTheServerSaysNothingEndsTheDownloadAtTheN
 {
     constexpr int                    RECEIVE_TIMEOUT_MS = 400;
 
+    std::thread                      cancel_thread;
     VR::AppInstaller::HttpDownloader downloader(true /* in_is_http_allowed */,
                                                 RECEIVE_TIMEOUT_MS);
-    Tests::LocalHttpServer::Answer   answer = get_answer(std::string(10000,
-                                                                     'z') );
-    const auto                       start  = std::chrono::steady_clock::now();
-    std::thread                      canceller;
+    Tests::LocalHttpServer::Answer   stalled_answer = get_answer(std::string(10000,
+                                                                             'z') );
+    const auto                       start_time     = std::chrono::steady_clock::now();
 
-    answer.should_stall = true;
+    stalled_answer.should_stall = true;
 
     m_server.set_answer("/stall",
-                        answer);
+                        stalled_answer);
 
-    canceller = std::thread([this]()
-                            {
-                                ::Sleep(200);
-
-                                m_is_cancelled = true;
-                            });
+    cancel_thread = std::thread([this]()
+                                {
+                                    ::Sleep(200);
+    
+                                    m_is_cancelled = true;
+                                });
 
     EXPECT_FALSE(downloader.download(m_server.get_url("/stall"),
                                      m_directory.get_path() + "\\file.bin",
@@ -195,10 +195,10 @@ TEST_F(HttpDownloaderTest, ACancelWhileTheServerSaysNothingEndsTheDownloadAtTheN
                                      VR::AppInstaller::ProgressCallback(),
                                     &m_error) );
 
-    canceller.join();
+    cancel_thread.join();
 
     EXPECT_EQ(m_error,
               "Cancelled");
-    EXPECT_LT(std::chrono::steady_clock::now() - start,
+    EXPECT_LT(std::chrono::steady_clock::now() - start_time,
               std::chrono::seconds(10) );
 }

@@ -9,16 +9,16 @@
 
 Tests::TempDirectory::TempDirectory()
 {
-    static std::atomic<int> n_directories(0);
+    static std::atomic<int> n_directories_made(0);
 
-    wchar_t     path_i16vec260[MAX_PATH] = {};
     std::string error;
+    wchar_t     temp_path_i16vec260[MAX_PATH] = {};
 
     ::GetTempPathW(MAX_PATH,
-                   path_i16vec260);
+                   temp_path_i16vec260);
 
-    m_path = VR::AppInstaller::FileSystem::to_utf8(path_i16vec260) + "DemoVRPlayerTests_" + std::to_string(::GetCurrentProcessId() ) + "_" +
-             std::to_string(n_directories++);
+    m_path = VR::AppInstaller::FileSystem::to_utf8(temp_path_i16vec260) + "DemoVRPlayerTests_" + std::to_string(::GetCurrentProcessId() ) + "_" +
+             std::to_string(n_directories_made++);
 
     VR::AppInstaller::FileSystem::create_directories(m_path,
                                                      &error);

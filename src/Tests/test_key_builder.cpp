@@ -29,22 +29,70 @@ TEST(KeyBuilder, EveryFieldOfADescriptionChangesItsKey)
 
     const std::vector<MutationFunc> mutation_func_vec =
     {
-        [](Analysis::APIDumpAnalysis::ResourceDescription* p) { p->api_flags            = 1; },
-        [](Analysis::APIDumpAnalysis::ResourceDescription* p) { p->content_hash         = 1; },
-        [](Analysis::APIDumpAnalysis::ResourceDescription* p) { p->depth_or_layer_count = 2; },
-        [](Analysis::APIDumpAnalysis::ResourceDescription* p) { p->format.format_class  = Analysis::APIDumpAnalysis::FormatClass::DEPTH; },
-        [](Analysis::APIDumpAnalysis::ResourceDescription* p) { p->format.raw_value     = 22; },
-        [](Analysis::APIDumpAnalysis::ResourceDescription* p) { p->has_content_hash     = true; },
-        [](Analysis::APIDumpAnalysis::ResourceDescription* p) { p->height               = 7; },
-        [](Analysis::APIDumpAnalysis::ResourceDescription* p) { p->is_depth_stencil     = true; },
-        [](Analysis::APIDumpAnalysis::ResourceDescription* p) { p->is_dynamic           = true; },
-        [](Analysis::APIDumpAnalysis::ResourceDescription* p) { p->is_render_target     = true; },
-        [](Analysis::APIDumpAnalysis::ResourceDescription* p) { p->kind                 = Analysis::APIDumpAnalysis::ResourceKind::TEXTURE_2D; },
-        [](Analysis::APIDumpAnalysis::ResourceDescription* p) { p->mip_level_count      = 9; },
-        [](Analysis::APIDumpAnalysis::ResourceDescription* p) { p->sample_count         = 4; },
-        [](Analysis::APIDumpAnalysis::ResourceDescription* p) { p->shader_stage         = Analysis::APIDumpAnalysis::ShaderStage::VERTEX; },
-        [](Analysis::APIDumpAnalysis::ResourceDescription* p) { p->size_in_bytes        = 64; },
-        [](Analysis::APIDumpAnalysis::ResourceDescription* p) { p->width                = 7; }
+        [](Analysis::APIDumpAnalysis::ResourceDescription* description_ptr)
+        {
+            description_ptr->api_flags = 1;
+        },
+        [](Analysis::APIDumpAnalysis::ResourceDescription* description_ptr)
+        {
+            description_ptr->content_hash = 1;
+        },
+        [](Analysis::APIDumpAnalysis::ResourceDescription* description_ptr)
+        {
+            description_ptr->depth_or_layer_count = 2;
+        },
+        [](Analysis::APIDumpAnalysis::ResourceDescription* description_ptr)
+        {
+            description_ptr->format.format_class = Analysis::APIDumpAnalysis::FormatClass::DEPTH;
+        },
+        [](Analysis::APIDumpAnalysis::ResourceDescription* description_ptr)
+        {
+            description_ptr->format.raw_value = 22;
+        },
+        [](Analysis::APIDumpAnalysis::ResourceDescription* description_ptr)
+        {
+            description_ptr->has_content_hash = true;
+        },
+        [](Analysis::APIDumpAnalysis::ResourceDescription* description_ptr)
+        {
+            description_ptr->height = 7;
+        },
+        [](Analysis::APIDumpAnalysis::ResourceDescription* description_ptr)
+        {
+            description_ptr->is_depth_stencil = true;
+        },
+        [](Analysis::APIDumpAnalysis::ResourceDescription* description_ptr)
+        {
+            description_ptr->is_dynamic = true;
+        },
+        [](Analysis::APIDumpAnalysis::ResourceDescription* description_ptr)
+        {
+            description_ptr->is_render_target = true;
+        },
+        [](Analysis::APIDumpAnalysis::ResourceDescription* description_ptr)
+        {
+            description_ptr->kind = Analysis::APIDumpAnalysis::ResourceKind::TEXTURE_2D;
+        },
+        [](Analysis::APIDumpAnalysis::ResourceDescription* description_ptr)
+        {
+            description_ptr->mip_level_count = 9;
+        },
+        [](Analysis::APIDumpAnalysis::ResourceDescription* description_ptr)
+        {
+            description_ptr->sample_count = 4;
+        },
+        [](Analysis::APIDumpAnalysis::ResourceDescription* description_ptr)
+        {
+            description_ptr->shader_stage = Analysis::APIDumpAnalysis::ShaderStage::VERTEX;
+        },
+        [](Analysis::APIDumpAnalysis::ResourceDescription* description_ptr)
+        {
+            description_ptr->size_in_bytes = 64;
+        },
+        [](Analysis::APIDumpAnalysis::ResourceDescription* description_ptr)
+        {
+            description_ptr->width = 7;
+        }
     };
 
     const Analysis::APIDumpAnalysis::ResourceDescription original;

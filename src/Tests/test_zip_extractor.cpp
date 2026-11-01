@@ -15,13 +15,13 @@
 
 static std::string get_text(const std::string& in_path)
 {
-    std::ifstream      file(in_path,
-                            std::ios::binary);
-    std::ostringstream text;
+    std::ostringstream file_text;
+    std::ifstream      input_file(in_path,
+                                  std::ios::binary);
 
-    text << file.rdbuf();
+    file_text << input_file.rdbuf();
 
-    return text.str();
+    return file_text.str();
 }
 
 class ZipExtractorTest : public ::testing::Test
@@ -30,14 +30,14 @@ protected:
     bool extract(const Tests::ZipBuilder& in_zip,
                  const uint64_t&          in_n_unpacked_bytes_max = 1000000)
     {
-        const std::string  path = m_directory.get_path() + "\\test.zip";
+        const std::string       archive_path = m_directory.get_path() + "\\test.zip";
         const std::atomic<bool> is_cancelled(m_is_cancelled);
 
-        EXPECT_TRUE(in_zip.write_file(path) );
+        EXPECT_TRUE(in_zip.write_file(archive_path) );
 
         m_error.clear();
 
-        return VR::AppInstaller::ZipExtractor::extract(path,
+        return VR::AppInstaller::ZipExtractor::extract(archive_path,
                                                        m_directory.get_path() + "\\out",
                                                        in_n_unpacked_bytes_max,
                                                        is_cancelled,
@@ -52,17 +52,17 @@ protected:
 
 TEST_F(ZipExtractorTest, TheEntriesAreUnpackedWithTheirDirectories)
 {
-    Tests::ZipBuilder zip;
+    Tests::ZipBuilder zip_builder;
 
-    zip.add_file("readme.txt",
-                 "hello");
-    zip.add_file("data/",
-                 "");
-    zip.add_file("data/deep/file.bin",
-                 std::string("a\0b",
-                             3) );
+    zip_builder.add_file("readme.txt",
+                         "hello");
+    zip_builder.add_file("data/",
+                         "");
+    zip_builder.add_file("data/deep/file.bin",
+                         std::string("a\0b",
+                                     3) );
 
-    ASSERT_TRUE(extract(zip) ) << m_error;
+    ASSERT_TRUE(extract(zip_builder) ) << m_error;
 
     EXPECT_EQ(get_text(m_directory.get_path() + "\\out\\readme.txt"),
               "hello");
@@ -74,21 +74,21 @@ TEST_F(ZipExtractorTest, TheEntriesAreUnpackedWithTheirDirectories)
 
 TEST_F(ZipExtractorTest, ANameWhichLeavesTheDirectoryIsRefusedAndNothingIsWritten)
 {
-    const char* const NAME_ARRAY[] = {"../evil.txt", "a/../../evil.txt", "..\\evil.txt", "/evil.txt", "\\evil.txt", "C:/evil.txt", "C:evil.txt",
+    const std::string NAME_ARRAY[] = {"../evil.txt", "a/../../evil.txt", "..\\evil.txt", "/evil.txt", "\\evil.txt", "C:/evil.txt", "C:evil.txt",
                                       "a:b", "con", "dir/NUL.txt", "dir/aux", "trailing.", "space /x", "./x", "a//b"};
 
-    for (const char* const name_ptr : NAME_ARRAY)
+    for (const std::string& entry_name : NAME_ARRAY)
     {
-        Tests::ZipBuilder zip;
+        Tests::ZipBuilder zip_builder;
 
-        zip.add_file("fine.txt",
-                     "fine");
-        zip.add_file(name_ptr,
-                     "evil");
+        zip_builder.add_file("fine.txt",
+                             "fine");
+        zip_builder.add_file(entry_name,
+                             "evil");
 
-        EXPECT_FALSE(extract(zip) ) << name_ptr;
+        EXPECT_FALSE(extract(zip_builder) ) << entry_name;
         EXPECT_NE   (m_error.find("not allowed"),
-                     std::string::npos) << name_ptr << ": " << m_error;
+                     std::string::npos) << entry_name << ": " << m_error;
         EXPECT_FALSE(VR::AppInstaller::FileSystem::is_file(m_directory.get_path() + "\\out\\fine.txt") ) << "what is before is not written either";
         EXPECT_FALSE(VR::AppInstaller::FileSystem::is_file(m_directory.get_path() + "\\evil.txt") );
     }
@@ -106,16 +106,16 @@ TEST_F(ZipExtractorTest, TheNamesWhichStayInsideAreAccepted)
 
 TEST_F(ZipExtractorTest, MoreThanTheLimitIsRefusedBeforeAnythingIsWritten)
 {
-    Tests::ZipBuilder zip;
+    Tests::ZipBuilder zip_builder;
 
-    zip.add_file("a.bin",
-                 std::string(600,
-                             'a') );
-    zip.add_file("b.bin",
-                 std::string(600,
-                             'b') );
+    zip_builder.add_file("a.bin",
+                         std::string(600,
+                                     'a') );
+    zip_builder.add_file("b.bin",
+                         std::string(600,
+                                     'b') );
 
-    EXPECT_FALSE(extract(zip,
+    EXPECT_FALSE(extract(zip_builder,
                          1000) );
     EXPECT_NE   (m_error.find("more than"),
                  std::string::npos) << m_error;
@@ -124,40 +124,40 @@ TEST_F(ZipExtractorTest, MoreThanTheLimitIsRefusedBeforeAnythingIsWritten)
 
 TEST_F(ZipExtractorTest, TwoNamesWhichAreTheSameForTheSystemAreRefused)
 {
-    Tests::ZipBuilder zip;
+    Tests::ZipBuilder zip_builder;
 
-    zip.add_file("File.txt",
-                 "one");
-    zip.add_file("file.TXT",
-                 "two");
+    zip_builder.add_file("File.txt",
+                         "one");
+    zip_builder.add_file("file.TXT",
+                         "two");
 
-    EXPECT_FALSE(extract(zip) );
+    EXPECT_FALSE(extract(zip_builder) );
     EXPECT_NE   (m_error.find("twice"),
                  std::string::npos) << m_error;
 }
 
 TEST_F(ZipExtractorTest, ADamagedZipFileIsRefused)
 {
-    Tests::ZipBuilder zip;
-    std::string       bytes;
+    Tests::ZipBuilder zip_builder;
+    std::string       zip_file_bytes;
 
-    zip.add_file("a.txt",
-                 std::string(5000,
-                             'x') );
+    zip_builder.add_file("a.txt",
+                         std::string(5000,
+                                     'x') );
 
-    bytes = zip.get_bytes();
+    zip_file_bytes = zip_builder.get_bytes();
 
-    ASSERT_FALSE(bytes.empty() );
+    ASSERT_FALSE(zip_file_bytes.empty() );
 
     /* A byte in the middle of what is compressed. */
-    bytes.at(40) = static_cast<char>(bytes.at(40) ^ 0x55);
+    zip_file_bytes.at(40) = static_cast<char>(zip_file_bytes.at(40) ^ 0x55);
 
     {
-        std::ofstream file(m_directory.get_path() + "\\damaged.zip",
-                           std::ios::binary);
+        std::ofstream output_file(m_directory.get_path() + "\\damaged.zip",
+                                  std::ios::binary);
 
-        file.write(bytes.data(),
-                   static_cast<std::streamsize>(bytes.size() ) );
+        output_file.write(zip_file_bytes.data(),
+                          static_cast<std::streamsize>(zip_file_bytes.size() ) );
     }
 
     const std::atomic<bool> is_cancelled(false);
@@ -183,16 +183,16 @@ TEST_F(ZipExtractorTest, TheProgressReachesTheSizeOfWhatIsUnpacked)
     const std::atomic<bool> is_cancelled(false);
     uint64_t                n_bytes_done  = 0;
     uint64_t                n_bytes_total = 0;
-    Tests::ZipBuilder       zip;
+    Tests::ZipBuilder       zip_builder;
 
-    zip.add_file("a.bin",
-                 std::string(3000,
-                             'a') );
-    zip.add_file("b.bin",
-                 std::string(2000,
-                             'b') );
+    zip_builder.add_file("a.bin",
+                         std::string(3000,
+                                     'a') );
+    zip_builder.add_file("b.bin",
+                         std::string(2000,
+                                     'b') );
 
-    ASSERT_TRUE(zip.write_file(m_directory.get_path() + "\\p.zip") );
+    ASSERT_TRUE(zip_builder.write_file(m_directory.get_path() + "\\p.zip") );
 
     ASSERT_TRUE(VR::AppInstaller::ZipExtractor::extract(m_directory.get_path() + "\\p.zip",
                                                         m_directory.get_path() + "\\out",
@@ -213,15 +213,15 @@ TEST_F(ZipExtractorTest, TheProgressReachesTheSizeOfWhatIsUnpacked)
 
 TEST_F(ZipExtractorTest, AnUnpackingWhichIsCancelledStops)
 {
-    Tests::ZipBuilder zip;
+    Tests::ZipBuilder zip_builder;
 
     m_is_cancelled = true;
 
-    zip.add_file("a.bin",
-                 std::string(3000,
-                             'a') );
+    zip_builder.add_file("a.bin",
+                         std::string(3000,
+                                     'a') );
 
-    EXPECT_FALSE(extract(zip) );
+    EXPECT_FALSE(extract(zip_builder) );
     EXPECT_EQ   (m_error,
                  "Cancelled");
 }

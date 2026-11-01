@@ -385,19 +385,19 @@ bool VR::AppCatalog::CatalogLoader::parse_download(const Analysis::APIDumpAnalys
                     n_url < urls_ptr->item_vec.size();
                   ++n_url)
         {
-            const Analysis::APIDumpAnalysis::JsonValue& url = urls_ptr->item_vec.at(n_url);
+            const Analysis::APIDumpAnalysis::JsonValue& url_value = urls_ptr->item_vec.at(n_url);
 
-            if (url.type != Analysis::APIDumpAnalysis::JsonValue::Type::STRING ||
-                url.string_value.compare(0,
-                                         8,
-                                         "https://") != 0)
+            if (url_value.type != Analysis::APIDumpAnalysis::JsonValue::Type::STRING ||
+                url_value.string_value.compare(0,
+                                               8,
+                                               "https://") != 0)
             {
                 *out_error_ptr = in_path + ".urls[" + std::to_string(n_url) + "]: expected an address of https";
 
                 goto end;
             }
 
-            out_spec_ptr->url_vec.push_back(url.string_value);
+            out_spec_ptr->url_vec.push_back(url_value.string_value);
         }
     }
 
@@ -466,15 +466,15 @@ bool VR::AppCatalog::CatalogLoader::parse_number(const Analysis::APIDumpAnalysis
                                                  uint64_t*                                   out_number_ptr,
                                                  std::string*                                out_error_ptr)
 {
-    constexpr double N_MAX = 4294967296.0;
+    constexpr double N_BYTES_MAX = 4294967296.0;
 
     const auto* value_ptr = in_object.find_ptr(in_key);
     bool        result    = false;
 
-    if (value_ptr == nullptr                                                        ||
-        value_ptr->type != Analysis::APIDumpAnalysis::JsonValue::Type::NUMBER       ||
-        value_ptr->number_value < 1.0                                               ||
-        value_ptr->number_value > N_MAX                                             ||
+    if (value_ptr == nullptr                                                  ||
+        value_ptr->type != Analysis::APIDumpAnalysis::JsonValue::Type::NUMBER ||
+        value_ptr->number_value < 1.0                                         ||
+        value_ptr->number_value > N_BYTES_MAX                                 ||
         value_ptr->number_value != static_cast<double>(static_cast<uint64_t>(value_ptr->number_value) ) )
     {
         *out_error_ptr = in_path + "." + in_key + ": expected a whole number of bytes, from 1 to 4294967296";

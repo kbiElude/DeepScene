@@ -267,7 +267,7 @@ static std::string get_download_text(const std::string& in_executable,
            "\", \"download\": " + in_download + "}]}";
 }
 
-static const char* const GOOD_DOWNLOAD = "{\"urls\": [\"https://a.example/x.zip\", \"https://b.example/x.zip\"], "
+static const std::string GOOD_DOWNLOAD = "{\"urls\": [\"https://a.example/x.zip\", \"https://b.example/x.zip\"], "
                                          "\"sha256\": \"ABCDEF0123456789abcdef0123456789ABCDEF0123456789abcdef0123456789\", "
                                          "\"size\": 1000, \"unpacked_size\": 5000, \"page\": \"https://p.example/x\"}";
 
@@ -334,23 +334,24 @@ TEST_F(CatalogLoaderTest, WhatIsNotRightInADownloadIsRefusedWithItsPlace)
 {
     struct Case
     {
-        std::string executable;
         std::string download;
+        std::string executable;
         std::string expected;
     };
 
-    const std::string good = GOOD_DOWNLOAD;
-    const Case        case_array[] =
+    const std::string good_download_text = GOOD_DOWNLOAD;
+
+    const Case case_array[] =
     {
-        {"fr08/a.exe",   "{\"urls\": [\"http://a.example/x.zip\"], " + good.substr(good.find("\"sha256\"") ),             "urls[0]: expected an address of https"},
-        {"fr08/a.exe",   "{\"urls\": [], " + good.substr(good.find("\"sha256\"") ),                                       "urls: expected a list"},
-        {"fr08/a.exe",   "{\"urls\": [\"https://a.example/x.zip\"], \"sha256\": \"abc\", \"size\": 1, \"unpacked_size\": 1}",     "sha256: expected 64 digits"},
-        {"fr08/a.exe",   "{\"urls\": [\"https://a.example/x.zip\"], \"sha256\": \"" + std::string(64, 'a') + "\", \"unpacked_size\": 1}", "size: expected a whole number"},
-        {"fr08/a.exe",   "{\"urls\": [\"https://a.example/x.zip\"], \"sha256\": \"" + std::string(64, 'a') + "\", \"size\": 0, \"unpacked_size\": 1}", "size: expected a whole number"},
-        {"fr08/a.exe",   "{\"urls\": [\"https://a.example/x.zip\"], \"sha256\": \"" + std::string(64, 'a') + "\", \"size\": 1}",   "unpacked_size: expected a whole number"},
-        {"fr08/a.exe",   "{\"urls\": [\"https://a.example/x.zip\"], \"sha256\": \"" + std::string(64, 'a') + "\", \"size\": 1, \"unpacked_size\": 1, \"mirror\": 1}", "unknown field \"mirror\""},
-        {"other/a.exe",  good,                                                                                            ".executable: has to be in"},
-        {"fr08/a.exe",   "[]",                                                                                            "expected an object"}
+        {"{\"urls\": [\"http://a.example/x.zip\"], " + good_download_text.substr(good_download_text.find("\"sha256\"") ), "fr08/a.exe", "urls[0]: expected an address of https"},
+        {"{\"urls\": [], " + good_download_text.substr(good_download_text.find("\"sha256\"") ), "fr08/a.exe", "urls: expected a list"},
+        {"{\"urls\": [\"https://a.example/x.zip\"], \"sha256\": \"abc\", \"size\": 1, \"unpacked_size\": 1}", "fr08/a.exe", "sha256: expected 64 digits"},
+        {"{\"urls\": [\"https://a.example/x.zip\"], \"sha256\": \"" + std::string(64, 'a') + "\", \"unpacked_size\": 1}", "fr08/a.exe", "size: expected a whole number"},
+        {"{\"urls\": [\"https://a.example/x.zip\"], \"sha256\": \"" + std::string(64, 'a') + "\", \"size\": 0, \"unpacked_size\": 1}", "fr08/a.exe", "size: expected a whole number"},
+        {"{\"urls\": [\"https://a.example/x.zip\"], \"sha256\": \"" + std::string(64, 'a') + "\", \"size\": 1}", "fr08/a.exe", "unpacked_size: expected a whole number"},
+        {"{\"urls\": [\"https://a.example/x.zip\"], \"sha256\": \"" + std::string(64, 'a') + "\", \"size\": 1, \"unpacked_size\": 1, \"mirror\": 1}", "fr08/a.exe", "unknown field \"mirror\""},
+        {good_download_text, "other/a.exe", ".executable: has to be in"},
+        {"[]", "fr08/a.exe", "expected an object"}
     };
 
     for (const Case& test_case : case_array)

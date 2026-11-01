@@ -37,13 +37,13 @@ namespace VR
             /* What the writing of an entry needs; it is the opaque pointer of the write callback of miniz. */
             struct WriteContext
             {
+                void*                    file_handle_ptr; /* HANDLE */
                 const std::atomic<bool>* is_cancelled_ptr;
                 uint64_t                 n_bytes_declared;
-                uint64_t                 n_bytes_total_done;
                 uint64_t                 n_bytes_total;
+                uint64_t                 n_bytes_total_done;
                 uint64_t                 n_bytes_written;
                 const ProgressCallback*  progress_func_ptr;
-                void*                    file_handle;       /* HANDLE */
             };
 
             static std::string to_lower(const std::string& in_text);

@@ -37,9 +37,9 @@ VR::AppInstaller::InstallProgress VR::AppInstaller::AppInstaller::get_progress()
     InstallProgress result;
 
     {
-        std::lock_guard<std::mutex> lock(m_state.mutex);
+        std::lock_guard<std::mutex> state_lock(m_shared_state.progress_mutex);
 
-        result = m_state.progress;
+        result = m_shared_state.progress;
     }
 
     return result;
@@ -52,20 +52,20 @@ bool VR::AppInstaller::AppInstaller::is_busy() const
 
 void VR::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spec)
 {
-    const std::string                 archive_path     = in_spec.install_directory + ".download\\archive.zip";
-    std::string                       error;
-    std::string                       error_list;
-    DWORD                             lock_error       = 0;
-    std::string                       hex;
-    HANDLE                            lock_handle      = nullptr;
-    std::string                       lock_name;
-    std::string                       staging_directory = in_spec.install_directory + ".download";
-    std::string                       unpacked_directory = staging_directory + "\\unpacked";
-    bool                              is_downloaded    = false;
-    bool                              is_ok            = false;
-    ProgressCallback                  download_func;
-    ProgressCallback                  extract_func;
-    uint64_t                          hash             = 14695981039346656037ull;
+    std::string       archive_hash_hex;
+    const std::string archive_path        = in_spec.install_directory + ".download\\archive.zip";
+    uint64_t          directory_name_hash = 14695981039346656037ull;
+    ProgressCallback  download_func;
+    std::string       error;
+    ProgressCallback  extract_func;
+    bool              is_downloaded       = false;
+    bool              is_installed        = false;
+    DWORD             lock_error          = 0;
+    HANDLE            lock_handle         = nullptr;
+    std::string       lock_name;
+    std::string       mirror_error_text;
+    std::string       staging_directory   = in_spec.install_directory + ".download";
+    std::string       unpacked_directory  = staging_directory + "\\unpacked";
 
     /* One installation of a directory at a time, whichever Demo VR Player it is started by. */
     {
@@ -80,10 +80,10 @@ void VR::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spec)
                     n_character < lower_directory.size();
                   ++n_character)
         {
-            hash = (hash ^ static_cast<unsigned char>(lower_directory.at(n_character) ) ) * 1099511628211ull;
+            directory_name_hash = (directory_name_hash ^ static_cast<unsigned char>(lower_directory.at(n_character) ) ) * 1099511628211ull;
         }
 
-        lock_name = "Local\\DemoVRPlayer.Install." + std::to_string(hash);
+        lock_name = "Local\\DemoVRPlayer.Install." + std::to_string(directory_name_hash);
     }
 
     lock_handle = ::CreateMutexW(nullptr,
@@ -145,12 +145,12 @@ void VR::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spec)
             goto end;
         }
 
-        error_list += "\n" + get_host(in_spec.url_vec.at(n_url) ) + ": " + url_error;
+        mirror_error_text += "\n" + get_host(in_spec.url_vec.at(n_url) ) + ": " + url_error;
     }
 
     if (is_downloaded == false)
     {
-        error = "The application could not be downloaded." + error_list;
+        error = "The application could not be downloaded." + mirror_error_text;
 
         if (in_spec.page_url.empty() == false)
         {
@@ -167,13 +167,13 @@ void VR::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spec)
 
     if (Sha256::hash_file(archive_path,
                           m_is_cancelled,
-                         &hex,
+                         &archive_hash_hex,
                          &error) == false)
     {
         goto end;
     }
 
-    if (hex != in_spec.sha256_hex)
+    if (archive_hash_hex != in_spec.sha256_hex)
     {
         error = "The download is not the file which was expected, so it was not used.";
 
@@ -219,7 +219,7 @@ void VR::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spec)
         goto end;
     }
 
-    is_ok = true;
+    is_installed = true;
 
 end:
     FileSystem::remove_tree(staging_directory);
@@ -229,7 +229,7 @@ end:
         ::CloseHandle(lock_handle);
     }
 
-    if (is_ok)
+    if (is_installed)
     {
         set_progress(InstallPhase::DONE,
                      "Installed",
@@ -260,19 +260,19 @@ void VR::AppInstaller::AppInstaller::set_progress(const InstallPhase& in_phase,
                                                   const uint64_t&     in_n_bytes_done,
                                                   const uint64_t&     in_n_bytes_total)
 {
-    std::lock_guard<std::mutex> lock(m_state.mutex);
+    std::lock_guard<std::mutex> state_lock(m_shared_state.progress_mutex);
 
-    m_state.progress.message       = in_message;
-    m_state.progress.n_bytes_done  = in_n_bytes_done;
-    m_state.progress.n_bytes_total = in_n_bytes_total;
-    m_state.progress.phase         = in_phase;
+    m_shared_state.progress.message       = in_message;
+    m_shared_state.progress.n_bytes_done  = in_n_bytes_done;
+    m_shared_state.progress.n_bytes_total = in_n_bytes_total;
+    m_shared_state.progress.phase         = in_phase;
 }
 
 bool VR::AppInstaller::AppInstaller::start(const InstallSpec& in_spec,
                                            std::string*       out_error_ptr)
 {
     bool        is_hash_valid = false;
-    std::string parent;
+    std::string parent_directory;
     bool        result        = false;
 
     if (m_is_busy.load() )
@@ -308,22 +308,22 @@ bool VR::AppInstaller::AppInstaller::start(const InstallSpec& in_spec,
     /* Everything which is written is under the directory of the applications: when it cannot be, the user is told so, and nothing is
      * written anywhere else.
      */
-    parent = in_spec.install_directory.substr(0,
-                                              in_spec.install_directory.find_last_of("\\/") );
+    parent_directory = in_spec.install_directory.substr(0,
+                                                        in_spec.install_directory.find_last_of("\\/") );
 
-    if (FileSystem::create_directories(parent,
+    if (FileSystem::create_directories(parent_directory,
                                        out_error_ptr) == false)
     {
-        *out_error_ptr = "Demo VR Player cannot write to " + parent + ", so the application cannot be downloaded there.\n\nMove the folder "
+        *out_error_ptr = "Demo VR Player cannot write to " + parent_directory + ", so the application cannot be downloaded there.\n\nMove the folder "
                          "of Demo VR Player to a place which you can write to, and start it again.";
 
         goto end;
     }
 
-    if (FileSystem::test_write(parent,
+    if (FileSystem::test_write(parent_directory,
                                out_error_ptr) == false)
     {
-        *out_error_ptr = "Demo VR Player cannot write to " + parent + ", so the application cannot be downloaded there.\n\nMove the folder "
+        *out_error_ptr = "Demo VR Player cannot write to " + parent_directory + ", so the application cannot be downloaded there.\n\nMove the folder "
                          "of Demo VR Player to a place which you can write to, and start it again.";
 
         goto end;
@@ -343,10 +343,11 @@ bool VR::AppInstaller::AppInstaller::start(const InstallSpec& in_spec,
                  in_spec.n_archive_bytes);
 
     {
-        const InstallSpec spec     = in_spec;
-        const auto        run_func = [this, spec]()
+        const InstallSpec spec_copy = in_spec;
+
+        const auto run_func = [this, spec_copy]()
         {
-            run_install(spec);
+            run_install(spec_copy);
         };
 
         m_thread = std::thread(run_func);
@@ -360,15 +361,17 @@ end:
 
 std::string VR::AppInstaller::AppInstaller::get_host(const std::string& in_url)
 {
-    const size_t n_scheme = in_url.find("://");
-    const size_t n_start  = (n_scheme == std::string::npos) ? 0
-                                                            : n_scheme + 3;
-    const size_t n_end    = in_url.find_first_of("/:?",
-                                                 n_start);
+    const size_t n_scheme_separator_character = in_url.find("://");
 
-    return in_url.substr(n_start,
-                         (n_end == std::string::npos) ? std::string::npos
-                                                      : n_end - n_start);
+    const size_t n_host_start_character = (n_scheme_separator_character == std::string::npos) ? 0
+                                                                                              : n_scheme_separator_character + 3;
+
+    const size_t n_host_end_character = in_url.find_first_of("/:?",
+                                                             n_host_start_character);
+
+    return in_url.substr(n_host_start_character,
+                         (n_host_end_character == std::string::npos) ? std::string::npos
+                                                                     : n_host_end_character - n_host_start_character);
 }
 
 bool VR::AppInstaller::AppInstaller::is_sha256_hex(const std::string& in_text)

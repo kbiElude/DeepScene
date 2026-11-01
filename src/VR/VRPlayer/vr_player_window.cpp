@@ -454,20 +454,20 @@ void VR::VRPlayer::VrPlayerWindow::draw_launch_area()
 
     if (m_installing_app >= 0)
     {
-        const VR::AppInstaller::InstallProgress progress = m_installer.get_progress();
-        const float                             fraction = (progress.n_bytes_total != 0) ? static_cast<float>(static_cast<double>(progress.n_bytes_done) /
-                                                                                                              static_cast<double>(progress.n_bytes_total) )
-                                                                                          : 0.0f;
-        const std::string                       text     = (progress.n_bytes_total != 0) ? get_size_text(progress.n_bytes_done) + " of " + get_size_text(progress.n_bytes_total)
-                                                                                          : std::string();
+        const VR::AppInstaller::InstallProgress progress          = m_installer.get_progress();
+        const float                             progress_fraction = (progress.n_bytes_total != 0) ? static_cast<float>(static_cast<double>(progress.n_bytes_done) /
+                                                                                                                       static_cast<double>(progress.n_bytes_total) )
+                                                                                                  : 0.0f;
+        const std::string                       progress_text     = (progress.n_bytes_total != 0) ? get_size_text(progress.n_bytes_done) + " of " + get_size_text(progress.n_bytes_total)
+                                                                                                  : std::string();
 
         ImGui::Text("%s: %s",
                     m_content.catalog.app_vec.at(static_cast<size_t>(m_installing_app) ).name.c_str(),
                     progress.message.c_str() );
-        ImGui::ProgressBar(fraction,
+        ImGui::ProgressBar(progress_fraction,
                            ImVec2(-FLT_MIN,
                                   0.0f),
-                           text.c_str() );
+                           progress_text.c_str() );
     }
     else
     if (m_status.empty() == false)
@@ -644,24 +644,24 @@ std::string VR::VRPlayer::VrPlayerWindow::get_size_text(const uint64_t& in_n_byt
     constexpr double N_BYTES_PER_KB = 1024.0;
     constexpr double N_BYTES_PER_MB = 1024.0 * 1024.0;
 
-    char text_i8vec32[32];
+    char size_text_i8vec32[32];
 
     if (in_n_bytes >= static_cast<uint64_t>(N_BYTES_PER_MB) )
     {
-        ::snprintf(text_i8vec32,
-                   sizeof(text_i8vec32),
+        ::snprintf(size_text_i8vec32,
+                   sizeof(size_text_i8vec32),
                    "%.1f MB",
                    static_cast<double>(in_n_bytes) / N_BYTES_PER_MB);
     }
     else
     {
-        ::snprintf(text_i8vec32,
-                   sizeof(text_i8vec32),
+        ::snprintf(size_text_i8vec32,
+                   sizeof(size_text_i8vec32),
                    "%.0f KB",
                    static_cast<double>(in_n_bytes) / N_BYTES_PER_KB);
     }
 
-    return text_i8vec32;
+    return size_text_i8vec32;
 }
 
 VR::UIHost::WindowOptions VR::VRPlayer::VrPlayerWindow::get_window_options()

@@ -52,8 +52,8 @@ namespace VR
             /* What the thread and the window share. The lock is held for a copy of the progress and for nothing else. */
             struct SharedState
             {
-                std::mutex      mutex;
                 InstallProgress progress;
+                std::mutex      progress_mutex;
             };
 
             void run_install(const InstallSpec& in_spec);
@@ -68,7 +68,7 @@ namespace VR
             IDownloader*        m_downloader_ptr;
             std::atomic<bool>   m_is_busy;      /* not guarded: set by start() and by the thread, read by the window */
             std::atomic<bool>   m_is_cancelled; /* not guarded: set by the window, read by the thread                */
-            mutable SharedState m_state;
+            mutable SharedState m_shared_state;
             std::thread         m_thread;
         };
     }

@@ -44,8 +44,8 @@ namespace VR
                                   std::string*             out_error_ptr);
 
         private:
-            void* m_algorithm_handle; /* BCRYPT_ALG_HANDLE  */
-            void* m_hash_handle;      /* BCRYPT_HASH_HANDLE */
+            void* m_algorithm_handle_ptr; /* BCRYPT_ALG_HANDLE  */
+            void* m_hash_handle_ptr;      /* BCRYPT_HASH_HANDLE */
         };
     }
 }

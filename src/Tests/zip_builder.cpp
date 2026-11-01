@@ -16,16 +16,16 @@ void Tests::ZipBuilder::add_file(const std::string& in_name,
 
 std::string Tests::ZipBuilder::get_bytes() const
 {
-    void*          bytes_ptr   = nullptr;
+    bool                                              are_all_entries_added = true;
+    void*                                             bytes_ptr             = nullptr;
+    size_t                                            n_zip_file_bytes      = 0;
     std::vector<std::pair<std::string, std::string> > placeholder_vec;
-    size_t         n_bytes     = 0;
-    std::string    result;
-    bool           is_ok       = true;
-    mz_zip_archive zip;
+    std::string                                       result;
+    mz_zip_archive                                    zip_archive;
 
-    mz_zip_zero_struct(&zip);
+    mz_zip_zero_struct(&zip_archive);
 
-    if (mz_zip_writer_init_heap(&zip,
+    if (mz_zip_writer_init_heap(&zip_archive,
                                 0,
                                 0) == MZ_FALSE)
     {
@@ -36,44 +36,44 @@ std::string Tests::ZipBuilder::get_bytes() const
                 n_entry < m_entry_vec.size();
               ++n_entry)
     {
-        const std::string& name        = m_entry_vec.at(n_entry).first;
-        std::string        placeholder = name;
-        mz_bool            is_added    = MZ_FALSE;
+        const std::string& entry_name     = m_entry_vec.at(n_entry).first;
+        mz_bool            is_entry_added = MZ_FALSE;
+        std::string        placeholder    = entry_name;
 
         /* miniz does not write the names which an unpacker must refuse (a drive, a slash at the start): such a name is written as a
          * placeholder of the same length, which is replaced in the bytes of the zip file.
          */
-        if (name.size() >= 3)
+        if (entry_name.size() >= 3)
         {
-            placeholder             = std::string(name.size(),
+            placeholder             = std::string(entry_name.size(),
                                                   'Q');
-            placeholder.at(name.size() - 2) = static_cast<char>('0' + n_entry % 10);
+            placeholder.at(entry_name.size() - 2) = static_cast<char>('0' + n_entry % 10);
 
-            if (name.at(name.size() - 1) == '/')
+            if (entry_name.at(entry_name.size() - 1) == '/')
             {
-                placeholder.at(name.size() - 1) = '/';
+                placeholder.at(entry_name.size() - 1) = '/';
             }
 
             placeholder_vec.push_back(std::make_pair(placeholder,
-                                                     name) );
+                                                     entry_name) );
         }
 
-        is_added = mz_zip_writer_add_mem(&zip,
-                                         placeholder.c_str(),
-                                         m_entry_vec.at(n_entry).second.data(),
-                                         m_entry_vec.at(n_entry).second.size(),
-                                         MZ_DEFAULT_COMPRESSION);
+        is_entry_added = mz_zip_writer_add_mem(&zip_archive,
+                                               placeholder.c_str(),
+                                               m_entry_vec.at(n_entry).second.data(),
+                                               m_entry_vec.at(n_entry).second.size(),
+                                               MZ_DEFAULT_COMPRESSION);
 
-        is_ok = (is_added != MZ_FALSE) && is_ok;
+        are_all_entries_added = (is_entry_added != MZ_FALSE) && are_all_entries_added;
     }
 
-    if (is_ok &&
-        mz_zip_writer_finalize_heap_archive(&zip,
+    if (are_all_entries_added &&
+        mz_zip_writer_finalize_heap_archive(&zip_archive,
                                            &bytes_ptr,
-                                           &n_bytes) != MZ_FALSE)
+                                           &n_zip_file_bytes) != MZ_FALSE)
     {
         result.assign(static_cast<const char*>(bytes_ptr),
-                      n_bytes);
+                      n_zip_file_bytes);
 
         mz_free(bytes_ptr);
 
@@ -95,7 +95,7 @@ std::string Tests::ZipBuilder::get_bytes() const
         }
     }
 
-    mz_zip_writer_end(&zip);
+    mz_zip_writer_end(&zip_archive);
 
 end:
     return result;
@@ -103,12 +103,12 @@ end:
 
 bool Tests::ZipBuilder::write_file(const std::string& in_path) const
 {
-    const std::string bytes       = get_bytes();
-    HANDLE            file_handle = INVALID_HANDLE_VALUE;
-    DWORD             n_written   = 0;
-    bool              result      = false;
+    HANDLE            file_handle     = INVALID_HANDLE_VALUE;
+    DWORD             n_bytes_written = 0;
+    bool              result          = false;
+    const std::string zip_file_bytes  = get_bytes();
 
-    if (bytes.empty() )
+    if (zip_file_bytes.empty() )
     {
         goto end;
     }
@@ -127,11 +127,11 @@ bool Tests::ZipBuilder::write_file(const std::string& in_path) const
     }
 
     result = (::WriteFile(file_handle,
-                          bytes.data(),
-                          static_cast<DWORD>(bytes.size() ),
-                         &n_written,
+                          zip_file_bytes.data(),
+                          static_cast<DWORD>(zip_file_bytes.size() ),
+                         &n_bytes_written,
                           nullptr) != FALSE &&
-              n_written == bytes.size() );
+              n_bytes_written == zip_file_bytes.size() );
 
     ::CloseHandle(file_handle);
 

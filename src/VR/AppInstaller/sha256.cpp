@@ -10,8 +10,8 @@
 #include <vector>
 
 VR::AppInstaller::Sha256::Sha256()
-    :m_algorithm_handle(nullptr),
-     m_hash_handle     (nullptr)
+    :m_algorithm_handle_ptr(nullptr),
+     m_hash_handle_ptr     (nullptr)
 {
     BCRYPT_ALG_HANDLE  algorithm_handle = nullptr;
     BCRYPT_HASH_HANDLE hash_handle      = nullptr;
@@ -21,7 +21,7 @@ VR::AppInstaller::Sha256::Sha256()
                                       nullptr,
                                       0) == 0)
     {
-        m_algorithm_handle = algorithm_handle;
+        m_algorithm_handle_ptr = algorithm_handle;
 
         if (::BCryptCreateHash(algorithm_handle,
                               &hash_handle,
@@ -31,38 +31,38 @@ VR::AppInstaller::Sha256::Sha256()
                                0,
                                0) == 0)
         {
-            m_hash_handle = hash_handle;
+            m_hash_handle_ptr = hash_handle;
         }
     }
 }
 
 VR::AppInstaller::Sha256::~Sha256()
 {
-    if (m_hash_handle != nullptr)
+    if (m_hash_handle_ptr != nullptr)
     {
-        ::BCryptDestroyHash(static_cast<BCRYPT_HASH_HANDLE>(m_hash_handle) );
+        ::BCryptDestroyHash(static_cast<BCRYPT_HASH_HANDLE>(m_hash_handle_ptr) );
     }
 
-    if (m_algorithm_handle != nullptr)
+    if (m_algorithm_handle_ptr != nullptr)
     {
-        ::BCryptCloseAlgorithmProvider(static_cast<BCRYPT_ALG_HANDLE>(m_algorithm_handle),
+        ::BCryptCloseAlgorithmProvider(static_cast<BCRYPT_ALG_HANDLE>(m_algorithm_handle_ptr),
                                        0);
     }
 }
 
 bool VR::AppInstaller::Sha256::finish(std::string* out_hex_ptr)
 {
-    static const char* const DIGIT_ARRAY = "0123456789abcdef";
+    static const char DIGIT_ARRAY[] = "0123456789abcdef";
 
     std::vector<uint8_t> digest_vec(32);
     bool                 result = false;
 
-    if (m_hash_handle == nullptr)
+    if (m_hash_handle_ptr == nullptr)
     {
         goto end;
     }
 
-    if (::BCryptFinishHash(static_cast<BCRYPT_HASH_HANDLE>(m_hash_handle),
+    if (::BCryptFinishHash(static_cast<BCRYPT_HASH_HANDLE>(m_hash_handle_ptr),
                           &digest_vec.at(0),
                            static_cast<ULONG>(digest_vec.size() ),
                            0) != 0)
@@ -189,12 +189,12 @@ bool VR::AppInstaller::Sha256::update(const void*   in_bytes_ptr,
 {
     bool result = false;
 
-    if (m_hash_handle == nullptr)
+    if (m_hash_handle_ptr == nullptr)
     {
         goto end;
     }
 
-    result = (::BCryptHashData(static_cast<BCRYPT_HASH_HANDLE>(m_hash_handle),
+    result = (::BCryptHashData(static_cast<BCRYPT_HASH_HANDLE>(m_hash_handle_ptr),
                                reinterpret_cast<PUCHAR>(const_cast<void*>(in_bytes_ptr) ),
                                static_cast<ULONG>(in_n_bytes),
                                0) == 0);

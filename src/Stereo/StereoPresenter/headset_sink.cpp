@@ -330,13 +330,27 @@ void Stereo::StereoPresenter::HeadsetSink::tune_pace(const double& in_released_n
         /* Too early is a positive error, which makes the delay longer; the frame is a circle, so the nearest way round is taken. */
         double error = TARGET * period - phase;
 
-        if (error >  period / 2.0) { error -= period; }
-        if (error < -period / 2.0) { error += period; }
+        if (error > period / 2.0)
+        {
+            error -= period;
+        }
+
+        if (error < -period / 2.0)
+        {
+            error += period;
+        }
 
         m_pace_delay += GAIN * error;
 
-        if (m_pace_delay <  0.0)    { m_pace_delay += period; }
-        if (m_pace_delay >= period) { m_pace_delay -= period; }
+        if (m_pace_delay < 0.0)
+        {
+            m_pace_delay += period;
+        }
+
+        if (m_pace_delay >= period)
+        {
+            m_pace_delay -= period;
+        }
 
         m_importer_ptr->set_pace_delay_us(static_cast<uint32_t>(m_pace_delay * MICROSECONDS_PER_MILLISECOND) );
 

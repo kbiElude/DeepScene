@@ -11,10 +11,10 @@ Tests::LocalHttpServer::LocalHttpServer()
      m_should_stop  (false),
      m_socket       (static_cast<uint64_t>(INVALID_SOCKET) )
 {
-    WSADATA data;
+    WSADATA winsock_data;
 
     ::WSAStartup(MAKEWORD(2, 2),
-                &data);
+                &winsock_data);
 }
 
 Tests::LocalHttpServer::~LocalHttpServer()
@@ -41,95 +41,99 @@ std::string Tests::LocalHttpServer::get_url(const std::string& in_path) const
 
 void Tests::LocalHttpServer::run()
 {
-    const SOCKET listening = static_cast<SOCKET>(m_socket);
+    const SOCKET listening_socket = static_cast<SOCKET>(m_socket);
 
     while (m_should_stop.load() == false)
     {
-        fd_set read_set;
-        timeval timeout;
+        fd_set  read_set;
+        timeval select_timeout;
 
         FD_ZERO(&read_set);
-        FD_SET (listening,
+        FD_SET (listening_socket,
                &read_set);
 
-        timeout.tv_sec  = 0;
-        timeout.tv_usec = 50000;
+        select_timeout.tv_sec  = 0;
+        select_timeout.tv_usec = 50000;
 
         if (::select(0,
                     &read_set,
                      nullptr,
                      nullptr,
-                    &timeout) > 0)
+                    &select_timeout) > 0)
         {
-            const SOCKET client = ::accept(listening,
-                                           nullptr,
-                                           nullptr);
+            const SOCKET client_socket = ::accept(listening_socket,
+                                                  nullptr,
+                                                  nullptr);
 
-            if (client != INVALID_SOCKET)
+            if (client_socket != INVALID_SOCKET)
             {
-                char        request_i8vec2048[2048] = {};
-                std::string path;
-                Answer      answer;
-                const int   n_received = ::recv(client,
-                                                request_i8vec2048,
-                                                sizeof(request_i8vec2048) - 1,
-                                                0);
+                std::string request_path;
+                char        request_text_i8vec2048[2048] = {};
+                Answer      served_answer;
+
+                const int n_request_bytes = ::recv(client_socket,
+                                                   request_text_i8vec2048,
+                                                   sizeof(request_text_i8vec2048) - 1,
+                                                   0);
 
                 /* "GET /path HTTP/1.1" */
-                if (n_received > 0)
+                if (n_request_bytes > 0)
                 {
-                    const std::string request(request_i8vec2048);
-                    const size_t      n_start = request.find(' ');
-                    const size_t      n_end   = request.find(' ',
-                                                             n_start + 1);
+                    const std::string request_text(request_text_i8vec2048);
 
-                    path = request.substr(n_start + 1,
-                                          n_end - n_start - 1);
+                    const size_t n_path_start_character = request_text.find(' ');
+
+                    const size_t n_path_end_character = request_text.find(' ',
+                                                                          n_path_start_character + 1);
+
+                    request_path = request_text.substr(n_path_start_character + 1,
+                                                       n_path_end_character - n_path_start_character - 1);
                 }
 
-                answer.status = 404;
+                served_answer.http_status_code = 404;
 
                 {
-                    std::lock_guard<std::mutex> lock(m_mutex);
-                    const auto                  iterator = m_answer_map.find(path);
+                    std::lock_guard<std::mutex> answers_lock(m_mutex);
 
-                    if (iterator != m_answer_map.end() )
+                    const auto answer_iterator = m_answer_map.find(request_path);
+
+                    if (answer_iterator != m_answer_map.end() )
                     {
-                        answer = iterator->second;
+                        served_answer = answer_iterator->second;
                     }
                 }
 
                 {
-                    const uint64_t    n_length = (answer.n_declared_bytes != 0) ? answer.n_declared_bytes
-                                                                                : answer.body.size();
-                    const std::string head     = "HTTP/1.1 " + std::to_string(answer.status) + " X\r\n" +
-                                                 "Content-Length: " + std::to_string(n_length) + "\r\n" +
-                                                 ((answer.location.empty() ) ? std::string()
-                                                                             : "Location: " + answer.location + "\r\n") +
-                                                 "Connection: close\r\n\r\n";
-                    const size_t      n_first  = (answer.should_stall) ? answer.body.size() / 2
-                                                                       : answer.body.size();
+                    const uint64_t    n_content_length_bytes = (served_answer.n_declared_bytes != 0) ? served_answer.n_declared_bytes
+                                                                                                     : served_answer.response_body.size();
+                    const std::string response_header_text   = "HTTP/1.1 " + std::to_string(served_answer.http_status_code) + " X\r\n" +
+                                                               "Content-Length: " + std::to_string(n_content_length_bytes) + "\r\n" +
+                                                               ((served_answer.redirect_location.empty() ) ? std::string()
+                                                                                                           : "Location: " + served_answer.redirect_location + "\r\n") +
+                                                               "Connection: close\r\n\r\n";
+                    const size_t n_body_bytes_sent_first = (served_answer.should_stall) ? served_answer.response_body.size() / 2
+                                                                                        : served_answer.response_body.size();
 
-                    ::send(client,
-                           head.data(),
-                           static_cast<int>(head.size() ),
+                    ::send(client_socket,
+                           response_header_text.data(),
+                           static_cast<int>(response_header_text.size() ),
                            0);
 
-                    if (n_first > 0)
+                    if (n_body_bytes_sent_first > 0)
                     {
-                        ::send(client,
-                               answer.body.data(),
-                               static_cast<int>(n_first),
+                        ::send(client_socket,
+                               served_answer.response_body.data(),
+                               static_cast<int>(n_body_bytes_sent_first),
                                0);
                     }
 
-                    while (answer.should_stall && m_should_stop.load() == false)
+                    while (served_answer.should_stall && m_should_stop.load() == false)
                     {
                         ::Sleep(20);
                     }
                 }
 
-                ::closesocket(client);
+                ::closesocket(client_socket);
             }
         }
     }
@@ -138,59 +142,64 @@ void Tests::LocalHttpServer::run()
 void Tests::LocalHttpServer::set_answer(const std::string& in_path,
                                         const Answer&      in_answer)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::mutex> answers_lock(m_mutex);
 
     m_answer_map[in_path] = in_answer;
 }
 
 bool Tests::LocalHttpServer::start()
 {
-    sockaddr_in address;
-    int         n_address_bytes = sizeof(address);
-    SOCKET      listening       = ::socket(AF_INET,
-                                           SOCK_STREAM,
-                                           IPPROTO_TCP);
-    bool        result          = false;
+    sockaddr_in listening_address;
+    SOCKET      listening_socket = ::socket(AF_INET,
+                                            SOCK_STREAM,
+                                            IPPROTO_TCP);
+    int         n_address_bytes  = sizeof(listening_address);
+    bool        result           = false;
 
-    if (listening == INVALID_SOCKET)
+    const auto run_func = [this]()
+    {
+        run();
+    };
+
+    if (listening_socket == INVALID_SOCKET)
     {
         goto end;
     }
 
-    ::ZeroMemory(&address,
-                  sizeof(address) );
+    ::ZeroMemory(&listening_address,
+                  sizeof(listening_address) );
 
-    address.sin_family = AF_INET;
-    address.sin_port   = 0;
+    listening_address.sin_family = AF_INET;
+    listening_address.sin_port   = 0;
 
     ::inet_pton(AF_INET,
                 "127.0.0.1",
-               &address.sin_addr);
+               &listening_address.sin_addr);
 
-    if (::bind(listening,
-               reinterpret_cast<sockaddr*>(&address),
-               sizeof(address) ) != 0)
+    if (::bind(listening_socket,
+               reinterpret_cast<sockaddr*>(&listening_address),
+               sizeof(listening_address) ) != 0)
     {
-        ::closesocket(listening);
+        ::closesocket(listening_socket);
 
         goto end;
     }
 
-    if (::listen(listening,
+    if (::listen(listening_socket,
                  4) != 0)
     {
-        ::closesocket(listening);
+        ::closesocket(listening_socket);
 
         goto end;
     }
 
-    ::getsockname(listening,
-                  reinterpret_cast<sockaddr*>(&address),
+    ::getsockname(listening_socket,
+                  reinterpret_cast<sockaddr*>(&listening_address),
                  &n_address_bytes);
 
-    m_port   = ntohs(address.sin_port);
-    m_socket = static_cast<uint64_t>(listening);
-    m_thread = std::thread([this]() { run(); } );
+    m_port   = ntohs(listening_address.sin_port);
+    m_socket = static_cast<uint64_t>(listening_socket);
+    m_thread = std::thread(run_func);
     result   = true;
 
 end:

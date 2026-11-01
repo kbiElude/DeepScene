@@ -30,55 +30,55 @@ bool VR::AppInstaller::HttpDownloader::download(const std::string&       in_url,
     constexpr int   RESOLVE_TIMEOUT_MS = 10000;
     constexpr int   SEND_TIMEOUT_MS    = 15000;
 
-    std::vector<uint8_t> buffer_vec(CHUNK_N_BYTES);
-    std::wstring         host;
-    HINTERNET            connection_handle = nullptr;
-    HANDLE               file_handle       = INVALID_HANDLE_VALUE;
-    URL_COMPONENTSW      parts;
-    DWORD                n_available_bytes = 0;
-    DWORD                n_header_bytes    = sizeof(DWORD);
-    DWORD                n_read_bytes      = 0;
-    DWORD                n_status          = 0;
-    DWORD                n_content_bytes   = 0;
-    uint64_t             n_bytes_done      = 0;
-    uint64_t             n_bytes_total     = 0;
-    HINTERNET            request_handle    = nullptr;
-    bool                 result            = false;
-    HINTERNET            session_handle    = nullptr;
-    const std::wstring   url               = FileSystem::to_wide_text(in_url);
-    std::wstring         resource;
+    HINTERNET            connection_handle      = nullptr;
+    HANDLE               file_handle            = INVALID_HANDLE_VALUE;
+    std::wstring         host_name;
+    DWORD                http_status_code       = 0;
+    DWORD                n_available_bytes      = 0;
+    uint64_t             n_bytes_done           = 0;
+    uint64_t             n_bytes_total          = 0;
+    DWORD                n_content_length_bytes = 0;
+    DWORD                n_header_value_bytes   = sizeof(DWORD);
+    DWORD                n_read_bytes           = 0;
+    std::vector<uint8_t> read_buffer_vec(CHUNK_N_BYTES);
+    HINTERNET            request_handle         = nullptr;
+    std::wstring         resource_path_and_query;
+    bool                 result                 = false;
+    HINTERNET            session_handle         = nullptr;
+    URL_COMPONENTSW      url_components;
+    const std::wstring   wide_url               = FileSystem::to_wide_text(in_url);
 
-    ::ZeroMemory(&parts,
-                 sizeof(parts) );
+    ::ZeroMemory(&url_components,
+                 sizeof(url_components) );
 
-    parts.dwStructSize     = sizeof(parts);
-    parts.dwHostNameLength = static_cast<DWORD>(-1);
-    parts.dwSchemeLength   = static_cast<DWORD>(-1);
-    parts.dwUrlPathLength  = static_cast<DWORD>(-1);
-    parts.dwExtraInfoLength = static_cast<DWORD>(-1);
+    url_components.dwStructSize     = sizeof(url_components);
+    url_components.dwHostNameLength = static_cast<DWORD>(-1);
+    url_components.dwSchemeLength   = static_cast<DWORD>(-1);
+    url_components.dwUrlPathLength  = static_cast<DWORD>(-1);
+    url_components.dwExtraInfoLength = static_cast<DWORD>(-1);
 
-    if (::WinHttpCrackUrl(url.c_str(),
-                          static_cast<DWORD>(url.size() ),
+    if (::WinHttpCrackUrl(wide_url.c_str(),
+                          static_cast<DWORD>(wide_url.size() ),
                           0, /* flags */
-                         &parts) == FALSE)
+                         &url_components) == FALSE)
     {
         *out_error_ptr = "Not an address: " + in_url;
 
         goto end;
     }
 
-    if (parts.nScheme != INTERNET_SCHEME_HTTPS                         &&
-        (parts.nScheme != INTERNET_SCHEME_HTTP || m_is_http_allowed == false) )
+    if (url_components.nScheme != INTERNET_SCHEME_HTTPS &&
+        (url_components.nScheme != INTERNET_SCHEME_HTTP || m_is_http_allowed == false) )
     {
         *out_error_ptr = "Only addresses of https are used: " + in_url;
 
         goto end;
     }
 
-    host     = std::wstring(parts.lpszHostName,
-                            parts.dwHostNameLength);
-    resource = std::wstring(parts.lpszUrlPath,
-                            parts.dwUrlPathLength + parts.dwExtraInfoLength);
+    host_name     = std::wstring(url_components.lpszHostName,
+                                 url_components.dwHostNameLength);
+    resource_path_and_query = std::wstring(url_components.lpszUrlPath,
+                                           url_components.dwUrlPathLength + url_components.dwExtraInfoLength);
 
     session_handle = ::WinHttpOpen(L"DemoVRPlayer/1.0",
                                    WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
@@ -100,38 +100,38 @@ bool VR::AppInstaller::HttpDownloader::download(const std::string&       in_url,
                          m_receive_timeout_ms);
 
     {
-        DWORD n_redirects = N_MAX_REDIRECTS;
+        DWORD n_redirects_max = N_MAX_REDIRECTS;
 
         ::WinHttpSetOption(session_handle,
                            WINHTTP_OPTION_MAX_HTTP_AUTOMATIC_REDIRECTS,
-                          &n_redirects,
-                           sizeof(n_redirects) );
+                          &n_redirects_max,
+                           sizeof(n_redirects_max) );
     }
 
     connection_handle = ::WinHttpConnect(session_handle,
-                                         host.c_str(),
-                                         parts.nPort,
+                                         host_name.c_str(),
+                                         url_components.nPort,
                                          0);
 
     if (connection_handle == nullptr)
     {
-        *out_error_ptr = "Cannot reach " + FileSystem::to_utf8(host) + " (error " + std::to_string(::GetLastError() ) + ")";
+        *out_error_ptr = "Cannot reach " + FileSystem::to_utf8(host_name) + " (error " + std::to_string(::GetLastError() ) + ")";
 
         goto end;
     }
 
     request_handle = ::WinHttpOpenRequest(connection_handle,
                                           L"GET",
-                                          resource.c_str(),
+                                          resource_path_and_query.c_str(),
                                           nullptr,
                                           WINHTTP_NO_REFERER,
                                           WINHTTP_DEFAULT_ACCEPT_TYPES,
-                                          (parts.nScheme == INTERNET_SCHEME_HTTPS) ? WINHTTP_FLAG_SECURE
-                                                                                    : 0);
+                                          (url_components.nScheme == INTERNET_SCHEME_HTTPS) ? WINHTTP_FLAG_SECURE
+                                                                                            : 0);
 
     if (request_handle == nullptr)
     {
-        *out_error_ptr = "Cannot ask " + FileSystem::to_utf8(host) + " (error " + std::to_string(::GetLastError() ) + ")";
+        *out_error_ptr = "Cannot ask " + FileSystem::to_utf8(host_name) + " (error " + std::to_string(::GetLastError() ) + ")";
 
         goto end;
     }
@@ -144,7 +144,7 @@ bool VR::AppInstaller::HttpDownloader::download(const std::string&       in_url,
                              0,
                              0) == FALSE)
     {
-        *out_error_ptr = "Cannot ask " + FileSystem::to_utf8(host) + " (error " + std::to_string(::GetLastError() ) + ")";
+        *out_error_ptr = "Cannot ask " + FileSystem::to_utf8(host_name) + " (error " + std::to_string(::GetLastError() ) + ")";
 
         goto end;
     }
@@ -152,7 +152,7 @@ bool VR::AppInstaller::HttpDownloader::download(const std::string&       in_url,
     if (::WinHttpReceiveResponse(request_handle,
                                  nullptr) == FALSE)
     {
-        *out_error_ptr = "No answer from " + FileSystem::to_utf8(host) + " (error " + std::to_string(::GetLastError() ) + ")";
+        *out_error_ptr = "No answer from " + FileSystem::to_utf8(host_name) + " (error " + std::to_string(::GetLastError() ) + ")";
 
         goto end;
     }
@@ -160,27 +160,27 @@ bool VR::AppInstaller::HttpDownloader::download(const std::string&       in_url,
     ::WinHttpQueryHeaders(request_handle,
                           WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
                           WINHTTP_HEADER_NAME_BY_INDEX,
-                         &n_status,
-                         &n_header_bytes,
+                         &http_status_code,
+                         &n_header_value_bytes,
                           WINHTTP_NO_HEADER_INDEX);
 
-    if (n_status != 200)
+    if (http_status_code != 200)
     {
-        *out_error_ptr = FileSystem::to_utf8(host) + " answered " + std::to_string(n_status);
+        *out_error_ptr = FileSystem::to_utf8(host_name) + " answered " + std::to_string(http_status_code);
 
         goto end;
     }
 
-    n_header_bytes = sizeof(DWORD);
+    n_header_value_bytes = sizeof(DWORD);
 
     if (::WinHttpQueryHeaders(request_handle,
                               WINHTTP_QUERY_CONTENT_LENGTH | WINHTTP_QUERY_FLAG_NUMBER,
                               WINHTTP_HEADER_NAME_BY_INDEX,
-                             &n_content_bytes,
-                             &n_header_bytes,
+                             &n_content_length_bytes,
+                             &n_header_value_bytes,
                               WINHTTP_NO_HEADER_INDEX) != FALSE)
     {
-        n_bytes_total = n_content_bytes;
+        n_bytes_total = n_content_length_bytes;
     }
 
     file_handle = ::CreateFileW(FileSystem::to_wide(in_file_path).c_str(),
@@ -226,7 +226,7 @@ bool VR::AppInstaller::HttpDownloader::download(const std::string&       in_url,
         }
 
         if (::WinHttpReadData(request_handle,
-                              &buffer_vec.at(0),
+                              &read_buffer_vec.at(0),
                               std::min<DWORD>(n_available_bytes,
                                               CHUNK_N_BYTES),
                              &n_read_bytes) == FALSE)
@@ -237,7 +237,7 @@ bool VR::AppInstaller::HttpDownloader::download(const std::string&       in_url,
         }
 
         const BOOL is_written = ::WriteFile(file_handle,
-                                            &buffer_vec.at(0),
+                                            &read_buffer_vec.at(0),
                                             n_read_bytes,
                                            &n_written_bytes,
                                             nullptr);
