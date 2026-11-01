@@ -1,0 +1,10 @@
+{
+  "catalog_version": 0,
+  "apps": [
+    {
+      "id": "fr08",
+      "recipe": "recipes/fr08.json",
+      "executable": "fr08/fr08v101.exe"
+    }
+  ]
+}
