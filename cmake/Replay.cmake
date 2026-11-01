@@ -18,3 +18,16 @@ endif()
 
 source_group ("Stereo Replay Engine include files" FILES ${StereoReplayEngineDLLIncludes} ${StereoReplayEngineDLLPrivateIncludes})
 source_group ("Stereo Replay Engine source files"  FILES ${StereoReplayEngineDLLSources})
+
+file(GLOB StereoReplayPlayerSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayPlayer/*.cpp"
+                                                      "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayPlayer/*.h")
+
+add_executable(StereoReplayPlayer ${StereoReplayPlayerSources})
+
+target_link_libraries(StereoReplayPlayer APIDumpAnalysis APIDumpLoader RecipeLoader StereoReplayEngineDLL ImGui UIHost comdlg32)
+
+if (CMAKE_SIZEOF_VOID_P EQUAL 4)
+    set_target_properties(StereoReplayPlayer PROPERTIES OUTPUT_NAME "StereoReplayPlayer_x86")
+endif()
+
+source_group ("StereoReplayPlayer source files" FILES ${StereoReplayPlayerSources})

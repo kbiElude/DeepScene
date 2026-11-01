@@ -27,6 +27,9 @@ if (DEMOVRPLAYER_BUILD_TESTS)
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayEngineDLL/object_remapper.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayEngineDLL/overlay_chunk_source.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayEngineDLL/pixel_converter.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayPlayer/command_line.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayPlayer/eye_image_buffer.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayPlayer/quit_handler.cpp"
                                      "${APIInterceptor_SOURCE_DIR}/src/Common/api_call_gate.cpp"
                                      "${APIInterceptor_SOURCE_DIR}/src/Common/callback_registry.cpp"
                                      "${APIInterceptor_SOURCE_DIR}/src/Common/callbacks.cpp"
@@ -48,6 +51,7 @@ if (DEMOVRPLAYER_BUILD_TESTS)
 
     target_include_directories(DemoVRPlayerTests PRIVATE "${DemoVRPlayer_SOURCE_DIR}/src"
                                                          "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayEngineDLL"
+                                                         "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayPlayer"
                                                          "${APIInterceptor_SOURCE_DIR}/src/Tests")
     target_compile_definitions(DemoVRPlayerTests PRIVATE DEMOVRPLAYER_APPS_DIR="${DemoVRPlayer_SOURCE_DIR}/apps"
                                                          DEMOVRPLAYER_TESTS_DATA_DIR="${DemoVRPlayer_SOURCE_DIR}/src/Tests/data")
