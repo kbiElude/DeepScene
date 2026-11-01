@@ -35,6 +35,16 @@ target_link_libraries(RecipeLoader PUBLIC APIDumpAnalysis)
 source_group ("Recipe Loader include files" FILES ${RecipeLoaderIncludes})
 source_group ("Recipe Loader source files"  FILES ${RecipeLoaderSources})
 
+file(GLOB RecipeApplierIncludes CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/include/Analysis/RecipeApplier/*.h")
+file(GLOB RecipeApplierSources CONFIGURE_DEPENDS  "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/RecipeApplier/*.cpp")
+
+add_library(RecipeApplier STATIC ${RecipeApplierIncludes} ${RecipeApplierSources})
+
+target_link_libraries(RecipeApplier PUBLIC RecipeLoader)
+
+source_group ("Recipe Applier include files" FILES ${RecipeApplierIncludes})
+source_group ("Recipe Applier source files"  FILES ${RecipeApplierSources})
+
 file(GLOB APIDumpAnalysisExtractorSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpAnalysisExtractor/*.cpp"
                                                             "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpAnalysisExtractor/*.h")
 
