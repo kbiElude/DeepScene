@@ -31,3 +31,16 @@ if (CMAKE_SIZEOF_VOID_P EQUAL 4)
 endif()
 
 source_group ("StereoReplayPlayer source files" FILES ${StereoReplayPlayerSources})
+
+file(GLOB StereoReplayConsistencyCheckerSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayConsistencyChecker/*.cpp"
+                                                                  "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayConsistencyChecker/*.h")
+
+add_executable(StereoReplayConsistencyChecker ${StereoReplayConsistencyCheckerSources})
+
+target_link_libraries(StereoReplayConsistencyChecker APIDumpAnalysis RecipeLoader StereoReplayEngineDLL)
+
+if (CMAKE_SIZEOF_VOID_P EQUAL 4)
+    set_target_properties(StereoReplayConsistencyChecker PROPERTIES OUTPUT_NAME "StereoReplayConsistencyChecker_x86")
+endif()
+
+source_group ("StereoReplayConsistencyChecker source files" FILES ${StereoReplayConsistencyCheckerSources})
