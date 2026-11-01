@@ -1,0 +1,58 @@
+{
+  "recipe_version": 0,
+  "key_scheme_version": 1,
+  "target": {
+    "name": "fr08",
+    "description": "An example: shifts the camera of a pass half an eye separation to each side."
+  },
+  "known_shape_keys": [ "0x0123456789abcdef" ],
+  "on_unknown_frame": "mono",
+
+  "unaffected": {
+    "pass_keys": [ "0x1111111111111111" ],
+    "draw_keys": [ "0x2222222222222222" ]
+  },
+  "affected": { "draw_keys": [ "0x3333333333333333" ] },
+  "rules": [
+    {
+      "name": "scene view",
+      "call": "IDirect3DDevice8::SetTransform",
+      "when": {
+        "state": "D3DTS_VIEW",
+        "pass_keys": [ "0xb5eee7f8dc36efb0" ]
+      },
+      "action": {
+        "type": "multiply",
+        "order": "post",
+        "left":  [ 1, 0, 0, 0,   0, 1, 0, 0,   0, 0, 1, 0,   0.032, 0, 0, 1 ],
+        "right": [ 1, 0, 0, 0,   0, 1, 0, 0,   0, 0, 1, 0,  -0.032, 0, 0, 1 ]
+      }
+    },
+    {
+      "name": "scene projection",
+      "call": "IDirect3DDevice8::SetTransform",
+      "when": {
+        "state": 3,
+        "matrix": "perspective"
+      },
+      "action": {
+        "type": "replace",
+        "left":  [ 1, 0, 0, 0,   0, 1, 0, 0,   0.01, 0, 1, 1,   0, 0, -0.1, 0 ],
+        "right": [ 1, 0, 0, 0,   0, 1, 0, 0,  -0.01, 0, 1, 1,   0, 0, -0.1, 0 ]
+      }
+    },
+    {
+      "name": "eye offset of the view",
+      "call": "IDirect3DDevice8::SetTransform",
+      "when": {
+        "state": "D3DTS_VIEW",
+        "pass_keys": [ "0x4444444444444444" ]
+      },
+      "action": {
+        "type": "eye_offset",
+        "order": "pre",
+        "axis": "y"
+      }
+    }
+  ]
+}

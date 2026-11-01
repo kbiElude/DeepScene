@@ -1,0 +1,32 @@
+{
+  "recipe_version": 0,
+  "key_scheme_version": 1,
+  "target": {
+    "name": "fr08",
+    "description": "Changes nothing: every camera matrix is multiplied with the identity. For checking the machinery."
+  },
+  "rules": [
+    {
+      "name": "view",
+      "call": "IDirect3DDevice8::SetTransform",
+      "when": { "state": "D3DTS_VIEW" },
+      "action": {
+        "type": "multiply",
+        "order": "post",
+        "left":  [ 1, 0, 0, 0,   0, 1, 0, 0,   0, 0, 1, 0,   0, 0, 0, 1 ],
+        "right": [ 1, 0, 0, 0,   0, 1, 0, 0,   0, 0, 1, 0,   0, 0, 0, 1 ]
+      }
+    },
+    {
+      "name": "projection",
+      "call": "IDirect3DDevice8::SetTransform",
+      "when": { "state": "D3DTS_PROJECTION" },
+      "action": {
+        "type": "multiply",
+        "order": "post",
+        "left":  [ 1, 0, 0, 0,   0, 1, 0, 0,   0, 0, 1, 0,   0, 0, 0, 1 ],
+        "right": [ 1, 0, 0, 0,   0, 1, 0, 0,   0, 0, 1, 0,   0, 0, 0, 1 ]
+      }
+    }
+  ]
+}

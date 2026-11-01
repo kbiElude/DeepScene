@@ -25,6 +25,16 @@ target_link_libraries(APIDumpAnalysisFrontends PUBLIC APIDumpAnalysis D3D8Utils)
 source_group ("APIDump Analysis Frontends include files" FILES ${APIDumpAnalysisFrontendsIncludes})
 source_group ("APIDump Analysis Frontends source files"  FILES ${APIDumpAnalysisFrontendsSources})
 
+file(GLOB RecipeLoaderIncludes CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/include/Analysis/RecipeLoader/*.h")
+file(GLOB RecipeLoaderSources CONFIGURE_DEPENDS  "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/RecipeLoader/*.cpp")
+
+add_library(RecipeLoader STATIC ${RecipeLoaderIncludes} ${RecipeLoaderSources})
+
+target_link_libraries(RecipeLoader PUBLIC APIDumpAnalysis)
+
+source_group ("Recipe Loader include files" FILES ${RecipeLoaderIncludes})
+source_group ("Recipe Loader source files"  FILES ${RecipeLoaderSources})
+
 file(GLOB APIDumpAnalysisExtractorSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpAnalysisExtractor/*.cpp"
                                                             "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpAnalysisExtractor/*.h")
 
