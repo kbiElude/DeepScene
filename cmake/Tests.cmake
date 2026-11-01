@@ -9,6 +9,8 @@ if (DEMOVRPLAYER_BUILD_TESTS)
 
     # Sources under test which are not part of a library, and the helpers of the tests of the interceptor which these tests use.
     add_executable(DemoVRPlayerTests ${DemoVRPlayerTestsSources}
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/RecipeBake/command_line.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/RecipeBake/recipe_baker.cpp"
                                      "${APIInterceptor_SOURCE_DIR}/src/Common/api_call_gate.cpp"
                                      "${APIInterceptor_SOURCE_DIR}/src/Common/callback_registry.cpp"
                                      "${APIInterceptor_SOURCE_DIR}/src/Common/callbacks.cpp"

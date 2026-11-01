@@ -62,3 +62,13 @@ add_executable(APIDumpAnalysisQuery ${APIDumpAnalysisQuerySources})
 target_link_libraries(APIDumpAnalysisQuery APIDumpAnalysis)
 
 source_group ("APIDumpAnalysisQuery source files" FILES ${APIDumpAnalysisQuerySources})
+
+file(GLOB RecipeBakeSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/RecipeBake/*.cpp"
+                                              "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/RecipeBake/*.h")
+
+add_executable(RecipeBake ${RecipeBakeSources})
+
+target_include_directories(RecipeBake PRIVATE "${DemoVRPlayer_SOURCE_DIR}/src")
+target_link_libraries     (RecipeBake RecipeApplier)
+
+source_group ("RecipeBake source files" FILES ${RecipeBakeSources})
