@@ -24,3 +24,14 @@ target_link_libraries     (StereoXR PUBLIC openxr_loader StereoD3D12 VRDevices)
 
 source_group ("StereoXR include files" FILES ${StereoXRIncludes})
 source_group ("StereoXR source files"  FILES ${StereoXRSources})
+
+file(GLOB StereoPresenterSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/StereoPresenter/*.cpp"
+                                                   "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/StereoPresenter/*.h")
+
+# The window which shows what the converter of an application passes on.
+add_executable(StereoPresenter WIN32 ${StereoPresenterSources})
+
+target_include_directories(StereoPresenter PRIVATE "${DemoVRPlayer_SOURCE_DIR}/src")
+target_link_libraries     (StereoPresenter StereoD3D12 StereoSession StereoTransport StereoXR UIHost winmm)
+
+source_group ("StereoPresenter source files" FILES ${StereoPresenterSources})
