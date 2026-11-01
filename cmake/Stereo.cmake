@@ -40,3 +40,15 @@ target_link_libraries(StereoD3D12 PUBLIC StereoTransport d3d12 dxgi)
 
 source_group ("StereoD3D12 include files" FILES ${StereoD3D12Includes})
 source_group ("StereoD3D12 source files"  FILES ${StereoD3D12Sources})
+
+file(GLOB StereoConverterDLLSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/StereoConverterDLL/*.cpp"
+                                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/StereoConverterDLL/*.h")
+
+# The stereo converter: a DLL which goes into the application. The pixel converter of the replay engine is used as it is, to turn a back
+# buffer of any format into BGRA.
+add_library(StereoConverterDLL SHARED ${StereoConverterDLLSources}
+                                      "${DemoVRPlayer_SOURCE_DIR}/src/Replay/StereoReplayEngineDLL/pixel_converter.cpp")
+
+target_link_libraries(StereoConverterDLL APIDumpAnalysisFrontends APIInterceptor D3D8Utils StereoCore StereoSession StereoTransport)
+
+source_group ("StereoConverterDLL source files" FILES ${StereoConverterDLLSources})
