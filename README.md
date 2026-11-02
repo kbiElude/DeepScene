@@ -38,6 +38,19 @@ Visual Studio 2026 (the generator is set in `deps\APIInterceptor\build.bat`), CM
 
 The first time a program of the catalog is launched, `VRPlayer` downloads it (with its hash checked) into `apps\<id>\` next to itself, so its folder has to be one you can write to. Nothing is written anywhere else.
 
+## Run
+
+Start `VRPlayer.exe` (from `build_final\`) and you are done: it is the front end, and nothing else has to be started by hand.
+
+1. Pick a program from the list. The first time, a program that is not on the computer yet is downloaded first, so you need internet that time.
+2. Pick the device: your headset, or just the preview window on the monitor.
+3. Set the depth and, for a headset, the image quality.
+4. Press **Launch**. The program starts with the converter inside it, and the two eyes go to the headset (or the window). The depth can be changed while it runs.
+
+For a headset, the PC has to see it through an active OpenXR runtime. Without one, the preview window still works.
+
+Only the Oculus Quest 3 has been tested so far. Other headsets that work through OpenXR might be fine, but nobody has tried them yet.
+
 ## License
 
 MIT; see [LICENSE.txt](LICENSE.txt).
