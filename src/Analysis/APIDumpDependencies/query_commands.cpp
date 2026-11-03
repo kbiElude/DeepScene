@@ -5,6 +5,7 @@
 #include "Analysis/APIDumpAnalysis/query_commands.h"
 #include "Analysis/APIDumpAnalysis/resource_identity.h"
 #include "Analysis/APIDumpDependencies/deps_format.h"
+#include "Analysis/APIDumpDependencies/per_eye_candidates.h"
 #include "Analysis/APIDumpDependencies/query_commands.h"
 #include <algorithm>
 #include <map>
@@ -464,42 +465,29 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_per_eye(const Depe
 {
     inout_writer_ptr->begin_object();
     inout_writer_ptr->write_key   ("note");
-    inout_writer_ptr->write_string("Resources which are rendered to and carry content from one frame to the next: each eye is to have a copy of "
-                                   "them (a recipe lists them as per_eye_textures). A resource which carries only possibly is one whose old "
-                                   "content may show, because only part of it was written before it was read.");
+    inout_writer_ptr->write_string("Resources which are rendered to, and which some frame uses what an earlier frame left in (whether that frame "
+                                   "writes them too or not): each eye is to have a copy of them (a recipe lists them as per_eye_textures). One "
+                                   "that is used only possibly is one whose old content may show, because only part of it was written before "
+                                   "it was read.");
     inout_writer_ptr->write_key   ("candidates");
     inout_writer_ptr->begin_array ();
 
-    for (size_t n_resource = 0;
-                n_resource < in_analysis.resource_vec.size();
-              ++n_resource)
+    for (const auto& candidate : PerEyeCandidates::find(in_analysis) )
     {
-        const auto&                                 resource     = in_analysis.resource_vec.at(n_resource);
-        const ResourceSummary&                      summary      = in_analysis.result.resource_vec.at(n_resource).summary;
-        const bool                                  is_carried   = (summary.dependency_class == DependencyClass::CARRIED          ||
-                                                                    summary.dependency_class == DependencyClass::CARRIED_POSSIBLY);
-        const bool                                  is_rendered_to = (resource.description.is_render_target ||
-                                                                      resource.description.is_depth_stencil);
+        inout_writer_ptr->begin_object();
 
-        if (is_carried                                                                           &&
-            is_rendered_to                                                                       &&
-            resource.description.kind != Analysis::APIDumpAnalysis::ResourceKind::SWAP_CHAIN_IMAGE)
-        {
-            inout_writer_ptr->begin_object();
+        write_resource_head(in_analysis,
+                            candidate.n_resource,
+                            inout_writer_ptr);
 
-            write_resource_head(in_analysis,
-                                n_resource,
-                                inout_writer_ptr);
+        inout_writer_ptr->write_key   ("certainty");
+        inout_writer_ptr->write_string((candidate.is_certain) ? "certain"
+                                                              : "possible");
 
-            inout_writer_ptr->write_key   ("certainty");
-            inout_writer_ptr->write_string((summary.dependency_class == DependencyClass::CARRIED) ? "certain"
-                                                                                                   : "possible");
+        write_summary(in_analysis.result.resource_vec.at(candidate.n_resource).summary,
+                      inout_writer_ptr);
 
-            write_summary(summary,
-                          inout_writer_ptr);
-
-            inout_writer_ptr->end_object();
-        }
+        inout_writer_ptr->end_object();
     }
 
     inout_writer_ptr->end_array ();

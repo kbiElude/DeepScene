@@ -192,6 +192,53 @@ TEST(WorkloadIdentity, AHashThatWasNotRecordedIsNotCompared)
               Analysis::APIDumpAnalysis::WorkloadMatch::MISMATCH);
 }
 
+TEST(WorkloadIdentity, TwoAnalysesAreOfTheSameWorkloadIfTheirSizesAndTheHashesTheyBothHoldAreTheSame)
+{
+    Analysis::APIDumpAnalysis::WorkloadReference full;
+    Analysis::APIDumpAnalysis::WorkloadReference start_only;
+
+    full.filename    = "a.workload";
+    full.header_hash = 0x11;
+    full.middle_hash = 0x22;
+    full.n_bytes     = 1000;
+    full.tail_hash   = 0x33;
+
+    /* What a .passes file holds. */
+    start_only.filename    = "elsewhere.workload";
+    start_only.header_hash = 0x11;
+    start_only.n_bytes     = 1000;
+
+    EXPECT_TRUE(Analysis::APIDumpAnalysis::WorkloadIdentity::is_same_workload(full,
+                                                                              start_only) );
+    EXPECT_TRUE(Analysis::APIDumpAnalysis::WorkloadIdentity::is_same_workload(start_only,
+                                                                              full) );
+
+    /* The hash that both hold differs, or the size does. */
+    auto other_start = start_only;
+
+    other_start.header_hash = 0x99;
+
+    EXPECT_FALSE(Analysis::APIDumpAnalysis::WorkloadIdentity::is_same_workload(full,
+                                                                               other_start) );
+
+    auto other_size = start_only;
+
+    other_size.n_bytes = 1001;
+
+    EXPECT_FALSE(Analysis::APIDumpAnalysis::WorkloadIdentity::is_same_workload(full,
+                                                                               other_size) );
+
+    /* A hash that one of them holds and the other does not is not a difference; one that both hold is. */
+    auto other_tail = full;
+
+    other_tail.tail_hash = 0x44;
+
+    EXPECT_FALSE(Analysis::APIDumpAnalysis::WorkloadIdentity::is_same_workload(full,
+                                                                               other_tail) );
+    EXPECT_TRUE (Analysis::APIDumpAnalysis::WorkloadIdentity::is_same_workload(start_only,
+                                                                               other_tail) );
+}
+
 TEST(WorkloadIdentity, AFileShorterThanAPieceIsReferredTo)
 {
     const std::string                           filename = write_file("identity_short.bin",

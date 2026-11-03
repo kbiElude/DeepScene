@@ -7,6 +7,7 @@
 #include "Analysis/APIDumpAnalysis/json_reader.h"
 #include "Analysis/APIDumpAnalysis/model.h"
 #include "Analysis/APIDumpAnalysis/passes_file.h"
+#include "Analysis/APIDumpDependencies/deps_file.h"
 #include "Analysis/RecipeBake/command_line.h"
 #include "Analysis/RecipeBake/recipe_baker.h"
 #include <stdio.h>
@@ -24,6 +25,7 @@ int main(int   in_argc,
 
     Analysis::APIDumpAnalysis::AnalysisResult analysis;
     std::vector<std::string>                  argument_vec;
+    Analysis::APIDumpDependencies::DependencyAnalysis dependencies;
     Analysis::RecipeBake::BakeReport          report;
     std::string                               baked_text;
     std::string                               error;
@@ -80,11 +82,28 @@ int main(int   in_argc,
         goto end;
     }
 
+    if (options.deps_filename.empty() == false                                &&
+        Analysis::APIDumpDependencies::DepsFile::read(options.deps_filename,
+                                                     &dependencies,
+                                                     &error) == false)
+    {
+        ::fprintf(stderr,
+                  "Error: %s: %s\n",
+                  options.deps_filename.c_str(),
+                  error.c_str() );
+
+        result = EXIT_BAD_INPUT;
+
+        goto end;
+    }
+
     if (Analysis::RecipeBake::RecipeBaker::bake(recipe_text,
                                                 analysis,
                                                &baked_text,
                                                &report,
-                                               &error) == false)
+                                               &error,
+                                               (options.deps_filename.empty() ) ? nullptr
+                                                                                : &dependencies) == false)
     {
         ::fprintf(stderr,
                   "Error: %s\n",
@@ -145,6 +164,10 @@ int main(int   in_argc,
              report.n_scenes_without_depth);
     ::printf("%u of the scenes have a limit of how far apart the eyes may be, from their nearest surfaces\n",
              report.n_scene_limits);
+    ::printf("%u textures have a copy for each eye, %s\n",
+             report.n_per_eye_textures,
+             (report.uses_dependencies) ? "as the dependencies between the frames say"
+                                        : "as the totals of the analysis say (a texture which frames use by turns is missed: give --deps)");
 
 end:
     if (file_ptr != nullptr)

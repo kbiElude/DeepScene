@@ -28,6 +28,7 @@
 #include "Analysis/APIDumpAnalysis/json_reader.h"
 #include "Analysis/APIDumpAnalysis/json_writer.h"
 #include "Analysis/APIDumpAnalysis/model.h"
+#include "Analysis/APIDumpDependencies/types.h"
 #include "Analysis/RecipeApplier/recipe_applier.h"
 #include "Analysis/RecipeBake/types.h"
 #include "Analysis/RecipeLoader/types.h"
@@ -46,12 +47,17 @@ namespace Analysis
         public:
             /* Returns false, and says why, if the recipe is not valid or cannot be baked with the analysis. A "baked" section that the
              * recipe has already is replaced.
+             *
+             * The dependencies of the workload (see APIDumpDependencyExtractor), if there are any, say which textures each eye has a copy of: without
+             * them it is the resources which a frame reads before it writes it, and writes, which misses one that is read in the frame after the one
+             * which rendered to it (two that an application uses by turns). They must be of the workload that the analysis is of.
              */
-            static bool bake(const std::string&                               in_recipe_text,
-                             const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis,
-                             std::string*                                     out_text_ptr,
-                             BakeReport*                                      out_report_ptr,
-                             std::string*                                     out_error_ptr);
+            static bool bake(const std::string&                                       in_recipe_text,
+                             const Analysis::APIDumpAnalysis::AnalysisResult&         in_analysis,
+                             std::string*                                             out_text_ptr,
+                             BakeReport*                                              out_report_ptr,
+                             std::string*                                             out_error_ptr,
+                             const Analysis::APIDumpDependencies::DependencyAnalysis* in_dependencies_ptr = nullptr);
 
         private:
             typedef std::map<Analysis::RecipeLoader::DrawClass, std::set<uint32_t> > ClassMap;
@@ -95,7 +101,8 @@ namespace Analysis
 
             /* The textures which frames carry over from the frame before, which each eye has a copy of (the back buffer is not one: the player keeps
              * its pictures apart for the eyes). */
-            static PerEyeTextureVector get_per_eye_texture_vec(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis);
+            static PerEyeTextureVector get_per_eye_texture_vec(const Analysis::APIDumpAnalysis::AnalysisResult&         in_analysis,
+                                                               const Analysis::APIDumpDependencies::DependencyAnalysis* in_dependencies_ptr);
 
             static const char* get_class_name(const Analysis::RecipeLoader::DrawClass& in_class);
 

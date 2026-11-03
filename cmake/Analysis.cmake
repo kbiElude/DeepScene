@@ -98,6 +98,6 @@ file(GLOB RecipeBakeSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/An
 add_executable(RecipeBake ${RecipeBakeSources})
 
 target_include_directories(RecipeBake PRIVATE "${DemoVRPlayer_SOURCE_DIR}/src")
-target_link_libraries     (RecipeBake RecipeApplier)
+target_link_libraries     (RecipeBake RecipeApplier APIDumpDependencies)
 
 source_group ("RecipeBake source files" FILES ${RecipeBakeSources})

@@ -6,6 +6,8 @@
 #include "Analysis/APIDumpAnalysis/passes_format.h"
 #include "Analysis/APIDumpAnalysis/resource_access_tracker.h"
 #include "Analysis/APIDumpAnalysis/resource_identity.h"
+#include "Analysis/APIDumpAnalysis/workload_identity.h"
+#include "Analysis/APIDumpDependencies/per_eye_candidates.h"
 #include "Analysis/RecipeApplier/recipe_applier.h"
 #include "Analysis/RecipeBake/recipe_baker.h"
 #include "Analysis/RecipeLoader/recipe_loader.h"
@@ -16,11 +18,12 @@
 #include <stdio.h>
 #include <string.h>
 
-bool Analysis::RecipeBake::RecipeBaker::bake(const std::string&                               in_recipe_text,
-                                             const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis,
-                                             std::string*                                     out_text_ptr,
-                                             BakeReport*                                      out_report_ptr,
-                                             std::string*                                     out_error_ptr)
+bool Analysis::RecipeBake::RecipeBaker::bake(const std::string&                                        in_recipe_text,
+                                             const Analysis::APIDumpAnalysis::AnalysisResult&          in_analysis,
+                                             std::string*                                              out_text_ptr,
+                                             BakeReport*                                               out_report_ptr,
+                                             std::string*                                              out_error_ptr,
+                                             const Analysis::APIDumpDependencies::DependencyAnalysis*  in_dependencies_ptr)
 {
     std::string                          authored_text;
     ConvergenceVector                    convergence_vec;
@@ -81,6 +84,16 @@ bool Analysis::RecipeBake::RecipeBaker::bake(const std::string&                 
         goto end;
     }
 
+    /* What the dependencies say must be of the workload that the analysis is of. */
+    if (in_dependencies_ptr != nullptr                                                                                        &&
+        Analysis::APIDumpAnalysis::WorkloadIdentity::is_same_workload(in_analysis.workload_reference,
+                                                                      in_dependencies_ptr->workload_reference) == false)
+    {
+        *out_error_ptr = "The dependencies (the .deps file) are not of the workload that the analysis (the .passes file) is of";
+
+        goto end;
+    }
+
     if (compute_draw_rules(recipe,
                            in_analysis,
                           &known_signature_key_vec,
@@ -118,11 +131,17 @@ bool Analysis::RecipeBake::RecipeBaker::bake(const std::string&                 
 
         writer.write_key("baked");
 
+        const PerEyeTextureVector per_eye_texture_vec = get_per_eye_texture_vec(in_analysis,
+                                                                                in_dependencies_ptr);
+
+        out_report_ptr->n_per_eye_textures       = static_cast<uint32_t>(per_eye_texture_vec.size() );
+        out_report_ptr->uses_dependencies        = (in_dependencies_ptr != nullptr);
+
         write_baked(get_covering_draw_key_vec(recipe,
                                               in_analysis),
                     convergence_vec,
                     known_signature_key_vec,
-                    get_per_eye_texture_vec(in_analysis),
+                    per_eye_texture_vec,
                     rule_vec,
                     scene_convergence_vec,
                     scene_separation_vec,
@@ -555,25 +574,23 @@ end:
     return result;
 }
 
-Analysis::RecipeBake::RecipeBaker::PerEyeTextureVector Analysis::RecipeBake::RecipeBaker::get_per_eye_texture_vec(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
+Analysis::RecipeBake::RecipeBaker::PerEyeTextureVector Analysis::RecipeBake::RecipeBaker::get_per_eye_texture_vec(const Analysis::APIDumpAnalysis::AnalysisResult&         in_analysis,
+                                                                                                                 const Analysis::APIDumpDependencies::DependencyAnalysis* in_dependencies_ptr)
 {
     PerEyeTextureVector result_vec;
 
-    for (size_t n_resource = 0;
-                n_resource < in_analysis.model.resource_vec.size();
-              ++n_resource)
+    /* The dependencies know what the frames do with each resource in the order they do it, which the totals of the analysis do not: a target which
+     * is read in the frame after the one that rendered to it, and not rewritten in that one, is carried over too (two targets that a demo uses by
+     * turns are, each in half of the frames).
+     */
+    if (in_dependencies_ptr != nullptr)
     {
-        const auto& resource = in_analysis.model.resource_vec.at(n_resource);
-        const auto  access   = Analysis::APIDumpAnalysis::ResourceAccessTracker::classify(in_analysis.model.resource_access_vec.at(n_resource) );
-
-        /* What a frame carries over in the back buffer is kept apart for the eyes by the player (it reads and writes the pixels). */
-        if (access                    == Analysis::APIDumpAnalysis::ResourceAccessClass::LOOP_CARRIED &&
-            resource.description.kind != Analysis::APIDumpAnalysis::ResourceKind::SWAP_CHAIN_IMAGE)
+        for (const auto& candidate : Analysis::APIDumpDependencies::PerEyeCandidates::find(*in_dependencies_ptr) )
         {
             Analysis::APIDumpAnalysis::ResourceIdentity identity;
 
-            if (Analysis::APIDumpAnalysis::ResourceIdentities::find(in_analysis.model.resource_vec,
-                                                                    resource.id,
+            if (Analysis::APIDumpAnalysis::ResourceIdentities::find(in_dependencies_ptr->resource_vec,
+                                                                    in_dependencies_ptr->resource_vec.at(candidate.n_resource).id,
                                                                    &identity) )
             {
                 Analysis::RecipeLoader::PerEyeTexture texture;
@@ -582,6 +599,37 @@ Analysis::RecipeBake::RecipeBaker::PerEyeTextureVector Analysis::RecipeBake::Rec
                 texture.ordinal         = identity.ordinal;
 
                 result_vec.push_back(texture);
+            }
+        }
+
+    }
+    else
+    {
+        /* Without them, the totals of the analysis: a resource which a frame reads before it writes it, and writes. */
+        for (size_t n_resource = 0;
+                    n_resource < in_analysis.model.resource_vec.size();
+                  ++n_resource)
+        {
+            const auto& resource = in_analysis.model.resource_vec.at(n_resource);
+            const auto  access   = Analysis::APIDumpAnalysis::ResourceAccessTracker::classify(in_analysis.model.resource_access_vec.at(n_resource) );
+
+            /* What a frame carries over in the back buffer is kept apart for the eyes by the player (it reads and writes the pixels). */
+            if (access                    == Analysis::APIDumpAnalysis::ResourceAccessClass::LOOP_CARRIED &&
+                resource.description.kind != Analysis::APIDumpAnalysis::ResourceKind::SWAP_CHAIN_IMAGE)
+            {
+                Analysis::APIDumpAnalysis::ResourceIdentity identity;
+
+                if (Analysis::APIDumpAnalysis::ResourceIdentities::find(in_analysis.model.resource_vec,
+                                                                        resource.id,
+                                                                       &identity) )
+                {
+                    Analysis::RecipeLoader::PerEyeTexture texture;
+
+                    texture.description_key = identity.description_key;
+                    texture.ordinal         = identity.ordinal;
+
+                    result_vec.push_back(texture);
+                }
             }
         }
     }

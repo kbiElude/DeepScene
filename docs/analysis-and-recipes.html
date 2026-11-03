@@ -400,13 +400,22 @@
 </table>
 <div class="note">A rule that depends on a pass or a frame shape cannot be followed live (the pass is not known when the draw is issued). The converter then stops with a message instead of drawing wrong images.</div>
 
+<h2 id="dependencies">Dependencies between frames</h2>
+<p>The analysis above says what the passes of a frame are. It does not say how the frames depend on each other, which a stereo replay needs: a frame played once for each eye reads, among other things, what the frame before it left in the resources, and that is not the same for both eyes if the frame before rendered it. The dependencies are made apart, by a pass of their own over the workload, and kept in a <code>.deps</code> file, so that nobody waits for the workload to be read again to ask about them.</p>
+<p>The model builder tells every use of a resource to a sink (<code>IAccessSink</code>, <code>AccessEvent</code>): what it is used as (sampled, color or depth attachment, clear target, copy, upload, vertex and index input, shader code), whether it is read, written or both (a draw that blends reads what it writes), how much of it a write reaches (all of it, part of it, or not told), which part (mip levels and layers) and on which queue. The last two are empty for Direct3D 7 and 8, and are there for the APIs to come. The front ends only translate their calls into these events, so that a front end for another API makes the dependencies without the analysis knowing it.</p>
+<p>From them, for each resource and each frame, the <code>DependencyAnalyzer</code> says whether the frame uses what an earlier frame left in it: <em>certainly</em> (something reads it, or blends into it, or tests against it, before anything has replaced all of it), <em>possibly</em> (only part of it was written before it is read, or how much is not known: a draw is not known to reach all of a target), or not at all. It names the frame which wrote what a frame uses, and sorts the resource as carried over, carried possibly, frame local, static or unused. It can only over-report what is carried, never under-report it.</p>
+<p>A resource needs a copy for each eye when it is rendered to and some frame uses what an earlier frame left in it, <em>whether that frame writes it too or not</em>: two targets that frames render to by turns, each reading the other, are both carried, and neither is written and read by the same frame (which the totals of the <code>.passes</code> file, that a resource is read before it is written in a frame that also writes it, do not see). <code>RecipeBake --deps</code> bakes them into the recipe.</p>
+<p>A <code>.deps</code> file knows the workload it is of (its size, and hashes of 4 KiB from its start, its middle and its end), and the query tool refuses another. It is written by <code>APIDumpDependencyExtractor</code>, which reads the workload on several threads and leaves out the vertices and pixels.</p>
+
 <h2>The tools</h2>
 <p>The steps of using them on a new program, with an LLM reading the analysis, are in <a href="adding-an-app.html">Adding an app</a>.</p>
 <table>
 <tr><th>Tool</th><th>Use</th></tr>
 <tr><td><code>APIDumpAnalysisExtractor</code></td><td>Workload to <code>.passes</code>.</td></tr>
 <tr><td><code>APIDumpAnalysisQuery</code></td><td>Asks a <code>.passes</code> file questions (commands in <code>query_commands.h</code>).</td></tr>
-<tr><td><code>RecipeBake</code></td><td>Hand-written rules + <code>.passes</code> to a baked recipe.</td></tr>
+<tr><td><code>APIDumpDependencyExtractor</code></td><td>Workload to <code>.deps</code>: what each frame uses of what the frames before it left.</td></tr>
+<tr><td><code>APIDumpDependencyQuery</code></td><td>Asks a <code>.deps</code> file questions (<code>info</code>, <code>resources</code>, <code>resource</code>, <code>frame</code>, <code>carries</code>, <code>per-eye</code>).</td></tr>
+<tr><td><code>RecipeBake</code></td><td>Hand-written rules + <code>.passes</code> (+ <code>.deps</code>) to a baked recipe.</td></tr>
 </table>
 </main>
 </body>

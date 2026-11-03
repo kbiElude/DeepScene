@@ -114,9 +114,9 @@ protected:
         m_analysis = scene.make_analysis();
     }
 
-    DependencyAnalysis m_analysis;
-    QueryArguments     m_arguments;
-    std::string        m_error;
+    DependencyAnalysis                                m_analysis;
+    Analysis::APIDumpDependencies::QueryArguments     m_arguments;
+    std::string                                       m_error;
 };
 
 TEST_F(DependencyQueryTest, InfoSaysWhatTheFileIsOfAndHowManyResourcesAreOfEachKind)

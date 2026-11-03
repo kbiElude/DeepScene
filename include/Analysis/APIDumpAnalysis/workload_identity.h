@@ -23,6 +23,12 @@ namespace Analysis
             /* The bytes that are hashed from each piece. */
             static constexpr uint64_t N_PIECE_BYTES = 4096;
 
+            /* True if two analyses are of the same workload: the size is the same, and so is each hash that both of them hold (a file of the
+             * analysis may hold fewer than another). The names do not matter.
+             */
+            static bool is_same_workload(const WorkloadReference& in_a,
+                                         const WorkloadReference& in_b);
+
             /* The reference of the file, with the name as given. False, and the error, if the file cannot be read. */
             static bool read(const std::string& in_filename,
                              WorkloadReference* out_reference_ptr,

@@ -58,6 +58,27 @@ end:
     return result;
 }
 
+bool Analysis::APIDumpAnalysis::WorkloadIdentity::is_same_workload(const WorkloadReference& in_a,
+                                                                   const WorkloadReference& in_b)
+{
+    /* A hash that is 0 was not recorded, and tells nothing. */
+    const auto is_hash_alike_func = [](const uint64_t& in_hash_a,
+                                       const uint64_t& in_hash_b)
+    {
+        return (in_hash_a == 0 ||
+                in_hash_b == 0 ||
+                in_hash_a == in_hash_b);
+    };
+
+    return (in_a.n_bytes == in_b.n_bytes                                     &&
+            is_hash_alike_func(in_a.header_hash,
+                               in_b.header_hash)                             &&
+            is_hash_alike_func(in_a.middle_hash,
+                               in_b.middle_hash)                             &&
+            is_hash_alike_func(in_a.tail_hash,
+                               in_b.tail_hash) );
+}
+
 bool Analysis::APIDumpAnalysis::WorkloadIdentity::read(const std::string& in_filename,
                                                        WorkloadReference* out_reference_ptr,
                                                        std::string*       out_error_ptr)

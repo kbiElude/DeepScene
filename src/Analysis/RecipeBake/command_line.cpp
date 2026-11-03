@@ -6,10 +6,14 @@
 
 const char* Analysis::RecipeBake::CommandLine::get_usage_ptr()
 {
-    return "Usage: RecipeBake drive:\\path\\to\\recipe.json drive:\\path\\to\\file.passes [-o baked.json]\n"
+    return "Usage: RecipeBake drive:\\path\\to\\recipe.json drive:\\path\\to\\file.passes [--deps file.deps] [-o baked.json]\n"
            "Bakes a recipe: writes into it what a converter which plays the application as it runs can know of each draw when the draw\n"
            "is issued, worked out from the analysis of the application (see APIDumpAnalysisExtractor). The recipe is written again in\n"
            "the formatting of this program; -o writes another file instead of replacing the recipe.\n"
+           "\n"
+           "--deps gives the dependencies between the frames (see APIDumpDependencyExtractor), which say which textures each eye is to have\n"
+           "a copy of: without them a texture that frames use by turns (the one a frame renders to is the one the next frame reads) is\n"
+           "missed. They must be of the workload that the .passes file is of.\n"
            "\n"
            "Exit codes: 0 done, 1 bad arguments, 2 a file cannot be read, 3 the recipe cannot be baked, 4 the file cannot be written.\n";
 }
@@ -39,6 +43,18 @@ bool Analysis::RecipeBake::CommandLine::parse(const std::vector<std::string>& in
             }
 
             out_options_ptr->output_filename = in_argument_vec.at(++n_argument);
+        }
+        else
+        if (argument == "--deps")
+        {
+            if (n_argument + 1 >= in_argument_vec.size() )
+            {
+                *out_error_ptr = "--deps needs a file name";
+
+                goto end;
+            }
+
+            out_options_ptr->deps_filename = in_argument_vec.at(++n_argument);
         }
         else
         if (argument.empty() == false &&

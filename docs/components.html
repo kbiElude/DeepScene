@@ -48,7 +48,16 @@
 <p><em>Program.</em> Reads a workload and writes a <code>.passes</code> file.</p>
 
 <h3>APIDumpAnalysisQuery</h3>
-<p><em>Program.</em> Asks a <code>.passes</code> file questions (<code>info</code>, <code>timeline</code> and the others) and prints the answers as JSON.</p>
+<p><em>Program.</em> Asks a <code>.passes</code> file questions (<code>info</code>, <code>timeline</code> and the others) and prints the answers as JSON. It checks that the workload is the one the file is of (<code>--workload</code> says where it is, <code>--no-verify</code> skips the check).</p>
+
+<h3>APIDumpDependencies</h3>
+<p><em>Library.</em> What each frame of a workload does with what the frames before it left in the resources: the <code>AccessLog</code> keeps the accesses that the model builder tells (<code>IAccessSink</code>), the <code>DependencyAnalyzer</code> works out the dependencies (one thread for each of several resources at a time), the <code>.deps</code> file keeps them (<code>DepsFile</code>, on the same sections as a <code>.passes</code> file), and the query commands answer about them. <code>PerEyeCandidates</code> is the one rule that says which resources each eye is to have a copy of. Nothing in it knows an API.</p>
+
+<h3>APIDumpDependencyExtractor</h3>
+<p><em>Program.</em> Reads a workload and writes a <code>.deps</code> file. It reads on several threads, and leaves out the data chunks above 64 KiB (vertices and pixels, which it does not look at): the 4 GB capture of a demo takes about 8 seconds.</p>
+
+<h3>APIDumpDependencyQuery</h3>
+<p><em>Program.</em> Asks a <code>.deps</code> file questions (<code>info</code>, <code>resources</code>, <code>resource</code>, <code>frame</code>, <code>carries</code>, <code>per-eye</code>) and prints the answers as JSON. It checks that the workload is the one the file is of, as the query tool of the <code>.passes</code> file does.</p>
 
 <h3>RecipeLoader</h3>
 <p><em>Library.</em> Reads a recipe and checks it. It is what everything that only wants to read a recipe links: the replay player, the consistency checker, the launcher and the catalog.</p>
@@ -57,7 +66,7 @@
 <p><em>Library.</em> Applies a recipe: given a draw told by its signature and the view matrix, says whether to render it once, per eye, or not at all, and what its convergence distance is. The replay engine and the converter use it; neither needs to bake.</p>
 
 <h3>RecipeBake</h3>
-<p><em>Program.</em> Reads a <code>.passes</code> file and the hand-written rules, and makes the recipe, including the convergence distances (the median depth by vertices) and the limits of the eye separation of each scene (from how near its surfaces are, and the <code>comfort</code> of the recipe). The baking is the class <code>RecipeBaker</code>, which is in the program because the program is its only user (the tests compile it too); the command line is <code>CommandLine</code>.</p>
+<p><em>Program.</em> Reads a <code>.passes</code> file (and, with <code>--deps</code>, the <code>.deps</code> file of the same workload, which says which textures each eye is to have a copy of) and the hand-written rules, and makes the recipe, including the convergence distances (the median depth by vertices) and the limits of the eye separation of each scene (from how near its surfaces are, and the <code>comfort</code> of the recipe). The baking is the class <code>RecipeBaker</code>, which is in the program because the program is its only user (the tests compile it too); the command line is <code>CommandLine</code>.</p>
 
 <h2 id="replay">Replay</h2>
 <p>Executing a workload's calls again, without the program. See <a href="replay.html">Replay</a>.</p>
