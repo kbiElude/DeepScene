@@ -40,10 +40,14 @@ Stereo::Replay::EngineDLL::D3D7CallExecutor::D3D7CallExecutor(ObjectRemapper* in
      m_back_buffer_ptr         (nullptr),
      m_clipper_ptr             (nullptr),
      m_context                 (in_remapper_ptr),
+     m_device_ptr              (nullptr),
      m_direct_draw_ptr         (nullptr),
      m_display_height          (0),
      m_display_width           (0),
-     m_locked_image_ptr(nullptr),
+     m_eye                     (Analysis::RecipeLoader::Eye::LEFT),
+     m_is_building_twin        (false),
+     m_locked_image_ptr        (nullptr),
+     m_needs_twin              (false),
      m_primary_ptr             (nullptr),
      m_render_target_ptr       (nullptr),
      m_window                  (nullptr)
@@ -646,7 +650,33 @@ bool Stereo::Replay::EngineDLL::D3D7CallExecutor::execute(const Capture::APIDump
 
     if (handler_iterator != m_handler_map.end() )
     {
+        m_needs_twin = false;
+
         result = (this->*handler_iterator->second)(out_error_ptr);
+
+        /* What sets up an object that each eye has a copy of is made for both: the call that makes the copy, and the ones that follow it. The
+         * calls that are made in each execution of a frame are made for the eye of the execution.
+         */
+        if (result            &&
+            m_is_building_twin == false)
+        {
+            const bool is_setup = (m_needs_twin                                                          ||
+                                   (get_execution_class(in_call) == ExecutionClass::FIRST_TIME_ONLY &&
+                                    involves_per_eye_object() ) );
+
+            if (is_setup)
+            {
+                const Analysis::RecipeLoader::Eye eye = m_eye;
+
+                m_eye              = Analysis::RecipeLoader::Eye::RIGHT;
+                m_is_building_twin = true;
+
+                result = (this->*handler_iterator->second)(out_error_ptr);
+
+                m_is_building_twin = false;
+                m_eye              = eye;
+            }
+        }
     }
     else
     {
@@ -823,6 +853,14 @@ end:
     return result;
 }
 
+void* Stereo::Replay::EngineDLL::D3D7CallExecutor::find_right_twin(void* in_left_object_ptr) const
+{
+    const auto twin_iterator = m_right_twin_map.find(in_left_object_ptr);
+
+    return (twin_iterator != m_right_twin_map.end() ) ? twin_iterator->second
+                                                      : nullptr;
+}
+
 const uint8_t* Stereo::Replay::EngineDLL::D3D7CallExecutor::get_chunk_ptr(const size_t& in_n_argument,
                                                                           size_t*       out_n_bytes_ptr) const
 {
@@ -839,7 +877,7 @@ const uint8_t* Stereo::Replay::EngineDLL::D3D7CallExecutor::get_chunk_ptr(const 
     return result_ptr;
 }
 
-bool Stereo::Replay::EngineDLL::D3D7CallExecutor::get_live_object(const size_t& in_n_argument,
+bool Stereo::Replay::EngineDLL::D3D7CallExecutor::get_left_object(const size_t& in_n_argument,
                                                                   void**        out_object_ptr,
                                                                   std::string*  out_error_ptr) const
 {
@@ -875,6 +913,30 @@ bool Stereo::Replay::EngineDLL::D3D7CallExecutor::get_live_object(const size_t& 
     return result;
 }
 
+bool Stereo::Replay::EngineDLL::D3D7CallExecutor::get_live_object(const size_t& in_n_argument,
+                                                                  void**        out_object_ptr,
+                                                                  std::string*  out_error_ptr) const
+{
+    const bool result = get_left_object(in_n_argument,
+                                        out_object_ptr,
+                                        out_error_ptr);
+
+    /* The copy of the eye, for an object that each eye has a copy of. */
+    if (result                                                 &&
+        m_eye             == Analysis::RecipeLoader::Eye::RIGHT &&
+        *out_object_ptr   != nullptr)
+    {
+        void* const twin_ptr = find_right_twin(*out_object_ptr);
+
+        if (twin_ptr != nullptr)
+        {
+            *out_object_ptr = twin_ptr;
+        }
+    }
+
+    return result;
+}
+
 bool Stereo::Replay::EngineDLL::D3D7CallExecutor::get_u32(const size_t& in_n_argument,
                                                           uint32_t*     out_value_ptr) const
 {
@@ -883,6 +945,33 @@ bool Stereo::Replay::EngineDLL::D3D7CallExecutor::get_u32(const size_t& in_n_arg
     return (argument_ptr != nullptr &&
             read_number(*argument_ptr,
                          out_value_ptr) );
+}
+
+bool Stereo::Replay::EngineDLL::D3D7CallExecutor::involves_per_eye_object() const
+{
+    bool result = false;
+
+    if (m_right_twin_map.empty() == false)
+    {
+        for (size_t n_argument = 0;
+                    n_argument < m_context.get_call().arg_in_vec.size() && result == false;
+                  ++n_argument)
+        {
+            const auto& argument = m_context.get_call().arg_in_vec.at(n_argument);
+            uint64_t    live_value = 0;
+
+            if (argument.type                 == APIInterceptor::ARGTYPE_VOID_PTR &&
+                argument.get_ptr_as_u64()     != 0                                &&
+                m_context.get_remapper_ptr()->get(ObjectKind::D3D7_OBJECT,
+                                                  argument.get_ptr_as_u64(),
+                                                 &live_value) )
+            {
+                result = (find_right_twin(reinterpret_cast<void*>(live_value) ) != nullptr);
+            }
+        }
+    }
+
+    return result;
 }
 
 bool Stereo::Replay::EngineDLL::D3D7CallExecutor::is_query_method(const char* in_method_name_ptr)
@@ -1279,26 +1368,53 @@ void Stereo::Replay::EngineDLL::D3D7CallExecutor::register_object(const size_t& 
         out_argument_ptr->type == APIInterceptor::ARGTYPE_VOID_PTR &&
         out_argument_ptr->get_ptr_as_u64() != 0)
     {
-        m_context.get_remapper_ptr()->add(ObjectKind::D3D7_OBJECT,
-                                          out_argument_ptr->get_ptr_as_u64(),
-                                          reinterpret_cast<uint64_t>(in_live_object_ptr) );
+        uint64_t left_value = 0;
 
-        /* A call that hands out an object hands out a reference to it. */
-        m_live_objects.add(in_live_object_ptr);
+        if (m_is_building_twin)
+        {
+            /* The object is the copy of the right eye of the one that the call made for the left eye. */
+            if (m_context.get_remapper_ptr()->get(ObjectKind::D3D7_OBJECT,
+                                                  out_argument_ptr->get_ptr_as_u64(),
+                                                 &left_value) )
+            {
+                m_right_twin_map[reinterpret_cast<void*>(left_value)] = in_live_object_ptr;
+            }
 
-        m_dumped_value_map[in_live_object_ptr].push_back(out_argument_ptr->get_ptr_as_u64() );
-        m_reference_count_map[in_live_object_ptr]++;
+            m_live_objects.add(in_live_object_ptr);
+
+            m_reference_count_map[in_live_object_ptr]++;
+        }
+        else
+        {
+            m_context.get_remapper_ptr()->add(ObjectKind::D3D7_OBJECT,
+                                              out_argument_ptr->get_ptr_as_u64(),
+                                              reinterpret_cast<uint64_t>(in_live_object_ptr) );
+
+            /* A call that hands out an object hands out a reference to it. */
+            m_live_objects.add(in_live_object_ptr);
+
+            m_dumped_value_map[in_live_object_ptr].push_back(out_argument_ptr->get_ptr_as_u64() );
+            m_reference_count_map[in_live_object_ptr]++;
+
+            /* Asked when the object is made, which is when the copy is: it is made by the call being made again, for the right eye. */
+            if (m_per_eye_predicate                                           &&
+                m_per_eye_predicate(out_argument_ptr->get_ptr_as_u64() ) )
+            {
+                m_needs_twin = true;
+            }
+        }
     }
 }
 
 bool Stereo::Replay::EngineDLL::D3D7CallExecutor::release(std::string* out_error_ptr)
 {
     void* object_ptr = nullptr;
-    bool  result     = get_live_object(0,
+    bool  result     = get_left_object(0,
                                       &object_ptr,
                                        out_error_ptr);
 
     /* An object which the replay has not got is not the replay's to release. */
+
     if (result == false)
     {
         out_error_ptr->clear();
@@ -1316,6 +1432,27 @@ bool Stereo::Replay::EngineDLL::D3D7CallExecutor::release(std::string* out_error
             m_reference_count_map[object_ptr]--;
         }
 
+        /* The copy of the other eye is let go of with it. */
+        void* const twin_ptr = find_right_twin(object_ptr);
+
+        if (twin_ptr != nullptr)
+        {
+            const ULONG n_twin_refs = call_method<ULONG>(twin_ptr,
+                                                         Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_RELEASE);
+
+            if (m_reference_count_map[twin_ptr] > 0)
+            {
+                m_reference_count_map[twin_ptr]--;
+            }
+
+            if (n_twin_refs == 0)
+            {
+                m_live_objects.remove(twin_ptr);
+                m_locked_surface_map.erase(twin_ptr);
+                m_reference_count_map.erase(twin_ptr);
+            }
+        }
+
         if (n_refs == 0)
         {
             /* The object is gone, whichever pointers of the dump stood for it. */
@@ -1326,6 +1463,7 @@ bool Stereo::Replay::EngineDLL::D3D7CallExecutor::release(std::string* out_error
             }
 
             m_dumped_value_map.erase(object_ptr);
+            m_right_twin_map.erase(object_ptr);
             m_live_objects.remove(object_ptr);
             m_locked_surface_map.erase(object_ptr);
             m_reference_count_map.erase(object_ptr);
@@ -1335,9 +1473,27 @@ bool Stereo::Replay::EngineDLL::D3D7CallExecutor::release(std::string* out_error
                 m_primary_ptr = nullptr;
             }
 
+            if (object_ptr == m_device_ptr)
+            {
+                m_device_ptr = nullptr;
+            }
+
             if (object_ptr == m_render_target_ptr)
             {
                 m_render_target_ptr = nullptr;
+            }
+
+            for (auto stage_iterator  = m_stage_texture_map.begin();
+                      stage_iterator != m_stage_texture_map.end();)
+            {
+                if (stage_iterator->second == object_ptr)
+                {
+                    stage_iterator = m_stage_texture_map.erase(stage_iterator);
+                }
+                else
+                {
+                    ++stage_iterator;
+                }
             }
         }
     }
@@ -1366,6 +1522,7 @@ void Stereo::Replay::EngineDLL::D3D7CallExecutor::reset()
     }
 
     m_dumped_value_map.clear();
+    m_right_twin_map.clear();
     m_live_objects.clear();
     m_locked_surface_map.clear();
     m_reference_count_map.clear();
@@ -1378,6 +1535,52 @@ void Stereo::Replay::EngineDLL::D3D7CallExecutor::reset()
     m_primary_ptr       = nullptr;
     m_render_target_ptr = nullptr;
     m_window            = nullptr;
+
+    m_device_ptr = nullptr;
+    m_stage_texture_map.clear();
+}
+
+void Stereo::Replay::EngineDLL::D3D7CallExecutor::set_eye(const Analysis::RecipeLoader::Eye& in_eye)
+{
+    /* The device keeps what was set on it by the eye before: the target and the textures must be those of this eye, or that eye
+     * would draw into (and read) the other's copy.
+     */
+    const bool is_changing = (m_eye != in_eye);
+
+    m_eye = in_eye;
+
+    if (is_changing           &&
+        m_device_ptr != nullptr)
+    {
+        if (m_render_target_ptr != nullptr)
+        {
+            void* const twin_ptr = find_right_twin(m_render_target_ptr);
+
+            if (twin_ptr != nullptr)
+            {
+                call_method<HRESULT>(m_device_ptr,
+                                     Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETRENDERTARGET,
+                                     (m_eye == Analysis::RecipeLoader::Eye::RIGHT) ? twin_ptr
+                                                                                   : m_render_target_ptr,
+                                     static_cast<DWORD>(0) );
+            }
+        }
+
+        for (const auto& stage_iterator : m_stage_texture_map)
+        {
+            void* const twin_ptr = (stage_iterator.second != nullptr) ? find_right_twin(stage_iterator.second)
+                                                                      : nullptr;
+
+            if (twin_ptr != nullptr)
+            {
+                call_method<HRESULT>(m_device_ptr,
+                                     Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETTEXTURE,
+                                     static_cast<DWORD>(stage_iterator.first),
+                                     (m_eye == Analysis::RecipeLoader::Eye::RIGHT) ? twin_ptr
+                                                                                   : stage_iterator.second);
+            }
+        }
+    }
 }
 
 bool Stereo::Replay::EngineDLL::D3D7CallExecutor::set_cooperative_level(std::string* out_error_ptr)
@@ -1482,6 +1685,11 @@ bool Stereo::Replay::EngineDLL::D3D7CallExecutor::set_material(std::string* out_
     return result;
 }
 
+void Stereo::Replay::EngineDLL::D3D7CallExecutor::set_per_eye_predicate(const PerEyePredicate& in_predicate)
+{
+    m_per_eye_predicate = in_predicate;
+}
+
 bool Stereo::Replay::EngineDLL::D3D7CallExecutor::set_render_state(std::string* out_error_ptr)
 {
     constexpr size_t STATE_ARGUMENT = 1;
@@ -1519,16 +1727,20 @@ bool Stereo::Replay::EngineDLL::D3D7CallExecutor::set_render_target(std::string*
     constexpr size_t FLAGS_ARGUMENT   = 2;
     constexpr size_t SURFACE_ARGUMENT = 1;
 
-    void*    device_ptr  = nullptr;
-    uint32_t flags       = 0;
-    void*    surface_ptr = nullptr;
-    bool     result      = false;
+    void*    device_ptr       = nullptr;
+    uint32_t flags            = 0;
+    void*    left_surface_ptr = nullptr;
+    void*    surface_ptr      = nullptr;
+    bool     result           = false;
 
     if (get_live_object(0,
                        &device_ptr,
                         out_error_ptr) == false ||
         get_live_object(SURFACE_ARGUMENT,
                        &surface_ptr,
+                        out_error_ptr) == false ||
+        get_left_object(SURFACE_ARGUMENT,
+                       &left_surface_ptr,
                         out_error_ptr) == false ||
         get_u32(FLAGS_ARGUMENT,
                &flags)                 == false)
@@ -1543,7 +1755,8 @@ bool Stereo::Replay::EngineDLL::D3D7CallExecutor::set_render_target(std::string*
 
     if (result)
     {
-        m_render_target_ptr = surface_ptr;
+        m_device_ptr        = device_ptr;
+        m_render_target_ptr = left_surface_ptr;
     }
     else
     {
@@ -1559,16 +1772,20 @@ bool Stereo::Replay::EngineDLL::D3D7CallExecutor::set_texture(std::string* out_e
     constexpr size_t STAGE_ARGUMENT   = 1;
     constexpr size_t TEXTURE_ARGUMENT = 2;
 
-    void*    device_ptr  = nullptr;
-    uint32_t stage       = 0;
-    void*    texture_ptr = nullptr;
-    bool     result      = false;
+    void*    device_ptr       = nullptr;
+    uint32_t stage            = 0;
+    void*    left_texture_ptr = nullptr;
+    void*    texture_ptr      = nullptr;
+    bool     result           = false;
 
     if (get_live_object(0,
                        &device_ptr,
                         out_error_ptr) == false ||
         get_live_object(TEXTURE_ARGUMENT,
                        &texture_ptr,
+                        out_error_ptr) == false ||
+        get_left_object(TEXTURE_ARGUMENT,
+                       &left_texture_ptr,
                         out_error_ptr) == false ||
         get_u32(STAGE_ARGUMENT,
                &stage)                 == false)
@@ -1582,6 +1799,9 @@ bool Stereo::Replay::EngineDLL::D3D7CallExecutor::set_texture(std::string* out_e
                          Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETTEXTURE,
                          static_cast<DWORD>(stage),
                          texture_ptr);
+
+    m_device_ptr               = device_ptr;
+    m_stage_texture_map[stage] = left_texture_ptr;
 
 end:
     return result;

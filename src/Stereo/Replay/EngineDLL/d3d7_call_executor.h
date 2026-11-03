@@ -46,6 +46,8 @@ namespace Stereo
                 bool           read_back_buffer   (std::vector<uint8_t>*                        out_pixel_u8_vec_ptr,
                                                    FrameImage*                                  out_image_ptr) override;
                 void           reset              ()                                                             override;
+                void           set_eye            (const Analysis::RecipeLoader::Eye&           in_eye)          override;
+                void           set_per_eye_predicate(const PerEyePredicate&                 in_predicate)    override;
                 bool           write_back_buffer  (const std::vector<uint8_t>&                  in_pixel_u8_vec) override;
 
             private:
@@ -101,7 +103,15 @@ namespace Stereo
                 /* The live object that the argument stands for; false, and the error, if the replay has not created it. A null pointer is
                  * allowed, and gives nullptr.
                  */
+                /* The right eye's copy of the object, if the object is one that each eye has a copy of; nullptr if not. */
+                void* find_right_twin(void* in_left_object_ptr) const;
+
                 bool get_live_object(const size_t& in_n_argument,
+                                     void**        out_object_ptr,
+                                     std::string*  out_error_ptr) const;
+
+                /* The object that the dump's pointer stands for, whatever the eye is: the left one, which the copies of the other eye hang on. */
+                bool get_left_object(const size_t& in_n_argument,
                                      void**        out_object_ptr,
                                      std::string*  out_error_ptr) const;
 
@@ -109,6 +119,9 @@ namespace Stereo
                              uint32_t*     out_value_ptr) const;
 
                 /* The back buffer, which is the picture of a frame. */
+                /* True if an object of the call has a copy for each eye: a call which sets such an object up is made for both. */
+                bool involves_per_eye_object() const;
+
                 bool lock_frame_image  (const DWORD&                               in_flags,
                                           Interception::Hooks::D3D7::DDSURFACEDESC2* out_description_ptr);
                 void unlock_frame_image();
@@ -129,9 +142,15 @@ namespace Stereo
                 void*                                                          m_back_buffer_ptr;     /* the replay's own reference */
                 std::vector<uint8_t>                                           m_capture_u8_vec;
                 void*                                                          m_clipper_ptr;
+                Analysis::RecipeLoader::Eye                                    m_eye;
+                bool                                                           m_is_building_twin;    /* the call is made for the right eye's copies */
+                bool                                                           m_needs_twin;          /* the call made an object which each eye has a copy of */
+                PerEyePredicate                                                m_per_eye_predicate;
+                std::map<void*, void*>                                         m_right_twin_map;      /* the copy of each eye's object: by the left one */
                 CallContext                                                    m_context;
                 uint32_t                                                       m_display_height;
                 uint32_t                                                       m_display_width;
+                void*                                                          m_device_ptr;          /* the device that the target and textures below are set on */
                 void*                                                          m_direct_draw_ptr;
                 std::unordered_map<APIInterceptor::APIFunction, HandlerFuncPtr> m_handler_map;
                 LiveObjectList                                                 m_live_objects;
@@ -140,8 +159,9 @@ namespace Stereo
                 std::map<void*, uint32_t>                                      m_reference_count_map; /* the references the replay holds to each object */
                 void*                                                          m_primary_ptr;
                 std::unordered_set<APIInterceptor::APIFunction>                m_release_function_set;
-                void*                                                          m_render_target_ptr;
-                HWND                                                           m_window;
+                void*                                                          m_render_target_ptr;   /* the left object, as for the textures below */
+                std::map<uint32_t, void*>                                      m_stage_texture_map;   /* the left object set on each texture stage */
+                HWND                                                          m_window;
                 std::unordered_set<APIInterceptor::APIFunction>                m_add_ref_function_set;
                 void*                                                          m_locked_image_ptr;
             };
