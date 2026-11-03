@@ -32,6 +32,7 @@
 #ifndef APIDUMPANALYSIS_PASSES_FORMAT_H
 #define APIDUMPANALYSIS_PASSES_FORMAT_H
 
+#include "Analysis/APIDumpAnalysis/sectioned_file.h"
 #include <stdint.h>
 
 namespace Analysis
@@ -56,11 +57,14 @@ namespace Analysis
                                         const char& in_c,
                                         const char& in_d)
             {
-                return static_cast<uint32_t>(static_cast<uint8_t>(in_a))       |
-                       static_cast<uint32_t>(static_cast<uint8_t>(in_b)) << 8  |
-                       static_cast<uint32_t>(static_cast<uint8_t>(in_c)) << 16 |
-                       static_cast<uint32_t>(static_cast<uint8_t>(in_d)) << 24;
+                return make_section_tag(in_a,
+                                        in_b,
+                                        in_c,
+                                        in_d);
             }
+
+            /* The header of a section is the one that all of the files of the analysis have (see SectionedFile). */
+            typedef Analysis::APIDumpAnalysis::SectionHeader SectionHeader;
 
             /* How deep the draws are: for each pass of each kind of frame, a histogram of the weight of its draws by their distance
              * from the camera, which the convergence of a recipe is taken from. */
@@ -117,19 +121,8 @@ namespace Analysis
                 uint32_t key_scheme_version;
             };
 
-            struct SectionHeader
-            {
-                uint32_t tag;
-                uint32_t version;
-                uint64_t n_stored_bytes;
-                uint64_t n_raw_bytes;
-                uint64_t raw_hash;
-            };
-
-            static_assert(sizeof(FileHeader)    == 16,
+            static_assert(sizeof(FileHeader) == 16,
                           "Unexpected padding in the file header");
-            static_assert(sizeof(SectionHeader) == 32,
-                          "Unexpected padding in a section header");
         }
     }
 }

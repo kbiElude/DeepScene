@@ -12,7 +12,7 @@
 #include <string.h>
 #include <zstd.h>
 
-const Analysis::APIDumpAnalysis::PassesFile::SectionInfo Analysis::APIDumpAnalysis::PassesFile::SECTION_INFO_ARRAY[] =
+const Analysis::APIDumpAnalysis::SectionInfo Analysis::APIDumpAnalysis::PassesFile::SECTION_INFO_ARRAY[] =
 {
     {PassesFormat::TAG_META, 2},
     {PassesFormat::TAG_RSRC, 1},
@@ -42,61 +42,12 @@ void Analysis::APIDumpAnalysis::PassesFile::append_bytes(const void*           i
                                data_u8_ptr + in_n_bytes);
 }
 
-std::string Analysis::APIDumpAnalysis::PassesFile::get_tag_name(const uint32_t& in_tag)
-{
-    constexpr size_t N_BITS_PER_BYTE = 8;
-
-    std::string result;
-
-    for (size_t n_byte = 0;
-                n_byte < sizeof(in_tag);
-              ++n_byte)
-    {
-        result.push_back(static_cast<char>(in_tag >> (n_byte * N_BITS_PER_BYTE) ));
-    }
-
-    return result;
-}
-
 std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesFile::pack_section(const SectionInfo&    in_section_info,
                                                                          const AnalysisResult& in_analysis)
 {
-    constexpr int COMPRESSION_LEVEL = 19;
-
-    const std::vector<uint8_t>  raw_byte_vec   = serialize_section(in_section_info.tag,
-                                                                   in_analysis);
-    PassesFormat::SectionHeader section_header = {};
-
-    std::vector<uint8_t> result_vec;
-    std::vector<uint8_t> stored_byte_vec(::ZSTD_compressBound(raw_byte_vec.size() ));
-
-    const size_t n_stored_bytes = ::ZSTD_compress(stored_byte_vec.data(),
-                                                  stored_byte_vec.size(),
-                                                  raw_byte_vec.data   (),
-                                                  raw_byte_vec.size   (),
-                                                  COMPRESSION_LEVEL);
-
-    /* The buffer is as big as the worst case needs, so this does not fail unless something is very wrong. */
-    if (::ZSTD_isError(n_stored_bytes) == 0)
-    {
-        stored_byte_vec.resize(n_stored_bytes);
-
-        section_header.n_raw_bytes    = raw_byte_vec.size   ();
-        section_header.n_stored_bytes = stored_byte_vec.size();
-        section_header.raw_hash       = Hasher::hash_bytes  (raw_byte_vec.data(),
-                                                             raw_byte_vec.size() );
-        section_header.tag            = in_section_info.tag;
-        section_header.version        = in_section_info.version;
-
-        append_bytes(&section_header,
-                      sizeof(section_header),
-                     &result_vec);
-        append_bytes( stored_byte_vec.data(),
-                      stored_byte_vec.size(),
-                     &result_vec);
-    }
-
-    return result_vec;
+    return SectionedFile::pack_section(in_section_info,
+                                       serialize_section(in_section_info.tag,
+                                                         in_analysis) );
 }
 
 bool Analysis::APIDumpAnalysis::PassesFile::read(const std::string& in_filename,
@@ -140,11 +91,7 @@ bool Analysis::APIDumpAnalysis::PassesFile::read_bytes(const std::vector<uint8_t
                                                        AnalysisResult*             out_analysis_ptr,
                                                        std::string*                out_error_ptr)
 {
-    constexpr uint64_t MAX_SECTION_N_BYTES = 1ull << 30; /* cap on the claimed size of a section */
-
-    size_t n_next_section = 0;
-    size_t position       = sizeof(PassesFormat::FileHeader);
-    bool   result         = false;
+    bool result = false;
 
     *out_analysis_ptr = AnalysisResult();
 
@@ -186,134 +133,18 @@ bool Analysis::APIDumpAnalysis::PassesFile::read_bytes(const std::vector<uint8_t
         }
     }
 
-    while (position < in_byte_vec.size() )
-    {
-        PassesFormat::SectionHeader header;
-        size_t                      n_known_section = N_SECTIONS;
-
-        if (in_byte_vec.size() - position < sizeof(header) )
-        {
-            *out_error_ptr = "The file ends in the middle of a section header";
-
-            goto end;
-        }
-
-        ::memcpy(&header,
-                 in_byte_vec.data() + position,
-                 sizeof(header) );
-
-        position += sizeof(header);
-
-        if (header.n_stored_bytes > in_byte_vec.size() - position)
-        {
-            *out_error_ptr = "Section " + get_tag_name(header.tag) + " is truncated";
-
-            goto end;
-        }
-
-        const uint8_t* stored_ptr = in_byte_vec.data() + position;
-
-        position += static_cast<size_t>(header.n_stored_bytes);
-
-        for (size_t n_section = 0;
-                    n_section < N_SECTIONS;
-                  ++n_section)
-        {
-            if (SECTION_INFO_ARRAY[n_section].tag == header.tag)
-            {
-                n_known_section = n_section;
-            }
-        }
-
-        /* Skip sections this reader does not know. */
-        if (n_known_section == N_SECTIONS)
-        {
-            continue;
-        }
-
-        if (n_known_section < n_next_section)
-        {
-            *out_error_ptr = "Section " + get_tag_name(header.tag) + " is repeated or out of order";
-
-            goto end;
-        }
-
-        if (n_known_section > n_next_section)
-        {
-            *out_error_ptr = "Section " + get_tag_name(SECTION_INFO_ARRAY[n_next_section].tag) + " is missing";
-
-            goto end;
-        }
-
-        if (header.version != SECTION_INFO_ARRAY[n_known_section].version)
-        {
-            *out_error_ptr = "Section " + get_tag_name(header.tag) + " has an unsupported version " + std::to_string(header.version);
-
-            goto end;
-        }
-
-        /* The size is known from the compressed data too: a claim that differs is refused before anything is allocated for it. */
-        bool is_size_valid = (header.n_raw_bytes <= MAX_SECTION_N_BYTES);
-
-        if (is_size_valid)
-        {
-            const auto frame_n_bytes = ::ZSTD_getFrameContentSize(stored_ptr,
-                                                                  static_cast<size_t>(header.n_stored_bytes) );
-
-            is_size_valid = (frame_n_bytes == header.n_raw_bytes);
-        }
-
-        if (is_size_valid == false)
-        {
-            *out_error_ptr = "Section " + get_tag_name(header.tag) + " claims an impossible size";
-
-            goto end;
-        }
-
-        std::vector<uint8_t> raw_byte_vec(static_cast<size_t>(header.n_raw_bytes) );
-        const size_t         n_decompressed = ::ZSTD_decompress(raw_byte_vec.data(),
-                                                                raw_byte_vec.size(),
-                                                                stored_ptr,
-                                                                static_cast<size_t>(header.n_stored_bytes) );
-
-        const bool is_error = (::ZSTD_isError(n_decompressed) != 0);
-
-        if (is_error                              ||
-            n_decompressed != raw_byte_vec.size() )
-        {
-            *out_error_ptr = "Section " + get_tag_name(header.tag) + " cannot be decompressed";
-
-            goto end;
-        }
-
-        if (Hasher::hash_bytes(raw_byte_vec.data(),
-                               raw_byte_vec.size() ) != header.raw_hash)
-        {
-            *out_error_ptr = "Section " + get_tag_name(header.tag) + " is damaged (hash mismatch)";
-
-            goto end;
-        }
-
-        if (read_section_bytes(header.tag,
-                               raw_byte_vec,
-                               out_analysis_ptr) == false)
-        {
-            *out_error_ptr = "Section " + get_tag_name(header.tag) + " is invalid";
-
-            goto end;
-        }
-
-        ++n_next_section;
-    }
-
-    if (n_next_section != N_SECTIONS)
-    {
-        *out_error_ptr = "Section " + get_tag_name(SECTION_INFO_ARRAY[n_next_section].tag) + " is missing";
-
-        goto end;
-    }
-
-    result = true;
+    result = SectionedFile::read_sections(in_byte_vec,
+                                          sizeof(PassesFormat::FileHeader),
+                                          SECTION_INFO_ARRAY,
+                                          N_SECTIONS,
+                                          [out_analysis_ptr](const uint32_t&             in_tag,
+                                                             const std::vector<uint8_t>& in_raw_byte_vec)
+                                          {
+                                              return read_section_bytes(in_tag,
+                                                                        in_raw_byte_vec,
+                                                                        out_analysis_ptr);
+                                          },
+                                          out_error_ptr);
 
 end:
     return result;

@@ -8,6 +8,7 @@
 #define APIDUMPANALYSIS_PASSES_FILE_H
 
 #include "Analysis/APIDumpAnalysis/model.h"
+#include "Analysis/APIDumpAnalysis/sectioned_file.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <string>
@@ -34,17 +35,10 @@ namespace Analysis
             static std::vector<uint8_t> write_bytes(const AnalysisResult&       in_analysis);
 
         private:
-            /* A section this reader knows. The file holds them in the order of SECTION_INFO_ARRAY. */
-            struct SectionInfo
-            {
-                uint32_t tag;
-                uint32_t version;
-            };
-
-            static void        append_bytes(const void*           in_data_ptr,
-                                            const size_t&         in_n_bytes,
-                                            std::vector<uint8_t>* inout_byte_vec_ptr);
-            static std::string get_tag_name(const uint32_t&       in_tag);
+            /* The sections this reader knows are in the order of SECTION_INFO_ARRAY, which is the order of the file. */
+            static void append_bytes(const void*           in_data_ptr,
+                                     const size_t&         in_n_bytes,
+                                     std::vector<uint8_t>* inout_byte_vec_ptr);
 
             /* The header of a section and its compressed bytes; empty if the section cannot be made. */
             static std::vector<uint8_t> pack_section(const SectionInfo&    in_section_info,
