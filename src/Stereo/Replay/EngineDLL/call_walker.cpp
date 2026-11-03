@@ -3,6 +3,8 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "call_walker.h"
+#include <algorithm>
+#include <thread>
 
 Stereo::Replay::EngineDLL::CallWalker::CallWalker()
     :m_n_next_call(0)
@@ -34,10 +36,29 @@ const Capture::APIDumpLoader::Workload& Stereo::Replay::EngineDLL::CallWalker::g
 bool Stereo::Replay::EngineDLL::CallWalker::open(const char*  in_filename_ptr,
                                                  std::string* out_error_ptr)
 {
+    /* Segments are decompressed and read by threads of the loader, which a replay needs: playing the first frames of a long workload means
+     * reading all the segments before them. A segment held is some 100 to 200 MB, and the replay of a 32-bit application is a 32-bit process
+     * with two gigabytes to put them in (the segments being read, this walker's own two, and the one that is being freed), so it has a few. What
+     * more threads would do (the work is of the memory) is not worth the risk of running out.
+     */
+    constexpr uint32_t N_READER_THREADS_32_BIT = 3;
+    constexpr uint32_t N_READER_THREADS_64_BIT = 6;
+
+    const uint32_t                                  n_threads_wanted = (sizeof(void*) == sizeof(uint32_t) ) ? N_READER_THREADS_32_BIT
+                                                                                                           : N_READER_THREADS_64_BIT;
+    const uint32_t                                  n_cores          = std::max<uint32_t>(2,
+                                                                                          std::thread::hardware_concurrency() );
     std::string                                     error;
+    Capture::APIDumpLoader::WorkloadReader::Options reader_options;
+    bool                                            result           = false;
+
+    reader_options.n_threads             = std::min<uint32_t>(n_threads_wanted,
+                                                              n_cores - 1);
+    reader_options.n_segments_in_flight  = reader_options.n_threads + 1;
+
     Capture::APIDumpLoader::WorkloadReaderUniquePtr reader_ptr = Capture::APIDumpLoader::WorkloadReader::create(in_filename_ptr,
+                                                                                                                reader_options,
                                                                                                                 &error);
-    bool                                            result     = false;
 
     if (reader_ptr == nullptr)
     {
