@@ -1529,6 +1529,37 @@ TEST(ModelBuilder, ADrawOfPreTransformedVerticesWhichReachTheEdgesOfTheViewportC
                   1u);
     }
 
+    /* A flat quad from one side to the other covers the picture when it has bars above and below, and a mesh from one side to the other (a floor)
+     * does not: it is not at one depth.
+     */
+    {
+        Tests::ModelTestHelper flat;
+        Tests::ModelTestHelper floor;
+
+        for (auto* helper_ptr : {&flat, &floor})
+        {
+            helper_ptr->bind        (helper_ptr->create_swapchain_image() );
+            helper_ptr->set_viewport(0, 0, 640, 480);
+        }
+
+        flat.draw_with_screen_geometry({{0.0f,   40.0f,  0.2f},
+                                        {640.0f, 40.0f,  0.2f},
+                                        {0.0f,   440.0f, 0.2f},
+                                        {640.0f, 440.0f, 0.2f}},
+                                       6);
+        floor.draw_with_screen_geometry({{0.0f,   300.0f, 0.05f},
+                                         {640.0f, 300.0f, 0.05f},
+                                         {0.0f,   440.0f, 0.5f},
+                                         {640.0f, 440.0f, 0.5f}},
+                                        6);
+        flat.end_frame();
+        floor.end_frame();
+
+        EXPECT_EQ(flat.get_model().covering_draw_key_map.size(),
+                  1u);
+        EXPECT_TRUE(floor.get_model().covering_draw_key_map.empty() );
+    }
+
     /* Not all of it. */
     {
         Tests::ModelTestHelper helper;

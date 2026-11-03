@@ -1184,7 +1184,12 @@ Analysis::APIDumpAnalysis::ModelBuilder::ViewCoverage Analysis::APIDumpAnalysis:
     /* How near to an edge of the viewport a vertex has to be for the draw to reach it, as a part of the size of the viewport. */
     constexpr float EDGE_REACH = 0.005f;
 
+    /* How much the reciprocal of the depth may differ across a draw for it to be flat, as a part of it. */
+    constexpr float FLAT_DEPTH_SPREAD = 0.001f;
+
     ViewCoverage                      result       = ViewCoverage::UNKNOWN;
+    float                             reciprocal_depth_max = 0.0f;
+    float                             reciprocal_depth_min = 1.0e30f;
     const auto&                       position_vec = in_draw.geometry_ptr->position_vec;
     const uint64_t                    weight       = std::max<uint64_t>(1,
                                                                         in_draw.vertex_count / std::max<size_t>(1,
@@ -1215,6 +1220,9 @@ Analysis::APIDumpAnalysis::ModelBuilder::ViewCoverage Analysis::APIDumpAnalysis:
             y_max = (position[1] > y_max) ? position[1] : y_max;
             y_min = (position[1] < y_min) ? position[1] : y_min;
 
+            reciprocal_depth_max = (reciprocal_depth > reciprocal_depth_max) ? reciprocal_depth : reciprocal_depth_max;
+            reciprocal_depth_min = (reciprocal_depth < reciprocal_depth_min) ? reciprocal_depth : reciprocal_depth_min;
+
             if (is_in_view)
             {
                 m_open_pass.surface_depth_histogram.add(depth,
@@ -1238,11 +1246,20 @@ Analysis::APIDumpAnalysis::ModelBuilder::ViewCoverage Analysis::APIDumpAnalysis:
     if (x_min <= x_max &&
         has_viewport)
     {
-        result = (x_min <= m_viewport.x                      + EDGE_REACH * m_viewport.width  &&
-                  x_max >= m_viewport.x + m_viewport.width   - EDGE_REACH * m_viewport.width  &&
-                  y_min <= m_viewport.y                      + EDGE_REACH * m_viewport.height &&
-                  y_max >= m_viewport.y + m_viewport.height  - EDGE_REACH * m_viewport.height) ? ViewCoverage::COVERING
-                                                                                               : ViewCoverage::PARTIAL;
+        const bool reaches_sides  = (x_min <= m_viewport.x                    + EDGE_REACH * m_viewport.width &&
+                                     x_max >= m_viewport.x + m_viewport.width - EDGE_REACH * m_viewport.width);
+        const bool reaches_ends   = (y_min <= m_viewport.y                     + EDGE_REACH * m_viewport.height &&
+                                     y_max >= m_viewport.y + m_viewport.height - EDGE_REACH * m_viewport.height);
+
+        /* What matters to the eyes is the sides: moved sideways, a picture which reaches both leaves a strip bare at one of them. A flat quad (all of
+         * it at one depth, as a backdrop, a flash and a fade are) that goes from one side to the other covers the picture, whether the picture
+         * has bars above and below it or not; a mesh that goes from one side to the other (a floor) is not one that covers it.
+         */
+        const bool is_flat        = (reciprocal_depth_max - reciprocal_depth_min <= FLAT_DEPTH_SPREAD * reciprocal_depth_max);
+
+        result = (reaches_sides                       &&
+                  (reaches_ends || is_flat) ) ? ViewCoverage::COVERING
+                                              : ViewCoverage::PARTIAL;
     }
 
     return result;
