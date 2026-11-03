@@ -4,6 +4,7 @@
  */
 #include "Analysis/APIDumpAnalysis/passes_format.h"
 #include "Analysis/RecipeLoader/recipe_loader.h"
+#include "Interception/Core/D3D7Utils/constants.h"
 #include "Interception/Hooks/D3D8/types.h"
 #include <algorithm>
 #include <ctype.h>
@@ -34,7 +35,8 @@ const Analysis::RecipeLoader::RecipeLoader::CallDescriptor* Analysis::RecipeLoad
     /* The functions a rule can apply to: name, function and argument positions (argument 0 is the object it is called on). */
     static const CallDescriptor CALL_DESCRIPTOR_ARRAY[] =
     {
-        {APIInterceptor::APIFunction::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_SETTRANSFORM, 2, "IDirect3DDevice8::SetTransform", 1}
+        {Api::D3D7, APIInterceptor::APIFunction::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_SETTRANSFORM, 2, "IDirect3DDevice7::SetTransform", 1},
+        {Api::D3D8, APIInterceptor::APIFunction::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_SETTRANSFORM, 2, "IDirect3DDevice8::SetTransform", 1}
     };
 
     const CallDescriptor* result_ptr = nullptr;
@@ -1379,6 +1381,7 @@ end:
 
 bool Analysis::RecipeLoader::RecipeLoader::parse_state(const Analysis::APIDumpAnalysis::JsonValue& in_value,
                                                        const std::string&                          in_path,
+                                                       const CallDescriptor&                       in_call,
                                                        uint32_t*                                   out_state_ptr,
                                                        std::string*                                out_error_ptr)
 {
@@ -1388,7 +1391,25 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_state(const Analysis::APIDumpAn
         uint32_t    value;
     };
 
-    static const StateName STATE_NAME_ARRAY[] =
+    static const StateName D3D7_STATE_NAME_ARRAY[] =
+    {
+        {"D3DTRANSFORMSTATE_PROJECTION", Interception::Core::D3D7Utils::D3DTRANSFORMSTATE_PROJECTION},
+        {"D3DTRANSFORMSTATE_TEXTURE0",   Interception::Core::D3D7Utils::D3DTRANSFORMSTATE_TEXTURE0},
+        {"D3DTRANSFORMSTATE_TEXTURE1",   Interception::Core::D3D7Utils::D3DTRANSFORMSTATE_TEXTURE1},
+        {"D3DTRANSFORMSTATE_TEXTURE2",   Interception::Core::D3D7Utils::D3DTRANSFORMSTATE_TEXTURE2},
+        {"D3DTRANSFORMSTATE_TEXTURE3",   Interception::Core::D3D7Utils::D3DTRANSFORMSTATE_TEXTURE3},
+        {"D3DTRANSFORMSTATE_TEXTURE4",   Interception::Core::D3D7Utils::D3DTRANSFORMSTATE_TEXTURE4},
+        {"D3DTRANSFORMSTATE_TEXTURE5",   Interception::Core::D3D7Utils::D3DTRANSFORMSTATE_TEXTURE5},
+        {"D3DTRANSFORMSTATE_TEXTURE6",   Interception::Core::D3D7Utils::D3DTRANSFORMSTATE_TEXTURE6},
+        {"D3DTRANSFORMSTATE_TEXTURE7",   Interception::Core::D3D7Utils::D3DTRANSFORMSTATE_TEXTURE7},
+        {"D3DTRANSFORMSTATE_VIEW",       Interception::Core::D3D7Utils::D3DTRANSFORMSTATE_VIEW},
+        {"D3DTRANSFORMSTATE_WORLD",      Interception::Core::D3D7Utils::D3DTRANSFORMSTATE_WORLD},
+        {"D3DTRANSFORMSTATE_WORLD1",     Interception::Core::D3D7Utils::D3DTRANSFORMSTATE_WORLD1},
+        {"D3DTRANSFORMSTATE_WORLD2",     Interception::Core::D3D7Utils::D3DTRANSFORMSTATE_WORLD2},
+        {"D3DTRANSFORMSTATE_WORLD3",     Interception::Core::D3D7Utils::D3DTRANSFORMSTATE_WORLD3}
+    };
+
+    static const StateName D3D8_STATE_NAME_ARRAY[] =
     {
         {"D3DTS_PROJECTION", Interception::Hooks::D3D8::D3DTS_PROJECTION},
         {"D3DTS_TEXTURE0",   Interception::Hooks::D3D8::D3DTS_TEXTURE0},
@@ -1418,11 +1439,19 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_state(const Analysis::APIDumpAn
     else
     if (in_value.type == Analysis::APIDumpAnalysis::JsonValue::Type::STRING)
     {
-        for (const auto& state_name : STATE_NAME_ARRAY)
+        const bool        is_d3d7    = (in_call.api == Api::D3D7);
+        const StateName*  name_array = (is_d3d7) ? D3D7_STATE_NAME_ARRAY
+                                                 : D3D8_STATE_NAME_ARRAY;
+        const size_t      n_names    = (is_d3d7) ? sizeof(D3D7_STATE_NAME_ARRAY) / sizeof(D3D7_STATE_NAME_ARRAY[0])
+                                                 : sizeof(D3D8_STATE_NAME_ARRAY) / sizeof(D3D8_STATE_NAME_ARRAY[0]);
+
+        for (size_t n_name = 0;
+                    n_name < n_names;
+                  ++n_name)
         {
-            if (in_value.string_value == state_name.name)
+            if (in_value.string_value == name_array[n_name].name)
             {
-                *out_state_ptr = state_name.value;
+                *out_state_ptr = name_array[n_name].value;
 
                 result = true;
             }
@@ -1497,6 +1526,7 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_when(const Analysis::APIDumpAna
 
         if (parse_state(in_when.at("state"),
                         in_path + ".state",
+                        in_call,
                        &condition.value,
                         out_error_ptr) == false)
         {

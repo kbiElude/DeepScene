@@ -30,9 +30,17 @@ namespace Analysis
                               std::string*       out_error_ptr);
 
         private:
+            /* The API of a function that a rule can be about: the names of its transform states are its own. */
+            enum class Api
+            {
+                D3D7,
+                D3D8
+            };
+
             /* A function that a rule can be about. */
             struct CallDescriptor
             {
+                Api                         api;
                 APIInterceptor::APIFunction function;
                 uint32_t                    matrix_argument_index;
                 const char*                 name;
@@ -96,6 +104,7 @@ namespace Analysis
                                                  std::string*                                out_error_ptr);
             static bool parse_state             (const Analysis::APIDumpAnalysis::JsonValue& in_value,
                                                  const std::string&                          in_path,
+                                                 const CallDescriptor&                       in_call,
                                                  uint32_t*                                   out_state_ptr,
                                                  std::string*                                out_error_ptr);
             static bool parse_unsigned          (const Analysis::APIDumpAnalysis::JsonValue& in_value,

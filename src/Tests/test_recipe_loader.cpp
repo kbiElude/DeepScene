@@ -7,6 +7,7 @@
  */
 #include <gtest/gtest.h>
 #include "Analysis/RecipeLoader/recipe_loader.h"
+#include "Interception/Core/D3D7Utils/constants.h"
 #include "Interception/Hooks/D3D8/types.h"
 #include "data_fixtures.h"
 
@@ -185,6 +186,46 @@ TEST_F(RecipeLoaderTest, TheOptionalPartsOfARuleCanBeLeftOut)
     EXPECT_TRUE(recipe.rule_vec.at(0).argument_condition_vec.empty() );
     EXPECT_EQ  (recipe.rule_vec.at(0).matrix_kind,
                 Analysis::RecipeLoader::MatrixKind::ANY);
+}
+
+TEST_F(RecipeLoaderTest, ARuleCanBeAboutTheTransformsOfDirect3D7)
+{
+    std::string                    error;
+    Analysis::RecipeLoader::Recipe recipe;
+
+    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("",
+                                                                             get_rule_text("\"IDirect3DDevice7::SetTransform\"",
+                                                                                           "{\"state\": \"D3DTRANSFORMSTATE_VIEW\"}",
+                                                                                           m_good_action) ),
+                                                           &recipe,
+                                                           &error) ) << error;
+
+    ASSERT_EQ(recipe.rule_vec.size(),
+              1u);
+    EXPECT_EQ(recipe.rule_vec.at(0).function,
+              APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_SETTRANSFORM);
+    EXPECT_EQ(recipe.rule_vec.at(0).matrix_argument_index,
+              2u);
+    ASSERT_EQ(recipe.rule_vec.at(0).argument_condition_vec.size(),
+              1u);
+    EXPECT_EQ(recipe.rule_vec.at(0).argument_condition_vec.at(0).argument_index,
+              1u);
+    EXPECT_EQ(recipe.rule_vec.at(0).argument_condition_vec.at(0).value,
+              static_cast<uint32_t>(Interception::Core::D3D7Utils::D3DTRANSFORMSTATE_VIEW) );
+}
+
+TEST_F(RecipeLoaderTest, TheNamesOfTheTransformsAreThoseOfTheAPIOfTheFunction)
+{
+    expect_refused(get_recipe_text("",
+                                   get_rule_text("\"IDirect3DDevice7::SetTransform\"",
+                                                 "{\"state\": \"D3DTS_VIEW\"}",
+                                                 m_good_action) ),
+                   "rules[0].when.state: \"D3DTS_VIEW\" is not a transform state");
+    expect_refused(get_recipe_text("",
+                                   get_rule_text(m_good_call,
+                                                 "{\"state\": \"D3DTRANSFORMSTATE_VIEW\"}",
+                                                 m_good_action) ),
+                   "rules[0].when.state: \"D3DTRANSFORMSTATE_VIEW\" is not a transform state");
 }
 
 TEST_F(RecipeLoaderTest, EveryPolicyForUnknownFramesIsRead)

@@ -79,7 +79,7 @@
         "name": "scene camera",                                                                        (optional)
         "call": "IDirect3DDevice8::SetTransform",
         "when": {                                                                                      (optional)
-          "state": "D3DTS_VIEW",                   a D3DTS_* name, or a number
+          "state": "D3DTS_VIEW",                   a D3DTS_* name (D3DTRANSFORMSTATE_* for Direct3D 7), or a number
           "matrix": "perspective",                 any (default), perspective or orthographic
           "pass_keys": [ "0x..." ],                the call is in one of these pass structures
           "shape_keys": [ "0x..." ]                the frame is one of these shapes
