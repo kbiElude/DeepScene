@@ -3,6 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "Analysis/RecipeLoader/recipe_loader.h"
+#include "Capture/APIDumpLoader/api_info.h"
 #include "Interception/Hooks/D3D8/types.h"
 #include "Stereo/Session/session_environment.h"
 #include "converter.h"
@@ -36,7 +37,9 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
     {
         const auto function = static_cast<APIInterceptor::APIFunction>(n_api_func);
 
-        if (CallFeeder::is_followed(function) )
+        /* The rest of the converter (the eye renderer, the scaler, the exporter) is for Direct3D 8 until the ones of Direct3D 7 are made. */
+        if (CallFeeder::is_followed(function)                                                              &&
+            Capture::APIDumpLoader::get_api_group(function) == Capture::APIDumpLoader::APIGroup::D3D8)
         {
             APIInterceptor::register_for_post_callback(function,
                                                       &Converter::on_post_callback,

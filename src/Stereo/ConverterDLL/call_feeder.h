@@ -23,6 +23,8 @@ namespace Stereo
          * A call has its results only when it is done, so it is analysed then. A draw has none, and its signature is needed before it is
          * made: it is analysed at once. The data chunks of a call are moved out of the interceptor as the call is analysed.
          *
+         * The front end is the one of the API of the calls (see AnalysisSession): the feeder does not care which API it is.
+         *
          * Not thread-safe: the caller serializes the calls.
          */
         class CallFeeder
@@ -43,7 +45,7 @@ namespace Stereo
             /* True for the calls that on_pre() analyses at once. */
             static bool is_draw(const APIInterceptor::APIFunction& in_function);
 
-            /* True for the calls of Direct3D 8, which the front end follows. */
+            /* True for the calls of Direct3D 7 and 8, which the front ends follow. */
             static bool is_followed(const APIInterceptor::APIFunction& in_function);
 
             /* The call is done: analyses it, if it was not a draw, with its results. */

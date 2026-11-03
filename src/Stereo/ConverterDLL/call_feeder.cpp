@@ -167,15 +167,24 @@ uint64_t Stereo::ConverterDLL::CallFeeder::get_last_draw_signature_key() const
 
 bool Stereo::ConverterDLL::CallFeeder::is_draw(const APIInterceptor::APIFunction& in_function)
 {
-    return (in_function == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_DRAWINDEXEDPRIMITIVE   ||
-            in_function == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_DRAWINDEXEDPRIMITIVEUP ||
-            in_function == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_DRAWPRIMITIVE          ||
+    return (in_function == APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVE         ||
+            in_function == APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVESTRIDED ||
+            in_function == APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVEVB      ||
+            in_function == APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWPRIMITIVE               ||
+            in_function == APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWPRIMITIVESTRIDED        ||
+            in_function == APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWPRIMITIVEVB             ||
+            in_function == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_DRAWINDEXEDPRIMITIVE        ||
+            in_function == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_DRAWINDEXEDPRIMITIVEUP      ||
+            in_function == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_DRAWPRIMITIVE               ||
             in_function == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_DRAWPRIMITIVEUP);
 }
 
 bool Stereo::ConverterDLL::CallFeeder::is_followed(const APIInterceptor::APIFunction& in_function)
 {
-    return (Capture::APIDumpLoader::get_api_group(in_function) == Capture::APIDumpLoader::APIGroup::D3D8);
+    const auto api_group = Capture::APIDumpLoader::get_api_group(in_function);
+
+    return (api_group == Capture::APIDumpLoader::APIGroup::D3D7 ||
+            api_group == Capture::APIDumpLoader::APIGroup::D3D8);
 }
 
 void Stereo::ConverterDLL::CallFeeder::on_post(const APIInterceptor::APIFunction&         in_function,
