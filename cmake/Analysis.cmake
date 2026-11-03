@@ -25,6 +25,17 @@ target_link_libraries(APIDumpAnalysisFrontends PUBLIC APIDumpAnalysis D3D7Utils 
 source_group ("APIDump Analysis Frontends include files" FILES ${APIDumpAnalysisFrontendsIncludes})
 source_group ("APIDump Analysis Frontends source files"  FILES ${APIDumpAnalysisFrontendsSources})
 
+file(GLOB APIDumpDependenciesIncludes CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/include/Analysis/APIDumpDependencies/*.h")
+file(GLOB APIDumpDependenciesSources CONFIGURE_DEPENDS  "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpDependencies/*.cpp")
+
+# What each frame of a workload does with what the frames before it left in the resources: made of the accesses that the model builder tells.
+add_library(APIDumpDependencies STATIC ${APIDumpDependenciesIncludes} ${APIDumpDependenciesSources})
+
+target_link_libraries(APIDumpDependencies PUBLIC APIDumpAnalysis)
+
+source_group ("APIDump Dependencies include files" FILES ${APIDumpDependenciesIncludes})
+source_group ("APIDump Dependencies source files"  FILES ${APIDumpDependenciesSources})
+
 file(GLOB RecipeLoaderIncludes CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/include/Analysis/RecipeLoader/*.h")
 file(GLOB RecipeLoaderSources CONFIGURE_DEPENDS  "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/RecipeLoader/*.cpp")
 

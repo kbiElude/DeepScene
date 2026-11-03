@@ -26,8 +26,12 @@ namespace Analysis
              */
             virtual void on_access(const AccessEvent& in_event) = 0;
 
-            /* The frame ended (a present); the accesses which followed the previous one are its own. The frames are numbered from 0. */
-            virtual void on_frame_ended(const uint64_t& in_frame_index) = 0;
+            /* The frame ended (a present); the accesses which followed the previous one are its own. The frames are numbered from 0. The calls
+             * of the frame are those from the first to the last (the call which ends it is the last), by the numbers that the builder was told.
+             */
+            virtual void on_frame_ended(const uint64_t& in_frame_index,
+                                        const uint64_t& in_first_call_index,
+                                        const uint64_t& in_last_call_index) = 0;
         };
     }
 }

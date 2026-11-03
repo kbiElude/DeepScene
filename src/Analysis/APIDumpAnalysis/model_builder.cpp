@@ -828,7 +828,9 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_frame_presented()
 
     if (m_access_sink_ptr != nullptr)
     {
-        m_access_sink_ptr->on_frame_ended(m_n_frames);
+        m_access_sink_ptr->on_frame_ended(m_n_frames,
+                                          frame_record.first_call_index,
+                                          frame_record.last_call_index);
     }
 
     ++m_n_frames;

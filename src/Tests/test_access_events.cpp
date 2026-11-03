@@ -20,9 +20,13 @@ namespace
             event_vec.push_back(in_event);
         }
 
-        void on_frame_ended(const uint64_t& in_frame_index) override
+        void on_frame_ended(const uint64_t& in_frame_index,
+                            const uint64_t& in_first_call_index,
+                            const uint64_t& in_last_call_index) override
         {
             ended_frame_index_vec.push_back(in_frame_index);
+            frame_first_call_index_vec.push_back(in_first_call_index);
+            frame_last_call_index_vec.push_back(in_last_call_index);
         }
 
         /* The events which are of the resource, in order. */
@@ -43,6 +47,8 @@ namespace
 
         std::vector<uint64_t>                               ended_frame_index_vec;
         std::vector<Analysis::APIDumpAnalysis::AccessEvent> event_vec;
+        std::vector<uint64_t>                               frame_first_call_index_vec;
+        std::vector<uint64_t>                               frame_last_call_index_vec;
     };
 }
 
@@ -256,6 +262,16 @@ TEST(AccessEvents, TheFramesAreToldWhereTheyEndInOrder)
     EXPECT_EQ(sink.ended_frame_index_vec.at(0),
               0u);
     EXPECT_EQ(sink.ended_frame_index_vec.at(2),
+              2u);
+
+    /* The calls of a frame are those from its first to the one that ends it; the next frame goes on from there. */
+    EXPECT_EQ(sink.frame_first_call_index_vec.at(0),
+              0u);
+    EXPECT_EQ(sink.frame_last_call_index_vec.at(0),
+              0u);
+    EXPECT_EQ(sink.frame_first_call_index_vec.at(1),
+              1u);
+    EXPECT_EQ(sink.frame_last_call_index_vec.at(2),
               2u);
 }
 
