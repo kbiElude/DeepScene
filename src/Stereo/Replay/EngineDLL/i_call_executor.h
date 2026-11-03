@@ -8,6 +8,8 @@
 #include "Stereo/Replay/EngineDLL/types.h"
 #include "i_chunk_source.h"
 #include "types.h"
+#include <functional>
+#include <stdint.h>
 
 namespace Stereo
 {
@@ -15,6 +17,11 @@ namespace Stereo
     {
         namespace EngineDLL
         {
+            /* Tells whether an object which the application makes, by the address that the dump gives it, is one that each eye has a copy of (see
+             * PerEyeTexture). Asked when the object is made, which is when the copies are.
+             */
+            typedef std::function<bool(const uint64_t& in_dumped_address)> PerEyePredicate;
+
             /* Replays the calls of one API group (see Capture::APIDumpLoader::APIGroup). */
             class ICallExecutor
             {
@@ -73,6 +80,20 @@ namespace Stereo
                 virtual void save_state()
                 {
                     /* Stub */
+                }
+
+                /* The eye that the calls which follow are executed for, until the next time: the objects which each eye has a copy of are the ones of
+                 * that eye. The left one to begin with, and for what is not rendered for two eyes.
+                 */
+                virtual void set_eye(const Analysis::RecipeLoader::Eye& in_eye)
+                {
+                    (void) in_eye;
+                }
+
+                /* What tells which objects have a copy for each eye; none, if it is not set. */
+                virtual void set_per_eye_predicate(const PerEyePredicate& in_predicate)
+                {
+                    (void) in_predicate;
                 }
 
                 /* Whether the windows of the replayed application are shown. They are, unless this says otherwise (before the replay is

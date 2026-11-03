@@ -50,6 +50,12 @@ Stereo::Replay::EngineDLL::ReplayEngine::ReplayEngine()
 
     m_executors.add(Capture::APIDumpLoader::APIGroup::D3D7,
                     std::make_shared<D3D7CallExecutor>(&m_remapper) );
+
+    m_executors.get_executor_ptr(Capture::APIDumpLoader::APIGroup::D3D7)->set_per_eye_predicate([this](const uint64_t& in_dumped_address)
+                                                                                                {
+                                                                                                    return is_per_eye_texture(Capture::APIDumpLoader::APIGroup::D3D7,
+                                                                                                                              in_dumped_address);
+                                                                                                });
     m_executors.add(Capture::APIDumpLoader::APIGroup::D3D8,
                     std::make_shared<D3D8CallExecutor>(&m_remapper) );
     m_executors.add(Capture::APIDumpLoader::APIGroup::GL,
@@ -93,6 +99,18 @@ bool Stereo::Replay::EngineDLL::ReplayEngine::begin_frame_execution(const bool& 
     constexpr uint32_t N_RIGHT_EXECUTION = 1;
 
     bool result = true;
+
+    /* The eye of the execution, for the objects which each eye has a copy of. */
+    {
+        const Analysis::RecipeLoader::Eye eye = (m_frame_execution.mode == FrameExecution::TWICE) ? ((in_n_execution == N_LEFT_EXECUTION) ? Analysis::RecipeLoader::Eye::LEFT
+                                                                                                                                         : Analysis::RecipeLoader::Eye::RIGHT)
+                                                                                                  : m_frame_execution.eye;
+
+        for (const auto executor_ptr : m_executors.get_executor_ptr_vec() )
+        {
+            executor_ptr->set_eye(eye);
+        }
+    }
 
     if (in_uses_history == false)
     {
@@ -196,6 +214,9 @@ void Stereo::Replay::EngineDLL::ReplayEngine::complete_frame(bool* out_is_done_p
     for (const auto executor_ptr : m_executors.get_executor_ptr_vec() )
     {
         executor_ptr->on_frame_presented();
+
+        /* What is not rendered for two eyes is rendered for the left one. */
+        executor_ptr->set_eye(Analysis::RecipeLoader::Eye::LEFT);
     }
 
     {
@@ -569,20 +590,39 @@ bool Stereo::Replay::EngineDLL::ReplayEngine::get_eye_history_need(const Analysi
     {
         const auto& resource = model.resource_vec.at(Analysis::APIDumpAnalysis::get_resource_id_value(id) - 1);
 
-        if (resource.description.kind != Analysis::APIDumpAnalysis::ResourceKind::SWAP_CHAIN_IMAGE)
+        const bool is_swap_chain_image = (resource.description.kind == Analysis::APIDumpAnalysis::ResourceKind::SWAP_CHAIN_IMAGE);
+
+        if (is_swap_chain_image)
         {
-            *out_error_ptr = "Frame "                                                                +
-                             std::to_string(in_frame.frame_index)                                    +
-                             " carries "                                                             +
-                             resource.debug_name                                                     +
-                             " over from the previous frame, which cannot be rendered for two eyes.";
-
-            result = false;
-
-            break;
+            /* The player keeps the pictures of the eyes apart. */
+            *out_needs_history_ptr = true;
         }
+        else
+        {
+            Analysis::APIDumpAnalysis::ResourceIdentity identity;
+            bool                                        is_per_eye = false;
 
-        *out_needs_history_ptr = true;
+            /* Each eye has a copy of a texture that the recipe says it has a copy of, so that nothing is carried over from one to the other. */
+            if (Analysis::APIDumpAnalysis::ResourceIdentities::find(model.resource_vec,
+                                                                    id,
+                                                                   &identity) )
+            {
+                is_per_eye = m_recipe_applier_ptr->is_per_eye_texture(identity);
+            }
+
+            if (is_per_eye == false)
+            {
+                *out_error_ptr = "Frame "                                                                    +
+                                 std::to_string(in_frame.frame_index)                                        +
+                                 " carries "                                                                 +
+                                 resource.debug_name                                                         +
+                                 " over from the previous frame, which cannot be rendered for two eyes: the recipe does not say that each eye has a copy of it.";
+
+                result = false;
+
+                break;
+            }
+        }
     }
 
     return result;
@@ -641,6 +681,33 @@ bool Stereo::Replay::EngineDLL::ReplayEngine::load(const char*  in_filename_ptr,
     result      = true;
 
 end:
+    return result;
+}
+
+bool Stereo::Replay::EngineDLL::ReplayEngine::is_per_eye_texture(const Capture::APIDumpLoader::APIGroup& in_group,
+                                                                 const uint64_t&                         in_address) const
+{
+    Analysis::APIDumpAnalysis::ResourceIdentity identity;
+    Analysis::APIDumpAnalysis::ResourceView     view;
+    bool                                        result = false;
+
+    /* The analysis has followed the call that made the object by the time the object is asked about: calls are read before they are played. */
+    if (m_recipe_applier_ptr != nullptr &&
+        m_session_ptr        != nullptr)
+    {
+        if (m_session_ptr->find_resource_view(in_group,
+                                              in_address,
+                                             &view) )
+        {
+            if (Analysis::APIDumpAnalysis::ResourceIdentities::find(m_session_ptr->get_model().resource_vec,
+                                                                    view.resource_id,
+                                                                   &identity) )
+            {
+                result = m_recipe_applier_ptr->is_per_eye_texture(identity);
+            }
+        }
+    }
+
     return result;
 }
 

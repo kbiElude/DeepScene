@@ -33,6 +33,9 @@ namespace Analysis
                 D3D8Frontend(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr);
 
                 /* The calls which depend on the size of what is rendered to in pixels, by what they are (see ResolutionHazard). */
+                bool find_resource_view(const uint64_t&                          in_address,
+                                        Analysis::APIDumpAnalysis::ResourceView* out_view_ptr) const override;
+
                 const std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t>& get_n_resolution_hazards() const override;
 
                 /* Calls with an unknown object, or arguments which could not be read. */

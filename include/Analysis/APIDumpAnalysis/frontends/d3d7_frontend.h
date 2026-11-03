@@ -37,6 +37,9 @@ namespace Analysis
                 /* The builder must outlive the front end. */
                 D3D7Frontend(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr);
 
+                bool find_resource_view(const uint64_t&                          in_address,
+                                        Analysis::APIDumpAnalysis::ResourceView* out_view_ptr) const override;
+
                 const std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t>& get_n_resolution_hazards() const override;
 
                 uint64_t get_n_unfollowed_calls() const override;

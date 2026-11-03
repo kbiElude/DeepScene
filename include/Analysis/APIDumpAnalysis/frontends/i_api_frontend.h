@@ -24,6 +24,12 @@ namespace Analysis
             public:
                 virtual ~IAPIFrontend() = default;
 
+                /* The resource (or the part of one) that an object of the application stands for, by its address; false if the object is not one of those
+                 * that the front end follows, or is gone. Valid from the call that makes the object on.
+                 */
+                virtual bool find_resource_view(const uint64_t&                          in_address,
+                                                Analysis::APIDumpAnalysis::ResourceView* out_view_ptr) const = 0;
+
                 /* The calls which depend on the size of what is rendered to in pixels, by what they are (see ResolutionHazard). */
                 virtual const std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t>& get_n_resolution_hazards() const = 0;
 

@@ -130,6 +130,9 @@ namespace Stereo
                 bool get_eye_history_need     (const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
                                                bool*                                            out_needs_history_ptr,
                                                std::string*                                     out_error_ptr) const;
+                /* Whether the texture that the application has at the address (in the API) is one that each eye has a copy of. */
+                bool is_per_eye_texture       (const Capture::APIDumpLoader::APIGroup&          in_group,
+                                               const uint64_t&                                  in_address) const;
                 void notify_error             (const std::string&                               in_message);
                 void notify_frame_presented   (const uint32_t&                                  in_n_frame);
                 void notify_idle              ();

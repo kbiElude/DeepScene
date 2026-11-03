@@ -34,6 +34,11 @@ namespace Analysis
                 /* The frame completed by the last call; valid if process_call returned true. */
                 const Analysis::APIDumpAnalysis::CompletedFrame& get_completed_frame() const;
 
+                /* The resource that an object of the application stands for, by its address (see IAPIFrontend::find_resource_view). */
+                bool find_resource_view(const Capture::APIDumpLoader::APIGroup&      in_group,
+                                        const uint64_t&                              in_address,
+                                        Analysis::APIDumpAnalysis::ResourceView*     out_view_ptr) const;
+
                 /* The key of the last draw analyzed by its signature and size (see ModelBuilder::get_last_draw_cover_key). */
                 uint64_t get_last_draw_cover_key() const;
 

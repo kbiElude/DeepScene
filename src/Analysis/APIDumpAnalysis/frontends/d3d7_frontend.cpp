@@ -217,6 +217,20 @@ const char* Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::get_created_obje
                                    : "Object";
 }
 
+bool Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::find_resource_view(const uint64_t&                          in_address,
+                                                                        Analysis::APIDumpAnalysis::ResourceView* out_view_ptr) const
+{
+    const ObjectTracker::TrackedObject* object_ptr = m_tracker.get_object_ptr(in_address);
+    const bool                          result     = (object_ptr != nullptr);
+
+    if (result)
+    {
+        *out_view_ptr = object_ptr->view;
+    }
+
+    return result;
+}
+
 Analysis::APIDumpAnalysis::Viewport Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::get_full_viewport(const Analysis::APIDumpAnalysis::ResourceView& in_view) const
 {
     const Analysis::APIDumpAnalysis::ResourceDescription* description_ptr = find_resource_description_ptr(in_view.resource_id);

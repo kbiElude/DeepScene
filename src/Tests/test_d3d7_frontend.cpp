@@ -5,6 +5,7 @@
  * Checks of the D3D7 front end following the surfaces, the device, the draws and the frames.
  */
 #include <gtest/gtest.h>
+#include "Analysis/APIDumpAnalysis/resource_identity.h"
 #include "Interception/Core/D3D7Utils/constants.h"
 #include "d3d7_scene.h"
 
@@ -596,4 +597,79 @@ TEST(D3D7Frontend, TheVerticesOfAStridedDrawAreThoseOfItsArraysOfPositions)
     EXPECT_NEAR(model.surface_depth_histogram_map.begin()->second.get_depth_at_fraction(0.5),
                 10.0f,
                 1.0f);
+}
+
+TEST(D3D7Frontend, AnObjectOfTheApplicationIsFoundByItsAddressAsTheResourceOrThePartOfItThatItStandsFor)
+{
+    Tests::D3D7Scene scene;
+
+    Tests::D3D7CallBuilder::SurfaceSpec spec;
+
+    spec.caps          = Interception::Core::D3D7Utils::DDSCAPS_COMPLEX | Interception::Core::D3D7Utils::DDSCAPS_MIPMAP | Interception::Core::D3D7Utils::DDSCAPS_TEXTURE;
+    spec.flags         = Interception::Core::D3D7Utils::DDSD_CAPS | Interception::Core::D3D7Utils::DDSD_HEIGHT | Interception::Core::D3D7Utils::DDSD_MIPMAPCOUNT | Interception::Core::D3D7Utils::DDSD_WIDTH;
+    spec.height        = 64;
+    spec.mip_map_count = 7;
+    spec.width         = 64;
+
+    const uint64_t texture = scene.get_builder().create_surface(spec);
+    const uint64_t level_1 = scene.get_builder().get_attached_surface(texture,
+                                                                      Interception::Core::D3D7Utils::DDSCAPS_MIPMAP);
+    scene.feed();
+
+    Analysis::APIDumpAnalysis::ResourceView level_view;
+    Analysis::APIDumpAnalysis::ResourceView texture_view;
+
+    ASSERT_TRUE(scene.get_harness().get_frontend().find_resource_view(texture,
+                                                                     &texture_view) );
+    ASSERT_TRUE(scene.get_harness().get_frontend().find_resource_view(level_1,
+                                                                     &level_view) );
+
+    EXPECT_EQ(level_view.resource_id,
+              texture_view.resource_id);
+    EXPECT_EQ(texture_view.mip_level,
+              0u);
+    EXPECT_EQ(level_view.mip_level,
+              1u);
+
+    EXPECT_FALSE(scene.get_harness().get_frontend().find_resource_view(0xDEAD0,
+                                                                      &level_view) );
+}
+
+TEST(D3D7Frontend, TheTextureTheApplicationMakesCanBeToldByTheIdentityOfItsResourceWhenItIsMade)
+{
+    Tests::D3D7Scene scene;
+
+    Tests::D3D7CallBuilder::SurfaceSpec spec;
+
+    spec.caps   = Interception::Core::D3D7Utils::DDSCAPS_TEXTURE;
+    spec.flags  = Interception::Core::D3D7Utils::DDSD_CAPS | Interception::Core::D3D7Utils::DDSD_HEIGHT | Interception::Core::D3D7Utils::DDSD_WIDTH;
+    spec.height = 64;
+    spec.width  = 64;
+
+    const uint64_t first_texture  = scene.get_builder().create_surface(spec);
+    const uint64_t second_texture = scene.get_builder().create_surface(spec);
+
+    scene.feed();
+
+    Analysis::APIDumpAnalysis::ResourceView     first_view;
+    Analysis::APIDumpAnalysis::ResourceView     second_view;
+    Analysis::APIDumpAnalysis::ResourceIdentity first_identity;
+    Analysis::APIDumpAnalysis::ResourceIdentity second_identity;
+
+    ASSERT_TRUE(scene.get_harness().get_frontend().find_resource_view(first_texture,
+                                                                     &first_view) );
+    ASSERT_TRUE(scene.get_harness().get_frontend().find_resource_view(second_texture,
+                                                                     &second_view) );
+    ASSERT_TRUE(Analysis::APIDumpAnalysis::ResourceIdentities::find(scene.get_harness().get_model().resource_vec,
+                                                                    first_view.resource_id,
+                                                                   &first_identity) );
+    ASSERT_TRUE(Analysis::APIDumpAnalysis::ResourceIdentities::find(scene.get_harness().get_model().resource_vec,
+                                                                    second_view.resource_id,
+                                                                   &second_identity) );
+
+    /* Made in the same way, so told apart by the order. */
+    EXPECT_EQ(first_identity.description_key,
+              second_identity.description_key);
+    EXPECT_EQ(first_identity.ordinal + 1,
+              second_identity.ordinal);
 }
