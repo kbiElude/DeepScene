@@ -26,6 +26,7 @@ namespace Tests
 
         void clear(const bool& in_clears_color,
                    const bool& in_clears_depth);
+        void clear(const Analysis::APIDumpAnalysis::ClearOperation& in_clear);
 
         void copy(const Analysis::APIDumpAnalysis::ResourceId& in_source_id,
                   const Analysis::APIDumpAnalysis::ResourceId& in_destination_id);

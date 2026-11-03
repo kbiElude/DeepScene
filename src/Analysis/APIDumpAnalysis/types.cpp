@@ -85,12 +85,14 @@ bool Analysis::APIDumpAnalysis::operator==(const BindingPoint& in_a,
 bool Analysis::APIDumpAnalysis::operator==(const ClearOperation& in_a,
                                            const ClearOperation& in_b)
 {
-    return (in_a.clears_color   == in_b.clears_color   &&
-            in_a.clears_depth   == in_b.clears_depth   &&
-            in_a.clears_stencil == in_b.clears_stencil &&
-            in_a.color_fp32vec4 == in_b.color_fp32vec4 &&
-            in_a.depth          == in_b.depth          &&
-            in_a.stencil        == in_b.stencil);
+    return (in_a.clears_color           == in_b.clears_color           &&
+            in_a.clears_depth           == in_b.clears_depth           &&
+            in_a.clears_stencil         == in_b.clears_stencil         &&
+            in_a.color_fp32vec4         == in_b.color_fp32vec4         &&
+            in_a.depth                  == in_b.depth                  &&
+            in_a.has_rectangles         == in_b.has_rectangles         &&
+            in_a.is_limited_to_viewport == in_b.is_limited_to_viewport &&
+            in_a.stencil                == in_b.stencil);
 }
 
 bool Analysis::APIDumpAnalysis::operator==(const ConstantLocation& in_a,

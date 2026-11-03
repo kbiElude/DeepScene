@@ -22,6 +22,39 @@ namespace Analysis
 {
     namespace APIDumpAnalysis
     {
+        /* How much of the part of a resource that an access reaches it writes over (see AccessEvent). Whether the old content is still there
+         * after a write depends on it: it is, wherever the write did not reach.
+         */
+        enum class AccessCoverage
+        {
+            FULL,    /* all of it                                                         */
+            PARTIAL, /* some of it: a rectangle, a viewport, a mask                       */
+            UNKNOWN  /* the front end cannot tell (the extent of a draw, say): as PARTIAL */
+        };
+
+        /* What an access does to the content of the resource. A write which blends, tests or masks is READ_WRITE: the old content is an input. */
+        enum class AccessMode
+        {
+            READ,
+            READ_WRITE,
+            WRITE
+        };
+
+        /* What the resource is used as in an access: the API-neutral side of a binding, a copy or a clear (see AccessEvent). */
+        enum class AccessRole
+        {
+            CLEAR_TARGET,
+            COLOR_ATTACHMENT,
+            DEPTH_STENCIL_ATTACHMENT,
+            INDEX_INPUT,
+            SAMPLED,                  /* read by a shader, or by the fixed-function pipeline as a texture */
+            SHADER_CODE,
+            TRANSFER_DESTINATION,
+            TRANSFER_SOURCE,
+            UPLOAD_DESTINATION,       /* written with the application's data                              */
+            VERTEX_INPUT
+        };
+
         /* Where a constant lives. */
         enum class ConstantBlockKind
         {
@@ -168,12 +201,14 @@ namespace Analysis
 
         struct ClearOperation
         {
-            bool                 clears_color   = false;
-            bool                 clears_depth   = false;
-            bool                 clears_stencil = false;
-            std::array<float, 4> color_fp32vec4 = {};
-            float                depth          = 0.0f;
-            uint32_t             stencil        = 0;
+            bool                 clears_color           = false;
+            bool                 clears_depth           = false;
+            bool                 clears_stencil         = false;
+            std::array<float, 4> color_fp32vec4         = {};
+            float                depth                  = 0.0f;
+            bool                 has_rectangles         = false; /* of rectangles (or a scissor), and not the whole of what it can reach */
+            bool                 is_limited_to_viewport = false; /* the API clears the viewport and no more of the target                */
+            uint32_t             stencil                = 0;
         };
 
         /* A range of bytes in a block of constants. Blocks which are not backed by memory the application can see (fixed-function
@@ -240,6 +275,33 @@ namespace Analysis
             ResourceId resource_id = ResourceId::NONE;
         };
 
+
+        /* The mip levels and array layers (or slices, or faces) of a resource that an access reaches. A count of 0 is all of them from the first on,
+         * so that a default range is the whole resource, and the front end of an API which has neither says nothing.
+         */
+        struct SubresourceRange
+        {
+            uint32_t first_layer     = 0;
+            uint32_t first_mip_level = 0;
+            uint32_t n_layers        = 0;
+            uint32_t n_mip_levels    = 0;
+        };
+
+        /* One use of a resource by the application, in the order they were made in (see IAccessSink): what the dependencies between the frames
+         * of a workload are made of. Nothing here knows about any API: a front end tells a draw, a clear or a copy in these terms, and an API
+         * which has more to say (the queue a command is made on, a barrier between two commands) has fields for it which the older ones leave alone.
+         * Follows AccessCoverage, AccessMode, AccessRole, ResourceId and SubresourceRange, which it depends on.
+         */
+        struct AccessEvent
+        {
+            uint64_t         call_index        = 0;
+            AccessCoverage   coverage          = AccessCoverage::UNKNOWN; /* of a write: READ_WRITE and WRITE         */
+            AccessMode       mode              = AccessMode::READ;
+            uint32_t         queue_id          = 0;                       /* 0 for an API which has one queue         */
+            ResourceId       resource_id       = ResourceId::NONE;
+            AccessRole       role              = AccessRole::SAMPLED;
+            SubresourceRange subresource_range;
+        };
 
         /* What is rendered to. Follows ResourceView, which it depends on. */
         struct AttachmentSet

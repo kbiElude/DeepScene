@@ -53,6 +53,13 @@ void Tests::ModelTestHelper::clear(const bool& in_clears_color,
     m_builder.on_clear(clear_operation);
 }
 
+void Tests::ModelTestHelper::clear(const Analysis::APIDumpAnalysis::ClearOperation& in_clear)
+{
+    begin_call();
+
+    m_builder.on_clear(in_clear);
+}
+
 void Tests::ModelTestHelper::copy(const Analysis::APIDumpAnalysis::ResourceId& in_source_id,
                                   const Analysis::APIDumpAnalysis::ResourceId& in_destination_id)
 {

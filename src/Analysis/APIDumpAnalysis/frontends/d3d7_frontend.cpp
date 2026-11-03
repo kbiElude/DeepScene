@@ -375,18 +375,25 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_add_attached_sur
 void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_clear(const CallView& in_view)
 {
     constexpr size_t COLOR_ARGUMENT   = 4;
+    constexpr size_t COUNT_ARGUMENT   = 1;
     constexpr size_t DEPTH_ARGUMENT   = 5;
     constexpr size_t FLAGS_ARGUMENT   = 3;
     constexpr size_t STENCIL_ARGUMENT = 6;
 
     const uint32_t flags = in_view.get_u32(FLAGS_ARGUMENT);
 
-    m_builder_ptr->on_clear(ClearOperationFactory::create(((flags & Interception::Core::D3D7Utils::D3DCLEAR_TARGET)  != 0),
-                                                          ((flags & Interception::Core::D3D7Utils::D3DCLEAR_ZBUFFER) != 0),
-                                                          ((flags & Interception::Core::D3D7Utils::D3DCLEAR_STENCIL) != 0),
-                                                          in_view.get_u32(COLOR_ARGUMENT),
-                                                          in_view.get_f32(DEPTH_ARGUMENT),
-                                                          in_view.get_u32(STENCIL_ARGUMENT) ));
+    Analysis::APIDumpAnalysis::ClearOperation clear = ClearOperationFactory::create(((flags & Interception::Core::D3D7Utils::D3DCLEAR_TARGET)  != 0),
+                                                                                    ((flags & Interception::Core::D3D7Utils::D3DCLEAR_ZBUFFER) != 0),
+                                                                                    ((flags & Interception::Core::D3D7Utils::D3DCLEAR_STENCIL) != 0),
+                                                                                    in_view.get_u32(COLOR_ARGUMENT),
+                                                                                    in_view.get_f32(DEPTH_ARGUMENT),
+                                                                                    in_view.get_u32(STENCIL_ARGUMENT) );
+
+    /* Without rectangles, the clear is of the viewport. */
+    clear.has_rectangles         = (in_view.get_u32(COUNT_ARGUMENT) != 0);
+    clear.is_limited_to_viewport = true;
+
+    m_builder_ptr->on_clear(clear);
 }
 
 void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_create_device(const CallView& in_view)

@@ -14,6 +14,7 @@
 #ifndef APIDUMPANALYSIS_MODEL_BUILDER_H
 #define APIDUMPANALYSIS_MODEL_BUILDER_H
 
+#include "Analysis/APIDumpAnalysis/access_sink.h"
 #include "Analysis/APIDumpAnalysis/model.h"
 #include "Analysis/APIDumpAnalysis/resource_access_tracker.h"
 #include "Analysis/APIDumpAnalysis/resource_key_table.h"
@@ -78,6 +79,11 @@ namespace Analysis
 
             void on_upload(const ResourceView&  in_destination,
                            const DataReference& in_data);
+
+            /* Where the uses of resources are told (see IAccessSink); nullptr, the default, is nowhere. The sink is not the builder's: it must
+             * outlive it.
+             */
+            void set_access_sink(IAccessSink* in_sink_ptr);
 
             /* Hands the model over, instead of a copy of it: for when the analysis is done. The builder is to be left alone after it. */
             Model take_model();
@@ -156,6 +162,13 @@ namespace Analysis
             /* Of the draw in the open pass, as KeyBuilder::compute_draw_signature_key() says. */
             uint64_t compute_draw_signature_key(const DrawDescription& in_draw);
 
+            /* Tells the sink, if there is one, of a use of a resource at this call. A resource which is NONE is no use. */
+            void emit_access(const ResourceId&        in_resource_id,
+                             const AccessRole&        in_role,
+                             const AccessMode&        in_mode,
+                             const AccessCoverage&    in_coverage,
+                             const SubresourceRange&  in_subresource_range);
+
             /* With the keys the resources have by the time of the draw, or with the ones they would have if no pass had written to them. */
             void fill_draw_structure(const DrawDescription& in_draw,
                                      const bool&            in_uses_unwritten_keys,
@@ -168,6 +181,13 @@ namespace Analysis
                                                const std::vector<DepthHistogram>&                  in_histogram_vec,
                                                const std::vector<PassInstance>&                    in_pass_instance_vec,
                                                std::map<DepthHistogramKey, DepthHistogram>*        inout_map_ptr);
+
+            /* How much of the view a clear reaches: all of it, or what the viewport and the rectangles of the clear leave of it. */
+            AccessCoverage get_clear_coverage(const ClearOperation& in_clear,
+                                              const ResourceView&   in_view) const;
+
+            /* The part of a resource that a view is. */
+            static SubresourceRange get_subresource_range(const ResourceView& in_view);
 
             void open_pass_if_needed();
             void record_draw_access (const DrawDescription& in_draw);
@@ -188,6 +208,7 @@ namespace Analysis
             static bool is_camera_semantic(const ConstantSemantic& in_semantic);
 
 
+            IAccessSink*                              m_access_sink_ptr;
             ResourceAccessTracker                     m_access_tracker;
             AttachmentSet                             m_attachments;
             uint64_t                                  m_call_index;

@@ -11,7 +11,8 @@
 #include <string.h>
 
 Analysis::APIDumpAnalysis::ModelBuilder::ModelBuilder(const bool& in_keeps_history)
-    :m_call_index               (0),
+    :m_access_sink_ptr          (nullptr),
+     m_call_index               (0),
      m_frame_begin_timestamp_qpc(0),
      m_frame_first_call_index   (0),
      m_has_frame_calls          (false),
@@ -223,6 +224,28 @@ uint64_t Analysis::APIDumpAnalysis::ModelBuilder::compute_draw_signature_key(con
                                                   depth_stencil_view_key);
 }
 
+void Analysis::APIDumpAnalysis::ModelBuilder::emit_access(const ResourceId&       in_resource_id,
+                                                          const AccessRole&       in_role,
+                                                          const AccessMode&       in_mode,
+                                                          const AccessCoverage&   in_coverage,
+                                                          const SubresourceRange& in_subresource_range)
+{
+    if (m_access_sink_ptr != nullptr &&
+        in_resource_id    != ResourceId::NONE)
+    {
+        AccessEvent event;
+
+        event.call_index        = m_call_index;
+        event.coverage          = in_coverage;
+        event.mode              = in_mode;
+        event.resource_id       = in_resource_id;
+        event.role              = in_role;
+        event.subresource_range = in_subresource_range;
+
+        m_access_sink_ptr->on_access(event);
+    }
+}
+
 void Analysis::APIDumpAnalysis::ModelBuilder::fill_draw_structure(const DrawDescription& in_draw,
                                                                   const bool&            in_uses_unwritten_keys,
                                                                   DrawStructure*         out_structure_ptr) const
@@ -402,6 +425,49 @@ uint64_t Analysis::APIDumpAnalysis::ModelBuilder::get_last_draw_signature_key() 
     return m_last_draw_signature_key;
 }
 
+Analysis::APIDumpAnalysis::AccessCoverage Analysis::APIDumpAnalysis::ModelBuilder::get_clear_coverage(const ClearOperation& in_clear,
+                                                                                                      const ResourceView&   in_view) const
+{
+    const uint32_t id_value = get_resource_id_value(in_view.resource_id);
+    AccessCoverage result   = AccessCoverage::FULL;
+
+    if (in_clear.has_rectangles)
+    {
+        result = AccessCoverage::PARTIAL;
+
+        goto end;
+    }
+
+    if (in_clear.is_limited_to_viewport                 &&
+        id_value                        != 0            &&
+        id_value                        <= m_model.resource_vec.size() )
+    {
+        const ResourceDescription& description = m_model.resource_vec.at(id_value - 1).description;
+        const uint32_t             height      = std::max<uint32_t>(description.height >> in_view.mip_level,
+                                                                    1);
+        const uint32_t             width       = std::max<uint32_t>(description.width  >> in_view.mip_level,
+                                                                    1);
+
+        if (description.width  == 0 ||
+            description.height == 0)
+        {
+            /* A surface which has no size told is not one to tell the viewport against. */
+            result = AccessCoverage::UNKNOWN;
+        }
+        else
+        if (m_viewport.x                     >  0.0f                         ||
+            m_viewport.y                     >  0.0f                         ||
+            m_viewport.x + m_viewport.width  <  static_cast<float>(width)    ||
+            m_viewport.y + m_viewport.height <  static_cast<float>(height) )
+        {
+            result = AccessCoverage::PARTIAL;
+        }
+    }
+
+end:
+    return result;
+}
+
 const Analysis::APIDumpAnalysis::CompletedFrame& Analysis::APIDumpAnalysis::ModelBuilder::get_completed_frame() const
 {
     return m_completed_frame;
@@ -415,6 +481,18 @@ const Analysis::APIDumpAnalysis::Model& Analysis::APIDumpAnalysis::ModelBuilder:
 uint64_t Analysis::APIDumpAnalysis::ModelBuilder::get_n_frames() const
 {
     return m_n_frames;
+}
+
+Analysis::APIDumpAnalysis::SubresourceRange Analysis::APIDumpAnalysis::ModelBuilder::get_subresource_range(const ResourceView& in_view)
+{
+    SubresourceRange result;
+
+    result.first_layer     = in_view.layer;
+    result.first_mip_level = in_view.mip_level;
+    result.n_layers        = 1;
+    result.n_mip_levels    = 1;
+
+    return result;
 }
 
 bool Analysis::APIDumpAnalysis::ModelBuilder::is_camera_semantic(const ConstantSemantic& in_semantic)
@@ -465,6 +543,13 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_clear(const ClearOperation& in_
         for (const auto& color_view : m_attachments.color_view_vec)
         {
             m_access_tracker.on_write(color_view.resource_id);
+
+            emit_access(color_view.resource_id,
+                        AccessRole::CLEAR_TARGET,
+                        AccessMode::WRITE,
+                        get_clear_coverage(in_clear,
+                                           color_view),
+                        get_subresource_range(color_view) );
         }
     }
 
@@ -472,6 +557,13 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_clear(const ClearOperation& in_
         in_clear.clears_stencil)
     {
         m_access_tracker.on_write(m_attachments.depth_stencil_view.resource_id);
+
+        emit_access(m_attachments.depth_stencil_view.resource_id,
+                    AccessRole::CLEAR_TARGET,
+                    AccessMode::WRITE,
+                    get_clear_coverage(in_clear,
+                                       m_attachments.depth_stencil_view),
+                    get_subresource_range(m_attachments.depth_stencil_view) );
     }
 
     if (m_has_open_pass         &&
@@ -496,6 +588,17 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_copy(const ResourceView& in_sou
 
     m_access_tracker.on_read (in_source.resource_id);
     m_access_tracker.on_write(in_destination.resource_id);
+
+    emit_access(in_source.resource_id,
+                AccessRole::TRANSFER_SOURCE,
+                AccessMode::READ,
+                AccessCoverage::UNKNOWN,
+                get_subresource_range(in_source) );
+    emit_access(in_destination.resource_id,
+                AccessRole::TRANSFER_DESTINATION,
+                AccessMode::WRITE,
+                AccessCoverage::UNKNOWN, /* which part of it is not told */
+                get_subresource_range(in_destination) );
 
     close_pass_if_rendered_to(in_source);
     close_pass_if_rendered_to(in_destination);
@@ -723,6 +826,11 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_frame_presented()
 
     m_has_frame_calls = false;
 
+    if (m_access_sink_ptr != nullptr)
+    {
+        m_access_sink_ptr->on_frame_ended(m_n_frames);
+    }
+
     ++m_n_frames;
 }
 
@@ -772,6 +880,12 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_upload(const ResourceView&  in_
 
     m_access_tracker.on_write(in_destination.resource_id);
 
+    emit_access(in_destination.resource_id,
+                AccessRole::UPLOAD_DESTINATION,
+                AccessMode::WRITE,
+                AccessCoverage::UNKNOWN, /* which part of it is not told */
+                get_subresource_range(in_destination) );
+
     close_pass_if_rendered_to(in_destination);
 
     /* Contents vary per frame and are not hashed; only the fact of an upload is. */
@@ -790,6 +904,11 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_upload(const ResourceView&  in_
 
         m_frame_transfer_record_vec.push_back(record);
     }
+}
+
+void Analysis::APIDumpAnalysis::ModelBuilder::set_access_sink(IAccessSink* in_sink_ptr)
+{
+    m_access_sink_ptr = in_sink_ptr;
 }
 
 void Analysis::APIDumpAnalysis::ModelBuilder::open_pass_if_needed()
@@ -845,6 +964,59 @@ void Analysis::APIDumpAnalysis::ModelBuilder::record_draw_access(const DrawDescr
     }
 
     m_access_tracker.on_write(m_attachments.depth_stencil_view.resource_id);
+
+    /* What the sink is told: the reads, and then the writes. A texture is read whole (the filter reaches the levels around the one asked for);
+     * an attachment is written where the draw reaches, which is not known here.
+     */
+    for (const auto& binding : in_draw.texture_binding_vec)
+    {
+        emit_access(binding.view.resource_id,
+                    AccessRole::SAMPLED,
+                    AccessMode::READ,
+                    AccessCoverage::UNKNOWN,
+                    SubresourceRange() );
+    }
+
+    for (const auto& shader_id : in_draw.shader_id_vec)
+    {
+        emit_access(shader_id,
+                    AccessRole::SHADER_CODE,
+                    AccessMode::READ,
+                    AccessCoverage::UNKNOWN,
+                    SubresourceRange() );
+    }
+
+    for (const auto& vertex_buffer_id : in_draw.vertex_buffer_id_vec)
+    {
+        emit_access(vertex_buffer_id,
+                    AccessRole::VERTEX_INPUT,
+                    AccessMode::READ,
+                    AccessCoverage::UNKNOWN,
+                    SubresourceRange() );
+    }
+
+    emit_access(in_draw.index_buffer_id,
+                AccessRole::INDEX_INPUT,
+                AccessMode::READ,
+                AccessCoverage::UNKNOWN,
+                SubresourceRange() );
+
+    for (const auto& color_view : m_attachments.color_view_vec)
+    {
+        emit_access(color_view.resource_id,
+                    AccessRole::COLOR_ATTACHMENT,
+                    (in_draw.reads_color_attachments) ? AccessMode::READ_WRITE
+                                                      : AccessMode::WRITE,
+                    AccessCoverage::UNKNOWN,
+                    get_subresource_range(color_view) );
+    }
+
+    emit_access(m_attachments.depth_stencil_view.resource_id,
+                AccessRole::DEPTH_STENCIL_ATTACHMENT,
+                (in_draw.reads_depth_stencil) ? AccessMode::READ_WRITE
+                                              : AccessMode::WRITE,
+                AccessCoverage::UNKNOWN,
+                get_subresource_range(m_attachments.depth_stencil_view) );
 }
 
 void Analysis::APIDumpAnalysis::ModelBuilder::record_draw_depth(const DrawDescription& in_draw)

@@ -332,6 +332,7 @@ uint32_t Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::get_vertex_count(co
 void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_clear(const CallView& in_view)
 {
     constexpr size_t COLOR_ARGUMENT   = 4;
+    constexpr size_t COUNT_ARGUMENT   = 1;
     constexpr size_t DEPTH_ARGUMENT   = 5;
     constexpr size_t FLAGS_ARGUMENT   = 3;
     constexpr size_t STENCIL_ARGUMENT = 6;
@@ -340,12 +341,18 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_clear(const Call
 
     if (in_view.succeeded() )
     {
-        m_builder_ptr->on_clear(ClearOperationFactory::create(((flags & Interception::Hooks::D3D8::D3DCLEAR_TARGET)  != 0),
-                                                              ((flags & Interception::Hooks::D3D8::D3DCLEAR_ZBUFFER) != 0),
-                                                              ((flags & Interception::Hooks::D3D8::D3DCLEAR_STENCIL) != 0),
-                                                              in_view.get_u32(COLOR_ARGUMENT),
-                                                              in_view.get_f32(DEPTH_ARGUMENT),
-                                                              in_view.get_u32(STENCIL_ARGUMENT) ));
+        Analysis::APIDumpAnalysis::ClearOperation clear = ClearOperationFactory::create(((flags & Interception::Hooks::D3D8::D3DCLEAR_TARGET)  != 0),
+                                                                                        ((flags & Interception::Hooks::D3D8::D3DCLEAR_ZBUFFER) != 0),
+                                                                                        ((flags & Interception::Hooks::D3D8::D3DCLEAR_STENCIL) != 0),
+                                                                                        in_view.get_u32(COLOR_ARGUMENT),
+                                                                                        in_view.get_f32(DEPTH_ARGUMENT),
+                                                                                        in_view.get_u32(STENCIL_ARGUMENT) );
+
+        /* Without rectangles, the clear is of the viewport. */
+        clear.has_rectangles         = (in_view.get_u32(COUNT_ARGUMENT) != 0);
+        clear.is_limited_to_viewport = true;
+
+        m_builder_ptr->on_clear(clear);
     }
 }
 
