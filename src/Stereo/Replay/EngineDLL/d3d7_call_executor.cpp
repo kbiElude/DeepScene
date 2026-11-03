@@ -43,7 +43,7 @@ Stereo::Replay::EngineDLL::D3D7CallExecutor::D3D7CallExecutor(ObjectRemapper* in
      m_direct_draw_ptr         (nullptr),
      m_display_height          (0),
      m_display_width           (0),
-     m_locked_render_target_ptr(nullptr),
+     m_locked_image_ptr(nullptr),
      m_primary_ptr             (nullptr),
      m_render_target_ptr       (nullptr),
      m_window                  (nullptr)
@@ -1063,7 +1063,7 @@ end:
     return result;
 }
 
-bool Stereo::Replay::EngineDLL::D3D7CallExecutor::lock_render_target(const DWORD&                               in_flags,
+bool Stereo::Replay::EngineDLL::D3D7CallExecutor::lock_frame_image(const DWORD&                               in_flags,
                                                                      Interception::Hooks::D3D7::DDSURFACEDESC2* out_description_ptr)
 {
     bool result = false;
@@ -1072,17 +1072,21 @@ bool Stereo::Replay::EngineDLL::D3D7CallExecutor::lock_render_target(const DWORD
 
     out_description_ptr->dwSize = sizeof(*out_description_ptr);
 
-    if (m_render_target_ptr != nullptr &&
-        m_locked_render_target_ptr == nullptr)
+    /* The picture of a frame is what the flip shows: the back buffer, which is not what is rendered to when the frame ends in a texture. */
+    void* const image_ptr = (m_back_buffer_ptr != nullptr) ? m_back_buffer_ptr
+                                                           : m_render_target_ptr;
+
+    if (image_ptr != nullptr &&
+        m_locked_image_ptr == nullptr)
     {
-        if (call_method<HRESULT>(m_render_target_ptr,
+        if (call_method<HRESULT>(image_ptr,
                                  Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_LOCK,
                                  static_cast<RECT*>(nullptr),
                                  out_description_ptr,
                                  static_cast<DWORD>(in_flags | DDLOCK_WAIT_FLAG),
                                  static_cast<HANDLE>(nullptr) ) >= 0)
         {
-            m_locked_render_target_ptr = m_render_target_ptr;
+            m_locked_image_ptr = image_ptr;
             result                     = true;
         }
     }
@@ -1193,7 +1197,7 @@ bool Stereo::Replay::EngineDLL::D3D7CallExecutor::read_back_buffer(std::vector<u
     uint32_t                                  format      = 0;
     bool                                      result      = false;
 
-    if (lock_render_target(DDLOCK_READONLY_FLAG,
+    if (lock_frame_image(DDLOCK_READONLY_FLAG,
                           &description) == false)
     {
         goto end;
@@ -1261,7 +1265,7 @@ bool Stereo::Replay::EngineDLL::D3D7CallExecutor::read_back_buffer(std::vector<u
     result = true;
 
 end:
-    unlock_render_target();
+    unlock_frame_image();
 
     return result;
 }
@@ -1343,7 +1347,7 @@ bool Stereo::Replay::EngineDLL::D3D7CallExecutor::release(std::string* out_error
 
 void Stereo::Replay::EngineDLL::D3D7CallExecutor::reset()
 {
-    unlock_render_target();
+    unlock_frame_image();
 
     /* The device is created after the objects it renders to, so it is released before them. */
     for (void* const object_ptr : m_live_objects.get_newest_first_vec() )
@@ -1743,15 +1747,15 @@ end:
     return result;
 }
 
-void Stereo::Replay::EngineDLL::D3D7CallExecutor::unlock_render_target()
+void Stereo::Replay::EngineDLL::D3D7CallExecutor::unlock_frame_image()
 {
-    if (m_locked_render_target_ptr != nullptr)
+    if (m_locked_image_ptr != nullptr)
     {
-        call_method<HRESULT>(m_locked_render_target_ptr,
+        call_method<HRESULT>(m_locked_image_ptr,
                              Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_UNLOCK,
                              static_cast<RECT*>(nullptr) );
 
-        m_locked_render_target_ptr = nullptr;
+        m_locked_image_ptr = nullptr;
     }
 }
 
@@ -1760,7 +1764,7 @@ bool Stereo::Replay::EngineDLL::D3D7CallExecutor::write_back_buffer(const std::v
     Interception::Hooks::D3D7::DDSURFACEDESC2 description = {};
     bool                                      result      = false;
 
-    if (lock_render_target(DDLOCK_WRITEONLY_FLAG,
+    if (lock_frame_image(DDLOCK_WRITEONLY_FLAG,
                           &description) == false)
     {
         goto end;
@@ -1783,7 +1787,7 @@ bool Stereo::Replay::EngineDLL::D3D7CallExecutor::write_back_buffer(const std::v
     }
 
 end:
-    unlock_render_target();
+    unlock_frame_image();
 
     return result;
 }

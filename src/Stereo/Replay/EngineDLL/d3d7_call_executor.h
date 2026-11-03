@@ -108,10 +108,10 @@ namespace Stereo
                 bool get_u32(const size_t& in_n_argument,
                              uint32_t*     out_value_ptr) const;
 
-                /* The surface that is rendered to, as the format of the pixels the preview takes. */
-                bool lock_render_target  (const DWORD&                               in_flags,
+                /* The back buffer, which is the picture of a frame. */
+                bool lock_frame_image  (const DWORD&                               in_flags,
                                           Interception::Hooks::D3D7::DDSURFACEDESC2* out_description_ptr);
-                void unlock_render_target();
+                void unlock_frame_image();
 
                 /* The object is the replay's from now on. */
                 void register_object(const size_t& in_n_argument,
@@ -143,7 +143,7 @@ namespace Stereo
                 void*                                                          m_render_target_ptr;
                 HWND                                                           m_window;
                 std::unordered_set<APIInterceptor::APIFunction>                m_add_ref_function_set;
-                void*                                                          m_locked_render_target_ptr;
+                void*                                                          m_locked_image_ptr;
             };
         }
     }
