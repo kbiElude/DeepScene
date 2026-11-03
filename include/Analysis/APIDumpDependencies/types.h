@@ -9,7 +9,9 @@
 #define APIDUMPDEPENDENCIES_TYPES_H
 
 #include "Analysis/APIDumpAnalysis/types.h"
+#include <map>
 #include <stdint.h>
+#include <string>
 #include <vector>
 
 namespace Analysis
@@ -110,6 +112,22 @@ namespace Analysis
         {
             uint64_t                          n_frames = 0; /* the frames which ended, and one more if accesses follow the last */
             std::vector<ResourceDependencies> resource_vec;
+        };
+
+        /* What a .deps file holds: the dependencies, and what is needed to say what they are of (the workload, the resources, the calls of each
+         * frame). Follows DependencyResult, FrameCallRange and the types of the analysis.
+         */
+        struct DependencyAnalysis
+        {
+            std::vector<FrameCallRange>                    frame_call_range_vec;       /* of the frames which ended                              */
+            bool                                           is_truncated      = false;  /* the workload ends in the middle of a segment           */
+            uint64_t                                       n_calls           = 0;
+            std::map<std::string, uint64_t>                n_calls_by_api_map;         /* by the name of the API (see APIGroup)                  */
+            uint32_t                                       pointer_n_bytes   = 0;      /* of the process which was dumped                        */
+            uint64_t                                       qpc_frequency     = 0;      /* ticks per second                                       */
+            DependencyResult                               result;
+            std::vector<Analysis::APIDumpAnalysis::Resource> resource_vec;
+            Analysis::APIDumpAnalysis::WorkloadReference   workload_reference;
         };
 
         bool operator==(const FrameUse& in_a,
