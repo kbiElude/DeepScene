@@ -227,6 +227,7 @@ namespace Analysis
             uint64_t                                  m_frame_first_call_index;
             std::vector<DrawInstance>                 m_frame_draw_instance_vec;
             std::vector<PassInstance>                 m_frame_pass_instance_vec;
+            std::vector<bool>                         m_frame_pass_is_presented_vec; /* of the passes above, in the same order */
             std::vector<DepthHistogram>               m_frame_surface_depth_histogram_vec; /* of the passes above, in the same order */
             std::vector<TransferRecord>               m_frame_transfer_record_vec;
             bool                                      m_has_frame_calls;

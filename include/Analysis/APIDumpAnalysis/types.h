@@ -518,6 +518,7 @@ namespace Analysis
             uint64_t                  last_call_index  = 0; /* the present      */
             std::vector<ResourceId>   loop_carried_resource_id_vec; /* resources the frame reads before it writes, and writes */
             std::vector<PassInstance> pass_instance_vec;
+            std::vector<bool>         pass_is_presented_vec; /* whether each pass above renders to what is presented */
             std::vector<uint64_t>     pass_key_vec;         /* match key of each pass above                             */
             uint64_t                  shape_key        = 0; /* match key of the frame's shape                           */
         };

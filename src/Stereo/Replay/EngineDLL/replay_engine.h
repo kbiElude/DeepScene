@@ -129,6 +129,7 @@ namespace Stereo
                 bool execute_draw_call        (const Capture::APIDumpLoader::DumpedAPICall&     in_call,
                                                const IChunkSource&                              in_chunk_source,
                                                const bool&                                      in_is_affected,
+                                               const bool&                                      in_is_presented,
                                                const uint64_t&                                  in_cover_key,
                                                const Analysis::RecipeLoader::Eye&               in_eye,
                                                const uint32_t&                                  in_pass_structure_id);

@@ -42,6 +42,78 @@ bool Stereo::Replay::EngineDLL::D3D7ScreenParallax::rewrite(const Capture::APIDu
                                                             OverlayChunkSource*                          inout_overlay_ptr,
                                                             Capture::APIDumpLoader::DumpedAPICall*       out_call_ptr)
 {
+    bool result = false;
+
+    if (in_parameters.convergence_distance  >  0.0f &&
+        in_parameters.eye_separation        != 0.0f &&
+        in_parameters.picture_width         >  0.0f)
+    {
+        result = rewrite_vertices(in_call,
+                                  in_chunk_source,
+                                  [&in_parameters](const uint32_t& in_vertex_n_bytes,
+                                                   const size_t&   in_n_vertices,
+                                                   uint8_t*        inout_vertex_ptr)
+                                  {
+                                      shift_vertices(in_parameters,
+                                                     in_vertex_n_bytes,
+                                                     in_n_vertices,
+                                                     inout_vertex_ptr);
+                                  },
+                                  inout_overlay_ptr,
+                                  out_call_ptr);
+    }
+
+    return result;
+}
+
+bool Stereo::Replay::EngineDLL::D3D7ScreenParallax::rewrite_by(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                               const IChunkSource&                          in_chunk_source,
+                                                               const float&                                 in_shift,
+                                                               OverlayChunkSource*                          inout_overlay_ptr,
+                                                               Capture::APIDumpLoader::DumpedAPICall*       out_call_ptr)
+{
+    bool result = false;
+
+    if (in_shift != 0.0f)
+    {
+        result = rewrite_vertices(in_call,
+                                  in_chunk_source,
+                                  [in_shift](const uint32_t& in_vertex_n_bytes,
+                                             const size_t&   in_n_vertices,
+                                             uint8_t*        inout_vertex_ptr)
+                                  {
+                                      constexpr size_t X_OFFSET = 0;
+
+                                      for (size_t n_vertex = 0;
+                                                  n_vertex < in_n_vertices;
+                                                ++n_vertex)
+                                      {
+                                          float x = 0.0f;
+
+                                          ::memcpy(&x,
+                                                   inout_vertex_ptr + n_vertex * in_vertex_n_bytes + X_OFFSET,
+                                                   sizeof(x) );
+
+                                          x += in_shift;
+
+                                          ::memcpy(inout_vertex_ptr + n_vertex * in_vertex_n_bytes + X_OFFSET,
+                                                   &x,
+                                                   sizeof(x) );
+                                      }
+                                  },
+                                  inout_overlay_ptr,
+                                  out_call_ptr);
+    }
+
+    return result;
+}
+
+bool Stereo::Replay::EngineDLL::D3D7ScreenParallax::rewrite_vertices(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                     const IChunkSource&                          in_chunk_source,
+                                                                     const ShiftFunc&                             in_shift_func,
+                                                                     OverlayChunkSource*                          inout_overlay_ptr,
+                                                                     Capture::APIDumpLoader::DumpedAPICall*       out_call_ptr)
+{
     constexpr uint32_t NEW_VERTICES_CHUNK_ID = 0xfffffff1; /* no chunk of a workload has an ID this big */
     constexpr size_t   FVF_ARGUMENT          = 2;          /* of both draws */
     constexpr size_t   N_VERTICES_ARGUMENT   = 4;          /* of both draws */
@@ -55,13 +127,6 @@ bool Stereo::Replay::EngineDLL::D3D7ScreenParallax::rewrite(const Capture::APIDu
     bool                                     result            = false;
     uint32_t                                 vertex_n_bytes    = 0;
     uint32_t                                 value             = 0;
-
-    if (in_parameters.convergence_distance  <= 0.0f ||
-        in_parameters.eye_separation        == 0.0f ||
-        in_parameters.picture_width         <= 0.0f)
-    {
-        goto end;
-    }
 
     if (in_call.func != APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVE &&
         in_call.func != APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWPRIMITIVE)
@@ -124,10 +189,9 @@ bool Stereo::Replay::EngineDLL::D3D7ScreenParallax::rewrite(const Capture::APIDu
     {
         Capture::APIDumpLoader::DataChunk new_chunk(*chunk_ptr);
 
-        shift_vertices(in_parameters,
-                       vertex_n_bytes,
-                       n_vertices_arg,
-                       new_chunk.data() );
+        in_shift_func(vertex_n_bytes,
+                      n_vertices_arg,
+                      new_chunk.data() );
 
         *out_call_ptr = FrameBuffer::copy_call(in_call);
 

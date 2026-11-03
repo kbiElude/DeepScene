@@ -295,6 +295,65 @@ TEST(D3D7ScreenParallax, ADrawOfPreTransformedVerticesIsCopiedWithTheVerticesMov
               10.0f);
 }
 
+TEST(D3D7ScreenParallax, ADrawPushedAsAWholeHasEveryVertexMovedByTheSameShiftWhateverItsDepth)
+{
+    MapChunkSource                        source;
+    OverlayChunkSource                    overlay(source);
+    Capture::APIDumpLoader::DumpedAPICall rewritten;
+
+    source.chunk_map[7] = make_vertices({10.0f, 20.0f},
+                                        {1.0f,  0.2f});
+
+    const auto call = make_draw_primitive(FVF_PRETRANSFORMED,
+                                          2,
+                                          7);
+
+    ASSERT_TRUE(D3D7ScreenParallax::rewrite_by(call,
+                                               source,
+                                               -4.0f,
+                                              &overlay,
+                                              &rewritten) );
+
+    const auto* moved_ptr = overlay.get_data_chunk_ptr(rewritten.arg_in_vec.back().get_data_chunk_id() );
+
+    ASSERT_NE(moved_ptr,
+              nullptr);
+    EXPECT_FLOAT_EQ(get_x(*moved_ptr,
+                          0),
+                    6.0f);
+    EXPECT_FLOAT_EQ(get_x(*moved_ptr,
+                          1),
+                    16.0f);
+    EXPECT_FLOAT_EQ(get_x(*source.get_data_chunk_ptr(7),
+                          0),
+                    10.0f);
+}
+
+TEST(D3D7ScreenParallax, ADrawPushedByNothingOrOfVerticesAMatrixMovesIsLeftAlone)
+{
+    MapChunkSource                        source;
+    OverlayChunkSource                    overlay(source);
+    Capture::APIDumpLoader::DumpedAPICall rewritten;
+
+    source.chunk_map[7] = make_vertices({10.0f},
+                                        {1.0f});
+
+    EXPECT_FALSE(D3D7ScreenParallax::rewrite_by(make_draw_primitive(FVF_PRETRANSFORMED,
+                                                                    1,
+                                                                    7),
+                                                source,
+                                                0.0f,
+                                               &overlay,
+                                               &rewritten) );
+    EXPECT_FALSE(D3D7ScreenParallax::rewrite_by(make_draw_primitive(FVF_TRANSFORMED_BY_MATRIX,
+                                                                    1,
+                                                                    7),
+                                                source,
+                                                3.0f,
+                                               &overlay,
+                                               &rewritten) );
+}
+
 TEST(D3D7ScreenParallax, ADrawWhichTheIndicesComeBeforeTheVerticesOfHasTheVerticesMovedAndTheIndicesAsTheyAre)
 {
     MapChunkSource                        source;

@@ -37,7 +37,9 @@
       "overlay_parallax": 0.04                     how far toward the viewer the draws that are left alone (unaffected) can be pushed, if
                                                    they are made to what is presented: the two pictures of them are that far apart,
                                                    as a part of the width of the picture (0 to 0.5). What the application wants: VR Player
-                                                   pushes by it unless the person turns it off; 0 or left out: the application wants none
+                                                   pushes by it unless the person turns it off; 0 or left out: the application wants none.
+                                                   Draws of pre-transformed vertices are pushed the same way (every x moved by half the
+                                                   amount, in pixels, the other way for each eye), unless they cover the whole view
     },
     "screen_parallax": {                           for an application whose vertices are already in the space of the picture (pre-transformed:
                                                    Direct3D's x and y in pixels, and the reciprocal of the depth), which no matrix moves;

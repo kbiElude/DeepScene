@@ -1088,6 +1088,28 @@ TEST(ModelBuilder, TheDrawsOfAFrameAreOnlyThoseOfThatFrame)
               0u);
 }
 
+TEST(ModelBuilder, ACompletedFrameTellsWhichPassesRenderToWhatIsPresented)
+{
+    Tests::ModelTestHelper helper;
+    const auto             swapchain_image = helper.create_swapchain_image();
+    const auto             target          = helper.create_color_texture();
+
+    helper.bind(target);
+    helper.draw();
+    helper.bind(swapchain_image);
+    helper.draw();
+    helper.end_frame();
+
+    const auto& frame = helper.get_builder().get_completed_frame();
+
+    ASSERT_EQ(frame.pass_is_presented_vec.size(),
+              frame.pass_instance_vec.size() );
+    ASSERT_EQ(frame.pass_instance_vec.size(),
+              2u);
+    EXPECT_FALSE(frame.pass_is_presented_vec.at(0) );
+    EXPECT_TRUE (frame.pass_is_presented_vec.at(1) );
+}
+
 TEST(ModelBuilder, AClearIsTheWorkOfAPassWithNoDraws)
 {
     Tests::ModelTestHelper helper;

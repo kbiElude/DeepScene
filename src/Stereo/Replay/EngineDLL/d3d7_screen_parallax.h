@@ -8,6 +8,7 @@
 #include "Analysis/RecipeLoader/types.h"
 #include "Capture/APIDumpLoader/APIDumpLoader.h"
 #include "overlay_chunk_source.h"
+#include <functional>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -44,6 +45,15 @@ namespace Stereo
                                     OverlayChunkSource*                          inout_overlay_ptr,
                                     Capture::APIDumpLoader::DumpedAPICall*       out_call_ptr);
 
+                /* The same, with every vertex moved by the same shift, in pixels (positive to the right): for a draw which is pushed toward the viewer as
+                 * a whole, whatever its depth (an interface). Returns false for a shift of 0, too.
+                 */
+                static bool rewrite_by(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                       const IChunkSource&                          in_chunk_source,
+                                       const float&                                 in_shift,
+                                       OverlayChunkSource*                          inout_overlay_ptr,
+                                       Capture::APIDumpLoader::DumpedAPICall*       out_call_ptr);
+
                 /* Moves the x of every vertex of the array, which is of pre-transformed vertices (x, y, z and the reciprocal of the depth, in floats, and
                  * then what the format has more): to the right by the shift for the left eye, to the left for the right one. The depth is not allowed
                  * to be behind the camera or beyond reason: a vertex which is has the depth at the edge of what is allowed.
@@ -56,6 +66,19 @@ namespace Stereo
                 /* How far a vertex of the reciprocal of the depth is moved sideways for the eye, in pixels: positive to the right. */
                 static float get_shift(const Parameters& in_parameters,
                                        const float&      in_reciprocal_depth);
+
+            private:
+                /* What is done to the vertices of a draw: their size in bytes, how many of them there are, and where they are. */
+                typedef std::function<void(const uint32_t& in_vertex_n_bytes,
+                                           const size_t&   in_n_vertices,
+                                           uint8_t*        inout_vertex_ptr)> ShiftFunc;
+
+                /* What rewrite() and rewrite_by() are, but for how the vertices are moved. */
+                static bool rewrite_vertices(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                             const IChunkSource&                          in_chunk_source,
+                                             const ShiftFunc&                             in_shift_func,
+                                             OverlayChunkSource*                          inout_overlay_ptr,
+                                             Capture::APIDumpLoader::DumpedAPICall*       out_call_ptr);
             };
         }
     }

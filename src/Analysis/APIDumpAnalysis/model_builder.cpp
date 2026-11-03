@@ -182,6 +182,24 @@ void Analysis::APIDumpAnalysis::ModelBuilder::complete_pass()
 
         m_frame_pass_instance_vec.push_back(instance);
 
+        /* A pass which renders to what is presented is the one whose draws the viewer sees as they are. */
+        {
+            bool is_presented = false;
+
+            for (const auto& color_view : m_open_pass.attachments.color_view_vec)
+            {
+                const uint32_t id_value = get_resource_id_value(color_view.resource_id);
+
+                if (id_value != 0                          &&
+                    id_value <= m_model.resource_vec.size() )
+                {
+                    is_presented |= (m_model.resource_vec.at(id_value - 1).description.kind == ResourceKind::SWAP_CHAIN_IMAGE);
+                }
+            }
+
+            m_frame_pass_is_presented_vec.push_back(is_presented);
+        }
+
         /* Kept with the frame: which kind of frame it is in is known when the frame ends. */
         if (m_keeps_history)
         {
@@ -785,6 +803,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_frame_presented()
     m_completed_frame.frame_index       = frame_record.frame_index;
     m_completed_frame.last_call_index   = frame_record.last_call_index;
     m_completed_frame.pass_instance_vec = m_frame_pass_instance_vec;
+    m_completed_frame.pass_is_presented_vec = m_frame_pass_is_presented_vec;
 
     /* What was in the completed frame before is cleared with the rest at the end. */
     m_completed_frame.draw_instance_vec.swap(m_frame_draw_instance_vec);
@@ -829,6 +848,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_frame_presented()
     m_frame_depth_histogram_vec.clear        ();
     m_frame_draw_instance_vec.clear          ();
     m_frame_pass_instance_vec.clear          ();
+    m_frame_pass_is_presented_vec.clear      ();
     m_frame_surface_depth_histogram_vec.clear();
     m_frame_transfer_record_vec.clear();
     m_pending_forget_vec.clear       ();

@@ -477,12 +477,14 @@ end:
 bool Stereo::Replay::EngineDLL::ReplayEngine::execute_draw_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                 const IChunkSource&                          in_chunk_source,
                                                                 const bool&                                  in_is_affected,
+                                                                const bool&                                  in_is_presented,
                                                                 const uint64_t&                              in_cover_key,
                                                                 const Analysis::RecipeLoader::Eye&           in_eye,
                                                                 const uint32_t&                              in_pass_structure_id)
 {
-    const auto&                           screen_parallax = m_recipe_applier_ptr->get_screen_parallax();
-    bool                                  is_moved        = false;
+    const auto&                           screen_parallax  = m_recipe_applier_ptr->get_screen_parallax();
+    bool                                  is_moved         = false;
+    const float                           overlay_parallax = m_recipe_applier_ptr->get_overlay_parallax();
     OverlayChunkSource                    overlay(in_chunk_source);
     Capture::APIDumpLoader::DumpedAPICall rewritten;
 
@@ -513,6 +515,23 @@ bool Stereo::Replay::EngineDLL::ReplayEngine::execute_draw_call(const Capture::A
                                                parameters,
                                               &overlay,
                                               &rewritten);
+    }
+
+    /* A draw the recipe leaves alone, to what is presented, is pushed toward the viewer as a whole: the left eye sees it further to the right. */
+    if (in_is_affected == false                                     &&
+        in_is_presented                                             &&
+        overlay_parallax > 0.0f                                     &&
+        m_recipe_applier_ptr->is_draw_covering(in_cover_key) == false)
+    {
+        const float picture_width = m_session_ptr->get_model().pass_structure_interner.get_structure(in_pass_structure_id).viewport.width;
+        const float half_shift    = overlay_parallax * picture_width * 0.5f;
+
+        is_moved = D3D7ScreenParallax::rewrite_by(in_call,
+                                                  in_chunk_source,
+                                                  (in_eye == Analysis::RecipeLoader::Eye::LEFT) ? half_shift
+                                                                                                : -half_shift,
+                                                 &overlay,
+                                                 &rewritten);
     }
 
     return (is_moved) ? execute_call(rewritten,
@@ -576,6 +595,8 @@ bool Stereo::Replay::EngineDLL::ReplayEngine::execute_rewritten_call(const Captu
                 result = execute_draw_call(in_call,
                                            in_chunk_source,
                                            is_affected,
+                                           (draw_iterator->pass_index < frame.pass_is_presented_vec.size() ) ? frame.pass_is_presented_vec.at(draw_iterator->pass_index)
+                                                                                                             : false,
                                            draw_iterator->cover_key,
                                            eye,
                                            frame.pass_instance_vec.at(draw_iterator->pass_index).structure_id);
