@@ -1538,6 +1538,120 @@ void Stereo::Replay::EngineDLL::D3D7CallExecutor::reset()
 
     m_device_ptr = nullptr;
     m_stage_texture_map.clear();
+
+    m_device_state       = DeviceState();
+    m_saved_device_state = DeviceState();
+}
+
+void Stereo::Replay::EngineDLL::D3D7CallExecutor::restore_state()
+{
+    const bool is_right = (m_eye == Analysis::RecipeLoader::Eye::RIGHT);
+
+    /* The copy of the eye, for an object which each eye has a copy of. */
+    const auto get_eye_object_func = [&](void* in_left_object_ptr)
+    {
+        void* const twin_ptr = (is_right && in_left_object_ptr != nullptr) ? find_right_twin(in_left_object_ptr)
+                                                                           : nullptr;
+
+        return (twin_ptr != nullptr) ? twin_ptr
+                                     : in_left_object_ptr;
+    };
+
+    if (m_device_ptr == nullptr)
+    {
+        goto end;
+    }
+
+    for (const auto& render_state : m_saved_device_state.render_state_map)
+    {
+        const auto current_iterator = m_device_state.render_state_map.find(render_state.first);
+
+        if (current_iterator == m_device_state.render_state_map.end() ||
+            current_iterator->second != render_state.second)
+        {
+            call_method<HRESULT>(m_device_ptr,
+                                 Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETRENDERSTATE,
+                                 static_cast<Interception::Hooks::D3D7::D3DRENDERSTATETYPE>(render_state.first),
+                                 static_cast<DWORD>(render_state.second) );
+        }
+    }
+
+    for (const auto& stage_state : m_saved_device_state.texture_stage_state_map)
+    {
+        const auto current_iterator = m_device_state.texture_stage_state_map.find(stage_state.first);
+
+        if (current_iterator == m_device_state.texture_stage_state_map.end() ||
+            current_iterator->second != stage_state.second)
+        {
+            call_method<HRESULT>(m_device_ptr,
+                                 Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETTEXTURESTAGESTATE,
+                                 static_cast<DWORD>(stage_state.first.first),
+                                 static_cast<Interception::Hooks::D3D7::D3DTEXTURESTAGESTATETYPE>(stage_state.first.second),
+                                 static_cast<DWORD>(stage_state.second) );
+        }
+    }
+
+    for (const auto& transform : m_saved_device_state.transform_map)
+    {
+        const auto current_iterator = m_device_state.transform_map.find(transform.first);
+
+        if (current_iterator == m_device_state.transform_map.end() ||
+            current_iterator->second != transform.second)
+        {
+            call_method<HRESULT>(m_device_ptr,
+                                 Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETTRANSFORM,
+                                 static_cast<Interception::Hooks::D3D7::D3DTRANSFORMSTATETYPE>(transform.first),
+                                 reinterpret_cast<const Interception::Hooks::D3D7::D3DMATRIX*>(transform.second.data() ) );
+        }
+    }
+
+    if (m_saved_device_state.viewport_u8_vec.empty() == false &&
+        m_saved_device_state.viewport_u8_vec       != m_device_state.viewport_u8_vec)
+    {
+        call_method<HRESULT>(m_device_ptr,
+                             Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETVIEWPORT,
+                             reinterpret_cast<const Interception::Hooks::D3D7::D3DVIEWPORT7*>(m_saved_device_state.viewport_u8_vec.data() ) );
+    }
+
+    /* What is rendered to, and the textures: the frame may set them first thing, or may rely on what the frame before left. */
+    if (m_saved_device_state.render_target_ptr != nullptr &&
+        m_saved_device_state.render_target_ptr != m_render_target_ptr)
+    {
+        call_method<HRESULT>(m_device_ptr,
+                             Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETRENDERTARGET,
+                             get_eye_object_func(m_saved_device_state.render_target_ptr),
+                             static_cast<DWORD>(0) );
+    }
+
+    for (const auto& stage_texture : m_saved_device_state.stage_texture_map)
+    {
+        const auto current_iterator = m_stage_texture_map.find(stage_texture.first);
+
+        if (current_iterator == m_stage_texture_map.end() ||
+            current_iterator->second != stage_texture.second)
+        {
+            call_method<HRESULT>(m_device_ptr,
+                                 Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETTEXTURE,
+                                 static_cast<DWORD>(stage_texture.first),
+                                 get_eye_object_func(stage_texture.second) );
+        }
+    }
+
+    m_device_state                  = m_saved_device_state;
+    m_render_target_ptr             = m_saved_device_state.render_target_ptr;
+    m_stage_texture_map             = m_saved_device_state.stage_texture_map;
+    m_device_state.render_target_ptr = nullptr;
+    m_device_state.stage_texture_map.clear();
+
+end:
+    return;
+}
+
+void Stereo::Replay::EngineDLL::D3D7CallExecutor::save_state()
+{
+    m_saved_device_state                   = m_device_state;
+    m_saved_device_state.render_target_ptr = m_render_target_ptr;
+    m_saved_device_state.stage_texture_map = m_stage_texture_map;
 }
 
 void Stereo::Replay::EngineDLL::D3D7CallExecutor::set_eye(const Analysis::RecipeLoader::Eye& in_eye)
@@ -1718,6 +1832,9 @@ bool Stereo::Replay::EngineDLL::D3D7CallExecutor::set_render_state(std::string* 
                          static_cast<Interception::Hooks::D3D7::D3DRENDERSTATETYPE>(state),
                          static_cast<DWORD>(value) );
 
+    m_device_ptr                         = device_ptr;
+    m_device_state.render_state_map[state] = value;
+
 end:
     return result;
 }
@@ -1840,6 +1957,10 @@ bool Stereo::Replay::EngineDLL::D3D7CallExecutor::set_texture_stage_state(std::s
                          static_cast<Interception::Hooks::D3D7::D3DTEXTURESTAGESTATETYPE>(state),
                          static_cast<DWORD>(value) );
 
+    m_device_ptr                                                      = device_ptr;
+    m_device_state.texture_stage_state_map[std::make_pair(stage,
+                                                          state)] = value;
+
 end:
     return result;
 }
@@ -1864,10 +1985,24 @@ bool Stereo::Replay::EngineDLL::D3D7CallExecutor::set_transform(std::string* out
 
     result = true;
 
-    call_method<HRESULT>(device_ptr,
-                         Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETTRANSFORM,
-                         static_cast<Interception::Hooks::D3D7::D3DTRANSFORMSTATETYPE>(state),
-                         reinterpret_cast<const Interception::Hooks::D3D7::D3DMATRIX*>(get_chunk_ptr(MATRIX_ARGUMENT) ) );
+    {
+        size_t         n_matrix_bytes = 0;
+        const uint8_t* matrix_ptr     = get_chunk_ptr(MATRIX_ARGUMENT,
+                                                     &n_matrix_bytes);
+
+        call_method<HRESULT>(device_ptr,
+                             Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETTRANSFORM,
+                             static_cast<Interception::Hooks::D3D7::D3DTRANSFORMSTATETYPE>(state),
+                             reinterpret_cast<const Interception::Hooks::D3D7::D3DMATRIX*>(matrix_ptr) );
+
+        m_device_ptr = device_ptr;
+
+        if (matrix_ptr != nullptr)
+        {
+            m_device_state.transform_map[state].assign(matrix_ptr,
+                                                       matrix_ptr + n_matrix_bytes);
+        }
+    }
 
 end:
     return result;
@@ -1884,9 +2019,21 @@ bool Stereo::Replay::EngineDLL::D3D7CallExecutor::set_viewport(std::string* out_
 
     if (result)
     {
+        size_t         n_viewport_bytes = 0;
+        const uint8_t* viewport_ptr     = get_chunk_ptr(VIEWPORT_ARGUMENT,
+                                                        &n_viewport_bytes);
+
         call_method<HRESULT>(device_ptr,
                              Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETVIEWPORT,
-                             reinterpret_cast<const Interception::Hooks::D3D7::D3DVIEWPORT7*>(get_chunk_ptr(VIEWPORT_ARGUMENT) ) );
+                             reinterpret_cast<const Interception::Hooks::D3D7::D3DVIEWPORT7*>(viewport_ptr) );
+
+        m_device_ptr = device_ptr;
+
+        if (viewport_ptr != nullptr)
+        {
+            m_device_state.viewport_u8_vec.assign(viewport_ptr,
+                                                  viewport_ptr + n_viewport_bytes);
+        }
     }
 
     return result;

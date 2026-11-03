@@ -12,6 +12,7 @@
 #include "object_remapper.h"
 #include <map>
 #include <string>
+#include <utility>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -46,12 +47,27 @@ namespace Stereo
                 bool           read_back_buffer   (std::vector<uint8_t>*                        out_pixel_u8_vec_ptr,
                                                    FrameImage*                                  out_image_ptr) override;
                 void           reset              ()                                                             override;
+                void           restore_state      ()                                                             override;
+                void           save_state         ()                                                             override;
                 void           set_eye            (const Analysis::RecipeLoader::Eye&           in_eye)          override;
                 void           set_per_eye_predicate(const PerEyePredicate&                 in_predicate)    override;
                 bool           write_back_buffer  (const std::vector<uint8_t>&                  in_pixel_u8_vec) override;
 
             private:
                 typedef bool (D3D7CallExecutor::*HandlerFuncPtr)(std::string* out_error_ptr);
+
+                /* What the replayed calls have set on the device, for putting it back as it was (Direct3D 7 has no state blocks). The objects are
+                 * the left ones, as for the textures of the stages; a state which was never set is not here, and is left as it is.
+                 */
+                struct DeviceState
+                {
+                    std::map<uint32_t, uint32_t>                     render_state_map;
+                    void*                                            render_target_ptr = nullptr;
+                    std::map<uint32_t, void*>                        stage_texture_map;
+                    std::map<std::pair<uint32_t, uint32_t>, uint32_t> texture_stage_state_map; /* by the stage and the state */
+                    std::map<uint32_t, std::vector<uint8_t> >        transform_map;
+                    std::vector<uint8_t>                             viewport_u8_vec;
+                };
 
                 /* A surface that is locked: where the pixels are, and how the dump had them laid out. */
                 struct LockedSurface
@@ -150,6 +166,7 @@ namespace Stereo
                 CallContext                                                    m_context;
                 uint32_t                                                       m_display_height;
                 uint32_t                                                       m_display_width;
+                DeviceState                                                    m_device_state;        /* of the render and texture stage states, transforms and viewport; the rest is below */
                 void*                                                          m_device_ptr;          /* the device that the target and textures below are set on */
                 void*                                                          m_direct_draw_ptr;
                 std::unordered_map<APIInterceptor::APIFunction, HandlerFuncPtr> m_handler_map;
@@ -159,6 +176,7 @@ namespace Stereo
                 std::map<void*, uint32_t>                                      m_reference_count_map; /* the references the replay holds to each object */
                 void*                                                          m_primary_ptr;
                 std::unordered_set<APIInterceptor::APIFunction>                m_release_function_set;
+                DeviceState                                                    m_saved_device_state;  /* as save_state() found it */
                 void*                                                          m_render_target_ptr;   /* the left object, as for the textures below */
                 std::map<uint32_t, void*>                                      m_stage_texture_map;   /* the left object set on each texture stage */
                 HWND                                                          m_window;

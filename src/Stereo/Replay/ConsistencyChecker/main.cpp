@@ -57,7 +57,7 @@ const Stereo::Replay::ConsistencyChecker::Variant Stereo::Replay::ConsistencyChe
     {Stereo::Replay::EngineDLL::FrameExecution::DIRECT, "as they are, again",                false, false},
     {Stereo::Replay::EngineDLL::FrameExecution::TWICE,  "twice",                             false, false},
     {Stereo::Replay::EngineDLL::FrameExecution::TWICE,  "twice, the state put back between", true,  false},
-    {Stereo::Replay::EngineDLL::FrameExecution::TWICE,  "twice, for the eyes of the recipe", false, true}
+    {Stereo::Replay::EngineDLL::FrameExecution::TWICE,  "twice, for the eyes of the recipe", true,  true}
 };
 
 /* Writes the images of one frame, as it is and executed twice, to the directory of the options. */

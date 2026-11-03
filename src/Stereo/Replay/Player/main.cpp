@@ -271,6 +271,11 @@ int Stereo::Replay::Player::run(int   in_argc,
         execution_options.mode = (options.eye_mode == EyeMode::BOTH)  ? Stereo::Replay::EngineDLL::FrameExecution::TWICE
                                                                       : Stereo::Replay::EngineDLL::FrameExecution::BUFFERED_ONCE;
 
+        /* The second execution of a frame is to begin where the first did: a frame may rely on the state which the one before it left (a render
+         * target which it never sets, say), and the first execution changes it.
+         */
+        execution_options.restores_state = (options.eye_mode == EyeMode::BOTH);
+
         preview_ptr.reset(new PreviewWindow(options.eye_mode) );
 
         preview_ptr->set_close_func([quit_ptr]()
