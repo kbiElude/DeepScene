@@ -26,6 +26,7 @@ namespace Stereo
             {
                 ATTRIB_LOCATION,
                 BUFFER,
+                D3D7_OBJECT,
                 D3D8_OBJECT,
                 D3D8_PIXEL_SHADER,
                 D3D8_STATE_BLOCK,

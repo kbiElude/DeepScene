@@ -422,6 +422,14 @@ int main(int   in_argc,
             options.dump_directory = in_argv[++n_argument];
         }
         else
+        if (argument == "--dump-frame" &&
+            has_next)
+        {
+            options.dump_frame = static_cast<uint32_t>(::strtoul(in_argv[++n_argument],
+                                                                  nullptr,
+                                                                  10) );
+        }
+        else
         if (argument == "--eye-separation" &&
             has_next)
         {
@@ -536,6 +544,14 @@ int main(int   in_argc,
                 sink_vec.back().get_hash_map().size(),
                 std::chrono::duration<double>(std::chrono::steady_clock::now() - start_time).count() );
         fflush(stdout);
+    }
+
+    if (options.dump_frame != UINT32_MAX &&
+        options.dump_directory.empty() == false)
+    {
+        Stereo::Replay::ConsistencyChecker::dump_frame(options,
+                                                       options.dump_frame,
+                                                       Stereo::Replay::ConsistencyChecker::VARIANT_ARRAY[2]);
     }
 
     {

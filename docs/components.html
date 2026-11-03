@@ -63,7 +63,7 @@
 <p>Executing a workload's calls again, without the program. See <a href="replay.html">Replay</a>.</p>
 
 <h3>StereoReplayEngineDLL</h3>
-<p><em>DLL, built for 32 and 64 bits.</em> The replay engine. It walks the calls of a workload and hands each to the executor of its API (Direct3D 8, OpenGL, Win32 windows, or one that does nothing), found in a registry. It remaps the objects of the dump onto the live ones, restores the arguments a call needs, replays locks and client arrays, and paces the frames. It can execute a frame twice, which is what the recipe-driven stereo needs, binding the matrix of each eye. The executors are the parts that depend on an API.</p>
+<p><em>DLL, built for 32 and 64 bits.</em> The replay engine. It walks the calls of a workload and hands each to the executor of its API (DirectDraw 7 and Direct3D 7, Direct3D 8, OpenGL, Win32 windows, or one that does nothing), found in a registry. It remaps the objects of the dump onto the live ones, restores the arguments a call needs, replays locks and client arrays, and paces the frames. It can execute a frame twice, which is what the recipe-driven stereo needs, binding the matrix of each eye. The executors are the parts that depend on an API.</p>
 
 <h3>StereoReplayPlayer</h3>
 <p><em>Program.</em> A control window (ImGui, through <code>UIHost</code>) around the replay engine: choose a workload and optionally a recipe, play and pause. A 64-bit player starts the 32-bit one for a 32-bit workload.</p>

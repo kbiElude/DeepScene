@@ -38,7 +38,7 @@ bool Stereo::Replay::Player::PlayerLauncher::is_handover_needed(const char* in_w
 {
     constexpr uint32_t N_BYTES_PER_POINTER_X86 = 4;
 
-    /* Only a 64-bit player hands over, and only a dump with 32-bit pointers can hold D3D8. */
+    /* Only a 64-bit player hands over, and only a dump with 32-bit pointers can hold D3D7 or D3D8. */
     bool result = false;
 
     if (sizeof(void*) != N_BYTES_PER_POINTER_X86)
@@ -49,7 +49,11 @@ bool Stereo::Replay::Player::PlayerLauncher::is_handover_needed(const char* in_w
         {
             if (reader_ptr->get_pointer_n_bytes() == N_BYTES_PER_POINTER_X86)
             {
-                result = reader_ptr->contains_api_group(Capture::APIDumpLoader::APIGroup::D3D8);
+                const bool has_d3d7 = reader_ptr->contains_api_group(Capture::APIDumpLoader::APIGroup::D3D7);
+                const bool has_d3d8 = reader_ptr->contains_api_group(Capture::APIDumpLoader::APIGroup::D3D8);
+
+                result = (has_d3d7 ||
+                          has_d3d8);
             }
         }
     }

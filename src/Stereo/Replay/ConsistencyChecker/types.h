@@ -30,6 +30,7 @@ namespace Stereo
             struct Options
             {
                 std::string                    dump_directory;
+                uint32_t                       dump_frame = UINT32_MAX; /* the images of this frame are written whether or not it differs */
                 float                          eye_separation = 0.0f;
                 uint32_t                       first_frame = 0;
                 uint32_t                       last_frame  = 999;

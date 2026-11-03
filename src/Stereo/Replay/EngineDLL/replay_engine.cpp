@@ -4,6 +4,7 @@
  */
 #include "Analysis/APIDumpAnalysis/frontends/analysis_session.h"
 #include "Common/macros.h"
+#include "d3d7_call_executor.h"
 #include "d3d8_call_executor.h"
 #include "frame_runner.h"
 #include "gl_call_executor.h"
@@ -47,6 +48,8 @@ Stereo::Replay::EngineDLL::ReplayEngine::ReplayEngine()
                         win32_executor_ptr);
     }
 
+    m_executors.add(Capture::APIDumpLoader::APIGroup::D3D7,
+                    std::make_shared<D3D7CallExecutor>(&m_remapper) );
     m_executors.add(Capture::APIDumpLoader::APIGroup::D3D8,
                     std::make_shared<D3D8CallExecutor>(&m_remapper) );
     m_executors.add(Capture::APIDumpLoader::APIGroup::GL,
