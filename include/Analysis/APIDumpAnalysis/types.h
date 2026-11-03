@@ -376,6 +376,10 @@ namespace Analysis
          */
         struct GeometrySample
         {
+            /* The vertices are already in the space of the picture (pre-transformed), and no matrix moves them: the positions are then the x and
+             * y of a vertex in pixels, and the reciprocal of its depth in the place of the third coordinate (see ModelBuilder::record_screen_depth).
+             */
+            bool                               is_pre_transformed = false;
             std::vector<std::array<float, 3> > position_vec;
         };
 

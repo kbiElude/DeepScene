@@ -203,6 +203,12 @@ namespace Analysis
              */
             ViewCoverage record_draw_surface_depth(const DrawDescription& in_draw);
 
+            /* The same, for a draw whose vertices are already in the space of the picture (see GeometrySample::is_pre_transformed): the depth of a
+             * vertex is the reciprocal of what it says, it is in view when it is in the viewport, and the draw reaches the edges of the view when its
+             * vertices reach those of the viewport. No matrix is asked.
+             */
+            ViewCoverage record_screen_depth(const DrawDescription& in_draw);
+
 
             /* True for the constants that describe the camera, which is the same for all the draws of a pass. */
             static bool is_camera_semantic(const ConstantSemantic& in_semantic);

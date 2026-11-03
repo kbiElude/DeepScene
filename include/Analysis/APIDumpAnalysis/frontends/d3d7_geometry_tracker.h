@@ -36,6 +36,7 @@ namespace Analysis
                     uint32_t        first             = 0;       /* the first index of an indexed draw, else the first vertex */
                     const uint8_t*  index_data_ptr    = nullptr; /* 16-bit indices; null if the draw is not indexed         */
                     size_t          index_n_bytes     = 0;
+                    bool            is_pre_transformed = false;   /* the vertices are positioned in pixels, with the reciprocal of their depth (x, y, z, 1 / w) */
                     uint32_t        stride            = 0;
                     uint32_t        vertex_count      = 0;       /* indices, if the draw is indexed                          */
                     const uint8_t*  vertex_data_ptr   = nullptr;

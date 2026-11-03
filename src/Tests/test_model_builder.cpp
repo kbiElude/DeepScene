@@ -1440,6 +1440,83 @@ TEST(ModelBuilder, AVertexBehindTheCameraOrOutsideTheViewIsNotCounted)
                 0.5f);
 }
 
+TEST(ModelBuilder, PreTransformedVerticesAreCountedByTheReciprocalOfTheirDepthAndNoMatrixIsAsked)
+{
+    Tests::ModelTestHelper helper;
+    const auto             swapchain_image = helper.create_swapchain_image();
+
+    helper.bind        (swapchain_image);
+    helper.set_viewport(0, 0, 640, 480);
+
+    /* A depth of 10, one of 20, one off the picture, and one that is not in front of the camera (its reciprocal is not above zero). */
+    helper.draw_with_screen_geometry({{100.0f, 100.0f,  0.1f},
+                                      {200.0f, 200.0f,  0.05f},
+                                      {700.0f, 100.0f,  0.2f},
+                                      {300.0f, 300.0f, -1.0f}},
+                                     40);
+    helper.end_frame();
+
+    const auto& model = helper.get_model();
+
+    ASSERT_EQ(model.surface_depth_histogram_map.size(),
+              1u);
+
+    const auto& histogram = model.surface_depth_histogram_map.begin()->second;
+
+    /* The two in view have the share of the draw that each of four has. */
+    EXPECT_EQ(histogram.get_total_weight(),
+              20u);
+    EXPECT_NEAR(histogram.get_depth_at_fraction(0.25),
+                10.0f,
+                1.0f);
+    EXPECT_NEAR(histogram.get_depth_at_fraction(0.75),
+                20.0f,
+                2.0f);
+
+    /* And the draw as a whole is where the middle of what was seen is. */
+    ASSERT_EQ(model.depth_histogram_map.size(),
+              1u);
+    EXPECT_EQ(model.depth_histogram_map.begin()->second.get_total_weight(),
+              40u);
+}
+
+TEST(ModelBuilder, ADrawOfPreTransformedVerticesWhichReachTheEdgesOfTheViewportCoversTheView)
+{
+    {
+        Tests::ModelTestHelper helper;
+        const auto             swapchain_image = helper.create_swapchain_image();
+
+        helper.bind        (swapchain_image);
+        helper.set_viewport(0, 0, 640, 480);
+        helper.draw_with_screen_geometry({{0.0f,   0.0f,   0.2f},
+                                          {640.0f, 0.0f,   0.2f},
+                                          {0.0f,   480.0f, 0.2f},
+                                          {640.0f, 480.0f, 0.2f}},
+                                         4);
+        helper.end_frame();
+
+        ASSERT_EQ(helper.get_model().covering_draw_key_map.size(),
+                  1u);
+    }
+
+    /* Not all of it. */
+    {
+        Tests::ModelTestHelper helper;
+        const auto             swapchain_image = helper.create_swapchain_image();
+
+        helper.bind        (swapchain_image);
+        helper.set_viewport(0, 0, 640, 480);
+        helper.draw_with_screen_geometry({{100.0f, 100.0f, 0.2f},
+                                          {540.0f, 100.0f, 0.2f},
+                                          {100.0f, 380.0f, 0.2f},
+                                          {540.0f, 380.0f, 0.2f}},
+                                         4);
+        helper.end_frame();
+
+        EXPECT_TRUE(helper.get_model().covering_draw_key_map.empty() );
+    }
+}
+
 TEST(ModelBuilder, ADrawWhoseVerticesAreNotKnownHasNoSurfaceDepth)
 {
     constexpr size_t N_FLOATS_PER_MATRIX = 16;

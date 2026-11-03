@@ -50,6 +50,11 @@ namespace Tests
         void draw_with_geometry(const std::vector<std::array<float, 3> >& in_position_vec,
                                 const uint32_t&                           in_vertex_count);
 
+        /* The same, for vertices that are already in the space of the picture: the x and y of a few of them, in pixels, and the reciprocal of the
+         * depth. */
+        void draw_with_screen_geometry(const std::vector<std::array<float, 3> >& in_position_vec,
+                                       const uint32_t&                           in_vertex_count);
+
         /* A draw which reads what it renders to: it blends, and tests the depth. */
         void draw_reading_attachments();
 

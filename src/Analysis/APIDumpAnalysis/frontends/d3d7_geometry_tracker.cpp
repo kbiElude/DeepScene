@@ -54,20 +54,28 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7GeometryTracker::on_unlock(const 
 std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDumpAnalysis::Frontends::D3D7GeometryTracker::sample(const DrawRange& in_range)
 {
     /* A few dozen vertices tell where a mesh is, and what the analysis makes of them is a percentile of the depth. */
-    constexpr size_t MAX_N_POINTS     = 64;
-    constexpr size_t N_POSITION_BYTES = 3 * sizeof(float);
+    constexpr size_t MAX_N_POINTS              = 64;
+    constexpr size_t N_PRE_TRANSFORMED_FLOATS  = 4; /* x, y, z and the reciprocal of the depth */
+    constexpr size_t N_POSITION_FLOATS         = 3;
+    constexpr size_t RECIPROCAL_DEPTH_FLOAT    = 3;
+
+    /* What is read of a vertex: its position, which for one that is pre-transformed goes on to the reciprocal of its depth. */
+    const size_t n_position_bytes = ((in_range.is_pre_transformed) ? N_PRE_TRANSFORMED_FLOATS
+                                                                   : N_POSITION_FLOATS) * sizeof(float);
 
     std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> result_ptr;
 
     const bool has_vertices = (in_range.vertex_data_ptr != nullptr &&
                                in_range.vertex_count    >  0       &&
-                               in_range.stride          >= N_POSITION_BYTES);
+                               in_range.stride          >= n_position_bytes);
 
     if (has_vertices)
     {
         auto         sample_ptr = std::make_shared<Analysis::APIDumpAnalysis::GeometrySample>();
         const size_t n_points   = std::min<size_t>(in_range.vertex_count,
                                                    MAX_N_POINTS);
+
+        sample_ptr->is_pre_transformed = in_range.is_pre_transformed;
 
         for (size_t n_point = 0;
                     n_point < n_points;
@@ -98,15 +106,24 @@ std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDu
 
             const uint64_t position_offset = vertex_index * in_range.stride;
 
-            is_valid = (is_valid && position_offset + N_POSITION_BYTES <= in_range.vertex_n_bytes);
+            is_valid = (is_valid && position_offset + n_position_bytes <= in_range.vertex_n_bytes);
 
             if (is_valid)
             {
+                std::array<float, 4> read_floats = {};
                 std::array<float, 3> position;
 
-                ::memcpy(position.data(),
+                ::memcpy(read_floats.data(),
                          in_range.vertex_data_ptr + position_offset,
-                         N_POSITION_BYTES);
+                         n_position_bytes);
+
+                position = {read_floats[0], read_floats[1], read_floats[2]};
+
+                /* For vertices which are positioned in the picture, the third coordinate is the reciprocal of the depth, and not the depth buffer's. */
+                if (in_range.is_pre_transformed)
+                {
+                    position[2] = read_floats[RECIPROCAL_DEPTH_FLOAT];
+                }
 
                 if (::isfinite(position[0]) &&
                     ::isfinite(position[1]) &&

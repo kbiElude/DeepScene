@@ -450,6 +450,16 @@ void Analysis::RecipeBake::RecipeBaker::compute_scene_convergence(const Analysis
                     projection_scale = get_projection_scale(in_analysis,
                                                             pass_id);
                 }
+
+                /* A pass whose vertices no matrix moves has no projection to read the angle of view from: the recipe says it. */
+                if (projection_scale                     <= 0.0f &&
+                    in_recipe.screen_parallax.is_enabled)
+                {
+                    constexpr float DEGREES_TO_RADIANS = 3.14159265358979323846f / 180.0f;
+                    constexpr float HALF               = 0.5f;
+
+                    projection_scale = 1.0f / ::tanf(in_recipe.screen_parallax.field_of_view_degrees * HALF * DEGREES_TO_RADIANS);
+                }
             }
         }
 

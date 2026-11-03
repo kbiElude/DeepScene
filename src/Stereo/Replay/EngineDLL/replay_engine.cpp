@@ -490,9 +490,18 @@ bool Stereo::Replay::EngineDLL::ReplayEngine::execute_draw_call(const Capture::A
     {
         D3D7ScreenParallax::Parameters parameters;
 
-        parameters.convergence_distance  = screen_parallax.convergence_distance;
+        /* The scene (the kind of frame) knows where its surfaces are, and how far apart the eyes may be for the nearest of them; the recipe's own
+         * distance is for a scene which the analysis found nothing in.
+         */
+        const uint64_t shape_key       = m_session_ptr->get_completed_frame().shape_key;
+        const float    scene_distance  = m_recipe_applier_ptr->get_scene_convergence_distance(shape_key);
+        const float    scene_limit     = m_recipe_applier_ptr->get_scene_max_separation      (shape_key);
+
+        parameters.convergence_distance  = (scene_distance > 0.0f) ? scene_distance
+                                                                   : screen_parallax.convergence_distance;
         parameters.eye                   = in_eye;
-        parameters.eye_separation        = m_frame_eye_separation;
+        parameters.eye_separation        = (scene_limit > 0.0f && scene_limit < m_frame_eye_separation) ? scene_limit
+                                                                                                    : m_frame_eye_separation;
         parameters.field_of_view_degrees = screen_parallax.field_of_view_degrees;
         parameters.picture_width         = m_session_ptr->get_model().pass_structure_interner.get_structure(in_pass_structure_id).viewport.width;
 

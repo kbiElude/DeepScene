@@ -529,7 +529,7 @@ TEST(D3D7Frontend, TheVerticesOfAVertexBufferAreWhatWasWrittenToIt)
                 1.0f);
 }
 
-TEST(D3D7Frontend, PreTransformedVerticesAreNotSampled)
+TEST(D3D7Frontend, PreTransformedVerticesAreSampledByTheReciprocalOfTheirDepthAndNotMovedByAMatrix)
 {
     constexpr uint32_t FVF_XYZRHW = 0x004;
 
@@ -557,7 +557,15 @@ TEST(D3D7Frontend, PreTransformedVerticesAreNotSampled)
     scene.feed();
     scene.present();
 
-    EXPECT_TRUE(scene.get_harness().get_model().surface_depth_histogram_map.empty() );
+    const auto& model = scene.get_harness().get_model();
+
+    ASSERT_EQ(model.surface_depth_histogram_map.size(),
+              1u);
+
+    /* The reciprocal of the depth is 1, so the depth is 1: the view matrix (the camera is 4 away) has nothing to do with it. */
+    EXPECT_NEAR(model.surface_depth_histogram_map.begin()->second.get_depth_at_fraction(0.5),
+                1.0f,
+                0.2f);
 }
 
 TEST(D3D7Frontend, TheVerticesOfAStridedDrawAreThoseOfItsArraysOfPositions)

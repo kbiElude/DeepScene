@@ -42,8 +42,10 @@
     "screen_parallax": {                           for an application whose vertices are already in the space of the picture (pre-transformed:
                                                    Direct3D's x and y in pixels, and the reciprocal of the depth), which no matrix moves;
                                                    without it, such vertices are left as they are
-      "convergence_distance": 5.0,                 the distance at which the eyes converge, in the units of the camera of the application;
-                                                   what is at it is not moved (above 0; there is no way to find it out, so it must be said)
+      "convergence_distance": 5.0,                 the distance at which the eyes converge, in the units of the camera of the application; what
+                                                   is at it is not moved. For a scene which the analysis found nothing in; the others converge at
+                                                   the distance that RecipeBake baked (scene_convergence), and are no further apart than its limit
+                                                   (scene_max_separation: from comfort and the nearest surfaces). Above 0; it must be said
       "field_of_view_degrees": 90.0                the angle of view of the width of the picture (above 0, below 180; default 90): there is no
                                                    projection to read it from
     },

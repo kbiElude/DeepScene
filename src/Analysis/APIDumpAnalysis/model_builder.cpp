@@ -670,9 +670,17 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_draw(const DrawDescription& in_
 
     if (m_keeps_history)
     {
-        record_draw_depth(in_draw);
+        if (in_draw.geometry_ptr != nullptr &&
+            in_draw.geometry_ptr->is_pre_transformed)
+        {
+            coverage = record_screen_depth(in_draw);
+        }
+        else
+        {
+            record_draw_depth(in_draw);
 
-        coverage = record_draw_surface_depth(in_draw);
+            coverage = record_draw_surface_depth(in_draw);
+        }
     }
 
     fill_draw_structure(in_draw,
@@ -1165,6 +1173,75 @@ Analysis::APIDumpAnalysis::ModelBuilder::ViewCoverage Analysis::APIDumpAnalysis:
                 }
             }
         }
+    }
+
+    return result;
+}
+
+Analysis::APIDumpAnalysis::ModelBuilder::ViewCoverage Analysis::APIDumpAnalysis::ModelBuilder::record_screen_depth(const DrawDescription& in_draw)
+{
+    /* How near to an edge of the viewport a vertex has to be for the draw to reach it, as a part of the size of the viewport. */
+    constexpr float EDGE_REACH = 0.005f;
+
+    ViewCoverage                      result       = ViewCoverage::UNKNOWN;
+    const auto&                       position_vec = in_draw.geometry_ptr->position_vec;
+    const uint64_t                    weight       = std::max<uint64_t>(1,
+                                                                        in_draw.vertex_count / std::max<size_t>(1,
+                                                                                                                 position_vec.size() ) );
+    const bool                        has_viewport = (m_viewport.width > 0.0f && m_viewport.height > 0.0f);
+    std::vector<float>                seen_depth_vec;
+    float                             x_max        = -1.0e30f;
+    float                             x_min        =  1.0e30f;
+    float                             y_max        = -1.0e30f;
+    float                             y_min        =  1.0e30f;
+
+    for (const auto& position : position_vec)
+    {
+        const float reciprocal_depth = position[2];
+
+        /* A vertex that is not in front of the camera has no depth to tell, and is no part of the view. */
+        if (reciprocal_depth > 0.0f)
+        {
+            const float depth      = 1.0f / reciprocal_depth;
+            const bool  is_in_view = (has_viewport == false                                                          ||
+                                      (position[0] >= m_viewport.x                                                  &&
+                                       position[0] <= m_viewport.x + m_viewport.width                               &&
+                                       position[1] >= m_viewport.y                                                  &&
+                                       position[1] <= m_viewport.y + m_viewport.height) );
+
+            x_max = (position[0] > x_max) ? position[0] : x_max;
+            x_min = (position[0] < x_min) ? position[0] : x_min;
+            y_max = (position[1] > y_max) ? position[1] : y_max;
+            y_min = (position[1] < y_min) ? position[1] : y_min;
+
+            if (is_in_view)
+            {
+                m_open_pass.surface_depth_histogram.add(depth,
+                                                        weight);
+
+                seen_depth_vec.push_back(depth);
+            }
+        }
+    }
+
+    /* The depth of the draw, as the matrices tell it for the other draws (the origin of the object): the middle of what was seen. */
+    if (seen_depth_vec.empty() == false)
+    {
+        std::sort(seen_depth_vec.begin(),
+                  seen_depth_vec.end() );
+
+        m_open_pass.depth_histogram.add(seen_depth_vec.at(seen_depth_vec.size() / 2),
+                                        in_draw.vertex_count);
+    }
+
+    if (x_min <= x_max &&
+        has_viewport)
+    {
+        result = (x_min <= m_viewport.x                      + EDGE_REACH * m_viewport.width  &&
+                  x_max >= m_viewport.x + m_viewport.width   - EDGE_REACH * m_viewport.width  &&
+                  y_min <= m_viewport.y                      + EDGE_REACH * m_viewport.height &&
+                  y_max >= m_viewport.y + m_viewport.height  - EDGE_REACH * m_viewport.height) ? ViewCoverage::COVERING
+                                                                                               : ViewCoverage::PARTIAL;
     }
 
     return result;

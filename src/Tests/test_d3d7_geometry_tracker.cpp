@@ -38,6 +38,50 @@ TEST(D3D7GeometryTracker, PositionsAreTheFirstThreeFloatsOfEachVertex)
               4.0f);
 }
 
+TEST(D3D7GeometryTracker, PreTransformedVerticesHaveTheirXAndYAndTheReciprocalOfTheirDepth)
+{
+    constexpr uint32_t STRIDE = 32; /* the position, a diffuse and a specular color, and one pair of texture coordinates */
+
+    /* x, y, z (of the depth buffer), the reciprocal of the depth, and what else the vertex has. */
+    const float vertex_array[16] = {10.0f, 20.0f, 0.5f, 0.25f, 0.0f, 0.0f, 0.0f, 0.0f,
+                                    30.0f, 40.0f, 0.6f, 0.125f, 0.0f, 0.0f, 0.0f, 0.0f};
+
+    const auto bytes = Tests::D3D7CallBuilder::get_bytes(vertex_array,
+                                                         sizeof(vertex_array) );
+
+    Analysis::APIDumpAnalysis::Frontends::D3D7GeometryTracker::DrawRange range;
+
+    range.is_pre_transformed = true;
+    range.stride             = STRIDE;
+    range.vertex_count       = 2;
+    range.vertex_data_ptr    = bytes.data();
+    range.vertex_n_bytes     = bytes.size();
+
+    const auto sample_ptr = Analysis::APIDumpAnalysis::Frontends::D3D7GeometryTracker::sample(range);
+
+    ASSERT_NE(sample_ptr,
+              nullptr);
+    EXPECT_TRUE(sample_ptr->is_pre_transformed);
+    ASSERT_EQ(sample_ptr->position_vec.size(),
+              2u);
+
+    /* The third coordinate is the reciprocal of the depth, which is not the z of the vertex. */
+    EXPECT_EQ(sample_ptr->position_vec.at(0).at(0),
+              10.0f);
+    EXPECT_EQ(sample_ptr->position_vec.at(0).at(1),
+              20.0f);
+    EXPECT_EQ(sample_ptr->position_vec.at(0).at(2),
+              0.25f);
+    EXPECT_EQ(sample_ptr->position_vec.at(1).at(2),
+              0.125f);
+
+    /* A vertex which has not room for the fourth. */
+    range.stride = 12;
+
+    EXPECT_EQ(Analysis::APIDumpAnalysis::Frontends::D3D7GeometryTracker::sample(range),
+              nullptr);
+}
+
 TEST(D3D7GeometryTracker, IndicesPickTheVerticesAndTheBaseIsAddedToThem)
 {
     constexpr uint32_t STRIDE = 12;

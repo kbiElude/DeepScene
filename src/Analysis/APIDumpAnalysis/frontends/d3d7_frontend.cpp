@@ -1245,9 +1245,10 @@ std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDu
     D3D7GeometryTracker::DrawRange                                   range;
     std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> result_ptr;
 
-    /* The positions of pre-transformed vertices are in pixels, not in the space of the model. */
-    const bool has_position = (position_mask != 0 &&
-                               position_mask != Interception::Core::D3D7Utils::D3DFVF_XYZRHW);
+    /* The positions of pre-transformed vertices are in pixels, not in the space of the model; they are sampled as that (x, y and the reciprocal
+     * of the depth), for what the analysis tells of how deep the surfaces of a scene are.
+     */
+    const bool has_position = (position_mask != 0);
 
     const size_t                             n_vertices_extra = (in_layout.is_indexed) ? 1
                                                                                        : 0;
@@ -1256,7 +1257,8 @@ std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDu
     const Capture::APIDumpLoader::DataChunk* vertices_ptr     = in_view.get_extra_chunk_ptr(n_vertices_extra);
     bool                                     is_source_found  = false;
 
-    range.vertex_count = in_view.get_u32(in_layout.count_argument);
+    range.is_pre_transformed = (position_mask == Interception::Core::D3D7Utils::D3DFVF_XYZRHW);
+    range.vertex_count       = in_view.get_u32(in_layout.count_argument);
 
     if (indices_ptr != nullptr)
     {
