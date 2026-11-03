@@ -549,9 +549,11 @@ int main(int   in_argc,
     if (options.dump_frame != UINT32_MAX &&
         options.dump_directory.empty() == false)
     {
+        /* With a recipe, the frame is the one that the recipe makes. */
         Stereo::Replay::ConsistencyChecker::dump_frame(options,
                                                        options.dump_frame,
-                                                       Stereo::Replay::ConsistencyChecker::VARIANT_ARRAY[2]);
+                                                       (options.recipe_filename.empty() ) ? Stereo::Replay::ConsistencyChecker::VARIANT_ARRAY[2]
+                                                                                          : Stereo::Replay::ConsistencyChecker::VARIANT_ARRAY[4]);
     }
 
     {
