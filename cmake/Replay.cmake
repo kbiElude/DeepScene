@@ -28,6 +28,8 @@ target_link_libraries(StereoReplayPlayer APIDumpAnalysis APIDumpLoader RecipeLoa
 
 if (CMAKE_SIZEOF_VOID_P EQUAL 4)
     set_target_properties(StereoReplayPlayer PROPERTIES OUTPUT_NAME "StereoReplayPlayer_x86")
+    # A segment of the workload is 100 to 200 MB, and the replay reads several ahead: a 32-bit process has two gigabytes unless it says it can have four.
+    target_link_options(StereoReplayPlayer PRIVATE /LARGEADDRESSAWARE)
 endif()
 
 source_group ("StereoReplayPlayer source files" FILES ${StereoReplayPlayerSources})
@@ -41,6 +43,7 @@ target_link_libraries(StereoReplayConsistencyChecker APIDumpAnalysis RecipeLoade
 
 if (CMAKE_SIZEOF_VOID_P EQUAL 4)
     set_target_properties(StereoReplayConsistencyChecker PROPERTIES OUTPUT_NAME "StereoReplayConsistencyChecker_x86")
+    target_link_options(StereoReplayConsistencyChecker PRIVATE /LARGEADDRESSAWARE)
 endif()
 
 source_group ("StereoReplayConsistencyChecker source files" FILES ${StereoReplayConsistencyCheckerSources})
