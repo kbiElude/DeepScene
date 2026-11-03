@@ -477,6 +477,7 @@ end:
 bool Stereo::Replay::EngineDLL::ReplayEngine::execute_draw_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                 const IChunkSource&                          in_chunk_source,
                                                                 const bool&                                  in_is_affected,
+                                                                const uint64_t&                              in_cover_key,
                                                                 const Analysis::RecipeLoader::Eye&           in_eye,
                                                                 const uint32_t&                              in_pass_structure_id)
 {
@@ -485,8 +486,10 @@ bool Stereo::Replay::EngineDLL::ReplayEngine::execute_draw_call(const Capture::A
     OverlayChunkSource                    overlay(in_chunk_source);
     Capture::APIDumpLoader::DumpedAPICall rewritten;
 
-    if (in_is_affected &&
-        screen_parallax.is_enabled)
+    /* A draw that covers the whole of the view is not moved sideways: it would leave a strip of the picture bare. */
+    if (in_is_affected                                              &&
+        screen_parallax.is_enabled                                  &&
+        m_recipe_applier_ptr->is_draw_covering(in_cover_key) == false)
     {
         D3D7ScreenParallax::Parameters parameters;
 
@@ -573,6 +576,7 @@ bool Stereo::Replay::EngineDLL::ReplayEngine::execute_rewritten_call(const Captu
                 result = execute_draw_call(in_call,
                                            in_chunk_source,
                                            is_affected,
+                                           draw_iterator->cover_key,
                                            eye,
                                            frame.pass_instance_vec.at(draw_iterator->pass_index).structure_id);
             }

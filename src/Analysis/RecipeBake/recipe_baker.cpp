@@ -658,7 +658,11 @@ std::vector<uint64_t> Analysis::RecipeBake::RecipeBaker::get_covering_draw_key_v
     {
         const uint64_t pass_key = in_analysis.model.pass_structure_interner.get_structure(pass_pair.first).key;
 
-        if (unaffected_pass_key_set.count(pass_key) != 0)
+        /* Those of the passes that the recipe leaves alone are not moved by the overlay; and where the vertices are moved sideways (a recipe that
+         * has screen parallax), a draw that covers the view is not, in any pass, for it would leave a strip bare.
+         */
+        if (unaffected_pass_key_set.count(pass_key) != 0 ||
+            in_recipe.screen_parallax.is_enabled)
         {
             key_set.insert(pass_pair.second.begin(),
                            pass_pair.second.end  () );

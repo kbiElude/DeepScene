@@ -32,6 +32,55 @@ namespace
     }
 }
 
+TEST(RecipeBakerScreenParallax, ADrawWhichCoversTheViewIsNotToBeMovedSidewaysInAnyPassOfARecipeThatMovesVerticesSideways)
+{
+    Analysis::APIDumpAnalysis::AnalysisResult analysis;
+    Tests::ModelTestHelper                    helper;
+    const auto                                swapchain_image = helper.create_swapchain_image();
+
+    helper.bind        (swapchain_image);
+    helper.set_viewport(0, 0, 640, 480);
+    helper.draw_with_screen_geometry({{0.0f,   0.0f,   0.2f},
+                                      {640.0f, 0.0f,   0.2f},
+                                      {0.0f,   480.0f, 0.2f},
+                                      {640.0f, 480.0f, 0.2f}},
+                                     6);
+    helper.end_frame();
+
+    analysis.model = helper.get_model();
+
+    Analysis::RecipeBake::BakeReport report;
+    Analysis::RecipeLoader::Recipe   recipe;
+    std::string                      error;
+    std::string                      text;
+
+    const std::string head = "{\"recipe_version\": 0, \"key_scheme_version\": 1, \"target\": {\"name\": \"test\", \"description\": \"a test\"},";
+
+    ASSERT_TRUE(Analysis::RecipeBake::RecipeBaker::bake(head + "\"screen_parallax\": {\"convergence_distance\": 5}, \"rules\": []}",
+                                                        analysis,
+                                                       &text,
+                                                       &report,
+                                                       &error) ) << error;
+    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(text,
+                                                           &recipe,
+                                                           &error) ) << error;
+
+    EXPECT_EQ(recipe.covering_draw_key_vec.size(),
+              1u);
+
+    /* Without it, only the passes that the recipe leaves alone have them: the overlay is what moves those. */
+    ASSERT_TRUE(Analysis::RecipeBake::RecipeBaker::bake(head + "\"rules\": []}",
+                                                        analysis,
+                                                       &text,
+                                                       &report,
+                                                       &error) ) << error;
+    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(text,
+                                                           &recipe,
+                                                           &error) ) << error;
+
+    EXPECT_TRUE(recipe.covering_draw_key_vec.empty() );
+}
+
 TEST(RecipeBakerScreenParallax, TheDistanceOfASceneAndHowFarApartTheEyesMayBeAreWorkedOutWithTheAngleOfViewOfTheRecipe)
 {
     const auto                       analysis = make_analysis();

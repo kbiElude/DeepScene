@@ -502,6 +502,7 @@ namespace Analysis
         struct DrawInstance
         {
             uint64_t call_index    = 0;
+            uint64_t cover_key     = 0; /* of the draw by its signature and size (see KeyBuilder::compute_draw_cover_key) */
             uint32_t pass_index    = 0; /* a position in CompletedFrame::pass_instance_vec */
             uint64_t structure_key = 0;
         };

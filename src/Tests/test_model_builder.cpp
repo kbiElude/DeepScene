@@ -1480,6 +1480,36 @@ TEST(ModelBuilder, PreTransformedVerticesAreCountedByTheReciprocalOfTheirDepthAn
               40u);
 }
 
+TEST(ModelBuilder, AFrameHoldsTheCoverKeyOfEachOfItsDraws)
+{
+    Tests::ModelTestHelper helper;
+    const auto             swapchain_image = helper.create_swapchain_image();
+
+    helper.bind(swapchain_image);
+    helper.draw(1,
+                3);
+    const uint64_t first_cover_key = helper.get_builder().get_last_draw_cover_key();
+
+    helper.draw(2,
+                6);
+    const uint64_t second_cover_key = helper.get_builder().get_last_draw_cover_key();
+
+    helper.end_frame();
+
+    const auto& draw_vec = helper.get_builder().get_completed_frame().draw_instance_vec;
+
+    ASSERT_EQ(draw_vec.size(),
+              2u);
+    EXPECT_EQ(draw_vec.at(0).cover_key,
+              first_cover_key);
+    EXPECT_EQ(draw_vec.at(1).cover_key,
+              second_cover_key);
+
+    /* A draw is told by its signature and its size. */
+    EXPECT_NE(first_cover_key,
+              second_cover_key);
+}
+
 TEST(ModelBuilder, ADrawOfPreTransformedVerticesWhichReachTheEdgesOfTheViewportCoversTheView)
 {
     {

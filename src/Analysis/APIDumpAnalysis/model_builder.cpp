@@ -729,6 +729,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_draw(const DrawDescription& in_
 
         /* The pass is not complete yet, so it is the next one to be added to the frame. */
         m_frame_draw_instance_vec.push_back({m_call_index,
+                                             m_last_draw_cover_key,
                                              static_cast<uint32_t>(m_frame_pass_instance_vec.size() ),
                                              key});
     }
