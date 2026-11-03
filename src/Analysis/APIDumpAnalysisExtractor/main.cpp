@@ -8,9 +8,12 @@
 #include "Analysis/APIDumpAnalysis/resource_access_tracker.h"
 #include "Analysis/APIDumpAnalysis/timeline_builder.h"
 #include "extractor.h"
+#include <algorithm>
 #include <chrono>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string>
+#include <thread>
 
 std::string Analysis::APIDumpAnalysisExtractor::get_default_output_filename(const std::string& in_input_filename)
 {
@@ -31,7 +34,12 @@ bool Analysis::APIDumpAnalysisExtractor::parse_arguments(const int&   in_argc,
                                                          Options*     out_options_ptr,
                                                          std::string* out_error_ptr)
 {
-    bool result = false;
+    /* More threads than this would only wait for the memory: reading is a matter of how much is moved. */
+    constexpr uint32_t DEFAULT_MAX_N_THREADS = 8;
+    constexpr uint64_t MAX_N_THREADS         = 64;
+
+    bool result             = false;
+    bool is_n_threads_given = false;
 
     for (int n_argument = 1;
              n_argument < in_argc;
@@ -73,6 +81,32 @@ bool Analysis::APIDumpAnalysisExtractor::parse_arguments(const int&   in_argc,
 
                 goto end;
             }
+
+            ++n_argument;
+        }
+        else
+        if (argument == "--threads")
+        {
+            uint64_t n_threads = 0;
+
+            if (has_next == false)
+            {
+                *out_error_ptr = "--threads needs a number";
+
+                goto end;
+            }
+
+            if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(next_argument,
+                                                                        MAX_N_THREADS,
+                                                                       &n_threads) == false)
+            {
+                *out_error_ptr = "--threads needs a number up to " + std::to_string(MAX_N_THREADS) + ", not " + next_argument;
+
+                goto end;
+            }
+
+            out_options_ptr->n_threads = static_cast<uint32_t>(n_threads);
+            is_n_threads_given         = true;
 
             ++n_argument;
         }
@@ -132,6 +166,12 @@ bool Analysis::APIDumpAnalysisExtractor::parse_arguments(const int&   in_argc,
     if (out_options_ptr->output_filename.empty() )
     {
         out_options_ptr->output_filename = get_default_output_filename(out_options_ptr->input_filename);
+    }
+
+    if (is_n_threads_given == false)
+    {
+        out_options_ptr->n_threads = std::min<uint32_t>(DEFAULT_MAX_N_THREADS,
+                                                        std::thread::hardware_concurrency() );
     }
 
     result = true;
@@ -200,7 +240,7 @@ void Analysis::APIDumpAnalysisExtractor::print_usage()
             "Usage:\n"
             "\n"
             "APIDumpAnalysisExtractor drive:\\path\\to\\file.workload [-o file.passes] [--max-frames N]\n"
-            "                         [--progress-interval SECONDS] [--stats]\n"
+            "                         [--progress-interval SECONDS] [--stats] [--threads N]\n"
             "\n"
             "Finds the render passes of a workload, and stores them in a .passes file for APIDumpAnalysisQuery.\n"
             "\n"
@@ -208,6 +248,7 @@ void Analysis::APIDumpAnalysisExtractor::print_usage()
             "  --max-frames N       Stop after the Nth frame (default: all of them)\n"
             "  --progress-interval  Seconds between progress lines (default: 5; 0: after every segment)\n"
             "  --stats              Print what was found when done\n"
+            "  --threads N          Threads that read the workload ahead of the analysis (default: the cores of the machine, up to 8; 0: none)\n"
             "\n"
             "Exit codes: 0 done, 1 bad arguments, 2 workload cannot be read, 3 .passes cannot be written.\n");
 }
@@ -274,7 +315,8 @@ int Analysis::APIDumpAnalysisExtractor::run(int   in_argc,
                 options.input_filename.c_str() );
         fflush(stdout);
 
-        session.set_max_frames(options.max_frames);
+        session.set_max_frames      (options.max_frames);
+        session.set_n_reader_threads(options.n_threads);
 
         if (session.run(options.input_filename.c_str(),
                         progress_func,

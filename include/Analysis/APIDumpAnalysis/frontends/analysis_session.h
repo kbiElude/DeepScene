@@ -75,6 +75,11 @@ namespace Analysis
                 /* Stops the analysis after this many frames; 0 (the default) is no limit. */
                 void set_max_frames(const uint64_t& in_max_frames);
 
+                /* The threads that read the segments of the file ahead of the analysis (see WorkloadReader::Options); 0 (the default) reads them
+                 * as the analysis asks for them. The analysis itself is the same.
+                 */
+                void set_n_reader_threads(const uint32_t& in_n_threads);
+
                 /* The model itself, not a copy: for when the analysis is done. The progress is not to be asked for after it. */
                 Analysis::APIDumpAnalysis::Model take_model();
 
@@ -92,6 +97,7 @@ namespace Analysis
                 uint64_t                                m_max_frames;
                 std::array<uint64_t, N_API_GROUPS>      m_n_calls_by_group_array; /* counted here, and put in the summary when it is asked for */
                 uint64_t                                m_n_calls_since_frame;
+                uint32_t                                m_n_reader_threads;
                 WorkloadSummary                         m_summary;
                 WorkloadReference                       m_workload_reference;
             };

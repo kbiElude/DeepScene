@@ -27,6 +27,7 @@ namespace Analysis
         {
             std::string input_filename;
             uint64_t    max_frames                = 0;    /* 0: all of them */
+            uint32_t    n_threads                 = 0;    /* that read the workload ahead of the analysis; 0: set from the machine when the arguments are read */
             std::string output_filename;
             bool        print_stats               = false;
             double      progress_interval_seconds = 5.0;  /* 0: every segment */

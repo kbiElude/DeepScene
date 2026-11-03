@@ -12,7 +12,8 @@ Analysis::APIDumpAnalysis::Frontends::AnalysisSession::AnalysisSession(const boo
      m_d3d8_frontend         (&m_builder),
      m_max_frames            (0),
      m_n_calls_by_group_array(),
-     m_n_calls_since_frame   (0)
+     m_n_calls_since_frame   (0),
+     m_n_reader_threads      (0)
 {
     /* Stub */
 }
@@ -227,10 +228,15 @@ bool Analysis::APIDumpAnalysis::Frontends::AnalysisSession::run(const char*     
                                                                 const ProgressFunc& in_progress_func,
                                                                 std::string*        out_error_ptr)
 {
-    Capture::APIDumpLoader::Workload       segment;
-    auto                                   reader_ptr = Capture::APIDumpLoader::WorkloadReader::create(in_filename_ptr,
-                                                                                                       out_error_ptr);
-    bool                                   result     = (reader_ptr != nullptr);
+    Capture::APIDumpLoader::WorkloadReader::Options reader_options;
+    Capture::APIDumpLoader::Workload                segment;
+
+    reader_options.n_threads = m_n_reader_threads;
+
+    auto reader_ptr = Capture::APIDumpLoader::WorkloadReader::create(in_filename_ptr,
+                                                                     reader_options,
+                                                                     out_error_ptr);
+    bool result     = (reader_ptr != nullptr);
 
     if (result)
     {
@@ -267,6 +273,11 @@ bool Analysis::APIDumpAnalysis::Frontends::AnalysisSession::run(const char*     
 void Analysis::APIDumpAnalysis::Frontends::AnalysisSession::set_max_frames(const uint64_t& in_max_frames)
 {
     m_max_frames = in_max_frames;
+}
+
+void Analysis::APIDumpAnalysis::Frontends::AnalysisSession::set_n_reader_threads(const uint32_t& in_n_threads)
+{
+    m_n_reader_threads = in_n_threads;
 }
 
 Analysis::APIDumpAnalysis::Model Analysis::APIDumpAnalysis::Frontends::AnalysisSession::take_model()
