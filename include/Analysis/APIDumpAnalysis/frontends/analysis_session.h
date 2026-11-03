@@ -72,6 +72,9 @@ namespace Analysis
                          const ProgressFunc& in_progress_func,
                          std::string*        out_error_ptr);
 
+                /* Where the uses of resources are told (see IAccessSink and ModelBuilder::set_access_sink); nullptr, the default, is nowhere. */
+                void set_access_sink(Analysis::APIDumpAnalysis::IAccessSink* in_sink_ptr);
+
                 /* Stops the analysis after this many frames; 0 (the default) is no limit. */
                 void set_max_frames(const uint64_t& in_max_frames);
 
@@ -79,6 +82,11 @@ namespace Analysis
                  * as the analysis asks for them. The analysis itself is the same.
                  */
                 void set_n_reader_threads(const uint32_t& in_n_threads);
+
+                /* Data chunks of more bytes than this are not read from the workload (see WorkloadReader::Options): for an analysis which does
+                 * not look at vertices and pixels, and a session without history, which does not sample the geometry. 0 (the default) reads all.
+                 */
+                void set_skip_data_chunks_above_n_bytes(const uint32_t& in_n_bytes);
 
                 /* The model itself, not a copy: for when the analysis is done. The progress is not to be asked for after it. */
                 Analysis::APIDumpAnalysis::Model take_model();
@@ -98,6 +106,7 @@ namespace Analysis
                 std::array<uint64_t, N_API_GROUPS>      m_n_calls_by_group_array; /* counted here, and put in the summary when it is asked for */
                 uint64_t                                m_n_calls_since_frame;
                 uint32_t                                m_n_reader_threads;
+                uint32_t                                m_skip_data_chunks_above_n_bytes;
                 WorkloadSummary                         m_summary;
                 WorkloadReference                       m_workload_reference;
             };

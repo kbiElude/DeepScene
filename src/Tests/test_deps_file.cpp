@@ -9,6 +9,7 @@
 #include "Analysis/APIDumpDependencies/dependency_analyzer.h"
 #include "Analysis/APIDumpDependencies/deps_file.h"
 #include "Analysis/APIDumpDependencies/deps_format.h"
+#include "dependency_scene.h"
 #include <stddef.h>
 #include <string.h>
 
@@ -17,73 +18,46 @@ namespace
     using namespace Analysis::APIDumpAnalysis;
     using namespace Analysis::APIDumpDependencies;
 
-    /* An analysis of a small workload: a texture which is written and then sampled, and a target which is cleared, drawn to and sampled, in
-     * four frames.
+    /* An analysis of a small workload: a texture which is written and then sampled, and a target which is cleared and sampled, in four
+     * frames of four calls each.
      */
     DependencyAnalysis make_analysis()
     {
-        AccessLog             log;
-        DependencyAnalysis    result;
-        std::vector<Resource> resource_vec(2);
-
-        for (size_t n_resource = 0;
-                    n_resource < resource_vec.size();
-                  ++n_resource)
-        {
-            resource_vec.at(n_resource).description.height = 64;
-            resource_vec.at(n_resource).description.width  = 128;
-            resource_vec.at(n_resource).debug_name         = "Surface#" + std::to_string(n_resource);
-            resource_vec.at(n_resource).id                 = make_resource_id(static_cast<uint32_t>(n_resource) + 1);
-            resource_vec.at(n_resource).match_key          = 0x1000 + n_resource;
-        }
-
-        uint64_t call_index = 0;
+        Tests::DependencyScene scene;
+        const auto             texture = scene.create_resource(1,
+                                                               ResourceKind::TEXTURE_2D,
+                                                               false, /* in_is_render_target */
+                                                               0x1000);
+        const auto             target  = scene.create_resource(1,
+                                                               ResourceKind::TEXTURE_2D,
+                                                               true,  /* in_is_render_target */
+                                                               0x1001);
 
         for (uint64_t n_frame = 0;
                       n_frame < 4;
                     ++n_frame)
         {
-            AccessEvent event;
+            if (n_frame == 0)
+            {
+                scene.access   (texture,
+                                AccessRole::UPLOAD_DESTINATION,
+                                AccessMode::WRITE,
+                                AccessCoverage::FULL);
+                scene.next_call();
+            }
+            else
+            {
+                scene.sample(texture);
+            }
 
-            event.call_index  = call_index++;
-            event.mode        = (n_frame == 0) ? AccessMode::WRITE
-                                               : AccessMode::READ;
-            event.coverage    = AccessCoverage::FULL;
-            event.resource_id = make_resource_id(1);
-            event.role        = (n_frame == 0) ? AccessRole::UPLOAD_DESTINATION
-                                               : AccessRole::SAMPLED;
-
-            log.on_access(event);
-
-            event.call_index  = call_index++;
-            event.mode        = AccessMode::WRITE;
-            event.resource_id = make_resource_id(2);
-            event.role        = AccessRole::CLEAR_TARGET;
-
-            log.on_access(event);
-
-            event.call_index = call_index++;
-            event.mode       = AccessMode::READ;
-            event.role       = AccessRole::SAMPLED;
-
-            log.on_access(event);
-
-            log.on_frame_ended(n_frame,
-                               n_frame * 3,
-                               n_frame * 3 + 2);
+            scene.clear_fully(target);
+            scene.sample     (target);
+            scene.end_frame  ();
         }
 
-        result.frame_call_range_vec          = log.get_frame_call_range_vec();
-        result.is_truncated                  = true;
-        result.n_calls                       = 12;
-        result.n_calls_by_api_map["d3d7"]    = 12;
-        result.pointer_n_bytes               = 4;
-        result.qpc_frequency                 = 10000000;
-        result.result                        = DependencyAnalyzer::analyze(log,
-                                                                           resource_vec,
-                                                                           1);
-        result.resource_vec                  = resource_vec;
-        result.workload_reference.filename    = "x.workload";
+        DependencyAnalysis result = scene.make_analysis();
+
+        result.is_truncated                   = true;
         result.workload_reference.header_hash = 0x1111;
         result.workload_reference.middle_hash = 0x2222;
         result.workload_reference.n_bytes     = 987654321;
@@ -145,9 +119,9 @@ TEST(DepsFile, WhatIsWrittenIsWhatIsRead)
               0x3333u);
     EXPECT_TRUE(loaded.is_truncated);
     EXPECT_EQ(loaded.n_calls,
-              12u);
+              analysis.n_calls);
     EXPECT_EQ(loaded.n_calls_by_api_map.at("d3d7"),
-              12u);
+              analysis.n_calls);
     EXPECT_EQ(loaded.pointer_n_bytes,
               4u);
     EXPECT_EQ(loaded.qpc_frequency,
@@ -162,10 +136,11 @@ TEST(DepsFile, WhatIsWrittenIsWhatIsRead)
 
     ASSERT_EQ(loaded.frame_call_range_vec.size(),
               4u);
+    /* Four calls to a frame: three, and the one that ends it. */
     EXPECT_EQ(loaded.frame_call_range_vec.at(2).first_call_index,
-              6u);
-    EXPECT_EQ(loaded.frame_call_range_vec.at(2).last_call_index,
               8u);
+    EXPECT_EQ(loaded.frame_call_range_vec.at(2).last_call_index,
+              11u);
 
     EXPECT_EQ(loaded.result.n_frames,
               analysis.result.n_frames);

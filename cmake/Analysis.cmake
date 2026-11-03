@@ -74,6 +74,24 @@ target_link_libraries(APIDumpAnalysisQuery APIDumpAnalysis)
 
 source_group ("APIDumpAnalysisQuery source files" FILES ${APIDumpAnalysisQuerySources})
 
+file(GLOB APIDumpDependencyExtractorSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpDependencyExtractor/*.cpp"
+                                                              "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpDependencyExtractor/*.h")
+
+add_executable(APIDumpDependencyExtractor ${APIDumpDependencyExtractorSources})
+
+target_link_libraries(APIDumpDependencyExtractor APIDumpAnalysis APIDumpAnalysisFrontends APIDumpDependencies)
+
+source_group ("APIDumpDependencyExtractor source files" FILES ${APIDumpDependencyExtractorSources})
+
+file(GLOB APIDumpDependencyQuerySources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpDependencyQuery/*.cpp"
+                                                          "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpDependencyQuery/*.h")
+
+add_executable(APIDumpDependencyQuery ${APIDumpDependencyQuerySources})
+
+target_link_libraries(APIDumpDependencyQuery APIDumpDependencies)
+
+source_group ("APIDumpDependencyQuery source files" FILES ${APIDumpDependencyQuerySources})
+
 file(GLOB RecipeBakeSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/RecipeBake/*.cpp"
                                               "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/RecipeBake/*.h")
 

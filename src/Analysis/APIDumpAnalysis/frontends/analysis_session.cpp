@@ -13,7 +13,8 @@ Analysis::APIDumpAnalysis::Frontends::AnalysisSession::AnalysisSession(const boo
      m_max_frames            (0),
      m_n_calls_by_group_array(),
      m_n_calls_since_frame   (0),
-     m_n_reader_threads      (0)
+     m_n_reader_threads      (0),
+     m_skip_data_chunks_above_n_bytes(0)
 {
     /* Stub */
 }
@@ -231,7 +232,8 @@ bool Analysis::APIDumpAnalysis::Frontends::AnalysisSession::run(const char*     
     Capture::APIDumpLoader::WorkloadReader::Options reader_options;
     Capture::APIDumpLoader::Workload                segment;
 
-    reader_options.n_threads = m_n_reader_threads;
+    reader_options.n_threads                      = m_n_reader_threads;
+    reader_options.skip_data_chunks_above_n_bytes = m_skip_data_chunks_above_n_bytes;
 
     auto reader_ptr = Capture::APIDumpLoader::WorkloadReader::create(in_filename_ptr,
                                                                      reader_options,
@@ -270,6 +272,11 @@ bool Analysis::APIDumpAnalysis::Frontends::AnalysisSession::run(const char*     
     return result;
 }
 
+void Analysis::APIDumpAnalysis::Frontends::AnalysisSession::set_access_sink(Analysis::APIDumpAnalysis::IAccessSink* in_sink_ptr)
+{
+    m_builder.set_access_sink(in_sink_ptr);
+}
+
 void Analysis::APIDumpAnalysis::Frontends::AnalysisSession::set_max_frames(const uint64_t& in_max_frames)
 {
     m_max_frames = in_max_frames;
@@ -278,6 +285,11 @@ void Analysis::APIDumpAnalysis::Frontends::AnalysisSession::set_max_frames(const
 void Analysis::APIDumpAnalysis::Frontends::AnalysisSession::set_n_reader_threads(const uint32_t& in_n_threads)
 {
     m_n_reader_threads = in_n_threads;
+}
+
+void Analysis::APIDumpAnalysis::Frontends::AnalysisSession::set_skip_data_chunks_above_n_bytes(const uint32_t& in_n_bytes)
+{
+    m_skip_data_chunks_above_n_bytes = in_n_bytes;
 }
 
 Analysis::APIDumpAnalysis::Model Analysis::APIDumpAnalysis::Frontends::AnalysisSession::take_model()

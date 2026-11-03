@@ -7,6 +7,7 @@
  */
 #include <gtest/gtest.h>
 #include "Analysis/APIDumpDependencies/dependency_analyzer.h"
+#include "dependency_scene.h"
 #include <vector>
 
 namespace
@@ -14,100 +15,7 @@ namespace
     using namespace Analysis::APIDumpAnalysis;
     using namespace Analysis::APIDumpDependencies;
 
-    /* Accesses are made one call at a time (all of those of a call share its number), and frames end where they are told to. */
-    class Scene
-    {
-    public:
-        void access(const ResourceId&       in_id,
-                    const AccessRole&       in_role,
-                    const AccessMode&       in_mode,
-                    const AccessCoverage&   in_coverage      = AccessCoverage::UNKNOWN,
-                    const SubresourceRange& in_range         = SubresourceRange() )
-        {
-            AccessEvent event;
-
-            event.call_index        = m_call_index;
-            event.coverage          = in_coverage;
-            event.mode              = in_mode;
-            event.resource_id       = in_id;
-            event.role              = in_role;
-            event.subresource_range = in_range;
-
-            m_log.on_access(event);
-        }
-
-        DependencyResult analyze(const uint32_t& in_n_threads = 1) const
-        {
-            return DependencyAnalyzer::analyze(m_log,
-                                               m_resource_vec,
-                                               in_n_threads);
-        }
-
-        void end_frame()
-        {
-            m_log.on_frame_ended(m_n_frames_ended++,
-                                 m_first_call_index,
-                                 m_call_index);
-
-            m_call_index++;
-
-            m_first_call_index = m_call_index;
-        }
-
-        /* The next call: what is accessed from now on is accessed by another call. */
-        void next_call()
-        {
-            m_call_index++;
-        }
-
-        ResourceId create_resource(const uint32_t& in_n_mip_levels = 1)
-        {
-            Resource resource;
-
-            resource.description.height          = 64;
-            resource.description.mip_level_count = in_n_mip_levels;
-            resource.description.width           = 64;
-            resource.id                          = make_resource_id(static_cast<uint32_t>(m_resource_vec.size() ) + 1);
-
-            m_resource_vec.push_back(resource);
-
-            return resource.id;
-        }
-
-        /* A clear of all of the resource. */
-        void clear_fully(const ResourceId& in_id)
-        {
-            access(in_id,
-                   AccessRole::CLEAR_TARGET,
-                   AccessMode::WRITE,
-                   AccessCoverage::FULL);
-            next_call();
-        }
-
-        /* A draw which writes where it reaches, which is not known. */
-        void draw_to(const ResourceId& in_id)
-        {
-            access(in_id,
-                   AccessRole::COLOR_ATTACHMENT,
-                   AccessMode::WRITE);
-            next_call();
-        }
-
-        void sample(const ResourceId& in_id)
-        {
-            access(in_id,
-                   AccessRole::SAMPLED,
-                   AccessMode::READ);
-            next_call();
-        }
-
-    private:
-        uint64_t               m_call_index        = 0;
-        uint64_t               m_first_call_index  = 0;
-        AccessLog              m_log;
-        uint64_t               m_n_frames_ended    = 0;
-        std::vector<Resource>  m_resource_vec;
-    };
+    typedef Tests::DependencyScene Scene;
 }
 
 TEST(DependencyAnalyzer, ATextureWhichIsWrittenOnceAndThenSampledIsStatic)
