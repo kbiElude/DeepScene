@@ -165,6 +165,11 @@ uint64_t Stereo::ConverterDLL::CallFeeder::get_last_draw_signature_key() const
     return m_session.get_last_draw_signature_key();
 }
 
+const Analysis::APIDumpAnalysis::Viewport& Stereo::ConverterDLL::CallFeeder::get_viewport() const
+{
+    return m_session.get_viewport();
+}
+
 bool Stereo::ConverterDLL::CallFeeder::is_draw(const APIInterceptor::APIFunction& in_function)
 {
     return (in_function == APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVE         ||

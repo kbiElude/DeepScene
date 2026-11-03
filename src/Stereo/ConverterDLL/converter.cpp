@@ -10,6 +10,7 @@
 #include "converter.h"
 #include "own_call_scope.h"
 #include <array>
+#include <stdlib.h>
 #include <string.h>
 #include <Windows.h>
 
@@ -52,6 +53,23 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
         }
     }
 
+    /* A way to set how far apart the eyes are for a run without the program which shows the images, which says it otherwise. */
+    {
+        char                eye_separation_i8vec32[32] = {};
+        const unsigned long n_chars                    = ::GetEnvironmentVariableA("APISTEREO_EYE_SEPARATION",
+                                                                                   eye_separation_i8vec32,
+                                                                                   static_cast<DWORD>(sizeof(eye_separation_i8vec32) ));
+
+        if (n_chars > 0                                        &&
+            n_chars < sizeof(eye_separation_i8vec32) )
+        {
+            m_live_state.core_ptr->set_eye_separation(static_cast<float>(::atof(eye_separation_i8vec32) ));
+
+            m_log.write(std::string("The eye separation is ") + eye_separation_i8vec32 + ", from APISTEREO_EYE_SEPARATION");
+        }
+    }
+
+    m_live_state.d3d7_renderer_ptr.reset(new D3D7EyeRenderer(m_live_state.core_ptr.get() ));
     m_live_state.renderer_ptr.reset(new D3D8EyeRenderer(m_live_state.core_ptr.get                               () ));
     m_frame_passer_ptr.reset       (new FramePasser    (std::unique_ptr<Stereo::Transport::IFrameExporter>(new D3D8HostMemoryExporter(m_channel_ptr.get() )),
                                                         m_log) );
@@ -180,6 +198,8 @@ void Stereo::ConverterDLL::Converter::on_d3d7_frame_ending(std::vector<std::stri
     {
         out_log_line_vec_ptr->push_back(make_statistics_line() );
     }
+
+    read_channel_settings(out_log_line_vec_ptr);
 }
 
 void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFunction                in_api_func,
@@ -279,11 +299,18 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
             const auto draw_class = m_live_state.core_ptr->classify_draw(m_live_state.feeder.get_last_draw_signature_key(),
                                                                                       m_live_state.feeder.get_last_draw_cover_key() );
 
-            /* The draws of Direct3D 7 are only counted: they are made as the application makes them. */
+            /* A draw of Direct3D 7 is made by the renderer if it moves the vertices for the eye. */
             if (is_d3d8)
             {
                 *out_should_pass_through_ptr = m_live_state.renderer_ptr->on_pre_draw(draw_class,
                                                                                       in_arguments_ptr);
+            }
+            else
+            {
+                *out_should_pass_through_ptr = m_live_state.d3d7_renderer_ptr->on_pre_draw(in_api_func,
+                                                                                           in_n_arguments,
+                                                                                           in_arguments_ptr,
+                                                                                           m_live_state.feeder.get_viewport().width);
             }
 
             count_draw(draw_class);

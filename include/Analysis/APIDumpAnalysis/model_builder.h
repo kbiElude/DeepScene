@@ -57,6 +57,9 @@ namespace Analysis
             /* The number of frames completed so far, kept or not. */
             uint64_t get_n_frames() const;
 
+            /* The viewport the application has set, as the next draw is made with it. */
+            const Viewport& get_viewport() const;
+
             void       on_clear           (const ClearOperation&      in_clear);
             void       on_copy            (const ResourceView&        in_source,
                                            const ResourceView&        in_destination);

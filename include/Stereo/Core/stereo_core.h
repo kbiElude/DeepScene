@@ -20,6 +20,7 @@
 #include "Analysis/RecipeApplier/recipe_applier.h"
 #include "Stereo/Core/convergence_model.h"
 #include "Stereo/Core/matrix_slots.h"
+#include "Stereo/Core/screen_parallax_planner.h"
 #include "Stereo/Core/types.h"
 #include <array>
 #include <string>
@@ -88,6 +89,15 @@ namespace Stereo
             /* The application set the view matrix, which the rules of draws may be about. Besides on_matrix_call(), if that is a call. */
             void on_view_matrix_set(const std::array<float, 16>& in_matrix);
 
+            /* What is to be done to the vertices of the draw that classify_draw() last classified, for the eye, if they are in the space of the
+             * picture (see ScreenParallaxPlanner): by the distances the core has now, which are the ones of the scene and the person. The
+             * picture width is that of the viewport the draw is made with, and the draw is presented if it is made to what the application
+             * presents.
+             */
+            ScreenShiftPlan plan_screen_shift(const Analysis::RecipeLoader::Eye& in_eye,
+                                              const bool&                        in_is_presented,
+                                              const float&                       in_picture_width) const;
+
             /* Fails, through the function, if the condition does not hold: for the places where an adapter finds that the application
              * does something that only holding the calls of a pass back could convert right.
              */
@@ -135,6 +145,8 @@ namespace Stereo
             FailFunc                               m_fail_func;
             bool                                   m_is_last_draw_covering; /* the draw that was classified last covers the whole of the view */
             bool                                   m_is_overlay_pushed;     /* the person asks for the overlay to be pushed                    */
+            Analysis::RecipeLoader::DrawClass      m_last_draw_class;       /* of the draw that was classified last                            */
+            uint64_t                               m_last_draw_cover_key;   /* the same                                                         */
             MatrixSlots                            m_matrix_slots;
             uint64_t                               m_n_unknown_draws;
             uint64_t                               m_n_unknown_frames;

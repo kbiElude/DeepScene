@@ -151,6 +151,11 @@ Analysis::APIDumpAnalysis::WorkloadSummary Analysis::APIDumpAnalysis::Frontends:
     return result;
 }
 
+const Analysis::APIDumpAnalysis::Viewport& Analysis::APIDumpAnalysis::Frontends::AnalysisSession::get_viewport() const
+{
+    return m_builder.get_viewport();
+}
+
 Analysis::APIDumpAnalysis::WorkloadReference Analysis::APIDumpAnalysis::Frontends::AnalysisSession::get_workload_reference() const
 {
     return m_workload_reference;

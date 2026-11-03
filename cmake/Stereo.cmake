@@ -60,7 +60,7 @@ file(GLOB StereoConverterDLLSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR
 add_library(StereoConverterDLL SHARED ${StereoConverterDLLSources}
                                       "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/EngineDLL/pixel_converter.cpp")
 
-target_link_libraries(StereoConverterDLL APIDumpAnalysisFrontends APIInterceptor D3D8Utils StereoCore StereoSession StereoTransport)
+target_link_libraries(StereoConverterDLL APIDumpAnalysisFrontends APIInterceptor D3D7Utils D3D8Utils StereoCore StereoD3D7 StereoSession StereoTransport)
 
 source_group ("StereoConverterDLL source files" FILES ${StereoConverterDLLSources})
 

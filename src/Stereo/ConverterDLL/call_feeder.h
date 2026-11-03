@@ -42,6 +42,9 @@ namespace Stereo
             /* The signature of the draw that on_pre() last analysed. */
             uint64_t get_last_draw_signature_key() const;
 
+            /* The viewport the application has set, which the next draw is made with. */
+            const Analysis::APIDumpAnalysis::Viewport& get_viewport() const;
+
             /* True for the calls that on_pre() analyses at once. */
             static bool is_draw(const APIInterceptor::APIFunction& in_function);
 

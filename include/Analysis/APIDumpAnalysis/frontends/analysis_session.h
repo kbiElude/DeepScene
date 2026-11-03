@@ -50,6 +50,9 @@ namespace Analysis
                 /* What the workload holds and how it was read. Final once the analysis is over. */
                 WorkloadSummary get_summary() const;
 
+                /* The viewport the application has set (see ModelBuilder::get_viewport). */
+                const Analysis::APIDumpAnalysis::Viewport& get_viewport() const;
+
                 /* The workload read by run(); empty before. */
                 WorkloadReference get_workload_reference() const;
 

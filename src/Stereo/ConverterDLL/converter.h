@@ -11,6 +11,7 @@
 #include "Stereo/Core/stereo_core.h"
 #include "Stereo/Transport/frame_channel.h"
 #include "call_feeder.h"
+#include "d3d7_eye_renderer.h"
 #include "d3d8_eye_renderer.h"
 #include "d3d8_host_memory_exporter.h"
 #include "d3d8_resolution_scaler.h"
@@ -94,6 +95,7 @@ namespace Stereo
             struct LiveState
             {
                 std::unique_ptr<Stereo::Core::StereoCore> core_ptr;
+                std::unique_ptr<D3D7EyeRenderer>          d3d7_renderer_ptr;
                 CallFeeder                                feeder;
                 std::mutex                                mutex;
                 uint64_t                                  n_affected_draws   = 0;

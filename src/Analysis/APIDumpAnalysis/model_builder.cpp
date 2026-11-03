@@ -501,6 +501,11 @@ uint64_t Analysis::APIDumpAnalysis::ModelBuilder::get_n_frames() const
     return m_n_frames;
 }
 
+const Analysis::APIDumpAnalysis::Viewport& Analysis::APIDumpAnalysis::ModelBuilder::get_viewport() const
+{
+    return m_viewport;
+}
+
 Analysis::APIDumpAnalysis::SubresourceRange Analysis::APIDumpAnalysis::ModelBuilder::get_subresource_range(const ResourceView& in_view)
 {
     SubresourceRange result;

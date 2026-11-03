@@ -11,6 +11,8 @@ Stereo::Core::StereoCore::StereoCore(const Analysis::RecipeLoader::Recipe& in_re
      m_fail_func             (in_fail_func),
      m_is_last_draw_covering (false),
      m_is_overlay_pushed     (false),
+     m_last_draw_class       (Analysis::RecipeLoader::DrawClass::AFFECTED),
+     m_last_draw_cover_key   (0),
      m_n_unknown_draws       (0),
      m_n_unknown_frames      (0),
      m_view_matrix_fp32vec16 ()
@@ -58,9 +60,11 @@ Analysis::RecipeLoader::DrawClass Stereo::Core::StereoCore::classify_draw(const 
     m_convergence_model.set_draw_convergence_distance(m_applier.get_convergence_distance(in_signature_key) );
 
     m_is_last_draw_covering = m_applier.is_draw_covering(in_cover_key);
+    m_last_draw_class       = m_applier.classify_draw(in_signature_key,
+                                                      m_view_matrix_fp32vec16);
+    m_last_draw_cover_key   = in_cover_key;
 
-    return m_applier.classify_draw(in_signature_key,
-                                   m_view_matrix_fp32vec16);
+    return m_last_draw_class;
 }
 
 void Stereo::Core::StereoCore::fail(const std::string& in_message) const
@@ -148,6 +152,26 @@ bool Stereo::Core::StereoCore::on_matrix_call(const APIInterceptor::APIFunction&
 void Stereo::Core::StereoCore::on_view_matrix_set(const std::array<float, 16>& in_matrix)
 {
     m_view_matrix_fp32vec16 = in_matrix;
+}
+
+Stereo::Core::ScreenShiftPlan Stereo::Core::StereoCore::plan_screen_shift(const Analysis::RecipeLoader::Eye& in_eye,
+                                                                       const bool&                        in_is_presented,
+                                                                       const float&                       in_picture_width) const
+{
+    ScreenParallaxPlanner::Input input;
+
+    input.convergence_distance = m_convergence_model.get_effective_convergence_distance();
+    input.cover_key            = m_last_draw_cover_key;
+    input.eye                  = in_eye;
+    input.eye_separation       = m_convergence_model.get_effective_eye_separation();
+    input.is_affected          = (m_last_draw_class == Analysis::RecipeLoader::DrawClass::AFFECTED);
+    input.is_overlay_pushed    = m_is_overlay_pushed;
+    input.is_presented         = in_is_presented;
+    input.picture_width        = in_picture_width;
+    input.separation_limit     = 0.0f; /* the effective separation is within it */
+
+    return ScreenParallaxPlanner::plan(m_applier,
+                                       input);
 }
 
 void Stereo::Core::StereoCore::require_fast_path(const bool&        in_is_ok,
