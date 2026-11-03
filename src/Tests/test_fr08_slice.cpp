@@ -41,7 +41,7 @@ TEST(Fr08Slice, HoldsTheChosenFramesWithTheirDraws)
                 n_textures++;
             }
 
-            if (Capture::APIDumpLoader::is_frame_boundary(call.func) )
+            if (Capture::APIDumpLoader::is_frame_boundary(call) )
             {
                 draws_per_frame_vec.push_back(0);
             }

@@ -123,6 +123,6 @@ TEST(D3D8CallBuilder, PresentEndsAFrame)
     builder.create_device();
     builder.present();
 
-    EXPECT_TRUE(Capture::APIDumpLoader::is_frame_boundary(builder.get_workload().dumped_api_call_vec_ptr->back().func) );
-    EXPECT_FALSE(Capture::APIDumpLoader::is_frame_boundary(builder.get_workload().dumped_api_call_vec_ptr->front().func) );
+    EXPECT_TRUE(Capture::APIDumpLoader::is_frame_boundary(builder.get_workload().dumped_api_call_vec_ptr->back() ) );
+    EXPECT_FALSE(Capture::APIDumpLoader::is_frame_boundary(builder.get_workload().dumped_api_call_vec_ptr->front() ) );
 }

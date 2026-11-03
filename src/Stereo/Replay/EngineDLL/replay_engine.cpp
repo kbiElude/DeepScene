@@ -275,7 +275,7 @@ bool Stereo::Replay::EngineDLL::ReplayEngine::execute_buffered_frame(const uint3
         buffer.add_call(*call_ptr,
                         m_walker);
 
-        has_boundary = Capture::APIDumpLoader::is_frame_boundary(call_ptr->func);
+        has_boundary = Capture::APIDumpLoader::is_frame_boundary(*call_ptr);
     }
 
     if (has_boundary)
@@ -848,7 +848,7 @@ void Stereo::Replay::EngineDLL::ReplayEngine::play_until_frame_boundary()
             continue;
         }
 
-        const bool is_frame_boundary = Capture::APIDumpLoader::is_frame_boundary(call_ptr->func);
+        const bool is_frame_boundary = Capture::APIDumpLoader::is_frame_boundary(*call_ptr);
 
         is_at_frame_start = false;
 
