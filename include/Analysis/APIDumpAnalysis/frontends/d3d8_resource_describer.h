@@ -21,11 +21,6 @@ namespace Analysis
             class D3D8ResourceDescriber
             {
             public:
-                /* The number of mip levels of a texture; 0 asked for means all down to 1x1. */
-                static uint32_t compute_mip_level_count(const uint32_t& in_n_levels_asked,
-                                                        const uint32_t& in_width,
-                                                        const uint32_t& in_height);
-
                 static Analysis::APIDumpAnalysis::Format convert_format(const Interception::Hooks::D3D8::D3DFORMAT& in_format);
 
                 /* The depth buffer which the device creates for itself, if the application asks for one. */

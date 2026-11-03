@@ -8,6 +8,7 @@
 #ifndef APIDUMPANALYSIS_FRONTENDS_ANALYSIS_SESSION_H
 #define APIDUMPANALYSIS_FRONTENDS_ANALYSIS_SESSION_H
 
+#include "Analysis/APIDumpAnalysis/frontends/d3d7_frontend.h"
 #include "Analysis/APIDumpAnalysis/frontends/d3d8_frontend.h"
 #include "Analysis/APIDumpAnalysis/frontends/types.h"
 #include "Analysis/APIDumpAnalysis/model_builder.h"
@@ -81,6 +82,7 @@ namespace Analysis
                 SessionProgress get_progress() const;
 
                 Analysis::APIDumpAnalysis::ModelBuilder m_builder;
+                D3D7Frontend                            m_d3d7_frontend;
                 D3D8Frontend                            m_d3d8_frontend;
                 uint64_t                                m_max_frames;
                 std::array<uint64_t, N_API_GROUPS>      m_n_calls_by_group_array; /* counted here, and put in the summary when it is asked for */

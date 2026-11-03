@@ -156,7 +156,7 @@
 <tr><td><code>Stereo</code></td><td>An adapter in the converter: it tells <code>StereoCore</code> what the application does, renders the second eye, and exports the frame (see <a href="live-stereo.html">Live stereo</a>); and the calls its recipe rules may name.</td><td>converting it live</td></tr>
 </table>
 <p>Nothing after the front end changes: the model builder, keys, model, file format and the query tool are the same for every API. A draw signature (see section 6) means the same kind of thing in every API: what a draw is when it is issued, told by the resources it uses. A process can use more than one API, and the keys of their front ends can then be in one file.</p>
-<p>Where things stand: Direct3D 8 has every piece above. OpenGL and the Win32 window calls (GDI32, User32, WGL) have the hooks, the printer names and the replay executors, but no analysis front end and no converter adapter. Recipe rules name the functions they apply to, and the only function a rule can name today is the Direct3D 8 <code>SetTransform</code>; the key scheme and the baked section do not depend on the API.</p>
+<p>Where things stand: Direct3D 8 has every piece above. DirectDraw 7 and Direct3D 7 have the hooks, the printer names and an analysis front end, but no replay executor and no converter adapter. OpenGL and the Win32 window calls (GDI32, User32, WGL) have the hooks, the printer names and the replay executors, but no analysis front end and no converter adapter. Recipe rules name the functions they apply to, and the only function a rule can name today is the Direct3D 8 <code>SetTransform</code>; the key scheme and the baked section do not depend on the API.</p>
 
 <h3 id="frontend">4. The Direct3D 8 front end</h3>
 <p>The first front end, and the one every example here is of. Its parts are specific to Direct3D 8, which is why its names are all <code>D3D8*</code>.</p>
@@ -186,6 +186,20 @@
 <tr><td><code>Present</code></td><td>The frame ends. Every present is a frame.</td></tr>
 </table>
 <p>Three counters tell how far the front end can be trusted. <em>Unfollowed</em> calls had an unknown object or unreadable arguments. <em>Unsupported</em> calls are of things it does not follow at all: state blocks, patches, additional swap chains, <code>MultiplyTransform</code>, volume unlocks; passes and draws made with them are not right. <em>Resolution hazards</em> are calls whose meaning depends on the size of the target in pixels (clears and copies of rectangles, point sizes, vertices in screen space, shader creation, size queries); they say whether the application can be made to render larger without it noticing. The same classifier (<code>D3D8ResolutionHazards</code>) is used by the live converter, so that both say the same.</p>
+
+<p>DirectDraw 7 and Direct3D 7 have a front end of their own (<code>D3D7Frontend</code>), which shares the call view, the object tracker, the namer and the state of the fixed-function pipeline (<code>FixedFunctionState</code>, which makes the state key from the rules an API gives it) with this one. What differs is what a resource is:</p>
+<table>
+<tr><th>Calls</th><th>What is reported</th></tr>
+<tr><td><code>CreateSurface</code>, <code>DuplicateSurface</code></td><td>A resource. The primary surface is a swap chain image the size of the screen (<code>SetDisplayMode</code>); a surface with the depth buffer caps is a depth resource; the rest are 2D textures, render targets if they are made for a 3D device.</td></tr>
+<tr><td><code>GetAttachedSurface</code></td><td>For the back buffer of a chain, a resource made like the primary surface. For the next mip level of a texture, a part of the texture. Surfaces the tracker knows already are left alone.</td></tr>
+<tr><td><code>AddAttachedSurface</code></td><td>A depth buffer attached to a surface is the one rendered with when the surface is rendered to.</td></tr>
+<tr><td><code>CreateDevice</code>, <code>SetRenderTarget</code></td><td>The target becomes the surface, with the depth buffer that is attached to it, and the viewport is the whole of it.</td></tr>
+<tr><td><code>Blt</code>, <code>BltFast</code>, <code>Load</code></td><td>A copy; or an upload with no data of the workload if there is no source (a fill with a colour or a depth).</td></tr>
+<tr><td><code>Unlock</code> of a surface or a vertex buffer</td><td>An upload of the data the application wrote.</td></tr>
+<tr><td><code>DrawPrimitive</code>, <code>DrawIndexedPrimitive</code> and their strided and vertex buffer forms</td><td>A draw. The vertex layout key is the vertex format code; the vertices are in the application's memory unless a vertex buffer is given.</td></tr>
+<tr><td><code>Flip</code>, and a <code>Blt</code> to the primary surface</td><td>The frame ends.</td></tr>
+</table>
+<p>State blocks, <code>MultiplyTransform</code>, <code>ProcessVertices</code> and the GDI device contexts of surfaces (<code>GetDC</code>, <code>ReleaseDC</code>) are counted as unsupported. The geometry of a draw is not sampled yet, so the analysis does not know how deep the surfaces of D3D7 draws are.</p>
 
 <h3 id="passes">5. Passes and draws</h3>
 <p>The model builder works with <em>passes</em>. It starts a pass with the first draw or clear after the previous pass ended. A pass ends when:</p>

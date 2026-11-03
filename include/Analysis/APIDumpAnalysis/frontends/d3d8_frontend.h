@@ -33,15 +33,15 @@ namespace Analysis
                 D3D8Frontend(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr);
 
                 /* The calls which depend on the size of what is rendered to in pixels, by what they are (see ResolutionHazard). */
-                const std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t>& get_n_resolution_hazards() const;
+                const std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t>& get_n_resolution_hazards() const override;
 
                 /* Calls with an unknown object, or arguments which could not be read. */
-                uint64_t get_n_unfollowed_calls() const;
+                uint64_t get_n_unfollowed_calls() const override;
 
                 /* Calls of what the front end does not follow (state blocks, patches, additional swap chains...): passes and draws
                  * made with them are not right.
                  */
-                uint64_t get_n_unsupported_calls() const;
+                uint64_t get_n_unsupported_calls() const override;
 
                 /* What the front end knows about the objects (for the checks of the tests). */
                 const ObjectTracker& get_tracker() const;

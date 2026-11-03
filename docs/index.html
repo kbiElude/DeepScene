@@ -74,7 +74,7 @@
 <p>Direct3D 8 is the first API the tools support, and the demos are what drove the work, but the code is arranged for more. The parts that depend on an API are the ones listed in the table; everything else (the model of the analysis, the keys, the <code>.passes</code> file, the recipe format, the stereo decisions of <code>StereoCore</code>, the frame channel, the presenter and the VR player) does not know which API a program uses.</p>
 <table>
 <tr><th>API</th><th>Hooks and dump</th><th>Printer</th><th>Analysis</th><th>Replay</th><th>Stereo conversion</th></tr>
-<tr><td>DirectDraw 7 and Direct3D 7</td><td>yes</td><td>yes</td><td>not yet</td><td>not yet</td><td>not yet</td></tr>
+<tr><td>DirectDraw 7 and Direct3D 7</td><td>yes</td><td>yes</td><td>yes (front end)</td><td>not yet</td><td>not yet</td></tr>
 <tr><td>Direct3D 8</td><td>yes</td><td>yes</td><td>yes (front end)</td><td>yes (executor)</td><td>yes (adapter)</td></tr>
 <tr><td>OpenGL</td><td>yes</td><td>yes</td><td>not yet</td><td>yes (executor)</td><td>not yet</td></tr>
 <tr><td>Win32 windows (GDI32, User32, WGL)</td><td>yes</td><td>yes</td><td>not applicable</td><td>yes (window handling)</td><td>not applicable</td></tr>

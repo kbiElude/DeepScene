@@ -20,7 +20,7 @@ file(GLOB APIDumpAnalysisFrontendsSources CONFIGURE_DEPENDS  "${DemoVRPlayer_SOU
 # The front ends: for each API, what follows its state and says what its calls mean to the model.
 add_library(APIDumpAnalysisFrontends STATIC ${APIDumpAnalysisFrontendsIncludes} ${APIDumpAnalysisFrontendsSources})
 
-target_link_libraries(APIDumpAnalysisFrontends PUBLIC APIDumpAnalysis D3D8Utils)
+target_link_libraries(APIDumpAnalysisFrontends PUBLIC APIDumpAnalysis D3D7Utils D3D8Utils)
 
 source_group ("APIDump Analysis Frontends include files" FILES ${APIDumpAnalysisFrontendsIncludes})
 source_group ("APIDump Analysis Frontends source files"  FILES ${APIDumpAnalysisFrontendsSources})

@@ -3,6 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "Analysis/APIDumpAnalysis/frontends/d3d8_frontend.h"
+#include "Analysis/APIDumpAnalysis/frontends/clear_operation_factory.h"
 #include "Analysis/APIDumpAnalysis/frontends/d3d8_resolution_hazards.h"
 #include "Analysis/APIDumpAnalysis/frontends/d3d8_resource_describer.h"
 #include "Analysis/APIDumpAnalysis/hasher.h"
@@ -321,34 +322,16 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_clear(const Call
     constexpr size_t FLAGS_ARGUMENT   = 3;
     constexpr size_t STENCIL_ARGUMENT = 6;
 
-    Analysis::APIDumpAnalysis::ClearOperation clear_operation;
-    const uint32_t                            flags = in_view.get_u32(FLAGS_ARGUMENT);
-
-    clear_operation.clears_color   = ((flags & Interception::Hooks::D3D8::D3DCLEAR_TARGET)  != 0);
-    clear_operation.clears_depth   = ((flags & Interception::Hooks::D3D8::D3DCLEAR_ZBUFFER) != 0);
-    clear_operation.clears_stencil = ((flags & Interception::Hooks::D3D8::D3DCLEAR_STENCIL) != 0);
-    clear_operation.depth          = in_view.get_f32(DEPTH_ARGUMENT);
-    clear_operation.stencil        = in_view.get_u32(STENCIL_ARGUMENT);
-
-    /* The color is ARGB, a byte each. */
-    {
-        constexpr uint32_t ALPHA_SHIFT = 24;
-        constexpr uint32_t BYTE_MASK   = 0xFF;
-        constexpr float    BYTE_MAX    = 255.0f;
-        constexpr uint32_t GREEN_SHIFT = 8;
-        constexpr uint32_t RED_SHIFT   = 16;
-
-        const uint32_t color = in_view.get_u32(COLOR_ARGUMENT);
-
-        clear_operation.color_fp32vec4 = {static_cast<float>((color >> RED_SHIFT)   & BYTE_MASK) / BYTE_MAX,
-                                          static_cast<float>((color >> GREEN_SHIFT) & BYTE_MASK) / BYTE_MAX,
-                                          static_cast<float>( color                 & BYTE_MASK) / BYTE_MAX,
-                                          static_cast<float>((color >> ALPHA_SHIFT) & BYTE_MASK) / BYTE_MAX};
-    }
+    const uint32_t flags = in_view.get_u32(FLAGS_ARGUMENT);
 
     if (in_view.succeeded() )
     {
-        m_builder_ptr->on_clear(clear_operation);
+        m_builder_ptr->on_clear(ClearOperationFactory::create(((flags & Interception::Hooks::D3D8::D3DCLEAR_TARGET)  != 0),
+                                                              ((flags & Interception::Hooks::D3D8::D3DCLEAR_ZBUFFER) != 0),
+                                                              ((flags & Interception::Hooks::D3D8::D3DCLEAR_STENCIL) != 0),
+                                                              in_view.get_u32(COLOR_ARGUMENT),
+                                                              in_view.get_f32(DEPTH_ARGUMENT),
+                                                              in_view.get_u32(STENCIL_ARGUMENT) ));
     }
 }
 

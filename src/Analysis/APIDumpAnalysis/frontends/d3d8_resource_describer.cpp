@@ -3,6 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "Analysis/APIDumpAnalysis/frontends/d3d8_resource_describer.h"
+#include "Analysis/APIDumpAnalysis/frontends/mip_chain.h"
 #include <algorithm>
 
 uint64_t Analysis::APIDumpAnalysis::Frontends::D3D8ResourceDescriber::compute_api_flags(const Interception::Hooks::D3D8::D3DPOOL& in_pool,
@@ -11,30 +12,6 @@ uint64_t Analysis::APIDumpAnalysis::Frontends::D3D8ResourceDescriber::compute_ap
     constexpr uint32_t POOL_SHIFT = 32;
 
     return (static_cast<uint64_t>(in_pool) << POOL_SHIFT) | in_usage;
-}
-
-uint32_t Analysis::APIDumpAnalysis::Frontends::D3D8ResourceDescriber::compute_mip_level_count(const uint32_t& in_n_levels_asked,
-                                                                                              const uint32_t& in_width,
-                                                                                              const uint32_t& in_height)
-{
-    uint32_t result = in_n_levels_asked;
-
-    if (in_n_levels_asked == 0)
-    {
-        uint32_t extent = std::max<uint32_t>(std::max<uint32_t>(in_width,
-                                                                in_height),
-                                             1);
-
-        result = 1;
-
-        while (extent > 1)
-        {
-            extent >>= 1;
-            result++;
-        }
-    }
-
-    return result;
 }
 
 Analysis::APIDumpAnalysis::Format Analysis::APIDumpAnalysis::Frontends::D3D8ResourceDescriber::convert_format(const Interception::Hooks::D3D8::D3DFORMAT& in_format)
@@ -163,9 +140,9 @@ Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Fronte
 
     result.depth_or_layer_count = N_CUBE_FACES;
     result.kind                 = Analysis::APIDumpAnalysis::ResourceKind::TEXTURE_CUBE;
-    result.mip_level_count      = compute_mip_level_count(in_view.get_u32(LEVELS_ARGUMENT),
-                                                          edge_length,
-                                                          edge_length);
+    result.mip_level_count      = MipChain::get_level_count(in_view.get_u32(LEVELS_ARGUMENT),
+                                                            edge_length,
+                                                            edge_length);
 
     return result;
 }
@@ -275,9 +252,9 @@ Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Fronte
                                    in_view.get_u32                                  (USAGE_ARGUMENT),
                                    static_cast<Interception::Hooks::D3D8::D3DPOOL>  (in_view.get_u32(POOL_ARGUMENT) ));
 
-    result.mip_level_count = compute_mip_level_count(in_view.get_u32(LEVELS_ARGUMENT),
-                                                     result.width,
-                                                     result.height);
+    result.mip_level_count = MipChain::get_level_count(in_view.get_u32(LEVELS_ARGUMENT),
+                                                       result.width,
+                                                       result.height);
 
     return result;
 }
@@ -318,9 +295,9 @@ Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Fronte
 
     result.depth_or_layer_count = in_view.get_u32(DEPTH_ARGUMENT);
     result.kind                 = Analysis::APIDumpAnalysis::ResourceKind::TEXTURE_3D;
-    result.mip_level_count      = compute_mip_level_count(in_view.get_u32(LEVELS_ARGUMENT),
-                                                          result.width,
-                                                          result.height);
+    result.mip_level_count      = MipChain::get_level_count(in_view.get_u32(LEVELS_ARGUMENT),
+                                                            result.width,
+                                                            result.height);
 
     return result;
 }

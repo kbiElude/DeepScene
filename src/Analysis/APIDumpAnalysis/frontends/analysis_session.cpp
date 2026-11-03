@@ -9,6 +9,7 @@
 
 Analysis::APIDumpAnalysis::Frontends::AnalysisSession::AnalysisSession(const bool& in_keeps_history)
     :m_builder               (in_keeps_history),
+     m_d3d7_frontend         (&m_builder),
      m_d3d8_frontend         (&m_builder),
      m_max_frames            (0),
      m_n_calls_by_group_array(),
@@ -28,6 +29,13 @@ Analysis::APIDumpAnalysis::Frontends::IAPIFrontend* Analysis::APIDumpAnalysis::F
 
     switch (in_group)
     {
+        case Capture::APIDumpLoader::APIGroup::D3D7:
+        {
+            result_ptr = &m_d3d7_frontend;
+
+            break;
+        }
+
         case Capture::APIDumpLoader::APIGroup::D3D8:
         {
             result_ptr = &m_d3d8_frontend;
@@ -93,10 +101,18 @@ Analysis::APIDumpAnalysis::WorkloadSummary Analysis::APIDumpAnalysis::Frontends:
         }
     }
 
-    result.n_resolution_hazards_map = m_d3d8_frontend.get_n_resolution_hazards();
-    result.n_trailing_calls         = m_n_calls_since_frame;
-    result.n_unfollowed_calls       = m_d3d8_frontend.get_n_unfollowed_calls ();
-    result.n_unsupported_calls      = m_d3d8_frontend.get_n_unsupported_calls();
+    for (const IAPIFrontend* frontend_ptr : std::array<const IAPIFrontend*, 2>{&m_d3d7_frontend, &m_d3d8_frontend})
+    {
+        for (const auto& hazard_pair : frontend_ptr->get_n_resolution_hazards() )
+        {
+            result.n_resolution_hazards_map[hazard_pair.first] += hazard_pair.second;
+        }
+
+        result.n_unfollowed_calls  += frontend_ptr->get_n_unfollowed_calls ();
+        result.n_unsupported_calls += frontend_ptr->get_n_unsupported_calls();
+    }
+
+    result.n_trailing_calls = m_n_calls_since_frame;
 
     return result;
 }
