@@ -199,7 +199,7 @@
 <tr><td><code>DrawPrimitive</code>, <code>DrawIndexedPrimitive</code> and their strided and vertex buffer forms</td><td>A draw. The vertex layout key is the vertex format code; the vertices are in the application's memory unless a vertex buffer is given.</td></tr>
 <tr><td><code>Flip</code>, and a <code>Blt</code> to the primary surface</td><td>The frame ends.</td></tr>
 </table>
-<p>State blocks, <code>MultiplyTransform</code>, <code>ProcessVertices</code> and the GDI device contexts of surfaces (<code>GetDC</code>, <code>ReleaseDC</code>) are counted as unsupported. The geometry of a draw is not sampled yet, so the analysis does not know how deep the surfaces of D3D7 draws are.</p>
+<p>State blocks, <code>MultiplyTransform</code>, <code>ProcessVertices</code> and the GDI device contexts of surfaces (<code>GetDC</code>, <code>ReleaseDC</code>) are counted as unsupported. The geometry of a draw is sampled (D3D7GeometryTracker) from the vertices the dumper stored with the call, from the arrays of a strided draw, or from what was unlocked into a vertex buffer; pre-transformed vertices (XYZRHW), whose positions are in pixels, are not sampled.</p>
 
 <h3 id="passes">5. Passes and draws</h3>
 <p>The model builder works with <em>passes</em>. It starts a pass with the first draw or clear after the previous pass ended. A pass ends when:</p>

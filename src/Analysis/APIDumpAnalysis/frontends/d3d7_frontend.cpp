@@ -10,6 +10,7 @@
 #include "Interception/Core/D3D7Utils/constants.h"
 #include "Interception/Core/D3D7Utils/guids.h"
 #include "Interception/Core/D3D7Utils/methods.h"
+#include "Interception/Core/D3D7Utils/vertex_format.h"
 #include "Interception/Core/D3D7Utils/value_readers.h"
 #include <algorithm>
 #include <string.h>
@@ -154,12 +155,12 @@ const Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::DrawLayout* Analysis::
     /* The type of the primitives is the first argument of all of them. */
     static const DrawLayout draw_layout_array[] =
     {
-        {6,             2,             APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVE,        true,  NONE_ARGUMENT},
-        {6,             2,             APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVESTRIDED, true,  NONE_ARGUMENT},
-        {6,             NONE_ARGUMENT, APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVEVB,      true,  2},
-        {4,             2,             APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWPRIMITIVE,               false, NONE_ARGUMENT},
-        {4,             2,             APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWPRIMITIVESTRIDED,        false, NONE_ARGUMENT},
-        {4,             NONE_ARGUMENT, APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWPRIMITIVEVB,             false, 2}
+        {6,             2,             APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVE,        true,  NONE_ARGUMENT, NONE_ARGUMENT},
+        {6,             2,             APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVESTRIDED, true,  3,             NONE_ARGUMENT},
+        {6,             NONE_ARGUMENT, APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVEVB,      true,  NONE_ARGUMENT, 2},
+        {4,             2,             APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWPRIMITIVE,               false, NONE_ARGUMENT, NONE_ARGUMENT},
+        {4,             2,             APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWPRIMITIVESTRIDED,        false, 3,             NONE_ARGUMENT},
+        {4,             NONE_ARGUMENT, APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWPRIMITIVEVB,             false, NONE_ARGUMENT, 2}
     };
 
     const DrawLayout* result_ptr = nullptr;
@@ -471,6 +472,9 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_create_vertex_bu
 
         m_vertex_buffer_fvf_map[Analysis::APIDumpAnalysis::get_resource_id_value(tracked_object.view.resource_id)] = description.dwFVF;
 
+        m_geometry_tracker.on_create_vertex_buffer(tracked_object.view.resource_id,
+                                                   D3D7ResourceDescriber::describe_vertex_buffer(description).size_in_bytes);
+
         m_tracker.track(address,
                         tracked_object);
     }
@@ -516,11 +520,21 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_draw(const CallV
         m_n_resolution_hazard_map[Analysis::APIDumpAnalysis::ResolutionHazard::SCREEN_SPACE_VERTICES]++;
     }
 
-    m_builder_ptr->on_draw(m_pipeline_state.describe_draw(get_primitive_topology(in_view.get_u32(PRIMITIVE_TYPE_ARGUMENT) ),
-                                                          count,
-                                                          in_layout.is_indexed,
-                                                          fvf,
-                                                          vertex_buffer_id) );
+    auto description = m_pipeline_state.describe_draw(get_primitive_topology(in_view.get_u32(PRIMITIVE_TYPE_ARGUMENT) ),
+                                                      count,
+                                                      in_layout.is_indexed,
+                                                      fvf,
+                                                      vertex_buffer_id);
+
+    if (m_builder_ptr->wants_geometry() )
+    {
+        description.geometry_ptr = sample_geometry(in_view,
+                                                   in_layout,
+                                                   fvf,
+                                                   vertex_buffer_id);
+    }
+
+    m_builder_ptr->on_draw(description);
 }
 
 void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_duplicate_surface(const CallView& in_view)
@@ -655,6 +669,8 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_release(const Ca
         if (object_ptr->owns_resource)
         {
             m_builder_ptr->on_destroy_resource(object_ptr->view.resource_id);
+
+            m_geometry_tracker.forget(object_ptr->view.resource_id);
         }
 
         m_tracker.forget(address);
@@ -853,6 +869,15 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_unlock(const Cal
     }
     else
     {
+        const Capture::APIDumpLoader::DataChunk* chunk_ptr = in_view.get_chunk_ptr(in_view.get_n_head_arguments() );
+
+        if (chunk_ptr != nullptr)
+        {
+            m_geometry_tracker.on_unlock(object_ptr->view.resource_id,
+                                         chunk_ptr->data(),
+                                         chunk_ptr->size() );
+        }
+
         m_builder_ptr->on_upload(object_ptr->view,
                                  data);
     }
@@ -1178,4 +1203,120 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::register_names(const Ca
             }
         }
     }
+}
+
+std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::sample_geometry(const CallView&                              in_view,
+                                                                                                                                     const DrawLayout&                            in_layout,
+                                                                                                                                     const uint32_t&                              in_fvf,
+                                                                                                                                     const Analysis::APIDumpAnalysis::ResourceId& in_vertex_buffer_id)
+{
+    /* What the dumper stored with the call follows its arguments: the indices, if the draw has them, and then the vertices. A strided
+     * draw has the arrays of the vertices in place of them; the stride of the positions is in the structure of the strides (a pointer
+     * and a stride for each kind of vertex data, in the layout of a 32-bit process), and the first of the arrays is the positions.
+     */
+    constexpr size_t N_STRIDED_ARRAYS       = 12;
+    constexpr size_t POSITION_STRIDE_OFFSET = sizeof(uint32_t);
+    constexpr size_t START_VERTEX_ARGUMENT  = 3;
+    constexpr size_t STRIDED_DATA_N_BYTES   = N_STRIDED_ARRAYS * 2 * sizeof(uint32_t);
+    constexpr size_t STRIDED_HEAD_N_BYTES   = sizeof(uint32_t) * (1 + N_STRIDED_ARRAYS);
+
+    const uint32_t                                                   position_mask = (in_fvf & Interception::Core::D3D7Utils::D3DFVF_POSITION_MASK);
+    D3D7GeometryTracker::DrawRange                                   range;
+    std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> result_ptr;
+
+    /* The positions of pre-transformed vertices are in pixels, not in the space of the model. */
+    const bool has_position = (position_mask != 0 &&
+                               position_mask != Interception::Core::D3D7Utils::D3DFVF_XYZRHW);
+
+    const size_t                             n_vertices_extra = (in_layout.is_indexed) ? 1
+                                                                                       : 0;
+    const Capture::APIDumpLoader::DataChunk* indices_ptr      = (in_layout.is_indexed) ? in_view.get_extra_chunk_ptr(0)
+                                                                                       : nullptr;
+    const Capture::APIDumpLoader::DataChunk* vertices_ptr     = in_view.get_extra_chunk_ptr(n_vertices_extra);
+    bool                                     is_source_found  = false;
+
+    range.vertex_count = in_view.get_u32(in_layout.count_argument);
+
+    if (indices_ptr != nullptr)
+    {
+        range.index_data_ptr = indices_ptr->data();
+        range.index_n_bytes  = indices_ptr->size();
+    }
+
+    if (has_position == false ||
+        (in_layout.is_indexed && range.index_data_ptr == nullptr) )
+    {
+        /* Nothing to sample. */
+    }
+    else
+    if (in_layout.vertex_buffer_argument != NONE_ARGUMENT)
+    {
+        const std::vector<uint8_t>* bytes_ptr = m_geometry_tracker.get_vertex_buffer_bytes_ptr(in_vertex_buffer_id);
+
+        if (bytes_ptr != nullptr)
+        {
+            range.stride          = Interception::Core::D3D7Utils::VertexFormat::get_n_vertex_bytes(in_fvf);
+            range.vertex_data_ptr = bytes_ptr->data();
+            range.vertex_n_bytes  = bytes_ptr->size();
+
+            /* The start is what is added to the indices, or the first vertex. */
+            if (in_layout.is_indexed)
+            {
+                range.base_vertex_index = in_view.get_u32(START_VERTEX_ARGUMENT);
+            }
+            else
+            {
+                range.first = in_view.get_u32(START_VERTEX_ARGUMENT);
+            }
+
+            is_source_found = true;
+        }
+    }
+    else
+    if (in_layout.strided_argument != NONE_ARGUMENT)
+    {
+        const Capture::APIDumpLoader::DataChunk* strides_ptr = in_view.get_chunk_ptr(in_layout.strided_argument);
+
+        if (strides_ptr  != nullptr                         &&
+            vertices_ptr != nullptr                         &&
+            strides_ptr->size()  == STRIDED_DATA_N_BYTES    &&
+            vertices_ptr->size() >= STRIDED_HEAD_N_BYTES)
+        {
+            uint32_t n_arrays         = 0;
+            uint32_t n_position_bytes = 0;
+
+            ::memcpy(&n_arrays,
+                     vertices_ptr->data(),
+                     sizeof(n_arrays) );
+            ::memcpy(&n_position_bytes,
+                     vertices_ptr->data() + sizeof(uint32_t),
+                     sizeof(n_position_bytes) );
+            ::memcpy(&range.stride,
+                     strides_ptr->data() + POSITION_STRIDE_OFFSET,
+                     sizeof(range.stride) );
+
+            if (n_arrays                                == N_STRIDED_ARRAYS &&
+                STRIDED_HEAD_N_BYTES + n_position_bytes <= vertices_ptr->size() )
+            {
+                range.vertex_data_ptr = vertices_ptr->data() + STRIDED_HEAD_N_BYTES;
+                range.vertex_n_bytes  = n_position_bytes;
+                is_source_found       = true;
+            }
+        }
+    }
+    else
+    if (vertices_ptr != nullptr)
+    {
+        range.stride          = Interception::Core::D3D7Utils::VertexFormat::get_n_vertex_bytes(in_fvf);
+        range.vertex_data_ptr = vertices_ptr->data();
+        range.vertex_n_bytes  = vertices_ptr->size();
+        is_source_found       = true;
+    }
+
+    if (is_source_found)
+    {
+        result_ptr = D3D7GeometryTracker::sample(range);
+    }
+
+    return result_ptr;
 }

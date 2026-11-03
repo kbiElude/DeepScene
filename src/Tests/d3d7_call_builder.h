@@ -44,6 +44,10 @@ namespace Tests
         /* The address which the next object will have, as the dumped process would see it. */
         uint64_t allocate_address();
 
+        /* The bytes of an object in memory. */
+        static std::vector<uint8_t> get_bytes(const void*   in_data_ptr,
+                                              const size_t& in_n_bytes);
+
         void add_attached_surface(const uint64_t& in_surface_address,
                                   const uint64_t& in_attached_address);
         void begin_state_block   ();
@@ -59,14 +63,34 @@ namespace Tests
         uint64_t create_device (const uint64_t&    in_surface_address);
         uint64_t create_surface(const SurfaceSpec& in_spec);
 
+        uint64_t create_vertex_buffer(const uint32_t& in_fvf,
+                                      const uint32_t& in_n_vertices);
+
         /* The primary surface of a chain of flipping surfaces, with the number of back buffers. */
         uint64_t create_primary_surface(const uint32_t& in_back_buffer_count);
 
         /* A surface for a depth buffer, as large as the screen. */
         uint64_t create_depth_buffer();
 
+        /* The vertices of a draw from the application's memory are stored with the call. */
+        void     draw_indexed_primitive(const Interception::Hooks::D3D7::D3DPRIMITIVETYPE& in_type,
+                                        const uint32_t&                                    in_fvf,
+                                        const uint32_t&                                    in_n_vertices,
+                                        const std::vector<uint16_t>&                       in_indices_u16_vec,
+                                        const std::vector<uint8_t>&                        in_vertices_u8_vec);
         void     draw_primitive       (const Interception::Hooks::D3D7::D3DPRIMITIVETYPE& in_type,
                                        const uint32_t&                                    in_fvf,
+                                       const uint32_t&                                    in_n_vertices,
+                                       const std::vector<uint8_t>&                        in_vertices_u8_vec = {});
+        /* Only the positions are given; the structure of the strides is stored as the dumper does, and the arrays after it. */
+        void     draw_primitive_strided(const Interception::Hooks::D3D7::D3DPRIMITIVETYPE& in_type,
+                                        const uint32_t&                                    in_fvf,
+                                        const uint32_t&                                    in_n_vertices,
+                                        const uint32_t&                                    in_position_stride,
+                                        const std::vector<uint8_t>&                        in_positions_u8_vec);
+        void     draw_primitive_vb    (const Interception::Hooks::D3D7::D3DPRIMITIVETYPE& in_type,
+                                       const uint64_t&                                    in_vertex_buffer_address,
+                                       const uint32_t&                                    in_start_vertex,
                                        const uint32_t&                                    in_n_vertices);
         void     fail_next_device_call();
         void     flip                 (const uint64_t& in_surface_address);
@@ -84,11 +108,15 @@ namespace Tests
         void     set_render_target    (const uint64_t& in_surface_address);
         void     set_texture          (const uint32_t& in_stage,
                                        const uint64_t& in_surface_address);
+        void     set_transform        (const uint32_t&                             in_state,
+                                       const Interception::Hooks::D3D7::D3DMATRIX& in_matrix);
         void     set_viewport         (const uint32_t& in_x,
                                        const uint32_t& in_y,
                                        const uint32_t& in_width,
                                        const uint32_t& in_height);
         void     unlock               (const uint64_t&             in_surface_address,
+                                       const std::vector<uint8_t>& in_data_u8_vec);
+        void     unlock_vertex_buffer (const uint64_t&             in_vertex_buffer_address,
                                        const std::vector<uint8_t>& in_data_u8_vec);
 
     private:
@@ -103,6 +131,7 @@ namespace Tests
 
 
         uint64_t                         m_device_address;
+        uint64_t                         m_direct3d_address;
         uint64_t                         m_direct_draw_address;
         bool                             m_fails_next_device_call;
         uint64_t                         m_next_address;

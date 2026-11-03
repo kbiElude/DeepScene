@@ -13,6 +13,7 @@
 #define APIDUMPANALYSIS_FRONTENDS_D3D7_FRONTEND_H
 
 #include "Analysis/APIDumpAnalysis/frontends/call_view.h"
+#include "Analysis/APIDumpAnalysis/frontends/d3d7_geometry_tracker.h"
 #include "Analysis/APIDumpAnalysis/frontends/d3d7_pipeline_state.h"
 #include "Analysis/APIDumpAnalysis/frontends/i_api_frontend.h"
 #include "Analysis/APIDumpAnalysis/frontends/object_namer.h"
@@ -56,6 +57,7 @@ namespace Analysis
                     size_t                      fvf_argument;
                     APIInterceptor::APIFunction function;
                     bool                        is_indexed;
+                    size_t                      strided_argument;       /* the structure that tells the strides */
                     size_t                      vertex_buffer_argument;
                 };
 
@@ -104,6 +106,13 @@ namespace Analysis
                 static const char* get_created_object_type_name_ptr(const CallView&                                in_view,
                                                                     const Interception::Hooks::D3D7::ArgumentInfo& in_info);
 
+                /* Some of the vertices of a draw, if the front end can tell them; null if not. */
+                std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> sample_geometry(const CallView&                              in_view,
+                                                                                                 const DrawLayout&                            in_layout,
+                                                                                                 const uint32_t&                              in_fvf,
+                                                                                                 const Analysis::APIDumpAnalysis::ResourceId& in_vertex_buffer_id);
+
+
                 /* nullptr for the functions that are not draws. */
                 static const DrawLayout* find_draw_layout_ptr(const APIInterceptor::APIFunction& in_function);
 
@@ -118,6 +127,7 @@ namespace Analysis
                 Analysis::APIDumpAnalysis::ModelBuilder*                        m_builder_ptr;
                 Analysis::APIDumpAnalysis::ResourceView                         m_color_view;         /* what is rendered to                 */
                 Analysis::APIDumpAnalysis::ResourceView                         m_depth_stencil_view; /* resource_id is NONE if there is none */
+                D3D7GeometryTracker                                             m_geometry_tracker;
                 ObjectNamer                                                     m_namer;
                 std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t> m_n_resolution_hazard_map;
                 uint64_t                                                        m_n_unfollowed_calls;

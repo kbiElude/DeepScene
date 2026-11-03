@@ -406,3 +406,194 @@ TEST(D3D7Frontend, VerticesInScreenSpaceAreAResolutionHazard)
     EXPECT_EQ(hazard_map.at(Analysis::APIDumpAnalysis::ResolutionHazard::SCREEN_SPACE_VERTICES),
               1u);
 }
+
+TEST(D3D7Frontend, TheVerticesInTheApplicationsMemoryTellHowDeepADrawIs)
+{
+    constexpr uint32_t FVF_XYZ = 0x002;
+
+    Tests::D3D7Scene scene;
+
+    /* The camera is 4 from the origin of the world, and the vertices are 6 beyond it. */
+    Interception::Hooks::D3D7::D3DMATRIX view = {};
+
+    view.m[0][0] = 1.0f;
+    view.m[1][1] = 1.0f;
+    view.m[2][2] = 1.0f;
+    view.m[3][2] = 4.0f;
+    view.m[3][3] = 1.0f;
+
+    const float vertex_array[9] = {0.0f, 0.0f, 6.0f,
+                                   1.0f, 0.0f, 6.0f,
+                                   0.0f, 1.0f, 6.0f};
+
+    scene.get_builder().set_transform(Interception::Core::D3D7Utils::D3DTRANSFORMSTATE_VIEW,
+                                      view);
+    scene.get_builder().draw_primitive(Interception::Hooks::D3D7::D3DPT_TRIANGLELIST,
+                                       FVF_XYZ,
+                                       3,
+                                       Tests::D3D7CallBuilder::get_bytes(vertex_array,
+                                                                         sizeof(vertex_array) ));
+    scene.feed();
+    scene.present();
+
+    const auto& model = scene.get_harness().get_model();
+
+    ASSERT_EQ(model.surface_depth_histogram_map.size(),
+              1u);
+    EXPECT_NEAR(model.surface_depth_histogram_map.begin()->second.get_depth_at_fraction(0.5),
+                10.0f,
+                1.0f);
+}
+
+TEST(D3D7Frontend, TheVerticesOfAnIndexedDrawAreThoseTheIndicesPick)
+{
+    constexpr uint32_t FVF_XYZ = 0x002;
+
+    Tests::D3D7Scene scene;
+
+    Interception::Hooks::D3D7::D3DMATRIX view = {};
+
+    view.m[0][0] = 1.0f;
+    view.m[1][1] = 1.0f;
+    view.m[2][2] = 1.0f;
+    view.m[3][2] = 4.0f;
+    view.m[3][3] = 1.0f;
+
+    /* The first vertex is far away, and no index picks it. */
+    const float    vertex_array[9] = {0.0f, 0.0f, 100.0f,
+                                      0.0f, 0.0f, 6.0f,
+                                      1.0f, 0.0f, 6.0f};
+    const uint16_t index_array[3]  = {1, 2, 1};
+
+    scene.get_builder().set_transform(Interception::Core::D3D7Utils::D3DTRANSFORMSTATE_VIEW,
+                                      view);
+    scene.get_builder().draw_indexed_primitive(Interception::Hooks::D3D7::D3DPT_TRIANGLELIST,
+                                               FVF_XYZ,
+                                               3,
+                                               std::vector<uint16_t>(index_array,
+                                                                     index_array + 3),
+                                               Tests::D3D7CallBuilder::get_bytes(vertex_array,
+                                                                                 sizeof(vertex_array) ));
+    scene.feed();
+    scene.present();
+
+    const auto& model = scene.get_harness().get_model();
+
+    ASSERT_EQ(model.surface_depth_histogram_map.size(),
+              1u);
+    EXPECT_NEAR(model.surface_depth_histogram_map.begin()->second.get_depth_at_fraction(0.5),
+                10.0f,
+                1.0f);
+}
+
+TEST(D3D7Frontend, TheVerticesOfAVertexBufferAreWhatWasWrittenToIt)
+{
+    constexpr uint32_t FVF_XYZ = 0x002;
+
+    Tests::D3D7Scene scene;
+
+    Interception::Hooks::D3D7::D3DMATRIX view = {};
+
+    view.m[0][0] = 1.0f;
+    view.m[1][1] = 1.0f;
+    view.m[2][2] = 1.0f;
+    view.m[3][2] = 4.0f;
+    view.m[3][3] = 1.0f;
+
+    const float vertex_array[9] = {0.0f, 0.0f, 6.0f,
+                                   1.0f, 0.0f, 6.0f,
+                                   0.0f, 1.0f, 6.0f};
+
+    const uint64_t vertex_buffer = scene.get_builder().create_vertex_buffer(FVF_XYZ,
+                                                                            3);
+
+    scene.get_builder().unlock_vertex_buffer(vertex_buffer,
+                                             Tests::D3D7CallBuilder::get_bytes(vertex_array,
+                                                                               sizeof(vertex_array) ));
+    scene.get_builder().set_transform       (Interception::Core::D3D7Utils::D3DTRANSFORMSTATE_VIEW,
+                                             view);
+    scene.get_builder().draw_primitive_vb   (Interception::Hooks::D3D7::D3DPT_TRIANGLELIST,
+                                             vertex_buffer,
+                                             0,
+                                             3);
+    scene.feed();
+    scene.present();
+
+    const auto& model = scene.get_harness().get_model();
+
+    ASSERT_EQ(model.surface_depth_histogram_map.size(),
+              1u);
+    EXPECT_NEAR(model.surface_depth_histogram_map.begin()->second.get_depth_at_fraction(0.5),
+                10.0f,
+                1.0f);
+}
+
+TEST(D3D7Frontend, PreTransformedVerticesAreNotSampled)
+{
+    constexpr uint32_t FVF_XYZRHW = 0x004;
+
+    Tests::D3D7Scene scene;
+
+    Interception::Hooks::D3D7::D3DMATRIX view = {};
+
+    view.m[0][0] = 1.0f;
+    view.m[1][1] = 1.0f;
+    view.m[2][2] = 1.0f;
+    view.m[3][2] = 4.0f;
+    view.m[3][3] = 1.0f;
+
+    const float vertex_array[12] = {10.0f, 10.0f, 0.5f, 1.0f,
+                                    20.0f, 10.0f, 0.5f, 1.0f,
+                                    10.0f, 20.0f, 0.5f, 1.0f};
+
+    scene.get_builder().set_transform(Interception::Core::D3D7Utils::D3DTRANSFORMSTATE_VIEW,
+                                      view);
+    scene.get_builder().draw_primitive(Interception::Hooks::D3D7::D3DPT_TRIANGLELIST,
+                                       FVF_XYZRHW,
+                                       3,
+                                       Tests::D3D7CallBuilder::get_bytes(vertex_array,
+                                                                         sizeof(vertex_array) ));
+    scene.feed();
+    scene.present();
+
+    EXPECT_TRUE(scene.get_harness().get_model().surface_depth_histogram_map.empty() );
+}
+
+TEST(D3D7Frontend, TheVerticesOfAStridedDrawAreThoseOfItsArraysOfPositions)
+{
+    constexpr uint32_t FVF_XYZ = 0x002;
+    constexpr uint32_t STRIDE  = 16; /* the positions are not next to each other */
+
+    Tests::D3D7Scene scene;
+
+    Interception::Hooks::D3D7::D3DMATRIX view = {};
+
+    view.m[0][0] = 1.0f;
+    view.m[1][1] = 1.0f;
+    view.m[2][2] = 1.0f;
+    view.m[3][2] = 4.0f;
+    view.m[3][3] = 1.0f;
+
+    const float position_array[12] = {0.0f, 0.0f, 6.0f, 0.0f,
+                                      1.0f, 0.0f, 6.0f, 0.0f,
+                                      0.0f, 1.0f, 6.0f, 0.0f};
+
+    scene.get_builder().set_transform(Interception::Core::D3D7Utils::D3DTRANSFORMSTATE_VIEW,
+                                      view);
+    scene.get_builder().draw_primitive_strided(Interception::Hooks::D3D7::D3DPT_TRIANGLELIST,
+                                               FVF_XYZ,
+                                               3,
+                                               STRIDE,
+                                               Tests::D3D7CallBuilder::get_bytes(position_array,
+                                                                                 sizeof(position_array) ));
+    scene.feed();
+    scene.present();
+
+    const auto& model = scene.get_harness().get_model();
+
+    ASSERT_EQ(model.surface_depth_histogram_map.size(),
+              1u);
+    EXPECT_NEAR(model.surface_depth_histogram_map.begin()->second.get_depth_at_fraction(0.5),
+                10.0f,
+                1.0f);
+}

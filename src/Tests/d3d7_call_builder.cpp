@@ -9,6 +9,7 @@
 
 Tests::D3D7CallBuilder::D3D7CallBuilder()
     :m_device_address        (0),
+     m_direct3d_address      (0),
      m_direct_draw_address   (0),
      m_fails_next_device_call(false),
      m_next_address          (0),
@@ -29,6 +30,7 @@ Tests::D3D7CallBuilder::D3D7CallBuilder()
     m_workload.pointer_n_bytes = sizeof(uint32_t);
     m_workload.qpc_frequency   = QPC_FREQUENCY;
 
+    m_direct3d_address    = allocate_address();
     m_direct_draw_address = allocate_address();
 }
 
@@ -169,7 +171,6 @@ uint64_t Tests::D3D7CallBuilder::create_device(const uint64_t& in_surface_addres
 {
     constexpr size_t N_CLSID_BYTES = 16;
 
-    const uint64_t       d3d_address = allocate_address();
     std::vector<uint8_t> clsid_u8_vec(N_CLSID_BYTES,
                                       0);
 
@@ -177,11 +178,11 @@ uint64_t Tests::D3D7CallBuilder::create_device(const uint64_t& in_surface_addres
 
     /* The device renders to the surface that it is made with; it is written to where the last argument points. */
     add_call(APIInterceptor::APIFUNCTION_D3D7_IDIRECT3D7_CREATEDEVICE,
-             {make_pointer_argument(d3d_address),
+             {make_pointer_argument(m_direct3d_address),
               make_chunk_argument  (clsid_u8_vec),
               make_pointer_argument(in_surface_address),
               make_pointer_argument(allocate_address() )},
-             {make_pointer_argument(d3d_address),
+             {make_pointer_argument(m_direct3d_address),
               make_chunk_argument  (clsid_u8_vec),
               make_pointer_argument(in_surface_address),
               make_pointer_argument(m_device_address)});
@@ -235,9 +236,67 @@ uint64_t Tests::D3D7CallBuilder::create_surface(const SurfaceSpec& in_spec)
     return address;
 }
 
+uint64_t Tests::D3D7CallBuilder::create_vertex_buffer(const uint32_t& in_fvf,
+                                                      const uint32_t& in_n_vertices)
+{
+    constexpr uint32_t FLAGS = 0;
+
+    Interception::Hooks::D3D7::D3DVERTEXBUFFERDESC description = {};
+    std::vector<uint8_t>                           description_u8_vec(sizeof(description) );
+
+    description.dwFVF         = in_fvf;
+    description.dwNumVertices = in_n_vertices;
+    description.dwSize        = static_cast<DWORD>(sizeof(description) );
+
+    memcpy(description_u8_vec.data(),
+           &description,
+           sizeof(description) );
+
+    const uint64_t address = allocate_address();
+
+    /* The buffer is written to where the third argument points. */
+    add_call(APIInterceptor::APIFUNCTION_D3D7_IDIRECT3D7_CREATEVERTEXBUFFER,
+             {make_pointer_argument                          (m_direct3d_address),
+              make_chunk_argument                            (description_u8_vec),
+              make_pointer_argument                          (allocate_address() ),
+              APIInterceptor::APIFunctionArgument::create_u32(FLAGS)},
+             {make_pointer_argument                          (m_direct3d_address),
+              make_chunk_argument                            (description_u8_vec),
+              make_pointer_argument                          (address),
+              APIInterceptor::APIFunctionArgument::create_u32(FLAGS)});
+
+    return address;
+}
+
+void Tests::D3D7CallBuilder::draw_indexed_primitive(const Interception::Hooks::D3D7::D3DPRIMITIVETYPE& in_type,
+                                                    const uint32_t&                                    in_fvf,
+                                                    const uint32_t&                                    in_n_vertices,
+                                                    const std::vector<uint16_t>&                       in_indices_u16_vec,
+                                                    const std::vector<uint8_t>&                        in_vertices_u8_vec)
+{
+    constexpr uint32_t FLAGS = 0;
+
+    const uint8_t*             indices_ptr = reinterpret_cast<const uint8_t*>(in_indices_u16_vec.data() );
+    const std::vector<uint8_t> indices_u8_vec(indices_ptr,
+                                              indices_ptr + in_indices_u16_vec.size() * sizeof(uint16_t) );
+
+    /* The indices and then the vertices follow the arguments of the method, in data chunks. */
+    add_device_call(APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVE,
+                    {APIInterceptor::APIFunctionArgument::create_u32(in_type),
+                     APIInterceptor::APIFunctionArgument::create_u32(in_fvf),
+                     make_pointer_argument                          (allocate_address() ),
+                     APIInterceptor::APIFunctionArgument::create_u32(in_n_vertices),
+                     make_pointer_argument                          (allocate_address() ),
+                     APIInterceptor::APIFunctionArgument::create_u32(static_cast<uint32_t>(in_indices_u16_vec.size() )),
+                     APIInterceptor::APIFunctionArgument::create_u32(FLAGS),
+                     make_chunk_argument                            (indices_u8_vec),
+                     make_chunk_argument                            (in_vertices_u8_vec)});
+}
+
 void Tests::D3D7CallBuilder::draw_primitive(const Interception::Hooks::D3D7::D3DPRIMITIVETYPE& in_type,
                                             const uint32_t&                                    in_fvf,
-                                            const uint32_t&                                    in_n_vertices)
+                                            const uint32_t&                                    in_n_vertices,
+                                            const std::vector<uint8_t>&                        in_vertices_u8_vec)
 {
     constexpr uint32_t FLAGS = 0;
 
@@ -248,7 +307,22 @@ void Tests::D3D7CallBuilder::draw_primitive(const Interception::Hooks::D3D7::D3D
                      make_pointer_argument                          (allocate_address() ),
                      APIInterceptor::APIFunctionArgument::create_u32(in_n_vertices),
                      APIInterceptor::APIFunctionArgument::create_u32(FLAGS),
-                     make_chunk_argument                            ({})});
+                     make_chunk_argument                            (in_vertices_u8_vec)});
+}
+
+void Tests::D3D7CallBuilder::draw_primitive_vb(const Interception::Hooks::D3D7::D3DPRIMITIVETYPE& in_type,
+                                               const uint64_t&                                    in_vertex_buffer_address,
+                                               const uint32_t&                                    in_start_vertex,
+                                               const uint32_t&                                    in_n_vertices)
+{
+    constexpr uint32_t FLAGS = 0;
+
+    add_device_call(APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWPRIMITIVEVB,
+                    {APIInterceptor::APIFunctionArgument::create_u32(in_type),
+                     make_pointer_argument                          (in_vertex_buffer_address),
+                     APIInterceptor::APIFunctionArgument::create_u32(in_start_vertex),
+                     APIInterceptor::APIFunctionArgument::create_u32(in_n_vertices),
+                     APIInterceptor::APIFunctionArgument::create_u32(FLAGS)});
 }
 
 void Tests::D3D7CallBuilder::fail_next_device_call()
@@ -398,4 +472,74 @@ void Tests::D3D7CallBuilder::unlock(const uint64_t&             in_surface_addre
                      in_surface_address,
                      {make_chunk_argument({}),
                       make_chunk_argument(in_data_u8_vec)});
+}
+
+void Tests::D3D7CallBuilder::set_transform(const uint32_t&                             in_state,
+                                           const Interception::Hooks::D3D7::D3DMATRIX& in_matrix)
+{
+    std::vector<uint8_t> matrix_u8_vec(sizeof(in_matrix) );
+
+    memcpy(matrix_u8_vec.data(),
+           &in_matrix,
+           sizeof(in_matrix) );
+
+    add_device_call(APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_SETTRANSFORM,
+                    {APIInterceptor::APIFunctionArgument::create_u32(in_state),
+                     make_chunk_argument                            (matrix_u8_vec)});
+}
+
+void Tests::D3D7CallBuilder::unlock_vertex_buffer(const uint64_t&             in_vertex_buffer_address,
+                                                  const std::vector<uint8_t>& in_data_u8_vec)
+{
+    /* What the application has written follows the arguments of the method. */
+    add_call(APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DVERTEXBUFFER7_UNLOCK,
+             {make_pointer_argument(in_vertex_buffer_address),
+              make_chunk_argument  (in_data_u8_vec)});
+}
+
+std::vector<uint8_t> Tests::D3D7CallBuilder::get_bytes(const void*   in_data_ptr,
+                                                       const size_t& in_n_bytes)
+{
+    const auto* byte_ptr = static_cast<const uint8_t*>(in_data_ptr);
+
+    return std::vector<uint8_t>(byte_ptr,
+                                byte_ptr + in_n_bytes);
+}
+
+void Tests::D3D7CallBuilder::draw_primitive_strided(const Interception::Hooks::D3D7::D3DPRIMITIVETYPE& in_type,
+                                                    const uint32_t&                                    in_fvf,
+                                                    const uint32_t&                                    in_n_vertices,
+                                                    const uint32_t&                                    in_position_stride,
+                                                    const std::vector<uint8_t>&                        in_positions_u8_vec)
+{
+    constexpr uint32_t FLAGS             = 0;
+    constexpr uint32_t N_ARRAYS          = 12;
+    constexpr uint32_t POSITION_ADDRESS  = 0x1000; /* where the positions were; only that it is not null counts */
+
+    /* The structure is a pointer and a stride for each kind of vertex data, in the layout of a 32-bit process. */
+    std::vector<uint32_t> strides_u32_vec(N_ARRAYS * 2,
+                                          0);
+    std::vector<uint32_t> arrays_u32_vec(1 + N_ARRAYS,
+                                         0);
+
+    strides_u32_vec.at(0) = POSITION_ADDRESS;
+    strides_u32_vec.at(1) = in_position_stride;
+    arrays_u32_vec.at(0)  = N_ARRAYS;
+    arrays_u32_vec.at(1)  = static_cast<uint32_t>(in_positions_u8_vec.size() );
+
+    std::vector<uint8_t> arrays_u8_vec = get_bytes(arrays_u32_vec.data(),
+                                                   arrays_u32_vec.size() * sizeof(uint32_t) );
+
+    arrays_u8_vec.insert(arrays_u8_vec.end(),
+                         in_positions_u8_vec.begin(),
+                         in_positions_u8_vec.end() );
+
+    add_device_call(APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWPRIMITIVESTRIDED,
+                    {APIInterceptor::APIFunctionArgument::create_u32(in_type),
+                     APIInterceptor::APIFunctionArgument::create_u32(in_fvf),
+                     make_chunk_argument                            (get_bytes(strides_u32_vec.data(),
+                                                                               strides_u32_vec.size() * sizeof(uint32_t) )),
+                     APIInterceptor::APIFunctionArgument::create_u32(in_n_vertices),
+                     APIInterceptor::APIFunctionArgument::create_u32(FLAGS),
+                     make_chunk_argument                            (arrays_u8_vec)});
 }
