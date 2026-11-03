@@ -4,6 +4,7 @@
  */
 #include "Analysis/RecipeLoader/recipe_loader.h"
 #include "Capture/APIDumpLoader/api_info.h"
+#include "Common/frame_boundary.h"
 #include "Interception/Hooks/D3D8/types.h"
 #include "Stereo/Session/session_environment.h"
 #include "converter.h"
@@ -37,9 +38,10 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
     {
         const auto function = static_cast<APIInterceptor::APIFunction>(n_api_func);
 
-        /* The rest of the converter (the eye renderer, the scaler, the exporter) is for Direct3D 8 until the ones of Direct3D 7 are made. */
-        if (CallFeeder::is_followed(function)                                                              &&
-            Capture::APIDumpLoader::get_api_group(function) == Capture::APIDumpLoader::APIGroup::D3D8)
+        /* The rest of the converter (the eye renderer, the scaler, the exporter) is for Direct3D 8: of the calls of Direct3D 7 it only
+         * follows what the application does (see on_d3d7_pre()), until the ones of Direct3D 7 are made.
+         */
+        if (CallFeeder::is_followed(function) )
         {
             APIInterceptor::register_for_post_callback(function,
                                                       &Converter::on_post_callback,
@@ -168,6 +170,18 @@ std::string Stereo::ConverterDLL::Converter::make_statistics_line() const
            " matrices kept";
 }
 
+void Stereo::ConverterDLL::Converter::on_d3d7_frame_ending(std::vector<std::string>* out_log_line_vec_ptr)
+{
+    constexpr uint64_t N_FRAMES_BETWEEN_STATISTICS = 600;
+
+    m_live_state.n_frames++;
+
+    if (m_live_state.n_frames % N_FRAMES_BETWEEN_STATISTICS == 0)
+    {
+        out_log_line_vec_ptr->push_back(make_statistics_line() );
+    }
+}
+
 void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFunction                in_api_func,
                                                        void*                                      in_user_arg_ptr,
                                                        uint32_t                                   in_n_arguments_out,
@@ -193,9 +207,13 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
             this_ptr->m_live_state.core_ptr->on_frame_completed(shape_key);
         }
 
-        this_ptr->m_live_state.renderer_ptr->on_post(in_api_func,
-                                                     in_n_arguments_out,
-                                                     in_arguments_out_ptr);
+        /* The eye renderer is for Direct3D 8; the calls of Direct3D 7 are only followed. */
+        if (Capture::APIDumpLoader::get_api_group(in_api_func) == Capture::APIDumpLoader::APIGroup::D3D8)
+        {
+            this_ptr->m_live_state.renderer_ptr->on_post(in_api_func,
+                                                         in_n_arguments_out,
+                                                         in_arguments_out_ptr);
+        }
     }
 
     /* The frame is presented: the application makes the next one when the screen wants it, which is what the program that shows the
@@ -221,6 +239,7 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
     {
         std::lock_guard<std::mutex> lock(m_live_state.mutex);
 
+        const bool is_d3d8 = (Capture::APIDumpLoader::get_api_group(in_api_func) == Capture::APIDumpLoader::APIGroup::D3D8);
         const bool is_draw = m_live_state.feeder.on_pre(in_api_func,
                                                         in_n_arguments,
                                                         in_arguments_ptr);
@@ -232,23 +251,40 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
                                                              in_arguments_ptr) == false);
         }
 
-        m_live_state.scaler_ptr->on_pre(in_api_func,
-                                        in_n_arguments,
-                                        in_arguments_ptr);
+        if (is_d3d8)
+        {
+            m_live_state.scaler_ptr->on_pre(in_api_func,
+                                            in_n_arguments,
+                                            in_arguments_ptr);
+        }
 
         if (is_draw == false)
         {
-            m_live_state.renderer_ptr->on_pre(in_api_func,
-                                              in_n_arguments,
-                                              in_arguments_ptr);
+            if (is_d3d8)
+            {
+                m_live_state.renderer_ptr->on_pre(in_api_func,
+                                                  in_n_arguments,
+                                                  in_arguments_ptr);
+            }
+            else
+            if (APIInterceptor::is_frame_boundary(in_api_func,
+                                                  in_n_arguments,
+                                                  in_arguments_ptr) )
+            {
+                on_d3d7_frame_ending(&log_line_vec);
+            }
         }
         else
         {
             const auto draw_class = m_live_state.core_ptr->classify_draw(m_live_state.feeder.get_last_draw_signature_key(),
                                                                                       m_live_state.feeder.get_last_draw_cover_key() );
 
-            *out_should_pass_through_ptr = m_live_state.renderer_ptr->on_pre_draw(draw_class,
-                                                                                  in_arguments_ptr);
+            /* The draws of Direct3D 7 are only counted: they are made as the application makes them. */
+            if (is_d3d8)
+            {
+                *out_should_pass_through_ptr = m_live_state.renderer_ptr->on_pre_draw(draw_class,
+                                                                                      in_arguments_ptr);
+            }
 
             count_draw(draw_class);
         }
