@@ -111,6 +111,22 @@ namespace Analysis
             float overlay_parallax = 0.0f;
         };
 
+        /* How the eyes are given parallax in an application whose vertices are already in the space of the picture (pre-transformed, as Direct3D
+         * says: the position of a vertex is in pixels, with the reciprocal of its depth), which no matrix moves. There is no projection to read the
+         * angle of view from, nor a camera to measure the distance of the surfaces by: the recipe says them.
+         *
+         * A vertex is moved sideways, for the left eye to the right and for the right eye to the left, by
+         *   (width / 2) / tan(field_of_view / 2) * (eye separation / 2) * (1 / depth - 1 / convergence_distance)
+         * pixels: a camera moved to the side, with the picture shifted so that what is at the convergence distance is not apart. A vertex at that
+         * distance is not moved, which is where an interface (drawn flat at one depth) and a picture which is made of another one are left.
+         */
+        struct ScreenParallax
+        {
+            float convergence_distance  = 0.0f;  /* in the units of the camera of the application; what is there has no parallax           */
+            float field_of_view_degrees = 90.0f; /* of the width of the picture                                                            */
+            bool  is_enabled            = false; /* whether the recipe has the section                                                      */
+        };
+
         /* The distance at which the eyes converge for a draw, by its signature, in the units of the camera of the application: measured
          * by RecipeBake from how deep the passes that draw it are (see DepthHistogram), so that nobody has to say it.
          */
@@ -206,6 +222,7 @@ namespace Analysis
             std::vector<PerEyeTexture>    per_eye_texture_vec;             /* from "baked"; see PerEyeTexture             */
             std::vector<Rule>             rule_vec;
             std::vector<SceneConvergence> scene_convergence_vec;
+            ScreenParallax                screen_parallax;                 /* see ScreenParallax; not enabled unless the recipe has it */
             std::vector<SceneSeparation>  scene_separation_vec;            /* from "baked"; see SceneSeparation           */
             DrawSelector                  skipped;                         /* draws which are not played                 */
             std::string                   target_description;              /* of the application; for people             */

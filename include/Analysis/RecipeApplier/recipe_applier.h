@@ -65,6 +65,9 @@ namespace Analysis
             /* How far apart the eyes may be in the frames of the shape (see Recipe::scene_separation_vec); 0 if the recipe says none. */
             float get_scene_max_separation(const uint64_t& in_shape_key) const;
 
+            /* How vertices that no matrix moves are given parallax (see ScreenParallax); not enabled if the recipe does not say. */
+            const Analysis::RecipeLoader::ScreenParallax& get_screen_parallax() const;
+
             Analysis::RecipeLoader::UnknownFramePolicy get_unknown_frame_policy() const;
 
             /* False if no rule is about the function, whatever the arguments: a quick check before the call is looked at. */

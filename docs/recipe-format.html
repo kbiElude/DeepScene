@@ -39,6 +39,14 @@
                                                    as a part of the width of the picture (0 to 0.5). What the application wants: VR Player
                                                    pushes by it unless the person turns it off; 0 or left out: the application wants none
     },
+    "screen_parallax": {                           for an application whose vertices are already in the space of the picture (pre-transformed:
+                                                   Direct3D's x and y in pixels, and the reciprocal of the depth), which no matrix moves;
+                                                   without it, such vertices are left as they are
+      "convergence_distance": 5.0,                 the distance at which the eyes converge, in the units of the camera of the application;
+                                                   what is at it is not moved (above 0; there is no way to find it out, so it must be said)
+      "field_of_view_degrees": 90.0                the angle of view of the width of the picture (above 0, below 180; default 90): there is no
+                                                   projection to read it from
+    },
     "unaffected": {                                draws which the rules leave alone (a 2D overlay): all others are affected
       "pass_keys": [ "0x..." ],                    every draw of these passes
       "draw_keys": [ "0x..." ]                     these draws, wherever they are

@@ -106,6 +106,10 @@ namespace Analysis
                                                  const std::string&                          in_path,
                                                  Rule*                                       out_rule_ptr,
                                                  std::string*                                out_error_ptr);
+            static bool parse_screen_parallax   (const Analysis::APIDumpAnalysis::JsonValue& in_value,
+                                                 const std::string&                          in_path,
+                                                 ScreenParallax*                             out_screen_parallax_ptr,
+                                                 std::string*                                out_error_ptr);
             static bool parse_state             (const Analysis::APIDumpAnalysis::JsonValue& in_value,
                                                  const std::string&                          in_path,
                                                  const CallDescriptor&                       in_call,

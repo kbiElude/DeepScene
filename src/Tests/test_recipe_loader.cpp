@@ -975,6 +975,65 @@ TEST_F(RecipeLoaderTest, BakedSceneConvergenceDistancesAreReadAndWhatIsWrongInTh
                    "the shape has a distance already");
 }
 
+TEST_F(RecipeLoaderTest, TheScreenParallaxOfARecipeIsReadAndWhatIsWrongInItIsRefused)
+{
+    std::string                    error;
+    Analysis::RecipeLoader::Recipe recipe;
+
+    /* Without it, nothing which no matrix moves is moved. */
+    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("",
+                                                                             ""),
+                                                           &recipe,
+                                                           &error) ) << error;
+
+    EXPECT_FALSE(recipe.screen_parallax.is_enabled);
+
+    /* The angle of view is 90 degrees unless it is said. */
+    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"screen_parallax\": {\"convergence_distance\": 5},",
+                                                                             ""),
+                                                           &recipe,
+                                                           &error) ) << error;
+
+    EXPECT_TRUE    (recipe.screen_parallax.is_enabled);
+    EXPECT_FLOAT_EQ(recipe.screen_parallax.convergence_distance,
+                    5.0f);
+    EXPECT_FLOAT_EQ(recipe.screen_parallax.field_of_view_degrees,
+                    90.0f);
+
+    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"screen_parallax\": {\"convergence_distance\": 2.5, \"field_of_view_degrees\": 60},",
+                                                                             ""),
+                                                           &recipe,
+                                                           &error) ) << error;
+
+    EXPECT_FLOAT_EQ(recipe.screen_parallax.convergence_distance,
+                    2.5f);
+    EXPECT_FLOAT_EQ(recipe.screen_parallax.field_of_view_degrees,
+                    60.0f);
+
+    /* The distance cannot be found out, so it must be said. */
+    expect_refused(get_recipe_text("\"screen_parallax\": {},",
+                                   ""),
+                   "screen_parallax.convergence_distance");
+    expect_refused(get_recipe_text("\"screen_parallax\": {\"convergence_distance\": 0},",
+                                   ""),
+                   "screen_parallax.convergence_distance");
+    expect_refused(get_recipe_text("\"screen_parallax\": {\"convergence_distance\": \"far\"},",
+                                   ""),
+                   "screen_parallax.convergence_distance");
+    expect_refused(get_recipe_text("\"screen_parallax\": {\"convergence_distance\": 5, \"field_of_view_degrees\": 180},",
+                                   ""),
+                   "screen_parallax.field_of_view_degrees");
+    expect_refused(get_recipe_text("\"screen_parallax\": {\"convergence_distance\": 5, \"field_of_view_degrees\": 0},",
+                                   ""),
+                   "screen_parallax.field_of_view_degrees");
+    expect_refused(get_recipe_text("\"screen_parallax\": {\"convergence_distance\": 5, \"strength\": 1},",
+                                   ""),
+                   "strength");
+    expect_refused(get_recipe_text("\"screen_parallax\": 5,",
+                                   ""),
+                   "screen_parallax");
+}
+
 TEST_F(RecipeLoaderTest, TheComfortOfARecipeIsReadAndWhatIsWrongInItIsRefused)
 {
     std::string                    error;

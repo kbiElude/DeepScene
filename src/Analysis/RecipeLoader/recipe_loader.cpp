@@ -124,7 +124,7 @@ bool Analysis::RecipeLoader::RecipeLoader::parse(const std::string& in_text,
     }
 
     if (check_keys(root,
-                   {"affected", "baked", "comfort", "key_scheme_version", "known_shape_keys", "on_unknown_frame", "recipe_version", "rules", "skipped", "target", "unaffected"},
+                   {"affected", "baked", "comfort", "key_scheme_version", "known_shape_keys", "on_unknown_frame", "recipe_version", "rules", "screen_parallax", "skipped", "target", "unaffected"},
                    "",
                    out_error_ptr) == false)
     {
@@ -140,6 +140,7 @@ bool Analysis::RecipeLoader::RecipeLoader::parse(const std::string& in_text,
         const auto* on_unknown_frame_ptr   = root.find_ptr("on_unknown_frame");
         const auto* recipe_version_ptr     = root.find_ptr("recipe_version");
         const auto* rule_array_ptr         = root.find_ptr("rules");
+        const auto* screen_parallax_ptr    = root.find_ptr("screen_parallax");
         const auto* skipped_ptr            = root.find_ptr("skipped");
         const auto* target_ptr             = root.find_ptr("target");
         const auto* unaffected_ptr         = root.find_ptr("unaffected");
@@ -291,6 +292,17 @@ bool Analysis::RecipeLoader::RecipeLoader::parse(const std::string& in_text,
                               "comfort",
                              &out_recipe_ptr->comfort,
                               out_error_ptr) == false)
+            {
+                goto end;
+            }
+        }
+
+        if (screen_parallax_ptr != nullptr)
+        {
+            if (parse_screen_parallax(*screen_parallax_ptr,
+                                      "screen_parallax",
+                                     &out_recipe_ptr->screen_parallax,
+                                      out_error_ptr) == false)
             {
                 goto end;
             }
@@ -872,6 +884,79 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_comfort(const Analysis::APIDump
 
             out_comfort_ptr->overlay_parallax = static_cast<float>(overlay_ptr->number_value);
         }
+    }
+
+    result = true;
+
+end:
+    return result;
+}
+
+bool Analysis::RecipeLoader::RecipeLoader::parse_screen_parallax(const Analysis::APIDumpAnalysis::JsonValue& in_value,
+                                                                 const std::string&                          in_path,
+                                                                 ScreenParallax*                             out_screen_parallax_ptr,
+                                                                 std::string*                                out_error_ptr)
+{
+    /* An angle of view of a half circle or more is no picture. */
+    constexpr double MAX_FIELD_OF_VIEW_DEGREES = 180.0;
+
+    bool result = false;
+
+    if (in_value.type != Analysis::APIDumpAnalysis::JsonValue::Type::OBJECT)
+    {
+        *out_error_ptr = in_path + ": expected an object";
+
+        goto end;
+    }
+
+    if (check_keys(in_value,
+                   {"convergence_distance", "field_of_view_degrees"},
+                   in_path,
+                   out_error_ptr) == false)
+    {
+        goto end;
+    }
+
+    {
+        const auto* distance_ptr = in_value.find_ptr("convergence_distance");
+        const auto* fov_ptr      = in_value.find_ptr("field_of_view_degrees");
+
+        /* The distance is what there is no way to find out. */
+        if (distance_ptr == nullptr)
+        {
+            *out_error_ptr = in_path + ".convergence_distance is missing";
+
+            goto end;
+        }
+
+        if (distance_ptr->type         != Analysis::APIDumpAnalysis::JsonValue::Type::NUMBER ||
+            ::isfinite(distance_ptr->number_value) == 0                                      ||
+            distance_ptr->number_value <= 0.0)
+        {
+            *out_error_ptr = in_path + ".convergence_distance: expected a number above zero (the distance at which the eyes converge, in the "
+                                       "units of the camera of the application)";
+
+            goto end;
+        }
+
+        out_screen_parallax_ptr->convergence_distance = static_cast<float>(distance_ptr->number_value);
+
+        if (fov_ptr != nullptr)
+        {
+            if (fov_ptr->type         != Analysis::APIDumpAnalysis::JsonValue::Type::NUMBER ||
+                ::isfinite(fov_ptr->number_value) == 0                                      ||
+                fov_ptr->number_value <= 0.0                                                ||
+                fov_ptr->number_value >= MAX_FIELD_OF_VIEW_DEGREES)
+            {
+                *out_error_ptr = in_path + ".field_of_view_degrees: expected a number above zero and below 180 (the angle of view of the width of the picture)";
+
+                goto end;
+            }
+
+            out_screen_parallax_ptr->field_of_view_degrees = static_cast<float>(fov_ptr->number_value);
+        }
+
+        out_screen_parallax_ptr->is_enabled = true;
     }
 
     result = true;

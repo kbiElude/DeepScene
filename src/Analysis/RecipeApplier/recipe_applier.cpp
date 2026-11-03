@@ -249,6 +249,11 @@ float Analysis::RecipeApplier::RecipeApplier::get_scene_max_separation(const uin
                                                                       : 0.0f;
 }
 
+const Analysis::RecipeLoader::ScreenParallax& Analysis::RecipeApplier::RecipeApplier::get_screen_parallax() const
+{
+    return m_recipe.screen_parallax;
+}
+
 Analysis::RecipeLoader::UnknownFramePolicy Analysis::RecipeApplier::RecipeApplier::get_unknown_frame_policy() const
 {
     return m_recipe.unknown_frame_policy;

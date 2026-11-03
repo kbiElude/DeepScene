@@ -5,6 +5,7 @@
 #include "Analysis/APIDumpAnalysis/frontends/analysis_session.h"
 #include "Common/macros.h"
 #include "d3d7_call_executor.h"
+#include "d3d7_screen_parallax.h"
 #include "d3d8_call_executor.h"
 #include "frame_runner.h"
 #include "gl_call_executor.h"
@@ -473,6 +474,41 @@ end:
     return result;
 }
 
+bool Stereo::Replay::EngineDLL::ReplayEngine::execute_draw_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                const IChunkSource&                          in_chunk_source,
+                                                                const bool&                                  in_is_affected,
+                                                                const Analysis::RecipeLoader::Eye&           in_eye,
+                                                                const uint32_t&                              in_pass_structure_id)
+{
+    const auto&                           screen_parallax = m_recipe_applier_ptr->get_screen_parallax();
+    bool                                  is_moved        = false;
+    OverlayChunkSource                    overlay(in_chunk_source);
+    Capture::APIDumpLoader::DumpedAPICall rewritten;
+
+    if (in_is_affected &&
+        screen_parallax.is_enabled)
+    {
+        D3D7ScreenParallax::Parameters parameters;
+
+        parameters.convergence_distance  = screen_parallax.convergence_distance;
+        parameters.eye                   = in_eye;
+        parameters.eye_separation        = m_frame_eye_separation;
+        parameters.field_of_view_degrees = screen_parallax.field_of_view_degrees;
+        parameters.picture_width         = m_session_ptr->get_model().pass_structure_interner.get_structure(in_pass_structure_id).viewport.width;
+
+        is_moved = D3D7ScreenParallax::rewrite(in_call,
+                                               in_chunk_source,
+                                               parameters,
+                                              &overlay,
+                                              &rewritten);
+    }
+
+    return (is_moved) ? execute_call(rewritten,
+                                     overlay)
+                      : execute_call(in_call,
+                                     in_chunk_source);
+}
+
 bool Stereo::Replay::EngineDLL::ReplayEngine::execute_rewritten_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                      const IChunkSource&                          in_chunk_source,
                                                                      const size_t&                                in_n_call,
@@ -515,16 +551,21 @@ bool Stereo::Replay::EngineDLL::ReplayEngine::execute_rewritten_call(const Captu
         }
         else
         {
+            const bool is_affected = m_recipe_applier_ptr->is_draw_affected(pass_key,
+                                                                            draw_iterator->structure_key);
+
             /* What the draw is made with is put on the device first. */
-            result = m_matrix_binder_ptr->before_draw(m_recipe_applier_ptr->is_draw_affected(pass_key,
-                                                                                             draw_iterator->structure_key),
+            result = m_matrix_binder_ptr->before_draw(is_affected,
                                                       eye,
                                                       m_frame_eye_separation);
 
             if (result)
             {
-                result = execute_call(in_call,
-                                      in_chunk_source);
+                result = execute_draw_call(in_call,
+                                           in_chunk_source,
+                                           is_affected,
+                                           eye,
+                                           frame.pass_instance_vec.at(draw_iterator->pass_index).structure_id);
             }
         }
     }

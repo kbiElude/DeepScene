@@ -122,6 +122,15 @@ namespace Stereo
                                                bool*                                            out_has_workload_ended_ptr);
                 bool execute_call             (const Capture::APIDumpLoader::DumpedAPICall&     in_call,
                                                const IChunkSource&                              in_chunk_source);
+
+                /* A draw: with its vertices moved for the eye if they are in the space of the picture and the recipe says how (see ScreenParallax),
+                 * as it is otherwise. The pass is the structure of the pass which the draw is in.
+                 */
+                bool execute_draw_call        (const Capture::APIDumpLoader::DumpedAPICall&     in_call,
+                                               const IChunkSource&                              in_chunk_source,
+                                               const bool&                                      in_is_affected,
+                                               const Analysis::RecipeLoader::Eye&               in_eye,
+                                               const uint32_t&                                  in_pass_structure_id);
                 bool execute_rewritten_call   (const Capture::APIDumpLoader::DumpedAPICall&     in_call,
                                                const IChunkSource&                              in_chunk_source,
                                                const size_t&                                    in_n_call,
