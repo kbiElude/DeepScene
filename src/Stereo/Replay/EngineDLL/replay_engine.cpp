@@ -4,6 +4,7 @@
  */
 #include "Analysis/APIDumpAnalysis/frontends/analysis_session.h"
 #include "Common/macros.h"
+#include "Stereo/Core/screen_parallax_planner.h"
 #include "d3d7_call_executor.h"
 #include "d3d7_screen_parallax.h"
 #include "d3d8_call_executor.h"
@@ -482,56 +483,68 @@ bool Stereo::Replay::EngineDLL::ReplayEngine::execute_draw_call(const Capture::A
                                                                 const Analysis::RecipeLoader::Eye&           in_eye,
                                                                 const uint32_t&                              in_pass_structure_id)
 {
-    const auto&                           screen_parallax  = m_recipe_applier_ptr->get_screen_parallax();
-    bool                                  is_moved         = false;
-    const float                           overlay_parallax = m_recipe_applier_ptr->get_overlay_parallax();
+    const uint64_t                        shape_key = m_session_ptr->get_completed_frame().shape_key;
+    Stereo::Core::ScreenParallaxPlanner::Input input;
+    bool                                  is_moved  = false;
     OverlayChunkSource                    overlay(in_chunk_source);
+    Stereo::Core::ScreenShiftPlan         plan;
     Capture::APIDumpLoader::DumpedAPICall rewritten;
 
-    /* A draw that covers the whole of the view is not moved sideways: it would leave a strip of the picture bare. */
-    if (in_is_affected                                              &&
-        screen_parallax.is_enabled                                  &&
-        m_recipe_applier_ptr->is_draw_covering(in_cover_key) == false)
+    /* The scene (the kind of frame) knows where its surfaces are, and how far apart the eyes may be for the nearest of them. */
+    input.convergence_distance = m_recipe_applier_ptr->get_scene_convergence_distance(shape_key);
+    input.cover_key            = in_cover_key;
+    input.eye                  = in_eye;
+    input.eye_separation       = m_frame_eye_separation;
+    input.is_affected          = in_is_affected;
+    input.is_overlay_pushed    = true;
+    input.is_presented         = in_is_presented;
+    input.picture_width        = m_session_ptr->get_model().pass_structure_interner.get_structure(in_pass_structure_id).viewport.width;
+    input.separation_limit     = m_recipe_applier_ptr->get_scene_max_separation(shape_key);
+
+    plan = Stereo::Core::ScreenParallaxPlanner::plan(*m_recipe_applier_ptr,
+                                                     input);
+
+    switch (plan.kind)
     {
-        D3D7ScreenParallax::Parameters parameters;
+        case Stereo::Core::ScreenShiftPlan::Kind::NONE:
+        {
+            break;
+        }
 
-        /* The scene (the kind of frame) knows where its surfaces are, and how far apart the eyes may be for the nearest of them; the recipe's own
-         * distance is for a scene which the analysis found nothing in.
-         */
-        const uint64_t shape_key       = m_session_ptr->get_completed_frame().shape_key;
-        const float    scene_distance  = m_recipe_applier_ptr->get_scene_convergence_distance(shape_key);
-        const float    scene_limit     = m_recipe_applier_ptr->get_scene_max_separation      (shape_key);
+        case Stereo::Core::ScreenShiftPlan::Kind::PER_VERTEX:
+        {
+            D3D7ScreenParallax::Parameters parameters;
 
-        parameters.convergence_distance  = (scene_distance > 0.0f) ? scene_distance
-                                                                   : screen_parallax.convergence_distance;
-        parameters.eye                   = in_eye;
-        parameters.eye_separation        = (scene_limit > 0.0f && scene_limit < m_frame_eye_separation) ? scene_limit
-                                                                                                    : m_frame_eye_separation;
-        parameters.field_of_view_degrees = screen_parallax.field_of_view_degrees;
-        parameters.picture_width         = m_session_ptr->get_model().pass_structure_interner.get_structure(in_pass_structure_id).viewport.width;
+            parameters.convergence_distance  = plan.convergence_distance;
+            parameters.eye                   = plan.eye;
+            parameters.eye_separation        = plan.eye_separation;
+            parameters.field_of_view_degrees = plan.field_of_view_degrees;
+            parameters.picture_width         = plan.picture_width;
 
-        is_moved = D3D7ScreenParallax::rewrite(in_call,
-                                               in_chunk_source,
-                                               parameters,
-                                              &overlay,
-                                              &rewritten);
-    }
+            is_moved = D3D7ScreenParallax::rewrite(in_call,
+                                                   in_chunk_source,
+                                                   parameters,
+                                                  &overlay,
+                                                  &rewritten);
 
-    /* A draw the recipe leaves alone, to what is presented, is pushed toward the viewer as a whole: the left eye sees it further to the right. */
-    if (in_is_affected == false                                     &&
-        in_is_presented                                             &&
-        overlay_parallax > 0.0f                                     &&
-        m_recipe_applier_ptr->is_draw_covering(in_cover_key) == false)
-    {
-        const float picture_width = m_session_ptr->get_model().pass_structure_interner.get_structure(in_pass_structure_id).viewport.width;
-        const float half_shift    = overlay_parallax * picture_width * 0.5f;
+            break;
+        }
 
-        is_moved = D3D7ScreenParallax::rewrite_by(in_call,
-                                                  in_chunk_source,
-                                                  (in_eye == Analysis::RecipeLoader::Eye::LEFT) ? half_shift
-                                                                                                : -half_shift,
-                                                 &overlay,
-                                                 &rewritten);
+        case Stereo::Core::ScreenShiftPlan::Kind::UNIFORM:
+        {
+            is_moved = D3D7ScreenParallax::rewrite_by(in_call,
+                                                      in_chunk_source,
+                                                      plan.uniform_shift_pixels,
+                                                     &overlay,
+                                                     &rewritten);
+
+            break;
+        }
+
+        default:
+        {
+            AI_FAIL_UNSUPPORTED(plan.kind);
+        }
     }
 
     return (is_moved) ? execute_call(rewritten,
