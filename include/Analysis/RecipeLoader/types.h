@@ -158,6 +158,16 @@ namespace Analysis
             std::vector<uint64_t>          shape_key_vec;
         };
 
+        /* A texture which each eye has a copy of: what is rendered to it by one eye is not what the other eye sees, and what a frame reads of it
+         * from the frame before is what that eye rendered. Told by how it was made and by the number of the textures made like it before it (see
+         * ResourceIdentity), which is known when the application makes it; measured by RecipeBake from the textures that frames carry over.
+         */
+        struct PerEyeTexture
+        {
+            uint64_t description_key = 0;
+            uint32_t ordinal         = 0;
+        };
+
         /* The distance at which the eyes converge in a kind of frame (a scene), by its shape key: measured by RecipeBake from how
          * deep the affected passes of the frames of that shape are. A converter that knows the shape of the frame before (what it
          * is made of is known when it ends) follows it, and the distance of a draw (see DrawConvergence) is for what it does not know.
@@ -193,6 +203,7 @@ namespace Analysis
             std::vector<uint64_t>         covering_draw_key_vec;      /* from "baked"; keys (signature and size) of draws that cover the whole of the view: not to be moved sideways */
             std::vector<uint64_t>         known_signature_key_vec;         /* from "baked"; if empty, no draw is unknown */
             uint32_t                      key_scheme_version      = 0;
+            std::vector<PerEyeTexture>    per_eye_texture_vec;             /* from "baked"; see PerEyeTexture             */
             std::vector<Rule>             rule_vec;
             std::vector<SceneConvergence> scene_convergence_vec;
             std::vector<SceneSeparation>  scene_separation_vec;            /* from "baked"; see SceneSeparation           */

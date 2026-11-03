@@ -587,6 +587,7 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_baked(const Analysis::APIDumpAn
     const auto* convergence_ptr              = in_baked.find_ptr("convergence");
     const auto* covering_draws_ptr      = in_baked.find_ptr("covering_draws");
     const auto* known_signatures_ptr         = in_baked.find_ptr("known_signatures");
+    const auto* per_eye_textures_ptr         = in_baked.find_ptr("per_eye_textures");
     bool        result                       = false;
     const auto* rule_array_ptr               = in_baked.find_ptr("draw_rules");
     const auto* scene_convergence_ptr        = in_baked.find_ptr("scene_convergence");
@@ -602,7 +603,7 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_baked(const Analysis::APIDumpAn
     }
 
     if (check_keys(in_baked,
-                   {"convergence", "covering_draws", "draw_rules", "known_signatures", "scene_convergence", "scene_max_separation", "signature_scheme_version"},
+                   {"convergence", "covering_draws", "draw_rules", "known_signatures", "per_eye_textures", "scene_convergence", "scene_max_separation", "signature_scheme_version"},
                    in_path,
                    out_error_ptr) == false)
     {
@@ -758,6 +759,17 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_baked(const Analysis::APIDumpAn
                                 in_path + ".covering_draws",
                                &inout_recipe_ptr->covering_draw_key_vec,
                                 out_error_ptr) == false)
+        {
+            goto end;
+        }
+    }
+
+    if (per_eye_textures_ptr != nullptr)
+    {
+        if (parse_per_eye_textures(*per_eye_textures_ptr,
+                                   in_path + ".per_eye_textures",
+                                  &inout_recipe_ptr->per_eye_texture_vec,
+                                   out_error_ptr) == false)
         {
             goto end;
         }
@@ -1282,6 +1294,89 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_matrix(const Analysis::APIDumpA
         }
 
         out_matrix_ptr->at(n_element) = static_cast<float>(element.number_value);
+    }
+
+    result = true;
+
+end:
+    return result;
+}
+
+bool Analysis::RecipeLoader::RecipeLoader::parse_per_eye_textures(const Analysis::APIDumpAnalysis::JsonValue& in_value,
+                                                                  const std::string&                          in_path,
+                                                                  std::vector<PerEyeTexture>*                 out_texture_vec_ptr,
+                                                                  std::string*                                out_error_ptr)
+{
+    bool result = false;
+
+    if (in_value.type != Analysis::APIDumpAnalysis::JsonValue::Type::ARRAY)
+    {
+        *out_error_ptr = in_path + ": expected an array";
+
+        goto end;
+    }
+
+    for (size_t n_entry = 0;
+                n_entry < in_value.item_vec.size();
+              ++n_entry)
+    {
+        const auto&       entry            = in_value.item_vec.at(n_entry);
+        const std::string entry_path       = in_path + "[" + std::to_string(n_entry) + "]";
+        const auto*       key_ptr          = entry.find_ptr("description_key");
+        const auto*       ordinal_ptr      = entry.find_ptr("ordinal");
+        PerEyeTexture     texture;
+
+        if (entry.type != Analysis::APIDumpAnalysis::JsonValue::Type::OBJECT)
+        {
+            *out_error_ptr = entry_path + ": expected an object";
+
+            goto end;
+        }
+
+        if (check_keys(entry,
+                       {"description_key", "ordinal"},
+                       entry_path,
+                       out_error_ptr) == false)
+        {
+            goto end;
+        }
+
+        if (key_ptr     == nullptr ||
+            ordinal_ptr == nullptr)
+        {
+            *out_error_ptr = entry_path + ": both the description_key and the ordinal are needed";
+
+            goto end;
+        }
+
+        if (parse_hex_key(*key_ptr,
+                          entry_path + ".description_key",
+                         &texture.description_key,
+                          out_error_ptr) == false)
+        {
+            goto end;
+        }
+
+        if (parse_unsigned(*ordinal_ptr,
+                           entry_path + ".ordinal",
+                          &texture.ordinal,
+                           out_error_ptr) == false)
+        {
+            goto end;
+        }
+
+        for (const auto& other : *out_texture_vec_ptr)
+        {
+            if (other.description_key == texture.description_key &&
+                other.ordinal         == texture.ordinal)
+            {
+                *out_error_ptr = entry_path + ": the texture is in the list already";
+
+                goto end;
+            }
+        }
+
+        out_texture_vec_ptr->push_back(texture);
     }
 
     result = true;

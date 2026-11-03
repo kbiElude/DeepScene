@@ -8,6 +8,7 @@
 #ifndef RECIPEAPPLIER_RECIPE_APPLIER_H
 #define RECIPEAPPLIER_RECIPE_APPLIER_H
 
+#include "Analysis/APIDumpAnalysis/resource_identity.h"
 #include "Capture/APIDumpLoader/APIDumpLoader.h"
 #include "Analysis/RecipeLoader/types.h"
 #include <array>
@@ -81,6 +82,9 @@ namespace Analysis
 
             /* True if the frame is one the recipe was made for: its shape is listed, or no shape is. */
             bool is_frame_known(const uint64_t& in_shape_key) const;
+
+            /* True if the recipe says that each eye has a copy of the texture (see PerEyeTexture). */
+            bool is_per_eye_texture(const Analysis::APIDumpAnalysis::ResourceIdentity& in_identity) const;
 
             /* True if the recipe knows the signature of a draw: the analysis it was baked from saw it, or the recipe lists none. A draw of
              * an unknown signature is affected, like any draw which no rule applies to, but the recipe was not made for it.

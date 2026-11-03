@@ -4,6 +4,8 @@
  */
 #include "Analysis/APIDumpAnalysis/model_builder.h"
 #include "Analysis/APIDumpAnalysis/passes_format.h"
+#include "Analysis/APIDumpAnalysis/resource_access_tracker.h"
+#include "Analysis/APIDumpAnalysis/resource_identity.h"
 #include "Analysis/RecipeApplier/recipe_applier.h"
 #include "Analysis/RecipeBake/recipe_baker.h"
 #include "Analysis/RecipeLoader/recipe_loader.h"
@@ -120,6 +122,7 @@ bool Analysis::RecipeBake::RecipeBaker::bake(const std::string&                 
                                               in_analysis),
                     convergence_vec,
                     known_signature_key_vec,
+                    get_per_eye_texture_vec(in_analysis),
                     rule_vec,
                     scene_convergence_vec,
                     scene_separation_vec,
@@ -552,6 +555,40 @@ end:
     return result;
 }
 
+Analysis::RecipeBake::RecipeBaker::PerEyeTextureVector Analysis::RecipeBake::RecipeBaker::get_per_eye_texture_vec(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
+{
+    PerEyeTextureVector result_vec;
+
+    for (size_t n_resource = 0;
+                n_resource < in_analysis.model.resource_vec.size();
+              ++n_resource)
+    {
+        const auto& resource = in_analysis.model.resource_vec.at(n_resource);
+        const auto  access   = Analysis::APIDumpAnalysis::ResourceAccessTracker::classify(in_analysis.model.resource_access_vec.at(n_resource) );
+
+        /* What a frame carries over in the back buffer is kept apart for the eyes by the player (it reads and writes the pixels). */
+        if (access                    == Analysis::APIDumpAnalysis::ResourceAccessClass::LOOP_CARRIED &&
+            resource.description.kind != Analysis::APIDumpAnalysis::ResourceKind::SWAP_CHAIN_IMAGE)
+        {
+            Analysis::APIDumpAnalysis::ResourceIdentity identity;
+
+            if (Analysis::APIDumpAnalysis::ResourceIdentities::find(in_analysis.model.resource_vec,
+                                                                    resource.id,
+                                                                   &identity) )
+            {
+                Analysis::RecipeLoader::PerEyeTexture texture;
+
+                texture.description_key = identity.description_key;
+                texture.ordinal         = identity.ordinal;
+
+                result_vec.push_back(texture);
+            }
+        }
+    }
+
+    return result_vec;
+}
+
 std::vector<uint64_t> Analysis::RecipeBake::RecipeBaker::get_covering_draw_key_vec(const Analysis::RecipeLoader::Recipe&         in_recipe,
                                                                                   const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
 {
@@ -752,6 +789,7 @@ end:
 void Analysis::RecipeBake::RecipeBaker::write_baked(const std::vector<uint64_t>&           in_covering_draw_key_vec,
                                                     const ConvergenceVector&               in_convergence_vec,
                                                     const std::vector<uint64_t>&           in_known_signature_key_vec,
+                                                    const PerEyeTextureVector&             in_per_eye_texture_vec,
                                                     const RuleVector&                      in_rule_vec,
                                                     const SceneConvergenceVector&          in_scene_convergence_vec,
                                                     const SceneSeparationVector&           in_scene_separation_vec,
@@ -766,6 +804,20 @@ void Analysis::RecipeBake::RecipeBaker::write_baked(const std::vector<uint64_t>&
     for (const auto& signature_key : in_known_signature_key_vec)
     {
         inout_writer_ptr->write_hex_u64(signature_key);
+    }
+
+    inout_writer_ptr->end_array();
+    inout_writer_ptr->write_key   ("per_eye_textures");
+    inout_writer_ptr->begin_array ();
+
+    for (const auto& texture : in_per_eye_texture_vec)
+    {
+        inout_writer_ptr->begin_object();
+        inout_writer_ptr->write_key    ("description_key");
+        inout_writer_ptr->write_hex_u64(texture.description_key);
+        inout_writer_ptr->write_key    ("ordinal");
+        inout_writer_ptr->write_u64    (texture.ordinal);
+        inout_writer_ptr->end_object();
     }
 
     inout_writer_ptr->end_array();

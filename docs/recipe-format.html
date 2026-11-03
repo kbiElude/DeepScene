@@ -50,6 +50,9 @@
       "covering_draws": [ "0x..." ],        the keys (signature and size) of the draws that cover the whole of the view (a flash, a
                                                    fade): found by the analysis, and not pushed toward the viewer, since moving them would
                                                    leave a strip bare
+      "per_eye_textures": [                        the textures that frames carry over (what a frame reads of them is what it rendered before), which
+        { "description_key": "0x...", "ordinal": 1 }   each eye has a copy of: told by the key of how the texture was made and by the number
+      ],                                           of the textures made like it before it, so that a replay knows when the application makes it
       "scene_convergence": [                       the distance at which the eyes converge in a kind of frame (a scene), by the shape
         { "shape": "0x...", "distance": 12.5 }     key of its frames; the converter follows the frame before, and uses the distance
       ],                                           of the draw (below) for a shape that is not listed

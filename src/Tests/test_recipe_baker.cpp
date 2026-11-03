@@ -734,3 +734,46 @@ TEST_F(RecipeBakerTest, TheKeysOfTheDrawsThatCoverTheViewAreBakedOnlyForThePasse
                                        : 0u);
     }
 }
+
+TEST_F(RecipeBakerTest, ATextureThatFramesCarryOverIsBakedAsOneThatEachEyeHasACopyOf)
+{
+    Analysis::RecipeBake::BakeReport report;
+    std::string                      error;
+    Tests::ModelTestHelper           helper;
+    const auto                       swapchain_image = helper.create_swapchain_image();
+
+    /* Two textures are made in the same way; the second is read before it is written to, in a frame which writes to it. */
+    const auto first_texture  = helper.create_color_texture();
+    const auto second_texture = helper.create_color_texture();
+
+    helper.bind        (swapchain_image);
+    helper.draw_textured(second_texture);
+    helper.bind        (second_texture);
+    helper.draw        ();
+    helper.bind        (swapchain_image);
+    helper.draw_textured(first_texture);
+    helper.end_frame   ();
+
+    Analysis::APIDumpAnalysis::AnalysisResult analysis;
+    std::string                               text;
+    Analysis::RecipeLoader::Recipe            recipe;
+
+    analysis.model = helper.get_model();
+
+    ASSERT_TRUE(Analysis::RecipeBake::RecipeBaker::bake("{\"recipe_version\": 0, \"key_scheme_version\": 1, \"target\": {\"name\": \"test\", \"description\": \"a test\"}, \"rules\": []}",
+                                                        analysis,
+                                                       &text,
+                                                       &report,
+                                                       &error) ) << error;
+    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(text,
+                                                           &recipe,
+                                                           &error) ) << error;
+
+    /* Only the texture that is carried over, and it is told from the one made like it by the order. */
+    ASSERT_EQ(recipe.per_eye_texture_vec.size(),
+              1u);
+    EXPECT_EQ(recipe.per_eye_texture_vec.at(0).ordinal,
+              1u);
+    EXPECT_EQ(recipe.per_eye_texture_vec.at(0).description_key,
+              analysis.model.resource_vec.at(1).match_key);
+}

@@ -314,6 +314,24 @@ bool Analysis::RecipeApplier::RecipeApplier::is_frame_known(const uint64_t& in_s
                       in_shape_key)                        != m_recipe.known_shape_key_vec.end() );
 }
 
+bool Analysis::RecipeApplier::RecipeApplier::is_per_eye_texture(const Analysis::APIDumpAnalysis::ResourceIdentity& in_identity) const
+{
+    bool result = false;
+
+    for (const auto& texture : m_recipe.per_eye_texture_vec)
+    {
+        if (texture.description_key == in_identity.description_key &&
+            texture.ordinal         == in_identity.ordinal)
+        {
+            result = true;
+
+            break;
+        }
+    }
+
+    return result;
+}
+
 bool Analysis::RecipeApplier::RecipeApplier::is_matrix_of_kind(const std::array<float, 16>&              in_matrix,
                                                                const Analysis::RecipeLoader::MatrixKind& in_kind)
 {

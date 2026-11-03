@@ -63,6 +63,10 @@ namespace Analysis
                                      const std::string&                          in_path,
                                      Rule*                                       inout_rule_ptr,
                                      std::string*                                out_error_ptr);
+            static bool parse_per_eye_textures(const Analysis::APIDumpAnalysis::JsonValue& in_value,
+                                               const std::string&                          in_path,
+                                               std::vector<PerEyeTexture>*                 out_texture_vec_ptr,
+                                               std::string*                                out_error_ptr);
             static bool parse_baked (const Analysis::APIDumpAnalysis::JsonValue& in_baked,
                                      const std::string&                          in_path,
                                      Recipe*                                     inout_recipe_ptr,

@@ -842,3 +842,33 @@ TEST_F(RecipeApplierTest, TheParallaxOfTheOverlayIsTheRecipesAndZeroWithoutOne)
     EXPECT_FLOAT_EQ(Analysis::RecipeApplier::RecipeApplier(recipe).get_overlay_parallax(),
                     0.04f);
 }
+
+TEST(RecipeApplierPerEyeTextures, ATextureIsOneThatEachEyeHasACopyOfWhenTheRecipeNamesItsKeyAndItsOrdinal)
+{
+    Analysis::RecipeLoader::Recipe recipe;
+    Analysis::RecipeLoader::PerEyeTexture texture;
+
+    texture.description_key = 0x1234;
+    texture.ordinal         = 1;
+
+    recipe.per_eye_texture_vec.push_back(texture);
+
+    const Analysis::RecipeApplier::RecipeApplier applier(recipe);
+
+    Analysis::APIDumpAnalysis::ResourceIdentity identity;
+
+    identity.description_key = 0x1234;
+    identity.ordinal         = 1;
+
+    EXPECT_TRUE(applier.is_per_eye_texture(identity) );
+
+    /* Made like it, but not the one the recipe names. */
+    identity.ordinal = 0;
+
+    EXPECT_FALSE(applier.is_per_eye_texture(identity) );
+
+    identity.description_key = 0x9999;
+    identity.ordinal         = 1;
+
+    EXPECT_FALSE(applier.is_per_eye_texture(identity) );
+}

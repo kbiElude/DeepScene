@@ -59,6 +59,7 @@ namespace Analysis
             typedef std::vector<Analysis::RecipeLoader::SceneConvergence>            SceneConvergenceVector;
             typedef std::vector<Analysis::RecipeLoader::SceneSeparation>             SceneSeparationVector;
             typedef std::vector<std::array<float, 16> >                              MatrixVector;
+            typedef std::vector<Analysis::RecipeLoader::PerEyeTexture>               PerEyeTextureVector;
             typedef std::vector<Analysis::RecipeLoader::DrawRule>                    RuleVector;
 
             /* The rules of a signature which passes of different classes draw: each class that is not affected is told by the view
@@ -92,6 +93,10 @@ namespace Analysis
             static std::vector<uint64_t> get_covering_draw_key_vec(const Analysis::RecipeLoader::Recipe&         in_recipe,
                                                                    const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis);
 
+            /* The textures which frames carry over from the frame before, which each eye has a copy of (the back buffer is not one: the player keeps
+             * its pictures apart for the eyes). */
+            static PerEyeTextureVector get_per_eye_texture_vec(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis);
+
             static const char* get_class_name(const Analysis::RecipeLoader::DrawClass& in_class);
 
             static Analysis::RecipeLoader::DrawClass get_draw_class(const Analysis::RecipeApplier::RecipeApplier& in_applier,
@@ -116,6 +121,7 @@ namespace Analysis
             static void write_baked(const std::vector<uint64_t>&                in_covering_draw_key_vec,
                                     const ConvergenceVector&                    in_convergence_vec,
                                     const std::vector<uint64_t>&                in_known_signature_key_vec,
+                                    const PerEyeTextureVector&                  in_per_eye_texture_vec,
                                     const RuleVector&                           in_rule_vec,
                                     const SceneConvergenceVector&               in_scene_convergence_vec,
                                     const SceneSeparationVector&                in_scene_separation_vec,

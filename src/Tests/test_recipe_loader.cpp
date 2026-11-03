@@ -1120,3 +1120,33 @@ TEST_F(RecipeLoaderTest, BakedCoveringSignaturesAreRead)
     EXPECT_EQ(recipe.covering_draw_key_vec.at(1),
               0xcdu);
 }
+
+TEST_F(RecipeLoaderTest, PerEyeTexturesAreReadAndWhatIsWrongInThemIsRefused)
+{
+    std::string                    error;
+    Analysis::RecipeLoader::Recipe recipe;
+
+    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": [],"
+                                                                            " \"per_eye_textures\": [{\"description_key\": \"0x14779f78666e20cb\", \"ordinal\": 1}]},",
+                                                                            ""),
+                                                           &recipe,
+                                                           &error) ) << error;
+
+    ASSERT_EQ(recipe.per_eye_texture_vec.size(),
+              1u);
+    EXPECT_EQ(recipe.per_eye_texture_vec.at(0).description_key,
+              0x14779f78666e20cbull);
+    EXPECT_EQ(recipe.per_eye_texture_vec.at(0).ordinal,
+              1u);
+
+    expect_refused(get_recipe_text("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": [], \"per_eye_textures\": [{\"description_key\": \"0x1\"}]},",
+                                   ""),
+                   "baked.per_eye_textures[0]: both the description_key and the ordinal are needed");
+    expect_refused(get_recipe_text("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": [], \"per_eye_textures\": [{\"description_key\": \"0x0000000000000001\", \"ordinal\": 0, \"name\": \"x\"}]},",
+                                   ""),
+                   "baked.per_eye_textures[0]: unknown field \"name\"");
+    expect_refused(get_recipe_text("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": [], \"per_eye_textures\": [{\"description_key\": \"0x0000000000000001\", \"ordinal\": 0},"
+                                   " {\"description_key\": \"0x0000000000000001\", \"ordinal\": 0}]},",
+                                   ""),
+                   "the texture is in the list already");
+}
