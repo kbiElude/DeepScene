@@ -6,8 +6,8 @@
  * surface of a mip level of a texture). An address is forgotten when its object is released, so that an object created
  * at the same address later is not taken for the old one.
  */
-#ifndef APIDUMPANALYSIS_FRONTENDS_D3D8_OBJECT_TRACKER_H
-#define APIDUMPANALYSIS_FRONTENDS_D3D8_OBJECT_TRACKER_H
+#ifndef APIDUMPANALYSIS_FRONTENDS_OBJECT_TRACKER_H
+#define APIDUMPANALYSIS_FRONTENDS_OBJECT_TRACKER_H
 
 #include "Analysis/APIDumpAnalysis/types.h"
 #include <map>
@@ -20,7 +20,7 @@ namespace Analysis
     {
         namespace Frontends
         {
-            class D3D8ObjectTracker
+            class ObjectTracker
             {
             public:
                 struct TrackedObject
@@ -29,7 +29,7 @@ namespace Analysis
                     Analysis::APIDumpAnalysis::ResourceView view;                  /* the resource, or the part of it             */
                 };
 
-                D3D8ObjectTracker();
+                ObjectTracker();
 
                 void forget(const uint64_t& in_address);
 
@@ -48,4 +48,4 @@ namespace Analysis
     }
 }
 
-#endif /* APIDUMPANALYSIS_FRONTENDS_D3D8_OBJECT_TRACKER_H */
+#endif /* APIDUMPANALYSIS_FRONTENDS_OBJECT_TRACKER_H */

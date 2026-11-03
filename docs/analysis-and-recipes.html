@@ -163,11 +163,11 @@
 <p>The model builder never sees a D3D8 call, which is why it is API-neutral. The D3D8 front end has these parts:</p>
 <table>
 <tr><th>Part</th><th>Job</th></tr>
-<tr><td><code>D3D8CallView</code></td><td>Reads the typed arguments of a call and its data chunks; knows whether the call succeeded. A call that failed changes nothing.</td></tr>
-<tr><td><code>D3D8ObjectTracker</code></td><td>The objects that are alive, by address, and what each is in the model: a resource, or a part of one (the surface of a mip level of a texture). An address is forgotten when its object is released, so an object made at the same address later is not taken for the old one.</td></tr>
+<tr><td><code>CallView</code></td><td>Reads the typed arguments of a call and its data chunks; knows whether the call succeeded. A call that failed changes nothing.</td></tr>
+<tr><td><code>ObjectTracker</code></td><td>The objects that are alive, by address, and what each is in the model: a resource, or a part of one (the surface of a mip level of a texture). An address is forgotten when its object is released, so an object made at the same address later is not taken for the old one.</td></tr>
 <tr><td><code>D3D8PipelineState</code></td><td>What the device has bound and set that a draw depends on: buffers, textures, shaders or the vertex format, render states, texture stage states and lights. It produces the state key and the vertex layout key of each draw.</td></tr>
 <tr><td><code>D3D8ResourceDescriber</code></td><td>Turns the arguments of a <code>Create*</code> call into a description of the resource: its kind, extents, format class (colour, compressed, depth, depth-stencil), and the flags worth telling resources apart by.</td></tr>
-<tr><td><code>D3D8ObjectNamer</code></td><td>Gives each resource a debug name, for the people who read the output.</td></tr>
+<tr><td><code>ObjectNamer</code></td><td>Gives each resource a debug name, for the people who read the output.</td></tr>
 </table>
 <p>What the calls come to:</p>
 <table>

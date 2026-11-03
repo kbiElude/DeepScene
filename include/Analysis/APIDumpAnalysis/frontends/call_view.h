@@ -6,8 +6,8 @@
  * added (what a pointer to a structure points to). A missing or wrongly typed argument reads as 0 or no data, so a damaged
  * call does not stop the analysis.
  */
-#ifndef APIDUMPANALYSIS_FRONTENDS_D3D8_CALL_VIEW_H
-#define APIDUMPANALYSIS_FRONTENDS_D3D8_CALL_VIEW_H
+#ifndef APIDUMPANALYSIS_FRONTENDS_CALL_VIEW_H
+#define APIDUMPANALYSIS_FRONTENDS_CALL_VIEW_H
 
 #include "Analysis/APIDumpAnalysis/types.h"
 #include "Capture/APIDumpLoader/APIDumpLoader.h"
@@ -21,13 +21,14 @@ namespace Analysis
     {
         namespace Frontends
         {
-            class D3D8CallView
+            class CallView
             {
             public:
                 typedef std::vector<APIInterceptor::APIFunctionArgument> ArgumentVector;
 
-                D3D8CallView(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                             const Capture::APIDumpLoader::Workload&      in_workload);
+                CallView(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                         const Capture::APIDumpLoader::Workload&      in_workload,
+                         const size_t&                                in_n_head_arguments);
 
                 const Capture::APIDumpLoader::DumpedAPICall& get_call() const;
 
@@ -83,10 +84,11 @@ namespace Analysis
 
 
                 const Capture::APIDumpLoader::DumpedAPICall& m_call;
+                const size_t                                 m_n_head_arguments;
                 const Capture::APIDumpLoader::Workload&      m_workload;
             };
         }
     }
 }
 
-#endif /* APIDUMPANALYSIS_FRONTENDS_D3D8_CALL_VIEW_H */
+#endif /* APIDUMPANALYSIS_FRONTENDS_CALL_VIEW_H */

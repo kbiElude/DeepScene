@@ -226,7 +226,7 @@ Analysis::APIDumpAnalysis::PrimitiveTopology Analysis::APIDumpAnalysis::Frontend
     return result;
 }
 
-const Analysis::APIDumpAnalysis::Frontends::D3D8ObjectTracker& Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::get_tracker() const
+const Analysis::APIDumpAnalysis::Frontends::ObjectTracker& Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::get_tracker() const
 {
     return m_tracker;
 }
@@ -314,7 +314,7 @@ uint32_t Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::get_vertex_count(co
     return result;
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_clear(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_clear(const CallView& in_view)
 {
     constexpr size_t COLOR_ARGUMENT   = 4;
     constexpr size_t DEPTH_ARGUMENT   = 5;
@@ -352,13 +352,13 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_clear(const D3D8
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_copy_rects(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_copy_rects(const CallView& in_view)
 {
     constexpr size_t DESTINATION_ARGUMENT = 4;
     constexpr size_t SOURCE_ARGUMENT      = 1;
 
-    const D3D8ObjectTracker::TrackedObject* destination_ptr = m_tracker.get_object_ptr(in_view.get_pointer(DESTINATION_ARGUMENT) );
-    const D3D8ObjectTracker::TrackedObject* source_ptr      = m_tracker.get_object_ptr(in_view.get_pointer(SOURCE_ARGUMENT) );
+    const ObjectTracker::TrackedObject* destination_ptr = m_tracker.get_object_ptr(in_view.get_pointer(DESTINATION_ARGUMENT) );
+    const ObjectTracker::TrackedObject* source_ptr      = m_tracker.get_object_ptr(in_view.get_pointer(SOURCE_ARGUMENT) );
 
     if (in_view.succeeded() == false)
     {
@@ -377,7 +377,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_copy_rects(const
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_device(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_device(const CallView& in_view)
 {
     constexpr size_t DEVICE_ARGUMENT                  = 6;
     constexpr size_t PRESENTATION_PARAMETERS_ARGUMENT = 5;
@@ -421,7 +421,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_device(co
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_pixel_shader(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_pixel_shader(const CallView& in_view)
 {
     constexpr size_t FUNCTION_EXTRA  = 0;
     constexpr size_t HANDLE_ARGUMENT = 2;
@@ -455,7 +455,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_pixel_sha
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_resource(const D3D8CallView&    in_view,
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_resource(const CallView&        in_view,
                                                                                 const DescribeFuncPtr& in_describe_func_ptr)
 {
     /* The object is the last argument of the method. */
@@ -483,7 +483,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_resource(
     }
     else
     {
-        D3D8ObjectTracker::TrackedObject tracked_object;
+        ObjectTracker::TrackedObject tracked_object;
 
         tracked_object.owns_resource    = true;
         tracked_object.view.resource_id = m_builder_ptr->on_create_resource(in_describe_func_ptr(in_view),
@@ -498,7 +498,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_resource(
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_vertex_shader(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_vertex_shader(const CallView& in_view)
 {
     constexpr size_t DECLARATION_EXTRA = 0;
     constexpr size_t FUNCTION_EXTRA    = 1;
@@ -551,7 +551,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_vertex_sh
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_delete_pixel_shader(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_delete_pixel_shader(const CallView& in_view)
 {
     constexpr size_t HANDLE_ARGUMENT = 1;
 
@@ -565,7 +565,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_delete_pixel_sha
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_delete_vertex_shader(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_delete_vertex_shader(const CallView& in_view)
 {
     constexpr size_t HANDLE_ARGUMENT = 1;
 
@@ -579,8 +579,8 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_delete_vertex_sh
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_draw(const D3D8CallView& in_view,
-                                                                     const bool&         in_is_indexed)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_draw(const CallView& in_view,
+                                                                     const bool&     in_is_indexed)
 {
     /* DrawIndexedPrimitive has the type, the first index, the number of vertices, the start index and the number of
      * primitives; DrawPrimitive has the type, the first vertex and the number of primitives.
@@ -611,8 +611,8 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_draw(const D3D8C
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_draw_user_pointer(const D3D8CallView& in_view,
-                                                                                  const bool&         in_is_indexed)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_draw_user_pointer(const CallView& in_view,
+                                                                                  const bool&     in_is_indexed)
 {
     /* DrawPrimitiveUP has the type, the number of primitives, the vertices and their stride; DrawIndexedPrimitiveUP has
      * the type, the first index, the number of vertices, the number of primitives, the indices, their format, the
@@ -640,7 +640,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_draw_user_pointe
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_get_back_buffer(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_get_back_buffer(const CallView& in_view)
 {
     constexpr size_t BACK_BUFFER_ARGUMENT = 3;
 
@@ -657,7 +657,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_get_back_buffer(
     }
     else
     {
-        D3D8ObjectTracker::TrackedObject tracked_object;
+        ObjectTracker::TrackedObject tracked_object;
 
         /* The back buffers that a swap chain flips between are one image, as far as the analysis is concerned. */
         tracked_object.view = m_back_buffer_view;
@@ -667,7 +667,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_get_back_buffer(
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_get_cube_map_surface(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_get_cube_map_surface(const CallView& in_view)
 {
     constexpr size_t FACE_ARGUMENT    = 1;
     constexpr size_t LEVEL_ARGUMENT   = 2;
@@ -675,7 +675,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_get_cube_map_sur
     constexpr size_t TEXTURE_ARGUMENT = 0;
 
     const uint64_t                          surface_address = in_view.get_out_pointer (SURFACE_ARGUMENT);
-    const D3D8ObjectTracker::TrackedObject* texture_ptr     = m_tracker.get_object_ptr(in_view.get_pointer(TEXTURE_ARGUMENT) );
+    const ObjectTracker::TrackedObject* texture_ptr     = m_tracker.get_object_ptr(in_view.get_pointer(TEXTURE_ARGUMENT) );
 
     if (in_view.succeeded() == false)
     {
@@ -689,7 +689,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_get_cube_map_sur
     }
     else
     {
-        D3D8ObjectTracker::TrackedObject tracked_object;
+        ObjectTracker::TrackedObject tracked_object;
 
         tracked_object.view.layer       = in_view.get_u32(FACE_ARGUMENT);
         tracked_object.view.mip_level   = in_view.get_u32(LEVEL_ARGUMENT);
@@ -700,7 +700,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_get_cube_map_sur
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_get_depth_stencil_surface(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_get_depth_stencil_surface(const CallView& in_view)
 {
     constexpr size_t SURFACE_ARGUMENT = 1;
 
@@ -718,7 +718,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_get_depth_stenci
     }
     else
     {
-        D3D8ObjectTracker::TrackedObject tracked_object;
+        ObjectTracker::TrackedObject tracked_object;
 
         tracked_object.view = m_depth_stencil_view;
 
@@ -727,7 +727,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_get_depth_stenci
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_get_render_target(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_get_render_target(const CallView& in_view)
 {
     constexpr size_t SURFACE_ARGUMENT = 1;
 
@@ -744,7 +744,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_get_render_targe
     }
     else
     {
-        D3D8ObjectTracker::TrackedObject tracked_object;
+        ObjectTracker::TrackedObject tracked_object;
 
         tracked_object.view = m_color_view;
 
@@ -753,14 +753,14 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_get_render_targe
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_get_surface_level(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_get_surface_level(const CallView& in_view)
 {
     constexpr size_t LEVEL_ARGUMENT   = 1;
     constexpr size_t SURFACE_ARGUMENT = 2;
     constexpr size_t TEXTURE_ARGUMENT = 0;
 
     const uint64_t                          surface_address = in_view.get_out_pointer (SURFACE_ARGUMENT);
-    const D3D8ObjectTracker::TrackedObject* texture_ptr     = m_tracker.get_object_ptr(in_view.get_pointer(TEXTURE_ARGUMENT) );
+    const ObjectTracker::TrackedObject* texture_ptr     = m_tracker.get_object_ptr(in_view.get_pointer(TEXTURE_ARGUMENT) );
 
     if (in_view.succeeded() == false)
     {
@@ -774,7 +774,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_get_surface_leve
     }
     else
     {
-        D3D8ObjectTracker::TrackedObject tracked_object;
+        ObjectTracker::TrackedObject tracked_object;
 
         tracked_object.view.mip_level   = in_view.get_u32(LEVEL_ARGUMENT);
         tracked_object.view.resource_id = texture_ptr->view.resource_id;
@@ -784,7 +784,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_get_surface_leve
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_light_enable(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_light_enable(const CallView& in_view)
 {
     constexpr size_t ENABLE_ARGUMENT = 2;
     constexpr size_t INDEX_ARGUMENT  = 1;
@@ -796,13 +796,13 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_light_enable(con
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_lock(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_lock(const CallView& in_view)
 {
     constexpr size_t BUFFER_N_BYTES_ARGUMENT = 2;
     constexpr size_t BUFFER_OFFSET_ARGUMENT  = 1;
     constexpr size_t OBJECT_ARGUMENT         = 0;
 
-    const D3D8ObjectTracker::TrackedObject* object_ptr = m_tracker.get_object_ptr(in_view.get_pointer(OBJECT_ARGUMENT) );
+    const ObjectTracker::TrackedObject* object_ptr = m_tracker.get_object_ptr(in_view.get_pointer(OBJECT_ARGUMENT) );
 
     if (object_ptr != nullptr)
     {
@@ -812,12 +812,12 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_lock(const D3D8C
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_release(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_release(const CallView& in_view)
 {
     constexpr size_t OBJECT_ARGUMENT = 0;
 
     const uint64_t                          address    = in_view.get_pointer     (OBJECT_ARGUMENT);
-    const D3D8ObjectTracker::TrackedObject* object_ptr = m_tracker.get_object_ptr(address);
+    const ObjectTracker::TrackedObject* object_ptr = m_tracker.get_object_ptr(address);
 
     /* The last reference is gone. */
     if (object_ptr                 != nullptr &&
@@ -834,7 +834,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_release(const D3
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_reset(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_reset(const CallView& in_view)
 {
     constexpr size_t PRESENTATION_PARAMETERS_ARGUMENT = 1;
 
@@ -881,13 +881,13 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_reset(const D3D8
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_indices(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_indices(const CallView& in_view)
 {
     constexpr size_t BASE_VERTEX_INDEX_ARGUMENT = 2;
     constexpr size_t BUFFER_ARGUMENT            = 1;
 
     const uint64_t                          address    = in_view.get_pointer     (BUFFER_ARGUMENT);
-    const D3D8ObjectTracker::TrackedObject* object_ptr = m_tracker.get_object_ptr(address);
+    const ObjectTracker::TrackedObject* object_ptr = m_tracker.get_object_ptr(address);
 
     if (address == 0)
     {
@@ -906,7 +906,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_indices(cons
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_light(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_light(const CallView& in_view)
 {
     constexpr size_t INDEX_ARGUMENT = 1;
     constexpr size_t LIGHT_ARGUMENT = 2;
@@ -935,7 +935,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_light(const 
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_pixel_shader(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_pixel_shader(const CallView& in_view)
 {
     constexpr size_t HANDLE_ARGUMENT = 1;
 
@@ -957,7 +957,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_pixel_shader
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_render_state(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_render_state(const CallView& in_view)
 {
     constexpr size_t STATE_ARGUMENT = 1;
     constexpr size_t VALUE_ARGUMENT = 2;
@@ -969,15 +969,15 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_render_state
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_render_target(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_render_target(const CallView& in_view)
 {
     constexpr size_t DEPTH_STENCIL_ARGUMENT = 2;
     constexpr size_t RENDER_TARGET_ARGUMENT = 1;
 
     const uint64_t                          depth_stencil_address = in_view.get_pointer     (DEPTH_STENCIL_ARGUMENT);
-    const D3D8ObjectTracker::TrackedObject* depth_stencil_ptr     = m_tracker.get_object_ptr(depth_stencil_address);
+    const ObjectTracker::TrackedObject* depth_stencil_ptr     = m_tracker.get_object_ptr(depth_stencil_address);
     const uint64_t                          render_target_address = in_view.get_pointer     (RENDER_TARGET_ARGUMENT);
-    const D3D8ObjectTracker::TrackedObject* render_target_ptr     = m_tracker.get_object_ptr(render_target_address);
+    const ObjectTracker::TrackedObject* render_target_ptr     = m_tracker.get_object_ptr(render_target_address);
 
     if (in_view.succeeded() == false)
     {
@@ -1020,14 +1020,14 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_render_targe
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_stream_source(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_stream_source(const CallView& in_view)
 {
     constexpr size_t BUFFER_ARGUMENT = 2;
     constexpr size_t STREAM_ARGUMENT = 1;
     constexpr size_t STRIDE_ARGUMENT = 3;
 
     const uint64_t                          address    = in_view.get_pointer     (BUFFER_ARGUMENT);
-    const D3D8ObjectTracker::TrackedObject* object_ptr = m_tracker.get_object_ptr(address);
+    const ObjectTracker::TrackedObject* object_ptr = m_tracker.get_object_ptr(address);
 
     if (address == 0)
     {
@@ -1054,13 +1054,13 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_stream_sourc
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_texture(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_texture(const CallView& in_view)
 {
     constexpr size_t STAGE_ARGUMENT   = 1;
     constexpr size_t TEXTURE_ARGUMENT = 2;
 
     const uint64_t                          address    = in_view.get_pointer     (TEXTURE_ARGUMENT);
-    const D3D8ObjectTracker::TrackedObject* object_ptr = m_tracker.get_object_ptr(address);
+    const ObjectTracker::TrackedObject* object_ptr = m_tracker.get_object_ptr(address);
 
     if (address == 0)
     {
@@ -1085,7 +1085,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_texture(cons
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_texture_stage_state(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_texture_stage_state(const CallView& in_view)
 {
     constexpr size_t STAGE_ARGUMENT = 1;
     constexpr size_t STATE_ARGUMENT = 2;
@@ -1099,7 +1099,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_texture_stag
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_transform(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_transform(const CallView& in_view)
 {
     constexpr size_t MATRIX_ARGUMENT = 2;
     constexpr size_t STATE_ARGUMENT  = 1;
@@ -1132,7 +1132,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_transform(co
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_vertex_shader(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_vertex_shader(const CallView& in_view)
 {
     constexpr size_t HANDLE_ARGUMENT = 1;
 
@@ -1151,7 +1151,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_vertex_shade
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_viewport(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_viewport(const CallView& in_view)
 {
     constexpr size_t VIEWPORT_ARGUMENT = 1;
 
@@ -1185,16 +1185,16 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_viewport(con
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_unlock(const D3D8CallView& in_view,
-                                                                       const size_t&       in_n_data_argument,
-                                                                       const uint32_t&     in_layer,
-                                                                       const uint32_t&     in_mip_level)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_unlock(const CallView& in_view,
+                                                                       const size_t&   in_n_data_argument,
+                                                                       const uint32_t& in_layer,
+                                                                       const uint32_t& in_mip_level)
 {
     constexpr size_t OBJECT_ARGUMENT = 0;
 
     Analysis::APIDumpAnalysis::DataReference data;
     bool                                     is_data_found = false;
-    const D3D8ObjectTracker::TrackedObject*  object_ptr    = m_tracker.get_object_ptr(in_view.get_pointer(OBJECT_ARGUMENT) );
+    const ObjectTracker::TrackedObject*  object_ptr    = m_tracker.get_object_ptr(in_view.get_pointer(OBJECT_ARGUMENT) );
 
     if (object_ptr != nullptr)
     {
@@ -1231,13 +1231,13 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_unlock(const D3D
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_update_texture(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_update_texture(const CallView& in_view)
 {
     constexpr size_t DESTINATION_ARGUMENT = 2;
     constexpr size_t SOURCE_ARGUMENT      = 1;
 
-    const D3D8ObjectTracker::TrackedObject* destination_ptr = m_tracker.get_object_ptr(in_view.get_pointer(DESTINATION_ARGUMENT) );
-    const D3D8ObjectTracker::TrackedObject* source_ptr      = m_tracker.get_object_ptr(in_view.get_pointer(SOURCE_ARGUMENT) );
+    const ObjectTracker::TrackedObject* destination_ptr = m_tracker.get_object_ptr(in_view.get_pointer(DESTINATION_ARGUMENT) );
+    const ObjectTracker::TrackedObject* source_ptr      = m_tracker.get_object_ptr(in_view.get_pointer(SOURCE_ARGUMENT) );
 
     if (in_view.succeeded() == false)
     {
@@ -1328,8 +1328,9 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::on_call(const Capture::
                                                                  const Capture::APIDumpLoader::Workload&      in_workload)
 {
     const DescribeFuncPtr describe_func_ptr = get_describe_func_ptr(in_call.func);
-    const D3D8CallView    view(in_call,
-                               in_workload);
+    const CallView        view(in_call,
+                              in_workload,
+                              Interception::Core::D3D8Utils::get_n_arguments(in_call.func) );
 
     register_names(view);
 
@@ -1667,9 +1668,9 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::on_call(const Capture::
     }
 }
 
-std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::sample_geometry(const D3D8CallView& in_view,
-                                                                                                                                      const bool&         in_is_indexed,
-                                                                                                                                      const uint32_t&     in_vertex_count)
+std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::sample_geometry(const CallView& in_view,
+                                                                                                                                     const bool&     in_is_indexed,
+                                                                                                                                     const uint32_t& in_vertex_count)
 {
     /* DrawIndexedPrimitive has the start index as its fifth argument, DrawPrimitive the first vertex as its third; the vertices are those of the
      * first stream.
@@ -1703,7 +1704,7 @@ std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDu
     return result_ptr;
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::register_buffer(const D3D8CallView&                         in_view,
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::register_buffer(const CallView&                              in_view,
                                                                          const Analysis::APIDumpAnalysis::ResourceId& in_id)
 {
     constexpr size_t FORMAT_ARGUMENT = 3;
@@ -1735,7 +1736,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::register_buffer(const D
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::register_names(const D3D8CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::register_names(const CallView& in_view)
 {
     const auto& call = in_view.get_call();
 

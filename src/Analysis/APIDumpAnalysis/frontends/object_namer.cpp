@@ -2,16 +2,16 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "Analysis/APIDumpAnalysis/frontends/d3d8_object_namer.h"
+#include "Analysis/APIDumpAnalysis/frontends/object_namer.h"
 #include <stdio.h>
 
-Analysis::APIDumpAnalysis::Frontends::D3D8ObjectNamer::D3D8ObjectNamer()
+Analysis::APIDumpAnalysis::Frontends::ObjectNamer::ObjectNamer()
 {
     /* Stub */
 }
 
-std::string Analysis::APIDumpAnalysis::Frontends::D3D8ObjectNamer::get_name(const uint64_t& in_address,
-                                                                            const char*     in_type_name_ptr) const
+std::string Analysis::APIDumpAnalysis::Frontends::ObjectNamer::get_name(const uint64_t& in_address,
+                                                                        const char*     in_type_name_ptr) const
 {
     constexpr size_t ADDRESS_TEXT_N_BYTES = 3 + 16 + 1; /* "@0x", 16 hex digits and NUL */
 
@@ -43,9 +43,9 @@ std::string Analysis::APIDumpAnalysis::Frontends::D3D8ObjectNamer::get_name(cons
     return result;
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D8ObjectNamer::register_object(const uint64_t& in_address,
-                                                                            const char*     in_type_name_ptr,
-                                                                            const bool&     in_is_new)
+void Analysis::APIDumpAnalysis::Frontends::ObjectNamer::register_object(const uint64_t& in_address,
+                                                                        const char*     in_type_name_ptr,
+                                                                        const bool&     in_is_new)
 {
     if (in_address                   != 0                &&
         (in_is_new                                       ||

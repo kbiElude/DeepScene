@@ -6,6 +6,7 @@
  */
 #include <gtest/gtest.h>
 #include "Analysis/APIDumpAnalysis/frontends/d3d8_pipeline_state.h"
+#include "Interception/Hooks/D3D8/types.h"
 
 TEST(D3D8PipelineState, StateKeyOfNothingSetIsStable)
 {

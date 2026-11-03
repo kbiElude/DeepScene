@@ -6,8 +6,8 @@
  * object can be looked up in the printed calls. Like the printer, it names an address once, and does not forget it when
  * the object is released.
  */
-#ifndef APIDUMPANALYSIS_FRONTENDS_D3D8_OBJECT_NAMER_H
-#define APIDUMPANALYSIS_FRONTENDS_D3D8_OBJECT_NAMER_H
+#ifndef APIDUMPANALYSIS_FRONTENDS_OBJECT_NAMER_H
+#define APIDUMPANALYSIS_FRONTENDS_OBJECT_NAMER_H
 
 #include <map>
 #include <stdint.h>
@@ -19,10 +19,10 @@ namespace Analysis
     {
         namespace Frontends
         {
-            class D3D8ObjectNamer
+            class ObjectNamer
             {
             public:
-                D3D8ObjectNamer();
+                ObjectNamer();
 
                 /* "NULL" for no object, the name the object was given, or "<type>@0x<address>" for an object that was never named. */
                 std::string get_name(const uint64_t& in_address,
@@ -41,4 +41,4 @@ namespace Analysis
     }
 }
 
-#endif /* APIDUMPANALYSIS_FRONTENDS_D3D8_OBJECT_NAMER_H */
+#endif /* APIDUMPANALYSIS_FRONTENDS_OBJECT_NAMER_H */

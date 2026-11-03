@@ -3,21 +3,16 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
  * What the D3D8 device has bound and set that a draw depends on: buffers, textures, shaders (or the vertex format), render
- * states, texture stage states and lights.
- *
- * The state key tells the state a draw is made with. States which choose a mode (a blend mode, depth writes) count with
- * their values; states which are free numbers (colors, fog distances, references) count only for being set, or draws would
- * be told apart by them without end. Lights count by index and type.
+ * states, texture stage states and lights. The state of the fixed-function pipeline is kept by FixedFunctionState, which tells
+ * how the state key is made.
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_D3D8_PIPELINE_STATE_H
 #define APIDUMPANALYSIS_FRONTENDS_D3D8_PIPELINE_STATE_H
 
+#include "Analysis/APIDumpAnalysis/frontends/fixed_function_state.h"
 #include "Analysis/APIDumpAnalysis/types.h"
-#include "Interception/Hooks/D3D8/types.h"
 #include <map>
-#include <set>
 #include <stdint.h>
-#include <utility>
 #include <vector>
 
 namespace Analysis
@@ -91,45 +86,28 @@ namespace Analysis
                                        const uint64_t&                              in_declaration_hash);
 
             private:
-                typedef std::pair<uint32_t, uint32_t> StageStateKey;
-
                 struct StreamBinding
                 {
                     Analysis::APIDumpAnalysis::ResourceId id     = Analysis::APIDumpAnalysis::ResourceId::NONE;
                     uint32_t                              stride = 0;
                 };
 
-                uint64_t compute_state_key() const;
-
-                /* The part of the description of a draw that does not depend on where the vertices come from. */
-                Analysis::APIDumpAnalysis::DrawDescription describe_common(const Analysis::APIDumpAnalysis::PrimitiveTopology& in_topology,
-                                                                           const uint32_t&                                     in_vertex_count,
-                                                                           const bool&                                         in_is_indexed);
-
-                /* The value of a render state, or the default if it was never set (what D3D8 starts with). */
-                uint32_t get_render_state_value(const uint32_t& in_state,
-                                                const uint32_t& in_default) const;
-
                 /* The shaders that are set, in the order of the stages of the pipeline. */
                 std::vector<Analysis::APIDumpAnalysis::ResourceId> get_shader_id_vec() const;
 
+
+                static FixedFunctionState::Rules get_rules();
 
                 static bool is_value_irrelevant_render_state       (const uint32_t& in_state);
                 static bool is_value_irrelevant_texture_stage_state(const uint32_t& in_state);
 
 
-                std::set<uint32_t>                                          m_enabled_light_set;
-                Analysis::APIDumpAnalysis::ResourceId                       m_index_buffer_id;
-                bool                                                        m_is_state_key_valid;
-                std::map<uint32_t, uint32_t>                                m_light_type_map;           /* by index */
-                Analysis::APIDumpAnalysis::ResourceId                       m_pixel_shader_id;
-                std::map<uint32_t, uint32_t>                                m_render_state_map;
-                uint64_t                                                    m_state_key;
-                std::map<uint32_t, StreamBinding>                           m_stream_binding_map;       /* by stream */
-                std::map<StageStateKey, uint32_t>                           m_texture_stage_state_map;
-                std::map<uint32_t, Analysis::APIDumpAnalysis::ResourceView> m_texture_view_map;         /* by stage  */
-                uint64_t                                                    m_vertex_layout_value;      /* of the FVF code, or of the declaration of the vertex shader */
-                Analysis::APIDumpAnalysis::ResourceId                       m_vertex_shader_id;
+                FixedFunctionState                    m_fixed_function_state;
+                Analysis::APIDumpAnalysis::ResourceId m_index_buffer_id;
+                Analysis::APIDumpAnalysis::ResourceId m_pixel_shader_id;
+                std::map<uint32_t, StreamBinding>     m_stream_binding_map;       /* by stream */
+                uint64_t                              m_vertex_layout_value;      /* of the FVF code, or of the declaration of the vertex shader */
+                Analysis::APIDumpAnalysis::ResourceId m_vertex_shader_id;
             };
         }
     }

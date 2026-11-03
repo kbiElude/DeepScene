@@ -9,7 +9,7 @@
 #define APIDUMPANALYSIS_FRONTENDS_D3D8_RESOURCE_DESCRIBER_H
 
 #include "Analysis/APIDumpAnalysis/types.h"
-#include "Analysis/APIDumpAnalysis/frontends/d3d8_call_view.h"
+#include "Analysis/APIDumpAnalysis/frontends/call_view.h"
 #include "Interception/Core/D3D8Utils/types.h"
 
 namespace Analysis
@@ -34,14 +34,14 @@ namespace Analysis
                 static Analysis::APIDumpAnalysis::ResourceDescription describe_back_buffer(const Interception::Core::D3D8Utils::PresentParameters& in_parameters);
 
                 /* The describe_* functions below follow the arguments of the CreateXxx methods. */
-                static Analysis::APIDumpAnalysis::ResourceDescription describe_cube_texture         (const D3D8CallView& in_view);
-                static Analysis::APIDumpAnalysis::ResourceDescription describe_depth_stencil_surface(const D3D8CallView& in_view);
-                static Analysis::APIDumpAnalysis::ResourceDescription describe_image_surface        (const D3D8CallView& in_view);
-                static Analysis::APIDumpAnalysis::ResourceDescription describe_index_buffer         (const D3D8CallView& in_view);
-                static Analysis::APIDumpAnalysis::ResourceDescription describe_render_target        (const D3D8CallView& in_view);
-                static Analysis::APIDumpAnalysis::ResourceDescription describe_texture              (const D3D8CallView& in_view);
-                static Analysis::APIDumpAnalysis::ResourceDescription describe_vertex_buffer        (const D3D8CallView& in_view);
-                static Analysis::APIDumpAnalysis::ResourceDescription describe_volume_texture       (const D3D8CallView& in_view);
+                static Analysis::APIDumpAnalysis::ResourceDescription describe_cube_texture         (const CallView& in_view);
+                static Analysis::APIDumpAnalysis::ResourceDescription describe_depth_stencil_surface(const CallView& in_view);
+                static Analysis::APIDumpAnalysis::ResourceDescription describe_image_surface        (const CallView& in_view);
+                static Analysis::APIDumpAnalysis::ResourceDescription describe_index_buffer         (const CallView& in_view);
+                static Analysis::APIDumpAnalysis::ResourceDescription describe_render_target        (const CallView& in_view);
+                static Analysis::APIDumpAnalysis::ResourceDescription describe_texture              (const CallView& in_view);
+                static Analysis::APIDumpAnalysis::ResourceDescription describe_vertex_buffer        (const CallView& in_view);
+                static Analysis::APIDumpAnalysis::ResourceDescription describe_volume_texture       (const CallView& in_view);
 
             private:
                 /* The pool and the usage flags, in the one number that the description keeps them in. */

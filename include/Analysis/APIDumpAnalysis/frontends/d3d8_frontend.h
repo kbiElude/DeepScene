@@ -8,10 +8,10 @@
 #ifndef APIDUMPANALYSIS_FRONTENDS_D3D8_FRONTEND_H
 #define APIDUMPANALYSIS_FRONTENDS_D3D8_FRONTEND_H
 
-#include "Analysis/APIDumpAnalysis/frontends/d3d8_call_view.h"
+#include "Analysis/APIDumpAnalysis/frontends/call_view.h"
 #include "Analysis/APIDumpAnalysis/frontends/d3d8_geometry_tracker.h"
-#include "Analysis/APIDumpAnalysis/frontends/d3d8_object_namer.h"
-#include "Analysis/APIDumpAnalysis/frontends/d3d8_object_tracker.h"
+#include "Analysis/APIDumpAnalysis/frontends/object_namer.h"
+#include "Analysis/APIDumpAnalysis/frontends/object_tracker.h"
 #include "Analysis/APIDumpAnalysis/frontends/d3d8_pipeline_state.h"
 #include "Analysis/APIDumpAnalysis/frontends/i_api_frontend.h"
 #include "Analysis/APIDumpAnalysis/model_builder.h"
@@ -44,14 +44,14 @@ namespace Analysis
                 uint64_t get_n_unsupported_calls() const;
 
                 /* What the front end knows about the objects (for the checks of the tests). */
-                const D3D8ObjectTracker& get_tracker() const;
+                const ObjectTracker& get_tracker() const;
 
                 void on_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                              const Capture::APIDumpLoader::Workload&      in_workload) override;
 
             private:
                 /* Tells what a Create* method makes. */
-                typedef Analysis::APIDumpAnalysis::ResourceDescription (*DescribeFuncPtr)(const D3D8CallView& in_view);
+                typedef Analysis::APIDumpAnalysis::ResourceDescription (*DescribeFuncPtr)(const CallView& in_view);
 
                 /* A vertex shader that was made: the resource, and what its declaration says the vertices are like. */
                 struct VertexShader
@@ -67,57 +67,57 @@ namespace Analysis
                 /* The whole of a surface, as a viewport. */
                 Analysis::APIDumpAnalysis::Viewport get_full_viewport(const Analysis::APIDumpAnalysis::ResourceView& in_view) const;
 
-                void handle_clear                    (const D3D8CallView&    in_view);
-                void handle_copy_rects               (const D3D8CallView&    in_view);
-                void handle_create_device            (const D3D8CallView&    in_view);
-                void handle_create_pixel_shader      (const D3D8CallView&    in_view);
-                void handle_create_resource          (const D3D8CallView&    in_view,
+                void handle_clear                    (const CallView&        in_view);
+                void handle_copy_rects               (const CallView&        in_view);
+                void handle_create_device            (const CallView&        in_view);
+                void handle_create_pixel_shader      (const CallView&        in_view);
+                void handle_create_resource          (const CallView&        in_view,
                                                       const DescribeFuncPtr& in_describe_func_ptr);
-                void handle_create_vertex_shader     (const D3D8CallView&    in_view);
-                void handle_delete_pixel_shader      (const D3D8CallView&    in_view);
-                void handle_delete_vertex_shader     (const D3D8CallView&    in_view);
-                void handle_draw                     (const D3D8CallView&    in_view,
+                void handle_create_vertex_shader     (const CallView&        in_view);
+                void handle_delete_pixel_shader      (const CallView&        in_view);
+                void handle_delete_vertex_shader     (const CallView&        in_view);
+                void handle_draw                     (const CallView&        in_view,
                                                       const bool&            in_is_indexed);
-                void handle_draw_user_pointer        (const D3D8CallView&    in_view,
+                void handle_draw_user_pointer        (const CallView&        in_view,
                                                       const bool&            in_is_indexed);
-                void handle_get_back_buffer          (const D3D8CallView&    in_view);
-                void handle_get_cube_map_surface     (const D3D8CallView&    in_view);
-                void handle_get_depth_stencil_surface(const D3D8CallView&    in_view);
-                void handle_get_render_target        (const D3D8CallView&    in_view);
-                void handle_get_surface_level        (const D3D8CallView&    in_view);
-                void handle_light_enable             (const D3D8CallView&    in_view);
-                void handle_lock                     (const D3D8CallView&    in_view);
-                void handle_release                  (const D3D8CallView&    in_view);
-                void handle_reset                    (const D3D8CallView&    in_view);
-                void handle_set_indices              (const D3D8CallView&    in_view);
-                void handle_set_light                (const D3D8CallView&    in_view);
-                void handle_set_pixel_shader         (const D3D8CallView&    in_view);
-                void handle_set_render_state         (const D3D8CallView&    in_view);
-                void handle_set_render_target        (const D3D8CallView&    in_view);
-                void handle_set_stream_source        (const D3D8CallView&    in_view);
-                void handle_set_texture              (const D3D8CallView&    in_view);
-                void handle_set_texture_stage_state  (const D3D8CallView&    in_view);
-                void handle_set_transform            (const D3D8CallView&    in_view);
-                void handle_set_vertex_shader        (const D3D8CallView&    in_view);
-                void handle_set_viewport             (const D3D8CallView&    in_view);
-                void handle_unlock                   (const D3D8CallView&    in_view,
+                void handle_get_back_buffer          (const CallView&        in_view);
+                void handle_get_cube_map_surface     (const CallView&        in_view);
+                void handle_get_depth_stencil_surface(const CallView&        in_view);
+                void handle_get_render_target        (const CallView&        in_view);
+                void handle_get_surface_level        (const CallView&        in_view);
+                void handle_light_enable             (const CallView&        in_view);
+                void handle_lock                     (const CallView&        in_view);
+                void handle_release                  (const CallView&        in_view);
+                void handle_reset                    (const CallView&        in_view);
+                void handle_set_indices              (const CallView&        in_view);
+                void handle_set_light                (const CallView&        in_view);
+                void handle_set_pixel_shader         (const CallView&        in_view);
+                void handle_set_render_state         (const CallView&        in_view);
+                void handle_set_render_target        (const CallView&        in_view);
+                void handle_set_stream_source        (const CallView&        in_view);
+                void handle_set_texture              (const CallView&        in_view);
+                void handle_set_texture_stage_state  (const CallView&        in_view);
+                void handle_set_transform            (const CallView&        in_view);
+                void handle_set_vertex_shader        (const CallView&        in_view);
+                void handle_set_viewport             (const CallView&        in_view);
+                void handle_unlock                   (const CallView&        in_view,
                                                       const size_t&          in_n_data_argument,
                                                       const uint32_t&        in_layer,
                                                       const uint32_t&        in_mip_level);
-                void handle_update_texture           (const D3D8CallView&    in_view);
+                void handle_update_texture           (const CallView&        in_view);
 
                 /* Tells the geometry tracker about the buffer that a Create* method made. */
-                void register_buffer(const D3D8CallView&                         in_view,
+                void register_buffer(const CallView&                              in_view,
                                      const Analysis::APIDumpAnalysis::ResourceId& in_id);
 
                 /* Names the objects that the call has created or returned, like the printer does. */
-                void register_names(const D3D8CallView& in_view);
+                void register_names(const CallView& in_view);
 
 
                 /* Some of the vertices of a draw, if the front end can tell them; null if not. */
-                std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> sample_geometry(const D3D8CallView& in_view,
-                                                                                                 const bool&         in_is_indexed,
-                                                                                                 const uint32_t&     in_vertex_count);
+                std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> sample_geometry(const CallView& in_view,
+                                                                                                 const bool&     in_is_indexed,
+                                                                                                 const uint32_t& in_vertex_count);
 
 
                 /* nullptr for the methods that do not create a resource. */
@@ -145,11 +145,11 @@ namespace Analysis
                 std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t> m_n_resolution_hazard_map;
                 uint64_t                                                        m_n_unfollowed_calls;
                 uint64_t                                                        m_n_unsupported_calls;
-                D3D8ObjectNamer                                                 m_namer;
+                ObjectNamer                                                 m_namer;
                 D3D8PipelineState                                               m_pipeline_state;
                 std::map<uint32_t, Analysis::APIDumpAnalysis::ResourceId>       m_pixel_shader_map;   /* by handle */
                 std::unordered_set<APIInterceptor::APIFunction>                 m_release_function_set;
-                D3D8ObjectTracker                                               m_tracker;
+                ObjectTracker                                               m_tracker;
                 Analysis::APIDumpAnalysis::ConstantUpdate                       m_transform_update_scratch;
                 std::map<uint32_t, VertexShader>                                m_vertex_shader_map;  /* by handle */
             };

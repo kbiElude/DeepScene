@@ -145,7 +145,7 @@ Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Fronte
     return result;
 }
 
-Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Frontends::D3D8ResourceDescriber::describe_cube_texture(const D3D8CallView& in_view)
+Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Frontends::D3D8ResourceDescriber::describe_cube_texture(const CallView& in_view)
 {
     constexpr size_t   EDGE_LENGTH_ARGUMENT = 1;
     constexpr size_t   FORMAT_ARGUMENT      = 4;
@@ -170,7 +170,7 @@ Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Fronte
     return result;
 }
 
-Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Frontends::D3D8ResourceDescriber::describe_depth_stencil_surface(const D3D8CallView& in_view)
+Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Frontends::D3D8ResourceDescriber::describe_depth_stencil_surface(const CallView& in_view)
 {
     constexpr size_t FORMAT_ARGUMENT       = 3;
     constexpr size_t HEIGHT_ARGUMENT       = 2;
@@ -188,7 +188,7 @@ Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Fronte
     return result;
 }
 
-Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Frontends::D3D8ResourceDescriber::describe_image_surface(const D3D8CallView& in_view)
+Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Frontends::D3D8ResourceDescriber::describe_image_surface(const CallView& in_view)
 {
     constexpr size_t FORMAT_ARGUMENT = 3;
     constexpr size_t HEIGHT_ARGUMENT = 2;
@@ -201,7 +201,7 @@ Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Fronte
                             Interception::Hooks::D3D8::D3DPOOL_SYSTEMMEM);
 }
 
-Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Frontends::D3D8ResourceDescriber::describe_index_buffer(const D3D8CallView& in_view)
+Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Frontends::D3D8ResourceDescriber::describe_index_buffer(const CallView& in_view)
 {
     constexpr size_t FORMAT_ARGUMENT = 3;
     constexpr size_t LENGTH_ARGUMENT = 1;
@@ -221,7 +221,7 @@ Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Fronte
     return result;
 }
 
-Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Frontends::D3D8ResourceDescriber::describe_render_target(const D3D8CallView& in_view)
+Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Frontends::D3D8ResourceDescriber::describe_render_target(const CallView& in_view)
 {
     constexpr size_t FORMAT_ARGUMENT       = 3;
     constexpr size_t HEIGHT_ARGUMENT       = 2;
@@ -260,7 +260,7 @@ Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Fronte
     return result;
 }
 
-Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Frontends::D3D8ResourceDescriber::describe_texture(const D3D8CallView& in_view)
+Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Frontends::D3D8ResourceDescriber::describe_texture(const CallView& in_view)
 {
     constexpr size_t FORMAT_ARGUMENT = 5;
     constexpr size_t HEIGHT_ARGUMENT = 2;
@@ -282,7 +282,7 @@ Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Fronte
     return result;
 }
 
-Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Frontends::D3D8ResourceDescriber::describe_vertex_buffer(const D3D8CallView& in_view)
+Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Frontends::D3D8ResourceDescriber::describe_vertex_buffer(const CallView& in_view)
 {
     constexpr size_t LENGTH_ARGUMENT = 1;
     constexpr size_t POOL_ARGUMENT   = 4;
@@ -300,7 +300,7 @@ Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Fronte
     return result;
 }
 
-Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Frontends::D3D8ResourceDescriber::describe_volume_texture(const D3D8CallView& in_view)
+Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Frontends::D3D8ResourceDescriber::describe_volume_texture(const CallView& in_view)
 {
     constexpr size_t DEPTH_ARGUMENT  = 3;
     constexpr size_t FORMAT_ARGUMENT = 6;
