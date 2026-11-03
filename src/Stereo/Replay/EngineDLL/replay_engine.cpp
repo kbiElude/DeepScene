@@ -6,7 +6,7 @@
 #include "Common/macros.h"
 #include "Stereo/Core/screen_parallax_planner.h"
 #include "d3d7_call_executor.h"
-#include "d3d7_screen_parallax.h"
+#include "d3d7_draw_rewriter.h"
 #include "d3d8_call_executor.h"
 #include "frame_runner.h"
 #include "gl_call_executor.h"
@@ -513,7 +513,7 @@ bool Stereo::Replay::EngineDLL::ReplayEngine::execute_draw_call(const Capture::A
 
         case Stereo::Core::ScreenShiftPlan::Kind::PER_VERTEX:
         {
-            D3D7ScreenParallax::Parameters parameters;
+            Stereo::D3D7::ScreenParallax::Parameters parameters;
 
             parameters.convergence_distance  = plan.convergence_distance;
             parameters.eye                   = plan.eye;
@@ -521,7 +521,7 @@ bool Stereo::Replay::EngineDLL::ReplayEngine::execute_draw_call(const Capture::A
             parameters.field_of_view_degrees = plan.field_of_view_degrees;
             parameters.picture_width         = plan.picture_width;
 
-            is_moved = D3D7ScreenParallax::rewrite(in_call,
+            is_moved = D3D7DrawRewriter::rewrite(in_call,
                                                    in_chunk_source,
                                                    parameters,
                                                   &overlay,
@@ -532,7 +532,7 @@ bool Stereo::Replay::EngineDLL::ReplayEngine::execute_draw_call(const Capture::A
 
         case Stereo::Core::ScreenShiftPlan::Kind::UNIFORM:
         {
-            is_moved = D3D7ScreenParallax::rewrite_by(in_call,
+            is_moved = D3D7DrawRewriter::rewrite_by(in_call,
                                                       in_chunk_source,
                                                       plan.uniform_shift_pixels,
                                                      &overlay,

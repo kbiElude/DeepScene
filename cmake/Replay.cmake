@@ -10,7 +10,7 @@ add_library(StereoReplayEngineDLL SHARED ${StereoReplayEngineDLLIncludes} ${Ster
 
 target_compile_definitions(StereoReplayEngineDLL PRIVATE STEREOREPLAYENGINEDLL_BUILDING_DLL)
 target_include_directories(StereoReplayEngineDLL PRIVATE "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/EngineDLL")
-target_link_libraries     (StereoReplayEngineDLL APIDumpAnalysisFrontends APIDumpLoader RecipeApplier StereoCore D3D7Utils D3D8Utils gdi32 opengl32 user32 winmm)
+target_link_libraries     (StereoReplayEngineDLL APIDumpAnalysisFrontends APIDumpLoader RecipeApplier StereoCore StereoD3D7 D3D7Utils D3D8Utils gdi32 opengl32 user32 winmm)
 
 if (CMAKE_SIZEOF_VOID_P EQUAL 4)
     set_target_properties(StereoReplayEngineDLL PROPERTIES OUTPUT_NAME "StereoReplayEngineDLL_x86")

@@ -6,7 +6,7 @@
  * vertices is the only call that is changed.
  */
 #include <gtest/gtest.h>
-#include "d3d7_screen_parallax.h"
+#include "d3d7_draw_rewriter.h"
 #include <map>
 #include <math.h>
 #include <string.h>
@@ -39,9 +39,9 @@ namespace
         std::map<uint32_t, Capture::APIDumpLoader::DataChunk> chunk_map;
     };
 
-    D3D7ScreenParallax::Parameters make_parameters(const Analysis::RecipeLoader::Eye& in_eye)
+    Stereo::D3D7::ScreenParallax::Parameters make_parameters(const Analysis::RecipeLoader::Eye& in_eye)
     {
-        D3D7ScreenParallax::Parameters result;
+        Stereo::D3D7::ScreenParallax::Parameters result;
 
         result.convergence_distance  = 5.0f;
         result.eye                   = in_eye;
@@ -119,31 +119,31 @@ TEST(D3D7ScreenParallax, AVertexAtTheConvergenceDistanceIsNotMovedAndThoseNearer
 
     const float convergence_reciprocal = 1.0f / 5.0f;
 
-    EXPECT_FLOAT_EQ(D3D7ScreenParallax::get_shift(left,
+    EXPECT_FLOAT_EQ(Stereo::D3D7::ScreenParallax::get_shift(left,
                                                   convergence_reciprocal),
                     0.0f);
-    EXPECT_FLOAT_EQ(D3D7ScreenParallax::get_shift(right,
+    EXPECT_FLOAT_EQ(Stereo::D3D7::ScreenParallax::get_shift(right,
                                                   convergence_reciprocal),
                     0.0f);
 
     /* Nearer: the left eye sees it further to the right (it is moved to the left), the right eye further to the left. */
     const float near_reciprocal = 1.0f;
 
-    EXPECT_GT(D3D7ScreenParallax::get_shift(left,
+    EXPECT_GT(Stereo::D3D7::ScreenParallax::get_shift(left,
                                             near_reciprocal),
               0.0f);
-    EXPECT_FLOAT_EQ(D3D7ScreenParallax::get_shift(right,
+    EXPECT_FLOAT_EQ(Stereo::D3D7::ScreenParallax::get_shift(right,
                                                   near_reciprocal),
-                    -D3D7ScreenParallax::get_shift(left,
+                    -Stereo::D3D7::ScreenParallax::get_shift(left,
                                                    near_reciprocal) );
 
     /* Further away: the other way. */
     const float far_reciprocal = 0.01f;
 
-    EXPECT_LT(D3D7ScreenParallax::get_shift(left,
+    EXPECT_LT(Stereo::D3D7::ScreenParallax::get_shift(left,
                                             far_reciprocal),
               0.0f);
-    EXPECT_GT(D3D7ScreenParallax::get_shift(right,
+    EXPECT_GT(Stereo::D3D7::ScreenParallax::get_shift(right,
                                             far_reciprocal),
               0.0f);
 }
@@ -155,7 +155,7 @@ TEST(D3D7ScreenParallax, TheShiftIsThatOfACameraMovedHalfTheSeparationToTheSide)
     const float focal_length    = 320.0f / tanf(45.0f * 3.14159265358979f / 180.0f); /* half the width, over the tangent of half the angle of view */
     const float expected_shift  = focal_length * (2.0f / 2.0f) * (reciprocal - 0.2f);
 
-    EXPECT_NEAR(D3D7ScreenParallax::get_shift(left,
+    EXPECT_NEAR(Stereo::D3D7::ScreenParallax::get_shift(left,
                                               reciprocal),
                 expected_shift,
                 0.001f);
@@ -165,7 +165,7 @@ TEST(D3D7ScreenParallax, TheShiftIsThatOfACameraMovedHalfTheSeparationToTheSide)
 
     twice_apart.eye_separation = 4.0f;
 
-    EXPECT_NEAR(D3D7ScreenParallax::get_shift(twice_apart,
+    EXPECT_NEAR(Stereo::D3D7::ScreenParallax::get_shift(twice_apart,
                                               reciprocal),
                 2.0f * expected_shift,
                 0.001f);
@@ -174,7 +174,7 @@ TEST(D3D7ScreenParallax, TheShiftIsThatOfACameraMovedHalfTheSeparationToTheSide)
 
     narrow.field_of_view_degrees = 45.0f;
 
-    EXPECT_GT(D3D7ScreenParallax::get_shift(narrow,
+    EXPECT_GT(Stereo::D3D7::ScreenParallax::get_shift(narrow,
                                             reciprocal),
               expected_shift);
 }
@@ -184,21 +184,21 @@ TEST(D3D7ScreenParallax, WhatIsBehindTheCameraOrNotANumberIsPutWhereItCannotGoWr
     const auto left = make_parameters(Analysis::RecipeLoader::Eye::LEFT);
 
     /* No depth, or a negative one, is the same as the furthest there is. */
-    EXPECT_FLOAT_EQ(D3D7ScreenParallax::get_shift(left,
+    EXPECT_FLOAT_EQ(Stereo::D3D7::ScreenParallax::get_shift(left,
                                                   -7.0f),
-                    D3D7ScreenParallax::get_shift(left,
+                    Stereo::D3D7::ScreenParallax::get_shift(left,
                                                   0.0f) );
-    EXPECT_FLOAT_EQ(D3D7ScreenParallax::get_shift(left,
+    EXPECT_FLOAT_EQ(Stereo::D3D7::ScreenParallax::get_shift(left,
                                                   nanf("") ),
-                    D3D7ScreenParallax::get_shift(left,
+                    Stereo::D3D7::ScreenParallax::get_shift(left,
                                                   0.0f) );
 
     /* And what is too near is where the nearest allowed is: a tenth of the convergence distance. */
-    EXPECT_FLOAT_EQ(D3D7ScreenParallax::get_shift(left,
+    EXPECT_FLOAT_EQ(Stereo::D3D7::ScreenParallax::get_shift(left,
                                                   1.0e9f),
-                    D3D7ScreenParallax::get_shift(left,
+                    Stereo::D3D7::ScreenParallax::get_shift(left,
                                                   2.0f) ); /* the reciprocal of a depth of 0.5 */
-    EXPECT_TRUE(isfinite(D3D7ScreenParallax::get_shift(left,
+    EXPECT_TRUE(isfinite(Stereo::D3D7::ScreenParallax::get_shift(left,
                                                        INFINITY) ) );
 }
 
@@ -208,7 +208,7 @@ TEST(D3D7ScreenParallax, OnlyTheXOfEachVertexIsMoved)
                                                {1.0f, 0.2f, 0.01f});
     auto       vertices        = vertices_before;
 
-    D3D7ScreenParallax::shift_vertices(make_parameters(Analysis::RecipeLoader::Eye::LEFT),
+    Stereo::D3D7::ScreenParallax::shift_vertices(make_parameters(Analysis::RecipeLoader::Eye::LEFT),
                                        VERTEX_N_BYTES,
                                        3,
                                        vertices.data() );
@@ -235,7 +235,7 @@ TEST(D3D7ScreenParallax, OnlyTheXOfEachVertexIsMoved)
     }
 }
 
-TEST(D3D7ScreenParallax, ADrawOfPreTransformedVerticesIsCopiedWithTheVerticesMovedAndTheOriginalLeftAlone)
+TEST(D3D7DrawRewriter, ADrawOfPreTransformedVerticesIsCopiedWithTheVerticesMovedAndTheOriginalLeftAlone)
 {
     MapChunkSource                                 source;
     OverlayChunkSource                             overlay(source);
@@ -249,7 +249,7 @@ TEST(D3D7ScreenParallax, ADrawOfPreTransformedVerticesIsCopiedWithTheVerticesMov
                                           2,
                                           7);
 
-    ASSERT_TRUE(D3D7ScreenParallax::rewrite(call,
+    ASSERT_TRUE(D3D7DrawRewriter::rewrite(call,
                                             source,
                                             make_parameters(Analysis::RecipeLoader::Eye::LEFT),
                                            &overlay,
@@ -285,7 +285,7 @@ TEST(D3D7ScreenParallax, ADrawOfPreTransformedVerticesIsCopiedWithTheVerticesMov
     Capture::APIDumpLoader::DumpedAPICall right_rewritten;
     OverlayChunkSource                    right_overlay(source);
 
-    ASSERT_TRUE(D3D7ScreenParallax::rewrite(call,
+    ASSERT_TRUE(D3D7DrawRewriter::rewrite(call,
                                             source,
                                             make_parameters(Analysis::RecipeLoader::Eye::RIGHT),
                                            &right_overlay,
@@ -295,7 +295,7 @@ TEST(D3D7ScreenParallax, ADrawOfPreTransformedVerticesIsCopiedWithTheVerticesMov
               10.0f);
 }
 
-TEST(D3D7ScreenParallax, ADrawPushedAsAWholeHasEveryVertexMovedByTheSameShiftWhateverItsDepth)
+TEST(D3D7DrawRewriter, ADrawPushedAsAWholeHasEveryVertexMovedByTheSameShiftWhateverItsDepth)
 {
     MapChunkSource                        source;
     OverlayChunkSource                    overlay(source);
@@ -308,7 +308,7 @@ TEST(D3D7ScreenParallax, ADrawPushedAsAWholeHasEveryVertexMovedByTheSameShiftWha
                                           2,
                                           7);
 
-    ASSERT_TRUE(D3D7ScreenParallax::rewrite_by(call,
+    ASSERT_TRUE(D3D7DrawRewriter::rewrite_by(call,
                                                source,
                                                -4.0f,
                                               &overlay,
@@ -329,7 +329,7 @@ TEST(D3D7ScreenParallax, ADrawPushedAsAWholeHasEveryVertexMovedByTheSameShiftWha
                     10.0f);
 }
 
-TEST(D3D7ScreenParallax, ADrawPushedByNothingOrOfVerticesAMatrixMovesIsLeftAlone)
+TEST(D3D7DrawRewriter, ADrawPushedByNothingOrOfVerticesAMatrixMovesIsLeftAlone)
 {
     MapChunkSource                        source;
     OverlayChunkSource                    overlay(source);
@@ -338,14 +338,14 @@ TEST(D3D7ScreenParallax, ADrawPushedByNothingOrOfVerticesAMatrixMovesIsLeftAlone
     source.chunk_map[7] = make_vertices({10.0f},
                                         {1.0f});
 
-    EXPECT_FALSE(D3D7ScreenParallax::rewrite_by(make_draw_primitive(FVF_PRETRANSFORMED,
+    EXPECT_FALSE(D3D7DrawRewriter::rewrite_by(make_draw_primitive(FVF_PRETRANSFORMED,
                                                                     1,
                                                                     7),
                                                 source,
                                                 0.0f,
                                                &overlay,
                                                &rewritten) );
-    EXPECT_FALSE(D3D7ScreenParallax::rewrite_by(make_draw_primitive(FVF_TRANSFORMED_BY_MATRIX,
+    EXPECT_FALSE(D3D7DrawRewriter::rewrite_by(make_draw_primitive(FVF_TRANSFORMED_BY_MATRIX,
                                                                     1,
                                                                     7),
                                                 source,
@@ -354,7 +354,7 @@ TEST(D3D7ScreenParallax, ADrawPushedByNothingOrOfVerticesAMatrixMovesIsLeftAlone
                                                &rewritten) );
 }
 
-TEST(D3D7ScreenParallax, ADrawWhichTheIndicesComeBeforeTheVerticesOfHasTheVerticesMovedAndTheIndicesAsTheyAre)
+TEST(D3D7DrawRewriter, ADrawWhichTheIndicesComeBeforeTheVerticesOfHasTheVerticesMovedAndTheIndicesAsTheyAre)
 {
     MapChunkSource                        source;
     OverlayChunkSource                    overlay(source);
@@ -380,7 +380,7 @@ TEST(D3D7ScreenParallax, ADrawWhichTheIndicesComeBeforeTheVerticesOfHasTheVertic
     call.arg_in_vec.push_back(APIInterceptor::APIFunctionArgument::create_data_chunk_id(3) );
     call.arg_in_vec.push_back(APIInterceptor::APIFunctionArgument::create_data_chunk_id(4) );
 
-    ASSERT_TRUE(D3D7ScreenParallax::rewrite(call,
+    ASSERT_TRUE(D3D7DrawRewriter::rewrite(call,
                                             source,
                                             make_parameters(Analysis::RecipeLoader::Eye::LEFT),
                                            &overlay,
@@ -395,7 +395,7 @@ TEST(D3D7ScreenParallax, ADrawWhichTheIndicesComeBeforeTheVerticesOfHasTheVertic
               30.0f);
 }
 
-TEST(D3D7ScreenParallax, WhatIsNotADrawOfPreTransformedVerticesWhichThereIsRoomForIsLeftAlone)
+TEST(D3D7DrawRewriter, WhatIsNotADrawOfPreTransformedVerticesWhichThereIsRoomForIsLeftAlone)
 {
     MapChunkSource                        source;
     OverlayChunkSource                    overlay(source);
@@ -405,7 +405,7 @@ TEST(D3D7ScreenParallax, WhatIsNotADrawOfPreTransformedVerticesWhichThereIsRoomF
                                         {1.0f, 0.2f});
 
     /* Vertices which a matrix moves. */
-    EXPECT_FALSE(D3D7ScreenParallax::rewrite(make_draw_primitive(FVF_TRANSFORMED_BY_MATRIX,
+    EXPECT_FALSE(D3D7DrawRewriter::rewrite(make_draw_primitive(FVF_TRANSFORMED_BY_MATRIX,
                                                                  2,
                                                                  7),
                                              source,
@@ -420,21 +420,21 @@ TEST(D3D7ScreenParallax, WhatIsNotADrawOfPreTransformedVerticesWhichThereIsRoomF
 
     clear_call.func = APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_CLEAR;
 
-    EXPECT_FALSE(D3D7ScreenParallax::rewrite(clear_call,
+    EXPECT_FALSE(D3D7DrawRewriter::rewrite(clear_call,
                                              source,
                                              make_parameters(Analysis::RecipeLoader::Eye::LEFT),
                                             &overlay,
                                             &rewritten) );
 
     /* More vertices than the chunk holds, and a chunk the workload does not have. */
-    EXPECT_FALSE(D3D7ScreenParallax::rewrite(make_draw_primitive(FVF_PRETRANSFORMED,
+    EXPECT_FALSE(D3D7DrawRewriter::rewrite(make_draw_primitive(FVF_PRETRANSFORMED,
                                                                  3,
                                                                  7),
                                              source,
                                              make_parameters(Analysis::RecipeLoader::Eye::LEFT),
                                             &overlay,
                                             &rewritten) );
-    EXPECT_FALSE(D3D7ScreenParallax::rewrite(make_draw_primitive(FVF_PRETRANSFORMED,
+    EXPECT_FALSE(D3D7DrawRewriter::rewrite(make_draw_primitive(FVF_PRETRANSFORMED,
                                                                  2,
                                                                  99),
                                              source,
@@ -447,7 +447,7 @@ TEST(D3D7ScreenParallax, WhatIsNotADrawOfPreTransformedVerticesWhichThereIsRoomF
 
     together.eye_separation = 0.0f;
 
-    EXPECT_FALSE(D3D7ScreenParallax::rewrite(make_draw_primitive(FVF_PRETRANSFORMED,
+    EXPECT_FALSE(D3D7DrawRewriter::rewrite(make_draw_primitive(FVF_PRETRANSFORMED,
                                                                  2,
                                                                  7),
                                              source,

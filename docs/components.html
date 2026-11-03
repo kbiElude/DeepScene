@@ -98,6 +98,9 @@
 <h3>StereoTransport</h3>
 <p><em>Library.</em> The channel between the converter and the presenter: a frame channel in shared memory, with a producer that writes the eyes of a frame and a consumer that takes the newest. The consumer also says what it accepts, how far to converge and how strong the 3D is. The exporter and importer are interfaces, so that the converter does not know what is on the other end.</p>
 
+<h3>StereoD3D7</h3>
+<p><em>Library.</em> What is done to the vertices of a Direct3D 7 draw that are already in the space of the picture, for an eye: moved by their depth, or all by the same pixels. It works on the bytes of the vertices, so the replay engine (a dumped draw) and the live converter (an application that runs) share it.</p>
+
 <h3>StereoD3D12</h3>
 <p><em>Library.</em> Puts the eyes of a frame from the memory of the channel into Direct3D 12 textures without a copy by the CPU. The presenter and the headset use it.</p>
 

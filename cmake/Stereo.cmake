@@ -21,6 +21,17 @@ target_link_libraries(StereoCore PUBLIC RecipeApplier)
 source_group ("Stereo Core include files" FILES ${StereoCoreIncludes})
 source_group ("Stereo Core source files"  FILES ${StereoCoreSources})
 
+file(GLOB StereoD3D7Includes CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/include/Stereo/D3D7/*.h")
+file(GLOB StereoD3D7Sources CONFIGURE_DEPENDS  "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/D3D7/*.cpp")
+
+# What is done to the vertices of a Direct3D 7 draw for an eye, whoever holds them: a dump that is replayed, or an application that runs.
+add_library(StereoD3D7 STATIC ${StereoD3D7Includes} ${StereoD3D7Sources})
+
+target_link_libraries(StereoD3D7 PUBLIC RecipeLoader)
+
+source_group ("StereoD3D7 include files" FILES ${StereoD3D7Includes})
+source_group ("StereoD3D7 source files"  FILES ${StereoD3D7Sources})
+
 file(GLOB StereoTransportIncludes CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/include/Stereo/Transport/*.h")
 file(GLOB StereoTransportSources CONFIGURE_DEPENDS  "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Transport/*.cpp")
 

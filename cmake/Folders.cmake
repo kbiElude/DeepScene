@@ -3,7 +3,7 @@ include(${APIInterceptor_SOURCE_DIR}/cmake/FolderHelpers.cmake)
 
 assign_folder("Analysis/Libraries" APIDumpAnalysis APIDumpAnalysisFrontends RecipeApplier RecipeLoader)
 assign_folder("Analysis/Tools"     APIDumpAnalysisExtractor APIDumpAnalysisQuery RecipeBake)
-assign_folder("Stereo/Libraries"   StereoCore StereoD3D12 StereoSession StereoTransport StereoXR)
+assign_folder("Stereo/Libraries"   StereoCore StereoD3D12 StereoD3D7 StereoSession StereoTransport StereoXR)
 assign_folder("Stereo/Programs"    StereoConverterDLL StereoLauncher StereoPresenter)
 assign_folder("Stereo/Replay"      StereoReplayConsistencyChecker StereoReplayEngineDLL StereoReplayPlayer)
 assign_folder("VR Player"          AppCatalog AppInstaller UIHost VRDevices VRPlayer)

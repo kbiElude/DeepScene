@@ -15,7 +15,7 @@ if (DEMOVRPLAYER_BUILD_TESTS)
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Presenter/command_line.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/EngineDLL/call_context.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/EngineDLL/call_walker.cpp"
-                                     "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/EngineDLL/d3d7_screen_parallax.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/EngineDLL/d3d7_draw_rewriter.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/EngineDLL/executor_registry.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/EngineDLL/eye_matrix_binder.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/EngineDLL/frame_buffer.cpp"
@@ -60,7 +60,7 @@ if (DEMOVRPLAYER_BUILD_TESTS)
                                                          "${APIInterceptor_SOURCE_DIR}/src/Tests")
     target_compile_definitions(DemoVRPlayerTests PRIVATE DEMOVRPLAYER_APPS_DIR="${DemoVRPlayer_SOURCE_DIR}/apps"
                                                          DEMOVRPLAYER_TESTS_DATA_DIR="${DemoVRPlayer_SOURCE_DIR}/src/Tests/data")
-    target_link_libraries(DemoVRPlayerTests gtest_main APIInterceptorTestSupport APIDumpAnalysis APIDumpAnalysisFrontends APIDumpDependencies APIDumpLoader AppCatalog AppInstaller D3D7Utils D3D8Utils InjectionLauncher ws2_32 RecipeApplier RecipeLoader StereoCore StereoD3D12 StereoReplayEngineDLL StereoSession StereoTransport VRDevices)
+    target_link_libraries(DemoVRPlayerTests gtest_main APIInterceptorTestSupport APIDumpAnalysis APIDumpAnalysisFrontends APIDumpDependencies APIDumpLoader AppCatalog AppInstaller D3D7Utils D3D8Utils InjectionLauncher ws2_32 RecipeApplier RecipeLoader StereoCore StereoD3D12 StereoD3D7 StereoReplayEngineDLL StereoSession StereoTransport VRDevices)
 
     if (CMAKE_SIZEOF_VOID_P EQUAL 8)
         target_link_libraries(DemoVRPlayerTests StereoXR)
