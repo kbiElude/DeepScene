@@ -141,6 +141,14 @@ namespace Analysis
             UNKNOWN
         };
 
+        /* Whether a workload file is the one an analysis was made of (see WorkloadIdentity::verify). */
+        enum class WorkloadMatch
+        {
+            MATCHES,
+            MISMATCH,
+            UNREADABLE /* the file cannot be opened or read: nothing can be said */
+        };
+
         enum class TransferKind
         {
             COPY,  /* from one resource to another                  */
@@ -526,12 +534,16 @@ namespace Analysis
             RepresentativeChoice which            = RepresentativeChoice::FIRST;
         };
 
-        /* Identifies the workload an analysis is of. */
+        /* Identifies the workload an analysis is of: its size, and the hashes of three pieces of it (see WorkloadIdentity). A hash of 0
+         * was not recorded (a .passes file holds the first only), and is not compared.
+         */
         struct WorkloadReference
         {
             std::string filename;
-            uint64_t    header_hash = 0; /* of the first 4 KiB of the file     */
+            uint64_t    header_hash = 0; /* of the first 4 KiB of the file                         */
+            uint64_t    middle_hash = 0; /* of the 4 KiB around the middle of the file             */
             uint64_t    n_bytes     = 0;
+            uint64_t    tail_hash   = 0; /* of the last 4 KiB of the file                          */
         };
 
         bool operator==(const BindingPoint&        in_a,

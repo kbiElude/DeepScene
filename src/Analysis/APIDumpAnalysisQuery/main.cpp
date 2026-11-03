@@ -6,6 +6,7 @@
 #include "Analysis/APIDumpAnalysis/number_parser.h"
 #include "Analysis/APIDumpAnalysis/passes_file.h"
 #include "Analysis/APIDumpAnalysis/query_commands.h"
+#include "Analysis/APIDumpAnalysis/workload_identity.h"
 #include "query.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,6 +34,25 @@ bool Analysis::APIDumpAnalysisQuery::parse_arguments(const int&   in_argc,
         if (argument == "--compact")
         {
             out_options_ptr->is_compact = true;
+        }
+        else
+        if (argument == "--no-verify")
+        {
+            out_options_ptr->is_verify_off = true;
+        }
+        else
+        if (argument == "--workload")
+        {
+            if (has_next == false)
+            {
+                *out_error_ptr = "--workload needs the path of the workload";
+
+                goto end;
+            }
+
+            out_options_ptr->workload_filename = next_argument;
+
+            ++n_argument;
         }
         else
         if (takes_number)
@@ -216,12 +236,15 @@ void Analysis::APIDumpAnalysisQuery::print_usage()
             "  --class C            Only the resources of a class: frame_local, loop_carried, static, unread, unused\n"
             "  --compact            Print JSON on a single line\n"
             "  --limit N            Items in a list (default 100; 0: all)\n"
+            "  --no-verify          Do not check that the workload is the one the analysis is of\n"
             "  --offset N           Items to skip at the start of a list\n"
             "  --shape N            The kind of frame, for frame\n"
             "  --which W            first, lightest or heaviest representative frame (default first)\n"
+            "  --workload PATH      Where the workload is, if not where the analysis says (it is checked against the analysis)\n"
             "\n"
             "Times are in seconds since the first call; keys are hex strings.\n"
-            "Exit codes: 0 done, 1 bad arguments, 2 file cannot be read, 3 nothing there by that id.\n");
+            "Exit codes: 0 done, 1 bad arguments, 2 file cannot be read, 3 nothing there by that id, 4 the workload is not the one\n"
+            "the analysis is of. A workload which cannot be found is not an error: the analysis does not need it, and the check is skipped.\n");
 }
 
 int Analysis::APIDumpAnalysisQuery::run(int   in_argc,
@@ -259,6 +282,34 @@ int Analysis::APIDumpAnalysisQuery::run(int   in_argc,
         exit_code = ExitCode::CANNOT_READ_PASSES;
 
         goto end;
+    }
+
+    if (options.is_verify_off == false)
+    {
+        const std::string workload_filename = (options.workload_filename.empty() ) ? analysis.workload_reference.filename
+                                                                                   : options.workload_filename;
+        const auto        match             = Analysis::APIDumpAnalysis::WorkloadIdentity::verify(workload_filename,
+                                                                                                    analysis.workload_reference,
+                                                                                                   &error);
+
+        if (match == Analysis::APIDumpAnalysis::WorkloadMatch::MISMATCH)
+        {
+            fprintf(stderr,
+                    "Error: %s is not the workload this analysis is of: %s\n",
+                    workload_filename.c_str(),
+                    error.c_str() );
+
+            exit_code = ExitCode::WORKLOAD_MISMATCH;
+
+            goto end;
+        }
+
+        if (match == Analysis::APIDumpAnalysis::WorkloadMatch::UNREADABLE)
+        {
+            fprintf(stderr,
+                    "Warning: the workload could not be checked against the analysis: %s\n",
+                    error.c_str() );
+        }
     }
 
     {

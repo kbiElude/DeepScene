@@ -3,9 +3,8 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "Analysis/APIDumpAnalysis/frontends/analysis_session.h"
-#include "Analysis/APIDumpAnalysis/hasher.h"
+#include "Analysis/APIDumpAnalysis/workload_identity.h"
 #include "Capture/APIDumpLoader/WorkloadReader.h"
-#include <windows.h>
 
 Analysis::APIDumpAnalysis::Frontends::AnalysisSession::AnalysisSession(const bool& in_keeps_history)
     :m_builder               (in_keeps_history),
@@ -235,44 +234,14 @@ bool Analysis::APIDumpAnalysis::Frontends::AnalysisSession::run(const char*     
 
     if (result)
     {
-        constexpr size_t N_IDENTITY_BYTES = 4096; /* of the file start; identifies the file */
-
-        HANDLE               file_handle = ::CreateFileA(in_filename_ptr,
-                                                         GENERIC_READ,
-                                                         FILE_SHARE_READ | FILE_SHARE_WRITE,
-                                                         nullptr, /* lpSecurityAttributes */
-                                                         OPEN_EXISTING,
-                                                         FILE_ATTRIBUTE_NORMAL,
-                                                         nullptr); /* hTemplateFile */
-        std::vector<uint8_t> identity_u8_vec(N_IDENTITY_BYTES);
+        std::string identity_error;
 
         m_workload_reference.filename = in_filename_ptr;
 
-        if (file_handle != INVALID_HANDLE_VALUE)
-        {
-            DWORD         n_bytes_read = 0;
-            LARGE_INTEGER file_size    = {};
-
-            if (::ReadFile(file_handle,
-                           identity_u8_vec.data(),
-                           static_cast<DWORD>  (identity_u8_vec.size() ),
-                          &n_bytes_read,
-                           nullptr) != FALSE) /* lpOverlapped */
-            {
-                identity_u8_vec.resize(n_bytes_read);
-
-                m_workload_reference.header_hash = Hasher::hash_bytes(identity_u8_vec.data(),
-                                                                      identity_u8_vec.size() );
-            }
-
-            if (::GetFileSizeEx(file_handle,
-                               &file_size) != FALSE)
-            {
-                m_workload_reference.n_bytes = static_cast<uint64_t>(file_size.QuadPart);
-            }
-
-            ::CloseHandle(file_handle);
-        }
+        /* A workload which is read by the loader but not by this is still analyzed; it just cannot be told from another by its reference. */
+        WorkloadIdentity::read(in_filename_ptr,
+                              &m_workload_reference,
+                              &identity_error);
     }
 
     while (result                                           &&

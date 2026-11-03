@@ -20,15 +20,18 @@ namespace Analysis
             BAD_ARGUMENTS      = 1,
             CANNOT_READ_PASSES = 2,
             NOT_FOUND          = 3,
-            SUCCESS            = 0
+            SUCCESS            = 0,
+            WORKLOAD_MISMATCH  = 4
         };
 
         struct Options
         {
             Analysis::APIDumpAnalysis::QueryArguments arguments;
             std::string                               command;
-            bool                                      is_compact = false;
+            bool                                      is_compact       = false;
+            bool                                      is_verify_off    = false;
             std::string                               passes_filename;
+            std::string                               workload_filename; /* where the workload is, if not where the analysis says */
         };
     }
 }
