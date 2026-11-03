@@ -7,6 +7,7 @@
 #include "Analysis/APIDumpAnalysis/passes_format.h"
 #include "Analysis/APIDumpAnalysis/resource_access_tracker.h"
 #include "Analysis/APIDumpAnalysis/query_commands.h"
+#include "Analysis/APIDumpAnalysis/resource_identity.h"
 #include "Analysis/APIDumpAnalysis/timeline_builder.h"
 #include "Common/macros.h"
 #include <algorithm>
@@ -1308,12 +1309,24 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
         const size_t n_resource = match_vec.at                    (static_cast<size_t>(n_match) );
         const auto&  access     = model_ref.resource_access_vec.at(n_resource);
         const auto&  resource   = model_ref.resource_vec.at       (n_resource);
+        ResourceIdentity identity;
+
+        ResourceIdentities::find(model_ref.resource_vec,
+                                 make_resource_id(static_cast<uint32_t>(n_resource + 1) ),
+                                &identity);
 
         inout_writer_ptr->begin_object();
         inout_writer_ptr->write_key   ("resource_id");
         inout_writer_ptr->write_u64   (n_resource + 1);
         inout_writer_ptr->write_key   ("name");
         inout_writer_ptr->write_string(resource.debug_name);
+
+        inout_writer_ptr->write_key    ("description_key");
+        inout_writer_ptr->write_hex_u64(identity.description_key);
+
+        inout_writer_ptr->write_key("ordinal");
+        inout_writer_ptr->write_u64(identity.ordinal);
+
         inout_writer_ptr->write_key   ("kind");
         inout_writer_ptr->write_string(get_resource_kind_name(resource.description.kind) );
         inout_writer_ptr->write_key   ("width");
