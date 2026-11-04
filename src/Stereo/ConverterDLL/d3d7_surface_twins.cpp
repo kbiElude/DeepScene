@@ -49,6 +49,22 @@ Stereo::ConverterDLL::D3D7SurfaceTwins::D3D7SurfaceTwins()
     /* Stub */
 }
 
+bool Stereo::ConverterDLL::D3D7SurfaceTwins::get_caps(void*     in_surface_ptr,
+                                                       uint32_t* out_caps_ptr)
+{
+    Interception::Hooks::D3D7::DDSURFACEDESC2 description    = {};
+    void** const                              surface_vtable = *reinterpret_cast<void***>(in_surface_ptr);
+
+    description.dwSize = static_cast<DWORD>(sizeof(description) );
+
+    const bool result = SUCCEEDED(reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_GETSURFACEDESC>(surface_vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_GETSURFACEDESC])(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(in_surface_ptr),
+                                                                                                                                                                                                         &description) );
+
+    *out_caps_ptr = description.ddsCaps.dwCaps;
+
+    return result;
+}
+
 uint64_t Stereo::ConverterDLL::D3D7SurfaceTwins::get_n_failed_twins() const
 {
     return m_n_failed_twins;
@@ -88,7 +104,6 @@ void Stereo::ConverterDLL::D3D7SurfaceTwins::handle_add_attached_surface(const A
 
 void Stereo::ConverterDLL::D3D7SurfaceTwins::handle_create_surface(const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
 {
-    constexpr size_t DESCRIPTION_ARGUMENT = 1;
     constexpr size_t DIRECT_DRAW_ARGUMENT = 0;
     constexpr size_t SURFACE_ARGUMENT     = 2;
 
@@ -96,14 +111,14 @@ void Stereo::ConverterDLL::D3D7SurfaceTwins::handle_create_surface(const APIInte
 
     if (surface_ptr != nullptr)
     {
-        const auto* description_ptr = static_cast<const Interception::Hooks::D3D7::DDSURFACEDESC2*>(in_arguments_ptr[DESCRIPTION_ARGUMENT].get_ptr() );
+        uint32_t caps = 0;
 
         m_direct_draw_ptr = const_cast<void*>(in_arguments_ptr[DIRECT_DRAW_ARGUMENT].get_ptr() );
 
-        if (description_ptr != nullptr)
+        /* The description the application gave is a structure, which the arguments hold as a chunk: the surface knows what it is. */
+        if (get_caps(surface_ptr,
+                    &caps) )
         {
-            const uint32_t caps = description_ptr->ddsCaps.dwCaps;
-
             if ( (caps & Interception::Core::D3D7Utils::DDSCAPS_PRIMARYSURFACE) != 0)
             {
                 /* The surface that is shown: it has no twin, but its back buffer will. */
@@ -122,41 +137,46 @@ void Stereo::ConverterDLL::D3D7SurfaceTwins::handle_create_surface(const APIInte
 
 void Stereo::ConverterDLL::D3D7SurfaceTwins::handle_get_attached_surface(const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
 {
-    constexpr size_t CAPS_ARGUMENT    = 1;
-    constexpr size_t SURFACE_ARGUMENT = 0;
     constexpr size_t RESULT_ARGUMENT  = 2;
+    constexpr size_t SURFACE_ARGUMENT = 0;
 
-    void* const                                        attached_ptr = const_cast<void*>(in_arguments_ptr[RESULT_ARGUMENT].get_ptr() );
-    const auto*                                        caps_ptr     = static_cast<const Interception::Hooks::D3D7::DDSCAPS2*>(in_arguments_ptr[CAPS_ARGUMENT].get_ptr() );
-    void* const                                        surface_ptr  = const_cast<void*>(in_arguments_ptr[SURFACE_ARGUMENT].get_ptr() );
+    void* const attached_ptr = const_cast<void*>(in_arguments_ptr[RESULT_ARGUMENT].get_ptr() );
+    uint32_t    caps         = 0;
+    void* const surface_ptr  = const_cast<void*>(in_arguments_ptr[SURFACE_ARGUMENT].get_ptr() );
 
-    if (attached_ptr == nullptr ||
-        caps_ptr     == nullptr ||
-        get_twin_ptr(attached_ptr) != nullptr)
+    /* What the application asked for is a structure, which the arguments hold as a chunk: the surface that it got knows what it is. */
+    if (attached_ptr == nullptr                    ||
+        get_twin_ptr(attached_ptr) != nullptr      ||
+        get_caps(attached_ptr,
+                &caps) == false)
     {
         goto end;
     }
 
-    if (surface_ptr == m_primary_ptr                                                                &&
-        (caps_ptr->dwCaps & Interception::Core::D3D7Utils::DDSCAPS_BACKBUFFER) != 0)
+    if (surface_ptr == m_primary_ptr                                                      &&
+        (caps & Interception::Core::D3D7Utils::DDSCAPS_BACKBUFFER) != 0)
     {
         /* The back buffer of the chain that the primary surface flips with: what the application renders to. */
         make_twin_ptr(attached_ptr,
                       true); /* in_is_back_buffer */
     }
     else
+    if ( (caps & Interception::Core::D3D7Utils::DDSCAPS_ZBUFFER) != 0)
     {
         void* const surface_twin_ptr = get_twin_ptr(surface_ptr);
 
-        /* What is attached to a surface which has a twin is attached to the twin as well: the depth buffer, a level of the mip chain. */
+        /* The depth buffer that is attached to a surface which has a twin is attached to the twin as well. */
         if (surface_twin_ptr != nullptr)
         {
+            Interception::Hooks::D3D7::DDSCAPS2             depth_caps       = {};
             void**                                          vtable           = *reinterpret_cast<void***>(surface_twin_ptr);
             Interception::Hooks::D3D7::IDirectDrawSurface7* attached_twin_ptr = nullptr;
 
+            depth_caps.dwCaps = Interception::Core::D3D7Utils::DDSCAPS_ZBUFFER;
+
             if (SUCCEEDED(reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_GETATTACHEDSURFACE>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_GETATTACHEDSURFACE])(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(surface_twin_ptr),
-                                                                                                                                                                                                             caps_ptr,
-                                                                                                                                                                                                            &attached_twin_ptr) ))
+                                                                                                                                                                                                             &depth_caps,
+                                                                                                                                                                                                             &attached_twin_ptr) ))
             {
                 void** const attached_vtable = *reinterpret_cast<void***>(attached_twin_ptr);
 

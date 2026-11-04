@@ -42,6 +42,10 @@ namespace Stereo
                          const APIInterceptor::APIFunctionArgument* in_returned_value_ptr);
 
         private:
+            /* The capabilities of the surface (DDSCAPS_*), which it says itself; false if it does not. */
+            static bool get_caps(void*     in_surface_ptr,
+                                 uint32_t* out_caps_ptr);
+
             void handle_add_attached_surface(const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
             void handle_create_surface      (const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
             void handle_get_attached_surface(const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
