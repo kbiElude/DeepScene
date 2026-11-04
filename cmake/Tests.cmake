@@ -11,6 +11,11 @@ if (DEMOVRPLAYER_BUILD_TESTS)
     add_executable(DemoVRPlayerTests ${DemoVRPlayerTestsSources}
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/RecipeBake/command_line.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/RecipeBake/recipe_baker.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/ConverterDLL/d3d7_eye_renderer.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/ConverterDLL/d3d7_surface_twins.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/ConverterDLL/d3d7_windowed_mode.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/ConverterDLL/invisible_windows.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/ConverterDLL/own_call_scope.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Launcher/command_line.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Presenter/command_line.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/EngineDLL/call_context.cpp"
@@ -55,6 +60,7 @@ if (DEMOVRPLAYER_BUILD_TESTS)
                                      "${APIInterceptor_SOURCE_DIR}/src/Tests/workload_file_builder.cpp")
 
     target_include_directories(DemoVRPlayerTests PRIVATE "${DemoVRPlayer_SOURCE_DIR}/src"
+                                                         "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/ConverterDLL"
                                                          "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/EngineDLL"
                                                          "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/Player"
                                                          "${APIInterceptor_SOURCE_DIR}/src/Tests")

@@ -766,9 +766,11 @@ const void* Stereo::ConverterDLL::D3D7EyeRenderer::get_chunk_ptr(const APIInterc
 
     if (in_argument.type == APIInterceptor::ARGTYPE_DATA_CHUNK_ID)
     {
+        /* A pointer that was null is captured as a chunk with nothing in it. */
         if (APIInterceptor::get_data_chunk(in_argument.get_data_chunk_id(),
                                           &result_ptr,
-                                          &n_bytes) == false)
+                                          &n_bytes) == false ||
+            n_bytes == 0)
         {
             result_ptr = nullptr;
         }
