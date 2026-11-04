@@ -13,11 +13,9 @@
 #include <string.h>
 
 Stereo::ConverterDLL::D3D7HostMemoryExporter::D3D7HostMemoryExporter(Stereo::Transport::FrameChannel* inout_channel_ptr)
-    :m_channel_ptr   (inout_channel_ptr),
+    :HostMemoryExporter(inout_channel_ptr),
      m_last_frame_qpc(0)
 {
-    m_channel_ptr->set_offered_kinds(get_offered_kinds() );
-
     /* A wait of the length of a frame is not the length of a tick of the timer, which is some 15 ms: without this the application is held to half
      * the rate it is meant to have, when there is no program that shows the images to keep time by.
      */
@@ -42,7 +40,7 @@ Stereo::Transport::ExportStatus Stereo::ConverterDLL::D3D7HostMemoryExporter::ex
     std::array<void*, N_EYES>           surface_ptr_array = {in_source.left_surface_ptr, in_source.right_surface_ptr};
 
     /* The other side has not said that it takes what the exporter passes on: not a failure, the frame is left out. */
-    if (m_channel_ptr->get_negotiated_kind() != Stereo::Transport::TransportKind::HOST_MEMORY)
+    if (is_host_memory_negotiated() == false)
     {
         result = Stereo::Transport::ExportStatus::NOT_READY;
 
@@ -80,7 +78,7 @@ Stereo::Transport::ExportStatus Stereo::ConverterDLL::D3D7HostMemoryExporter::ex
     info.timestamp_seconds = in_source.timestamp_seconds;
     info.width             = locked_array.at(0).description.dwWidth * n_eyes;
 
-    destination_ptr = m_channel_ptr->begin_write_ptr(info);
+    destination_ptr = get_channel_ptr()->begin_write_ptr(info);
 
     if (destination_ptr == nullptr)
     {
@@ -102,7 +100,7 @@ Stereo::Transport::ExportStatus Stereo::ConverterDLL::D3D7HostMemoryExporter::ex
         }
     }
 
-    m_channel_ptr->end_write();
+    get_channel_ptr()->end_write();
 
     result = Stereo::Transport::ExportStatus::EXPORTED;
 
@@ -115,11 +113,6 @@ end:
     }
 
     return result;
-}
-
-Stereo::Transport::TransportKindMask Stereo::ConverterDLL::D3D7HostMemoryExporter::get_offered_kinds() const
-{
-    return static_cast<Stereo::Transport::TransportKindMask>(Stereo::Transport::TransportKind::HOST_MEMORY);
 }
 
 uint32_t Stereo::ConverterDLL::D3D7HostMemoryExporter::get_pixel_format(const Interception::Hooks::D3D7::DDPIXELFORMAT& in_pixel_format)
@@ -208,14 +201,12 @@ void Stereo::ConverterDLL::D3D7HostMemoryExporter::unlock_surface(LockedSurface*
 
 void Stereo::ConverterDLL::D3D7HostMemoryExporter::wait_for_pace()
 {
-    /* The screen asks about every 14 ms; a wait that is much longer than a few of them is not for it. */
-    constexpr uint32_t TIMEOUT_N_MILLISECONDS        = 100;
-    constexpr int64_t  FALLBACK_N_FRAMES_PER_SECOND = 60;
+    constexpr int64_t FALLBACK_N_FRAMES_PER_SECOND = 60;
 
     /* With nobody to show the images there is no screen to keep time by, and a window which is not flipped keeps none: the application is held to
      * the rate of a screen, or what it does to the time of its music would not be what it does when it is shown.
      */
-    if (m_channel_ptr->get_negotiated_kind() != Stereo::Transport::TransportKind::HOST_MEMORY &&
+    if (is_host_memory_negotiated()                       == false &&
         Environment::is_set("APISTEREO_NO_FRAME_LIMIT") == false) /* a debugging aid: the cost of a frame, with nothing to wait for */
     {
         LARGE_INTEGER frequency;
@@ -239,7 +230,7 @@ void Stereo::ConverterDLL::D3D7HostMemoryExporter::wait_for_pace()
     }
     else
     {
-        m_channel_ptr->wait_for_pace(TIMEOUT_N_MILLISECONDS);
+        wait_for_screen();
     }
 }
 

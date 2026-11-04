@@ -6,8 +6,7 @@
 #define STEREO_CONVERTERDLL_D3D7_HOST_MEMORY_EXPORTER_H
 
 #include "Interception/Hooks/D3D7/types.h"
-#include "Stereo/Transport/frame_channel.h"
-#include "Stereo/Transport/i_frame_exporter.h"
+#include "host_memory_exporter.h"
 #include <array>
 #include <stdint.h>
 #include <string>
@@ -25,7 +24,7 @@ namespace Stereo
          * The source (see ExportSource) holds the surfaces of the eyes: the left one must be given; no right surface is a frame of one
          * eye, which is what the channel then holds; with both the image is twice as wide.
          */
-        class D3D7HostMemoryExporter : public Stereo::Transport::IFrameExporter
+        class D3D7HostMemoryExporter : public HostMemoryExporter
         {
         public:
             /* The channel must outlive the exporter. The exporter says on it what it offers. */
@@ -38,8 +37,6 @@ namespace Stereo
              */
             Stereo::Transport::ExportStatus export_frame(const uint64_t&                        in_frame_index,
                                                          const Stereo::Transport::ExportSource& in_source) override;
-
-            Stereo::Transport::TransportKindMask get_offered_kinds() const override;
 
             void wait_for_pace() override;
 
@@ -76,7 +73,6 @@ namespace Stereo
                            const uint32_t&      in_pitch);
 
 
-            Stereo::Transport::FrameChannel*         m_channel_ptr;
             std::array<std::vector<uint8_t>, N_EYES> m_converted_u8_vec_array; /* of the formats that are not as they are wanted */
             int64_t                                  m_last_frame_qpc;         /* of the last frame that was waited for, with no one to show it to */
         };

@@ -6,8 +6,7 @@
 #define STEREO_CONVERTERDLL_D3D8_HOST_MEMORY_EXPORTER_H
 
 #include "Interception/Hooks/D3D8/types.h"
-#include "Stereo/Transport/frame_channel.h"
-#include "Stereo/Transport/i_frame_exporter.h"
+#include "host_memory_exporter.h"
 #include "Stereo/Transport/series_stats.h"
 #include <array>
 #include <condition_variable>
@@ -34,7 +33,7 @@ namespace Stereo
          * The source (see ExportSource) holds the device, and the surfaces of the eyes: no left surface is the back buffer of the device, no
          * right surface is a frame of one eye, which is what the channel then holds; with both the image is twice as wide.
          */
-        class D3D8HostMemoryExporter : public Stereo::Transport::IFrameExporter
+        class D3D8HostMemoryExporter : public HostMemoryExporter
         {
         public:
             /* The channel must outlive the exporter. The exporter says on it what it offers. */
@@ -50,8 +49,6 @@ namespace Stereo
              */
             Stereo::Transport::ExportStatus export_frame(const uint64_t&                        in_frame_index,
                                                          const Stereo::Transport::ExportSource& in_source) override;
-
-            Stereo::Transport::TransportKindMask get_offered_kinds() const override;
 
             std::string take_timing_text() override;
 
@@ -115,7 +112,6 @@ namespace Stereo
             /* Copies the rows of the surfaces of the job to the channel. */
             void write_job();
 
-            Stereo::Transport::FrameChannel*                m_channel_ptr;
             std::condition_variable                         m_condition;       /* wakes the thread                                   */
             std::condition_variable                         m_done_condition;  /* wakes the application when the job is done         */
             uint8_t*                                        m_eye_destination_ptr; /* of the work of the thread of the right eye   */

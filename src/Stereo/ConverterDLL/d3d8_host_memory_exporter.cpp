@@ -9,7 +9,7 @@
 #include <string.h>
 
 Stereo::ConverterDLL::D3D8HostMemoryExporter::D3D8HostMemoryExporter(Stereo::Transport::FrameChannel* inout_channel_ptr)
-    :m_channel_ptr (inout_channel_ptr),
+    :HostMemoryExporter(inout_channel_ptr),
      m_eye_destination_ptr(nullptr),
      m_eye_is_ok   (false),
      m_eye_pitch   (0),
@@ -25,8 +25,6 @@ Stereo::ConverterDLL::D3D8HostMemoryExporter::D3D8HostMemoryExporter(Stereo::Tra
      m_next_set    (0),
      m_write_cost  (8.0)
 {
-    m_channel_ptr->set_offered_kinds(get_offered_kinds() );
-
     m_eye_thread = std::thread([this]()
                                {
                                    run_eye_thread();
@@ -128,7 +126,7 @@ Stereo::Transport::ExportStatus Stereo::ConverterDLL::D3D8HostMemoryExporter::ex
     const auto copy_rects_func      = APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_COPYRECTS>     (device_vtable, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_COPYRECTS);
 
     /* The other side has not said that it takes what the exporter passes on: not a failure, the frame is left out. */
-    if (m_channel_ptr->get_negotiated_kind() != Stereo::Transport::TransportKind::HOST_MEMORY)
+    if (is_host_memory_negotiated() == false)
     {
         result = Stereo::Transport::ExportStatus::NOT_READY;
 
@@ -264,11 +262,6 @@ end:
     }
 
     return result;
-}
-
-Stereo::Transport::TransportKindMask Stereo::ConverterDLL::D3D8HostMemoryExporter::get_offered_kinds() const
-{
-    return static_cast<Stereo::Transport::TransportKindMask>(Stereo::Transport::TransportKind::HOST_MEMORY);
 }
 
 bool Stereo::ConverterDLL::D3D8HostMemoryExporter::lock_staging(Staging*        inout_staging_ptr,
@@ -447,7 +440,7 @@ bool Stereo::ConverterDLL::D3D8HostMemoryExporter::write_eye(const uint32_t& in_
 void Stereo::ConverterDLL::D3D8HostMemoryExporter::write_job()
 {
     const double   start_ms        = Stereo::Transport::SeriesStats::get_now();
-    uint8_t*       destination_ptr = m_channel_ptr->begin_write_ptr(m_job.info);
+    uint8_t*       destination_ptr = get_channel_ptr()->begin_write_ptr(m_job.info);
     bool           is_ok           = (destination_ptr != nullptr);
     const uint32_t pitch           = Stereo::Transport::FrameChannel::get_pitch(m_job.info.width);
 
@@ -493,7 +486,7 @@ void Stereo::ConverterDLL::D3D8HostMemoryExporter::write_job()
 
     if (is_ok)
     {
-        m_channel_ptr->end_write();
+        get_channel_ptr()->end_write();
     }
 
     {
@@ -505,12 +498,9 @@ void Stereo::ConverterDLL::D3D8HostMemoryExporter::write_job()
 
 void Stereo::ConverterDLL::D3D8HostMemoryExporter::wait_for_pace()
 {
-    /* The screen asks about every 14 ms; a wait that is much longer than a few of them is not for it. */
-    constexpr uint32_t TIMEOUT_N_MILLISECONDS = 100;
-
     const double start_ms = Stereo::Transport::SeriesStats::get_now();
 
-    if (m_channel_ptr->wait_for_pace(TIMEOUT_N_MILLISECONDS) )
+    if (wait_for_screen() )
     {
         std::lock_guard<std::mutex> lock(m_mutex);
 
