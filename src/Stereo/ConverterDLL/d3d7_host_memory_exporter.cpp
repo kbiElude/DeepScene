@@ -3,10 +3,11 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "Common/vtable.h"
-#include "../../Stereo/Replay/EngineDLL/pixel_converter.h"
 #include "Interception/Core/D3D7Utils/constants.h"
 #include "Interception/Hooks/D3D8/types.h"
 #include "d3d7_host_memory_exporter.h"
+#include "environment.h"
+#include "pixel_row_writer.h"
 #include <mmsystem.h>
 #include <stdio.h>
 #include <string.h>
@@ -215,9 +216,7 @@ void Stereo::ConverterDLL::D3D7HostMemoryExporter::wait_for_pace()
      * the rate of a screen, or what it does to the time of its music would not be what it does when it is shown.
      */
     if (m_channel_ptr->get_negotiated_kind() != Stereo::Transport::TransportKind::HOST_MEMORY &&
-        ::GetEnvironmentVariableA("APISTEREO_NO_FRAME_LIMIT",
-                                  nullptr,
-                                  0) == 0) /* a debugging aid: the cost of a frame, with nothing to wait for */
+        Environment::is_set("APISTEREO_NO_FRAME_LIMIT") == false) /* a debugging aid: the cost of a frame, with nothing to wait for */
     {
         LARGE_INTEGER frequency;
         LARGE_INTEGER now;
@@ -258,6 +257,7 @@ bool Stereo::ConverterDLL::D3D7HostMemoryExporter::write_debug_image(void*      
     uint32_t                          n_eyes            = (in_right_surface_ptr != nullptr) ? 2 : 1;
     uint32_t                          n_locked          = 0;
     std::vector<uint8_t>              pixel_u8_vec;
+    std::vector<uint8_t>              scratch_u8_vec;
     bool                              result            = false;
     std::array<void*, N_EYES>         surface_ptr_array = {in_left_surface_ptr, in_right_surface_ptr};
     uint32_t                          width             = 0;
@@ -286,42 +286,23 @@ bool Stereo::ConverterDLL::D3D7HostMemoryExporter::write_debug_image(void*      
                   n_eye < n_eyes;
                 ++n_eye)
     {
-        const auto&          description  = locked_array.at(n_eye).description;
-        const uint32_t       format       = get_pixel_format(description.ddpfPixelFormat);
-        std::vector<uint8_t> converted_u8_vec;
-        const uint8_t*       source_ptr   = static_cast<const uint8_t*>(description.lpSurface);
-        uint32_t             source_pitch = static_cast<uint32_t>(description.lPitch);
+        const auto&    description = locked_array.at(n_eye).description;
+        const uint32_t format      = get_pixel_format(description.ddpfPixelFormat);
 
         if (format == 0                                      ||
             description.dwWidth  != width                    ||
-            description.dwHeight != height)
+            description.dwHeight != height                   ||
+            PixelRowWriter::write_eye(format,
+                                      width,
+                                      height,
+                                      static_cast<const uint8_t*>(description.lpSurface),
+                                      static_cast<uint32_t>(description.lPitch),
+                                      n_eye,
+                                      pixel_u8_vec.data(),
+                                      width * n_eyes * BYTES_PER_PIXEL,
+                                     &scratch_u8_vec) == false)
         {
             goto end;
-        }
-
-        if (format != Interception::Hooks::D3D8::D3DFMT_X8R8G8B8)
-        {
-            if (Stereo::Replay::EngineDLL::PixelConverter::convert_to_bgra8(format,
-                                                                            width,
-                                                                            height,
-                                                                            source_pitch,
-                                                                            source_ptr,
-                                                                           &converted_u8_vec) == false)
-            {
-                goto end;
-            }
-
-            source_ptr   = converted_u8_vec.data();
-            source_pitch = width * BYTES_PER_PIXEL;
-        }
-
-        for (uint32_t n_row = 0;
-                      n_row < height;
-                    ++n_row)
-        {
-            ::memcpy(pixel_u8_vec.data() + (static_cast<size_t>(n_row) * width * n_eyes + static_cast<size_t>(n_eye) * width) * BYTES_PER_PIXEL,
-                     source_ptr + static_cast<size_t>(n_row) * source_pitch,
-                     static_cast<size_t>(width) * BYTES_PER_PIXEL);
         }
     }
 
@@ -370,38 +351,18 @@ bool Stereo::ConverterDLL::D3D7HostMemoryExporter::write_eye(const LockedSurface
                                                              uint8_t*             out_destination_ptr,
                                                              const uint32_t&      in_pitch)
 {
-    constexpr uint32_t BYTES_PER_PIXEL = sizeof(uint32_t);
+    const auto&    description = in_locked.description;
+    const uint32_t format      = get_pixel_format(description.ddpfPixelFormat);
 
-    const auto&    description  = in_locked.description;
-    const uint32_t format       = get_pixel_format(description.ddpfPixelFormat);
-    bool           is_ok        = (format != 0                                  &&
-                                   description.lpSurface != nullptr);
-    const uint8_t* source_ptr   = static_cast<const uint8_t*>(description.lpSurface);
-    uint32_t       source_pitch = static_cast<uint32_t>(description.lPitch);
-
-    /* The formats of 32 bits are as they are wanted; the others are converted first. */
-    if (is_ok                                                      &&
-        format != Interception::Hooks::D3D8::D3DFMT_X8R8G8B8)
-    {
-        is_ok = Stereo::Replay::EngineDLL::PixelConverter::convert_to_bgra8(format,
-                                                                            description.dwWidth,
-                                                                            description.dwHeight,
-                                                                            source_pitch,
-                                                                            source_ptr,
-                                                                           &m_converted_u8_vec_array.at(in_eye) );
-
-        source_ptr   = m_converted_u8_vec_array.at(in_eye).data();
-        source_pitch = description.dwWidth * BYTES_PER_PIXEL;
-    }
-
-    for (uint32_t n_row = 0;
-                  n_row < description.dwHeight && is_ok;
-                ++n_row)
-    {
-        ::memcpy(out_destination_ptr + static_cast<size_t>(n_row) * in_pitch + static_cast<size_t>(in_eye) * description.dwWidth * BYTES_PER_PIXEL,
-                 source_ptr          + static_cast<size_t>(n_row) * source_pitch,
-                 static_cast<size_t>(description.dwWidth) * BYTES_PER_PIXEL);
-    }
-
-    return is_ok;
+    return (format != 0                         &&
+            description.lpSurface != nullptr    &&
+            PixelRowWriter::write_eye(format,
+                                      description.dwWidth,
+                                      description.dwHeight,
+                                      static_cast<const uint8_t*>(description.lpSurface),
+                                      static_cast<uint32_t>(description.lPitch),
+                                      in_eye,
+                                      out_destination_ptr,
+                                      in_pitch,
+                                     &m_converted_u8_vec_array.at(in_eye) ) );
 }

@@ -9,6 +9,7 @@
 #include "Interception/Hooks/D3D8/types.h"
 #include "Stereo/Session/session_environment.h"
 #include "converter.h"
+#include "environment.h"
 #include "own_call_scope.h"
 #include <array>
 #include <stdlib.h>
@@ -58,24 +59,24 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
     {
         float value = 0.0f;
 
-        if (read_environment_number("APISTEREO_EYE_SEPARATION",
-                                   &value) )
+        if (Environment::get_number("APISTEREO_EYE_SEPARATION",
+                                    &value) )
         {
             m_live_state.core_ptr->set_eye_separation(value);
 
             m_log.write("The eye separation is " + std::to_string(value) + ", from APISTEREO_EYE_SEPARATION");
         }
 
-        if (read_environment_number("APISTEREO_DEPTH_STRENGTH",
-                                   &value) )
+        if (Environment::get_number("APISTEREO_DEPTH_STRENGTH",
+                                    &value) )
         {
             m_live_state.core_ptr->set_depth_strength(value);
 
             m_log.write("The strength of the 3D is " + std::to_string(value) + ", from APISTEREO_DEPTH_STRENGTH");
         }
 
-        if (read_environment_number("APISTEREO_PUSH_OVERLAY",
-                                   &value) )
+        if (Environment::get_number("APISTEREO_PUSH_OVERLAY",
+                                    &value) )
         {
             m_live_state.core_ptr->set_is_overlay_pushed(value != 0.0f);
 
@@ -84,14 +85,14 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
             m_log.write("What the recipe leaves alone is pushed toward the viewer: " + std::to_string(value != 0.0f) + ", from APISTEREO_PUSH_OVERLAY");
         }
 
-        if (read_environment_number("APISTEREO_DUMP_EVERY",
-                                   &value) )
+        if (Environment::get_number("APISTEREO_DUMP_EVERY",
+                                    &value) )
         {
             m_live_state.dump_every = static_cast<uint64_t>(value);
         }
 
-        if (read_environment_number("APISTEREO_DUMP_FRAME",
-                                   &value) )
+        if (Environment::get_number("APISTEREO_DUMP_FRAME",
+                                    &value) )
         {
             m_live_state.dump_frame = static_cast<uint64_t>(value);
         }
@@ -119,10 +120,10 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
             float width  = 0.0f;
 
             if (is_shown_elsewhere == false                          &&
-                read_environment_number("APISTEREO_TARGET_EYE_WIDTH",
-                                       &width)                        &&
-                read_environment_number("APISTEREO_TARGET_EYE_HEIGHT",
-                                       &height) )
+                Environment::get_number("APISTEREO_TARGET_EYE_WIDTH",
+                                        &width)                        &&
+                Environment::get_number("APISTEREO_TARGET_EYE_HEIGHT",
+                                        &height) )
             {
                 target_height      = static_cast<uint32_t>(height);
                 target_width       = static_cast<uint32_t>(width);
@@ -692,22 +693,4 @@ void Stereo::ConverterDLL::Converter::read_channel_settings(std::vector<std::str
             out_log_line_vec_ptr->push_back("The convergence distance is now " + std::to_string(convergence_distance) );
         }
     }
-}
-
-bool Stereo::ConverterDLL::Converter::read_environment_number(const char* in_name_ptr,
-                                                               float*      out_value_ptr)
-{
-    char                value_i8vec32[32] = {};
-    const unsigned long n_chars           = ::GetEnvironmentVariableA(in_name_ptr,
-                                                                      value_i8vec32,
-                                                                      static_cast<DWORD>(sizeof(value_i8vec32) ));
-    const bool          result            = (n_chars > 0                      &&
-                                             n_chars < sizeof(value_i8vec32) );
-
-    if (result)
-    {
-        *out_value_ptr = static_cast<float>(::atof(value_i8vec32) );
-    }
-
-    return result;
 }

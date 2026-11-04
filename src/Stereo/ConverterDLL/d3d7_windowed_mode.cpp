@@ -8,8 +8,8 @@
 #include "Interception/Core/D3D7Utils/constants.h"
 #include "Interception/Hooks/D3D7/types.h"
 #include "d3d7_windowed_mode.h"
+#include "eye_image_limits.h"
 #include "own_call_scope.h"
-#include "Stereo/Transport/frame_channel.h"
 #include <Windows.h>
 
 Stereo::ConverterDLL::D3D7WindowedMode::D3D7WindowedMode()
@@ -224,17 +224,15 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_set_display_mode(const APIIn
         if (m_target_height != 0 &&
             m_target_width  != 0)
         {
-            const float max_width_scale  = static_cast<float>(Stereo::Transport::FrameChannel::get_max_width() ) / static_cast<float>(2 * width);
-            const float max_height_scale = static_cast<float>(Stereo::Transport::FrameChannel::get_max_height() ) / static_cast<float>(height);
-            const float max_scale        = (max_width_scale < max_height_scale) ? max_width_scale
-                                                                                 : max_height_scale;
-            const float fit_scale        = Stereo::Core::ResolutionPolicy::get_fit_scale(m_target_width,
-                                                                                         m_target_height,
-                                                                                         width,
-                                                                                         height);
+            const float channel_scale = EyeImageLimits::get_largest_scale(width,
+                                                                          height);
+            const float fit_scale     = Stereo::Core::ResolutionPolicy::get_fit_scale(m_target_width,
+                                                                                      m_target_height,
+                                                                                      width,
+                                                                                      height);
 
-            m_policy = Stereo::Core::ResolutionPolicy((fit_scale < max_scale) ? fit_scale
-                                                                              : max_scale);
+            m_policy = Stereo::Core::ResolutionPolicy((fit_scale < channel_scale) ? fit_scale
+                                                                                   : channel_scale);
         }
     }
 }

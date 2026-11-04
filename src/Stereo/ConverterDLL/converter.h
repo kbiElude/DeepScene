@@ -99,9 +99,6 @@ namespace Stereo
                                          void*                                      in_user_arg_ptr,
                                          bool*                                      out_should_pass_through_ptr);
 
-            /* Reads a number from the environment of the process; false if there is none. */
-            static bool read_environment_number(const char* in_name_ptr,
-                                                float*      out_value_ptr);
 
             /* What the converter knows of the application as it runs. Lock order: no other lock is taken while it is held. */
             struct LiveState

@@ -3,10 +3,10 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "d3d8_resolution_scaler.h"
+#include "eye_image_limits.h"
 #include "Analysis/APIDumpAnalysis/frontends/d3d8_resolution_hazards.h"
 #include "Common/macros.h"
 #include "Common/vtable.h"
-#include "Stereo/Transport/frame_channel.h"
 #include <string.h>
 
 Stereo::ConverterDLL::D3D8ResolutionScaler::D3D8ResolutionScaler(const uint32_t&              in_target_width,
@@ -103,8 +103,6 @@ void Stereo::ConverterDLL::D3D8ResolutionScaler::on_create_device(Interception::
                                                                   HWND                                              in_focus_window,
                                                                   Interception::Hooks::D3D8::D3DPRESENT_PARAMETERS* inout_parameters_ptr)
 {
-    constexpr uint32_t N_EYES = 2;
-
     (void) in_direct3d_ptr;
     (void) in_adapter;
     (void) in_focus_window;
@@ -139,8 +137,8 @@ void Stereo::ConverterDLL::D3D8ResolutionScaler::on_create_device(Interception::
                    ")");
 
         /* Both eyes are passed on side by side, in an image of a size which has its limit; it is better said here than seen as no picture. */
-        m_core_ptr->require_supported(m_real_width * N_EYES <= Stereo::Transport::FrameChannel::get_max_width() &&
-                                      m_real_height         <= Stereo::Transport::FrameChannel::get_max_height(),
+        m_core_ptr->require_supported(EyeImageLimits::fits(m_real_width,
+                                                           m_real_height),
                                       "At the render scale "                                                          +
                                       std::to_string(m_policy.get_scale() )                                           +
                                       " the images of the eyes are "                                                  +
@@ -148,9 +146,9 @@ void Stereo::ConverterDLL::D3D8ResolutionScaler::on_create_device(Interception::
                                       " x "                                                                           +
                                       std::to_string(m_real_height)                                                   +
                                       " each, which is larger than what can be passed on ("                           +
-                                      std::to_string(Stereo::Transport::FrameChannel::get_max_width() / N_EYES) +
+                                      std::to_string(EyeImageLimits::get_max_width() ) +
                                       " x "                                                                           +
-                                      std::to_string(Stereo::Transport::FrameChannel::get_max_height() )        +
+                                      std::to_string(EyeImageLimits::get_max_height() )        +
                                       " each); lower the render scale");
 
         inout_parameters_ptr->BackBufferHeight = m_real_height;

@@ -14,6 +14,8 @@ if (DEMOVRPLAYER_BUILD_TESTS)
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/ConverterDLL/d3d7_eye_renderer.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/ConverterDLL/d3d7_surface_twins.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/ConverterDLL/d3d7_windowed_mode.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/ConverterDLL/environment.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/ConverterDLL/eye_image_limits.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/ConverterDLL/invisible_windows.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/ConverterDLL/own_call_scope.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Launcher/command_line.cpp"

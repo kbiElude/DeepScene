@@ -11,6 +11,7 @@
 #include "Interception/Core/D3D7Utils/vertex_format.h"
 #include "Stereo/D3D7/screen_parallax.h"
 #include "d3d7_eye_renderer.h"
+#include "environment.h"
 #include "own_call_scope.h"
 #include <string.h>
 
@@ -23,9 +24,7 @@ Stereo::ConverterDLL::D3D7EyeRenderer::D3D7EyeRenderer(Stereo::Core::StereoCore*
      m_windowed_mode_ptr (in_windowed_mode_ptr)
 {
     /* A debugging aid: what the right eye costs, by leaving it out. */
-    m_is_right_eye_off = (::GetEnvironmentVariableA("APISTEREO_NO_RIGHT_EYE",
-                                                    nullptr,
-                                                    0) != 0);
+    m_is_right_eye_off = Environment::is_set("APISTEREO_NO_RIGHT_EYE");
 }
 
 uint64_t Stereo::ConverterDLL::D3D7EyeRenderer::get_n_failed_twins() const

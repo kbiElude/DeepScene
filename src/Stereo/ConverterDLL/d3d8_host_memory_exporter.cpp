@@ -3,9 +3,9 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "Common/vtable.h"
-#include "../../Stereo/Replay/EngineDLL/pixel_converter.h"
 #include "Interception/Hooks/D3D8/types.h"
 #include "d3d8_host_memory_exporter.h"
+#include "pixel_row_writer.h"
 #include <string.h>
 
 Stereo::ConverterDLL::D3D8HostMemoryExporter::D3D8HostMemoryExporter(Stereo::Transport::FrameChannel* inout_channel_ptr)
@@ -431,38 +431,17 @@ bool Stereo::ConverterDLL::D3D8HostMemoryExporter::write_eye(const uint32_t& in_
                                                              uint8_t*        out_destination_ptr,
                                                              const uint32_t& in_pitch)
 {
-    constexpr uint32_t BYTES_PER_PIXEL = sizeof(uint32_t);
+    const auto& description = m_job.description_array.at(in_eye);
 
-    const auto&    description  = m_job.description_array.at(in_eye);
-    bool           is_ok        = true;
-    const uint8_t* source_ptr   = m_job.source_ptr_array.at(in_eye);
-    uint32_t       source_pitch = m_job.source_pitch_array.at(in_eye);
-
-    /* The formats of 32 bits are as they are wanted; the others are converted first. */
-    if (description.Format != Interception::Hooks::D3D8::D3DFMT_A8R8G8B8 &&
-        description.Format != Interception::Hooks::D3D8::D3DFMT_X8R8G8B8)
-    {
-        is_ok = Stereo::Replay::EngineDLL::PixelConverter::convert_to_bgra8(description.Format,
-                                                                            description.Width,
-                                                                            description.Height,
-                                                                            source_pitch,
-                                                                            source_ptr,
-                                                                           &m_converted_u8_vec_array.at(in_eye) );
-
-        source_ptr   = m_converted_u8_vec_array.at(in_eye).data();
-        source_pitch = description.Width * BYTES_PER_PIXEL;
-    }
-
-    for (uint32_t n_row = 0;
-                  n_row < description.Height && is_ok;
-                ++n_row)
-    {
-        ::memcpy(out_destination_ptr + static_cast<size_t>(n_row) * in_pitch + static_cast<size_t>(in_eye) * description.Width * BYTES_PER_PIXEL,
-                 source_ptr          + static_cast<size_t>(n_row) * source_pitch,
-                 static_cast<size_t>(description.Width) * BYTES_PER_PIXEL);
-    }
-
-    return is_ok;
+    return PixelRowWriter::write_eye(description.Format,
+                                     description.Width,
+                                     description.Height,
+                                     m_job.source_ptr_array.at(in_eye),
+                                     m_job.source_pitch_array.at(in_eye),
+                                     in_eye,
+                                     out_destination_ptr,
+                                     in_pitch,
+                                    &m_converted_u8_vec_array.at(in_eye) );
 }
 
 void Stereo::ConverterDLL::D3D8HostMemoryExporter::write_job()
