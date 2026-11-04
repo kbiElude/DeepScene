@@ -3,7 +3,7 @@
   "key_scheme_version": 1,
   "target": {
     "name": "Kasparov",
-    "description": "farbrausch, 2001: DirectDraw 7 and Direct3D 7"
+    "description": "Elitegroup, 1999 (the PC demo of The Party 1999): DirectDraw 7 and Direct3D 7"
   },
   "comfort": {
     "max_near_parallax": 0.03,

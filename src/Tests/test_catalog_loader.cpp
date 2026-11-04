@@ -242,14 +242,21 @@ TEST_F(CatalogLoaderTest, TheCatalogWhichComesWithTheRepositoryListsTheAppsOfThe
     EXPECT_GT(m_catalog.app_vec.at(0).overlay_parallax,
               0.0f);
 
-    /* Kasparov is a program whose recipe is valid; it is not downloaded, so it is there when its folder is, and not before. */
+    /* Kasparov: a recipe which is valid, and an archive of the demo to download, from the mirrors of scene.org. */
     EXPECT_EQ(m_catalog.app_vec.at(1).id,
               "kasparov");
     EXPECT_EQ(m_catalog.app_vec.at(1).name,
               "Kasparov");
     EXPECT_EQ(m_catalog.app_vec.at(1).unavailable_reason.find("recipe"),
               std::string::npos) << m_catalog.app_vec.at(1).unavailable_reason;
-    EXPECT_TRUE(m_catalog.app_vec.at(1).install_spec.url_vec.empty() );
+    EXPECT_GE(m_catalog.app_vec.at(1).install_spec.url_vec.size(),
+              2u);
+    EXPECT_EQ(m_catalog.app_vec.at(1).install_spec.sha256_hex.size(),
+              64u);
+    EXPECT_EQ(m_catalog.app_vec.at(1).install_spec.n_archive_bytes,
+              4389733u);
+    EXPECT_NE(m_catalog.app_vec.at(1).install_spec.install_directory.find("\\apps\\kasparov"),
+              std::string::npos);
 }
 
 TEST_F(CatalogLoaderTest, AnApplicationTakesTheAmountOfItsOverlayFromTheRecipe)

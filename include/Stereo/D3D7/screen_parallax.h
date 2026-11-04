@@ -38,6 +38,14 @@ namespace Stereo
             /* Whether the parameters are ones a shift can be made with. */
             static bool is_valid(const Parameters& in_parameters);
 
+            /* Scales the position of every vertex of the array, in pixels, by the scale: the x and the y, and not the depth or the reciprocal of it. For
+             * a draw to a surface that is rendered larger than the application asks.
+             */
+            static void scale_vertices(const float&    in_scale,
+                                       const uint32_t& in_vertex_n_bytes,
+                                       const size_t&   in_n_vertices,
+                                       uint8_t*        inout_vertex_ptr);
+
             /* Moves the x of every vertex of the array, which is of pre-transformed vertices (x, y, z and the reciprocal of the depth, in
              * floats, and then what the format has more): to the right by the shift for the left eye, to the left for the right one. The
              * depth is not allowed to be behind the camera or beyond reason: a vertex which is has the depth at the edge of what is allowed.

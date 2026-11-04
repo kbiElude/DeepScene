@@ -22,7 +22,19 @@
       "id": "kasparov",
       "title": "Kasparov",
       "recipe": "recipes/kasparov.json",
-      "executable": "kasparov/kasparov.exe"
+      "executable": "kasparov/kasparov.exe",
+      "download": {
+        "urls": [
+          "https://archive.scene.org/pub/demos/groups/elitegroup/e_kasp22.zip",
+          "https://mirror.netcologne.de/scene.org/demos/groups/elitegroup/e_kasp22.zip",
+          "https://mirror.scenesat.com/scene.org/demos/groups/elitegroup/e_kasp22.zip",
+          "https://http.jp.scene.org/demos/groups/elitegroup/e_kasp22.zip"
+        ],
+        "sha256": "9225e7fdd30d5abdda0587e772638bb096888d27dd6701074daaa6f43cd55d4b",
+        "size": 4389733,
+        "unpacked_size": 6220091,
+        "page": "https://files.scene.org/view/demos/groups/elitegroup/e_kasp22.zip"
+      }
     }
   ]
 }
