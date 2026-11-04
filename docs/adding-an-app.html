@@ -201,7 +201,7 @@ tools\Replay\StereoReplayConsistencyChecker_x86 result_dump.workload --recipe my
 <h2 id="limits">What this does not cover</h2>
 <ul>
   <li><strong>The camera has to be set with <code>SetTransform</code>.</strong> The calls a rule can apply to today are <code>IDirect3DDevice8::SetTransform</code> and <code>IDirect3DDevice7::SetTransform</code> (which has transform states named <code>D3DTRANSFORMSTATE_VIEW</code> and so on). A program that passes its matrices to a vertex shader as constants (<code>SetVertexShaderConstant</code>) has a camera that the converter cannot move yet: the analysis follows such constants, but a rule that changes them is new work in the loader, the baker and the converter, not a recipe.</li>
-  <li><strong>Direct3D 8 only.</strong> An OpenGL program can be captured, analysed in part and replayed, but there is no front end that gives it passes, and no converter adapter. See <a href="index.html#api">One API is not all of them</a>.</li>
+  <li><strong>Direct3D 8, and Direct3D 7 for vertices in pixels.</strong> A Direct3D 7 program whose vertices a matrix moves has no adapter yet (see <a href="live-stereo.html#d3d7">Direct3D 7</a>). An OpenGL program can be captured, analysed in part and replayed, but there is no front end that gives it passes, and no converter adapter. See <a href="index.html#api">One API is not all of them</a>.</li>
   <li><strong>The LLM reads facts; it does not see the program.</strong> A fault that the facts cannot show (a pass that is an interface in some frames and a scene in others, with the same structure) is found by a person, in step 6.</li>
 </ul>
 
