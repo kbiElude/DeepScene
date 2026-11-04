@@ -34,6 +34,13 @@ namespace Stereo
             /* False if the options of a screenshot or a contact sheet are given without it, or it without the file to write, or both at once. */
             bool are_image_options_valid(const Options& in_options);
 
+            /* Replays the frames of the options from the workload of the options and from the other workload, as they are, and says whether the images are the same.
+             * Returns false if a replay fails. A slice of the workload (frames 0 to B) is the same as the workload for the frames up to B.
+             */
+            bool compare_workloads(const Options& in_options,
+                                   bool*          out_has_difference_ptr,
+                                   std::string*   out_error_ptr);
+
             /* Writes the images of one frame, as it is and executed twice, to the directory of the options. */
             void dump_frame(const Options&  in_options,
                             const uint32_t& in_n_frame,
@@ -121,6 +128,90 @@ bool Stereo::Replay::ConsistencyChecker::are_image_options_valid(const Stereo::R
                   in_options.has_eye_view == false);
     }
 
+end:
+    return result;
+}
+
+bool Stereo::Replay::ConsistencyChecker::compare_workloads(const Stereo::Replay::ConsistencyChecker::Options& in_options,
+                                                           bool*                                              out_has_difference_ptr,
+                                                           std::string*                                       out_error_ptr)
+{
+    constexpr size_t N_FRAMES_LISTED = 20;
+
+    std::vector<uint32_t>                             different_frame_vec;
+    uint32_t                                          n_different_frames = 0;
+    Stereo::Replay::ConsistencyChecker::Options       other_options      = in_options;
+    Stereo::Replay::ConsistencyChecker::FrameHashSink other_sink(false); /* in_keeps_images */
+    Stereo::Replay::ConsistencyChecker::FrameHashSink own_sink  (false); /* in_keeps_images */
+    bool                                              result             = false;
+
+    other_options.workload_filename = in_options.same_frames_workload_filename;
+
+    if (run_variant(in_options,
+                    VARIANT_ARRAY[0],
+                   &own_sink,
+                    out_error_ptr) == false)
+    {
+        goto end;
+    }
+
+    if (run_variant(other_options,
+                    VARIANT_ARRAY[0],
+                   &other_sink,
+                    out_error_ptr) == false)
+    {
+        goto end;
+    }
+
+    for (const auto& own_pair : own_sink.get_hash_map() )
+    {
+        const auto other_iterator = other_sink.get_hash_map().find(own_pair.first);
+        const bool is_same        = (other_iterator         != other_sink.get_hash_map().end() &&
+                                     other_iterator->second == own_pair.second);
+
+        if (is_same)
+        {
+            continue;
+        }
+
+        n_different_frames++;
+
+        if (different_frame_vec.size() < N_FRAMES_LISTED)
+        {
+            different_frame_vec.push_back(own_pair.first.first);
+        }
+    }
+
+    fprintf(stdout,
+            "Frames %u to %u, as they are, of %s and of %s: %zu images of the first, %zu of the second; %u of the first differ from the second or are not in it.\n",
+            in_options.first_frame,
+            in_options.last_frame,
+            in_options.workload_filename.c_str(),
+            in_options.same_frames_workload_filename.c_str(),
+            own_sink.get_hash_map().size(),
+            other_sink.get_hash_map().size(),
+            n_different_frames);
+
+    if (different_frame_vec.empty() == false)
+    {
+        fprintf(stdout,
+                "  first frames that differ:");
+
+        for (const auto n_frame : different_frame_vec)
+        {
+            fprintf(stdout,
+                    " %u",
+                    n_frame);
+        }
+
+        fprintf(stdout,
+                "\n");
+    }
+
+    *out_has_difference_ptr = (n_different_frames                 != 0 ||
+                               own_sink.get_hash_map().size()     != other_sink.get_hash_map().size() );
+
+    result = true;
 end:
     return result;
 }
@@ -329,6 +420,7 @@ void Stereo::Replay::ConsistencyChecker::print_usage()
             "\n"
             "StereoReplayConsistencyChecker_x86 file.workload [--from A] [--to B] [--dump-dir DIR] [--recipe FILE [--eye-separation D]]\n"
             "                                    [--ways again,twice,restore,recipe] [--parallel]\n"
+            "StereoReplayConsistencyChecker_x86 file.workload --same-frames-as other.workload [--from A] [--to B]\n"
             "StereoReplayConsistencyChecker_x86 file.workload --screenshot N --out FILE.png [--recipe FILE [--eye left|right|both|anaglyph]]\n"
             "StereoReplayConsistencyChecker_x86 file.workload --contact-sheet K --out FILE.png [--from A] [--to B] [--recipe FILE [--eye ...]]\n"
             "\n"
@@ -347,6 +439,8 @@ void Stereo::Replay::ConsistencyChecker::print_usage()
             "\n"
             "  --screenshot N   Instead of the check: replay once, up to frame N, and write the image of that frame to the PNG file of --out. With a\n"
             "                   recipe it is both eyes side by side, or the one that --eye says (anaglyph: red-cyan); without one, the frame as it is.\n"
+            "  --same-frames-as FILE  Instead of the check: replay frames A to B of this workload and of FILE as they are, and say whether the images are the\n"
+            "                   same (exit code 3 if not). For a slice of a workload (APIDumpSlicer): it has to replay to the images of the workload.\n"
             "  --contact-sheet K  Instead of the check: one PNG with K frames spread evenly from A to B (or the end of the workload), each as a screenshot\n"
             "                   is, and the numbers of the frames in the order they are shown.\n");
 }
@@ -938,6 +1032,12 @@ int main(int   in_argc,
             options.screenshot_frame = static_cast<uint32_t>(value);
         }
         else
+        if (argument == "--same-frames-as" &&
+            has_next)
+        {
+            options.same_frames_workload_filename = in_argv[++n_argument];
+        }
+        else
         if (argument == "--parallel")
         {
             options.is_parallel = true;
@@ -983,6 +1083,32 @@ int main(int   in_argc,
 
             goto end;
         }
+    }
+
+    if (options.same_frames_workload_filename.empty() == false)
+    {
+        bool        has_difference = false;
+        std::string error;
+
+        if (Stereo::Replay::ConsistencyChecker::compare_workloads(options,
+                                                                 &has_difference,
+                                                                 &error) == false)
+        {
+            fprintf(stdout,
+                    "%s\n",
+                    error.c_str() );
+
+            exit_code = Stereo::Replay::ConsistencyChecker::ExitCode::REPLAY_FAILED;
+
+            goto end;
+        }
+
+        if (has_difference)
+        {
+            exit_code = Stereo::Replay::ConsistencyChecker::ExitCode::DIFFERENCES_FOUND;
+        }
+
+        goto end;
     }
 
     if (options.contact_sheet_n_frames != 0)

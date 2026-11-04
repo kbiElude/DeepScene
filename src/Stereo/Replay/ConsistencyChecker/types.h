@@ -31,20 +31,21 @@ namespace Stereo
 
             struct Options
             {
-                uint32_t                             contact_sheet_n_frames  = 0;          /* the frames to show in the contact sheet; 0: no sheet */
+                uint32_t                             contact_sheet_n_frames         = 0;          /* the frames to show in the contact sheet; 0: no sheet */
                 std::string                          dump_directory;
-                uint32_t                             dump_frame              = UINT32_MAX; /* the images of this frame are written whether or not it differs */
-                float                                eye_separation          = 0.0f;
-                Stereo::Replay::FrameImages::EyeView eye_view                = Stereo::Replay::FrameImages::EyeView::BOTH;
-                uint32_t                             first_frame             = 0;
-                bool                                 has_eye_view            = false;      /* the view of the eyes of a screenshot or a sheet is the one that was asked for */
-                std::string                          image_filename;                       /* the PNG file of a screenshot or a contact sheet */
-                bool                                 is_parallel             = false;      /* the ways are replayed at the same time */
-                uint32_t                             last_frame              = 999;
+                uint32_t                             dump_frame                     = UINT32_MAX; /* the images of this frame are written whether or not it differs */
+                float                                eye_separation                 = 0.0f;
+                Stereo::Replay::FrameImages::EyeView eye_view                       = Stereo::Replay::FrameImages::EyeView::BOTH;
+                uint32_t                             first_frame                    = 0;
+                bool                                 has_eye_view                   = false;      /* the view of the eyes of a screenshot or a sheet is the one that was asked for */
+                std::string                          image_filename;                              /* the PNG file of a screenshot or a contact sheet */
+                bool                                 is_parallel                    = false;      /* the ways are replayed at the same time */
+                uint32_t                             last_frame                     = 999;
                 Analysis::RecipeLoader::Recipe       recipe;
                 std::string                          recipe_filename;
-                uint32_t                             screenshot_frame        = UINT32_MAX; /* the frame to write the image of: the replay of the workload stops at it */
-                std::vector<std::string>             way_name_vec;                         /* the ways to replay besides the frames as they are; none: the usual ones */
+                std::string                          same_frames_workload_filename;               /* the frames are replayed from this workload too, and compared (a slice of the workload, for one) */
+                uint32_t                             screenshot_frame               = UINT32_MAX; /* the frame to write the image of: the replay of the workload stops at it */
+                std::vector<std::string>             way_name_vec;                                /* the ways to replay besides the frames as they are; none: the usual ones */
                 std::string                          workload_filename;
             };
 

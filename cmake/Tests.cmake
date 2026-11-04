@@ -9,6 +9,7 @@ if (DEMOVRPLAYER_BUILD_TESTS)
 
     # Sources under test which are not part of a library, and the helpers of the tests of the interceptor which these tests use.
     add_executable(DemoVRPlayerTests ${DemoVRPlayerTestsSources}
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpSlicer/command_line.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/RecipeBake/command_line.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/RecipeBake/recipe_baker.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/ConverterDLL/d3d7_eye_renderer.cpp"
@@ -59,7 +60,7 @@ if (DEMOVRPLAYER_BUILD_TESTS)
                                                          "${APIInterceptor_SOURCE_DIR}/src/Tests")
     target_compile_definitions(DemoVRPlayerTests PRIVATE DEMOVRPLAYER_APPS_DIR="${DemoVRPlayer_SOURCE_DIR}/apps"
                                                          DEMOVRPLAYER_TESTS_DATA_DIR="${DemoVRPlayer_SOURCE_DIR}/src/Tests/data")
-    target_link_libraries(DemoVRPlayerTests gtest_main APIInterceptorTestSupport ReplayEngineCore APIDumpAnalysis APIDumpAnalysisFrontends APIDumpDependencies APIDumpLoader AppCatalog AppInstaller D3D7Utils D3D8Utils InjectionLauncher ws2_32 RecipeApplier RecipeLoader StereoCore StereoD3D12 StereoD3D7 StereoReplayEngineDLL StereoReplayFrameImages StereoSession StereoTransport VRDevices)
+    target_link_libraries(DemoVRPlayerTests gtest_main APIInterceptorTestSupport ReplayEngineCore APIDumpAnalysis APIDumpAnalysisFrontends APIDumpDependencies APIDumpLoader APIDumpSlicing AppCatalog AppInstaller D3D7Utils D3D8Utils InjectionLauncher ws2_32 RecipeApplier RecipeLoader StereoCore StereoD3D12 StereoD3D7 StereoReplayEngineDLL StereoReplayFrameImages StereoSession StereoTransport VRDevices)
 
     if (CMAKE_SIZEOF_VOID_P EQUAL 8)
         target_link_libraries(DemoVRPlayerTests StereoXR)

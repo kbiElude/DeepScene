@@ -51,7 +51,7 @@ build.bat --debug            :: Debug instead of Release</code></pre>
 <p>Public headers are in <code>include/</code> and sources in <code>src/</code>; both have the same groups, and a module is <code>include/&lt;Group&gt;/&lt;Module&gt;</code> and <code>src/&lt;Group&gt;/&lt;Module&gt;</code>. An include names the group: <code>#include "Stereo/Core/stereo_core.h"</code>. The namespaces follow the same path. Under <code>Stereo</code>, the name of the target (and of the file it makes) is the path of the module without the slashes: <code>Stereo/Replay/Player</code> is <code>StereoReplayPlayer</code>. The headers of API Interceptor are found through its libraries, with the same rule (<code>#include "Analysis/RecipeLoader/recipe_loader.h"</code>).</p>
 <table>
 <tr><th>Group</th><th>Modules</th></tr>
-<tr><td>Analysis</td><td>APIDumpAnalysis, APIDumpAnalysisExtractor, APIDumpAnalysisQuery, RecipeApplier, RecipeBake, RecipeLoader</td></tr>
+<tr><td>Analysis</td><td>APIDumpAnalysis, APIDumpAnalysisExtractor, APIDumpAnalysisQuery, APIDumpSlicer, APIDumpSlicing, RecipeApplier, RecipeBake, RecipeLoader</td></tr>
 <tr><td>Stereo</td><td>ConverterDLL, Core, D3D12, Launcher, Presenter, Replay/ConsistencyChecker, Replay/EngineDLL, Replay/FrameImages, Replay/Player, Session, Transport, XR</td></tr>
 <tr><td>VR</td><td>AppCatalog, UIHost, VRDevices, VRPlayer</td></tr>
 <tr><td>Tests</td><td>the tests (in <code>src/</code> only)</td></tr>

@@ -50,6 +50,12 @@
 <h3>APIDumpAnalysisQuery</h3>
 <p><em>Program.</em> Asks a <code>.passes</code> file questions (<code>info</code>, <code>timeline</code> and the others) and prints the answers as JSON. It checks that the workload is the one the file is of (<code>--workload</code> says where it is, <code>--no-verify</code> skips the check).</p>
 
+<h3>APIDumpSlicer</h3>
+<p><em>Program.</em> Writes the first frames of a workload, frames 0 to B, as a workload of its own: <code>APIDumpSlicer in.workload slice.workload --frames B</code>. The segments of the file which are wholly in the slice are copied as they are (they are Zstandard frames of their own, found by the index), and only the one that frame B ends in is decoded, cut after the call that ends the frame, and written again, so a slice replays to the same images as the workload up to that frame; <code>StereoReplayConsistencyChecker --same-frames-as</code> checks it. <code>--strip-chunks-above N</code> writes the big data chunks empty (they keep their numbers) for a slice that is only to be analysed. It is the first of the slices; one that leaves out what the frames of a range do not depend on needs the dependency analysis.</p>
+
+<h3>APIDumpSlicing</h3>
+<p><em>Library.</em> What the slicer is made of: the writer of a workload file (<code>WorkloadWriter</code>, which compresses with the writer of the dumper) and the cut of the first frames (<code>HeadSlicer</code>).</p>
+
 <h3>APIDumpDependencies</h3>
 <p><em>Library.</em> What each frame of a workload does with what the frames before it left in the resources: the <code>AccessLog</code> keeps the accesses that the model builder tells (<code>IAccessSink</code>), the <code>DependencyAnalyzer</code> works out the dependencies (one thread for each of several resources at a time), the <code>.deps</code> file keeps them (<code>DepsFile</code>, on the same sections as a <code>.passes</code> file), and the query commands answer about them. <code>PerEyeCandidates</code> is the one rule that says which resources each eye is to have a copy of. Nothing in it knows an API.</p>
 

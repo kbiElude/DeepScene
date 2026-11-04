@@ -92,6 +92,29 @@ target_link_libraries(APIDumpDependencyQuery APIDumpDependencies)
 
 source_group ("APIDumpDependencyQuery source files" FILES ${APIDumpDependencyQuerySources})
 
+# Writes a workload, and cuts the first frames of one out of another. The compressor is the one of the dumper (a source of its DLL, which a program cannot link).
+file(GLOB APIDumpSlicingIncludes CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/include/Analysis/APIDumpSlicing/*.h")
+file(GLOB APIDumpSlicingSources CONFIGURE_DEPENDS  "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpSlicing/*.cpp")
+
+add_library(APIDumpSlicing STATIC ${APIDumpSlicingIncludes} ${APIDumpSlicingSources} "${APIInterceptor_SOURCE_DIR}/src/Capture/APIDumperDLL/zstd_file_writer.cpp")
+
+# zstd_file_writer.cpp includes its header by its name.
+target_include_directories(APIDumpSlicing PRIVATE "${APIInterceptor_SOURCE_DIR}/include/Capture/APIDumperDLL")
+target_link_libraries(APIDumpSlicing PUBLIC APIDumpLoader)
+
+source_group ("APIDump Slicing include files" FILES ${APIDumpSlicingIncludes})
+source_group ("APIDump Slicing source files"  FILES ${APIDumpSlicingSources})
+
+file(GLOB APIDumpSlicerSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpSlicer/*.cpp"
+                                                 "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpSlicer/*.h")
+
+add_executable(APIDumpSlicer ${APIDumpSlicerSources})
+
+target_include_directories(APIDumpSlicer PRIVATE "${DemoVRPlayer_SOURCE_DIR}/src")
+target_link_libraries     (APIDumpSlicer APIDumpAnalysis APIDumpSlicing)
+
+source_group ("APIDumpSlicer source files" FILES ${APIDumpSlicerSources})
+
 file(GLOB RecipeBakeSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/RecipeBake/*.cpp"
                                               "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/RecipeBake/*.h")
 
