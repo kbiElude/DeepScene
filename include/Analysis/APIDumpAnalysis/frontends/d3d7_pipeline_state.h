@@ -31,24 +31,14 @@ namespace Analysis
                                                                          const Analysis::APIDumpAnalysis::ResourceId&        in_vertex_buffer_id);
 
                 /* Back to what a device starts with. */
+                /* The state of the fixed-function pipeline, which the front end follows the calls that set it of. */
+                FixedFunctionState& get_fixed_function_state();
+
                 void reset();
 
-                /* The functions which take an index return false, and change nothing, for an index which no device has. */
-                bool set_light       (const uint32_t& in_index,
-                                      const uint32_t& in_type);
-                bool set_light_enable(const uint32_t& in_index,
-                                      const bool&     in_is_enabled);
 
-                bool set_render_state(const uint32_t& in_state,
-                                      const uint32_t& in_value);
 
-                /* A view with the resource NONE unbinds the stage. */
-                bool set_texture(const uint32_t&                                in_stage,
-                                 const Analysis::APIDumpAnalysis::ResourceView& in_view);
 
-                bool set_texture_stage_state(const uint32_t& in_stage,
-                                             const uint32_t& in_state,
-                                             const uint32_t& in_value);
 
             private:
                 static FixedFunctionState::Rules get_rules();

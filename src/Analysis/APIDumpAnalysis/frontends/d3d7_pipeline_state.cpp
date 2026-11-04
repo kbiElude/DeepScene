@@ -133,44 +133,13 @@ bool Analysis::APIDumpAnalysis::Frontends::D3D7PipelineState::is_value_irrelevan
     return result;
 }
 
+Analysis::APIDumpAnalysis::Frontends::FixedFunctionState& Analysis::APIDumpAnalysis::Frontends::D3D7PipelineState::get_fixed_function_state()
+{
+    return m_fixed_function_state;
+}
+
 void Analysis::APIDumpAnalysis::Frontends::D3D7PipelineState::reset()
 {
     *this = D3D7PipelineState();
 }
 
-bool Analysis::APIDumpAnalysis::Frontends::D3D7PipelineState::set_light(const uint32_t& in_index,
-                                                                        const uint32_t& in_type)
-{
-    return m_fixed_function_state.set_light(in_index,
-                                            in_type);
-}
-
-bool Analysis::APIDumpAnalysis::Frontends::D3D7PipelineState::set_light_enable(const uint32_t& in_index,
-                                                                               const bool&     in_is_enabled)
-{
-    return m_fixed_function_state.set_light_enable(in_index,
-                                                   in_is_enabled);
-}
-
-bool Analysis::APIDumpAnalysis::Frontends::D3D7PipelineState::set_render_state(const uint32_t& in_state,
-                                                                               const uint32_t& in_value)
-{
-    return m_fixed_function_state.set_render_state(in_state,
-                                                   in_value);
-}
-
-bool Analysis::APIDumpAnalysis::Frontends::D3D7PipelineState::set_texture(const uint32_t&                                in_stage,
-                                                                          const Analysis::APIDumpAnalysis::ResourceView& in_view)
-{
-    return m_fixed_function_state.set_texture(in_stage,
-                                              in_view);
-}
-
-bool Analysis::APIDumpAnalysis::Frontends::D3D7PipelineState::set_texture_stage_state(const uint32_t& in_stage,
-                                                                                      const uint32_t& in_state,
-                                                                                      const uint32_t& in_value)
-{
-    return m_fixed_function_state.set_texture_stage_state(in_stage,
-                                                          in_state,
-                                                          in_value);
-}

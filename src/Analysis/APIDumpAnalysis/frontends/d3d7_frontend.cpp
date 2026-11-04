@@ -19,9 +19,7 @@
 static constexpr size_t NONE_ARGUMENT = static_cast<size_t>(-1);
 
 Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::D3D7Frontend(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr)
-    :m_builder_ptr        (in_builder_ptr),
-     m_n_unfollowed_calls (0),
-     m_n_unsupported_calls(0),
+    :FixedFunctionFrontend(in_builder_ptr),
      m_screen_height      (0),
      m_screen_width       (0)
 {
@@ -178,20 +176,6 @@ const Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::DrawLayout* Analysis::
     return result_ptr;
 }
 
-const Analysis::APIDumpAnalysis::ResourceDescription* Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::find_resource_description_ptr(const Analysis::APIDumpAnalysis::ResourceId& in_id) const
-{
-    const uint32_t                                        index  = Analysis::APIDumpAnalysis::get_resource_id_value(in_id);
-    const Analysis::APIDumpAnalysis::ResourceDescription* result_ptr = nullptr;
-
-    if (index >= 1                                              &&
-        index <= m_builder_ptr->get_model().resource_vec.size() )
-    {
-        result_ptr = &m_builder_ptr->get_model().resource_vec.at(index - 1).description;
-    }
-
-    return result_ptr;
-}
-
 const char* Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::get_created_object_type_name_ptr(const CallView&                                in_view,
                                                                                                  const Interception::Hooks::D3D7::ArgumentInfo& in_info)
 {
@@ -215,52 +199,6 @@ const char* Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::get_created_obje
 
     return (result_ptr != nullptr) ? result_ptr
                                    : "Object";
-}
-
-bool Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::find_resource_view(const uint64_t&                          in_address,
-                                                                        Analysis::APIDumpAnalysis::ResourceView* out_view_ptr) const
-{
-    const ObjectTracker::TrackedObject* object_ptr = m_tracker.get_object_ptr(in_address);
-    const bool                          result     = (object_ptr != nullptr);
-
-    if (result)
-    {
-        *out_view_ptr = object_ptr->view;
-    }
-
-    return result;
-}
-
-Analysis::APIDumpAnalysis::Viewport Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::get_full_viewport(const Analysis::APIDumpAnalysis::ResourceView& in_view) const
-{
-    const Analysis::APIDumpAnalysis::ResourceDescription* description_ptr = find_resource_description_ptr(in_view.resource_id);
-    Analysis::APIDumpAnalysis::Viewport                   result;
-
-    if (description_ptr != nullptr)
-    {
-        /* Each mip level is half the size of the one before, down to one pixel. */
-        result.height = static_cast<float>(std::max<uint32_t>(description_ptr->height >> in_view.mip_level,
-                                                              1) );
-        result.width  = static_cast<float>(std::max<uint32_t>(description_ptr->width  >> in_view.mip_level,
-                                                              1) );
-    }
-
-    return result;
-}
-
-const std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t>& Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::get_n_resolution_hazards() const
-{
-    return m_n_resolution_hazard_map;
-}
-
-uint64_t Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::get_n_unfollowed_calls() const
-{
-    return m_n_unfollowed_calls;
-}
-
-uint64_t Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::get_n_unsupported_calls() const
-{
-    return m_n_unsupported_calls;
 }
 
 Analysis::APIDumpAnalysis::PrimitiveTopology Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::get_primitive_topology(const uint32_t& in_type)
@@ -297,12 +235,17 @@ Analysis::APIDumpAnalysis::PrimitiveTopology Analysis::APIDumpAnalysis::Frontend
     return result;
 }
 
-const Analysis::APIDumpAnalysis::Frontends::ObjectTracker& Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::get_tracker() const
+void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::forget_resource(const Analysis::APIDumpAnalysis::ResourceId& in_id)
 {
-    return m_tracker;
+    m_geometry_tracker.forget(in_id);
 }
 
-Analysis::APIDumpAnalysis::ConstantSemantic Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::get_transform_semantic(const uint32_t& in_state)
+Analysis::APIDumpAnalysis::Frontends::FixedFunctionState& Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::get_fixed_function_state()
+{
+    return m_pipeline_state.get_fixed_function_state();
+}
+
+Analysis::APIDumpAnalysis::ConstantSemantic Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::get_transform_semantic(const uint32_t& in_state) const
 {
     Analysis::APIDumpAnalysis::ConstantSemantic result = Analysis::APIDumpAnalysis::ConstantSemantic::UNKNOWN;
 
@@ -664,40 +607,6 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_get_attached_sur
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_light_enable(const CallView& in_view)
-{
-    constexpr size_t ENABLE_ARGUMENT = 2;
-    constexpr size_t INDEX_ARGUMENT  = 1;
-
-    if (m_pipeline_state.set_light_enable(in_view.get_u32(INDEX_ARGUMENT),
-                                          in_view.get_i32(ENABLE_ARGUMENT) != 0) == false)
-    {
-        m_n_unfollowed_calls++;
-    }
-}
-
-void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_release(const CallView& in_view)
-{
-    constexpr size_t OBJECT_ARGUMENT = 0;
-
-    const uint64_t                      address    = in_view.get_pointer(OBJECT_ARGUMENT);
-    const ObjectTracker::TrackedObject* object_ptr = m_tracker.get_object_ptr(address);
-
-    /* The last reference is gone. */
-    if (object_ptr                 != nullptr &&
-        in_view.get_returned_u32() == 0)
-    {
-        if (object_ptr->owns_resource)
-        {
-            m_builder_ptr->on_destroy_resource(object_ptr->view.resource_id);
-
-            m_geometry_tracker.forget(object_ptr->view.resource_id);
-        }
-
-        m_tracker.forget(address);
-    }
-}
-
 void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_set_display_mode(const CallView& in_view)
 {
     constexpr size_t HEIGHT_ARGUMENT = 2;
@@ -705,46 +614,6 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_set_display_mode
 
     m_screen_height = in_view.get_u32(HEIGHT_ARGUMENT);
     m_screen_width  = in_view.get_u32(WIDTH_ARGUMENT);
-}
-
-void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_set_light(const CallView& in_view)
-{
-    constexpr size_t INDEX_ARGUMENT = 1;
-    constexpr size_t LIGHT_ARGUMENT = 2;
-
-    const Capture::APIDumpLoader::DataChunk* chunk_ptr = in_view.get_chunk_ptr(LIGHT_ARGUMENT);
-    uint32_t                                 type      = 0;
-
-    if (chunk_ptr         != nullptr                                      &&
-        chunk_ptr->size() == sizeof(Interception::Hooks::D3D7::D3DLIGHT7) )
-    {
-        /* The type is the first member. */
-        memcpy(&type,
-               chunk_ptr->data(),
-               sizeof(type) );
-
-        if (m_pipeline_state.set_light(in_view.get_u32(INDEX_ARGUMENT),
-                                       type) == false)
-        {
-            m_n_unfollowed_calls++;
-        }
-    }
-    else
-    {
-        m_n_unfollowed_calls++;
-    }
-}
-
-void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_set_render_state(const CallView& in_view)
-{
-    constexpr size_t STATE_ARGUMENT = 1;
-    constexpr size_t VALUE_ARGUMENT = 2;
-
-    if (m_pipeline_state.set_render_state(in_view.get_u32(STATE_ARGUMENT),
-                                          in_view.get_u32(VALUE_ARGUMENT) ) == false)
-    {
-        m_n_unfollowed_calls++;
-    }
 }
 
 void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_set_render_target(const CallView& in_view)
@@ -760,81 +629,6 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_set_render_targe
     else
     {
         apply_render_target(target_ptr->view);
-    }
-}
-
-void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_set_texture(const CallView& in_view)
-{
-    constexpr size_t STAGE_ARGUMENT   = 1;
-    constexpr size_t TEXTURE_ARGUMENT = 2;
-
-    const uint64_t                      address     = in_view.get_pointer(TEXTURE_ARGUMENT);
-    const ObjectTracker::TrackedObject* texture_ptr = m_tracker.get_object_ptr(address);
-    bool                                is_set      = false;
-
-    /* No texture takes the one in the stage away. */
-    if (address == 0)
-    {
-        is_set = m_pipeline_state.set_texture(in_view.get_u32(STAGE_ARGUMENT),
-                                              Analysis::APIDumpAnalysis::ResourceView() );
-    }
-    else
-    if (texture_ptr != nullptr)
-    {
-        is_set = m_pipeline_state.set_texture(in_view.get_u32(STAGE_ARGUMENT),
-                                              texture_ptr->view);
-    }
-
-    if (is_set == false)
-    {
-        m_n_unfollowed_calls++;
-    }
-}
-
-void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_set_texture_stage_state(const CallView& in_view)
-{
-    constexpr size_t STAGE_ARGUMENT = 1;
-    constexpr size_t STATE_ARGUMENT = 2;
-    constexpr size_t VALUE_ARGUMENT = 3;
-
-    if (m_pipeline_state.set_texture_stage_state(in_view.get_u32(STAGE_ARGUMENT),
-                                                 in_view.get_u32(STATE_ARGUMENT),
-                                                 in_view.get_u32(VALUE_ARGUMENT) ) == false)
-    {
-        m_n_unfollowed_calls++;
-    }
-}
-
-void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_set_transform(const CallView& in_view)
-{
-    constexpr size_t MATRIX_ARGUMENT = 2;
-    constexpr size_t STATE_ARGUMENT  = 1;
-
-    const Capture::APIDumpLoader::DataChunk* chunk_ptr = in_view.get_chunk_ptr(MATRIX_ARGUMENT);
-    const uint32_t                           state     = in_view.get_u32      (STATE_ARGUMENT);
-
-    if (chunk_ptr         == nullptr                                      ||
-        chunk_ptr->size() != sizeof(Interception::Hooks::D3D7::D3DMATRIX) )
-    {
-        m_n_unfollowed_calls++;
-    }
-    else
-    if (get_transform_semantic(state) != Analysis::APIDumpAnalysis::ConstantSemantic::UNKNOWN)
-    {
-        Analysis::APIDumpAnalysis::ConstantUpdate& update = m_transform_update_scratch;
-
-        /* The transforms are state of the device, laid out one after the other. */
-        update.location.block_kind  = Analysis::APIDumpAnalysis::ConstantBlockKind::FIXED_FUNCTION_STATE;
-        update.location.byte_offset = static_cast<uint64_t>(state) * sizeof(Interception::Hooks::D3D7::D3DMATRIX);
-        update.location.byte_size   = sizeof               (Interception::Hooks::D3D7::D3DMATRIX);
-        update.provenance           = Analysis::APIDumpAnalysis::ConstantProvenance::API_DEFINED;
-        update.semantic             = get_transform_semantic(state);
-
-        /* The memory of the matrix of the last call is used again. */
-        update.value_u8_vec.assign(chunk_ptr->begin(),
-                                   chunk_ptr->end() );
-
-        m_builder_ptr->on_update_constant(update);
     }
 }
 

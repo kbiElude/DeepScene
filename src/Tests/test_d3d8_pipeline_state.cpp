@@ -23,13 +23,13 @@ TEST(D3D8PipelineState, AStateThatChoosesHowThingsAreDoneChangesTheKey)
 
     const auto key_before = state.describe_draw(Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST, 3, false).state_key;
 
-    state.set_render_state(Interception::Hooks::D3D8::D3DRS_ALPHABLENDENABLE,
-                           1);
+    state.get_fixed_function_state().set_render_state(Interception::Hooks::D3D8::D3DRS_ALPHABLENDENABLE,
+                                                      1);
 
     const auto key_blend_on = state.describe_draw(Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST, 3, false).state_key;
 
-    state.set_render_state(Interception::Hooks::D3D8::D3DRS_ALPHABLENDENABLE,
-                           0);
+    state.get_fixed_function_state().set_render_state(Interception::Hooks::D3D8::D3DRS_ALPHABLENDENABLE,
+                                                      0);
 
     const auto key_blend_off = state.describe_draw(Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST, 3, false).state_key;
 
@@ -47,13 +47,13 @@ TEST(D3D8PipelineState, AStateThatIsANumberIsInTheKeyOnlyForBeingSet)
 
     const auto key_before = state.describe_draw(Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST, 3, false).state_key;
 
-    state.set_render_state(Interception::Hooks::D3D8::D3DRS_TEXTUREFACTOR,
-                           0xFF112233);
+    state.get_fixed_function_state().set_render_state(Interception::Hooks::D3D8::D3DRS_TEXTUREFACTOR,
+                                                      0xFF112233);
 
     const auto key_first = state.describe_draw(Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST, 3, false).state_key;
 
-    state.set_render_state(Interception::Hooks::D3D8::D3DRS_TEXTUREFACTOR,
-                           0xFF445566);
+    state.get_fixed_function_state().set_render_state(Interception::Hooks::D3D8::D3DRS_TEXTUREFACTOR,
+                                                      0xFF445566);
 
     const auto key_second = state.describe_draw(Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST, 3, false).state_key;
 
@@ -67,38 +67,38 @@ TEST(D3D8PipelineState, TextureStageStatesFollowTheSameRules)
 {
     Analysis::APIDumpAnalysis::Frontends::D3D8PipelineState state;
 
-    state.set_texture_stage_state(0,
-                                  Interception::Hooks::D3D8::D3DTSS_COLOROP,
-                                  4);
+    state.get_fixed_function_state().set_texture_stage_state(0,
+                                                             Interception::Hooks::D3D8::D3DTSS_COLOROP,
+                                                             4);
 
     const auto key_op_4 = state.describe_draw(Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST, 3, false).state_key;
 
-    state.set_texture_stage_state(0,
-                                  Interception::Hooks::D3D8::D3DTSS_COLOROP,
-                                  7);
+    state.get_fixed_function_state().set_texture_stage_state(0,
+                                                             Interception::Hooks::D3D8::D3DTSS_COLOROP,
+                                                             7);
 
     const auto key_op_7 = state.describe_draw(Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST, 3, false).state_key;
 
     EXPECT_NE(key_op_4,
               key_op_7);
 
-    state.set_texture_stage_state(1,
-                                  Interception::Hooks::D3D8::D3DTSS_BORDERCOLOR,
-                                  0x11111111);
+    state.get_fixed_function_state().set_texture_stage_state(1,
+                                                             Interception::Hooks::D3D8::D3DTSS_BORDERCOLOR,
+                                                             0x11111111);
 
     const auto key_border_a = state.describe_draw(Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST, 3, false).state_key;
 
-    state.set_texture_stage_state(1,
-                                  Interception::Hooks::D3D8::D3DTSS_BORDERCOLOR,
-                                  0x22222222);
+    state.get_fixed_function_state().set_texture_stage_state(1,
+                                                             Interception::Hooks::D3D8::D3DTSS_BORDERCOLOR,
+                                                             0x22222222);
 
     EXPECT_EQ(state.describe_draw(Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST, 3, false).state_key,
               key_border_a);
 
     /* The same state of another stage is another state. */
-    state.set_texture_stage_state(1,
-                                  Interception::Hooks::D3D8::D3DTSS_COLOROP,
-                                  7);
+    state.get_fixed_function_state().set_texture_stage_state(1,
+                                                             Interception::Hooks::D3D8::D3DTSS_COLOROP,
+                                                             7);
 
     EXPECT_NE(state.describe_draw(Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST, 3, false).state_key,
               key_border_a);
@@ -110,25 +110,25 @@ TEST(D3D8PipelineState, LightsCountByIndexAndTypeWhenTheyAreOn)
 
     const auto key_no_light = state.describe_draw(Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST, 3, false).state_key;
 
-    state.set_light(0,
-                    3);
+    state.get_fixed_function_state().set_light(0,
+                                               3);
 
     /* A light that is off does not matter. */
     EXPECT_EQ(state.describe_draw(Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST, 3, false).state_key,
               key_no_light);
 
-    state.set_light_enable(0,
-                           true);
+    state.get_fixed_function_state().set_light_enable(0,
+                                                      true);
 
     const auto key_directional = state.describe_draw(Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST, 3, false).state_key;
 
-    state.set_light(0,
-                    1);
+    state.get_fixed_function_state().set_light(0,
+                                               1);
 
     const auto key_point = state.describe_draw(Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST, 3, false).state_key;
 
-    state.set_light_enable(0,
-                           false);
+    state.get_fixed_function_state().set_light_enable(0,
+                                                      false);
 
     EXPECT_NE(key_no_light,
               key_directional);
@@ -146,10 +146,10 @@ TEST(D3D8PipelineState, ADrawIsDescribedByWhatIsBound)
     state.set_stream_source(0,
                             Analysis::APIDumpAnalysis::make_resource_id(7),
                             36);
-    state.set_texture(2,
-                      {0, 0, Analysis::APIDumpAnalysis::make_resource_id(5)});
-    state.set_texture(0,
-                      {0, 1, Analysis::APIDumpAnalysis::make_resource_id(4)});
+    state.get_fixed_function_state().set_texture(2,
+                                                 {0, 0, Analysis::APIDumpAnalysis::make_resource_id(5)});
+    state.get_fixed_function_state().set_texture(0,
+                                                 {0, 1, Analysis::APIDumpAnalysis::make_resource_id(4)});
 
     const auto indexed = state.describe_draw(Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_STRIP, 6, true);
 
@@ -187,13 +187,13 @@ TEST(D3D8PipelineState, UnbindingTakesAThingOut)
     state.set_stream_source(0,
                             Analysis::APIDumpAnalysis::make_resource_id(7),
                             36);
-    state.set_texture(1,
-                      {0, 0, Analysis::APIDumpAnalysis::make_resource_id(5)});
+    state.get_fixed_function_state().set_texture(1,
+                                                 {0, 0, Analysis::APIDumpAnalysis::make_resource_id(5)});
     state.set_stream_source(0,
                             Analysis::APIDumpAnalysis::ResourceId::NONE,
                             0);
-    state.set_texture(1,
-                      Analysis::APIDumpAnalysis::ResourceView() );
+    state.get_fixed_function_state().set_texture(1,
+                                                 Analysis::APIDumpAnalysis::ResourceView() );
 
     const auto draw = state.describe_draw(Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST, 3, false);
 
@@ -246,25 +246,25 @@ TEST(D3D8PipelineState, ADrawReadsWhatItRendersToWhenItBlendsOrTests)
     EXPECT_FALSE(draw.reads_color_attachments);
     EXPECT_TRUE (draw.reads_depth_stencil);
 
-    state.set_render_state(Interception::Hooks::D3D8::D3DRS_ALPHABLENDENABLE,
-                           1);
-    state.set_render_state(Interception::Hooks::D3D8::D3DRS_ZENABLE,
-                           0);
+    state.get_fixed_function_state().set_render_state(Interception::Hooks::D3D8::D3DRS_ALPHABLENDENABLE,
+                                                      1);
+    state.get_fixed_function_state().set_render_state(Interception::Hooks::D3D8::D3DRS_ZENABLE,
+                                                      0);
 
     draw = state.describe_draw(Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST, 3, false);
 
     EXPECT_TRUE (draw.reads_color_attachments);
     EXPECT_FALSE(draw.reads_depth_stencil);
 
-    state.set_render_state(Interception::Hooks::D3D8::D3DRS_STENCILENABLE,
-                           1);
+    state.get_fixed_function_state().set_render_state(Interception::Hooks::D3D8::D3DRS_STENCILENABLE,
+                                                      1);
 
     draw = state.describe_draw(Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST, 3, false);
 
     EXPECT_TRUE(draw.reads_depth_stencil);
 
-    state.set_render_state(Interception::Hooks::D3D8::D3DRS_ALPHABLENDENABLE,
-                           0);
+    state.get_fixed_function_state().set_render_state(Interception::Hooks::D3D8::D3DRS_ALPHABLENDENABLE,
+                                                      0);
 
     draw = state.describe_user_pointer_draw(Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST, 3, false, 12);
 
@@ -280,20 +280,20 @@ TEST(D3D8PipelineState, AnIndexNoDeviceHasIsRefusedAndChangesNothing)
 
     const auto key_before = state.describe_draw(Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST, 3, false).state_key;
 
-    EXPECT_FALSE(state.set_render_state(0xFFFFFFFF,
-                                        1) );
-    EXPECT_FALSE(state.set_texture_stage_state(0,
-                                               0xFFFFFFFF,
-                                               1) );
-    EXPECT_FALSE(state.set_texture_stage_state(1000000,
-                                               1,
-                                               1) );
-    EXPECT_FALSE(state.set_light(0xFFFFFFFF,
-                                 1) );
-    EXPECT_FALSE(state.set_light_enable(0xFFFFFFFF,
-                                        true) );
-    EXPECT_FALSE(state.set_texture(1000000,
-                                   view) );
+    EXPECT_FALSE(state.get_fixed_function_state().set_render_state(0xFFFFFFFF,
+                                                                   1) );
+    EXPECT_FALSE(state.get_fixed_function_state().set_texture_stage_state(0,
+                                                                          0xFFFFFFFF,
+                                                                          1) );
+    EXPECT_FALSE(state.get_fixed_function_state().set_texture_stage_state(1000000,
+                                                                          1,
+                                                                          1) );
+    EXPECT_FALSE(state.get_fixed_function_state().set_light(0xFFFFFFFF,
+                                                            1) );
+    EXPECT_FALSE(state.get_fixed_function_state().set_light_enable(0xFFFFFFFF,
+                                                                   true) );
+    EXPECT_FALSE(state.get_fixed_function_state().set_texture(1000000,
+                                                              view) );
     EXPECT_FALSE(state.set_stream_source(1000000,
                                          view.resource_id,
                                          32) );
@@ -313,17 +313,17 @@ TEST(D3D8PipelineState, TheIndexesOfAnOrdinaryDeviceAreAccepted)
 
     view.resource_id = Analysis::APIDumpAnalysis::make_resource_id(1);
 
-    EXPECT_TRUE(state.set_render_state(Interception::Hooks::D3D8::D3DRS_ZENABLE,
-                                       1) );
-    EXPECT_TRUE(state.set_texture_stage_state(7,
-                                              Interception::Hooks::D3D8::D3DTSS_COLOROP,
-                                              1) );
-    EXPECT_TRUE(state.set_light(7,
-                                1) );
-    EXPECT_TRUE(state.set_light_enable(7,
-                                       true) );
-    EXPECT_TRUE(state.set_texture(7,
-                                  view) );
+    EXPECT_TRUE(state.get_fixed_function_state().set_render_state(Interception::Hooks::D3D8::D3DRS_ZENABLE,
+                                                                  1) );
+    EXPECT_TRUE(state.get_fixed_function_state().set_texture_stage_state(7,
+                                                                         Interception::Hooks::D3D8::D3DTSS_COLOROP,
+                                                                         1) );
+    EXPECT_TRUE(state.get_fixed_function_state().set_light(7,
+                                                           1) );
+    EXPECT_TRUE(state.get_fixed_function_state().set_light_enable(7,
+                                                                  true) );
+    EXPECT_TRUE(state.get_fixed_function_state().set_texture(7,
+                                                             view) );
     EXPECT_TRUE(state.set_stream_source(15,
                                         view.resource_id,
                                         32) );
@@ -334,10 +334,10 @@ TEST(D3D8PipelineState, ResettingGivesTheStateOfANewDevice)
     Analysis::APIDumpAnalysis::Frontends::D3D8PipelineState used;
     Analysis::APIDumpAnalysis::Frontends::D3D8PipelineState fresh;
 
-    used.set_render_state(Interception::Hooks::D3D8::D3DRS_ALPHABLENDENABLE,
-                          1);
-    used.set_light_enable(2,
-                          true);
+    used.get_fixed_function_state().set_render_state(Interception::Hooks::D3D8::D3DRS_ALPHABLENDENABLE,
+                                                     1);
+    used.get_fixed_function_state().set_light_enable(2,
+                                                     true);
     used.reset();
 
     EXPECT_EQ(used.describe_draw(Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST, 3, false).state_key,
