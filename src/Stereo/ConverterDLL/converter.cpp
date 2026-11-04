@@ -73,6 +73,16 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
             m_log.write("The strength of the 3D is " + std::to_string(value) + ", from APISTEREO_DEPTH_STRENGTH");
         }
 
+        if (read_environment_number("APISTEREO_PUSH_OVERLAY",
+                                   &value) )
+        {
+            m_live_state.core_ptr->set_is_overlay_pushed(value != 0.0f);
+
+            m_live_state.is_overlay_push_forced = true;
+
+            m_log.write("What the recipe leaves alone is pushed toward the viewer: " + std::to_string(value != 0.0f) + ", from APISTEREO_PUSH_OVERLAY");
+        }
+
         if (read_environment_number("APISTEREO_DUMP_EVERY",
                                    &value) )
         {
@@ -572,7 +582,8 @@ void Stereo::ConverterDLL::Converter::read_channel_settings(std::vector<std::str
 
     const bool is_overlay_pushed = m_channel_ptr->get_is_overlay_pushed();
 
-    if (is_overlay_pushed != m_live_state.core_ptr->get_is_overlay_pushed() )
+    if (m_live_state.is_overlay_push_forced == false &&
+        is_overlay_pushed != m_live_state.core_ptr->get_is_overlay_pushed() )
     {
         m_live_state.core_ptr->set_is_overlay_pushed(is_overlay_pushed);
 

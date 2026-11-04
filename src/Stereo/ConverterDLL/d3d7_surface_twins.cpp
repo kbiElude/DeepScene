@@ -42,7 +42,8 @@ namespace
 }
 
 Stereo::ConverterDLL::D3D7SurfaceTwins::D3D7SurfaceTwins()
-    :m_direct_draw_ptr(nullptr),
+    :m_back_buffer_ptr(nullptr),
+     m_direct_draw_ptr(nullptr),
      m_n_failed_twins (0),
      m_primary_ptr    (nullptr)
 {
@@ -73,6 +74,12 @@ uint64_t Stereo::ConverterDLL::D3D7SurfaceTwins::get_n_failed_twins() const
 uint64_t Stereo::ConverterDLL::D3D7SurfaceTwins::get_n_twins() const
 {
     return m_twin_map.size();
+}
+
+bool Stereo::ConverterDLL::D3D7SurfaceTwins::is_back_buffer(void* in_surface_ptr) const
+{
+    return (in_surface_ptr != nullptr &&
+            in_surface_ptr == m_back_buffer_ptr);
 }
 
 void* Stereo::ConverterDLL::D3D7SurfaceTwins::get_twin_ptr(void* in_surface_ptr) const
@@ -159,6 +166,7 @@ void Stereo::ConverterDLL::D3D7SurfaceTwins::handle_get_attached_surface(const A
         /* The back buffer of the chain that the primary surface flips with: what the application renders to. */
         make_twin_ptr(attached_ptr,
                       true); /* in_is_back_buffer */
+        m_back_buffer_ptr = attached_ptr;
     }
     else
     if ( (caps & Interception::Core::D3D7Utils::DDSCAPS_ZBUFFER) != 0)
@@ -212,6 +220,11 @@ void Stereo::ConverterDLL::D3D7SurfaceTwins::handle_release(const APIInterceptor
             if (surface_ptr == m_primary_ptr)
             {
                 m_primary_ptr = nullptr;
+            }
+
+            if (surface_ptr == m_back_buffer_ptr)
+            {
+                m_back_buffer_ptr = nullptr;
             }
 
             if (twin_iterator != m_twin_map.end() )

@@ -244,7 +244,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::RecipeL
         in_draw_arguments.vertices_ptr  != nullptr)
     {
         plan = m_core_ptr->plan_screen_shift(in_eye,
-                                             false, /* in_is_presented */
+                                             m_surface_twins.is_back_buffer(m_mirror.render_target_ptr),
                                              in_picture_width);
 
         switch (plan.kind)

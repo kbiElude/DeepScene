@@ -30,6 +30,9 @@ namespace Stereo
             /* The twin of a surface of the application, or nullptr if it has none. */
             void* get_twin_ptr(void* in_surface_ptr) const;
 
+            /* Whether the surface is the back buffer which the application got from its primary surface: what it presents. */
+            bool is_back_buffer(void* in_surface_ptr) const;
+
             uint64_t get_n_failed_twins() const;
             uint64_t get_n_twins       () const;
 
@@ -59,6 +62,7 @@ namespace Stereo
                                 const bool& in_is_back_buffer);
 
 
+            void*                  m_back_buffer_ptr;
             void*                  m_direct_draw_ptr;
             uint64_t               m_n_failed_twins;
             void*                  m_primary_ptr;

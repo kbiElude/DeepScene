@@ -106,8 +106,9 @@ namespace Stereo
             {
                 std::unique_ptr<Stereo::Core::StereoCore> core_ptr;
                 std::unique_ptr<D3D7EyeRenderer>          d3d7_renderer_ptr;
-                uint64_t                                  dump_frame         = 0; /* of the frame to write to a file; 0: none */
                 uint64_t                                  dump_every         = 0; /* a frame is written to a file every so many frames; 0: none */
+                uint64_t                                  dump_frame         = 0; /* of the frame to write to a file; 0: none */
+                bool                                      is_overlay_push_forced = false; /* from the environment, not the program which shows the images */
                 CallFeeder                                feeder;
                 std::mutex                                mutex;
                 uint64_t                                  n_affected_draws   = 0;
