@@ -14,11 +14,15 @@
 Stereo::ConverterDLL::D3D7EyeRenderer::D3D7EyeRenderer(Stereo::Core::StereoCore* in_core_ptr,
                                                      const D3D7WindowedMode* in_windowed_mode_ptr)
     :m_core_ptr          (in_core_ptr),
+     m_is_right_eye_off  (false),
      m_n_pixel_calls     (0),
      m_n_unmirrored_calls(0),
      m_windowed_mode_ptr (in_windowed_mode_ptr)
 {
-    /* Stub */
+    /* A debugging aid: what the right eye costs, by leaving it out. */
+    m_is_right_eye_off = (::GetEnvironmentVariableA("APISTEREO_NO_RIGHT_EYE",
+                                                    nullptr,
+                                                    0) != 0);
 }
 
 uint64_t Stereo::ConverterDLL::D3D7EyeRenderer::get_n_failed_twins() const
@@ -245,7 +249,8 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre_draw(const APIInterceptor::AP
     }
 
     /* The right eye is drawn first, with the twins in the device; the left eye is drawn after, with what the application set. */
-    if (enter_right_eye(draw_arguments.device_ptr,
+    if (m_is_right_eye_off == false &&
+        enter_right_eye(draw_arguments.device_ptr,
                        &scope) )
     {
         draw_for_eye(Analysis::RecipeLoader::Eye::RIGHT,
@@ -591,7 +596,8 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::play_clear(const uint32_t&          
                                                                                                                                                               stencil);
         };
 
-        if (enter_right_eye(device_ptr,
+        if (m_is_right_eye_off == false &&
+            enter_right_eye(device_ptr,
                            &scope) )
         {
             clear_func(rects_ptr);

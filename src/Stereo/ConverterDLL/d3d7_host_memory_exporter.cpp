@@ -6,6 +6,7 @@
 #include "Interception/Core/D3D7Utils/constants.h"
 #include "Interception/Hooks/D3D8/types.h"
 #include "d3d7_host_memory_exporter.h"
+#include <mmsystem.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -14,6 +15,16 @@ Stereo::ConverterDLL::D3D7HostMemoryExporter::D3D7HostMemoryExporter(Stereo::Tra
      m_last_frame_qpc(0)
 {
     m_channel_ptr->set_offered_kinds(get_offered_kinds() );
+
+    /* A wait of the length of a frame is not the length of a tick of the timer, which is some 15 ms: without this the application is held to half
+     * the rate it is meant to have, when there is no program that shows the images to keep time by.
+     */
+    ::timeBeginPeriod(1);
+}
+
+Stereo::ConverterDLL::D3D7HostMemoryExporter::~D3D7HostMemoryExporter()
+{
+    ::timeEndPeriod(1);
 }
 
 Stereo::Transport::ExportStatus Stereo::ConverterDLL::D3D7HostMemoryExporter::export_frame(const uint64_t&                        in_frame_index,
@@ -202,7 +213,10 @@ void Stereo::ConverterDLL::D3D7HostMemoryExporter::wait_for_pace()
     /* With nobody to show the images there is no screen to keep time by, and a window which is not flipped keeps none: the application is held to
      * the rate of a screen, or what it does to the time of its music would not be what it does when it is shown.
      */
-    if (m_channel_ptr->get_negotiated_kind() != Stereo::Transport::TransportKind::HOST_MEMORY)
+    if (m_channel_ptr->get_negotiated_kind() != Stereo::Transport::TransportKind::HOST_MEMORY &&
+        ::GetEnvironmentVariableA("APISTEREO_NO_FRAME_LIMIT",
+                                  nullptr,
+                                  0) == 0) /* a debugging aid: the cost of a frame, with nothing to wait for */
     {
         LARGE_INTEGER frequency;
         LARGE_INTEGER now;

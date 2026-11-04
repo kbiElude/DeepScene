@@ -154,6 +154,7 @@ namespace Stereo
 
             Stereo::Core::StereoCore* m_core_ptr;
             DeviceMirror              m_mirror;
+            bool                      m_is_right_eye_off;
             uint64_t                  m_n_pixel_calls;
             uint64_t                  m_n_unmirrored_calls;
             D3D7SurfaceTwins          m_surface_twins;

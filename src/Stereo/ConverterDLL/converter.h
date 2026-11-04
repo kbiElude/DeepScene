@@ -20,6 +20,7 @@
 #include "d3d8_windowed_mode.h"
 #include "frame_passer.h"
 #include "session_log.h"
+#include <atomic>
 #include <memory>
 #include <mutex>
 #include <stdint.h>
@@ -107,6 +108,8 @@ namespace Stereo
             {
                 std::unique_ptr<Stereo::Core::StereoCore> core_ptr;
                 std::unique_ptr<D3D7EyeRenderer>          d3d7_renderer_ptr;
+                std::atomic<int64_t>                      n_callback_ticks = {0}; /* spent in the callbacks, in the ticks of the performance counter */
+                std::atomic<int64_t>                      n_draw_ticks     = {0}; /* of those, in the draws of Direct3D 7                              */
                 D3D7WindowedMode                          d3d7_windowed_mode;
                 uint64_t                                  dump_every         = 0; /* a frame is written to a file every so many frames; 0: none */
                 uint64_t                                  dump_frame         = 0; /* of the frame to write to a file; 0: none */

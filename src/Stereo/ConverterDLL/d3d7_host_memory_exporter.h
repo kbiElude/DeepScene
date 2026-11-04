@@ -31,6 +31,8 @@ namespace Stereo
             /* The channel must outlive the exporter. The exporter says on it what it offers. */
             explicit D3D7HostMemoryExporter(Stereo::Transport::FrameChannel* inout_channel_ptr);
 
+            ~D3D7HostMemoryExporter() override;
+
             /* EXPORTED when the frame is in the channel. NOT_READY until the other side has said that it takes the host memory kind;
              * FAILED if a surface cannot be read, its format is not converted, or the eyes are of different sizes.
              */

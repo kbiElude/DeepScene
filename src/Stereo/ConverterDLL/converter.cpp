@@ -229,6 +229,12 @@ std::string Stereo::ConverterDLL::Converter::make_statistics_line() const
 {
     const uint64_t n_failed_twins = m_live_state.d3d7_renderer_ptr->get_n_failed_twins();
     const uint64_t n_twins        = m_live_state.d3d7_renderer_ptr->get_n_twins       ();
+    LARGE_INTEGER frequency;
+
+    ::QueryPerformanceFrequency(&frequency);
+
+    const double n_frames_d       = static_cast<double>((m_live_state.n_frames > 0) ? m_live_state.n_frames : 1);
+    const std::string cost_text   = ", the callbacks took " + std::to_string(1000.0 * static_cast<double>(m_live_state.n_callback_ticks.load() ) / static_cast<double>(frequency.QuadPart) / n_frames_d) + " ms a frame, " + std::to_string(1000.0 * static_cast<double>(m_live_state.n_draw_ticks.load() ) / static_cast<double>(frequency.QuadPart) / n_frames_d) + " of them in the draws of Direct3D 7";
     const std::string twin_text   = (n_twins + n_failed_twins > 0) ? ", "                                  +
                                                                        std::to_string(n_twins)         +
                                                                        " surfaces with a twin, "       +
@@ -256,7 +262,8 @@ std::string Stereo::ConverterDLL::Converter::make_statistics_line() const
            " frames of a scene it has no distance for, "                  +
            std::to_string(m_live_state.n_kept_matrices)                   +
            " matrices kept"                                               +
-           twin_text;
+           twin_text                                                      +
+           cost_text;
 }
 
 void Stereo::ConverterDLL::Converter::on_d3d7_frame_ending(const APIInterceptor::APIFunction&         in_api_func,
@@ -421,10 +428,19 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
             }
             else
             {
+                LARGE_INTEGER draw_end_qpc;
+                LARGE_INTEGER draw_start_qpc;
+
+                ::QueryPerformanceCounter(&draw_start_qpc);
+
                 *out_should_pass_through_ptr = m_live_state.d3d7_renderer_ptr->on_pre_draw(in_api_func,
                                                                                            in_n_arguments,
                                                                                            in_arguments_ptr,
                                                                                            m_live_state.feeder.get_viewport().width);
+
+                ::QueryPerformanceCounter(&draw_end_qpc);
+
+                m_live_state.n_draw_ticks += draw_end_qpc.QuadPart - draw_start_qpc.QuadPart;
             }
 
             count_draw(draw_class);
@@ -459,10 +475,19 @@ void Stereo::ConverterDLL::Converter::on_pre_callback(APIInterceptor::APIFunctio
 {
     if (OwnCallScope::is_active() == false)
     {
+        LARGE_INTEGER end_qpc;
+        LARGE_INTEGER start_qpc;
+
+        ::QueryPerformanceCounter(&start_qpc);
+
         static_cast<Converter*>(in_user_arg_ptr)->on_pre(in_api_func,
                                                          in_n_arguments,
                                                          in_arguments_ptr,
                                                          out_should_pass_through_ptr);
+
+        ::QueryPerformanceCounter(&end_qpc);
+
+        static_cast<Converter*>(in_user_arg_ptr)->m_live_state.n_callback_ticks += end_qpc.QuadPart - start_qpc.QuadPart;
     }
 }
 
