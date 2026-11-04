@@ -9,6 +9,7 @@
 #include "Capture/InjectionLauncher/launcher.h"
 #include "Stereo/Session/session_environment.h"
 #include "Stereo/Launcher/command_line.h"
+#include "Stereo/Launcher/log_summary.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <fstream>
@@ -23,6 +24,7 @@ namespace Stereo
         std::string get_converter_failure_reason(const std::string& in_session_id);
         std::string get_own_directory();
         bool        is_file          (const std::string& in_path);
+        std::vector<std::string> read_log_lines(const std::string& in_session_id);
         int         run              (const std::vector<std::string>& in_argument_vec);
     }
 }
@@ -73,6 +75,21 @@ bool Stereo::Launcher::is_file(const std::string& in_path)
 
     return (attributes != INVALID_FILE_ATTRIBUTES              &&
             (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0);
+}
+
+std::vector<std::string> Stereo::Launcher::read_log_lines(const std::string& in_session_id)
+{
+    std::string              line;
+    std::ifstream            log(Stereo::Session::SessionEnvironment::get_log_path(in_session_id) );
+    std::vector<std::string> result_vec;
+
+    while (std::getline(log,
+                        line) )
+    {
+        result_vec.push_back(line);
+    }
+
+    return result_vec;
 }
 
 int Stereo::Launcher::run(const std::vector<std::string>& in_argument_vec)
@@ -214,6 +231,17 @@ int Stereo::Launcher::run(const std::vector<std::string>& in_argument_vec)
                     get_converter_failure_reason(options.session_id).c_str() );
 
             result = ExitCode::CONVERTER_FAILED;
+        }
+
+        /* What the converter said of the run, in a few lines. */
+        if (options.is_logging)
+        {
+            for (const auto& report_line : LogSummarizer::make_report_lines(LogSummarizer::summarize(read_log_lines(options.session_id) ) ) )
+            {
+                fprintf(stdout,
+                        "%s\n",
+                        report_line.c_str() );
+            }
         }
     }
 

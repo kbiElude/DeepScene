@@ -21,6 +21,7 @@ if (DEMOVRPLAYER_BUILD_TESTS)
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/ConverterDLL/invisible_windows.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/ConverterDLL/own_call_scope.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Launcher/command_line.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Launcher/log_summary.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Presenter/command_line.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/ConsistencyChecker/frame_sampler.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/ConsistencyChecker/replay_profiler.cpp"
