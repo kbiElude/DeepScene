@@ -5,6 +5,7 @@
 #include "Analysis/APIDumpAnalysis/number_parser.h"
 #include "Analysis/RecipeLoader/recipe_loader.h"
 #include "Stereo/Replay/EngineDLL/entrypoints.h"
+#include "Stereo/Replay/FrameImages/image_composer.h"
 #include "Stereo/Replay/FrameImages/png_writer.h"
 #include "frame_hash_sink.h"
 #include "stop_observer.h"
@@ -24,6 +25,9 @@ namespace Stereo
         namespace ConsistencyChecker
         {
             extern const Variant VARIANT_ARRAY[5];
+
+            /* False if the options of a screenshot are given without the frame, or the frame without the file to write. */
+            bool are_screenshot_options_valid(const Options& in_options);
 
             /* Writes the images of one frame, as it is and executed twice, to the directory of the options. */
             void dump_frame(const Options&  in_options,
@@ -56,6 +60,12 @@ namespace Stereo
                               const std::vector<const Variant*>&  in_variant_ptr_vec,
                               std::vector<FrameHashSink>*         out_sink_vec_ptr,
                               std::string*                        out_error_ptr);
+
+            /* Replays the workload once, up to the screenshot frame, and writes the image of it to the screenshot file: with a recipe the eyes as the options
+             * say, otherwise the frame as it is.
+             */
+            bool take_screenshot(const Options& in_options,
+                                 std::string*   out_error_ptr);
         }
     }
 }
@@ -68,6 +78,25 @@ const Stereo::Replay::ConsistencyChecker::Variant Stereo::Replay::ConsistencyChe
     {Stereo::Replay::EngineDLL::FrameExecution::TWICE,  "twice, the state put back between", true,  false},
     {Stereo::Replay::EngineDLL::FrameExecution::TWICE,  "twice, for the eyes of the recipe", true,  true}
 };
+
+bool Stereo::Replay::ConsistencyChecker::are_screenshot_options_valid(const Stereo::Replay::ConsistencyChecker::Options& in_options)
+{
+    bool result = true;
+
+    if (in_options.screenshot_frame == UINT32_MAX)
+    {
+        result = (in_options.screenshot_filename.empty() &&
+                  in_options.has_screenshot_eye == false);
+    }
+    else
+    {
+        result = (in_options.screenshot_filename.empty() == false &&
+                  (in_options.has_screenshot_eye == false ||
+                   in_options.recipe_filename.empty() == false) );
+    }
+
+    return result;
+}
 
 /* Writes the images of one frame, as it is and executed twice, to the directory of the options. */
 void Stereo::Replay::ConsistencyChecker::dump_frame(const Stereo::Replay::ConsistencyChecker::Options& in_options,
@@ -260,6 +289,7 @@ void Stereo::Replay::ConsistencyChecker::print_usage()
             "\n"
             "StereoReplayConsistencyChecker_x86 file.workload [--from A] [--to B] [--dump-dir DIR] [--recipe FILE [--eye-separation D]]\n"
             "                                    [--ways again,twice,restore,recipe] [--parallel]\n"
+            "StereoReplayConsistencyChecker_x86 file.workload --screenshot N --out FILE.png [--recipe FILE [--eye left|right|both|anaglyph]]\n"
             "\n"
             "Replays frames A to B (default 0 to 999) of a Direct3D 8 workload in four ways: as they are, as they are again (to\n"
             "see how much a replay differs from itself), executed twice, and executed twice with the state of the device put\n"
@@ -272,7 +302,10 @@ void Stereo::Replay::ConsistencyChecker::print_usage()
             "  --ways LIST      Only these ways, besides the frames as they are (which are always replayed, to compare with): again (as\n"
             "                   they are, again), twice, restore (twice, the state put back between) and recipe (needs --recipe). Each way\n"
             "                   is a replay of the workload from its start, so fewer ways are less to wait for.\n"
-            "  --parallel       Replay the ways at the same time, each with an engine of its own: faster, and needs the memory of all.\n");
+            "  --parallel       Replay the ways at the same time, each with an engine of its own: faster, and needs the memory of all.\n"
+            "\n"
+            "  --screenshot N   Instead of the check: replay once, up to frame N, and write the image of that frame to the PNG file of --out. With a\n"
+            "                   recipe it is both eyes side by side, or the one that --eye says (anaglyph: red-cyan); without one, the frame as it is.\n");
 }
 
 /* Replays the frames of the options one way, and keeps what the sink is given. */
@@ -439,6 +472,65 @@ bool Stereo::Replay::ConsistencyChecker::run_variants(const Stereo::Replay::Cons
     return result;
 }
 
+bool Stereo::Replay::ConsistencyChecker::take_screenshot(const Stereo::Replay::ConsistencyChecker::Options& in_options,
+                                                         std::string*                                       out_error_ptr)
+{
+    const bool                                        uses_recipe = (in_options.recipe_filename.empty() == false);
+    Stereo::Replay::FrameImages::Image                image;
+    Stereo::Replay::ConsistencyChecker::Options       options     = in_options;
+    bool                                              result      = false;
+    Stereo::Replay::ConsistencyChecker::FrameHashSink sink(true); /* in_keeps_images */
+
+    options.first_frame = in_options.screenshot_frame;
+    options.last_frame  = in_options.screenshot_frame;
+
+    if (run_variant(options,
+                    VARIANT_ARRAY[(uses_recipe) ? 4 : 0],
+                   &sink,
+                    out_error_ptr) == false)
+    {
+        goto end;
+    }
+
+    image = sink.get_image({in_options.screenshot_frame, 0});
+
+    if (image.width == 0)
+    {
+        *out_error_ptr = "The workload has no frame " + std::to_string(in_options.screenshot_frame) + ".";
+
+        goto end;
+    }
+
+    if (uses_recipe)
+    {
+        Stereo::Replay::FrameImages::Image view_image;
+
+        if (Stereo::Replay::FrameImages::ImageComposer::make_eye_view(in_options.screenshot_eye,
+                                                                      image,
+                                                                      sink.get_image({in_options.screenshot_frame, 1}),
+                                                                     &view_image) == false)
+        {
+            *out_error_ptr = "The images of the eyes cannot be put together.";
+
+            goto end;
+        }
+
+        image = view_image;
+    }
+
+    if (Stereo::Replay::FrameImages::PngWriter::write_file(in_options.screenshot_filename,
+                                                           image) == false)
+    {
+        *out_error_ptr = "The file " + in_options.screenshot_filename + " cannot be written.";
+
+        goto end;
+    }
+
+    result = true;
+end:
+    return result;
+}
+
 int main(int   in_argc,
          char* in_argv[])
 {
@@ -538,6 +630,61 @@ int main(int   in_argc,
             }
         }
         else
+        if (argument == "--eye" &&
+            has_next)
+        {
+            const std::string eye_name = in_argv[++n_argument];
+
+            if (eye_name == "left")
+            {
+                options.screenshot_eye     = Stereo::Replay::FrameImages::EyeView::LEFT;
+                options.has_screenshot_eye = true;
+            }
+            else
+            if (eye_name == "right")
+            {
+                options.screenshot_eye     = Stereo::Replay::FrameImages::EyeView::RIGHT;
+                options.has_screenshot_eye = true;
+            }
+            else
+            if (eye_name == "both")
+            {
+                options.screenshot_eye     = Stereo::Replay::FrameImages::EyeView::BOTH;
+                options.has_screenshot_eye = true;
+            }
+            else
+            if (eye_name == "anaglyph")
+            {
+                options.screenshot_eye     = Stereo::Replay::FrameImages::EyeView::ANAGLYPH;
+                options.has_screenshot_eye = true;
+            }
+            else
+            {
+                is_usage_error = true;
+            }
+        }
+        else
+        if (argument == "--out" &&
+            has_next)
+        {
+            options.screenshot_filename = in_argv[++n_argument];
+        }
+        else
+        if (argument == "--screenshot" &&
+            has_next)
+        {
+            uint64_t value = 0;
+
+            if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(in_argv[++n_argument],
+                                                                        UINT32_MAX - 1,
+                                                                       &value) == false)
+            {
+                is_usage_error = true;
+            }
+
+            options.screenshot_frame = static_cast<uint32_t>(value);
+        }
+        else
         if (argument == "--parallel")
         {
             options.is_parallel = true;
@@ -557,7 +704,8 @@ int main(int   in_argc,
 
     if (is_usage_error                                         ||
         options.workload_filename.empty()                      ||
-        options.first_frame               > options.last_frame)
+        options.first_frame               > options.last_frame ||
+        Stereo::Replay::ConsistencyChecker::are_screenshot_options_valid(options) == false)
     {
         Stereo::Replay::ConsistencyChecker::print_usage();
 
@@ -582,6 +730,30 @@ int main(int   in_argc,
 
             goto end;
         }
+    }
+
+    if (options.screenshot_frame != UINT32_MAX)
+    {
+        std::string error;
+
+        if (Stereo::Replay::ConsistencyChecker::take_screenshot(options,
+                                                               &error) == false)
+        {
+            fprintf(stdout,
+                    "%s\n",
+                    error.c_str() );
+
+            exit_code = Stereo::Replay::ConsistencyChecker::ExitCode::REPLAY_FAILED;
+
+            goto end;
+        }
+
+        fprintf(stdout,
+                "Frame %u written to %s\n",
+                options.screenshot_frame,
+                options.screenshot_filename.c_str() );
+
+        goto end;
     }
 
     /* The frames as they are come first: they are what the other ways are compared with. Without a choice, the next one tells how much a replay

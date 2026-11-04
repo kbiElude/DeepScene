@@ -337,3 +337,55 @@ TEST(ImageComposer, NoImagesNoColumnsOrAnEmptyImageGiveNoSheet)
                                                                                 2,
                                                                                &sheet_image) );
 }
+
+TEST(ImageComposer, AnEyeViewIsOneEyeBothSideBySideOrAnAnaglyph)
+{
+    const auto                         left_image  = make_image(2, 2, 11, 12, 13);
+    const auto                         right_image = make_image(2, 2, 21, 22, 23);
+    Stereo::Replay::FrameImages::Image view_image;
+
+    ASSERT_TRUE(Stereo::Replay::FrameImages::ImageComposer::make_eye_view(Stereo::Replay::FrameImages::EyeView::LEFT,
+                                                                          left_image,
+                                                                          right_image,
+                                                                         &view_image) );
+    EXPECT_EQ(view_image.pixel_u8_vec.at(0),
+              11);
+
+    ASSERT_TRUE(Stereo::Replay::FrameImages::ImageComposer::make_eye_view(Stereo::Replay::FrameImages::EyeView::RIGHT,
+                                                                          left_image,
+                                                                          right_image,
+                                                                         &view_image) );
+    EXPECT_EQ(view_image.pixel_u8_vec.at(0),
+              21);
+
+    /* Side by side: two images of 2 pixels and the gap between them. */
+    ASSERT_TRUE(Stereo::Replay::FrameImages::ImageComposer::make_eye_view(Stereo::Replay::FrameImages::EyeView::BOTH,
+                                                                          left_image,
+                                                                          right_image,
+                                                                         &view_image) );
+    EXPECT_EQ(view_image.width,
+              2 + 4 + 2u);
+    EXPECT_EQ(view_image.height,
+              2u);
+
+    ASSERT_TRUE(Stereo::Replay::FrameImages::ImageComposer::make_eye_view(Stereo::Replay::FrameImages::EyeView::ANAGLYPH,
+                                                                          left_image,
+                                                                          right_image,
+                                                                         &view_image) );
+    EXPECT_EQ(view_image.pixel_u8_vec.at(2),
+              13);
+    EXPECT_EQ(view_image.pixel_u8_vec.at(0),
+              21);
+}
+
+TEST(ImageComposer, AnEyeViewOfAnEmptyEyeIsNotMade)
+{
+    Stereo::Replay::FrameImages::Image view_image;
+
+    EXPECT_FALSE(Stereo::Replay::FrameImages::ImageComposer::make_eye_view(Stereo::Replay::FrameImages::EyeView::RIGHT,
+                                                                           make_image(2, 2, 1, 1, 1),
+                                                                           Stereo::Replay::FrameImages::Image(),
+                                                                          &view_image) );
+    EXPECT_EQ(view_image.width,
+              0u);
+}

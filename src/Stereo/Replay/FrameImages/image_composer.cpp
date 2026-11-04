@@ -131,3 +131,59 @@ bool Stereo::Replay::FrameImages::ImageComposer::make_contact_sheet(const std::v
 end:
     return result;
 }
+
+bool Stereo::Replay::FrameImages::ImageComposer::make_eye_view(const EyeView& in_view,
+                                                               const Image&   in_left_image,
+                                                               const Image&   in_right_image,
+                                                               Image*         out_image_ptr)
+{
+    constexpr uint32_t N_COLUMNS_SIDE_BY_SIDE = 2;
+
+    bool result = false;
+
+    *out_image_ptr = Image();
+
+    switch (in_view)
+    {
+        case EyeView::ANAGLYPH:
+        {
+            result = make_anaglyph(in_left_image,
+                                   in_right_image,
+                                   out_image_ptr);
+
+            break;
+        }
+
+        case EyeView::BOTH:
+        {
+            result = make_contact_sheet({in_left_image, in_right_image},
+                                        N_COLUMNS_SIDE_BY_SIDE,
+                                        out_image_ptr);
+
+            break;
+        }
+
+        case EyeView::LEFT:
+        {
+            *out_image_ptr = in_left_image;
+            result         = is_usable(in_left_image);
+
+            break;
+        }
+
+        case EyeView::RIGHT:
+        {
+            *out_image_ptr = in_right_image;
+            result         = is_usable(in_right_image);
+
+            break;
+        }
+
+        default:
+        {
+            break;
+        }
+    }
+
+    return result;
+}

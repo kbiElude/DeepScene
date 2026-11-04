@@ -16,6 +16,15 @@ namespace Stereo
     {
         namespace FrameImages
         {
+            /* What of the two eyes of a frame an image shows. */
+            enum class EyeView
+            {
+                ANAGLYPH, /* both, red-cyan                                */
+                BOTH,     /* the left one and the right one, side by side  */
+                LEFT,
+                RIGHT
+            };
+
             /* An image as 8-bit B, G, R and A (always 255) for each pixel, row after row, top row first. */
             struct Image
             {

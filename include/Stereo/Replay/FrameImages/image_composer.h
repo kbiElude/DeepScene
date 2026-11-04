@@ -31,6 +31,14 @@ namespace Stereo
                 static bool make_contact_sheet(const std::vector<Image>& in_image_vec,
                                                const uint32_t&           in_n_columns,
                                                Image*                    out_image_ptr);
+
+                /* What of the two eyes the view says: one of them, both side by side, or both as an anaglyph. False, and an empty image, if the images cannot be
+                 * put together.
+                 */
+                static bool make_eye_view(const EyeView& in_view,
+                                          const Image&   in_left_image,
+                                          const Image&   in_right_image,
+                                          Image*         out_image_ptr);
             };
         }
     }
