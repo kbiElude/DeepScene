@@ -2,6 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
+#include "Common/vtable.h"
 #include "../../Stereo/Replay/EngineDLL/pixel_converter.h"
 #include "Interception/Core/D3D7Utils/constants.h"
 #include "Interception/Hooks/D3D8/types.h"
@@ -174,13 +175,13 @@ bool Stereo::ConverterDLL::D3D7HostMemoryExporter::lock_surface(void*          i
     constexpr uint32_t LOCK_READ_ONLY = 0x00000010; /* DDLOCK_READONLY */
     constexpr uint32_t LOCK_WAIT      = 0x00000001; /* DDLOCK_WAIT     */
 
-    void** const vtable = *reinterpret_cast<void***>(in_surface_ptr);
+    void** const vtable = APIInterceptor::get_vtable_ptr(in_surface_ptr);
 
     out_locked_ptr->description        = {};
     out_locked_ptr->description.dwSize = static_cast<DWORD>(sizeof(out_locked_ptr->description) );
     out_locked_ptr->surface_ptr        = static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(in_surface_ptr);
 
-    const auto lock_func = reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_LOCK>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_LOCK]);
+    const auto lock_func = APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_LOCK>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_LOCK);
 
     out_locked_ptr->is_locked = SUCCEEDED(lock_func(out_locked_ptr->surface_ptr,
                                                     nullptr,
@@ -195,9 +196,9 @@ void Stereo::ConverterDLL::D3D7HostMemoryExporter::unlock_surface(LockedSurface*
 {
     if (inout_locked_ptr->is_locked)
     {
-        void** const vtable = *reinterpret_cast<void***>(inout_locked_ptr->surface_ptr);
+        void** const vtable = APIInterceptor::get_vtable_ptr(inout_locked_ptr->surface_ptr);
 
-        reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_UNLOCK>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_UNLOCK])(inout_locked_ptr->surface_ptr,
+        APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_UNLOCK>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_UNLOCK)(inout_locked_ptr->surface_ptr,
                                                                                                                                                                 nullptr);
 
         inout_locked_ptr->is_locked = false;

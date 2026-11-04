@@ -2,6 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
+#include "Common/vtable.h"
 #include "Interception/Core/D3D7Utils/constants.h"
 #include "d3d7_surface_twins.h"
 
@@ -54,11 +55,11 @@ bool Stereo::ConverterDLL::D3D7SurfaceTwins::get_caps(void*     in_surface_ptr,
                                                        uint32_t* out_caps_ptr)
 {
     Interception::Hooks::D3D7::DDSURFACEDESC2 description    = {};
-    void** const                              surface_vtable = *reinterpret_cast<void***>(in_surface_ptr);
+    void** const                              surface_vtable = APIInterceptor::get_vtable_ptr(in_surface_ptr);
 
     description.dwSize = static_cast<DWORD>(sizeof(description) );
 
-    const bool result = SUCCEEDED(reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_GETSURFACEDESC>(surface_vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_GETSURFACEDESC])(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(in_surface_ptr),
+    const bool result = SUCCEEDED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_GETSURFACEDESC>(surface_vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_GETSURFACEDESC)(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(in_surface_ptr),
                                                                                                                                                                                                          &description) );
 
     *out_caps_ptr = description.ddsCaps.dwCaps;
@@ -102,9 +103,9 @@ void Stereo::ConverterDLL::D3D7SurfaceTwins::handle_add_attached_surface(const A
     if (attached_twin_ptr != nullptr &&
         surface_twin_ptr  != nullptr)
     {
-        void** const vtable = *reinterpret_cast<void***>(surface_twin_ptr);
+        void** const vtable = APIInterceptor::get_vtable_ptr(surface_twin_ptr);
 
-        reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_ADDATTACHEDSURFACE>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_ADDATTACHEDSURFACE])(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(surface_twin_ptr),
+        APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_ADDATTACHEDSURFACE>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_ADDATTACHEDSURFACE)(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(surface_twin_ptr),
                                                                                                                                                                                        static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(attached_twin_ptr) );
     }
 }
@@ -177,21 +178,21 @@ void Stereo::ConverterDLL::D3D7SurfaceTwins::handle_get_attached_surface(const A
         if (surface_twin_ptr != nullptr)
         {
             Interception::Hooks::D3D7::DDSCAPS2             depth_caps       = {};
-            void**                                          vtable           = *reinterpret_cast<void***>(surface_twin_ptr);
+            void**                                          vtable           = APIInterceptor::get_vtable_ptr(surface_twin_ptr);
             Interception::Hooks::D3D7::IDirectDrawSurface7* attached_twin_ptr = nullptr;
 
             depth_caps.dwCaps = Interception::Core::D3D7Utils::DDSCAPS_ZBUFFER;
 
-            if (SUCCEEDED(reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_GETATTACHEDSURFACE>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_GETATTACHEDSURFACE])(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(surface_twin_ptr),
+            if (SUCCEEDED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_GETATTACHEDSURFACE>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_GETATTACHEDSURFACE)(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(surface_twin_ptr),
                                                                                                                                                                                                              &depth_caps,
                                                                                                                                                                                                              &attached_twin_ptr) ))
             {
-                void** const attached_vtable = *reinterpret_cast<void***>(attached_twin_ptr);
+                void** const attached_vtable = APIInterceptor::get_vtable_ptr(attached_twin_ptr);
 
                 m_twin_map[attached_ptr] = attached_twin_ptr;
 
                 /* The twin holds on to what is attached to it. */
-                reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_RELEASE>(attached_vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_RELEASE])(attached_twin_ptr);
+                APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_RELEASE>(attached_vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_RELEASE)(attached_twin_ptr);
             }
         }
     }
@@ -230,12 +231,12 @@ void Stereo::ConverterDLL::D3D7SurfaceTwins::handle_release(const APIInterceptor
             if (twin_iterator != m_twin_map.end() )
             {
                 void* const twin_ptr = twin_iterator->second;
-                void** const vtable  = *reinterpret_cast<void***>(twin_ptr);
+                void** const vtable  = APIInterceptor::get_vtable_ptr(twin_ptr);
 
                 m_twin_map.erase(twin_iterator);
 
                 /* The reference of the twin that this made is the one that is let go of: what is attached to a twin goes with it. */
-                reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_RELEASE>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_RELEASE])(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(twin_ptr) );
+                APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_RELEASE>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_RELEASE)(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(twin_ptr) );
             }
         }
     }
@@ -257,16 +258,16 @@ void* Stereo::ConverterDLL::D3D7SurfaceTwins::make_twin_ptr(void*       in_surfa
                                            Interception::Core::D3D7Utils::DDSD_WIDTH;
 
     Interception::Hooks::D3D7::DDSURFACEDESC2       description        = {};
-    void** const                                    direct_draw_vtable = (m_direct_draw_ptr != nullptr) ? *reinterpret_cast<void***>(m_direct_draw_ptr)
+    void** const                                    direct_draw_vtable = (m_direct_draw_ptr != nullptr) ? APIInterceptor::get_vtable_ptr(m_direct_draw_ptr)
                                                                                                         : nullptr;
     void*                                           result_ptr         = nullptr;
-    void** const                                    surface_vtable     = *reinterpret_cast<void***>(in_surface_ptr);
+    void** const                                    surface_vtable     = APIInterceptor::get_vtable_ptr(in_surface_ptr);
     Interception::Hooks::D3D7::IDirectDrawSurface7* twin_ptr           = nullptr;
 
     description.dwSize = static_cast<DWORD>(sizeof(description) );
 
     if (m_direct_draw_ptr == nullptr                                                                                                                                                                  ||
-        FAILED(reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_GETSURFACEDESC>(surface_vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_GETSURFACEDESC])(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(in_surface_ptr),
+        FAILED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_GETSURFACEDESC>(surface_vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_GETSURFACEDESC)(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(in_surface_ptr),
                                                                                                                                                                                               &description) ))
     {
         goto end;
@@ -283,7 +284,7 @@ void* Stereo::ConverterDLL::D3D7SurfaceTwins::make_twin_ptr(void*       in_surfa
                                       Interception::Core::D3D7Utils::DDSCAPS_OFFSCREENPLAIN;
     }
 
-    if (FAILED(reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAW7_CREATESURFACE>(direct_draw_vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAW7_CREATESURFACE])(static_cast<Interception::Hooks::D3D7::IDirectDraw7*>(m_direct_draw_ptr),
+    if (FAILED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAW7_CREATESURFACE>(direct_draw_vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAW7_CREATESURFACE)(static_cast<Interception::Hooks::D3D7::IDirectDraw7*>(m_direct_draw_ptr),
                                                                                                                                                                                   &description,
                                                                                                                                                                                   &twin_ptr,
                                                                                                                                                                                    nullptr) ))

@@ -5,6 +5,7 @@
 #include "Analysis/RecipeLoader/recipe_loader.h"
 #include "Capture/APIDumpLoader/api_info.h"
 #include "Common/frame_boundary.h"
+#include "Common/vtable.h"
 #include "Interception/Hooks/D3D8/types.h"
 #include "Stereo/Session/session_environment.h"
 #include "converter.h"
@@ -577,11 +578,11 @@ void Stereo::ConverterDLL::Converter::pass_d3d7_frame(void* in_primary_surface_p
     if (back_buffer_ptr == nullptr)
     {
         Interception::Hooks::D3D7::DDSCAPS2 caps   = {};
-        void** const                        vtable = *reinterpret_cast<void***>(in_primary_surface_ptr);
+        void** const                        vtable = APIInterceptor::get_vtable_ptr(in_primary_surface_ptr);
 
         caps.dwCaps = BACK_BUFFER_CAPS;
 
-        is_to_release = SUCCEEDED(reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_GETATTACHEDSURFACE>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_GETATTACHEDSURFACE])(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(in_primary_surface_ptr),
+        is_to_release = SUCCEEDED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_GETATTACHEDSURFACE>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_GETATTACHEDSURFACE)(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(in_primary_surface_ptr),
                                                                                                                                                                                                          &caps,
                                                                                                                                                                                                          &back_buffer_ptr) );
 
@@ -618,9 +619,9 @@ void Stereo::ConverterDLL::Converter::pass_d3d7_frame(void* in_primary_surface_p
 
         if (is_to_release)
         {
-            void** const back_buffer_vtable = *reinterpret_cast<void***>(back_buffer_ptr);
+            void** const back_buffer_vtable = APIInterceptor::get_vtable_ptr(back_buffer_ptr);
 
-            reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_RELEASE>(back_buffer_vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_RELEASE])(back_buffer_ptr);
+            APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_RELEASE>(back_buffer_vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_RELEASE)(back_buffer_ptr);
         }
     }
 }

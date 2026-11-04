@@ -2,6 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
+#include "Common/vtable.h"
 #include "../../Stereo/Replay/EngineDLL/pixel_converter.h"
 #include "Interception/Hooks/D3D8/types.h"
 #include "d3d8_host_memory_exporter.h"
@@ -80,7 +81,7 @@ bool Stereo::ConverterDLL::D3D8HostMemoryExporter::ensure_staging(void*         
                                                                   Staging*                                          inout_staging_ptr)
 {
     bool         result        = false;
-    void** const device_vtable = *reinterpret_cast<void***>(in_device_ptr);
+    void** const device_vtable = APIInterceptor::get_vtable_ptr(in_device_ptr);
 
     if (inout_staging_ptr->surface_ptr        != nullptr               &&
         inout_staging_ptr->description.Width  == in_description.Width  &&
@@ -96,7 +97,7 @@ bool Stereo::ConverterDLL::D3D8HostMemoryExporter::ensure_staging(void*         
     release_staging(inout_staging_ptr);
 
     /* The surface may not be lockable; a system memory copy of it always is. */
-    if (SUCCEEDED(reinterpret_cast<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_CREATEIMAGESURFACE>(device_vtable[Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_CREATEIMAGESURFACE])(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(in_device_ptr),
+    if (SUCCEEDED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_CREATEIMAGESURFACE>(device_vtable, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_CREATEIMAGESURFACE)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(in_device_ptr),
                                                                                                                                                                                                       in_description.Width,
                                                                                                                                                                                                       in_description.Height,
                                                                                                                                                                                                       in_description.Format,
@@ -121,10 +122,10 @@ Stereo::Transport::ExportStatus Stereo::ConverterDLL::D3D8HostMemoryExporter::ex
     Stereo::Transport::ExportStatus                                result            = Stereo::Transport::ExportStatus::FAILED;
     const uint32_t                                                 set               = m_next_set;
     std::array<void*, N_EYES>                                      surface_ptr_array = {in_source.left_surface_ptr, in_source.right_surface_ptr};
-    void** const                                                   device_vtable     = *reinterpret_cast<void***>(in_source.api_device_ptr);
+    void** const                                                   device_vtable     = APIInterceptor::get_vtable_ptr(in_source.api_device_ptr);
 
-    const auto get_back_buffer_func = reinterpret_cast<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_GETBACKBUFFER>(device_vtable[Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_GETBACKBUFFER]);
-    const auto copy_rects_func      = reinterpret_cast<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_COPYRECTS>     (device_vtable[Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_COPYRECTS]);
+    const auto get_back_buffer_func = APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_GETBACKBUFFER>(device_vtable, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_GETBACKBUFFER);
+    const auto copy_rects_func      = APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_COPYRECTS>     (device_vtable, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_COPYRECTS);
 
     /* The other side has not said that it takes what the exporter passes on: not a failure, the frame is left out. */
     if (m_channel_ptr->get_negotiated_kind() != Stereo::Transport::TransportKind::HOST_MEMORY)
@@ -155,9 +156,9 @@ Stereo::Transport::ExportStatus Stereo::ConverterDLL::D3D8HostMemoryExporter::ex
                   n_eye < n_eyes;
                 ++n_eye)
     {
-        void** const surface_vtable = *reinterpret_cast<void***>(surface_ptr_array.at(n_eye) );
+        void** const surface_vtable = APIInterceptor::get_vtable_ptr(surface_ptr_array.at(n_eye) );
 
-        if (FAILED(reinterpret_cast<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_GETDESC>(surface_vtable[Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_GETDESC])(static_cast<Interception::Hooks::D3D8::IDirect3DSurface8*>(surface_ptr_array.at(n_eye) ),
+        if (FAILED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_GETDESC>(surface_vtable, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_GETDESC)(static_cast<Interception::Hooks::D3D8::IDirect3DSurface8*>(surface_ptr_array.at(n_eye) ),
                                                                                                                                                                                 &description_array.at(n_eye) ) ))
         {
             goto end;
@@ -257,9 +258,9 @@ end:
 
     if (back_buffer_ptr != nullptr)
     {
-        void** const vtable = *reinterpret_cast<void***>(back_buffer_ptr);
+        void** const vtable = APIInterceptor::get_vtable_ptr(back_buffer_ptr);
 
-        reinterpret_cast<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_RELEASE>(vtable[Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_RELEASE])(back_buffer_ptr);
+        APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_RELEASE>(vtable, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_RELEASE)(back_buffer_ptr);
     }
 
     return result;
@@ -276,9 +277,9 @@ bool Stereo::ConverterDLL::D3D8HostMemoryExporter::lock_staging(Staging*        
 {
     Interception::Hooks::D3D8::D3DLOCKED_RECT locked_rect = {};
     bool                                      result      = false;
-    void** const                              vtable      = *reinterpret_cast<void***>(inout_staging_ptr->surface_ptr);
+    void** const                              vtable      = APIInterceptor::get_vtable_ptr(inout_staging_ptr->surface_ptr);
 
-    if (SUCCEEDED(reinterpret_cast<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_LOCKRECT>(vtable[Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_LOCKRECT])(inout_staging_ptr->surface_ptr,
+    if (SUCCEEDED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_LOCKRECT>(vtable, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_LOCKRECT)(inout_staging_ptr->surface_ptr,
                                                                                                                                                                        &locked_rect,
                                                                                                                                                                         nullptr,
                                                                                                                                                                         Interception::Hooks::D3D8::D3DLOCK_READONLY) ))
@@ -296,9 +297,9 @@ void Stereo::ConverterDLL::D3D8HostMemoryExporter::release_staging(Staging* inou
 {
     if (inout_staging_ptr->surface_ptr != nullptr)
     {
-        void** const vtable = *reinterpret_cast<void***>(inout_staging_ptr->surface_ptr);
+        void** const vtable = APIInterceptor::get_vtable_ptr(inout_staging_ptr->surface_ptr);
 
-        reinterpret_cast<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_RELEASE>(vtable[Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_RELEASE])(inout_staging_ptr->surface_ptr);
+        APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_RELEASE>(vtable, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_RELEASE)(inout_staging_ptr->surface_ptr);
     }
 
     *inout_staging_ptr = Staging();
@@ -391,9 +392,9 @@ void Stereo::ConverterDLL::D3D8HostMemoryExporter::unlock_staging(Staging* inout
 {
     if (inout_staging_ptr->is_locked)
     {
-        void** const vtable = *reinterpret_cast<void***>(inout_staging_ptr->surface_ptr);
+        void** const vtable = APIInterceptor::get_vtable_ptr(inout_staging_ptr->surface_ptr);
 
-        reinterpret_cast<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_UNLOCKRECT>(vtable[Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_UNLOCKRECT])(inout_staging_ptr->surface_ptr);
+        APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_UNLOCKRECT>(vtable, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_UNLOCKRECT)(inout_staging_ptr->surface_ptr);
 
         inout_staging_ptr->is_locked = false;
     }

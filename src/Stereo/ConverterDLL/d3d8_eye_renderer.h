@@ -85,11 +85,6 @@ namespace Stereo
             void* get_twin_ptr(void* in_object_ptr) const;
 
 
-            template<typename FunctionPointer>
-            static FunctionPointer get_method_ptr(void*           in_object_ptr,
-                                                  const uint32_t& in_vtable_index);
-
-
             std::vector<Stereo::Core::MatrixChange> m_change_vec; /* of the draw being made: its entries are used again */
             Stereo::Core::StereoCore*               m_core_ptr;
             void*                                   m_device_ptr;

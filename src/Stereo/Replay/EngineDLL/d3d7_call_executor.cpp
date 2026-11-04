@@ -2,6 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
+#include "Common/vtable.h"
 #include "d3d7_call_executor.h"
 #include "Interception/Core/D3D7Utils/argument_info.h"
 #include "Interception/Core/D3D7Utils/constants.h"
@@ -29,9 +30,9 @@ ReturnType Stereo::Replay::EngineDLL::D3D7CallExecutor::call_method(void*       
 {
     typedef ReturnType (__stdcall* MethodPtr)(void*, Arguments...);
 
-    void** const vtable_ptr = *reinterpret_cast<void***>(in_object_ptr);
+    void** const vtable_ptr = APIInterceptor::get_vtable_ptr(in_object_ptr);
 
-    return reinterpret_cast<MethodPtr>(vtable_ptr[in_vtable_index])(in_object_ptr,
+    return APIInterceptor::get_method_ptr<MethodPtr>(vtable_ptr, in_vtable_index)(in_object_ptr,
                                                                     in_arguments...);
 }
 

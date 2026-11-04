@@ -11,6 +11,7 @@
 #ifndef STEREO_REPLAY_ENGINEDLL_D3D8_ARGUMENT_RESTORER_H
 #define STEREO_REPLAY_ENGINEDLL_D3D8_ARGUMENT_RESTORER_H
 
+#include "Common/vtable.h"
 #include "Interception/Core/D3D8Utils/types.h"
 #include "d3d8_replay_context.h"
 #include <string.h>
@@ -60,18 +61,18 @@ namespace Stereo
                                                            &error) )
                         {
                             HRESULT      hresult    = E_FAIL;
-                            void** const vtable_ptr = *reinterpret_cast<void***>(object);
+                            void** const vtable_ptr = APIInterceptor::get_vtable_ptr(object);
 
                             /* The adapter's mode for a device that is being created, the device's own after that. */
                             if (call.func == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3D8_CREATEDEVICE)
                             {
-                                hresult = reinterpret_cast<PFNGETADAPTERDISPLAYMODEPROC>(vtable_ptr[Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3D8_GETADAPTERDISPLAYMODE])(object,
+                                hresult = APIInterceptor::get_method_ptr<PFNGETADAPTERDISPLAYMODEPROC>(vtable_ptr, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3D8_GETADAPTERDISPLAYMODE)(object,
                                                                                                                                                                                 call.arg_in_vec.at(1).get_u32(),
                                                                                                                                                                                &mode);
                             }
                             else
                             {
-                                hresult = reinterpret_cast<PFNGETDISPLAYMODEPROC>(vtable_ptr[Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_GETDISPLAYMODE])(object,
+                                hresult = APIInterceptor::get_method_ptr<PFNGETDISPLAYMODEPROC>(vtable_ptr, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_GETDISPLAYMODE)(object,
                                                                                                                                                                       &mode);
                             }
 

@@ -5,6 +5,7 @@
 #include "d3d8_resolution_scaler.h"
 #include "Analysis/APIDumpAnalysis/frontends/d3d8_resolution_hazards.h"
 #include "Common/macros.h"
+#include "Common/vtable.h"
 #include "Stereo/Transport/frame_channel.h"
 #include <string.h>
 
@@ -194,9 +195,9 @@ void Stereo::ConverterDLL::D3D8ResolutionScaler::on_set_viewport(Interception::H
         m_real_width      != 0)
     {
         Interception::Hooks::D3D8::D3DSURFACE_DESC description = {};
-        void** const                               vtable      = *reinterpret_cast<void***>(render_target_ptr);
+        void** const                               vtable      = APIInterceptor::get_vtable_ptr(render_target_ptr);
 
-        const HRESULT description_result = reinterpret_cast<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_GETDESC>(vtable[Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_GETDESC])(static_cast<Interception::Hooks::D3D8::IDirect3DSurface8*>(render_target_ptr),
+        const HRESULT description_result = APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_GETDESC>(vtable, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_GETDESC)(static_cast<Interception::Hooks::D3D8::IDirect3DSurface8*>(render_target_ptr),
                                                                                                                                                                                                 &description);
 
         if (SUCCEEDED(description_result) )

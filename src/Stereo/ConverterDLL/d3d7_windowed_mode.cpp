@@ -3,6 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "Common/callbacks.h"
+#include "Common/vtable.h"
 #include "Interception/Core/D3D7Utils/constants.h"
 #include "Interception/Hooks/D3D7/types.h"
 #include "d3d7_windowed_mode.h"
@@ -84,9 +85,9 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_create_surface(const APIInte
 
     {
         const OwnCallScope own_call_scope;
-        void** const       vtable = *reinterpret_cast<void***>(direct_draw_ptr);
+        void** const       vtable = APIInterceptor::get_vtable_ptr(direct_draw_ptr);
 
-        const auto create_surface_func = reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAW7_CREATESURFACE>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAW7_CREATESURFACE]);
+        const auto create_surface_func = APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAW7_CREATESURFACE>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAW7_CREATESURFACE);
 
         /* The surface that is shown is the one of the window. */
         primary_description.dwSize      = static_cast<DWORD>(sizeof(primary_description) );
@@ -156,10 +157,10 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_get_attached_surface(const A
     if ( (static_cast<const Interception::Hooks::D3D7::DDSCAPS2*>(chunk_ptr)->dwCaps & Interception::Core::D3D7Utils::DDSCAPS_BACKBUFFER) != 0)
     {
         const OwnCallScope own_call_scope;
-        void** const       vtable = *reinterpret_cast<void***>(m_back_buffer_ptr);
+        void** const       vtable = APIInterceptor::get_vtable_ptr(m_back_buffer_ptr);
 
         /* What a call that gives a surface gives is a reference to it. */
-        reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_ADDREF>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_ADDREF])(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(m_back_buffer_ptr) );
+        APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_ADDREF>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_ADDREF)(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(m_back_buffer_ptr) );
 
         *static_cast<void**>(const_cast<void*>(in_arguments_ptr[RESULT_ARGUMENT].get_ptr() )) = m_back_buffer_ptr;
 
@@ -178,7 +179,7 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_set_cooperative_level(const 
 
     const OwnCallScope own_call_scope;
     void* const        direct_draw_ptr = const_cast<void*>(in_arguments_ptr[DIRECT_DRAW_ARGUMENT].get_ptr() );
-    void** const       vtable          = *reinterpret_cast<void***>(direct_draw_ptr);
+    void** const       vtable          = APIInterceptor::get_vtable_ptr(direct_draw_ptr);
     HWND               window          = nullptr;
 
     /* A handle is a pointer, or the number of one. */
@@ -194,7 +195,7 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_set_cooperative_level(const 
 
     m_invisible_windows.add(window);
 
-    reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAW7_SETCOOPERATIVELEVEL>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAW7_SETCOOPERATIVELEVEL])(static_cast<Interception::Hooks::D3D7::IDirectDraw7*>(direct_draw_ptr),
+    APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAW7_SETCOOPERATIVELEVEL>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAW7_SETCOOPERATIVELEVEL)(static_cast<Interception::Hooks::D3D7::IDirectDraw7*>(direct_draw_ptr),
                                                                                                                                                                          window,
                                                                                                                                                                          COOPERATIVE_LEVEL_NORMAL);
 }
@@ -263,12 +264,12 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_sized_surface(const Intercep
 
     {
         const OwnCallScope own_call_scope;
-        void** const       vtable = *reinterpret_cast<void***>(in_direct_draw_ptr);
+        void** const       vtable = APIInterceptor::get_vtable_ptr(in_direct_draw_ptr);
 
         scaled_description.dwHeight = get_scaled_extent(in_description.dwHeight);
         scaled_description.dwWidth  = get_scaled_extent(in_description.dwWidth);
 
-        if (SUCCEEDED(reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAW7_CREATESURFACE>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAW7_CREATESURFACE])(static_cast<Interception::Hooks::D3D7::IDirectDraw7*>(in_direct_draw_ptr),
+        if (SUCCEEDED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAW7_CREATESURFACE>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAW7_CREATESURFACE)(static_cast<Interception::Hooks::D3D7::IDirectDraw7*>(in_direct_draw_ptr),
                                                                                                                                                                               &scaled_description,
                                                                                                                                                                               &surface_ptr,
                                                                                                                                                                                nullptr) ))

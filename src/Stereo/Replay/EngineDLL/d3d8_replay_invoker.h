@@ -8,6 +8,7 @@
 #ifndef STEREO_REPLAY_ENGINEDLL_D3D8_REPLAY_INVOKER_H
 #define STEREO_REPLAY_ENGINEDLL_D3D8_REPLAY_INVOKER_H
 
+#include "Common/vtable.h"
 #include "d3d8_argument_restorer.h"
 #include <stdio.h>
 #include <tuple>
@@ -152,8 +153,9 @@ namespace Stereo
                         {
                             /* The object is the first argument. */
                             void* const  object_ptr = std::get<0>(restorers).get();
-                            void** const vtable_ptr = *reinterpret_cast<void***>(object_ptr);
-                            const auto   method_ptr = reinterpret_cast<MethodPtr>(vtable_ptr[vtable_index]);
+                            void** const vtable_ptr = APIInterceptor::get_vtable_ptr(object_ptr);
+                            const auto   method_ptr = APIInterceptor::get_method_ptr<MethodPtr>(vtable_ptr,
+                                                                                                    vtable_index);
 
                             holder.call(method_ptr,
                                         std::get<Indices>(restorers).get()...);

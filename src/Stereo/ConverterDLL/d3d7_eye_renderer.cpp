@@ -4,6 +4,7 @@
  */
 #include "Common/callbacks.h"
 #include "Common/macros.h"
+#include "Common/vtable.h"
 #include "Interception/Core/D3D7Utils/constants.h"
 #include "Interception/Core/D3D7Utils/methods.h"
 #include "Interception/Core/D3D7Utils/vertex_format.h"
@@ -298,11 +299,11 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::draw(const DrawArguments& in_draw_ar
                                                  const uint8_t*       in_vertices_ptr) const
 {
     const OwnCallScope own_call_scope;
-    void** const       vtable = *reinterpret_cast<void***>(in_draw_arguments.device_ptr);
+    void** const       vtable = APIInterceptor::get_vtable_ptr(in_draw_arguments.device_ptr);
 
     if (in_draw_arguments.is_indexed)
     {
-        const auto draw_func = reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVE>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVE]);
+        const auto draw_func = APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVE>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVE);
 
         draw_func(static_cast<Interception::Hooks::D3D7::IDirect3DDevice7*>(in_draw_arguments.device_ptr),
                   static_cast<Interception::Hooks::D3D7::D3DPRIMITIVETYPE>(in_draw_arguments.primitive_type),
@@ -315,7 +316,7 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::draw(const DrawArguments& in_draw_ar
     }
     else
     {
-        const auto draw_func = reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_DRAWPRIMITIVE>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_DRAWPRIMITIVE]);
+        const auto draw_func = APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_DRAWPRIMITIVE>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_DRAWPRIMITIVE);
 
         draw_func(static_cast<Interception::Hooks::D3D7::IDirect3DDevice7*>(in_draw_arguments.device_ptr),
                   static_cast<Interception::Hooks::D3D7::D3DPRIMITIVETYPE>(in_draw_arguments.primitive_type),
@@ -442,15 +443,15 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::enter_right_eye(void*          in_de
                                                             RightEyeScope* out_scope_ptr) const
 {
     const OwnCallScope own_call_scope;
-    void** const       vtable          = *reinterpret_cast<void***>(in_device_ptr);
+    void** const       vtable          = APIInterceptor::get_vtable_ptr(in_device_ptr);
     bool               result          = false;
     void* const        twin_target_ptr = (m_mirror.render_target_ptr != nullptr) ? get_twin_ptr(m_mirror.render_target_ptr)
                                                                                  : nullptr;
 
-    const auto get_viewport_func      = reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_GETVIEWPORT>    (vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_GETVIEWPORT]);
-    const auto set_render_target_func = reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_SETRENDERTARGET>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETRENDERTARGET]);
-    const auto set_texture_func       = reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_SETTEXTURE>     (vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETTEXTURE]);
-    const auto set_viewport_func      = reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_SETVIEWPORT>    (vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETVIEWPORT]);
+    const auto get_viewport_func      = APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_GETVIEWPORT>    (vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_GETVIEWPORT);
+    const auto set_render_target_func = APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_SETRENDERTARGET>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETRENDERTARGET);
+    const auto set_texture_func       = APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_SETTEXTURE>     (vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETTEXTURE);
+    const auto set_viewport_func      = APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_SETVIEWPORT>    (vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETVIEWPORT);
     Interception::Hooks::D3D7::IDirect3DDevice7* const device = static_cast<Interception::Hooks::D3D7::IDirect3DDevice7*>(in_device_ptr);
 
     *out_scope_ptr = RightEyeScope();
@@ -500,11 +501,11 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::leave_right_eye(void*               
                                                             const RightEyeScope& in_scope) const
 {
     const OwnCallScope own_call_scope;
-    void** const       vtable = *reinterpret_cast<void***>(inout_device_ptr);
+    void** const       vtable = APIInterceptor::get_vtable_ptr(inout_device_ptr);
 
-    const auto set_render_target_func = reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_SETRENDERTARGET>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETRENDERTARGET]);
-    const auto set_texture_func       = reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_SETTEXTURE>     (vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETTEXTURE]);
-    const auto set_viewport_func      = reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_SETVIEWPORT>    (vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETVIEWPORT]);
+    const auto set_render_target_func = APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_SETRENDERTARGET>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETRENDERTARGET);
+    const auto set_texture_func       = APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_SETTEXTURE>     (vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETTEXTURE);
+    const auto set_viewport_func      = APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_SETVIEWPORT>    (vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETVIEWPORT);
     Interception::Hooks::D3D7::IDirect3DDevice7* const device = static_cast<Interception::Hooks::D3D7::IDirect3DDevice7*>(inout_device_ptr);
 
     set_render_target_func(device,
@@ -575,7 +576,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::mirror_blt(const APIInterceptor::API
             const void* const rect_ptr        = get_chunk_ptr(in_arguments_ptr[rect_argument]);
 
             const OwnCallScope own_call_scope;
-            void** const       vtable = *reinterpret_cast<void***>(twin_ptr);
+            void** const       vtable = APIInterceptor::get_vtable_ptr(twin_ptr);
 
             if (source_twin_ptr != nullptr)
             {
@@ -591,7 +592,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::mirror_blt(const APIInterceptor::API
                     read_u32(in_arguments_ptr[5],
                             &flags))
                 {
-                    reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_BLTFAST>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_BLTFAST])(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(twin_ptr),
+                    APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_BLTFAST>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_BLTFAST)(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(twin_ptr),
                                                                                                                                                                               x,
                                                                                                                                                                               y,
                                                                                                                                                                               static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(source_ptr),
@@ -605,7 +606,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::mirror_blt(const APIInterceptor::API
             if (read_u32(in_arguments_ptr[4],
                         &flags) )
             {
-                reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_BLT>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_BLT])(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(twin_ptr),
+                APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_BLT>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_BLT)(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(twin_ptr),
                                                                                                                                                                   static_cast<const RECT*>(get_chunk_ptr(in_arguments_ptr[1]) ),
                                                                                                                                                                   static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(source_ptr),
                                                                                                                                                                   static_cast<const RECT*>(rect_ptr),
@@ -701,9 +702,9 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::play_clear(const uint32_t&          
         const auto clear_func = [&](const Interception::Hooks::D3D7::D3DRECT* in_rects_ptr)
         {
             const OwnCallScope own_call_scope;
-            void** const       vtable = *reinterpret_cast<void***>(device_ptr);
+            void** const       vtable = APIInterceptor::get_vtable_ptr(device_ptr);
 
-            reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_CLEAR>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_CLEAR])(static_cast<Interception::Hooks::D3D7::IDirect3DDevice7*>(device_ptr),
+            APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_CLEAR>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_CLEAR)(static_cast<Interception::Hooks::D3D7::IDirect3DDevice7*>(device_ptr),
                                                                                                                                                               count,
                                                                                                                                                               in_rects_ptr,
                                                                                                                                                               flags,
@@ -745,7 +746,7 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::set_effective_viewport(void* in_devi
     const OwnCallScope                      own_call_scope;
     const float                             scale    = get_render_scale();
     Interception::Hooks::D3D7::D3DVIEWPORT7 viewport = m_mirror.viewport;
-    void** const                            vtable   = *reinterpret_cast<void***>(in_device_ptr);
+    void** const                            vtable   = APIInterceptor::get_vtable_ptr(in_device_ptr);
 
     if (scale != 1.0f)
     {
@@ -755,7 +756,7 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::set_effective_viewport(void* in_devi
         viewport.dwY      = static_cast<DWORD>(static_cast<float>(viewport.dwY)      * scale + 0.5f);
     }
 
-    reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_SETVIEWPORT>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETVIEWPORT])(static_cast<Interception::Hooks::D3D7::IDirect3DDevice7*>(in_device_ptr),
+    APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_SETVIEWPORT>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETVIEWPORT)(static_cast<Interception::Hooks::D3D7::IDirect3DDevice7*>(in_device_ptr),
                                                                                                                                                                  &viewport);
 }
 

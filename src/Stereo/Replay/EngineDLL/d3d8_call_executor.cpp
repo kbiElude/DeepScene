@@ -2,6 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
+#include "Common/vtable.h"
 #include "d3d8_call_executor.h"
 #include "Interception/Hooks/D3D8/types.h"
 #include "d3d8_replay_invoker.h"
@@ -47,9 +48,9 @@ void Stereo::Replay::EngineDLL::D3D8CallExecutor::close_back_buffer_image(BackBu
     /* The image surface stays: it is the scratch surface, kept for the next read. */
     if (inout_image_ptr->back_buffer_ptr != nullptr)
     {
-        void** const vtable_ptr = *reinterpret_cast<void***>(inout_image_ptr->back_buffer_ptr);
+        void** const vtable_ptr = APIInterceptor::get_vtable_ptr(inout_image_ptr->back_buffer_ptr);
 
-        reinterpret_cast<ULONG (__stdcall*)(void*)>(vtable_ptr[Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_RELEASE])(inout_image_ptr->back_buffer_ptr);
+        APIInterceptor::get_method_ptr<ULONG (__stdcall*)(void*)>(vtable_ptr, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_RELEASE)(inout_image_ptr->back_buffer_ptr);
     }
 
     *inout_image_ptr = BackBufferImage();
@@ -310,9 +311,9 @@ bool Stereo::Replay::EngineDLL::D3D8CallExecutor::open_back_buffer_image(const b
     }
 
     {
-        void** const device_vtable_ptr = *reinterpret_cast<void***>(device_ptr);
+        void** const device_vtable_ptr = APIInterceptor::get_vtable_ptr(device_ptr);
 
-        if (reinterpret_cast<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_GETBACKBUFFER>(device_vtable_ptr[Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_GETBACKBUFFER])(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(device_ptr),
+        if (APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_GETBACKBUFFER>(device_vtable_ptr, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_GETBACKBUFFER)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(device_ptr),
                                                                                                                                                                                        0, /* BackBuffer */
                                                                                                                                                                                        Interception::Hooks::D3D8::D3DBACKBUFFER_TYPE_MONO,
                                                                                                                                                                                        reinterpret_cast<Interception::Hooks::D3D8::IDirect3DSurface8**>(&out_image_ptr->back_buffer_ptr) ) < 0)
@@ -320,9 +321,9 @@ bool Stereo::Replay::EngineDLL::D3D8CallExecutor::open_back_buffer_image(const b
             goto end;
         }
 
-        void** const back_buffer_vtable_ptr = *reinterpret_cast<void***>(out_image_ptr->back_buffer_ptr);
+        void** const back_buffer_vtable_ptr = APIInterceptor::get_vtable_ptr(out_image_ptr->back_buffer_ptr);
 
-        if (reinterpret_cast<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_GETDESC>(back_buffer_vtable_ptr[Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_GETDESC])(static_cast<Interception::Hooks::D3D8::IDirect3DSurface8*>(out_image_ptr->back_buffer_ptr),
+        if (APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_GETDESC>(back_buffer_vtable_ptr, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_GETDESC)(static_cast<Interception::Hooks::D3D8::IDirect3DSurface8*>(out_image_ptr->back_buffer_ptr),
                                                                                                                                                                                  &out_image_ptr->description) < 0)
         {
             goto end;
@@ -340,7 +341,7 @@ bool Stereo::Replay::EngineDLL::D3D8CallExecutor::open_back_buffer_image(const b
 
         if (m_scratch_surface_ptr == nullptr)
         {
-            if (reinterpret_cast<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_CREATEIMAGESURFACE>(device_vtable_ptr[Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_CREATEIMAGESURFACE])(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(device_ptr),
+            if (APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_CREATEIMAGESURFACE>(device_vtable_ptr, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_CREATEIMAGESURFACE)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(device_ptr),
                                                                                                                                                                                                      out_image_ptr->description.Width,
                                                                                                                                                                                                      out_image_ptr->description.Height,
                                                                                                                                                                                                      out_image_ptr->description.Format,
@@ -357,7 +358,7 @@ bool Stereo::Replay::EngineDLL::D3D8CallExecutor::open_back_buffer_image(const b
 
         if (in_copies_from_back_buffer)
         {
-            if (reinterpret_cast<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_COPYRECTS>(device_vtable_ptr[Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_COPYRECTS])(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(device_ptr),
+            if (APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_COPYRECTS>(device_vtable_ptr, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_COPYRECTS)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(device_ptr),
                                                                                                                                                                                    static_cast<Interception::Hooks::D3D8::IDirect3DSurface8*>(out_image_ptr->back_buffer_ptr),
                                                                                                                                                                                    nullptr, /* pSourceRectsArray */
                                                                                                                                                                                    0,       /* cRects             */
@@ -368,9 +369,9 @@ bool Stereo::Replay::EngineDLL::D3D8CallExecutor::open_back_buffer_image(const b
             }
         }
 
-        void** const image_vtable_ptr = *reinterpret_cast<void***>(out_image_ptr->image_ptr);
+        void** const image_vtable_ptr = APIInterceptor::get_vtable_ptr(out_image_ptr->image_ptr);
 
-        if (reinterpret_cast<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_LOCKRECT>(image_vtable_ptr[Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_LOCKRECT])(static_cast<Interception::Hooks::D3D8::IDirect3DSurface8*>(out_image_ptr->image_ptr),
+        if (APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_LOCKRECT>(image_vtable_ptr, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_LOCKRECT)(static_cast<Interception::Hooks::D3D8::IDirect3DSurface8*>(out_image_ptr->image_ptr),
                                                                                                                                                                              &out_image_ptr->locked_rect,
                                                                                                                                                                               nullptr, /* pRect */
                                                                                                                                                                               in_lock_flags) < 0)
@@ -473,8 +474,8 @@ bool Stereo::Replay::EngineDLL::D3D8CallExecutor::release(const Capture::APIDump
             release_scratch_surface();
         }
 
-        void** const vtable_ptr = *reinterpret_cast<void***>(object_ptr);
-        const ULONG  n_refs     = reinterpret_cast<PFNRELEASEPROC>(vtable_ptr[Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_RELEASE])(object_ptr);
+        void** const vtable_ptr = APIInterceptor::get_vtable_ptr(object_ptr);
+        const ULONG  n_refs     = APIInterceptor::get_method_ptr<PFNRELEASEPROC>(vtable_ptr, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_RELEASE)(object_ptr);
 
         if (n_refs == 0)
         {
@@ -489,9 +490,9 @@ void Stereo::Replay::EngineDLL::D3D8CallExecutor::release_scratch_surface()
 {
     if (m_scratch_surface_ptr != nullptr)
     {
-        void** const vtable_ptr = *reinterpret_cast<void***>(m_scratch_surface_ptr);
+        void** const vtable_ptr = APIInterceptor::get_vtable_ptr(m_scratch_surface_ptr);
 
-        reinterpret_cast<ULONG (__stdcall*)(void*)>(vtable_ptr[Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_RELEASE])(m_scratch_surface_ptr);
+        APIInterceptor::get_method_ptr<ULONG (__stdcall*)(void*)>(vtable_ptr, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_RELEASE)(m_scratch_surface_ptr);
 
         m_scratch_surface_ptr = nullptr;
     }
@@ -516,9 +517,9 @@ void Stereo::Replay::EngineDLL::D3D8CallExecutor::restore_state()
     if (device_ptr != nullptr &&
         m_state_block_token != 0)
     {
-        void** const vtable_ptr = *reinterpret_cast<void***>(device_ptr);
+        void** const vtable_ptr = APIInterceptor::get_vtable_ptr(device_ptr);
 
-        reinterpret_cast<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_APPLYSTATEBLOCK>(vtable_ptr[Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_APPLYSTATEBLOCK])(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(device_ptr),
+        APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_APPLYSTATEBLOCK>(vtable_ptr, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_APPLYSTATEBLOCK)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(device_ptr),
                                                                                                                                                                                 m_state_block_token);
     }
 }
@@ -529,18 +530,18 @@ void Stereo::Replay::EngineDLL::D3D8CallExecutor::save_state()
 
     if (device_ptr != nullptr)
     {
-        void** const vtable_ptr = *reinterpret_cast<void***>(device_ptr);
+        void** const vtable_ptr = APIInterceptor::get_vtable_ptr(device_ptr);
 
         if (m_state_block_token == 0)
         {
             /* Creating a state block captures the state. */
-            reinterpret_cast<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_CREATESTATEBLOCK>(vtable_ptr[Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_CREATESTATEBLOCK])(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(device_ptr),
+            APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_CREATESTATEBLOCK>(vtable_ptr, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_CREATESTATEBLOCK)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(device_ptr),
                                                                                                                                                                                       Interception::Hooks::D3D8::D3DSBT_ALL,
                                                                                                                                                                                       &m_state_block_token);
         }
         else
         {
-            reinterpret_cast<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_CAPTURESTATEBLOCK>(vtable_ptr[Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_CAPTURESTATEBLOCK])(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(device_ptr),
+            APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_CAPTURESTATEBLOCK>(vtable_ptr, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_CAPTURESTATEBLOCK)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(device_ptr),
                                                                                                                                                                                         m_state_block_token);
         }
     }
@@ -550,9 +551,9 @@ void Stereo::Replay::EngineDLL::D3D8CallExecutor::unlock_back_buffer_image(BackB
 {
     if (inout_image_ptr->is_locked)
     {
-        void** const image_vtable_ptr = *reinterpret_cast<void***>(inout_image_ptr->image_ptr);
+        void** const image_vtable_ptr = APIInterceptor::get_vtable_ptr(inout_image_ptr->image_ptr);
 
-        reinterpret_cast<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_UNLOCKRECT>(image_vtable_ptr[Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_UNLOCKRECT])(static_cast<Interception::Hooks::D3D8::IDirect3DSurface8*>(inout_image_ptr->image_ptr) );
+        APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_UNLOCKRECT>(image_vtable_ptr, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_UNLOCKRECT)(static_cast<Interception::Hooks::D3D8::IDirect3DSurface8*>(inout_image_ptr->image_ptr) );
 
         inout_image_ptr->is_locked = false;
     }
@@ -594,9 +595,9 @@ bool Stereo::Replay::EngineDLL::D3D8CallExecutor::write_back_buffer(const std::v
 
     {
         void* const  device_ptr        = m_context.get_device_ptr();
-        void** const device_vtable_ptr = *reinterpret_cast<void***>(device_ptr);
+        void** const device_vtable_ptr = APIInterceptor::get_vtable_ptr(device_ptr);
 
-        result = (reinterpret_cast<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_COPYRECTS>(device_vtable_ptr[Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_COPYRECTS])(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*> (device_ptr),
+        result = (APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_COPYRECTS>(device_vtable_ptr, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_COPYRECTS)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*> (device_ptr),
                                                                                                                                                                                      static_cast<Interception::Hooks::D3D8::IDirect3DSurface8*>(image.image_ptr),
                                                                                                                                                                                      nullptr, /* pSourceRectsArray */
                                                                                                                                                                                      0,       /* cRects             */

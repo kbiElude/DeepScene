@@ -2,6 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
+#include "Common/vtable.h"
 #include "d3d8_lock_replayer.h"
 #include "Interception/Hooks/D3D8/types.h"
 #include "Interception/Core/D3D8Utils/surface_layout.h"
@@ -186,7 +187,7 @@ bool Stereo::Replay::EngineDLL::D3D8LockReplayer::lock_box(const Capture::APIDum
     LockRecord                                record     = {};
     bool                                      result     = false;
     const auto                                spec_ptr   = get_lock_spec_ptr         (in_call.func);
-    void** const                              vtable_ptr = *reinterpret_cast<void***>(in_object_ptr);
+    void** const                              vtable_ptr = APIInterceptor::get_vtable_ptr(in_object_ptr);
     const DWORD                               flags      = get_u32_argument          (*m_context_ptr,
                                                                                      spec_ptr->n_flags_argument);
 
@@ -207,7 +208,7 @@ bool Stereo::Replay::EngineDLL::D3D8LockReplayer::lock_box(const Capture::APIDum
 
     if (spec_ptr->n_level_argument != ARGUMENT_ABSENT)
     {
-        hresult = reinterpret_cast<PFNLEVELBOXLOCKPROC>(vtable_ptr[spec_ptr->vtable_index])(in_object_ptr,
+        hresult = APIInterceptor::get_method_ptr<PFNLEVELBOXLOCKPROC>(vtable_ptr, spec_ptr->vtable_index)(in_object_ptr,
                                                                                             level,
                                                                                            &locked,
                                                                                             box_ptr,
@@ -215,21 +216,21 @@ bool Stereo::Replay::EngineDLL::D3D8LockReplayer::lock_box(const Capture::APIDum
 
         if (hresult >= 0)
         {
-            reinterpret_cast<PFNLEVELBOXPROC>(vtable_ptr[spec_ptr->desc_vtable_index])(in_object_ptr,
+            APIInterceptor::get_method_ptr<PFNLEVELBOXPROC>(vtable_ptr, spec_ptr->desc_vtable_index)(in_object_ptr,
                                                                                        level,
                                                                                       &desc);
         }
     }
     else
     {
-        hresult = reinterpret_cast<PFNVOLUMELOCKPROC>(vtable_ptr[spec_ptr->vtable_index])(in_object_ptr,
+        hresult = APIInterceptor::get_method_ptr<PFNVOLUMELOCKPROC>(vtable_ptr, spec_ptr->vtable_index)(in_object_ptr,
                                                                                          &locked,
                                                                                           box_ptr,
                                                                                           flags);
 
         if (hresult >= 0)
         {
-            reinterpret_cast<PFNVOLUMEDESCPROC>(vtable_ptr[spec_ptr->desc_vtable_index])(in_object_ptr,
+            APIInterceptor::get_method_ptr<PFNVOLUMEDESCPROC>(vtable_ptr, spec_ptr->desc_vtable_index)(in_object_ptr,
                                                                                          &desc);
         }
     }
@@ -281,7 +282,7 @@ bool Stereo::Replay::EngineDLL::D3D8LockReplayer::lock_buffer(const Capture::API
     LockRecord                                      record     = {};
     bool                                            result     = false;
     const auto                                      spec_ptr   = get_lock_spec_ptr         (in_call.func);
-    void** const                                    vtable_ptr = *reinterpret_cast<void***>(in_object_ptr);
+    void** const                                    vtable_ptr = APIInterceptor::get_vtable_ptr(in_object_ptr);
     const DWORD                                     flags      = get_u32_argument          (*m_context_ptr,
                                                                                             spec_ptr->n_flags_argument);
 
@@ -290,7 +291,7 @@ bool Stereo::Replay::EngineDLL::D3D8LockReplayer::lock_buffer(const Capture::API
     const UINT size       = get_u32_argument(*m_context_ptr,
                                              spec_ptr->n_size_argument);
 
-    hresult = reinterpret_cast<PFNBUFFERLOCKPROC>(vtable_ptr[spec_ptr->vtable_index])(in_object_ptr,
+    hresult = APIInterceptor::get_method_ptr<PFNBUFFERLOCKPROC>(vtable_ptr, spec_ptr->vtable_index)(in_object_ptr,
                                                                                       offset,
                                                                                       size,
                                                                                      &data_ptr,
@@ -303,7 +304,7 @@ bool Stereo::Replay::EngineDLL::D3D8LockReplayer::lock_buffer(const Capture::API
         goto end;
     }
 
-    reinterpret_cast<PFNBUFFERDESCPROC>(vtable_ptr[spec_ptr->desc_vtable_index])(in_object_ptr,
+    APIInterceptor::get_method_ptr<PFNBUFFERDESCPROC>(vtable_ptr, spec_ptr->desc_vtable_index)(in_object_ptr,
                                                                                 &desc);
 
     /* A size of 0 locks everything from the offset on. */
@@ -341,7 +342,7 @@ bool Stereo::Replay::EngineDLL::D3D8LockReplayer::lock_rect(const Capture::APIDu
     const RECT*                                rect_ptr   = nullptr;
     bool                                       result     = false;
     const auto                                 spec_ptr   = get_lock_spec_ptr         ( in_call.func);
-    void** const                               vtable_ptr = *reinterpret_cast<void***>( in_object_ptr);
+    void** const                               vtable_ptr = APIInterceptor::get_vtable_ptr( in_object_ptr);
     const DWORD                                flags      = get_u32_argument          (*m_context_ptr,
                                                                                         spec_ptr->n_flags_argument);
 
@@ -363,7 +364,7 @@ bool Stereo::Replay::EngineDLL::D3D8LockReplayer::lock_rect(const Capture::APIDu
 
     if (spec_ptr->n_face_argument != ARGUMENT_ABSENT)
     {
-        hresult = reinterpret_cast<PFNCUBELOCKPROC>(vtable_ptr[spec_ptr->vtable_index])(in_object_ptr,
+        hresult = APIInterceptor::get_method_ptr<PFNCUBELOCKPROC>(vtable_ptr, spec_ptr->vtable_index)(in_object_ptr,
                                                                                         face,
                                                                                         level,
                                                                                        &locked,
@@ -373,7 +374,7 @@ bool Stereo::Replay::EngineDLL::D3D8LockReplayer::lock_rect(const Capture::APIDu
     else
     if (spec_ptr->n_level_argument != ARGUMENT_ABSENT)
     {
-        hresult = reinterpret_cast<PFNLEVELLOCKPROC>(vtable_ptr[spec_ptr->vtable_index])(in_object_ptr,
+        hresult = APIInterceptor::get_method_ptr<PFNLEVELLOCKPROC>(vtable_ptr, spec_ptr->vtable_index)(in_object_ptr,
                                                                                          level,
                                                                                         &locked,
                                                                                          rect_ptr,
@@ -381,7 +382,7 @@ bool Stereo::Replay::EngineDLL::D3D8LockReplayer::lock_rect(const Capture::APIDu
     }
     else
     {
-        hresult = reinterpret_cast<PFNSURFACELOCKPROC>(vtable_ptr[spec_ptr->vtable_index])(in_object_ptr,
+        hresult = APIInterceptor::get_method_ptr<PFNSURFACELOCKPROC>(vtable_ptr, spec_ptr->vtable_index)(in_object_ptr,
                                                                                           &locked,
                                                                                            rect_ptr,
                                                                                            flags);
@@ -396,13 +397,13 @@ bool Stereo::Replay::EngineDLL::D3D8LockReplayer::lock_rect(const Capture::APIDu
 
     if (spec_ptr->n_level_argument != ARGUMENT_ABSENT)
     {
-        reinterpret_cast<PFNLEVELDESCPROC>(vtable_ptr[spec_ptr->desc_vtable_index])(in_object_ptr,
+        APIInterceptor::get_method_ptr<PFNLEVELDESCPROC>(vtable_ptr, spec_ptr->desc_vtable_index)(in_object_ptr,
                                                                                     level,
                                                                                    &desc);
     }
     else
     {
-        reinterpret_cast<PFNSURFACEDESCPROC>(vtable_ptr[spec_ptr->desc_vtable_index])(in_object_ptr,
+        APIInterceptor::get_method_ptr<PFNSURFACEDESCPROC>(vtable_ptr, spec_ptr->desc_vtable_index)(in_object_ptr,
                                                                                      &desc);
     }
 
@@ -470,7 +471,7 @@ bool Stereo::Replay::EngineDLL::D3D8LockReplayer::unlock(const Capture::APIDumpL
         const uint32_t face       = std::get<1>                      (key);
         const auto     iterator   = m_lock_record_map.find           (key);
         const uint32_t level      = std::get<2>                      (key);
-        void** const   vtable_ptr = *reinterpret_cast<void***>       (object_ptr);
+        void** const   vtable_ptr = APIInterceptor::get_vtable_ptr(object_ptr);
 
         if (iterator != m_lock_record_map.end() )
         {
@@ -519,19 +520,19 @@ bool Stereo::Replay::EngineDLL::D3D8LockReplayer::unlock(const Capture::APIDumpL
 
             if (spec_ptr->n_face_argument != ARGUMENT_ABSENT)
             {
-                reinterpret_cast<PFNUNLOCK2PROC>(vtable_ptr[spec_ptr->vtable_index])(object_ptr,
+                APIInterceptor::get_method_ptr<PFNUNLOCK2PROC>(vtable_ptr, spec_ptr->vtable_index)(object_ptr,
                                                                                      face,
                                                                                      level);
             }
             else
             if (spec_ptr->n_level_argument != ARGUMENT_ABSENT)
             {
-                reinterpret_cast<PFNUNLOCK1PROC>(vtable_ptr[spec_ptr->vtable_index])(object_ptr,
+                APIInterceptor::get_method_ptr<PFNUNLOCK1PROC>(vtable_ptr, spec_ptr->vtable_index)(object_ptr,
                                                                                      level);
             }
             else
             {
-                reinterpret_cast<PFNUNLOCK0PROC>(vtable_ptr[spec_ptr->vtable_index])(object_ptr);
+                APIInterceptor::get_method_ptr<PFNUNLOCK0PROC>(vtable_ptr, spec_ptr->vtable_index)(object_ptr);
             }
         }
     }

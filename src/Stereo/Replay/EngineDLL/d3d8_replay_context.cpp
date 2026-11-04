@@ -2,6 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
+#include "Common/vtable.h"
 #include "d3d8_replay_context.h"
 #include "Interception/Hooks/D3D8/types.h"
 #include <algorithm>
@@ -250,8 +251,8 @@ void Stereo::Replay::EngineDLL::D3D8ReplayContext::release_all_objects()
     /* The device is the first one to be created, so it is the last one to go. */
     for (void* const object_ptr : m_live_objects.get_newest_first_vec() )
     {
-        void** const   vtable_ptr       = *reinterpret_cast<void***>      (object_ptr);
-        const auto     release_func_ptr = reinterpret_cast<PFNRELEASEPROC>(vtable_ptr[Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_RELEASE]);
+        void** const   vtable_ptr       = APIInterceptor::get_vtable_ptr(object_ptr);
+        const auto     release_func_ptr = APIInterceptor::get_method_ptr<PFNRELEASEPROC>(vtable_ptr, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_RELEASE);
 
         size_t n_release = 0;
 
