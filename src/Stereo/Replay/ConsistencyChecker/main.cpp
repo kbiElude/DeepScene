@@ -4,14 +4,19 @@
  */
 #include "Analysis/APIDumpAnalysis/number_parser.h"
 #include "Analysis/RecipeLoader/recipe_loader.h"
+#include "Capture/APIDumpLoader/WorkloadIndex.h"
 #include "Stereo/Replay/EngineDLL/entrypoints.h"
+#include "Stereo/Replay/FrameImages/image_comparer.h"
 #include "Stereo/Replay/FrameImages/image_composer.h"
 #include "Stereo/Replay/FrameImages/png_writer.h"
 #include "frame_hash_sink.h"
+#include "frame_sampler.h"
 #include "stop_observer.h"
 #include "types.h"
 #include <chrono>
+#include <cmath>
 #include <map>
+#include <set>
 #include <string>
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,8 +31,8 @@ namespace Stereo
         {
             extern const Variant VARIANT_ARRAY[5];
 
-            /* False if the options of a screenshot are given without the frame, or the frame without the file to write. */
-            bool are_screenshot_options_valid(const Options& in_options);
+            /* False if the options of a screenshot or a contact sheet are given without it, or it without the file to write, or both at once. */
+            bool are_image_options_valid(const Options& in_options);
 
             /* Writes the images of one frame, as it is and executed twice, to the directory of the options. */
             void dump_frame(const Options&  in_options,
@@ -61,11 +66,23 @@ namespace Stereo
                               std::vector<FrameHashSink>*         out_sink_vec_ptr,
                               std::string*                        out_error_ptr);
 
+            /* Replays the workload once, up to the last of the frames that the options have a contact sheet of, and writes the sheet: the frames spread evenly
+             * from the first frame of the options to the last (or the end of the workload), each as a screenshot is.
+             */
+            bool take_contact_sheet(const Options& in_options,
+                                    std::string*   out_error_ptr);
+
             /* Replays the workload once, up to the screenshot frame, and writes the image of it to the screenshot file: with a recipe the eyes as the options
              * say, otherwise the frame as it is.
              */
             bool take_screenshot(const Options& in_options,
                                  std::string*   out_error_ptr);
+
+            /* Says, and writes an image of, how the image of an execution differs from the one of the frame as it is. */
+            void write_difference(const std::string&                        in_label,
+                                  const std::string&                        in_path,
+                                  const Stereo::Replay::FrameImages::Image& in_image_as_it_is,
+                                  const Stereo::Replay::FrameImages::Image& in_image_of_execution);
         }
     }
 }
@@ -79,22 +96,32 @@ const Stereo::Replay::ConsistencyChecker::Variant Stereo::Replay::ConsistencyChe
     {Stereo::Replay::EngineDLL::FrameExecution::TWICE,  "twice, for the eyes of the recipe", true,  true}
 };
 
-bool Stereo::Replay::ConsistencyChecker::are_screenshot_options_valid(const Stereo::Replay::ConsistencyChecker::Options& in_options)
+bool Stereo::Replay::ConsistencyChecker::are_image_options_valid(const Stereo::Replay::ConsistencyChecker::Options& in_options)
 {
-    bool result = true;
+    const bool is_contact_sheet = (in_options.contact_sheet_n_frames != 0);
+    const bool is_screenshot    = (in_options.screenshot_frame       != UINT32_MAX);
+    bool       result           = false;
 
-    if (in_options.screenshot_frame == UINT32_MAX)
+    if (is_contact_sheet &&
+        is_screenshot)
     {
-        result = (in_options.screenshot_filename.empty() &&
-                  in_options.has_screenshot_eye == false);
+        goto end;
+    }
+
+    if (is_contact_sheet ||
+        is_screenshot)
+    {
+        result = (in_options.image_filename.empty() == false &&
+                  (in_options.has_eye_view == false          ||
+                   in_options.recipe_filename.empty() == false) );
     }
     else
     {
-        result = (in_options.screenshot_filename.empty() == false &&
-                  (in_options.has_screenshot_eye == false ||
-                   in_options.recipe_filename.empty() == false) );
+        result = (in_options.image_filename.empty() &&
+                  in_options.has_eye_view == false);
     }
 
+end:
     return result;
 }
 
@@ -140,12 +167,25 @@ void Stereo::Replay::ConsistencyChecker::dump_frame(const Stereo::Replay::Consis
     {
         const std::string prefix = in_options.dump_directory + "/frame_" + std::to_string(in_n_frame);
 
+        const auto& as_it_is_image        = direct_sink.get_image({in_n_frame, 0});
+        const auto& first_execution_image = twice_sink.get_image({in_n_frame, 0});
+        const auto& second_execution_image = twice_sink.get_image({in_n_frame, 1});
+
         Stereo::Replay::FrameImages::PngWriter::write_file(prefix + "_as_it_is.png",
-                                                           direct_sink.get_image({in_n_frame, 0}) );
+                                                           as_it_is_image);
         Stereo::Replay::FrameImages::PngWriter::write_file(prefix + "_first_execution.png",
-                                                           twice_sink.get_image({in_n_frame, 0}) );
+                                                           first_execution_image);
         Stereo::Replay::FrameImages::PngWriter::write_file(prefix + "_second_execution.png",
-                                                           twice_sink.get_image({in_n_frame, 1}) );
+                                                           second_execution_image);
+
+        write_difference("first execution",
+                         prefix + "_first_execution_difference.png",
+                         as_it_is_image,
+                         first_execution_image);
+        write_difference("second execution",
+                         prefix + "_second_execution_difference.png",
+                         as_it_is_image,
+                         second_execution_image);
 
         fprintf(stdout,
                 "Images of frame %u written to %s\n",
@@ -290,6 +330,7 @@ void Stereo::Replay::ConsistencyChecker::print_usage()
             "StereoReplayConsistencyChecker_x86 file.workload [--from A] [--to B] [--dump-dir DIR] [--recipe FILE [--eye-separation D]]\n"
             "                                    [--ways again,twice,restore,recipe] [--parallel]\n"
             "StereoReplayConsistencyChecker_x86 file.workload --screenshot N --out FILE.png [--recipe FILE [--eye left|right|both|anaglyph]]\n"
+            "StereoReplayConsistencyChecker_x86 file.workload --contact-sheet K --out FILE.png [--from A] [--to B] [--recipe FILE [--eye ...]]\n"
             "\n"
             "Replays frames A to B (default 0 to 999) of a Direct3D 8 workload in four ways: as they are, as they are again (to\n"
             "see how much a replay differs from itself), executed twice, and executed twice with the state of the device put\n"
@@ -305,7 +346,9 @@ void Stereo::Replay::ConsistencyChecker::print_usage()
             "  --parallel       Replay the ways at the same time, each with an engine of its own: faster, and needs the memory of all.\n"
             "\n"
             "  --screenshot N   Instead of the check: replay once, up to frame N, and write the image of that frame to the PNG file of --out. With a\n"
-            "                   recipe it is both eyes side by side, or the one that --eye says (anaglyph: red-cyan); without one, the frame as it is.\n");
+            "                   recipe it is both eyes side by side, or the one that --eye says (anaglyph: red-cyan); without one, the frame as it is.\n"
+            "  --contact-sheet K  Instead of the check: one PNG with K frames spread evenly from A to B (or the end of the workload), each as a screenshot\n"
+            "                   is, and the numbers of the frames in the order they are shown.\n");
 }
 
 /* Replays the frames of the options one way, and keeps what the sink is given. */
@@ -472,6 +515,148 @@ bool Stereo::Replay::ConsistencyChecker::run_variants(const Stereo::Replay::Cons
     return result;
 }
 
+bool Stereo::Replay::ConsistencyChecker::take_contact_sheet(const Stereo::Replay::ConsistencyChecker::Options& in_options,
+                                                            std::string*                                       out_error_ptr)
+{
+    constexpr uint32_t N_INDEX_READER_THREADS = 2;
+
+    uint32_t                                          n_columns   = 0;
+    Capture::APIDumpLoader::WorkloadIndex             index;
+    bool                                              is_index_built = false;
+    std::string                                       index_error;
+    const bool                                        uses_recipe = (in_options.recipe_filename.empty() == false);
+    Stereo::Replay::ConsistencyChecker::Options       options     = in_options;
+    bool                                              result      = false;
+    std::set<uint32_t>                                frame_set;
+    std::vector<uint32_t>                             frame_vec;
+    std::vector<uint32_t>                             shown_frame_vec;
+    Stereo::Replay::FrameImages::Image                sheet_image;
+    std::vector<Stereo::Replay::FrameImages::Image>   tile_image_vec;
+    Stereo::Replay::ConsistencyChecker::FrameHashSink sink(true); /* in_keeps_images */
+
+    /* The end of the workload: the range of the options may go beyond it. */
+    if (Capture::APIDumpLoader::WorkloadIndex::load_or_build(in_options.workload_filename.c_str(),
+                                                             N_INDEX_READER_THREADS,
+                                                            &index,
+                                                            &is_index_built,
+                                                            &index_error) &&
+        index.get_n_frames() != 0)
+    {
+        options.last_frame = static_cast<uint32_t>(std::min<uint64_t>(options.last_frame,
+                                                                      index.get_n_frames() - 1) );
+    }
+
+    frame_vec = Stereo::Replay::ConsistencyChecker::FrameSampler::sample(options.first_frame,
+                                                                         options.last_frame,
+                                                                         in_options.contact_sheet_n_frames);
+
+    if (frame_vec.empty() )
+    {
+        *out_error_ptr = "The range of frames has none to show.";
+
+        goto end;
+    }
+
+    frame_set.insert(frame_vec.begin(),
+                     frame_vec.end() );
+    sink.set_frames_to_keep(frame_set);
+
+    options.first_frame = frame_vec.front();
+    options.last_frame  = frame_vec.back();
+
+    if (run_variant(options,
+                    VARIANT_ARRAY[(uses_recipe) ? 4 : 0],
+                   &sink,
+                    out_error_ptr) == false)
+    {
+        goto end;
+    }
+
+    for (const auto n_frame : frame_vec)
+    {
+        Stereo::Replay::FrameImages::Image tile_image = sink.get_image({n_frame, 0});
+
+        if (tile_image.width == 0)
+        {
+            continue;
+        }
+
+        if (uses_recipe)
+        {
+            Stereo::Replay::FrameImages::Image view_image;
+
+            if (Stereo::Replay::FrameImages::ImageComposer::make_eye_view((in_options.has_eye_view) ? in_options.eye_view
+                                                                                                    : Stereo::Replay::FrameImages::EyeView::BOTH,
+                                                                          tile_image,
+                                                                          sink.get_image({n_frame, 1}),
+                                                                         &view_image) == false)
+            {
+                *out_error_ptr = "The images of the eyes cannot be put together.";
+
+                goto end;
+            }
+
+            tile_image = view_image;
+        }
+
+        shown_frame_vec.push_back(n_frame);
+        tile_image_vec.push_back(tile_image);
+    }
+
+    if (tile_image_vec.empty() )
+    {
+        *out_error_ptr = "The workload has none of the frames.";
+
+        goto end;
+    }
+
+    /* About as many tiles across as down; a tile with both eyes is twice as wide as one with an eye. */
+    n_columns = static_cast<uint32_t>(std::ceil(std::sqrt(static_cast<double>(tile_image_vec.size() ) ) ) );
+
+    if (uses_recipe                                                                                                            &&
+        (in_options.has_eye_view == false || in_options.eye_view == Stereo::Replay::FrameImages::EyeView::BOTH) )
+    {
+        n_columns = std::max<uint32_t>(1,
+                                       (n_columns + 1) / 2);
+    }
+
+    if (Stereo::Replay::FrameImages::ImageComposer::make_contact_sheet(tile_image_vec,
+                                                                       n_columns,
+                                                                      &sheet_image) == false)
+    {
+        *out_error_ptr = "The contact sheet cannot be made.";
+
+        goto end;
+    }
+
+    if (Stereo::Replay::FrameImages::PngWriter::write_file(in_options.image_filename,
+                                                           sheet_image) == false)
+    {
+        *out_error_ptr = "The file " + in_options.image_filename + " cannot be written.";
+
+        goto end;
+    }
+
+    fprintf(stdout,
+            "Contact sheet of %zu frames in %u columns, from left to right and from top to bottom:",
+            shown_frame_vec.size(),
+            n_columns);
+
+    for (const auto n_frame : shown_frame_vec)
+    {
+        fprintf(stdout,
+                " %u",
+                n_frame);
+    }
+
+    fprintf(stdout,
+            "\n");
+
+    result = true;
+end:
+    return result;
+}
+
 bool Stereo::Replay::ConsistencyChecker::take_screenshot(const Stereo::Replay::ConsistencyChecker::Options& in_options,
                                                          std::string*                                       out_error_ptr)
 {
@@ -505,7 +690,7 @@ bool Stereo::Replay::ConsistencyChecker::take_screenshot(const Stereo::Replay::C
     {
         Stereo::Replay::FrameImages::Image view_image;
 
-        if (Stereo::Replay::FrameImages::ImageComposer::make_eye_view(in_options.screenshot_eye,
+        if (Stereo::Replay::FrameImages::ImageComposer::make_eye_view(in_options.eye_view,
                                                                       image,
                                                                       sink.get_image({in_options.screenshot_frame, 1}),
                                                                      &view_image) == false)
@@ -518,10 +703,10 @@ bool Stereo::Replay::ConsistencyChecker::take_screenshot(const Stereo::Replay::C
         image = view_image;
     }
 
-    if (Stereo::Replay::FrameImages::PngWriter::write_file(in_options.screenshot_filename,
+    if (Stereo::Replay::FrameImages::PngWriter::write_file(in_options.image_filename,
                                                            image) == false)
     {
-        *out_error_ptr = "The file " + in_options.screenshot_filename + " cannot be written.";
+        *out_error_ptr = "The file " + in_options.image_filename + " cannot be written.";
 
         goto end;
     }
@@ -529,6 +714,59 @@ bool Stereo::Replay::ConsistencyChecker::take_screenshot(const Stereo::Replay::C
     result = true;
 end:
     return result;
+}
+
+void Stereo::Replay::ConsistencyChecker::write_difference(const std::string&                        in_label,
+                                                          const std::string&                        in_path,
+                                                          const Stereo::Replay::FrameImages::Image& in_image_as_it_is,
+                                                          const Stereo::Replay::FrameImages::Image& in_image_of_execution)
+{
+    Stereo::Replay::FrameImages::Image difference_image;
+    const auto                         difference = Stereo::Replay::FrameImages::ImageComparer::compare(in_image_as_it_is,
+                                                                                                        in_image_of_execution);
+
+    if (difference.has_same_size == false)
+    {
+        fprintf(stdout,
+                "  %s: the image is not of the size of the one of the frame as it is\n",
+                in_label.c_str() );
+
+        goto end;
+    }
+
+    if (difference.n_differing_pixels == 0)
+    {
+        fprintf(stdout,
+                "  %s: the same as the frame as it is\n",
+                in_label.c_str() );
+
+        goto end;
+    }
+
+    fprintf(stdout,
+            "  %s: %llu pixels differ, in x %u to %u and y %u to %u, by up to %u levels of a channel\n",
+            in_label.c_str(),
+            static_cast<unsigned long long>(difference.n_differing_pixels),
+            difference.bounding_box_min_x,
+            difference.bounding_box_max_x,
+            difference.bounding_box_min_y,
+            difference.bounding_box_max_y,
+            static_cast<uint32_t>(difference.max_channel_difference) );
+
+    if (Stereo::Replay::FrameImages::ImageComparer::make_difference_image(in_image_as_it_is,
+                                                                          in_image_of_execution,
+                                                                         &difference_image) &&
+        Stereo::Replay::FrameImages::PngWriter::write_file(in_path,
+                                                           difference_image) )
+    {
+        fprintf(stdout,
+                "  %s: the pixels that differ are red in %s\n",
+                in_label.c_str(),
+                in_path.c_str() );
+    }
+
+end:
+    return;
 }
 
 int main(int   in_argc,
@@ -575,6 +813,21 @@ int main(int   in_argc,
             }
 
             options.last_frame = static_cast<uint32_t>(value);
+        }
+        else
+        if (argument == "--contact-sheet" &&
+            has_next)
+        {
+            uint64_t value = 0;
+
+            if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(in_argv[++n_argument],
+                                                                        UINT32_MAX,
+                                                                       &value) == false)
+            {
+                is_usage_error = true;
+            }
+
+            options.contact_sheet_n_frames = static_cast<uint32_t>(value);
         }
         else
         if (argument == "--dump-dir" &&
@@ -637,26 +890,26 @@ int main(int   in_argc,
 
             if (eye_name == "left")
             {
-                options.screenshot_eye     = Stereo::Replay::FrameImages::EyeView::LEFT;
-                options.has_screenshot_eye = true;
+                options.eye_view     = Stereo::Replay::FrameImages::EyeView::LEFT;
+                options.has_eye_view = true;
             }
             else
             if (eye_name == "right")
             {
-                options.screenshot_eye     = Stereo::Replay::FrameImages::EyeView::RIGHT;
-                options.has_screenshot_eye = true;
+                options.eye_view     = Stereo::Replay::FrameImages::EyeView::RIGHT;
+                options.has_eye_view = true;
             }
             else
             if (eye_name == "both")
             {
-                options.screenshot_eye     = Stereo::Replay::FrameImages::EyeView::BOTH;
-                options.has_screenshot_eye = true;
+                options.eye_view     = Stereo::Replay::FrameImages::EyeView::BOTH;
+                options.has_eye_view = true;
             }
             else
             if (eye_name == "anaglyph")
             {
-                options.screenshot_eye     = Stereo::Replay::FrameImages::EyeView::ANAGLYPH;
-                options.has_screenshot_eye = true;
+                options.eye_view     = Stereo::Replay::FrameImages::EyeView::ANAGLYPH;
+                options.has_eye_view = true;
             }
             else
             {
@@ -667,7 +920,7 @@ int main(int   in_argc,
         if (argument == "--out" &&
             has_next)
         {
-            options.screenshot_filename = in_argv[++n_argument];
+            options.image_filename = in_argv[++n_argument];
         }
         else
         if (argument == "--screenshot" &&
@@ -705,7 +958,7 @@ int main(int   in_argc,
     if (is_usage_error                                         ||
         options.workload_filename.empty()                      ||
         options.first_frame               > options.last_frame ||
-        Stereo::Replay::ConsistencyChecker::are_screenshot_options_valid(options) == false)
+        Stereo::Replay::ConsistencyChecker::are_image_options_valid(options) == false)
     {
         Stereo::Replay::ConsistencyChecker::print_usage();
 
@@ -732,6 +985,29 @@ int main(int   in_argc,
         }
     }
 
+    if (options.contact_sheet_n_frames != 0)
+    {
+        std::string error;
+
+        if (Stereo::Replay::ConsistencyChecker::take_contact_sheet(options,
+                                                                  &error) == false)
+        {
+            fprintf(stdout,
+                    "%s\n",
+                    error.c_str() );
+
+            exit_code = Stereo::Replay::ConsistencyChecker::ExitCode::REPLAY_FAILED;
+
+            goto end;
+        }
+
+        fprintf(stdout,
+                "Written to %s\n",
+                options.image_filename.c_str() );
+
+        goto end;
+    }
+
     if (options.screenshot_frame != UINT32_MAX)
     {
         std::string error;
@@ -751,7 +1027,7 @@ int main(int   in_argc,
         fprintf(stdout,
                 "Frame %u written to %s\n",
                 options.screenshot_frame,
-                options.screenshot_filename.c_str() );
+                options.image_filename.c_str() );
 
         goto end;
     }

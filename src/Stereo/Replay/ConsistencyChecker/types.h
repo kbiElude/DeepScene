@@ -31,20 +31,21 @@ namespace Stereo
 
             struct Options
             {
-                std::string                    dump_directory;
-                uint32_t                       dump_frame = UINT32_MAX; /* the images of this frame are written whether or not it differs */
-                float                          eye_separation = 0.0f;
-                uint32_t                       first_frame = 0;
-                bool                           has_screenshot_eye = false; /* the eye view is the one that was asked for, and there is a recipe to have eyes of */
-                uint32_t                       last_frame  = 999;
-                bool                           is_parallel = false; /* the ways are replayed at the same time */
-                Analysis::RecipeLoader::Recipe recipe;
-                std::string                    recipe_filename;
-                Stereo::Replay::FrameImages::EyeView screenshot_eye = Stereo::Replay::FrameImages::EyeView::BOTH;
-                std::string                    screenshot_filename;
-                uint32_t                       screenshot_frame = UINT32_MAX; /* the frame to write the image of: the replay of the workload stops at it */
-                std::vector<std::string>       way_name_vec; /* the ways to replay besides the frames as they are; none: the usual ones */
-                std::string                    workload_filename;
+                uint32_t                             contact_sheet_n_frames  = 0;          /* the frames to show in the contact sheet; 0: no sheet */
+                std::string                          dump_directory;
+                uint32_t                             dump_frame              = UINT32_MAX; /* the images of this frame are written whether or not it differs */
+                float                                eye_separation          = 0.0f;
+                Stereo::Replay::FrameImages::EyeView eye_view                = Stereo::Replay::FrameImages::EyeView::BOTH;
+                uint32_t                             first_frame             = 0;
+                bool                                 has_eye_view            = false;      /* the view of the eyes of a screenshot or a sheet is the one that was asked for */
+                std::string                          image_filename;                       /* the PNG file of a screenshot or a contact sheet */
+                bool                                 is_parallel             = false;      /* the ways are replayed at the same time */
+                uint32_t                             last_frame              = 999;
+                Analysis::RecipeLoader::Recipe       recipe;
+                std::string                          recipe_filename;
+                uint32_t                             screenshot_frame        = UINT32_MAX; /* the frame to write the image of: the replay of the workload stops at it */
+                std::vector<std::string>             way_name_vec;                         /* the ways to replay besides the frames as they are; none: the usual ones */
+                std::string                          workload_filename;
             };
 
             /* One way of replaying the frames of the check. */

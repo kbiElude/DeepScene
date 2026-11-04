@@ -39,7 +39,9 @@ void Stereo::Replay::ConsistencyChecker::FrameHashSink::on_frame_image(const uin
     m_hash_map[key] = Analysis::APIDumpAnalysis::Hasher::hash_bytes(in_image.pixel_ptr,
                                                                     n_bytes);
 
-    if (m_keeps_images)
+    if (m_keeps_images                                                   &&
+        (m_frame_to_keep_set.empty()                                     ||
+         m_frame_to_keep_set.find(in_n_frame) != m_frame_to_keep_set.end() ) )
     {
         Stereo::Replay::FrameImages::Image image;
 
@@ -51,6 +53,11 @@ void Stereo::Replay::ConsistencyChecker::FrameHashSink::on_frame_image(const uin
 
         m_image_map[key] = std::move(image);
     }
+}
+
+void Stereo::Replay::ConsistencyChecker::FrameHashSink::set_frames_to_keep(const std::set<uint32_t>& in_frame_set)
+{
+    m_frame_to_keep_set = in_frame_set;
 }
 
 bool Stereo::Replay::ConsistencyChecker::FrameHashSink::wants_frame_image(const uint32_t& in_n_frame,
