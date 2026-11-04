@@ -11,6 +11,7 @@ if (DEMOVRPLAYER_BUILD_TESTS)
     add_executable(DemoVRPlayerTests ${DemoVRPlayerTestsSources}
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpSlicer/command_line.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/RecipeBake/command_line.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/RecipeBake/overlay_candidate_finder.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/RecipeBake/recipe_baker.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/RecipeBake/recipe_checker.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/ConverterDLL/d3d7_eye_renderer.cpp"

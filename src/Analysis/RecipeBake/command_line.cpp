@@ -8,6 +8,7 @@ const char* Analysis::RecipeBake::CommandLine::get_usage_ptr()
 {
     return "Usage: RecipeBake drive:\\path\\to\\recipe.json drive:\\path\\to\\file.passes [--deps file.deps] [-o baked.json]\n"
            "       RecipeBake --check drive:\\path\\to\\recipe.json drive:\\path\\to\\file.passes\n"
+           "       RecipeBake --overlays drive:\\path\\to\\recipe.json drive:\\path\\to\\file.passes\n"
            "Bakes a recipe: writes into it what a converter which plays the application as it runs can know of each draw when the draw\n"
            "is issued, worked out from the analysis of the application (see APIDumpAnalysisExtractor). The recipe is written again in\n"
            "the formatting of this program; -o writes another file instead of replacing the recipe.\n"
@@ -19,6 +20,10 @@ const char* Analysis::RecipeBake::CommandLine::get_usage_ptr()
            "--check writes nothing: it says which kinds of frames and which draw signatures of the workload the recipe does not know (a baked recipe of\n"
            "another capture, or of a shorter one, leaves them to chance: a frame of an unknown shape is played as the unknown_frame_policy of the recipe says,\n"
            "and a draw of an unknown signature is an affected one).\n"
+           "\n"
+           "--overlays writes nothing either: it prints, as JSON, the draws that may be 2D overlays. A draw is listed if the recipe leaves it alone (as a replay asks it, by the\n"
+           "keys of the draw and of its pass, and as a converter which plays the application as it runs asks it, by the signature of the draw over the cameras of its pass)\n"
+           "or if the camera of its pass never changes (the hint of APIDumpAnalysisQuery overlays); \"agreement\" says which of the two think so.\n"
            "\n"
            "Exit codes: 0 done, 1 bad arguments, 2 a file cannot be read, 3 the recipe cannot be baked, 4 the file cannot be written, 5 (--check) the recipe\n"
            "does not know all of the workload.\n";
@@ -43,6 +48,11 @@ bool Analysis::RecipeBake::CommandLine::parse(const std::vector<std::string>& in
         if (argument == "--check")
         {
             out_options_ptr->checks_only = true;
+        }
+        else
+        if (argument == "--overlays")
+        {
+            out_options_ptr->lists_overlays = true;
         }
         else
         if (argument == "-o")
@@ -101,6 +111,14 @@ bool Analysis::RecipeBake::CommandLine::parse(const std::vector<std::string>& in
     if (n_positionals != 2)
     {
         *out_error_ptr = "A recipe and a .passes file are needed";
+
+        goto end;
+    }
+
+    if (out_options_ptr->checks_only &&
+        out_options_ptr->lists_overlays)
+    {
+        *out_error_ptr = "--check and --overlays cannot be given together";
 
         goto end;
     }

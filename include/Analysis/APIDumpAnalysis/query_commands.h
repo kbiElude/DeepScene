@@ -45,6 +45,14 @@ namespace Analysis
                                                       const QueryArguments& in_arguments,
                                                       JsonWriter*           inout_writer_ptr);
 
+            /* What the overlays command says, for the tools that look into it further: the first frame that has the pass structure (false if no frame has
+             * it), and the passes whose camera never changes (in the order of their ids).
+             */
+            static bool                  get_first_frame_index        (const AnalysisResult& in_analysis,
+                                                                       const uint32_t&       in_pass_id,
+                                                                       uint64_t*             out_frame_index_ptr);
+            static std::vector<uint32_t> get_static_camera_pass_id_vec(const AnalysisResult& in_analysis);
+
             /* Reads a class name: frame_local, loop_carried, static, unread or unused. */
             static bool parse_resource_access_class(const std::string&   in_name,
                                                     ResourceAccessClass* out_class_ptr);
@@ -60,10 +68,7 @@ namespace Analysis
             static const char* get_constant_block_kind_name  (const ConstantBlockKind&    in_kind);
             static const char* get_constant_provenance_name  (const ConstantProvenance&   in_provenance);
             static const char* get_constant_semantic_name    (const ConstantSemantic&     in_semantic);
-            static bool        get_first_frame_index         (const AnalysisResult&       in_analysis,
-                                                              const uint32_t&             in_pass_id,
-                                                              uint64_t*                   out_frame_index_ptr);
-            static std::string get_hex_string                (const std::vector<uint8_t>& in_byte_vec);
+            static std::string get_hex_string               (const std::vector<uint8_t>& in_byte_vec);
             static const char* get_primitive_topology_name   (const PrimitiveTopology&    in_topology);
             static const char* get_resource_access_class_name(const ResourceAccessClass&  in_class);
             static double      get_seconds                  (const AnalysisResult&       in_analysis,

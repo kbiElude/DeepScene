@@ -5,10 +5,12 @@
  * Bakes a recipe (see command_line.cpp for the arguments, and recipe_baker.h for what that is).
  */
 #include "Analysis/APIDumpAnalysis/json_reader.h"
+#include "Analysis/APIDumpAnalysis/json_writer.h"
 #include "Analysis/APIDumpAnalysis/model.h"
 #include "Analysis/APIDumpAnalysis/passes_file.h"
 #include "Analysis/APIDumpDependencies/deps_file.h"
 #include "Analysis/RecipeBake/command_line.h"
+#include "Analysis/RecipeBake/overlay_candidate_finder.h"
 #include "Analysis/RecipeBake/recipe_baker.h"
 #include "Analysis/RecipeBake/recipe_checker.h"
 #include "Analysis/RecipeLoader/recipe_loader.h"
@@ -85,7 +87,8 @@ int main(int   in_argc,
         goto end;
     }
 
-    if (options.checks_only)
+    if (options.checks_only ||
+        options.lists_overlays)
     {
         Analysis::RecipeLoader::Recipe recipe;
 
@@ -99,6 +102,21 @@ int main(int   in_argc,
                       error.c_str() );
 
             result = EXIT_BAD_INPUT;
+
+            goto end;
+        }
+
+        if (options.lists_overlays)
+        {
+            Analysis::APIDumpAnalysis::JsonWriter writer(true); /* in_is_pretty */
+
+            Analysis::RecipeBake::OverlayCandidateFinder::write_json(Analysis::RecipeBake::OverlayCandidateFinder::find(recipe,
+                                                                                                                         analysis),
+                                                                     recipe,
+                                                                    &writer);
+
+            ::printf("%s\n",
+                     writer.get_text().c_str() );
 
             goto end;
         }

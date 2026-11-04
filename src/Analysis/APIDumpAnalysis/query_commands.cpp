@@ -434,6 +434,47 @@ double Analysis::APIDumpAnalysis::QueryCommands::get_seconds(const AnalysisResul
 }
 
 
+std::vector<uint32_t> Analysis::APIDumpAnalysis::QueryCommands::get_static_camera_pass_id_vec(const AnalysisResult& in_analysis)
+{
+    const auto&           model_ref = in_analysis.model;
+    std::vector<uint32_t> result_vec;
+
+    /* The camera of a pass which never changes is the sign of a pass that is drawn in screen space. */
+    for (uint32_t n_pass = 0;
+                  n_pass < model_ref.pass_structure_interner.get_n_structures();
+                ++n_pass)
+    {
+        const auto& structure         = model_ref.pass_structure_interner.get_structure(n_pass);
+        bool        has_camera        = false;
+        bool        is_camera_changed = false;
+
+        for (size_t n_constant = 0;
+                    n_constant < structure.constant_signature_vec.size();
+                  ++n_constant)
+        {
+            const auto& signature   = structure.constant_signature_vec.at(n_constant);
+            const auto  series_iter = model_ref.constant_series_map.find (ConstantSeriesKey(n_pass,
+                                                                                            static_cast<uint32_t>(n_constant) ));
+
+            if ((signature.semantic == ConstantSemantic::VIEW_MATRIX             ||
+                 signature.semantic == ConstantSemantic::VIEW_PROJECTION_MATRIX) &&
+                 series_iter        != model_ref.constant_series_map.end() )
+            {
+                has_camera        = true;
+                is_camera_changed = is_camera_changed || (series_iter->second.get_sample_vec().size() > 1);
+            }
+        }
+
+        if (has_camera                 &&
+            is_camera_changed == false)
+        {
+            result_vec.push_back(n_pass);
+        }
+    }
+
+    return result_vec;
+}
+
 const char* Analysis::APIDumpAnalysis::QueryCommands::get_transfer_kind_name(const TransferKind& in_kind)
 {
     const char* result_ptr = "unknown";
@@ -924,42 +965,9 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
 Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands::run_overlays(const AnalysisResult& in_analysis,
                                                                                               JsonWriter*           inout_writer_ptr)
 {
-    const auto&           model_ref   = in_analysis.model;
-    std::vector<uint32_t> pass_id_vec;
-    const Timeline        timeline    = TimelineBuilder::build(in_analysis);
-
-    /* The camera of a pass which never changes is the sign of a pass that is drawn in screen space. */
-    for (uint32_t n_pass = 0;
-                  n_pass < model_ref.pass_structure_interner.get_n_structures();
-                ++n_pass)
-    {
-        const auto& structure         = model_ref.pass_structure_interner.get_structure(n_pass);
-        bool        has_camera        = false;
-        bool        is_camera_changed = false;
-
-        for (size_t n_constant = 0;
-                    n_constant < structure.constant_signature_vec.size();
-                  ++n_constant)
-        {
-            const auto& signature   = structure.constant_signature_vec.at(n_constant);
-            const auto  series_iter = model_ref.constant_series_map.find (ConstantSeriesKey(n_pass,
-                                                                                            static_cast<uint32_t>(n_constant) ));
-
-            if ((signature.semantic == ConstantSemantic::VIEW_MATRIX             ||
-                 signature.semantic == ConstantSemantic::VIEW_PROJECTION_MATRIX) &&
-                 series_iter        != model_ref.constant_series_map.end() )
-            {
-                has_camera        = true;
-                is_camera_changed = is_camera_changed || (series_iter->second.get_sample_vec().size() > 1);
-            }
-        }
-
-        if (has_camera                 &&
-            is_camera_changed == false)
-        {
-            pass_id_vec.push_back(n_pass);
-        }
-    }
+    const auto&                 model_ref   = in_analysis.model;
+    const std::vector<uint32_t> pass_id_vec = get_static_camera_pass_id_vec(in_analysis);
+    const Timeline              timeline    = TimelineBuilder::build(in_analysis);
 
     inout_writer_ptr->begin_object();
 

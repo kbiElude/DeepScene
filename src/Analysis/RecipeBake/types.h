@@ -30,6 +30,40 @@ namespace Analysis
             bool     uses_dependencies          = false; /* the textures of each eye are told by the dependencies, not by the totals of the analysis */
         };
 
+        /* What the live converter does with the draws of a signature, over the cameras that its pass has (see RecipeApplier::classify_draw). */
+        enum class LiveClass
+        {
+            AFFECTED,
+            MIXED,     /* by the camera: some of the cameras of the pass are unaffected, and some are not */
+            SKIPPED,
+            UNAFFECTED
+        };
+
+        /* Whether the recipe and the hint (a camera that never changes) agree that a draw is one of a 2D overlay. */
+        enum class OverlayAgreement
+        {
+            BOTH,
+            HEURISTIC_ONLY,
+            RECIPE_ONLY
+        };
+
+        /* A draw that is a candidate for a 2D overlay: the recipe leaves it alone, or the camera of its pass never changes (see OverlayCandidateFinder). */
+        struct OverlayCandidate
+        {
+            OverlayAgreement         agreement             = OverlayAgreement::BOTH;
+            uint64_t                 first_frame_index     = 0;
+            bool                     has_first_frame       = false;
+            bool                     is_replay_unaffected  = false; /* what a replay does: the keys of the draw and of its pass (see RecipeApplier::is_draw_affected) */
+            bool                     is_replay_skipped     = false;
+            LiveClass                live_class            = LiveClass::AFFECTED;
+            uint64_t                 n_frames              = 0;
+            uint32_t                 pass_id               = 0;
+            uint64_t                 pass_key              = 0;
+            std::vector<std::string> reason_vec;
+            uint64_t                 signature_key         = 0;
+            uint64_t                 structure_key         = 0;
+        };
+
         /* A kind of frame (a shape) which the recipe does not know. */
         struct UnknownShape
         {
@@ -60,6 +94,7 @@ namespace Analysis
         {
             bool        checks_only     = false; /* the recipe is checked against the workload, and not written */
             std::string deps_filename;   /* the dependencies of the workload (a .deps file); none if empty */
+            bool        lists_overlays  = false; /* the draws that may be 2D overlays are listed (JSON), and nothing is written */
             std::string output_filename; /* the recipe itself if empty */
             std::string passes_filename;
             std::string recipe_filename;
