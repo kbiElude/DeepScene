@@ -203,10 +203,14 @@ void Stereo::ConverterDLL::D3D7HostMemoryExporter::wait_for_pace()
 {
     constexpr int64_t FALLBACK_N_FRAMES_PER_SECOND = 60;
 
-    /* With nobody to show the images there is no screen to keep time by, and a window which is not flipped keeps none: the application is held to
-     * the rate of a screen, or what it does to the time of its music would not be what it does when it is shown.
+    /* A screen that keeps time says when the next frame is due. With nobody to show the images, or one that does not say (a window shows them as they
+     * come), there is no screen to keep time by, and a window which is not flipped keeps none: the application is held to the rate of a screen, or
+     * what it does to the time of its music would not be what it does when it is shown.
      */
-    if (is_host_memory_negotiated()                       == false &&
+    const bool is_paced_by_screen = (is_host_memory_negotiated() &&
+                                     wait_for_screen() );
+
+    if (is_paced_by_screen == false &&
         Environment::is_set("APISTEREO_NO_FRAME_LIMIT") == false) /* a debugging aid: the cost of a frame, with nothing to wait for */
     {
         LARGE_INTEGER frequency;
@@ -229,8 +233,14 @@ void Stereo::ConverterDLL::D3D7HostMemoryExporter::wait_for_pace()
         m_last_frame_qpc = now.QuadPart;
     }
     else
+    if (is_paced_by_screen)
     {
-        wait_for_screen();
+        /* The next frame of the limiter is counted from this one if the screen stops keeping time. */
+        LARGE_INTEGER now;
+
+        ::QueryPerformanceCounter(&now);
+
+        m_last_frame_qpc = now.QuadPart;
     }
 }
 

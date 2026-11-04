@@ -203,8 +203,12 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_set_cooperative_level(const 
 
 void Stereo::ConverterDLL::D3D7WindowedMode::handle_set_display_mode(const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
 {
-    constexpr size_t HEIGHT_ARGUMENT = 2;
-    constexpr size_t WIDTH_ARGUMENT  = 1;
+    /* The largest side of what Direct3D 7 renders to: a surface wider or higher than this is not made on the hardware that was tried (a size that is
+     * a pixel more than 2048 fails, and the application stops), whatever the headset could show.
+     */
+    constexpr uint32_t MAX_RENDER_TARGET_EXTENT = 2048;
+    constexpr size_t   HEIGHT_ARGUMENT          = 2;
+    constexpr size_t   WIDTH_ARGUMENT           = 1;
 
     uint32_t height = 0;
     uint32_t width  = 0;
@@ -230,9 +234,15 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_set_display_mode(const APIIn
                                                                                       m_target_height,
                                                                                       width,
                                                                                       height);
+            const float surface_scale = Stereo::Core::ResolutionPolicy::get_fit_scale(MAX_RENDER_TARGET_EXTENT,
+                                                                                      MAX_RENDER_TARGET_EXTENT,
+                                                                                      width,
+                                                                                      height);
+            const float smaller_scale = (fit_scale < channel_scale) ? fit_scale
+                                                                    : channel_scale;
 
-            m_policy = Stereo::Core::ResolutionPolicy((fit_scale < channel_scale) ? fit_scale
-                                                                                   : channel_scale);
+            m_policy = Stereo::Core::ResolutionPolicy((surface_scale < smaller_scale) ? surface_scale
+                                                                                      : smaller_scale);
         }
     }
 }

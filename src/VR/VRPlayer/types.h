@@ -17,6 +17,7 @@ namespace VR
         struct Options
         {
             std::string catalog_filename; /* empty: the catalog next to the program is used */
+            bool        is_logging = false; /* the converter and the presenter write a log of each session (--log) */
         };
 
         /* What is needed to start an application with the stereo converter in it. */
@@ -50,6 +51,7 @@ namespace VR
             std::string                          catalog_error;    /* empty if the catalog was read                    */
             std::string                          device_error;     /* empty if the devices were listed                 */
             std::vector<VR::VRDevices::VrDevice> device_vec;
+            bool                                 is_logging = false;   /* a log is written for each session                  */
             std::string                          launcher_directory; /* where the launchers and the presenter are         */
         };
     }

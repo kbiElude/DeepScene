@@ -324,6 +324,36 @@ TEST(D3D7WindowedMode, WhenTheImagesAreShownLargerTheBackBufferAndWhatIsRendered
               n_created);
 }
 
+TEST(D3D7WindowedMode, ABackBufferIsNotMadeLargerThanDirect3D7MakesASurface)
+{
+    auto  direct_draw_ptr = Tests::make_direct_draw();
+    auto  mode            = make_enabled_mode(2064,  /* an eye of a Quest 3: the application stops if a surface is a pixel wider than 2048 */
+                                              2208);
+    void* primary_ptr     = nullptr;
+
+    set_display_mode(&mode,
+                     direct_draw_ptr.get(),
+                     640,
+                     480);
+
+    EXPECT_FLOAT_EQ(mode.get_render_scale(),
+                    3.2f);
+
+    create_surface(&mode,
+                   direct_draw_ptr.get(),
+                   PRIMARY_WITH_CHAIN_CAPS,
+                   0,
+                   0,
+                  &primary_ptr);
+
+    ASSERT_EQ(direct_draw_ptr->created_description_vec.size(),
+              2u);
+    EXPECT_EQ(direct_draw_ptr->created_description_vec.at(1).dwWidth,
+              2048u);
+    EXPECT_EQ(direct_draw_ptr->created_description_vec.at(1).dwHeight,
+              1536u);
+}
+
 TEST(D3D7WindowedMode, WithNoSizeOfTheImagesToFitNothingIsMadeLarger)
 {
     auto  direct_draw_ptr = Tests::make_direct_draw();

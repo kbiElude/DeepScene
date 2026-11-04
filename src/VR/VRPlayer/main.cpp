@@ -182,6 +182,7 @@ int WINAPI WinMain(HINSTANCE in_instance,
         content.device_vec.clear();
     }
 
+    content.is_logging         = options.is_logging;
     content.launcher_directory = VR::VRPlayer::find_runtime_directory();
 
     VR::UIHost::ImGuiWindowHost::enable_dpi_awareness();

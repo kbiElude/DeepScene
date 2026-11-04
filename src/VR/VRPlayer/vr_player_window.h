@@ -61,7 +61,7 @@ namespace VR
             bool          m_pace_to_headset; /* no control: on */
             int           m_overlay_app;      /* the application m_push_overlay was set for; -1 if none yet */
             bool          m_push_overlay;     /* the draws that the recipe leaves alone are pushed toward the viewer */
-            bool          m_write_log;       /* no control: off */
+            bool          m_write_log;       /* no control: off, unless the program was started with --log */
             int           m_quality_index;    /* in the qualities: how many of the pixels of the headset are rendered */
             std::string   m_running_app_name;
             int           m_selected_app;     /* in the catalog; -1 if there is no application         */

@@ -65,7 +65,7 @@ VR::VRPlayer::VrPlayerWindow::VrPlayerWindow(const WindowContent& in_content)
      m_pace_to_headset     (true),
      m_overlay_app         (-1),
      m_push_overlay        (false),
-     m_write_log           (false),
+     m_write_log           (in_content.is_logging),
      m_quality_index       (0),
      m_selected_app        (-1),
      m_should_open_install_error(false)

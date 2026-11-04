@@ -6,9 +6,11 @@
 
 const char* VR::VRPlayer::CommandLine::get_usage_ptr()
 {
-    return "Usage: VRPlayer [--catalog file.json]\n"
+    return "Usage: VRPlayer [--catalog file.json] [--log]\n"
            "Lists the applications of the catalog, which are played in VR with the recipe given for each. Without --catalog, the\n"
-           "file apps.json is looked for next to the program, in its apps folder, and in the apps folder above it.\n";
+           "file apps.json is looked for next to the program, in its apps folder, and in the apps folder above it.\n"
+           "With --log the converter and the presenter write a log of each session, to %TEMP%\\apistereo_<session>.log (the newest of them is the last\n"
+           "session): what they do each second, and why the headset is or is not used.\n";
 }
 
 bool VR::VRPlayer::CommandLine::parse(const std::vector<std::string>& in_argument_vec,
@@ -35,6 +37,11 @@ bool VR::VRPlayer::CommandLine::parse(const std::vector<std::string>& in_argumen
             }
 
             out_options_ptr->catalog_filename = in_argument_vec.at(++n_argument);
+        }
+        else
+        if (argument == "--log")
+        {
+            out_options_ptr->is_logging = true;
         }
         else
         {
