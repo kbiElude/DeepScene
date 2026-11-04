@@ -13,6 +13,7 @@
 #include "call_feeder.h"
 #include "d3d7_eye_renderer.h"
 #include "d3d7_host_memory_exporter.h"
+#include "d3d7_windowed_mode.h"
 #include "d3d8_eye_renderer.h"
 #include "d3d8_host_memory_exporter.h"
 #include "d3d8_resolution_scaler.h"
@@ -77,7 +78,7 @@ namespace Stereo
             bool on_set_transform(const uint32_t&                            in_n_arguments,
                                   const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
 
-            /* The frame in the back buffer of the surface (which a flip is called for) is passed on to the program which shows the images. */
+            /* The frame in the back buffer (of the window, or of the chain of the surface which a flip is called for) is passed on to the program which shows the images. */
             void pass_d3d7_frame(void* in_primary_surface_ptr);
 
             /* The program which shows the images says how far apart the eyes are, how strong the 3D is and where the eyes converge, and can
@@ -106,6 +107,7 @@ namespace Stereo
             {
                 std::unique_ptr<Stereo::Core::StereoCore> core_ptr;
                 std::unique_ptr<D3D7EyeRenderer>          d3d7_renderer_ptr;
+                D3D7WindowedMode                          d3d7_windowed_mode;
                 uint64_t                                  dump_every         = 0; /* a frame is written to a file every so many frames; 0: none */
                 uint64_t                                  dump_frame         = 0; /* of the frame to write to a file; 0: none */
                 bool                                      is_overlay_push_forced = false; /* from the environment, not the program which shows the images */

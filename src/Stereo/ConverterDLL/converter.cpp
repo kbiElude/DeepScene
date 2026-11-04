@@ -108,8 +108,13 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
         uint32_t target_height = 0;
         uint32_t target_width  = 0;
 
-        m_channel_ptr->get_target_eye_size(&target_width,
-                                           &target_height);
+        const bool is_shown_elsewhere = m_channel_ptr->get_target_eye_size(&target_width,
+                                                                           &target_height);
+
+        /* A program that shows the images says how large they are before the application starts: without one the application is on the screen, as
+         * it is, and a window of it is not made invisible.
+         */
+        m_live_state.d3d7_windowed_mode.set_is_enabled(is_shown_elsewhere);
 
         m_live_state.scaler_ptr.reset(new D3D8ResolutionScaler(target_width,
                                                                target_height,
@@ -239,6 +244,8 @@ void Stereo::ConverterDLL::Converter::on_d3d7_frame_ending(const APIInterceptor:
     if (in_api_func == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_FLIP)
     {
         pass_d3d7_frame(const_cast<void*>(in_arguments_ptr[0].get_ptr() ) );
+
+        m_live_state.d3d7_windowed_mode.keep_windows_invisible();
     }
 
     m_live_state.n_frames++;
@@ -350,6 +357,14 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
             }
             else
             {
+                /* What a window cannot have is made in its way, and not by the call of the application. */
+                if (m_live_state.d3d7_windowed_mode.on_pre(in_api_func,
+                                                           in_n_arguments,
+                                                           in_arguments_ptr) == false)
+                {
+                    *out_should_pass_through_ptr = false;
+                }
+
                 m_live_state.d3d7_renderer_ptr->on_pre(in_api_func,
                                                        in_n_arguments,
                                                        in_arguments_ptr);
@@ -494,21 +509,30 @@ void Stereo::ConverterDLL::Converter::pass_d3d7_frame(void* in_primary_surface_p
 {
     constexpr uint32_t BACK_BUFFER_CAPS = 0x00000004; /* DDSCAPS_BACKBUFFER */
 
-    const OwnCallScope                                    own_call_scope;
-    Interception::Hooks::D3D7::IDirectDrawSurface7*       back_buffer_ptr = nullptr;
-    Interception::Hooks::D3D7::DDSCAPS2                   caps            = {};
-    void** const                                          vtable          = *reinterpret_cast<void***>(in_primary_surface_ptr);
+    const OwnCallScope                              own_call_scope;
+    Interception::Hooks::D3D7::IDirectDrawSurface7* back_buffer_ptr = static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(m_live_state.d3d7_windowed_mode.get_back_buffer_ptr() );
+    bool                                            is_to_release   = false;
 
-    caps.dwCaps = BACK_BUFFER_CAPS;
-
-    const auto get_attached_surface_func = reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_GETATTACHEDSURFACE>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_GETATTACHEDSURFACE]);
-
-    if (SUCCEEDED(get_attached_surface_func(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(in_primary_surface_ptr),
-                                            &caps,
-                                            &back_buffer_ptr) ))
+    /* The application renders to the back buffer of its window if it is made to; otherwise the chain it flips with has one. */
+    if (back_buffer_ptr == nullptr)
     {
-        void** const back_buffer_vtable = *reinterpret_cast<void***>(back_buffer_ptr);
+        Interception::Hooks::D3D7::DDSCAPS2 caps   = {};
+        void** const                        vtable = *reinterpret_cast<void***>(in_primary_surface_ptr);
 
+        caps.dwCaps = BACK_BUFFER_CAPS;
+
+        is_to_release = SUCCEEDED(reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_GETATTACHEDSURFACE>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_GETATTACHEDSURFACE])(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(in_primary_surface_ptr),
+                                                                                                                                                                                                         &caps,
+                                                                                                                                                                                                         &back_buffer_ptr) );
+
+        if (is_to_release == false)
+        {
+            back_buffer_ptr = nullptr;
+        }
+    }
+
+    if (back_buffer_ptr != nullptr)
+    {
         /* A debugging aid: the images of the eyes of one frame, to look at. */
         if ( (m_live_state.dump_frame != 0 &&
               m_live_state.n_frames   == m_live_state.dump_frame)    ||
@@ -532,7 +556,12 @@ void Stereo::ConverterDLL::Converter::pass_d3d7_frame(void* in_primary_surface_p
                                             back_buffer_ptr,
                                             m_live_state.d3d7_renderer_ptr->get_twin_ptr(back_buffer_ptr) );
 
-        reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_RELEASE>(back_buffer_vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_RELEASE])(back_buffer_ptr);
+        if (is_to_release)
+        {
+            void** const back_buffer_vtable = *reinterpret_cast<void***>(back_buffer_ptr);
+
+            reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_RELEASE>(back_buffer_vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_RELEASE])(back_buffer_ptr);
+        }
     }
 }
 

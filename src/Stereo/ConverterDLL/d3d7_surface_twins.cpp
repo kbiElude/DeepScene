@@ -160,8 +160,8 @@ void Stereo::ConverterDLL::D3D7SurfaceTwins::handle_get_attached_surface(const A
         goto end;
     }
 
-    if (surface_ptr == m_primary_ptr                                                      &&
-        (caps & Interception::Core::D3D7Utils::DDSCAPS_BACKBUFFER) != 0)
+    /* What the primary surface gives as its back buffer: the chain of the application, or the surface of its own that a window has. */
+    if (surface_ptr == m_primary_ptr)
     {
         /* The back buffer of the chain that the primary surface flips with: what the application renders to. */
         make_twin_ptr(attached_ptr,

@@ -10,7 +10,8 @@
 #include <string.h>
 
 Stereo::ConverterDLL::D3D7HostMemoryExporter::D3D7HostMemoryExporter(Stereo::Transport::FrameChannel* inout_channel_ptr)
-    :m_channel_ptr(inout_channel_ptr)
+    :m_channel_ptr   (inout_channel_ptr),
+     m_last_frame_qpc(0)
 {
     m_channel_ptr->set_offered_kinds(get_offered_kinds() );
 }
@@ -195,9 +196,37 @@ void Stereo::ConverterDLL::D3D7HostMemoryExporter::unlock_surface(LockedSurface*
 void Stereo::ConverterDLL::D3D7HostMemoryExporter::wait_for_pace()
 {
     /* The screen asks about every 14 ms; a wait that is much longer than a few of them is not for it. */
-    constexpr uint32_t TIMEOUT_N_MILLISECONDS = 100;
+    constexpr uint32_t TIMEOUT_N_MILLISECONDS        = 100;
+    constexpr int64_t  FALLBACK_N_FRAMES_PER_SECOND = 60;
 
-    m_channel_ptr->wait_for_pace(TIMEOUT_N_MILLISECONDS);
+    /* With nobody to show the images there is no screen to keep time by, and a window which is not flipped keeps none: the application is held to
+     * the rate of a screen, or what it does to the time of its music would not be what it does when it is shown.
+     */
+    if (m_channel_ptr->get_negotiated_kind() != Stereo::Transport::TransportKind::HOST_MEMORY)
+    {
+        LARGE_INTEGER frequency;
+        LARGE_INTEGER now;
+
+        ::QueryPerformanceFrequency(&frequency);
+        ::QueryPerformanceCounter  (&now);
+
+        const LONGLONG frame_n_ticks = frequency.QuadPart / FALLBACK_N_FRAMES_PER_SECOND;
+        const LONGLONG due_qpc       = m_last_frame_qpc + frame_n_ticks;
+
+        if (m_last_frame_qpc != 0 &&
+            now.QuadPart < due_qpc)
+        {
+            ::Sleep(static_cast<DWORD>( (due_qpc - now.QuadPart) * 1000 / frequency.QuadPart) );
+        }
+
+        ::QueryPerformanceCounter(&now);
+
+        m_last_frame_qpc = now.QuadPart;
+    }
+    else
+    {
+        m_channel_ptr->wait_for_pace(TIMEOUT_N_MILLISECONDS);
+    }
 }
 
 bool Stereo::ConverterDLL::D3D7HostMemoryExporter::write_debug_image(void*              in_left_surface_ptr,

@@ -16,10 +16,7 @@ Stereo::ConverterDLL::D3D8WindowedMode::~D3D8WindowedMode()
 
 void Stereo::ConverterDLL::D3D8WindowedMode::keep_windows_invisible()
 {
-    for (const auto& window : m_window_set)
-    {
-        make_invisible(window);
-    }
+    m_invisible_windows.keep_invisible();
 }
 
 void Stereo::ConverterDLL::D3D8WindowedMode::on_create_device(Interception::Hooks::D3D8::IDirect3D8*            in_direct3d_ptr,
@@ -52,32 +49,7 @@ void Stereo::ConverterDLL::D3D8WindowedMode::on_create_device(Interception::Hook
                                                                                                                                                        : Interception::Hooks::D3D8::D3DSWAPEFFECT_COPY;
     inout_parameters_ptr->Windowed                         = TRUE;
 
-    for (const HWND& named_window : {window, in_focus_window})
-    {
-        if (named_window != nullptr)
-        {
-            m_window_set.insert(named_window);
-
-            make_invisible(named_window);
-        }
-    }
+    m_invisible_windows.add(window);
+    m_invisible_windows.add(in_focus_window);
 }
 
-void Stereo::ConverterDLL::D3D8WindowedMode::make_invisible(const HWND& in_window)
-{
-    const LONG_PTR style = ::GetWindowLongPtrW(in_window,
-                                               GWL_EXSTYLE);
-    const LONG_PTR wanted = style | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT;
-
-    /* Said again only when the application has taken it off. */
-    if (style != wanted)
-    {
-        ::SetWindowLongPtrW         (in_window,
-                                     GWL_EXSTYLE,
-                                     wanted);
-        ::SetLayeredWindowAttributes(in_window,
-                                     0, /* crKey */
-                                     0, /* bAlpha */
-                                     LWA_ALPHA);
-    }
-}
