@@ -82,9 +82,6 @@ namespace Stereo
                                       void**                                            out_surface_ptr_ptr,
                                       bool*                                             out_should_pass_through_ptr);
 
-            /* Reads a number of an argument that is of 32 bits; false if it is not. */
-            static bool read_u32(const APIInterceptor::APIFunctionArgument& in_argument,
-                                 uint32_t*                                  out_value_ptr);
 
 
             void*                          m_back_buffer_ptr;

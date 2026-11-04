@@ -2,6 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
+#include "Common/argument_reader.h"
 #include "Common/callbacks.h"
 #include "Common/macros.h"
 #include "Common/vtable.h"
@@ -128,7 +129,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre(const APIInterceptor::APIFunc
             uint32_t stage = 0;
 
             if (in_n_arguments >= N_ARGUMENTS_TEXTURE                                  &&
-                read_u32(in_arguments_ptr[STAGE_ARGUMENT],
+                APIInterceptor::read_number(in_arguments_ptr[STAGE_ARGUMENT],
                         &stage)                                                        &&
                 stage < N_TEXTURE_STAGES                                               &&
                 in_arguments_ptr[TEXTURE_ARGUMENT].type == APIInterceptor::ARGTYPE_VOID_PTR)
@@ -585,11 +586,11 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::mirror_blt(const APIInterceptor::API
 
             if (is_fast)
             {
-                if (read_u32(in_arguments_ptr[1],
+                if (APIInterceptor::read_number(in_arguments_ptr[1],
                             &x)     &&
-                    read_u32(in_arguments_ptr[2],
+                    APIInterceptor::read_number(in_arguments_ptr[2],
                             &y)     &&
-                    read_u32(in_arguments_ptr[5],
+                    APIInterceptor::read_number(in_arguments_ptr[5],
                             &flags))
                 {
                     APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_BLTFAST>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_BLTFAST)(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(twin_ptr),
@@ -603,7 +604,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::mirror_blt(const APIInterceptor::API
                 }
             }
             else
-            if (read_u32(in_arguments_ptr[4],
+            if (APIInterceptor::read_number(in_arguments_ptr[4],
                         &flags) )
             {
                 APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_BLT>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_BLT)(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(twin_ptr),
@@ -649,13 +650,13 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::play_clear(const uint32_t&          
     if (in_n_arguments < N_ARGUMENTS_CLEAR                                           ||
         in_arguments_ptr[DEVICE_ARGUMENT].type != APIInterceptor::ARGTYPE_VOID_PTR   ||
         in_arguments_ptr[Z_ARGUMENT].type      != APIInterceptor::ARGTYPE_F32        ||
-        read_u32(in_arguments_ptr[COUNT_ARGUMENT],
+        APIInterceptor::read_number(in_arguments_ptr[COUNT_ARGUMENT],
                 &count)   == false                                                   ||
-        read_u32(in_arguments_ptr[FLAGS_ARGUMENT],
+        APIInterceptor::read_number(in_arguments_ptr[FLAGS_ARGUMENT],
                 &flags)   == false                                                   ||
-        read_u32(in_arguments_ptr[COLOR_ARGUMENT],
+        APIInterceptor::read_number(in_arguments_ptr[COLOR_ARGUMENT],
                 &color)   == false                                                   ||
-        read_u32(in_arguments_ptr[STENCIL_ARGUMENT],
+        APIInterceptor::read_number(in_arguments_ptr[STENCIL_ARGUMENT],
                 &stencil) == false)
     {
         note_unmirrored(APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_CLEAR,
@@ -820,13 +821,13 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::read_draw_arguments(const APIInterce
     out_draw_arguments_ptr->is_indexed   = is_indexed;
     out_draw_arguments_ptr->vertices_ptr = in_arguments_ptr[VERTICES_ARGUMENT].get_ptr();
 
-    if (read_u32(in_arguments_ptr[PRIMITIVE_TYPE_ARGUMENT],
+    if (APIInterceptor::read_number(in_arguments_ptr[PRIMITIVE_TYPE_ARGUMENT],
                 &out_draw_arguments_ptr->primitive_type) == false ||
-        read_u32(in_arguments_ptr[FVF_ARGUMENT],
+        APIInterceptor::read_number(in_arguments_ptr[FVF_ARGUMENT],
                 &out_draw_arguments_ptr->fvf)            == false ||
-        read_u32(in_arguments_ptr[N_VERTICES_ARGUMENT],
+        APIInterceptor::read_number(in_arguments_ptr[N_VERTICES_ARGUMENT],
                 &out_draw_arguments_ptr->n_vertices)     == false ||
-        read_u32(in_arguments_ptr[(is_indexed) ? INDEXED_FLAGS_ARGUMENT
+        APIInterceptor::read_number(in_arguments_ptr[(is_indexed) ? INDEXED_FLAGS_ARGUMENT
                                                : DRAW_FLAGS_ARGUMENT],
                 &out_draw_arguments_ptr->flags)          == false)
     {
@@ -836,7 +837,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::read_draw_arguments(const APIInterce
     if (is_indexed)
     {
         if (in_arguments_ptr[INDICES_ARGUMENT].type != APIInterceptor::ARGTYPE_VOID_PTR ||
-            read_u32(in_arguments_ptr[N_INDICES_ARGUMENT],
+            APIInterceptor::read_number(in_arguments_ptr[N_INDICES_ARGUMENT],
                     &out_draw_arguments_ptr->n_indices) == false)
         {
             goto end;
@@ -848,37 +849,5 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::read_draw_arguments(const APIInterce
     result = true;
 
 end:
-    return result;
-}
-
-bool Stereo::ConverterDLL::D3D7EyeRenderer::read_u32(const APIInterceptor::APIFunctionArgument& in_argument,
-                                                     uint32_t*                                  out_value_ptr)
-{
-    bool result = true;
-
-    switch (in_argument.type)
-    {
-        case APIInterceptor::ARGTYPE_I32:
-        {
-            *out_value_ptr = static_cast<uint32_t>(in_argument.get_i32() );
-
-            break;
-        }
-
-        case APIInterceptor::ARGTYPE_U32:
-        {
-            *out_value_ptr = in_argument.get_u32();
-
-            break;
-        }
-
-        default:
-        {
-            result = false;
-
-            break;
-        }
-    }
-
     return result;
 }

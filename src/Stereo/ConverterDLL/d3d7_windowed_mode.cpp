@@ -2,6 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
+#include "Common/argument_reader.h"
 #include "Common/callbacks.h"
 #include "Common/vtable.h"
 #include "Interception/Core/D3D7Utils/constants.h"
@@ -209,9 +210,9 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_set_display_mode(const APIIn
     uint32_t width  = 0;
 
     /* The size is the one of the images of the application, which is what the back buffer is made as large as. */
-    if (read_u32(in_arguments_ptr[WIDTH_ARGUMENT],
+    if (APIInterceptor::read_number(in_arguments_ptr[WIDTH_ARGUMENT],
                 &width)  &&
-        read_u32(in_arguments_ptr[HEIGHT_ARGUMENT],
+        APIInterceptor::read_number(in_arguments_ptr[HEIGHT_ARGUMENT],
                 &height))
     {
         m_display_height = height;
@@ -389,35 +390,3 @@ void Stereo::ConverterDLL::D3D7WindowedMode::set_target_eye_size(const uint32_t&
     m_target_width  = in_width;
 }
 
-
-bool Stereo::ConverterDLL::D3D7WindowedMode::read_u32(const APIInterceptor::APIFunctionArgument& in_argument,
-                                                      uint32_t*                                  out_value_ptr)
-{
-    bool result = true;
-
-    switch (in_argument.type)
-    {
-        case APIInterceptor::ARGTYPE_I32:
-        {
-            *out_value_ptr = static_cast<uint32_t>(in_argument.get_i32() );
-
-            break;
-        }
-
-        case APIInterceptor::ARGTYPE_U32:
-        {
-            *out_value_ptr = in_argument.get_u32();
-
-            break;
-        }
-
-        default:
-        {
-            result = false;
-
-            break;
-        }
-    }
-
-    return result;
-}

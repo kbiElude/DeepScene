@@ -165,8 +165,6 @@ namespace Stereo
                                             const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
                                             DrawArguments*                             out_draw_arguments_ptr);
 
-            static bool read_u32(const APIInterceptor::APIFunctionArgument& in_argument,
-                                 uint32_t*                                  out_value_ptr);
 
 
             Stereo::Core::StereoCore* m_core_ptr;

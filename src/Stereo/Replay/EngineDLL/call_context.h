@@ -5,6 +5,7 @@
 #ifndef STEREO_REPLAY_ENGINEDLL_CALL_CONTEXT_H
 #define STEREO_REPLAY_ENGINEDLL_CALL_CONTEXT_H
 
+#include "Common/argument_reader.h"
 #include "i_chunk_source.h"
 #include "object_remapper.h"
 
@@ -41,38 +42,8 @@ namespace Stereo
                 const IChunkSource*                          m_chunk_source_ptr;
             };
 
-            /* Reads a number of any size or kind from a dumped argument. Returns false if the argument is of another kind. */
-            template<typename T>
-            bool read_number(const APIInterceptor::APIFunctionArgument& in_argument,
-                             T*                                         out_value_ptr)
-            {
-                bool result = true;
-
-                switch (in_argument.type)
-                {
-                    case APIInterceptor::ARGTYPE_F32:        *out_value_ptr = static_cast<T>(in_argument.get_fp32      () ); break;
-                    case APIInterceptor::ARGTYPE_F64:        *out_value_ptr = static_cast<T>(in_argument.get_fp64      () ); break;
-                    case APIInterceptor::ARGTYPE_I8:         *out_value_ptr = static_cast<T>(in_argument.get_i8        () ); break;
-                    case APIInterceptor::ARGTYPE_I16:        *out_value_ptr = static_cast<T>(in_argument.get_i16       () ); break;
-                    case APIInterceptor::ARGTYPE_I32:        *out_value_ptr = static_cast<T>(in_argument.get_i32       () ); break;
-                    case APIInterceptor::ARGTYPE_I32_GLENUM: *out_value_ptr = static_cast<T>(in_argument.get_i32_glenum() ); break;
-                    case APIInterceptor::ARGTYPE_I64:        *out_value_ptr = static_cast<T>(in_argument.get_i64       () ); break;
-                    case APIInterceptor::ARGTYPE_U8:         *out_value_ptr = static_cast<T>(in_argument.get_u8        () ); break;
-                    case APIInterceptor::ARGTYPE_U16:        *out_value_ptr = static_cast<T>(in_argument.get_u16       () ); break;
-                    case APIInterceptor::ARGTYPE_U32:        *out_value_ptr = static_cast<T>(in_argument.get_u32       () ); break;
-                    case APIInterceptor::ARGTYPE_U32_GLENUM: *out_value_ptr = static_cast<T>(in_argument.get_u32_glenum() ); break;
-                    case APIInterceptor::ARGTYPE_U64:        *out_value_ptr = static_cast<T>(in_argument.get_u64       () ); break;
-
-                    default:
-                    {
-                        result = false;
-
-                        break;
-                    }
-                }
-
-                return result;
-            }
+            /* Reads a number of any size or kind from a dumped argument (see APIInterceptor::read_number()). */
+            using APIInterceptor::read_number;
         }
     }
 }
