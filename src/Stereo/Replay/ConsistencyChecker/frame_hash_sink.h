@@ -6,6 +6,7 @@
 #define STEREO_REPLAY_CONSISTENCYCHECKER_FRAME_HASH_SINK_H
 
 #include "Stereo/Replay/EngineDLL/i_frame_image_sink.h"
+#include "Stereo/Replay/FrameImages/types.h"
 #include <map>
 #include <utility>
 #include <vector>
@@ -20,14 +21,6 @@ namespace Stereo
             class FrameHashSink : public Stereo::Replay::EngineDLL::IFrameImageSink
             {
             public:
-                /* An image as 8-bit B, G, R and A (always 255) for each pixel, row after row. */
-                struct Image
-                {
-                    uint32_t             height = 0;
-                    std::vector<uint8_t> pixel_u8_vec;
-                    uint32_t             width  = 0;
-                };
-
                 /* A frame, and the execution of it that an image is of. */
                 typedef std::pair<uint32_t, uint32_t> ImageKey;
 
@@ -36,7 +29,7 @@ namespace Stereo
                 const std::map<ImageKey, uint64_t>& get_hash_map() const;
 
                 /* Empty if there is no such image, or it was not kept. */
-                const Image& get_image(const ImageKey& in_key) const;
+                const Stereo::Replay::FrameImages::Image& get_image(const ImageKey& in_key) const;
 
                 void on_frame_image(const uint32_t&                              in_n_frame,
                                     const uint32_t&                              in_n_execution,
@@ -46,9 +39,9 @@ namespace Stereo
                                        const uint32_t& in_n_execution) const override;
 
             private:
-                std::map<ImageKey, uint64_t> m_hash_map;
-                std::map<ImageKey, Image>    m_image_map;
-                bool                         m_keeps_images;
+                std::map<ImageKey, uint64_t>                           m_hash_map;
+                std::map<ImageKey, Stereo::Replay::FrameImages::Image> m_image_map;
+                bool                                                   m_keeps_images;
             };
         }
     }

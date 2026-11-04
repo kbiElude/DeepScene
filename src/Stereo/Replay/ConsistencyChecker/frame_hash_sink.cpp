@@ -16,9 +16,9 @@ const std::map<Stereo::Replay::ConsistencyChecker::FrameHashSink::ImageKey, uint
     return m_hash_map;
 }
 
-const Stereo::Replay::ConsistencyChecker::FrameHashSink::Image& Stereo::Replay::ConsistencyChecker::FrameHashSink::get_image(const ImageKey& in_key) const
+const Stereo::Replay::FrameImages::Image& Stereo::Replay::ConsistencyChecker::FrameHashSink::get_image(const ImageKey& in_key) const
 {
-    static const Image empty_image;
+    static const Stereo::Replay::FrameImages::Image empty_image;
 
     const auto image_iterator = m_image_map.find(in_key);
 
@@ -41,7 +41,7 @@ void Stereo::Replay::ConsistencyChecker::FrameHashSink::on_frame_image(const uin
 
     if (m_keeps_images)
     {
-        Image image;
+        Stereo::Replay::FrameImages::Image image;
 
         image.height = in_image.height;
         image.width  = in_image.width;

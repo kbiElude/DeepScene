@@ -5,6 +5,7 @@
 #include "Analysis/APIDumpAnalysis/number_parser.h"
 #include "Analysis/RecipeLoader/recipe_loader.h"
 #include "Stereo/Replay/EngineDLL/entrypoints.h"
+#include "Stereo/Replay/FrameImages/png_writer.h"
 #include "frame_hash_sink.h"
 #include "stop_observer.h"
 #include "types.h"
@@ -55,10 +56,6 @@ namespace Stereo
                               const std::vector<const Variant*>&  in_variant_ptr_vec,
                               std::vector<FrameHashSink>*         out_sink_vec_ptr,
                               std::string*                        out_error_ptr);
-
-            /* A 32-bit bitmap, top row first. */
-            bool write_bitmap(const std::string&          in_path,
-                              const FrameHashSink::Image& in_image);
         }
     }
 }
@@ -114,12 +111,12 @@ void Stereo::Replay::ConsistencyChecker::dump_frame(const Stereo::Replay::Consis
     {
         const std::string prefix = in_options.dump_directory + "/frame_" + std::to_string(in_n_frame);
 
-        write_bitmap(prefix + "_as_it_is.bmp",
-                     direct_sink.get_image({in_n_frame, 0}) );
-        write_bitmap(prefix + "_first_execution.bmp",
-                     twice_sink.get_image({in_n_frame, 0}) );
-        write_bitmap(prefix + "_second_execution.bmp",
-                     twice_sink.get_image({in_n_frame, 1}) );
+        Stereo::Replay::FrameImages::PngWriter::write_file(prefix + "_as_it_is.png",
+                                                           direct_sink.get_image({in_n_frame, 0}) );
+        Stereo::Replay::FrameImages::PngWriter::write_file(prefix + "_first_execution.png",
+                                                           twice_sink.get_image({in_n_frame, 0}) );
+        Stereo::Replay::FrameImages::PngWriter::write_file(prefix + "_second_execution.png",
+                                                           twice_sink.get_image({in_n_frame, 1}) );
 
         fprintf(stdout,
                 "Images of frame %u written to %s\n",
@@ -268,7 +265,7 @@ void Stereo::Replay::ConsistencyChecker::print_usage()
             "see how much a replay differs from itself), executed twice, and executed twice with the state of the device put\n"
             "back before the second execution. The back buffer after each execution is compared with that of the first replay.\n"
             "\n"
-            "  --dump-dir DIR   Write the images of the first frame in which an execution differs, as bitmaps\n"
+            "  --dump-dir DIR   Write the images of the first frame in which an execution differs, as PNG files\n"
             "  --eye-separation D  The distance between the eyes for the recipe (0 by default)\n"
             "  --recipe FILE    Replay the frames twice with the recipe instead of the last two ways: the first execution is for\n"
             "                   the left eye, the second for the right one. A recipe that changes nothing gives the frames as they are.\n"
@@ -437,69 +434,6 @@ bool Stereo::Replay::ConsistencyChecker::run_variants(const Stereo::Replay::Cons
         {
             print_func(n_variant);
         }
-    }
-
-    return result;
-}
-
-/* A 32-bit bitmap, top row first. */
-bool Stereo::Replay::ConsistencyChecker::write_bitmap(const std::string&                                              in_path,
-                                                      const Stereo::Replay::ConsistencyChecker::FrameHashSink::Image& in_image)
-{
-#pragma pack(push, 1)
-    struct BitmapHeader
-    {
-        uint16_t signature;
-        uint32_t file_size;
-        uint32_t reserved;
-        uint32_t pixel_offset;
-        uint32_t header_size;
-        int32_t  width;
-        int32_t  height;
-        uint16_t n_planes;
-        uint16_t n_bits_per_pixel;
-        uint32_t compression;
-        uint32_t image_size;
-        int32_t  x_pixels_per_meter;
-        int32_t  y_pixels_per_meter;
-        uint32_t n_colors;
-        uint32_t n_important_colors;
-    };
-#pragma pack(pop)
-
-    constexpr uint16_t BITMAP_SIGNATURE    = 0x4d42; /* BM */
-    constexpr uint16_t N_BITS_PER_PIXEL    = 32;
-    constexpr uint32_t INFO_HEADER_N_BYTES = 40;
-
-    BitmapHeader header      = {};
-    FILE* const  file_handle = ::fopen(in_path.c_str(),
-                                       "wb");
-    bool         result      = false;
-
-    if (file_handle != nullptr)
-    {
-        header.file_size        = static_cast<uint32_t>(sizeof(header) + in_image.pixel_u8_vec.size() );
-        header.header_size      = INFO_HEADER_N_BYTES;
-        header.height           = -static_cast<int32_t>(in_image.height);
-        header.image_size       = static_cast<uint32_t>(in_image.pixel_u8_vec.size() );
-        header.n_bits_per_pixel = N_BITS_PER_PIXEL;
-        header.n_planes         = 1;
-        header.pixel_offset     = sizeof(header);
-        header.signature        = BITMAP_SIGNATURE;
-        header.width            = static_cast<int32_t>(in_image.width);
-
-        const bool is_header_written = (::fwrite(&header,
-                                                 sizeof(header),
-                                                 1,
-                                                 file_handle) == 1);
-        const bool is_image_written  = (::fwrite(in_image.pixel_u8_vec.data(),
-                                                 in_image.pixel_u8_vec.size(),
-                                                 1,
-                                                 file_handle) == 1);
-
-        result = (::fclose(file_handle) == 0 &&
-                  is_header_written          &&
-                  is_image_written);
     }
 
     return result;

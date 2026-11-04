@@ -6,6 +6,17 @@ file(GLOB StereoReplayEngineDLLIncludes CONFIGURE_DEPENDS        "${DemoVRPlayer
 file(GLOB StereoReplayEngineDLLPrivateIncludes CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/EngineDLL/*.h")
 file(GLOB StereoReplayEngineDLLSources CONFIGURE_DEPENDS         "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/EngineDLL/*.cpp")
 
+# The images of replayed frames: written as PNG, compared, and put together.
+file(GLOB StereoReplayFrameImagesIncludes CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/include/Stereo/Replay/FrameImages/*.h")
+file(GLOB StereoReplayFrameImagesSources CONFIGURE_DEPENDS  "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/FrameImages/*.cpp")
+
+add_library(StereoReplayFrameImages STATIC ${StereoReplayFrameImagesIncludes} ${StereoReplayFrameImagesSources})
+
+target_link_libraries(StereoReplayFrameImages PUBLIC miniz)
+
+source_group ("Stereo Replay Frame Images include files" FILES ${StereoReplayFrameImagesIncludes})
+source_group ("Stereo Replay Frame Images source files"  FILES ${StereoReplayFrameImagesSources})
+
 add_library(StereoReplayEngineDLL SHARED ${StereoReplayEngineDLLIncludes} ${StereoReplayEngineDLLPrivateIncludes} ${StereoReplayEngineDLLSources})
 
 target_compile_definitions(StereoReplayEngineDLL PRIVATE STEREOREPLAYENGINEDLL_BUILDING_DLL)
@@ -39,7 +50,7 @@ file(GLOB StereoReplayConsistencyCheckerSources CONFIGURE_DEPENDS "${DemoVRPlaye
 
 add_executable(StereoReplayConsistencyChecker ${StereoReplayConsistencyCheckerSources})
 
-target_link_libraries(StereoReplayConsistencyChecker APIDumpAnalysis RecipeLoader StereoReplayEngineDLL)
+target_link_libraries(StereoReplayConsistencyChecker APIDumpAnalysis RecipeLoader StereoReplayEngineDLL StereoReplayFrameImages)
 
 if (CMAKE_SIZEOF_VOID_P EQUAL 4)
     set_target_properties(StereoReplayConsistencyChecker PROPERTIES OUTPUT_NAME "StereoReplayConsistencyChecker_x86")

@@ -80,6 +80,9 @@
 <h3>StereoReplayConsistencyChecker</h3>
 <p><em>Program, without a window.</em> Replays a workload several ways, hashes the images of each frame and compares the ways: that a replay is repeatable, and that a frame executed twice draws the same as once. It is the test that the replay engine is fit for stereo conversion, and it can write the images of a frame that differs.</p>
 
+<h3>StereoReplayFrameImages</h3>
+<p><em>Library.</em> The images of replayed frames as plain data: written as PNG files (compressed by miniz), compared (how many pixels differ, where, by how much, and an image that shows it), and put together (the two eyes as a red-cyan anaglyph, many frames as a contact sheet). The tools that look at frames use it, so that none has a writer of its own.</p>
+
 <h2 id="stereo">Stereo</h2>
 <p>The live converter, and what carries its images to a screen. See <a href="live-stereo.html">Live stereo</a>.</p>
 
