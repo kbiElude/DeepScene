@@ -7,6 +7,7 @@
 #include "Interception/Hooks/D3D7/types.h"
 #include "d3d7_windowed_mode.h"
 #include "own_call_scope.h"
+#include "Stereo/Transport/frame_channel.h"
 #include <Windows.h>
 
 Stereo::ConverterDLL::D3D7WindowedMode::D3D7WindowedMode()
@@ -14,7 +15,10 @@ Stereo::ConverterDLL::D3D7WindowedMode::D3D7WindowedMode()
      m_display_height (0),
      m_display_width  (0),
      m_is_enabled     (false),
-     m_primary_ptr    (nullptr)
+     m_policy         (1.0f),
+     m_primary_ptr    (nullptr),
+     m_target_height  (0),
+     m_target_width   (0)
 {
     /* Stub */
 }
@@ -22,6 +26,16 @@ Stereo::ConverterDLL::D3D7WindowedMode::D3D7WindowedMode()
 void* Stereo::ConverterDLL::D3D7WindowedMode::get_back_buffer_ptr() const
 {
     return m_back_buffer_ptr;
+}
+
+float Stereo::ConverterDLL::D3D7WindowedMode::get_render_scale() const
+{
+    return m_policy.get_scale();
+}
+
+uint32_t Stereo::ConverterDLL::D3D7WindowedMode::get_scaled_extent(const uint32_t& in_extent) const
+{
+    return m_policy.scale_extent(in_extent);
 }
 
 void Stereo::ConverterDLL::D3D7WindowedMode::handle_create_surface(const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
@@ -56,6 +70,14 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_create_surface(const APIInte
         if ( (description_ptr->ddsCaps.dwCaps & Interception::Core::D3D7Utils::DDSCAPS_PRIMARYSURFACE) == 0 ||
              (description_ptr->ddsCaps.dwCaps & Interception::Core::D3D7Utils::DDSCAPS_FLIP)           == 0)
         {
+            /* A surface that is rendered to, of the size of the images of the application (a depth buffer for the back buffer), is made as large as the
+             * back buffer is.
+             */
+            handle_sized_surface(*description_ptr,
+                                 direct_draw_ptr,
+                                 static_cast<void**>(const_cast<void*>(in_arguments_ptr[SURFACE_ARGUMENT].get_ptr() )),
+                                 out_should_pass_through_ptr);
+
             goto end;
         }
     }
@@ -78,9 +100,9 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_create_surface(const APIInte
         back_buffer_description.dwFlags        = Interception::Core::D3D7Utils::DDSD_CAPS   |
                                                  Interception::Core::D3D7Utils::DDSD_HEIGHT |
                                                  Interception::Core::D3D7Utils::DDSD_WIDTH;
-        back_buffer_description.dwHeight       = (m_display_height != 0) ? m_display_height
+        back_buffer_description.dwHeight       = (m_display_height != 0) ? get_scaled_extent(m_display_height)
                                                                          : static_cast<uint32_t>(::GetSystemMetrics(SM_CYSCREEN) );
-        back_buffer_description.dwWidth        = (m_display_width  != 0) ? m_display_width
+        back_buffer_description.dwWidth        = (m_display_width  != 0) ? get_scaled_extent(m_display_width)
                                                                          : static_cast<uint32_t>(::GetSystemMetrics(SM_CXSCREEN) );
         back_buffer_description.ddsCaps.dwCaps = Interception::Core::D3D7Utils::DDSCAPS_3DDEVICE |
                                                  Interception::Core::D3D7Utils::DDSCAPS_OFFSCREENPLAIN;
@@ -193,7 +215,71 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_set_display_mode(const APIIn
     {
         m_display_height = height;
         m_display_width  = width;
+
+        /* The back buffer is made as large as the images that are shown allow, with the proportions of the display mode; not larger than the channel
+         * holds, for the two eyes side by side.
+         */
+        if (m_target_height != 0 &&
+            m_target_width  != 0)
+        {
+            const float max_width_scale  = static_cast<float>(Stereo::Transport::FrameChannel::get_max_width() ) / static_cast<float>(2 * width);
+            const float max_height_scale = static_cast<float>(Stereo::Transport::FrameChannel::get_max_height() ) / static_cast<float>(height);
+            const float max_scale        = (max_width_scale < max_height_scale) ? max_width_scale
+                                                                                 : max_height_scale;
+            const float fit_scale        = Stereo::Core::ResolutionPolicy::get_fit_scale(m_target_width,
+                                                                                         m_target_height,
+                                                                                         width,
+                                                                                         height);
+
+            m_policy = Stereo::Core::ResolutionPolicy((fit_scale < max_scale) ? fit_scale
+                                                                              : max_scale);
+        }
     }
+}
+
+void Stereo::ConverterDLL::D3D7WindowedMode::handle_sized_surface(const Interception::Hooks::D3D7::DDSURFACEDESC2& in_description,
+                                                                  void*                                             in_direct_draw_ptr,
+                                                                  void**                                            out_surface_ptr_ptr,
+                                                                  bool*                                             out_should_pass_through_ptr)
+{
+    constexpr uint32_t CAPS_OF_SURFACES_RENDERED_TO = Interception::Core::D3D7Utils::DDSCAPS_3DDEVICE |
+                                                      Interception::Core::D3D7Utils::DDSCAPS_ZBUFFER;
+    constexpr uint32_t FLAGS_OF_SIZE                = Interception::Core::D3D7Utils::DDSD_HEIGHT |
+                                                      Interception::Core::D3D7Utils::DDSD_WIDTH;
+
+    Interception::Hooks::D3D7::DDSURFACEDESC2       scaled_description = in_description;
+    Interception::Hooks::D3D7::IDirectDrawSurface7* surface_ptr        = nullptr;
+
+    /* Only a surface that is as large as the images of the application is, and only if they are made larger. */
+    if (m_policy.is_identity()                                                                     ||
+        m_display_width == 0                                                                       ||
+        (in_description.ddsCaps.dwCaps & CAPS_OF_SURFACES_RENDERED_TO) == 0                        ||
+        (in_description.dwFlags & FLAGS_OF_SIZE)                       != FLAGS_OF_SIZE            ||
+        in_description.dwHeight != m_display_height                                                ||
+        in_description.dwWidth  != m_display_width)
+    {
+        goto end;
+    }
+
+    {
+        const OwnCallScope own_call_scope;
+        void** const       vtable = *reinterpret_cast<void***>(in_direct_draw_ptr);
+
+        scaled_description.dwHeight = get_scaled_extent(in_description.dwHeight);
+        scaled_description.dwWidth  = get_scaled_extent(in_description.dwWidth);
+
+        if (SUCCEEDED(reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAW7_CREATESURFACE>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAW7_CREATESURFACE])(static_cast<Interception::Hooks::D3D7::IDirectDraw7*>(in_direct_draw_ptr),
+                                                                                                                                                                              &scaled_description,
+                                                                                                                                                                              &surface_ptr,
+                                                                                                                                                                               nullptr) ))
+        {
+            *out_surface_ptr_ptr         = surface_ptr;
+            *out_should_pass_through_ptr = false;
+        }
+    }
+
+end:
+    return;
 }
 
 void Stereo::ConverterDLL::D3D7WindowedMode::keep_windows_invisible()
@@ -294,6 +380,14 @@ void Stereo::ConverterDLL::D3D7WindowedMode::set_is_enabled(const bool& in_is_en
 {
     m_is_enabled = in_is_enabled;
 }
+
+void Stereo::ConverterDLL::D3D7WindowedMode::set_target_eye_size(const uint32_t& in_width,
+                                                                 const uint32_t& in_height)
+{
+    m_target_height = in_height;
+    m_target_width  = in_width;
+}
+
 
 bool Stereo::ConverterDLL::D3D7WindowedMode::read_u32(const APIInterceptor::APIFunctionArgument& in_argument,
                                                       uint32_t*                                  out_value_ptr)

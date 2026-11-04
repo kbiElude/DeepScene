@@ -39,6 +39,38 @@ bool Stereo::D3D7::ScreenParallax::is_valid(const Parameters& in_parameters)
             in_parameters.picture_width        >  0.0f);
 }
 
+void Stereo::D3D7::ScreenParallax::scale_vertices(const float&    in_scale,
+                                                  const uint32_t& in_vertex_n_bytes,
+                                                  const size_t&   in_n_vertices,
+                                                  uint8_t*        inout_vertex_ptr)
+{
+    constexpr size_t N_POSITION_AXES = 2; /* x and y */
+
+    for (size_t n_vertex = 0;
+                n_vertex < in_n_vertices;
+              ++n_vertex)
+    {
+        uint8_t* const vertex_ptr = inout_vertex_ptr + n_vertex * in_vertex_n_bytes;
+
+        for (size_t n_axis = 0;
+                    n_axis < N_POSITION_AXES;
+                  ++n_axis)
+        {
+            float position = 0.0f;
+
+            ::memcpy(&position,
+                     vertex_ptr + n_axis * sizeof(position),
+                     sizeof(position) );
+
+            position *= in_scale;
+
+            ::memcpy(vertex_ptr + n_axis * sizeof(position),
+                     &position,
+                     sizeof(position) );
+        }
+    }
+}
+
 void Stereo::D3D7::ScreenParallax::shift_vertices(const Parameters& in_parameters,
                                                   const uint32_t&   in_vertex_n_bytes,
                                                   const size_t&     in_n_vertices,

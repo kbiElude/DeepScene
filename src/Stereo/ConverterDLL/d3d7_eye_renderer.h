@@ -10,6 +10,7 @@
 #include "Interception/Hooks/D3D7/types.h"
 #include "Stereo/Core/stereo_core.h"
 #include "d3d7_surface_twins.h"
+#include "d3d7_windowed_mode.h"
 #include <array>
 #include <stdint.h>
 #include <vector>
@@ -34,10 +35,15 @@ namespace Stereo
         class D3D7EyeRenderer
         {
         public:
-            explicit D3D7EyeRenderer(Stereo::Core::StereoCore* in_core_ptr);
+            /* The windowed mode says how much larger than the application asks the back buffer is made (see D3D7WindowedMode::get_render_scale()). */
+            D3D7EyeRenderer(Stereo::Core::StereoCore*  in_core_ptr,
+                            const D3D7WindowedMode*    in_windowed_mode_ptr);
 
             uint64_t get_n_failed_twins() const;
             uint64_t get_n_twins       () const;
+
+            /* How many calls were made on the back buffer in the pixels of the application, which are then not where they were meant to be. */
+            uint64_t get_n_pixel_calls() const;
 
             /* How many calls were not made again for the right eye, though they changed what it holds. */
             uint64_t get_n_unmirrored_calls() const;
@@ -51,10 +57,10 @@ namespace Stereo
                          const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
                          const APIInterceptor::APIFunctionArgument* in_returned_value_ptr);
 
-            /* A call that is not a draw is about to be made: what it sets is followed, and a clear is made for the right eye as well. The call
-             * is made as the application makes it.
+            /* A call that is not a draw is about to be made: what it sets is followed, and a clear is made for the right eye as well. Returns false
+             * if the call is not to be made as the application makes it: the renderer made it, in the sizes of the larger back buffer.
              */
-            void on_pre(const APIInterceptor::APIFunction&         in_function,
+            bool on_pre(const APIInterceptor::APIFunction&         in_function,
                         const uint32_t&                            in_n_arguments,
                         const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
 
@@ -87,8 +93,10 @@ namespace Stereo
             /* What the application has set in the device, as far as the renderer knows. */
             struct DeviceMirror
             {
-                void*                               render_target_ptr = nullptr;
-                std::array<void*, N_TEXTURE_STAGES> texture_ptr_array = {};
+                bool                                    has_viewport      = false;
+                void*                                   render_target_ptr = nullptr;
+                std::array<void*, N_TEXTURE_STAGES>     texture_ptr_array = {};
+                Interception::Hooks::D3D7::D3DVIEWPORT7 viewport          = {}; /* the application's, in its own pixels */
             };
 
             /* What is changed in the device to draw for the right eye, and has to be put back. */
@@ -116,13 +124,21 @@ namespace Stereo
             bool enter_right_eye(void*          in_device_ptr,
                                  RightEyeScope* out_scope_ptr) const;
 
+            /* How much larger the surface that the application renders to is than it knows: 1 unless it is the back buffer, which is made larger. */
+            float get_render_scale() const;
+
             /* What the application set is in the device again. */
             void leave_right_eye(void*                inout_device_ptr,
                                  const RightEyeScope& in_scope) const;
 
-            /* A clear which the application made, made for the right eye. */
-            void play_right_clear(const uint32_t&                            in_n_arguments,
-                                  const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
+            /* A clear which the application made, made for the right eye, and for the left if its rectangles are to be of the larger back buffer. Returns
+             * false if the call of the application is not to be made.
+             */
+            bool play_clear(const uint32_t&                            in_n_arguments,
+                            const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
+
+            /* Puts in the device the viewport that the application set, in the pixels of what it renders to now. */
+            void set_effective_viewport(void* in_device_ptr) const;
 
             /* Reads the arguments of the call, which is of a draw this knows. Returns false if it is not one, or the arguments are not
              * what a draw has.
@@ -138,9 +154,11 @@ namespace Stereo
 
             Stereo::Core::StereoCore* m_core_ptr;
             DeviceMirror              m_mirror;
+            uint64_t                  m_n_pixel_calls;
             uint64_t                  m_n_unmirrored_calls;
             D3D7SurfaceTwins          m_surface_twins;
             std::vector<uint8_t>      m_vertex_vec; /* of the draw being made: its room is used again */
+            const D3D7WindowedMode*   m_windowed_mode_ptr;
         };
     }
 }

@@ -2,6 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
+#include "Common/callbacks.h"
 #include "Common/macros.h"
 #include "Interception/Core/D3D7Utils/constants.h"
 #include "Interception/Core/D3D7Utils/vertex_format.h"
@@ -10,9 +11,12 @@
 #include "own_call_scope.h"
 #include <string.h>
 
-Stereo::ConverterDLL::D3D7EyeRenderer::D3D7EyeRenderer(Stereo::Core::StereoCore* in_core_ptr)
+Stereo::ConverterDLL::D3D7EyeRenderer::D3D7EyeRenderer(Stereo::Core::StereoCore* in_core_ptr,
+                                                     const D3D7WindowedMode* in_windowed_mode_ptr)
     :m_core_ptr          (in_core_ptr),
-     m_n_unmirrored_calls(0)
+     m_n_pixel_calls     (0),
+     m_n_unmirrored_calls(0),
+     m_windowed_mode_ptr (in_windowed_mode_ptr)
 {
     /* Stub */
 }
@@ -25,6 +29,11 @@ uint64_t Stereo::ConverterDLL::D3D7EyeRenderer::get_n_failed_twins() const
 uint64_t Stereo::ConverterDLL::D3D7EyeRenderer::get_n_twins() const
 {
     return m_surface_twins.get_n_twins();
+}
+
+uint64_t Stereo::ConverterDLL::D3D7EyeRenderer::get_n_pixel_calls() const
+{
+    return m_n_pixel_calls;
 }
 
 uint64_t Stereo::ConverterDLL::D3D7EyeRenderer::get_n_unmirrored_calls() const
@@ -59,9 +68,18 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::on_post(const APIInterceptor::APIFun
     {
         m_mirror.render_target_ptr = const_cast<void*>(in_arguments_ptr[SURFACE_ARGUMENT].get_ptr() );
     }
+
+    /* A viewport is in the pixels of what it is for: another render target may be of other pixels. */
+    if (in_function == APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_SETRENDERTARGET &&
+        in_n_arguments > 0                                                                &&
+        in_arguments_ptr[0].type == APIInterceptor::ARGTYPE_VOID_PTR                      &&
+        m_mirror.has_viewport)
+    {
+        set_effective_viewport(const_cast<void*>(in_arguments_ptr[0].get_ptr() ));
+    }
 }
 
-void Stereo::ConverterDLL::D3D7EyeRenderer::on_pre(const APIInterceptor::APIFunction&         in_function,
+bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre(const APIInterceptor::APIFunction&         in_function,
                                                    const uint32_t&                            in_n_arguments,
                                                    const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
 {
@@ -74,13 +92,16 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::on_pre(const APIInterceptor::APIFunc
     constexpr size_t   STAGE_ARGUMENT       = 1;
     constexpr size_t   TARGET_ARGUMENT      = 1;
     constexpr size_t   TEXTURE_ARGUMENT     = 2;
+    constexpr size_t   VIEWPORT_ARGUMENT    = 1;
+
+    bool result = true;
 
     switch (in_function)
     {
         case APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_CLEAR:
         {
-            play_right_clear(in_n_arguments,
-                             in_arguments_ptr);
+            result = play_clear(in_n_arguments,
+                                in_arguments_ptr);
 
             break;
         }
@@ -112,15 +133,57 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::on_pre(const APIInterceptor::APIFunc
             break;
         }
 
+        case APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_SETVIEWPORT:
+        {
+            const void* chunk_ptr     = nullptr;
+            uint32_t    n_chunk_bytes = 0;
+
+            /* The viewport is a structure, which the arguments hold as a chunk. */
+            if (in_n_arguments > VIEWPORT_ARGUMENT                                                     &&
+                in_arguments_ptr[VIEWPORT_ARGUMENT].type == APIInterceptor::ARGTYPE_DATA_CHUNK_ID      &&
+                APIInterceptor::get_data_chunk(in_arguments_ptr[VIEWPORT_ARGUMENT].get_data_chunk_id(),
+                                              &chunk_ptr,
+                                              &n_chunk_bytes)                                           &&
+                n_chunk_bytes == sizeof(Interception::Hooks::D3D7::D3DVIEWPORT7) )
+            {
+                m_mirror.has_viewport = true;
+
+                ::memcpy(&m_mirror.viewport,
+                         chunk_ptr,
+                         sizeof(m_mirror.viewport) );
+
+                /* The viewport of the larger back buffer is the viewport the application sets, as large as the back buffer is. */
+                if (get_render_scale() != 1.0f)
+                {
+                    set_effective_viewport(const_cast<void*>(in_arguments_ptr[0].get_ptr() ));
+
+                    result = false;
+                }
+            }
+
+            break;
+        }
+
         case APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_BLT:
         case APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_BLTFAST:
         {
-            /* What is copied to a surface that has a twin is not copied to the twin yet. */
             if (in_n_arguments >= N_ARGUMENTS_BLT                                              &&
-                in_arguments_ptr[DESTINATION_ARGUMENT].type == APIInterceptor::ARGTYPE_VOID_PTR &&
-                get_twin_ptr(const_cast<void*>(in_arguments_ptr[DESTINATION_ARGUMENT].get_ptr() )) != nullptr)
+                in_arguments_ptr[DESTINATION_ARGUMENT].type == APIInterceptor::ARGTYPE_VOID_PTR)
             {
-                m_n_unmirrored_calls++;
+                void* const destination_ptr = const_cast<void*>(in_arguments_ptr[DESTINATION_ARGUMENT].get_ptr() );
+
+                /* What is copied to a surface that has a twin is not copied to the twin yet. */
+                if (get_twin_ptr(destination_ptr) != nullptr)
+                {
+                    m_n_unmirrored_calls++;
+                }
+
+                /* A copy to the back buffer is in the pixels of the application, which the back buffer is no longer of. */
+                if (m_surface_twins.is_back_buffer(destination_ptr) &&
+                    m_windowed_mode_ptr->get_render_scale() != 1.0f)
+                {
+                    m_n_pixel_calls++;
+                }
             }
 
             break;
@@ -138,11 +201,27 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::on_pre(const APIInterceptor::APIFunc
             break;
         }
 
+        case APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_LOCK:
+        {
+            /* Pixels that the application reads or writes are in the pixels of the application. */
+            if (in_n_arguments >= N_ARGUMENTS_BLT                                              &&
+                in_arguments_ptr[DESTINATION_ARGUMENT].type == APIInterceptor::ARGTYPE_VOID_PTR &&
+                m_surface_twins.is_back_buffer(const_cast<void*>(in_arguments_ptr[DESTINATION_ARGUMENT].get_ptr() )) &&
+                m_windowed_mode_ptr->get_render_scale() != 1.0f)
+            {
+                m_n_pixel_calls++;
+            }
+
+            break;
+        }
+
         default:
         {
             break;
         }
     }
+
+    return result;
 }
 
 bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre_draw(const APIInterceptor::APIFunction&         in_function,
@@ -231,6 +310,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::RecipeL
     Stereo::D3D7::ScreenParallax::Parameters parameters;
     Stereo::Core::ScreenShiftPlan            plan;
     bool                                     result         = false;
+    float                                    scale          = 1.0f;
     uint32_t                                 vertex_n_bytes = 0;
 
     /* Vertices which a matrix moves are the matrix's. */
@@ -246,6 +326,9 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::RecipeL
         plan = m_core_ptr->plan_screen_shift(in_eye,
                                              m_surface_twins.is_back_buffer(m_mirror.render_target_ptr),
                                              in_picture_width);
+
+        /* The positions are in the pixels of the application, which a larger back buffer is not made of. */
+        scale = get_render_scale();
 
         switch (plan.kind)
         {
@@ -281,7 +364,8 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::RecipeL
             }
         }
 
-        if (plan.kind != Stereo::Core::ScreenShiftPlan::Kind::NONE)
+        if (plan.kind != Stereo::Core::ScreenShiftPlan::Kind::NONE ||
+            scale     != 1.0f)
         {
             /* The application's own vertices are not touched: the draw is made with a copy. */
             m_vertex_vec.assign(static_cast<const uint8_t*>(in_draw_arguments.vertices_ptr),
@@ -295,11 +379,20 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::RecipeL
                                                              m_vertex_vec.data() );
             }
             else
+            if (plan.kind == Stereo::Core::ScreenShiftPlan::Kind::UNIFORM)
             {
                 Stereo::D3D7::ScreenParallax::shift_vertices_by(plan.uniform_shift_pixels,
                                                                 vertex_n_bytes,
                                                                 in_draw_arguments.n_vertices,
                                                                 m_vertex_vec.data() );
+            }
+
+            if (scale != 1.0f)
+            {
+                Stereo::D3D7::ScreenParallax::scale_vertices(scale,
+                                                             vertex_n_bytes,
+                                                             in_draw_arguments.n_vertices,
+                                                             m_vertex_vec.data() );
             }
 
             draw(in_draw_arguments,
@@ -373,6 +466,12 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::enter_right_eye(void*          in_de
     return result;
 }
 
+float Stereo::ConverterDLL::D3D7EyeRenderer::get_render_scale() const
+{
+    return (m_surface_twins.is_back_buffer(m_mirror.render_target_ptr) ) ? m_windowed_mode_ptr->get_render_scale()
+                                                                         : 1.0f;
+}
+
 void Stereo::ConverterDLL::D3D7EyeRenderer::leave_right_eye(void*                inout_device_ptr,
                                                             const RightEyeScope& in_scope) const
 {
@@ -403,8 +502,8 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::leave_right_eye(void*               
     }
 }
 
-void Stereo::ConverterDLL::D3D7EyeRenderer::play_right_clear(const uint32_t&                            in_n_arguments,
-                                                             const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
+bool Stereo::ConverterDLL::D3D7EyeRenderer::play_clear(const uint32_t&                            in_n_arguments,
+                                                       const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
 {
     constexpr uint32_t N_ARGUMENTS_CLEAR   = 7;
     constexpr size_t   COLOR_ARGUMENT      = 4;
@@ -415,12 +514,17 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::play_right_clear(const uint32_t&    
     constexpr size_t   STENCIL_ARGUMENT    = 6;
     constexpr size_t   Z_ARGUMENT          = 5;
 
-    uint32_t                                  color           = 0;
-    uint32_t                                  count           = 0;
-    uint32_t                                  flags           = 0;
-    const Interception::Hooks::D3D7::D3DRECT* rects_ptr       = nullptr;
-    RightEyeScope                             scope;
-    uint32_t                                  stencil         = 0;
+    uint32_t                                       color           = 0;
+    uint32_t                                       count           = 0;
+    void*                                          device_ptr      = nullptr;
+    uint32_t                                       flags           = 0;
+    bool                                           is_scaled       = false;
+    bool                                           result          = true;
+    std::vector<Interception::Hooks::D3D7::D3DRECT> rect_vec;
+    const Interception::Hooks::D3D7::D3DRECT*      rects_ptr       = nullptr;
+    const float                                    scale           = get_render_scale();
+    RightEyeScope                                  scope;
+    uint32_t                                       stencil         = 0;
 
     if (in_n_arguments < N_ARGUMENTS_CLEAR                                           ||
         in_arguments_ptr[DEVICE_ARGUMENT].type != APIInterceptor::ARGTYPE_VOID_PTR   ||
@@ -439,6 +543,8 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::play_right_clear(const uint32_t&    
         goto end;
     }
 
+    device_ptr = const_cast<void*>(in_arguments_ptr[DEVICE_ARGUMENT].get_ptr() );
+
     /* The rectangles are in the memory of the application, if it clears parts of the surface. */
     if (count > 0)
     {
@@ -450,24 +556,45 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::play_right_clear(const uint32_t&    
         }
 
         rects_ptr = static_cast<const Interception::Hooks::D3D7::D3DRECT*>(in_arguments_ptr[RECTS_ARGUMENT].get_ptr() );
+
+        /* They are in the pixels of the application: the larger back buffer has more of them. */
+        if (scale != 1.0f)
+        {
+            rect_vec.assign(rects_ptr,
+                            rects_ptr + count);
+
+            for (auto& rect : rect_vec)
+            {
+                rect.x1 = static_cast<LONG>(static_cast<float>(rect.x1) * scale + 0.5f);
+                rect.x2 = static_cast<LONG>(static_cast<float>(rect.x2) * scale + 0.5f);
+                rect.y1 = static_cast<LONG>(static_cast<float>(rect.y1) * scale + 0.5f);
+                rect.y2 = static_cast<LONG>(static_cast<float>(rect.y2) * scale + 0.5f);
+            }
+
+            rects_ptr = rect_vec.data();
+            is_scaled = true;
+        }
     }
 
     {
-        void* const device_ptr = const_cast<void*>(in_arguments_ptr[DEVICE_ARGUMENT].get_ptr() );
-
-        if (enter_right_eye(device_ptr,
-                           &scope) )
+        const auto clear_func = [&](const Interception::Hooks::D3D7::D3DRECT* in_rects_ptr)
         {
             const OwnCallScope own_call_scope;
             void** const       vtable = *reinterpret_cast<void***>(device_ptr);
 
             reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_CLEAR>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_CLEAR])(static_cast<Interception::Hooks::D3D7::IDirect3DDevice7*>(device_ptr),
                                                                                                                                                               count,
-                                                                                                                                                              rects_ptr,
+                                                                                                                                                              in_rects_ptr,
                                                                                                                                                               flags,
                                                                                                                                                               color,
                                                                                                                                                               in_arguments_ptr[Z_ARGUMENT].get_fp32(),
                                                                                                                                                               stencil);
+        };
+
+        if (enter_right_eye(device_ptr,
+                           &scope) )
+        {
+            clear_func(rects_ptr);
 
             leave_right_eye(device_ptr,
                             scope);
@@ -476,10 +603,37 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::play_right_clear(const uint32_t&    
         {
             m_n_unmirrored_calls++;
         }
+
+        /* The call of the application is for rectangles of its own pixels: the clear of the left eye is made with those of the back buffer. */
+        if (is_scaled)
+        {
+            clear_func(rects_ptr);
+
+            result = false;
+        }
     }
 
 end:
-    return;
+    return result;
+}
+
+void Stereo::ConverterDLL::D3D7EyeRenderer::set_effective_viewport(void* in_device_ptr) const
+{
+    const OwnCallScope                      own_call_scope;
+    const float                             scale    = get_render_scale();
+    Interception::Hooks::D3D7::D3DVIEWPORT7 viewport = m_mirror.viewport;
+    void** const                            vtable   = *reinterpret_cast<void***>(in_device_ptr);
+
+    if (scale != 1.0f)
+    {
+        viewport.dwHeight = static_cast<DWORD>(static_cast<float>(viewport.dwHeight) * scale + 0.5f);
+        viewport.dwWidth  = static_cast<DWORD>(static_cast<float>(viewport.dwWidth)  * scale + 0.5f);
+        viewport.dwX      = static_cast<DWORD>(static_cast<float>(viewport.dwX)      * scale + 0.5f);
+        viewport.dwY      = static_cast<DWORD>(static_cast<float>(viewport.dwY)      * scale + 0.5f);
+    }
+
+    reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_SETVIEWPORT>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETVIEWPORT])(static_cast<Interception::Hooks::D3D7::IDirect3DDevice7*>(in_device_ptr),
+                                                                                                                                                                 &viewport);
 }
 
 bool Stereo::ConverterDLL::D3D7EyeRenderer::read_draw_arguments(const APIInterceptor::APIFunction&         in_function,

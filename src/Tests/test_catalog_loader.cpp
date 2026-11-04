@@ -212,14 +212,14 @@ TEST_F(CatalogLoaderTest, ACatalogWhichIsNotThereIsNotRead)
                  std::string::npos);
 }
 
-TEST_F(CatalogLoaderTest, TheCatalogWhichComesWithTheRepositoryListsFr08)
+TEST_F(CatalogLoaderTest, TheCatalogWhichComesWithTheRepositoryListsTheAppsOfTheRepository)
 {
     /* Its executable is downloaded when it is first launched, so the catalog is usable without it. */
     ASSERT_TRUE(VR::AppCatalog::CatalogLoader::load(std::string(DEMOVRPLAYER_APPS_DIR) + "/apps.json",
                                                    &m_catalog,
                                                    &m_error) ) << m_error;
     ASSERT_EQ  (m_catalog.app_vec.size(),
-                1u);
+                2u);
 
     EXPECT_EQ(m_catalog.app_vec.at(0).id,
               "fr08");
@@ -241,6 +241,15 @@ TEST_F(CatalogLoaderTest, TheCatalogWhichComesWithTheRepositoryListsFr08)
     /* fr08 wants its overlays (the text and circles of its scenes) in front of the screen: the recipe has an amount. */
     EXPECT_GT(m_catalog.app_vec.at(0).overlay_parallax,
               0.0f);
+
+    /* Kasparov is a program whose recipe is valid; it is not downloaded, so it is there when its folder is, and not before. */
+    EXPECT_EQ(m_catalog.app_vec.at(1).id,
+              "kasparov");
+    EXPECT_EQ(m_catalog.app_vec.at(1).name,
+              "Kasparov");
+    EXPECT_EQ(m_catalog.app_vec.at(1).unavailable_reason.find("recipe"),
+              std::string::npos) << m_catalog.app_vec.at(1).unavailable_reason;
+    EXPECT_TRUE(m_catalog.app_vec.at(1).install_spec.url_vec.empty() );
 }
 
 TEST_F(CatalogLoaderTest, AnApplicationTakesTheAmountOfItsOverlayFromTheRecipe)

@@ -6,6 +6,8 @@
 #define STEREO_CONVERTERDLL_D3D7_WINDOWED_MODE_H
 
 #include "Common/types.h"
+#include "Interception/Hooks/D3D7/types.h"
+#include "Stereo/Core/resolution_policy.h"
 #include "invisible_windows.h"
 #include <stdint.h>
 
@@ -35,6 +37,14 @@ namespace Stereo
             /* The surface that the application renders to instead of the back buffer of the chain it asked for; nullptr until it has one. */
             void* get_back_buffer_ptr() const;
 
+            /* How much larger than the application asks the back buffer is made, to fit the images that are shown: 1 until the size of the display
+             * mode is known, and when nothing is made larger.
+             */
+            float get_render_scale() const;
+
+            /* The size in pixels that an extent which the application asks for is made. */
+            uint32_t get_scaled_extent(const uint32_t& in_extent) const;
+
             /* Makes the windows invisible again if the application has changed their styles. */
             void keep_windows_invisible();
 
@@ -48,6 +58,13 @@ namespace Stereo
              */
             void set_is_enabled(const bool& in_is_enabled);
 
+            /* The size of the image of an eye in the program that shows the images (see FrameChannel::get_target_eye_size()): what the back buffer is
+             * made as large as, with the proportions of the display mode.
+             */
+            void set_target_eye_size(const uint32_t& in_width,
+                                     const uint32_t& in_height);
+
+
         private:
             void handle_create_surface(const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
                                        bool*                                      out_should_pass_through_ptr);
@@ -59,17 +76,26 @@ namespace Stereo
 
             void handle_set_display_mode(const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
 
+            /* A surface that is rendered to and is as large as the images of the application is made as large as the back buffer. */
+            void handle_sized_surface(const Interception::Hooks::D3D7::DDSURFACEDESC2& in_description,
+                                      void*                                             in_direct_draw_ptr,
+                                      void**                                            out_surface_ptr_ptr,
+                                      bool*                                             out_should_pass_through_ptr);
+
             /* Reads a number of an argument that is of 32 bits; false if it is not. */
             static bool read_u32(const APIInterceptor::APIFunctionArgument& in_argument,
                                  uint32_t*                                  out_value_ptr);
 
 
-            void*            m_back_buffer_ptr;
-            uint32_t         m_display_height;
-            uint32_t         m_display_width;
-            InvisibleWindows m_invisible_windows;
-            bool             m_is_enabled;
-            void*            m_primary_ptr;
+            void*                          m_back_buffer_ptr;
+            uint32_t                       m_display_height;
+            uint32_t                       m_display_width;
+            InvisibleWindows               m_invisible_windows;
+            bool                           m_is_enabled;
+            Stereo::Core::ResolutionPolicy m_policy;
+            void*                          m_primary_ptr;
+            uint32_t                       m_target_height;
+            uint32_t                       m_target_width;
         };
     }
 }

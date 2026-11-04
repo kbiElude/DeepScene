@@ -235,6 +235,37 @@ TEST(D3D7ScreenParallax, OnlyTheXOfEachVertexIsMoved)
     }
 }
 
+TEST(D3D7ScreenParallax, ScalingMovesTheXAndTheYAndLeavesTheDepthAndWhatIsAfterIt)
+{
+    auto vertices = make_vertices({10.0f, 20.0f},
+                                  {0.5f,  0.25f});
+
+    Stereo::D3D7::ScreenParallax::scale_vertices(2.0f,
+                                                 VERTEX_N_BYTES,
+                                                 2,
+                                                 vertices.data() );
+
+    float vertex_f32vec8[8] = {};
+
+    ::memcpy(vertex_f32vec8,
+             vertices.data() + VERTEX_N_BYTES,
+             sizeof(vertex_f32vec8) );
+
+    EXPECT_FLOAT_EQ(get_x(vertices,
+                          0),
+                    20.0f);
+    EXPECT_FLOAT_EQ(vertex_f32vec8[0],
+                    40.0f);
+    EXPECT_FLOAT_EQ(vertex_f32vec8[1],
+                    2.0f * 101.0f); /* the y of the second vertex was 101 */
+    EXPECT_FLOAT_EQ(vertex_f32vec8[2],
+                    0.5f);          /* z                                  */
+    EXPECT_FLOAT_EQ(vertex_f32vec8[3],
+                    0.25f);         /* the reciprocal of the depth        */
+    EXPECT_FLOAT_EQ(vertex_f32vec8[6],
+                    0.25f);         /* a texture coordinate               */
+}
+
 TEST(D3D7DrawRewriter, ADrawOfPreTransformedVerticesIsCopiedWithTheVerticesMovedAndTheOriginalLeftAlone)
 {
     MapChunkSource                                 source;

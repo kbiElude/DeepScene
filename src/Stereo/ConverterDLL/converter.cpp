@@ -96,7 +96,8 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
         }
     }
 
-    m_live_state.d3d7_renderer_ptr.reset(new D3D7EyeRenderer(m_live_state.core_ptr.get() ));
+    m_live_state.d3d7_renderer_ptr.reset(new D3D7EyeRenderer(m_live_state.core_ptr.get(),
+                                                           &m_live_state.d3d7_windowed_mode) );
     m_live_state.renderer_ptr.reset(new D3D8EyeRenderer(m_live_state.core_ptr.get                               () ));
     m_frame_passer_ptr.reset       (new FramePasser    (std::unique_ptr<Stereo::Transport::IFrameExporter>(new D3D8HostMemoryExporter(m_channel_ptr.get() )),
                                                         m_log) );
@@ -108,12 +109,33 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
         uint32_t target_height = 0;
         uint32_t target_width  = 0;
 
-        const bool is_shown_elsewhere = m_channel_ptr->get_target_eye_size(&target_width,
-                                                                           &target_height);
+        bool is_shown_elsewhere = m_channel_ptr->get_target_eye_size(&target_width,
+                                                                     &target_height);
+
+        /* A way to say it for a run without VRPlayer, which says it otherwise. */
+        {
+            float height = 0.0f;
+            float width  = 0.0f;
+
+            if (is_shown_elsewhere == false                          &&
+                read_environment_number("APISTEREO_TARGET_EYE_WIDTH",
+                                       &width)                        &&
+                read_environment_number("APISTEREO_TARGET_EYE_HEIGHT",
+                                       &height) )
+            {
+                target_height      = static_cast<uint32_t>(height);
+                target_width       = static_cast<uint32_t>(width);
+                is_shown_elsewhere = true;
+
+                m_log.write("The images of the eyes are " + std::to_string(target_width) + " x " + std::to_string(target_height) + ", from APISTEREO_TARGET_EYE_WIDTH and APISTEREO_TARGET_EYE_HEIGHT");
+            }
+        }
 
         /* A program that shows the images says how large they are before the application starts: without one the application is on the screen, as
          * it is, and a window of it is not made invisible.
          */
+        m_live_state.d3d7_windowed_mode.set_target_eye_size(target_width,
+                                                           target_height);
         m_live_state.d3d7_windowed_mode.set_is_enabled(is_shown_elsewhere);
 
         m_live_state.scaler_ptr.reset(new D3D8ResolutionScaler(target_width,
@@ -213,7 +235,10 @@ std::string Stereo::ConverterDLL::Converter::make_statistics_line() const
                                                                        std::to_string(n_failed_twins)  +
                                                                        " twins that could not be made, "   +
                                                                        std::to_string(m_live_state.d3d7_renderer_ptr->get_n_unmirrored_calls() ) +
-                                                                       " calls not made for the right eye"
+                                                                       " calls not made for the right eye" +
+                                                                       ", "                                +
+                                                                       std::to_string(m_live_state.d3d7_renderer_ptr->get_n_pixel_calls() ) +
+                                                                       " calls on the back buffer in pixels it no longer has"
                                                                      : std::string();
 
     return "After "                                                       +
@@ -365,9 +390,13 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
                     *out_should_pass_through_ptr = false;
                 }
 
-                m_live_state.d3d7_renderer_ptr->on_pre(in_api_func,
-                                                       in_n_arguments,
-                                                       in_arguments_ptr);
+                /* What is in pixels is made in the pixels of a larger back buffer, if it is made larger. */
+                if (m_live_state.d3d7_renderer_ptr->on_pre(in_api_func,
+                                                           in_n_arguments,
+                                                           in_arguments_ptr) == false)
+                {
+                    *out_should_pass_through_ptr = false;
+                }
 
                 if (APIInterceptor::is_frame_boundary(in_api_func,
                                                       in_n_arguments,
