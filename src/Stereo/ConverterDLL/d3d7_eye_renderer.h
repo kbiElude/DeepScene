@@ -12,6 +12,7 @@
 #include "d3d7_surface_twins.h"
 #include "d3d7_windowed_mode.h"
 #include <array>
+#include <functional>
 #include <stdint.h>
 #include <string>
 #include <vector>
@@ -36,6 +37,11 @@ namespace Stereo
         class D3D7EyeRenderer
         {
         public:
+            /* Where the data chunks of the arguments of a draw are read from: the draws are analysed first, and the analysis takes them out of the interceptor. */
+            typedef std::function<bool(const uint32_t& in_chunk_id,
+                                       const void**    out_data_ptr_ptr,
+                                       uint32_t*       out_n_bytes_ptr)> ChunkFunc;
+
             /* The windowed mode says how much larger than the application asks the back buffer is made (see D3D7WindowedMode::get_render_scale()). */
             D3D7EyeRenderer(Stereo::Core::StereoCore*  in_core_ptr,
                             const D3D7WindowedMode*    in_windowed_mode_ptr);
@@ -72,6 +78,7 @@ namespace Stereo
             bool on_pre_draw(const APIInterceptor::APIFunction&         in_function,
                              const uint32_t&                            in_n_arguments,
                              const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
+                             const ChunkFunc&                           in_chunk_func,
                              const float&                               in_picture_width);
 
             /* The words that tell which calls were not made for the right eye, the first ones, since this was last called. */
@@ -81,18 +88,30 @@ namespace Stereo
         private:
             static constexpr uint32_t N_TEXTURE_STAGES = 8;
 
-            /* The arguments of a draw of vertices which the application holds in its own memory, in the order of the call. */
+            /* Where the vertices of a draw are. */
+            enum class DrawKind
+            {
+                STRIDED,           /* in arrays of the application, which a structure points at                          */
+                VERTEX_BUFFER,     /* in a vertex buffer: read into the memory of the renderer, and then they are in memory */
+                VERTICES_IN_MEMORY /* in one block of the memory of the application                                      */
+            };
+
+            /* The arguments of a draw, in the order of the call. */
             struct DrawArguments
             {
-                void*       device_ptr     = nullptr;
-                uint32_t    flags          = 0;
-                uint32_t    fvf            = 0;
-                const void* indices_ptr    = nullptr;
-                bool        is_indexed     = false;
-                uint32_t    n_indices      = 0;
-                uint32_t    n_vertices     = 0;
-                uint32_t    primitive_type = 0;
-                const void* vertices_ptr   = nullptr;
+                void*                                                  device_ptr        = nullptr;
+                uint32_t                                               flags             = 0;
+                uint32_t                                               fvf               = 0;
+                const void*                                            indices_ptr       = nullptr;
+                bool                                                   is_indexed        = false;
+                DrawKind                                               kind              = DrawKind::VERTICES_IN_MEMORY;
+                uint32_t                                               n_indices         = 0;
+                uint32_t                                               n_vertices        = 0;
+                uint32_t                                               primitive_type    = 0;
+                uint32_t                                               start_vertex      = 0;
+                Interception::Hooks::D3D7::D3DDRAWPRIMITIVESTRIDEDDATA strided           = {};
+                void*                                                  vertex_buffer_ptr = nullptr;
+                const void*                                            vertices_ptr      = nullptr;
             };
 
             /* What the application has set in the device, as far as the renderer knows. */
@@ -163,7 +182,13 @@ namespace Stereo
             static bool read_draw_arguments(const APIInterceptor::APIFunction&         in_function,
                                             const uint32_t&                            in_n_arguments,
                                             const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
+                                            const ChunkFunc&                           in_chunk_func,
                                             DrawArguments*                             out_draw_arguments_ptr);
+
+            /* The vertices of a draw from a vertex buffer are read into memory (the buffer is locked to be read, for the vertices that the draw uses), and the
+             * draw is then of vertices in memory, of the format of the buffer. Returns false if the buffer cannot be read.
+             */
+            bool read_vertex_buffer(DrawArguments* inout_draw_arguments_ptr);
 
 
 
@@ -173,6 +198,7 @@ namespace Stereo
             uint64_t                  m_n_pixel_calls;
             uint64_t                  m_n_unmirrored_calls;
             D3D7SurfaceTwins          m_surface_twins;
+            std::vector<uint8_t>      m_buffer_vertex_vec; /* the vertices read from a vertex buffer: its room is used again */
             std::vector<std::string>  m_unmirrored_note_vec;
             std::vector<uint8_t>      m_vertex_vec; /* of the draw being made: its room is used again */
             const D3D7WindowedMode*   m_windowed_mode_ptr;

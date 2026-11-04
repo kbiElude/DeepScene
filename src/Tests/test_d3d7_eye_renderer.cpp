@@ -9,6 +9,7 @@
 #include <gtest/gtest.h>
 #include "Common/callbacks.h"
 #include "Interception/Core/D3D7Utils/constants.h"
+#include "Interception/Core/D3D7Utils/strided_layout.h"
 #include "Stereo/Core/stereo_core.h"
 #include "d3d7_eye_renderer.h"
 #include "d3d7_windowed_mode.h"
@@ -125,6 +126,16 @@ namespace
         return result;
     }
 
+    /* The chunks of the arguments of a draw: where the interceptor has them, as nothing has taken them in the tests. */
+    bool get_test_chunk(const uint32_t& in_chunk_id,
+                        const void**    out_data_ptr_ptr,
+                        uint32_t*       out_n_bytes_ptr)
+    {
+        return APIInterceptor::get_data_chunk(in_chunk_id,
+                                              out_data_ptr_ptr,
+                                              out_n_bytes_ptr);
+    }
+
     /* What the renderer is told before a draw which the application makes; returns whether the application's call is to be made. */
     bool pre_draw(Stereo::ConverterDLL::D3D7EyeRenderer* inout_renderer_ptr,
                   Tests::FakeDevice*                     in_device_ptr,
@@ -142,6 +153,7 @@ namespace
         return inout_renderer_ptr->on_pre_draw(APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWPRIMITIVE,
                                                7,
                                                argument_vec7,
+                                               &get_test_chunk,
                                                in_picture_width);
     }
 
@@ -529,4 +541,162 @@ TEST(D3D7EyeRenderer, WhenTheBackBufferIsLargerTheViewportTheClearAndTheVertices
     EXPECT_NEAR(get_x(device_ptr->vertex_vec_vec.at(1), 1),
                 400.0f,
                 0.01f);
+}
+
+namespace
+{
+    /* What the renderer is told before a draw from a vertex buffer. */
+    bool pre_draw_from_vertex_buffer(Stereo::ConverterDLL::D3D7EyeRenderer* inout_renderer_ptr,
+                                     Tests::FakeDevice*                     in_device_ptr,
+                                     Tests::FakeVertexBuffer*               in_vertex_buffer_ptr,
+                                     const float&                           in_picture_width)
+    {
+        const APIInterceptor::APIFunctionArgument argument_vec6[6] = {APIInterceptor::APIFunctionArgument::create_void_ptr(in_device_ptr),
+                                                                      APIInterceptor::APIFunctionArgument::create_u32(4), /* a list of triangles */
+                                                                      APIInterceptor::APIFunctionArgument::create_void_ptr(in_vertex_buffer_ptr),
+                                                                      APIInterceptor::APIFunctionArgument::create_u32(0), /* the first vertex */
+                                                                      APIInterceptor::APIFunctionArgument::create_u32(3),
+                                                                      APIInterceptor::APIFunctionArgument::create_u32(0)};
+
+        return inout_renderer_ptr->on_pre_draw(APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWPRIMITIVEVB,
+                                               6,
+                                               argument_vec6,
+                                               &get_test_chunk,
+                                               in_picture_width);
+    }
+
+    /* A device with a render target which has a twin, for the tests of what is drawn. */
+    struct DrawFixture
+    {
+        DrawFixture()
+            :renderer(core_fixture.core_ptr.get(),
+                      &windowed_mode),
+             direct_draw_ptr(Tests::make_direct_draw() ),
+             device_ptr     (Tests::make_device() )
+        {
+            render_target_ptr = Tests::make_surface(direct_draw_ptr.get(),
+                                                    make_description(Caps::DDSCAPS_3DDEVICE,
+                                                                     640,
+                                                                     480) );
+
+            post_create_surface(&renderer,
+                                direct_draw_ptr.get(),
+                                render_target_ptr);
+            post_create_device (&renderer,
+                                render_target_ptr,
+                                device_ptr.get() );
+        }
+
+        CoreFixture                            core_fixture;
+        Stereo::ConverterDLL::D3D7WindowedMode windowed_mode;
+        Stereo::ConverterDLL::D3D7EyeRenderer  renderer;
+        std::unique_ptr<Tests::FakeDirectDraw> direct_draw_ptr;
+        std::unique_ptr<Tests::FakeDevice>     device_ptr;
+        Tests::FakeSurface*                    render_target_ptr = nullptr;
+    };
+}
+
+TEST(D3D7EyeRenderer, ADrawFromAVertexBufferIsMadeFromItsVerticesMovedForEachEye)
+{
+    DrawFixture fixture;
+    auto        vertex_buffer_ptr = Tests::make_vertex_buffer(FVF_PRE_TRANSFORMED,
+                                                              make_vertices(),
+                                                              3);
+
+    /* The renderer made the draw for the left eye itself, from the vertices it read out of the buffer. */
+    EXPECT_FALSE(pre_draw_from_vertex_buffer(&fixture.renderer,
+                                             fixture.device_ptr.get(),
+                                             vertex_buffer_ptr.get(),
+                                             640.0f) );
+
+    ASSERT_EQ(fixture.device_ptr->vertex_vec_vec.size(),
+              2u);
+
+    const auto& right_vertices = fixture.device_ptr->vertex_vec_vec.at(0);
+    const auto& left_vertices  = fixture.device_ptr->vertex_vec_vec.at(1);
+
+    EXPECT_LT(get_x(right_vertices, 0),
+              100.0f);
+    EXPECT_GT(get_x(left_vertices, 0),
+              100.0f);
+    EXPECT_FALSE(vertex_buffer_ptr->is_locked); /* it is let go of */
+}
+
+TEST(D3D7EyeRenderer, ADrawFromAVertexBufferWhichCannotBeReadIsCountedAndMadeOnceForTheLeftEyeAlone)
+{
+    DrawFixture fixture;
+    auto        vertex_buffer_ptr = Tests::make_vertex_buffer(FVF_PRE_TRANSFORMED,
+                                                              make_vertices(),
+                                                              3);
+
+    vertex_buffer_ptr->fails_to_lock = true;
+
+    /* The call of the application is made. */
+    EXPECT_TRUE(pre_draw_from_vertex_buffer(&fixture.renderer,
+                                            fixture.device_ptr.get(),
+                                            vertex_buffer_ptr.get(),
+                                            640.0f) );
+
+    EXPECT_TRUE(fixture.device_ptr->vertex_vec_vec.empty() );
+    EXPECT_EQ(fixture.renderer.get_n_unmirrored_calls(),
+              1u);
+}
+
+TEST(D3D7EyeRenderer, AStridedDrawIsMadeForTheRightEyeAsItIsAndTheCallOfTheApplicationIsMadeForTheLeft)
+{
+    DrawFixture fixture;
+
+    /* The arrays of the application (the position of 3 vertices, 12 bytes each), as the dump and the hook have them: the structure, and the chunk. */
+    const float                                            position_f32vec9[9] = {0.1f, 0.9f, 0.5f, 0.9f, 0.9f, 0.5f, 0.5f, 0.45f, 0.5f};
+    Interception::Hooks::D3D7::D3DDRAWPRIMITIVESTRIDEDDATA strided             = {};
+    std::vector<uint8_t>                                   arrays_u8_vec;
+    const uint32_t                                         n_arrays            = Interception::Core::D3D7Utils::StridedLayout::N_ARRAYS;
+    const uint32_t                                         position_n_bytes    = sizeof(position_f32vec9);
+
+    strided.position.lpvData  = const_cast<float*>(position_f32vec9);
+    strided.position.dwStride = 12;
+
+    arrays_u8_vec.insert(arrays_u8_vec.end(),
+                         reinterpret_cast<const uint8_t*>(&n_arrays),
+                         reinterpret_cast<const uint8_t*>(&n_arrays) + sizeof(n_arrays) );
+    arrays_u8_vec.insert(arrays_u8_vec.end(),
+                         reinterpret_cast<const uint8_t*>(&position_n_bytes),
+                         reinterpret_cast<const uint8_t*>(&position_n_bytes) + sizeof(position_n_bytes) );
+    arrays_u8_vec.resize(arrays_u8_vec.size() + sizeof(uint32_t) * (Interception::Core::D3D7Utils::StridedLayout::N_ARRAYS - 1),
+                         0);
+    arrays_u8_vec.insert(arrays_u8_vec.end(),
+                         reinterpret_cast<const uint8_t*>(position_f32vec9),
+                         reinterpret_cast<const uint8_t*>(position_f32vec9) + sizeof(position_f32vec9) );
+
+    const auto structure_chunk_id = APIInterceptor::register_data_chunk(&strided,
+                                                                        sizeof(strided) );
+    const auto arrays_chunk_id    = APIInterceptor::register_data_chunk(arrays_u8_vec.data(),
+                                                                        static_cast<uint32_t>(arrays_u8_vec.size() ));
+
+    const APIInterceptor::APIFunctionArgument argument_vec7[7] = {APIInterceptor::APIFunctionArgument::create_void_ptr(fixture.device_ptr.get() ),
+                                                                  APIInterceptor::APIFunctionArgument::create_u32(4), /* a list of triangles */
+                                                                  APIInterceptor::APIFunctionArgument::create_u32(0x002), /* positions which are not transformed */
+                                                                  APIInterceptor::APIFunctionArgument::create_data_chunk_id(structure_chunk_id),
+                                                                  APIInterceptor::APIFunctionArgument::create_u32(3),
+                                                                  APIInterceptor::APIFunctionArgument::create_u32(0),
+                                                                  APIInterceptor::APIFunctionArgument::create_data_chunk_id(arrays_chunk_id)};
+
+    const bool is_call_made = fixture.renderer.on_pre_draw(APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWPRIMITIVESTRIDED,
+                                                           7,
+                                                           argument_vec7,
+                                                           &get_test_chunk,
+                                                           640.0f);
+
+    APIInterceptor::release_data_chunk(structure_chunk_id);
+    APIInterceptor::release_data_chunk(arrays_chunk_id);
+
+    /* The left eye is the call of the application; the right eye is made by the renderer, with the arrays and the distance that the application gave. */
+    EXPECT_TRUE(is_call_made);
+    EXPECT_EQ(count_calls(*fixture.device_ptr,
+                          "DrawPrimitiveStrided "),
+              1u);
+    EXPECT_NE(std::find(fixture.device_ptr->call_vec.begin(),
+                        fixture.device_ptr->call_vec.end  (),
+                        "DrawPrimitiveStrided " + std::to_string(0.1f) + " 12"),
+              fixture.device_ptr->call_vec.end() );
 }

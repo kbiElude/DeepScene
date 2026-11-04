@@ -59,8 +59,8 @@ namespace Stereo
              * on yet; the draws are only followed.
              */
             void on_d3d7_frame_ending(const APIInterceptor::APIFunction&         in_api_func,
-                              const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
-                              std::vector<std::string>*                  out_log_line_vec_ptr);
+                                      const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
+                                      std::vector<std::string>*                  out_log_line_vec_ptr);
 
             /* A call is about to be made: the work of the callback, for a call that is the application's. */
             void on_pre(const APIInterceptor::APIFunction&         in_api_func,
@@ -80,7 +80,8 @@ namespace Stereo
                                   const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
 
             /* The frame in the back buffer (of the window, or of the chain of the surface which a flip is called for) is passed on to the program which shows the images. */
-            void pass_d3d7_frame(void* in_primary_surface_ptr);
+            void pass_d3d7_frame(void* in_primary_surface_ptr,
+                                 void* in_back_buffer_ptr);
 
             /* The program which shows the images says how far apart the eyes are, how strong the 3D is and where the eyes converge, and can
              * say it again while the application plays.

@@ -48,6 +48,17 @@ namespace Tests
         std::vector<std::unique_ptr<FakeSurface>> surface_ptr_vec;
     };
 
+    /* A vertex buffer which holds vertices of a format; it can be told to refuse to be locked. */
+    struct FakeVertexBuffer
+    {
+        void**               vtable_ptr = nullptr; /* must be the first member */
+        std::vector<uint8_t> data;
+        bool                 fails_to_lock = false;
+        uint32_t             fvf           = 0;
+        bool                 is_locked     = false;
+        uint32_t             n_vertices    = 0;
+    };
+
     struct FakeDevice
     {
         void**                    vtable_ptr = nullptr; /* must be the first member */
@@ -58,6 +69,7 @@ namespace Tests
     };
 
     inline std::array<void*, FAKE_TABLE_N_ENTRIES>& get_surface_table();
+    inline std::array<void*, FAKE_TABLE_N_ENTRIES>& get_vertex_buffer_table();
     inline std::array<void*, FAKE_TABLE_N_ENTRIES>& get_direct_draw_table();
     inline std::array<void*, FAKE_TABLE_N_ENTRIES>& get_device_table();
 
@@ -247,6 +259,89 @@ namespace Tests
         return 0;
     }
 
+    inline HRESULT __stdcall fake_device_draw_indexed_primitive_strided(void*                                    in_self_ptr,
+                                                                        DWORD                                    in_type,
+                                                                        DWORD                                    in_fvf,
+                                                                        const D3D7::D3DDRAWPRIMITIVESTRIDEDDATA* in_strided_ptr,
+                                                                        DWORD                                    in_n_vertices,
+                                                                        WORD*                                    in_indices_ptr,
+                                                                        DWORD                                    in_n_indices,
+                                                                        DWORD                                    in_flags)
+    {
+        (void) in_type;
+        (void) in_fvf;
+        (void) in_strided_ptr;
+        (void) in_n_vertices;
+        (void) in_indices_ptr;
+        (void) in_n_indices;
+        (void) in_flags;
+
+        static_cast<FakeDevice*>(in_self_ptr)->call_vec.push_back("DrawIndexedPrimitiveStrided");
+
+        return 0;
+    }
+
+    inline HRESULT __stdcall fake_device_draw_primitive_strided(void*                                    in_self_ptr,
+                                                                DWORD                                    in_type,
+                                                                DWORD                                    in_fvf,
+                                                                const D3D7::D3DDRAWPRIMITIVESTRIDEDDATA* in_strided_ptr,
+                                                                DWORD                                    in_n_vertices,
+                                                                DWORD                                    in_flags)
+    {
+        auto* device_ptr = static_cast<FakeDevice*>(in_self_ptr);
+
+        (void) in_type;
+        (void) in_fvf;
+        (void) in_n_vertices;
+        (void) in_flags;
+
+        /* The first float of the position and the distance between the vertices of it: where the arrays were found. */
+        device_ptr->call_vec.push_back("DrawPrimitiveStrided " + std::to_string(*static_cast<const float*>(in_strided_ptr->position.lpvData) ) +
+                                       " " + std::to_string(in_strided_ptr->position.dwStride) );
+
+        return 0;
+    }
+
+    inline HRESULT __stdcall fake_vertex_buffer_get_description(void*                          in_self_ptr,
+                                                                D3D7::D3DVERTEXBUFFERDESC*    out_description_ptr)
+    {
+        const auto* vertex_buffer_ptr = static_cast<FakeVertexBuffer*>(in_self_ptr);
+
+        out_description_ptr->dwFVF         = vertex_buffer_ptr->fvf;
+        out_description_ptr->dwNumVertices = vertex_buffer_ptr->n_vertices;
+
+        return 0;
+    }
+
+    inline HRESULT __stdcall fake_vertex_buffer_lock(void*  in_self_ptr,
+                                                     DWORD  in_flags,
+                                                     void** out_data_ptr_ptr,
+                                                     DWORD* out_size_ptr)
+    {
+        auto* vertex_buffer_ptr = static_cast<FakeVertexBuffer*>(in_self_ptr);
+
+        (void) in_flags;
+
+        if (vertex_buffer_ptr->fails_to_lock)
+        {
+            return static_cast<HRESULT>(0x887602E1);
+        }
+
+        vertex_buffer_ptr->is_locked = true;
+
+        *out_data_ptr_ptr = vertex_buffer_ptr->data.data();
+        *out_size_ptr     = static_cast<DWORD>(vertex_buffer_ptr->data.size() );
+
+        return 0;
+    }
+
+    inline HRESULT __stdcall fake_vertex_buffer_unlock(void* in_self_ptr)
+    {
+        static_cast<FakeVertexBuffer*>(in_self_ptr)->is_locked = false;
+
+        return 0;
+    }
+
     inline HRESULT __stdcall fake_device_get_viewport(void*                in_self_ptr,
                                                       D3D7::D3DVIEWPORT7*  out_viewport_ptr)
     {
@@ -318,6 +413,20 @@ namespace Tests
         return table;
     }
 
+    inline std::array<void*, FAKE_TABLE_N_ENTRIES>& get_vertex_buffer_table()
+    {
+        static std::array<void*, FAKE_TABLE_N_ENTRIES> table = {};
+
+        if (table.at(D3D7::VTABLE_INDEX_IDIRECT3DVERTEXBUFFER7_LOCK) == nullptr)
+        {
+            table.at(D3D7::VTABLE_INDEX_IDIRECT3DVERTEXBUFFER7_GETVERTEXBUFFERDESC) = reinterpret_cast<void*>(&fake_vertex_buffer_get_description);
+            table.at(D3D7::VTABLE_INDEX_IDIRECT3DVERTEXBUFFER7_LOCK)                = reinterpret_cast<void*>(&fake_vertex_buffer_lock);
+            table.at(D3D7::VTABLE_INDEX_IDIRECT3DVERTEXBUFFER7_UNLOCK)              = reinterpret_cast<void*>(&fake_vertex_buffer_unlock);
+        }
+
+        return table;
+    }
+
     inline std::array<void*, FAKE_TABLE_N_ENTRIES>& get_device_table()
     {
         static std::array<void*, FAKE_TABLE_N_ENTRIES> table = {};
@@ -325,7 +434,9 @@ namespace Tests
         if (table.at(D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_DRAWPRIMITIVE) == nullptr)
         {
             table.at(D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_CLEAR)           = reinterpret_cast<void*>(&fake_device_clear);
+            table.at(D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVESTRIDED) = reinterpret_cast<void*>(&fake_device_draw_indexed_primitive_strided);
             table.at(D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_DRAWPRIMITIVE)   = reinterpret_cast<void*>(&fake_device_draw_primitive);
+            table.at(D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_DRAWPRIMITIVESTRIDED)        = reinterpret_cast<void*>(&fake_device_draw_primitive_strided);
             table.at(D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_GETVIEWPORT)     = reinterpret_cast<void*>(&fake_device_get_viewport);
             table.at(D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETRENDERTARGET) = reinterpret_cast<void*>(&fake_device_set_render_target);
             table.at(D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETTEXTURE)      = reinterpret_cast<void*>(&fake_device_set_texture);
@@ -340,6 +451,20 @@ namespace Tests
         auto result_ptr = std::unique_ptr<FakeDirectDraw>(new FakeDirectDraw() );
 
         result_ptr->vtable_ptr = get_direct_draw_table().data();
+
+        return result_ptr;
+    }
+
+    inline std::unique_ptr<FakeVertexBuffer> make_vertex_buffer(const uint32_t&             in_fvf,
+                                                                const std::vector<uint8_t>& in_data,
+                                                                const uint32_t&             in_n_vertices)
+    {
+        auto result_ptr = std::unique_ptr<FakeVertexBuffer>(new FakeVertexBuffer() );
+
+        result_ptr->data       = in_data;
+        result_ptr->fvf        = in_fvf;
+        result_ptr->n_vertices = in_n_vertices;
+        result_ptr->vtable_ptr = get_vertex_buffer_table().data();
 
         return result_ptr;
     }

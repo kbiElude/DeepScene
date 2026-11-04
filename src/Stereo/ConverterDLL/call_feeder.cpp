@@ -165,6 +165,30 @@ uint64_t Stereo::ConverterDLL::CallFeeder::get_last_draw_signature_key() const
     return m_session.get_last_draw_signature_key();
 }
 
+bool Stereo::ConverterDLL::CallFeeder::get_last_call_chunk(const uint32_t& in_chunk_id,
+                                                           const void**    out_data_ptr_ptr,
+                                                           uint32_t*       out_n_bytes_ptr) const
+{
+    const bool is_in_range = (m_workload.data_chunk_ptr_vec.empty() == false                                     &&
+                              in_chunk_id                             >= m_workload.first_data_chunk_id            &&
+                              in_chunk_id - m_workload.first_data_chunk_id < m_workload.data_chunk_ptr_vec.size() );
+    bool       result      = false;
+
+    if (is_in_range)
+    {
+        const auto& chunk_ptr = m_workload.data_chunk_ptr_vec.at(in_chunk_id - m_workload.first_data_chunk_id);
+
+        if (chunk_ptr != nullptr)
+        {
+            *out_data_ptr_ptr = chunk_ptr->data();
+            *out_n_bytes_ptr  = static_cast<uint32_t>(chunk_ptr->size() );
+            result            = true;
+        }
+    }
+
+    return result;
+}
+
 const Analysis::APIDumpAnalysis::Viewport& Stereo::ConverterDLL::CallFeeder::get_viewport() const
 {
     return m_session.get_viewport();

@@ -277,7 +277,20 @@ void Stereo::ConverterDLL::Converter::on_d3d7_frame_ending(const APIInterceptor:
     /* The frame which a flip is about to show is in the back buffer of the surface it is called for. */
     if (in_api_func == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_FLIP)
     {
-        pass_d3d7_frame(const_cast<void*>(in_arguments_ptr[0].get_ptr() ) );
+        pass_d3d7_frame(const_cast<void*>(in_arguments_ptr[0].get_ptr() ),
+                        nullptr); /* in_back_buffer_ptr: the one the primary surface has */
+
+        m_live_state.d3d7_windowed_mode.keep_windows_invisible();
+    }
+    else
+    /* A program of a window shows its frame by a blit of the surface it rendered to onto the primary surface: that surface is the picture. */
+    if (in_api_func == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_BLT     ||
+        in_api_func == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_BLTFAST)
+    {
+        constexpr uint32_t SOURCE_ARGUMENT = 2;
+
+        pass_d3d7_frame(const_cast<void*>(in_arguments_ptr[0].get_ptr() ),
+                        const_cast<void*>(in_arguments_ptr[SOURCE_ARGUMENT].get_ptr() ) );
 
         m_live_state.d3d7_windowed_mode.keep_windows_invisible();
     }
@@ -350,6 +363,16 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
     else
     if (OwnCallScope::is_active() == false &&
         in_api_func == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_FLIP)
+    {
+        this_ptr->m_d3d7_frame_passer_ptr->wait_for_pace();
+    }
+    else
+    if (OwnCallScope::is_active() == false                                      &&
+        APIInterceptor::is_frame_boundary(in_api_func,
+                                          in_n_arguments_out,
+                                          in_arguments_out_ptr)                 &&
+        (in_api_func == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_BLT ||
+         in_api_func == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_BLTFAST) )
     {
         this_ptr->m_d3d7_frame_passer_ptr->wait_for_pace();
     }
@@ -444,6 +467,14 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
                 *out_should_pass_through_ptr = m_live_state.d3d7_renderer_ptr->on_pre_draw(in_api_func,
                                                                                            in_n_arguments,
                                                                                            in_arguments_ptr,
+                                                                                           [this](const uint32_t& in_chunk_id,
+                                                                                                  const void**    out_data_ptr_ptr,
+                                                                                                  uint32_t*       out_n_bytes_ptr)
+                                                                                           {
+                                                                                               return m_live_state.feeder.get_last_call_chunk(in_chunk_id,
+                                                                                                                                              out_data_ptr_ptr,
+                                                                                                                                              out_n_bytes_ptr);
+                                                                                           },
                                                                                            m_live_state.feeder.get_viewport().width);
 
                 ::QueryPerformanceCounter(&draw_end_qpc);
@@ -567,12 +598,14 @@ bool Stereo::ConverterDLL::Converter::on_set_transform(const uint32_t&          
     return result;
 }
 
-void Stereo::ConverterDLL::Converter::pass_d3d7_frame(void* in_primary_surface_ptr)
+void Stereo::ConverterDLL::Converter::pass_d3d7_frame(void* in_primary_surface_ptr,
+                                                       void* in_back_buffer_ptr)
 {
     constexpr uint32_t BACK_BUFFER_CAPS = 0x00000004; /* DDSCAPS_BACKBUFFER */
 
     const OwnCallScope                              own_call_scope;
-    Interception::Hooks::D3D7::IDirectDrawSurface7* back_buffer_ptr = static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(m_live_state.d3d7_windowed_mode.get_back_buffer_ptr() );
+    Interception::Hooks::D3D7::IDirectDrawSurface7* back_buffer_ptr = static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>( (in_back_buffer_ptr != nullptr) ? in_back_buffer_ptr
+                                                                                                                                          : m_live_state.d3d7_windowed_mode.get_back_buffer_ptr() );
     bool                                            is_to_release   = false;
 
     /* The application renders to the back buffer of its window if it is made to; otherwise the chain it flips with has one. */

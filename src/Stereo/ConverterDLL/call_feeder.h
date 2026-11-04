@@ -36,6 +36,13 @@ namespace Stereo
 
             CallFeeder();
 
+            /* A data chunk of the call that was last analysed, which the feeder has taken out of the interceptor: false if there is none. Valid until the
+             * next call is analysed.
+             */
+            bool get_last_call_chunk(const uint32_t& in_chunk_id,
+                                     const void**    out_data_ptr_ptr,
+                                     uint32_t*       out_n_bytes_ptr) const;
+
             /* The key of the draw that on_pre() last analysed by its signature and size. */
             uint64_t get_last_draw_cover_key() const;
 

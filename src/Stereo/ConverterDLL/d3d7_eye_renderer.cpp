@@ -8,6 +8,7 @@
 #include "Common/vtable.h"
 #include "Interception/Core/D3D7Utils/constants.h"
 #include "Interception/Core/D3D7Utils/methods.h"
+#include "Interception/Core/D3D7Utils/strided_layout.h"
 #include "Interception/Core/D3D7Utils/vertex_format.h"
 #include "Stereo/D3D7/screen_parallax.h"
 #include "d3d7_eye_renderer.h"
@@ -240,20 +241,32 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre(const APIInterceptor::APIFunc
 bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre_draw(const APIInterceptor::APIFunction&         in_function,
                                                         const uint32_t&                            in_n_arguments,
                                                         const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
+                                                        const ChunkFunc&                           in_chunk_func,
                                                         const float&                               in_picture_width)
 {
     DrawArguments  draw_arguments;
     bool           result = true;
     RightEyeScope  scope;
 
-    /* A draw that is not of vertices in the memory of the application is not made for the right eye. */
+    /* A draw which the renderer does not know is not made for the right eye. */
     if (read_draw_arguments(in_function,
                             in_n_arguments,
                             in_arguments_ptr,
+                            in_chunk_func,
                            &draw_arguments) == false)
     {
         note_unmirrored(in_function,
-                                 "a draw which is not of vertices in the memory of the application");
+                        "a draw of a kind that the renderer does not know");
+
+        goto end;
+    }
+
+    /* The vertices of a buffer are read, and the draw is then one of vertices in memory, which are moved like the rest. */
+    if (draw_arguments.kind == DrawKind::VERTEX_BUFFER &&
+        read_vertex_buffer(&draw_arguments)           == false)
+    {
+        note_unmirrored(in_function,
+                        "a draw from a vertex buffer which cannot be read");
 
         goto end;
     }
@@ -301,12 +314,46 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::draw(const DrawArguments& in_draw_ar
     const OwnCallScope own_call_scope;
     void** const       vtable = APIInterceptor::get_vtable_ptr(in_draw_arguments.device_ptr);
 
+    auto* const device_ptr = static_cast<Interception::Hooks::D3D7::IDirect3DDevice7*>(in_draw_arguments.device_ptr);
+    const auto  type       = static_cast<Interception::Hooks::D3D7::D3DPRIMITIVETYPE>(in_draw_arguments.primitive_type);
+
+    if (in_draw_arguments.kind == DrawKind::STRIDED)
+    {
+        /* The arrays are the application's, and the draw is made as it is: positions that a camera moves are not the renderer's to move. */
+        auto strided = in_draw_arguments.strided;
+
+        if (in_draw_arguments.is_indexed)
+        {
+            const auto draw_func = APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVESTRIDED>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVESTRIDED);
+
+            draw_func(device_ptr,
+                      type,
+                      in_draw_arguments.fvf,
+                     &strided,
+                      in_draw_arguments.n_vertices,
+                      static_cast<WORD*>(const_cast<void*>(in_draw_arguments.indices_ptr) ),
+                      in_draw_arguments.n_indices,
+                      in_draw_arguments.flags);
+        }
+        else
+        {
+            const auto draw_func = APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_DRAWPRIMITIVESTRIDED>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_DRAWPRIMITIVESTRIDED);
+
+            draw_func(device_ptr,
+                      type,
+                      in_draw_arguments.fvf,
+                     &strided,
+                      in_draw_arguments.n_vertices,
+                      in_draw_arguments.flags);
+        }
+    }
+    else
     if (in_draw_arguments.is_indexed)
     {
         const auto draw_func = APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVE>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVE);
 
-        draw_func(static_cast<Interception::Hooks::D3D7::IDirect3DDevice7*>(in_draw_arguments.device_ptr),
-                  static_cast<Interception::Hooks::D3D7::D3DPRIMITIVETYPE>(in_draw_arguments.primitive_type),
+        draw_func(device_ptr,
+                  type,
                   in_draw_arguments.fvf,
                   const_cast<uint8_t*>(in_vertices_ptr),
                   in_draw_arguments.n_vertices,
@@ -318,8 +365,8 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::draw(const DrawArguments& in_draw_ar
     {
         const auto draw_func = APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_DRAWPRIMITIVE>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_DRAWPRIMITIVE);
 
-        draw_func(static_cast<Interception::Hooks::D3D7::IDirect3DDevice7*>(in_draw_arguments.device_ptr),
-                  static_cast<Interception::Hooks::D3D7::D3DPRIMITIVETYPE>(in_draw_arguments.primitive_type),
+        draw_func(device_ptr,
+                  type,
                   in_draw_arguments.fvf,
                   const_cast<uint8_t*>(in_vertices_ptr),
                   in_draw_arguments.n_vertices,
@@ -783,61 +830,174 @@ const void* Stereo::ConverterDLL::D3D7EyeRenderer::get_chunk_ptr(const APIInterc
 bool Stereo::ConverterDLL::D3D7EyeRenderer::read_draw_arguments(const APIInterceptor::APIFunction&         in_function,
                                                                 const uint32_t&                            in_n_arguments,
                                                                 const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
+                                                                const ChunkFunc&                           in_chunk_func,
                                                                 DrawArguments*                             out_draw_arguments_ptr)
 {
-    constexpr uint32_t DEVICE_ARGUMENT           = 0;
-    constexpr uint32_t DRAW_FLAGS_ARGUMENT       = 5;
-    constexpr uint32_t FVF_ARGUMENT              = 2;
-    constexpr uint32_t INDEXED_FLAGS_ARGUMENT    = 7;
-    constexpr uint32_t INDICES_ARGUMENT          = 5;
-    constexpr uint32_t N_INDICES_ARGUMENT        = 6;
-    constexpr uint32_t N_VERTICES_ARGUMENT       = 4;
-    constexpr uint32_t PRIMITIVE_TYPE_ARGUMENT   = 1;
-    constexpr uint32_t VERTICES_ARGUMENT         = 3;
+    constexpr uint32_t DEVICE_ARGUMENT         = 0;
+    constexpr uint32_t FVF_ARGUMENT            = 2;
+    constexpr uint32_t INDICES_ARGUMENT        = 5; /* of the indexed draws */
+    constexpr uint32_t N_INDICES_ARGUMENT      = 6;
+    constexpr uint32_t N_VERTICES_ARGUMENT     = 4;
+    constexpr uint32_t PRIMITIVE_TYPE_ARGUMENT = 1;
+    constexpr uint32_t START_VERTEX_ARGUMENT   = 3; /* of the draws from a vertex buffer */
+    constexpr uint32_t STRIDED_ARGUMENT        = 3; /* the structure, as a chunk */
+    constexpr uint32_t VERTEX_BUFFER_ARGUMENT  = 2;
+    constexpr uint32_t VERTICES_ARGUMENT       = 3;
 
-    const bool is_indexed = (in_function == APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVE);
-    bool       result     = false;
+    uint32_t flags_argument = 0;
+    bool     result         = false;
+    uint32_t strided_data_argument = 0; /* the arrays of a strided draw follow the arguments of the call, as a chunk */
 
-    if (is_indexed == false                                                          &&
-        in_function != APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWPRIMITIVE)
+    switch (in_function)
+    {
+        case APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVE:
+        {
+            out_draw_arguments_ptr->is_indexed = true;
+            out_draw_arguments_ptr->kind       = DrawKind::VERTICES_IN_MEMORY;
+            flags_argument                     = 7;
+
+            break;
+        }
+
+        case APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVESTRIDED:
+        {
+            out_draw_arguments_ptr->is_indexed = true;
+            out_draw_arguments_ptr->kind       = DrawKind::STRIDED;
+            flags_argument                     = 7;
+            strided_data_argument              = 9; /* the indices come before them */
+
+            break;
+        }
+
+        case APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVEVB:
+        {
+            out_draw_arguments_ptr->is_indexed = true;
+            out_draw_arguments_ptr->kind       = DrawKind::VERTEX_BUFFER;
+            flags_argument                     = 7;
+
+            break;
+        }
+
+        case APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWPRIMITIVE:
+        {
+            out_draw_arguments_ptr->kind = DrawKind::VERTICES_IN_MEMORY;
+            flags_argument               = 5;
+
+            break;
+        }
+
+        case APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWPRIMITIVESTRIDED:
+        {
+            out_draw_arguments_ptr->kind = DrawKind::STRIDED;
+            flags_argument               = 5;
+            strided_data_argument        = 6;
+
+            break;
+        }
+
+        case APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWPRIMITIVEVB:
+        {
+            out_draw_arguments_ptr->kind = DrawKind::VERTEX_BUFFER;
+            flags_argument               = 5;
+
+            break;
+        }
+
+        default:
+        {
+            goto end;
+        }
+    }
+
+    if (in_n_arguments <= flags_argument                                                   ||
+        in_arguments_ptr[DEVICE_ARGUMENT].type != APIInterceptor::ARGTYPE_VOID_PTR)
     {
         goto end;
     }
 
-    if (in_n_arguments <= ((is_indexed) ? INDEXED_FLAGS_ARGUMENT
-                                        : DRAW_FLAGS_ARGUMENT) )
-    {
-        goto end;
-    }
-
-    if (in_arguments_ptr[DEVICE_ARGUMENT].type   != APIInterceptor::ARGTYPE_VOID_PTR ||
-        in_arguments_ptr[VERTICES_ARGUMENT].type != APIInterceptor::ARGTYPE_VOID_PTR)
-    {
-        goto end;
-    }
-
-    out_draw_arguments_ptr->device_ptr   = const_cast<void*>(in_arguments_ptr[DEVICE_ARGUMENT].get_ptr() );
-    out_draw_arguments_ptr->is_indexed   = is_indexed;
-    out_draw_arguments_ptr->vertices_ptr = in_arguments_ptr[VERTICES_ARGUMENT].get_ptr();
+    out_draw_arguments_ptr->device_ptr = const_cast<void*>(in_arguments_ptr[DEVICE_ARGUMENT].get_ptr() );
 
     if (APIInterceptor::read_number(in_arguments_ptr[PRIMITIVE_TYPE_ARGUMENT],
-                &out_draw_arguments_ptr->primitive_type) == false ||
-        APIInterceptor::read_number(in_arguments_ptr[FVF_ARGUMENT],
-                &out_draw_arguments_ptr->fvf)            == false ||
+                                   &out_draw_arguments_ptr->primitive_type) == false ||
         APIInterceptor::read_number(in_arguments_ptr[N_VERTICES_ARGUMENT],
-                &out_draw_arguments_ptr->n_vertices)     == false ||
-        APIInterceptor::read_number(in_arguments_ptr[(is_indexed) ? INDEXED_FLAGS_ARGUMENT
-                                               : DRAW_FLAGS_ARGUMENT],
-                &out_draw_arguments_ptr->flags)          == false)
+                                   &out_draw_arguments_ptr->n_vertices)     == false ||
+        APIInterceptor::read_number(in_arguments_ptr[flags_argument],
+                                   &out_draw_arguments_ptr->flags)          == false)
     {
         goto end;
     }
 
-    if (is_indexed)
+    switch (out_draw_arguments_ptr->kind)
+    {
+        case DrawKind::STRIDED:
+        {
+            const void* structure_ptr          = nullptr;
+            uint32_t    n_structure_bytes      = 0;
+            const void* arrays_ptr             = nullptr;
+            uint32_t    n_arrays_bytes         = 0;
+
+            if (in_n_arguments <= strided_data_argument                                                          ||
+                in_arguments_ptr[STRIDED_ARGUMENT].type        != APIInterceptor::ARGTYPE_DATA_CHUNK_ID           ||
+                in_arguments_ptr[strided_data_argument].type   != APIInterceptor::ARGTYPE_DATA_CHUNK_ID           ||
+                APIInterceptor::read_number(in_arguments_ptr[FVF_ARGUMENT],
+                                           &out_draw_arguments_ptr->fvf)                                  == false ||
+                in_chunk_func(in_arguments_ptr[STRIDED_ARGUMENT].get_data_chunk_id(),
+                                              &structure_ptr,
+                                              &n_structure_bytes)                                         == false ||
+                in_chunk_func(in_arguments_ptr[strided_data_argument].get_data_chunk_id(),
+                                              &arrays_ptr,
+                                              &n_arrays_bytes)                                            == false ||
+                Interception::Core::D3D7Utils::StridedLayout::rebuild(static_cast<const uint8_t*>(structure_ptr),
+                                                                      n_structure_bytes,
+                                                                      static_cast<const uint8_t*>(arrays_ptr),
+                                                                      n_arrays_bytes,
+                                                                     &out_draw_arguments_ptr->strided)    == false)
+            {
+                goto end;
+            }
+
+            break;
+        }
+
+        case DrawKind::VERTEX_BUFFER:
+        {
+            if (in_arguments_ptr[VERTEX_BUFFER_ARGUMENT].type != APIInterceptor::ARGTYPE_VOID_PTR ||
+                APIInterceptor::read_number(in_arguments_ptr[START_VERTEX_ARGUMENT],
+                                           &out_draw_arguments_ptr->start_vertex) == false)
+            {
+                goto end;
+            }
+
+            out_draw_arguments_ptr->vertex_buffer_ptr = const_cast<void*>(in_arguments_ptr[VERTEX_BUFFER_ARGUMENT].get_ptr() );
+
+            break;
+        }
+
+        case DrawKind::VERTICES_IN_MEMORY:
+        {
+            if (in_arguments_ptr[VERTICES_ARGUMENT].type != APIInterceptor::ARGTYPE_VOID_PTR ||
+                APIInterceptor::read_number(in_arguments_ptr[FVF_ARGUMENT],
+                                           &out_draw_arguments_ptr->fvf) == false)
+            {
+                goto end;
+            }
+
+            out_draw_arguments_ptr->vertices_ptr = in_arguments_ptr[VERTICES_ARGUMENT].get_ptr();
+
+            break;
+        }
+
+        default:
+        {
+            AI_FAIL_UNSUPPORTED(out_draw_arguments_ptr->kind);
+        }
+    }
+
+    if (out_draw_arguments_ptr->is_indexed)
     {
         if (in_arguments_ptr[INDICES_ARGUMENT].type != APIInterceptor::ARGTYPE_VOID_PTR ||
             APIInterceptor::read_number(in_arguments_ptr[N_INDICES_ARGUMENT],
-                    &out_draw_arguments_ptr->n_indices) == false)
+                                       &out_draw_arguments_ptr->n_indices) == false)
         {
             goto end;
         }
@@ -846,6 +1006,73 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::read_draw_arguments(const APIInterce
     }
 
     result = true;
+
+end:
+    return result;
+}
+
+bool Stereo::ConverterDLL::D3D7EyeRenderer::read_vertex_buffer(DrawArguments* inout_draw_arguments_ptr)
+{
+    constexpr DWORD LOCK_READ_FLAGS = 0x1 | 0x10; /* DDLOCK_WAIT | DDLOCK_READONLY */
+
+    Interception::Hooks::D3D7::D3DVERTEXBUFFERDESC description       = {};
+    void*                                          data_ptr          = nullptr;
+    DWORD                                          n_bytes           = 0;
+    const OwnCallScope                             own_call_scope;
+    bool                                           result            = false;
+    void* const                                    vertex_buffer_ptr = inout_draw_arguments_ptr->vertex_buffer_ptr;
+    void** const                                   vtable            = APIInterceptor::get_vtable_ptr(vertex_buffer_ptr);
+
+    description.dwSize = static_cast<DWORD>(sizeof(description) );
+
+    const auto get_description_func = APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECT3DVERTEXBUFFER7_GETVERTEXBUFFERDESC>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DVERTEXBUFFER7_GETVERTEXBUFFERDESC);
+    const auto lock_func            = APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECT3DVERTEXBUFFER7_LOCK>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DVERTEXBUFFER7_LOCK);
+    const auto unlock_func          = APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECT3DVERTEXBUFFER7_UNLOCK>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DVERTEXBUFFER7_UNLOCK);
+    auto* const self_ptr            = static_cast<Interception::Hooks::D3D7::IDirect3DVertexBuffer7*>(vertex_buffer_ptr);
+
+    if (get_description_func(self_ptr,
+                            &description) < 0)
+    {
+        goto end;
+    }
+
+    {
+        const uint32_t vertex_n_bytes = Interception::Core::D3D7Utils::VertexFormat::get_n_vertex_bytes(description.dwFVF);
+        const size_t   first_byte     = static_cast<size_t>(inout_draw_arguments_ptr->start_vertex) * vertex_n_bytes;
+        const size_t   n_draw_bytes   = static_cast<size_t>(inout_draw_arguments_ptr->n_vertices)    * vertex_n_bytes;
+
+        if (vertex_n_bytes == 0)
+        {
+            goto end;
+        }
+
+        if (lock_func(self_ptr,
+                      LOCK_READ_FLAGS,
+                     &data_ptr,
+                     &n_bytes) < 0)
+        {
+            goto end;
+        }
+
+        if (first_byte + n_draw_bytes <= n_bytes)
+        {
+            m_buffer_vertex_vec.assign(static_cast<const uint8_t*>(data_ptr) + first_byte,
+                                       static_cast<const uint8_t*>(data_ptr) + first_byte + n_draw_bytes);
+
+            result = true;
+        }
+
+        unlock_func(self_ptr);
+
+        if (result)
+        {
+            /* From the copy, the indices (which are relative to the first vertex) mean what they meant. */
+            inout_draw_arguments_ptr->fvf          = description.dwFVF;
+            inout_draw_arguments_ptr->kind         = DrawKind::VERTICES_IN_MEMORY;
+            inout_draw_arguments_ptr->start_vertex = 0;
+            inout_draw_arguments_ptr->vertices_ptr = m_buffer_vertex_vec.data();
+        }
+    }
 
 end:
     return result;
