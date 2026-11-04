@@ -5,9 +5,12 @@
 #ifndef STEREO_CONVERTERDLL_D3D7_EYE_RENDERER_H
 #define STEREO_CONVERTERDLL_D3D7_EYE_RENDERER_H
 
+#include "Analysis/RecipeLoader/types.h"
 #include "Common/types.h"
+#include "Interception/Hooks/D3D7/types.h"
 #include "Stereo/Core/stereo_core.h"
 #include "d3d7_surface_twins.h"
+#include <array>
 #include <stdint.h>
 #include <vector>
 
@@ -16,11 +19,15 @@ namespace Stereo
     namespace ConverterDLL
     {
         /* Renders the eyes of a Direct3D 7 application whose vertices are in the space of the picture (see ScreenParallax). The eye whose
-         * images the application draws, by its own calls, is the left: a draw which the core says is to be moved is not made as the
-         * application makes it, but by the renderer, with a copy of its vertices that is moved for the eye. The device is called through its
-         * virtual table, which what is done inside the callbacks of the interceptor is not seen by anything that watches the device.
+         * images the application draws, by its own calls, is the left; the right is drawn by the renderer, each time before the left: every
+         * surface the application renders to has a twin (see D3D7SurfaceTwins), and a draw (or a clear) that the application makes is made
+         * again with the twin of what it renders to, and of the textures it sets, in the device, with the vertices moved for the eye. A draw
+         * that the core says is to be moved is not made as the application makes it for the left eye either, but by the renderer, with a copy
+         * of its vertices that is moved. The device is called through its virtual table, which what is done inside the callbacks of the
+         * interceptor is not seen by anything that watches the device.
          *
-         * For now this is the left eye alone: the right is not drawn yet.
+         * What the application does that the renderer cannot follow (it draws with vertex buffers, it copies to a surface which has a twin)
+         * is counted, and what the right eye shows is then wrong.
          *
          * Not thread-safe: the caller serializes the calls, and the device is the one thread's.
          */
@@ -32,15 +39,28 @@ namespace Stereo
             uint64_t get_n_failed_twins() const;
             uint64_t get_n_twins       () const;
 
+            /* How many calls were not made again for the right eye, though they changed what it holds. */
+            uint64_t get_n_unmirrored_calls() const;
+
+            /* The twin of a surface of the application, or nullptr if it has none. */
+            void* get_twin_ptr(void* in_surface_ptr) const;
+
             /* The call is done: the twins of the surfaces it made are made, and those of the surfaces it ended are let go of. */
             void on_post(const APIInterceptor::APIFunction&         in_function,
                          const uint32_t&                            in_n_arguments,
                          const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
                          const APIInterceptor::APIFunctionArgument* in_returned_value_ptr);
 
-            /* A draw is about to be made, and the core has classified it (see StereoCore::classify_draw()). Returns false if the call of
-             * the application is not to be made: the renderer made the draw itself. The picture width is that of the viewport the draw is
-             * made with (see CallFeeder::get_viewport()).
+            /* A call that is not a draw is about to be made: what it sets is followed, and a clear is made for the right eye as well. The call
+             * is made as the application makes it.
+             */
+            void on_pre(const APIInterceptor::APIFunction&         in_function,
+                        const uint32_t&                            in_n_arguments,
+                        const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
+
+            /* A draw is about to be made, and the core has classified it (see StereoCore::classify_draw()). The draw is made for the right eye;
+             * returns false if the call of the application is not to be made, because the renderer made the draw for the left eye itself. The
+             * picture width is that of the viewport the draw is made with (see CallFeeder::get_viewport()).
              */
             bool on_pre_draw(const APIInterceptor::APIFunction&         in_function,
                              const uint32_t&                            in_n_arguments,
@@ -48,23 +68,61 @@ namespace Stereo
                              const float&                               in_picture_width);
 
         private:
+            static constexpr uint32_t N_TEXTURE_STAGES = 8;
+
             /* The arguments of a draw of vertices which the application holds in its own memory, in the order of the call. */
             struct DrawArguments
             {
-                void*       device_ptr       = nullptr;
-                uint32_t    flags            = 0;
-                uint32_t    fvf              = 0;
-                const void* indices_ptr      = nullptr;
-                bool        is_indexed       = false;
-                uint32_t    n_indices        = 0;
-                uint32_t    n_vertices       = 0;
-                uint32_t    primitive_type   = 0;
-                const void* vertices_ptr     = nullptr;
+                void*       device_ptr     = nullptr;
+                uint32_t    flags          = 0;
+                uint32_t    fvf            = 0;
+                const void* indices_ptr    = nullptr;
+                bool        is_indexed     = false;
+                uint32_t    n_indices      = 0;
+                uint32_t    n_vertices     = 0;
+                uint32_t    primitive_type = 0;
+                const void* vertices_ptr   = nullptr;
+            };
+
+            /* What the application has set in the device, as far as the renderer knows. */
+            struct DeviceMirror
+            {
+                void*                               render_target_ptr = nullptr;
+                std::array<void*, N_TEXTURE_STAGES> texture_ptr_array = {};
+            };
+
+            /* What is changed in the device to draw for the right eye, and has to be put back. */
+            struct RightEyeScope
+            {
+                std::array<bool, N_TEXTURE_STAGES>       is_texture_swapped = {};
+                Interception::Hooks::D3D7::D3DVIEWPORT7  viewport           = {};
             };
 
             /* Makes the draw with the vertices, in the place of the one the application made. */
             void draw(const DrawArguments& in_draw_arguments,
                       const uint8_t*       in_vertices_ptr) const;
+
+            /* Makes the draw for the eye, with its vertices moved if the core says they are to be (or, if the draw must be made, as it is
+             * otherwise). Returns true if the draw was made.
+             */
+            bool draw_for_eye(const Analysis::RecipeLoader::Eye& in_eye,
+                              const DrawArguments&               in_draw_arguments,
+                              const float&                       in_picture_width,
+                              const bool&                        in_must_draw);
+
+            /* The device renders to the twin of what the application set, with the twins of its textures; false if what it renders to has no
+             * twin, and nothing was changed.
+             */
+            bool enter_right_eye(void*          in_device_ptr,
+                                 RightEyeScope* out_scope_ptr) const;
+
+            /* What the application set is in the device again. */
+            void leave_right_eye(void*                inout_device_ptr,
+                                 const RightEyeScope& in_scope) const;
+
+            /* A clear which the application made, made for the right eye. */
+            void play_right_clear(const uint32_t&                            in_n_arguments,
+                                  const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
 
             /* Reads the arguments of the call, which is of a draw this knows. Returns false if it is not one, or the arguments are not
              * what a draw has.
@@ -79,6 +137,8 @@ namespace Stereo
 
 
             Stereo::Core::StereoCore* m_core_ptr;
+            DeviceMirror              m_mirror;
+            uint64_t                  m_n_unmirrored_calls;
             D3D7SurfaceTwins          m_surface_twins;
             std::vector<uint8_t>      m_vertex_vec; /* of the draw being made: its room is used again */
         };

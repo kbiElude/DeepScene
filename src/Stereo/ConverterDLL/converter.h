@@ -97,11 +97,16 @@ namespace Stereo
                                          void*                                      in_user_arg_ptr,
                                          bool*                                      out_should_pass_through_ptr);
 
+            /* Reads a number from the environment of the process; false if there is none. */
+            static bool read_environment_number(const char* in_name_ptr,
+                                                float*      out_value_ptr);
+
             /* What the converter knows of the application as it runs. Lock order: no other lock is taken while it is held. */
             struct LiveState
             {
                 std::unique_ptr<Stereo::Core::StereoCore> core_ptr;
                 std::unique_ptr<D3D7EyeRenderer>          d3d7_renderer_ptr;
+                uint64_t                                  dump_frame         = 0; /* of the frame to write to a file; 0: none */
                 CallFeeder                                feeder;
                 std::mutex                                mutex;
                 uint64_t                                  n_affected_draws   = 0;

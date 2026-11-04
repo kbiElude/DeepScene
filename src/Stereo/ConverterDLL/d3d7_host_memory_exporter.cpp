@@ -6,6 +6,7 @@
 #include "Interception/Core/D3D7Utils/constants.h"
 #include "Interception/Hooks/D3D8/types.h"
 #include "d3d7_host_memory_exporter.h"
+#include <stdio.h>
 #include <string.h>
 
 Stereo::ConverterDLL::D3D7HostMemoryExporter::D3D7HostMemoryExporter(Stereo::Transport::FrameChannel* inout_channel_ptr)
@@ -197,6 +198,127 @@ void Stereo::ConverterDLL::D3D7HostMemoryExporter::wait_for_pace()
     constexpr uint32_t TIMEOUT_N_MILLISECONDS = 100;
 
     m_channel_ptr->wait_for_pace(TIMEOUT_N_MILLISECONDS);
+}
+
+bool Stereo::ConverterDLL::D3D7HostMemoryExporter::write_debug_image(void*              in_left_surface_ptr,
+                                                                     void*              in_right_surface_ptr,
+                                                                     const std::string& in_path)
+{
+    constexpr uint32_t BYTES_PER_PIXEL = sizeof(uint32_t);
+    constexpr uint32_t HEADER_N_BYTES  = 54;
+    constexpr uint32_t N_BITS_PER_PIXEL = 32;
+    constexpr uint32_t N_PLANES        = 1;
+    constexpr uint32_t INFO_N_BYTES    = 40;
+
+    std::array<LockedSurface, N_EYES> locked_array;
+    uint32_t                          n_eyes            = (in_right_surface_ptr != nullptr) ? 2 : 1;
+    uint32_t                          n_locked          = 0;
+    std::vector<uint8_t>              pixel_u8_vec;
+    bool                              result            = false;
+    std::array<void*, N_EYES>         surface_ptr_array = {in_left_surface_ptr, in_right_surface_ptr};
+    uint32_t                          width             = 0;
+    uint32_t                          height            = 0;
+
+    for (uint32_t n_eye = 0;
+                  n_eye < n_eyes;
+                ++n_eye)
+    {
+        if (lock_surface(surface_ptr_array.at(n_eye),
+                        &locked_array.at(n_eye) ) == false)
+        {
+            goto end;
+        }
+
+        ++n_locked;
+    }
+
+    width  = locked_array.at(0).description.dwWidth;
+    height = locked_array.at(0).description.dwHeight;
+
+    pixel_u8_vec.assign(static_cast<size_t>(width) * n_eyes * height * BYTES_PER_PIXEL,
+                        0);
+
+    for (uint32_t n_eye = 0;
+                  n_eye < n_eyes;
+                ++n_eye)
+    {
+        const auto&          description  = locked_array.at(n_eye).description;
+        const uint32_t       format       = get_pixel_format(description.ddpfPixelFormat);
+        std::vector<uint8_t> converted_u8_vec;
+        const uint8_t*       source_ptr   = static_cast<const uint8_t*>(description.lpSurface);
+        uint32_t             source_pitch = static_cast<uint32_t>(description.lPitch);
+
+        if (format == 0                                      ||
+            description.dwWidth  != width                    ||
+            description.dwHeight != height)
+        {
+            goto end;
+        }
+
+        if (format != Interception::Hooks::D3D8::D3DFMT_X8R8G8B8)
+        {
+            if (Stereo::Replay::EngineDLL::PixelConverter::convert_to_bgra8(format,
+                                                                            width,
+                                                                            height,
+                                                                            source_pitch,
+                                                                            source_ptr,
+                                                                           &converted_u8_vec) == false)
+            {
+                goto end;
+            }
+
+            source_ptr   = converted_u8_vec.data();
+            source_pitch = width * BYTES_PER_PIXEL;
+        }
+
+        for (uint32_t n_row = 0;
+                      n_row < height;
+                    ++n_row)
+        {
+            ::memcpy(pixel_u8_vec.data() + (static_cast<size_t>(n_row) * width * n_eyes + static_cast<size_t>(n_eye) * width) * BYTES_PER_PIXEL,
+                     source_ptr + static_cast<size_t>(n_row) * source_pitch,
+                     static_cast<size_t>(width) * BYTES_PER_PIXEL);
+        }
+    }
+
+    {
+        FILE* const file_ptr = ::fopen(in_path.c_str(),
+                                       "wb");
+
+        if (file_ptr != nullptr)
+        {
+            uint8_t        header_u8vec54[HEADER_N_BYTES] = {'B', 'M'};
+            const uint32_t file_n_bytes                    = HEADER_N_BYTES + static_cast<uint32_t>(pixel_u8_vec.size() );
+            const uint32_t pixel_offset                    = HEADER_N_BYTES;
+            const uint32_t total_width                     = width * n_eyes;
+            const int32_t  top_down_height                 = -static_cast<int32_t>(height); /* the top row first */
+            const uint16_t n_planes                        = N_PLANES;
+            const uint16_t n_bits                          = N_BITS_PER_PIXEL;
+
+            ::memcpy(header_u8vec54 + 2,  &file_n_bytes,     sizeof(file_n_bytes) );
+            ::memcpy(header_u8vec54 + 10, &pixel_offset,     sizeof(pixel_offset) );
+            ::memcpy(header_u8vec54 + 14, &INFO_N_BYTES,     sizeof(INFO_N_BYTES) );
+            ::memcpy(header_u8vec54 + 18, &total_width,      sizeof(total_width) );
+            ::memcpy(header_u8vec54 + 22, &top_down_height,  sizeof(top_down_height) );
+            ::memcpy(header_u8vec54 + 26, &n_planes,         sizeof(n_planes) );
+            ::memcpy(header_u8vec54 + 28, &n_bits,           sizeof(n_bits) );
+
+            result = (::fwrite(header_u8vec54, 1, sizeof(header_u8vec54), file_ptr) == sizeof(header_u8vec54) &&
+                      ::fwrite(pixel_u8_vec.data(), 1, pixel_u8_vec.size(), file_ptr) == pixel_u8_vec.size() );
+
+            ::fclose(file_ptr);
+        }
+    }
+
+end:
+    for (uint32_t n_eye = 0;
+                  n_eye < n_locked;
+                ++n_eye)
+    {
+        unlock_surface(&locked_array.at(n_eye) );
+    }
+
+    return result;
 }
 
 bool Stereo::ConverterDLL::D3D7HostMemoryExporter::write_eye(const LockedSurface& in_locked,

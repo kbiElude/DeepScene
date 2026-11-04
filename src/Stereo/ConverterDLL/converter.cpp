@@ -53,19 +53,30 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
         }
     }
 
-    /* A way to set how far apart the eyes are for a run without the program which shows the images, which says it otherwise. */
+    /* Ways to set what the program which shows the images says otherwise, for a run without it, and to look at a frame. */
     {
-        char                eye_separation_i8vec32[32] = {};
-        const unsigned long n_chars                    = ::GetEnvironmentVariableA("APISTEREO_EYE_SEPARATION",
-                                                                                   eye_separation_i8vec32,
-                                                                                   static_cast<DWORD>(sizeof(eye_separation_i8vec32) ));
+        float value = 0.0f;
 
-        if (n_chars > 0                                        &&
-            n_chars < sizeof(eye_separation_i8vec32) )
+        if (read_environment_number("APISTEREO_EYE_SEPARATION",
+                                   &value) )
         {
-            m_live_state.core_ptr->set_eye_separation(static_cast<float>(::atof(eye_separation_i8vec32) ));
+            m_live_state.core_ptr->set_eye_separation(value);
 
-            m_log.write(std::string("The eye separation is ") + eye_separation_i8vec32 + ", from APISTEREO_EYE_SEPARATION");
+            m_log.write("The eye separation is " + std::to_string(value) + ", from APISTEREO_EYE_SEPARATION");
+        }
+
+        if (read_environment_number("APISTEREO_DEPTH_STRENGTH",
+                                   &value) )
+        {
+            m_live_state.core_ptr->set_depth_strength(value);
+
+            m_log.write("The strength of the 3D is " + std::to_string(value) + ", from APISTEREO_DEPTH_STRENGTH");
+        }
+
+        if (read_environment_number("APISTEREO_DUMP_FRAME",
+                                   &value) )
+        {
+            m_live_state.dump_frame = static_cast<uint64_t>(value);
         }
     }
 
@@ -179,7 +190,9 @@ std::string Stereo::ConverterDLL::Converter::make_statistics_line() const
                                                                        std::to_string(n_twins)         +
                                                                        " surfaces with a twin, "       +
                                                                        std::to_string(n_failed_twins)  +
-                                                                       " twins that could not be made"
+                                                                       " twins that could not be made, "   +
+                                                                       std::to_string(m_live_state.d3d7_renderer_ptr->get_n_unmirrored_calls() ) +
+                                                                       " calls not made for the right eye"
                                                                      : std::string();
 
     return "After "                                                       +
@@ -320,13 +333,19 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
                                                   in_arguments_ptr);
             }
             else
-            if (APIInterceptor::is_frame_boundary(in_api_func,
-                                                  in_n_arguments,
-                                                  in_arguments_ptr) )
             {
-                on_d3d7_frame_ending(in_api_func,
-                                      in_arguments_ptr,
-                                     &log_line_vec);
+                m_live_state.d3d7_renderer_ptr->on_pre(in_api_func,
+                                                       in_n_arguments,
+                                                       in_arguments_ptr);
+
+                if (APIInterceptor::is_frame_boundary(in_api_func,
+                                                      in_n_arguments,
+                                                      in_arguments_ptr) )
+                {
+                    on_d3d7_frame_ending(in_api_func,
+                                         in_arguments_ptr,
+                                        &log_line_vec);
+                }
             }
         }
         else
@@ -474,9 +493,26 @@ void Stereo::ConverterDLL::Converter::pass_d3d7_frame(void* in_primary_surface_p
     {
         void** const back_buffer_vtable = *reinterpret_cast<void***>(back_buffer_ptr);
 
+        /* A debugging aid: the images of the eyes of one frame, to look at. */
+        if (m_live_state.dump_frame != 0 &&
+            m_live_state.n_frames   == m_live_state.dump_frame)
+        {
+            char temp_i8vec260[MAX_PATH] = {};
+
+            if (::GetTempPathA(MAX_PATH,
+                               temp_i8vec260) != 0)
+            {
+                const bool is_written = D3D7HostMemoryExporter::write_debug_image(back_buffer_ptr,
+                                                                                  m_live_state.d3d7_renderer_ptr->get_twin_ptr(back_buffer_ptr),
+                                                                                  std::string(temp_i8vec260) + "apistereo_frame_" + std::to_string(m_live_state.n_frames) + ".bmp");
+
+                m_log.write((is_written) ? "A frame is written to a file" : "A frame cannot be written to a file");
+            }
+        }
+
         m_d3d7_frame_passer_ptr->on_present(nullptr, /* in_device_ptr */
                                             back_buffer_ptr,
-                                            nullptr); /* in_right_surface_ptr */
+                                            m_live_state.d3d7_renderer_ptr->get_twin_ptr(back_buffer_ptr) );
 
         reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_RELEASE>(back_buffer_vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_RELEASE])(back_buffer_ptr);
     }
@@ -547,4 +583,22 @@ void Stereo::ConverterDLL::Converter::read_channel_settings(std::vector<std::str
             out_log_line_vec_ptr->push_back("The convergence distance is now " + std::to_string(convergence_distance) );
         }
     }
+}
+
+bool Stereo::ConverterDLL::Converter::read_environment_number(const char* in_name_ptr,
+                                                               float*      out_value_ptr)
+{
+    char                value_i8vec32[32] = {};
+    const unsigned long n_chars           = ::GetEnvironmentVariableA(in_name_ptr,
+                                                                      value_i8vec32,
+                                                                      static_cast<DWORD>(sizeof(value_i8vec32) ));
+    const bool          result            = (n_chars > 0                      &&
+                                             n_chars < sizeof(value_i8vec32) );
+
+    if (result)
+    {
+        *out_value_ptr = static_cast<float>(::atof(value_i8vec32) );
+    }
+
+    return result;
 }

@@ -10,6 +10,7 @@
 #include "Stereo/Transport/i_frame_exporter.h"
 #include <array>
 #include <stdint.h>
+#include <string>
 #include <vector>
 
 namespace Stereo
@@ -39,6 +40,13 @@ namespace Stereo
             Stereo::Transport::TransportKindMask get_offered_kinds() const override;
 
             void wait_for_pace() override;
+
+            /* A debugging aid: writes the images of the eyes side by side to a file of 32 bits a pixel (BMP); the right surface may be nullptr. Returns
+             * false if a surface cannot be read or its format is not converted.
+             */
+            static bool write_debug_image(void*              in_left_surface_ptr,
+                                          void*              in_right_surface_ptr,
+                                          const std::string& in_path);
 
         private:
             static constexpr size_t N_EYES = 2;
