@@ -107,7 +107,7 @@ void Stereo::Replay::Player::ConsoleObserver::on_state_changed(const Stereo::Rep
 
     fprintf(stdout,
             "[*] %s\n",
-            StateNames::get_state_name_ptr(in_new_state) );
+            ::Replay::ReplayPlayerSupport::StateNames::get_state_name_ptr(in_new_state) );
 
     /* A pause, or the end, closes a stretch of frames; the time to the next one does not count. */
     if (in_new_state != Stereo::Replay::EngineDLL::PlaybackState::PLAYING)
@@ -185,7 +185,7 @@ int Stereo::Replay::Player::run(int   in_argc,
 
     if (options.workload_path.empty() )
     {
-        is_workload_picked = WorkloadPicker::pick(&options.workload_path);
+        is_workload_picked = ::Replay::ReplayPlayerSupport::WorkloadPicker::pick(&options.workload_path);
     }
 
     if (is_workload_picked == false)
@@ -198,12 +198,17 @@ int Stereo::Replay::Player::run(int   in_argc,
         goto end;
     }
 
-    /* D3D8 can only be replayed by the 32-bit player. */
-    if (PlayerLauncher::is_handover_needed(options.workload_path.c_str() ) )
+    /* Direct3D 7 and 8 can only be replayed by the 32-bit player. */
+    if (::Replay::ReplayPlayerSupport::PlayerLauncher::is_handover_needed(options.workload_path.c_str() ) )
     {
-        if (PlayerLauncher::run_x86_player(options,
-                                          &exit_code,
-                                          &error) )
+        std::vector<std::string> argument_vec = CommandLine::get_handover_argument_vec(options);
+
+        argument_vec.push_back(options.workload_path);
+
+        if (::Replay::ReplayPlayerSupport::PlayerLauncher::run_x86_player("StereoReplayPlayer_x86.exe",
+                                                                          argument_vec,
+                                                                         &exit_code,
+                                                                         &error) )
         {
             result = exit_code;
         }
@@ -417,7 +422,7 @@ void Stereo::Replay::Player::run_console(Stereo::Replay::EngineDLL::IPlaybackCon
 
             fprintf(stdout,
                     "[*] %s: %llu calls, %u frames\n",
-                    StateNames::get_state_name_ptr(status.state),
+                    ::Replay::ReplayPlayerSupport::StateNames::get_state_name_ptr(status.state),
                     static_cast<unsigned long long>(status.n_calls_executed),
                     status.n_frames_presented);
         }

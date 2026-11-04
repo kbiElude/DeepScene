@@ -24,7 +24,7 @@ file(GLOB StereoReplayPlayerSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR
 
 add_executable(StereoReplayPlayer ${StereoReplayPlayerSources})
 
-target_link_libraries(StereoReplayPlayer APIDumpAnalysis APIDumpLoader RecipeLoader StereoReplayEngineDLL ImGui UIHost comdlg32)
+target_link_libraries(StereoReplayPlayer APIDumpAnalysis APIDumpLoader RecipeLoader ReplayPlayerSupport StereoReplayEngineDLL ImGui UIHost)
 
 if (CMAKE_SIZEOF_VOID_P EQUAL 4)
     set_target_properties(StereoReplayPlayer PROPERTIES OUTPUT_NAME "StereoReplayPlayer_x86")
