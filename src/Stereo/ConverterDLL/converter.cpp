@@ -173,6 +173,15 @@ std::unique_ptr<Stereo::ConverterDLL::Converter> Stereo::ConverterDLL::Converter
 
 std::string Stereo::ConverterDLL::Converter::make_statistics_line() const
 {
+    const uint64_t n_failed_twins = m_live_state.d3d7_renderer_ptr->get_n_failed_twins();
+    const uint64_t n_twins        = m_live_state.d3d7_renderer_ptr->get_n_twins       ();
+    const std::string twin_text   = (n_twins + n_failed_twins > 0) ? ", "                                  +
+                                                                       std::to_string(n_twins)         +
+                                                                       " surfaces with a twin, "       +
+                                                                       std::to_string(n_failed_twins)  +
+                                                                       " twins that could not be made"
+                                                                     : std::string();
+
     return "After "                                                       +
            std::to_string(m_live_state.n_frames)                          +
            " frames: "                                                    +
@@ -187,7 +196,8 @@ std::string Stereo::ConverterDLL::Converter::make_statistics_line() const
            std::to_string(m_live_state.core_ptr->get_n_unknown_frames() ) +
            " frames of a scene it has no distance for, "                  +
            std::to_string(m_live_state.n_kept_matrices)                   +
-           " matrices kept";
+           " matrices kept"                                               +
+           twin_text;
 }
 
 void Stereo::ConverterDLL::Converter::on_d3d7_frame_ending(const APIInterceptor::APIFunction&         in_api_func,
@@ -243,6 +253,13 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
             this_ptr->m_live_state.renderer_ptr->on_post(in_api_func,
                                                          in_n_arguments_out,
                                                          in_arguments_out_ptr);
+        }
+        else
+        {
+            this_ptr->m_live_state.d3d7_renderer_ptr->on_post(in_api_func,
+                                                              in_n_arguments_out,
+                                                              in_arguments_out_ptr,
+                                                              in_returned_value_ptr);
         }
     }
 

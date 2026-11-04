@@ -7,6 +7,7 @@
 
 #include "Common/types.h"
 #include "Stereo/Core/stereo_core.h"
+#include "d3d7_surface_twins.h"
 #include <stdint.h>
 #include <vector>
 
@@ -27,6 +28,15 @@ namespace Stereo
         {
         public:
             explicit D3D7EyeRenderer(Stereo::Core::StereoCore* in_core_ptr);
+
+            uint64_t get_n_failed_twins() const;
+            uint64_t get_n_twins       () const;
+
+            /* The call is done: the twins of the surfaces it made are made, and those of the surfaces it ended are let go of. */
+            void on_post(const APIInterceptor::APIFunction&         in_function,
+                         const uint32_t&                            in_n_arguments,
+                         const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
+                         const APIInterceptor::APIFunctionArgument* in_returned_value_ptr);
 
             /* A draw is about to be made, and the core has classified it (see StereoCore::classify_draw()). Returns false if the call of
              * the application is not to be made: the renderer made the draw itself. The picture width is that of the viewport the draw is
@@ -69,6 +79,7 @@ namespace Stereo
 
 
             Stereo::Core::StereoCore* m_core_ptr;
+            D3D7SurfaceTwins          m_surface_twins;
             std::vector<uint8_t>      m_vertex_vec; /* of the draw being made: its room is used again */
         };
     }

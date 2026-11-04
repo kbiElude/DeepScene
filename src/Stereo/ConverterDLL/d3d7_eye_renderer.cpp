@@ -49,6 +49,27 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::draw(const DrawArguments& in_draw_ar
     }
 }
 
+uint64_t Stereo::ConverterDLL::D3D7EyeRenderer::get_n_failed_twins() const
+{
+    return m_surface_twins.get_n_failed_twins();
+}
+
+uint64_t Stereo::ConverterDLL::D3D7EyeRenderer::get_n_twins() const
+{
+    return m_surface_twins.get_n_twins();
+}
+
+void Stereo::ConverterDLL::D3D7EyeRenderer::on_post(const APIInterceptor::APIFunction&         in_function,
+                                                    const uint32_t&                            in_n_arguments,
+                                                    const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
+                                                    const APIInterceptor::APIFunctionArgument* in_returned_value_ptr)
+{
+    m_surface_twins.on_post(in_function,
+                            in_n_arguments,
+                            in_arguments_ptr,
+                            in_returned_value_ptr);
+}
+
 bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre_draw(const APIInterceptor::APIFunction&         in_function,
                                                         const uint32_t&                            in_n_arguments,
                                                         const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
