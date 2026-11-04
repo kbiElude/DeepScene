@@ -12,7 +12,7 @@
 #include "Analysis/APIDumpAnalysis/frontends/call_view.h"
 #include "Analysis/APIDumpAnalysis/frontends/fixed_function_state.h"
 #include "Analysis/APIDumpAnalysis/frontends/i_api_frontend.h"
-#include "Analysis/APIDumpAnalysis/frontends/object_namer.h"
+#include "Capture/APIDumpLoader/object_namer.h"
 #include "Analysis/APIDumpAnalysis/frontends/object_tracker.h"
 #include "Analysis/APIDumpAnalysis/model_builder.h"
 #include <map>
@@ -71,7 +71,7 @@ namespace Analysis
                 Analysis::APIDumpAnalysis::ModelBuilder*                        m_builder_ptr;
                 Analysis::APIDumpAnalysis::ResourceView                         m_color_view;         /* what is rendered to                  */
                 Analysis::APIDumpAnalysis::ResourceView                         m_depth_stencil_view; /* resource_id is NONE if there is none */
-                ObjectNamer                                                     m_namer;
+                Capture::APIDumpLoader::ObjectNamer                                 m_namer;
                 std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t> m_n_resolution_hazard_map;
                 uint64_t                                                        m_n_unfollowed_calls;
                 uint64_t                                                        m_n_unsupported_calls;

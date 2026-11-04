@@ -17,7 +17,6 @@
 #include "Analysis/APIDumpAnalysis/frontends/d3d7_pipeline_state.h"
 #include "Analysis/APIDumpAnalysis/frontends/fixed_function_frontend.h"
 #include "Analysis/APIDumpAnalysis/frontends/i_api_frontend.h"
-#include "Analysis/APIDumpAnalysis/frontends/object_namer.h"
 #include "Analysis/APIDumpAnalysis/frontends/object_tracker.h"
 #include "Analysis/APIDumpAnalysis/model_builder.h"
 #include "Interception/Hooks/D3D7/types.h"

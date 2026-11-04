@@ -10,7 +10,6 @@
 
 #include "Analysis/APIDumpAnalysis/frontends/call_view.h"
 #include "Analysis/APIDumpAnalysis/frontends/d3d8_geometry_tracker.h"
-#include "Analysis/APIDumpAnalysis/frontends/object_namer.h"
 #include "Analysis/APIDumpAnalysis/frontends/object_tracker.h"
 #include "Analysis/APIDumpAnalysis/frontends/d3d8_pipeline_state.h"
 #include "Analysis/APIDumpAnalysis/frontends/fixed_function_frontend.h"

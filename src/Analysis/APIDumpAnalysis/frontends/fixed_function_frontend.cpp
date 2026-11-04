@@ -111,6 +111,12 @@ void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::handle_release
 
         m_tracker.forget(address);
     }
+
+    /* The address may be given to another object: it has no name until it is registered again. */
+    if (in_view.get_returned_u32() == 0)
+    {
+        m_namer.forget_object(address);
+    }
 }
 
 void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::handle_set_light(const CallView& in_view)

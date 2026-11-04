@@ -1,7 +1,7 @@
 # The code which is written twice and is known: the number of runs of eight lines that the files share, and the files. See test_duplicate_code.cpp.
 16 deps/APIInterceptor/include/Interception/Core/D3D7Utils/types.h|deps/APIInterceptor/include/Interception/Core/D3D8Utils/types.h
 2 deps/APIInterceptor/include/Interception/Hooks/D3D7/object_patcher.h|deps/APIInterceptor/include/Interception/Hooks/D3D8/object_patcher.h
-6 deps/APIInterceptor/src/Capture/APIDumpPrinter/d3d7_decoder.h|deps/APIInterceptor/src/Capture/APIDumpPrinter/d3d8_decoder.h
+7 deps/APIInterceptor/src/Capture/APIDumpPrinter/d3d7_decoder.h|deps/APIInterceptor/src/Capture/APIDumpPrinter/d3d8_decoder.h
 3 deps/APIInterceptor/src/Capture/APIDumpPrinter/d3d8_decoder.cpp|deps/APIInterceptor/src/Capture/APIDumpPrinter/names_d3d7.cpp
 1 deps/APIInterceptor/src/Interception/Core/D3D7Utils/argument_info.cpp|deps/APIInterceptor/src/Interception/Core/D3D8Utils/argument_info.cpp
 4 deps/APIInterceptor/src/Replay/ReplayEngineDLL/d3d7_call_executor.h|deps/APIInterceptor/src/Replay/ReplayEngineDLL/d3d8_call_executor.h
