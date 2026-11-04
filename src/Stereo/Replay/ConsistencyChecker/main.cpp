@@ -5,12 +5,14 @@
 #include "Analysis/APIDumpAnalysis/number_parser.h"
 #include "Analysis/RecipeLoader/recipe_loader.h"
 #include "Capture/APIDumpLoader/WorkloadIndex.h"
+#include "Capture/APIDumpNames/function_names.h"
 #include "Stereo/Replay/EngineDLL/entrypoints.h"
 #include "Stereo/Replay/FrameImages/image_comparer.h"
 #include "Stereo/Replay/FrameImages/image_composer.h"
 #include "Stereo/Replay/FrameImages/png_writer.h"
 #include "frame_hash_sink.h"
 #include "frame_sampler.h"
+#include "replay_profiler.h"
 #include "stop_observer.h"
 #include "types.h"
 #include <chrono>
@@ -60,10 +62,11 @@ namespace Stereo
             void print_usage();
 
             /* Replays the frames of the options one way, and keeps what the sink is given. */
-            bool run_variant(const Options& in_options,
-                             const Variant& in_variant,
-                             FrameHashSink* out_sink_ptr,
-                             std::string*   out_error_ptr);
+            bool run_variant(const Options&                                  in_options,
+                             const Variant&                                  in_variant,
+                             FrameHashSink*                                  out_sink_ptr,
+                             std::string*                                    out_error_ptr,
+                             ::Replay::ReplayEngineDLL::ICallInterceptor*    in_interceptor_ptr = nullptr);
 
             /* Replays the frames the ways in the vector, one after the other or all at once, and prints how long each took. The sinks are in the order of
              * the ways.
@@ -78,6 +81,12 @@ namespace Stereo
              */
             bool take_contact_sheet(const Options& in_options,
                                     std::string*   out_error_ptr);
+
+            /* Replays the frames of the options once (with the recipe, if there is one) and says where the time of the calls went: the functions that took
+             * longest, and the frames.
+             */
+            bool take_profile(const Options& in_options,
+                              std::string*   out_error_ptr);
 
             /* Replays the workload once, up to the screenshot frame, and writes the image of it to the screenshot file: with a recipe the eyes as the options
              * say, otherwise the frame as it is.
@@ -420,6 +429,7 @@ void Stereo::Replay::ConsistencyChecker::print_usage()
             "\n"
             "StereoReplayConsistencyChecker_x86 file.workload [--from A] [--to B] [--dump-dir DIR] [--recipe FILE [--eye-separation D]]\n"
             "                                    [--ways again,twice,restore,recipe] [--parallel]\n"
+            "StereoReplayConsistencyChecker_x86 file.workload --profile [--from A] [--to B] [--recipe FILE]\n"
             "StereoReplayConsistencyChecker_x86 file.workload --same-frames-as other.workload [--from A] [--to B]\n"
             "StereoReplayConsistencyChecker_x86 file.workload --screenshot N --out FILE.png [--recipe FILE [--eye left|right|both|anaglyph]]\n"
             "StereoReplayConsistencyChecker_x86 file.workload --contact-sheet K --out FILE.png [--from A] [--to B] [--recipe FILE [--eye ...]]\n"
@@ -439,6 +449,8 @@ void Stereo::Replay::ConsistencyChecker::print_usage()
             "\n"
             "  --screenshot N   Instead of the check: replay once, up to frame N, and write the image of that frame to the PNG file of --out. With a\n"
             "                   recipe it is both eyes side by side, or the one that --eye says (anaglyph: red-cyan); without one, the frame as it is.\n"
+            "  --profile        Instead of the check: replay frames A to B once (as they are, or for the eyes of the recipe) and say where the time of the calls went:\n"
+            "                   the functions whose calls took longest, and the frames that took longest.\n"
             "  --same-frames-as FILE  Instead of the check: replay frames A to B of this workload and of FILE as they are, and say whether the images are the\n"
             "                   same (exit code 3 if not). For a slice of a workload (APIDumpSlicer): it has to replay to the images of the workload.\n"
             "  --contact-sheet K  Instead of the check: one PNG with K frames spread evenly from A to B (or the end of the workload), each as a screenshot\n"
@@ -449,7 +461,8 @@ void Stereo::Replay::ConsistencyChecker::print_usage()
 bool Stereo::Replay::ConsistencyChecker::run_variant(const Stereo::Replay::ConsistencyChecker::Options& in_options,
                                                      const Variant&                                     in_variant,
                                                      Stereo::Replay::ConsistencyChecker::FrameHashSink* out_sink_ptr,
-                                                     std::string*                                       out_error_ptr)
+                                                     std::string*                                       out_error_ptr,
+                                                     ::Replay::ReplayEngineDLL::ICallInterceptor*       in_interceptor_ptr)
 {
     constexpr auto POLL_INTERVAL = std::chrono::milliseconds(2);
 
@@ -469,6 +482,12 @@ bool Stereo::Replay::ConsistencyChecker::run_variant(const Stereo::Replay::Consi
                                                                   in_options.last_frame);
 
         engine_ptr->add_replay_observer (&observer);
+
+        if (in_interceptor_ptr != nullptr)
+        {
+            engine_ptr->add_call_interceptor(in_interceptor_ptr);
+        }
+
         engine_ptr->set_frame_execution (execution_options);
         engine_ptr->set_frame_image_sink(out_sink_ptr);
 
@@ -507,6 +526,11 @@ bool Stereo::Replay::ConsistencyChecker::run_variant(const Stereo::Replay::Consi
             }
 
             std::this_thread::sleep_for(POLL_INTERVAL);
+        }
+
+        if (in_interceptor_ptr != nullptr)
+        {
+            engine_ptr->remove_call_interceptor(in_interceptor_ptr);
         }
 
         engine_ptr->remove_replay_observer(&observer);
@@ -745,6 +769,74 @@ bool Stereo::Replay::ConsistencyChecker::take_contact_sheet(const Stereo::Replay
 
     fprintf(stdout,
             "\n");
+
+    result = true;
+end:
+    return result;
+}
+
+bool Stereo::Replay::ConsistencyChecker::take_profile(const Stereo::Replay::ConsistencyChecker::Options& in_options,
+                                                      std::string*                                       out_error_ptr)
+{
+    constexpr size_t   N_FRAMES_LISTED    = 10;
+    constexpr size_t   N_FUNCTIONS_LISTED = 15;
+    constexpr double   NANOSECONDS_PER_MILLISECOND = 1000000.0;
+    constexpr double   NANOSECONDS_PER_MICROSECOND = 1000.0;
+
+    Stereo::Replay::ConsistencyChecker::ReplayProfiler profiler;
+    bool                                               result      = false;
+    Stereo::Replay::ConsistencyChecker::FrameHashSink  sink(false); /* in_keeps_images */
+    const bool                                         uses_recipe = (in_options.recipe_filename.empty() == false);
+
+    if (run_variant(in_options,
+                    VARIANT_ARRAY[(uses_recipe) ? 4 : 0],
+                   &sink,
+                    out_error_ptr,
+                   &profiler) == false)
+    {
+        goto end;
+    }
+
+    fprintf(stdout,
+            "Replay of frames %u to %u%s: %llu calls took %.1f ms in all (the time of the calls, without the waiting for the pace of the capture).\n"
+            "\n"
+            "Functions by the time of their calls:\n"
+            "  %10s %10s %12s %10s  %s\n",
+            in_options.first_frame,
+            in_options.last_frame,
+            (uses_recipe) ? ", for the eyes of the recipe" : "",
+            static_cast<unsigned long long>(profiler.get_n_calls() ),
+            static_cast<double>(profiler.get_total_n_nanoseconds() ) / NANOSECONDS_PER_MILLISECOND,
+            "total ms",
+            "calls",
+            "average us",
+            "slowest us",
+            "function");
+
+    for (const auto& entry : profiler.get_slowest_functions(N_FUNCTIONS_LISTED) )
+    {
+        fprintf(stdout,
+                "  %10.1f %10llu %12.2f %10.1f  %s\n",
+                static_cast<double>(entry.total_n_nanoseconds) / NANOSECONDS_PER_MILLISECOND,
+                static_cast<unsigned long long>(entry.n_calls),
+                static_cast<double>(entry.total_n_nanoseconds) / static_cast<double>(entry.n_calls) / NANOSECONDS_PER_MICROSECOND,
+                static_cast<double>(entry.max_n_nanoseconds) / NANOSECONDS_PER_MICROSECOND,
+                Capture::APIDumpNames::get_function_name(entry.function) );
+    }
+
+    fprintf(stdout,
+            "\nFrames that took longest:\n");
+
+    for (const auto& entry : profiler.get_slowest_frames(N_FRAMES_LISTED) )
+    {
+        fprintf(stdout,
+                "  frame %6u: %8.1f ms in %llu calls; the slowest call is %s (%.1f ms)\n",
+                entry.n_frame,
+                static_cast<double>(entry.total_n_nanoseconds) / NANOSECONDS_PER_MILLISECOND,
+                static_cast<unsigned long long>(entry.n_calls),
+                Capture::APIDumpNames::get_function_name(entry.slowest_function),
+                static_cast<double>(entry.slowest_n_nanoseconds) / NANOSECONDS_PER_MILLISECOND);
+    }
 
     result = true;
 end:
@@ -1038,6 +1130,11 @@ int main(int   in_argc,
             options.same_frames_workload_filename = in_argv[++n_argument];
         }
         else
+        if (argument == "--profile")
+        {
+            options.is_profiling = true;
+        }
+        else
         if (argument == "--parallel")
         {
             options.is_parallel = true;
@@ -1083,6 +1180,23 @@ int main(int   in_argc,
 
             goto end;
         }
+    }
+
+    if (options.is_profiling)
+    {
+        std::string error;
+
+        if (Stereo::Replay::ConsistencyChecker::take_profile(options,
+                                                            &error) == false)
+        {
+            fprintf(stdout,
+                    "%s\n",
+                    error.c_str() );
+
+            exit_code = Stereo::Replay::ConsistencyChecker::ExitCode::REPLAY_FAILED;
+        }
+
+        goto end;
     }
 
     if (options.same_frames_workload_filename.empty() == false)

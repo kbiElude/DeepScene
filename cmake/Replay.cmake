@@ -50,7 +50,7 @@ file(GLOB StereoReplayConsistencyCheckerSources CONFIGURE_DEPENDS "${DemoVRPlaye
 
 add_executable(StereoReplayConsistencyChecker ${StereoReplayConsistencyCheckerSources})
 
-target_link_libraries(StereoReplayConsistencyChecker APIDumpAnalysis RecipeLoader StereoReplayEngineDLL StereoReplayFrameImages)
+target_link_libraries(StereoReplayConsistencyChecker APIDumpAnalysis APIDumpNames RecipeLoader StereoReplayEngineDLL StereoReplayFrameImages)
 
 if (CMAKE_SIZEOF_VOID_P EQUAL 4)
     set_target_properties(StereoReplayConsistencyChecker PROPERTIES OUTPUT_NAME "StereoReplayConsistencyChecker_x86")

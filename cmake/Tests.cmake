@@ -22,6 +22,7 @@ if (DEMOVRPLAYER_BUILD_TESTS)
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Launcher/command_line.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Presenter/command_line.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/ConsistencyChecker/frame_sampler.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/ConsistencyChecker/replay_profiler.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/EngineDLL/d3d7_draw_rewriter.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/EngineDLL/eye_matrix_binder.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/EngineDLL/frame_buffer.cpp"

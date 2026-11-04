@@ -40,6 +40,7 @@ namespace Stereo
                 bool                                 has_eye_view                   = false;      /* the view of the eyes of a screenshot or a sheet is the one that was asked for */
                 std::string                          image_filename;                              /* the PNG file of a screenshot or a contact sheet */
                 bool                                 is_parallel                    = false;      /* the ways are replayed at the same time */
+                bool                                 is_profiling                   = false;      /* the frames are replayed once, and where the time goes is said */
                 uint32_t                             last_frame                     = 999;
                 Analysis::RecipeLoader::Recipe       recipe;
                 std::string                          recipe_filename;
