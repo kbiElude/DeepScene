@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 #include <string>
+#include <vector>
 
 namespace Analysis
 {
@@ -29,8 +30,35 @@ namespace Analysis
             bool     uses_dependencies          = false; /* the textures of each eye are told by the dependencies, not by the totals of the analysis */
         };
 
+        /* A kind of frame (a shape) which the recipe does not know. */
+        struct UnknownShape
+        {
+            uint64_t first_frame_index = 0;
+            uint64_t n_frames          = 0;
+            uint64_t shape_key         = 0;
+        };
+
+        /* A draw signature which the recipe has no rule for. */
+        struct UnknownSignature
+        {
+            uint64_t n_pass_structures = 0; /* the kinds of passes that draw it */
+            uint64_t signature_key     = 0;
+        };
+
+        /* What a baked recipe leaves to chance in a workload (see RecipeChecker). */
+        struct CoverageReport
+        {
+            uint64_t                      n_frames                    = 0;
+            uint64_t                      n_frames_of_unknown_shapes  = 0;
+            uint64_t                      n_shapes                    = 0;
+            uint64_t                      n_signatures                = 0;
+            std::vector<UnknownShape>     unknown_shape_vec;
+            std::vector<UnknownSignature> unknown_signature_vec;
+        };
+
         struct Options
         {
+            bool        checks_only     = false; /* the recipe is checked against the workload, and not written */
             std::string deps_filename;   /* the dependencies of the workload (a .deps file); none if empty */
             std::string output_filename; /* the recipe itself if empty */
             std::string passes_filename;

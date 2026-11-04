@@ -12,6 +12,7 @@ if (DEMOVRPLAYER_BUILD_TESTS)
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpSlicer/command_line.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/RecipeBake/command_line.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/RecipeBake/recipe_baker.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/RecipeBake/recipe_checker.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/ConverterDLL/d3d7_eye_renderer.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/ConverterDLL/d3d7_surface_twins.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/ConverterDLL/d3d7_windowed_mode.cpp"

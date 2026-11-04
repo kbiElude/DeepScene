@@ -10,6 +10,8 @@
 #include "Analysis/APIDumpDependencies/deps_file.h"
 #include "Analysis/RecipeBake/command_line.h"
 #include "Analysis/RecipeBake/recipe_baker.h"
+#include "Analysis/RecipeBake/recipe_checker.h"
+#include "Analysis/RecipeLoader/recipe_loader.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
@@ -22,6 +24,7 @@ int main(int   in_argc,
     constexpr int EXIT_BAD_INPUT     = 2;
     constexpr int EXIT_CANNOT_BAKE   = 3;
     constexpr int EXIT_CANNOT_WRITE  = 4;
+    constexpr int EXIT_NOT_COVERED   = 5;
 
     Analysis::APIDumpAnalysis::AnalysisResult analysis;
     std::vector<std::string>                  argument_vec;
@@ -78,6 +81,45 @@ int main(int   in_argc,
                   error.c_str() );
 
         result = EXIT_BAD_INPUT;
+
+        goto end;
+    }
+
+    if (options.checks_only)
+    {
+        Analysis::RecipeLoader::Recipe recipe;
+
+        if (Analysis::RecipeLoader::RecipeLoader::load(options.recipe_filename,
+                                                      &recipe,
+                                                      &error) == false)
+        {
+            ::fprintf(stderr,
+                      "Error: %s: %s\n",
+                      options.recipe_filename.c_str(),
+                      error.c_str() );
+
+            result = EXIT_BAD_INPUT;
+
+            goto end;
+        }
+
+        {
+            const auto coverage = Analysis::RecipeBake::RecipeChecker::check(recipe,
+                                                                              analysis);
+
+            Analysis::RecipeBake::RecipeChecker::print_report(stdout,
+                                                              coverage,
+                                                              recipe);
+
+            const bool has_unknown_shape     = (coverage.unknown_shape_vec.empty()     == false);
+            const bool has_unknown_signature = (coverage.unknown_signature_vec.empty() == false);
+
+            if (has_unknown_shape     ||
+                has_unknown_signature)
+            {
+                result = EXIT_NOT_COVERED;
+            }
+        }
 
         goto end;
     }

@@ -7,6 +7,7 @@
 const char* Analysis::RecipeBake::CommandLine::get_usage_ptr()
 {
     return "Usage: RecipeBake drive:\\path\\to\\recipe.json drive:\\path\\to\\file.passes [--deps file.deps] [-o baked.json]\n"
+           "       RecipeBake --check drive:\\path\\to\\recipe.json drive:\\path\\to\\file.passes\n"
            "Bakes a recipe: writes into it what a converter which plays the application as it runs can know of each draw when the draw\n"
            "is issued, worked out from the analysis of the application (see APIDumpAnalysisExtractor). The recipe is written again in\n"
            "the formatting of this program; -o writes another file instead of replacing the recipe.\n"
@@ -15,7 +16,13 @@ const char* Analysis::RecipeBake::CommandLine::get_usage_ptr()
            "a copy of: without them a texture that frames use by turns (the one a frame renders to is the one the next frame reads) is\n"
            "missed. They must be of the workload that the .passes file is of.\n"
            "\n"
-           "Exit codes: 0 done, 1 bad arguments, 2 a file cannot be read, 3 the recipe cannot be baked, 4 the file cannot be written.\n";
+           "--check writes nothing: it says which kinds of frames and which draw signatures of the workload the recipe does not know (a baked recipe of\n"
+           "another capture, or of a shorter one, leaves them to chance: a frame of an unknown shape is played as the unknown_frame_policy of the recipe says,\n"
+           "and a draw of an unknown signature is an affected one).\n"
+           "\n"
+           "Exit codes: 0 done, 1 bad arguments, 2 a file cannot be read, 3 the recipe cannot be baked, 4 the file cannot be written, 5 (--check) the recipe\n"
+           "does not know all of the workload.\n";
+
 }
 
 bool Analysis::RecipeBake::CommandLine::parse(const std::vector<std::string>& in_argument_vec,
@@ -33,6 +40,11 @@ bool Analysis::RecipeBake::CommandLine::parse(const std::vector<std::string>& in
     {
         const std::string& argument = in_argument_vec.at(n_argument);
 
+        if (argument == "--check")
+        {
+            out_options_ptr->checks_only = true;
+        }
+        else
         if (argument == "-o")
         {
             if (n_argument + 1 >= in_argument_vec.size() )
