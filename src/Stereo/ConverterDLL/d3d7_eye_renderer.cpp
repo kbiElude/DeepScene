@@ -5,6 +5,7 @@
 #include "Common/callbacks.h"
 #include "Common/macros.h"
 #include "Interception/Core/D3D7Utils/constants.h"
+#include "Interception/Core/D3D7Utils/methods.h"
 #include "Interception/Core/D3D7Utils/vertex_format.h"
 #include "Stereo/D3D7/screen_parallax.h"
 #include "d3d7_eye_renderer.h"
@@ -179,7 +180,13 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre(const APIInterceptor::APIFunc
                 /* What is copied to a surface that has a twin is not copied to the twin yet. */
                 if (get_twin_ptr(destination_ptr) != nullptr)
                 {
-                    m_n_unmirrored_calls++;
+                    if (mirror_blt(in_function,
+                                   in_n_arguments,
+                                   in_arguments_ptr) == false)
+                    {
+                        note_unmirrored(in_function,
+                                        "a copy to a surface which has a twin, which could not be repeated");
+                    }
                 }
 
                 /* A copy to the back buffer is in the pixels of the application, which the back buffer is no longer of. */
@@ -199,7 +206,8 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre(const APIInterceptor::APIFunc
                 in_arguments_ptr[LOAD_DESTINATION].type == APIInterceptor::ARGTYPE_VOID_PTR      &&
                 get_twin_ptr(const_cast<void*>(in_arguments_ptr[LOAD_DESTINATION].get_ptr() )) != nullptr)
             {
-                m_n_unmirrored_calls++;
+                note_unmirrored(APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_LOAD,
+                                 "a load to a surface which has a twin");
             }
 
             break;
@@ -243,7 +251,8 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre_draw(const APIInterceptor::AP
                             in_arguments_ptr,
                            &draw_arguments) == false)
     {
-        m_n_unmirrored_calls++;
+        note_unmirrored(in_function,
+                                 "a draw which is not of vertices in the memory of the application");
 
         goto end;
     }
@@ -263,7 +272,8 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre_draw(const APIInterceptor::AP
     }
     else
     {
-        m_n_unmirrored_calls++;
+        note_unmirrored(in_function,
+                                 "a draw while the device renders to a surface which has no twin");
     }
 
     result = (draw_for_eye(Analysis::RecipeLoader::Eye::LEFT,
@@ -273,6 +283,15 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre_draw(const APIInterceptor::AP
 
 end:
     return result;
+}
+
+std::vector<std::string> Stereo::ConverterDLL::D3D7EyeRenderer::take_unmirrored_notes()
+{
+    std::vector<std::string> result_vec;
+
+    result_vec.swap(m_unmirrored_note_vec);
+
+    return result_vec;
 }
 
 void Stereo::ConverterDLL::D3D7EyeRenderer::draw(const DrawArguments& in_draw_arguments,
@@ -507,6 +526,101 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::leave_right_eye(void*               
     }
 }
 
+void Stereo::ConverterDLL::D3D7EyeRenderer::note_unmirrored(const APIInterceptor::APIFunction& in_function,
+                                                           const char*                        in_reason_ptr)
+{
+    constexpr size_t MAX_N_NOTES = 8;
+
+    m_n_unmirrored_calls++;
+
+    /* The first ones are told, to know what they are. */
+    if (m_unmirrored_note_vec.size() < MAX_N_NOTES)
+    {
+        const char* const name_ptr = Interception::Core::D3D7Utils::get_function_name_ptr(in_function);
+
+        m_unmirrored_note_vec.push_back(std::string("Not made for the right eye: ") + ((name_ptr != nullptr) ? name_ptr : "a call") + ", " + in_reason_ptr);
+    }
+}
+
+bool Stereo::ConverterDLL::D3D7EyeRenderer::mirror_blt(const APIInterceptor::APIFunction&         in_function,
+                                                       const uint32_t&                            in_n_arguments,
+                                                       const APIInterceptor::APIFunctionArgument* in_arguments_ptr) const
+{
+    constexpr uint32_t N_ARGUMENTS_BLT      = 6;
+    constexpr uint32_t N_ARGUMENTS_BLT_FAST = 6;
+    constexpr size_t   DESTINATION_ARGUMENT = 0;
+
+    const bool is_fast = (in_function == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_BLTFAST);
+    bool       result  = false;
+
+    /* The copy is made to the twin of the surface, from the twin of the surface it is made from if that has one, and as it is otherwise. */
+    if (in_n_arguments >= ((is_fast) ? N_ARGUMENTS_BLT_FAST
+                                     : N_ARGUMENTS_BLT)                                        &&
+        in_arguments_ptr[DESTINATION_ARGUMENT].type == APIInterceptor::ARGTYPE_VOID_PTR)
+    {
+        const size_t source_argument = (is_fast) ? 3 : 2;
+        const size_t rect_argument   = (is_fast) ? 4 : 3;
+        void* const  destination_ptr = const_cast<void*>(in_arguments_ptr[DESTINATION_ARGUMENT].get_ptr() );
+        void* const  twin_ptr        = get_twin_ptr(destination_ptr);
+        uint32_t     flags           = 0;
+        uint32_t     x               = 0;
+        uint32_t     y               = 0;
+
+        if (twin_ptr                               != nullptr                         &&
+            in_arguments_ptr[source_argument].type == APIInterceptor::ARGTYPE_VOID_PTR)
+        {
+            void*             source_ptr      = const_cast<void*>(in_arguments_ptr[source_argument].get_ptr() );
+            void* const       source_twin_ptr = (source_ptr != nullptr) ? get_twin_ptr(source_ptr)
+                                                                        : nullptr;
+            const void* const rect_ptr        = get_chunk_ptr(in_arguments_ptr[rect_argument]);
+
+            const OwnCallScope own_call_scope;
+            void** const       vtable = *reinterpret_cast<void***>(twin_ptr);
+
+            if (source_twin_ptr != nullptr)
+            {
+                source_ptr = source_twin_ptr;
+            }
+
+            if (is_fast)
+            {
+                if (read_u32(in_arguments_ptr[1],
+                            &x)     &&
+                    read_u32(in_arguments_ptr[2],
+                            &y)     &&
+                    read_u32(in_arguments_ptr[5],
+                            &flags))
+                {
+                    reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_BLTFAST>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_BLTFAST])(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(twin_ptr),
+                                                                                                                                                                              x,
+                                                                                                                                                                              y,
+                                                                                                                                                                              static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(source_ptr),
+                                                                                                                                                                              static_cast<const RECT*>(rect_ptr),
+                                                                                                                                                                              flags);
+
+                    result = true;
+                }
+            }
+            else
+            if (read_u32(in_arguments_ptr[4],
+                        &flags) )
+            {
+                reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_BLT>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_BLT])(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(twin_ptr),
+                                                                                                                                                                  static_cast<const RECT*>(get_chunk_ptr(in_arguments_ptr[1]) ),
+                                                                                                                                                                  static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(source_ptr),
+                                                                                                                                                                  static_cast<const RECT*>(rect_ptr),
+                                                                                                                                                                  flags,
+                                                                                                                                                                  static_cast<const Interception::Hooks::D3D7::DDBLTFX*>(get_chunk_ptr(in_arguments_ptr[5]) ));
+
+
+                result = true;
+            }
+        }
+    }
+
+    return result;
+}
+
 bool Stereo::ConverterDLL::D3D7EyeRenderer::play_clear(const uint32_t&                            in_n_arguments,
                                                        const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
 {
@@ -543,7 +657,8 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::play_clear(const uint32_t&          
         read_u32(in_arguments_ptr[STENCIL_ARGUMENT],
                 &stencil) == false)
     {
-        m_n_unmirrored_calls++;
+        note_unmirrored(APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_CLEAR,
+                                 "a clear with arguments which are not as expected");
 
         goto end;
     }
@@ -555,7 +670,8 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::play_clear(const uint32_t&          
     {
         if (in_arguments_ptr[RECTS_ARGUMENT].type != APIInterceptor::ARGTYPE_VOID_PTR)
         {
-            m_n_unmirrored_calls++;
+            note_unmirrored(APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_CLEAR,
+                                 "a clear with rectangles which are not in memory");
 
             goto end;
         }
@@ -607,7 +723,8 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::play_clear(const uint32_t&          
         }
         else
         {
-            m_n_unmirrored_calls++;
+            note_unmirrored(APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_CLEAR,
+                                 "a clear while the device renders to a surface which has no twin");
         }
 
         /* The call of the application is for rectangles of its own pixels: the clear of the left eye is made with those of the back buffer. */
@@ -640,6 +757,24 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::set_effective_viewport(void* in_devi
 
     reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_SETVIEWPORT>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECT3DDEVICE7_SETVIEWPORT])(static_cast<Interception::Hooks::D3D7::IDirect3DDevice7*>(in_device_ptr),
                                                                                                                                                                  &viewport);
+}
+
+const void* Stereo::ConverterDLL::D3D7EyeRenderer::get_chunk_ptr(const APIInterceptor::APIFunctionArgument& in_argument)
+{
+    const void* result_ptr = nullptr;
+    uint32_t    n_bytes    = 0;
+
+    if (in_argument.type == APIInterceptor::ARGTYPE_DATA_CHUNK_ID)
+    {
+        if (APIInterceptor::get_data_chunk(in_argument.get_data_chunk_id(),
+                                          &result_ptr,
+                                          &n_bytes) == false)
+        {
+            result_ptr = nullptr;
+        }
+    }
+
+    return result_ptr;
 }
 
 bool Stereo::ConverterDLL::D3D7EyeRenderer::read_draw_arguments(const APIInterceptor::APIFunction&         in_function,

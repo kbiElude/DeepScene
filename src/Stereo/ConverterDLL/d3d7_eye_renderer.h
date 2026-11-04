@@ -13,6 +13,7 @@
 #include "d3d7_windowed_mode.h"
 #include <array>
 #include <stdint.h>
+#include <string>
 #include <vector>
 
 namespace Stereo
@@ -73,6 +74,10 @@ namespace Stereo
                              const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
                              const float&                               in_picture_width);
 
+            /* The words that tell which calls were not made for the right eye, the first ones, since this was last called. */
+            std::vector<std::string> take_unmirrored_notes();
+
+
         private:
             static constexpr uint32_t N_TEXTURE_STAGES = 8;
 
@@ -131,6 +136,15 @@ namespace Stereo
             void leave_right_eye(void*                inout_device_ptr,
                                  const RightEyeScope& in_scope) const;
 
+            /* The copy that the application made to a surface which has a twin, made to the twin as well. Returns false if it could not be. */
+            bool mirror_blt(const APIInterceptor::APIFunction&         in_function,
+                            const uint32_t&                            in_n_arguments,
+                            const APIInterceptor::APIFunctionArgument* in_arguments_ptr) const;
+
+            /* Counts a call that was not made for the right eye, and keeps what it was, for the first ones. */
+            void note_unmirrored(const APIInterceptor::APIFunction& in_function,
+                                 const char*                        in_reason_ptr);
+
             /* A clear which the application made, made for the right eye, and for the left if its rectangles are to be of the larger back buffer. Returns
              * false if the call of the application is not to be made.
              */
@@ -139,6 +153,9 @@ namespace Stereo
 
             /* Puts in the device the viewport that the application set, in the pixels of what it renders to now. */
             void set_effective_viewport(void* in_device_ptr) const;
+
+            /* The bytes of a structure which an argument holds as a chunk; nullptr if it is not one (a pointer that was null). */
+            static const void* get_chunk_ptr(const APIInterceptor::APIFunctionArgument& in_argument);
 
             /* Reads the arguments of the call, which is of a draw this knows. Returns false if it is not one, or the arguments are not
              * what a draw has.
@@ -158,6 +175,7 @@ namespace Stereo
             uint64_t                  m_n_pixel_calls;
             uint64_t                  m_n_unmirrored_calls;
             D3D7SurfaceTwins          m_surface_twins;
+            std::vector<std::string>  m_unmirrored_note_vec;
             std::vector<uint8_t>      m_vertex_vec; /* of the draw being made: its room is used again */
             const D3D7WindowedMode*   m_windowed_mode_ptr;
         };

@@ -280,6 +280,12 @@ void Stereo::ConverterDLL::Converter::on_d3d7_frame_ending(const APIInterceptor:
         m_live_state.d3d7_windowed_mode.keep_windows_invisible();
     }
 
+    /* What was not made for the right eye is said, the first calls of each. */
+    for (const auto& note : m_live_state.d3d7_renderer_ptr->take_unmirrored_notes() )
+    {
+        out_log_line_vec_ptr->push_back(note);
+    }
+
     m_live_state.n_frames++;
 
     if (m_live_state.n_frames % N_FRAMES_BETWEEN_STATISTICS == 0)
