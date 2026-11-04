@@ -468,7 +468,8 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_per_eye(const Depe
     inout_writer_ptr->write_string("Resources which are rendered to, and which some frame uses what an earlier frame left in (whether that frame "
                                    "writes them too or not): each eye is to have a copy of them (a recipe lists them as per_eye_textures). One "
                                    "that is used only possibly is one whose old content may show, because only part of it was written before "
-                                   "it was read.");
+                                   "it was read. A resource of a rotation group (resources of one description which are written by turns) is listed if "
+                                   "another of the group is: all of them are one thing for the eyes.");
     inout_writer_ptr->write_key   ("candidates");
     inout_writer_ptr->begin_array ();
 
@@ -484,9 +485,45 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_per_eye(const Depe
         inout_writer_ptr->write_string((candidate.is_certain) ? "certain"
                                                               : "possible");
 
+        if (candidate.is_added_by_group)
+        {
+            inout_writer_ptr->write_key   ("added_by_group");
+            inout_writer_ptr->write_bool  (true);
+        }
+
+        if (candidate.rotation_group_index != NO_ROTATION_GROUP)
+        {
+            inout_writer_ptr->write_key("rotation_group");
+            inout_writer_ptr->write_u64(candidate.rotation_group_index);
+        }
+
         write_summary(in_analysis.result.resource_vec.at(candidate.n_resource).summary,
                       inout_writer_ptr);
 
+        inout_writer_ptr->end_object();
+    }
+
+    inout_writer_ptr->end_array ();
+
+    inout_writer_ptr->write_key  ("rotation_groups");
+    inout_writer_ptr->begin_array();
+
+    for (const auto& group : PerEyeCandidates::find_rotation_groups(in_analysis) )
+    {
+        inout_writer_ptr->begin_object();
+
+        inout_writer_ptr->write_key   ("order");
+        inout_writer_ptr->write_string((group.has_regular_order) ? "cycle"
+                                                                : "irregular");
+        inout_writer_ptr->write_key   ("resources");
+        inout_writer_ptr->begin_array ();
+
+        for (const size_t n_resource : group.n_resource_vec)
+        {
+            inout_writer_ptr->write_u64(n_resource + 1);
+        }
+
+        inout_writer_ptr->end_array ();
         inout_writer_ptr->end_object();
     }
 
