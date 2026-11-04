@@ -171,6 +171,32 @@ const char* Analysis::APIDumpAnalysis::QueryCommands::get_constant_semantic_name
     return result_ptr;
 }
 
+bool Analysis::APIDumpAnalysis::QueryCommands::get_first_frame_index(const AnalysisResult& in_analysis,
+                                                                     const uint32_t&       in_pass_id,
+                                                                     uint64_t*             out_frame_index_ptr)
+{
+    const auto& model_ref = in_analysis.model;
+    bool        result    = false;
+
+    /* The frames are in order, and a frame has the passes of its shape. */
+    for (const auto& frame_record : model_ref.frame_record_vec)
+    {
+        const auto& shape = model_ref.frame_shape_interner.get_structure(frame_record.shape_id);
+
+        if (std::binary_search(shape.pass_structure_id_vec.begin(),
+                               shape.pass_structure_id_vec.end  (),
+                               in_pass_id) )
+        {
+            *out_frame_index_ptr = frame_record.frame_index;
+            result               = true;
+
+            break;
+        }
+    }
+
+    return result;
+}
+
 std::string Analysis::APIDumpAnalysis::QueryCommands::get_hex_string(const std::vector<uint8_t>& in_byte_vec)
 {
     static const char DIGIT_ARRAY[] = "0123456789abcdef";
@@ -957,6 +983,69 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
         inout_writer_ptr->write_key    ("n_draw_structures");
         inout_writer_ptr->write_u64    (structure.draw_structure_key_vec.size() );
         inout_writer_ptr->end_object();
+    }
+
+    inout_writer_ptr->end_array();
+
+    /* A draw of a candidate pass is a candidate too: a person looks at them one by one, and a recipe can tell them apart by their signatures. */
+    inout_writer_ptr->write_key("draws");
+    inout_writer_ptr->begin_array();
+
+    for (const auto& pass_id : pass_id_vec)
+    {
+        const auto& structure         = model_ref.pass_structure_interner.get_structure(pass_id);
+        uint64_t    first_frame_index = 0;
+        const bool  has_first_frame   = get_first_frame_index(in_analysis,
+                                                              pass_id,
+                                                             &first_frame_index);
+
+        for (const auto& draw_signature : structure.draw_signature_vec)
+        {
+            const auto draw_iterator = model_ref.draw_structure_map.find(draw_signature.structure_key);
+
+            inout_writer_ptr->begin_object();
+
+            inout_writer_ptr->write_key    ("signature_key");
+            inout_writer_ptr->write_hex_u64(draw_signature.signature_key);
+            inout_writer_ptr->write_key    ("structure_key");
+            inout_writer_ptr->write_hex_u64(draw_signature.structure_key);
+            inout_writer_ptr->write_key    ("pass_id");
+            inout_writer_ptr->write_u64    (pass_id);
+            inout_writer_ptr->write_key    ("pass_key");
+            inout_writer_ptr->write_hex_u64(structure.key);
+            inout_writer_ptr->write_key    ("n_frames");
+            inout_writer_ptr->write_u64    (timeline.pass_usage_vec.at(pass_id).n_frames);
+
+            if (has_first_frame)
+            {
+                inout_writer_ptr->write_key("first_frame_index");
+                inout_writer_ptr->write_u64(first_frame_index);
+            }
+
+            if (draw_iterator != model_ref.draw_structure_map.end() )
+            {
+                inout_writer_ptr->write_key    ("topology");
+                inout_writer_ptr->write_string (get_primitive_topology_name(draw_iterator->second.primitive_topology) );
+                inout_writer_ptr->write_key    ("is_indexed");
+                inout_writer_ptr->write_bool   (draw_iterator->second.is_indexed);
+                inout_writer_ptr->write_key    ("vertex_layout_key");
+                inout_writer_ptr->write_hex_u64(draw_iterator->second.vertex_layout_key);
+            }
+
+            /* What makes the draw a candidate; a hint as the pass is. */
+            inout_writer_ptr->write_key("reasons");
+            inout_writer_ptr->begin_inline_array();
+            inout_writer_ptr->write_string("static_camera");
+
+            if (structure.clears_color == false)
+            {
+                inout_writer_ptr->write_string("draws_over_existing_color");
+            }
+
+            inout_writer_ptr->end_array();
+
+            inout_writer_ptr->end_object();
+        }
     }
 
     inout_writer_ptr->end_array();

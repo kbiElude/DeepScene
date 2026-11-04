@@ -645,6 +645,37 @@ TEST_F(QueryCommandsTest, OverlaysAreThePassesWhoseCameraNeverChanges)
 
     EXPECT_FALSE(expected_key_set.empty() );
 
+    /* The draws are those of the candidate passes, one for each signature, and each says which pass it is of. */
+    {
+        size_t n_expected_draws = 0;
+
+        for (const auto& candidate : value.at("candidates").item_vec)
+        {
+            const auto& structure = m_analysis.model.pass_structure_interner.get_structure(static_cast<uint32_t>(candidate.at("pass_id").number_value) );
+
+            n_expected_draws += structure.draw_signature_vec.size();
+        }
+
+        ASSERT_EQ(value.at("draws").item_vec.size(),
+                  n_expected_draws);
+
+        for (const auto& draw : value.at("draws").item_vec)
+        {
+            EXPECT_EQ(expected_key_set.count(draw.at("pass_key").string_value),
+                      1u);
+            EXPECT_FALSE(draw.at("signature_key").string_value.empty() );
+            EXPECT_FALSE(draw.at("structure_key").string_value.empty() );
+            EXPECT_GE(draw.at("n_frames").number_value,
+                      1.0);
+            EXPECT_EQ(draw.at("reasons").item_vec.at(0).string_value,
+                      "static_camera");
+
+            /* A pass that was played at all has a first frame, which is a frame that has it. */
+            ASSERT_NE(draw.find_ptr("first_frame_index"),
+                      nullptr);
+        }
+    }
+
     /* A camera which moves takes the pass out of the list. */
     for (auto& series_pair : m_analysis.model.constant_series_map)
     {

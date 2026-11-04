@@ -227,7 +227,7 @@ void Analysis::APIDumpAnalysisQuery::print_usage()
             "  timeline             The runs of frames of one kind, in order of time\n"
             "  pipelines            The kinds of frames, and the kinds of passes each is made of\n"
             "  resources            What the frames did with each resource, and which can be played again\n"
-            "  overlays             The passes whose camera never changes (maybe 2D overlays), as an \"unaffected\" list for a recipe\n"
+            "  overlays             The passes whose camera never changes (maybe 2D overlays), and their draws, as an \"unaffected\" list for a recipe\n"
             "  pass <id>            One kind of pass: its targets, draws and camera constants\n"
             "  frame <index>        One frame (its calls, and its passes if it is a representative frame)\n"
             "  frame --shape <id>   A representative frame of one kind of frame\n"

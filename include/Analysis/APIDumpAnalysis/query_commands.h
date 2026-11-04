@@ -9,7 +9,7 @@
  *   info       what the analysis is of, and how much it found
  *   timeline   runs of frames of one shape, in time order (paged)
  *   pipelines  frame shapes and the pass structures each is made of (paged)
- *   overlays   passes whose camera never changes: candidates for 2D overlays, as a recipe "unaffected" list (a hint only)
+ *   overlays   passes whose camera never changes, and the draws of them: candidates for 2D overlays, as a recipe "unaffected" list (a hint only)
  *   pass       one pass structure, with its draws (paged) and camera constants
  *   frame      one frame by index, or a representative frame of a shape
  *   resources  what the frames did with each resource, optionally of one class (paged)
@@ -60,6 +60,9 @@ namespace Analysis
             static const char* get_constant_block_kind_name  (const ConstantBlockKind&    in_kind);
             static const char* get_constant_provenance_name  (const ConstantProvenance&   in_provenance);
             static const char* get_constant_semantic_name    (const ConstantSemantic&     in_semantic);
+            static bool        get_first_frame_index         (const AnalysisResult&       in_analysis,
+                                                              const uint32_t&             in_pass_id,
+                                                              uint64_t*                   out_frame_index_ptr);
             static std::string get_hex_string                (const std::vector<uint8_t>& in_byte_vec);
             static const char* get_primitive_topology_name   (const PrimitiveTopology&    in_topology);
             static const char* get_resource_access_class_name(const ResourceAccessClass&  in_class);
