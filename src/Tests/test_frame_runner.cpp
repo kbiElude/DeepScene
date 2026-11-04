@@ -6,7 +6,7 @@
  */
 #include <gtest/gtest.h>
 #include "frame_runner.h"
-#include "test_doubles.h"
+#include "replay_test_doubles.h"
 #include <algorithm>
 #include <string>
 
@@ -17,18 +17,18 @@ protected:
     class Executor : public Tests::StubCallExecutor
     {
     public:
-        Stereo::Replay::EngineDLL::ExecutionClass get_execution_class(const Capture::APIDumpLoader::DumpedAPICall& in_call) const override
+        ::Replay::ReplayEngineDLL::ExecutionClass get_execution_class(const Capture::APIDumpLoader::DumpedAPICall& in_call) const override
         {
-            Stereo::Replay::EngineDLL::ExecutionClass result = Stereo::Replay::EngineDLL::ExecutionClass::FIRST_TIME_ONLY;
+            ::Replay::ReplayEngineDLL::ExecutionClass result = ::Replay::ReplayEngineDLL::ExecutionClass::FIRST_TIME_ONLY;
 
             if (in_call.func == AFTER_ALL_FUNCTION)
             {
-                result = Stereo::Replay::EngineDLL::ExecutionClass::AFTER_ALL;
+                result = ::Replay::ReplayEngineDLL::ExecutionClass::AFTER_ALL;
             }
             else
             if (in_call.func == EVERY_TIME_FUNCTION)
             {
-                result = Stereo::Replay::EngineDLL::ExecutionClass::EVERY_TIME;
+                result = ::Replay::ReplayEngineDLL::ExecutionClass::EVERY_TIME;
             }
 
             return result;
@@ -85,7 +85,7 @@ protected:
                                                                return &m_executor;
                                                            },
                                                            [this](const Capture::APIDumpLoader::DumpedAPICall&     in_call,
-                                                                  const Stereo::Replay::EngineDLL::IChunkSource& in_chunk_source,
+                                                                  const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
                                                                   const size_t&                                in_n_call,
                                                                   const uint32_t&                         in_n_execution)
                                                            {
@@ -317,7 +317,7 @@ TEST_F(FrameRunnerTest, TheCallsAreToldTheirPositionAndTheExecution)
                                                                 return &m_executor;
                                                             },
                                                             [&](const Capture::APIDumpLoader::DumpedAPICall&  in_call,
-                                                                const Stereo::Replay::EngineDLL::IChunkSource& in_chunk_source,
+                                                                const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
                                                                 const size_t&                                in_n_call,
                                                                 const uint32_t&                      in_n_execution)
                                                             {

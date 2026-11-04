@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 #include "Interception/Hooks/D3D8/types.h"
 #include "eye_matrix_binder.h"
-#include "test_doubles.h"
+#include "replay_test_doubles.h"
 #include <string.h>
 
 constexpr uint32_t MATRIX_CHUNK_ID = 3;
@@ -58,7 +58,7 @@ protected:
         m_rewriter_ptr.reset(new Stereo::Replay::EngineDLL::FrameRewriter(*m_applier_ptr) );
         m_binder_ptr.reset(new Stereo::Replay::EngineDLL::EyeMatrixBinder(*m_rewriter_ptr,
                                                                           [this](const Capture::APIDumpLoader::DumpedAPICall&   in_call,
-                                                                                 const Stereo::Replay::EngineDLL::IChunkSource& in_chunk_source)
+                                                                                 const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source)
                                                                           {
                                                                               Executed executed = {};
 
@@ -261,7 +261,7 @@ TEST_F(EyeMatrixBinderTest, ACallTheRecipeDoesNotChangeIsLeftToTheCallerAndDrops
     m_rewriter_ptr.reset(new Stereo::Replay::EngineDLL::FrameRewriter(*m_applier_ptr) );
     m_binder_ptr.reset(new Stereo::Replay::EngineDLL::EyeMatrixBinder(*m_rewriter_ptr,
                                                                       [this](const Capture::APIDumpLoader::DumpedAPICall&,
-                                                                             const Stereo::Replay::EngineDLL::IChunkSource&)
+                                                                             const ::Replay::ReplayEngineDLL::IChunkSource&)
                                                                       {
                                                                           m_executed_vec.push_back({});
 
@@ -322,7 +322,7 @@ TEST_F(EyeMatrixBinderTest, AMatrixMadeForAnotherSeparationIsMadeAgainWhenTheSep
     m_rewriter_ptr.reset(new Stereo::Replay::EngineDLL::FrameRewriter(*m_applier_ptr) );
     m_binder_ptr.reset(new Stereo::Replay::EngineDLL::EyeMatrixBinder(*m_rewriter_ptr,
                                                                       [this](const Capture::APIDumpLoader::DumpedAPICall&   in_call,
-                                                                             const Stereo::Replay::EngineDLL::IChunkSource& in_chunk_source)
+                                                                             const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source)
                                                                       {
                                                                           float matrix[16];
 

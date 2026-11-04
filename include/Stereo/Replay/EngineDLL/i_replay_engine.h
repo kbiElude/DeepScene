@@ -5,11 +5,12 @@
 #ifndef STEREO_REPLAY_ENGINEDLL_I_REPLAY_ENGINE_H
 #define STEREO_REPLAY_ENGINEDLL_I_REPLAY_ENGINE_H
 
+#include "Analysis/RecipeLoader/types.h"
+#include "Replay/ReplayEngineDLL/i_replay_engine.h"
 #include "Stereo/Replay/EngineDLL/i_call_interceptor.h"
 #include "Stereo/Replay/EngineDLL/i_frame_image_sink.h"
 #include "Stereo/Replay/EngineDLL/i_playback_controller.h"
 #include "Stereo/Replay/EngineDLL/i_replay_observer.h"
-#include "Analysis/RecipeLoader/types.h"
 
 namespace Stereo
 {
@@ -17,24 +18,13 @@ namespace Stereo
     {
         namespace EngineDLL
         {
-            /* Replays a workload file on its own thread. Create one with create_replay_engine(). */
-            class IReplayEngine
+            /* Replays a workload file on its own thread, for the eyes of a recipe (see the replay engine of the interceptor for loading and
+             * for the listeners). Create one with create_replay_engine().
+             */
+            class IReplayEngine : public ::Replay::ReplayEngineDLL::IReplayEngine
             {
             public:
-                virtual ~IReplayEngine() = default;
-
-                /* The listeners must outlive the engine, or be removed first. */
-                virtual void add_call_interceptor(ICallInterceptor* in_interceptor_ptr) = 0;
-                virtual void add_replay_observer (IReplayObserver*  in_observer_ptr)    = 0;
-
-                virtual IPlaybackController* get_playback_controller_ptr() = 0;
-
-                /* Opens the workload; the replay waits for play(). Returns false (and says why) if the file cannot be read. */
-                virtual bool load(const char*  in_filename_ptr,
-                                  std::string* out_error_ptr) = 0;
-
-                virtual void remove_call_interceptor(ICallInterceptor* in_interceptor_ptr) = 0;
-                virtual void remove_replay_observer (IReplayObserver*  in_observer_ptr)    = 0;
+                IPlaybackController* get_playback_controller_ptr() override = 0;
 
                 /* Both must be set before the replay is played. */
                 virtual void set_frame_execution (const FrameExecutionOptions& in_options)  = 0;

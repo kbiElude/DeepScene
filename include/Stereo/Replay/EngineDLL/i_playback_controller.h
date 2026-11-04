@@ -5,6 +5,7 @@
 #ifndef STEREO_REPLAY_ENGINEDLL_I_PLAYBACK_CONTROLLER_H
 #define STEREO_REPLAY_ENGINEDLL_I_PLAYBACK_CONTROLLER_H
 
+#include "Replay/ReplayEngineDLL/i_playback_controller.h"
 #include "Stereo/Replay/EngineDLL/types.h"
 
 namespace Stereo
@@ -13,29 +14,14 @@ namespace Stereo
     {
         namespace EngineDLL
         {
-            /* Controls a replay from any thread. The functions return at once; a request takes effect at the next frame
-             * boundary of the replay (at once, if the replay is not running). Observers tell when it did.
+            /* Controls a replay from any thread (see the controller of the replay engine of the interceptor for play, pause, reset and the
+             * status), and says how far apart the eyes are and how fast the replay goes.
              */
-            class IPlaybackController
+            class IPlaybackController : public ::Replay::ReplayEngineDLL::IPlaybackController
             {
             public:
-                virtual ~IPlaybackController() = default;
-
                 /* The distance between the eyes, in the units of the camera of the application. */
                 virtual float get_eye_separation() const = 0;
-
-                virtual PlaybackStatus get_status() const = 0;
-
-                /* Stops at the next frame boundary. */
-                virtual void pause() = 0;
-
-                /* Starts, or resumes. Does nothing once the replay has finished or failed. */
-                virtual void play() = 0;
-
-                /* Goes back to the start of the workload, replays its first frame, and pauses there until play(). The frame is
-                 * rendered, so it can be seen. Takes effect at the next frame boundary if the replay is running.
-                 */
-                virtual void reset() = 0;
 
                 /* Changes the distance between the eyes of the frames that are rendered for two eyes; 0 renders the same image for both.
                  * Takes effect from the next frame, and is not part of any recipe: a recipe says in which direction the eyes are moved

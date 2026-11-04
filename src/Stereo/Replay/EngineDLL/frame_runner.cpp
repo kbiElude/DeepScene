@@ -5,17 +5,17 @@
 #include "frame_runner.h"
 #include "Common/macros.h"
 
-bool Stereo::Replay::EngineDLL::FrameRunner::run(const FrameBuffer&                 in_buffer,
-                                                 const bool&                        in_is_complete,
-                                                 const bool&                        in_skips_repeated_calls,
-                                                 const FrameExecutionOptions&       in_options,
-                                                 const std::vector<ICallExecutor*>& in_executor_ptr_vec,
-                                                 const BeginFunc&                   in_begin_func,
-                                                 const GetExecutorFunc&             in_get_executor_func,
-                                                 const ExecuteFunc&                 in_execute_func,
-                                                 const CaptureFunc&                 in_capture_func)
+bool Stereo::Replay::EngineDLL::FrameRunner::run(const FrameBuffer&                                            in_buffer,
+                                                 const bool&                                                   in_is_complete,
+                                                 const bool&                                                   in_skips_repeated_calls,
+                                                 const FrameExecutionOptions&                                  in_options,
+                                                 const std::vector<::Replay::ReplayEngineDLL::ICallExecutor*>& in_executor_ptr_vec,
+                                                 const BeginFunc&                                              in_begin_func,
+                                                 const GetExecutorFunc&                                        in_get_executor_func,
+                                                 const ExecuteFunc&                                            in_execute_func,
+                                                 const CaptureFunc&                                            in_capture_func)
 {
-    std::vector<ExecutionClass> class_vec;
+    std::vector<::Replay::ReplayEngineDLL::ExecutionClass> class_vec;
     const bool                  is_twice     = (in_is_complete                  &&
                                                 in_skips_repeated_calls == false &&
                                                 in_options.mode         == FrameExecution::TWICE);
@@ -67,14 +67,14 @@ bool Stereo::Replay::EngineDLL::FrameRunner::run(const FrameBuffer&             
 
             switch (class_vec.at(n_call) )
             {
-                case ExecutionClass::EVERY_TIME:
+                case ::Replay::ReplayEngineDLL::ExecutionClass::EVERY_TIME:
                 {
                     should_execute = (in_skips_repeated_calls == false);
 
                     break;
                 }
 
-                case ExecutionClass::FIRST_TIME_ONLY:
+                case ::Replay::ReplayEngineDLL::ExecutionClass::FIRST_TIME_ONLY:
                 {
                     should_execute = (n_execution == 0);
 
@@ -82,7 +82,7 @@ bool Stereo::Replay::EngineDLL::FrameRunner::run(const FrameBuffer&             
                 }
 
                 /* What comes after all the executions waits for them, unless the frame is cut short. */
-                case ExecutionClass::AFTER_ALL:
+                case ::Replay::ReplayEngineDLL::ExecutionClass::AFTER_ALL:
                 {
                     should_execute = (in_is_complete == false);
 
@@ -126,7 +126,7 @@ bool Stereo::Replay::EngineDLL::FrameRunner::run(const FrameBuffer&             
         {
             const auto& call = in_buffer.get_call_vec().at(n_call);
 
-            if (class_vec.at(n_call) == ExecutionClass::AFTER_ALL)
+            if (class_vec.at(n_call) == ::Replay::ReplayEngineDLL::ExecutionClass::AFTER_ALL)
             {
                 if (in_execute_func(call,
                                     in_buffer,

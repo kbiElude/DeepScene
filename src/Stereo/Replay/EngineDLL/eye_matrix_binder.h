@@ -31,7 +31,7 @@ namespace Stereo
             {
             public:
                 typedef std::function<bool(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                           const IChunkSource&                 in_chunk_source)> ExecuteFunc;
+                                           const ::Replay::ReplayEngineDLL::IChunkSource&                 in_chunk_source)> ExecuteFunc;
 
                 EyeMatrixBinder(const FrameRewriter& in_rewriter,
                                 const ExecuteFunc&   in_execute_func);
@@ -49,11 +49,11 @@ namespace Stereo
                 /* A call of the frame. Returns true if it is taken, and so executed later; otherwise it is the caller's to execute, and a
                  * call kept before for the same matrix is dropped, since this one replaces it.
                  */
-                bool on_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                             const IChunkSource&                          in_chunk_source,
-                             const Analysis::RecipeApplier::CallPlace&    in_place,
-                             const Analysis::RecipeLoader::Eye&           in_eye,
-                             const float&                                 in_eye_separation);
+                bool on_call(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
+                             const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
+                             const Analysis::RecipeApplier::CallPlace&      in_place,
+                             const Analysis::RecipeLoader::Eye&             in_eye,
+                             const float&                                   in_eye_separation);
 
             private:
                 /* What the device has of a matrix, as far as the binder knows. */

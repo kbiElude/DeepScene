@@ -58,7 +58,9 @@ file(GLOB StereoConverterDLLSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR
 # The stereo converter: a DLL which goes into the application. The pixel converter of the replay engine is used as it is, to turn a back
 # buffer of any format into BGRA.
 add_library(StereoConverterDLL SHARED ${StereoConverterDLLSources}
-                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/EngineDLL/pixel_converter.cpp")
+                                      "${APIInterceptor_SOURCE_DIR}/src/Replay/ReplayEngineDLL/pixel_converter.cpp")
+
+target_include_directories(StereoConverterDLL PRIVATE "${APIInterceptor_SOURCE_DIR}/src/Replay/ReplayEngineDLL")
 
 target_link_libraries(StereoConverterDLL APIDumpAnalysisFrontends APIInterceptor D3D7Utils D3D8Utils StereoCore StereoD3D7 StereoSession StereoTransport winmm)
 

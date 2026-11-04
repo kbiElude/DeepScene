@@ -18,14 +18,14 @@ namespace Stereo
             /* The calls of one frame and their data chunks, copied out of the segments they were read from: a segment is gone once
              * the walker moves on, so a frame can be executed again only from a copy.
              */
-            class FrameBuffer : public IChunkSource
+            class FrameBuffer : public ::Replay::ReplayEngineDLL::IChunkSource
             {
             public:
                 FrameBuffer();
 
                 /* Copies the call, and the chunks that it refers to and the buffer does not have yet. */
-                void add_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                              const IChunkSource&                          in_chunk_source);
+                void add_call(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
+                              const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source);
 
                 void clear();
 

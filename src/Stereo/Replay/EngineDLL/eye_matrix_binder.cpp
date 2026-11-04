@@ -104,11 +104,11 @@ Stereo::Replay::EngineDLL::EyeMatrixBinder::SlotKey Stereo::Replay::EngineDLL::E
     return result;
 }
 
-bool Stereo::Replay::EngineDLL::EyeMatrixBinder::on_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                         const IChunkSource&                          in_chunk_source,
-                                                         const Analysis::RecipeApplier::CallPlace&    in_place,
-                                                         const Analysis::RecipeLoader::Eye&           in_eye,
-                                                         const float&                                 in_eye_separation)
+bool Stereo::Replay::EngineDLL::EyeMatrixBinder::on_call(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
+                                                         const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
+                                                         const Analysis::RecipeApplier::CallPlace&      in_place,
+                                                         const Analysis::RecipeLoader::Eye&             in_eye,
+                                                         const float&                                   in_eye_separation)
 {
     SlotKey key;
     bool    result = false;

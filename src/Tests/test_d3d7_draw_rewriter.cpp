@@ -7,6 +7,7 @@
  */
 #include <gtest/gtest.h>
 #include "d3d7_draw_rewriter.h"
+#include "replay_test_doubles.h"
 #include <map>
 #include <math.h>
 #include <string.h>
@@ -18,26 +19,6 @@ namespace
     constexpr uint32_t FVF_PRETRANSFORMED = 0x1c4; /* XYZRHW, a diffuse and a specular color, one set of texture coordinates: 32 bytes */
     constexpr uint32_t FVF_TRANSFORMED_BY_MATRIX = 0x142; /* XYZ, a diffuse color, one set of texture coordinates */
     constexpr size_t   VERTEX_N_BYTES     = 32;
-
-    /* Chunks which are kept in a map. */
-    class MapChunkSource : public IChunkSource
-    {
-    public:
-        const Capture::APIDumpLoader::DataChunk* get_data_chunk_ptr(const uint32_t& in_data_chunk_id) const override
-        {
-            const auto chunk_iterator = chunk_map.find(in_data_chunk_id);
-
-            return (chunk_iterator != chunk_map.end() ) ? &chunk_iterator->second
-                                                        : nullptr;
-        }
-
-        uint32_t get_pointer_n_bytes() const override
-        {
-            return 4;
-        }
-
-        std::map<uint32_t, Capture::APIDumpLoader::DataChunk> chunk_map;
-    };
 
     Stereo::D3D7::ScreenParallax::Parameters make_parameters(const Analysis::RecipeLoader::Eye& in_eye)
     {
@@ -268,7 +249,7 @@ TEST(D3D7ScreenParallax, ScalingMovesTheXAndTheYAndLeavesTheDepthAndWhatIsAfterI
 
 TEST(D3D7DrawRewriter, ADrawOfPreTransformedVerticesIsCopiedWithTheVerticesMovedAndTheOriginalLeftAlone)
 {
-    MapChunkSource                                 source;
+    Tests::MapChunkSource                                 source;
     OverlayChunkSource                             overlay(source);
     Capture::APIDumpLoader::DumpedAPICall          rewritten;
     const auto                                     original_vertices = make_vertices({10.0f, 20.0f},
@@ -328,7 +309,7 @@ TEST(D3D7DrawRewriter, ADrawOfPreTransformedVerticesIsCopiedWithTheVerticesMoved
 
 TEST(D3D7DrawRewriter, ADrawPushedAsAWholeHasEveryVertexMovedByTheSameShiftWhateverItsDepth)
 {
-    MapChunkSource                        source;
+    Tests::MapChunkSource                        source;
     OverlayChunkSource                    overlay(source);
     Capture::APIDumpLoader::DumpedAPICall rewritten;
 
@@ -362,7 +343,7 @@ TEST(D3D7DrawRewriter, ADrawPushedAsAWholeHasEveryVertexMovedByTheSameShiftWhate
 
 TEST(D3D7DrawRewriter, ADrawPushedByNothingOrOfVerticesAMatrixMovesIsLeftAlone)
 {
-    MapChunkSource                        source;
+    Tests::MapChunkSource                        source;
     OverlayChunkSource                    overlay(source);
     Capture::APIDumpLoader::DumpedAPICall rewritten;
 
@@ -387,7 +368,7 @@ TEST(D3D7DrawRewriter, ADrawPushedByNothingOrOfVerticesAMatrixMovesIsLeftAlone)
 
 TEST(D3D7DrawRewriter, ADrawWhichTheIndicesComeBeforeTheVerticesOfHasTheVerticesMovedAndTheIndicesAsTheyAre)
 {
-    MapChunkSource                        source;
+    Tests::MapChunkSource                        source;
     OverlayChunkSource                    overlay(source);
     Capture::APIDumpLoader::DumpedAPICall rewritten;
 
@@ -428,7 +409,7 @@ TEST(D3D7DrawRewriter, ADrawWhichTheIndicesComeBeforeTheVerticesOfHasTheVertices
 
 TEST(D3D7DrawRewriter, WhatIsNotADrawOfPreTransformedVerticesWhichThereIsRoomForIsLeftAlone)
 {
-    MapChunkSource                        source;
+    Tests::MapChunkSource                        source;
     OverlayChunkSource                    overlay(source);
     Capture::APIDumpLoader::DumpedAPICall rewritten;
 

@@ -6,7 +6,7 @@
  */
 #include <gtest/gtest.h>
 #include "frame_buffer.h"
-#include "test_doubles.h"
+#include "replay_test_doubles.h"
 
 static Capture::APIDumpLoader::DumpedAPICall make_call(const std::vector<uint32_t>& in_chunk_id_vec)
 {

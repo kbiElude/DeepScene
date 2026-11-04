@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 #include "Interception/Hooks/D3D8/types.h"
 #include "frame_rewriter.h"
-#include "test_doubles.h"
+#include "replay_test_doubles.h"
 #include <string.h>
 
 constexpr uint32_t MATRIX_CHUNK_ID = 3;

@@ -8,11 +8,11 @@
 #include "d3d7_draw_rewriter.h"
 #include "frame_buffer.h"
 
-bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::rewrite(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
-                                                          const IChunkSource&                            in_chunk_source,
+bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::rewrite(const Capture::APIDumpLoader::DumpedAPICall&    in_call,
+                                                          const ::Replay::ReplayEngineDLL::IChunkSource&  in_chunk_source,
                                                           const Stereo::D3D7::ScreenParallax::Parameters& in_parameters,
-                                                          OverlayChunkSource*                            inout_overlay_ptr,
-                                                          Capture::APIDumpLoader::DumpedAPICall*         out_call_ptr)
+                                                          OverlayChunkSource*                             inout_overlay_ptr,
+                                                          Capture::APIDumpLoader::DumpedAPICall*          out_call_ptr)
 {
     bool result = false;
 
@@ -36,11 +36,11 @@ bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::rewrite(const Capture::APIDump
     return result;
 }
 
-bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::rewrite_by(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                             const IChunkSource&                          in_chunk_source,
-                                                             const float&                                 in_shift,
-                                                             OverlayChunkSource*                          inout_overlay_ptr,
-                                                             Capture::APIDumpLoader::DumpedAPICall*       out_call_ptr)
+bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::rewrite_by(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
+                                                             const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
+                                                             const float&                                   in_shift,
+                                                             OverlayChunkSource*                            inout_overlay_ptr,
+                                                             Capture::APIDumpLoader::DumpedAPICall*         out_call_ptr)
 {
     bool result = false;
 
@@ -64,11 +64,11 @@ bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::rewrite_by(const Capture::APID
     return result;
 }
 
-bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::rewrite_vertices(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                     const IChunkSource&                          in_chunk_source,
-                                                                     const ShiftFunc&                             in_shift_func,
-                                                                     OverlayChunkSource*                          inout_overlay_ptr,
-                                                                     Capture::APIDumpLoader::DumpedAPICall*       out_call_ptr)
+bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::rewrite_vertices(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
+                                                                   const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
+                                                                   const ShiftFunc&                               in_shift_func,
+                                                                   OverlayChunkSource*                            inout_overlay_ptr,
+                                                                   Capture::APIDumpLoader::DumpedAPICall*         out_call_ptr)
 {
     constexpr uint32_t NEW_VERTICES_CHUNK_ID = 0xfffffff1; /* no chunk of a workload has an ID this big */
     constexpr size_t   FVF_ARGUMENT          = 2;          /* of both draws */

@@ -15,10 +15,10 @@ namespace Stereo
         namespace EngineDLL
         {
             /* A chunk source with chunks of its own put over those of another one, which must outlive it. */
-            class OverlayChunkSource : public IChunkSource
+            class OverlayChunkSource : public ::Replay::ReplayEngineDLL::IChunkSource
             {
             public:
-                explicit OverlayChunkSource(const IChunkSource& in_base);
+                explicit OverlayChunkSource(const ::Replay::ReplayEngineDLL::IChunkSource& in_base);
 
                 const Capture::APIDumpLoader::DataChunk* get_data_chunk_ptr (const uint32_t& in_data_chunk_id) const override;
                 uint32_t                                 get_pointer_n_bytes()                                 const override;
@@ -28,7 +28,7 @@ namespace Stereo
                                const Capture::APIDumpLoader::DataChunk& in_chunk);
 
             private:
-                const IChunkSource&                                   m_base;
+                const ::Replay::ReplayEngineDLL::IChunkSource&                                   m_base;
                 std::map<uint32_t, Capture::APIDumpLoader::DataChunk> m_chunk_map;
             };
         }

@@ -10,8 +10,8 @@ Stereo::Replay::EngineDLL::FrameBuffer::FrameBuffer()
     /* Stub */
 }
 
-void Stereo::Replay::EngineDLL::FrameBuffer::add_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                      const IChunkSource&                          in_chunk_source)
+void Stereo::Replay::EngineDLL::FrameBuffer::add_call(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
+                                                      const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source)
 {
     Capture::APIDumpLoader::DumpedAPICall copy = copy_call(in_call);
 

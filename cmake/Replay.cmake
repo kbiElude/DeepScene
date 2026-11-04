@@ -1,5 +1,5 @@
-# The replay of a workload for both eyes, and the programs which play it in a window and check it. The engine needs the D3D8 description of the
-# interceptor (D3D8Utils) and the analysis of a capture; the window is the one of UIHost (see VR.cmake), drawn with the Dear ImGui of the
+# The replay of a workload for both eyes, and the programs which play it in a window and check it. The engine is the one of the interceptor (ReplayEngineCore),
+# with the frames played for the eyes of a recipe; it needs the analysis of a capture. The window is the one of UIHost (see VR.cmake), drawn with the Dear ImGui of the
 # interceptor. The 32-bit pair has its own names, so that the 64-bit player can find it next to itself (see PlayerLauncher).
 
 file(GLOB StereoReplayEngineDLLIncludes CONFIGURE_DEPENDS        "${DemoVRPlayer_SOURCE_DIR}/include/Stereo/Replay/EngineDLL/*.h")
@@ -10,7 +10,7 @@ add_library(StereoReplayEngineDLL SHARED ${StereoReplayEngineDLLIncludes} ${Ster
 
 target_compile_definitions(StereoReplayEngineDLL PRIVATE STEREOREPLAYENGINEDLL_BUILDING_DLL)
 target_include_directories(StereoReplayEngineDLL PRIVATE "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/EngineDLL")
-target_link_libraries     (StereoReplayEngineDLL APIDumpAnalysisFrontends APIDumpLoader RecipeApplier StereoCore StereoD3D7 D3D7Utils D3D8Utils gdi32 opengl32 user32 winmm)
+target_link_libraries     (StereoReplayEngineDLL APIDumpAnalysisFrontends APIDumpLoader RecipeApplier ReplayEngineCore StereoCore StereoD3D7)
 
 if (CMAKE_SIZEOF_VOID_P EQUAL 4)
     set_target_properties(StereoReplayEngineDLL PROPERTIES OUTPUT_NAME "StereoReplayEngineDLL_x86")

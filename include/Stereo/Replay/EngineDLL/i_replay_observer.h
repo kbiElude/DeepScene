@@ -5,6 +5,7 @@
 #ifndef STEREO_REPLAY_ENGINEDLL_I_REPLAY_OBSERVER_H
 #define STEREO_REPLAY_ENGINEDLL_I_REPLAY_OBSERVER_H
 
+#include "Replay/ReplayEngineDLL/i_replay_observer.h"
 #include "Stereo/Replay/EngineDLL/types.h"
 
 namespace Stereo
@@ -13,22 +14,8 @@ namespace Stereo
     {
         namespace EngineDLL
         {
-            /* Watches a replay. All the functions are called from the replay thread, so they must not block for long, and must
-             * not call back into the engine's blocking functions. A window the user closes is not closed by the replay: the observer
-             * is told, and decides what to do.
-             */
-            class IReplayObserver
-            {
-            public:
-                virtual ~IReplayObserver() = default;
-
-                virtual void on_error          (const std::string&     in_message)   = 0;
-                virtual void on_frame_presented(const uint32_t&        in_n_frame)   = 0;
-                virtual void on_state_changed  (const PlaybackState&   in_old_state,
-                                                const PlaybackState&   in_new_state) = 0;
-                virtual void on_window_closed  ()                                    = 0;
-                virtual void on_window_placed  (const WindowPlacement& in_placement) = 0;
-            };
+            /* Watches a replay (see the one of the replay engine of the interceptor). */
+            typedef ::Replay::ReplayEngineDLL::IReplayObserver IReplayObserver;
         }
     }
 }

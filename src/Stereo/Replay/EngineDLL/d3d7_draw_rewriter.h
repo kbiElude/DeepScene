@@ -29,20 +29,20 @@ namespace Stereo
                  * moves, a vertex buffer, or data which does not fit what the call says). Otherwise the call is copied to the output with the vertices
                  * pointing to a chunk of the overlay, which holds them moved.
                  */
-                static bool rewrite(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
-                                    const IChunkSource&                            in_chunk_source,
+                static bool rewrite(const Capture::APIDumpLoader::DumpedAPICall&    in_call,
+                                    const ::Replay::ReplayEngineDLL::IChunkSource&  in_chunk_source,
                                     const Stereo::D3D7::ScreenParallax::Parameters& in_parameters,
-                                    OverlayChunkSource*                            inout_overlay_ptr,
-                                    Capture::APIDumpLoader::DumpedAPICall*         out_call_ptr);
+                                    OverlayChunkSource*                             inout_overlay_ptr,
+                                    Capture::APIDumpLoader::DumpedAPICall*          out_call_ptr);
 
                 /* The same, with every vertex moved by the same shift, in pixels (positive to the right): for a draw which is pushed toward the viewer as
                  * a whole, whatever its depth (an interface). Returns false for a shift of 0, too.
                  */
-                static bool rewrite_by(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                       const IChunkSource&                          in_chunk_source,
-                                       const float&                                 in_shift,
-                                       OverlayChunkSource*                          inout_overlay_ptr,
-                                       Capture::APIDumpLoader::DumpedAPICall*       out_call_ptr);
+                static bool rewrite_by(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
+                                       const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
+                                       const float&                                   in_shift,
+                                       OverlayChunkSource*                            inout_overlay_ptr,
+                                       Capture::APIDumpLoader::DumpedAPICall*         out_call_ptr);
 
             private:
                 /* What is done to the vertices of a draw: their size in bytes, how many of them there are, and where they are. */
@@ -51,11 +51,11 @@ namespace Stereo
                                            uint8_t*        inout_vertex_ptr)> ShiftFunc;
 
                 /* What rewrite() and rewrite_by() are, but for how the vertices are moved. */
-                static bool rewrite_vertices(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                             const IChunkSource&                          in_chunk_source,
-                                             const ShiftFunc&                             in_shift_func,
-                                             OverlayChunkSource*                          inout_overlay_ptr,
-                                             Capture::APIDumpLoader::DumpedAPICall*       out_call_ptr);
+                static bool rewrite_vertices(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
+                                             const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
+                                             const ShiftFunc&                               in_shift_func,
+                                             OverlayChunkSource*                            inout_overlay_ptr,
+                                             Capture::APIDumpLoader::DumpedAPICall*         out_call_ptr);
             };
         }
     }

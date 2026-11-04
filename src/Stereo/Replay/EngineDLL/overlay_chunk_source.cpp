@@ -4,7 +4,7 @@
  */
 #include "overlay_chunk_source.h"
 
-Stereo::Replay::EngineDLL::OverlayChunkSource::OverlayChunkSource(const IChunkSource& in_base)
+Stereo::Replay::EngineDLL::OverlayChunkSource::OverlayChunkSource(const ::Replay::ReplayEngineDLL::IChunkSource& in_base)
     :m_base(in_base)
 {
     /* Stub */
