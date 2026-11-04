@@ -17,6 +17,12 @@
         "unpacked_size": 69184,
         "page": "https://files.scene.org/view/demos/groups/farbrausch/fr08_final.zip"
       }
+    },
+    {
+      "id": "kasparov",
+      "title": "Kasparov",
+      "recipe": "recipes/kasparov.json",
+      "executable": "kasparov/kasparov.exe"
     }
   ]
 }
