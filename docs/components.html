@@ -42,7 +42,7 @@
 <p><em>Library.</em> The analysis itself and nothing that is of one API: the session that routes calls, the model builder, the keys and hashes, the tracking of how resources are used, the time series of the camera, the depth histograms, the <code>.passes</code> file (reader and writer), the queries. It is where an API is added to the analysis, by giving it a front end.</p>
 
 <h3>APIDumpAnalysisFrontends</h3>
-<p><em>Library.</em> The front ends: for each API, what follows its state and says what its calls mean to the model. Direct3D 8 is the first. It is a library of its own because it needs <code>D3D8Utils</code>, which <code>APIDumpAnalysis</code> does not. The extractor, the replay engine and the live converter all use it.</p>
+<p><em>Library.</em> The front ends: for each API, what follows its state and says what its calls mean to the model. Direct3D 8 is the first, and Direct3D 7 the second. The two share <code>FixedFunctionFrontend</code>, which follows the objects the program makes and the state of the fixed-function pipeline that does not depend on the API (transforms, lights, render states, textures, a release), and <code>FixedFunctionState</code>, which keeps that state; each API's own front end has the resources, the draws and the vertices. It is a library of its own because it needs <code>D3D8Utils</code> and <code>D3D7Utils</code>, which <code>APIDumpAnalysis</code> does not. The extractor, the replay engine and the live converter all use it.</p>
 
 <h3>APIDumpAnalysisExtractor</h3>
 <p><em>Program.</em> Reads a workload and writes a <code>.passes</code> file.</p>
