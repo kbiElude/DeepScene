@@ -12,6 +12,7 @@
 #include "Stereo/Transport/frame_channel.h"
 #include "call_feeder.h"
 #include "d3d7_eye_renderer.h"
+#include "d3d7_host_memory_exporter.h"
 #include "d3d8_eye_renderer.h"
 #include "d3d8_host_memory_exporter.h"
 #include "d3d8_resolution_scaler.h"
@@ -55,7 +56,9 @@ namespace Stereo
             /* A frame of a Direct3D 7 application is ending: it is counted, and the log gets the statistics now and then. Nothing is passed
              * on yet; the draws are only followed.
              */
-            void on_d3d7_frame_ending(std::vector<std::string>* out_log_line_vec_ptr);
+            void on_d3d7_frame_ending(const APIInterceptor::APIFunction&         in_api_func,
+                              const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
+                              std::vector<std::string>*                  out_log_line_vec_ptr);
 
             /* A call is about to be made: the work of the callback, for a call that is the application's. */
             void on_pre(const APIInterceptor::APIFunction&         in_api_func,
@@ -73,6 +76,9 @@ namespace Stereo
             /* Returns true if the converter keeps the matrix of the call, which is then not to be made. */
             bool on_set_transform(const uint32_t&                            in_n_arguments,
                                   const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
+
+            /* The frame in the back buffer of the surface (which a flip is called for) is passed on to the program which shows the images. */
+            void pass_d3d7_frame(void* in_primary_surface_ptr);
 
             /* The program which shows the images says how far apart the eyes are, how strong the 3D is and where the eyes converge, and can
              * say it again while the application plays.
@@ -108,6 +114,7 @@ namespace Stereo
             };
 
             std::unique_ptr<Stereo::Transport::FrameChannel> m_channel_ptr;
+    std::unique_ptr<FramePasser>                     m_d3d7_frame_passer_ptr;
             std::unique_ptr<FramePasser>                     m_frame_passer_ptr;
             LiveState                                        m_live_state;
             SessionLog                                       m_log;

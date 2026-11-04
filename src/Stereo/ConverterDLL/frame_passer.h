@@ -25,8 +25,11 @@ namespace Stereo
             FramePasser(std::unique_ptr<Stereo::Transport::IFrameExporter> in_exporter_ptr,
                         const SessionLog&                                  in_log);
 
-            /* The right surface is the twin of the back buffer, if it has one. */
+            /* The left surface is the back buffer of the device if it is not given (nullptr); the right surface is the twin of the back buffer, if
+             * it has one.
+             */
             void on_present(void* in_device_ptr,
+                            void* in_left_surface_ptr,
                             void* in_right_surface_ptr);
 
             /* Called by the application's thread after the present: waits for the screen to want the next frame, if it says when. */

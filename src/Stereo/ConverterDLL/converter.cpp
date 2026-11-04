@@ -73,6 +73,8 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
     m_live_state.renderer_ptr.reset(new D3D8EyeRenderer(m_live_state.core_ptr.get                               () ));
     m_frame_passer_ptr.reset       (new FramePasser    (std::unique_ptr<Stereo::Transport::IFrameExporter>(new D3D8HostMemoryExporter(m_channel_ptr.get() )),
                                                         m_log) );
+    m_d3d7_frame_passer_ptr.reset  (new FramePasser    (std::unique_ptr<Stereo::Transport::IFrameExporter>(new D3D7HostMemoryExporter(m_channel_ptr.get() )),
+                                                        m_log) );
 
     {
         /* Said by the program which shows the images, before it starts the application: the device is made with it. */
@@ -188,9 +190,17 @@ std::string Stereo::ConverterDLL::Converter::make_statistics_line() const
            " matrices kept";
 }
 
-void Stereo::ConverterDLL::Converter::on_d3d7_frame_ending(std::vector<std::string>* out_log_line_vec_ptr)
+void Stereo::ConverterDLL::Converter::on_d3d7_frame_ending(const APIInterceptor::APIFunction&         in_api_func,
+                                                           const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
+                                                           std::vector<std::string>*                  out_log_line_vec_ptr)
 {
     constexpr uint64_t N_FRAMES_BETWEEN_STATISTICS = 600;
+
+    /* The frame which a flip is about to show is in the back buffer of the surface it is called for. */
+    if (in_api_func == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_FLIP)
+    {
+        pass_d3d7_frame(const_cast<void*>(in_arguments_ptr[0].get_ptr() ) );
+    }
 
     m_live_state.n_frames++;
 
@@ -244,6 +254,12 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
     {
         this_ptr->m_frame_passer_ptr->wait_for_pace();
     }
+    else
+    if (OwnCallScope::is_active() == false &&
+        in_api_func == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_FLIP)
+    {
+        this_ptr->m_d3d7_frame_passer_ptr->wait_for_pace();
+    }
 }
 
 void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction&         in_api_func,
@@ -291,7 +307,9 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
                                                   in_n_arguments,
                                                   in_arguments_ptr) )
             {
-                on_d3d7_frame_ending(&log_line_vec);
+                on_d3d7_frame_ending(in_api_func,
+                                      in_arguments_ptr,
+                                     &log_line_vec);
             }
         }
         else
@@ -332,6 +350,7 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
     if (is_present)
     {
         m_frame_passer_ptr->on_present(const_cast<void*>(in_arguments_ptr[0].get_ptr() ),
+                                       nullptr, /* in_left_surface_ptr */
                                        right_surface_ptr);
     }
 }
@@ -417,6 +436,33 @@ bool Stereo::ConverterDLL::Converter::on_set_transform(const uint32_t&          
     }
 
     return result;
+}
+
+void Stereo::ConverterDLL::Converter::pass_d3d7_frame(void* in_primary_surface_ptr)
+{
+    constexpr uint32_t BACK_BUFFER_CAPS = 0x00000004; /* DDSCAPS_BACKBUFFER */
+
+    const OwnCallScope                                    own_call_scope;
+    Interception::Hooks::D3D7::IDirectDrawSurface7*       back_buffer_ptr = nullptr;
+    Interception::Hooks::D3D7::DDSCAPS2                   caps            = {};
+    void** const                                          vtable          = *reinterpret_cast<void***>(in_primary_surface_ptr);
+
+    caps.dwCaps = BACK_BUFFER_CAPS;
+
+    const auto get_attached_surface_func = reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_GETATTACHEDSURFACE>(vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_GETATTACHEDSURFACE]);
+
+    if (SUCCEEDED(get_attached_surface_func(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(in_primary_surface_ptr),
+                                            &caps,
+                                            &back_buffer_ptr) ))
+    {
+        void** const back_buffer_vtable = *reinterpret_cast<void***>(back_buffer_ptr);
+
+        m_d3d7_frame_passer_ptr->on_present(nullptr, /* in_device_ptr */
+                                            back_buffer_ptr,
+                                            nullptr); /* in_right_surface_ptr */
+
+        reinterpret_cast<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_RELEASE>(back_buffer_vtable[Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_RELEASE])(back_buffer_ptr);
+    }
 }
 
 void Stereo::ConverterDLL::Converter::read_channel_settings(std::vector<std::string>* out_log_line_vec_ptr)

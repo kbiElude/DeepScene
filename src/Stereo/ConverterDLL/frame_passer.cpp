@@ -19,6 +19,7 @@ Stereo::ConverterDLL::FramePasser::FramePasser(std::unique_ptr<Stereo::Transport
 }
 
 void Stereo::ConverterDLL::FramePasser::on_present(void* in_device_ptr,
+                                                   void* in_left_surface_ptr,
                                                    void* in_right_surface_ptr)
 {
     /* The host shows about this many images in a second; copying more would only slow the application down. */
@@ -48,6 +49,7 @@ void Stereo::ConverterDLL::FramePasser::on_present(void* in_device_ptr,
             m_frame_state.last_copy_qpc = now.QuadPart;
 
             source.api_device_ptr    = in_device_ptr;
+            source.left_surface_ptr  = in_left_surface_ptr;
             source.right_surface_ptr = in_right_surface_ptr;
             source.timestamp_seconds = static_cast<double>(now.QuadPart - m_frame_state.start_qpc) / static_cast<double>(frequency.QuadPart);
 
