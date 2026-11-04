@@ -11,6 +11,7 @@
 #include "Stereo/Replay/EngineDLL/types.h"
 #include <stdint.h>
 #include <string>
+#include <vector>
 
 namespace Stereo
 {
@@ -34,8 +35,10 @@ namespace Stereo
                 float                          eye_separation = 0.0f;
                 uint32_t                       first_frame = 0;
                 uint32_t                       last_frame  = 999;
+                bool                           is_parallel = false; /* the ways are replayed at the same time */
                 Analysis::RecipeLoader::Recipe recipe;
                 std::string                    recipe_filename;
+                std::vector<std::string>       way_name_vec; /* the ways to replay besides the frames as they are; none: the usual ones */
                 std::string                    workload_filename;
             };
 

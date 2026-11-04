@@ -10,6 +10,7 @@
 #include "types.h"
 #include <chrono>
 #include <map>
+#include <string>
 #include <stdio.h>
 #include <stdlib.h>
 #include <thread>
@@ -28,6 +29,9 @@ namespace Stereo
                             const uint32_t& in_n_frame,
                             const Variant&  in_variant);
 
+            /* The way of replaying that the name stands for (see print_usage), or nullptr. */
+            const Variant* get_variant_ptr(const std::string& in_way_name);
+
             /* Says how the executions of a way of replaying differ from the frames as they are. Returns the first frame in which one of the
              * executions differs, and false if there is none.
              */
@@ -43,6 +47,14 @@ namespace Stereo
                              const Variant& in_variant,
                              FrameHashSink* out_sink_ptr,
                              std::string*   out_error_ptr);
+
+            /* Replays the frames the ways in the vector, one after the other or all at once, and prints how long each took. The sinks are in the order of
+             * the ways.
+             */
+            bool run_variants(const Options&                      in_options,
+                              const std::vector<const Variant*>&  in_variant_ptr_vec,
+                              std::vector<FrameHashSink>*         out_sink_vec_ptr,
+                              std::string*                        out_error_ptr);
 
             /* A 32-bit bitmap, top row first. */
             bool write_bitmap(const std::string&          in_path,
@@ -122,6 +134,33 @@ end:
 /* Says how the executions of a way of replaying differ from the frames as they are. Returns the first frame in which one of the
  * executions differs, and false if there is none.
  */
+const Stereo::Replay::ConsistencyChecker::Variant* Stereo::Replay::ConsistencyChecker::get_variant_ptr(const std::string& in_way_name)
+{
+    const Variant* result_ptr = nullptr;
+
+    if (in_way_name == "again")
+    {
+        result_ptr = &VARIANT_ARRAY[1];
+    }
+    else
+    if (in_way_name == "twice")
+    {
+        result_ptr = &VARIANT_ARRAY[2];
+    }
+    else
+    if (in_way_name == "restore")
+    {
+        result_ptr = &VARIANT_ARRAY[3];
+    }
+    else
+    if (in_way_name == "recipe")
+    {
+        result_ptr = &VARIANT_ARRAY[4];
+    }
+
+    return result_ptr;
+}
+
 bool Stereo::Replay::ConsistencyChecker::print_comparison(const Variant&                                                                         in_variant,
                                                           const std::map<Stereo::Replay::ConsistencyChecker::FrameHashSink::ImageKey, uint64_t>& in_baseline_map,
                                                           const std::map<Stereo::Replay::ConsistencyChecker::FrameHashSink::ImageKey, uint64_t>& in_hash_map,
@@ -223,6 +262,7 @@ void Stereo::Replay::ConsistencyChecker::print_usage()
             "Usage:\n"
             "\n"
             "StereoReplayConsistencyChecker_x86 file.workload [--from A] [--to B] [--dump-dir DIR] [--recipe FILE [--eye-separation D]]\n"
+            "                                    [--ways again,twice,restore,recipe] [--parallel]\n"
             "\n"
             "Replays frames A to B (default 0 to 999) of a Direct3D 8 workload in four ways: as they are, as they are again (to\n"
             "see how much a replay differs from itself), executed twice, and executed twice with the state of the device put\n"
@@ -231,7 +271,11 @@ void Stereo::Replay::ConsistencyChecker::print_usage()
             "  --dump-dir DIR   Write the images of the first frame in which an execution differs, as bitmaps\n"
             "  --eye-separation D  The distance between the eyes for the recipe (0 by default)\n"
             "  --recipe FILE    Replay the frames twice with the recipe instead of the last two ways: the first execution is for\n"
-            "                   the left eye, the second for the right one. A recipe that changes nothing gives the frames as they are.\n");
+            "                   the left eye, the second for the right one. A recipe that changes nothing gives the frames as they are.\n"
+            "  --ways LIST      Only these ways, besides the frames as they are (which are always replayed, to compare with): again (as\n"
+            "                   they are, again), twice, restore (twice, the state put back between) and recipe (needs --recipe). Each way\n"
+            "                   is a replay of the workload from its start, so fewer ways are less to wait for.\n"
+            "  --parallel       Replay the ways at the same time, each with an engine of its own: faster, and needs the memory of all.\n");
 }
 
 /* Replays the frames of the options one way, and keeps what the sink is given. */
@@ -303,6 +347,97 @@ bool Stereo::Replay::ConsistencyChecker::run_variant(const Stereo::Replay::Consi
 
 end:
     Stereo::Replay::EngineDLL::aiDestroyReplayEngine(engine_ptr);
+
+    return result;
+}
+
+bool Stereo::Replay::ConsistencyChecker::run_variants(const Stereo::Replay::ConsistencyChecker::Options&                     in_options,
+                                                      const std::vector<const Stereo::Replay::ConsistencyChecker::Variant*>& in_variant_ptr_vec,
+                                                      std::vector<Stereo::Replay::ConsistencyChecker::FrameHashSink>*        out_sink_vec_ptr,
+                                                      std::string*                                                           out_error_ptr)
+{
+    struct Run
+    {
+        std::string error;
+        bool        is_ok   = false;
+        double      seconds = 0.0;
+    };
+
+    std::vector<Run> run_vec(in_variant_ptr_vec.size() );
+    bool             result = true;
+
+    out_sink_vec_ptr->clear();
+    out_sink_vec_ptr->reserve(in_variant_ptr_vec.size() );
+
+    for (size_t n_variant = 0;
+                n_variant < in_variant_ptr_vec.size();
+              ++n_variant)
+    {
+        out_sink_vec_ptr->emplace_back(false); /* in_keeps_images */
+    }
+
+    const auto run_func = [&](const size_t& in_n_variant)
+    {
+        const auto start_time = std::chrono::steady_clock::now();
+        Run&       run        = run_vec.at(in_n_variant);
+
+        run.is_ok   = run_variant(in_options,
+                                  *in_variant_ptr_vec.at(in_n_variant),
+                                  &out_sink_vec_ptr->at(in_n_variant),
+                                  &run.error);
+        run.seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - start_time).count();
+    };
+    const auto print_func = [&](const size_t& in_n_variant)
+    {
+        fprintf(stdout,
+                "%-34s %zu images in %.1f s\n",
+                in_variant_ptr_vec.at(in_n_variant)->name_ptr,
+                out_sink_vec_ptr->at(in_n_variant).get_hash_map().size(),
+                run_vec.at(in_n_variant).seconds);
+        fflush(stdout);
+    };
+
+    if (in_options.is_parallel)
+    {
+        std::vector<std::thread> thread_vec;
+
+        for (size_t n_variant = 0;
+                    n_variant < in_variant_ptr_vec.size();
+                  ++n_variant)
+        {
+            thread_vec.emplace_back(run_func,
+                                    n_variant);
+        }
+
+        for (auto& thread : thread_vec)
+        {
+            thread.join();
+        }
+    }
+
+    for (size_t n_variant = 0;
+                n_variant < in_variant_ptr_vec.size() && result;
+              ++n_variant)
+    {
+        if (in_options.is_parallel == false)
+        {
+            run_func(n_variant);
+        }
+
+        if (run_vec.at(n_variant).is_ok == false)
+        {
+            *out_error_ptr = std::string("Replaying the frames ")                          +
+                             in_variant_ptr_vec.at(n_variant)->name_ptr                    +
+                             " failed: "                                                    +
+                             run_vec.at(n_variant).error;
+
+            result = false;
+        }
+        else
+        {
+            print_func(n_variant);
+        }
+    }
 
     return result;
 }
@@ -450,6 +585,30 @@ int main(int   in_argc,
             options.recipe_filename = in_argv[++n_argument];
         }
         else
+        if (argument == "--ways" &&
+            has_next)
+        {
+            std::string        list = in_argv[++n_argument];
+            size_t             n_start = 0;
+
+            while (n_start <= list.size() )
+            {
+                const size_t n_end = list.find(',', n_start);
+
+                options.way_name_vec.push_back(list.substr(n_start,
+                                                           (n_end == std::string::npos) ? std::string::npos
+                                                                                        : n_end - n_start) );
+
+                n_start = (n_end == std::string::npos) ? list.size() + 1
+                                                       : n_end + 1;
+            }
+        }
+        else
+        if (argument == "--parallel")
+        {
+            options.is_parallel = true;
+        }
+        else
         if (argument.empty()                  == false &&
             argument.at(0)                    != '-'   &&
             options.workload_filename.empty() )
@@ -491,59 +650,63 @@ int main(int   in_argc,
         }
     }
 
-    /* The first two ways tell how much a replay differs from itself; then either the two with executions twice, or the one with the recipe. */
-    if (options.recipe_filename.empty() )
+    /* The frames as they are come first: they are what the other ways are compared with. Without a choice, the next one tells how much a replay
+     * differs from itself; then either the two with executions twice, or the one with the recipe.
+     */
+    variant_ptr_vec.push_back(&Stereo::Replay::ConsistencyChecker::VARIANT_ARRAY[0]);
+
+    if (options.way_name_vec.empty() )
     {
-        variant_ptr_vec =
+        variant_ptr_vec.push_back(&Stereo::Replay::ConsistencyChecker::VARIANT_ARRAY[1]);
+
+        if (options.recipe_filename.empty() )
         {
-            &Stereo::Replay::ConsistencyChecker::VARIANT_ARRAY[0],
-            &Stereo::Replay::ConsistencyChecker::VARIANT_ARRAY[1],
-            &Stereo::Replay::ConsistencyChecker::VARIANT_ARRAY[2],
-            &Stereo::Replay::ConsistencyChecker::VARIANT_ARRAY[3]
-        };
+            variant_ptr_vec.push_back(&Stereo::Replay::ConsistencyChecker::VARIANT_ARRAY[2]);
+            variant_ptr_vec.push_back(&Stereo::Replay::ConsistencyChecker::VARIANT_ARRAY[3]);
+        }
+        else
+        {
+            variant_ptr_vec.push_back(&Stereo::Replay::ConsistencyChecker::VARIANT_ARRAY[4]);
+        }
     }
     else
     {
-        variant_ptr_vec =
+        for (const auto& way_name : options.way_name_vec)
         {
-            &Stereo::Replay::ConsistencyChecker::VARIANT_ARRAY[0],
-            &Stereo::Replay::ConsistencyChecker::VARIANT_ARRAY[1],
-            &Stereo::Replay::ConsistencyChecker::VARIANT_ARRAY[4]
-        };
+            const auto* variant_ptr = Stereo::Replay::ConsistencyChecker::get_variant_ptr(way_name);
+
+            if (variant_ptr == nullptr                                                                 ||
+                (variant_ptr->uses_recipe && options.recipe_filename.empty() ) )
+            {
+                fprintf(stdout,
+                        "The way \"%s\" is not one that can be replayed here: again, twice, restore, or recipe with --recipe.\n",
+                        way_name.c_str() );
+
+                exit_code = Stereo::Replay::ConsistencyChecker::ExitCode::BAD_ARGUMENTS;
+
+                goto end;
+            }
+
+            variant_ptr_vec.push_back(variant_ptr);
+        }
     }
 
-    sink_vec.reserve(variant_ptr_vec.size() );
-
-    for (const auto variant_ptr : variant_ptr_vec)
     {
-        const Stereo::Replay::ConsistencyChecker::Variant& variant = *variant_ptr;
-        std::string                                        error;
+        std::string error;
 
-        sink_vec.emplace_back(false); /* in_keeps_images */
-
-        const auto start_time = std::chrono::steady_clock::now();
-
-        if (Stereo::Replay::ConsistencyChecker::run_variant(options,
-                                                            variant,
-                                                           &sink_vec.back(),
-                                                           &error) == false)
+        if (Stereo::Replay::ConsistencyChecker::run_variants(options,
+                                                             variant_ptr_vec,
+                                                            &sink_vec,
+                                                            &error) == false)
         {
             fprintf(stdout,
-                    "Replaying the frames %s failed: %s\n",
-                    variant.name_ptr,
+                    "%s\n",
                     error.c_str() );
 
             exit_code = Stereo::Replay::ConsistencyChecker::ExitCode::REPLAY_FAILED;
 
             goto end;
         }
-
-        fprintf(stdout,
-                "%-34s %zu images in %.1f s\n",
-                variant.name_ptr,
-                sink_vec.back().get_hash_map().size(),
-                std::chrono::duration<double>(std::chrono::steady_clock::now() - start_time).count() );
-        fflush(stdout);
     }
 
     if (options.dump_frame != UINT32_MAX &&

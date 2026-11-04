@@ -38,7 +38,7 @@
 <table>
 <tr><th>Program</th><th>Use</th></tr>
 <tr><td><code>StereoReplayPlayer</code></td><td>A control window (ImGui, through <code>UIHost</code>) around the engine: choose a workload and optionally a recipe, play and pause, and see the images of both eyes in a preview. A 64-bit player starts the 32-bit one for a 32-bit workload.</td></tr>
-<tr><td><code>StereoReplayConsistencyChecker</code></td><td>No window. Replays a workload several ways, hashes the images of each frame and compares the ways: that a replay is repeatable, and that a frame executed twice draws the same as once. It can write the images of a frame that differs.</td></tr>
+<tr><td><code>StereoReplayConsistencyChecker</code></td><td>No window. Replays a workload several ways, hashes the images of each frame and compares the ways: that a replay is repeatable, and that a frame executed twice draws the same as once. It can write the images of a frame that differs. <code>--ways</code> picks the ways to replay (each is a replay of the workload from its start, so fewer are less to wait for), and <code>--parallel</code> replays them at the same time, each with an engine of its own: on a 3,000 frame capture of Direct3D 8 that takes 17 s instead of 47 s, and it needs the memory of all of them.</td></tr>
 </table>
 </main>
 </body>
