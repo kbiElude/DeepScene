@@ -704,6 +704,25 @@ TEST_F(QueryCommandsTest, OverlaysAreThePassesWhoseCameraNeverChanges)
               expected_key_set.size() );
 }
 
+/* Leaves nothing of how deep the vertices of the pass are, whichever kind of frame it is in. */
+static void forget_depth_of_pass(const uint32_t&                           in_pass_id,
+                                 Analysis::APIDumpAnalysis::AnalysisResult* inout_analysis_ptr)
+{
+    for (auto iterator  = inout_analysis_ptr->model.surface_depth_histogram_map.begin();
+              iterator != inout_analysis_ptr->model.surface_depth_histogram_map.end();)
+    {
+        iterator = (iterator->first.second == in_pass_id) ? inout_analysis_ptr->model.surface_depth_histogram_map.erase(iterator)
+                                                          : std::next(iterator);
+    }
+
+    for (auto iterator  = inout_analysis_ptr->model.depth_histogram_map.begin();
+              iterator != inout_analysis_ptr->model.depth_histogram_map.end();)
+    {
+        iterator = (iterator->first.second == in_pass_id) ? inout_analysis_ptr->model.depth_histogram_map.erase(iterator)
+                                                          : std::next(iterator);
+    }
+}
+
 TEST_F(QueryCommandsTest, AStaticCameraPassWhoseVerticesAreAtManyDepthsIsA3DSceneAndIsLeftOutOfTheUnaffectedList)
 {
     const auto pass_id_vec = Analysis::APIDumpAnalysis::QueryCommands::get_static_camera_pass_id_vec(m_analysis);
@@ -720,19 +739,8 @@ TEST_F(QueryCommandsTest, AStaticCameraPassWhoseVerticesAreAtManyDepthsIsA3DScen
                static_cast<unsigned long long>(pass_key) );
 
     /* What the analysis knows of the depth of the pass is replaced by what the test says. */
-    for (auto iterator  = m_analysis.model.surface_depth_histogram_map.begin();
-              iterator != m_analysis.model.surface_depth_histogram_map.end();)
-    {
-        iterator = (iterator->first.second == pass_id) ? m_analysis.model.surface_depth_histogram_map.erase(iterator)
-                                                       : std::next(iterator);
-    }
-
-    for (auto iterator  = m_analysis.model.depth_histogram_map.begin();
-              iterator != m_analysis.model.depth_histogram_map.end();)
-    {
-        iterator = (iterator->first.second == pass_id) ? m_analysis.model.depth_histogram_map.erase(iterator)
-                                                       : std::next(iterator);
-    }
+    forget_depth_of_pass(pass_id,
+                        &m_analysis);
 
     const auto is_listed_unaffected_func = [&](const Analysis::APIDumpAnalysis::JsonValue& in_value)
     {
@@ -935,4 +943,39 @@ TEST_F(QueryCommandsTest, InfoCountsTheResourcesOfEachClass)
               static_cast<double>(m_analysis.model.resource_vec.size() ));
     EXPECT_EQ(value.at("counts").at("resources_by_access").key_vec.size(),
               5u);
+}
+
+TEST_F(QueryCommandsTest, VerticesWithinOneRangeOfTheDepthHistogramOfEachOtherAreFlatAndAThirdApartAreNot)
+{
+    const auto pass_id_vec = Analysis::APIDumpAnalysis::QueryCommands::get_static_camera_pass_id_vec(m_analysis);
+
+    ASSERT_FALSE(pass_id_vec.empty() );
+
+    const uint32_t pass_id = pass_id_vec.front();
+
+    /* The real overlays of Kasparov and of fr08 have one depth (a ratio of 1), and the least deep of the passes which are not are 3.4 and 1.3 times. */
+    for (const auto& depth_pair : {std::make_pair(5.0f,  5.0f),
+                                   std::make_pair(5.0f,  5.4f),
+                                   std::make_pair(5.0f,  6.5f),
+                                   std::make_pair(5.0f, 15.0f)})
+    {
+        Analysis::APIDumpAnalysis::DepthHistogram histogram;
+
+        forget_depth_of_pass(pass_id,
+                            &m_analysis);
+
+        histogram.add(depth_pair.first,
+                      100);
+        histogram.add(depth_pair.second,
+                      100);
+
+        m_analysis.model.surface_depth_histogram_map[Analysis::APIDumpAnalysis::DepthHistogramKey(0,
+                                                                                                  pass_id)] = histogram;
+
+        const auto spread = Analysis::APIDumpAnalysis::QueryCommands::get_pass_depth_spread(m_analysis,
+                                                                                            pass_id);
+
+        EXPECT_EQ(spread.is_flat,
+                  depth_pair.second < 6.0f) << depth_pair.second << ": " << spread.far_to_near_ratio;
+    }
 }

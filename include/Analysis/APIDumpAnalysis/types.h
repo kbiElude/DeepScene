@@ -540,7 +540,7 @@ namespace Analysis
             float    depth_near          = 0.0f;
             float    far_to_near_ratio   = 0.0f; /* 0 if there is no depth */
             bool     has_depth           = false;
-            bool     is_flat             = false; /* the ratio is no more than a quarter above 1 */
+            bool     is_flat             = false; /* the ratio is no more than a tenth above 1: a range of the histogram or the one next to it */
             uint64_t n_vertices          = 0;
         };
 

@@ -238,7 +238,7 @@ Analysis::APIDumpAnalysis::PassDepthSpread Analysis::APIDumpAnalysis::QueryComma
     constexpr double FRACTION_FAR    = 0.9;
     constexpr double FRACTION_MEDIAN = 0.5;
     constexpr double FRACTION_NEAR   = 0.1;
-    constexpr float  MAX_FLAT_RATIO  = 1.25f; /* a range of the histogram is an eighth of a doubling wide: vertices of one depth are in one or two of them */
+    constexpr float  MAX_FLAT_RATIO  = 1.1f; /* a range is 9% deeper than the one before: flat is one range, or two next to each other */
 
     const auto&     model_ref = in_analysis.model;
     DepthHistogram  origin_histogram;
