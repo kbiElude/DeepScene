@@ -36,6 +36,8 @@ std::vector<Analysis::RecipeBake::OverlayCandidate> Analysis::RecipeBake::Overla
                                                                                                         n_pass,
                                                                                                        &first_frame_index);
         const bool  is_static_camera  = (static_pass_id_set.count(n_pass) != 0);
+        const auto  depth_spread      = Analysis::APIDumpAnalysis::QueryCommands::get_pass_depth_spread(in_analysis,
+                                                                                                         n_pass);
 
         for (const auto& draw_signature : structure.draw_signature_vec)
         {
@@ -45,6 +47,7 @@ std::vector<Analysis::RecipeBake::OverlayCandidate> Analysis::RecipeBake::Overla
             const bool       is_replay_affected = applier.is_draw_affected(structure.key,
                                                                            draw_signature.structure_key);
 
+            candidate.depth_spread         = depth_spread;
             candidate.first_frame_index    = first_frame_index;
             candidate.has_first_frame      = has_first_frame;
             candidate.is_replay_skipped    = is_skipped;
@@ -74,6 +77,12 @@ std::vector<Analysis::RecipeBake::OverlayCandidate> Analysis::RecipeBake::Overla
                 if (is_static_camera)
                 {
                     candidate.reason_vec.push_back("static_camera");
+                }
+
+                if (depth_spread.has_depth)
+                {
+                    candidate.reason_vec.push_back((depth_spread.is_flat) ? "flat_depth"
+                                                                          : "deep_depth");
                 }
 
                 if (structure.clears_color == false)
@@ -336,6 +345,9 @@ void Analysis::RecipeBake::OverlayCandidateFinder::write_json(const std::vector<
                                                                         : "affected");
         inout_writer_ptr->write_key   ("live_class");
         inout_writer_ptr->write_string(get_live_class_name(candidate.live_class) );
+
+        Analysis::APIDumpAnalysis::QueryCommands::write_depth_spread(candidate.depth_spread,
+                                                                      inout_writer_ptr);
 
         inout_writer_ptr->write_key("reasons");
         inout_writer_ptr->begin_inline_array();

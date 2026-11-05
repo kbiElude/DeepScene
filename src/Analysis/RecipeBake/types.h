@@ -5,6 +5,7 @@
 #ifndef RECIPEBAKE_TYPES_H
 #define RECIPEBAKE_TYPES_H
 
+#include "Analysis/APIDumpAnalysis/types.h"
 #include <stdint.h>
 #include <string>
 #include <vector>
@@ -50,18 +51,37 @@ namespace Analysis
         /* A draw that is a candidate for a 2D overlay: the recipe leaves it alone, or the camera of its pass never changes (see OverlayCandidateFinder). */
         struct OverlayCandidate
         {
-            OverlayAgreement         agreement             = OverlayAgreement::BOTH;
-            uint64_t                 first_frame_index     = 0;
-            bool                     has_first_frame       = false;
-            bool                     is_replay_unaffected  = false; /* what a replay does: the keys of the draw and of its pass (see RecipeApplier::is_draw_affected) */
-            bool                     is_replay_skipped     = false;
-            LiveClass                live_class            = LiveClass::AFFECTED;
-            uint64_t                 n_frames              = 0;
-            uint32_t                 pass_id               = 0;
-            uint64_t                 pass_key              = 0;
-            std::vector<std::string> reason_vec;
-            uint64_t                 signature_key         = 0;
-            uint64_t                 structure_key         = 0;
+            OverlayAgreement                           agreement            = OverlayAgreement::BOTH;
+            Analysis::APIDumpAnalysis::PassDepthSpread depth_spread;        /* of its pass: how deep the vertices are */
+            uint64_t                                   first_frame_index    = 0;
+            bool                                       has_first_frame      = false;
+            bool                                       is_replay_unaffected = false; /* what a replay does: the keys of the draw and of its pass (see RecipeApplier::is_draw_affected) */
+            bool                                       is_replay_skipped    = false;
+            LiveClass                                  live_class           = LiveClass::AFFECTED;
+            uint64_t                                   n_frames             = 0;
+            uint32_t                                   pass_id              = 0;
+            uint64_t                                   pass_key             = 0;
+            std::vector<std::string>                   reason_vec;
+            uint64_t                                   signature_key        = 0;
+            uint64_t                                   structure_key        = 0;
+        };
+
+        /* What the checker finds wrong with a pass that the recipe leaves alone. */
+        enum class UnaffectedWarningKind
+        {
+            DEEP_PASS,               /* the vertices of the pass are at many depths: a 3D scene, which would be pushed as if it were flat    */
+            REPLAY_AND_LIVE_DISAGREE /* a replay leaves it alone, and the converter that plays the application as it runs does not        */
+        };
+
+        /* A pass that the recipe leaves alone and that is not likely an overlay, or that the two ways of playing do not treat alike. */
+        struct UnaffectedWarning
+        {
+            Analysis::APIDumpAnalysis::PassDepthSpread depth_spread;
+            uint64_t                                   first_frame_index = 0;
+            UnaffectedWarningKind                      kind              = UnaffectedWarningKind::DEEP_PASS;
+            uint64_t                                   n_frames          = 0;
+            uint32_t                                   pass_id           = 0;
+            uint64_t                                   pass_key          = 0;
         };
 
         /* A kind of frame (a shape) which the recipe does not know. */
@@ -82,12 +102,13 @@ namespace Analysis
         /* What a baked recipe leaves to chance in a workload (see RecipeChecker). */
         struct CoverageReport
         {
-            uint64_t                      n_frames                    = 0;
-            uint64_t                      n_frames_of_unknown_shapes  = 0;
-            uint64_t                      n_shapes                    = 0;
-            uint64_t                      n_signatures                = 0;
-            std::vector<UnknownShape>     unknown_shape_vec;
-            std::vector<UnknownSignature> unknown_signature_vec;
+            uint64_t                       n_frames                   = 0;
+            uint64_t                       n_frames_of_unknown_shapes = 0;
+            uint64_t                       n_shapes                   = 0;
+            uint64_t                       n_signatures               = 0;
+            std::vector<UnaffectedWarning> unaffected_warning_vec;
+            std::vector<UnknownShape>      unknown_shape_vec;
+            std::vector<UnknownSignature>  unknown_signature_vec;
         };
 
         struct Options

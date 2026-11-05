@@ -3,6 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "Analysis/APIDumpAnalysis/model_builder.h"
+#include "Analysis/RecipeBake/overlay_candidate_finder.h"
 #include "Analysis/RecipeBake/recipe_checker.h"
 #include <algorithm>
 #include <map>
@@ -79,6 +80,42 @@ Analysis::RecipeBake::CoverageReport Analysis::RecipeBake::RecipeChecker::check(
 
     result.n_signatures = signature_pass_kind_count_map.size();
 
+    /* What the recipe leaves alone as the overlays are, a pass at a time: the first draw that tells it is the one that is reported. */
+    std::set<uint32_t> disagreeing_pass_set;
+    std::set<uint32_t> deep_pass_set;
+
+    for (const auto& candidate : OverlayCandidateFinder::find(in_recipe,
+                                                              in_analysis) )
+    {
+        const bool is_left_alone  = (candidate.is_replay_unaffected                ||
+                                     candidate.live_class == LiveClass::UNAFFECTED ||
+                                     candidate.live_class == LiveClass::MIXED);
+        const bool is_deep        = (is_left_alone                    &&
+                                     candidate.depth_spread.has_depth &&
+                                     candidate.depth_spread.is_flat   == false);
+        const bool is_disagreeing = (std::find(candidate.reason_vec.begin(),
+                                               candidate.reason_vec.end  (),
+                                               "replay_and_live_disagree") != candidate.reason_vec.end() );
+
+        if (is_deep)
+        {
+            if (deep_pass_set.insert(candidate.pass_id).second)
+            {
+                result.unaffected_warning_vec.push_back(make_warning(candidate,
+                                                                     UnaffectedWarningKind::DEEP_PASS) );
+            }
+        }
+
+        if (is_disagreeing)
+        {
+            if (disagreeing_pass_set.insert(candidate.pass_id).second)
+            {
+                result.unaffected_warning_vec.push_back(make_warning(candidate,
+                                                                     UnaffectedWarningKind::REPLAY_AND_LIVE_DISAGREE) );
+            }
+        }
+    }
+
     for (const auto& signature_pair : signature_pass_kind_count_map)
     {
         const bool is_known = (known_signature_set.empty() ||
@@ -94,6 +131,21 @@ Analysis::RecipeBake::CoverageReport Analysis::RecipeBake::RecipeChecker::check(
             result.unknown_signature_vec.push_back(signature);
         }
     }
+
+    return result;
+}
+
+Analysis::RecipeBake::UnaffectedWarning Analysis::RecipeBake::RecipeChecker::make_warning(const OverlayCandidate&      in_candidate,
+                                                                                          const UnaffectedWarningKind& in_kind)
+{
+    UnaffectedWarning result;
+
+    result.depth_spread      = in_candidate.depth_spread;
+    result.first_frame_index = in_candidate.first_frame_index;
+    result.kind              = in_kind;
+    result.n_frames          = in_candidate.n_frames;
+    result.pass_id           = in_candidate.pass_id;
+    result.pass_key          = in_candidate.pass_key;
 
     return result;
 }
@@ -191,6 +243,47 @@ void Analysis::RecipeBake::RecipeChecker::print_report(FILE*                    
                     "  signature 0x%016llx: drawn by %llu kinds of passes\n",
                     static_cast<unsigned long long>(signature.signature_key),
                     static_cast<unsigned long long>(signature.n_pass_structures) );
+        }
+    }
+
+    if (in_report.unaffected_warning_vec.empty() )
+    {
+        fprintf(in_file_handle,
+                "What the recipe leaves alone looks like overlays, and a replay and the converter treat it alike.\n");
+    }
+    else
+    {
+        fprintf(in_file_handle,
+                "%zu things about what the recipe leaves alone (see the overlay probe, which shows what the draws make):\n",
+                in_report.unaffected_warning_vec.size() );
+
+        for (size_t n_warning = 0;
+                    n_warning < in_report.unaffected_warning_vec.size() && n_warning < N_ENTRIES_LISTED;
+                  ++n_warning)
+        {
+            const auto& warning = in_report.unaffected_warning_vec.at(n_warning);
+
+            if (warning.kind == UnaffectedWarningKind::DEEP_PASS)
+            {
+                fprintf(in_file_handle,
+                        "  pass 0x%016llx (%llu frames, the first is frame %llu) is left alone, and its vertices are from depth %.1f to %.1f (%.1f times): a 3D scene seen from one place, "
+                        "which would be pushed as if it were flat\n",
+                        static_cast<unsigned long long>(warning.pass_key),
+                        static_cast<unsigned long long>(warning.n_frames),
+                        static_cast<unsigned long long>(warning.first_frame_index),
+                        warning.depth_spread.depth_near,
+                        warning.depth_spread.depth_far,
+                        warning.depth_spread.far_to_near_ratio);
+            }
+            else
+            {
+                fprintf(in_file_handle,
+                        "  pass 0x%016llx (%llu frames, the first is frame %llu) is left alone by a replay and not by the converter that plays the application as it runs "
+                        "(it knows no passes: name draws, not passes)\n",
+                        static_cast<unsigned long long>(warning.pass_key),
+                        static_cast<unsigned long long>(warning.n_frames),
+                        static_cast<unsigned long long>(warning.first_frame_index) );
+            }
         }
     }
 }

@@ -19,14 +19,16 @@ const char* Analysis::RecipeBake::CommandLine::get_usage_ptr()
            "\n"
            "--check writes nothing: it says which kinds of frames and which draw signatures of the workload the recipe does not know (a baked recipe of\n"
            "another capture, or of a shorter one, leaves them to chance: a frame of an unknown shape is played as the unknown_frame_policy of the recipe says,\n"
-           "and a draw of an unknown signature is an affected one).\n"
+           "and a draw of an unknown signature is an affected one). It also says which passes the recipe leaves alone look like 3D scenes (their vertices are at\n"
+           "many depths, where an overlay is flat), and which a replay leaves alone and the converter that plays the application as it runs does not.\n"
            "\n"
            "--overlays writes nothing either: it prints, as JSON, the draws that may be 2D overlays. A draw is listed if the recipe leaves it alone (as a replay asks it, by the\n"
            "keys of the draw and of its pass, and as a converter which plays the application as it runs asks it, by the signature of the draw over the cameras of its pass)\n"
-           "or if the camera of its pass never changes (the hint of APIDumpAnalysisQuery overlays); \"agreement\" says which of the two think so.\n"
+           "or if the camera of its pass never changes (the hint of APIDumpAnalysisQuery overlays); \"agreement\" says which of the two think so. \"depth\" says how deep the\n"
+           "vertices of its pass are: a flat one is an overlay, and one of many depths is a 3D scene seen from one place.\n"
            "\n"
            "Exit codes: 0 done, 1 bad arguments, 2 a file cannot be read, 3 the recipe cannot be baked, 4 the file cannot be written, 5 (--check) the recipe\n"
-           "does not know all of the workload.\n";
+           "does not know all of the workload, 6 (--check) it knows it but leaves alone what looks like a 3D scene, or what a replay and the converter treat differently.\n";
 
 }
 

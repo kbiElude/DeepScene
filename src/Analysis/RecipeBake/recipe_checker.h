@@ -6,6 +6,10 @@
  * has that the recipe does not know. A frame of a shape that is not known is played as the recipe's unknown_frame_policy says (as it is, for both eyes, by
  * default), and a draw of a signature that is not known is an affected one: both are what a recipe made of another capture, or of a shorter one, leaves to
  * chance. A recipe that lists none (it is not baked) knows everything.
+ *
+ * It also looks at what the recipe leaves alone (by the pass key, the draw key or a rule), the way OverlayCandidateFinder does: a pass whose vertices are at
+ * many depths is a 3D scene, which the push of an overlay would turn into a flat picture; and a pass that a replay leaves alone and the converter that plays the
+ * application as it runs does not (it cannot tell passes apart) is played two ways.
  */
 #ifndef RECIPEBAKE_RECIPE_CHECKER_H
 #define RECIPEBAKE_RECIPE_CHECKER_H
@@ -26,10 +30,16 @@ namespace Analysis
             static CoverageReport check(const Analysis::RecipeLoader::Recipe&            in_recipe,
                                         const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis);
 
-            /* Says what the report has, for a person: the kinds of frames and the draw signatures that are not known, with where the first frame of each is. */
+            /* Says what the report has, for a person: the kinds of frames and the draw signatures that are not known, with where the first frame of each is,
+             * and what is wrong with the passes that the recipe leaves alone.
+             */
             static void print_report(FILE*                                 in_file_handle,
                                      const CoverageReport&                 in_report,
                                      const Analysis::RecipeLoader::Recipe& in_recipe);
+
+        private:
+            static UnaffectedWarning make_warning(const OverlayCandidate&      in_candidate,
+                                                  const UnaffectedWarningKind& in_kind);
         };
     }
 }

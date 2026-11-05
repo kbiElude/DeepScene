@@ -22,11 +22,12 @@
 int main(int   in_argc,
          char* in_argv[])
 {
-    constexpr int EXIT_BAD_ARGUMENTS = 1;
-    constexpr int EXIT_BAD_INPUT     = 2;
-    constexpr int EXIT_CANNOT_BAKE   = 3;
-    constexpr int EXIT_CANNOT_WRITE  = 4;
-    constexpr int EXIT_NOT_COVERED   = 5;
+    constexpr int EXIT_BAD_ARGUMENTS      = 1;
+    constexpr int EXIT_BAD_INPUT          = 2;
+    constexpr int EXIT_CANNOT_BAKE        = 3;
+    constexpr int EXIT_CANNOT_WRITE       = 4;
+    constexpr int EXIT_NOT_COVERED        = 5;
+    constexpr int EXIT_SUSPECT_UNAFFECTED = 6;
 
     Analysis::APIDumpAnalysis::AnalysisResult analysis;
     std::vector<std::string>                  argument_vec;
@@ -136,6 +137,11 @@ int main(int   in_argc,
                 has_unknown_signature)
             {
                 result = EXIT_NOT_COVERED;
+            }
+            else
+            if (coverage.unaffected_warning_vec.empty() == false)
+            {
+                result = EXIT_SUSPECT_UNAFFECTED;
             }
         }
 

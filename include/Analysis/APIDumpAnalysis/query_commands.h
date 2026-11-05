@@ -41,6 +41,9 @@ namespace Analysis
             static uint64_t    get_page_end          (const uint64_t&       in_total,
                                                       const QueryArguments& in_arguments);
             static const char* get_resource_kind_name(const ResourceKind&   in_kind);
+            /* Writes the "depth" member of an object: how deep the vertices of a pass are, or that nobody knows. */
+            static void        write_depth_spread    (const PassDepthSpread& in_spread,
+                                                      JsonWriter*            inout_writer_ptr);
             static void        write_page            (const uint64_t&       in_total,
                                                       const QueryArguments& in_arguments,
                                                       JsonWriter*           inout_writer_ptr);
@@ -102,9 +105,6 @@ namespace Analysis
                                              const QueryArguments& in_arguments,
                                              JsonWriter*           inout_writer_ptr);
 
-            /* Writes the "depth" member of an object: how deep the vertices are, or that nobody knows. */
-            static void write_depth_spread  (const PassDepthSpread&            in_spread,
-                                             JsonWriter*                       inout_writer_ptr);
             static void write_draw_structure(const uint64_t&                   in_key,
                                              const DrawStructure&              in_structure,
                                              JsonWriter*                       inout_writer_ptr);
