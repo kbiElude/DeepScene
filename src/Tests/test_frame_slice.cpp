@@ -220,3 +220,40 @@ TEST(SliceSkipper, ADrawAClearACopyAndAnUploadAreContentAndAStateObjectOrASceneC
     EXPECT_FALSE(SliceSkipper::is_content_call(APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAW7_CREATESURFACE) );
     EXPECT_FALSE(SliceSkipper::is_content_call(APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_FLIP) );
 }
+
+TEST(SliceSkipper, TheChunksOfTheContentOfADeadFrameAreNotWantedAndItKeepsTheSliceItWasAskedFor)
+{
+    Stereo::Replay::EngineDLL::SliceSkipper skipper;
+    Capture::APIDumpLoader::DumpedAPICall   draw;
+    Capture::APIDumpLoader::DumpedAPICall   state;
+    const auto                              analysis = make_analysis(8,
+                                                                     {make_resource({make_version(false, 0, false, {}),
+                                                                                     make_version(true,  1, false, {})})});
+
+    draw.func  = APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWPRIMITIVE;
+    state.func = APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_SETRENDERSTATE;
+
+    /* With no slice there is nothing to ask. */
+    EXPECT_FALSE(skipper.get_chunk_wanted_func() );
+
+    skipper.set_slice(FrameSlicePlanner::plan(analysis,
+                                              5) );
+
+    const auto wanted_func = skipper.get_chunk_wanted_func();
+
+    ASSERT_TRUE(wanted_func);
+
+    /* The same decisions as should_execute_call() makes, which is what the replay reads the chunks for. */
+    EXPECT_FALSE(wanted_func(draw,
+                             2) );
+    EXPECT_TRUE (wanted_func(state,
+                             2) );
+    EXPECT_TRUE (wanted_func(draw,
+                             5) );
+
+    /* A slice which replaces it later does not change what it was asked for. */
+    skipper.clear_slice();
+
+    EXPECT_FALSE(wanted_func(draw,
+                             2) );
+}

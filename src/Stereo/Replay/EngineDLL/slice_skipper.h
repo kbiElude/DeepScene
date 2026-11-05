@@ -30,6 +30,11 @@ namespace Stereo
                 /* No frame is left out. Any thread. */
                 void clear_slice();
 
+                /* Tells the reader of the workload which data chunks the slice leaves unread (those of the content calls of its dead frames); empty if there is no
+                 * slice. It holds the slice as it is now, so it is asked again after a new slice.
+                 */
+                Capture::APIDumpLoader::ChunkWantedFunc get_chunk_wanted_func() const;
+
                 /* Whether the call makes content (what the dead frames of a slice leave out); false for the calls that set state, make or release an object. */
                 static bool is_content_call(const APIInterceptor::APIFunction& in_function);
 

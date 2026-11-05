@@ -10,6 +10,7 @@
 
 Stereo::Replay::EngineDLL::StereoReplayEngine::StereoReplayEngine()
     :m_has_dependencies(false),
+     m_has_seek_target(false),
      m_present_skipper(&m_hurry),
      m_paced_executor (&m_stereo_executor,
                        &m_hurry)
@@ -70,6 +71,9 @@ bool Stereo::Replay::EngineDLL::StereoReplayEngine::load(const char*  in_filenam
     /* What was known of another workload is not of this one. */
     m_has_dependencies = false;
 
+    m_has_seek_target = false;
+
+    m_engine.set_chunk_wanted_func(Capture::APIDumpLoader::ChunkWantedFunc() );
     m_slice_skipper.clear_slice();
 
     const bool result = m_engine.load(in_filename_ptr,
@@ -102,8 +106,25 @@ void Stereo::Replay::EngineDLL::StereoReplayEngine::play_to_frame(const uint32_t
     /* What the frames before it make is what it and the frames after it read: the rest may be left out, if the dependencies are known. */
     if (m_has_dependencies)
     {
+        /* The reader decodes segments ahead of the replay with the chunks of the dead frames left out, for the slice that was set when it was started. A
+         * new slice while the replay has not reached the last target needs the chunks that the old one left out, so the replay starts over.
+         */
+        const bool is_last_seek_unfinished = (m_has_seek_target                                        &&
+                                              m_engine.get_status().n_frames_presented <= m_seek_target_frame);
+
         m_slice_skipper.set_slice(Analysis::APIDumpDependencies::FrameSlicePlanner::plan(m_dependencies,
                                                                                          in_n_frame) );
+
+        /* Before the reset, since the replay thread starts the reader again as soon as it is asked to. */
+        m_engine.set_chunk_wanted_func(m_slice_skipper.get_chunk_wanted_func() );
+
+        if (is_last_seek_unfinished)
+        {
+            m_engine.reset();
+        }
+
+        m_has_seek_target   = true;
+        m_seek_target_frame = in_n_frame;
     }
 
     /* The frames up to the one asked for are hurried through; it is shown, and the replay pauses there. */
@@ -124,6 +145,9 @@ void Stereo::Replay::EngineDLL::StereoReplayEngine::remove_replay_observer(IRepl
 
 void Stereo::Replay::EngineDLL::StereoReplayEngine::reset()
 {
+    m_has_seek_target = false;
+
+    m_engine.set_chunk_wanted_func(Capture::APIDumpLoader::ChunkWantedFunc() );
     m_slice_skipper.clear_slice();
     m_hurry.clear();
 
