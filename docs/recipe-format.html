@@ -53,9 +53,12 @@
     },
     "unaffected": {                                draws which the rules leave alone (a 2D overlay): all others are affected
       "pass_keys": [ "0x..." ],                    every draw of these passes
-      "draw_keys": [ "0x..." ]                     these draws, wherever they are
+      "draw_keys": [ "0x..." ],                    these draws, wherever they are
+      "pass_draws": [ { "pass_key": "0x...", "draw_key": "0x..." } ]   this draw in this pass only: a draw structure is often in several passes (a scene and
+                                                   the pass that draws over it), and a converter that plays the application as it runs does not know the
+                                                   passes, so it cannot tell this from the draw
     },
-    "affected": { "draw_keys": [ "0x..." ] },      draws which are affected inside an unaffected pass (a draw key beats a pass key)
+    "affected": { "draw_keys": [ "0x..." ] },      draws which are affected inside an unaffected pass (a draw in a pass beats a draw key, which beats a pass key)
     "baked": {                                     made from the lists above by RecipeBake; do not edit
       "signature_scheme_version": 1,               must equal this build's, or the signatures would not match
       "known_signatures": [ "0x..." ],             the signatures the analysis saw; a draw of another is one the recipe knows nothing of
@@ -87,7 +90,8 @@
     },
     "skipped": {                                   draws which are not played, in either eye (the calls which set their state are)
       "pass_keys": [ "0x..." ],                    every draw of these passes
-      "draw_keys": [ "0x..." ]                     these draws, wherever they are
+      "draw_keys": [ "0x..." ],                    these draws, wherever they are
+      "pass_draws": [ { "pass_key": "0x...", "draw_key": "0x..." } ]   this draw in this pass only (what the overlay probe leaves out)
     },
     "rules": [
       {

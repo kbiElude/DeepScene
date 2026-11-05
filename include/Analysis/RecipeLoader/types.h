@@ -148,11 +148,21 @@ namespace Analysis
             std::vector<std::array<float, 16>> view_matrix_vec; /* if not empty, the rule applies only while the view matrix is one of these */
         };
 
+        /* A draw in one pass: a draw structure is often in several passes (a 3D scene and a pass that draws over it may share it), and the key of the draw alone
+         * names it in all of them. A replay knows the passes; a converter which plays an application as it runs does not, and cannot tell this from the draw.
+         */
+        struct PassDraw
+        {
+            uint64_t draw_key = 0; /* of a draw structure */
+            uint64_t pass_key = 0; /* of a pass structure */
+        };
+
         /* Names passes and draws by their match keys (see KeyBuilder), which are the same in every run. */
         struct DrawSelector
         {
-            std::vector<uint64_t> draw_key_vec; /* keys of draw structures */
-            std::vector<uint64_t> pass_key_vec; /* keys of pass structures */
+            std::vector<uint64_t> draw_key_vec;  /* keys of draw structures                                   */
+            std::vector<PassDraw> pass_draw_vec; /* a draw in one pass only: the most specific name there is  */
+            std::vector<uint64_t> pass_key_vec;  /* keys of pass structures                                   */
         };
 
         /* One change. It applies to a call of its function when every condition holds and the call is in a matching pass and frame

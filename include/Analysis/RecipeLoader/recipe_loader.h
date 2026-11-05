@@ -55,14 +55,20 @@ namespace Analysis
                                                                   std::string*                                out_error_ptr);
             static const CallDescriptor* find_call_descriptor_ptr(const std::string&                          in_name);
 
-            /* True if a key is in both lists. */
-            static bool has_common_key(const std::vector<uint64_t>& in_a,
-                                       const std::vector<uint64_t>& in_b);
+            /* True if a key, or a draw of a pass, is in both lists. */
+            static bool has_common_key      (const std::vector<uint64_t>& in_a,
+                                             const std::vector<uint64_t>& in_b);
+            static bool has_common_pass_draw(const std::vector<PassDraw>& in_a,
+                                             const std::vector<PassDraw>& in_b);
 
             static bool parse_action(const Analysis::APIDumpAnalysis::JsonValue& in_action,
                                      const std::string&                          in_path,
                                      Rule*                                       inout_rule_ptr,
                                      std::string*                                out_error_ptr);
+            static bool parse_pass_draw_array   (const Analysis::APIDumpAnalysis::JsonValue& in_array,
+                                                 const std::string&                          in_path,
+                                                 std::vector<PassDraw>*                      out_pass_draw_vec_ptr,
+                                                 std::string*                                out_error_ptr);
             static bool parse_per_eye_textures(const Analysis::APIDumpAnalysis::JsonValue& in_value,
                                                const std::string&                          in_path,
                                                std::vector<PerEyeTexture>*                 out_texture_vec_ptr,

@@ -32,6 +32,7 @@ namespace Stereo
                 uint64_t                                   n_frames         = 0;        /* the candidate is drawn in */
                 uint64_t                                   n_picture_pixels = 0;
                 uint64_t                                   pass_id          = 0;
+                uint64_t                                   pass_key         = 0;
                 std::vector<std::string>                   reason_vec;
                 std::string                                replay_class;
                 uint64_t                                   signature_key    = 0;
@@ -40,7 +41,7 @@ namespace Stereo
             };
 
             /* Finds out which of the draws that may be 2D overlays (the list of RecipeBake --overlays) are drawn in the picture: the frame in which a candidate is
-             * first seen is replayed twice for the left eye, with the draw and with the draw left out (the recipe skips it), and the images are compared. The result
+             * first seen is replayed twice for the left eye, with the draw and with the draw left out (the recipe skips it in its pass only), and the images are compared. The result
              * is a directory with an image for each candidate that changes the picture (the frame as it is, the pixels that the draw makes in magenta), a list
              * of them as JSON and a page that shows them.
              */

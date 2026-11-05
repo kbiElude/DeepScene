@@ -227,6 +227,16 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::run(const Options&    in_
     {
         OverlayProbeEntry entry;
 
+        /* A draw is left out in its own pass only, so the list must say which pass that is (the lists that RecipeBake --overlays made before did not). */
+        if (candidate.find_ptr("pass_key") == nullptr ||
+            parse_hex_key(candidate.at("pass_key").string_value,
+                         &entry.pass_key) == false)
+        {
+            *out_error_ptr = "A candidate of " + in_options.overlay_probe_filename + " has no pass_key: make the list again with RecipeBake --overlays.";
+
+            goto end;
+        }
+
         /* A candidate which no frame shows cannot be seen. */
         if (candidate.find_ptr("first_frame_index") == nullptr                                                        ||
             parse_hex_key(candidate.at("signature_key").string_value,
@@ -289,7 +299,13 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::run(const Options&    in_
             }
         }
 
-        probe_options.recipe.skipped.draw_key_vec.push_back(entry.structure_key);
+        /* The draw is left out in its pass, not in the other passes which have a draw of its structure (a pass that draws a scene may be one of them). */
+        Analysis::RecipeLoader::PassDraw pass_draw;
+
+        pass_draw.draw_key = entry.structure_key;
+        pass_draw.pass_key = entry.pass_key;
+
+        probe_options.recipe.skipped.pass_draw_vec.push_back(pass_draw);
 
         if (in_render_func(probe_options,
                            entry.frame_index,
@@ -406,6 +422,8 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::write_list(const std::str
         writer.write_hex_u64(entry.structure_key);
         writer.write_key    ("pass_id");
         writer.write_u64    (entry.pass_id);
+        writer.write_key    ("pass_key");
+        writer.write_hex_u64(entry.pass_key);
         writer.write_key    ("n_frames");
         writer.write_u64    (entry.n_frames);
         writer.write_key    ("probed_frame_index");

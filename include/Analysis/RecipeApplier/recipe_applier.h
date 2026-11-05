@@ -73,13 +73,13 @@ namespace Analysis
             /* False if no rule is about the function, whatever the arguments: a quick check before the call is looked at. */
             bool has_rule_for(const APIInterceptor::APIFunction& in_function) const;
 
-            /* Whether the rules apply to a draw (see Recipe::affected): the key of the draw counts for more than the key of its pass, and
-             * a draw which neither names is affected.
+            /* Whether the rules apply to a draw (see Recipe::affected): the draw in its pass counts for more than the key of the draw, which counts for more
+             * than the key of its pass, and a draw which none of them names is affected.
              */
             bool is_draw_affected(const uint64_t& in_pass_key,
                                   const uint64_t& in_draw_key) const;
 
-            /* Whether the draw is not to be played (see Recipe::skipped): its key or the key of its pass is named. */
+            /* Whether the draw is not to be played (see Recipe::skipped): the draw in its pass, its key, or the key of its pass is named. */
             bool is_draw_skipped(const uint64_t& in_pass_key,
                                  const uint64_t& in_draw_key) const;
 
@@ -124,6 +124,9 @@ namespace Analysis
             /* Signature -> positions in the recipe's draw rules. */
             typedef std::unordered_map<uint64_t, std::vector<uint32_t> > DrawRuleIndexMap;
 
+            /* A draw in one pass: the key of the pass and the key of the draw. */
+            typedef std::pair<uint64_t, uint64_t> PassDrawKey;
+
 
             static bool is_matrix_of_kind(const std::array<float, 16>&              in_matrix,
                                           const Analysis::RecipeLoader::MatrixKind& in_kind);
@@ -138,6 +141,7 @@ namespace Analysis
 
 
             std::set<uint64_t>                    m_affected_draw_key_set;
+            std::set<PassDrawKey>                 m_affected_pass_draw_set;
             std::set<uint64_t>                    m_affected_pass_key_set;
             std::map<uint64_t, float>             m_convergence_distance_map;
             DrawRuleIndexMap                      m_draw_rule_index_map;
@@ -148,8 +152,10 @@ namespace Analysis
             std::map<uint64_t, float>             m_scene_convergence_distance_map;
             std::map<uint64_t, float>             m_scene_max_separation_map;
             std::set<uint64_t>                    m_skipped_draw_key_set;
+            std::set<PassDrawKey>                 m_skipped_pass_draw_set;
             std::set<uint64_t>                    m_skipped_pass_key_set;
             std::set<uint64_t>                    m_unaffected_draw_key_set;
+            std::set<PassDrawKey>                 m_unaffected_pass_draw_set;
             std::set<uint64_t>                    m_unaffected_pass_key_set;
         };
     }

@@ -40,6 +40,25 @@ Analysis::RecipeApplier::RecipeApplier::RecipeApplier(const Analysis::RecipeLoad
                                      m_recipe.affected.draw_key_vec.end    () );
     m_affected_pass_key_set.insert  (m_recipe.affected.pass_key_vec.begin  (),
                                      m_recipe.affected.pass_key_vec.end    () );
+
+    for (const auto& pass_draw : m_recipe.affected.pass_draw_vec)
+    {
+        m_affected_pass_draw_set.insert(PassDrawKey(pass_draw.pass_key,
+                                                    pass_draw.draw_key) );
+    }
+
+    for (const auto& pass_draw : m_recipe.skipped.pass_draw_vec)
+    {
+        m_skipped_pass_draw_set.insert(PassDrawKey(pass_draw.pass_key,
+                                                   pass_draw.draw_key) );
+    }
+
+    for (const auto& pass_draw : m_recipe.unaffected.pass_draw_vec)
+    {
+        m_unaffected_pass_draw_set.insert(PassDrawKey(pass_draw.pass_key,
+                                                      pass_draw.draw_key) );
+    }
+
     m_covering_draw_key_set.insert(m_recipe.covering_draw_key_vec.begin(),
                                         m_recipe.covering_draw_key_vec.end  () );
     m_known_signature_key_set.insert(m_recipe.known_signature_key_vec.begin(),
@@ -269,7 +288,19 @@ bool Analysis::RecipeApplier::RecipeApplier::is_draw_affected(const uint64_t& in
 {
     bool result = true;
 
-    /* The most specific name wins: a draw before its pass. */
+    /* The most specific name wins: a draw in its pass, then a draw, then a pass. */
+    if (m_affected_pass_draw_set.count(PassDrawKey(in_pass_key,
+                                                   in_draw_key) ) != 0)
+    {
+        result = true;
+    }
+    else
+    if (m_unaffected_pass_draw_set.count(PassDrawKey(in_pass_key,
+                                                     in_draw_key) ) != 0)
+    {
+        result = false;
+    }
+    else
     if (m_affected_draw_key_set.count(in_draw_key) != 0)
     {
         result = true;
@@ -296,8 +327,10 @@ bool Analysis::RecipeApplier::RecipeApplier::is_draw_affected(const uint64_t& in
 bool Analysis::RecipeApplier::RecipeApplier::is_draw_skipped(const uint64_t& in_pass_key,
                                                              const uint64_t& in_draw_key) const
 {
-    return (m_skipped_draw_key_set.count(in_draw_key) != 0 ||
-            m_skipped_pass_key_set.count(in_pass_key) != 0);
+    return (m_skipped_pass_draw_set.count(PassDrawKey(in_pass_key,
+                                                      in_draw_key) ) != 0 ||
+            m_skipped_draw_key_set.count(in_draw_key)              != 0 ||
+            m_skipped_pass_key_set.count(in_pass_key)              != 0);
 }
 
 bool Analysis::RecipeApplier::RecipeApplier::is_draw_covering(const uint64_t& in_cover_key) const

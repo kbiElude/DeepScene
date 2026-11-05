@@ -70,6 +70,23 @@ bool Analysis::RecipeLoader::RecipeLoader::has_common_key(const std::vector<uint
     return result;
 }
 
+bool Analysis::RecipeLoader::RecipeLoader::has_common_pass_draw(const std::vector<PassDraw>& in_a,
+                                                                const std::vector<PassDraw>& in_b)
+{
+    bool result = false;
+
+    for (const auto& pass_draw : in_a)
+    {
+        for (const auto& other : in_b)
+        {
+            result = (result || (pass_draw.draw_key == other.draw_key &&
+                                 pass_draw.pass_key == other.pass_key) );
+        }
+    }
+
+    return result;
+}
+
 bool Analysis::RecipeLoader::RecipeLoader::load(const std::string& in_filename,
                                                 Recipe*            out_recipe_ptr,
                                                 std::string*       out_error_ptr)
@@ -319,12 +336,15 @@ bool Analysis::RecipeLoader::RecipeLoader::parse(const std::string& in_text,
             }
         }
 
-        const bool has_common_draw_key = has_common_key(out_recipe_ptr->affected.draw_key_vec,
-                                                        out_recipe_ptr->unaffected.draw_key_vec);
-        const bool has_common_pass_key = has_common_key(out_recipe_ptr->affected.pass_key_vec,
-                                                        out_recipe_ptr->unaffected.pass_key_vec);
+        const bool has_common_draw_key      = has_common_key      (out_recipe_ptr->affected.draw_key_vec,
+                                                                   out_recipe_ptr->unaffected.draw_key_vec);
+        const bool has_common_pass_draw_key = has_common_pass_draw(out_recipe_ptr->affected.pass_draw_vec,
+                                                                   out_recipe_ptr->unaffected.pass_draw_vec);
+        const bool has_common_pass_key      = has_common_key      (out_recipe_ptr->affected.pass_key_vec,
+                                                                   out_recipe_ptr->unaffected.pass_key_vec);
 
-        if (has_common_draw_key ||
+        if (has_common_draw_key      ||
+            has_common_pass_draw_key ||
             has_common_pass_key)
         {
             *out_error_ptr = "affected and unaffected: a key is in both";
@@ -1112,17 +1132,35 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_draw_selector(const Analysis::A
 
     if (in_value.type != Analysis::APIDumpAnalysis::JsonValue::Type::OBJECT)
     {
-        *out_error_ptr = in_path + ": expected an object with draw_keys and / or pass_keys";
+        *out_error_ptr = in_path + ": expected an object with draw_keys, pass_keys and / or pass_draws";
 
         goto end;
     }
 
     if (check_keys(in_value,
-                   {"draw_keys", "pass_keys"},
+                   {"draw_keys", "pass_draws", "pass_keys"},
                    in_path,
                    out_error_ptr) == false)
     {
         goto end;
+    }
+
+    if (in_value.find_ptr("pass_draws") != nullptr)
+    {
+        if (parse_pass_draw_array(in_value.at("pass_draws"),
+                                  in_path + ".pass_draws",
+                                 &out_selector_ptr->pass_draw_vec,
+                                  out_error_ptr) == false)
+        {
+            goto end;
+        }
+
+        if (out_selector_ptr->pass_draw_vec.empty() )
+        {
+            *out_error_ptr = in_path + ".pass_draws: the list is empty; leave it out";
+
+            goto end;
+        }
     }
 
     for (const auto& list : {std::make_pair(std::string("draw_keys"), &out_selector_ptr->draw_key_vec),
@@ -1147,7 +1185,8 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_draw_selector(const Analysis::A
         }
     }
 
-    if (out_selector_ptr->draw_key_vec.empty() &&
+    if (out_selector_ptr->draw_key_vec.empty()  &&
+        out_selector_ptr->pass_draw_vec.empty() &&
         out_selector_ptr->pass_key_vec.empty() )
     {
         *out_error_ptr = in_path + ": names no draw and no pass";
@@ -1379,6 +1418,78 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_matrix(const Analysis::APIDumpA
         }
 
         out_matrix_ptr->at(n_element) = static_cast<float>(element.number_value);
+    }
+
+    result = true;
+
+end:
+    return result;
+}
+
+bool Analysis::RecipeLoader::RecipeLoader::parse_pass_draw_array(const Analysis::APIDumpAnalysis::JsonValue& in_array,
+                                                                 const std::string&                          in_path,
+                                                                 std::vector<PassDraw>*                      out_pass_draw_vec_ptr,
+                                                                 std::string*                                out_error_ptr)
+{
+    bool result = false;
+
+    out_pass_draw_vec_ptr->clear();
+
+    if (in_array.type != Analysis::APIDumpAnalysis::JsonValue::Type::ARRAY)
+    {
+        *out_error_ptr = in_path + ": expected an array of objects with a pass_key and a draw_key";
+
+        goto end;
+    }
+
+    for (size_t n_item = 0;
+                n_item < in_array.item_vec.size();
+              ++n_item)
+    {
+        const auto&       item = in_array.item_vec.at(n_item);
+        const std::string path = in_path + "[" + std::to_string(n_item) + "]";
+        PassDraw          pass_draw;
+
+        if (item.type != Analysis::APIDumpAnalysis::JsonValue::Type::OBJECT)
+        {
+            *out_error_ptr = path + ": expected an object with a pass_key and a draw_key";
+
+            goto end;
+        }
+
+        if (check_keys(item,
+                       {"draw_key", "pass_key"},
+                       path,
+                       out_error_ptr) == false)
+        {
+            goto end;
+        }
+
+        if (item.find_ptr("draw_key") == nullptr ||
+            item.find_ptr("pass_key") == nullptr)
+        {
+            *out_error_ptr = path + ": a draw in a pass needs both a pass_key and a draw_key";
+
+            goto end;
+        }
+
+        if (parse_hex_key(item.at("draw_key"),
+                          path + ".draw_key",
+                         &pass_draw.draw_key,
+                          out_error_ptr) == false)
+        {
+            goto end;
+        }
+
+        if (parse_hex_key(item.at("pass_key"),
+                          path + ".pass_key",
+                         &pass_draw.pass_key,
+                          out_error_ptr) == false)
+        {
+            goto end;
+        }
+
+        out_pass_draw_vec_ptr->push_back(pass_draw);
     }
 
     result = true;

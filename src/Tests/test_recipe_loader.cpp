@@ -1209,3 +1209,42 @@ TEST_F(RecipeLoaderTest, PerEyeTexturesAreReadAndWhatIsWrongInThemIsRefused)
                                    ""),
                    "the texture is in the list already");
 }
+
+TEST_F(RecipeLoaderTest, ADrawInOnePassIsNamedByTheKeysOfBoth)
+{
+    Analysis::RecipeLoader::Recipe recipe;
+    std::string                    error;
+
+    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"skipped\": {\"pass_draws\": [{\"pass_key\": \"0x0000000000000012\", \"draw_key\": \"0x0000000000000034\"}]},", ""),
+                                                           &recipe,
+                                                           &error) ) << error;
+
+    ASSERT_EQ(recipe.skipped.pass_draw_vec.size(),
+              1u);
+    EXPECT_EQ(recipe.skipped.pass_draw_vec.at(0).pass_key,
+              0x12u);
+    EXPECT_EQ(recipe.skipped.pass_draw_vec.at(0).draw_key,
+              0x34u);
+    EXPECT_TRUE(recipe.skipped.draw_key_vec.empty() );
+    EXPECT_TRUE(recipe.skipped.pass_key_vec.empty() );
+
+    expect_refused(get_recipe_text("\"skipped\": {\"pass_draws\": []},", ""),
+                   "skipped.pass_draws: the list is empty");
+    expect_refused(get_recipe_text("\"skipped\": {\"pass_draws\": [{\"pass_key\": \"0x0000000000000012\"}]},", ""),
+                   "needs both a pass_key and a draw_key");
+    expect_refused(get_recipe_text("\"skipped\": {\"pass_draws\": [{\"pass_key\": \"0x0000000000000012\", \"draw_key\": \"0x0000000000000034\", \"x\": 1}]},", ""),
+                   "unknown field \"x\"");
+    expect_refused(get_recipe_text("\"skipped\": {\"pass_draws\": [\"0x0000000000000012\"]},", ""),
+                   "expected an object with a pass_key and a draw_key");
+    expect_refused(get_recipe_text("\"skipped\": {\"pass_draws\": {}},", ""),
+                   "expected an array");
+
+    /* The same draw in the same pass cannot be affected and unaffected; in different passes it can. */
+    expect_refused(get_recipe_text("\"unaffected\": {\"pass_draws\": [{\"pass_key\": \"0x0000000000000012\", \"draw_key\": \"0x0000000000000034\"}]}, "
+                                   "\"affected\": {\"pass_draws\": [{\"pass_key\": \"0x0000000000000012\", \"draw_key\": \"0x0000000000000034\"}]},", ""),
+                   "a key is in both");
+    EXPECT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"unaffected\": {\"pass_draws\": [{\"pass_key\": \"0x0000000000000012\", \"draw_key\": \"0x0000000000000034\"}]}, "
+                                                                            "\"affected\": {\"pass_draws\": [{\"pass_key\": \"0x0000000000000056\", \"draw_key\": \"0x0000000000000034\"}]},", ""),
+                                                           &recipe,
+                                                           &error) ) << error;
+}

@@ -872,3 +872,43 @@ TEST(RecipeApplierPerEyeTextures, ATextureIsOneThatEachEyeHasACopyOfWhenTheRecip
 
     EXPECT_FALSE(applier.is_per_eye_texture(identity) );
 }
+
+TEST_F(RecipeApplierTest, ADrawInOnePassBeatsTheKeyOfTheDrawAndTheKeyOfThePassAndLeavesTheSameDrawInOtherPassesAlone)
+{
+    Analysis::RecipeLoader::Recipe recipe;
+    Analysis::RecipeLoader::PassDraw unaffected_pass_draw;
+    Analysis::RecipeLoader::PassDraw affected_pass_draw;
+
+    /* The draw 30 is in the passes 10 and 11 (a scene is drawn by one of them, and an overlay by the other). */
+    recipe.unaffected.draw_key_vec = {30};
+    recipe.unaffected.pass_key_vec = {12};
+
+    unaffected_pass_draw.draw_key = 30;
+    unaffected_pass_draw.pass_key = 11;
+    affected_pass_draw.draw_key   = 30;
+    affected_pass_draw.pass_key   = 12;
+
+    recipe.affected.pass_draw_vec   = {affected_pass_draw};
+    recipe.skipped.pass_draw_vec    = {unaffected_pass_draw};
+    recipe.unaffected.pass_draw_vec = {unaffected_pass_draw};
+
+    const Analysis::RecipeApplier::RecipeApplier applier(recipe);
+
+    /* The draw in its pass is named unaffected; in the pass that names it affected, that wins over the key of the draw and of the pass. */
+    EXPECT_FALSE(applier.is_draw_affected(11,
+                                          30) );
+    EXPECT_TRUE (applier.is_draw_affected(12,
+                                          30) );
+
+    /* In a pass that does not name it, the key of the draw says. */
+    EXPECT_FALSE(applier.is_draw_affected(10,
+                                          30) );
+
+    /* Skipped in the one pass, and played in the others. */
+    EXPECT_TRUE (applier.is_draw_skipped(11,
+                                         30) );
+    EXPECT_FALSE(applier.is_draw_skipped(10,
+                                         30) );
+    EXPECT_FALSE(applier.is_draw_skipped(11,
+                                         31) );
+}

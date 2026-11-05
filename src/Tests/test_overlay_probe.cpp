@@ -13,11 +13,14 @@
 
 namespace
 {
-    constexpr const char* HIDDEN_TEXT = "0x0000000000002222";
-    constexpr uint64_t    HUD_KEY     = 0x1111;
-    constexpr const char* HUD_TEXT    = "0x0000000000001111";
-    constexpr uint64_t    SCENE_KEY   = 0x3333;
-    constexpr const char* SCENE_TEXT  = "0x0000000000003333";
+    constexpr const char* HIDDEN_TEXT     = "0x0000000000002222";
+    constexpr uint64_t    HUD_KEY         = 0x1111;
+    constexpr const char* HUD_TEXT        = "0x0000000000001111";
+    constexpr uint64_t    MAIN_PASS_KEY   = 0x99;
+    constexpr const char* MAIN_PASS_TEXT  = "0x0000000000000099";
+    constexpr const char* OTHER_PASS_TEXT = "0x0000000000000077";
+    constexpr uint64_t    SCENE_KEY       = 0x3333;
+    constexpr const char* SCENE_TEXT      = "0x0000000000003333";
 
     std::string read_text_file(const std::string& in_path)
     {
@@ -44,12 +47,14 @@ namespace
                             : "\"depth\":{\"has_depth\":true,\"n_vertices\":8,\"near\":30,\"median\":60,\"far\":100,\"far_to_near_ratio\":3.3,\"is_flat\":false},";
     }
 
+    /* The draw of a structure in a pass: the pass is the one of the draw that the picture is made of unless the test says another. */
     std::string make_candidate(const char*        in_structure_key_ptr,
-                               const bool&         in_has_frame,
-                               const std::string&  in_depth_text = std::string() )
+                               const bool&        in_has_frame,
+                               const std::string& in_depth_text = std::string(),
+                               const char*        in_pass_key_ptr = MAIN_PASS_TEXT)
     {
-        return std::string("{\"signature_key\":\"0x00000000000000aa\",\"structure_key\":\"") + in_structure_key_ptr + "\",\"pass_id\":1,\"n_frames\":3," +
-               ((in_has_frame) ? "\"first_frame_index\":7," : "") + in_depth_text +
+        return std::string("{\"signature_key\":\"0x00000000000000aa\",\"structure_key\":\"") + in_structure_key_ptr + "\",\"pass_id\":1,\"pass_key\":\"" + in_pass_key_ptr +
+               "\",\"n_frames\":3," + ((in_has_frame) ? "\"first_frame_index\":7," : "") + in_depth_text +
                "\"agreement\":\"both\",\"replay_class\":\"unaffected\",\"live_class\":\"unaffected\",\"reasons\":[\"static_camera\"]}";
     }
 
@@ -64,11 +69,15 @@ namespace
         bool is_hud_skipped   = false;
         bool is_scene_skipped = false;
 
-        for (const auto key : in_options.recipe.skipped.draw_key_vec)
+        /* The draws are in the main pass only: a draw of the same structure that is left out in another pass leaves the picture as it is. */
+        for (const auto& pass_draw : in_options.recipe.skipped.pass_draw_vec)
         {
-            is_hud_skipped   = (is_hud_skipped   || key == HUD_KEY);
-            is_scene_skipped = (is_scene_skipped || key == SCENE_KEY);
+            is_hud_skipped   = (is_hud_skipped   || (pass_draw.draw_key == HUD_KEY   && pass_draw.pass_key == MAIN_PASS_KEY) );
+            is_scene_skipped = (is_scene_skipped || (pass_draw.draw_key == SCENE_KEY && pass_draw.pass_key == MAIN_PASS_KEY) );
         }
+
+        /* Nothing is left out by the key of a draw alone: the probe names the pass. */
+        EXPECT_TRUE(in_options.recipe.skipped.draw_key_vec.empty() );
 
         out_image_ptr->height       = 2;
         out_image_ptr->width        = 4;
@@ -185,4 +194,49 @@ TEST(OverlayProbe, ADrawThatTheRecipeLeavesAloneIsToBeLookedAtTwiceIfItsPassIsDe
     EXPECT_NE(page.find("makes 75.0% of the picture"),   std::string::npos);
     EXPECT_NE(page.find("data-suspect=\"1\""),           std::string::npos);
     EXPECT_NE(page.find("data-suspect=\"0\""),           std::string::npos);
+}
+
+TEST(OverlayProbe, ADrawIsLeftOutInItsPassAndNotInThePassesWhichHaveADrawOfItsStructure)
+{
+    Tests::TempDirectory                        directory;
+    Stereo::Replay::ConsistencyChecker::Options options;
+    std::string                                 error;
+
+    /* One structure of draw in two passes: in the main pass it makes a pixel, in the other the picture has nothing of it (a scene may be drawn by a pass that shares it). */
+    write_text_file(directory.get_path() + "\\candidates_in.json",
+                    "{\"candidates\":[" + make_candidate(HUD_TEXT, true, std::string(), MAIN_PASS_TEXT)  + "," +
+                                         make_candidate(HUD_TEXT, true, std::string(), OTHER_PASS_TEXT) + "]}");
+
+    options.dump_directory         = directory.get_path() + "\\out";
+    options.overlay_probe_filename = directory.get_path() + "\\candidates_in.json";
+
+    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayProbe::run(options,
+                                                                      render,
+                                                                     &error) ) << error;
+
+    const std::string list = read_text_file(options.dump_directory + "\\candidates.json");
+
+    EXPECT_FALSE(read_text_file(options.dump_directory + "\\candidate_000_frame_7.png").empty() );
+    EXPECT_TRUE (read_text_file(options.dump_directory + "\\candidate_001_frame_7.png").empty() );
+    EXPECT_NE(list.find("\"pass_key\": \"0x0000000000000099\""), std::string::npos) << list;
+    EXPECT_NE(list.find("\"pass_key\": \"0x0000000000000077\""), std::string::npos) << list;
+}
+
+TEST(OverlayProbe, AListWhoseCandidatesDoNotSayWhichPassTheyAreOfFails)
+{
+    Tests::TempDirectory                        directory;
+    Stereo::Replay::ConsistencyChecker::Options options;
+    std::string                                 error;
+
+    write_text_file(directory.get_path() + "\\old.json",
+                    "{\"candidates\":[{\"signature_key\":\"0x00000000000000aa\",\"structure_key\":\"0x0000000000001111\",\"pass_id\":1,\"n_frames\":3,\"first_frame_index\":7,"
+                    "\"agreement\":\"both\",\"replay_class\":\"unaffected\",\"live_class\":\"unaffected\",\"reasons\":[]}]}");
+
+    options.dump_directory         = directory.get_path() + "\\out";
+    options.overlay_probe_filename = directory.get_path() + "\\old.json";
+
+    EXPECT_FALSE(Stereo::Replay::ConsistencyChecker::OverlayProbe::run(options,
+                                                                       render,
+                                                                      &error) );
+    EXPECT_NE(error.find("pass_key"), std::string::npos) << error;
 }
