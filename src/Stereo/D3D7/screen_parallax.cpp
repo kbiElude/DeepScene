@@ -7,6 +7,9 @@
 #include <math.h>
 #include <string.h>
 
+/* How near to an edge of the picture a vertex has to be to be at it, as a part of the width: what the analysis counts as reaching it. */
+static constexpr float EDGE_REACH = 0.005f;
+
 float Stereo::D3D7::ScreenParallax::get_shift(const Parameters& in_parameters,
                                               const float&      in_reciprocal_depth)
 {
@@ -64,9 +67,6 @@ bool Stereo::D3D7::ScreenParallax::reaches_both_sides(const uint8_t*  in_vertex_
                                                       const size_t&   in_n_indices,
                                                       const float&    in_picture_width)
 {
-    /* How near to an edge a vertex has to be for the draw to reach it, as a part of the width: what the analysis counts as reaching it. */
-    constexpr float EDGE_REACH = 0.005f;
-
     const size_t n_used   = (in_index_ptr != nullptr) ? in_n_indices
                                                       : in_n_vertices;
     bool         has_used = false;
@@ -143,7 +143,9 @@ void Stereo::D3D7::ScreenParallax::shift_vertices(const Parameters& in_parameter
     constexpr size_t X_OFFSET                = 0;
 
     /* The same for every vertex of the draw. */
-    const ShiftFactors factors = make_shift_factors(in_parameters);
+    const float        edge_n_pixels = EDGE_REACH * in_parameters.picture_width;
+    const float        right_edge_x  = in_parameters.picture_width - edge_n_pixels;
+    const ShiftFactors factors       = make_shift_factors(in_parameters);
 
     for (size_t n_vertex = 0;
                 n_vertex < in_n_vertices;
@@ -160,8 +162,22 @@ void Stereo::D3D7::ScreenParallax::shift_vertices(const Parameters& in_parameter
                  vertex_ptr + RECIPROCAL_DEPTH_OFFSET,
                  sizeof(reciprocal) );
 
-        x += get_shift(factors,
-                       reciprocal);
+        const float shift = get_shift(factors,
+                                      reciprocal);
+
+        /* A vertex at an edge of the picture which the shift would take from it is left there: what the polygon covered up to the edge it covers
+         * still, and no gap of the colour behind it opens (where the ground ends at the side of the picture, for one).
+         */
+        const bool is_held_at_left  = (x     <= edge_n_pixels &&
+                                       shift >  0.0f);
+        const bool is_held_at_right = (x     >= right_edge_x  &&
+                                       shift <  0.0f);
+
+        if (is_held_at_left  == false &&
+            is_held_at_right == false)
+        {
+            x += shift;
+        }
 
         ::memcpy(vertex_ptr + X_OFFSET,
                  &x,

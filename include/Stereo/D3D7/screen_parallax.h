@@ -72,7 +72,9 @@ namespace Stereo
 
             /* Moves the x of every vertex of the array, which is of pre-transformed vertices (x, y, z and the reciprocal of the depth, in
              * floats, and then what the format has more): to the right by the shift for the left eye, to the left for the right one. The
-             * depth is not allowed to be behind the camera or beyond reason: a vertex which is has the depth at the edge of what is allowed.
+             * depth is not allowed to be behind the camera or beyond reason: a vertex which is has the depth at the edge of what is allowed. A
+             * vertex at the left edge of the picture is not moved to the right, nor one at the right edge to the left: the gap that would open
+             * between the picture and what it covered is not wanted.
              */
             static void shift_vertices(const Parameters& in_parameters,
                                        const uint32_t&   in_vertex_n_bytes,

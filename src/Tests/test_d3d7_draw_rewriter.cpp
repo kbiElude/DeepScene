@@ -495,3 +495,53 @@ TEST(D3D7DrawRewriter, WhatIsNotADrawOfPreTransformedVerticesWhichThereIsRoomFor
                                             &overlay,
                                             &rewritten) );
 }
+
+TEST(D3D7ScreenParallax, AVertexAtAnEdgeIsNotMovedFromItAndMovesAsAnyOtherWhereThatOpensNoGap)
+{
+    constexpr float NEAR_RECIPROCAL = 1.0f;  /* nearer than the convergence distance (5): to the right for the left eye, to the left for the right one */
+    constexpr float FAR_RECIPROCAL  = 0.01f; /* further: the other way                                                                                    */
+    constexpr size_t N_EDGE_VERTICES = 4;
+
+    /* Left edge near and far, right edge near and far; then the middle, near and far. */
+    const std::vector<float> x_vec          = {0.0f,            0.0f,           640.0f,          640.0f,         300.0f,          300.0f};
+    const std::vector<float> reciprocal_vec = {NEAR_RECIPROCAL, FAR_RECIPROCAL, NEAR_RECIPROCAL, FAR_RECIPROCAL, NEAR_RECIPROCAL, FAR_RECIPROCAL};
+
+    /* The vertex which the shift would take from the edge it is at stays. */
+    const bool is_held_left_eye_vec [N_EDGE_VERTICES] = {true,  false, false, true};
+    const bool is_held_right_eye_vec[N_EDGE_VERTICES] = {false, true,  true,  false};
+
+    for (const auto& eye : {Analysis::RecipeLoader::Eye::LEFT,
+                            Analysis::RecipeLoader::Eye::RIGHT})
+    {
+        const bool* const is_held_vec = (eye == Analysis::RecipeLoader::Eye::LEFT) ? is_held_left_eye_vec
+                                                                                   : is_held_right_eye_vec;
+        auto              vertices    = make_vertices(x_vec,
+                                                      reciprocal_vec);
+
+        Stereo::D3D7::ScreenParallax::shift_vertices(make_parameters(eye),
+                                                     VERTEX_N_BYTES,
+                                                     x_vec.size(),
+                                                     vertices.data() );
+
+        for (size_t n_vertex = 0;
+                    n_vertex < x_vec.size();
+                  ++n_vertex)
+        {
+            const bool is_held = (n_vertex < N_EDGE_VERTICES) && is_held_vec[n_vertex];
+
+            if (is_held)
+            {
+                EXPECT_FLOAT_EQ(get_x(vertices,
+                                      n_vertex),
+                                x_vec.at(n_vertex) ) << n_vertex;
+            }
+            else
+            {
+                /* Out of the picture at an edge is where the picture grows, and in the middle every vertex moves. */
+                EXPECT_NE(get_x(vertices,
+                                n_vertex),
+                          x_vec.at(n_vertex) ) << n_vertex;
+            }
+        }
+    }
+}
