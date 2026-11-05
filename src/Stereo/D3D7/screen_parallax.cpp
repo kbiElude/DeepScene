@@ -10,26 +10,26 @@
 float Stereo::D3D7::ScreenParallax::get_shift(const Parameters& in_parameters,
                                               const float&      in_reciprocal_depth)
 {
+    return get_shift(make_shift_factors(in_parameters),
+                     in_reciprocal_depth);
+}
+
+float Stereo::D3D7::ScreenParallax::get_shift(const ShiftFactors& in_factors,
+                                              const float&        in_reciprocal_depth)
+{
     /* A vertex behind the camera (a reciprocal of the depth that is not above zero) is no place to have a picture of, and neither is one at the
      * camera (a reciprocal that is huge, or not a number): they are put at the edge of what there is, which is infinity at one end, and a tenth
      * of the convergence distance at the other.
      */
-    constexpr float DEGREES_TO_RADIANS = 3.14159265358979323846f / 180.0f;
-    constexpr float MAX_DEPTH_FRACTION = 0.1f;
-    constexpr float HALF               = 0.5f;
-
-    const float convergence_reciprocal = 1.0f / in_parameters.convergence_distance;
-    const float max_reciprocal         = convergence_reciprocal / MAX_DEPTH_FRACTION;
-    const float reciprocal             = (in_reciprocal_depth == in_reciprocal_depth) ? std::min(std::max(in_reciprocal_depth,
-                                                                                                          0.0f),
-                                                                                                 max_reciprocal)
-                                                                                      : 0.0f; /* not a number */
-    const float focal_length_pixels    = (in_parameters.picture_width * HALF) / ::tanf(in_parameters.field_of_view_degrees * HALF * DEGREES_TO_RADIANS);
-    const float magnitude              = focal_length_pixels * (in_parameters.eye_separation * HALF) * (reciprocal - convergence_reciprocal);
+    const float reciprocal = (in_reciprocal_depth == in_reciprocal_depth) ? std::min(std::max(in_reciprocal_depth,
+                                                                                              0.0f),
+                                                                                     in_factors.max_reciprocal)
+                                                                          : 0.0f; /* not a number */
+    const float magnitude  = in_factors.magnitude_per_reciprocal * (reciprocal - in_factors.convergence_reciprocal);
 
     /* A camera that is moved to the left sees what is near further to the right. */
-    return (in_parameters.eye == Analysis::RecipeLoader::Eye::LEFT) ? magnitude
-                                                                    : -magnitude;
+    return (in_factors.is_left) ? magnitude
+                                : -magnitude;
 }
 
 bool Stereo::D3D7::ScreenParallax::is_valid(const Parameters& in_parameters)
@@ -37,6 +37,24 @@ bool Stereo::D3D7::ScreenParallax::is_valid(const Parameters& in_parameters)
     return (in_parameters.convergence_distance >  0.0f &&
             in_parameters.eye_separation       != 0.0f &&
             in_parameters.picture_width        >  0.0f);
+}
+
+Stereo::D3D7::ScreenParallax::ShiftFactors Stereo::D3D7::ScreenParallax::make_shift_factors(const Parameters& in_parameters)
+{
+    constexpr float DEGREES_TO_RADIANS = 3.14159265358979323846f / 180.0f;
+    constexpr float MAX_DEPTH_FRACTION = 0.1f;
+    constexpr float HALF               = 0.5f;
+
+    ShiftFactors result;
+
+    const float focal_length_pixels = (in_parameters.picture_width * HALF) / ::tanf(in_parameters.field_of_view_degrees * HALF * DEGREES_TO_RADIANS);
+
+    result.convergence_reciprocal   = 1.0f / in_parameters.convergence_distance;
+    result.is_left                  = (in_parameters.eye == Analysis::RecipeLoader::Eye::LEFT);
+    result.magnitude_per_reciprocal = focal_length_pixels * (in_parameters.eye_separation * HALF);
+    result.max_reciprocal           = result.convergence_reciprocal / MAX_DEPTH_FRACTION;
+
+    return result;
 }
 
 void Stereo::D3D7::ScreenParallax::scale_vertices(const float&    in_scale,
@@ -79,6 +97,9 @@ void Stereo::D3D7::ScreenParallax::shift_vertices(const Parameters& in_parameter
     constexpr size_t RECIPROCAL_DEPTH_OFFSET = 3 * sizeof(float);
     constexpr size_t X_OFFSET                = 0;
 
+    /* The same for every vertex of the draw. */
+    const ShiftFactors factors = make_shift_factors(in_parameters);
+
     for (size_t n_vertex = 0;
                 n_vertex < in_n_vertices;
               ++n_vertex)
@@ -94,7 +115,7 @@ void Stereo::D3D7::ScreenParallax::shift_vertices(const Parameters& in_parameter
                  vertex_ptr + RECIPROCAL_DEPTH_OFFSET,
                  sizeof(reciprocal) );
 
-        x += get_shift(in_parameters,
+        x += get_shift(factors,
                        reciprocal);
 
         ::memcpy(vertex_ptr + X_OFFSET,

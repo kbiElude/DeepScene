@@ -31,12 +31,25 @@ namespace Stereo
                 float                       picture_width         = 0.0f;  /* in pixels: of what the vertices are positioned in */
             };
 
+            /* What is the same for every vertex of a draw, worked out once (the focal length takes a tangent). */
+            struct ShiftFactors
+            {
+                float convergence_reciprocal = 1.0f;
+                bool  is_left                = true;
+                float magnitude_per_reciprocal = 0.0f; /* pixels for each unit of the reciprocal of the depth that is more than the convergence */
+                float max_reciprocal         = 1.0f;
+            };
+
             /* How far a vertex of the reciprocal of the depth is moved sideways for the eye, in pixels: positive to the right. */
             static float get_shift(const Parameters& in_parameters,
                                    const float&      in_reciprocal_depth);
+            static float get_shift(const ShiftFactors& in_factors,
+                                   const float&        in_reciprocal_depth);
 
             /* Whether the parameters are ones a shift can be made with. */
             static bool is_valid(const Parameters& in_parameters);
+
+            static ShiftFactors make_shift_factors(const Parameters& in_parameters);
 
             /* Scales the position of every vertex of the array, in pixels, by the scale: the x and the y, and not the depth or the reciprocal of it. For
              * a draw to a surface that is rendered larger than the application asks.
