@@ -7,7 +7,9 @@
 
 #include "replay_engine.h"
 #include "Stereo/Replay/EngineDLL/i_replay_engine.h"
+#include "frame_hurry.h"
 #include "paced_frame_executor.h"
+#include "present_skipper.h"
 #include "stereo_frame_executor.h"
 
 namespace Stereo
@@ -48,6 +50,8 @@ namespace Stereo
 
             private:
                 /* Declared in the order the engine needs them: the engine, whose thread uses the others, is the first to go. */
+                FrameHurry                           m_hurry;
+                PresentSkipper                       m_present_skipper;
                 StereoFrameExecutor                  m_stereo_executor;
                 PacedFrameExecutor                   m_paced_executor;
                 ::Replay::ReplayEngineDLL::ReplayEngine m_engine;

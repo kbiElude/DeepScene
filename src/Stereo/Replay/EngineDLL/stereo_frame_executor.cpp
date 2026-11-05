@@ -16,6 +16,7 @@ Stereo::Replay::EngineDLL::StereoFrameExecutor::StereoFrameExecutor()
     :m_eye_separation      (0.0f),
      m_frame_eye_separation(0.0f),
      m_host_ptr            (nullptr),
+     m_hurry_ptr           (nullptr),
      m_image_sink_ptr      (nullptr)
 {
     /* Stub */
@@ -95,10 +96,12 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::capture_execution(const uin
                                                                        const bool&     in_uses_history)
 {
     FrameImage            image;
+    const bool            is_hurried  = (m_hurry_ptr != nullptr && m_hurry_ptr->is_hurrying(in_n_frame) );
     bool                  is_ok       = true;
     std::vector<uint8_t>* pixel_ptr   = (in_uses_history) ? &m_eye_history.snapshot_array.at(in_n_execution).pixel_u8_vec
                                                           : nullptr;
     const bool            wants_image = (m_image_sink_ptr                                    != nullptr                       &&
+                                         is_hurried                                         == false                         &&
                                          in_n_frame                                          >= m_frame_execution.first_frame &&
                                          in_n_frame                                          <= m_frame_execution.last_frame  &&
                                          m_image_sink_ptr->wants_frame_image(in_n_frame,
@@ -699,6 +702,11 @@ void Stereo::Replay::EngineDLL::StereoFrameExecutor::set_eye_separation(const fl
 void Stereo::Replay::EngineDLL::StereoFrameExecutor::set_frame_execution(const FrameExecutionOptions& in_options)
 {
     m_frame_execution = in_options;
+}
+
+void Stereo::Replay::EngineDLL::StereoFrameExecutor::set_hurry(const FrameHurry* in_hurry_ptr)
+{
+    m_hurry_ptr = in_hurry_ptr;
 }
 
 void Stereo::Replay::EngineDLL::StereoFrameExecutor::set_image_sink(IFrameImageSink* in_sink_ptr)

@@ -10,6 +10,7 @@
 #include "Stereo/Replay/EngineDLL/types.h"
 #include "eye_matrix_binder.h"
 #include "frame_buffer.h"
+#include "frame_hurry.h"
 #include "frame_rewriter.h"
 #include <array>
 #include <atomic>
@@ -56,6 +57,8 @@ namespace Stereo
                 void  on_rewind          () override;
                 void  set_eye_separation (const float&                            in_eye_separation);
                 void  set_frame_execution(const FrameExecutionOptions&            in_options);
+                /* The frames which the hurry says are hurried through are not read back for the sink. Not owned; may be none. */
+                void  set_hurry          (const FrameHurry*                       in_hurry_ptr);
                 void  set_image_sink     (IFrameImageSink*                        in_sink_ptr);
                 void  set_recipe         (const Analysis::RecipeLoader::Recipe&   in_recipe);
 
@@ -114,6 +117,7 @@ namespace Stereo
                 FrameExecutionOptions                                                  m_frame_execution;
                 float                                                                  m_frame_eye_separation; /* the one the frame being played is made with */
                 ::Replay::ReplayEngineDLL::IFrameHost*                                 m_host_ptr; /* of the frame being played */
+                const FrameHurry*                                                      m_hurry_ptr;
                 IFrameImageSink*                                                       m_image_sink_ptr;
                 std::unique_ptr<EyeMatrixBinder>                                       m_matrix_binder_ptr;
                 std::unique_ptr<Analysis::RecipeApplier::RecipeApplier>                m_recipe_applier_ptr;
