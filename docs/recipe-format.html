@@ -93,9 +93,11 @@
       "draw_keys": [ "0x..." ],                    these draws, wherever they are
       "pass_draws": [ { "pass_key": "0x...", "draw_key": "0x..." } ]   this draw in this pass only (what the overlay probe leaves out)
     },
+    (pass_keys and pass_draws are for the replay, which knows the pass of a draw. A converter that plays the application as it runs does
+     not, and leaves them out: it writes a warning to its log for each such list.)
     "rules": [
       {
-        "name": "scene camera",                                                                        (optional)
+        "name": "scene camera",                                                                     (optional)
         "call": "IDirect3DDevice8::SetTransform",
         "when": {                                                                                      (optional)
           "state": "D3DTS_VIEW",                   a D3DTS_* name (D3DTRANSFORMSTATE_* for Direct3D 7), or a number

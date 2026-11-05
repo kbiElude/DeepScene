@@ -167,6 +167,11 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
                                            });
     }
 
+    for (const auto& note : Analysis::RecipeLoader::RecipeLoader::describe_pass_selectors_live_ignores(in_recipe) )
+    {
+        m_log.write("Warning: " + note);
+    }
+
     m_log.write("The converter is loaded");
 }
 

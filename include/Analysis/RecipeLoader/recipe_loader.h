@@ -20,6 +20,9 @@ namespace Analysis
         class RecipeLoader
         {
         public:
+            /* One line for each list of pass keys or of draws in a pass: a replay knows which pass a draw is in, a converter that plays the application as it runs does not, and leaves them out. */
+            static std::vector<std::string> describe_pass_selectors_live_ignores(const Recipe& in_recipe);
+
             /* Returns false, and says why, if the recipe cannot be read. */
             static bool load(const std::string& in_filename,
                              Recipe*            out_recipe_ptr,

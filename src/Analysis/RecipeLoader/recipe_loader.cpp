@@ -87,6 +87,38 @@ bool Analysis::RecipeLoader::RecipeLoader::has_common_pass_draw(const std::vecto
     return result;
 }
 
+std::vector<std::string> Analysis::RecipeLoader::RecipeLoader::describe_pass_selectors_live_ignores(const Recipe& in_recipe)
+{
+    struct Named
+    {
+        const DrawSelector* selector_ptr;
+        const char*         name;
+    };
+
+    const Named              named_array[] =
+    {
+        {&in_recipe.affected,   "affected"  },
+        {&in_recipe.skipped,    "skipped"   },
+        {&in_recipe.unaffected, "unaffected"}
+    };
+    std::vector<std::string> result;
+
+    for (const auto& named : named_array)
+    {
+        if (named.selector_ptr->pass_key_vec.empty() == false)
+        {
+            result.push_back(std::string("\"") + named.name + ".pass_keys\" names " + std::to_string(named.selector_ptr->pass_key_vec.size() ) + " passes: a converter that plays the application as it runs does not know passes, and leaves them out");
+        }
+
+        if (named.selector_ptr->pass_draw_vec.empty() == false)
+        {
+            result.push_back(std::string("\"") + named.name + ".pass_draws\" names " + std::to_string(named.selector_ptr->pass_draw_vec.size() ) + " draws in a pass: a converter that plays the application as it runs does not know passes, and leaves them out");
+        }
+    }
+
+    return result;
+}
+
 bool Analysis::RecipeLoader::RecipeLoader::load(const std::string& in_filename,
                                                 Recipe*            out_recipe_ptr,
                                                 std::string*       out_error_ptr)

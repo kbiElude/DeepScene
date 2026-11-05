@@ -1248,3 +1248,28 @@ TEST_F(RecipeLoaderTest, ADrawInOnePassIsNamedByTheKeysOfBoth)
                                                            &recipe,
                                                            &error) ) << error;
 }
+
+TEST_F(RecipeLoaderTest, PassSelectorsThatTheLiveConverterIgnoresAreDescribed)
+{
+    Analysis::RecipeLoader::Recipe recipe;
+    std::string                    error;
+
+    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"unaffected\": {\"draw_keys\": [\"0x0000000000000001\"]},", ""),
+                                                           &recipe,
+                                                           &error) ) << error;
+    EXPECT_TRUE(Analysis::RecipeLoader::RecipeLoader::describe_pass_selectors_live_ignores(recipe).empty() );
+
+    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"unaffected\": {\"pass_keys\": [\"0x0000000000000001\", \"0x0000000000000002\"]}, "
+                                                                            "\"skipped\": {\"pass_draws\": [{\"pass_key\": \"0x0000000000000012\", \"draw_key\": \"0x0000000000000034\"}]},", ""),
+                                                           &recipe,
+                                                           &error) ) << error;
+
+    const auto note_vec = Analysis::RecipeLoader::RecipeLoader::describe_pass_selectors_live_ignores(recipe);
+
+    ASSERT_EQ(note_vec.size(),
+              2u);
+    EXPECT_NE(note_vec.at(0).find("skipped.pass_draws\" names 1 draws"),
+              std::string::npos);
+    EXPECT_NE(note_vec.at(1).find("unaffected.pass_keys\" names 2 passes"),
+              std::string::npos);
+}
