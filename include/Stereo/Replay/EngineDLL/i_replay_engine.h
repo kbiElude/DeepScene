@@ -26,6 +26,13 @@ namespace Stereo
             public:
                 IPlaybackController* get_playback_controller_ptr() override = 0;
 
+                /* The dependencies between the frames of the workload (a .deps file of it; see APIDumpDependencyExtractor), which a seek uses to leave out the
+                 * frames whose content nothing after the target reads (see IPlaybackController::play_to_frame). Must be set after the workload is loaded. False,
+                 * and why, if the file cannot be read or is of another workload.
+                 */
+                virtual bool set_dependencies_file(const char*  in_filename_ptr,
+                                                   std::string* out_error_ptr) = 0;
+
                 /* Both must be set before the replay is played. */
                 virtual void set_frame_execution (const FrameExecutionOptions& in_options)  = 0;
                 virtual void set_frame_image_sink(IFrameImageSink*             in_sink_ptr) = 0;

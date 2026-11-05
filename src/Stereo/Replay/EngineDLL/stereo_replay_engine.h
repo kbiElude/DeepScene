@@ -10,6 +10,7 @@
 #include "frame_hurry.h"
 #include "paced_frame_executor.h"
 #include "present_skipper.h"
+#include "slice_skipper.h"
 #include "stereo_frame_executor.h"
 
 namespace Stereo
@@ -41,6 +42,8 @@ namespace Stereo
                 void                 remove_call_interceptor    (ICallInterceptor*                     in_interceptor_ptr) override;
                 void                 remove_replay_observer     (IReplayObserver*                      in_observer_ptr)    override;
                 void                 reset                      ()                                                         override;
+                bool                 set_dependencies_file      (const char*                           in_filename_ptr,
+                                                                 std::string*                          out_error_ptr) override;
                 void                 set_eye_separation         (const float&                          in_eye_separation)  override;
                 void                 set_frame_execution        (const FrameExecutionOptions&          in_options)         override;
                 void                 set_frame_image_sink       (IFrameImageSink*                      in_sink_ptr)        override;
@@ -50,8 +53,12 @@ namespace Stereo
 
             private:
                 /* Declared in the order the engine needs them: the engine, whose thread uses the others, is the first to go. */
+                Analysis::APIDumpDependencies::DependencyAnalysis m_dependencies;
                 FrameHurry                           m_hurry;
+                bool                                 m_has_dependencies;
                 PresentSkipper                       m_present_skipper;
+                SliceSkipper                         m_slice_skipper;
+                std::string                          m_workload_filename; /* what was loaded; the dependencies are checked against it */
                 StereoFrameExecutor                  m_stereo_executor;
                 PacedFrameExecutor                   m_paced_executor;
                 ::Replay::ReplayEngineDLL::ReplayEngine m_engine;

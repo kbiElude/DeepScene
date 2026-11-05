@@ -438,6 +438,9 @@ void Stereo::Replay::ConsistencyChecker::print_usage()
             "see how much a replay differs from itself), executed twice, and executed twice with the state of the device put\n"
             "back before the second execution. The back buffer after each execution is compared with that of the first replay.\n"
             "\n"
+            "  --deps FILE      The dependencies of the workload (a .deps file of it, see APIDumpDependencyExtractor): each way goes to the last\n"
+            "                   frame as a seek does, leaving out the draws and uploads of the frames which nothing after it reads. For checking\n"
+            "                   that it comes out as the replay of every frame does (take two screenshots, with and without, and compare them).\n"
             "  --dump-dir DIR   Write the images of the first frame in which an execution differs, as PNG files\n"
             "  --eye-separation D  The distance between the eyes for the recipe (0 by default)\n"
             "  --recipe FILE    Replay the frames twice with the recipe instead of the last two ways: the first execution is for\n"
@@ -503,8 +506,25 @@ bool Stereo::Replay::ConsistencyChecker::run_variant(const Stereo::Replay::Consi
             goto end;
         }
 
+        if (in_options.deps_filename.empty() == false                                                  &&
+            engine_ptr->set_dependencies_file(in_options.deps_filename.c_str(),
+                                              out_error_ptr) == false)
+        {
+            goto end;
+        }
+
         controller_ptr->set_speed(0.0);
-        controller_ptr->play();
+
+        /* Going to the last frame is what a seek does, which leaves out what the dependencies say nothing after it reads. */
+        if (in_options.deps_filename.empty() &&
+            in_options.has_history == false)
+        {
+            controller_ptr->play();
+        }
+        else
+        {
+            controller_ptr->play_to_frame(in_options.last_frame);
+        }
 
         while (true)
         {
@@ -855,6 +875,17 @@ bool Stereo::Replay::ConsistencyChecker::take_screenshot(const Stereo::Replay::C
     options.first_frame = in_options.screenshot_frame;
     options.last_frame  = in_options.screenshot_frame;
 
+    /* With the history, every frame before the one asked for is replayed with the recipe (it is hurried through, with no image taken), which is what makes
+     * what the eyes carry over from frame to frame right; the dependencies leave out what nothing after the frame reads, which makes it quick.
+     */
+    if (in_options.has_history ||
+        in_options.deps_filename.empty() == false)
+    {
+        options.first_frame = 0;
+
+        sink.set_frames_to_keep({in_options.screenshot_frame});
+    }
+
     if (run_variant(options,
                     VARIANT_ARRAY[(uses_recipe) ? 4 : 0],
                    &sink,
@@ -1042,6 +1073,17 @@ int main(int   in_argc,
             }
 
             options.eye_separation = static_cast<float>(separation);
+        }
+        else
+        if (argument == "--deps" &&
+            has_next)
+        {
+            options.deps_filename = in_argv[++n_argument];
+        }
+        else
+        if (argument == "--history")
+        {
+            options.has_history = true;
         }
         else
         if (argument == "--recipe" &&

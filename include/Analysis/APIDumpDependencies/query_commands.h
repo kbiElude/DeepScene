@@ -11,6 +11,7 @@
  *   carries    what a frame uses of what the frames before it left, and which frame left it
  *   per-eye    the resources which carry content from frame to frame and are rendered to: those which each eye needs a copy of, as a recipe
  *              names them (see the "per_eye_textures" of a recipe)
+ *   slice      the frames whose content a replay has to make to go to a frame (see FrameSlicePlanner), and the runs of frames it can leave out
  *
  * Frames are numbered from 0, as in the other files of the analysis. Keys are hex strings.
  */
@@ -92,6 +93,10 @@ namespace Analysis
             static Analysis::APIDumpAnalysis::QueryStatus run_resources(const DependencyAnalysis& in_analysis,
                                                                         const QueryArguments&     in_arguments,
                                                                         Analysis::APIDumpAnalysis::JsonWriter* inout_writer_ptr);
+            static Analysis::APIDumpAnalysis::QueryStatus run_slice    (const DependencyAnalysis& in_analysis,
+                                                                        const QueryArguments&     in_arguments,
+                                                                        Analysis::APIDumpAnalysis::JsonWriter* inout_writer_ptr,
+                                                                        std::string*              out_error_ptr);
 
             /* A resource: what it is, and its totals. */
             static void write_resource_head(const DependencyAnalysis&                 in_analysis,

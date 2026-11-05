@@ -144,7 +144,8 @@ bool Analysis::APIDumpDependencyQuery::parse_arguments(const int&   in_argc,
 
             out_options_ptr->arguments.frame_index     = value;
             out_options_ptr->arguments.has_frame_index = (out_options_ptr->command == "frame" ||
-                                                          out_options_ptr->command == "carries");
+                                                          out_options_ptr->command == "carries" ||
+                                                          out_options_ptr->command == "slice");
             out_options_ptr->arguments.has_resource_id = (out_options_ptr->command == "resource");
             out_options_ptr->arguments.resource_id     = value;
 
@@ -188,6 +189,8 @@ void Analysis::APIDumpDependencyQuery::print_usage()
             "  frame <index>        One frame: the calls it spans, and what it does with each resource it touches\n"
             "  carries <index>      What a frame uses of what the frames before it left, and which frame left it\n"
             "  per-eye              The resources which each eye is to have a copy of, as a recipe names them\n"
+            "  slice <index>        The frames whose content a replay that goes to the frame has to make, for it and the frames after it to come out as they do\n"
+            "                       when every frame is made; the others are dead, and can be left out\n"
             "\n"
             "Options:\n"
             "  --class C            Only the resources of a class: carried, carried_possibly, frame_local, static, unused\n"

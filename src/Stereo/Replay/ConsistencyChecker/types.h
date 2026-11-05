@@ -38,6 +38,8 @@ namespace Stereo
                 Stereo::Replay::FrameImages::EyeView eye_view                       = Stereo::Replay::FrameImages::EyeView::BOTH;
                 uint32_t                             first_frame                    = 0;
                 bool                                 has_eye_view                   = false;      /* the view of the eyes of a screenshot or a sheet is the one that was asked for */
+                bool                                 has_history                    = false;      /* a screenshot replays the frames before it with the recipe too, as a player does, so that what carries over from frame to frame is right (slow without deps) */
+                std::string                          deps_filename;                               /* the dependencies of the workload: a replay goes to the last frame leaving out the frames which nothing after it reads */
                 std::string                          image_filename;                              /* the PNG file of a screenshot or a contact sheet */
                 bool                                 is_parallel                    = false;      /* the ways are replayed at the same time */
                 bool                                 is_profiling                   = false;      /* the frames are replayed once, and where the time goes is said */

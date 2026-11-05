@@ -56,6 +56,9 @@ namespace Stereo
                 QuitHandler*        m_quit_ptr;
             };
 
+            /* The file of the dependencies which is named like the workload: its name with the extension .deps. */
+            std::string get_default_deps_filename(const std::string&                           in_workload_path);
+
             int  run(int                                   in_argc,
                      char*                                 in_argv[]);
             void run_console(Stereo::Replay::EngineDLL::IPlaybackController*  in_controller_ptr,
@@ -151,6 +154,17 @@ void Stereo::Replay::Player::ConsoleObserver::print_frame_times(std::vector<doub
     }
 }
 
+std::string Stereo::Replay::Player::get_default_deps_filename(const std::string& in_workload_path)
+{
+    const size_t n_slash = in_workload_path.find_last_of("\\/");
+    const size_t n_dot   = in_workload_path.find_last_of('.');
+
+    return (n_dot != std::string::npos &&
+            (n_slash == std::string::npos || n_dot > n_slash) ) ? in_workload_path.substr(0,
+                                                                                          n_dot) + ".deps"
+                                                                : std::string();
+}
+
 int Stereo::Replay::Player::run(int   in_argc,
                                 char* in_argv[])
 {
@@ -161,6 +175,7 @@ int Stereo::Replay::Player::run(int   in_argc,
     constexpr uint32_t N_INDEX_READER_THREADS = 2;
 
     Stereo::Replay::EngineDLL::IReplayEngine*       engine_ptr         = nullptr;
+    std::string                                     deps_filename;
     std::string                                     error;
     int                                             exit_code          = EXIT_FAILURE;
     Capture::APIDumpLoader::WorkloadIndex           index;
@@ -260,6 +275,37 @@ int Stereo::Replay::Player::run(int   in_argc,
     }
 
     controller_ptr = engine_ptr->get_playback_controller_ptr();
+
+    /* What a seek goes by: the dependencies between the frames, if the file of them is there. A file which is not of this workload is said, and not used. */
+    deps_filename = (options.deps_filename.empty() ) ? get_default_deps_filename(options.workload_path)
+                                                    : options.deps_filename;
+
+    if (deps_filename.empty() == false &&
+        ::GetFileAttributesA(deps_filename.c_str() ) != INVALID_FILE_ATTRIBUTES)
+    {
+        std::string deps_error;
+
+        if (engine_ptr->set_dependencies_file(deps_filename.c_str(),
+                                             &deps_error) )
+        {
+            fprintf(stdout,
+                    "[*] A seek leaves out the frames which nothing after it reads, as %s says.\n",
+                    deps_filename.c_str() );
+        }
+        else
+        {
+            fprintf(stderr,
+                    "[!] The dependencies are not used: %s\n",
+                    deps_error.c_str() );
+        }
+    }
+    else
+    if (options.deps_filename.empty() == false)
+    {
+        fprintf(stderr,
+                "[!] The file of the dependencies cannot be found: %s\n",
+                options.deps_filename.c_str() );
+    }
 
     if (options.has_frame_range)
     {

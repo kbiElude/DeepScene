@@ -415,7 +415,7 @@
 <tr><td><code>APIDumpAnalysisExtractor</code></td><td>Workload to <code>.passes</code>.</td></tr>
 <tr><td><code>APIDumpAnalysisQuery</code></td><td>Asks a <code>.passes</code> file questions (commands in <code>query_commands.h</code>).</td></tr>
 <tr><td><code>APIDumpDependencyExtractor</code></td><td>Workload to <code>.deps</code>: what each frame uses of what the frames before it left.</td></tr>
-<tr><td><code>APIDumpDependencyQuery</code></td><td>Asks a <code>.deps</code> file questions (<code>info</code>, <code>resources</code>, <code>resource</code>, <code>frame</code>, <code>carries</code>, <code>per-eye</code>).</td></tr>
+<tr><td><code>APIDumpDependencyQuery</code></td><td>Asks a <code>.deps</code> file questions (<code>info</code>, <code>resources</code>, <code>resource</code>, <code>frame</code>, <code>carries</code>, <code>per-eye</code>, and <code>slice</code>: the frames whose content a replay that goes to a frame has to make, which the player uses for a quick seek, see <code>FrameSlicePlanner</code>).</td></tr>
 <tr><td><code>RecipeBake</code></td><td>Hand-written rules + <code>.passes</code> (+ <code>.deps</code>) to a baked recipe.</td></tr>
 </table>
 </main>

@@ -2,17 +2,23 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
+#include "Analysis/APIDumpAnalysis/workload_identity.h"
+#include "Analysis/APIDumpDependencies/deps_file.h"
+#include "Analysis/APIDumpDependencies/frame_slice_planner.h"
 #include "stereo_d3d7_call_executor.h"
 #include "stereo_replay_engine.h"
 
 Stereo::Replay::EngineDLL::StereoReplayEngine::StereoReplayEngine()
-    :m_present_skipper(&m_hurry),
+    :m_has_dependencies(false),
+     m_present_skipper(&m_hurry),
      m_paced_executor (&m_stereo_executor,
                        &m_hurry)
 {
-    m_stereo_executor.set_hurry(&m_hurry);
+    m_stereo_executor.set_hurry        (&m_hurry);
+    m_stereo_executor.set_slice_skipper(&m_slice_skipper);
 
     m_engine.add_call_interceptor(&m_present_skipper);
+    m_engine.add_call_interceptor(&m_slice_skipper);
 
     const auto d3d7_executor_ptr = std::make_shared<StereoD3D7CallExecutor>(m_engine.get_remapper_ptr() );
 
@@ -61,8 +67,20 @@ Stereo::Replay::EngineDLL::PlaybackStatus Stereo::Replay::EngineDLL::StereoRepla
 bool Stereo::Replay::EngineDLL::StereoReplayEngine::load(const char*  in_filename_ptr,
                                                          std::string* out_error_ptr)
 {
-    return m_engine.load(in_filename_ptr,
-                         out_error_ptr);
+    /* What was known of another workload is not of this one. */
+    m_has_dependencies = false;
+
+    m_slice_skipper.clear_slice();
+
+    const bool result = m_engine.load(in_filename_ptr,
+                                      out_error_ptr);
+
+    if (result)
+    {
+        m_workload_filename = in_filename_ptr;
+    }
+
+    return result;
 }
 
 void Stereo::Replay::EngineDLL::StereoReplayEngine::pause()
@@ -81,6 +99,13 @@ void Stereo::Replay::EngineDLL::StereoReplayEngine::play()
 
 void Stereo::Replay::EngineDLL::StereoReplayEngine::play_to_frame(const uint32_t& in_n_frame)
 {
+    /* What the frames before it make is what it and the frames after it read: the rest may be left out, if the dependencies are known. */
+    if (m_has_dependencies)
+    {
+        m_slice_skipper.set_slice(Analysis::APIDumpDependencies::FrameSlicePlanner::plan(m_dependencies,
+                                                                                         in_n_frame) );
+    }
+
     /* The frames up to the one asked for are hurried through; it is shown, and the replay pauses there. */
     m_hurry.set_until_frame(in_n_frame);
 
@@ -99,9 +124,42 @@ void Stereo::Replay::EngineDLL::StereoReplayEngine::remove_replay_observer(IRepl
 
 void Stereo::Replay::EngineDLL::StereoReplayEngine::reset()
 {
+    m_slice_skipper.clear_slice();
     m_hurry.clear();
 
     m_engine.reset();
+}
+
+bool Stereo::Replay::EngineDLL::StereoReplayEngine::set_dependencies_file(const char*  in_filename_ptr,
+                                                                       std::string* out_error_ptr)
+{
+    Analysis::APIDumpDependencies::DependencyAnalysis dependencies;
+    std::string                                       reason;
+    bool                                              result = false;
+
+    if (Analysis::APIDumpDependencies::DepsFile::read(in_filename_ptr,
+                                                     &dependencies,
+                                                      out_error_ptr) == false)
+    {
+        goto end;
+    }
+
+    if (m_workload_filename.empty() == false                                                                                                                      &&
+        Analysis::APIDumpAnalysis::WorkloadIdentity::verify(m_workload_filename,
+                                                            dependencies.workload_reference,
+                                                           &reason) == Analysis::APIDumpAnalysis::WorkloadMatch::MISMATCH)
+    {
+        *out_error_ptr = std::string(in_filename_ptr) + " is not of the workload which was loaded: " + reason;
+
+        goto end;
+    }
+
+    m_dependencies     = std::move(dependencies);
+    m_has_dependencies = true;
+    result             = true;
+
+end:
+    return result;
 }
 
 void Stereo::Replay::EngineDLL::StereoReplayEngine::set_eye_separation(const float& in_eye_separation)

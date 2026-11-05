@@ -12,6 +12,7 @@
 #include "frame_buffer.h"
 #include "frame_hurry.h"
 #include "frame_rewriter.h"
+#include "slice_skipper.h"
 #include <array>
 #include <atomic>
 #include <memory>
@@ -60,6 +61,9 @@ namespace Stereo
                 /* The frames which the hurry says are hurried through are not read back for the sink. Not owned; may be none. */
                 void  set_hurry          (const FrameHurry*                       in_hurry_ptr);
                 void  set_image_sink     (IFrameImageSink*                        in_sink_ptr);
+
+                /* The frames which the skipper says are dead are played as they are (see SliceSkipper). Not owned; may be none. */
+                void  set_slice_skipper  (const SliceSkipper*                     in_slice_skipper_ptr);
                 void  set_recipe         (const Analysis::RecipeLoader::Recipe&   in_recipe);
 
             private:
@@ -119,6 +123,7 @@ namespace Stereo
                 ::Replay::ReplayEngineDLL::IFrameHost*                                 m_host_ptr; /* of the frame being played */
                 const FrameHurry*                                                      m_hurry_ptr;
                 IFrameImageSink*                                                       m_image_sink_ptr;
+                const SliceSkipper*                                                    m_slice_skipper_ptr;
                 std::unique_ptr<EyeMatrixBinder>                                       m_matrix_binder_ptr;
                 std::unique_ptr<Analysis::RecipeApplier::RecipeApplier>                m_recipe_applier_ptr;
                 std::unique_ptr<FrameRewriter>                                         m_rewriter_ptr;

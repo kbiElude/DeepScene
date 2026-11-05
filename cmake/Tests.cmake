@@ -35,6 +35,7 @@ if (DEMOVRPLAYER_BUILD_TESTS)
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/EngineDLL/frame_runner.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/EngineDLL/overlay_chunk_source.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/EngineDLL/present_skipper.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/EngineDLL/slice_skipper.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/Player/command_line.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/Player/eye_image_buffer.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Replay/Player/quit_handler.cpp"

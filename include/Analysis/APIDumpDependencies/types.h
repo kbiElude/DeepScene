@@ -50,6 +50,17 @@ namespace Analysis
             uint64_t last_frame_index  = 0;
         };
 
+        /* The frames of a workload whose content has to be made for the frames from a target on to come out as they do when every frame is made (see
+         * FrameSlicePlanner). The others are dead: nothing which a frame from the target on reads comes of them, so a replay may leave out what they
+         * draw and copy.
+         */
+        struct FrameSlice
+        {
+            std::vector<bool> is_live_vec;                 /* by the number of the frame; a frame past the end of it is live */
+            uint64_t          n_live_frames      = 0;
+            uint64_t          target_frame_index = 0;
+        };
+
         /* What one frame does to one resource. */
         struct FrameUse
         {

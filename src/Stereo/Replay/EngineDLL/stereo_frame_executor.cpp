@@ -17,7 +17,8 @@ Stereo::Replay::EngineDLL::StereoFrameExecutor::StereoFrameExecutor()
      m_frame_eye_separation(0.0f),
      m_host_ptr            (nullptr),
      m_hurry_ptr           (nullptr),
-     m_image_sink_ptr      (nullptr)
+     m_image_sink_ptr      (nullptr),
+     m_slice_skipper_ptr   (nullptr)
 {
     /* Stub */
 }
@@ -420,7 +421,11 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_frame(::Replay::Rep
                                                                    bool*                                  out_has_workload_ended_ptr)
 {
     const uint32_t n_frame      = in_host_ptr->get_n_frames_presented();
+    /* A frame which a slice leaves out has no content which anything reads: it is played as it is, with only the calls that set state, which is quicker */
+    const bool     is_dead      = (m_slice_skipper_ptr != nullptr &&
+                                   m_slice_skipper_ptr->is_dead_frame(n_frame) );
     const bool     is_buffered  = (m_frame_execution.mode != FrameExecution::DIRECT        &&
+                                   is_dead                == false                         &&
                                    n_frame                >= m_frame_execution.first_frame &&
                                    n_frame                <= m_frame_execution.last_frame);
     bool           result       = false;
@@ -707,6 +712,11 @@ void Stereo::Replay::EngineDLL::StereoFrameExecutor::set_frame_execution(const F
 void Stereo::Replay::EngineDLL::StereoFrameExecutor::set_hurry(const FrameHurry* in_hurry_ptr)
 {
     m_hurry_ptr = in_hurry_ptr;
+}
+
+void Stereo::Replay::EngineDLL::StereoFrameExecutor::set_slice_skipper(const SliceSkipper* in_slice_skipper_ptr)
+{
+    m_slice_skipper_ptr = in_slice_skipper_ptr;
 }
 
 void Stereo::Replay::EngineDLL::StereoFrameExecutor::set_image_sink(IFrameImageSink* in_sink_ptr)

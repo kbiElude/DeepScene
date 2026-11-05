@@ -5,6 +5,7 @@
 #include "Analysis/APIDumpAnalysis/query_commands.h"
 #include "Analysis/APIDumpAnalysis/resource_identity.h"
 #include "Analysis/APIDumpDependencies/deps_format.h"
+#include "Analysis/APIDumpDependencies/frame_slice_planner.h"
 #include "Analysis/APIDumpDependencies/per_eye_candidates.h"
 #include "Analysis/APIDumpDependencies/query_commands.h"
 #include <algorithm>
@@ -89,7 +90,8 @@ const std::vector<std::string>& Analysis::APIDumpDependencies::QueryCommands::ge
         "info",
         "per-eye",
         "resource",
-        "resources"
+        "resources",
+        "slice"
     };
 
     return command_name_vec;
@@ -221,6 +223,14 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run(const std::string&
         result = run_resources(in_analysis,
                                in_arguments,
                                inout_writer_ptr);
+    }
+    else
+    if (in_command == "slice")
+    {
+        result = run_slice(in_analysis,
+                           in_arguments,
+                           inout_writer_ptr,
+                           out_error_ptr);
     }
     else
     {
@@ -719,6 +729,122 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_resources(const De
     inout_writer_ptr->end_object();
 
     return QueryStatus::OK;
+}
+
+QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_slice(const DependencyAnalysis& in_analysis,
+                                                                    const QueryArguments&     in_arguments,
+                                                                    JsonWriter*               inout_writer_ptr,
+                                                                    std::string*              out_error_ptr)
+{
+    FrameSlice  slice;
+    QueryStatus result = QueryStatus::BAD_ARGUMENTS;
+
+    if (in_arguments.has_frame_index == false)
+    {
+        *out_error_ptr = "A frame index is needed";
+
+        goto end;
+    }
+
+    if (in_arguments.frame_index >= in_analysis.result.n_frames)
+    {
+        *out_error_ptr = "There is no frame " + std::to_string(in_arguments.frame_index) + "; there are " +
+                         std::to_string(in_analysis.result.n_frames);
+        result         = QueryStatus::NOT_FOUND;
+
+        goto end;
+    }
+
+    slice = FrameSlicePlanner::plan(in_analysis,
+                                    in_arguments.frame_index);
+
+    inout_writer_ptr->begin_object();
+
+    inout_writer_ptr->write_key("target_frame_index");
+    inout_writer_ptr->write_u64(slice.target_frame_index);
+    inout_writer_ptr->write_key("n_frames");
+    inout_writer_ptr->write_u64(in_analysis.result.n_frames);
+
+    /* The frames before the target which a replay has to make, and those it can leave out. */
+    {
+        uint64_t n_live_before   = 0;
+        uint64_t n_dead          = 0;
+        uint64_t n_frames_before = std::min<uint64_t>(slice.target_frame_index,
+                                                      in_analysis.result.n_frames);
+
+        for (uint64_t n_frame = 0;
+                      n_frame < n_frames_before;
+                    ++n_frame)
+        {
+            n_live_before += (FrameSlicePlanner::is_live(slice,
+                                                         n_frame) ) ? 1
+                                                                    : 0;
+        }
+
+        n_dead = n_frames_before - n_live_before;
+
+        inout_writer_ptr->write_key("n_frames_before_target");
+        inout_writer_ptr->write_u64(n_frames_before);
+        inout_writer_ptr->write_key("n_live_before_target");
+        inout_writer_ptr->write_u64(n_live_before);
+        inout_writer_ptr->write_key("n_dead_before_target");
+        inout_writer_ptr->write_u64(n_dead);
+    }
+
+    /* Runs of dead frames, the longest ones first would be a sort; in the order of the frames, paged, is what a person can look through. */
+    {
+        std::vector<FrameRange> dead_run_vec;
+
+        for (uint64_t n_frame = 0;
+                      n_frame < slice.target_frame_index;
+                    ++n_frame)
+        {
+            if (FrameSlicePlanner::is_live(slice,
+                                           n_frame) == false)
+            {
+                if (dead_run_vec.empty()                                         == false &&
+                    dead_run_vec.back().last_frame_index + 1                     == n_frame)
+                {
+                    dead_run_vec.back().last_frame_index = n_frame;
+                }
+                else
+                {
+                    FrameRange range;
+
+                    range.first_frame_index = n_frame;
+                    range.last_frame_index  = n_frame;
+
+                    dead_run_vec.push_back(range);
+                }
+            }
+        }
+
+        inout_writer_ptr->write_key("n_dead_runs");
+        inout_writer_ptr->write_u64(dead_run_vec.size() );
+        inout_writer_ptr->write_key("dead_runs");
+        inout_writer_ptr->begin_array();
+
+        for (uint64_t n_run = std::min<uint64_t>(in_arguments.offset,
+                                                 dead_run_vec.size() );
+                      n_run < dead_run_vec.size() &&
+                      (in_arguments.limit == 0 || n_run < in_arguments.offset + in_arguments.limit);
+                    ++n_run)
+        {
+            inout_writer_ptr->begin_inline_array();
+            inout_writer_ptr->write_u64(dead_run_vec.at(static_cast<size_t>(n_run) ).first_frame_index);
+            inout_writer_ptr->write_u64(dead_run_vec.at(static_cast<size_t>(n_run) ).last_frame_index);
+            inout_writer_ptr->end_array();
+        }
+
+        inout_writer_ptr->end_array();
+    }
+
+    inout_writer_ptr->end_object();
+
+    result = QueryStatus::OK;
+
+end:
+    return result;
 }
 
 void Analysis::APIDumpDependencies::QueryCommands::write_resource_head(const DependencyAnalysis& in_analysis,

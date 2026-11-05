@@ -20,6 +20,12 @@ std::vector<std::string> Stereo::Replay::Player::CommandLine::get_handover_argum
         result_vec.push_back(in_options.recipe_filename);
     }
 
+    if (in_options.deps_filename.empty() == false)
+    {
+        result_vec.push_back("--deps");
+        result_vec.push_back(in_options.deps_filename);
+    }
+
     if (in_options.has_eye_mode)
     {
         result_vec.push_back("--eye");
@@ -58,7 +64,11 @@ const char* Stereo::Replay::Player::CommandLine::get_usage_ptr()
            "slider for it, and with --console the command e <D> changes it. The recipe says in which direction the eyes move apart.\n"
            "\n"
            "With --frames A-B, the replay runs unpaced up to frame A, plays A to B at the recorded pace, and pauses after B.\n"
-           "Frames are counted from 0, as the replay presents them.\n";
+           "Frames are counted from 0, as the replay presents them.\n"
+           "\n"
+           "A seek (the slider, g <frame>) is quicker with the dependencies between the frames of the workload (APIDumpDependencyExtractor makes them): the\n"
+           "frames whose content nothing after the frame reads are played without drawing. --deps FILE says where they are; without it, the file which has the\n"
+           "name of the workload and the extension .deps is used if it is there.\n";
 }
 
 bool Stereo::Replay::Player::CommandLine::parse(const int&   in_argc,
@@ -80,6 +90,18 @@ bool Stereo::Replay::Player::CommandLine::parse(const int&   in_argc,
         if (argument == "--console")
         {
             out_options_ptr->is_console = true;
+        }
+        else
+        if (argument == "--deps")
+        {
+            if (has_next == false)
+            {
+                *out_error_ptr = "--deps needs a file";
+
+                goto end;
+            }
+
+            out_options_ptr->deps_filename = in_argv[++n_argument];
         }
         else
         if (argument == "--recipe")
