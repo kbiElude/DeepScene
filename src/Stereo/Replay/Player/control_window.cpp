@@ -23,6 +23,7 @@ Stereo::Replay::Player::ControlWindow::ControlWindow(Stereo::Replay::EngineDLL::
      m_has_pending_seek    (false),
      m_is_back_warning_off (false),
      m_is_placed           (false),
+     m_is_redo_on_release  (true),
      m_is_slider_active    (false),
      m_last_placement      (),
      m_n_frames            (0),
@@ -213,12 +214,31 @@ void Stereo::Replay::Player::ControlWindow::draw_contents(VR::UIHost::ContentExt
             m_controller_ptr->set_eye_separation(separation);
         }
 
+        /* A frame which was played is not played again by itself: the new distance is in the next one, unless the frame is played again, which is starting
+         * over (quick if the dependencies are known) and playing on to it.
+         */
+        const bool is_released = ImGui::IsItemDeactivatedAfterEdit();
+
+        if (is_released                           &&
+            is_playing                == false    &&
+            m_is_redo_on_release                  &&
+            status.n_frames_presented >  0)
+        {
+            m_controller_ptr->reset();
+            m_controller_ptr->play_to_frame(status.n_frames_presented - 1);
+        }
+
         extend_content(inout_extent_ptr);
 
-        /* A frame which was played is not played again: the new distance is in the next one. */
         if (is_playing == false)
         {
-            ImGui::TextDisabled("Applies from the next frame (Step or Play).");
+            ImGui::Checkbox("Show the frame again on release",
+                            &m_is_redo_on_release);
+
+            if (m_is_redo_on_release == false)
+            {
+                ImGui::TextDisabled("Applies from the next frame (Step or Play).");
+            }
 
             extend_content(inout_extent_ptr);
         }

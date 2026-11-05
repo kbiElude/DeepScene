@@ -79,6 +79,7 @@ namespace Stereo
                 bool                                            m_has_pending_seek;
                 bool                                            m_is_back_warning_off;
                 bool                                            m_is_placed;
+                bool                                            m_is_redo_on_release;
                 bool                                            m_is_slider_active;
                 Stereo::Replay::EngineDLL::WindowPlacement      m_last_placement;
                 uint64_t                                        m_n_frames;
