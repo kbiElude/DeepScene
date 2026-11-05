@@ -77,3 +77,38 @@ TEST(FramePacer, ALongGapIsCutShort)
                               10000),
               500.0);
 }
+
+TEST(FramePacer, AShortFirstGapDoesNotHoldBackTheFramesAfterIt)
+{
+    Stereo::Replay::EngineDLL::FramePacer pacer;
+    uint64_t                              timestamp_ticks = 0;
+
+    /* The first gaps are short (1 ms), as the start of a capture has them; then the frames come 10 ms apart. */
+    for (uint32_t n_frame = 0;
+                  n_frame < 3;
+                ++n_frame)
+    {
+        pacer.wait_for_frame(timestamp_ticks,
+                             QPC_FREQUENCY);
+
+        timestamp_ticks += 1;
+    }
+
+    const auto frames_start = std::chrono::steady_clock::now();
+
+    for (uint32_t n_frame = 0;
+                  n_frame < 40;
+                ++n_frame)
+    {
+        pacer.wait_for_frame(timestamp_ticks,
+                             QPC_FREQUENCY);
+
+        timestamp_ticks += 10;
+    }
+
+    const double elapsed_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - frames_start).count();
+
+    /* 40 frames of 10 ms: the first few are held a little, and the rest come at the recorded pace, which a pacer that stays held would not. */
+    EXPECT_GE(elapsed_ms,
+              300.0);
+}

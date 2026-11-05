@@ -364,6 +364,12 @@ int Stereo::Replay::Player::run(int   in_argc,
 
     if (options.is_console)
     {
+        /* What the replay says is read as it happens, also by a program which holds the other end of a pipe. */
+        ::setvbuf(stdout,
+                  nullptr,
+                  _IONBF,
+                  0);
+
         controller_ptr->play();
 
         /* Reading the commands blocks, so the main thread waits for the end instead; the reader is left behind. */

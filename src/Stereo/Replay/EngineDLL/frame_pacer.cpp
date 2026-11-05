@@ -89,12 +89,12 @@ void Stereo::Replay::EngineDLL::FramePacer::wait_for_frame(const uint64_t& in_ti
         {
             gap_seconds = longest_gap_seconds;
         }
-        else
-        {
-            /* The average gap of the frames which were not cut. */
-            m_average_gap_seconds = (m_average_gap_seconds > 0.0) ? m_average_gap_seconds * (1.0 - GAP_AVERAGE_WEIGHT) + gap_seconds * GAP_AVERAGE_WEIGHT
-                                                                  : gap_seconds;
-        }
+
+        /* The average of the gaps as they are kept, the ones which were cut too: a first gap which was short (the start of a workload has some) would
+         * otherwise hold every longer one down to a few times its own length for good, since a gap which is cut never raised the average.
+         */
+        m_average_gap_seconds = (m_average_gap_seconds > 0.0) ? m_average_gap_seconds * (1.0 - GAP_AVERAGE_WEIGHT) + gap_seconds * GAP_AVERAGE_WEIGHT
+                                                              : gap_seconds;
 
         m_last_timestamp_qpc = in_timestamp_qpc;
         m_target_wall_ticks += static_cast<uint64_t>(gap_seconds / speed * static_cast<double>(wall_frequency) );
