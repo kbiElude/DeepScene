@@ -5,6 +5,7 @@
 #include "overlay_probe.h"
 #include "Analysis/APIDumpAnalysis/json_reader.h"
 #include "Analysis/APIDumpAnalysis/json_writer.h"
+#include "Analysis/APIDumpAnalysis/query_commands.h"
 #include "Stereo/Replay/FrameImages/image_comparer.h"
 #include "Stereo/Replay/FrameImages/png_writer.h"
 #include <map>
@@ -95,6 +96,31 @@ namespace
     }
 }
 
+void Stereo::Replay::ConsistencyChecker::OverlayProbe::add_warnings(OverlayProbeEntry* inout_entry_ptr)
+{
+    /* An overlay is a part of the picture: a draw that makes most of it is either a fade, or a scene which is taken for an overlay. */
+    constexpr double MUCH_OF_PICTURE_FRACTION = 0.4;
+
+    const bool is_left_alone = (inout_entry_ptr->replay_class == "unaffected" ||
+                                inout_entry_ptr->live_class   == "unaffected" ||
+                                inout_entry_ptr->live_class   == "mixed");
+
+    if (is_left_alone)
+    {
+        if (inout_entry_ptr->depth_spread.has_depth        &&
+            inout_entry_ptr->depth_spread.is_flat == false)
+        {
+            inout_entry_ptr->warning_vec.push_back("deep_depth");
+        }
+
+        if (inout_entry_ptr->n_picture_pixels != 0 &&
+            static_cast<double>(inout_entry_ptr->n_changed_pixels) > MUCH_OF_PICTURE_FRACTION * static_cast<double>(inout_entry_ptr->n_picture_pixels) )
+        {
+            inout_entry_ptr->warning_vec.push_back("covers_much_of_picture");
+        }
+    }
+}
+
 std::string Stereo::Replay::ConsistencyChecker::OverlayProbe::make_image_filename(const size_t&   in_n_candidate,
                                                                                   const uint32_t& in_frame_index)
 {
@@ -180,6 +206,23 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::run(const Options&    in_
         entry.pass_id      = static_cast<uint64_t>(candidate.at("pass_id").number_value);
         entry.replay_class = candidate.at("replay_class").string_value;
 
+        /* How deep the vertices of the pass of the candidate are, if the list says. */
+        const auto* depth_ptr = candidate.find_ptr("depth");
+
+        if (depth_ptr != nullptr)
+        {
+            entry.depth_spread.has_depth = depth_ptr->at("has_depth").bool_value;
+
+            if (entry.depth_spread.has_depth)
+            {
+                entry.depth_spread.depth_far         = static_cast<float>(depth_ptr->at("far").number_value);
+                entry.depth_spread.depth_median      = static_cast<float>(depth_ptr->at("median").number_value);
+                entry.depth_spread.depth_near        = static_cast<float>(depth_ptr->at("near").number_value);
+                entry.depth_spread.far_to_near_ratio = static_cast<float>(depth_ptr->at("far_to_near_ratio").number_value);
+                entry.depth_spread.is_flat           = depth_ptr->at("is_flat").bool_value;
+            }
+        }
+
         for (const auto& reason : candidate.at("reasons").item_vec)
         {
             entry.reason_vec.push_back(reason.string_value);
@@ -224,6 +267,9 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::run(const Options&    in_
                                                                                               probe_image);
 
             entry.n_changed_pixels = difference.n_differing_pixels;
+            entry.n_picture_pixels = static_cast<uint64_t>(baseline_image.width) * baseline_image.height;
+
+            add_warnings(&entry);
 
             if (difference.n_differing_pixels != 0)
             {
@@ -343,12 +389,28 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::write_list(const std::str
         writer.write_key    ("live_class");
         writer.write_string (entry.live_class);
 
+        Analysis::APIDumpAnalysis::QueryCommands::write_depth_spread(entry.depth_spread,
+                                                                      &writer);
+
+        writer.write_key    ("n_picture_pixels");
+        writer.write_u64    (entry.n_picture_pixels);
+
         writer.write_key("reasons");
         writer.begin_inline_array();
 
         for (const auto& reason : entry.reason_vec)
         {
             writer.write_string(reason);
+        }
+
+        writer.end_array();
+
+        writer.write_key("warnings");
+        writer.begin_inline_array();
+
+        for (const auto& warning : entry.warning_vec)
+        {
+            writer.write_string(warning);
         }
 
         writer.end_array();
@@ -383,19 +445,24 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::write_page(const std::str
            "<style>body{font:14px sans-serif;margin:16px;background:#222;color:#ddd}"
            ".grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}"
            ".card{background:#333;padding:8px;border-radius:6px}.card img{width:100%;image-rendering:pixelated}"
-           ".card.none{opacity:.55}code{color:#9cf}button{margin-left:6px}</style></head><body>\n"
+           ".card.none{opacity:.55}.card.suspect{outline:2px solid #e55}code{color:#9cf}button{margin-left:6px}"
+           ".badge{display:inline-block;margin:2px 4px 2px 0;padding:1px 6px;border-radius:4px;background:#a33;color:#fff;font-size:12px}</style></head><body>\n"
            "<h1>Draws that may be 2D overlays</h1>\n"
            "<p>For each candidate the frame it is first drawn in was replayed (left eye) with it and without it. Magenta is what the draws make, the rest of the frame is dimmed. "
-           "A candidate that changes no pixel is not drawn in that frame (or draws what is hidden).</p>\n"
+           "A candidate that changes no pixel is not drawn in that frame (or draws what is hidden). An overlay is flat: its vertices are at one depth, and it makes a part of the "
+           "picture. A red outline is a draw that the recipe leaves alone and that is not like that: <em>deep_depth</em> (the vertices of its pass are at many depths: a 3D scene) "
+           "or <em>covers_much_of_picture</em> (it makes more than two fifths of the picture). Look at the image: if it is the scene, the recipe is wrong.</p>\n"
            "<p><label>Show: <select id=\"filter\"><option value=\"all\">all</option><option value=\"visible\">changes the picture</option>"
-           "<option value=\"disagree\">the opinions disagree</option></select></label></p>\n<div class=\"grid\">\n";
+           "<option value=\"suspect\">to look at twice</option><option value=\"disagree\">the opinions disagree</option></select></label></p>\n<div class=\"grid\">\n";
 
     for (const auto& entry : in_entry_vec)
     {
         const bool is_agreed = (entry.agreement == "both");
 
-        page += "<div class=\"card" + std::string((entry.n_changed_pixels == 0) ? " none" : "") + "\" data-visible=\"" + ((entry.n_changed_pixels != 0) ? "1" : "0") +
-                "\" data-disagree=\"" + ((is_agreed) ? "0" : "1") + "\">";
+        const bool is_suspect = (entry.warning_vec.empty() == false);
+
+        page += "<div class=\"card" + std::string((entry.n_changed_pixels == 0) ? " none" : "") + std::string((is_suspect) ? " suspect" : "") + "\" data-visible=\"" +
+                ((entry.n_changed_pixels != 0) ? "1" : "0") + "\" data-disagree=\"" + ((is_agreed) ? "0" : "1") + "\" data-suspect=\"" + ((is_suspect) ? "1" : "0") + "\">";
 
         if (entry.image_filename.empty() == false)
         {
@@ -408,6 +475,38 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::write_page(const std::str
                 "<div>" + std::to_string(entry.n_changed_pixels) + " pixels change; opinions: " + escape_html(entry.agreement) + " (replay " + escape_html(entry.replay_class) +
                 ", live " + escape_html(entry.live_class) + ")</div>";
 
+        if (entry.n_picture_pixels != 0)
+        {
+            char fraction_text[32];
+
+            ::snprintf(fraction_text,
+                       sizeof(fraction_text),
+                       "%.1f",
+                       100.0 * static_cast<double>(entry.n_changed_pixels) / static_cast<double>(entry.n_picture_pixels) );
+
+            page += "<div>makes " + std::string(fraction_text) + "% of the picture</div>";
+        }
+
+        if (entry.depth_spread.has_depth)
+        {
+            char depth_text[96];
+
+            ::snprintf(depth_text,
+                       sizeof(depth_text),
+                       "vertices of its pass: depth %.1f to %.1f, %.2f times (%s)",
+                       entry.depth_spread.depth_near,
+                       entry.depth_spread.depth_far,
+                       entry.depth_spread.far_to_near_ratio,
+                       (entry.depth_spread.is_flat) ? "flat" : "deep");
+
+            page += "<div>" + std::string(depth_text) + "</div>";
+        }
+
+        for (const auto& warning : entry.warning_vec)
+        {
+            page += "<span class=\"badge\">" + escape_html(warning) + "</span>";
+        }
+
         for (const auto& reason : entry.reason_vec)
         {
             page += "<div>- " + escape_html(reason) + "</div>";
@@ -417,7 +516,7 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::write_page(const std::str
     }
 
     page += "</div>\n<script>document.getElementById('filter').onchange=function(){var v=this.value;"
-            "document.querySelectorAll('.card').forEach(function(c){c.style.display=(v=='all'||(v=='visible'&&c.dataset.visible=='1')||(v=='disagree'&&c.dataset.disagree=='1'))?'':'none';});};"
+            "document.querySelectorAll('.card').forEach(function(c){c.style.display=(v=='all'||(v=='visible'&&c.dataset.visible=='1')||(v=='suspect'&&c.dataset.suspect=='1')||(v=='disagree'&&c.dataset.disagree=='1'))?'':'none';});};"
             "</script></body></html>\n";
 
     if (write_text_file(in_directory + "/index.html",

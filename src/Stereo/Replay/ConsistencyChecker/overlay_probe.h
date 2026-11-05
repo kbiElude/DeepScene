@@ -5,6 +5,7 @@
 #ifndef STEREO_REPLAY_CONSISTENCYCHECKER_OVERLAY_PROBE_H
 #define STEREO_REPLAY_CONSISTENCYCHECKER_OVERLAY_PROBE_H
 
+#include "Analysis/APIDumpAnalysis/types.h"
 #include "Stereo/Replay/FrameImages/types.h"
 #include "types.h"
 #include <functional>
@@ -21,17 +22,20 @@ namespace Stereo
             /* What leaving a candidate out of its frame does to the image of the left eye. */
             struct OverlayProbeEntry
             {
-                std::string              agreement;
-                uint32_t                 frame_index      = 0;
-                std::string              image_filename;                /* relative to the output directory; empty if nothing differs */
-                std::string              live_class;
-                uint64_t                 n_changed_pixels = 0;
-                uint64_t                 n_frames         = 0;          /* the candidate is drawn in */
-                uint64_t                 pass_id          = 0;
-                std::vector<std::string> reason_vec;
-                std::string              replay_class;
-                uint64_t                 signature_key    = 0;
-                uint64_t                 structure_key    = 0;
+                std::string                                agreement;
+                Analysis::APIDumpAnalysis::PassDepthSpread depth_spread;                /* how deep the vertices of its pass are */
+                uint32_t                                   frame_index      = 0;
+                std::string                                image_filename;              /* relative to the output directory; empty if nothing differs */
+                std::string                                live_class;
+                uint64_t                                   n_changed_pixels = 0;
+                uint64_t                                   n_frames         = 0;        /* the candidate is drawn in */
+                uint64_t                                   n_picture_pixels = 0;
+                uint64_t                                   pass_id          = 0;
+                std::vector<std::string>                   reason_vec;
+                std::string                                replay_class;
+                uint64_t                                   signature_key    = 0;
+                uint64_t                                   structure_key    = 0;
+                std::vector<std::string>                   warning_vec;                 /* what makes a person look twice at a draw that the recipe leaves alone */
             };
 
             /* Finds out which of the draws that may be 2D overlays (the list of RecipeBake --overlays) are drawn in the picture: the frame in which a candidate is
@@ -53,6 +57,9 @@ namespace Stereo
                                 std::string*      out_error_ptr);
 
             private:
+                /* Says what to look at twice in a candidate that the recipe leaves alone: vertices at many depths, and a picture that is mostly its own. */
+                static void add_warnings(OverlayProbeEntry* inout_entry_ptr);
+
                 static std::string make_image_filename(const size_t&   in_n_candidate,
                                                        const uint32_t& in_frame_index);
 
