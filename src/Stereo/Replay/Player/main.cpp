@@ -489,7 +489,8 @@ void Stereo::Replay::Player::run_console(Stereo::Replay::EngineDLL::IPlaybackCon
 
             fprintf(stdout,
                     "[*] %s: %llu calls, %u frames\n",
-                    ::Replay::ReplayPlayerSupport::StateNames::get_state_name_ptr(status.state),
+                    (status.is_seeking) ? "seeking"
+                                        : ::Replay::ReplayPlayerSupport::StateNames::get_state_name_ptr(status.state),
                     static_cast<unsigned long long>(status.n_calls_executed),
                     status.n_frames_presented);
         }
