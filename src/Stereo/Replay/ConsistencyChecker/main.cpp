@@ -12,6 +12,7 @@
 #include "Stereo/Replay/FrameImages/png_writer.h"
 #include "frame_hash_sink.h"
 #include "frame_sampler.h"
+#include "overlay_probe.h"
 #include "replay_profiler.h"
 #include "stop_observer.h"
 #include "types.h"
@@ -62,6 +63,14 @@ namespace Stereo
             void print_usage();
 
             /* Replays the frames of the options one way, and keeps what the sink is given. */
+            /* Replays the workload up to the frame (with the frames before it, if the options say so), with the recipe of the options if they have one, so that
+             * the sink has the image of the frame. The frame is the only one the sink keeps.
+             */
+            bool replay_to_frame(const Options&  in_options,
+                                 const uint32_t& in_frame_index,
+                                 FrameHashSink*  out_sink_ptr,
+                                 std::string*    out_error_ptr);
+
             bool run_variant(const Options&                                  in_options,
                              const Variant&                                  in_variant,
                              FrameHashSink*                                  out_sink_ptr,
@@ -87,6 +96,10 @@ namespace Stereo
              */
             bool take_profile(const Options& in_options,
                               std::string*   out_error_ptr);
+
+            /* Makes the probe of the overlay candidates of the options (see OverlayProbe). */
+            bool take_overlay_probe(const Options& in_options,
+                                    std::string*   out_error_ptr);
 
             /* Replays the workload once, up to the screenshot frame, and writes the image of it to the screenshot file: with a recipe the eyes as the options
              * say, otherwise the frame as it is.
@@ -432,6 +445,7 @@ void Stereo::Replay::ConsistencyChecker::print_usage()
             "StereoReplayConsistencyChecker_x86 file.workload --profile [--from A] [--to B] [--recipe FILE]\n"
             "StereoReplayConsistencyChecker_x86 file.workload --same-frames-as other.workload [--from A] [--to B]\n"
             "StereoReplayConsistencyChecker_x86 file.workload --screenshot N --out FILE.png [--recipe FILE [--eye left|right|both|anaglyph]]\n"
+            "StereoReplayConsistencyChecker_x86 file.workload --overlay-probe candidates.json --recipe FILE --dump-dir DIR [--deps FILE] [--eye-separation D]\n"
             "StereoReplayConsistencyChecker_x86 file.workload --contact-sheet K --out FILE.png [--from A] [--to B] [--recipe FILE [--eye ...]]\n"
             "\n"
             "Replays frames A to B (default 0 to 999) of a Direct3D 8 workload in four ways: as they are, as they are again (to\n"
@@ -448,6 +462,9 @@ void Stereo::Replay::ConsistencyChecker::print_usage()
             "  --ways LIST      Only these ways, besides the frames as they are (which are always replayed, to compare with): again (as\n"
             "                   they are, again), twice, restore (twice, the state put back between) and recipe (needs --recipe). Each way\n"
             "                   is a replay of the workload from its start, so fewer ways are less to wait for.\n"
+            "  --overlay-probe FILE  Instead of the check: FILE is the list of draws that may be 2D overlays (RecipeBake --overlays). The frame in which each is first\n"
+            "                   drawn is replayed for the left eye with the draw and without it (the recipe skips it); the images go to --dump-dir: an image of the\n"
+            "                   pixels the draw makes for each candidate that makes any, candidates.json with the number of them, and index.html to look at them.\n"
             "  --parallel       Replay the ways at the same time, each with an engine of its own: faster, and needs the memory of all.\n"
             "\n"
             "  --screenshot N   Instead of the check: replay once, up to frame N, and write the image of that frame to the PNG file of --out. With a\n"
@@ -461,6 +478,34 @@ void Stereo::Replay::ConsistencyChecker::print_usage()
 }
 
 /* Replays the frames of the options one way, and keeps what the sink is given. */
+bool Stereo::Replay::ConsistencyChecker::replay_to_frame(const Stereo::Replay::ConsistencyChecker::Options&  in_options,
+                                                         const uint32_t&                                    in_frame_index,
+                                                         Stereo::Replay::ConsistencyChecker::FrameHashSink* out_sink_ptr,
+                                                         std::string*                                       out_error_ptr)
+{
+    const bool                                  uses_recipe = (in_options.recipe_filename.empty() == false);
+    Stereo::Replay::ConsistencyChecker::Options options     = in_options;
+
+    options.first_frame = in_frame_index;
+    options.last_frame  = in_frame_index;
+
+    /* With the history, every frame before the one asked for is replayed with the recipe (it is hurried through, with no image taken), which is what makes
+     * what the eyes carry over from frame to frame right; the dependencies leave out what nothing after the frame reads, which makes it quick.
+     */
+    if (in_options.has_history ||
+        in_options.deps_filename.empty() == false)
+    {
+        options.first_frame = 0;
+
+        out_sink_ptr->set_frames_to_keep({in_frame_index});
+    }
+
+    return run_variant(options,
+                       VARIANT_ARRAY[(uses_recipe) ? 4 : 0],
+                       out_sink_ptr,
+                       out_error_ptr);
+}
+
 bool Stereo::Replay::ConsistencyChecker::run_variant(const Stereo::Replay::ConsistencyChecker::Options& in_options,
                                                      const Variant&                                     in_variant,
                                                      Stereo::Replay::ConsistencyChecker::FrameHashSink* out_sink_ptr,
@@ -795,6 +840,32 @@ end:
     return result;
 }
 
+bool Stereo::Replay::ConsistencyChecker::take_overlay_probe(const Stereo::Replay::ConsistencyChecker::Options& in_options,
+                                                            std::string*                                       out_error_ptr)
+{
+    return Stereo::Replay::ConsistencyChecker::OverlayProbe::run(in_options,
+                                                                 [](const Stereo::Replay::ConsistencyChecker::Options& in_probe_options,
+                                                                    const uint32_t&                                    in_frame_index,
+                                                                    Stereo::Replay::FrameImages::Image*                out_image_ptr,
+                                                                    std::string*                                       out_error_ptr)
+                                                                 {
+                                                                     Stereo::Replay::ConsistencyChecker::FrameHashSink sink(true); /* in_keeps_images */
+
+                                                                     const bool is_ok = replay_to_frame(in_probe_options,
+                                                                                                        in_frame_index,
+                                                                                                       &sink,
+                                                                                                        out_error_ptr);
+
+                                                                     if (is_ok)
+                                                                     {
+                                                                         *out_image_ptr = sink.get_image({in_frame_index, 0});
+                                                                     }
+
+                                                                     return is_ok;
+                                                                 },
+                                                                 out_error_ptr);
+}
+
 bool Stereo::Replay::ConsistencyChecker::take_profile(const Stereo::Replay::ConsistencyChecker::Options& in_options,
                                                       std::string*                                       out_error_ptr)
 {
@@ -868,28 +939,13 @@ bool Stereo::Replay::ConsistencyChecker::take_screenshot(const Stereo::Replay::C
 {
     const bool                                        uses_recipe = (in_options.recipe_filename.empty() == false);
     Stereo::Replay::FrameImages::Image                image;
-    Stereo::Replay::ConsistencyChecker::Options       options     = in_options;
     bool                                              result      = false;
     Stereo::Replay::ConsistencyChecker::FrameHashSink sink(true); /* in_keeps_images */
 
-    options.first_frame = in_options.screenshot_frame;
-    options.last_frame  = in_options.screenshot_frame;
-
-    /* With the history, every frame before the one asked for is replayed with the recipe (it is hurried through, with no image taken), which is what makes
-     * what the eyes carry over from frame to frame right; the dependencies leave out what nothing after the frame reads, which makes it quick.
-     */
-    if (in_options.has_history ||
-        in_options.deps_filename.empty() == false)
-    {
-        options.first_frame = 0;
-
-        sink.set_frames_to_keep({in_options.screenshot_frame});
-    }
-
-    if (run_variant(options,
-                    VARIANT_ARRAY[(uses_recipe) ? 4 : 0],
-                   &sink,
-                    out_error_ptr) == false)
+    if (replay_to_frame(in_options,
+                        in_options.screenshot_frame,
+                       &sink,
+                        out_error_ptr) == false)
     {
         goto end;
     }
@@ -1177,6 +1233,12 @@ int main(int   in_argc,
             options.is_profiling = true;
         }
         else
+        if (argument == "--overlay-probe" &&
+            has_next)
+        {
+            options.overlay_probe_filename = in_argv[++n_argument];
+        }
+        else
         if (argument == "--parallel")
         {
             options.is_parallel = true;
@@ -1286,6 +1348,40 @@ int main(int   in_argc,
         fprintf(stdout,
                 "Written to %s\n",
                 options.image_filename.c_str() );
+
+        goto end;
+    }
+
+    if (options.overlay_probe_filename.empty() == false)
+    {
+        std::string error;
+
+        if (options.recipe_filename.empty() ||
+            options.dump_directory.empty() )
+        {
+            fprintf(stdout,
+                    "--overlay-probe needs --recipe and --dump-dir.\n");
+
+            exit_code = Stereo::Replay::ConsistencyChecker::ExitCode::BAD_ARGUMENTS;
+
+            goto end;
+        }
+
+        if (Stereo::Replay::ConsistencyChecker::take_overlay_probe(options,
+                                                                  &error) == false)
+        {
+            fprintf(stdout,
+                    "%s\n",
+                    error.c_str() );
+
+            exit_code = Stereo::Replay::ConsistencyChecker::ExitCode::REPLAY_FAILED;
+
+            goto end;
+        }
+
+        fprintf(stdout,
+                "Written to %s\n",
+                options.dump_directory.c_str() );
 
         goto end;
     }

@@ -41,6 +41,7 @@ namespace Stereo
                 bool                                 has_history                    = false;      /* a screenshot replays the frames before it with the recipe too, as a player does, so that what carries over from frame to frame is right (slow without deps) */
                 std::string                          deps_filename;                               /* the dependencies of the workload: a replay goes to the last frame leaving out the frames which nothing after it reads */
                 std::string                          image_filename;                              /* the PNG file of a screenshot or a contact sheet */
+                std::string                          overlay_probe_filename;                      /* the list of draws that may be overlays, whose frames are replayed with each draw left out */
                 bool                                 is_parallel                    = false;      /* the ways are replayed at the same time */
                 bool                                 is_profiling                   = false;      /* the frames are replayed once, and where the time goes is said */
                 uint32_t                             last_frame                     = 999;
