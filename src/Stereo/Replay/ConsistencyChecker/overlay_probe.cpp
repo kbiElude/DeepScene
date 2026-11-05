@@ -6,6 +6,7 @@
 #include "Analysis/APIDumpAnalysis/json_reader.h"
 #include "Analysis/APIDumpAnalysis/json_writer.h"
 #include "Analysis/APIDumpAnalysis/query_commands.h"
+#include "Stereo/Replay/FrameImages/gif_writer.h"
 #include "Stereo/Replay/FrameImages/image_comparer.h"
 #include "Stereo/Replay/FrameImages/png_writer.h"
 #include <map>
@@ -121,16 +122,53 @@ void Stereo::Replay::ConsistencyChecker::OverlayProbe::add_warnings(OverlayProbe
     }
 }
 
+Stereo::Replay::FrameImages::Image Stereo::Replay::ConsistencyChecker::OverlayProbe::make_highlighted_image(const Stereo::Replay::FrameImages::Image& in_baseline_image,
+                                                                                                                const Stereo::Replay::FrameImages::Image& in_probe_image,
+                                                                                                                const bool&                               in_is_rest_dimmed)
+{
+    constexpr size_t N_CHANNELS = 4; /* B, G, R, A */
+
+    Stereo::Replay::FrameImages::Image result = in_baseline_image;
+
+    for (size_t n_pixel = 0;
+                n_pixel < static_cast<size_t>(result.width) * result.height;
+              ++n_pixel)
+    {
+        uint8_t* const pixel_ptr  = result.pixel_u8_vec.data() + n_pixel * N_CHANNELS;
+        const bool     is_changed = (::memcmp(pixel_ptr,
+                                              in_probe_image.pixel_u8_vec.data() + n_pixel * N_CHANNELS,
+                                              N_CHANNELS) != 0);
+
+        if (is_changed)
+        {
+            pixel_ptr[0] = 255;
+            pixel_ptr[1] = 0;
+            pixel_ptr[2] = 255;
+        }
+        else
+        if (in_is_rest_dimmed)
+        {
+            pixel_ptr[0] /= 2;
+            pixel_ptr[1] /= 2;
+            pixel_ptr[2] /= 2;
+        }
+    }
+
+    return result;
+}
+
 std::string Stereo::Replay::ConsistencyChecker::OverlayProbe::make_image_filename(const size_t&   in_n_candidate,
-                                                                                  const uint32_t& in_frame_index)
+                                                                                  const uint32_t& in_frame_index,
+                                                                                  const char*     in_extension_ptr)
 {
     char text[64];
 
     ::snprintf(text,
                sizeof(text),
-               "candidate_%03zu_frame_%u.png",
+               "candidate_%03zu_frame_%u.%s",
                in_n_candidate,
-               in_frame_index);
+               in_frame_index,
+               in_extension_ptr);
 
     return text;
 }
@@ -273,11 +311,16 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::run(const Options&    in_
 
             if (difference.n_differing_pixels != 0)
             {
-                entry.image_filename = make_image_filename(n_entry,
-                                                           entry.frame_index);
+                entry.animation_filename = make_image_filename(n_entry,
+                                                               entry.frame_index,
+                                                               "gif");
+                entry.image_filename     = make_image_filename(n_entry,
+                                                               entry.frame_index,
+                                                               "png");
 
                 if (write_images(in_options.dump_directory,
                                  entry.image_filename,
+                                 entry.animation_filename,
                                  baseline_image,
                                  probe_image) == false)
                 {
@@ -316,41 +359,30 @@ end:
     return result;
 }
 
+
 bool Stereo::Replay::ConsistencyChecker::OverlayProbe::write_images(const std::string&                        in_directory,
-                                                                    const std::string&                        in_filename,
+                                                                    const std::string&                        in_still_filename,
+                                                                    const std::string&                        in_animation_filename,
                                                                     const Stereo::Replay::FrameImages::Image& in_baseline_image,
                                                                     const Stereo::Replay::FrameImages::Image& in_probe_image)
 {
-    constexpr size_t N_CHANNELS = 4; /* B, G, R, A */
+    constexpr uint32_t ANIMATION_FRAME_DELAY_N_MILLISECONDS = 700;
 
-    Stereo::Replay::FrameImages::Image highlighted_image = in_baseline_image;
+    /* The still has the pixels which the draws make in magenta, and the rest of the frame dimmed so that they show. The animation shows the frame as it is, and the
+     * same frame with those pixels in magenta, by turns, so that what is magenta can be told from what is under it.
+     */
+    const auto marked_image = make_highlighted_image(in_baseline_image,
+                                                     in_probe_image,
+                                                     false); /* in_is_rest_dimmed */
+    const auto still_image  = make_highlighted_image(in_baseline_image,
+                                                     in_probe_image,
+                                                     true); /* in_is_rest_dimmed */
 
-    /* The pixels which the draws make are magenta; the rest is the frame, dimmed so that they show. */
-    for (size_t n_pixel = 0;
-                n_pixel < static_cast<size_t>(highlighted_image.width) * highlighted_image.height;
-              ++n_pixel)
-    {
-        uint8_t* const pixel_ptr  = highlighted_image.pixel_u8_vec.data() + n_pixel * N_CHANNELS;
-        const bool     is_changed = (::memcmp(pixel_ptr,
-                                              in_probe_image.pixel_u8_vec.data() + n_pixel * N_CHANNELS,
-                                              N_CHANNELS) != 0);
-
-        if (is_changed)
-        {
-            pixel_ptr[0] = 255;
-            pixel_ptr[1] = 0;
-            pixel_ptr[2] = 255;
-        }
-        else
-        {
-            pixel_ptr[0] /= 2;
-            pixel_ptr[1] /= 2;
-            pixel_ptr[2] /= 2;
-        }
-    }
-
-    return Stereo::Replay::FrameImages::PngWriter::write_file(in_directory + "/" + in_filename,
-                                                              highlighted_image);
+    return (Stereo::Replay::FrameImages::PngWriter::write_file(in_directory + "/" + in_still_filename,
+                                                               still_image) &&
+            Stereo::Replay::FrameImages::GifWriter::write_file(in_directory + "/" + in_animation_filename,
+                                                               {in_baseline_image, marked_image},
+                                                               ANIMATION_FRAME_DELAY_N_MILLISECONDS) );
 }
 
 bool Stereo::Replay::ConsistencyChecker::OverlayProbe::write_list(const std::string&                    in_directory,
@@ -382,6 +414,8 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::write_list(const std::str
         writer.write_u64    (entry.n_changed_pixels);
         writer.write_key    ("image");
         writer.write_string (entry.image_filename);
+        writer.write_key    ("animation");
+        writer.write_string (entry.animation_filename);
         writer.write_key    ("agreement");
         writer.write_string (entry.agreement);
         writer.write_key    ("replay_class");
@@ -448,7 +482,7 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::write_page(const std::str
            ".card.none{opacity:.55}.card.suspect{outline:2px solid #e55}code{color:#9cf}button{margin-left:6px}"
            ".badge{display:inline-block;margin:2px 4px 2px 0;padding:1px 6px;border-radius:4px;background:#a33;color:#fff;font-size:12px}</style></head><body>\n"
            "<h1>Draws that may be 2D overlays</h1>\n"
-           "<p>For each candidate the frame it is first drawn in was replayed (left eye) with it and without it. Magenta is what the draws make, the rest of the frame is dimmed. "
+           "<p>For each candidate the frame it is first drawn in was replayed (left eye) with it and without it. Each image alternates between the frame as it is and the same frame with what the draws make in magenta (click it for its size; the link below it is a still with the rest dimmed). "
            "A candidate that changes no pixel is not drawn in that frame (or draws what is hidden). An overlay is flat: its vertices are at one depth, and it makes a part of the "
            "picture. A red outline is a draw that the recipe leaves alone and that is not like that: <em>deep_depth</em> (the vertices of its pass are at many depths: a 3D scene) "
            "or <em>covers_much_of_picture</em> (it makes more than two fifths of the picture). Look at the image: if it is the scene, the recipe is wrong.</p>\n"
@@ -464,9 +498,11 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::write_page(const std::str
         page += "<div class=\"card" + std::string((entry.n_changed_pixels == 0) ? " none" : "") + std::string((is_suspect) ? " suspect" : "") + "\" data-visible=\"" +
                 ((entry.n_changed_pixels != 0) ? "1" : "0") + "\" data-disagree=\"" + ((is_agreed) ? "0" : "1") + "\" data-suspect=\"" + ((is_suspect) ? "1" : "0") + "\">";
 
-        if (entry.image_filename.empty() == false)
+        if (entry.animation_filename.empty() == false)
         {
-            page += "<a href=\"" + escape_html(entry.image_filename) + "\"><img src=\"" + escape_html(entry.image_filename) + "\" loading=\"lazy\"></a>";
+            /* The animation shows the frame and the frame with the draws in magenta, by turns; the still dims the rest of the frame. */
+            page += "<a href=\"" + escape_html(entry.animation_filename) + "\"><img src=\"" + escape_html(entry.animation_filename) + "\" loading=\"lazy\"></a>"
+                    "<div><a href=\"" + escape_html(entry.image_filename) + "\">still</a></div>";
         }
 
         page += "<div>draw <code>" + get_hex_text(entry.structure_key) + "</code><button onclick=\"navigator.clipboard.writeText('" + get_hex_text(entry.structure_key) +

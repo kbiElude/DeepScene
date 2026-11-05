@@ -128,6 +128,13 @@ TEST(OverlayProbe, ADrawWhichMakesPixelsIsWrittenWithAnImageAndOneWhichMakesNone
     EXPECT_FALSE(read_text_file(options.dump_directory + "\\candidate_000_frame_7.png").empty() );
     EXPECT_TRUE (read_text_file(options.dump_directory + "\\candidate_001_frame_7.png").empty() );
     EXPECT_NE(page.find("candidate_000_frame_7.png"), std::string::npos);
+
+    /* The animation is a GIF of the frame and of the frame with the draws in magenta, and the page shows it. */
+    EXPECT_EQ(read_text_file(options.dump_directory + "\\candidate_000_frame_7.gif").substr(0, 6),
+              "GIF89a");
+    EXPECT_TRUE(read_text_file(options.dump_directory + "\\candidate_001_frame_7.gif").empty() );
+    EXPECT_NE(list.find("candidate_000_frame_7.gif"), std::string::npos) << list;
+    EXPECT_NE(page.find("<img src=\"candidate_000_frame_7.gif\""), std::string::npos);
 }
 
 TEST(OverlayProbe, AListThatIsNotJsonFails)

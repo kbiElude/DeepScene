@@ -23,6 +23,7 @@ namespace Stereo
             struct OverlayProbeEntry
             {
                 std::string                                agreement;
+                std::string                                animation_filename;          /* the frame and the frame with the draws in magenta, by turns; empty if nothing differs */
                 Analysis::APIDumpAnalysis::PassDepthSpread depth_spread;                /* how deep the vertices of its pass are */
                 uint32_t                                   frame_index      = 0;
                 std::string                                image_filename;              /* relative to the output directory; empty if nothing differs */
@@ -60,14 +61,22 @@ namespace Stereo
                 /* Says what to look at twice in a candidate that the recipe leaves alone: vertices at many depths, and a picture that is mostly its own. */
                 static void add_warnings(OverlayProbeEntry* inout_entry_ptr);
 
+                /* The frame with the pixels that differ from the other image in magenta; the rest of it dimmed, or as it is. */
+                static Stereo::Replay::FrameImages::Image make_highlighted_image(const Stereo::Replay::FrameImages::Image& in_baseline_image,
+                                                                                 const Stereo::Replay::FrameImages::Image& in_probe_image,
+                                                                                 const bool&                               in_is_rest_dimmed);
+
                 static std::string make_image_filename(const size_t&   in_n_candidate,
-                                                       const uint32_t& in_frame_index);
+                                                       const uint32_t& in_frame_index,
+                                                       const char*     in_extension_ptr);
 
                 static bool parse_hex_key(const std::string& in_text,
                                           uint64_t*          out_key_ptr);
 
+                /* The still (the frame dimmed, with the pixels of the draws in magenta) and the animation (the frame as it is, and with them in magenta, by turns). */
                 static bool write_images(const std::string&                        in_directory,
-                                         const std::string&                        in_filename,
+                                         const std::string&                        in_still_filename,
+                                         const std::string&                        in_animation_filename,
                                          const Stereo::Replay::FrameImages::Image& in_baseline_image,
                                          const Stereo::Replay::FrameImages::Image& in_probe_image);
 
