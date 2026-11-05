@@ -91,6 +91,12 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
             m_live_state.dump_every = static_cast<uint64_t>(value);
         }
 
+        if (Environment::get_number("APISTEREO_DUMP_FIRST_FRAME",
+                                    &value) )
+        {
+            m_live_state.dump_first_frame = static_cast<uint64_t>(value);
+        }
+
         if (Environment::get_number("APISTEREO_DUMP_FRAME",
                                     &value) )
         {
@@ -631,7 +637,8 @@ void Stereo::ConverterDLL::Converter::pass_d3d7_frame(void* in_primary_surface_p
         /* A debugging aid: the images of the eyes of one frame, to look at. */
         if ( (m_live_state.dump_frame != 0 &&
               m_live_state.n_frames   == m_live_state.dump_frame)    ||
-             (m_live_state.dump_every != 0 &&
+             (m_live_state.dump_every != 0                          &&
+              m_live_state.n_frames   >= m_live_state.dump_first_frame &&
               m_live_state.n_frames   % m_live_state.dump_every == 0) )
         {
             char temp_i8vec260[MAX_PATH] = {};

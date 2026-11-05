@@ -110,6 +110,7 @@ namespace Stereo
                 std::atomic<int64_t>                      n_draw_ticks     = {0}; /* of those, in the draws of Direct3D 7                              */
                 D3D7WindowedMode                          d3d7_windowed_mode;
                 uint64_t                                  dump_every         = 0; /* a frame is written to a file every so many frames; 0: none */
+                uint64_t                                  dump_first_frame   = 0; /* the frames before it are not written (see dump_every)     */
                 uint64_t                                  dump_frame         = 0; /* of the frame to write to a file; 0: none */
                 bool                                      is_overlay_push_forced = false; /* from the environment, not the program which shows the images */
                 CallFeeder                                feeder;
