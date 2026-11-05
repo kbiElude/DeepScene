@@ -49,7 +49,9 @@ namespace Stereo
             uint64_t get_n_failed_twins() const;
             uint64_t get_n_twins       () const;
 
-            /* How many calls were made on the back buffer in the pixels of the application, which are then not where they were meant to be. */
+            /* How many calls were made on the back buffer in the pixels of the application, which are then not where they were meant to be (a
+             * write of the whole of it is not one: it is stretched, see copy_pixel_write_to_both_eyes()).
+             */
             uint64_t get_n_pixel_calls() const;
 
             /* How many calls were not made again for the right eye, though they changed what it holds. */
@@ -130,6 +132,12 @@ namespace Stereo
                 Interception::Hooks::D3D7::D3DVIEWPORT7  viewport           = {};
             };
 
+            /* The application wrote the whole back buffer itself (locked it, and unlocked it): a picture it made in its own pixels, which is in the
+             * corner of a back buffer that is larger. It is stretched to the whole of the back buffer, and the right eye gets it too (it is flat:
+             * the same in both eyes).
+             */
+            void copy_pixel_write_to_both_eyes(void* in_back_buffer_ptr) const;
+
             /* Makes the draw with the vertices, in the place of the one the application made. */
             void draw(const DrawArguments& in_draw_arguments,
                       const uint8_t*       in_vertices_ptr) const;
@@ -193,6 +201,7 @@ namespace Stereo
 
 
             Stereo::Core::StereoCore* m_core_ptr;
+            bool                      m_has_pixel_write; /* the back buffer is locked to be written, all of it */
             DeviceMirror              m_mirror;
             bool                      m_is_right_eye_off;
             uint64_t                  m_n_pixel_calls;

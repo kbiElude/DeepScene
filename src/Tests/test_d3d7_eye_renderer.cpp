@@ -700,3 +700,139 @@ TEST(D3D7EyeRenderer, AStridedDrawIsMadeForTheRightEyeAsItIsAndTheCallOfTheAppli
                         "DrawPrimitiveStrided " + std::to_string(0.1f) + " 12"),
               fixture.device_ptr->call_vec.end() );
 }
+
+namespace
+{
+    /* An application which asked for a display mode of 640 x 480, with the images shown at twice that: its back buffer is 1280 x 960, and has a twin. */
+    class LargerBackBufferFixture
+    {
+    public:
+        LargerBackBufferFixture()
+            :direct_draw_ptr(Tests::make_direct_draw() )
+        {
+            windowed_mode.set_is_enabled(true);
+            windowed_mode.set_target_eye_size(1280,
+                                              960);
+
+            const APIInterceptor::APIFunctionArgument display_mode_vec6[6] = {APIInterceptor::APIFunctionArgument::create_void_ptr(direct_draw_ptr.get() ),
+                                                                              APIInterceptor::APIFunctionArgument::create_u32(640),
+                                                                              APIInterceptor::APIFunctionArgument::create_u32(480),
+                                                                              APIInterceptor::APIFunctionArgument::create_u32(32),
+                                                                              APIInterceptor::APIFunctionArgument::create_u32(0),
+                                                                              APIInterceptor::APIFunctionArgument::create_u32(0)};
+
+            windowed_mode.on_pre(APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAW7_SETDISPLAYMODE,
+                                 6,
+                                 display_mode_vec6);
+
+            renderer_ptr.reset(new Stereo::ConverterDLL::D3D7EyeRenderer(core_fixture.core_ptr.get(),
+                                                                         &windowed_mode) );
+
+            primary_ptr     = Tests::make_surface(direct_draw_ptr.get(),
+                                                  make_description(Caps::DDSCAPS_PRIMARYSURFACE,
+                                                                   0,
+                                                                   0) );
+            back_buffer_ptr = Tests::make_surface(direct_draw_ptr.get(),
+                                                  make_description(Caps::DDSCAPS_3DDEVICE | Caps::DDSCAPS_OFFSCREENPLAIN,
+                                                                   1280,
+                                                                   960) );
+
+            post_create_surface(renderer_ptr.get(),
+                                direct_draw_ptr.get(),
+                                primary_ptr);
+
+            const APIInterceptor::APIFunctionArgument attached_argument_vec3[3] = {APIInterceptor::APIFunctionArgument::create_void_ptr(primary_ptr),
+                                                                                   APIInterceptor::APIFunctionArgument::create_data_chunk_id(0),
+                                                                                   APIInterceptor::APIFunctionArgument::create_void_ptr(back_buffer_ptr)};
+            const auto                                success                   = APIInterceptor::APIFunctionArgument::create_i32(0);
+
+            renderer_ptr->on_post(APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_GETATTACHEDSURFACE,
+                                  3,
+                                  attached_argument_vec3,
+                                 &success);
+        }
+
+        /* The application locks the back buffer (with these flags and a rectangle, or the whole of it), and unlocks it. */
+        void lock_and_unlock(const uint32_t& in_flags,
+                             const bool&     in_is_whole_surface)
+        {
+            const RECT rect = {0, 0, 10, 10};
+            const auto rect_chunk_id = (in_is_whole_surface) ? 0u
+                                                             : APIInterceptor::register_data_chunk(&rect,
+                                                                                                   static_cast<uint32_t>(sizeof(rect) ));
+            const APIInterceptor::APIFunctionArgument lock_argument_vec5[5] = {APIInterceptor::APIFunctionArgument::create_void_ptr(back_buffer_ptr),
+                                                                               APIInterceptor::APIFunctionArgument::create_data_chunk_id(rect_chunk_id),
+                                                                               APIInterceptor::APIFunctionArgument::create_data_chunk_id(0),
+                                                                               APIInterceptor::APIFunctionArgument::create_u32(in_flags),
+                                                                               APIInterceptor::APIFunctionArgument::create_void_ptr(nullptr)};
+            const APIInterceptor::APIFunctionArgument unlock_argument_vec2[2] = {APIInterceptor::APIFunctionArgument::create_void_ptr(back_buffer_ptr),
+                                                                                 APIInterceptor::APIFunctionArgument::create_data_chunk_id(0)};
+            const auto                                success                 = APIInterceptor::APIFunctionArgument::create_i32(0);
+
+            EXPECT_TRUE(renderer_ptr->on_pre(APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_LOCK,
+                                             5,
+                                             lock_argument_vec5) );
+            renderer_ptr->on_post(APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_UNLOCK,
+                                  2,
+                                  unlock_argument_vec2,
+                                 &success);
+
+            if (in_is_whole_surface == false)
+            {
+                APIInterceptor::release_data_chunk(rect_chunk_id);
+            }
+        }
+
+        Tests::FakeSurface*                                 back_buffer_ptr = nullptr;
+        CoreFixture                                         core_fixture;
+        std::unique_ptr<Tests::FakeDirectDraw>              direct_draw_ptr;
+        Tests::FakeSurface*                                 primary_ptr     = nullptr;
+        std::unique_ptr<Stereo::ConverterDLL::D3D7EyeRenderer> renderer_ptr;
+        Stereo::ConverterDLL::D3D7WindowedMode              windowed_mode;
+    };
+}
+
+TEST(D3D7EyeRenderer, APictureTheApplicationWritesToTheWholeBackBufferIsStretchedAndMadeForTheRightEyeToo)
+{
+    LargerBackBufferFixture fixture;
+
+    fixture.lock_and_unlock(0, /* in_flags */
+                            true); /* in_is_whole_surface */
+
+    /* The 640 x 480 corner goes to the twin as large as the whole, and what is in the twin goes back: both eyes show it. */
+    const auto* const twin_ptr = static_cast<Tests::FakeSurface*>(fixture.renderer_ptr->get_twin_ptr(fixture.back_buffer_ptr) );
+
+    ASSERT_NE(twin_ptr,
+              nullptr);
+    ASSERT_EQ(twin_ptr->call_vec.size(),
+              1u);
+    EXPECT_NE(twin_ptr->call_vec.at(0).find("source " + std::to_string(reinterpret_cast<uintptr_t>(fixture.back_buffer_ptr) ) ),
+              std::string::npos);
+    EXPECT_NE(twin_ptr->call_vec.at(0).find("from 640 x 480"),
+              std::string::npos);
+    ASSERT_EQ(fixture.back_buffer_ptr->call_vec.size(),
+              1u);
+    EXPECT_NE(fixture.back_buffer_ptr->call_vec.at(0).find("source " + std::to_string(reinterpret_cast<uintptr_t>(twin_ptr) ) ),
+              std::string::npos);
+    EXPECT_EQ(fixture.renderer_ptr->get_n_pixel_calls(),
+              0u);
+}
+
+TEST(D3D7EyeRenderer, ALockToReadOrOfPartOfTheBackBufferChangesNothingAndIsCounted)
+{
+    LargerBackBufferFixture fixture;
+
+    fixture.lock_and_unlock(0x10, /* DDLOCK_READONLY */
+                            true); /* in_is_whole_surface */
+    fixture.lock_and_unlock(0, /* in_flags */
+                            false); /* in_is_whole_surface */
+
+    const auto* const twin_ptr = static_cast<Tests::FakeSurface*>(fixture.renderer_ptr->get_twin_ptr(fixture.back_buffer_ptr) );
+
+    ASSERT_NE(twin_ptr,
+              nullptr);
+    EXPECT_TRUE(twin_ptr->call_vec.empty() );
+    EXPECT_TRUE(fixture.back_buffer_ptr->call_vec.empty() );
+    EXPECT_EQ(fixture.renderer_ptr->get_n_pixel_calls(),
+              2u);
+}

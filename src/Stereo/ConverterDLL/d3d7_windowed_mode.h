@@ -37,6 +37,10 @@ namespace Stereo
             /* The surface that the application renders to instead of the back buffer of the chain it asked for; nullptr until it has one. */
             void* get_back_buffer_ptr() const;
 
+            /* The size of the display mode that the application asked for, which is the size of its pictures; 0 until it asks. */
+            void get_display_size(uint32_t* out_width_ptr,
+                                  uint32_t* out_height_ptr) const;
+
             /* How much larger than the application asks the back buffer is made, to fit the images that are shown: 1 until the size of the display
              * mode is known, and when nothing is made larger.
              */

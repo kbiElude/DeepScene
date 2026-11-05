@@ -30,6 +30,13 @@ void* Stereo::ConverterDLL::D3D7WindowedMode::get_back_buffer_ptr() const
     return m_back_buffer_ptr;
 }
 
+void Stereo::ConverterDLL::D3D7WindowedMode::get_display_size(uint32_t* out_width_ptr,
+                                                              uint32_t* out_height_ptr) const
+{
+    *out_height_ptr = m_display_height;
+    *out_width_ptr  = m_display_width;
+}
+
 float Stereo::ConverterDLL::D3D7WindowedMode::get_render_scale() const
 {
     return m_policy.get_scale();

@@ -112,10 +112,12 @@ namespace Tests
                                               const void* in_fx_ptr)
     {
         (void) in_destination_rect_ptr;
-        (void) in_source_rect_ptr;
         (void) in_fx_ptr;
 
-        static_cast<FakeSurface*>(in_self_ptr)->call_vec.push_back("Blt source " + std::to_string(reinterpret_cast<uintptr_t>(in_source_ptr) ) + " flags " + std::to_string(in_flags) );
+        const std::string source_rect_text = (in_source_rect_ptr != nullptr) ? " from " + std::to_string(in_source_rect_ptr->right - in_source_rect_ptr->left) + " x " + std::to_string(in_source_rect_ptr->bottom - in_source_rect_ptr->top)
+                                                                             : std::string();
+
+        static_cast<FakeSurface*>(in_self_ptr)->call_vec.push_back("Blt source " + std::to_string(reinterpret_cast<uintptr_t>(in_source_ptr) ) + " flags " + std::to_string(in_flags) + source_rect_text);
 
         return 0;
     }

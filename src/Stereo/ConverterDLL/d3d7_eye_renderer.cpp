@@ -19,6 +19,7 @@
 Stereo::ConverterDLL::D3D7EyeRenderer::D3D7EyeRenderer(Stereo::Core::StereoCore* in_core_ptr,
                                                      const D3D7WindowedMode* in_windowed_mode_ptr)
     :m_core_ptr          (in_core_ptr),
+     m_has_pixel_write   (false),
      m_is_right_eye_off  (false),
      m_n_pixel_calls     (0),
      m_n_unmirrored_calls(0),
@@ -66,6 +67,20 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::on_post(const APIInterceptor::APIFun
                             in_arguments_ptr,
                             in_returned_value_ptr);
 
+    /* The application has written the back buffer, all of it: what it wrote is made for both eyes. */
+    if (in_function == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_UNLOCK &&
+        in_n_arguments > 0                                                          &&
+        in_arguments_ptr[0].type == APIInterceptor::ARGTYPE_VOID_PTR                &&
+        m_surface_twins.is_back_buffer(const_cast<void*>(in_arguments_ptr[0].get_ptr() )) )
+    {
+        if (m_has_pixel_write)
+        {
+            copy_pixel_write_to_both_eyes(const_cast<void*>(in_arguments_ptr[0].get_ptr() ));
+        }
+
+        m_has_pixel_write = false;
+    }
+
     /* A device renders to the surface that it is made for, until the application sets another. */
     if (in_function == APIInterceptor::APIFUNCTION_D3D7_IDIRECT3D7_CREATEDEVICE &&
         in_n_arguments > DEVICE_ARGUMENT                                         &&
@@ -96,6 +111,10 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre(const APIInterceptor::APIFunc
     constexpr uint32_t N_ARGUMENTS_TEXTURE  = 3;
     constexpr size_t   DESTINATION_ARGUMENT = 0;
     constexpr size_t   LOAD_DESTINATION     = 1;
+    constexpr uint32_t LOCK_FLAG_READONLY   = 0x10; /* DDLOCK_READONLY */
+    constexpr size_t   LOCK_FLAGS_ARGUMENT  = 3;
+    constexpr size_t   LOCK_RECT_ARGUMENT   = 1;
+    constexpr uint32_t N_ARGUMENTS_LOCK     = 4;
     constexpr size_t   STAGE_ARGUMENT       = 1;
     constexpr size_t   TARGET_ARGUMENT      = 1;
     constexpr size_t   TEXTURE_ARGUMENT     = 2;
@@ -217,13 +236,29 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre(const APIInterceptor::APIFunc
 
         case APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_LOCK:
         {
-            /* Pixels that the application reads or writes are in the pixels of the application. */
-            if (in_n_arguments >= N_ARGUMENTS_BLT                                              &&
+            /* Pixels that the application reads or writes are in the pixels of the application. A write of the whole surface is made for both eyes
+             * when it ends (see copy_pixel_write_to_both_eyes()); the rest is counted, if the back buffer is larger.
+             */
+            if (in_n_arguments >= N_ARGUMENTS_LOCK                                             &&
                 in_arguments_ptr[DESTINATION_ARGUMENT].type == APIInterceptor::ARGTYPE_VOID_PTR &&
-                m_surface_twins.is_back_buffer(const_cast<void*>(in_arguments_ptr[DESTINATION_ARGUMENT].get_ptr() )) &&
-                m_windowed_mode_ptr->get_render_scale() != 1.0f)
+                m_surface_twins.is_back_buffer(const_cast<void*>(in_arguments_ptr[DESTINATION_ARGUMENT].get_ptr() )))
             {
-                m_n_pixel_calls++;
+                uint32_t   flags            = 0;
+                const bool has_flags        = APIInterceptor::read_number(in_arguments_ptr[LOCK_FLAGS_ARGUMENT],
+                                                                         &flags);
+                const bool is_whole_surface = (get_chunk_ptr(in_arguments_ptr[LOCK_RECT_ARGUMENT]) == nullptr);
+
+                m_has_pixel_write = (is_whole_surface                      &&
+                                     has_flags                             &&
+                                     (flags & LOCK_FLAG_READONLY) == 0);
+
+                if (m_has_pixel_write == false)
+                {
+                    if (m_windowed_mode_ptr->get_render_scale() != 1.0f)
+                    {
+                        m_n_pixel_calls++;
+                    }
+                }
             }
 
             break;
@@ -306,6 +341,81 @@ std::vector<std::string> Stereo::ConverterDLL::D3D7EyeRenderer::take_unmirrored_
     result_vec.swap(m_unmirrored_note_vec);
 
     return result_vec;
+}
+
+void Stereo::ConverterDLL::D3D7EyeRenderer::copy_pixel_write_to_both_eyes(void* in_back_buffer_ptr) const
+{
+    constexpr uint32_t BLT_FLAG_WAIT = 0x01000000; /* DDBLT_WAIT */
+
+    void* const twin_ptr       = get_twin_ptr(in_back_buffer_ptr);
+    uint32_t    display_height = 0;
+    uint32_t    display_width  = 0;
+
+    if (twin_ptr == nullptr)
+    {
+        goto end;
+    }
+
+    {
+        const OwnCallScope                         own_call_scope;
+        Interception::Hooks::D3D7::DDSURFACEDESC2  description      = {};
+        auto* const                                surface_ptr      = static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(in_back_buffer_ptr);
+        void** const                               surface_vtable   = APIInterceptor::get_vtable_ptr(in_back_buffer_ptr);
+        auto* const                                twin_surface_ptr = static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(twin_ptr);
+        void** const                               twin_vtable      = APIInterceptor::get_vtable_ptr(twin_ptr);
+
+        description.dwSize = static_cast<DWORD>(sizeof(description) );
+
+        m_windowed_mode_ptr->get_display_size(&display_width,
+                                              &display_height);
+
+        if (FAILED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_GETSURFACEDESC>(surface_vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_GETSURFACEDESC)(surface_ptr,
+                                                                                                                                                                                                       &description) ))
+        {
+            goto end;
+        }
+
+        /* The picture is in the corner of the size of the display mode, if the back buffer is larger: it goes to the twin as large as the whole, and
+         * back. Otherwise it is the back buffer as it is that goes to the twin.
+         */
+        if (display_width  != 0                  &&
+            display_height != 0                  &&
+            display_width  <  description.dwWidth &&
+            display_height <  description.dwHeight)
+        {
+            RECT picture_rect = {};
+
+            picture_rect.bottom = static_cast<LONG>(display_height);
+            picture_rect.right  = static_cast<LONG>(display_width);
+
+            if (SUCCEEDED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_BLT>(twin_vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_BLT)(twin_surface_ptr,
+                                                                                                                                                                                         nullptr,
+                                                                                                                                                                                         surface_ptr,
+                                                                                                                                                                                        &picture_rect,
+                                                                                                                                                                                         BLT_FLAG_WAIT,
+                                                                                                                                                                                         nullptr) ))
+            {
+                APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_BLT>(surface_vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_BLT)(surface_ptr,
+                                                                                                                                                                                       nullptr,
+                                                                                                                                                                                       twin_surface_ptr,
+                                                                                                                                                                                       nullptr,
+                                                                                                                                                                                       BLT_FLAG_WAIT,
+                                                                                                                                                                                       nullptr);
+            }
+        }
+        else
+        {
+            APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_BLT>(twin_vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_BLT)(twin_surface_ptr,
+                                                                                                                                                                                     nullptr,
+                                                                                                                                                                                     surface_ptr,
+                                                                                                                                                                                     nullptr,
+                                                                                                                                                                                     BLT_FLAG_WAIT,
+                                                                                                                                                                                     nullptr);
+        }
+    }
+
+end:
+    return;
 }
 
 void Stereo::ConverterDLL::D3D7EyeRenderer::draw(const DrawArguments& in_draw_arguments,
