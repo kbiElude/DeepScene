@@ -2,6 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
+#include "Analysis/APIDumpAnalysis/depth_histogram.h"
 #include "Analysis/APIDumpAnalysis/key_builder.h"
 #include "Analysis/APIDumpAnalysis/model_builder.h"
 #include "Analysis/APIDumpAnalysis/passes_format.h"
@@ -226,6 +227,57 @@ uint64_t Analysis::APIDumpAnalysis::QueryCommands::get_page_end(const uint64_t& 
         in_arguments.limit <  n_items_left)
     {
         result = in_arguments.offset + in_arguments.limit;
+    }
+
+    return result;
+}
+
+Analysis::APIDumpAnalysis::PassDepthSpread Analysis::APIDumpAnalysis::QueryCommands::get_pass_depth_spread(const AnalysisResult& in_analysis,
+                                                                                                           const uint32_t&       in_pass_id)
+{
+    constexpr double FRACTION_FAR    = 0.9;
+    constexpr double FRACTION_MEDIAN = 0.5;
+    constexpr double FRACTION_NEAR   = 0.1;
+    constexpr float  MAX_FLAT_RATIO  = 1.25f; /* a range of the histogram is an eighth of a doubling wide: vertices of one depth are in one or two of them */
+
+    const auto&     model_ref = in_analysis.model;
+    DepthHistogram  origin_histogram;
+    PassDepthSpread result;
+    DepthHistogram  surface_histogram;
+
+    for (const auto& histogram_pair : model_ref.depth_histogram_map)
+    {
+        if (histogram_pair.first.second == in_pass_id)
+        {
+            origin_histogram.merge(histogram_pair.second);
+        }
+    }
+
+    for (const auto& histogram_pair : model_ref.surface_depth_histogram_map)
+    {
+        if (histogram_pair.first.second == in_pass_id)
+        {
+            surface_histogram.merge(histogram_pair.second);
+        }
+    }
+
+    /* The vertices of the draws say more than the origins of their objects, which may be anywhere. */
+    const auto& histogram = (surface_histogram.is_empty() ) ? origin_histogram
+                                                            : surface_histogram;
+
+    if (histogram.is_empty() == false)
+    {
+        result.depth_far    = histogram.get_depth_at_fraction(FRACTION_FAR);
+        result.depth_median = histogram.get_depth_at_fraction(FRACTION_MEDIAN);
+        result.depth_near   = histogram.get_depth_at_fraction(FRACTION_NEAR);
+        result.has_depth    = (result.depth_near > 0.0f);
+        result.n_vertices   = histogram.get_total_weight();
+
+        if (result.has_depth)
+        {
+            result.far_to_near_ratio = result.depth_far / result.depth_near;
+            result.is_flat           = (result.far_to_near_ratio <= MAX_FLAT_RATIO);
+        }
     }
 
     return result;
@@ -972,14 +1024,17 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
     inout_writer_ptr->begin_object();
 
     inout_writer_ptr->write_key   ("note");
-    inout_writer_ptr->write_string("A hint, not a fact: a pass with a camera which never changes may also be a 3D scene seen from one place.");
+    inout_writer_ptr->write_string("A hint, not a fact: a pass with a camera which never changes may also be a 3D scene seen from one place. One whose vertices are at about one depth is "
+                                   "likely an overlay; one whose vertices are at many depths (depth.is_flat is false) is a 3D scene, and is left out of the unaffected list.");
 
     inout_writer_ptr->write_key("candidates");
     inout_writer_ptr->begin_array();
 
     for (const auto& pass_id : pass_id_vec)
     {
-        const auto& structure = model_ref.pass_structure_interner.get_structure(pass_id);
+        const auto& structure    = model_ref.pass_structure_interner.get_structure(pass_id);
+        const auto  depth_spread = get_pass_depth_spread(in_analysis,
+                                                         pass_id);
 
         inout_writer_ptr->begin_object();
         inout_writer_ptr->write_key    ("pass_id");
@@ -990,6 +1045,8 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
         inout_writer_ptr->write_u64    (timeline.pass_usage_vec.at(pass_id).n_frames);
         inout_writer_ptr->write_key    ("n_draw_structures");
         inout_writer_ptr->write_u64    (structure.draw_structure_key_vec.size() );
+        write_depth_spread(depth_spread,
+                           inout_writer_ptr);
         inout_writer_ptr->end_object();
     }
 
@@ -1006,6 +1063,8 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
         const bool  has_first_frame   = get_first_frame_index(in_analysis,
                                                               pass_id,
                                                              &first_frame_index);
+        const auto  depth_spread      = get_pass_depth_spread(in_analysis,
+                                                              pass_id);
 
         for (const auto& draw_signature : structure.draw_signature_vec)
         {
@@ -1040,10 +1099,19 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
                 inout_writer_ptr->write_hex_u64(draw_iterator->second.vertex_layout_key);
             }
 
+            write_depth_spread(depth_spread,
+                               inout_writer_ptr);
+
             /* What makes the draw a candidate; a hint as the pass is. */
             inout_writer_ptr->write_key("reasons");
             inout_writer_ptr->begin_inline_array();
             inout_writer_ptr->write_string("static_camera");
+
+            if (depth_spread.has_depth)
+            {
+                inout_writer_ptr->write_string((depth_spread.is_flat) ? "flat_depth"
+                                                                      : "deep_depth");
+            }
 
             if (structure.clears_color == false)
             {
@@ -1063,9 +1131,17 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
     inout_writer_ptr->write_key("pass_keys");
     inout_writer_ptr->begin_array();
 
+    /* A pass whose vertices are at many depths is a 3D scene seen from one place, and is not a candidate for the list. */
     for (const auto& pass_id : pass_id_vec)
     {
-        inout_writer_ptr->write_hex_u64(model_ref.pass_structure_interner.get_structure(pass_id).key);
+        const auto depth_spread = get_pass_depth_spread(in_analysis,
+                                                        pass_id);
+
+        if (depth_spread.has_depth == false ||
+            depth_spread.is_flat)
+        {
+            inout_writer_ptr->write_hex_u64(model_ref.pass_structure_interner.get_structure(pass_id).key);
+        }
     }
 
     inout_writer_ptr->end_array();
@@ -1561,6 +1637,33 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
     inout_writer_ptr->end_object();
 
     return QueryStatus::OK;
+}
+
+void Analysis::APIDumpAnalysis::QueryCommands::write_depth_spread(const PassDepthSpread& in_spread,
+                                                                  JsonWriter*            inout_writer_ptr)
+{
+    inout_writer_ptr->write_key("depth");
+    inout_writer_ptr->begin_object();
+    inout_writer_ptr->write_key("has_depth");
+    inout_writer_ptr->write_bool(in_spread.has_depth);
+
+    if (in_spread.has_depth)
+    {
+        inout_writer_ptr->write_key  ("n_vertices");
+        inout_writer_ptr->write_u64  (in_spread.n_vertices);
+        inout_writer_ptr->write_key  ("near");
+        inout_writer_ptr->write_float(in_spread.depth_near);
+        inout_writer_ptr->write_key  ("median");
+        inout_writer_ptr->write_float(in_spread.depth_median);
+        inout_writer_ptr->write_key  ("far");
+        inout_writer_ptr->write_float(in_spread.depth_far);
+        inout_writer_ptr->write_key  ("far_to_near_ratio");
+        inout_writer_ptr->write_float(in_spread.far_to_near_ratio);
+        inout_writer_ptr->write_key  ("is_flat");
+        inout_writer_ptr->write_bool (in_spread.is_flat);
+    }
+
+    inout_writer_ptr->end_object();
 }
 
 void Analysis::APIDumpAnalysis::QueryCommands::write_draw_structure(const uint64_t&      in_key,

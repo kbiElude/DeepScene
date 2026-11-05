@@ -6,12 +6,14 @@
  * and a question with no answer is reported.
  */
 #include <gtest/gtest.h>
+#include "Analysis/APIDumpAnalysis/depth_histogram.h"
 #include "Analysis/APIDumpAnalysis/frontends/analysis_session.h"
 #include "Analysis/APIDumpAnalysis/json_reader.h"
 #include "Analysis/APIDumpAnalysis/key_builder.h"
 #include "Analysis/APIDumpAnalysis/query_commands.h"
 #include "Analysis/APIDumpAnalysis/resource_access_tracker.h"
 #include "data_fixtures.h"
+#include <iterator>
 #include <set>
 #include <stdio.h>
 
@@ -700,6 +702,123 @@ TEST_F(QueryCommandsTest, OverlaysAreThePassesWhoseCameraNeverChanges)
               Analysis::APIDumpAnalysis::QueryStatus::OK) << m_error;
     EXPECT_EQ(moved_value.at("candidates").item_vec.size() + 1,
               expected_key_set.size() );
+}
+
+TEST_F(QueryCommandsTest, AStaticCameraPassWhoseVerticesAreAtManyDepthsIsA3DSceneAndIsLeftOutOfTheUnaffectedList)
+{
+    const auto pass_id_vec = Analysis::APIDumpAnalysis::QueryCommands::get_static_camera_pass_id_vec(m_analysis);
+
+    ASSERT_FALSE(pass_id_vec.empty() );
+
+    const uint32_t pass_id  = pass_id_vec.front();
+    const auto     pass_key = m_analysis.model.pass_structure_interner.get_structure(pass_id).key;
+    char           key_i8vec32[32];
+
+    ::snprintf(key_i8vec32,
+               sizeof(key_i8vec32),
+               "0x%016llx",
+               static_cast<unsigned long long>(pass_key) );
+
+    /* What the analysis knows of the depth of the pass is replaced by what the test says. */
+    for (auto iterator  = m_analysis.model.surface_depth_histogram_map.begin();
+              iterator != m_analysis.model.surface_depth_histogram_map.end();)
+    {
+        iterator = (iterator->first.second == pass_id) ? m_analysis.model.surface_depth_histogram_map.erase(iterator)
+                                                       : std::next(iterator);
+    }
+
+    for (auto iterator  = m_analysis.model.depth_histogram_map.begin();
+              iterator != m_analysis.model.depth_histogram_map.end();)
+    {
+        iterator = (iterator->first.second == pass_id) ? m_analysis.model.depth_histogram_map.erase(iterator)
+                                                       : std::next(iterator);
+    }
+
+    const auto is_listed_unaffected_func = [&](const Analysis::APIDumpAnalysis::JsonValue& in_value)
+    {
+        bool result = false;
+
+        for (const auto& key : in_value.at("unaffected").at("pass_keys").item_vec)
+        {
+            result = (result || key.string_value == key_i8vec32);
+        }
+
+        return result;
+    };
+
+    Analysis::APIDumpAnalysis::DepthHistogram flat_histogram;
+    Analysis::APIDumpAnalysis::JsonValue      flat_value;
+
+    flat_histogram.add(5.0f,
+                       1000);
+
+    m_analysis.model.surface_depth_histogram_map[Analysis::APIDumpAnalysis::DepthHistogramKey(0,
+                                                                                              pass_id)] = flat_histogram;
+
+    ASSERT_EQ(ask("overlays",
+                 &flat_value),
+              Analysis::APIDumpAnalysis::QueryStatus::OK) << m_error;
+    EXPECT_TRUE(Analysis::APIDumpAnalysis::QueryCommands::get_pass_depth_spread(m_analysis,
+                                                                                 pass_id).is_flat);
+    EXPECT_TRUE(is_listed_unaffected_func(flat_value) );
+
+    /* The same pass with vertices from 5 to 500 is a scene. */
+    Analysis::APIDumpAnalysis::DepthHistogram deep_histogram;
+    Analysis::APIDumpAnalysis::JsonValue      deep_value;
+
+    deep_histogram.add(5.0f,
+                       1000);
+    deep_histogram.add(50.0f,
+                       1000);
+    deep_histogram.add(500.0f,
+                       1000);
+
+    m_analysis.model.surface_depth_histogram_map[Analysis::APIDumpAnalysis::DepthHistogramKey(0,
+                                                                                              pass_id)] = deep_histogram;
+
+    ASSERT_EQ(ask("overlays",
+                 &deep_value),
+              Analysis::APIDumpAnalysis::QueryStatus::OK) << m_error;
+
+    const auto spread = Analysis::APIDumpAnalysis::QueryCommands::get_pass_depth_spread(m_analysis,
+                                                                                         pass_id);
+
+    EXPECT_TRUE (spread.has_depth);
+    EXPECT_FALSE(spread.is_flat);
+    EXPECT_GT   (spread.far_to_near_ratio,
+                 2.0f);
+    EXPECT_FALSE(is_listed_unaffected_func(deep_value) );
+
+    /* It is still a candidate, with the reason, so that a person can see why it is not in the list. */
+    bool has_deep_reason = false;
+
+    for (const auto& draw : deep_value.at("draws").item_vec)
+    {
+        if (draw.at("pass_key").string_value == key_i8vec32)
+        {
+            for (const auto& reason : draw.at("reasons").item_vec)
+            {
+                has_deep_reason = (has_deep_reason || reason.string_value == "deep_depth");
+            }
+
+            EXPECT_FALSE(draw.at("depth").at("is_flat").bool_value);
+        }
+    }
+
+    EXPECT_TRUE(has_deep_reason);
+
+    /* A pass of which nothing is known of the depth stays in the list, as it did. */
+    Analysis::APIDumpAnalysis::JsonValue unknown_value;
+
+    m_analysis.model.surface_depth_histogram_map.erase(Analysis::APIDumpAnalysis::DepthHistogramKey(0,
+                                                                                                    pass_id) );
+
+    ASSERT_EQ(ask("overlays",
+                 &unknown_value),
+              Analysis::APIDumpAnalysis::QueryStatus::OK) << m_error;
+    EXPECT_FALSE(Analysis::APIDumpAnalysis::QueryCommands::get_pass_depth_spread(m_analysis,
+                                                                                  pass_id).has_depth);
+    EXPECT_TRUE(is_listed_unaffected_func(unknown_value) );
 }
 
 TEST_F(QueryCommandsTest, ResourcesTellWhatTheFramesDidWithEachOne)

@@ -46,11 +46,13 @@ namespace Analysis
                                                       JsonWriter*           inout_writer_ptr);
 
             /* What the overlays command says, for the tools that look into it further: the first frame that has the pass structure (false if no frame has
-             * it), and the passes whose camera never changes (in the order of their ids).
+             * it), how deep the vertices of a pass are, and the passes whose camera never changes (in the order of their ids).
              */
             static bool                  get_first_frame_index        (const AnalysisResult& in_analysis,
                                                                        const uint32_t&       in_pass_id,
                                                                        uint64_t*             out_frame_index_ptr);
+            static PassDepthSpread       get_pass_depth_spread        (const AnalysisResult& in_analysis,
+                                                                       const uint32_t&       in_pass_id);
             static std::vector<uint32_t> get_static_camera_pass_id_vec(const AnalysisResult& in_analysis);
 
             /* Reads a class name: frame_local, loop_carried, static, unread or unused. */
@@ -100,6 +102,9 @@ namespace Analysis
                                              const QueryArguments& in_arguments,
                                              JsonWriter*           inout_writer_ptr);
 
+            /* Writes the "depth" member of an object: how deep the vertices are, or that nobody knows. */
+            static void write_depth_spread  (const PassDepthSpread&            in_spread,
+                                             JsonWriter*                       inout_writer_ptr);
             static void write_draw_structure(const uint64_t&                   in_key,
                                              const DrawStructure&              in_structure,
                                              JsonWriter*                       inout_writer_ptr);

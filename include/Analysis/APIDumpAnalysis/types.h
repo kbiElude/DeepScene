@@ -529,6 +529,21 @@ namespace Analysis
             std::vector<uint32_t> pass_structure_id_vec; /* sorted */
         };
 
+        /* How deep the vertices of a pass are, over all the kinds of frames it is in: the depths below which a tenth, a half and nine tenths of them are
+         * (the vertices of the surfaces, if the analysis could tell them, and else the origins of the objects). A pass of a 2D overlay has them all at one
+         * depth; the pass of a 3D scene seen from one place does not.
+         */
+        struct PassDepthSpread
+        {
+            float    depth_far           = 0.0f;
+            float    depth_median        = 0.0f;
+            float    depth_near          = 0.0f;
+            float    far_to_near_ratio   = 0.0f; /* 0 if there is no depth */
+            bool     has_depth           = false;
+            bool     is_flat             = false; /* the ratio is no more than a quarter above 1 */
+            uint64_t n_vertices          = 0;
+        };
+
         /* How often a pass structure occurs. */
         struct PassUsage
         {
