@@ -51,6 +51,17 @@ namespace Stereo
 
             static ShiftFactors make_shift_factors(const Parameters& in_parameters);
 
+            /* Whether the vertices which a draw uses reach both sides of the picture: from its left edge to its right one, to within a small part of its
+             * width. The indices (16 bits) say which of the vertices of the array are used; none, and the first n_vertices are. A draw of a part of a
+             * vertex buffer which others use is told by the vertices it uses, not by the buffer. False if no vertex is used.
+             */
+            static bool reaches_both_sides(const uint8_t*  in_vertex_ptr,
+                                           const uint32_t& in_vertex_n_bytes,
+                                           const size_t&   in_n_vertices,
+                                           const uint16_t* in_index_ptr,
+                                           const size_t&   in_n_indices,
+                                           const float&    in_picture_width);
+
             /* Scales the position of every vertex of the array, in pixels, by the scale: the x and the y, and not the depth or the reciprocal of it. For
              * a draw to a surface that is rendered larger than the application asks.
              */

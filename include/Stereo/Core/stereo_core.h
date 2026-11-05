@@ -95,8 +95,10 @@ namespace Stereo
              * presents.
              */
             ScreenShiftPlan plan_screen_shift(const Analysis::RecipeLoader::Eye& in_eye,
+                                              const bool&                        in_has_extent,
                                               const bool&                        in_is_presented,
-                                              const float&                       in_picture_width) const;
+                                              const float&                       in_picture_width,
+                                              const bool&                        in_reaches_both_sides) const;
 
             /* Fails, through the function, if the condition does not hold: for the places where an adapter finds that the application
              * does something that only holding the calls of a pass back could convert right.

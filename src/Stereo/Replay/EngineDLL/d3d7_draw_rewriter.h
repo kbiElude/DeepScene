@@ -44,6 +44,14 @@ namespace Stereo
                                        OverlayChunkSource*                            inout_overlay_ptr,
                                        Capture::APIDumpLoader::DumpedAPICall*         out_call_ptr);
 
+                /* Whether the vertices which the call uses reach both sides of a picture of the width (see ScreenParallax::reaches_both_sides). Returns false if
+                 * the call is not a draw of pre-transformed vertices with its data in the workload: nothing is known of where they are then.
+                 */
+                static bool find_extent(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
+                                        const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
+                                        const float&                                   in_picture_width,
+                                        bool*                                          out_reaches_both_sides_ptr);
+
             private:
                 /* What is done to the vertices of a draw: their size in bytes, how many of them there are, and where they are. */
                 typedef std::function<void(const uint32_t& in_vertex_n_bytes,

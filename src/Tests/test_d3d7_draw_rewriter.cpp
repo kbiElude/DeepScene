@@ -11,6 +11,7 @@
 #include <map>
 #include <math.h>
 #include <string.h>
+#include <vector>
 
 namespace
 {
@@ -181,6 +182,33 @@ TEST(D3D7ScreenParallax, WhatIsBehindTheCameraOrNotANumberIsPutWhereItCannotGoWr
                                                   2.0f) ); /* the reciprocal of a depth of 0.5 */
     EXPECT_TRUE(isfinite(Stereo::D3D7::ScreenParallax::get_shift(left,
                                                        INFINITY) ) );
+}
+
+TEST(D3D7ScreenParallax, DrawsReachBothSidesOnlyByTheVerticesTheyUse)
+{
+    const std::vector<uint16_t> left_index_vec  = {0, 2};
+    const auto                  vertices        = make_vertices({0.0f, 640.0f, 320.0f},
+                                                                {1.0f, 1.0f,   1.0f});
+    const std::vector<uint16_t> whole_index_vec = {0, 1, 2};
+
+    EXPECT_TRUE(Stereo::D3D7::ScreenParallax::reaches_both_sides(vertices.data(),
+                                                                 VERTEX_N_BYTES,
+                                                                 3,
+                                                                 nullptr,
+                                                                 0,
+                                                                 640.0f) );
+    EXPECT_TRUE(Stereo::D3D7::ScreenParallax::reaches_both_sides(vertices.data(),
+                                                                 VERTEX_N_BYTES,
+                                                                 3,
+                                                                 whole_index_vec.data(),
+                                                                 whole_index_vec.size(),
+                                                                 640.0f) );
+    EXPECT_FALSE(Stereo::D3D7::ScreenParallax::reaches_both_sides(vertices.data(),
+                                                                  VERTEX_N_BYTES,
+                                                                  3,
+                                                                  left_index_vec.data(),
+                                                                  left_index_vec.size(),
+                                                                  640.0f) );
 }
 
 TEST(D3D7ScreenParallax, OnlyTheXOfEachVertexIsMoved)

@@ -109,6 +109,27 @@ TEST(ScreenParallaxPlanner, ADrawWhichCoversTheViewIsNeverMovedSideways)
               Stereo::Core::ScreenShiftPlan::Kind::NONE);
 }
 
+TEST(ScreenParallaxPlanner, ADrawWithTheKeyOfACoveringOneThatDoesNotReachBothSidesIsMovedLikeAnyOther)
+{
+    const Analysis::RecipeApplier::RecipeApplier applier(make_recipe(true,
+                                                                     0.1f) );
+    auto                                         input = make_input(true);
+
+    input.cover_key          = COVERING_KEY;
+    input.has_extent         = true;
+    input.reaches_both_sides = false;
+
+    EXPECT_EQ(Stereo::Core::ScreenParallaxPlanner::plan(applier,
+                                                        input).kind,
+              Stereo::Core::ScreenShiftPlan::Kind::PER_VERTEX);
+
+    input.reaches_both_sides = true;
+
+    EXPECT_EQ(Stereo::Core::ScreenParallaxPlanner::plan(applier,
+                                                        input).kind,
+              Stereo::Core::ScreenShiftPlan::Kind::NONE);
+}
+
 TEST(ScreenParallaxPlanner, AnOverlayIsPushedHalfTheAmountToEachSideTheOtherWayForEachEye)
 {
     const Analysis::RecipeApplier::RecipeApplier applier(make_recipe(true,

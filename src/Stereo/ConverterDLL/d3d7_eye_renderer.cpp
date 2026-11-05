@@ -395,9 +395,18 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::RecipeL
         in_draw_arguments.n_vertices    != 0   &&
         in_draw_arguments.vertices_ptr  != nullptr)
     {
+        const bool reaches_both_sides = Stereo::D3D7::ScreenParallax::reaches_both_sides(static_cast<const uint8_t*>(in_draw_arguments.vertices_ptr),
+                                                                                         vertex_n_bytes,
+                                                                                         in_draw_arguments.n_vertices,
+                                                                                         static_cast<const uint16_t*>(in_draw_arguments.indices_ptr),
+                                                                                         in_draw_arguments.n_indices,
+                                                                                         in_picture_width);
+
         plan = m_core_ptr->plan_screen_shift(in_eye,
+                                             /* has_extent */ true,
                                              m_surface_twins.is_back_buffer(m_mirror.render_target_ptr),
-                                             in_picture_width);
+                                             in_picture_width,
+                                             reaches_both_sides);
 
         /* The positions are in the pixels of the application, which a larger back buffer is not made of. */
         scale = get_render_scale();

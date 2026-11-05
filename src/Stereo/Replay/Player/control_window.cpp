@@ -214,6 +214,14 @@ void Stereo::Replay::Player::ControlWindow::draw_contents(VR::UIHost::ContentExt
         }
 
         extend_content(inout_extent_ptr);
+
+        /* A frame which was played is not played again: the new distance is in the next one. */
+        if (is_playing == false)
+        {
+            ImGui::TextDisabled("Applies from the next frame (Step or Play).");
+
+            extend_content(inout_extent_ptr);
+        }
     }
 
     /* The message does not make the window wider than the buttons do. */

@@ -8,6 +8,110 @@
 #include "d3d7_draw_rewriter.h"
 #include "frame_buffer.h"
 
+bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::find_extent(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
+                                                              const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
+                                                              const float&                                   in_picture_width,
+                                                              bool*                                          out_reaches_both_sides_ptr)
+{
+    constexpr size_t FVF_ARGUMENT        = 2;
+    constexpr size_t N_INDICES_ARGUMENT  = 6; /* of the indexed draw */
+    constexpr size_t N_VERTICES_ARGUMENT = 4;
+
+    std::vector<size_t>                      chunk_argument_vec;
+    const Capture::APIDumpLoader::DataChunk* index_chunk_ptr  = nullptr;
+    uint32_t                                 fvf              = 0;
+    const bool                               is_indexed       = (in_call.func == APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVE);
+    uint32_t                                 n_indices        = 0;
+    uint32_t                                 n_vertices       = 0;
+    bool                                     result           = false;
+    uint32_t                                 vertex_n_bytes   = 0;
+    const Capture::APIDumpLoader::DataChunk* vertex_chunk_ptr = nullptr;
+
+    if (is_indexed == false &&
+        in_call.func != APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWPRIMITIVE)
+    {
+        goto end;
+    }
+
+    if (in_call.arg_in_vec.size() <= N_INDICES_ARGUMENT                            ||
+        read_number(in_call.arg_in_vec.at(FVF_ARGUMENT),
+                   &fvf)                                                == false   ||
+        read_number(in_call.arg_in_vec.at(N_VERTICES_ARGUMENT),
+                   &n_vertices)                                         == false)
+    {
+        goto end;
+    }
+
+    if ((fvf & Interception::Core::D3D7Utils::D3DFVF_POSITION_MASK) != Interception::Core::D3D7Utils::D3DFVF_XYZRHW)
+    {
+        goto end;
+    }
+
+    for (size_t n_candidate = 0;
+                n_candidate < in_call.arg_in_vec.size();
+              ++n_candidate)
+    {
+        if (in_call.arg_in_vec.at(n_candidate).type == APIInterceptor::ARGTYPE_DATA_CHUNK_ID)
+        {
+            chunk_argument_vec.push_back(n_candidate);
+        }
+    }
+
+    vertex_n_bytes = Interception::Core::D3D7Utils::VertexFormat::get_n_vertex_bytes(fvf);
+
+    if (vertex_n_bytes == 0                                    ||
+        chunk_argument_vec.size() < ((is_indexed) ? 2u : 1u))
+    {
+        goto end;
+    }
+
+    /* The vertices are the last data chunk of the call, and the indices of an indexed draw come before them. */
+    vertex_chunk_ptr = in_chunk_source.get_data_chunk_ptr(in_call.arg_in_vec.at(chunk_argument_vec.back() ).get_data_chunk_id() );
+
+    if (vertex_chunk_ptr == nullptr)
+    {
+        goto end;
+    }
+
+    if (vertex_chunk_ptr->size() / vertex_n_bytes < n_vertices)
+    {
+        goto end;
+    }
+
+    if (is_indexed)
+    {
+        if (read_number(in_call.arg_in_vec.at(N_INDICES_ARGUMENT),
+                       &n_indices) == false)
+        {
+            goto end;
+        }
+
+        index_chunk_ptr = in_chunk_source.get_data_chunk_ptr(in_call.arg_in_vec.at(chunk_argument_vec.at(chunk_argument_vec.size() - 2) ).get_data_chunk_id() );
+
+        if (index_chunk_ptr == nullptr)
+        {
+            goto end;
+        }
+
+        if (index_chunk_ptr->size() / sizeof(uint16_t) < n_indices)
+        {
+            goto end;
+        }
+    }
+
+    *out_reaches_both_sides_ptr = Stereo::D3D7::ScreenParallax::reaches_both_sides(vertex_chunk_ptr->data(),
+                                                                                   vertex_n_bytes,
+                                                                                   n_vertices,
+                                                                                   (index_chunk_ptr != nullptr) ? reinterpret_cast<const uint16_t*>(index_chunk_ptr->data() )
+                                                                                                                : nullptr,
+                                                                                   n_indices,
+                                                                                   in_picture_width);
+    result                      = true;
+
+end:
+    return result;
+}
+
 bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::rewrite(const Capture::APIDumpLoader::DumpedAPICall&    in_call,
                                                           const ::Replay::ReplayEngineDLL::IChunkSource&  in_chunk_source,
                                                           const Stereo::D3D7::ScreenParallax::Parameters& in_parameters,

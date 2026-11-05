@@ -155,8 +155,10 @@ void Stereo::Core::StereoCore::on_view_matrix_set(const std::array<float, 16>& i
 }
 
 Stereo::Core::ScreenShiftPlan Stereo::Core::StereoCore::plan_screen_shift(const Analysis::RecipeLoader::Eye& in_eye,
-                                                                       const bool&                        in_is_presented,
-                                                                       const float&                       in_picture_width) const
+                                                                          const bool&                        in_has_extent,
+                                                                          const bool&                        in_is_presented,
+                                                                          const float&                       in_picture_width,
+                                                                          const bool&                        in_reaches_both_sides) const
 {
     ScreenParallaxPlanner::Input input;
 
@@ -164,10 +166,12 @@ Stereo::Core::ScreenShiftPlan Stereo::Core::StereoCore::plan_screen_shift(const 
     input.cover_key            = m_last_draw_cover_key;
     input.eye                  = in_eye;
     input.eye_separation       = m_convergence_model.get_effective_eye_separation();
+    input.has_extent           = in_has_extent;
     input.is_affected          = (m_last_draw_class == Analysis::RecipeLoader::DrawClass::AFFECTED);
     input.is_overlay_pushed    = m_is_overlay_pushed;
     input.is_presented         = in_is_presented;
     input.picture_width        = in_picture_width;
+    input.reaches_both_sides   = in_reaches_both_sides;
     input.separation_limit     = 0.0f; /* the effective separation is within it */
 
     return ScreenParallaxPlanner::plan(m_applier,

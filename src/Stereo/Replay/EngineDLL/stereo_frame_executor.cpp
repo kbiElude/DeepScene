@@ -351,6 +351,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_draw_call(const Cap
     Stereo::Core::ScreenParallaxPlanner::Input input;
     bool                                  is_moved  = false;
     OverlayChunkSource                    overlay(in_chunk_source);
+    const float                           picture_width = m_session_ptr->get_model().pass_structure_interner.get_structure(in_pass_structure_id).viewport.width;
     Stereo::Core::ScreenShiftPlan         plan;
     Capture::APIDumpLoader::DumpedAPICall rewritten;
 
@@ -359,10 +360,14 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_draw_call(const Cap
     input.cover_key            = in_cover_key;
     input.eye                  = in_eye;
     input.eye_separation       = m_frame_eye_separation;
+    input.has_extent           = Stereo::Replay::EngineDLL::D3D7DrawRewriter::find_extent(in_call,
+                                                                                          in_chunk_source,
+                                                                                          picture_width,
+                                                                                         &input.reaches_both_sides);
     input.is_affected          = in_is_affected;
     input.is_overlay_pushed    = true;
     input.is_presented         = in_is_presented;
-    input.picture_width        = m_session_ptr->get_model().pass_structure_interner.get_structure(in_pass_structure_id).viewport.width;
+    input.picture_width        = picture_width;
     input.separation_limit     = m_recipe_applier_ptr->get_scene_max_separation(shape_key);
 
     plan = Stereo::Core::ScreenParallaxPlanner::plan(*m_recipe_applier_ptr,

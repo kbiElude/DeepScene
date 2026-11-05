@@ -57,6 +57,51 @@ Stereo::D3D7::ScreenParallax::ShiftFactors Stereo::D3D7::ScreenParallax::make_sh
     return result;
 }
 
+bool Stereo::D3D7::ScreenParallax::reaches_both_sides(const uint8_t*  in_vertex_ptr,
+                                                      const uint32_t& in_vertex_n_bytes,
+                                                      const size_t&   in_n_vertices,
+                                                      const uint16_t* in_index_ptr,
+                                                      const size_t&   in_n_indices,
+                                                      const float&    in_picture_width)
+{
+    /* How near to an edge a vertex has to be for the draw to reach it, as a part of the width: what the analysis counts as reaching it. */
+    constexpr float EDGE_REACH = 0.005f;
+
+    const size_t n_used   = (in_index_ptr != nullptr) ? in_n_indices
+                                                      : in_n_vertices;
+    bool         has_used = false;
+    float        x_max    = 0.0f;
+    float        x_min    = 0.0f;
+
+    for (size_t n_use = 0;
+                n_use < n_used;
+              ++n_use)
+    {
+        const size_t n_vertex = (in_index_ptr != nullptr) ? in_index_ptr[n_use]
+                                                          : n_use;
+
+        if (n_vertex < in_n_vertices)
+        {
+            float x = 0.0f;
+
+            ::memcpy(&x,
+                     in_vertex_ptr + n_vertex * in_vertex_n_bytes,
+                     sizeof(x) );
+
+            if (x == x) /* a number */
+            {
+                x_max    = (has_used == false || x > x_max) ? x : x_max;
+                x_min    = (has_used == false || x < x_min) ? x : x_min;
+                has_used = true;
+            }
+        }
+    }
+
+    return (has_used                                                  &&
+            x_min <= EDGE_REACH * in_picture_width                    &&
+            x_max >= (1.0f - EDGE_REACH) * in_picture_width);
+}
+
 void Stereo::D3D7::ScreenParallax::scale_vertices(const float&    in_scale,
                                                   const uint32_t& in_vertex_n_bytes,
                                                   const size_t&   in_n_vertices,

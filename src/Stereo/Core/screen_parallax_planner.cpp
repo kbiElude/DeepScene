@@ -15,8 +15,10 @@ Stereo::Core::ScreenShiftPlan Stereo::Core::ScreenParallaxPlanner::plan(const An
 
     result.eye = in_input.eye;
 
-    if (in_input.picture_width <= 0.0f                          ||
-        in_applier.is_draw_covering(in_input.cover_key))
+    if (in_input.picture_width <= 0.0f                                                                               ||
+        (in_applier.is_draw_covering(in_input.cover_key)                                                  &&
+         (in_input.has_extent         == false                                                           ||
+          in_input.reaches_both_sides == true) ) )
     {
         goto end;
     }
