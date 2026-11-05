@@ -9,9 +9,6 @@
     "max_near_parallax": 0.03,
     "overlay_parallax": 0.05
   },
-  "unaffected": {
-    "pass_keys": [ "0x3d74c7c7eda194ac" ]
-  },
   "screen_parallax": {
     "convergence_distance": 5,
     "field_of_view_degrees": 90
