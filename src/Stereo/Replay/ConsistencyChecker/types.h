@@ -42,9 +42,13 @@ namespace Stereo
                 std::string                          deps_filename;                               /* the dependencies of the workload: a replay goes to the last frame leaving out the frames which nothing after it reads */
                 std::string                          image_filename;                              /* the PNG file of a screenshot or a contact sheet */
                 std::string                          overlay_probe_filename;                      /* the list of draws that may be overlays, whose frames are replayed with each draw left out */
+                std::string                          overlay_probe_result_filename;               /* a part of an overlay probe writes what it found here, for the one that put the parts together */
+                uint32_t                             overlay_probe_shard_count      = 0;          /* the parts of the probe; 0: this is not one of them */
+                uint32_t                             overlay_probe_shard_index      = 0;          /* the one that this is */
                 bool                                 is_parallel                    = false;      /* the ways are replayed at the same time */
                 bool                                 is_profiling                   = false;      /* the frames are replayed once, and where the time goes is said */
                 uint32_t                             last_frame                     = 999;
+                uint32_t                             n_jobs                         = 2;          /* the processes that an overlay probe is shared between */
                 Analysis::RecipeLoader::Recipe       recipe;
                 std::string                          recipe_filename;
                 std::string                          same_frames_workload_filename;               /* the frames are replayed from this workload too, and compared (a slice of the workload, for one) */

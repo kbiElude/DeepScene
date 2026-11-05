@@ -22,6 +22,9 @@ namespace
     constexpr uint64_t    SCENE_KEY       = 0x3333;
     constexpr const char* SCENE_TEXT      = "0x0000000000003333";
 
+    /* No function that runs the parts of the probe: it is done in the process. */
+    const Stereo::Replay::ConsistencyChecker::OverlayProbe::RunShardsFunc NO_SHARDS;
+
     std::string read_text_file(const std::string& in_path)
     {
         std::ifstream stream(in_path,
@@ -51,10 +54,14 @@ namespace
     std::string make_candidate(const char*        in_structure_key_ptr,
                                const bool&        in_has_frame,
                                const std::string& in_depth_text = std::string(),
-                               const char*        in_pass_key_ptr = MAIN_PASS_TEXT)
+                               const char*        in_pass_key_ptr = MAIN_PASS_TEXT,
+                               const uint32_t&    in_frame_index = 7)
     {
+        const std::string frame_text = (in_has_frame) ? "\"first_frame_index\":" + std::to_string(in_frame_index) + ","
+                                                      : std::string();
+
         return std::string("{\"signature_key\":\"0x00000000000000aa\",\"structure_key\":\"") + in_structure_key_ptr + "\",\"pass_id\":1,\"pass_key\":\"" + in_pass_key_ptr +
-               "\",\"n_frames\":3," + ((in_has_frame) ? "\"first_frame_index\":7," : "") + in_depth_text +
+               "\",\"n_frames\":3," + frame_text + in_depth_text +
                "\"agreement\":\"both\",\"replay_class\":\"unaffected\",\"live_class\":\"unaffected\",\"reasons\":[\"static_camera\"]}";
     }
 
@@ -74,6 +81,13 @@ namespace
         {
             is_hud_skipped   = (is_hud_skipped   || (pass_draw.draw_key == HUD_KEY   && pass_draw.pass_key == MAIN_PASS_KEY) );
             is_scene_skipped = (is_scene_skipped || (pass_draw.draw_key == SCENE_KEY && pass_draw.pass_key == MAIN_PASS_KEY) );
+        }
+
+        /* A pass left out whole takes the draws of the main pass with it. */
+        for (const auto pass_key : in_options.recipe.skipped.pass_key_vec)
+        {
+            is_hud_skipped   = (is_hud_skipped   || pass_key == MAIN_PASS_KEY);
+            is_scene_skipped = (is_scene_skipped || pass_key == MAIN_PASS_KEY);
         }
 
         /* Nothing is left out by the key of a draw alone: the probe names the pass. */
@@ -123,6 +137,7 @@ TEST(OverlayProbe, ADrawWhichMakesPixelsIsWrittenWithAnImageAndOneWhichMakesNone
 
     ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayProbe::run(options,
                                                                       render,
+                                                                      NO_SHARDS,
                                                                      &error) ) << error;
 
     const std::string list = read_text_file(options.dump_directory + "\\candidates.json");
@@ -160,6 +175,7 @@ TEST(OverlayProbe, AListThatIsNotJsonFails)
 
     EXPECT_FALSE(Stereo::Replay::ConsistencyChecker::OverlayProbe::run(options,
                                                                        render,
+                                                                       NO_SHARDS,
                                                                       &error) );
     EXPECT_FALSE(error.empty() );
 }
@@ -180,6 +196,7 @@ TEST(OverlayProbe, ADrawThatTheRecipeLeavesAloneIsToBeLookedAtTwiceIfItsPassIsDe
 
     ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayProbe::run(options,
                                                                       render,
+                                                                      NO_SHARDS,
                                                                      &error) ) << error;
 
     const std::string list = read_text_file(options.dump_directory + "\\candidates.json");
@@ -212,6 +229,7 @@ TEST(OverlayProbe, ADrawIsLeftOutInItsPassAndNotInThePassesWhichHaveADrawOfItsSt
 
     ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayProbe::run(options,
                                                                       render,
+                                                                      NO_SHARDS,
                                                                      &error) ) << error;
 
     const std::string list = read_text_file(options.dump_directory + "\\candidates.json");
@@ -237,6 +255,284 @@ TEST(OverlayProbe, AListWhoseCandidatesDoNotSayWhichPassTheyAreOfFails)
 
     EXPECT_FALSE(Stereo::Replay::ConsistencyChecker::OverlayProbe::run(options,
                                                                        render,
+                                                                       NO_SHARDS,
                                                                       &error) );
     EXPECT_NE(error.find("pass_key"), std::string::npos) << error;
+}
+
+namespace
+{
+    /* Which part of the probe replayed which frame: the part that asked, and the frame, in the order they were asked for. */
+    struct ReplayRecord
+    {
+        std::vector<std::pair<uint32_t, uint32_t> > shard_frame_vec;
+    };
+
+    /* The render function above, which also says that it was asked. */
+    Stereo::Replay::ConsistencyChecker::OverlayProbe::RenderFunc make_recording_render_func(ReplayRecord* out_record_ptr)
+    {
+        return [out_record_ptr](const Stereo::Replay::ConsistencyChecker::Options& in_options,
+                                const uint32_t&                                    in_frame_index,
+                                Stereo::Replay::FrameImages::Image*                out_image_ptr,
+                                std::string*                                       out_error_ptr)
+        {
+            out_record_ptr->shard_frame_vec.push_back(std::make_pair(in_options.overlay_probe_shard_index,
+                                                                     in_frame_index) );
+
+            return render(in_options,
+                          in_frame_index,
+                          out_image_ptr,
+                          out_error_ptr);
+        };
+    }
+}
+
+TEST(OverlayProbe, TheFramesAreSharedBetweenThePartsAFrameAtATimeAndTheResultsAreOneListInTheOrderOfTheCandidates)
+{
+    Tests::TempDirectory                        directory;
+    Stereo::Replay::ConsistencyChecker::Options options;
+    ReplayRecord                                record;
+    std::string                                 error;
+    uint32_t                                    n_shards_asked = 0;
+
+    /* Three frames of one draw each, and two jobs. */
+    write_text_file(directory.get_path() + "\\candidates_in.json",
+                    "{\"candidates\":[" + make_candidate(HUD_TEXT, true, std::string(), MAIN_PASS_TEXT, 9) + "," +
+                                         make_candidate(HUD_TEXT, true, std::string(), MAIN_PASS_TEXT, 7) + "," +
+                                         make_candidate(HUD_TEXT, true, std::string(), MAIN_PASS_TEXT, 8) + "]}");
+
+    options.dump_directory         = directory.get_path() + "\\out";
+    options.n_jobs                 = 2;
+    options.overlay_probe_filename = directory.get_path() + "\\candidates_in.json";
+
+    /* The parts are run one after the other here, as the processes that run them in the program would, each with options of its own. */
+    const auto run_shards_func = [&](const uint32_t&                 in_n_shards,
+                                     const std::vector<std::string>& in_result_filename_vec,
+                                     std::string*                    out_part_error_ptr)
+    {
+        bool result = true;
+
+        n_shards_asked = in_n_shards;
+
+        for (uint32_t n_shard = 0;
+                      n_shard < in_n_shards;
+                    ++n_shard)
+        {
+            Stereo::Replay::ConsistencyChecker::Options part_options = options;
+
+            part_options.n_jobs                        = 1;
+            part_options.overlay_probe_result_filename = in_result_filename_vec.at(n_shard);
+            part_options.overlay_probe_shard_count     = in_n_shards;
+            part_options.overlay_probe_shard_index     = n_shard;
+
+            result = (Stereo::Replay::ConsistencyChecker::OverlayProbe::run(part_options,
+                                                                            make_recording_render_func(&record),
+                                                                            NO_SHARDS,
+                                                                            out_part_error_ptr) && result);
+        }
+
+        return result;
+    };
+
+    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayProbe::run(options,
+                                                                      make_recording_render_func(&record),
+                                                                      run_shards_func,
+                                                                     &error) ) << error;
+
+    EXPECT_EQ(n_shards_asked,
+              2u);
+
+    /* The latest frame costs most and has a part to itself; the other two share the other part (in the order of the list), and each frame is made twice (as it
+     * is, and without the draw).
+     */
+    std::vector<std::pair<uint32_t, uint32_t> > expected_vec;
+
+    expected_vec.push_back(std::make_pair(0u, 9u) );
+    expected_vec.push_back(std::make_pair(0u, 9u) );
+    expected_vec.push_back(std::make_pair(1u, 7u) );
+    expected_vec.push_back(std::make_pair(1u, 7u) );
+    expected_vec.push_back(std::make_pair(1u, 8u) );
+    expected_vec.push_back(std::make_pair(1u, 8u) );
+
+    EXPECT_EQ(record.shard_frame_vec,
+              expected_vec);
+
+    /* The list is of all of the candidates, in the order of the list that was given, and the files are named by the place of the candidate in it. */
+    const std::string list = read_text_file(options.dump_directory + "\\candidates.json");
+
+    EXPECT_NE(list.find("candidate_000_frame_9.gif"), std::string::npos) << list;
+    EXPECT_NE(list.find("candidate_001_frame_7.gif"), std::string::npos) << list;
+    EXPECT_NE(list.find("candidate_002_frame_8.gif"), std::string::npos) << list;
+    EXPECT_LT(list.find("candidate_000_frame_9.gif"),
+              list.find("candidate_001_frame_7.gif") );
+    EXPECT_LT(list.find("candidate_001_frame_7.gif"),
+              list.find("candidate_002_frame_8.gif") );
+    EXPECT_EQ(read_text_file(options.dump_directory + "\\candidate_002_frame_8.gif").substr(0, 6),
+              "GIF89a");
+
+    /* The results of the parts are not left behind, and the page has the three. */
+    EXPECT_TRUE(read_text_file(options.dump_directory + "\\part_0.json").empty() );
+    EXPECT_TRUE(read_text_file(options.dump_directory + "\\part_1.json").empty() );
+    EXPECT_NE(read_text_file(options.dump_directory + "\\index.html").find("candidate_002_frame_8.gif"),
+              std::string::npos);
+}
+
+TEST(OverlayProbe, ThereAreNoMorePartsThanFramesAndOneFrameIsDoneWhereItIs)
+{
+    Tests::TempDirectory                        directory;
+    Stereo::Replay::ConsistencyChecker::Options options;
+    ReplayRecord                                record;
+    std::string                                 error;
+    bool                                        was_asked = false;
+
+    write_text_file(directory.get_path() + "\\candidates_in.json",
+                    "{\"candidates\":[" + make_candidate(HUD_TEXT,    true) + "," +
+                                         make_candidate(HIDDEN_TEXT, true) + "]}");
+
+    options.dump_directory         = directory.get_path() + "\\out";
+    options.n_jobs                 = 4;
+    options.overlay_probe_filename = directory.get_path() + "\\candidates_in.json";
+
+    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayProbe::run(options,
+                                                                      make_recording_render_func(&record),
+                                                                      [&](const uint32_t&,
+                                                                          const std::vector<std::string>&,
+                                                                          std::string*)
+                                                                      {
+                                                                          was_asked = true;
+
+                                                                          return false;
+                                                                      },
+                                                                     &error) ) << error;
+
+    EXPECT_FALSE(was_asked);
+    EXPECT_FALSE(record.shard_frame_vec.empty() );
+}
+
+TEST(OverlayProbe, APassWhichMakesNoDifferenceLeftOutWholeIsLeftOutOnceForAllItsDraws)
+{
+    Tests::TempDirectory                        directory;
+    Stereo::Replay::ConsistencyChecker::Options options;
+    ReplayRecord                                record;
+    ReplayRecord                                visible_record;
+    std::string                                 error;
+
+    /* Two draws in a pass that makes no pixels: the picture is made of the draws of the main pass. */
+    write_text_file(directory.get_path() + "\\candidates_in.json",
+                    "{\"candidates\":[" + make_candidate(HIDDEN_TEXT, true, std::string(), OTHER_PASS_TEXT) + "," +
+                                         make_candidate(SCENE_TEXT,  true, std::string(), OTHER_PASS_TEXT) + "]}");
+
+    options.dump_directory         = directory.get_path() + "\\out";
+    options.n_jobs                 = 1;
+    options.overlay_probe_filename = directory.get_path() + "\\candidates_in.json";
+
+    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayProbe::run(options,
+                                                                      make_recording_render_func(&record),
+                                                                      NO_SHARDS,
+                                                                     &error) ) << error;
+
+    /* The frame as it is, and the pass left out: no more, however many draws the pass has. */
+    EXPECT_EQ(record.shard_frame_vec.size(),
+              2u);
+
+    const std::string list = read_text_file(options.dump_directory + "\\candidates.json");
+
+    EXPECT_EQ(list.find("candidate_000"), std::string::npos) << list;
+    EXPECT_EQ(list.find("candidate_001"), std::string::npos) << list;
+    EXPECT_NE(list.find("\"n_picture_pixels\": 8"), std::string::npos) << list;
+
+    /* A pass that does make a difference has its draws probed one by one, after the pass. */
+    write_text_file(directory.get_path() + "\\candidates_in.json",
+                    "{\"candidates\":[" + make_candidate(HUD_TEXT,    true) + "," +
+                                         make_candidate(HIDDEN_TEXT, true) + "]}");
+
+    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayProbe::run(options,
+                                                                      make_recording_render_func(&visible_record),
+                                                                      NO_SHARDS,
+                                                                     &error) ) << error;
+
+    /* The frame as it is, the pass, and each of the two draws. */
+    EXPECT_EQ(visible_record.shard_frame_vec.size(),
+              4u);
+    EXPECT_FALSE(read_text_file(options.dump_directory + "\\candidate_000_frame_7.png").empty() );
+    EXPECT_TRUE (read_text_file(options.dump_directory + "\\candidate_001_frame_7.png").empty() );
+}
+
+TEST(OverlayProbe, ThePassesOfOneFrameAreSharedBetweenThePartsTooAndTheDrawsOfOnePassAreNot)
+{
+    Tests::TempDirectory                        directory;
+    Stereo::Replay::ConsistencyChecker::Options options;
+    ReplayRecord                                record;
+    std::string                                 error;
+
+    /* One frame, with a draw in each of four passes, and two draws in a fifth: the frame is the one that costs most, and a part which waited for all of them would
+     * be the last to be done.
+     */
+    write_text_file(directory.get_path() + "\\candidates_in.json",
+                    "{\"candidates\":[" + make_candidate(HUD_TEXT,    true, std::string(), "0x0000000000000011") + "," +
+                                         make_candidate(HUD_TEXT,    true, std::string(), "0x0000000000000012") + "," +
+                                         make_candidate(HUD_TEXT,    true, std::string(), "0x0000000000000013") + "," +
+                                         make_candidate(HUD_TEXT,    true, std::string(), "0x0000000000000014") + "," +
+                                         make_candidate(HIDDEN_TEXT, true, std::string(), OTHER_PASS_TEXT)      + "," +
+                                         make_candidate(SCENE_TEXT,  true, std::string(), OTHER_PASS_TEXT)      + "]}");
+
+    options.dump_directory         = directory.get_path() + "\\out";
+    options.n_jobs                 = 2;
+    options.overlay_probe_filename = directory.get_path() + "\\candidates_in.json";
+
+    const auto run_shards_func = [&](const uint32_t&                 in_n_shards,
+                                     const std::vector<std::string>& in_result_filename_vec,
+                                     std::string*                    out_part_error_ptr)
+    {
+        bool result = true;
+
+        for (uint32_t n_shard = 0;
+                      n_shard < in_n_shards;
+                    ++n_shard)
+        {
+            Stereo::Replay::ConsistencyChecker::Options part_options = options;
+
+            part_options.n_jobs                        = 1;
+            part_options.overlay_probe_result_filename = in_result_filename_vec.at(n_shard);
+            part_options.overlay_probe_shard_count     = in_n_shards;
+            part_options.overlay_probe_shard_index     = n_shard;
+
+            result = (Stereo::Replay::ConsistencyChecker::OverlayProbe::run(part_options,
+                                                                            make_recording_render_func(&record),
+                                                                            NO_SHARDS,
+                                                                            out_part_error_ptr) && result);
+        }
+
+        return result;
+    };
+
+    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayProbe::run(options,
+                                                                      make_recording_render_func(&record),
+                                                                      run_shards_func,
+                                                                     &error) ) << error;
+
+    /* Both parts replayed the frame (each made it as it is for its own candidates). */
+    size_t n_replays_of_part_0 = 0;
+    size_t n_replays_of_part_1 = 0;
+
+    for (const auto& shard_frame : record.shard_frame_vec)
+    {
+        n_replays_of_part_0 += (shard_frame.first == 0) ? 1 : 0;
+        n_replays_of_part_1 += (shard_frame.first == 1) ? 1 : 0;
+    }
+
+    EXPECT_GT(n_replays_of_part_0,
+              0u);
+    EXPECT_GT(n_replays_of_part_1,
+              0u);
+
+    /* The two draws of the fifth pass are in one part: the pass is left out once for them (the frame as it is, the pass; no more for the two). */
+    const std::string list = read_text_file(options.dump_directory + "\\candidates.json");
+
+    EXPECT_EQ(list.find("candidate_004"), std::string::npos) << list;
+    EXPECT_EQ(list.find("candidate_005"), std::string::npos) << list;
+
+    /* The replays add up: a draw each of the four passes (four), the pass of two draws (one), and the frame as it is, once in each of the two parts. */
+    EXPECT_EQ(record.shard_frame_vec.size(),
+              7u);
 }

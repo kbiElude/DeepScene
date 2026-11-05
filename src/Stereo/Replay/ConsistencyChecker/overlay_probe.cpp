@@ -9,7 +9,9 @@
 #include "Stereo/Replay/FrameImages/gif_writer.h"
 #include "Stereo/Replay/FrameImages/image_comparer.h"
 #include "Stereo/Replay/FrameImages/png_writer.h"
+#include <algorithm>
 #include <map>
+#include <set>
 #include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -122,6 +124,105 @@ void Stereo::Replay::ConsistencyChecker::OverlayProbe::add_warnings(OverlayProbe
     }
 }
 
+uint32_t Stereo::Replay::ConsistencyChecker::OverlayProbe::get_n_shards(const Options&                         in_options,
+                                                                        const std::vector<OverlayProbeEntry>& in_entry_vec)
+{
+    return std::max<uint32_t>(1,
+                              std::min<uint32_t>(in_options.n_jobs,
+                                                 static_cast<uint32_t>(get_pass_group_map(in_entry_vec).size() ) ) );
+}
+
+std::map<std::pair<uint32_t, uint64_t>, std::vector<size_t> > Stereo::Replay::ConsistencyChecker::OverlayProbe::get_pass_group_map(const std::vector<OverlayProbeEntry>& in_entry_vec)
+{
+    std::map<std::pair<uint32_t, uint64_t>, std::vector<size_t> > result;
+
+    for (size_t n_entry = 0;
+                n_entry < in_entry_vec.size();
+              ++n_entry)
+    {
+        result[std::make_pair(in_entry_vec.at(n_entry).frame_index,
+                              in_entry_vec.at(n_entry).pass_key)].push_back(n_entry);
+    }
+
+    return result;
+}
+
+std::vector<uint32_t> Stereo::Replay::ConsistencyChecker::OverlayProbe::get_shard_of_entry_vec(const std::vector<OverlayProbeEntry>& in_entry_vec,
+                                                                                              const uint32_t&                       in_n_shards)
+{
+    /* A replay costs the frames it goes through, and a few more for the device it makes. */
+    constexpr uint64_t N_FRAMES_OF_SETUP = 1000;
+
+    struct Group
+    {
+        uint32_t            frame_index = 0;
+        std::vector<size_t> n_entry_vec;
+    };
+
+    std::vector<Group>                      group_vec;
+    std::vector<std::set<uint32_t> >        frame_set_vec(in_n_shards);
+    std::vector<uint64_t>                   load_vec(in_n_shards,
+                                                     0);
+    std::vector<uint32_t>                   result(in_entry_vec.size(),
+                                                   0);
+
+    for (const auto& group_pair : get_pass_group_map(in_entry_vec) )
+    {
+        Group group;
+
+        group.frame_index = group_pair.first.first;
+        group.n_entry_vec = group_pair.second;
+
+        group_vec.push_back(group);
+    }
+
+    /* The frames that cost most go first, each group to the shard that would be done with it soonest, which is the shard with the least to do unless the frame is
+     * made there already (the frame as it is is made once for each shard that has a draw of it). Only the list says it, so every process comes to the same.
+     */
+    std::stable_sort(group_vec.begin(),
+                     group_vec.end  (),
+                     [](const Group& in_group_a,
+                        const Group& in_group_b)
+                     {
+                         return (in_group_a.frame_index > in_group_b.frame_index);
+                     });
+
+    for (const auto& group : group_vec)
+    {
+        const uint64_t cost_of_replay = group.frame_index + N_FRAMES_OF_SETUP;
+        const uint64_t n_replays      = group.n_entry_vec.size() + ((group.n_entry_vec.size() > 1) ? 1 : 0); /* the draws, and the pass if it has more than one */
+        uint32_t       n_best_shard   = 0;
+        uint64_t       best_load      = 0;
+
+        for (uint32_t n_shard = 0;
+                      n_shard < in_n_shards;
+                    ++n_shard)
+        {
+            const uint64_t n_baselines = (frame_set_vec.at(n_shard).count(group.frame_index) != 0) ? 0
+                                                                                                     : 1;
+            const uint64_t load        = load_vec.at(n_shard) + cost_of_replay * (n_replays + n_baselines);
+
+            if (n_shard == 0 ||
+                load    <  best_load)
+            {
+                n_best_shard = n_shard;
+                best_load    = load;
+            }
+        }
+
+        load_vec.at(n_best_shard) = best_load;
+
+        frame_set_vec.at(n_best_shard).insert(group.frame_index);
+
+        for (const size_t n_entry : group.n_entry_vec)
+        {
+            result.at(n_entry) = n_best_shard;
+        }
+    }
+
+    return result;
+}
+
 Stereo::Replay::FrameImages::Image Stereo::Replay::ConsistencyChecker::OverlayProbe::make_highlighted_image(const Stereo::Replay::FrameImages::Image& in_baseline_image,
                                                                                                                 const Stereo::Replay::FrameImages::Image& in_probe_image,
                                                                                                                 const bool&                               in_is_rest_dimmed)
@@ -173,40 +274,15 @@ std::string Stereo::Replay::ConsistencyChecker::OverlayProbe::make_image_filenam
     return text;
 }
 
-bool Stereo::Replay::ConsistencyChecker::OverlayProbe::parse_hex_key(const std::string& in_text,
-                                                                     uint64_t*          out_key_ptr)
+bool Stereo::Replay::ConsistencyChecker::OverlayProbe::parse_candidates(const Options&                 in_options,
+                                                                       std::vector<OverlayProbeEntry>* out_entry_vec_ptr,
+                                                                       std::string*                    out_error_ptr)
 {
-    char* end_ptr = nullptr;
-    bool  result  = (in_text.size() > 2 &&
-                     in_text.compare(0,
-                                     2,
-                                     "0x") == 0);
+    Analysis::APIDumpAnalysis::JsonValue candidates;
+    bool                                 result = false;
+    std::string                          text;
 
-    if (result)
-    {
-        *out_key_ptr = ::strtoull(in_text.c_str() + 2,
-                                  &end_ptr,
-                                  16);
-        result       = (end_ptr != nullptr &&
-                       *end_ptr == '\0');
-    }
-
-    return result;
-}
-
-bool Stereo::Replay::ConsistencyChecker::OverlayProbe::run(const Options&    in_options,
-                                                           const RenderFunc& in_render_func,
-                                                           std::string*      out_error_ptr)
-{
-    std::map<uint32_t, Stereo::Replay::FrameImages::Image> baseline_image_map;
-    Analysis::APIDumpAnalysis::JsonValue                   candidates;
-    std::vector<OverlayProbeEntry>                         entry_vec;
-    bool                                                   result = false;
-    std::string                                            text;
-
-    /* The directory of the output is made if it is not there (one level). */
-    ::CreateDirectoryA(in_options.dump_directory.c_str(),
-                       nullptr);
+    out_entry_vec_ptr->clear();
 
     if (Analysis::APIDumpAnalysis::JsonReader::read_file(in_options.overlay_probe_filename,
                                                         &text) == false)
@@ -249,6 +325,7 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::run(const Options&    in_
 
         entry.agreement    = candidate.at("agreement").string_value;
         entry.frame_index  = static_cast<uint32_t>(candidate.at("first_frame_index").number_value);
+        entry.index        = static_cast<uint32_t>(out_entry_vec_ptr->size() );
         entry.live_class   = candidate.at("live_class").string_value;
         entry.n_frames     = static_cast<uint64_t>(candidate.at("n_frames").number_value);
         entry.pass_id      = static_cast<uint64_t>(candidate.at("pass_id").number_value);
@@ -259,16 +336,8 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::run(const Options&    in_
 
         if (depth_ptr != nullptr)
         {
-            entry.depth_spread.has_depth = depth_ptr->at("has_depth").bool_value;
-
-            if (entry.depth_spread.has_depth)
-            {
-                entry.depth_spread.depth_far         = static_cast<float>(depth_ptr->at("far").number_value);
-                entry.depth_spread.depth_median      = static_cast<float>(depth_ptr->at("median").number_value);
-                entry.depth_spread.depth_near        = static_cast<float>(depth_ptr->at("near").number_value);
-                entry.depth_spread.far_to_near_ratio = static_cast<float>(depth_ptr->at("far_to_near_ratio").number_value);
-                entry.depth_spread.is_flat           = depth_ptr->at("is_flat").bool_value;
-            }
+            read_depth_spread(*depth_ptr,
+                             &entry.depth_spread);
         }
 
         for (const auto& reason : candidate.at("reasons").item_vec)
@@ -276,15 +345,149 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::run(const Options&    in_
             entry.reason_vec.push_back(reason.string_value);
         }
 
-        entry_vec.push_back(entry);
+        out_entry_vec_ptr->push_back(entry);
+    }
+
+    result = true;
+end:
+    return result;
+}
+
+bool Stereo::Replay::ConsistencyChecker::OverlayProbe::parse_hex_key(const std::string& in_text,
+                                                                     uint64_t*          out_key_ptr)
+{
+    char* end_ptr = nullptr;
+    bool  result  = (in_text.size() > 2 &&
+                     in_text.compare(0,
+                                     2,
+                                     "0x") == 0);
+
+    if (result)
+    {
+        *out_key_ptr = ::strtoull(in_text.c_str() + 2,
+                                  &end_ptr,
+                                  16);
+        result       = (end_ptr != nullptr &&
+                       *end_ptr == '\0');
+    }
+
+    return result;
+}
+
+bool Stereo::Replay::ConsistencyChecker::OverlayProbe::parse_result_entries(const std::string&              in_filename,
+                                                                            std::vector<OverlayProbeEntry>* inout_entry_vec_ptr,
+                                                                            std::string*                    out_error_ptr)
+{
+    Analysis::APIDumpAnalysis::JsonValue list;
+    bool                                 result = false;
+    std::string                          text;
+
+    if (Analysis::APIDumpAnalysis::JsonReader::read_file(in_filename,
+                                                        &text) == false)
+    {
+        *out_error_ptr = "The result " + in_filename + " of a part of the probe cannot be read.";
+
+        goto end;
+    }
+
+    if (Analysis::APIDumpAnalysis::JsonReader::parse(Analysis::APIDumpAnalysis::JsonReader::strip_byte_order_mark(text),
+                                                    &list,
+                                                    out_error_ptr) == false)
+    {
+        goto end;
+    }
+
+    for (const auto& item : list.at("candidates").item_vec)
+    {
+        OverlayProbeEntry entry;
+
+        if (parse_hex_key(item.at("signature_key").string_value,
+                         &entry.signature_key) == false ||
+            parse_hex_key(item.at("structure_key").string_value,
+                         &entry.structure_key) == false ||
+            parse_hex_key(item.at("pass_key").string_value,
+                         &entry.pass_key)      == false)
+        {
+            *out_error_ptr = "The result " + in_filename + " of a part of the probe has a key which is not one.";
+
+            goto end;
+        }
+
+        entry.agreement          = item.at("agreement").string_value;
+        entry.animation_filename = item.at("animation").string_value;
+        entry.frame_index        = static_cast<uint32_t>(item.at("probed_frame_index").number_value);
+        entry.image_filename     = item.at("image").string_value;
+        entry.index              = static_cast<uint32_t>(item.at("index").number_value);
+        entry.live_class         = item.at("live_class").string_value;
+        entry.n_changed_pixels   = static_cast<uint64_t>(item.at("n_changed_pixels").number_value);
+        entry.n_frames           = static_cast<uint64_t>(item.at("n_frames").number_value);
+        entry.n_picture_pixels   = static_cast<uint64_t>(item.at("n_picture_pixels").number_value);
+        entry.pass_id            = static_cast<uint64_t>(item.at("pass_id").number_value);
+        entry.replay_class       = item.at("replay_class").string_value;
+
+        read_depth_spread(item.at("depth"),
+                         &entry.depth_spread);
+
+        for (const auto& reason : item.at("reasons").item_vec)
+        {
+            entry.reason_vec.push_back(reason.string_value);
+        }
+
+        for (const auto& warning : item.at("warnings").item_vec)
+        {
+            entry.warning_vec.push_back(warning.string_value);
+        }
+
+        inout_entry_vec_ptr->push_back(entry);
+    }
+
+    result = true;
+end:
+    return result;
+}
+
+bool Stereo::Replay::ConsistencyChecker::OverlayProbe::probe_entries(const Options&                 in_options,
+                                                                     const RenderFunc&              in_render_func,
+                                                                     std::vector<OverlayProbeEntry>* inout_entry_vec_ptr,
+                                                                     std::string*                   out_error_ptr)
+{
+    std::map<uint32_t, Stereo::Replay::FrameImages::Image> baseline_image_map;
+    std::map<std::pair<uint32_t, uint64_t>, bool>          is_pass_visible_map; /* by the frame and the key of the pass */
+    std::map<std::pair<uint32_t, uint64_t>, size_t>        n_draws_of_pass_map;
+    bool                                                   result = false;
+
+    /* The candidates go to the shards by what they cost (the draws of a pass in a frame stay together), so that the shards are done at about the same time. */
+    if (in_options.overlay_probe_shard_count != 0)
+    {
+        const auto                     shard_of_entry_vec = get_shard_of_entry_vec(*inout_entry_vec_ptr,
+                                                                                   in_options.overlay_probe_shard_count);
+        std::vector<OverlayProbeEntry> shard_entry_vec;
+
+        for (const auto& entry : *inout_entry_vec_ptr)
+        {
+            if (shard_of_entry_vec.at(entry.index) == in_options.overlay_probe_shard_index)
+            {
+                shard_entry_vec.push_back(entry);
+            }
+        }
+
+        *inout_entry_vec_ptr = shard_entry_vec;
+    }
+
+    for (const auto& entry : *inout_entry_vec_ptr)
+    {
+        n_draws_of_pass_map[std::make_pair(entry.frame_index,
+                                           entry.pass_key)]++;
     }
 
     for (size_t n_entry = 0;
-                n_entry < entry_vec.size();
+                n_entry < inout_entry_vec_ptr->size();
               ++n_entry)
     {
-        auto&                              entry = entry_vec.at(n_entry);
-        Options                            probe_options = in_options;
+        auto&                              entry          = inout_entry_vec_ptr->at(n_entry);
+        const auto                         pass_pair      = std::make_pair(entry.frame_index,
+                                                                           entry.pass_key);
+        Options                            probe_options  = in_options;
         Stereo::Replay::FrameImages::Image probe_image;
 
         /* The frame as it is: once for each frame, whichever candidates are seen in it. */
@@ -296,6 +499,47 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::run(const Options&    in_
                                out_error_ptr) == false)
             {
                 goto end;
+            }
+        }
+
+        const auto& baseline_image = baseline_image_map.at(entry.frame_index);
+
+        entry.n_picture_pixels = static_cast<uint64_t>(baseline_image.width) * baseline_image.height;
+
+        /* A pass that makes no difference left out whole makes none draw by draw: the first of its draws in the frame finds that out, for all of them. */
+        if (n_draws_of_pass_map.at(pass_pair) > 1)
+        {
+            if (is_pass_visible_map.count(pass_pair) == 0)
+            {
+                Options                            pass_options = in_options;
+                Stereo::Replay::FrameImages::Image pass_image;
+
+                pass_options.recipe.skipped.pass_key_vec.push_back(entry.pass_key);
+
+                if (in_render_func(pass_options,
+                                   entry.frame_index,
+                                  &pass_image,
+                                   out_error_ptr) == false)
+                {
+                    goto end;
+                }
+
+                is_pass_visible_map[pass_pair] = (Stereo::Replay::FrameImages::ImageComparer::compare(baseline_image,
+                                                                                                      pass_image).n_differing_pixels != 0);
+            }
+
+            if (is_pass_visible_map.at(pass_pair) == false)
+            {
+                add_warnings(&entry);
+
+                fprintf(stdout,
+                        "%u of %zu: draws %s of the frame %u: the pass makes no pixels, and so neither do they\n",
+                        entry.index + 1,
+                        inout_entry_vec_ptr->size(),
+                        get_hex_text(entry.structure_key).c_str(),
+                        entry.frame_index);
+
+                continue;
             }
         }
 
@@ -316,21 +560,19 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::run(const Options&    in_
         }
 
         {
-            const auto& baseline_image = baseline_image_map.at(entry.frame_index);
-            const auto  difference     = Stereo::Replay::FrameImages::ImageComparer::compare(baseline_image,
-                                                                                              probe_image);
+            const auto difference = Stereo::Replay::FrameImages::ImageComparer::compare(baseline_image,
+                                                                                         probe_image);
 
             entry.n_changed_pixels = difference.n_differing_pixels;
-            entry.n_picture_pixels = static_cast<uint64_t>(baseline_image.width) * baseline_image.height;
 
             add_warnings(&entry);
 
             if (difference.n_differing_pixels != 0)
             {
-                entry.animation_filename = make_image_filename(n_entry,
+                entry.animation_filename = make_image_filename(entry.index,
                                                                entry.frame_index,
                                                                "gif");
-                entry.image_filename     = make_image_filename(n_entry,
+                entry.image_filename     = make_image_filename(entry.index,
                                                                entry.frame_index,
                                                                "png");
 
@@ -348,26 +590,12 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::run(const Options&    in_
         }
 
         fprintf(stdout,
-                "%zu of %zu: draws %s of the frame %u: %llu pixels change without them\n",
-                n_entry + 1,
-                entry_vec.size(),
+                "%u of %zu: draws %s of the frame %u: %llu pixels change without them\n",
+                entry.index + 1,
+                inout_entry_vec_ptr->size(),
                 get_hex_text(entry.structure_key).c_str(),
                 entry.frame_index,
                 static_cast<unsigned long long>(entry.n_changed_pixels) );
-    }
-
-    if (write_list(in_options.dump_directory,
-                   entry_vec,
-                   out_error_ptr) == false)
-    {
-        goto end;
-    }
-
-    if (write_page(in_options.dump_directory,
-                   entry_vec,
-                   out_error_ptr) == false)
-    {
-        goto end;
     }
 
     result = true;
@@ -375,6 +603,131 @@ end:
     return result;
 }
 
+void Stereo::Replay::ConsistencyChecker::OverlayProbe::read_depth_spread(const Analysis::APIDumpAnalysis::JsonValue& in_depth,
+                                                                         Analysis::APIDumpAnalysis::PassDepthSpread*  out_spread_ptr)
+{
+    out_spread_ptr->has_depth = in_depth.at("has_depth").bool_value;
+
+    if (out_spread_ptr->has_depth)
+    {
+        out_spread_ptr->depth_far         = static_cast<float>(in_depth.at("far").number_value);
+        out_spread_ptr->depth_median      = static_cast<float>(in_depth.at("median").number_value);
+        out_spread_ptr->depth_near        = static_cast<float>(in_depth.at("near").number_value);
+        out_spread_ptr->far_to_near_ratio = static_cast<float>(in_depth.at("far_to_near_ratio").number_value);
+        out_spread_ptr->is_flat           = in_depth.at("is_flat").bool_value;
+    }
+}
+
+bool Stereo::Replay::ConsistencyChecker::OverlayProbe::run(const Options&         in_options,
+                                                           const RenderFunc&      in_render_func,
+                                                           const RunShardsFunc&   in_run_shards_func,
+                                                           std::string*           out_error_ptr)
+{
+    std::vector<OverlayProbeEntry> entry_vec;
+    uint32_t                       n_shards = 1;
+    bool                           result   = false;
+
+    /* The directory of the output is made if it is not there (one level). */
+    ::CreateDirectoryA(in_options.dump_directory.c_str(),
+                       nullptr);
+
+    if (parse_candidates(in_options,
+                        &entry_vec,
+                         out_error_ptr) == false)
+    {
+        goto end;
+    }
+
+    n_shards = get_n_shards(in_options,
+                            entry_vec);
+
+    /* The parts of the work are done by processes of their own (each replay of the workload decodes it from its start, which is most of the time), and the
+     * results are put together here.
+     */
+    if (in_options.overlay_probe_shard_count == 0 &&
+        n_shards                             >  1 &&
+        in_run_shards_func)
+    {
+        std::vector<std::string> part_filename_vec;
+
+        for (uint32_t n_shard = 0;
+                      n_shard < n_shards;
+                    ++n_shard)
+        {
+            part_filename_vec.push_back(in_options.dump_directory + "/part_" + std::to_string(n_shard) + ".json");
+        }
+
+        if (in_run_shards_func(n_shards,
+                               part_filename_vec,
+                               out_error_ptr) == false)
+        {
+            goto end;
+        }
+
+        entry_vec.clear();
+
+        for (const auto& part_filename : part_filename_vec)
+        {
+            const bool is_read = parse_result_entries(part_filename,
+                                                     &entry_vec,
+                                                      out_error_ptr);
+
+            ::remove(part_filename.c_str() );
+
+            if (is_read == false)
+            {
+                goto end;
+            }
+        }
+
+        std::sort(entry_vec.begin(),
+                  entry_vec.end  (),
+                  [](const OverlayProbeEntry& in_entry_a,
+                     const OverlayProbeEntry& in_entry_b)
+                  {
+                      return (in_entry_a.index < in_entry_b.index);
+                  });
+    }
+    else
+    if (probe_entries(in_options,
+                      in_render_func,
+                     &entry_vec,
+                      out_error_ptr) == false)
+    {
+        goto end;
+    }
+
+    /* A part of the work leaves its results to the one that put the parts together. */
+    if (in_options.overlay_probe_result_filename.empty() == false)
+    {
+        if (write_list(in_options.overlay_probe_result_filename,
+                       entry_vec,
+                       out_error_ptr) == false)
+        {
+            goto end;
+        }
+    }
+    else
+    {
+        if (write_list(in_options.dump_directory + "/candidates.json",
+                       entry_vec,
+                       out_error_ptr) == false)
+        {
+            goto end;
+        }
+
+        if (write_page(in_options.dump_directory,
+                       entry_vec,
+                       out_error_ptr) == false)
+        {
+            goto end;
+        }
+    }
+
+    result = true;
+end:
+    return result;
+}
 
 bool Stereo::Replay::ConsistencyChecker::OverlayProbe::write_images(const std::string&                        in_directory,
                                                                     const std::string&                        in_still_filename,
@@ -401,7 +754,7 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::write_images(const std::s
                                                                ANIMATION_FRAME_DELAY_N_MILLISECONDS) );
 }
 
-bool Stereo::Replay::ConsistencyChecker::OverlayProbe::write_list(const std::string&                    in_directory,
+bool Stereo::Replay::ConsistencyChecker::OverlayProbe::write_list(const std::string&                    in_filename,
                                                                   const std::vector<OverlayProbeEntry>& in_entry_vec,
                                                                   std::string*                          out_error_ptr)
 {
@@ -416,6 +769,8 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::write_list(const std::str
     {
         writer.begin_object();
 
+        writer.write_key    ("index");
+        writer.write_u64    (entry.index);
         writer.write_key    ("signature_key");
         writer.write_hex_u64(entry.signature_key);
         writer.write_key    ("structure_key");
@@ -473,10 +828,10 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::write_list(const std::str
     writer.end_object();
 
     if (writer.has_failed() ||
-        write_text_file(in_directory + "/candidates.json",
+        write_text_file(in_filename,
                         writer.get_text() ) == false)
     {
-        *out_error_ptr = "The file candidates.json cannot be written to " + in_directory + ".";
+        *out_error_ptr = "The file " + in_filename + " cannot be written.";
 
         goto end;
     }
