@@ -7,6 +7,7 @@
  */
 #include "Analysis/APIDumpAnalysis/number_parser.h"
 #include "Analysis/RecipeLoader/recipe_loader.h"
+#include "Capture/APIDumpLoader/WorkloadIndex.h"
 #include "Stereo/Replay/EngineDLL/entrypoints.h"
 #include "command_line.h"
 #include "control_window.h"
@@ -157,9 +158,13 @@ int Stereo::Replay::Player::run(int   in_argc,
     constexpr float DEFAULT_EYE_SEPARATION = 0.1f;
 
     Stereo::Replay::EngineDLL::IPlaybackController* controller_ptr     = nullptr;
+    constexpr uint32_t N_INDEX_READER_THREADS = 2;
+
     Stereo::Replay::EngineDLL::IReplayEngine*       engine_ptr         = nullptr;
     std::string                                     error;
     int                                             exit_code          = EXIT_FAILURE;
+    Capture::APIDumpLoader::WorkloadIndex           index;
+    bool                                            is_index_built     = false;
     bool                                            is_recipe_loaded   = true;
     bool                                            is_workload_picked = true;
     std::unique_ptr<ConsoleObserver>                observer_ptr;
@@ -345,6 +350,16 @@ int Stereo::Replay::Player::run(int   in_argc,
             window.show_eye_separation();
         }
 
+        /* The slider that seeks needs the number of frames: the index of the workload says (it is made the first time, and kept next to it). */
+        if (Capture::APIDumpLoader::WorkloadIndex::load_or_build(options.workload_path.c_str(),
+                                                                 N_INDEX_READER_THREADS,
+                                                                &index,
+                                                                &is_index_built,
+                                                                &error) )
+        {
+            window.set_n_frames(index.get_n_frames() );
+        }
+
         quit_ptr->set_target([&window]()
                              {
                                  window.request_close();
@@ -442,6 +457,25 @@ void Stereo::Replay::Player::run_console(Stereo::Replay::EngineDLL::IPlaybackCon
             {
                 fprintf(stderr,
                         "[!] e needs a distance which is not negative, such as 0.1\n");
+            }
+        }
+
+        if (command.compare(0,
+                            2,
+                            "g ") == 0)
+        {
+            uint64_t frame = 0;
+
+            if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(command.substr(2),
+                                                                        UINT32_MAX,
+                                                                       &frame) )
+            {
+                in_controller_ptr->play_to_frame(static_cast<uint32_t>(frame) );
+            }
+            else
+            {
+                fprintf(stderr,
+                        "[!] g needs a frame number, such as 300\n");
             }
         }
 

@@ -20,3 +20,6 @@
 # What is downloaded the first time an application is launched (see apps/apps.json)
 /apps/*/
 !/apps/recipes/
+
+# Captures of applications, made for analysis and replay (see APIDumper)
+/captures/

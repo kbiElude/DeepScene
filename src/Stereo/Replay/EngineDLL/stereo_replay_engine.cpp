@@ -61,12 +61,24 @@ bool Stereo::Replay::EngineDLL::StereoReplayEngine::load(const char*  in_filenam
 
 void Stereo::Replay::EngineDLL::StereoReplayEngine::pause()
 {
+    m_paced_executor.clear_unpaced_frame();
+
     m_engine.pause();
 }
 
 void Stereo::Replay::EngineDLL::StereoReplayEngine::play()
 {
+    m_paced_executor.clear_unpaced_frame();
+
     m_engine.play();
+}
+
+void Stereo::Replay::EngineDLL::StereoReplayEngine::play_to_frame(const uint32_t& in_n_frame)
+{
+    /* The frames up to the one asked for are hurried through; it is shown, and the replay pauses there. */
+    m_paced_executor.set_unpaced_frame(in_n_frame);
+
+    m_engine.play_to_frame(in_n_frame);
 }
 
 void Stereo::Replay::EngineDLL::StereoReplayEngine::remove_call_interceptor(ICallInterceptor* in_interceptor_ptr)
@@ -81,6 +93,8 @@ void Stereo::Replay::EngineDLL::StereoReplayEngine::remove_replay_observer(IRepl
 
 void Stereo::Replay::EngineDLL::StereoReplayEngine::reset()
 {
+    m_paced_executor.clear_unpaced_frame();
+
     m_engine.reset();
 }
 

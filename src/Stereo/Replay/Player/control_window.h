@@ -39,6 +39,9 @@ namespace Stereo
                 /* The window which the replay puts in place decides where this one goes: below it, in the middle. Any thread. */
                 void on_window_placed(const Stereo::Replay::EngineDLL::WindowPlacement& in_placement) override;
 
+                /* The number of frames of the workload, for the slider that seeks; none (0, the default) leaves the slider out. Before the window runs. */
+                void set_n_frames(const uint64_t& in_n_frames);
+
                 /* Adds the slider of the eye separation; for a replay which has a recipe. */
                 void show_eye_separation();
 
@@ -63,14 +66,25 @@ namespace Stereo
 
                 void place_below_replay_window();
 
+                /* Seeks to the frame, or asks first if that is back in time (see m_has_pending_seek). */
+                void request_seek(const uint32_t& in_n_frame,
+                                  const uint32_t& in_current_frame);
+
                 static VR::UIHost::WindowOptions get_window_options(const std::string& in_title);
 
 
                 Stereo::Replay::EngineDLL::IPlaybackController* m_controller_ptr;
+                int                                             m_go_to_frame;
                 bool                                            m_has_eye_separation;
+                bool                                            m_has_pending_seek;
+                bool                                            m_is_back_warning_off;
                 bool                                            m_is_placed;
+                bool                                            m_is_slider_active;
                 Stereo::Replay::EngineDLL::WindowPlacement      m_last_placement;
+                uint64_t                                        m_n_frames;
+                uint32_t                                        m_pending_seek_frame;
                 ReplayWindow                                    m_replay_window;
+                int                                             m_slider_frame;
             };
         }
     }

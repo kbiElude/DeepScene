@@ -16,11 +16,18 @@ static constexpr float EYE_SEPARATION_MAX = 2.0f;
 
 Stereo::Replay::Player::ControlWindow::ControlWindow(Stereo::Replay::EngineDLL::IPlaybackController* in_controller_ptr,
                                                      const std::string&                              in_title)
-    :ImGuiWindowHost     (get_window_options(in_title) ),
-     m_controller_ptr    (in_controller_ptr),
-     m_has_eye_separation(false),
-     m_is_placed         (false),
-     m_last_placement    ()
+    :ImGuiWindowHost       (get_window_options(in_title) ),
+     m_controller_ptr      (in_controller_ptr),
+     m_go_to_frame         (0),
+     m_has_eye_separation  (false),
+     m_has_pending_seek    (false),
+     m_is_back_warning_off (false),
+     m_is_placed           (false),
+     m_is_slider_active    (false),
+     m_last_placement      (),
+     m_n_frames            (0),
+     m_pending_seek_frame  (0),
+     m_slider_frame        (0)
 {
     /* Stub */
 }
@@ -87,6 +94,107 @@ void Stereo::Replay::Player::ControlWindow::draw_contents(VR::UIHost::ContentExt
     }
 
     extend_content(inout_extent_ptr);
+
+    /* The slider, the step and the box seek: forward is hurried through, back in time starts over, which is asked about first. */
+    if (m_n_frames > 1)
+    {
+        const uint32_t current_frame = (status.n_frames_presented > 0) ? status.n_frames_presented - 1
+                                                                       : 0;
+        const int      last_frame    = static_cast<int>(m_n_frames - 1);
+
+        ImGui::Separator();
+
+        /* The slider is where the replay is, until it is taken hold of. */
+        if (m_is_slider_active == false)
+        {
+            m_slider_frame = static_cast<int>(current_frame);
+        }
+
+        ImGui::SetNextItemWidth(2.0f * button_width + style.ItemSpacing.x);
+
+        ImGui::SliderInt("Frame",
+                         &m_slider_frame,
+                         0,
+                         last_frame);
+
+        m_is_slider_active = ImGui::IsItemActive();
+
+        if (ImGui::IsItemDeactivatedAfterEdit() )
+        {
+            request_seek(static_cast<uint32_t>(m_slider_frame),
+                         current_frame);
+        }
+
+        extend_content(inout_extent_ptr);
+
+        ImGui::BeginDisabled(static_cast<int>(current_frame) >= last_frame);
+
+        if (ImGui::Button("Step",
+                          ImVec2(button_width,
+                                 0.0f) ))
+        {
+            m_controller_ptr->play_to_frame(current_frame + 1);
+        }
+
+        ImGui::EndDisabled();
+
+        ImGui::SameLine();
+
+        ImGui::SetNextItemWidth(button_width);
+
+        if (ImGui::InputInt("Go to",
+                            &m_go_to_frame,
+                            0,
+                            0,
+                            ImGuiInputTextFlags_EnterReturnsTrue) )
+        {
+            request_seek(static_cast<uint32_t>(std::min<int>(std::max<int>(m_go_to_frame,
+                                                                           0),
+                                                             last_frame) ),
+                         current_frame);
+        }
+
+        extend_content(inout_extent_ptr);
+
+        if (m_has_pending_seek)
+        {
+            ImGui::PushTextWrapPos(inout_extent_ptr->right);
+            {
+                ImGui::TextColored(ImVec4(1.0f,
+                                          0.8f,
+                                          0.3f,
+                                          1.0f),
+                                   "Going back to frame %u starts the replay over from the first frame and plays on to it, unpaced. That takes a while.",
+                                   m_pending_seek_frame);
+            }
+            ImGui::PopTextWrapPos();
+
+            extend_content(inout_extent_ptr);
+
+            if (ImGui::Button("Go back",
+                              ImVec2(button_width,
+                                     0.0f) ))
+            {
+                m_controller_ptr->play_to_frame(m_pending_seek_frame);
+
+                m_has_pending_seek = false;
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::Button("Stay",
+                              ImVec2(button_width,
+                                     0.0f) ))
+            {
+                m_has_pending_seek = false;
+            }
+
+            ImGui::Checkbox("Do not ask again",
+                            &m_is_back_warning_off);
+
+            extend_content(inout_extent_ptr);
+        }
+    }
 
     if (m_has_eye_separation)
     {
@@ -275,6 +383,31 @@ void Stereo::Replay::Player::ControlWindow::place_below_replay_window()
         m_is_placed      = true;
         m_last_placement = placement;
     }
+}
+
+void Stereo::Replay::Player::ControlWindow::request_seek(const uint32_t& in_n_frame,
+                                                         const uint32_t& in_current_frame)
+{
+    if (in_n_frame != in_current_frame)
+    {
+        if (in_n_frame > in_current_frame ||
+            m_is_back_warning_off)
+        {
+            m_controller_ptr->play_to_frame(in_n_frame);
+
+            m_has_pending_seek = false;
+        }
+        else
+        {
+            m_has_pending_seek   = true;
+            m_pending_seek_frame = in_n_frame;
+        }
+    }
+}
+
+void Stereo::Replay::Player::ControlWindow::set_n_frames(const uint64_t& in_n_frames)
+{
+    m_n_frames = in_n_frames;
 }
 
 void Stereo::Replay::Player::ControlWindow::show_eye_separation()

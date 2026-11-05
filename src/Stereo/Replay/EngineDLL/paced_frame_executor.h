@@ -7,6 +7,7 @@
 
 #include "i_frame_executor.h"
 #include "frame_pacer.h"
+#include <atomic>
 #include <memory>
 
 namespace Stereo
@@ -33,11 +34,22 @@ namespace Stereo
                 void on_rewind         () override;
                 void set_speed         (const double&                          in_speed);
 
+                /* The frames up to this one (counted from 0) are not waited for: the replay hurries to it, as a seek does. Any thread. Without a
+                 * frame, or once the replay is past it, the pace is the speed again.
+                 */
+                void clear_unpaced_frame();
+                void set_unpaced_frame  (const uint32_t&                       in_n_frame);
+
+                /* Whether the frame that is about to be presented is one that the replay hurries through. */
+                bool is_hurrying        (const uint32_t&                       in_n_frame) const;
+
             private:
+                std::atomic<bool>                          m_has_unpaced_frame;
                 ::Replay::ReplayEngineDLL::IFrameExecutor* m_executor_ptr;
                 ::Replay::ReplayEngineDLL::IFrameHost*     m_host_ptr; /* the one the paced host is for */
                 std::unique_ptr<PacedFrameHost>            m_paced_host_ptr;
                 FramePacer                                 m_pacer;
+                std::atomic<uint32_t>                      m_unpaced_frame;
             };
         }
     }

@@ -20,9 +20,11 @@ namespace Stereo
             {
             public:
                 PacedFrameHost(::Replay::ReplayEngineDLL::IFrameHost* in_host_ptr,
-                               FramePacer*                            in_pacer_ptr)
-                    :m_host_ptr (in_host_ptr),
-                     m_pacer_ptr(in_pacer_ptr)
+                               FramePacer*                            in_pacer_ptr,
+                               const PacedFrameExecutor*              in_executor_ptr)
+                    :m_executor_ptr(in_executor_ptr),
+                     m_host_ptr    (in_host_ptr),
+                     m_pacer_ptr   (in_pacer_ptr)
                 {
                     /* Stub */
                 }
@@ -71,14 +73,23 @@ namespace Stereo
                     if (result                                                          &&
                         Capture::APIDumpLoader::is_frame_boundary(**out_call_ptr_ptr) )
                     {
-                        m_pacer_ptr->wait_for_frame((*out_call_ptr_ptr)->timestamp_qpc,
-                                                    m_host_ptr->get_segment().qpc_frequency);
+                        if (m_executor_ptr->is_hurrying(m_host_ptr->get_n_frames_presented() ) )
+                        {
+                            /* The time of the frames that were hurried through is not to be made up for when the pace is back. */
+                            m_pacer_ptr->reset();
+                        }
+                        else
+                        {
+                            m_pacer_ptr->wait_for_frame((*out_call_ptr_ptr)->timestamp_qpc,
+                                                        m_host_ptr->get_segment().qpc_frequency);
+                        }
                     }
 
                     return result;
                 }
 
             private:
+                const PacedFrameExecutor*              m_executor_ptr;
                 ::Replay::ReplayEngineDLL::IFrameHost* m_host_ptr;
                 FramePacer*                            m_pacer_ptr;
             };
@@ -87,8 +98,10 @@ namespace Stereo
 }
 
 Stereo::Replay::EngineDLL::PacedFrameExecutor::PacedFrameExecutor(::Replay::ReplayEngineDLL::IFrameExecutor* in_executor_ptr)
-    :m_executor_ptr(in_executor_ptr),
-     m_host_ptr    (nullptr)
+    :m_has_unpaced_frame(false),
+     m_executor_ptr     (in_executor_ptr),
+     m_host_ptr         (nullptr),
+     m_unpaced_frame    (0)
 {
     /* Sleep() is exact to a millisecond only if asked for. */
     ::timeBeginPeriod(1);
@@ -107,11 +120,23 @@ bool Stereo::Replay::EngineDLL::PacedFrameExecutor::execute_frame(::Replay::Repl
     {
         m_host_ptr       = in_host_ptr;
         m_paced_host_ptr.reset(new PacedFrameHost(in_host_ptr,
-                                                  &m_pacer) );
+                                                  &m_pacer,
+                                                   this) );
     }
 
     return m_executor_ptr->execute_frame(m_paced_host_ptr.get(),
                                          out_has_workload_ended_ptr);
+}
+
+bool Stereo::Replay::EngineDLL::PacedFrameExecutor::is_hurrying(const uint32_t& in_n_frame) const
+{
+    return (m_has_unpaced_frame &&
+            in_n_frame <= m_unpaced_frame);
+}
+
+void Stereo::Replay::EngineDLL::PacedFrameExecutor::clear_unpaced_frame()
+{
+    m_has_unpaced_frame = false;
 }
 
 void Stereo::Replay::EngineDLL::PacedFrameExecutor::on_frame_presented()
@@ -135,4 +160,11 @@ void Stereo::Replay::EngineDLL::PacedFrameExecutor::on_rewind()
 void Stereo::Replay::EngineDLL::PacedFrameExecutor::set_speed(const double& in_speed)
 {
     m_pacer.set_speed(in_speed);
+}
+
+void Stereo::Replay::EngineDLL::PacedFrameExecutor::set_unpaced_frame(const uint32_t& in_n_frame)
+{
+    /* The frame comes first: the other thread looks at the flag, and then at the frame. */
+    m_unpaced_frame     = in_n_frame;
+    m_has_unpaced_frame = true;
 }

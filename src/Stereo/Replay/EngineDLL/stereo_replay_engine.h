@@ -35,6 +35,7 @@ namespace Stereo
                                                                  std::string*                          out_error_ptr) override;
                 void                 pause                      ()                                                         override;
                 void                 play                       ()                                                         override;
+                void                 play_to_frame              (const uint32_t&                       in_n_frame)         override;
                 void                 remove_call_interceptor    (ICallInterceptor*                     in_interceptor_ptr) override;
                 void                 remove_replay_observer     (IReplayObserver*                      in_observer_ptr)    override;
                 void                 reset                      ()                                                         override;
