@@ -45,7 +45,8 @@ void Stereo::Replay::Player::ControlWindow::draw_contents(VR::UIHost::ContentExt
     const bool        is_playing   = (status.state == Stereo::Replay::EngineDLL::PlaybackState::PLAYING);
 
     ImGui::Text("State: %s",
-                ::Replay::ReplayPlayerSupport::StateNames::get_state_name_ptr(status.state) );
+                (status.is_seeking) ? "seeking"
+                                    : ::Replay::ReplayPlayerSupport::StateNames::get_state_name_ptr(status.state) );
 
     extend_content(inout_extent_ptr);
 
