@@ -48,7 +48,7 @@ namespace Stereo
                 bool                                 is_parallel                    = false;      /* the ways are replayed at the same time */
                 bool                                 is_profiling                   = false;      /* the frames are replayed once, and where the time goes is said */
                 uint32_t                             last_frame                     = 999;
-                uint32_t                             n_jobs                         = 2;          /* the processes that an overlay probe is shared between */
+                uint32_t                             n_jobs                         = 1;          /* the processes that an overlay probe is shared between */
                 Analysis::RecipeLoader::Recipe       recipe;
                 std::string                          recipe_filename;
                 std::string                          same_frames_workload_filename;               /* the frames are replayed from this workload too, and compared (a slice of the workload, for one) */
