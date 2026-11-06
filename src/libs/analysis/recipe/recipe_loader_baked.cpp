@@ -25,7 +25,7 @@ bool Analysis::Recipe::RecipeLoader::parse_baked(const Utils::Json::JsonValue& i
     uint32_t    signature_scheme_version     = 0;
     const auto* signature_scheme_version_ptr = in_baked.find_ptr("signature_scheme_version");
 
-    if (in_baked.type != Utils::Json::JsonValue::Type::OBJECT)
+    if (in_baked.type != Utils::Json::JsonValueType::OBJECT)
     {
         *out_error_ptr = in_path + ": expected an object";
 
@@ -71,7 +71,7 @@ bool Analysis::Recipe::RecipeLoader::parse_baked(const Utils::Json::JsonValue& i
         goto end;
     }
 
-    if (rule_array_ptr->type != Utils::Json::JsonValue::Type::ARRAY)
+    if (rule_array_ptr->type != Utils::Json::JsonValueType::ARRAY)
     {
         *out_error_ptr = in_path + ".draw_rules: expected an array";
 
@@ -230,7 +230,7 @@ bool Analysis::Recipe::RecipeLoader::parse_comfort(const Utils::Json::JsonValue&
 {
     bool result = false;
 
-    if (in_value.type != Utils::Json::JsonValue::Type::OBJECT)
+    if (in_value.type != Utils::Json::JsonValueType::OBJECT)
     {
         *out_error_ptr = in_path + ": expected an object";
 
@@ -252,7 +252,7 @@ bool Analysis::Recipe::RecipeLoader::parse_comfort(const Utils::Json::JsonValue&
         {
             const bool is_finite = (::isfinite(parallax_ptr->number_value) != 0);
 
-            if (parallax_ptr->type         != Utils::Json::JsonValue::Type::NUMBER ||
+            if (parallax_ptr->type         != Utils::Json::JsonValueType::NUMBER ||
                 is_finite                  == false                                              ||
                 parallax_ptr->number_value <= 0.0                                                ||
                 parallax_ptr->number_value >  1.0)
@@ -271,7 +271,7 @@ bool Analysis::Recipe::RecipeLoader::parse_comfort(const Utils::Json::JsonValue&
         {
             const bool is_finite = (::isfinite(fraction_ptr->number_value) != 0);
 
-            if (fraction_ptr->type         != Utils::Json::JsonValue::Type::NUMBER ||
+            if (fraction_ptr->type         != Utils::Json::JsonValueType::NUMBER ||
                 is_finite                  == false                                              ||
                 fraction_ptr->number_value <= 0.0                                                ||
                 fraction_ptr->number_value >= 1.0)
@@ -290,7 +290,7 @@ bool Analysis::Recipe::RecipeLoader::parse_comfort(const Utils::Json::JsonValue&
         {
             const bool is_finite = (::isfinite(overlay_ptr->number_value) != 0);
 
-            if (overlay_ptr->type         != Utils::Json::JsonValue::Type::NUMBER ||
+            if (overlay_ptr->type         != Utils::Json::JsonValueType::NUMBER ||
                 is_finite                 == false                                              ||
                 overlay_ptr->number_value <  0.0                                                ||
                 overlay_ptr->number_value >  0.5)
@@ -320,7 +320,7 @@ bool Analysis::Recipe::RecipeLoader::parse_screen_parallax(const Utils::Json::Js
 
     bool result = false;
 
-    if (in_value.type != Utils::Json::JsonValue::Type::OBJECT)
+    if (in_value.type != Utils::Json::JsonValueType::OBJECT)
     {
         *out_error_ptr = in_path + ": expected an object";
 
@@ -347,7 +347,7 @@ bool Analysis::Recipe::RecipeLoader::parse_screen_parallax(const Utils::Json::Js
             goto end;
         }
 
-        if (distance_ptr->type         != Utils::Json::JsonValue::Type::NUMBER ||
+        if (distance_ptr->type         != Utils::Json::JsonValueType::NUMBER ||
             ::isfinite(distance_ptr->number_value) == 0                                      ||
             distance_ptr->number_value <= 0.0)
         {
@@ -361,7 +361,7 @@ bool Analysis::Recipe::RecipeLoader::parse_screen_parallax(const Utils::Json::Js
 
         if (fov_ptr != nullptr)
         {
-            if (fov_ptr->type         != Utils::Json::JsonValue::Type::NUMBER ||
+            if (fov_ptr->type         != Utils::Json::JsonValueType::NUMBER ||
                 ::isfinite(fov_ptr->number_value) == 0                                      ||
                 fov_ptr->number_value <= 0.0                                                ||
                 fov_ptr->number_value >= MAX_FIELD_OF_VIEW_DEGREES)
@@ -395,7 +395,7 @@ bool Analysis::Recipe::RecipeLoader::parse_draw_rule(const Utils::Json::JsonValu
 
     *out_rule_ptr = DrawRule();
 
-    if (in_rule.type != Utils::Json::JsonValue::Type::OBJECT)
+    if (in_rule.type != Utils::Json::JsonValueType::OBJECT)
     {
         *out_error_ptr = in_path + ": expected an object";
 
@@ -432,19 +432,19 @@ bool Analysis::Recipe::RecipeLoader::parse_draw_rule(const Utils::Json::JsonValu
         goto end;
     }
 
-    if (class_ptr->type         == Utils::Json::JsonValue::Type::STRING &&
+    if (class_ptr->type         == Utils::Json::JsonValueType::STRING &&
         class_ptr->string_value == "affected")
     {
         out_rule_ptr->draw_class = DrawClass::AFFECTED;
     }
     else
-    if (class_ptr->type         == Utils::Json::JsonValue::Type::STRING &&
+    if (class_ptr->type         == Utils::Json::JsonValueType::STRING &&
         class_ptr->string_value == "skipped")
     {
         out_rule_ptr->draw_class = DrawClass::SKIPPED;
     }
     else
-    if (class_ptr->type         == Utils::Json::JsonValue::Type::STRING &&
+    if (class_ptr->type         == Utils::Json::JsonValueType::STRING &&
         class_ptr->string_value == "unaffected")
     {
         out_rule_ptr->draw_class = DrawClass::UNAFFECTED;
@@ -462,7 +462,7 @@ bool Analysis::Recipe::RecipeLoader::parse_draw_rule(const Utils::Json::JsonValu
         const auto*       equals_any_ptr = when_ptr->find_ptr("equals_any");
         const std::string when_path      = in_path + ".when";
 
-        if (when_ptr->type != Utils::Json::JsonValue::Type::OBJECT)
+        if (when_ptr->type != Utils::Json::JsonValueType::OBJECT)
         {
             *out_error_ptr = when_path + ": expected an object";
 
@@ -478,7 +478,7 @@ bool Analysis::Recipe::RecipeLoader::parse_draw_rule(const Utils::Json::JsonValu
         }
 
         if (constant_ptr               == nullptr                                            ||
-            constant_ptr->type         != Utils::Json::JsonValue::Type::STRING ||
+            constant_ptr->type         != Utils::Json::JsonValueType::STRING ||
             constant_ptr->string_value != "view_matrix")
         {
             *out_error_ptr = when_path + ".constant: expected \"view_matrix\", the only constant a rule can be about";
@@ -487,7 +487,7 @@ bool Analysis::Recipe::RecipeLoader::parse_draw_rule(const Utils::Json::JsonValu
         }
 
         if (equals_any_ptr       == nullptr                                ||
-            equals_any_ptr->type != Utils::Json::JsonValue::Type::ARRAY ||
+            equals_any_ptr->type != Utils::Json::JsonValueType::ARRAY ||
             equals_any_ptr->item_vec.empty() )
         {
             *out_error_ptr = when_path + ".equals_any: expected a list of matrices, one at least";
@@ -529,7 +529,7 @@ bool Analysis::Recipe::RecipeLoader::parse_draw_selector(const Utils::Json::Json
 
     *out_selector_ptr = DrawSelector();
 
-    if (in_value.type != Utils::Json::JsonValue::Type::OBJECT)
+    if (in_value.type != Utils::Json::JsonValueType::OBJECT)
     {
         *out_error_ptr = in_path + ": expected an object with draw_keys, pass_keys and / or pass_draws";
 
@@ -626,7 +626,7 @@ bool Analysis::Recipe::RecipeLoader::parse_key_distance_array(const Utils::Json:
 {
     bool result = false;
 
-    if (in_array.type != Utils::Json::JsonValue::Type::ARRAY)
+    if (in_array.type != Utils::Json::JsonValueType::ARRAY)
     {
         *out_error_ptr = in_path + ": expected an array";
 
@@ -643,7 +643,7 @@ bool Analysis::Recipe::RecipeLoader::parse_key_distance_array(const Utils::Json:
         const auto*       key_ptr      = entry.find_ptr(in_key_name);
         uint64_t          key          = 0;
 
-        if (entry.type != Utils::Json::JsonValue::Type::OBJECT)
+        if (entry.type != Utils::Json::JsonValueType::OBJECT)
         {
             *out_error_ptr = entry_path + ": expected an object";
 
@@ -682,7 +682,7 @@ bool Analysis::Recipe::RecipeLoader::parse_key_distance_array(const Utils::Json:
 
         const bool is_finite = (::isfinite(distance_ptr->number_value) != 0);
 
-        if (distance_ptr->type         != Utils::Json::JsonValue::Type::NUMBER ||
+        if (distance_ptr->type         != Utils::Json::JsonValueType::NUMBER ||
             is_finite                  == false                                              ||
             distance_ptr->number_value <= 0.0                                                ||
             distance_ptr->number_value >  static_cast<double>(FLT_MAX) )
@@ -721,7 +721,7 @@ bool Analysis::Recipe::RecipeLoader::parse_pass_draw_array(const Utils::Json::Js
 
     out_pass_draw_vec_ptr->clear();
 
-    if (in_array.type != Utils::Json::JsonValue::Type::ARRAY)
+    if (in_array.type != Utils::Json::JsonValueType::ARRAY)
     {
         *out_error_ptr = in_path + ": expected an array of objects with a pass_key and a draw_key";
 
@@ -736,7 +736,7 @@ bool Analysis::Recipe::RecipeLoader::parse_pass_draw_array(const Utils::Json::Js
         const std::string path      = in_path + "[" + std::to_string(n_item) + "]";
         PassDraw          pass_draw;
 
-        if (item.type != Utils::Json::JsonValue::Type::OBJECT)
+        if (item.type != Utils::Json::JsonValueType::OBJECT)
         {
             *out_error_ptr = path + ": expected an object with a pass_key and a draw_key";
 
@@ -791,7 +791,7 @@ bool Analysis::Recipe::RecipeLoader::parse_per_eye_textures(const Utils::Json::J
 {
     bool result = false;
 
-    if (in_value.type != Utils::Json::JsonValue::Type::ARRAY)
+    if (in_value.type != Utils::Json::JsonValueType::ARRAY)
     {
         *out_error_ptr = in_path + ": expected an array";
 
@@ -808,7 +808,7 @@ bool Analysis::Recipe::RecipeLoader::parse_per_eye_textures(const Utils::Json::J
         const auto*       ordinal_ptr = entry.find_ptr("ordinal");
         PerEyeTexture     texture;
 
-        if (entry.type != Utils::Json::JsonValue::Type::OBJECT)
+        if (entry.type != Utils::Json::JsonValueType::OBJECT)
         {
             *out_error_ptr = entry_path + ": expected an object";
 

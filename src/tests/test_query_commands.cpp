@@ -70,7 +70,7 @@ TEST_F(QueryCommandsTest, EveryCommandAnswersWithJson)
                      &value),
                   Analysis::APIDumpAnalysis::QueryStatus::OK) << command << ": " << m_error;
         EXPECT_EQ(value.type,
-                  Utils::Json::JsonValue::Type::OBJECT) << command;
+                  Utils::Json::JsonValueType::OBJECT) << command;
     }
 }
 
@@ -868,7 +868,7 @@ TEST_F(QueryCommandsTest, ResourcesTellWhatTheFramesDidWithEachOne)
         EXPECT_FALSE(item_vec.at(n_item).at("access").string_value.empty() );
 
         /* A resource that was never written has no first write. */
-        EXPECT_EQ(item_vec.at(n_item).at("first_write_frame_index").type == Utils::Json::JsonValue::Type::NULL_VALUE,
+        EXPECT_EQ(item_vec.at(n_item).at("first_write_frame_index").type == Utils::Json::JsonValueType::NULL_VALUE,
                   access.n_frames_written == 0);
     }
 }

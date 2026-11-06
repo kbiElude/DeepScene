@@ -132,7 +132,7 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse(const std::string& in_text,
         goto end;
     }
 
-    if (root.type != Utils::Json::JsonValue::Type::OBJECT)
+    if (root.type != Utils::Json::JsonValueType::OBJECT)
     {
         *out_error_ptr = "The catalog must be a JSON object";
 
@@ -150,7 +150,7 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse(const std::string& in_text,
         }
     }
 
-    if (root.at("catalog_version").type != Utils::Json::JsonValue::Type::NUMBER ||
+    if (root.at("catalog_version").type != Utils::Json::JsonValueType::NUMBER ||
         root.at("catalog_version").number_value != SUPPORTED_CATALOG_VERSION)
     {
         *out_error_ptr = "catalog_version: must be 0";
@@ -158,7 +158,7 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse(const std::string& in_text,
         goto end;
     }
 
-    if (root.at("apps").type != Utils::Json::JsonValue::Type::ARRAY)
+    if (root.at("apps").type != Utils::Json::JsonValueType::ARRAY)
     {
         *out_error_ptr = "apps: expected a list";
 
@@ -214,7 +214,7 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_app(const Utils::Json::JsonValue
     bool        result            = false;
     std::string working_directory;
 
-    if (in_app.type != Utils::Json::JsonValue::Type::OBJECT)
+    if (in_app.type != Utils::Json::JsonValueType::OBJECT)
     {
         *out_error_ptr = in_path + ": expected an object";
 
@@ -356,7 +356,7 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_download(const Utils::Json::Json
     bool is_parsed = false;
     bool result    = false;
 
-    if (in_download.type != Utils::Json::JsonValue::Type::OBJECT)
+    if (in_download.type != Utils::Json::JsonValueType::OBJECT)
     {
         *out_error_ptr = in_path + ": expected an object";
 
@@ -380,7 +380,7 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_download(const Utils::Json::Json
         const auto* urls_ptr = in_download.find_ptr("urls");
 
         if (urls_ptr == nullptr                                                            ||
-            urls_ptr->type != Utils::Json::JsonValue::Type::ARRAY            ||
+            urls_ptr->type != Utils::Json::JsonValueType::ARRAY            ||
             urls_ptr->item_vec.empty() )
         {
             *out_error_ptr = in_path + ".urls: expected a list of addresses, with one at least";
@@ -394,7 +394,7 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_download(const Utils::Json::Json
         {
             const Utils::Json::JsonValue& url_value = urls_ptr->item_vec.at(n_url);
 
-            if (url_value.type != Utils::Json::JsonValue::Type::STRING ||
+            if (url_value.type != Utils::Json::JsonValueType::STRING ||
                 url_value.string_value.compare(0,
                                                8,
                                                "https://") != 0)
@@ -479,7 +479,7 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_number(const Utils::Json::JsonVa
     bool        result    = false;
 
     if (value_ptr == nullptr                                                  ||
-        value_ptr->type != Utils::Json::JsonValue::Type::NUMBER ||
+        value_ptr->type != Utils::Json::JsonValueType::NUMBER ||
         value_ptr->number_value < 1.0                                         ||
         value_ptr->number_value > N_BYTES_MAX                                 ||
         value_ptr->number_value != static_cast<double>(static_cast<uint64_t>(value_ptr->number_value) ) )
@@ -520,7 +520,7 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_string(const Utils::Json::JsonVa
         goto end;
     }
 
-    if (value_ptr->type != Utils::Json::JsonValue::Type::STRING ||
+    if (value_ptr->type != Utils::Json::JsonValueType::STRING ||
         (in_is_required                                                       &&
          value_ptr->string_value.empty() ) )
     {

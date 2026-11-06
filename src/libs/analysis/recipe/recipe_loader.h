@@ -36,17 +36,10 @@ namespace Analysis
                               std::string*       out_error_ptr);
 
         private:
-            /* The API of a function that a rule can be about: the names of its transform states are its own. */
-            enum class Api
-            {
-                D3D7,
-                D3D8
-            };
-
             /* A function that a rule can be about. */
             struct CallDescriptor
             {
-                Api                         api;
+                RuleApi                     api;
                 APIInterceptor::APIFunction function;
                 uint32_t                    matrix_argument_index;
                 const char*                 name;

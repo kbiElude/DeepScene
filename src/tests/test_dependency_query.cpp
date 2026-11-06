@@ -214,7 +214,7 @@ TEST_F(DependencyQueryTest, AResourceIsToldByItsIdentityItsRunsAndItsVersions)
     ASSERT_EQ(value.at("versions").at("items").item_vec.size(),
               6u);
     EXPECT_EQ(value.at("versions").at("items").item_vec.at(0).at("writer_frame_index").type,
-              JsonValue::Type::NULL_VALUE);
+              JsonValueType::NULL_VALUE);
     EXPECT_EQ(value.at("versions").at("items").item_vec.at(3).at("writer_frame_index").number_value,
               2.0);
 }

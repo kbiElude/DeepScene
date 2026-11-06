@@ -12,6 +12,7 @@
 #include "stereo/core/stereo_core.h"
 #include "d3d7_surface_twins.h"
 #include "d3d7_windowed_mode.h"
+#include "types.h"
 #include <array>
 #include <functional>
 #include <stdint.h>
@@ -90,14 +91,6 @@ namespace Stereo
 
         private:
             static constexpr uint32_t N_TEXTURE_STAGES = 8;
-
-            /* Where the vertices of a draw are. */
-            enum class DrawKind
-            {
-                STRIDED,           /* in arrays of the application, which a structure points at                          */
-                VERTEX_BUFFER,     /* in a vertex buffer: read into the memory of the renderer, and then they are in memory */
-                VERTICES_IN_MEMORY /* in one block of the memory of the application                                      */
-            };
 
             /* The arguments of a draw, in the order of the call. */
             struct DrawArguments

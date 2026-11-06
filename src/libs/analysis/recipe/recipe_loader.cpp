@@ -140,7 +140,7 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
         goto end;
     }
 
-    if (root.type != Utils::Json::JsonValue::Type::OBJECT)
+    if (root.type != Utils::Json::JsonValueType::OBJECT)
     {
         *out_error_ptr = "The recipe must be a JSON object";
 
@@ -218,7 +218,7 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
 
         if (target_ptr != nullptr)
         {
-            if (target_ptr->type != Utils::Json::JsonValue::Type::OBJECT)
+            if (target_ptr->type != Utils::Json::JsonValueType::OBJECT)
             {
                 *out_error_ptr = "target: expected an object";
 
@@ -233,9 +233,9 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
                 goto end;
             }
 
-            if (target_ptr->at("description").type != Utils::Json::JsonValue::Type::NULL_VALUE)
+            if (target_ptr->at("description").type != Utils::Json::JsonValueType::NULL_VALUE)
             {
-                if (target_ptr->at("description").type != Utils::Json::JsonValue::Type::STRING)
+                if (target_ptr->at("description").type != Utils::Json::JsonValueType::STRING)
                 {
                     *out_error_ptr = "target.description: expected a string";
 
@@ -245,9 +245,9 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
                 out_recipe_ptr->target_description = target_ptr->at("description").string_value;
             }
 
-            if (target_ptr->at("name").type != Utils::Json::JsonValue::Type::NULL_VALUE)
+            if (target_ptr->at("name").type != Utils::Json::JsonValueType::NULL_VALUE)
             {
-                if (target_ptr->at("name").type != Utils::Json::JsonValue::Type::STRING)
+                if (target_ptr->at("name").type != Utils::Json::JsonValueType::STRING)
                 {
                     *out_error_ptr = "target.name: expected a string";
 
@@ -362,7 +362,7 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
 
         if (on_unknown_frame_ptr != nullptr)
         {
-            if (on_unknown_frame_ptr->type != Utils::Json::JsonValue::Type::STRING)
+            if (on_unknown_frame_ptr->type != Utils::Json::JsonValueType::STRING)
             {
                 *out_error_ptr = "on_unknown_frame: expected \"mono\", \"skip\" or \"fail\"";
 
@@ -399,7 +399,7 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
             goto end;
         }
 
-        if (rule_array_ptr->type != Utils::Json::JsonValue::Type::ARRAY)
+        if (rule_array_ptr->type != Utils::Json::JsonValueType::ARRAY)
         {
             *out_error_ptr = "rules: expected an array";
 
@@ -454,7 +454,7 @@ bool Analysis::Recipe::RecipeLoader::parse_hex_key(const Utils::Json::JsonValue&
 
     *out_key_ptr = 0;
 
-    if (in_value.type != Utils::Json::JsonValue::Type::STRING)
+    if (in_value.type != Utils::Json::JsonValueType::STRING)
     {
         *out_error_ptr = in_path + ": expected a key such as \"0x0123456789abcdef\"";
 
@@ -504,7 +504,7 @@ bool Analysis::Recipe::RecipeLoader::parse_hex_key_array(const Utils::Json::Json
 
     out_key_vec_ptr->clear();
 
-    if (in_array.type != Utils::Json::JsonValue::Type::ARRAY)
+    if (in_array.type != Utils::Json::JsonValueType::ARRAY)
     {
         *out_error_ptr = in_path + ": expected an array of keys";
 
@@ -542,7 +542,7 @@ bool Analysis::Recipe::RecipeLoader::parse_matrix(const Utils::Json::JsonValue& 
 {
     bool result = false;
 
-    if (in_array.type          != Utils::Json::JsonValue::Type::ARRAY ||
+    if (in_array.type          != Utils::Json::JsonValueType::ARRAY ||
         in_array.item_vec.size() != out_matrix_ptr->size() )
     {
         *out_error_ptr = in_path + ": expected 16 numbers";
@@ -557,7 +557,7 @@ bool Analysis::Recipe::RecipeLoader::parse_matrix(const Utils::Json::JsonValue& 
         const auto&  element        = in_array.item_vec.at(n_element);
         const double absolute_value = ::fabs(element.number_value);
 
-        if (element.type    != Utils::Json::JsonValue::Type::NUMBER ||
+        if (element.type    != Utils::Json::JsonValueType::NUMBER ||
             absolute_value  >  static_cast<double>(FLT_MAX) )
         {
             *out_error_ptr = in_path + "[" + std::to_string(n_element) + "]: expected a number that fits a float";
@@ -582,7 +582,7 @@ bool Analysis::Recipe::RecipeLoader::parse_unsigned(const Utils::Json::JsonValue
     const double floor_value = ::floor(in_value.number_value);
     bool         result      = false;
 
-    if (in_value.type         != Utils::Json::JsonValue::Type::NUMBER ||
+    if (in_value.type         != Utils::Json::JsonValueType::NUMBER ||
         in_value.number_value <  0.0                                                ||
         in_value.number_value >  static_cast<double>(UINT32_MAX)                    ||
         in_value.number_value != floor_value)

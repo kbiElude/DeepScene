@@ -86,7 +86,7 @@ bool Utils::Json::JsonReader::parse_array(const size_t& in_depth,
 {
     bool result = false;
 
-    out_value_ptr->type = JsonValue::Type::ARRAY;
+    out_value_ptr->type = JsonValueType::ARRAY;
 
     ++m_position; /* [ */
 
@@ -174,7 +174,7 @@ bool Utils::Json::JsonReader::parse_number(JsonValue* out_value_ptr)
     const size_t start  = m_position;
     bool         result = false;
 
-    out_value_ptr->type = JsonValue::Type::NUMBER;
+    out_value_ptr->type = JsonValueType::NUMBER;
 
     if (m_position            <  m_text.size() &&
         m_text.at(m_position) == '-')
@@ -290,7 +290,7 @@ bool Utils::Json::JsonReader::parse_object(const size_t& in_depth,
 {
     bool result = false;
 
-    out_value_ptr->type = JsonValue::Type::OBJECT;
+    out_value_ptr->type = JsonValueType::OBJECT;
 
     ++m_position; /* { */
 
@@ -633,7 +633,7 @@ bool Utils::Json::JsonReader::parse_value(const size_t& in_depth,
         else
         if (character == '"')
         {
-            out_value_ptr->type = JsonValue::Type::STRING;
+            out_value_ptr->type = JsonValueType::STRING;
 
             result = parse_string(&out_value_ptr->string_value);
         }
@@ -641,21 +641,21 @@ bool Utils::Json::JsonReader::parse_value(const size_t& in_depth,
         if (character == 't')
         {
             out_value_ptr->bool_value = true;
-            out_value_ptr->type       = JsonValue::Type::BOOL;
+            out_value_ptr->type       = JsonValueType::BOOL;
 
             result = parse_literal("true");
         }
         else
         if (character == 'f')
         {
-            out_value_ptr->type = JsonValue::Type::BOOL;
+            out_value_ptr->type = JsonValueType::BOOL;
 
             result = parse_literal("false");
         }
         else
         if (character == 'n')
         {
-            out_value_ptr->type = JsonValue::Type::NULL_VALUE;
+            out_value_ptr->type = JsonValueType::NULL_VALUE;
 
             result = parse_literal("null");
         }

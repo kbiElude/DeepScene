@@ -73,6 +73,13 @@ namespace Analysis
             PRE   /* X * M */
         };
 
+        /* The API of a function that a rule can be about: the names of its transform states are its own. */
+        enum class RuleApi
+        {
+            D3D7,
+            D3D8
+        };
+
         /* What to do with a frame whose shape the recipe does not know. */
         enum class UnknownFramePolicy
         {

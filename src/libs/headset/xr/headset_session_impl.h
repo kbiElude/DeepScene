@@ -13,6 +13,7 @@
 #include "utils/statistics/series_stats.h"
 #include "headset/xr/headset_session.h"
 #include "headset/xr/screen_geometry.h"
+#include "headset/xr/types.h"
 #include <array>
 #include <atomic>
 #include <condition_variable>
@@ -31,21 +32,13 @@
 
 struct Headset::XR::HeadsetSession::Impl
 {
-    /* What of an image a swap chain gives the eye: an image which has been taken is waited for, then copied to, then given back. */
-    enum class ImageState
-    {
-        ACQUIRED, /* taken, and the compositor has not said that it is done with it yet */
-        IDLE,
-        READY     /* the compositor is done with it: it can be copied to              */
-    };
-
     /* The swap chain of one eye. */
     struct EyeSwapchain
     {
         uint32_t                              acquired_index = 0;
         bool                                  has_image      = false; /* an image has been given back, which is the one that is shown */
         std::vector<XrSwapchainImageD3D12KHR> image_vec;
-        ImageState                            state          = ImageState::IDLE;
+        SwapchainImageState                   state          = SwapchainImageState::IDLE;
         XrSwapchain                           swapchain      = XR_NULL_HANDLE;
     };
 

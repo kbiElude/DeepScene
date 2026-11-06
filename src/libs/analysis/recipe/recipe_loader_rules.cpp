@@ -12,8 +12,8 @@ const Analysis::Recipe::RecipeLoader::CallDescriptor* Analysis::Recipe::RecipeLo
     /* The functions a rule can apply to: name, function and argument positions (argument 0 is the object it is called on). */
     static const CallDescriptor CALL_DESCRIPTOR_ARRAY[] =
     {
-        {Api::D3D7, APIInterceptor::APIFunction::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_SETTRANSFORM, 2, "IDirect3DDevice7::SetTransform", 1},
-        {Api::D3D8, APIInterceptor::APIFunction::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_SETTRANSFORM, 2, "IDirect3DDevice8::SetTransform", 1}
+        {RuleApi::D3D7, APIInterceptor::APIFunction::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_SETTRANSFORM, 2, "IDirect3DDevice7::SetTransform", 1},
+        {RuleApi::D3D8, APIInterceptor::APIFunction::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_SETTRANSFORM, 2, "IDirect3DDevice8::SetTransform", 1}
     };
 
     const CallDescriptor* result_ptr = nullptr;
@@ -36,7 +36,7 @@ bool Analysis::Recipe::RecipeLoader::parse_action(const Utils::Json::JsonValue& 
 {
     bool result = false;
 
-    if (in_action.type != Utils::Json::JsonValue::Type::OBJECT)
+    if (in_action.type != Utils::Json::JsonValueType::OBJECT)
     {
         *out_error_ptr = in_path + ": expected an object";
 
@@ -62,7 +62,7 @@ bool Analysis::Recipe::RecipeLoader::parse_action(const Utils::Json::JsonValue& 
             goto end;
         }
 
-        if (type_ptr->type         != Utils::Json::JsonValue::Type::STRING ||
+        if (type_ptr->type         != Utils::Json::JsonValueType::STRING ||
             (type_ptr->string_value != "eye_convergence"                                 &&
              type_ptr->string_value != "eye_offset"                                      &&
              type_ptr->string_value != "multiply"                                        &&
@@ -111,7 +111,7 @@ bool Analysis::Recipe::RecipeLoader::parse_action(const Utils::Json::JsonValue& 
                 goto end;
             }
 
-            if (order_ptr->type         != Utils::Json::JsonValue::Type::STRING ||
+            if (order_ptr->type         != Utils::Json::JsonValueType::STRING ||
                 (order_ptr->string_value != "post"                                            &&
                  order_ptr->string_value != "pre"))
             {
@@ -142,7 +142,7 @@ bool Analysis::Recipe::RecipeLoader::parse_action(const Utils::Json::JsonValue& 
                 goto end;
             }
 
-            if (axis_ptr->type         != Utils::Json::JsonValue::Type::STRING ||
+            if (axis_ptr->type         != Utils::Json::JsonValueType::STRING ||
                 (axis_ptr->string_value != "x"                                               &&
                  axis_ptr->string_value != "y"                                               &&
                  axis_ptr->string_value != "z"))
@@ -216,7 +216,7 @@ bool Analysis::Recipe::RecipeLoader::parse_rule(const Utils::Json::JsonValue& in
 
     *out_rule_ptr = Rule();
 
-    if (in_rule.type != Utils::Json::JsonValue::Type::OBJECT)
+    if (in_rule.type != Utils::Json::JsonValueType::OBJECT)
     {
         *out_error_ptr = in_path + ": expected an object";
 
@@ -231,9 +231,9 @@ bool Analysis::Recipe::RecipeLoader::parse_rule(const Utils::Json::JsonValue& in
         goto end;
     }
 
-    if (in_rule.at("name").type != Utils::Json::JsonValue::Type::NULL_VALUE)
+    if (in_rule.at("name").type != Utils::Json::JsonValueType::NULL_VALUE)
     {
-        if (in_rule.at("name").type != Utils::Json::JsonValue::Type::STRING)
+        if (in_rule.at("name").type != Utils::Json::JsonValueType::STRING)
         {
             *out_error_ptr = in_path + ".name: expected a string";
 
@@ -243,7 +243,7 @@ bool Analysis::Recipe::RecipeLoader::parse_rule(const Utils::Json::JsonValue& in
         out_rule_ptr->name = in_rule.at("name").string_value;
     }
 
-    if (in_rule.at("call").type != Utils::Json::JsonValue::Type::STRING)
+    if (in_rule.at("call").type != Utils::Json::JsonValueType::STRING)
     {
         *out_error_ptr = in_path + ".call: expected the name of a function";
 
@@ -345,7 +345,7 @@ bool Analysis::Recipe::RecipeLoader::parse_state(const Utils::Json::JsonValue& i
 
     bool result = false;
 
-    if (in_value.type == Utils::Json::JsonValue::Type::NUMBER)
+    if (in_value.type == Utils::Json::JsonValueType::NUMBER)
     {
         result = parse_unsigned(in_value,
                                 in_path,
@@ -353,9 +353,9 @@ bool Analysis::Recipe::RecipeLoader::parse_state(const Utils::Json::JsonValue& i
                                 out_error_ptr);
     }
     else
-    if (in_value.type == Utils::Json::JsonValue::Type::STRING)
+    if (in_value.type == Utils::Json::JsonValueType::STRING)
     {
-        const bool       is_d3d7    = (in_call.api == Api::D3D7);
+        const bool       is_d3d7    = (in_call.api == RuleApi::D3D7);
         const StateName* name_array = (is_d3d7) ? D3D7_STATE_NAME_ARRAY
                                                 : D3D8_STATE_NAME_ARRAY;
         const size_t     n_names    = (is_d3d7) ? sizeof(D3D7_STATE_NAME_ARRAY) / sizeof(D3D7_STATE_NAME_ARRAY[0])
@@ -394,7 +394,7 @@ bool Analysis::Recipe::RecipeLoader::parse_when(const Utils::Json::JsonValue& in
 {
     bool result = false;
 
-    if (in_when.type != Utils::Json::JsonValue::Type::OBJECT)
+    if (in_when.type != Utils::Json::JsonValueType::OBJECT)
     {
         *out_error_ptr = in_path + ": expected an object";
 
@@ -431,7 +431,7 @@ bool Analysis::Recipe::RecipeLoader::parse_when(const Utils::Json::JsonValue& in
     {
         const auto& matrix = in_when.at("matrix");
 
-        if (matrix.type         != Utils::Json::JsonValue::Type::STRING ||
+        if (matrix.type         != Utils::Json::JsonValueType::STRING ||
             (matrix.string_value != "any"                                             &&
              matrix.string_value != "orthographic"                                    &&
              matrix.string_value != "perspective"))

@@ -16,6 +16,15 @@ namespace Stereo
     {
         namespace EngineDLL
         {
+            /* What the device has of a matrix, as far as the binder knows. */
+            enum class EyeMatrixBinding
+            {
+                LEFT,
+                MONO,
+                NOTHING, /* the call has not been executed since it was kept */
+                RIGHT
+            };
+
             /* How the replay executes the calls of a frame. */
             enum class FrameExecution
             {

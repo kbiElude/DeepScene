@@ -5,7 +5,7 @@
 #include "eye_matrix_binder.h"
 
 Stereo::Replay::EngineDLL::EyeMatrixBinder::Slot::Slot()
-    :bound               (Bound::NOTHING),
+    :bound               (EyeMatrixBinding::NOTHING),
      bound_separation    (0.0f),
      has_rewritten_call  (false),
      rewritten_eye       (Analysis::Recipe::Eye::LEFT),
@@ -27,9 +27,9 @@ bool Stereo::Replay::EngineDLL::EyeMatrixBinder::before_draw(const bool&        
                                                              const float&                 in_eye_separation)
 {
     bool        result = true;
-    const Bound wanted = (in_is_affected == false)                                    ? Bound::MONO
-                       : (in_eye         == Analysis::Recipe::Eye::LEFT) ? Bound::LEFT
-                                                                                      : Bound::RIGHT;
+    const EyeMatrixBinding wanted = (in_is_affected == false)                                    ? EyeMatrixBinding::MONO
+                       : (in_eye         == Analysis::Recipe::Eye::LEFT) ? EyeMatrixBinding::LEFT
+                                                                                      : EyeMatrixBinding::RIGHT;
 
     for (auto& slot_pair : m_slot_map)
     {
@@ -37,12 +37,12 @@ bool Stereo::Replay::EngineDLL::EyeMatrixBinder::before_draw(const bool&        
 
         /* A matrix made for another separation is not the one to have, though it is for the eye. */
         if (slot.bound             != wanted             ||
-            (wanted                != Bound::MONO        &&
+            (wanted                != EyeMatrixBinding::MONO        &&
              slot.bound_separation != in_eye_separation) )
         {
             bool is_for_eye = false;
 
-            if (wanted != Bound::MONO)
+            if (wanted != EyeMatrixBinding::MONO)
             {
                 /* The call for the eye is made again when it was made for the other one. */
                 is_for_eye = (slot.has_rewritten_call                              &&
@@ -69,7 +69,7 @@ bool Stereo::Replay::EngineDLL::EyeMatrixBinder::before_draw(const bool&        
             }
 
             slot.bound            = (is_for_eye) ? wanted
-                                                 : Bound::MONO;
+                                                 : EyeMatrixBinding::MONO;
             slot.bound_separation = in_eye_separation;
 
             if (result == false)

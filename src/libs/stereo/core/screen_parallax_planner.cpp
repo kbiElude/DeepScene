@@ -33,7 +33,7 @@ Stereo::Core::ScreenShiftPlan Stereo::Core::ScreenParallaxPlanner::plan(const An
                                             in_input.separation_limit     < in_input.eye_separation) ? in_input.separation_limit
                                                                                                      : in_input.eye_separation;
             result.field_of_view_degrees = screen_parallax.field_of_view_degrees;
-            result.kind                  = ScreenShiftPlan::Kind::PER_VERTEX;
+            result.kind                  = ScreenShiftKind::PER_VERTEX;
             result.picture_width         = in_input.picture_width;
         }
     }
@@ -44,7 +44,7 @@ Stereo::Core::ScreenShiftPlan Stereo::Core::ScreenParallaxPlanner::plan(const An
     {
         const float half_shift = overlay_parallax * in_input.picture_width * HALF;
 
-        result.kind                 = ScreenShiftPlan::Kind::UNIFORM;
+        result.kind                 = ScreenShiftKind::UNIFORM;
         result.uniform_shift_pixels = (in_input.eye == Analysis::Recipe::Eye::LEFT) ? half_shift
                                                                                           : -half_shift;
     }

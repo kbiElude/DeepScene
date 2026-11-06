@@ -1098,7 +1098,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::record_draw_depth(const DrawDescri
     }
 }
 
-Analysis::APIDumpAnalysis::ModelBuilder::ViewCoverage Analysis::APIDumpAnalysis::ModelBuilder::record_draw_surface_depth(const DrawDescription& in_draw)
+Analysis::APIDumpAnalysis::ViewCoverage Analysis::APIDumpAnalysis::ModelBuilder::record_draw_surface_depth(const DrawDescription& in_draw)
 {
     /* How near to an edge of the picture a vertex has to be for the draw to reach it, in the units of the picture (the edges are at 1 and -1). */
     constexpr float EDGE_REACH = 0.995f;
@@ -1222,7 +1222,7 @@ Analysis::APIDumpAnalysis::ModelBuilder::ViewCoverage Analysis::APIDumpAnalysis:
     return result;
 }
 
-Analysis::APIDumpAnalysis::ModelBuilder::ViewCoverage Analysis::APIDumpAnalysis::ModelBuilder::record_screen_depth(const DrawDescription& in_draw)
+Analysis::APIDumpAnalysis::ViewCoverage Analysis::APIDumpAnalysis::ModelBuilder::record_screen_depth(const DrawDescription& in_draw)
 {
     /* How near to an edge of the viewport a vertex has to be for the draw to reach it, as a part of the size of the viewport. */
     constexpr float EDGE_REACH = 0.005f;

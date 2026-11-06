@@ -53,7 +53,7 @@ TEST(ScreenParallaxPlanner, AnAffectedDrawIsMovedByItsDepthAtTheDistanceOfTheSce
                                                                 input);
 
     EXPECT_EQ(plan.kind,
-              Stereo::Core::ScreenShiftPlan::Kind::PER_VERTEX);
+              Stereo::Core::ScreenShiftKind::PER_VERTEX);
     EXPECT_FLOAT_EQ(plan.convergence_distance,
                     40.0f);
     EXPECT_FLOAT_EQ(plan.eye_separation,
@@ -88,7 +88,7 @@ TEST(ScreenParallaxPlanner, ADrawWithoutScreenParallaxInTheRecipeIsLeftAsItIs)
 
     EXPECT_EQ(Stereo::Core::ScreenParallaxPlanner::plan(applier,
                                                         make_input(true) ).kind,
-              Stereo::Core::ScreenShiftPlan::Kind::NONE);
+              Stereo::Core::ScreenShiftKind::NONE);
 }
 
 TEST(ScreenParallaxPlanner, ADrawWhichCoversTheViewIsNeverMovedSideways)
@@ -103,10 +103,10 @@ TEST(ScreenParallaxPlanner, ADrawWhichCoversTheViewIsNeverMovedSideways)
 
     EXPECT_EQ(Stereo::Core::ScreenParallaxPlanner::plan(applier,
                                                         affected).kind,
-              Stereo::Core::ScreenShiftPlan::Kind::NONE);
+              Stereo::Core::ScreenShiftKind::NONE);
     EXPECT_EQ(Stereo::Core::ScreenParallaxPlanner::plan(applier,
                                                         unaffected).kind,
-              Stereo::Core::ScreenShiftPlan::Kind::NONE);
+              Stereo::Core::ScreenShiftKind::NONE);
 }
 
 TEST(ScreenParallaxPlanner, ADrawWithTheKeyOfACoveringOneThatDoesNotReachBothSidesIsMovedLikeAnyOther)
@@ -121,13 +121,13 @@ TEST(ScreenParallaxPlanner, ADrawWithTheKeyOfACoveringOneThatDoesNotReachBothSid
 
     EXPECT_EQ(Stereo::Core::ScreenParallaxPlanner::plan(applier,
                                                         input).kind,
-              Stereo::Core::ScreenShiftPlan::Kind::PER_VERTEX);
+              Stereo::Core::ScreenShiftKind::PER_VERTEX);
 
     input.reaches_both_sides = true;
 
     EXPECT_EQ(Stereo::Core::ScreenParallaxPlanner::plan(applier,
                                                         input).kind,
-              Stereo::Core::ScreenShiftPlan::Kind::NONE);
+              Stereo::Core::ScreenShiftKind::NONE);
 }
 
 TEST(ScreenParallaxPlanner, AnOverlayIsPushedHalfTheAmountToEachSideTheOtherWayForEachEye)
@@ -145,7 +145,7 @@ TEST(ScreenParallaxPlanner, AnOverlayIsPushedHalfTheAmountToEachSideTheOtherWayF
                                                                       right);
 
     EXPECT_EQ(left_plan.kind,
-              Stereo::Core::ScreenShiftPlan::Kind::UNIFORM);
+              Stereo::Core::ScreenShiftKind::UNIFORM);
     EXPECT_FLOAT_EQ(left_plan.uniform_shift_pixels,
                     16.0f);
     EXPECT_FLOAT_EQ(right_plan.uniform_shift_pixels,
@@ -166,11 +166,11 @@ TEST(ScreenParallaxPlanner, AnOverlayIsNotPushedWhenItIsNotPresentedNotWantedOrT
 
     EXPECT_EQ(Stereo::Core::ScreenParallaxPlanner::plan(pushing,
                                                         not_presented).kind,
-              Stereo::Core::ScreenShiftPlan::Kind::NONE);
+              Stereo::Core::ScreenShiftKind::NONE);
     EXPECT_EQ(Stereo::Core::ScreenParallaxPlanner::plan(pushing,
                                                         not_wanted).kind,
-              Stereo::Core::ScreenShiftPlan::Kind::NONE);
+              Stereo::Core::ScreenShiftKind::NONE);
     EXPECT_EQ(Stereo::Core::ScreenParallaxPlanner::plan(not_pushing,
                                                         make_input(false) ).kind,
-              Stereo::Core::ScreenShiftPlan::Kind::NONE);
+              Stereo::Core::ScreenShiftKind::NONE);
 }

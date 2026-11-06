@@ -53,17 +53,6 @@ namespace Stereo
                                 const std::array<float, 16>&                            in_matrix);
 
         private:
-            /* What the device has of a matrix, as far as the slots know. */
-            enum class Bound
-            {
-                LEFT,
-                MONO,
-                NOTHING, /* the matrix was set by the application, and has not been put in the device since */
-                OVERLAY_LEFT,
-                OVERLAY_RIGHT,
-                RIGHT
-            };
-
             /* A matrix is told by the function and the integer arguments of its call (the state of D3DTS_VIEW, say). */
             typedef std::pair<APIInterceptor::APIFunction, std::vector<uint32_t> > SlotKey;
 
@@ -71,7 +60,7 @@ namespace Stereo
             struct Slot
             {
                 std::vector<APIInterceptor::APIFunctionArgument> argument_vec;
-                Bound                                            bound                      = Bound::NOTHING;
+                MatrixSlotBinding                                bound                      = MatrixSlotBinding::NOTHING;
                 float                                            bound_convergence_distance = 0.0f;
                 float                                            bound_overlay_parallax     = 0.0f;
                 float                                            bound_separation           = 0.0f;

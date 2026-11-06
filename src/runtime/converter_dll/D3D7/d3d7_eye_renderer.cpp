@@ -524,12 +524,12 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::Recipe:
 
         switch (plan.kind)
         {
-            case Stereo::Core::ScreenShiftPlan::Kind::NONE:
+            case Stereo::Core::ScreenShiftKind::NONE:
             {
                 break;
             }
 
-            case Stereo::Core::ScreenShiftPlan::Kind::PER_VERTEX:
+            case Stereo::Core::ScreenShiftKind::PER_VERTEX:
             {
                 parameters.convergence_distance  = plan.convergence_distance;
                 parameters.eye                   = plan.eye;
@@ -539,13 +539,13 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::Recipe:
 
                 if (Stereo::D3D7::ScreenParallax::is_valid(parameters) == false)
                 {
-                    plan.kind = Stereo::Core::ScreenShiftPlan::Kind::NONE;
+                    plan.kind = Stereo::Core::ScreenShiftKind::NONE;
                 }
 
                 break;
             }
 
-            case Stereo::Core::ScreenShiftPlan::Kind::UNIFORM:
+            case Stereo::Core::ScreenShiftKind::UNIFORM:
             {
                 break;
             }
@@ -556,14 +556,14 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::Recipe:
             }
         }
 
-        if (plan.kind != Stereo::Core::ScreenShiftPlan::Kind::NONE ||
+        if (plan.kind != Stereo::Core::ScreenShiftKind::NONE ||
             scale     != 1.0f)
         {
             /* The application's own vertices are not touched: the draw is made with a copy. */
             m_vertex_vec.assign(static_cast<const uint8_t*>(in_draw_arguments.vertices_ptr),
                                 static_cast<const uint8_t*>(in_draw_arguments.vertices_ptr) + static_cast<size_t>(in_draw_arguments.n_vertices) * vertex_n_bytes);
 
-            if (plan.kind == Stereo::Core::ScreenShiftPlan::Kind::PER_VERTEX)
+            if (plan.kind == Stereo::Core::ScreenShiftKind::PER_VERTEX)
             {
                 Stereo::D3D7::ScreenParallax::shift_vertices(parameters,
                                                              vertex_n_bytes,
@@ -571,7 +571,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::Recipe:
                                                              m_vertex_vec.data() );
             }
             else
-            if (plan.kind == Stereo::Core::ScreenShiftPlan::Kind::UNIFORM)
+            if (plan.kind == Stereo::Core::ScreenShiftKind::UNIFORM)
             {
                 Stereo::D3D7::ScreenParallax::shift_vertices_by(plan.uniform_shift_pixels,
                                                                 vertex_n_bytes,

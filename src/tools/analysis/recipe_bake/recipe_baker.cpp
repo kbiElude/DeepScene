@@ -49,7 +49,7 @@ bool Analysis::RecipeBake::RecipeBaker::bake(const std::string&                 
         goto end;
     }
 
-    if (root.type != Utils::Json::JsonValue::Type::OBJECT)
+    if (root.type != Utils::Json::JsonValueType::OBJECT)
     {
         *out_error_ptr = "The recipe must be a JSON object";
 
@@ -995,13 +995,13 @@ void Analysis::RecipeBake::RecipeBaker::write_value(const Utils::Json::JsonValue
 
     switch (in_value.type)
     {
-        case Utils::Json::JsonValue::Type::ARRAY:
+        case Utils::Json::JsonValueType::ARRAY:
         {
             bool is_inline = true;
 
             for (const auto& item : in_value.item_vec)
             {
-                is_inline = is_inline && (item.type == Utils::Json::JsonValue::Type::NUMBER);
+                is_inline = is_inline && (item.type == Utils::Json::JsonValueType::NUMBER);
             }
 
             /* Numbers go on one line (a matrix), the rest one to a line (a list of keys). */
@@ -1025,14 +1025,14 @@ void Analysis::RecipeBake::RecipeBaker::write_value(const Utils::Json::JsonValue
             break;
         }
 
-        case Utils::Json::JsonValue::Type::BOOL:
+        case Utils::Json::JsonValueType::BOOL:
         {
             inout_writer_ptr->write_bool(in_value.bool_value);
 
             break;
         }
 
-        case Utils::Json::JsonValue::Type::NUMBER:
+        case Utils::Json::JsonValueType::NUMBER:
         {
             const double absolute_value = ::fabs(in_value.number_value);
             bool         is_whole       = false;
@@ -1056,7 +1056,7 @@ void Analysis::RecipeBake::RecipeBaker::write_value(const Utils::Json::JsonValue
             break;
         }
 
-        case Utils::Json::JsonValue::Type::OBJECT:
+        case Utils::Json::JsonValueType::OBJECT:
         {
             inout_writer_ptr->begin_object();
 
@@ -1075,14 +1075,14 @@ void Analysis::RecipeBake::RecipeBaker::write_value(const Utils::Json::JsonValue
             break;
         }
 
-        case Utils::Json::JsonValue::Type::STRING:
+        case Utils::Json::JsonValueType::STRING:
         {
             inout_writer_ptr->write_string(in_value.string_value);
 
             break;
         }
 
-        case Utils::Json::JsonValue::Type::NULL_VALUE:
+        case Utils::Json::JsonValueType::NULL_VALUE:
         default:
         {
             inout_writer_ptr->write_null();

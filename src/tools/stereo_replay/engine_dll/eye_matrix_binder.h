@@ -8,6 +8,7 @@
 #include "frame_buffer.h"
 #include "frame_rewriter.h"
 #include "overlay_chunk_source.h"
+#include "types.h"
 #include <functional>
 #include <map>
 #include <memory>
@@ -56,15 +57,6 @@ namespace Stereo
                              const float&                                   in_eye_separation);
 
             private:
-                /* What the device has of a matrix, as far as the binder knows. */
-                enum class Bound
-                {
-                    LEFT,
-                    MONO,
-                    NOTHING, /* the call has not been executed since it was kept */
-                    RIGHT
-                };
-
                 /* A matrix is told by the function and the integer arguments of its call (the state of D3DTS_VIEW, say). */
                 typedef std::pair<APIInterceptor::APIFunction, std::vector<uint32_t> > SlotKey;
 
@@ -73,7 +65,7 @@ namespace Stereo
                 {
                     Slot();
 
-                    Bound                                 bound;
+                    EyeMatrixBinding                      bound;
                     float                                 bound_separation;  /* the separation the matrix in the device was made for */
                     FrameBuffer                           buffer;            /* the call as the application made it, with its chunks */
                     std::unique_ptr<OverlayChunkSource>   overlay;           /* the buffer, with the matrix of the rewritten call  */

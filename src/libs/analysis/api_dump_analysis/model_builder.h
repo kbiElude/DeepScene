@@ -118,14 +118,6 @@ namespace Analysis
                 ConstantUpdate update;
             };
 
-            /* What a draw's vertices say of the picture. */
-            enum class ViewCoverage
-            {
-                COVERING, /* they reach all four edges                  */
-                PARTIAL,  /* they were looked at, and do not            */
-                UNKNOWN   /* there was nothing to look at               */
-            };
-
             /* The matrices a draw is made with, as the constants say. */
             struct DrawMatrices
             {

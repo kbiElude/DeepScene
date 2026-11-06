@@ -375,12 +375,12 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_draw_call(const Cap
 
     switch (plan.kind)
     {
-        case Stereo::Core::ScreenShiftPlan::Kind::NONE:
+        case Stereo::Core::ScreenShiftKind::NONE:
         {
             break;
         }
 
-        case Stereo::Core::ScreenShiftPlan::Kind::PER_VERTEX:
+        case Stereo::Core::ScreenShiftKind::PER_VERTEX:
         {
             Stereo::D3D7::ScreenParallax::Parameters parameters;
 
@@ -399,7 +399,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_draw_call(const Cap
             break;
         }
 
-        case Stereo::Core::ScreenShiftPlan::Kind::UNIFORM:
+        case Stereo::Core::ScreenShiftKind::UNIFORM:
         {
             is_moved = D3D7DrawRewriter::rewrite_by(in_call,
                                                       in_chunk_source,

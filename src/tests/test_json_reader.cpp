@@ -25,7 +25,7 @@ TEST(JsonReader, ScalarsAreRead)
                          &value,
                          &error) ) << error;
     EXPECT_EQ  (value.type,
-                Utils::Json::JsonValue::Type::BOOL);
+                Utils::Json::JsonValueType::BOOL);
     EXPECT_TRUE(value.bool_value);
 
     ASSERT_TRUE(read_json("false",
@@ -37,7 +37,7 @@ TEST(JsonReader, ScalarsAreRead)
                          &value,
                          &error) );
     EXPECT_EQ  (value.type,
-                Utils::Json::JsonValue::Type::NULL_VALUE);
+                Utils::Json::JsonValueType::NULL_VALUE);
 
     ASSERT_TRUE(read_json("  \"text\"\n",
                          &value,
@@ -74,7 +74,7 @@ TEST(JsonReader, NumbersAreRead)
                              &value,
                              nullptr) ) << number_case.text_ptr;
         EXPECT_EQ  (value.type,
-                    Utils::Json::JsonValue::Type::NUMBER);
+                    Utils::Json::JsonValueType::NUMBER);
         EXPECT_DOUBLE_EQ(value.number_value,
                          number_case.expected) << number_case.text_ptr;
     }
@@ -94,18 +94,18 @@ TEST(JsonReader, ContainersAreRead)
     EXPECT_DOUBLE_EQ(value.at("a").item_vec.at(1).number_value,
                      2.0);
     EXPECT_EQ(value.at("a").item_vec.at(2).at("b").type,
-              Utils::Json::JsonValue::Type::NULL_VALUE);
+              Utils::Json::JsonValueType::NULL_VALUE);
     EXPECT_EQ(value.at("c").type,
-              Utils::Json::JsonValue::Type::OBJECT);
+              Utils::Json::JsonValueType::OBJECT);
     EXPECT_TRUE(value.at("c").item_vec.empty() );
     EXPECT_EQ(value.at("d").type,
-              Utils::Json::JsonValue::Type::ARRAY);
+              Utils::Json::JsonValueType::ARRAY);
     EXPECT_NE(value.find_ptr("a"),
               nullptr);
     EXPECT_EQ(value.find_ptr("missing"),
               nullptr);
     EXPECT_EQ(value.at("missing").type,
-              Utils::Json::JsonValue::Type::NULL_VALUE);
+              Utils::Json::JsonValueType::NULL_VALUE);
 }
 
 TEST(JsonReader, MembersKeepTheirOrder)

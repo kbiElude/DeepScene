@@ -7,6 +7,7 @@
 
 #include "analysis/recipe/recipe_applier.h"
 #include "analysis/recipe/types.h"
+#include "stereo/core/types.h"
 #include <stdint.h>
 
 namespace Stereo
@@ -16,19 +17,11 @@ namespace Stereo
         /* What is to be done to the vertices of a draw that are already in the space of the picture (see ScreenParallax). */
         struct ScreenShiftPlan
         {
-            /* How the x of the vertices are moved. */
-            enum class Kind
-            {
-                NONE,       /* as they are                                                              */
-                PER_VERTEX, /* each by its depth, with the distances below (the draw is part of the scene) */
-                UNIFORM     /* all by the same pixels (the draw is pushed toward the viewer as a whole)    */
-            };
-
             float                 convergence_distance  = 0.0f; /* of PER_VERTEX, in the units of the camera of the application */
             Analysis::Recipe::Eye eye                   = Analysis::Recipe::Eye::LEFT;
             float                 eye_separation        = 0.0f; /* of PER_VERTEX, the same units                              */
             float                 field_of_view_degrees = 0.0f; /* of PER_VERTEX                                              */
-            Kind                  kind                  = Kind::NONE;
+            ScreenShiftKind       kind                  = ScreenShiftKind::NONE;
             float                 picture_width         = 0.0f; /* of PER_VERTEX, in pixels                                   */
             float                 uniform_shift_pixels  = 0.0f; /* of UNIFORM, positive to the right                          */
         };

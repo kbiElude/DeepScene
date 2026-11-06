@@ -51,7 +51,7 @@ bool Headset::XR::HeadsetSession::acquire_eye_textures(const uint32_t&  in_width
         {
             XrResult wait_result = XR_SUCCESS;
 
-            if (eye.state == Impl::ImageState::IDLE)
+            if (eye.state == SwapchainImageState::IDLE)
             {
                 XrSwapchainImageAcquireInfo acquire_info = {XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO};
 
@@ -64,10 +64,10 @@ bool Headset::XR::HeadsetSession::acquire_eye_textures(const uint32_t&  in_width
                     goto end;
                 }
 
-                eye.state = Impl::ImageState::ACQUIRED;
+                eye.state = SwapchainImageState::ACQUIRED;
             }
 
-            if (eye.state == Impl::ImageState::ACQUIRED)
+            if (eye.state == SwapchainImageState::ACQUIRED)
             {
                 XrSwapchainImageWaitInfo wait_info = {XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO};
 
@@ -89,7 +89,7 @@ bool Headset::XR::HeadsetSession::acquire_eye_textures(const uint32_t&  in_width
                     goto end;
                 }
 
-                eye.state = Impl::ImageState::READY;
+                eye.state = SwapchainImageState::READY;
             }
         }
 
@@ -308,7 +308,7 @@ void Headset::XR::HeadsetSession::release_eye_textures()
 
     for (auto& eye : m_impl_ptr->eye_array)
     {
-        if (eye.state == Impl::ImageState::READY)
+        if (eye.state == SwapchainImageState::READY)
         {
             XrSwapchainImageReleaseInfo release_info = {XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};
 
@@ -316,7 +316,7 @@ void Headset::XR::HeadsetSession::release_eye_textures()
                                                       &release_info) ))
             {
                 eye.has_image = true;
-                eye.state     = Impl::ImageState::IDLE;
+                eye.state     = SwapchainImageState::IDLE;
             }
         }
     }

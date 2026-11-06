@@ -18,18 +18,18 @@ uint32_t Stereo::Core::MatrixSlots::bind(const Analysis::Recipe::DrawClass& in_d
                              in_overlay_parallax >  0.0f);
     const bool is_left    = (in_eye == Analysis::Recipe::Eye::LEFT);
 
-    Bound wanted = Bound::MONO;
+    MatrixSlotBinding wanted = MatrixSlotBinding::MONO;
 
     if (in_draw_class == Analysis::Recipe::DrawClass::AFFECTED)
     {
-        wanted = (is_left) ? Bound::LEFT
-                           : Bound::RIGHT;
+        wanted = (is_left) ? MatrixSlotBinding::LEFT
+                           : MatrixSlotBinding::RIGHT;
     }
     else
     if (is_overlay)
     {
-        wanted = (is_left) ? Bound::OVERLAY_LEFT
-                           : Bound::OVERLAY_RIGHT;
+        wanted = (is_left) ? MatrixSlotBinding::OVERLAY_LEFT
+                           : MatrixSlotBinding::OVERLAY_RIGHT;
     }
 
     for (auto& slot_pair : m_slot_map)
@@ -38,8 +38,8 @@ uint32_t Stereo::Core::MatrixSlots::bind(const Analysis::Recipe::DrawClass& in_d
         bool  is_bound_right = (slot.bound == wanted);
 
         /* A matrix made for another separation is not the one to have, though it is for the eye. */
-        if (wanted == Bound::LEFT ||
-            wanted == Bound::RIGHT)
+        if (wanted == MatrixSlotBinding::LEFT ||
+            wanted == MatrixSlotBinding::RIGHT)
         {
             is_bound_right = is_bound_right                                             &&
                              slot.bound_convergence_distance == in_convergence_distance &&
@@ -69,8 +69,8 @@ uint32_t Stereo::Core::MatrixSlots::bind(const Analysis::Recipe::DrawClass& in_d
             change.function         = slot.function;
             change.matrix_fp32vec16 = slot.matrix_fp32vec16;
 
-            if (wanted == Bound::LEFT ||
-                wanted == Bound::RIGHT)
+            if (wanted == MatrixSlotBinding::LEFT ||
+                wanted == MatrixSlotBinding::RIGHT)
             {
                 for (const auto* rule_ptr : slot.rule_ptr_vec)
                 {
@@ -100,7 +100,7 @@ uint32_t Stereo::Core::MatrixSlots::bind(const Analysis::Recipe::DrawClass& in_d
             }
 
             slot.bound                      = (is_for_eye) ? wanted
-                                                           : Bound::MONO;
+                                                           : MatrixSlotBinding::MONO;
             slot.bound_convergence_distance = in_convergence_distance;
             slot.bound_overlay_parallax     = in_overlay_parallax;
             slot.bound_separation           = in_eye_separation;

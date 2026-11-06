@@ -7,6 +7,7 @@
 #ifndef UTILS_JSON_JSON_VALUE_H
 #define UTILS_JSON_JSON_VALUE_H
 
+#include "utils/json/types.h"
 #include <string>
 #include <vector>
 
@@ -16,22 +17,12 @@ namespace Utils
     {
         struct JsonValue
         {
-            enum class Type
-            {
-                ARRAY,
-                BOOL,
-                NULL_VALUE,
-                NUMBER,
-                OBJECT,
-                STRING
-            };
-
             bool                     bool_value   = false;
             std::vector<JsonValue>   item_vec;                /* array items, or object values           */
             std::vector<std::string> key_vec;                 /* object keys, parallel to item_vec       */
             double                   number_value = 0.0;
             std::string              string_value;            /* as UTF-8                                */
-            Type                     type         = Type::NULL_VALUE;
+            JsonValueType            type         = JsonValueType::NULL_VALUE;
 
             /* The member of an object, or a null value if there is none. */
             const JsonValue& at(const std::string& in_key) const;

@@ -33,6 +33,25 @@ namespace Stereo
             APIInterceptor::APIFunction                      function          = APIInterceptor::APIFunction::APIFUNCTION_UNKNOWN;
             std::array<float, 16>                            matrix_fp32vec16  = {};
         };
+
+        /* What the device has of a matrix, as far as the slots know. */
+        enum class MatrixSlotBinding
+        {
+            LEFT,
+            MONO,
+            NOTHING, /* the matrix was set by the application, and has not been put in the device since */
+            OVERLAY_LEFT,
+            OVERLAY_RIGHT,
+            RIGHT
+        };
+
+        /* How the x of the vertices are moved. */
+        enum class ScreenShiftKind
+        {
+            NONE,       /* as they are                                                              */
+            PER_VERTEX, /* each by its depth, with the distances below (the draw is part of the scene) */
+            UNIFORM     /* all by the same pixels (the draw is pushed toward the viewer as a whole)    */
+        };
     }
 }
 
