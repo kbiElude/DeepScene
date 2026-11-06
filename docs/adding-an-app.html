@@ -27,7 +27,7 @@
 <h1>Adding an app</h1>
 <p class="lead">How to take a 2D program from nothing to a recipe that turns it into stereo 3D, and to a line in the catalog of the VR player. The facts about the program are read from its analysis by an LLM; a person decides, and looks at the pictures.</p>
 
-<div class="note">Today the converter handles Direct3D 8 programs whose camera is set with <code>SetTransform</code>, and Direct3D 7 programs whose vertices are already in pixels (see <a href="#limits">What this does not cover</a>). The steps are the same for another API once it has its front end and its converter adapter (<a href="analysis.html#frontends">What adding an API takes</a>); only what the rules can name changes.</div>
+<div class="note">The converter handles Direct3D 8 programs whose camera is set with <code>SetTransform</code>, and Direct3D 7 programs whose vertices are already in pixels (see <a href="#limits">What this does not cover</a>). The steps are the same for another API once it has its front end and its converter adapter (<a href="analysis.html#frontends">What adding an API takes</a>); only what the rules can name changes.</div>
 
 <div class="note">The commands are written from the folder of a release (<code>build_final</code>): the programs are in <code>tools\api_dumper</code>, <code>tools\analysis</code> and <code>tools\stereo_replay</code> (see <a href="building.html#release">The collected build</a>).</div>
 
@@ -204,8 +204,8 @@ tools\stereo_replay\StereoReplayConsistencyChecker_x86.exe result_dump.workload 
 
 <h2 id="limits">What this does not cover</h2>
 <ul>
-  <li><strong>The camera has to be set with <code>SetTransform</code>.</strong> The calls a rule can apply to today are <code>IDirect3DDevice8::SetTransform</code> and <code>IDirect3DDevice7::SetTransform</code> (which has transform states named <code>D3DTRANSFORMSTATE_VIEW</code> and so on). A program that passes its matrices to a vertex shader as constants (<code>SetVertexShaderConstant</code>) has a camera that the converter cannot move yet: the analysis follows such constants, but a rule that changes them is new work in the loader, the baker and the converter, not a recipe.</li>
-  <li><strong>Direct3D 8, and Direct3D 7 for vertices in pixels.</strong> A Direct3D 7 program whose vertices a matrix moves has no adapter yet (see <a href="live-conversion.html#d3d7">Direct3D 7</a>). An OpenGL program can be captured, analysed in part and replayed, but there is no front end that gives it passes, and no converter adapter. See <a href="index.html#api">One API is not all of them</a>.</li>
+  <li><strong>The camera has to be set with <code>SetTransform</code>.</strong> The calls a rule can apply to are <code>IDirect3DDevice8::SetTransform</code> and <code>IDirect3DDevice7::SetTransform</code> (which has transform states named <code>D3DTRANSFORMSTATE_VIEW</code> and so on). A program that passes its matrices to a vertex shader as constants (<code>SetVertexShaderConstant</code>) has a camera that the converter cannot move: the analysis follows such constants, but a rule that changes them is new work in the loader, the baker and the converter, not a recipe.</li>
+  <li><strong>Direct3D 8, and Direct3D 7 for vertices in pixels.</strong> A Direct3D 7 program whose vertices a matrix moves has no adapter (see <a href="live-conversion.html#d3d7">Direct3D 7</a>). An OpenGL program can be captured, analysed in part and replayed, but there is no front end that gives it passes, and no converter adapter. See <a href="index.html#api">One API is not all of them</a>.</li>
   <li><strong>The LLM reads facts; it does not see the program.</strong> A fault that the facts cannot show (a pass that is an interface in some frames and a scene in others, with the same structure) is found by a person, in step 6.</li>
 </ul>
 

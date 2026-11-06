@@ -108,7 +108,7 @@
 </svg>
 <figcaption>VRPlayer makes a session id and starts the launcher and the presenter with it. The launcher puts the converter in the application; the converter writes the two images into the frame channel (shared memory), and the presenter, which is always 64-bit, takes them from it. The controls of the player travel the other way through the same channel.</figcaption>
 </figure>
-<p>The launcher and the converter match the bitness of the application (the demos are 32-bit); everything that touches the headset is 64-bit. That is why most projects are built for both and the release has an <code>_x86</code> and an <code>_x64</code> file of each. See <a href="live-conversion.html">Live conversion</a>.</p>
+<p>The launcher and the converter match the bitness of the application (the supported applications are 32-bit); everything that touches the headset is 64-bit. That is why most projects are built for both and the release has an <code>_x86</code> and an <code>_x64</code> file of each. See <a href="live-conversion.html">Live conversion</a>.</p>
 
 <h2 id="data">The files that flow between them</h2>
 <figure>

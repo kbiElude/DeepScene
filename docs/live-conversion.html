@@ -221,7 +221,7 @@
 </table>
 <p>If the program's presents are even and the repeats are many, the delay is ours; seconds in which the program itself stalls (a scene that loads) show as fewer presents and many repeats, and nothing downstream can show images the program has not made. With <code>--log --wait</code> the launcher reads the last statistics when the application exits and says what the run came to: frames converted, and a line for each thing the converter could not do (draws of a signature the recipe does not know, frames of a scene it has no distance for, surfaces that could not be given a twin, calls not made for the right eye).</p>
 <p>A run without the VR player takes its switches from the environment: <code>APISTEREO_EYE_SEPARATION</code>, <code>APISTEREO_DEPTH_STRENGTH</code> (1 is natural, and follows the limit of each scene), <code>APISTEREO_PUSH_OVERLAY</code>, <code>APISTEREO_TARGET_EYE_WIDTH</code> and <code>_HEIGHT</code> (which also have the program render to the invisible window), <code>APISTEREO_DUMP_FRAME</code> and <code>APISTEREO_DUMP_EVERY</code> (a frame, both eyes, to <code>%TEMP%\apistereo_frame_N.bmp</code>), and, to measure, <code>APISTEREO_NO_RIGHT_EYE</code> and <code>APISTEREO_NO_FRAME_LIMIT</code>.</p>
-<div class="note">A program that never exits by itself (the demos loop their credits) must be ended by the user or the launcher; a test script that starts one must always clean up.</div>
+<div class="note">A program that never exits by itself (a demo that loops its credits is one) must be ended by the user or the launcher; a test script that starts one must always clean up.</div>
 </main>
 </body>
 </html>

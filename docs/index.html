@@ -86,15 +86,15 @@
 </table>
 
 <h2 id="api">What is supported</h2>
-<p>Direct3D 8 was the first API, the demos are what drove the work, and the code is arranged for more. What depends on an API is exactly the row of this table; everything else (the model of the analysis, the keys, the recipe format, the decisions of the stereo core, the frame channel, the presenter and the player) does not know which API a program uses.</p>
+<p>The code is arranged for more than one API. What depends on an API is exactly the row of this table; everything else (the model of the analysis, the keys, the recipe format, the decisions of the stereo core, the frame channel, the presenter and the player) does not know which API a program uses.</p>
 <table>
 <tr><th>API</th><th>Hooks and dump</th><th>Printer</th><th>Analysis</th><th>Replay</th><th>Stereo conversion</th></tr>
 <tr><td>DirectDraw 7 and Direct3D 7</td><td>yes</td><td>yes</td><td>yes (front end)</td><td>yes (executor)</td><td>yes (adapter)</td></tr>
 <tr><td>Direct3D 8</td><td>yes</td><td>yes</td><td>yes (front end)</td><td>yes (executor)</td><td>yes (adapter)</td></tr>
-<tr><td>OpenGL</td><td>yes</td><td>yes</td><td>not yet</td><td>yes (executor)</td><td>not yet</td></tr>
+<tr><td>OpenGL</td><td>yes</td><td>yes</td><td>no</td><td>yes (executor)</td><td>no</td></tr>
 <tr><td>Win32 windows (GDI32, User32, WGL)</td><td>yes</td><td>yes</td><td>not applicable</td><td>yes (window handling)</td><td>not applicable</td></tr>
 </table>
-<p>Adding an API means adding its row: see <a href="contributing.html#new-api">Adding an API</a>. The converter handles Direct3D 8 programs whose camera is set with <code>SetTransform</code>, and Direct3D 7 programs whose vertices are already in pixels. The programs are 32-bit, because the demos are; the player and the presenter are 64-bit. Only the Oculus Quest 3 has been tested as a headset.</p>
+<p>Adding an API means adding its row: see <a href="contributing.html#new-api">Adding an API</a>. The converter handles Direct3D 8 programs whose camera is set with <code>SetTransform</code>, and Direct3D 7 programs whose vertices are already in pixels. The programs are 32-bit, as the supported applications are; the player and the presenter are 64-bit. Only the Oculus Quest 3 has been tested as a headset.</p>
 
 <h2>Where to go next</h2>
 <div class="cards">

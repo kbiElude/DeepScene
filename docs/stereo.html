@@ -224,7 +224,7 @@ shift(right eye) = −shift(left eye)
 
 <h2 id="limits">What is not covered</h2>
 <ul class="tight">
-  <li>A program that passes its matrices to a vertex shader as constants (<code>SetVertexShaderConstant</code>) has a camera that the converter cannot move: no rule can name it yet.</li>
+  <li>A program that passes its matrices to a vertex shader as constants (<code>SetVertexShaderConstant</code>) has a camera that the converter cannot move: no rule can name it.</li>
   <li>A pre-transformed vertex has no real depth, only <code>rhw</code>; the parallax of such a scene is as good as the field of view and convergence distance the recipe was given.</li>
   <li>The separation is a function of the convergence distance of the scene, not of what the viewer looks at. There is no eye tracking.</li>
   <li>Vertical parallax and toe-in are deliberately absent.</li>
