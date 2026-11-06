@@ -3,6 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/recipe/recipe_loader.h"
+#include "command_line.h"
 #include "comparison.h"
 #include "frame_hash_sink.h"
 #include "overlay_probe_mode.h"
@@ -10,77 +11,18 @@
 #include "replay_runner.h"
 #include "screenshot_mode.h"
 #include "types.h"
-#include "utils/command_line/number_parser.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
 #include <vector>
-#include <windows.h>
-
-namespace Stereo
-{
-    namespace Replay
-    {
-        namespace ConsistencyChecker
-        {
-            void print_usage();
-        }
-    }
-}
-
-void Stereo::Replay::ConsistencyChecker::print_usage()
-{
-    fprintf(stdout,
-            "Usage:\n"
-            "\n"
-            "StereoReplayConsistencyChecker_x86 file.workload [--from A] [--to B] [--dump-dir DIR] [--recipe FILE [--eye-separation D]]\n"
-            "                                    [--ways again,twice,restore,recipe] [--parallel]\n"
-            "StereoReplayConsistencyChecker_x86 file.workload --profile [--from A] [--to B] [--recipe FILE]\n"
-            "StereoReplayConsistencyChecker_x86 file.workload --same-frames-as other.workload [--from A] [--to B]\n"
-            "StereoReplayConsistencyChecker_x86 file.workload --screenshot N --out FILE.png [--recipe FILE [--eye left|right|both|anaglyph]]\n"
-            "StereoReplayConsistencyChecker_x86 file.workload --overlay-probe candidates.json --recipe FILE --dump-dir DIR [--deps FILE] [--eye-separation D]\n"
-            "StereoReplayConsistencyChecker_x86 file.workload --contact-sheet K --out FILE.png [--from A] [--to B] [--recipe FILE [--eye ...]]\n"
-            "\n"
-            "Replays frames A to B (default 0 to 999) of a Direct3D 8 workload in four ways: as they are, as they are again (to\n"
-            "see how much a replay differs from itself), executed twice, and executed twice with the state of the device put\n"
-            "back before the second execution. The back buffer after each execution is compared with that of the first replay.\n"
-            "\n"
-            "  --deps FILE      The dependencies of the workload (a .deps file of it, see APIDumpDependencyExtractor): each way goes to the last\n"
-            "                   frame as a seek does, leaving out the draws and uploads of the frames which nothing after it reads. For checking\n"
-            "                   that it comes out as the replay of every frame does (take two screenshots, with and without, and compare them).\n"
-            "  --dump-dir DIR   Write the images of the first frame in which an execution differs, as PNG files\n"
-            "  --eye-separation D  The distance between the eyes for the recipe (0 by default)\n"
-            "  --recipe FILE    Replay the frames twice with the recipe instead of the last two ways: the first execution is for\n"
-            "                   the left eye, the second for the right one. A recipe that changes nothing gives the frames as they are.\n"
-            "  --ways LIST      Only these ways, besides the frames as they are (which are always replayed, to compare with): again (as\n"
-            "                   they are, again), twice, restore (twice, the state put back between) and recipe (needs --recipe). Each way\n"
-            "                   is a replay of the workload from its start, so fewer ways are less to wait for.\n"
-            "  --overlay-probe FILE  Instead of the check: FILE is the list of draws that may be 2D overlays (RecipeBake --overlays). The frame in which each is first\n"
-            "                   drawn is replayed for the left eye with the draw and without it (the recipe skips it in its pass only); the images go to --dump-dir: an\n"
-            "                   animation (GIF) that flips between the frame and the frame with the pixels the draw makes in magenta, and a still, for each candidate that\n"
-            "                   makes any, candidates.json with the number of them, and index.html to look at them. A pass which makes no difference left out whole is\n"
-            "                   left out for all its draws at once.\n"
-            "  --jobs N         With --overlay-probe: share the work between N processes of this program (1 by default: none). Each replay decodes the workload from\n"
-            "                   its start with threads of its own, and that is bound by the bandwidth of the memory: one process saturates 8 cores, and two or more\n"
-            "                   were no faster (0.9 to 1.0 times). A process takes about 1.5 GB. It may pay on a machine with more memory bandwidth to the cores.\n"
-            "  --parallel       Replay the ways at the same time, each with an engine of its own: faster, and needs the memory of all.\n"
-            "\n"
-            "  --screenshot N   Instead of the check: replay once, up to frame N, and write the image of that frame to the PNG file of --out. With a\n"
-            "                   recipe it is both eyes side by side, or the one that --eye says (anaglyph: red-cyan); without one, the frame as it is.\n"
-            "  --profile        Instead of the check: replay frames A to B once (as they are, or for the eyes of the recipe) and say where the time of the calls went:\n"
-            "                   the functions whose calls took longest, and the frames that took longest.\n"
-            "  --same-frames-as FILE  Instead of the check: replay frames A to B of this workload and of FILE as they are, and say whether the images are the\n"
-            "                   same (exit code 3 if not). For a slice of a workload (APIDumpSlicer): it has to replay to the images of the workload.\n"
-            "  --contact-sheet K  Instead of the check: one PNG with K frames spread evenly from A to B (or the end of the workload), each as a screenshot\n"
-            "                   is, and the numbers of the frames in the order they are shown.\n");
-}
 
 int main(int   in_argc,
          char* in_argv[])
 {
+    std::vector<std::string>                                        argument_vec;
     Stereo::Replay::ConsistencyChecker::ExitCode                    exit_code       = Stereo::Replay::ConsistencyChecker::ExitCode::SUCCESS;
-    bool                                                            is_usage_error  = false;
     Stereo::Replay::ConsistencyChecker::Options                     options;
+    std::string                                                     parse_error;
     std::vector<Stereo::Replay::ConsistencyChecker::FrameHashSink>  sink_vec;
     std::vector<const Stereo::Replay::ConsistencyChecker::Variant*> variant_ptr_vec;
 
@@ -88,256 +30,19 @@ int main(int   in_argc,
              n_argument < in_argc;
            ++n_argument)
     {
-        const std::string argument = in_argv[n_argument];
-        const bool        has_next = (n_argument + 1 < in_argc);
-
-        if (argument == "--from" &&
-            has_next)
-        {
-            uint64_t value = 0;
-
-            if (Utils::CommandLine::NumberParser::parse_unsigned(in_argv[++n_argument],
-                                                                 UINT32_MAX,
-                                                                 &value) == false)
-            {
-                is_usage_error = true;
-            }
-
-            options.first_frame = static_cast<uint32_t>(value);
-        }
-        else
-        if (argument == "--to" &&
-            has_next)
-        {
-            uint64_t value = 0;
-
-            if (Utils::CommandLine::NumberParser::parse_unsigned(in_argv[++n_argument],
-                                                                 UINT32_MAX,
-                                                                 &value) == false)
-            {
-                is_usage_error = true;
-            }
-
-            options.last_frame = static_cast<uint32_t>(value);
-        }
-        else
-        if (argument == "--contact-sheet" &&
-            has_next)
-        {
-            uint64_t value = 0;
-
-            if (Utils::CommandLine::NumberParser::parse_unsigned(in_argv[++n_argument],
-                                                                 UINT32_MAX,
-                                                                 &value) == false)
-            {
-                is_usage_error = true;
-            }
-
-            options.contact_sheet_n_frames = static_cast<uint32_t>(value);
-        }
-        else
-        if (argument == "--dump-dir" &&
-            has_next)
-        {
-            options.dump_directory = in_argv[++n_argument];
-        }
-        else
-        if (argument == "--dump-frame" &&
-            has_next)
-        {
-            options.dump_frame = static_cast<uint32_t>(::strtoul(in_argv[++n_argument],
-                                                                  nullptr,
-                                                                  10) );
-        }
-        else
-        if (argument == "--eye-separation" &&
-            has_next)
-        {
-            double separation = 0.0;
-
-            if (Utils::CommandLine::NumberParser::parse_double(in_argv[++n_argument],
-                                                               &separation) == false)
-            {
-                is_usage_error = true;
-            }
-
-            options.eye_separation = static_cast<float>(separation);
-        }
-        else
-        if (argument == "--deps" &&
-            has_next)
-        {
-            options.deps_filename = in_argv[++n_argument];
-        }
-        else
-        if (argument == "--history")
-        {
-            options.has_history = true;
-        }
-        else
-        if (argument == "--recipe" &&
-            has_next)
-        {
-            options.recipe_filename = in_argv[++n_argument];
-        }
-        else
-        if (argument == "--ways" &&
-            has_next)
-        {
-            std::string list    = in_argv[++n_argument];
-            size_t      n_start = 0;
-
-            while (n_start <= list.size() )
-            {
-                const size_t n_end = list.find(',', n_start);
-
-                options.way_name_vec.push_back(list.substr(n_start,
-                                                           (n_end == std::string::npos) ? std::string::npos
-                                                                                        : n_end - n_start) );
-
-                n_start = (n_end == std::string::npos) ? list.size() + 1
-                                                       : n_end + 1;
-            }
-        }
-        else
-        if (argument == "--eye" &&
-            has_next)
-        {
-            const std::string eye_name = in_argv[++n_argument];
-
-            if (eye_name == "left")
-            {
-                options.eye_view     = Utils::Images::EyeView::LEFT;
-                options.has_eye_view = true;
-            }
-            else
-            if (eye_name == "right")
-            {
-                options.eye_view     = Utils::Images::EyeView::RIGHT;
-                options.has_eye_view = true;
-            }
-            else
-            if (eye_name == "both")
-            {
-                options.eye_view     = Utils::Images::EyeView::BOTH;
-                options.has_eye_view = true;
-            }
-            else
-            if (eye_name == "anaglyph")
-            {
-                options.eye_view     = Utils::Images::EyeView::ANAGLYPH;
-                options.has_eye_view = true;
-            }
-            else
-            {
-                is_usage_error = true;
-            }
-        }
-        else
-        if (argument == "--out" &&
-            has_next)
-        {
-            options.image_filename = in_argv[++n_argument];
-        }
-        else
-        if (argument == "--screenshot" &&
-            has_next)
-        {
-            uint64_t value = 0;
-
-            if (Utils::CommandLine::NumberParser::parse_unsigned(in_argv[++n_argument],
-                                                                 UINT32_MAX - 1,
-                                                                 &value) == false)
-            {
-                is_usage_error = true;
-            }
-
-            options.screenshot_frame = static_cast<uint32_t>(value);
-        }
-        else
-        if (argument == "--same-frames-as" &&
-            has_next)
-        {
-            options.same_frames_workload_filename = in_argv[++n_argument];
-        }
-        else
-        if (argument == "--profile")
-        {
-            options.is_profiling = true;
-        }
-        else
-        if (argument == "--overlay-probe" &&
-            has_next)
-        {
-            options.overlay_probe_filename = in_argv[++n_argument];
-        }
-        else
-        if (argument == "--parallel")
-        {
-            options.is_parallel = true;
-        }
-        else
-        if (argument == "--jobs" &&
-            has_next)
-        {
-            uint64_t value = 0;
-
-            if (Utils::CommandLine::NumberParser::parse_unsigned(in_argv[++n_argument],
-                                                                 MAXIMUM_WAIT_OBJECTS - 1,
-                                                                 &value) == false ||
-                value == 0)
-            {
-                is_usage_error = true;
-            }
-
-            options.n_jobs = static_cast<uint32_t>(value);
-        }
-        else
-        if (argument == "--overlay-probe-shard" &&
-            n_argument + 2 < in_argc)
-        {
-            uint64_t index = 0;
-            uint64_t count = 0;
-
-            if (Utils::CommandLine::NumberParser::parse_unsigned(in_argv[++n_argument],
-                                                                 MAXIMUM_WAIT_OBJECTS,
-                                                                 &index) == false ||
-                Utils::CommandLine::NumberParser::parse_unsigned(in_argv[++n_argument],
-                                                                 MAXIMUM_WAIT_OBJECTS,
-                                                                 &count) == false ||
-                index >= count)
-            {
-                is_usage_error = true;
-            }
-
-            options.overlay_probe_shard_count = static_cast<uint32_t>(count);
-            options.overlay_probe_shard_index = static_cast<uint32_t>(index);
-        }
-        else
-        if (argument == "--overlay-probe-result" &&
-            has_next)
-        {
-            options.overlay_probe_result_filename = in_argv[++n_argument];
-        }
-        else
-        if (argument.empty()                  == false &&
-            argument.at(0)                    != '-'   &&
-            options.workload_filename.empty() )
-        {
-            options.workload_filename = argument;
-        }
-        else
-        {
-            is_usage_error = true;
-        }
+        argument_vec.push_back(in_argv[n_argument]);
     }
 
-    if (is_usage_error                                         ||
-        options.workload_filename.empty()                      ||
-        options.first_frame               > options.last_frame ||
-        Stereo::Replay::ConsistencyChecker::are_image_options_valid(options) == false)
+    if (Stereo::Replay::ConsistencyChecker::CommandLine::parse(argument_vec,
+                                                               &options,
+                                                               &parse_error) == false)
     {
-        Stereo::Replay::ConsistencyChecker::print_usage();
+        fprintf(stdout,
+                "%s\n\n",
+                parse_error.c_str() );
+        fprintf(stdout,
+                "%s",
+                Stereo::Replay::ConsistencyChecker::CommandLine::get_usage_ptr() );
 
         exit_code = Stereo::Replay::ConsistencyChecker::ExitCode::BAD_ARGUMENTS;
 
@@ -511,8 +216,9 @@ int main(int   in_argc,
         {
             const auto* variant_ptr = Stereo::Replay::ConsistencyChecker::get_variant_ptr(way_name);
 
-            if (variant_ptr == nullptr                                                                 ||
-                (variant_ptr->uses_recipe && options.recipe_filename.empty() ) )
+            if (variant_ptr == nullptr        ||
+                (variant_ptr->uses_recipe &&
+                 options.recipe_filename.empty() ) )
             {
                 fprintf(stdout,
                         "The way \"%s\" is not one that can be replayed here: again, twice, restore, or recipe with --recipe.\n",

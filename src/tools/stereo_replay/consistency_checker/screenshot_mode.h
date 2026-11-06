@@ -16,9 +16,6 @@ namespace Stereo
     {
         namespace ConsistencyChecker
         {
-            /* False if the options of a screenshot or a contact sheet are given without it, or it without the file to write, or both at once. */
-            bool are_image_options_valid(const Options& in_options);
-
             /* Replays the workload once, up to the last of the frames that the options have a contact sheet of, and writes the sheet: the frames spread evenly
              * from the first frame of the options to the last (or the end of the workload), each as a screenshot is.
              */

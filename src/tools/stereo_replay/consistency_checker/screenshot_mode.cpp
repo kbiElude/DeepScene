@@ -14,35 +14,6 @@
 #include <stdio.h>
 #include <vector>
 
-bool Stereo::Replay::ConsistencyChecker::are_image_options_valid(const Stereo::Replay::ConsistencyChecker::Options& in_options)
-{
-    const bool is_contact_sheet = (in_options.contact_sheet_n_frames != 0);
-    const bool is_screenshot    = (in_options.screenshot_frame       != UINT32_MAX);
-    bool       result           = false;
-
-    if (is_contact_sheet &&
-        is_screenshot)
-    {
-        goto end;
-    }
-
-    if (is_contact_sheet ||
-        is_screenshot)
-    {
-        result = (in_options.image_filename.empty() == false &&
-                  (in_options.has_eye_view == false          ||
-                   in_options.recipe_filename.empty() == false) );
-    }
-    else
-    {
-        result = (in_options.image_filename.empty() &&
-                  in_options.has_eye_view == false);
-    }
-
-end:
-    return result;
-}
-
 bool Stereo::Replay::ConsistencyChecker::take_contact_sheet(const Stereo::Replay::ConsistencyChecker::Options& in_options,
                                                             std::string*                                       out_error_ptr)
 {

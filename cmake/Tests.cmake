@@ -24,6 +24,7 @@ if (DEMOVRPLAYER_BUILD_TESTS)
                                      "${DemoVRPlayer_SOURCE_DIR}/src/runtime/launcher/command_line.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/runtime/launcher/log_summary.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/runtime/presenter/command_line.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/tools/stereo_replay/consistency_checker/command_line.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/tools/stereo_replay/consistency_checker/frame_sampler.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/tools/stereo_replay/consistency_checker/overlay_probe.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/tools/stereo_replay/consistency_checker/replay_profiler.cpp"
