@@ -3,8 +3,8 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/recipe_loader/recipe_loader.h"
+#include "utils/files/file_system.h"
 #include "vr/app_catalog/catalog_loader.h"
-#include "vr/app_installer/file_system.h"
 #include <algorithm>
 #include <set>
 
@@ -16,7 +16,7 @@ void VR::AppCatalog::CatalogLoader::check_availability(AppEntry*          inout_
 
     inout_app_ptr->name = in_title;
 
-    if (VR::AppInstaller::FileSystem::is_file(inout_app_ptr->recipe_path) == false)
+    if (Utils::Files::FileSystem::is_file(inout_app_ptr->recipe_path) == false)
     {
         inout_app_ptr->unavailable_reason = "The recipe cannot be found: " + inout_app_ptr->recipe_path;
     }
@@ -40,7 +40,7 @@ void VR::AppCatalog::CatalogLoader::check_availability(AppEntry*          inout_
 
     if (inout_app_ptr->unavailable_reason.empty() )
     {
-        const bool is_executable_found = VR::AppInstaller::FileSystem::is_file(inout_app_ptr->executable_path);
+        const bool is_executable_found = Utils::Files::FileSystem::is_file(inout_app_ptr->executable_path);
 
         if (is_executable_found == false)
         {
@@ -84,8 +84,8 @@ bool VR::AppCatalog::CatalogLoader::load(const std::string& in_filename,
     bool        result = false;
     std::string text;
 
-    if (Analysis::APIDumpAnalysis::JsonReader::read_file(in_filename,
-                                                        &text) == false)
+    if (Utils::Json::JsonReader::read_file(in_filename,
+                                           &text) == false)
     {
         *out_error_ptr = "Cannot open " + in_filename;
 
@@ -114,25 +114,25 @@ bool VR::AppCatalog::CatalogLoader::parse(const std::string& in_text,
 {
     constexpr double SUPPORTED_CATALOG_VERSION = 0.0;
 
-    std::string                          json_error;
-    std::set<std::string>                id_set;
-    Analysis::APIDumpAnalysis::JsonValue root;
-    bool                                 result = false;
+    std::string            json_error;
+    std::set<std::string>  id_set;
+    Utils::Json::JsonValue root;
+    bool                   result     = false;
 
     *out_catalog_ptr = Catalog();
 
-    const std::string catalog_text = Analysis::APIDumpAnalysis::JsonReader::strip_byte_order_mark(in_text);
+    const std::string catalog_text = Utils::Json::JsonReader::strip_byte_order_mark(in_text);
 
-    if (Analysis::APIDumpAnalysis::JsonReader::parse(catalog_text,
-                                                    &root,
-                                                    &json_error) == false)
+    if (Utils::Json::JsonReader::parse(catalog_text,
+                                       &root,
+                                       &json_error) == false)
     {
         *out_error_ptr = "Not valid JSON: " + json_error;
 
         goto end;
     }
 
-    if (root.type != Analysis::APIDumpAnalysis::JsonValue::Type::OBJECT)
+    if (root.type != Utils::Json::JsonValue::Type::OBJECT)
     {
         *out_error_ptr = "The catalog must be a JSON object";
 
@@ -150,7 +150,7 @@ bool VR::AppCatalog::CatalogLoader::parse(const std::string& in_text,
         }
     }
 
-    if (root.at("catalog_version").type != Analysis::APIDumpAnalysis::JsonValue::Type::NUMBER ||
+    if (root.at("catalog_version").type != Utils::Json::JsonValue::Type::NUMBER ||
         root.at("catalog_version").number_value != SUPPORTED_CATALOG_VERSION)
     {
         *out_error_ptr = "catalog_version: must be 0";
@@ -158,7 +158,7 @@ bool VR::AppCatalog::CatalogLoader::parse(const std::string& in_text,
         goto end;
     }
 
-    if (root.at("apps").type != Analysis::APIDumpAnalysis::JsonValue::Type::ARRAY)
+    if (root.at("apps").type != Utils::Json::JsonValue::Type::ARRAY)
     {
         *out_error_ptr = "apps: expected a list";
 
@@ -170,7 +170,7 @@ bool VR::AppCatalog::CatalogLoader::parse(const std::string& in_text,
               ++n_app)
     {
         AppEntry          app;
-        const std::string path = "apps[" + std::to_string(n_app) + "]";
+        const std::string path  = "apps[" + std::to_string(n_app) + "]";
         std::string       title;
 
         if (parse_app(root.at("apps").item_vec.at(n_app),
@@ -202,19 +202,19 @@ end:
     return result;
 }
 
-bool VR::AppCatalog::CatalogLoader::parse_app(const Analysis::APIDumpAnalysis::JsonValue& in_app,
-                                              const std::string&                          in_path,
-                                              const std::string&                          in_base_directory,
-                                              AppEntry*                                   out_app_ptr,
-                                              std::string*                                out_title_ptr,
-                                              std::string*                                out_error_ptr)
+bool VR::AppCatalog::CatalogLoader::parse_app(const Utils::Json::JsonValue& in_app,
+                                              const std::string&            in_path,
+                                              const std::string&            in_base_directory,
+                                              AppEntry*                     out_app_ptr,
+                                              std::string*                  out_title_ptr,
+                                              std::string*                  out_error_ptr)
 {
     std::string executable;
     std::string recipe;
     bool        result            = false;
     std::string working_directory;
 
-    if (in_app.type != Analysis::APIDumpAnalysis::JsonValue::Type::OBJECT)
+    if (in_app.type != Utils::Json::JsonValue::Type::OBJECT)
     {
         *out_error_ptr = in_path + ": expected an object";
 
@@ -347,16 +347,16 @@ end:
     return result;
 }
 
-bool VR::AppCatalog::CatalogLoader::parse_download(const Analysis::APIDumpAnalysis::JsonValue& in_download,
-                                                   const std::string&                          in_path,
-                                                   const std::string&                          in_install_directory,
-                                                   VR::AppInstaller::InstallSpec*              out_spec_ptr,
-                                                   std::string*                                out_error_ptr)
+bool VR::AppCatalog::CatalogLoader::parse_download(const Utils::Json::JsonValue&  in_download,
+                                                   const std::string&             in_path,
+                                                   const std::string&             in_install_directory,
+                                                   VR::AppInstaller::InstallSpec* out_spec_ptr,
+                                                   std::string*                   out_error_ptr)
 {
     bool is_parsed = false;
     bool result    = false;
 
-    if (in_download.type != Analysis::APIDumpAnalysis::JsonValue::Type::OBJECT)
+    if (in_download.type != Utils::Json::JsonValue::Type::OBJECT)
     {
         *out_error_ptr = in_path + ": expected an object";
 
@@ -380,7 +380,7 @@ bool VR::AppCatalog::CatalogLoader::parse_download(const Analysis::APIDumpAnalys
         const auto* urls_ptr = in_download.find_ptr("urls");
 
         if (urls_ptr == nullptr                                                            ||
-            urls_ptr->type != Analysis::APIDumpAnalysis::JsonValue::Type::ARRAY            ||
+            urls_ptr->type != Utils::Json::JsonValue::Type::ARRAY            ||
             urls_ptr->item_vec.empty() )
         {
             *out_error_ptr = in_path + ".urls: expected a list of addresses, with one at least";
@@ -392,9 +392,9 @@ bool VR::AppCatalog::CatalogLoader::parse_download(const Analysis::APIDumpAnalys
                     n_url < urls_ptr->item_vec.size();
                   ++n_url)
         {
-            const Analysis::APIDumpAnalysis::JsonValue& url_value = urls_ptr->item_vec.at(n_url);
+            const Utils::Json::JsonValue& url_value = urls_ptr->item_vec.at(n_url);
 
-            if (url_value.type != Analysis::APIDumpAnalysis::JsonValue::Type::STRING ||
+            if (url_value.type != Utils::Json::JsonValue::Type::STRING ||
                 url_value.string_value.compare(0,
                                                8,
                                                "https://") != 0)
@@ -467,11 +467,11 @@ end:
     return result;
 }
 
-bool VR::AppCatalog::CatalogLoader::parse_number(const Analysis::APIDumpAnalysis::JsonValue& in_object,
-                                                 const std::string&                          in_key,
-                                                 const std::string&                          in_path,
-                                                 uint64_t*                                   out_number_ptr,
-                                                 std::string*                                out_error_ptr)
+bool VR::AppCatalog::CatalogLoader::parse_number(const Utils::Json::JsonValue& in_object,
+                                                 const std::string&            in_key,
+                                                 const std::string&            in_path,
+                                                 uint64_t*                     out_number_ptr,
+                                                 std::string*                  out_error_ptr)
 {
     constexpr double N_BYTES_MAX = 4294967296.0;
 
@@ -479,7 +479,7 @@ bool VR::AppCatalog::CatalogLoader::parse_number(const Analysis::APIDumpAnalysis
     bool        result    = false;
 
     if (value_ptr == nullptr                                                  ||
-        value_ptr->type != Analysis::APIDumpAnalysis::JsonValue::Type::NUMBER ||
+        value_ptr->type != Utils::Json::JsonValue::Type::NUMBER ||
         value_ptr->number_value < 1.0                                         ||
         value_ptr->number_value > N_BYTES_MAX                                 ||
         value_ptr->number_value != static_cast<double>(static_cast<uint64_t>(value_ptr->number_value) ) )
@@ -496,12 +496,12 @@ end:
     return result;
 }
 
-bool VR::AppCatalog::CatalogLoader::parse_string(const Analysis::APIDumpAnalysis::JsonValue& in_object,
-                                                 const std::string&                          in_key,
-                                                 const bool&                                 in_is_required,
-                                                 const std::string&                          in_path,
-                                                 std::string*                                out_string_ptr,
-                                                 std::string*                                out_error_ptr)
+bool VR::AppCatalog::CatalogLoader::parse_string(const Utils::Json::JsonValue& in_object,
+                                                 const std::string&            in_key,
+                                                 const bool&                   in_is_required,
+                                                 const std::string&            in_path,
+                                                 std::string*                  out_string_ptr,
+                                                 std::string*                  out_error_ptr)
 {
     const auto* value_ptr = in_object.find_ptr(in_key);
     bool        result    = false;
@@ -520,7 +520,7 @@ bool VR::AppCatalog::CatalogLoader::parse_string(const Analysis::APIDumpAnalysis
         goto end;
     }
 
-    if (value_ptr->type != Analysis::APIDumpAnalysis::JsonValue::Type::STRING ||
+    if (value_ptr->type != Utils::Json::JsonValue::Type::STRING ||
         (in_is_required                                                       &&
          value_ptr->string_value.empty() ) )
     {
@@ -540,11 +540,11 @@ end:
 std::string VR::AppCatalog::CatalogLoader::resolve_path(const std::string& in_base_directory,
                                                         const std::string& in_path)
 {
-    std::string               joined = (is_absolute_path(in_path) || in_base_directory.empty() ) ? in_path
-                                                                                              : in_base_directory + "\\" + in_path;
-    std::vector<std::string>  part_vec;
-    std::string               result;
-    size_t                    start  = 0;
+    std::string              joined   = (is_absolute_path(in_path) || in_base_directory.empty() ) ? in_path
+                                                                                               : in_base_directory + "\\" + in_path;
+    std::vector<std::string> part_vec;
+    std::string              result;
+    size_t                   start    = 0;
 
     std::replace(joined.begin(),
                  joined.end  (),
@@ -554,10 +554,10 @@ std::string VR::AppCatalog::CatalogLoader::resolve_path(const std::string& in_ba
     /* "." and ".." are resolved, so that what is shown is where the file is; a ".." which has nothing to remove is kept. */
     while (start <= joined.size() )
     {
-        size_t       end  = joined.find('\\',
-                                        start);
-        const size_t stop = (end == std::string::npos) ? joined.size()
-                                                       : end;
+        size_t            end  = joined.find('\\',
+                                             start);
+        const size_t      stop = (end == std::string::npos) ? joined.size()
+                                                            : end;
         const std::string part = joined.substr(start,
                                                stop - start);
 

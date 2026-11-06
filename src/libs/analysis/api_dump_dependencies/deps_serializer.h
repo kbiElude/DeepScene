@@ -9,9 +9,9 @@
 #ifndef APIDUMPDEPENDENCIES_DEPS_SERIALIZER_H
 #define APIDUMPDEPENDENCIES_DEPS_SERIALIZER_H
 
-#include "analysis/api_dump_analysis/byte_reader.h"
-#include "analysis/api_dump_analysis/byte_writer.h"
 #include "analysis/api_dump_dependencies/types.h"
+#include "utils/binary_io/byte_reader.h"
+#include "utils/binary_io/byte_writer.h"
 #include <stdint.h>
 #include <vector>
 
@@ -38,8 +38,8 @@ namespace Analysis
         private:
             /* Reads a value of an enumeration, which goes from 0 up to the last value given. A value above it fails the reader. */
             template<typename Enum>
-            static Enum read_enum(Analysis::APIDumpAnalysis::ByteReader* inout_reader_ptr,
-                                  const Enum&                            in_last_value);
+            static Enum read_enum(Utils::BinaryIO::ByteReader* inout_reader_ptr,
+                                  const Enum&                  in_last_value);
         };
     }
 }

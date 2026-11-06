@@ -179,7 +179,7 @@ Stereo::Transport::ExportStatus Stereo::ConverterDLL::D3D8HostMemoryExporter::ex
 
     /* Both copies are asked for before either is waited for, so that the GPU makes them one after the other without the CPU between. */
     {
-        const double issue_start_ms = Stereo::Transport::SeriesStats::get_now();
+        const double issue_start_ms = Utils::Statistics::SeriesStats::get_now();
 
         for (uint32_t n_eye = 0;
                       n_eye < n_eyes;
@@ -196,11 +196,11 @@ Stereo::Transport::ExportStatus Stereo::ConverterDLL::D3D8HostMemoryExporter::ex
             }
         }
 
-        m_issue_cost.add(Stereo::Transport::SeriesStats::get_now() - issue_start_ms);
+        m_issue_cost.add(Utils::Statistics::SeriesStats::get_now() - issue_start_ms);
     }
 
     {
-        const double lock_start_ms = Stereo::Transport::SeriesStats::get_now();
+        const double lock_start_ms = Utils::Statistics::SeriesStats::get_now();
 
         for (uint32_t n_eye = 0;
                       n_eye < n_eyes;
@@ -218,7 +218,7 @@ Stereo::Transport::ExportStatus Stereo::ConverterDLL::D3D8HostMemoryExporter::ex
             job.description_array.at(n_eye) = description_array.at(n_eye);
         }
 
-        m_lock_cost.add(Stereo::Transport::SeriesStats::get_now() - lock_start_ms);
+        m_lock_cost.add(Utils::Statistics::SeriesStats::get_now() - lock_start_ms);
     }
 
     job.info.frame_index       = in_frame_index;
@@ -395,7 +395,7 @@ void Stereo::ConverterDLL::D3D8HostMemoryExporter::unlock_staging(Staging* inout
 
 void Stereo::ConverterDLL::D3D8HostMemoryExporter::wait_for_job()
 {
-    const double                 wait_start_ms = Stereo::Transport::SeriesStats::get_now();
+    const double                 wait_start_ms = Utils::Statistics::SeriesStats::get_now();
     std::unique_lock<std::mutex> lock(m_mutex);
 
     m_done_condition.wait(lock,
@@ -417,7 +417,7 @@ void Stereo::ConverterDLL::D3D8HostMemoryExporter::wait_for_job()
         m_job_state = JobState::IDLE;
     }
 
-    m_job_wait.add(Stereo::Transport::SeriesStats::get_now() - wait_start_ms);
+    m_job_wait.add(Utils::Statistics::SeriesStats::get_now() - wait_start_ms);
 }
 
 bool Stereo::ConverterDLL::D3D8HostMemoryExporter::write_eye(const uint32_t& in_eye,
@@ -439,7 +439,7 @@ bool Stereo::ConverterDLL::D3D8HostMemoryExporter::write_eye(const uint32_t& in_
 
 void Stereo::ConverterDLL::D3D8HostMemoryExporter::write_job()
 {
-    const double   start_ms        = Stereo::Transport::SeriesStats::get_now();
+    const double   start_ms        = Utils::Statistics::SeriesStats::get_now();
     uint8_t*       destination_ptr = get_channel_ptr()->begin_write_ptr(m_job.info);
     bool           is_ok           = (destination_ptr != nullptr);
     const uint32_t pitch           = Stereo::Transport::FrameChannel::get_pitch(m_job.info.width);
@@ -492,18 +492,18 @@ void Stereo::ConverterDLL::D3D8HostMemoryExporter::write_job()
     {
         std::lock_guard<std::mutex> lock(m_mutex);
 
-        m_write_cost.add(Stereo::Transport::SeriesStats::get_now() - start_ms);
+        m_write_cost.add(Utils::Statistics::SeriesStats::get_now() - start_ms);
     }
 }
 
 void Stereo::ConverterDLL::D3D8HostMemoryExporter::wait_for_pace()
 {
-    const double start_ms = Stereo::Transport::SeriesStats::get_now();
+    const double start_ms = Utils::Statistics::SeriesStats::get_now();
 
     if (wait_for_screen() )
     {
         std::lock_guard<std::mutex> lock(m_mutex);
 
-        m_pace_wait.add(Stereo::Transport::SeriesStats::get_now() - start_ms);
+        m_pace_wait.add(Utils::Statistics::SeriesStats::get_now() - start_ms);
     }
 }

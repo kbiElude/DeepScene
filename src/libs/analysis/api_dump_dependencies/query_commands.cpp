@@ -13,7 +13,7 @@
 
 namespace
 {
-    using Analysis::APIDumpAnalysis::JsonWriter;
+    using Utils::Json::JsonWriter;
     using Analysis::APIDumpAnalysis::QueryStatus;
 }
 
@@ -259,7 +259,7 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_frame(const Depend
                                                                     std::string*              out_error_ptr)
 {
     std::vector<size_t> n_resource_vec;
-    QueryStatus         result = QueryStatus::BAD_ARGUMENTS;
+    QueryStatus         result         = QueryStatus::BAD_ARGUMENTS;
 
     if (in_arguments.has_frame_index == false)
     {
@@ -851,8 +851,8 @@ void Analysis::APIDumpDependencies::QueryCommands::write_resource_head(const Dep
                                                                        const size_t&             in_n_resource,
                                                                        JsonWriter*               inout_writer_ptr)
 {
-    const auto&                                   resource = in_analysis.resource_vec.at(in_n_resource);
-    Analysis::APIDumpAnalysis::ResourceIdentity   identity;
+    const auto&                                 resource = in_analysis.resource_vec.at(in_n_resource);
+    Analysis::APIDumpAnalysis::ResourceIdentity identity;
 
     Analysis::APIDumpAnalysis::ResourceIdentities::find(in_analysis.resource_vec,
                                                         resource.id,

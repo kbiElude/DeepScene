@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_analysis/frontends/d3d8_pipeline_state.h"
-#include "analysis/api_dump_analysis/hasher.h"
+#include "utils/hashing/hasher.h"
 #include "Interception/Hooks/D3D8/types.h"
 
 /* What a device can have: an index beyond these is not one that D3D8 has. */
@@ -27,10 +27,10 @@ Analysis::APIDumpAnalysis::DrawDescription Analysis::APIDumpAnalysis::Frontends:
                                                                                                                   const uint32_t&                                     in_vertex_count,
                                                                                                                   const bool&                                         in_is_indexed)
 {
-    Analysis::APIDumpAnalysis::Hasher          layout_hasher;
-    Analysis::APIDumpAnalysis::DrawDescription result = m_fixed_function_state.describe_draw(in_topology,
-                                                                                             in_vertex_count,
-                                                                                             in_is_indexed);
+    Utils::Hashing::Hasher                     layout_hasher;
+    Analysis::APIDumpAnalysis::DrawDescription result        = m_fixed_function_state.describe_draw(in_topology,
+                                                                                                    in_vertex_count,
+                                                                                                    in_is_indexed);
 
     result.index_buffer_id                                 = (in_is_indexed) ? m_index_buffer_id
                                              : Analysis::APIDumpAnalysis::ResourceId::NONE;
@@ -60,10 +60,10 @@ Analysis::APIDumpAnalysis::DrawDescription Analysis::APIDumpAnalysis::Frontends:
                                                                                                                                const bool&                                         in_is_indexed,
                                                                                                                                const uint32_t&                                     in_stride)
 {
-    Analysis::APIDumpAnalysis::Hasher          layout_hasher;
-    Analysis::APIDumpAnalysis::DrawDescription result = m_fixed_function_state.describe_draw(in_topology,
-                                                                                             in_vertex_count,
-                                                                                             in_is_indexed);
+    Utils::Hashing::Hasher                     layout_hasher;
+    Analysis::APIDumpAnalysis::DrawDescription result        = m_fixed_function_state.describe_draw(in_topology,
+                                                                                                    in_vertex_count,
+                                                                                                    in_is_indexed);
 
     result.shader_id_vec                                   = get_shader_id_vec();
 

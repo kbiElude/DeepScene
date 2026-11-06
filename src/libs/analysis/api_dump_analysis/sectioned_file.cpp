@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/api_dump_analysis/hasher.h"
 #include "analysis/api_dump_analysis/sectioned_file.h"
+#include "utils/hashing/hasher.h"
 #include <string.h>
 #include <zstd.h>
 
@@ -45,8 +45,8 @@ std::vector<uint8_t> Analysis::APIDumpAnalysis::SectionedFile::pack_section(cons
 
         section_header.n_raw_bytes    = in_raw_byte_vec.size();
         section_header.n_stored_bytes = stored_byte_vec.size();
-        section_header.raw_hash       = Hasher::hash_bytes(in_raw_byte_vec.data(),
-                                                           in_raw_byte_vec.size() );
+        section_header.raw_hash       = Utils::Hashing::Hasher::hash_bytes(in_raw_byte_vec.data(),
+                                                                           in_raw_byte_vec.size() );
         section_header.tag            = in_section_info.tag;
         section_header.version        = in_section_info.version;
 
@@ -176,8 +176,8 @@ bool Analysis::APIDumpAnalysis::SectionedFile::read_sections(const std::vector<u
             goto end;
         }
 
-        if (Hasher::hash_bytes(raw_byte_vec.data(),
-                               raw_byte_vec.size() ) != header.raw_hash)
+        if (Utils::Hashing::Hasher::hash_bytes(raw_byte_vec.data(),
+                                               raw_byte_vec.size() ) != header.raw_hash)
         {
             *out_error_ptr = "Section " + get_tag_name(header.tag) + " is damaged (hash mismatch)";
 

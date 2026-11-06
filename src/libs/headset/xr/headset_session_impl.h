@@ -9,8 +9,8 @@
 #ifndef HEADSET_XR_HEADSET_SESSION_IMPL_H
 #define HEADSET_XR_HEADSET_SESSION_IMPL_H
 
-#include "headset/d3d12/d3d12_texture_clearer.h"
-#include "stereo/transport/series_stats.h"
+#include "utils/d3d12/d3d12_texture_clearer.h"
+#include "utils/statistics/series_stats.h"
 #include "headset/xr/headset_session.h"
 #include "headset/xr/screen_geometry.h"
 #include <array>
@@ -54,18 +54,18 @@ struct Headset::XR::HeadsetSession::Impl
      */
     struct Timing
     {
-        Stereo::Transport::SeriesStats end_cost       = Stereo::Transport::SeriesStats(2.0); /* of xrEndFrame, ms                         */
-        Stereo::Transport::SeriesStats frame_interval = Stereo::Transport::SeriesStats(0.0); /* between the frames the runtime asks for  */
-        Stereo::Transport::SeriesStats image_wait     = Stereo::Transport::SeriesStats(0.0); /* for images that are not there yet, ms     */
+        Utils::Statistics::SeriesStats end_cost       = Utils::Statistics::SeriesStats(2.0); /* of xrEndFrame, ms                         */
+        Utils::Statistics::SeriesStats frame_interval = Utils::Statistics::SeriesStats(0.0); /* between the frames the runtime asks for  */
+        Utils::Statistics::SeriesStats image_wait     = Utils::Statistics::SeriesStats(0.0); /* for images that are not there yet, ms     */
         double                         last_report    = 0.0;
         uint64_t                       last_serial    = 0;   /* of the images in the last frame that had them */
-        Stereo::Transport::SeriesStats lock_wait      = Stereo::Transport::SeriesStats(2.0); /* for the lock that the layers need, ms     */
+        Utils::Statistics::SeriesStats lock_wait      = Utils::Statistics::SeriesStats(2.0); /* for the lock that the layers need, ms     */
         uint64_t                       n_empty        = 0;   /* frames with no layers                         */
         uint64_t                       n_new          = 0;   /* frames with images that were not shown       */
         uint64_t                       n_repeated     = 0;   /* frames with the images of the frame before   */
         uint64_t                       n_skipped      = 0;   /* frames the runtime said not to render        */
         float                          period_ms      = 0.0f;
-        Stereo::Transport::SeriesStats wait_cost      = Stereo::Transport::SeriesStats(0.0); /* of xrWaitFrame, ms                        */
+        Utils::Statistics::SeriesStats wait_cost      = Utils::Statistics::SeriesStats(0.0); /* of xrWaitFrame, ms                        */
     };
 
     ~Impl();
@@ -174,7 +174,7 @@ struct Headset::XR::HeadsetSession::Impl
     ::XrSession                                session               = XR_NULL_HANDLE;
     uint32_t                                   swapchain_height      = 0;
     uint32_t                                   swapchain_width       = 0;
-    std::unique_ptr<Headset::D3D12::D3D12TextureClearer> texture_clearer_ptr; /* made with the first swap chain */
+    std::unique_ptr<Utils::D3D12::D3D12TextureClearer> texture_clearer_ptr; /* made with the first swap chain */
     Timing                                     timing;
     XrSystemId                                 system_id             = XR_NULL_SYSTEM_ID;
     std::string                                system_name;

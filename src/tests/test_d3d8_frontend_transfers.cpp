@@ -5,9 +5,9 @@
  * Checks of the D3D8 front end following what is written to buffers and textures, and what is copied.
  */
 #include <gtest/gtest.h>
-#include "analysis/api_dump_analysis/hasher.h"
 #include "d3d8_scene.h"
 #include "data_fixtures.h"
+#include "utils/hashing/hasher.h"
 
 TEST(D3D8FrontendTransfers, WhatIsWrittenToABufferIsAnUploadOfIt)
 {
@@ -41,8 +41,8 @@ TEST(D3D8FrontendTransfers, WhatIsWrittenToABufferIsAnUploadOfIt)
     EXPECT_EQ(transfer.data.n_bytes,
               4u);
     EXPECT_EQ(transfer.data.content_hash,
-              Analysis::APIDumpAnalysis::Hasher::hash_bytes(data_u8_vec.data(),
-                                                            data_u8_vec.size() ));
+              Utils::Hashing::Hasher::hash_bytes(data_u8_vec.data(),
+                                                 data_u8_vec.size() ));
 }
 
 TEST(D3D8FrontendTransfers, WhatIsWrittenToATextureLevelIsAnUploadOfThatLevel)
@@ -128,8 +128,8 @@ TEST(D3D8FrontendTransfers, CopyingBetweenSurfacesIsACopyOfTheirTextures)
 
     builder.create_device();
 
-    const auto source      = builder.create_texture(64, 64, 2, 0, Interception::Hooks::D3D8::D3DFMT_A8R8G8B8);
-    const auto destination = builder.create_texture(32, 32, 1, 0, Interception::Hooks::D3D8::D3DFMT_A8R8G8B8);
+    const auto source            = builder.create_texture(64, 64, 2, 0, Interception::Hooks::D3D8::D3DFMT_A8R8G8B8);
+    const auto destination       = builder.create_texture(32, 32, 1, 0, Interception::Hooks::D3D8::D3DFMT_A8R8G8B8);
     const auto source_level      = builder.get_surface_level(source, 1);
     const auto destination_level = builder.get_surface_level(destination, 0);
 

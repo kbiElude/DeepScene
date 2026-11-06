@@ -33,7 +33,7 @@
 <tr><td><code>runtime/converter_dll</code>, <code>runtime/launcher</code>, <code>runtime/presenter</code></td><td><code>runtime\</code></td><td>what the VR player starts</td></tr>
 <tr><td><code>tools/analysis/&lt;program&gt;</code></td><td><code>tools\analysis\&lt;program&gt;_x64.exe</code></td><td>the tools of the analysis</td></tr>
 <tr><td><code>tools/stereo_replay/&lt;program&gt;</code></td><td><code>tools\stereo_replay\&lt;program&gt;_x64.exe</code> and <code>_x86.exe</code></td><td>the replay: the player, the checker and the engine they load</td></tr>
-<tr><td><code>libs/analysis</code>, <code>libs/stereo</code>, <code>libs/headset</code>, <code>libs/vr</code></td><td>(linked into the programs)</td><td>the four libraries</td></tr>
+<tr><td><code>libs/utils</code>, <code>libs/analysis</code>, <code>libs/stereo</code>, <code>libs/headset</code>, <code>libs/vr</code></td><td>(linked into the programs)</td><td>the five libraries</td></tr>
 <tr><td><code>tests</code></td><td>(not in the release)</td><td>the tests</td></tr>
 </table>
 <p>Each folder of a program or a library has its own <code>CMakeLists.txt</code>, which says what it is made of and links; <code>cmake/Install.cmake</code> says where each program is installed, and a test (<code>Layout</code>) checks that this and the folders say the same. <code>tools\api_dumper\</code> of the release is made of API Interceptor.</p>
@@ -49,7 +49,37 @@
 </ol>
 
 <h2 id="libs">Libraries (<code>src/libs</code>)</h2>
-<p>Four, by what they are for. Each is a folder of parts, and a part is a namespace of the library.</p>
+<p>Five, by what they are for. Each is a folder of parts, and a part is a namespace of the library.</p>
+
+<h3>Utils</h3>
+<p><em>Library.</em> What knows nothing of this project and any of the others may use: it uses third-party code and the system only, and a test (<code>Layout</code>) checks that it includes nothing of the other libraries. Its parts:</p>
+
+<h4>BinaryIO</h4>
+<p>Bytes read and written as numbers, strings and blocks (<code>ByteReader</code>, <code>ByteWriter</code>), for the files of the analysis.</p>
+
+<h4>D3D12</h4>
+<p>A list of Direct3D 12 commands recorded, run by a queue and waited for (<code>D3D12CommandRunner</code>: the allocator, the list and the fence), and a texture filled with one colour (<code>D3D12TextureClearer</code>).</p>
+
+<h4>Files</h4>
+<p>A file from the network, checked and unpacked, and the file system under it: <code>HttpDownloader</code> gets a file over https (WinHTTP, so the proxy and the certificates of the system), <code>Sha256</code> hashes it with the cryptography of the system, <code>ZipExtractor</code> unpacks it with miniz (and refuses a name which would put a file outside the directory), and <code>FileSystem</code> has what they share (names in UTF-8, directories). The downloader is behind an interface (<code>IDownloader</code>) so that what installs needs no network to be tested.</p>
+
+<h4>Hashing</h4>
+<p><code>Hasher</code>: 64-bit digests of bytes and of values (xxHash, of the Zstandard that the interceptor has).</p>
+
+<h4>Images</h4>
+<p>Images as plain data: written as PNG files (compressed by miniz) or as a GIF, compared (how many pixels differ, where, by how much, and an image that shows it), and put together (two images as a red-cyan anaglyph or side by side, many as a contact sheet). The tools that look at frames use it, so that none has a writer of its own.</p>
+
+<h4>Json</h4>
+<p>A JSON reader and writer, and the reading of numbers (<code>NumberParser</code>), used by the recipes, the catalog and the query tools.</p>
+
+<h4>Parallel</h4>
+<p><code>ParallelFor</code>: a range of items split over several threads.</p>
+
+<h4>Statistics</h4>
+<p><code>SeriesStats</code>: count, mean and worst of a series of timings, as the presenter and the converter log them.</p>
+
+<h4>UIHost</h4>
+<p>A window drawn with ImGui over a Direct3D 11 device of its own: the device, the swap chain and the message loop. The control window of the replay player, the VR player and the presenter use it, so none of them repeats it.</p>
 
 <h3>Analysis</h3>
 <p><em>Library.</em> Turning a workload into a model and the model into a recipe, and what the programs of <code>tools/analysis</code> and the replay and the converter use of them. See <a href="analysis-and-recipes.html">Analysis &amp; recipes</a>. It reads a workload through the loader of the interceptor. Its parts:</p>
@@ -87,14 +117,11 @@
 <h4>Transport</h4>
 <p>The channel between the converter and the presenter: a frame channel in shared memory, with a producer that writes the eyes of a frame and a consumer that takes the newest. The consumer also says what it accepts, how far to converge and how strong the 3D is. The exporter and importer are interfaces, so that the converter does not know what is on the other end.</p>
 
-<h4>Replay/FrameImages</h4>
-<p>The images of replayed frames as plain data: written as PNG files (compressed by miniz), compared (how many pixels differ, where, by how much, and an image that shows it), and put together (the two eyes as a red-cyan anaglyph, many frames as a contact sheet). The tools that look at frames use it, so that none has a writer of its own.</p>
-
 <h3>Headset</h3>
 <p><em>Library.</em> What shows the images in a headset. The OpenXR session is of the 64-bit programs. Its parts:</p>
 
 <h4>D3D12</h4>
-<p>Puts the eyes of a frame from the memory of the channel into Direct3D 12 textures without a copy by the CPU (<code>D3D12FrameUploader</code>), and fills the textures of a swap chain with black (<code>D3D12TextureClearer</code>), on the commands of one <code>D3D12CommandRunner</code>. The presenter and the headset use it.</p>
+<p>Puts the eyes of a frame from the memory of the channel into Direct3D 12 textures without a copy by the CPU (<code>D3D12FrameUploader</code>), on the commands of a <code>D3D12CommandRunner</code> of Utils, which also fills the textures of a swap chain with black. The presenter and the headset use it.</p>
 
 <h4>XR</h4>
 <p>The headset: a session of an OpenXR runtime that shows the eyes on a screen in the room, which can be flat or curved, sized to the view of the headset (<code>screen_geometry</code>); and the provider that lists the headsets of the machine.</p>
@@ -109,10 +136,7 @@
 <p>The list of applications that can be launched: for each, its executable, arguments, working directory and recipe, where it is downloaded from if it is not there, and the reason it is unavailable if it is. The name and description come from the recipe if the catalog does not give them.</p>
 
 <h4>AppInstaller</h4>
-<p>Puts an application where it is played: <code>HttpDownloader</code> gets the zip file over https (WinHTTP, so the proxy and the certificates of the system), <code>Sha256</code> checks it against the hash of the catalog, <code>ZipExtractor</code> unpacks it with miniz (and refuses a name which would put a file outside the directory), and <code>AppInstaller</code> does the three in a thread of its own, reports the progress, and moves the result into place whole, so that a cancel or a failure leaves nothing behind. It writes under the directory of the applications only.</p>
-
-<h4>UIHost</h4>
-<p>A window drawn with ImGui over a Direct3D 11 device of its own: the device, the swap chain and the message loop. The control window of the player, the VR player and the presenter use it, so none of them repeats it.</p>
+<p>Puts an application where it is played: <code>AppInstaller</code> gets the zip file over https, checks it against the hash of the catalog and unpacks it (with what <code>Utils::Files</code> has for the three) in a thread of its own, reports the progress, and moves the result into place whole, so that a cancel or a failure leaves nothing behind. It writes under the directory of the applications only.</p>
 
 <h2 id="runtime">runtime</h2>
 <p>What the VR player starts. The live converter, and what carries its images to a screen. See <a href="live-stereo.html">Live stereo</a>. The converter and the launcher are built for x86 and for x64 (see <code>build.bat</code>), since the launcher has to be of the architecture of the application.</p>

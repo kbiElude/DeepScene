@@ -8,8 +8,8 @@
  */
 #include <gtest/gtest.h>
 #include "vr/app_installer/app_installer.h"
-#include "vr/app_installer/file_system.h"
-#include "vr/app_installer/sha256.h"
+#include "utils/files/file_system.h"
+#include "utils/files/sha256.h"
 #include "temp_directory.h"
 #include "zip_builder.h"
 #include <Windows.h>
@@ -19,7 +19,7 @@
 #include <sstream>
 
 /* Answers each address with what the test has set for it: bytes, or a failure; a "stall" waits for the cancel. */
-class FakeDownloader : public VR::AppInstaller::IDownloader
+class FakeDownloader : public Utils::Files::IDownloader
 {
 public:
     FakeDownloader()
@@ -31,7 +31,7 @@ public:
     bool download(const std::string&                    in_url,
                   const std::string&                    in_file_path,
                   const std::atomic<bool>&              in_is_cancelled,
-                  const VR::AppInstaller::ProgressCallback& in_progress_func,
+                  const Utils::Files::ProgressCallback& in_progress_func,
                   std::string*                          out_error_ptr) override
     {
         const auto answer_iterator = m_bytes_map.find(in_url);
@@ -98,9 +98,9 @@ protected:
         m_spec.page_url              = "https://files.example/view/app.zip";
         m_spec.url_vec.push_back("https://one.example/app.zip");
 
-        VR::AppInstaller::Sha256::hash_bytes(m_zip.get_bytes().data(),
-                                             m_zip.get_bytes().size(),
-                                            &m_spec.sha256_hex);
+        Utils::Files::Sha256::hash_bytes(m_zip.get_bytes().data(),
+                                         m_zip.get_bytes().size(),
+                                         &m_spec.sha256_hex);
     }
 
     /* Waits for the end of the installation: DONE, FAILED or CANCELLED. */
@@ -128,11 +128,11 @@ protected:
         return file_text.str();
     }
 
-    Tests::TempDirectory                m_directory;
-    FakeDownloader                      m_downloader;
-    VR::AppInstaller::AppInstaller      m_installer;
-    VR::AppInstaller::InstallSpec       m_spec;
-    Tests::ZipBuilder                   m_zip;
+    Tests::TempDirectory           m_directory;
+    FakeDownloader                 m_downloader;
+    VR::AppInstaller::AppInstaller m_installer;
+    VR::AppInstaller::InstallSpec  m_spec;
+    Tests::ZipBuilder              m_zip;
 };
 
 TEST_F(AppInstallerTest, TheApplicationIsPutInItsDirectoryAndNothingIsLeftNextToIt)
@@ -151,7 +151,7 @@ TEST_F(AppInstallerTest, TheApplicationIsPutInItsDirectoryAndNothingIsLeftNextTo
               "program");
     EXPECT_EQ(get_text(m_spec.install_directory + "\\data\\readme.txt"),
               "read me");
-    EXPECT_FALSE(VR::AppInstaller::FileSystem::is_directory(m_spec.install_directory + ".download") );
+    EXPECT_FALSE(Utils::Files::FileSystem::is_directory(m_spec.install_directory + ".download") );
 }
 
 TEST_F(AppInstallerTest, AFileWhichIsNotTheExpectedOneIsNotUsed)
@@ -170,8 +170,8 @@ TEST_F(AppInstallerTest, AFileWhichIsNotTheExpectedOneIsNotUsed)
               VR::AppInstaller::InstallPhase::FAILED);
     EXPECT_NE(progress.message.find("not the file which was expected"),
               std::string::npos) << progress.message;
-    EXPECT_FALSE(VR::AppInstaller::FileSystem::is_directory(m_spec.install_directory) );
-    EXPECT_FALSE(VR::AppInstaller::FileSystem::is_directory(m_spec.install_directory + ".download") );
+    EXPECT_FALSE(Utils::Files::FileSystem::is_directory(m_spec.install_directory) );
+    EXPECT_FALSE(Utils::Files::FileSystem::is_directory(m_spec.install_directory + ".download") );
 }
 
 TEST_F(AppInstallerTest, TheNextAddressIsTriedWhenOneFailsAndAllFailingSaysSoWithThePage)
@@ -219,9 +219,9 @@ TEST_F(AppInstallerTest, AnArchiveWhichWritesOutsideItsDirectoryIsRefusedAndWrit
 
     m_downloader.m_bytes_map["https://one.example/app.zip"] = evil_zip_builder.get_bytes();
 
-    VR::AppInstaller::Sha256::hash_bytes(evil_zip_builder.get_bytes().data(),
-                                         evil_zip_builder.get_bytes().size(),
-                                        &m_spec.sha256_hex);
+    Utils::Files::Sha256::hash_bytes(evil_zip_builder.get_bytes().data(),
+                                     evil_zip_builder.get_bytes().size(),
+                                     &m_spec.sha256_hex);
 
     ASSERT_TRUE(m_installer.start(m_spec,
                                  &error) ) << error;
@@ -230,10 +230,10 @@ TEST_F(AppInstallerTest, AnArchiveWhichWritesOutsideItsDirectoryIsRefusedAndWrit
 
     EXPECT_EQ(progress.phase,
               VR::AppInstaller::InstallPhase::FAILED);
-    EXPECT_FALSE(VR::AppInstaller::FileSystem::is_file(m_directory.get_path() + "\\escaped.txt") );
-    EXPECT_FALSE(VR::AppInstaller::FileSystem::is_file(m_directory.get_path() + "\\apps\\escaped.txt") );
-    EXPECT_FALSE(VR::AppInstaller::FileSystem::is_directory(m_spec.install_directory) );
-    EXPECT_FALSE(VR::AppInstaller::FileSystem::is_directory(m_spec.install_directory + ".download") );
+    EXPECT_FALSE(Utils::Files::FileSystem::is_file(m_directory.get_path() + "\\escaped.txt") );
+    EXPECT_FALSE(Utils::Files::FileSystem::is_file(m_directory.get_path() + "\\apps\\escaped.txt") );
+    EXPECT_FALSE(Utils::Files::FileSystem::is_directory(m_spec.install_directory) );
+    EXPECT_FALSE(Utils::Files::FileSystem::is_directory(m_spec.install_directory + ".download") );
 }
 
 TEST_F(AppInstallerTest, ADirectoryWhichCannotBeWrittenToIsReportedAtTheStartAndNothingIsDone)
@@ -261,8 +261,8 @@ TEST_F(AppInstallerTest, AnApplicationWhoseDirectoryIsTakenOrWhichIsNotWellDescr
 {
     std::string error;
 
-    ASSERT_TRUE(VR::AppInstaller::FileSystem::create_directories(m_spec.install_directory,
-                                                                &error) );
+    ASSERT_TRUE(Utils::Files::FileSystem::create_directories(m_spec.install_directory,
+                                                             &error) );
     EXPECT_TRUE(m_installer.start(m_spec,
                                  &error) ) << "an empty directory can be used";
     EXPECT_EQ  (wait_for_end_of_installation().phase,
@@ -302,8 +302,8 @@ TEST_F(AppInstallerTest, ACancelEndsTheInstallationAndLeavesNothing)
 
     EXPECT_EQ(wait_for_end_of_installation().phase,
               VR::AppInstaller::InstallPhase::CANCELLED);
-    EXPECT_FALSE(VR::AppInstaller::FileSystem::is_directory(m_spec.install_directory) );
-    EXPECT_FALSE(VR::AppInstaller::FileSystem::is_directory(m_spec.install_directory + ".download") );
+    EXPECT_FALSE(Utils::Files::FileSystem::is_directory(m_spec.install_directory) );
+    EXPECT_FALSE(Utils::Files::FileSystem::is_directory(m_spec.install_directory + ".download") );
 }
 
 TEST_F(AppInstallerTest, OneInstallationIsRunAtATime)

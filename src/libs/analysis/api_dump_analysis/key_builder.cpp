@@ -3,12 +3,12 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_analysis/key_builder.h"
-#include "analysis/api_dump_analysis/hasher.h"
+#include "utils/hashing/hasher.h"
 #include <algorithm>
 
 uint64_t Analysis::APIDumpAnalysis::KeyBuilder::compute_constant_signature_key(const ConstantSignature& in_signature)
 {
-    Hasher hasher;
+    Utils::Hashing::Hasher hasher;
 
     hasher.add_u64(in_signature.block_key);
     hasher.add_u32(static_cast<uint32_t>(in_signature.block_kind) );
@@ -22,7 +22,7 @@ uint64_t Analysis::APIDumpAnalysis::KeyBuilder::compute_constant_signature_key(c
 
 uint64_t Analysis::APIDumpAnalysis::KeyBuilder::compute_description_key(const ResourceDescription& in_description)
 {
-    Hasher hasher;
+    Utils::Hashing::Hasher hasher;
 
     hasher.add_u64 (in_description.api_flags);
     hasher.add_u64 (in_description.content_hash);
@@ -48,7 +48,7 @@ uint64_t Analysis::APIDumpAnalysis::KeyBuilder::compute_draw_cover_key(const uin
                                                                        const uint32_t&          in_vertex_count,
                                                                        const PrimitiveTopology& in_topology)
 {
-    Hasher hasher;
+    Utils::Hashing::Hasher hasher;
 
     hasher.add_u64(in_signature_key);
     hasher.add_u32(in_vertex_count);
@@ -61,7 +61,7 @@ uint64_t Analysis::APIDumpAnalysis::KeyBuilder::compute_draw_signature_key(const
                                                                            const std::vector<uint64_t>& in_unwritten_color_view_key_vec,
                                                                            const uint64_t&              in_unwritten_depth_stencil_view_key)
 {
-    Hasher hasher;
+    Utils::Hashing::Hasher hasher;
 
     hasher.add_u64(static_cast<uint64_t>(in_unwritten_color_view_key_vec.size() ));
 
@@ -78,7 +78,7 @@ uint64_t Analysis::APIDumpAnalysis::KeyBuilder::compute_draw_signature_key(const
 
 uint64_t Analysis::APIDumpAnalysis::KeyBuilder::compute_draw_structure_key(const DrawStructure& in_structure)
 {
-    Hasher hasher;
+    Utils::Hashing::Hasher hasher;
 
     hasher.add_u64 (in_structure.index_buffer_key);
     hasher.add_bool(in_structure.is_indexed);
@@ -116,7 +116,7 @@ uint64_t Analysis::APIDumpAnalysis::KeyBuilder::compute_draw_structure_key(const
 
 uint64_t Analysis::APIDumpAnalysis::KeyBuilder::compute_key_set_key(std::vector<uint64_t> in_key_vec)
 {
-    Hasher hasher;
+    Utils::Hashing::Hasher hasher;
 
     std::sort(in_key_vec.begin(),
               in_key_vec.end() );
@@ -133,7 +133,7 @@ uint64_t Analysis::APIDumpAnalysis::KeyBuilder::compute_key_set_key(std::vector<
 
 uint64_t Analysis::APIDumpAnalysis::KeyBuilder::compute_pass_structure_key(const PassStructure& in_structure)
 {
-    Hasher hasher;
+    Utils::Hashing::Hasher hasher;
 
     hasher.add_bool(in_structure.clears_color);
     hasher.add_bool(in_structure.clears_depth);

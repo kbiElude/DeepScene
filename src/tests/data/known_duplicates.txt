@@ -7,7 +7,7 @@
 5 deps/APIInterceptor/src/Replay/ReplayEngineDLL/d3d7_call_executor.h|deps/APIInterceptor/src/Replay/ReplayEngineDLL/d3d8_call_executor.h
 3 deps/APIInterceptor/src/Replay/ReplayEngineDLL/d3d8_replay_invoker.h|deps/APIInterceptor/src/Replay/ReplayEngineDLL/gl_replay_invoker.h
 14 deps/APIInterceptor/src/Replay/ReplayPlayer/control_window.cpp|src/tools/stereo_replay/player/control_window.cpp
-22 deps/APIInterceptor/src/Replay/ReplayPlayer/control_window.cpp|src/libs/vr/ui_host/imgui_window_host.cpp
+22 deps/APIInterceptor/src/Replay/ReplayPlayer/control_window.cpp|src/libs/utils/ui_host/imgui_window_host.cpp
 2 deps/APIInterceptor/src/Replay/ReplayPlayer/main.cpp|src/tools/stereo_replay/player/main.cpp
 4 src/libs/analysis/api_dump_analysis/passes_file.cpp|src/libs/analysis/api_dump_dependencies/deps_file.cpp
 20 src/tools/analysis/api_dump_analysis_extractor/main.cpp|src/tools/analysis/api_dump_dependency_extractor/main.cpp

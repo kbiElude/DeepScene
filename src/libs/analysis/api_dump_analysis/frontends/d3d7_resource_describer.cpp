@@ -4,13 +4,13 @@
  */
 #include "analysis/api_dump_analysis/frontends/d3d7_resource_describer.h"
 #include "analysis/api_dump_analysis/frontends/mip_chain.h"
-#include "analysis/api_dump_analysis/hasher.h"
+#include "utils/hashing/hasher.h"
 #include "Interception/Core/D3D7Utils/constants.h"
 #include "Interception/Core/D3D7Utils/vertex_format.h"
 
 Analysis::APIDumpAnalysis::Format Analysis::APIDumpAnalysis::Frontends::D3D7ResourceDescriber::convert_pixel_format(const Interception::Hooks::D3D7::DDPIXELFORMAT& in_format)
 {
-    Analysis::APIDumpAnalysis::Hasher hasher;
+    Utils::Hashing::Hasher            hasher;
     Analysis::APIDumpAnalysis::Format result;
 
     if ( (in_format.dwFlags & Interception::Core::D3D7Utils::DDPF_ZBUFFER) != 0)
@@ -63,12 +63,12 @@ Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Fronte
 {
     constexpr uint32_t CAPS2_SHIFT = 32;
 
-    const uint32_t                                 caps             = in_description.caps.dwCaps;
-    const uint32_t                                 flags            = in_description.flags;
-    const bool                                     is_3d_device     = ( (caps & Interception::Core::D3D7Utils::DDSCAPS_3DDEVICE)    != 0);
-    const bool                                     is_depth_buffer  = ( (caps & Interception::Core::D3D7Utils::DDSCAPS_ZBUFFER)     != 0);
-    const bool                                     is_swap_chain    = ( (caps & (Interception::Core::D3D7Utils::DDSCAPS_BACKBUFFER |
-                                                                                 Interception::Core::D3D7Utils::DDSCAPS_PRIMARYSURFACE)) != 0);
+    const uint32_t                                 caps            = in_description.caps.dwCaps;
+    const uint32_t                                 flags           = in_description.flags;
+    const bool                                     is_3d_device    = ( (caps & Interception::Core::D3D7Utils::DDSCAPS_3DDEVICE)    != 0);
+    const bool                                     is_depth_buffer = ( (caps & Interception::Core::D3D7Utils::DDSCAPS_ZBUFFER)     != 0);
+    const bool                                     is_swap_chain   = ( (caps & (Interception::Core::D3D7Utils::DDSCAPS_BACKBUFFER |
+                                                                                Interception::Core::D3D7Utils::DDSCAPS_PRIMARYSURFACE)) != 0);
     Analysis::APIDumpAnalysis::ResourceDescription result;
 
     result.api_flags        = static_cast<uint64_t>(caps) | (static_cast<uint64_t>(in_description.caps.dwCaps2) << CAPS2_SHIFT);

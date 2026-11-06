@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/api_dump_analysis/number_parser.h"
 #include "command_line.h"
+#include "utils/command_line/number_parser.h"
 
 const char* Analysis::APIDumpSlicer::CommandLine::get_usage_ptr()
 {
@@ -72,9 +72,9 @@ bool Analysis::APIDumpSlicer::CommandLine::parse(const std::vector<std::string>&
                     text = text.substr(n_dash + 1);
                 }
 
-                if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(text,
-                                                                            UINT32_MAX,
-                                                                           &value) == false)
+                if (Utils::CommandLine::NumberParser::parse_unsigned(text,
+                                                                     UINT32_MAX,
+                                                                     &value) == false)
                 {
                     *out_error_ptr = "--frames is a frame number, or 0-B";
 
@@ -87,9 +87,9 @@ bool Analysis::APIDumpSlicer::CommandLine::parse(const std::vector<std::string>&
             else
             if (argument == "--strip-chunks-above")
             {
-                if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(text,
-                                                                            UINT32_MAX,
-                                                                           &value) == false)
+                if (Utils::CommandLine::NumberParser::parse_unsigned(text,
+                                                                     UINT32_MAX,
+                                                                     &value) == false)
                 {
                     *out_error_ptr = "--strip-chunks-above is a number of bytes";
 
@@ -100,9 +100,9 @@ bool Analysis::APIDumpSlicer::CommandLine::parse(const std::vector<std::string>&
             }
             else
             {
-                if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(text,
-                                                                            MAX_N_THREADS,
-                                                                           &value) == false)
+                if (Utils::CommandLine::NumberParser::parse_unsigned(text,
+                                                                     MAX_N_THREADS,
+                                                                     &value) == false)
                 {
                     *out_error_ptr = "--threads is a number of threads, at most 64";
 

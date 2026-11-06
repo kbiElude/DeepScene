@@ -11,8 +11,8 @@
 constexpr float SCREEN_DISTANCE = 2.0f;
 
 void Headset::XR::HeadsetSession::Impl::end_frame(const XrTime&                              in_time,
-                                                 const uint32_t&                            in_n_layers,
-                                                 const XrCompositionLayerBaseHeader* const* in_layer_ptr_array)
+                                                  const uint32_t&                            in_n_layers,
+                                                  const XrCompositionLayerBaseHeader* const* in_layer_ptr_array)
 {
     XrFrameEndInfo end_info   = {XR_TYPE_FRAME_END_INFO};
     XrResult       end_result = XR_SUCCESS;
@@ -63,7 +63,7 @@ bool Headset::XR::HeadsetSession::Impl::locate_head(const XrTime& in_time)
 }
 
 void Headset::XR::HeadsetSession::Impl::log_failure(const char*     in_what_ptr,
-                                                   const XrResult& in_result)
+                                                    const XrResult& in_result)
 {
     bool is_new = false;
 
@@ -108,8 +108,8 @@ void Headset::XR::HeadsetSession::Impl::log_screen(const float& in_aspect_ratio)
 }
 
 void Headset::XR::HeadsetSession::Impl::make_layer(const uint32_t& in_n_eye,
-                                                  const XrPosef&  in_pose,
-                                                  const float&    in_aspect_ratio)
+                                                   const XrPosef&  in_pose,
+                                                   const float&    in_aspect_ratio)
 {
     const XrEyeVisibility eye_visibility = (in_n_eye == 0) ? XR_EYE_VISIBILITY_LEFT
                                                            : XR_EYE_VISIBILITY_RIGHT;
@@ -371,11 +371,11 @@ bool Headset::XR::HeadsetSession::run_frame(std::string* out_error_ptr)
     }
 
     {
-        const double   wait_start_ms = Stereo::Transport::SeriesStats::get_now();
+        const double   wait_start_ms = Utils::Statistics::SeriesStats::get_now();
         const XrResult wait_result   = ::xrWaitFrame(m_impl_ptr->session,
                                                      nullptr,
                                                     &frame_state);
-        const double   wait_end_ms   = Stereo::Transport::SeriesStats::get_now();
+        const double   wait_end_ms   = Utils::Statistics::SeriesStats::get_now();
 
         if (XR_SUCCEEDED(wait_result) )
         {
@@ -446,11 +446,11 @@ bool Headset::XR::HeadsetSession::run_frame(std::string* out_error_ptr)
         if (frame_state.shouldRender == XR_TRUE)
         {
             auto&        timing        = m_impl_ptr->timing;
-            const double lock_start_ms = Stereo::Transport::SeriesStats::get_now();
+            const double lock_start_ms = Utils::Statistics::SeriesStats::get_now();
 
             std::unique_lock<std::mutex> lock(m_impl_ptr->mutex);
 
-            timing.lock_wait.add(Stereo::Transport::SeriesStats::get_now() - lock_start_ms);
+            timing.lock_wait.add(Utils::Statistics::SeriesStats::get_now() - lock_start_ms);
 
             /* The images that the application's frame made are not always there when the compositor asks: a copy that is late by a few
              * milliseconds would show the frame before again, and the next one in its place a frame later. The frame is not ended for a
@@ -458,7 +458,7 @@ bool Headset::XR::HeadsetSession::run_frame(std::string* out_error_ptr)
              */
             if (m_impl_ptr->image_serial == timing.last_serial)
             {
-                const double image_wait_start_ms = Stereo::Transport::SeriesStats::get_now();
+                const double image_wait_start_ms = Utils::Statistics::SeriesStats::get_now();
 
                 m_impl_ptr->image_condition.wait_for(lock,
                                                      std::chrono::microseconds(IMAGE_WAIT_N_MICROSECONDS),
@@ -468,7 +468,7 @@ bool Headset::XR::HeadsetSession::run_frame(std::string* out_error_ptr)
                                                                  this_ptr->is_exit_requested);
                                                      });
 
-                timing.image_wait.add(Stereo::Transport::SeriesStats::get_now() - image_wait_start_ms);
+                timing.image_wait.add(Utils::Statistics::SeriesStats::get_now() - image_wait_start_ms);
             }
 
             n_layers = m_impl_ptr->make_layers(frame_state.predictedDisplayTime);
@@ -498,13 +498,13 @@ bool Headset::XR::HeadsetSession::run_frame(std::string* out_error_ptr)
                                                                                : reinterpret_cast<const XrCompositionLayerBaseHeader*>(&m_impl_ptr->quad_layer_array    [n_layer]);
             }
 
-            const double end_start_ms = Stereo::Transport::SeriesStats::get_now();
+            const double end_start_ms = Utils::Statistics::SeriesStats::get_now();
 
             m_impl_ptr->end_frame(frame_state.predictedDisplayTime,
                                   n_layers,
                                   layer_ptr_array);
 
-            timing.end_cost.add(Stereo::Transport::SeriesStats::get_now() - end_start_ms);
+            timing.end_cost.add(Utils::Statistics::SeriesStats::get_now() - end_start_ms);
         }
         else
         {
@@ -518,9 +518,9 @@ bool Headset::XR::HeadsetSession::run_frame(std::string* out_error_ptr)
 
     {
         auto&        timing = m_impl_ptr->timing;
-        const double now_ms = Stereo::Transport::SeriesStats::get_now();
+        const double now_ms = Utils::Statistics::SeriesStats::get_now();
 
-        if (Stereo::Transport::SeriesStats::take_period(&timing.last_report,
+        if (Utils::Statistics::SeriesStats::take_period(&timing.last_report,
                                                         now_ms,
                                                         REPORT_PERIOD_N_MILLISECONDS) )
         {
@@ -562,8 +562,8 @@ end:
 
 void Headset::XR::HeadsetSession::Impl::update_field_of_view(const XrTime& in_time)
 {
-    XrViewLocateInfo locate_info   = {XR_TYPE_VIEW_LOCATE_INFO};
-    uint32_t         n_views       = 0;
+    XrViewLocateInfo locate_info = {XR_TYPE_VIEW_LOCATE_INFO};
+    uint32_t         n_views     = 0;
     XrView           view_array[2] = {{XR_TYPE_VIEW}, {XR_TYPE_VIEW}};
     XrViewState      view_state    = {XR_TYPE_VIEW_STATE};
 

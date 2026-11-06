@@ -2,11 +2,11 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/api_dump_analysis/json_writer.h"
-#include "analysis/api_dump_analysis/number_parser.h"
 #include "analysis/api_dump_analysis/workload_identity.h"
 #include "analysis/api_dump_dependencies/deps_file.h"
 #include "query.h"
+#include "utils/command_line/number_parser.h"
+#include "utils/json/json_writer.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -63,9 +63,9 @@ bool Analysis::APIDumpDependencyQuery::parse_arguments(const int&   in_argc,
                 goto end;
             }
 
-            if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(next_argument,
-                                                                        UINT64_MAX,
-                                                                       &value) == false)
+            if (Utils::CommandLine::NumberParser::parse_unsigned(next_argument,
+                                                                 UINT64_MAX,
+                                                                 &value) == false)
             {
                 *out_error_ptr = argument + " needs a number, not " + next_argument;
 
@@ -133,9 +133,9 @@ bool Analysis::APIDumpDependencyQuery::parse_arguments(const int&   in_argc,
             /* The id of a resource, or the index of a frame. */
             uint64_t value = 0;
 
-            if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(argument,
-                                                                        UINT64_MAX,
-                                                                       &value) == false)
+            if (Utils::CommandLine::NumberParser::parse_unsigned(argument,
+                                                                 UINT64_MAX,
+                                                                 &value) == false)
             {
                 *out_error_ptr = "An id must be a number, not " + argument;
 
@@ -271,7 +271,7 @@ int Analysis::APIDumpDependencyQuery::run(int   in_argc,
     }
 
     {
-        Analysis::APIDumpAnalysis::JsonWriter writer(options.is_compact == false);
+        Utils::Json::JsonWriter writer(options.is_compact == false);
         const auto                            status = Analysis::APIDumpDependencies::QueryCommands::run(options.command,
                                                                                                          analysis,
                                                                                                          options.arguments,

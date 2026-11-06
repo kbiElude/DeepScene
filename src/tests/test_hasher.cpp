@@ -5,7 +5,7 @@
  * Checks of the hashing which the match keys are built with. The pinned values must not change: keys are stored in files.
  */
 #include <gtest/gtest.h>
-#include "analysis/api_dump_analysis/hasher.h"
+#include "utils/hashing/hasher.h"
 #include <limits>
 #include <string.h>
 
@@ -14,14 +14,14 @@ TEST(Hasher, BytesAreHashedWithXXH64)
     const char text[] = "abc";
 
     /* The reference value of XXH64("abc") with seed 0. */
-    EXPECT_EQ(Analysis::APIDumpAnalysis::Hasher::hash_bytes(text,
-                                                            3),
+    EXPECT_EQ(Utils::Hashing::Hasher::hash_bytes(text,
+                                                 3),
               0x44BC2CF5AD770999ull);
 }
 
 TEST(Hasher, ScalarsAreAddedAsLittleEndianBytes)
 {
-    Analysis::APIDumpAnalysis::Hasher hasher;
+    Utils::Hashing::Hasher hasher;
     const uint8_t                     expected_bytes_u8vec7[7] = {0x78, 0x56, 0x34, 0x12, 0x01, 0xAA, 0x00};
 
     hasher.add_u32 (0x12345678);
@@ -30,26 +30,26 @@ TEST(Hasher, ScalarsAreAddedAsLittleEndianBytes)
     hasher.add_u8  (0x00);
 
     EXPECT_EQ(hasher.get_digest(),
-              Analysis::APIDumpAnalysis::Hasher::hash_bytes(expected_bytes_u8vec7,
-                                                            sizeof(expected_bytes_u8vec7) ));
+              Utils::Hashing::Hasher::hash_bytes(expected_bytes_u8vec7,
+                                                 sizeof(expected_bytes_u8vec7) ));
 }
 
 TEST(Hasher, SixtyFourBitValuesAreLittleEndianToo)
 {
-    Analysis::APIDumpAnalysis::Hasher hasher;
+    Utils::Hashing::Hasher hasher;
     const uint8_t                     expected_bytes_u8vec8[8] = {0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01};
 
     hasher.add_u64(0x0102030405060708ull);
 
     EXPECT_EQ(hasher.get_digest(),
-              Analysis::APIDumpAnalysis::Hasher::hash_bytes(expected_bytes_u8vec8,
-                                                            sizeof(expected_bytes_u8vec8) ));
+              Utils::Hashing::Hasher::hash_bytes(expected_bytes_u8vec8,
+                                                 sizeof(expected_bytes_u8vec8) ));
 }
 
 TEST(Hasher, TheOrderOfValuesMatters)
 {
-    Analysis::APIDumpAnalysis::Hasher a;
-    Analysis::APIDumpAnalysis::Hasher b;
+    Utils::Hashing::Hasher a;
+    Utils::Hashing::Hasher b;
 
     a.add_u32(1);
     a.add_u32(2);
@@ -62,8 +62,8 @@ TEST(Hasher, TheOrderOfValuesMatters)
 
 TEST(Hasher, VariableSizedValuesCarryTheirSize)
 {
-    Analysis::APIDumpAnalysis::Hasher a;
-    Analysis::APIDumpAnalysis::Hasher b;
+    Utils::Hashing::Hasher a;
+    Utils::Hashing::Hasher b;
 
     a.add_string("ab");
     a.add_string("c");
@@ -76,8 +76,8 @@ TEST(Hasher, VariableSizedValuesCarryTheirSize)
 
 TEST(Hasher, NegativeZeroIsZero)
 {
-    Analysis::APIDumpAnalysis::Hasher a;
-    Analysis::APIDumpAnalysis::Hasher b;
+    Utils::Hashing::Hasher a;
+    Utils::Hashing::Hasher b;
 
     a.add_f32( 0.0f);
     b.add_f32(-0.0f);
@@ -88,10 +88,10 @@ TEST(Hasher, NegativeZeroIsZero)
 
 TEST(Hasher, AllNaNsAreTheSame)
 {
-    Analysis::APIDumpAnalysis::Hasher a;
-    Analysis::APIDumpAnalysis::Hasher b;
-    uint32_t                          other_nan_bits = 0x7FC12345;
-    float                             other_nan      = 0.0f;
+    Utils::Hashing::Hasher a;
+    Utils::Hashing::Hasher b;
+    uint32_t               other_nan_bits = 0x7FC12345;
+    float                  other_nan      = 0.0f;
 
     ::memcpy(&other_nan,
              &other_nan_bits,
@@ -106,8 +106,8 @@ TEST(Hasher, AllNaNsAreTheSame)
 
 TEST(Hasher, DifferentFloatsDiffer)
 {
-    Analysis::APIDumpAnalysis::Hasher a;
-    Analysis::APIDumpAnalysis::Hasher b;
+    Utils::Hashing::Hasher a;
+    Utils::Hashing::Hasher b;
 
     a.add_f32(1.0f);
     b.add_f32(1.0000001f);
@@ -118,11 +118,11 @@ TEST(Hasher, DifferentFloatsDiffer)
 
 TEST(Hasher, EmptyHasherHasTheDigestOfNoBytes)
 {
-    Analysis::APIDumpAnalysis::Hasher hasher;
+    Utils::Hashing::Hasher hasher;
 
     EXPECT_EQ(hasher.get_digest(),
-              Analysis::APIDumpAnalysis::Hasher::hash_bytes(nullptr,
-                                                            0) );
+              Utils::Hashing::Hasher::hash_bytes(nullptr,
+                                                 0) );
 }
 
 TEST(Hasher, ManyBytesAreHashedAsTheyWouldBeIfFew)
@@ -134,8 +134,8 @@ TEST(Hasher, ManyBytesAreHashedAsTheyWouldBeIfFew)
                 n_steps < 265;
               ++n_steps)
     {
-        Analysis::APIDumpAnalysis::Hasher hasher;
-        std::vector<uint8_t>              expected_u8_vec = {9};
+        Utils::Hashing::Hasher hasher;
+        std::vector<uint8_t>   expected_u8_vec = {9};
 
         hasher.add_u8(9);
 
@@ -166,8 +166,8 @@ TEST(Hasher, ManyBytesAreHashedAsTheyWouldBeIfFew)
         ASSERT_EQ(expected_u8_vec.size(),
                   1 + n_steps * N_BYTES_PER_STEP);
         EXPECT_EQ(hasher.get_digest(),
-                  Analysis::APIDumpAnalysis::Hasher::hash_bytes(expected_u8_vec.data(),
-                                                                expected_u8_vec.size() ) ) << n_steps;
+                  Utils::Hashing::Hasher::hash_bytes(expected_u8_vec.data(),
+                                                     expected_u8_vec.size() ) ) << n_steps;
     }
 }
 
@@ -175,17 +175,17 @@ TEST(Hasher, ABigBlockIsHashedWithItsSizeInFront)
 {
     const std::vector<uint8_t> block_u8_vec(5000,
                                             0x5a);
-    Analysis::APIDumpAnalysis::Hasher hasher;
-    std::vector<uint8_t>              expected_u8_vec = {0x88, 0x13, 0, 0, 0, 0, 0, 0}; /* 5000, as 64 bits */
+    Utils::Hashing::Hasher hasher;
+    std::vector<uint8_t>   expected_u8_vec = {0x88, 0x13, 0, 0, 0, 0, 0, 0}; /* 5000, as 64 bits */
 
-    hasher.add_bytes(block_u8_vec.data(),
-                     block_u8_vec.size() );
+hasher.add_bytes(block_u8_vec.data(),
+          block_u8_vec.size() );
 
     expected_u8_vec.insert(expected_u8_vec.end(),
                            block_u8_vec.begin(),
                            block_u8_vec.end  () );
 
     EXPECT_EQ(hasher.get_digest(),
-              Analysis::APIDumpAnalysis::Hasher::hash_bytes(expected_u8_vec.data(),
-                                                            expected_u8_vec.size() ) );
+              Utils::Hashing::Hasher::hash_bytes(expected_u8_vec.data(),
+                                                 expected_u8_vec.size() ) );
 }

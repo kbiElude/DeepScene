@@ -8,11 +8,11 @@
 #include <gtest/gtest.h>
 #include "analysis/api_dump_analysis/depth_histogram.h"
 #include "analysis/api_dump_analysis/frontends/analysis_session.h"
-#include "analysis/api_dump_analysis/json_reader.h"
 #include "analysis/api_dump_analysis/key_builder.h"
 #include "analysis/api_dump_analysis/query_commands.h"
 #include "analysis/api_dump_analysis/resource_access_tracker.h"
 #include "data_fixtures.h"
+#include "utils/json/json_reader.h"
 #include <iterator>
 #include <set>
 #include <stdio.h>
@@ -22,9 +22,9 @@ class QueryCommandsTest : public ::testing::Test
 protected:
     /* Runs a command, and reads its JSON back. */
     Analysis::APIDumpAnalysis::QueryStatus ask(const std::string& in_command,
-                                               Analysis::APIDumpAnalysis::JsonValue*  out_value_ptr)
+                                               Utils::Json::JsonValue*  out_value_ptr)
     {
-        Analysis::APIDumpAnalysis::JsonWriter writer(true); /* in_is_pretty */
+        Utils::Json::JsonWriter writer(true); /* in_is_pretty */
         const auto                  status = Analysis::APIDumpAnalysis::QueryCommands::run(in_command,
                                                                                             m_analysis,
                                                                                             m_arguments,
@@ -34,7 +34,7 @@ protected:
         if (status == Analysis::APIDumpAnalysis::QueryStatus::OK)
         {
             EXPECT_FALSE(writer.has_failed() );
-            EXPECT_TRUE (Analysis::APIDumpAnalysis::JsonReader::parse(writer.get_text(),
+            EXPECT_TRUE (Utils::Json::JsonReader::parse(writer.get_text(),
                                                       out_value_ptr,
                                                       nullptr) ) << writer.get_text();
         }
@@ -49,7 +49,7 @@ protected:
         m_analysis = Tests::DataFixtures::get_fr08_slice_analysis();
     }
 
-    Analysis::APIDumpAnalysis::AnalysisResult       m_analysis;
+    Analysis::APIDumpAnalysis::AnalysisResult m_analysis;
     Analysis::APIDumpAnalysis::QueryArguments m_arguments;
     std::string                               m_error;
     std::string                               m_text;
@@ -64,13 +64,13 @@ TEST_F(QueryCommandsTest, EveryCommandAnswersWithJson)
 
     for (const auto& command : Analysis::APIDumpAnalysis::QueryCommands::get_command_names() )
     {
-        Analysis::APIDumpAnalysis::JsonValue value;
+        Utils::Json::JsonValue value;
 
         EXPECT_EQ(ask(command,
                      &value),
                   Analysis::APIDumpAnalysis::QueryStatus::OK) << command << ": " << m_error;
         EXPECT_EQ(value.type,
-                  Analysis::APIDumpAnalysis::JsonValue::Type::OBJECT) << command;
+                  Utils::Json::JsonValue::Type::OBJECT) << command;
     }
 }
 
@@ -80,7 +80,7 @@ TEST_F(QueryCommandsTest, TheOutputIsTheSameEveryTime)
 
     for (const auto& command : Analysis::APIDumpAnalysis::QueryCommands::get_command_names() )
     {
-        Analysis::APIDumpAnalysis::JsonValue value;
+        Utils::Json::JsonValue value;
 
         m_arguments.frame_index     = 0;
         m_arguments.has_frame_index = true;
@@ -100,7 +100,7 @@ TEST_F(QueryCommandsTest, TheOutputIsTheSameEveryTime)
 
 TEST_F(QueryCommandsTest, CompactOutputIsOnOneLine)
 {
-    Analysis::APIDumpAnalysis::JsonWriter writer(false); /* in_is_pretty */
+    Utils::Json::JsonWriter writer(false); /* in_is_pretty */
 
     ASSERT_EQ(Analysis::APIDumpAnalysis::QueryCommands::run("info",
                                                             m_analysis,
@@ -115,7 +115,7 @@ TEST_F(QueryCommandsTest, CompactOutputIsOnOneLine)
 
 TEST_F(QueryCommandsTest, FrameAsksForAFrameOrAShape)
 {
-    Analysis::APIDumpAnalysis::JsonValue value;
+    Utils::Json::JsonValue value;
 
     EXPECT_EQ(ask("frame",
                  &value),
@@ -125,7 +125,7 @@ TEST_F(QueryCommandsTest, FrameAsksForAFrameOrAShape)
 
 TEST_F(QueryCommandsTest, AFrameThatIsNotThereIsNotFound)
 {
-    Analysis::APIDumpAnalysis::JsonValue value;
+    Utils::Json::JsonValue value;
 
     m_arguments.frame_index     = 10;
     m_arguments.has_frame_index = true;
@@ -139,7 +139,7 @@ TEST_F(QueryCommandsTest, AFrameThatIsNotThereIsNotFound)
 
 TEST_F(QueryCommandsTest, FrameTellsWhereItsCallsAreAndHowToPrintThem)
 {
-    Analysis::APIDumpAnalysis::JsonValue value;
+    Utils::Json::JsonValue value;
 
     m_arguments.frame_index     = 1;
     m_arguments.has_frame_index = true;
@@ -148,8 +148,8 @@ TEST_F(QueryCommandsTest, FrameTellsWhereItsCallsAreAndHowToPrintThem)
                  &value),
               Analysis::APIDumpAnalysis::QueryStatus::OK);
 
-    const auto& frame = value.at("frame");
-    const auto& calls = frame.at("calls");
+    const auto& frame  = value.at("frame");
+    const auto& calls  = frame.at("calls");
     const auto& record = m_analysis.model.frame_record_vec.at(1);
 
     EXPECT_EQ(frame.at("frame_index").number_value,
@@ -175,7 +175,7 @@ TEST_F(QueryCommandsTest, ARepresentativeFrameComesWithItsPassesAndOthersDoNot)
                 n_frame < m_analysis.model.frame_record_vec.size();
               ++n_frame)
     {
-        Analysis::APIDumpAnalysis::JsonValue value;
+        Utils::Json::JsonValue value;
 
         m_arguments.frame_index     = n_frame;
         m_arguments.has_frame_index = true;
@@ -214,7 +214,7 @@ TEST_F(QueryCommandsTest, AShapeLeadsToItsRepresentativeFrames)
                   n_shape < n_shapes;
                 ++n_shape)
     {
-        Analysis::APIDumpAnalysis::JsonValue value;
+        Utils::Json::JsonValue value;
 
         m_arguments.has_shape_id = true;
         m_arguments.shape_id     = n_shape;
@@ -247,7 +247,7 @@ TEST_F(QueryCommandsTest, AShapeLeadsToItsRepresentativeFrames)
 
 TEST_F(QueryCommandsTest, AShapeThatIsNotThereIsNotFound)
 {
-    Analysis::APIDumpAnalysis::JsonValue value;
+    Utils::Json::JsonValue value;
 
     m_arguments.has_shape_id = true;
     m_arguments.shape_id     = 99;
@@ -259,7 +259,7 @@ TEST_F(QueryCommandsTest, AShapeThatIsNotThereIsNotFound)
 
 TEST_F(QueryCommandsTest, InfoSaysWhatTheAnalysisIsOf)
 {
-    Analysis::APIDumpAnalysis::JsonValue value;
+    Utils::Json::JsonValue value;
 
     ASSERT_EQ(ask("info",
                  &value),
@@ -300,7 +300,7 @@ TEST_F(QueryCommandsTest, PassTellsWhatAPassIs)
                   n_pass < m_analysis.model.pass_structure_interner.get_n_structures();
                 ++n_pass)
     {
-        Analysis::APIDumpAnalysis::JsonValue value;
+        Utils::Json::JsonValue value;
 
         m_arguments.has_pass_id = true;
         m_arguments.pass_id     = n_pass;
@@ -345,7 +345,7 @@ TEST_F(QueryCommandsTest, PassTellsWhatAPassIs)
 
 TEST_F(QueryCommandsTest, PassNeedsAnIdThatExists)
 {
-    Analysis::APIDumpAnalysis::JsonValue value;
+    Utils::Json::JsonValue value;
 
     EXPECT_EQ(ask("pass",
                  &value),
@@ -363,7 +363,7 @@ TEST_F(QueryCommandsTest, PassNeedsAnIdThatExists)
 
 TEST_F(QueryCommandsTest, ThePassesOfADrawListArePaged)
 {
-    Analysis::APIDumpAnalysis::JsonValue value;
+    Utils::Json::JsonValue value;
 
     m_arguments.has_pass_id = true;
     m_arguments.limit       = 1;
@@ -386,8 +386,8 @@ TEST_F(QueryCommandsTest, ThePassesOfADrawListArePaged)
 
 TEST_F(QueryCommandsTest, PipelinesListsTheShapesAndTheirPasses)
 {
-    double           n_frames = 0.0;
-    Analysis::APIDumpAnalysis::JsonValue value;
+    double                 n_frames = 0.0;
+    Utils::Json::JsonValue value;
 
     ASSERT_EQ(ask("pipelines",
                  &value),
@@ -422,7 +422,7 @@ TEST_F(QueryCommandsTest, PipelinesListsTheShapesAndTheirPasses)
 
 TEST_F(QueryCommandsTest, ListsArePaged)
 {
-    Analysis::APIDumpAnalysis::JsonValue value;
+    Utils::Json::JsonValue value;
 
     m_arguments.limit  = 2;
     m_arguments.offset = 1;
@@ -465,8 +465,8 @@ TEST_F(QueryCommandsTest, ListsArePaged)
 
 TEST_F(QueryCommandsTest, TimelineListsTheRunsInOrderOfTime)
 {
-    double           n_frames = 0.0;
-    Analysis::APIDumpAnalysis::JsonValue value;
+    double                 n_frames = 0.0;
+    Utils::Json::JsonValue value;
 
     ASSERT_EQ(ask("timeline",
                  &value),
@@ -504,7 +504,7 @@ TEST_F(QueryCommandsTest, TimelineListsTheRunsInOrderOfTime)
 
 TEST_F(QueryCommandsTest, AnUnknownCommandIsBadArguments)
 {
-    Analysis::APIDumpAnalysis::JsonValue value;
+    Utils::Json::JsonValue value;
 
     EXPECT_EQ(ask("no_such_command",
                  &value),
@@ -515,7 +515,7 @@ TEST_F(QueryCommandsTest, AnUnknownCommandIsBadArguments)
 
 TEST_F(QueryCommandsTest, AnAnalysisWithNothingInItCanBeQueried)
 {
-    Analysis::APIDumpAnalysis::JsonValue value;
+    Utils::Json::JsonValue value;
 
     m_analysis = Analysis::APIDumpAnalysis::AnalysisResult();
 
@@ -538,8 +538,8 @@ TEST_F(QueryCommandsTest, AnAnalysisWithNothingInItCanBeQueried)
 
 TEST_F(QueryCommandsTest, EveryShapeHasAKeyThatIsTheSameWherePassesAreTheSame)
 {
-    std::set<std::string>                key_set;
-    Analysis::APIDumpAnalysis::JsonValue pipelines;
+    std::set<std::string>  key_set;
+    Utils::Json::JsonValue pipelines;
 
     ASSERT_EQ(ask("pipelines",
                  &pipelines),
@@ -547,8 +547,8 @@ TEST_F(QueryCommandsTest, EveryShapeHasAKeyThatIsTheSameWherePassesAreTheSame)
 
     for (const auto& shape : pipelines.at("shapes").item_vec)
     {
-        Analysis::APIDumpAnalysis::JsonValue frame;
-        const auto                           shape_id = static_cast<uint32_t>(shape.at("shape_id").number_value);
+        Utils::Json::JsonValue frame;
+        const auto             shape_id = static_cast<uint32_t>(shape.at("shape_id").number_value);
 
         EXPECT_EQ(shape.at("shape_key").string_value.size(),
                   18u);
@@ -590,8 +590,8 @@ TEST_F(QueryCommandsTest, EveryShapeHasAKeyThatIsTheSameWherePassesAreTheSame)
 
 TEST_F(QueryCommandsTest, OverlaysAreThePassesWhoseCameraNeverChanges)
 {
-    Analysis::APIDumpAnalysis::JsonValue value;
-    std::set<std::string>                expected_key_set;
+    Utils::Json::JsonValue value;
+    std::set<std::string>  expected_key_set;
 
     ASSERT_EQ(ask("overlays",
                  &value),
@@ -695,7 +695,7 @@ TEST_F(QueryCommandsTest, OverlaysAreThePassesWhoseCameraNeverChanges)
         }
     }
 
-    Analysis::APIDumpAnalysis::JsonValue moved_value;
+    Utils::Json::JsonValue moved_value;
 
     ASSERT_EQ(ask("overlays",
                  &moved_value),
@@ -705,7 +705,7 @@ TEST_F(QueryCommandsTest, OverlaysAreThePassesWhoseCameraNeverChanges)
 }
 
 /* Leaves nothing of how deep the vertices of the pass are, whichever kind of frame it is in. */
-static void forget_depth_of_pass(const uint32_t&                           in_pass_id,
+static void forget_depth_of_pass(const uint32_t&                            in_pass_id,
                                  Analysis::APIDumpAnalysis::AnalysisResult* inout_analysis_ptr)
 {
     for (auto iterator  = inout_analysis_ptr->model.surface_depth_histogram_map.begin();
@@ -742,7 +742,7 @@ TEST_F(QueryCommandsTest, AStaticCameraPassWhoseVerticesAreAtManyDepthsIsA3DScen
     forget_depth_of_pass(pass_id,
                         &m_analysis);
 
-    const auto is_listed_unaffected_func = [&](const Analysis::APIDumpAnalysis::JsonValue& in_value)
+    const auto is_listed_unaffected_func = [&](const Utils::Json::JsonValue& in_value)
     {
         bool result = false;
 
@@ -755,7 +755,7 @@ TEST_F(QueryCommandsTest, AStaticCameraPassWhoseVerticesAreAtManyDepthsIsA3DScen
     };
 
     Analysis::APIDumpAnalysis::DepthHistogram flat_histogram;
-    Analysis::APIDumpAnalysis::JsonValue      flat_value;
+    Utils::Json::JsonValue                    flat_value;
 
     flat_histogram.add(5.0f,
                        1000);
@@ -772,7 +772,7 @@ TEST_F(QueryCommandsTest, AStaticCameraPassWhoseVerticesAreAtManyDepthsIsA3DScen
 
     /* The same pass with vertices from 5 to 500 is a scene. */
     Analysis::APIDumpAnalysis::DepthHistogram deep_histogram;
-    Analysis::APIDumpAnalysis::JsonValue      deep_value;
+    Utils::Json::JsonValue                    deep_value;
 
     deep_histogram.add(5.0f,
                        1000);
@@ -816,7 +816,7 @@ TEST_F(QueryCommandsTest, AStaticCameraPassWhoseVerticesAreAtManyDepthsIsA3DScen
     EXPECT_TRUE(has_deep_reason);
 
     /* A pass of which nothing is known of the depth stays in the list, as it did. */
-    Analysis::APIDumpAnalysis::JsonValue unknown_value;
+    Utils::Json::JsonValue unknown_value;
 
     m_analysis.model.surface_depth_histogram_map.erase(Analysis::APIDumpAnalysis::DepthHistogramKey(0,
                                                                                                     pass_id) );
@@ -831,8 +831,8 @@ TEST_F(QueryCommandsTest, AStaticCameraPassWhoseVerticesAreAtManyDepthsIsA3DScen
 
 TEST_F(QueryCommandsTest, ResourcesTellWhatTheFramesDidWithEachOne)
 {
-    double                               n_resources_in_classes = 0.0;
-    Analysis::APIDumpAnalysis::JsonValue value;
+    double                 n_resources_in_classes = 0.0;
+    Utils::Json::JsonValue value;
 
     ASSERT_EQ(ask("resources",
                  &value),
@@ -868,7 +868,7 @@ TEST_F(QueryCommandsTest, ResourcesTellWhatTheFramesDidWithEachOne)
         EXPECT_FALSE(item_vec.at(n_item).at("access").string_value.empty() );
 
         /* A resource that was never written has no first write. */
-        EXPECT_EQ(item_vec.at(n_item).at("first_write_frame_index").type == Analysis::APIDumpAnalysis::JsonValue::Type::NULL_VALUE,
+        EXPECT_EQ(item_vec.at(n_item).at("first_write_frame_index").type == Utils::Json::JsonValue::Type::NULL_VALUE,
                   access.n_frames_written == 0);
     }
 }
@@ -888,7 +888,7 @@ TEST_F(QueryCommandsTest, ResourcesCanBeListedByTheirClass)
 
     for (const auto& access_class : class_array)
     {
-        Analysis::APIDumpAnalysis::JsonValue value;
+        Utils::Json::JsonValue value;
 
         m_arguments.access_class     = access_class;
         m_arguments.has_access_class = true;
@@ -927,8 +927,8 @@ TEST_F(QueryCommandsTest, ClassNamesAreReadBack)
 
 TEST_F(QueryCommandsTest, InfoCountsTheResourcesOfEachClass)
 {
-    double                               n_resources = 0.0;
-    Analysis::APIDumpAnalysis::JsonValue value;
+    double                 n_resources = 0.0;
+    Utils::Json::JsonValue value;
 
     ASSERT_EQ(ask("info",
                  &value),

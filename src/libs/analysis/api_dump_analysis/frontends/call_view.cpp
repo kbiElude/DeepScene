@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_analysis/frontends/call_view.h"
-#include "analysis/api_dump_analysis/hasher.h"
+#include "utils/hashing/hasher.h"
 
 Analysis::APIDumpAnalysis::Frontends::CallView::CallView(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                          const Capture::APIDumpLoader::Workload&      in_workload,
@@ -63,8 +63,8 @@ bool Analysis::APIDumpAnalysis::Frontends::CallView::get_data_reference(const si
 
     if (result)
     {
-        out_reference_ptr->content_hash  = Hasher::hash_bytes                                   (chunk_ptr->data(),
-                                                                                                 chunk_ptr->size() );
+        out_reference_ptr->content_hash  = Utils::Hashing::Hasher::hash_bytes                                   (chunk_ptr->data(),
+                                                                                                                 chunk_ptr->size() );
         out_reference_ptr->data_chunk_id = m_call.arg_in_vec.at(in_n_argument).get_data_chunk_id();
         out_reference_ptr->n_bytes       = chunk_ptr->size                                      ();
     }

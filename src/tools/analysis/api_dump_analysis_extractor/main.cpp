@@ -3,11 +3,11 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_analysis/frontends/analysis_session.h"
-#include "analysis/api_dump_analysis/number_parser.h"
 #include "analysis/api_dump_analysis/passes_file.h"
 #include "analysis/api_dump_analysis/resource_access_tracker.h"
 #include "analysis/api_dump_analysis/timeline_builder.h"
 #include "extractor.h"
+#include "utils/command_line/number_parser.h"
 #include <algorithm>
 #include <chrono>
 #include <stdio.h>
@@ -73,9 +73,9 @@ bool Analysis::APIDumpAnalysisExtractor::parse_arguments(const int&   in_argc,
                 goto end;
             }
 
-            if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(next_argument,
-                                                                        UINT64_MAX,
-                                                                       &out_options_ptr->max_frames) == false)
+            if (Utils::CommandLine::NumberParser::parse_unsigned(next_argument,
+                                                                 UINT64_MAX,
+                                                                 &out_options_ptr->max_frames) == false)
             {
                 *out_error_ptr = "--max-frames needs a number, not " + next_argument;
 
@@ -96,9 +96,9 @@ bool Analysis::APIDumpAnalysisExtractor::parse_arguments(const int&   in_argc,
                 goto end;
             }
 
-            if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(next_argument,
-                                                                        MAX_N_THREADS,
-                                                                       &n_threads) == false)
+            if (Utils::CommandLine::NumberParser::parse_unsigned(next_argument,
+                                                                 MAX_N_THREADS,
+                                                                 &n_threads) == false)
             {
                 *out_error_ptr = "--threads needs a number up to " + std::to_string(MAX_N_THREADS) + ", not " + next_argument;
 
@@ -120,8 +120,8 @@ bool Analysis::APIDumpAnalysisExtractor::parse_arguments(const int&   in_argc,
                 goto end;
             }
 
-            if (Analysis::APIDumpAnalysis::NumberParser::parse_double(next_argument,
-                                                                     &out_options_ptr->progress_interval_seconds) == false)
+            if (Utils::CommandLine::NumberParser::parse_double(next_argument,
+                                                               &out_options_ptr->progress_interval_seconds) == false)
             {
                 *out_error_ptr = "--progress-interval needs a number of seconds, not " + next_argument;
 
@@ -258,9 +258,9 @@ int Analysis::APIDumpAnalysisExtractor::run(int   in_argc,
 {
     typedef std::chrono::steady_clock Clock;
 
-    Analysis::APIDumpAnalysis::AnalysisResult                   analysis;
+    Analysis::APIDumpAnalysis::AnalysisResult             analysis;
     std::string                                           error;
-    ExitCode                                              exit_code = ExitCode::SUCCESS;
+    ExitCode                                              exit_code  = ExitCode::SUCCESS;
     Options                                               options;
     Analysis::APIDumpAnalysis::Frontends::AnalysisSession session;
     const auto                                            start_time = Clock::now();

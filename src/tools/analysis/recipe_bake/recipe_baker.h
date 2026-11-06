@@ -25,8 +25,8 @@
 #ifndef RECIPEBAKE_RECIPE_BAKER_H
 #define RECIPEBAKE_RECIPE_BAKER_H
 
-#include "analysis/api_dump_analysis/json_reader.h"
-#include "analysis/api_dump_analysis/json_writer.h"
+#include "utils/json/json_reader.h"
+#include "utils/json/json_writer.h"
 #include "analysis/api_dump_analysis/model.h"
 #include "analysis/api_dump_dependencies/types.h"
 #include "analysis/recipe_applier/recipe_applier.h"
@@ -96,7 +96,7 @@ namespace Analysis
             /* The keys of the draws that cover the whole of the view, in the passes that the recipe leaves alone: only those are moved by the
              * overlay, and the mesh of a scene can have the same key.
              */
-            static std::vector<uint64_t> get_covering_draw_key_vec(const Analysis::RecipeLoader::Recipe&         in_recipe,
+            static std::vector<uint64_t> get_covering_draw_key_vec(const Analysis::RecipeLoader::Recipe&            in_recipe,
                                                                    const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis);
 
             /* The textures which frames carry over from the frame before, which each eye has a copy of (the back buffer is not one: the player keeps
@@ -125,16 +125,16 @@ namespace Analysis
                                             MatrixVector*                                    out_matrix_vec_ptr,
                                             std::string*                                     out_reason_ptr);
 
-            static void write_baked(const std::vector<uint64_t>&                in_covering_draw_key_vec,
-                                    const ConvergenceVector&                    in_convergence_vec,
-                                    const std::vector<uint64_t>&                in_known_signature_key_vec,
-                                    const PerEyeTextureVector&                  in_per_eye_texture_vec,
-                                    const RuleVector&                           in_rule_vec,
-                                    const SceneConvergenceVector&               in_scene_convergence_vec,
-                                    const SceneSeparationVector&                in_scene_separation_vec,
-                                    Analysis::APIDumpAnalysis::JsonWriter*      inout_writer_ptr);
-            static void write_value(const Analysis::APIDumpAnalysis::JsonValue& in_value,
-                                    Analysis::APIDumpAnalysis::JsonWriter*      inout_writer_ptr);
+            static void write_baked(const std::vector<uint64_t>&  in_covering_draw_key_vec,
+                                    const ConvergenceVector&      in_convergence_vec,
+                                    const std::vector<uint64_t>&  in_known_signature_key_vec,
+                                    const PerEyeTextureVector&    in_per_eye_texture_vec,
+                                    const RuleVector&             in_rule_vec,
+                                    const SceneConvergenceVector& in_scene_convergence_vec,
+                                    const SceneSeparationVector&  in_scene_separation_vec,
+                                    Utils::Json::JsonWriter*      inout_writer_ptr);
+            static void write_value(const Utils::Json::JsonValue& in_value,
+                                    Utils::Json::JsonWriter*      inout_writer_ptr);
         };
     }
 }

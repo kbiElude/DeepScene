@@ -6,12 +6,12 @@
  * is refused.
  */
 #include <gtest/gtest.h>
-#include "analysis/api_dump_analysis/byte_reader.h"
-#include "analysis/api_dump_analysis/byte_writer.h"
+#include "utils/binary_io/byte_reader.h"
+#include "utils/binary_io/byte_writer.h"
 
 TEST(ByteIo, WhatIsWrittenIsReadBack)
 {
-    Analysis::APIDumpAnalysis::ByteWriter writer;
+    Utils::BinaryIO::ByteWriter writer;
 
     writer.write_bool  (true);
     writer.write_f32   (1.5f);
@@ -21,8 +21,8 @@ TEST(ByteIo, WhatIsWrittenIsReadBack)
     writer.write_u8    (9);
 
     const auto                  byte_vec = writer.take_bytes();
-    Analysis::APIDumpAnalysis::ByteReader reader(byte_vec.data(),
-                                                 byte_vec.size() );
+    Utils::BinaryIO::ByteReader reader(byte_vec.data(),
+                                       byte_vec.size() );
 
     EXPECT_TRUE(reader.read_bool() );
     EXPECT_EQ  (reader.read_f32(),
@@ -41,7 +41,7 @@ TEST(ByteIo, WhatIsWrittenIsReadBack)
 
 TEST(ByteIo, TakingTheBytesLeavesTheWriterEmpty)
 {
-    Analysis::APIDumpAnalysis::ByteWriter writer;
+    Utils::BinaryIO::ByteWriter writer;
 
     writer.write_u32(1);
 
@@ -53,8 +53,8 @@ TEST(ByteIo, TakingTheBytesLeavesTheWriterEmpty)
 TEST(ByteIo, AReadPastTheEndFailsTheReader)
 {
     const uint8_t               byte_array[2] = {1, 2};
-    Analysis::APIDumpAnalysis::ByteReader reader(byte_array,
-                                                 sizeof(byte_array) );
+    Utils::BinaryIO::ByteReader reader(byte_array,
+                                       sizeof(byte_array) );
 
     EXPECT_EQ(reader.read_u32(),
               0u);
@@ -63,14 +63,14 @@ TEST(ByteIo, AReadPastTheEndFailsTheReader)
 
 TEST(ByteIo, ACountOfMoreItemsThanCanFitIsRefused)
 {
-    Analysis::APIDumpAnalysis::ByteWriter writer;
+    Utils::BinaryIO::ByteWriter writer;
 
     writer.write_u32(1000);
     writer.write_u64(1);
 
     const auto                  byte_vec = writer.take_bytes();
-    Analysis::APIDumpAnalysis::ByteReader reader(byte_vec.data(),
-                                                 byte_vec.size() );
+    Utils::BinaryIO::ByteReader reader(byte_vec.data(),
+                                       byte_vec.size() );
 
     EXPECT_EQ(reader.read_count(sizeof(uint64_t) ),
               0u);
@@ -79,15 +79,15 @@ TEST(ByteIo, ACountOfMoreItemsThanCanFitIsRefused)
 
 TEST(ByteIo, ACountWhichFitsIsAccepted)
 {
-    Analysis::APIDumpAnalysis::ByteWriter writer;
+    Utils::BinaryIO::ByteWriter writer;
 
     writer.write_u32(2);
     writer.write_u64(1);
     writer.write_u64(2);
 
     const auto                  byte_vec = writer.take_bytes();
-    Analysis::APIDumpAnalysis::ByteReader reader(byte_vec.data(),
-                                                 byte_vec.size() );
+    Utils::BinaryIO::ByteReader reader(byte_vec.data(),
+                                       byte_vec.size() );
 
     EXPECT_EQ(reader.read_count(sizeof(uint64_t) ),
               2u);

@@ -3,12 +3,12 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "overlay_probe.h"
-#include "analysis/api_dump_analysis/json_reader.h"
-#include "analysis/api_dump_analysis/json_writer.h"
 #include "analysis/api_dump_analysis/query_commands.h"
-#include "stereo/replay/frame_images/gif_writer.h"
-#include "stereo/replay/frame_images/image_comparer.h"
-#include "stereo/replay/frame_images/png_writer.h"
+#include "utils/images/gif_writer.h"
+#include "utils/images/image_comparer.h"
+#include "utils/images/png_writer.h"
+#include "utils/json/json_reader.h"
+#include "utils/json/json_writer.h"
 #include <algorithm>
 #include <map>
 #include <set>
@@ -124,7 +124,7 @@ void Stereo::Replay::ConsistencyChecker::OverlayProbe::add_warnings(OverlayProbe
     }
 }
 
-uint32_t Stereo::Replay::ConsistencyChecker::OverlayProbe::get_n_shards(const Options&                         in_options,
+uint32_t Stereo::Replay::ConsistencyChecker::OverlayProbe::get_n_shards(const Options&                        in_options,
                                                                         const std::vector<OverlayProbeEntry>& in_entry_vec)
 {
     return std::max<uint32_t>(1,
@@ -148,7 +148,7 @@ std::map<std::pair<uint32_t, uint64_t>, std::vector<size_t> > Stereo::Replay::Co
 }
 
 std::vector<uint32_t> Stereo::Replay::ConsistencyChecker::OverlayProbe::get_shard_of_entry_vec(const std::vector<OverlayProbeEntry>& in_entry_vec,
-                                                                                              const uint32_t&                       in_n_shards)
+                                                                                               const uint32_t&                       in_n_shards)
 {
     /* A replay costs the frames it goes through, and a few more for the device it makes. */
     constexpr uint64_t N_FRAMES_OF_SETUP = 1000;
@@ -223,13 +223,13 @@ std::vector<uint32_t> Stereo::Replay::ConsistencyChecker::OverlayProbe::get_shar
     return result;
 }
 
-Stereo::Replay::FrameImages::Image Stereo::Replay::ConsistencyChecker::OverlayProbe::make_highlighted_image(const Stereo::Replay::FrameImages::Image& in_baseline_image,
-                                                                                                                const Stereo::Replay::FrameImages::Image& in_probe_image,
-                                                                                                                const bool&                               in_is_rest_dimmed)
+Utils::Images::Image Stereo::Replay::ConsistencyChecker::OverlayProbe::make_highlighted_image(const Utils::Images::Image& in_baseline_image,
+                                                                                              const Utils::Images::Image& in_probe_image,
+                                                                                              const bool&                 in_is_rest_dimmed)
 {
     constexpr size_t N_CHANNELS = 4; /* B, G, R, A */
 
-    Stereo::Replay::FrameImages::Image result = in_baseline_image;
+    Utils::Images::Image result = in_baseline_image;
 
     for (size_t n_pixel = 0;
                 n_pixel < static_cast<size_t>(result.width) * result.height;
@@ -274,27 +274,27 @@ std::string Stereo::Replay::ConsistencyChecker::OverlayProbe::make_image_filenam
     return text;
 }
 
-bool Stereo::Replay::ConsistencyChecker::OverlayProbe::parse_candidates(const Options&                 in_options,
-                                                                       std::vector<OverlayProbeEntry>* out_entry_vec_ptr,
-                                                                       std::string*                    out_error_ptr)
+bool Stereo::Replay::ConsistencyChecker::OverlayProbe::parse_candidates(const Options&                  in_options,
+                                                                        std::vector<OverlayProbeEntry>* out_entry_vec_ptr,
+                                                                        std::string*                    out_error_ptr)
 {
-    Analysis::APIDumpAnalysis::JsonValue candidates;
-    bool                                 result = false;
-    std::string                          text;
+    Utils::Json::JsonValue candidates;
+    bool                   result     = false;
+    std::string            text;
 
     out_entry_vec_ptr->clear();
 
-    if (Analysis::APIDumpAnalysis::JsonReader::read_file(in_options.overlay_probe_filename,
-                                                        &text) == false)
+    if (Utils::Json::JsonReader::read_file(in_options.overlay_probe_filename,
+                                           &text) == false)
     {
         *out_error_ptr = "The file " + in_options.overlay_probe_filename + " cannot be read.";
 
         goto end;
     }
 
-    if (Analysis::APIDumpAnalysis::JsonReader::parse(Analysis::APIDumpAnalysis::JsonReader::strip_byte_order_mark(text),
-                                                    &candidates,
-                                                    out_error_ptr) == false)
+    if (Utils::Json::JsonReader::parse(Utils::Json::JsonReader::strip_byte_order_mark(text),
+                                       &candidates,
+                                       out_error_ptr) == false)
     {
         goto end;
     }
@@ -378,21 +378,21 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::parse_result_entries(cons
                                                                             std::vector<OverlayProbeEntry>* inout_entry_vec_ptr,
                                                                             std::string*                    out_error_ptr)
 {
-    Analysis::APIDumpAnalysis::JsonValue list;
-    bool                                 result = false;
-    std::string                          text;
+    Utils::Json::JsonValue list;
+    bool                   result = false;
+    std::string            text;
 
-    if (Analysis::APIDumpAnalysis::JsonReader::read_file(in_filename,
-                                                        &text) == false)
+    if (Utils::Json::JsonReader::read_file(in_filename,
+                                           &text) == false)
     {
         *out_error_ptr = "The result " + in_filename + " of a part of the probe cannot be read.";
 
         goto end;
     }
 
-    if (Analysis::APIDumpAnalysis::JsonReader::parse(Analysis::APIDumpAnalysis::JsonReader::strip_byte_order_mark(text),
-                                                    &list,
-                                                    out_error_ptr) == false)
+    if (Utils::Json::JsonReader::parse(Utils::Json::JsonReader::strip_byte_order_mark(text),
+                                       &list,
+                                       out_error_ptr) == false)
     {
         goto end;
     }
@@ -446,12 +446,12 @@ end:
     return result;
 }
 
-bool Stereo::Replay::ConsistencyChecker::OverlayProbe::probe_entries(const Options&                 in_options,
-                                                                     const RenderFunc&              in_render_func,
+bool Stereo::Replay::ConsistencyChecker::OverlayProbe::probe_entries(const Options&                  in_options,
+                                                                     const RenderFunc&               in_render_func,
                                                                      std::vector<OverlayProbeEntry>* inout_entry_vec_ptr,
-                                                                     std::string*                   out_error_ptr)
+                                                                     std::string*                    out_error_ptr)
 {
-    std::map<uint32_t, Stereo::Replay::FrameImages::Image> baseline_image_map;
+    std::map<uint32_t, Utils::Images::Image> baseline_image_map;
     std::map<std::pair<uint32_t, uint64_t>, bool>          is_pass_visible_map; /* by the frame and the key of the pass */
     std::map<std::pair<uint32_t, uint64_t>, size_t>        n_draws_of_pass_map;
     bool                                                   result = false;
@@ -484,11 +484,11 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::probe_entries(const Optio
                 n_entry < inout_entry_vec_ptr->size();
               ++n_entry)
     {
-        auto&                              entry          = inout_entry_vec_ptr->at(n_entry);
-        const auto                         pass_pair      = std::make_pair(entry.frame_index,
-                                                                           entry.pass_key);
-        Options                            probe_options  = in_options;
-        Stereo::Replay::FrameImages::Image probe_image;
+        auto&                entry         = inout_entry_vec_ptr->at(n_entry);
+        const auto           pass_pair     = std::make_pair(entry.frame_index,
+                                                            entry.pass_key);
+        Options              probe_options = in_options;
+        Utils::Images::Image probe_image;
 
         /* The frame as it is: once for each frame, whichever candidates are seen in it. */
         if (baseline_image_map.count(entry.frame_index) == 0)
@@ -511,8 +511,8 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::probe_entries(const Optio
         {
             if (is_pass_visible_map.count(pass_pair) == 0)
             {
-                Options                            pass_options = in_options;
-                Stereo::Replay::FrameImages::Image pass_image;
+                Options              pass_options = in_options;
+                Utils::Images::Image pass_image;
 
                 pass_options.recipe.skipped.pass_key_vec.push_back(entry.pass_key);
 
@@ -524,8 +524,8 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::probe_entries(const Optio
                     goto end;
                 }
 
-                is_pass_visible_map[pass_pair] = (Stereo::Replay::FrameImages::ImageComparer::compare(baseline_image,
-                                                                                                      pass_image).n_differing_pixels != 0);
+                is_pass_visible_map[pass_pair] = (Utils::Images::ImageComparer::compare(baseline_image,
+                                                                                        pass_image).n_differing_pixels != 0);
             }
 
             if (is_pass_visible_map.at(pass_pair) == false)
@@ -560,8 +560,8 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::probe_entries(const Optio
         }
 
         {
-            const auto difference = Stereo::Replay::FrameImages::ImageComparer::compare(baseline_image,
-                                                                                         probe_image);
+            const auto difference = Utils::Images::ImageComparer::compare(baseline_image,
+                                                                           probe_image);
 
             entry.n_changed_pixels = difference.n_differing_pixels;
 
@@ -603,8 +603,8 @@ end:
     return result;
 }
 
-void Stereo::Replay::ConsistencyChecker::OverlayProbe::read_depth_spread(const Analysis::APIDumpAnalysis::JsonValue& in_depth,
-                                                                         Analysis::APIDumpAnalysis::PassDepthSpread*  out_spread_ptr)
+void Stereo::Replay::ConsistencyChecker::OverlayProbe::read_depth_spread(const Utils::Json::JsonValue&               in_depth,
+                                                                         Analysis::APIDumpAnalysis::PassDepthSpread* out_spread_ptr)
 {
     out_spread_ptr->has_depth = in_depth.at("has_depth").bool_value;
 
@@ -618,14 +618,14 @@ void Stereo::Replay::ConsistencyChecker::OverlayProbe::read_depth_spread(const A
     }
 }
 
-bool Stereo::Replay::ConsistencyChecker::OverlayProbe::run(const Options&         in_options,
-                                                           const RenderFunc&      in_render_func,
-                                                           const RunShardsFunc&   in_run_shards_func,
-                                                           std::string*           out_error_ptr)
+bool Stereo::Replay::ConsistencyChecker::OverlayProbe::run(const Options&       in_options,
+                                                           const RenderFunc&    in_render_func,
+                                                           const RunShardsFunc& in_run_shards_func,
+                                                           std::string*         out_error_ptr)
 {
     std::vector<OverlayProbeEntry> entry_vec;
-    uint32_t                       n_shards = 1;
-    bool                           result   = false;
+    uint32_t                       n_shards  = 1;
+    bool                           result    = false;
 
     /* The directory of the output is made if it is not there (one level). */
     ::CreateDirectoryA(in_options.dump_directory.c_str(),
@@ -729,11 +729,11 @@ end:
     return result;
 }
 
-bool Stereo::Replay::ConsistencyChecker::OverlayProbe::write_images(const std::string&                        in_directory,
-                                                                    const std::string&                        in_still_filename,
-                                                                    const std::string&                        in_animation_filename,
-                                                                    const Stereo::Replay::FrameImages::Image& in_baseline_image,
-                                                                    const Stereo::Replay::FrameImages::Image& in_probe_image)
+bool Stereo::Replay::ConsistencyChecker::OverlayProbe::write_images(const std::string&          in_directory,
+                                                                    const std::string&          in_still_filename,
+                                                                    const std::string&          in_animation_filename,
+                                                                    const Utils::Images::Image& in_baseline_image,
+                                                                    const Utils::Images::Image& in_probe_image)
 {
     constexpr uint32_t ANIMATION_FRAME_DELAY_N_MILLISECONDS = 700;
 
@@ -747,11 +747,11 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::write_images(const std::s
                                                      in_probe_image,
                                                      true); /* in_is_rest_dimmed */
 
-    return (Stereo::Replay::FrameImages::PngWriter::write_file(in_directory + "/" + in_still_filename,
-                                                               still_image) &&
-            Stereo::Replay::FrameImages::GifWriter::write_file(in_directory + "/" + in_animation_filename,
-                                                               {in_baseline_image, marked_image},
-                                                               ANIMATION_FRAME_DELAY_N_MILLISECONDS) );
+    return (Utils::Images::PngWriter::write_file(in_directory + "/" + in_still_filename,
+                                                 still_image) &&
+            Utils::Images::GifWriter::write_file(in_directory + "/" + in_animation_filename,
+                                                 {in_baseline_image, marked_image},
+                                                 ANIMATION_FRAME_DELAY_N_MILLISECONDS) );
 }
 
 bool Stereo::Replay::ConsistencyChecker::OverlayProbe::write_list(const std::string&                    in_filename,
@@ -759,7 +759,7 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::write_list(const std::str
                                                                   std::string*                          out_error_ptr)
 {
     bool                                  result = false;
-    Analysis::APIDumpAnalysis::JsonWriter writer(true); /* in_is_pretty */
+    Utils::Json::JsonWriter writer(true); /* in_is_pretty */
 
     writer.begin_object();
     writer.write_key("candidates");

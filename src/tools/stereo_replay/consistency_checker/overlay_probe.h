@@ -5,10 +5,10 @@
 #ifndef STEREO_REPLAY_CONSISTENCYCHECKER_OVERLAY_PROBE_H
 #define STEREO_REPLAY_CONSISTENCYCHECKER_OVERLAY_PROBE_H
 
-#include "analysis/api_dump_analysis/json_reader.h"
 #include "analysis/api_dump_analysis/types.h"
-#include "stereo/replay/frame_images/types.h"
 #include "types.h"
+#include "utils/images/types.h"
+#include "utils/json/json_reader.h"
 #include <functional>
 #include <map>
 #include <stdint.h>
@@ -54,7 +54,7 @@ namespace Stereo
                 /* Replays the workload up to the frame with the options (its recipe), and gives the image of the left eye. */
                 typedef std::function<bool(const Options&                          in_options,
                                            const uint32_t&                         in_frame_index,
-                                           Stereo::Replay::FrameImages::Image*     out_image_ptr,
+                                           Utils::Images::Image*     out_image_ptr,
                                            std::string*                            out_error_ptr)> RenderFunc;
 
                 /* Runs the parts of the probe, each in a process of its own: the part k of n_shards looks at the candidates of the frames that are the k-th, the (k+n)-th
@@ -75,7 +75,7 @@ namespace Stereo
                 static void add_warnings(OverlayProbeEntry* inout_entry_ptr);
 
                 /* How many parts the work has: the jobs, but no more than there are groups of draws (a pass in a frame) to look at. */
-                static uint32_t get_n_shards(const Options&                         in_options,
+                static uint32_t get_n_shards(const Options&                        in_options,
                                              const std::vector<OverlayProbeEntry>& in_entry_vec);
 
                 /* The draws of each pass in each frame, as the places of the candidates in the list: what is looked at together. */
@@ -86,16 +86,16 @@ namespace Stereo
                                                                     const uint32_t&                       in_n_shards);
 
                 /* The frame with the pixels that differ from the other image in magenta; the rest of it dimmed, or as it is. */
-                static Stereo::Replay::FrameImages::Image make_highlighted_image(const Stereo::Replay::FrameImages::Image& in_baseline_image,
-                                                                                 const Stereo::Replay::FrameImages::Image& in_probe_image,
-                                                                                 const bool&                               in_is_rest_dimmed);
+                static Utils::Images::Image make_highlighted_image(const Utils::Images::Image& in_baseline_image,
+                                                                   const Utils::Images::Image& in_probe_image,
+                                                                   const bool&                 in_is_rest_dimmed);
 
                 static std::string make_image_filename(const size_t&   in_n_candidate,
                                                        const uint32_t& in_frame_index,
                                                        const char*     in_extension_ptr);
 
                 /* The candidates of the list that has the draws, in its order, as far as they can be seen (they have a frame). */
-                static bool parse_candidates(const Options&                 in_options,
+                static bool parse_candidates(const Options&                  in_options,
                                              std::vector<OverlayProbeEntry>* out_entry_vec_ptr,
                                              std::string*                    out_error_ptr);
 
@@ -113,15 +113,15 @@ namespace Stereo
                                           std::vector<OverlayProbeEntry>* inout_entry_vec_ptr,
                                           std::string*                    out_error_ptr);
 
-                static void read_depth_spread(const Analysis::APIDumpAnalysis::JsonValue& in_depth,
-                                              Analysis::APIDumpAnalysis::PassDepthSpread*  out_spread_ptr);
+                static void read_depth_spread(const Utils::Json::JsonValue&               in_depth,
+                                              Analysis::APIDumpAnalysis::PassDepthSpread* out_spread_ptr);
 
                 /* The still (the frame dimmed, with the pixels of the draws in magenta) and the animation (the frame as it is, and with them in magenta, by turns). */
-                static bool write_images(const std::string&                        in_directory,
-                                         const std::string&                        in_still_filename,
-                                         const std::string&                        in_animation_filename,
-                                         const Stereo::Replay::FrameImages::Image& in_baseline_image,
-                                         const Stereo::Replay::FrameImages::Image& in_probe_image);
+                static bool write_images(const std::string&          in_directory,
+                                         const std::string&          in_still_filename,
+                                         const std::string&          in_animation_filename,
+                                         const Utils::Images::Image& in_baseline_image,
+                                         const Utils::Images::Image& in_probe_image);
 
                 static bool write_list(const std::string&                    in_filename,
                                        const std::vector<OverlayProbeEntry>& in_entry_vec,

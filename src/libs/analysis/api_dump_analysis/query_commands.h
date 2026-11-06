@@ -19,9 +19,9 @@
 #ifndef APIDUMPANALYSIS_QUERY_COMMANDS_H
 #define APIDUMPANALYSIS_QUERY_COMMANDS_H
 
-#include "analysis/api_dump_analysis/json_writer.h"
 #include "analysis/api_dump_analysis/model.h"
 #include "analysis/api_dump_analysis/types.h"
+#include "utils/json/json_writer.h"
 #include <string>
 #include <vector>
 
@@ -42,11 +42,11 @@ namespace Analysis
                                                       const QueryArguments& in_arguments);
             static const char* get_resource_kind_name(const ResourceKind&   in_kind);
             /* Writes the "depth" member of an object: how deep the vertices of a pass are, or that nobody knows. */
-            static void        write_depth_spread    (const PassDepthSpread& in_spread,
-                                                      JsonWriter*            inout_writer_ptr);
-            static void        write_page            (const uint64_t&       in_total,
-                                                      const QueryArguments& in_arguments,
-                                                      JsonWriter*           inout_writer_ptr);
+            static void write_depth_spread(const PassDepthSpread&   in_spread,
+                                           Utils::Json::JsonWriter* inout_writer_ptr);
+            static void write_page        (const uint64_t&          in_total,
+                                           const QueryArguments&    in_arguments,
+                                           Utils::Json::JsonWriter* inout_writer_ptr);
 
             /* What the overlays command says, for the tools that look into it further: the first frame that has the pass structure (false if no frame has
              * it), how deep the vertices of a pass are, and the passes whose camera never changes (in the order of their ids).
@@ -63,64 +63,64 @@ namespace Analysis
                                                     ResourceAccessClass* out_class_ptr);
 
             /* Runs a command. Sets the error unless it returns OK; the writer's text is unusable then. */
-            static QueryStatus run(const std::string&    in_command,
-                                   const AnalysisResult& in_analysis,
-                                   const QueryArguments& in_arguments,
-                                   JsonWriter*           inout_writer_ptr,
-                                   std::string*          out_error_ptr);
+            static QueryStatus run(const std::string&       in_command,
+                                   const AnalysisResult&    in_analysis,
+                                   const QueryArguments&    in_arguments,
+                                   Utils::Json::JsonWriter* inout_writer_ptr,
+                                   std::string*             out_error_ptr);
 
         private:
             static const char* get_constant_block_kind_name  (const ConstantBlockKind&    in_kind);
             static const char* get_constant_provenance_name  (const ConstantProvenance&   in_provenance);
             static const char* get_constant_semantic_name    (const ConstantSemantic&     in_semantic);
-            static std::string get_hex_string               (const std::vector<uint8_t>& in_byte_vec);
+            static std::string get_hex_string                (const std::vector<uint8_t>& in_byte_vec);
             static const char* get_primitive_topology_name   (const PrimitiveTopology&    in_topology);
             static const char* get_resource_access_class_name(const ResourceAccessClass&  in_class);
-            static double      get_seconds                  (const AnalysisResult&       in_analysis,
-                                                              const uint64_t&             in_timestamp_qpc);
+            static double      get_seconds                   (const AnalysisResult&       in_analysis,
+                                                               const uint64_t&             in_timestamp_qpc);
 
             static const char* get_transfer_kind_name(const TransferKind& in_kind);
 
-            static QueryStatus run_depth    (const AnalysisResult& in_analysis,
-                                             JsonWriter*           inout_writer_ptr);
-            static QueryStatus run_frame    (const AnalysisResult& in_analysis,
-                                             const QueryArguments& in_arguments,
-                                             JsonWriter*           inout_writer_ptr,
-                                             std::string*          out_error_ptr);
-            static QueryStatus run_info     (const AnalysisResult& in_analysis,
-                                             JsonWriter*           inout_writer_ptr);
-            static QueryStatus run_overlays (const AnalysisResult& in_analysis,
-                                             JsonWriter*           inout_writer_ptr);
-            static QueryStatus run_pass     (const AnalysisResult& in_analysis,
-                                             const QueryArguments& in_arguments,
-                                             JsonWriter*           inout_writer_ptr,
-                                             std::string*          out_error_ptr);
-            static QueryStatus run_pipelines(const AnalysisResult& in_analysis,
-                                             const QueryArguments& in_arguments,
-                                             JsonWriter*           inout_writer_ptr);
-            static QueryStatus run_resources(const AnalysisResult& in_analysis,
-                                             const QueryArguments& in_arguments,
-                                             JsonWriter*           inout_writer_ptr);
-            static QueryStatus run_timeline (const AnalysisResult& in_analysis,
-                                             const QueryArguments& in_arguments,
-                                             JsonWriter*           inout_writer_ptr);
+            static QueryStatus run_depth    (const AnalysisResult&    in_analysis,
+                                             Utils::Json::JsonWriter* inout_writer_ptr);
+            static QueryStatus run_frame    (const AnalysisResult&    in_analysis,
+                                             const QueryArguments&    in_arguments,
+                                             Utils::Json::JsonWriter* inout_writer_ptr,
+                                             std::string*             out_error_ptr);
+            static QueryStatus run_info     (const AnalysisResult&    in_analysis,
+                                             Utils::Json::JsonWriter* inout_writer_ptr);
+            static QueryStatus run_overlays (const AnalysisResult&    in_analysis,
+                                             Utils::Json::JsonWriter* inout_writer_ptr);
+            static QueryStatus run_pass     (const AnalysisResult&    in_analysis,
+                                             const QueryArguments&    in_arguments,
+                                             Utils::Json::JsonWriter* inout_writer_ptr,
+                                             std::string*             out_error_ptr);
+            static QueryStatus run_pipelines(const AnalysisResult&    in_analysis,
+                                             const QueryArguments&    in_arguments,
+                                             Utils::Json::JsonWriter* inout_writer_ptr);
+            static QueryStatus run_resources(const AnalysisResult&    in_analysis,
+                                             const QueryArguments&    in_arguments,
+                                             Utils::Json::JsonWriter* inout_writer_ptr);
+            static QueryStatus run_timeline (const AnalysisResult&    in_analysis,
+                                             const QueryArguments&    in_arguments,
+                                             Utils::Json::JsonWriter* inout_writer_ptr);
 
             static void write_draw_structure(const uint64_t&                   in_key,
                                              const DrawStructure&              in_structure,
-                                             JsonWriter*                       inout_writer_ptr);
+                                             Utils::Json::JsonWriter*          inout_writer_ptr);
             static void write_frame         (const AnalysisResult&             in_analysis,
                                              const uint64_t&                   in_frame_index,
                                              const RepresentativeStore::Entry* in_entry_ptr,
-                                             JsonWriter*                       inout_writer_ptr);
+                                             Utils::Json::JsonWriter*          inout_writer_ptr);
             static void write_resource_view (const AnalysisResult&             in_analysis,
                                              const ResourceView&               in_view,
-                                             JsonWriter*                       inout_writer_ptr);
+                                             Utils::Json::JsonWriter*          inout_writer_ptr);
             static void write_series        (const AnalysisResult&             in_analysis,
                                              const ValueTimeSeries&            in_series,
-                                             JsonWriter*                       inout_writer_ptr);
+                                             Utils::Json::JsonWriter*          inout_writer_ptr);
             static void write_sample        (const AnalysisResult&             in_analysis,
                                              const ValueTimeSeries::Sample&    in_sample,
-                                             JsonWriter*                       inout_writer_ptr);
+                                             Utils::Json::JsonWriter*          inout_writer_ptr);
         };
     }
 }

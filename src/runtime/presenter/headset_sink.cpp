@@ -7,12 +7,12 @@
 #include <Windows.h>
 #include <mmsystem.h>
 
-Stereo::Presenter::HeadsetSink::HeadsetSink(Stereo::Transport::IFrameImporter*                 inout_importer_ptr,
+Stereo::Presenter::HeadsetSink::HeadsetSink(Stereo::Transport::IFrameImporter*                  inout_importer_ptr,
                                             std::unique_ptr<Headset::XR::HeadsetSession>        in_session_ptr,
                                             std::unique_ptr<Headset::D3D12::D3D12FrameUploader> in_uploader_ptr,
-                                            const ExitFunc&                                    in_exit_func,
-                                            const LogFunc&                                     in_log_func,
-                                            const bool&                                        in_is_pacing)
+                                            const ExitFunc&                                     in_exit_func,
+                                            const LogFunc&                                      in_log_func,
+                                            const bool&                                         in_is_pacing)
     :m_exit_func       (in_exit_func),
      m_frame_period    (0.0),
      m_frame_start     (0.0),
@@ -69,8 +69,8 @@ std::unique_ptr<Stereo::Presenter::HeadsetSink> Stereo::Presenter::HeadsetSink::
                                                                                            const bool&                        in_is_pacing,
                                                                                            std::string*                       out_error_ptr)
 {
-    std::unique_ptr<HeadsetSink>                       result_ptr;
-    auto                                               session_ptr = Headset::XR::HeadsetSession::create_ptr(out_error_ptr);
+    std::unique_ptr<HeadsetSink>                        result_ptr;
+    auto                                                session_ptr  = Headset::XR::HeadsetSession::create_ptr(out_error_ptr);
     std::unique_ptr<Headset::D3D12::D3D12FrameUploader> uploader_ptr;
 
     if (session_ptr == nullptr)
@@ -136,7 +136,7 @@ void Stereo::Presenter::HeadsetSink::upload_frame(const Stereo::Transport::Impor
     std::string     error;
     ID3D12Resource* left_texture_ptr  = nullptr;
     ID3D12Resource* right_texture_ptr = nullptr;
-    const double    start_ms          = Stereo::Transport::SeriesStats::get_now();
+    const double    start_ms          = Utils::Statistics::SeriesStats::get_now();
 
     /* The same frame again is what the screen already shows. */
     if (m_has_frame                                      &&
@@ -164,7 +164,7 @@ void Stereo::Presenter::HeadsetSink::upload_frame(const Stereo::Transport::Impor
         goto end;
     }
 
-    const double acquired_ms = Stereo::Transport::SeriesStats::get_now();
+    const double acquired_ms = Utils::Statistics::SeriesStats::get_now();
 
     m_timing.acquire_cost.add(acquired_ms - start_ms);
 
@@ -177,11 +177,11 @@ void Stereo::Presenter::HeadsetSink::upload_frame(const Stereo::Transport::Impor
         log_once(error);
     }
 
-    m_timing.upload_cost.add(Stereo::Transport::SeriesStats::get_now() - acquired_ms);
+    m_timing.upload_cost.add(Utils::Statistics::SeriesStats::get_now() - acquired_ms);
 
     m_session_ptr->release_eye_textures();
 
-    tune_pace(Stereo::Transport::SeriesStats::get_now() );
+    tune_pace(Utils::Statistics::SeriesStats::get_now() );
 
     m_has_frame        = true;
     m_last_frame_index = in_frame.info.frame_index;
@@ -190,7 +190,7 @@ void Stereo::Presenter::HeadsetSink::upload_frame(const Stereo::Transport::Impor
     m_shown_timestamp   = in_frame.info.timestamp_seconds;
     m_has_shown_frame   = true;
 
-    if (Stereo::Transport::SeriesStats::take_period(&m_timing.last_report,
+    if (Utils::Statistics::SeriesStats::take_period(&m_timing.last_report,
                                                     start_ms,
                                                     REPORT_PERIOD_N_MILLISECONDS) )
     {
@@ -241,7 +241,7 @@ void Stereo::Presenter::HeadsetSink::on_compositor_frame(const double& in_period
     }
 
     m_frame_period = in_period_n_milliseconds;
-    m_frame_start  = Stereo::Transport::SeriesStats::get_now();
+    m_frame_start  = Utils::Statistics::SeriesStats::get_now();
 
     if (m_is_pacing)
     {

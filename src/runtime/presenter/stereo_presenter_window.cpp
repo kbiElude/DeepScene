@@ -16,7 +16,7 @@ Stereo::Presenter::StereoPresenterWindow::StereoPresenterWindow(std::unique_ptr<
     /* Stub */
 }
 
-void Stereo::Presenter::StereoPresenterWindow::draw_contents(VR::UIHost::ContentExtent* inout_extent_ptr)
+void Stereo::Presenter::StereoPresenterWindow::draw_contents(Utils::UIHost::ContentExtent* inout_extent_ptr)
 {
     const ImVec2                     available = ImGui::GetContentRegionAvail();
     Stereo::Transport::ImportedFrame frame;
@@ -60,9 +60,9 @@ void Stereo::Presenter::StereoPresenterWindow::draw_contents(VR::UIHost::Content
     if (m_sink_ptr->get_view_ptr() == nullptr)
     {
         char         headset_text_i8vec128[128];
-        uint64_t     shown_frame_index = 0;
-        double       shown_seconds     = 0.0;
-        const char*  text              = "Waiting for the application...";
+        uint64_t    shown_frame_index = 0;
+        double      shown_seconds     = 0.0;
+        const char* text              = "Waiting for the application...";
 
         if (m_headset_sink_ptr != nullptr)
         {
@@ -155,12 +155,12 @@ void Stereo::Presenter::StereoPresenterWindow::set_headset_sink(std::unique_ptr<
     m_headset_sink_ptr = std::move(in_sink_ptr);
 }
 
-VR::UIHost::WindowOptions Stereo::Presenter::StereoPresenterWindow::get_window_options(const std::string& in_title)
+Utils::UIHost::WindowOptions Stereo::Presenter::StereoPresenterWindow::get_window_options(const std::string& in_title)
 {
     constexpr int CLIENT_HEIGHT = 600;
     constexpr int CLIENT_WIDTH  = 800;
 
-    VR::UIHost::WindowOptions result;
+    Utils::UIHost::WindowOptions result;
 
     result.class_name    = L"StereoPresenterWindow";
     result.client_height = CLIENT_HEIGHT;

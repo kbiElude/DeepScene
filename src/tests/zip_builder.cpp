@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "zip_builder.h"
-#include "vr/app_installer/file_system.h"
+#include "utils/files/file_system.h"
 #include "miniz.h"
 #include <Windows.h>
 
@@ -16,12 +16,12 @@ void Tests::ZipBuilder::add_file(const std::string& in_name,
 
 std::string Tests::ZipBuilder::get_bytes() const
 {
-    bool                                              are_all_entries_added = true;
-    void*                                             bytes_ptr             = nullptr;
-    size_t                                            n_zip_file_bytes      = 0;
+    bool   are_all_entries_added = true;
+    void*  bytes_ptr             = nullptr;
+    size_t n_zip_file_bytes      = 0;
     std::vector<std::pair<std::string, std::string> > placeholder_vec;
-    std::string                                       result;
-    mz_zip_archive                                    zip_archive;
+    std::string    result;
+    mz_zip_archive zip_archive;
 
     mz_zip_zero_struct(&zip_archive);
 
@@ -113,7 +113,7 @@ bool Tests::ZipBuilder::write_file(const std::string& in_path) const
         goto end;
     }
 
-    file_handle = ::CreateFileW(VR::AppInstaller::FileSystem::to_wide(in_path).c_str(),
+    file_handle = ::CreateFileW(Utils::Files::FileSystem::to_wide(in_path).c_str(),
                                 GENERIC_WRITE,
                                 0, /* share mode */
                                 nullptr,

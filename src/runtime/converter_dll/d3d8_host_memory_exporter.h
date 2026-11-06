@@ -7,7 +7,7 @@
 
 #include "Interception/Hooks/D3D8/types.h"
 #include "host_memory_exporter.h"
-#include "stereo/transport/series_stats.h"
+#include "utils/statistics/series_stats.h"
 #include <array>
 #include <condition_variable>
 #include <mutex>
@@ -124,19 +124,19 @@ namespace Stereo
             std::thread                                     m_eye_thread;
             bool                                            m_is_eye_stopping;
             std::array<std::vector<uint8_t>, N_EYES>        m_converted_u8_vec_array; /* of the threads: one for each eye */
-            Stereo::Transport::SeriesStats                  m_issue_cost;       /* of asking the device for the copies, ms */
-            Stereo::Transport::SeriesStats                  m_job_wait;         /* of waiting for the thread, ms           */
+            Utils::Statistics::SeriesStats                  m_issue_cost;       /* of asking the device for the copies, ms */
+            Utils::Statistics::SeriesStats                  m_job_wait;         /* of waiting for the thread, ms           */
             Job                                             m_job;
             JobState                                        m_job_state;
             uint32_t                                        m_job_set;          /* which set of surfaces the job is of */
-            Stereo::Transport::SeriesStats                  m_lock_cost;        /* of locking the surfaces, ms            */
-            Stereo::Transport::SeriesStats                  m_pace_wait;        /* of waiting for the screen, ms          */
+            Utils::Statistics::SeriesStats                  m_lock_cost;        /* of locking the surfaces, ms            */
+            Utils::Statistics::SeriesStats                  m_pace_wait;        /* of waiting for the screen, ms          */
             std::mutex                                      m_mutex;            /* guards the state of the job, and the series of the thread */
             uint32_t                                        m_next_set;
             std::array<std::array<Staging, N_EYES>, N_SETS> m_staging_array;
             bool                                            m_is_stopping;
             std::thread                                     m_thread;
-            Stereo::Transport::SeriesStats                  m_write_cost;       /* of the copy to the channel, ms         */
+            Utils::Statistics::SeriesStats                  m_write_cost;       /* of the copy to the channel, ms         */
         };
     }
 }

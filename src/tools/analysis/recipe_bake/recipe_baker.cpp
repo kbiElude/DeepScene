@@ -18,38 +18,38 @@
 #include <stdio.h>
 #include <string.h>
 
-bool Analysis::RecipeBake::RecipeBaker::bake(const std::string&                                        in_recipe_text,
-                                             const Analysis::APIDumpAnalysis::AnalysisResult&          in_analysis,
-                                             std::string*                                              out_text_ptr,
-                                             BakeReport*                                               out_report_ptr,
-                                             std::string*                                              out_error_ptr,
-                                             const Analysis::APIDumpDependencies::DependencyAnalysis*  in_dependencies_ptr)
+bool Analysis::RecipeBake::RecipeBaker::bake(const std::string&                                       in_recipe_text,
+                                             const Analysis::APIDumpAnalysis::AnalysisResult&         in_analysis,
+                                             std::string*                                             out_text_ptr,
+                                             BakeReport*                                              out_report_ptr,
+                                             std::string*                                             out_error_ptr,
+                                             const Analysis::APIDumpDependencies::DependencyAnalysis* in_dependencies_ptr)
 {
-    std::string                          authored_text;
-    ConvergenceVector                    convergence_vec;
-    std::string                          json_error;
-    std::vector<uint64_t>                known_signature_key_vec;
-    Analysis::RecipeLoader::Recipe       recipe;
-    bool                                 result = false;
-    Analysis::APIDumpAnalysis::JsonValue root;
-    RuleVector                           rule_vec;
-    SceneConvergenceVector               scene_convergence_vec;
-    SceneSeparationVector                scene_separation_vec;
+    std::string                    authored_text;
+    ConvergenceVector              convergence_vec;
+    std::string                    json_error;
+    std::vector<uint64_t>          known_signature_key_vec;
+    Analysis::RecipeLoader::Recipe recipe;
+    bool                           result                  = false;
+    Utils::Json::JsonValue         root;
+    RuleVector                     rule_vec;
+    SceneConvergenceVector         scene_convergence_vec;
+    SceneSeparationVector          scene_separation_vec;
 
     *out_report_ptr = BakeReport();
 
-    const std::string recipe_text = Analysis::APIDumpAnalysis::JsonReader::strip_byte_order_mark(in_recipe_text);
+    const std::string recipe_text = Utils::Json::JsonReader::strip_byte_order_mark(in_recipe_text);
 
-    if (Analysis::APIDumpAnalysis::JsonReader::parse(recipe_text,
-                                                    &root,
-                                                    &json_error) == false)
+    if (Utils::Json::JsonReader::parse(recipe_text,
+                                       &root,
+                                       &json_error) == false)
     {
         *out_error_ptr = "Not valid JSON: " + json_error;
 
         goto end;
     }
 
-    if (root.type != Analysis::APIDumpAnalysis::JsonValue::Type::OBJECT)
+    if (root.type != Utils::Json::JsonValue::Type::OBJECT)
     {
         *out_error_ptr = "The recipe must be a JSON object";
 
@@ -71,7 +71,7 @@ bool Analysis::RecipeBake::RecipeBaker::bake(const std::string&                 
     }
 
     {
-        Analysis::APIDumpAnalysis::JsonWriter writer(true); /* in_is_pretty */
+        Utils::Json::JsonWriter writer(true); /* in_is_pretty */
 
         write_value(root,
                    &writer);
@@ -117,7 +117,7 @@ bool Analysis::RecipeBake::RecipeBaker::bake(const std::string&                 
                               out_report_ptr);
 
     {
-        Analysis::APIDumpAnalysis::JsonWriter writer(true); /* in_is_pretty */
+        Utils::Json::JsonWriter writer(true); /* in_is_pretty */
 
         writer.begin_object();
 
@@ -179,7 +179,7 @@ bool Analysis::RecipeBake::RecipeBaker::compute_conditional_rules(const Analysis
                                       "converter cannot do yet";
 
     std::map<Analysis::RecipeLoader::DrawClass, MatrixVector> matrix_vec_by_class;
-    bool                                                      result        = false;
+    bool                                                      result              = false;
 
     for (const auto& class_pair : in_class_map)
     {
@@ -284,7 +284,7 @@ end:
     return result;
 }
 
-void Analysis::RecipeBake::RecipeBaker::compute_convergence(const Analysis::RecipeLoader::Recipe&     in_recipe,
+void Analysis::RecipeBake::RecipeBaker::compute_convergence(const Analysis::RecipeLoader::Recipe&            in_recipe,
                                                             const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis,
                                                             ConvergenceVector*                               out_convergence_vec_ptr,
                                                             BakeReport*                                      out_report_ptr)
@@ -395,7 +395,7 @@ void Analysis::RecipeBake::RecipeBaker::compute_convergence(const Analysis::Reci
     out_report_ptr->n_convergence_distances = static_cast<uint32_t>(out_convergence_vec_ptr->size() );
 }
 
-void Analysis::RecipeBake::RecipeBaker::compute_scene_convergence(const Analysis::RecipeLoader::Recipe&     in_recipe,
+void Analysis::RecipeBake::RecipeBaker::compute_scene_convergence(const Analysis::RecipeLoader::Recipe&            in_recipe,
                                                                   const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis,
                                                                   SceneConvergenceVector*                          out_scene_convergence_vec_ptr,
                                                                   SceneSeparationVector*                           out_scene_separation_vec_ptr,
@@ -404,8 +404,8 @@ void Analysis::RecipeBake::RecipeBaker::compute_scene_convergence(const Analysis
     constexpr double FRACTION_MEDIAN = 0.5;
 
     const Analysis::RecipeApplier::RecipeApplier applier(in_recipe);
-    const auto&                               model_ref = in_analysis.model;
-    const auto                                n_shapes  = model_ref.frame_shape_interner.get_n_structures();
+    const auto& model_ref = in_analysis.model;
+    const auto  n_shapes  = model_ref.frame_shape_interner.get_n_structures();
 
     out_scene_convergence_vec_ptr->clear();
     out_scene_separation_vec_ptr->clear  ();
@@ -415,8 +415,8 @@ void Analysis::RecipeBake::RecipeBaker::compute_scene_convergence(const Analysis
                 ++n_shape)
     {
         Analysis::APIDumpAnalysis::DepthHistogram histogram;
-        float                                     projection_scale = 0.0f;
-        const auto&                               shape            = model_ref.frame_shape_interner.get_structure(n_shape);
+        float                                     projection_scale  = 0.0f;
+        const auto&                               shape             = model_ref.frame_shape_interner.get_structure(n_shape);
         Analysis::APIDumpAnalysis::DepthHistogram surface_histogram;
 
         /* A pass of a frame counts if the recipe affects any draw of it, and counts once however often a frame has it. */
@@ -488,8 +488,8 @@ void Analysis::RecipeBake::RecipeBaker::compute_scene_convergence(const Analysis
                 near_depth                          < convergence.distance)
             {
                 Analysis::RecipeLoader::SceneSeparation separation;
-                const float                             scale = (projection_scale > 0.0f) ? projection_scale
-                                                                                          : 1.0f;
+                const float                             scale      = (projection_scale > 0.0f) ? projection_scale
+                                                                                               : 1.0f;
 
                 separation.max_separation = 2.0f * in_recipe.comfort.max_near_parallax / (scale * (1.0f / near_depth - 1.0f / convergence.distance));
                 separation.shape_key      = convergence.shape_key;
@@ -507,7 +507,7 @@ void Analysis::RecipeBake::RecipeBaker::compute_scene_convergence(const Analysis
     out_report_ptr->n_scene_limits    = static_cast<uint32_t>(out_scene_separation_vec_ptr->size() );
 }
 
-bool Analysis::RecipeBake::RecipeBaker::compute_draw_rules(const Analysis::RecipeLoader::Recipe&     in_recipe,
+bool Analysis::RecipeBake::RecipeBaker::compute_draw_rules(const Analysis::RecipeLoader::Recipe&            in_recipe,
                                                            const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis,
                                                            std::vector<uint64_t>*                           out_known_signature_key_vec_ptr,
                                                            RuleVector*                                      out_rule_vec_ptr,
@@ -517,9 +517,9 @@ bool Analysis::RecipeBake::RecipeBaker::compute_draw_rules(const Analysis::Recip
     typedef std::map<uint64_t, ClassMap> SignatureMap;
 
     const Analysis::RecipeApplier::RecipeApplier applier(in_recipe);
-    const auto&                               model_ref = in_analysis.model;
-    bool                                      result    = false;
-    SignatureMap                              signature_map;
+    const auto&  model_ref     = in_analysis.model;
+    bool         result        = false;
+    SignatureMap signature_map;
 
     out_rule_vec_ptr->clear();
 
@@ -588,7 +588,7 @@ end:
 }
 
 Analysis::RecipeBake::RecipeBaker::PerEyeTextureVector Analysis::RecipeBake::RecipeBaker::get_per_eye_texture_vec(const Analysis::APIDumpAnalysis::AnalysisResult&         in_analysis,
-                                                                                                                 const Analysis::APIDumpDependencies::DependencyAnalysis* in_dependencies_ptr)
+                                                                                                                  const Analysis::APIDumpDependencies::DependencyAnalysis* in_dependencies_ptr)
 {
     PerEyeTextureVector result_vec;
 
@@ -650,8 +650,8 @@ Analysis::RecipeBake::RecipeBaker::PerEyeTextureVector Analysis::RecipeBake::Rec
     return result_vec;
 }
 
-std::vector<uint64_t> Analysis::RecipeBake::RecipeBaker::get_covering_draw_key_vec(const Analysis::RecipeLoader::Recipe&         in_recipe,
-                                                                                  const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
+std::vector<uint64_t> Analysis::RecipeBake::RecipeBaker::get_covering_draw_key_vec(const Analysis::RecipeLoader::Recipe&            in_recipe,
+                                                                                   const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
 {
     const std::set<uint64_t> unaffected_pass_key_set(in_recipe.unaffected.pass_key_vec.begin(),
                                                      in_recipe.unaffected.pass_key_vec.end  () );
@@ -707,8 +707,8 @@ const char* Analysis::RecipeBake::RecipeBaker::get_class_name(const Analysis::Re
 }
 
 Analysis::RecipeLoader::DrawClass Analysis::RecipeBake::RecipeBaker::get_draw_class(const Analysis::RecipeApplier::RecipeApplier& in_applier,
-                                                                                    const uint64_t&                                      in_pass_key,
-                                                                                    const uint64_t&                                      in_structure_key)
+                                                                                    const uint64_t&                               in_pass_key,
+                                                                                    const uint64_t&                               in_structure_key)
 {
     Analysis::RecipeLoader::DrawClass result = Analysis::RecipeLoader::DrawClass::UNAFFECTED;
 
@@ -851,14 +851,14 @@ end:
     return result;
 }
 
-void Analysis::RecipeBake::RecipeBaker::write_baked(const std::vector<uint64_t>&           in_covering_draw_key_vec,
-                                                    const ConvergenceVector&               in_convergence_vec,
-                                                    const std::vector<uint64_t>&           in_known_signature_key_vec,
-                                                    const PerEyeTextureVector&             in_per_eye_texture_vec,
-                                                    const RuleVector&                      in_rule_vec,
-                                                    const SceneConvergenceVector&          in_scene_convergence_vec,
-                                                    const SceneSeparationVector&           in_scene_separation_vec,
-                                                    Analysis::APIDumpAnalysis::JsonWriter* inout_writer_ptr)
+void Analysis::RecipeBake::RecipeBaker::write_baked(const std::vector<uint64_t>&  in_covering_draw_key_vec,
+                                                    const ConvergenceVector&      in_convergence_vec,
+                                                    const std::vector<uint64_t>&  in_known_signature_key_vec,
+                                                    const PerEyeTextureVector&    in_per_eye_texture_vec,
+                                                    const RuleVector&             in_rule_vec,
+                                                    const SceneConvergenceVector& in_scene_convergence_vec,
+                                                    const SceneSeparationVector&  in_scene_separation_vec,
+                                                    Utils::Json::JsonWriter*      inout_writer_ptr)
 {
     inout_writer_ptr->begin_object();
     inout_writer_ptr->write_key   ("signature_scheme_version");
@@ -987,21 +987,21 @@ void Analysis::RecipeBake::RecipeBaker::write_baked(const std::vector<uint64_t>&
     inout_writer_ptr->end_object();
 }
 
-void Analysis::RecipeBake::RecipeBaker::write_value(const Analysis::APIDumpAnalysis::JsonValue& in_value,
-                                                    Analysis::APIDumpAnalysis::JsonWriter*      inout_writer_ptr)
+void Analysis::RecipeBake::RecipeBaker::write_value(const Utils::Json::JsonValue& in_value,
+                                                    Utils::Json::JsonWriter*      inout_writer_ptr)
 {
     /* A whole number up to here is written as one; JSON numbers are doubles, which hold these exactly. */
     constexpr double MAX_WHOLE_NUMBER = 9007199254740992.0;
 
     switch (in_value.type)
     {
-        case Analysis::APIDumpAnalysis::JsonValue::Type::ARRAY:
+        case Utils::Json::JsonValue::Type::ARRAY:
         {
             bool is_inline = true;
 
             for (const auto& item : in_value.item_vec)
             {
-                is_inline = is_inline && (item.type == Analysis::APIDumpAnalysis::JsonValue::Type::NUMBER);
+                is_inline = is_inline && (item.type == Utils::Json::JsonValue::Type::NUMBER);
             }
 
             /* Numbers go on one line (a matrix), the rest one to a line (a list of keys). */
@@ -1025,14 +1025,14 @@ void Analysis::RecipeBake::RecipeBaker::write_value(const Analysis::APIDumpAnaly
             break;
         }
 
-        case Analysis::APIDumpAnalysis::JsonValue::Type::BOOL:
+        case Utils::Json::JsonValue::Type::BOOL:
         {
             inout_writer_ptr->write_bool(in_value.bool_value);
 
             break;
         }
 
-        case Analysis::APIDumpAnalysis::JsonValue::Type::NUMBER:
+        case Utils::Json::JsonValue::Type::NUMBER:
         {
             const double absolute_value = ::fabs(in_value.number_value);
             bool         is_whole       = false;
@@ -1056,7 +1056,7 @@ void Analysis::RecipeBake::RecipeBaker::write_value(const Analysis::APIDumpAnaly
             break;
         }
 
-        case Analysis::APIDumpAnalysis::JsonValue::Type::OBJECT:
+        case Utils::Json::JsonValue::Type::OBJECT:
         {
             inout_writer_ptr->begin_object();
 
@@ -1075,14 +1075,14 @@ void Analysis::RecipeBake::RecipeBaker::write_value(const Analysis::APIDumpAnaly
             break;
         }
 
-        case Analysis::APIDumpAnalysis::JsonValue::Type::STRING:
+        case Utils::Json::JsonValue::Type::STRING:
         {
             inout_writer_ptr->write_string(in_value.string_value);
 
             break;
         }
 
-        case Analysis::APIDumpAnalysis::JsonValue::Type::NULL_VALUE:
+        case Utils::Json::JsonValue::Type::NULL_VALUE:
         default:
         {
             inout_writer_ptr->write_null();

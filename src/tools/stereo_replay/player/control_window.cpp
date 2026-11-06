@@ -33,7 +33,7 @@ Stereo::Replay::Player::ControlWindow::ControlWindow(Stereo::Replay::EngineDLL::
     /* Stub */
 }
 
-void Stereo::Replay::Player::ControlWindow::draw_contents(VR::UIHost::ContentExtent* inout_extent_ptr)
+void Stereo::Replay::Player::ControlWindow::draw_contents(Utils::UIHost::ContentExtent* inout_extent_ptr)
 {
     constexpr float BUTTON_WIDTH_N_EMS = 6.0f;
 
@@ -267,12 +267,12 @@ void Stereo::Replay::Player::ControlWindow::draw_contents(VR::UIHost::ContentExt
     }
 }
 
-VR::UIHost::WindowOptions Stereo::Replay::Player::ControlWindow::get_window_options(const std::string& in_title)
+Utils::UIHost::WindowOptions Stereo::Replay::Player::ControlWindow::get_window_options(const std::string& in_title)
 {
     constexpr int CLIENT_HEIGHT = 150;
     constexpr int CLIENT_WIDTH  = 420;
 
-    VR::UIHost::WindowOptions result;
+    Utils::UIHost::WindowOptions result;
 
     result.class_name    = L"StereoReplayPlayerControlWindow";
     result.client_height = CLIENT_HEIGHT;

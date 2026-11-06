@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/api_dump_analysis/hasher.h"
 #include "analysis/api_dump_analysis/workload_identity.h"
+#include "utils/hashing/hasher.h"
 #include <fstream>
 #include <vector>
 
@@ -50,8 +50,8 @@ bool Analysis::APIDumpAnalysis::WorkloadIdentity::hash_piece(const std::string& 
     /* A file shorter than a piece is hashed as far as it goes; reaching its end is not an error. */
     piece_u8_vec.resize(static_cast<size_t>(file.gcount() ) );
 
-    *out_hash_ptr = Hasher::hash_bytes(piece_u8_vec.data(),
-                                       piece_u8_vec.size() );
+    *out_hash_ptr = Utils::Hashing::Hasher::hash_bytes(piece_u8_vec.data(),
+                                                       piece_u8_vec.size() );
     result        = true;
 
 end:
@@ -149,7 +149,7 @@ Analysis::APIDumpAnalysis::WorkloadMatch Analysis::APIDumpAnalysis::WorkloadIden
 {
     std::string       error;
     WorkloadReference file_reference;
-    WorkloadMatch     result = WorkloadMatch::UNREADABLE;
+    WorkloadMatch     result         = WorkloadMatch::UNREADABLE;
 
     if (read(in_filename,
             &file_reference,

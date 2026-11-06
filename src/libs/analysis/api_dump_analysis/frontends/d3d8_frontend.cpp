@@ -6,7 +6,7 @@
 #include "analysis/api_dump_analysis/frontends/clear_operation_factory.h"
 #include "analysis/api_dump_analysis/frontends/d3d8_resolution_hazards.h"
 #include "analysis/api_dump_analysis/frontends/d3d8_resource_describer.h"
-#include "analysis/api_dump_analysis/hasher.h"
+#include "utils/hashing/hasher.h"
 #include "Interception/Hooks/D3D8/types.h"
 #include "Interception/Core/D3D8Utils/argument_info.h"
 #include "Interception/Core/D3D8Utils/methods.h"
@@ -348,7 +348,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_device(co
     constexpr size_t PRESENTATION_PARAMETERS_ARGUMENT = 5;
 
     Interception::Core::D3D8Utils::PresentParameters parameters;
-    bool                                             is_ok = false;
+    bool                                             is_ok      = false;
 
     /* The device may fill in what the application left to it (the size of the window). */
     const Capture::APIDumpLoader::DataChunk* chunk_ptr = in_view.get_out_chunk_ptr(PRESENTATION_PARAMETERS_ARGUMENT);
@@ -409,8 +409,8 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_pixel_sha
         Analysis::APIDumpAnalysis::ResourceDescription description;
         const std::string                              shader_name = "PixelShader " + std::to_string(handle);
 
-        description.content_hash     = Analysis::APIDumpAnalysis::Hasher::hash_bytes(function_ptr->data(),
-                                                                                     function_ptr->size() );
+        description.content_hash     = Utils::Hashing::Hasher::hash_bytes(function_ptr->data(),
+                                                                          function_ptr->size() );
         description.has_content_hash = true;
         description.kind             = Analysis::APIDumpAnalysis::ResourceKind::SHADER;
         description.shader_stage     = Analysis::APIDumpAnalysis::ShaderStage::FRAGMENT;
@@ -488,7 +488,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_vertex_sh
     }
     else
     {
-        Analysis::APIDumpAnalysis::Hasher              code_hasher;
+        Utils::Hashing::Hasher                         code_hasher;
         Analysis::APIDumpAnalysis::ResourceDescription description;
         VertexShader                                   shader;
         const std::string                              shader_name = "VertexShader " + std::to_string(handle);
@@ -511,8 +511,8 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_vertex_sh
         description.kind             = Analysis::APIDumpAnalysis::ResourceKind::SHADER;
         description.shader_stage     = Analysis::APIDumpAnalysis::ShaderStage::VERTEX;
 
-        shader.declaration_hash = Analysis::APIDumpAnalysis::Hasher::hash_bytes(declaration_ptr->data(),
-                                                                                declaration_ptr->size() );
+        shader.declaration_hash = Utils::Hashing::Hasher::hash_bytes(declaration_ptr->data(),
+                                                                     declaration_ptr->size() );
         shader.id               = m_builder_ptr->on_create_resource            (description,
                                                                                 shader_name);
 
@@ -648,7 +648,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_get_cube_map_sur
     constexpr size_t SURFACE_ARGUMENT = 3;
     constexpr size_t TEXTURE_ARGUMENT = 0;
 
-    const uint64_t                          surface_address = in_view.get_out_pointer (SURFACE_ARGUMENT);
+    const uint64_t                      surface_address = in_view.get_out_pointer (SURFACE_ARGUMENT);
     const ObjectTracker::TrackedObject* texture_ptr     = m_tracker.get_object_ptr(in_view.get_pointer(TEXTURE_ARGUMENT) );
 
     if (in_view.succeeded() == false)
@@ -733,7 +733,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_get_surface_leve
     constexpr size_t SURFACE_ARGUMENT = 2;
     constexpr size_t TEXTURE_ARGUMENT = 0;
 
-    const uint64_t                          surface_address = in_view.get_out_pointer (SURFACE_ARGUMENT);
+    const uint64_t                      surface_address = in_view.get_out_pointer (SURFACE_ARGUMENT);
     const ObjectTracker::TrackedObject* texture_ptr     = m_tracker.get_object_ptr(in_view.get_pointer(TEXTURE_ARGUMENT) );
 
     if (in_view.succeeded() == false)
@@ -781,7 +781,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_reset(const Call
 {
     constexpr size_t PRESENTATION_PARAMETERS_ARGUMENT = 1;
 
-    bool                                             is_ok       = false;
+    bool                                             is_ok      = false;
     Interception::Core::D3D8Utils::PresentParameters parameters;
 
     /* The device may fill in what the application left to it (the size of the window). */
@@ -829,7 +829,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_indices(cons
     constexpr size_t BASE_VERTEX_INDEX_ARGUMENT = 2;
     constexpr size_t BUFFER_ARGUMENT            = 1;
 
-    const uint64_t                          address    = in_view.get_pointer     (BUFFER_ARGUMENT);
+    const uint64_t                      address    = in_view.get_pointer     (BUFFER_ARGUMENT);
     const ObjectTracker::TrackedObject* object_ptr = m_tracker.get_object_ptr(address);
 
     if (address == 0)
@@ -876,9 +876,9 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_render_targe
     constexpr size_t DEPTH_STENCIL_ARGUMENT = 2;
     constexpr size_t RENDER_TARGET_ARGUMENT = 1;
 
-    const uint64_t                          depth_stencil_address = in_view.get_pointer     (DEPTH_STENCIL_ARGUMENT);
+    const uint64_t                      depth_stencil_address = in_view.get_pointer     (DEPTH_STENCIL_ARGUMENT);
     const ObjectTracker::TrackedObject* depth_stencil_ptr     = m_tracker.get_object_ptr(depth_stencil_address);
-    const uint64_t                          render_target_address = in_view.get_pointer     (RENDER_TARGET_ARGUMENT);
+    const uint64_t                      render_target_address = in_view.get_pointer     (RENDER_TARGET_ARGUMENT);
     const ObjectTracker::TrackedObject* render_target_ptr     = m_tracker.get_object_ptr(render_target_address);
 
     if (in_view.succeeded() == false)
@@ -928,7 +928,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_stream_sourc
     constexpr size_t STREAM_ARGUMENT = 1;
     constexpr size_t STRIDE_ARGUMENT = 3;
 
-    const uint64_t                          address    = in_view.get_pointer     (BUFFER_ARGUMENT);
+    const uint64_t                      address    = in_view.get_pointer     (BUFFER_ARGUMENT);
     const ObjectTracker::TrackedObject* object_ptr = m_tracker.get_object_ptr(address);
 
     if (address == 0)
@@ -1023,7 +1023,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_unlock(const Cal
 
     Analysis::APIDumpAnalysis::DataReference data;
     bool                                     is_data_found = false;
-    const ObjectTracker::TrackedObject*  object_ptr    = m_tracker.get_object_ptr(in_view.get_pointer(OBJECT_ARGUMENT) );
+    const ObjectTracker::TrackedObject*      object_ptr    = m_tracker.get_object_ptr(in_view.get_pointer(OBJECT_ARGUMENT) );
 
     if (object_ptr != nullptr)
     {

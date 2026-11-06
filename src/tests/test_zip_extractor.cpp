@@ -6,8 +6,8 @@
  * are too big or the same, a zip file which is damaged, an unpacking which is cancelled).
  */
 #include <gtest/gtest.h>
-#include "vr/app_installer/file_system.h"
-#include "vr/app_installer/zip_extractor.h"
+#include "utils/files/file_system.h"
+#include "utils/files/zip_extractor.h"
 #include "temp_directory.h"
 #include "zip_builder.h"
 #include <fstream>
@@ -37,12 +37,12 @@ protected:
 
         m_error.clear();
 
-        return VR::AppInstaller::ZipExtractor::extract(archive_path,
-                                                       m_directory.get_path() + "\\out",
-                                                       in_n_unpacked_bytes_max,
-                                                       is_cancelled,
-                                                       VR::AppInstaller::ProgressCallback(),
-                                                      &m_error);
+        return Utils::Files::ZipExtractor::extract(archive_path,
+                                                   m_directory.get_path() + "\\out",
+                                                   in_n_unpacked_bytes_max,
+                                                   is_cancelled,
+                                                   Utils::Files::ProgressCallback(),
+                                                   &m_error);
     }
 
     Tests::TempDirectory m_directory;
@@ -69,7 +69,7 @@ TEST_F(ZipExtractorTest, TheEntriesAreUnpackedWithTheirDirectories)
     EXPECT_EQ(get_text(m_directory.get_path() + "\\out\\data\\deep\\file.bin"),
               std::string("a\0b",
                           3) );
-    EXPECT_TRUE(VR::AppInstaller::FileSystem::is_directory(m_directory.get_path() + "\\out\\data") );
+    EXPECT_TRUE(Utils::Files::FileSystem::is_directory(m_directory.get_path() + "\\out\\data") );
 }
 
 TEST_F(ZipExtractorTest, ANameWhichLeavesTheDirectoryIsRefusedAndNothingIsWritten)
@@ -89,19 +89,19 @@ TEST_F(ZipExtractorTest, ANameWhichLeavesTheDirectoryIsRefusedAndNothingIsWritte
         EXPECT_FALSE(extract(zip_builder) ) << entry_name;
         EXPECT_NE   (m_error.find("not allowed"),
                      std::string::npos) << entry_name << ": " << m_error;
-        EXPECT_FALSE(VR::AppInstaller::FileSystem::is_file(m_directory.get_path() + "\\out\\fine.txt") ) << "what is before is not written either";
-        EXPECT_FALSE(VR::AppInstaller::FileSystem::is_file(m_directory.get_path() + "\\evil.txt") );
+        EXPECT_FALSE(Utils::Files::FileSystem::is_file(m_directory.get_path() + "\\out\\fine.txt") ) << "what is before is not written either";
+        EXPECT_FALSE(Utils::Files::FileSystem::is_file(m_directory.get_path() + "\\evil.txt") );
     }
 }
 
 TEST_F(ZipExtractorTest, TheNamesWhichStayInsideAreAccepted)
 {
-    EXPECT_TRUE (VR::AppInstaller::ZipExtractor::is_name_safe("a.txt") );
-    EXPECT_TRUE (VR::AppInstaller::ZipExtractor::is_name_safe("dir/sub/a.txt") );
-    EXPECT_TRUE (VR::AppInstaller::ZipExtractor::is_name_safe("dir/") );
-    EXPECT_TRUE (VR::AppInstaller::ZipExtractor::is_name_safe("a.b.c") );
-    EXPECT_TRUE (VR::AppInstaller::ZipExtractor::is_name_safe("console.txt") );
-    EXPECT_FALSE(VR::AppInstaller::ZipExtractor::is_name_safe("") );
+    EXPECT_TRUE (Utils::Files::ZipExtractor::is_name_safe("a.txt") );
+    EXPECT_TRUE (Utils::Files::ZipExtractor::is_name_safe("dir/sub/a.txt") );
+    EXPECT_TRUE (Utils::Files::ZipExtractor::is_name_safe("dir/") );
+    EXPECT_TRUE (Utils::Files::ZipExtractor::is_name_safe("a.b.c") );
+    EXPECT_TRUE (Utils::Files::ZipExtractor::is_name_safe("console.txt") );
+    EXPECT_FALSE(Utils::Files::ZipExtractor::is_name_safe("") );
 }
 
 TEST_F(ZipExtractorTest, MoreThanTheLimitIsRefusedBeforeAnythingIsWritten)
@@ -119,7 +119,7 @@ TEST_F(ZipExtractorTest, MoreThanTheLimitIsRefusedBeforeAnythingIsWritten)
                          1000) );
     EXPECT_NE   (m_error.find("more than"),
                  std::string::npos) << m_error;
-    EXPECT_FALSE(VR::AppInstaller::FileSystem::is_file(m_directory.get_path() + "\\out\\a.bin") );
+    EXPECT_FALSE(Utils::Files::FileSystem::is_file(m_directory.get_path() + "\\out\\a.bin") );
 }
 
 TEST_F(ZipExtractorTest, TwoNamesWhichAreTheSameForTheSystemAreRefused)
@@ -162,28 +162,28 @@ TEST_F(ZipExtractorTest, ADamagedZipFileIsRefused)
 
     const std::atomic<bool> is_cancelled(false);
 
-    EXPECT_FALSE(VR::AppInstaller::ZipExtractor::extract(m_directory.get_path() + "\\damaged.zip",
-                                                         m_directory.get_path() + "\\out",
-                                                         1000000,
-                                                         is_cancelled,
-                                                         VR::AppInstaller::ProgressCallback(),
-                                                        &m_error) );
+    EXPECT_FALSE(Utils::Files::ZipExtractor::extract(m_directory.get_path() + "\\damaged.zip",
+                                                     m_directory.get_path() + "\\out",
+                                                     1000000,
+                                                     is_cancelled,
+                                                     Utils::Files::ProgressCallback(),
+                                                     &m_error) );
     EXPECT_FALSE(m_error.empty() );
 
-    EXPECT_FALSE(VR::AppInstaller::ZipExtractor::extract(m_directory.get_path() + "\\not_there.zip",
-                                                         m_directory.get_path() + "\\out",
-                                                         1000000,
-                                                         is_cancelled,
-                                                         VR::AppInstaller::ProgressCallback(),
-                                                        &m_error) );
+    EXPECT_FALSE(Utils::Files::ZipExtractor::extract(m_directory.get_path() + "\\not_there.zip",
+                                                     m_directory.get_path() + "\\out",
+                                                     1000000,
+                                                     is_cancelled,
+                                                     Utils::Files::ProgressCallback(),
+                                                     &m_error) );
 }
 
 TEST_F(ZipExtractorTest, TheProgressReachesTheSizeOfWhatIsUnpacked)
 {
     const std::atomic<bool> is_cancelled(false);
-    uint64_t                n_bytes_done  = 0;
-    uint64_t                n_bytes_total = 0;
-    Tests::ZipBuilder       zip_builder;
+    uint64_t          n_bytes_done  = 0;
+    uint64_t          n_bytes_total = 0;
+    Tests::ZipBuilder zip_builder;
 
     zip_builder.add_file("a.bin",
                          std::string(3000,
@@ -194,16 +194,16 @@ TEST_F(ZipExtractorTest, TheProgressReachesTheSizeOfWhatIsUnpacked)
 
     ASSERT_TRUE(zip_builder.write_file(m_directory.get_path() + "\\p.zip") );
 
-    ASSERT_TRUE(VR::AppInstaller::ZipExtractor::extract(m_directory.get_path() + "\\p.zip",
-                                                        m_directory.get_path() + "\\out",
-                                                        1000000,
-                                                        is_cancelled,
-                                                        [&](const uint64_t& in_n_bytes_done, const uint64_t& in_n_bytes_total)
-                                                        {
-                                                            n_bytes_done  = in_n_bytes_done;
-                                                            n_bytes_total = in_n_bytes_total;
-                                                        },
-                                                       &m_error) ) << m_error;
+    ASSERT_TRUE(Utils::Files::ZipExtractor::extract(m_directory.get_path() + "\\p.zip",
+                                                    m_directory.get_path() + "\\out",
+                                                    1000000,
+                                                    is_cancelled,
+                                                    [&](const uint64_t& in_n_bytes_done, const uint64_t& in_n_bytes_total)
+                                                    {
+                                                        n_bytes_done  = in_n_bytes_done;
+                                                        n_bytes_total = in_n_bytes_total;
+                                                    },
+                                                    &m_error) ) << m_error;
 
     EXPECT_EQ(n_bytes_done,
               5000u);

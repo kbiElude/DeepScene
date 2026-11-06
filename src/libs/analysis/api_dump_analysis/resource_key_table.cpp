@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_analysis/resource_key_table.h"
-#include "analysis/api_dump_analysis/hasher.h"
+#include "utils/hashing/hasher.h"
 
 Analysis::APIDumpAnalysis::ResourceKeyTable::ResourceKeyTable()
 {
@@ -28,7 +28,7 @@ uint64_t Analysis::APIDumpAnalysis::ResourceKeyTable::compute_key(const uint64_t
                                                                   const bool&     in_has_writer,
                                                                   const uint64_t& in_writer_pass_key)
 {
-    Hasher hasher;
+    Utils::Hashing::Hasher hasher;
 
     hasher.add_u64 (in_description_key);
     hasher.add_bool(in_has_writer);
@@ -81,7 +81,7 @@ uint64_t Analysis::APIDumpAnalysis::ResourceKeyTable::get_unwritten_key(const Re
 
 uint64_t Analysis::APIDumpAnalysis::ResourceKeyTable::get_unwritten_view_key(const ResourceView& in_view) const
 {
-    Hasher hasher;
+    Utils::Hashing::Hasher hasher;
 
     hasher.add_u32(in_view.layer);
     hasher.add_u32(in_view.mip_level);
@@ -92,7 +92,7 @@ uint64_t Analysis::APIDumpAnalysis::ResourceKeyTable::get_unwritten_view_key(con
 
 uint64_t Analysis::APIDumpAnalysis::ResourceKeyTable::get_view_key(const ResourceView& in_view) const
 {
-    Hasher hasher;
+    Utils::Hashing::Hasher hasher;
 
     hasher.add_u32(in_view.layer);
     hasher.add_u32(in_view.mip_level);

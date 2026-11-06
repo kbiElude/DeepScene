@@ -5,14 +5,14 @@
  * Tests for JsonWriter: its text, that the text is valid JSON (read back by the strict reader), and misuse.
  */
 #include <gtest/gtest.h>
-#include "analysis/api_dump_analysis/json_writer.h"
-#include "analysis/api_dump_analysis/json_reader.h"
+#include "utils/json/json_writer.h"
+#include "utils/json/json_reader.h"
 #include <limits>
 #include <math.h>
 
 TEST(JsonWriter, AnArrayOfValuesIsWrittenOnOneLine)
 {
-    Analysis::APIDumpAnalysis::JsonWriter writer(false); /* in_is_pretty */
+    Utils::Json::JsonWriter writer(false); /* in_is_pretty */
 
     writer.begin_array();
     writer.write_u64(1);
@@ -29,7 +29,7 @@ TEST(JsonWriter, AnArrayOfValuesIsWrittenOnOneLine)
 
 TEST(JsonWriter, AnObjectKeepsTheOrderOfItsKeys)
 {
-    Analysis::APIDumpAnalysis::JsonWriter writer(false); /* in_is_pretty */
+    Utils::Json::JsonWriter writer(false); /* in_is_pretty */
 
     writer.begin_object();
     writer.write_key("z");
@@ -45,7 +45,7 @@ TEST(JsonWriter, AnObjectKeepsTheOrderOfItsKeys)
 
 TEST(JsonWriter, PrettyTextHasAnItemOnEachLine)
 {
-    Analysis::APIDumpAnalysis::JsonWriter writer(true); /* in_is_pretty */
+    Utils::Json::JsonWriter writer(true); /* in_is_pretty */
 
     writer.begin_object();
     writer.write_key("list");
@@ -71,7 +71,7 @@ TEST(JsonWriter, PrettyTextHasAnItemOnEachLine)
 
 TEST(JsonWriter, EmptyContainersAreWrittenWithoutAnythingInThem)
 {
-    Analysis::APIDumpAnalysis::JsonWriter writer(true); /* in_is_pretty */
+    Utils::Json::JsonWriter writer(true); /* in_is_pretty */
 
     writer.begin_array();
     writer.begin_array();
@@ -85,7 +85,7 @@ TEST(JsonWriter, EmptyContainersAreWrittenWithoutAnythingInThem)
 
 TEST(JsonWriter, StringsAreEscaped)
 {
-    Analysis::APIDumpAnalysis::JsonWriter writer(false); /* in_is_pretty */
+    Utils::Json::JsonWriter writer(false); /* in_is_pretty */
 
     writer.write_string(std::string("q\" b\\ n\n t\t r\r \b \f c") + '\x01' + "\xC3\xA9");
 
@@ -93,9 +93,9 @@ TEST(JsonWriter, StringsAreEscaped)
     EXPECT_EQ   (writer.get_text(),
                  "\"q\\\" b\\\\ n\\n t\\t r\\r \\b \\f c\\u0001\xC3\xA9\"");
 
-    Analysis::APIDumpAnalysis::JsonValue value;
+    Utils::Json::JsonValue value;
 
-    ASSERT_TRUE(Analysis::APIDumpAnalysis::JsonReader::parse(writer.get_text(),
+    ASSERT_TRUE(Utils::Json::JsonReader::parse(writer.get_text(),
                                             &value,
                                             nullptr) );
     EXPECT_EQ  (value.string_value.substr(0, 3),
@@ -104,7 +104,7 @@ TEST(JsonWriter, StringsAreEscaped)
 
 TEST(JsonWriter, KeysAreEscapedToo)
 {
-    Analysis::APIDumpAnalysis::JsonWriter writer(false); /* in_is_pretty */
+    Utils::Json::JsonWriter writer(false); /* in_is_pretty */
 
     writer.begin_object();
     writer.write_key("a\"b");
@@ -117,7 +117,7 @@ TEST(JsonWriter, KeysAreEscapedToo)
 
 TEST(JsonWriter, NumbersAreWrittenTheSameWayEveryTime)
 {
-    Analysis::APIDumpAnalysis::JsonWriter writer(false); /* in_is_pretty */
+    Utils::Json::JsonWriter writer(false); /* in_is_pretty */
 
     writer.begin_array();
     writer.write_double(0.0);
@@ -137,7 +137,7 @@ TEST(JsonWriter, NumbersAreWrittenTheSameWayEveryTime)
 
 TEST(JsonWriter, NumbersThatAreNotJsonAreWrittenAsNull)
 {
-    Analysis::APIDumpAnalysis::JsonWriter writer(false); /* in_is_pretty */
+    Utils::Json::JsonWriter writer(false); /* in_is_pretty */
 
     writer.begin_array();
     writer.write_double(std::numeric_limits<double>::quiet_NaN() );
@@ -152,8 +152,8 @@ TEST(JsonWriter, NumbersThatAreNotJsonAreWrittenAsNull)
 
 TEST(JsonWriter, WhatIsWrittenIsReadBackByAStrictReader)
 {
-    Analysis::APIDumpAnalysis::JsonValue            value;
-    Analysis::APIDumpAnalysis::JsonWriter writer(true); /* in_is_pretty */
+    Utils::Json::JsonValue            value;
+    Utils::Json::JsonWriter writer(true); /* in_is_pretty */
 
     writer.begin_object();
     writer.write_key  ("name");
@@ -173,7 +173,7 @@ TEST(JsonWriter, WhatIsWrittenIsReadBackByAStrictReader)
     writer.end_object();
 
     ASSERT_FALSE(writer.has_failed() );
-    ASSERT_TRUE (Analysis::APIDumpAnalysis::JsonReader::parse(writer.get_text(),
+    ASSERT_TRUE (Utils::Json::JsonReader::parse(writer.get_text(),
                                              &value,
                                              nullptr) );
 
@@ -189,7 +189,7 @@ TEST(JsonWriter, WhatIsWrittenIsReadBackByAStrictReader)
 
 TEST(JsonWriter, AValueInAnObjectNeedsAKey)
 {
-    Analysis::APIDumpAnalysis::JsonWriter writer(false); /* in_is_pretty */
+    Utils::Json::JsonWriter writer(false); /* in_is_pretty */
 
     writer.begin_object();
     writer.write_u64(1);
@@ -200,7 +200,7 @@ TEST(JsonWriter, AValueInAnObjectNeedsAKey)
 
 TEST(JsonWriter, AKeyNeedsAnObject)
 {
-    Analysis::APIDumpAnalysis::JsonWriter writer(false); /* in_is_pretty */
+    Utils::Json::JsonWriter writer(false); /* in_is_pretty */
 
     writer.begin_array();
     writer.write_key("a");
@@ -211,7 +211,7 @@ TEST(JsonWriter, AKeyNeedsAnObject)
 
 TEST(JsonWriter, AKeyNeedsAValueBeforeTheNextKey)
 {
-    Analysis::APIDumpAnalysis::JsonWriter writer(false); /* in_is_pretty */
+    Utils::Json::JsonWriter writer(false); /* in_is_pretty */
 
     writer.begin_object();
     writer.write_key("a");
@@ -224,7 +224,7 @@ TEST(JsonWriter, AKeyNeedsAValueBeforeTheNextKey)
 
 TEST(JsonWriter, AnObjectCannotEndWhileAKeyWaitsForItsValue)
 {
-    Analysis::APIDumpAnalysis::JsonWriter writer(false); /* in_is_pretty */
+    Utils::Json::JsonWriter writer(false); /* in_is_pretty */
 
     writer.begin_object();
     writer.write_key("a");
@@ -235,7 +235,7 @@ TEST(JsonWriter, AnObjectCannotEndWhileAKeyWaitsForItsValue)
 
 TEST(JsonWriter, AnEndMustMatchItsBegin)
 {
-    Analysis::APIDumpAnalysis::JsonWriter writer(false); /* in_is_pretty */
+    Utils::Json::JsonWriter writer(false); /* in_is_pretty */
 
     writer.begin_array();
     writer.end_object();
@@ -245,7 +245,7 @@ TEST(JsonWriter, AnEndMustMatchItsBegin)
 
 TEST(JsonWriter, AnEndWithoutABeginFails)
 {
-    Analysis::APIDumpAnalysis::JsonWriter writer(false); /* in_is_pretty */
+    Utils::Json::JsonWriter writer(false); /* in_is_pretty */
 
     writer.end_array();
 
@@ -254,7 +254,7 @@ TEST(JsonWriter, AnEndWithoutABeginFails)
 
 TEST(JsonWriter, OnlyOneValueMayBeAtTheTop)
 {
-    Analysis::APIDumpAnalysis::JsonWriter writer(false); /* in_is_pretty */
+    Utils::Json::JsonWriter writer(false); /* in_is_pretty */
 
     writer.write_u64(1);
     writer.write_u64(2);
@@ -264,7 +264,7 @@ TEST(JsonWriter, OnlyOneValueMayBeAtTheTop)
 
 TEST(JsonWriter, TextWithAContainerStillOpenIsNotComplete)
 {
-    Analysis::APIDumpAnalysis::JsonWriter writer(false); /* in_is_pretty */
+    Utils::Json::JsonWriter writer(false); /* in_is_pretty */
 
     writer.begin_array();
 
@@ -273,7 +273,7 @@ TEST(JsonWriter, TextWithAContainerStillOpenIsNotComplete)
 
 TEST(JsonWriter, TextWithNothingInItIsNotComplete)
 {
-    Analysis::APIDumpAnalysis::JsonWriter writer(false); /* in_is_pretty */
+    Utils::Json::JsonWriter writer(false); /* in_is_pretty */
 
     EXPECT_TRUE(writer.has_failed() );
 }
@@ -299,9 +299,9 @@ TEST(JsonReader, TextThatIsNotJsonIsRefused)
 
     for (const auto& text_ptr : text_ptr_array)
     {
-        Analysis::APIDumpAnalysis::JsonValue value;
+        Utils::Json::JsonValue value;
 
-        EXPECT_FALSE(Analysis::APIDumpAnalysis::JsonReader::parse(text_ptr,
+        EXPECT_FALSE(Utils::Json::JsonReader::parse(text_ptr,
                                                  &value,
                                                  nullptr) ) << text_ptr;
     }
@@ -309,7 +309,7 @@ TEST(JsonReader, TextThatIsNotJsonIsRefused)
 
 TEST(JsonWriter, AnInlineArrayIsOnOneLineAlsoInPrettyText)
 {
-    Analysis::APIDumpAnalysis::JsonWriter writer(true); /* in_is_pretty */
+    Utils::Json::JsonWriter writer(true); /* in_is_pretty */
 
     writer.begin_object();
     writer.write_key("values");
@@ -333,7 +333,7 @@ TEST(JsonWriter, AnInlineArrayIsOnOneLineAlsoInPrettyText)
 
 TEST(JsonWriter, AnInlineArrayInCompactTextHasNoSpaces)
 {
-    Analysis::APIDumpAnalysis::JsonWriter writer(false); /* in_is_pretty */
+    Utils::Json::JsonWriter writer(false); /* in_is_pretty */
 
     writer.begin_inline_array();
     writer.write_u64(1);
@@ -346,7 +346,7 @@ TEST(JsonWriter, AnInlineArrayInCompactTextHasNoSpaces)
 
 TEST(JsonWriter, AnInlineArrayHoldsNoContainers)
 {
-    Analysis::APIDumpAnalysis::JsonWriter writer(false); /* in_is_pretty */
+    Utils::Json::JsonWriter writer(false); /* in_is_pretty */
 
     writer.begin_inline_array();
     writer.begin_array();

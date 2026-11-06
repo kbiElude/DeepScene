@@ -3,8 +3,8 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_analysis/model_builder.h"
-#include "analysis/api_dump_analysis/hasher.h"
 #include "analysis/api_dump_analysis/key_builder.h"
+#include "utils/hashing/hasher.h"
 #include <algorithm>
 #include <array>
 #include <math.h>
@@ -77,7 +77,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::complete_pass()
     typedef std::vector<ConstantInEffect>                    ConstantInEffectVector;
 
     ConstantInEffectVector constant_vec;
-    uint32_t               pass_id = 0;
+    uint32_t               pass_id        = 0;
     PassStructure          pass_structure;
 
     pass_structure.clears_color   = m_open_pass.clears_color;
@@ -615,7 +615,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_clear(const ClearOperation& in_
 void Analysis::APIDumpAnalysis::ModelBuilder::on_copy(const ResourceView& in_source,
                                                       const ResourceView& in_destination)
 {
-    Hasher                 hasher;
+    Utils::Hashing::Hasher hasher;
     const SubresourceRange destination_range = get_subresource_range(in_destination);
     const SubresourceRange source_range      = get_subresource_range(in_source);
 
@@ -780,7 +780,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_frame_presented()
     FrameRecord           frame_record;
     FrameShape            frame_shape;
     std::vector<uint64_t> pass_key_vec;
-    uint64_t              shape_key = 0;
+    uint64_t              shape_key    = 0;
 
     close_pass();
 
@@ -923,7 +923,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_update_constant(const ConstantU
 void Analysis::APIDumpAnalysis::ModelBuilder::on_upload(const ResourceView&  in_destination,
                                                         const DataReference& in_data)
 {
-    Hasher                 hasher;
+    Utils::Hashing::Hasher hasher;
     const SubresourceRange destination_range = get_subresource_range(in_destination);
 
     m_access_tracker.on_write(in_destination.resource_id);
@@ -1122,10 +1122,10 @@ Analysis::APIDumpAnalysis::ModelBuilder::ViewCoverage Analysis::APIDumpAnalysis:
 
             if (has_depth)
             {
-                const auto&  position_vec = in_draw.geometry_ptr->position_vec;
-                const float* projection   = matrices.projection_f32mat.data();
-                const uint64_t weight     = std::max<uint64_t>(1,
-                                                               in_draw.vertex_count / position_vec.size() );
+                const auto&    position_vec = in_draw.geometry_ptr->position_vec;
+                const float*   projection   = matrices.projection_f32mat.data();
+                const uint64_t weight       = std::max<uint64_t>(1,
+                                                                 in_draw.vertex_count / position_vec.size() );
 
                 /* The nearest depth that is drawn, from the projection: D3D has the near plane at minus the shift over the scale. */
                 const float near_depth = (matrices.has_projection && projection[PROJECTION_Z_SCALE] != 0.0f) ? -projection[PROJECTION_Z_SHIFT] / projection[PROJECTION_Z_SCALE]
@@ -1158,9 +1158,9 @@ Analysis::APIDumpAnalysis::ModelBuilder::ViewCoverage Analysis::APIDumpAnalysis:
                 }
 
                 float x_max = -1.0e30f;
-                float x_min =  1.0e30f;
+                float x_min = 1.0e30f;
                 float y_max = -1.0e30f;
-                float y_min =  1.0e30f;
+                float y_min = 1.0e30f;
 
                 for (const auto& position : position_vec)
                 {
@@ -1230,19 +1230,19 @@ Analysis::APIDumpAnalysis::ModelBuilder::ViewCoverage Analysis::APIDumpAnalysis:
     /* How much the reciprocal of the depth may differ across a draw for it to be flat, as a part of it. */
     constexpr float FLAT_DEPTH_SPREAD = 0.001f;
 
-    ViewCoverage                      result       = ViewCoverage::UNKNOWN;
-    float                             reciprocal_depth_max = 0.0f;
-    float                             reciprocal_depth_min = 1.0e30f;
-    const auto&                       position_vec = in_draw.geometry_ptr->position_vec;
-    const uint64_t                    weight       = std::max<uint64_t>(1,
-                                                                        in_draw.vertex_count / std::max<size_t>(1,
-                                                                                                                 position_vec.size() ) );
-    const bool                        has_viewport = (m_viewport.width > 0.0f && m_viewport.height > 0.0f);
-    std::vector<float>                seen_depth_vec;
-    float                             x_max        = -1.0e30f;
-    float                             x_min        =  1.0e30f;
-    float                             y_max        = -1.0e30f;
-    float                             y_min        =  1.0e30f;
+    ViewCoverage       result               = ViewCoverage::UNKNOWN;
+    float              reciprocal_depth_max = 0.0f;
+    float              reciprocal_depth_min = 1.0e30f;
+    const auto&        position_vec         = in_draw.geometry_ptr->position_vec;
+    const uint64_t     weight               = std::max<uint64_t>(1,
+                                                                 in_draw.vertex_count / std::max<size_t>(1,
+                                                                                                          position_vec.size() ) );
+    const bool         has_viewport         = (m_viewport.width > 0.0f && m_viewport.height > 0.0f);
+    std::vector<float> seen_depth_vec;
+    float              x_max                = -1.0e30f;
+    float              x_min                = 1.0e30f;
+    float              y_max                = -1.0e30f;
+    float              y_min                = 1.0e30f;
 
     for (const auto& position : position_vec)
     {
@@ -1289,10 +1289,10 @@ Analysis::APIDumpAnalysis::ModelBuilder::ViewCoverage Analysis::APIDumpAnalysis:
     if (x_min <= x_max &&
         has_viewport)
     {
-        const bool reaches_sides  = (x_min <= m_viewport.x                    + EDGE_REACH * m_viewport.width &&
-                                     x_max >= m_viewport.x + m_viewport.width - EDGE_REACH * m_viewport.width);
-        const bool reaches_ends   = (y_min <= m_viewport.y                     + EDGE_REACH * m_viewport.height &&
-                                     y_max >= m_viewport.y + m_viewport.height - EDGE_REACH * m_viewport.height);
+        const bool reaches_sides = (x_min <= m_viewport.x                    + EDGE_REACH * m_viewport.width &&
+                                    x_max >= m_viewport.x + m_viewport.width - EDGE_REACH * m_viewport.width);
+        const bool reaches_ends  = (y_min <= m_viewport.y                     + EDGE_REACH * m_viewport.height &&
+                                    y_max >= m_viewport.y + m_viewport.height - EDGE_REACH * m_viewport.height);
 
         /* What matters to the eyes is the sides: moved sideways, a picture which reaches both leaves a strip bare at one of them. A flat quad (all of
          * it at one depth, as a backdrop, a flash and a fade are) that goes from one side to the other covers the picture, whether the picture

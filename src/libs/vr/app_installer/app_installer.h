@@ -9,7 +9,7 @@
 #ifndef APPINSTALLER_APP_INSTALLER_H
 #define APPINSTALLER_APP_INSTALLER_H
 
-#include "vr/app_installer/i_downloader.h"
+#include "utils/files/i_downloader.h"
 #include "vr/app_installer/types.h"
 #include <atomic>
 #include <mutex>
@@ -24,7 +24,7 @@ namespace VR
         {
         public:
             /* The downloader is not owned, and has to outlive this object. */
-            explicit AppInstaller(IDownloader* in_downloader_ptr);
+            explicit AppInstaller(Utils::Files::IDownloader* in_downloader_ptr);
 
             /* Stops what is done, and waits for it. */
             ~AppInstaller();
@@ -56,7 +56,7 @@ namespace VR
                 std::mutex      progress_mutex;
             };
 
-            void run_install(const InstallSpec& in_spec);
+            void run_install (const InstallSpec&  in_spec);
             void set_progress(const InstallPhase& in_phase,
                               const std::string&  in_message,
                               const uint64_t&     in_n_bytes_done,
@@ -65,7 +65,7 @@ namespace VR
             static std::string get_host     (const std::string& in_url);
             static bool        is_sha256_hex(const std::string& in_text);
 
-            IDownloader*        m_downloader_ptr;
+            Utils::Files::IDownloader*        m_downloader_ptr;
             std::atomic<bool>   m_is_busy;      /* not guarded: set by start() and by the thread, read by the window */
             std::atomic<bool>   m_is_cancelled; /* not guarded: set by the window, read by the thread                */
             mutable SharedState m_shared_state;

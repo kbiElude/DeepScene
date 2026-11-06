@@ -18,9 +18,9 @@
 #ifndef APIDUMPDEPENDENCIES_QUERY_COMMANDS_H
 #define APIDUMPDEPENDENCIES_QUERY_COMMANDS_H
 
-#include "analysis/api_dump_analysis/json_writer.h"
 #include "analysis/api_dump_analysis/types.h"
 #include "analysis/api_dump_dependencies/types.h"
+#include "utils/json/json_writer.h"
 #include <string>
 #include <vector>
 
@@ -55,12 +55,12 @@ namespace Analysis
             static Analysis::APIDumpAnalysis::QueryStatus run(const std::string&        in_command,
                                                               const DependencyAnalysis& in_analysis,
                                                               const QueryArguments&     in_arguments,
-                                                              Analysis::APIDumpAnalysis::JsonWriter* inout_writer_ptr,
+                                                              Utils::Json::JsonWriter*  inout_writer_ptr,
                                                               std::string*              out_error_ptr);
 
         private:
-            static const char* get_carry_kind_name       (const CarryKind&       in_kind);
-            static const char* get_dependency_class_name (const DependencyClass& in_class);
+            static const char* get_carry_kind_name      (const CarryKind&       in_kind);
+            static const char* get_dependency_class_name(const DependencyClass& in_class);
 
             /* The paging of a list: the arguments of the other files of the analysis. */
             static Analysis::APIDumpAnalysis::QueryArguments get_paging(const QueryArguments& in_arguments);
@@ -75,35 +75,35 @@ namespace Analysis
 
             static Analysis::APIDumpAnalysis::QueryStatus run_carries  (const DependencyAnalysis& in_analysis,
                                                                         const QueryArguments&     in_arguments,
-                                                                        Analysis::APIDumpAnalysis::JsonWriter* inout_writer_ptr,
+                                                                        Utils::Json::JsonWriter*  inout_writer_ptr,
                                                                         std::string*              out_error_ptr);
             static Analysis::APIDumpAnalysis::QueryStatus run_frame    (const DependencyAnalysis& in_analysis,
                                                                         const QueryArguments&     in_arguments,
                                                                         const bool&               in_is_carries_only,
-                                                                        Analysis::APIDumpAnalysis::JsonWriter* inout_writer_ptr,
+                                                                        Utils::Json::JsonWriter*  inout_writer_ptr,
                                                                         std::string*              out_error_ptr);
             static Analysis::APIDumpAnalysis::QueryStatus run_info     (const DependencyAnalysis& in_analysis,
-                                                                        Analysis::APIDumpAnalysis::JsonWriter* inout_writer_ptr);
+                                                                        Utils::Json::JsonWriter*  inout_writer_ptr);
             static Analysis::APIDumpAnalysis::QueryStatus run_per_eye  (const DependencyAnalysis& in_analysis,
-                                                                        Analysis::APIDumpAnalysis::JsonWriter* inout_writer_ptr);
+                                                                        Utils::Json::JsonWriter*  inout_writer_ptr);
             static Analysis::APIDumpAnalysis::QueryStatus run_resource (const DependencyAnalysis& in_analysis,
                                                                         const QueryArguments&     in_arguments,
-                                                                        Analysis::APIDumpAnalysis::JsonWriter* inout_writer_ptr,
+                                                                        Utils::Json::JsonWriter*  inout_writer_ptr,
                                                                         std::string*              out_error_ptr);
             static Analysis::APIDumpAnalysis::QueryStatus run_resources(const DependencyAnalysis& in_analysis,
                                                                         const QueryArguments&     in_arguments,
-                                                                        Analysis::APIDumpAnalysis::JsonWriter* inout_writer_ptr);
+                                                                        Utils::Json::JsonWriter*  inout_writer_ptr);
             static Analysis::APIDumpAnalysis::QueryStatus run_slice    (const DependencyAnalysis& in_analysis,
                                                                         const QueryArguments&     in_arguments,
-                                                                        Analysis::APIDumpAnalysis::JsonWriter* inout_writer_ptr,
+                                                                        Utils::Json::JsonWriter*  inout_writer_ptr,
                                                                         std::string*              out_error_ptr);
 
             /* A resource: what it is, and its totals. */
-            static void write_resource_head(const DependencyAnalysis&                 in_analysis,
-                                            const size_t&                             in_n_resource,
-                                            Analysis::APIDumpAnalysis::JsonWriter*    inout_writer_ptr);
-            static void write_summary      (const ResourceSummary&                    in_summary,
-                                            Analysis::APIDumpAnalysis::JsonWriter*    inout_writer_ptr);
+            static void write_resource_head(const DependencyAnalysis& in_analysis,
+                                            const size_t&             in_n_resource,
+                                            Utils::Json::JsonWriter*  inout_writer_ptr);
+            static void write_summary      (const ResourceSummary&    in_summary,
+                                            Utils::Json::JsonWriter*  inout_writer_ptr);
         };
     }
 }

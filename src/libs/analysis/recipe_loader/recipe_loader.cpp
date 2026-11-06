@@ -14,10 +14,10 @@
 #include <stdlib.h>
 #include <utility>
 
-bool Analysis::RecipeLoader::RecipeLoader::check_keys(const Analysis::APIDumpAnalysis::JsonValue& in_object,
-                                                      const std::vector<std::string>&             in_allowed_key_vec,
-                                                      const std::string&                          in_path,
-                                                      std::string*                                out_error_ptr)
+bool Analysis::RecipeLoader::RecipeLoader::check_keys(const Utils::Json::JsonValue&   in_object,
+                                                      const std::vector<std::string>& in_allowed_key_vec,
+                                                      const std::string&              in_path,
+                                                      std::string*                    out_error_ptr)
 {
     const std::string* unknown_key_ptr = in_object.find_unknown_key_ptr(in_allowed_key_vec);
 
@@ -126,8 +126,8 @@ bool Analysis::RecipeLoader::RecipeLoader::load(const std::string& in_filename,
     bool        result = false;
     std::string text;
 
-    if (Analysis::APIDumpAnalysis::JsonReader::read_file(in_filename,
-                                                        &text) == false)
+    if (Utils::Json::JsonReader::read_file(in_filename,
+                                           &text) == false)
     {
         *out_error_ptr = "Cannot open " + in_filename;
 
@@ -148,24 +148,24 @@ bool Analysis::RecipeLoader::RecipeLoader::parse(const std::string& in_text,
 {
     constexpr uint32_t SUPPORTED_RECIPE_VERSION = 0;
 
-    std::string                          json_error;
-    Analysis::APIDumpAnalysis::JsonValue root;
-    bool                                 result = false;
+    std::string            json_error;
+    Utils::Json::JsonValue root;
+    bool                   result     = false;
 
     *out_recipe_ptr = Recipe();
 
-    const std::string text = Analysis::APIDumpAnalysis::JsonReader::strip_byte_order_mark(in_text);
+    const std::string text = Utils::Json::JsonReader::strip_byte_order_mark(in_text);
 
-    if (Analysis::APIDumpAnalysis::JsonReader::parse(text,
-                                                    &root,
-                                                    &json_error) == false)
+    if (Utils::Json::JsonReader::parse(text,
+                                       &root,
+                                       &json_error) == false)
     {
         *out_error_ptr = "Not valid JSON: " + json_error;
 
         goto end;
     }
 
-    if (root.type != Analysis::APIDumpAnalysis::JsonValue::Type::OBJECT)
+    if (root.type != Utils::Json::JsonValue::Type::OBJECT)
     {
         *out_error_ptr = "The recipe must be a JSON object";
 
@@ -243,7 +243,7 @@ bool Analysis::RecipeLoader::RecipeLoader::parse(const std::string& in_text,
 
         if (target_ptr != nullptr)
         {
-            if (target_ptr->type != Analysis::APIDumpAnalysis::JsonValue::Type::OBJECT)
+            if (target_ptr->type != Utils::Json::JsonValue::Type::OBJECT)
             {
                 *out_error_ptr = "target: expected an object";
 
@@ -258,9 +258,9 @@ bool Analysis::RecipeLoader::RecipeLoader::parse(const std::string& in_text,
                 goto end;
             }
 
-            if (target_ptr->at("description").type != Analysis::APIDumpAnalysis::JsonValue::Type::NULL_VALUE)
+            if (target_ptr->at("description").type != Utils::Json::JsonValue::Type::NULL_VALUE)
             {
-                if (target_ptr->at("description").type != Analysis::APIDumpAnalysis::JsonValue::Type::STRING)
+                if (target_ptr->at("description").type != Utils::Json::JsonValue::Type::STRING)
                 {
                     *out_error_ptr = "target.description: expected a string";
 
@@ -270,9 +270,9 @@ bool Analysis::RecipeLoader::RecipeLoader::parse(const std::string& in_text,
                 out_recipe_ptr->target_description = target_ptr->at("description").string_value;
             }
 
-            if (target_ptr->at("name").type != Analysis::APIDumpAnalysis::JsonValue::Type::NULL_VALUE)
+            if (target_ptr->at("name").type != Utils::Json::JsonValue::Type::NULL_VALUE)
             {
-                if (target_ptr->at("name").type != Analysis::APIDumpAnalysis::JsonValue::Type::STRING)
+                if (target_ptr->at("name").type != Utils::Json::JsonValue::Type::STRING)
                 {
                     *out_error_ptr = "target.name: expected a string";
 
@@ -387,7 +387,7 @@ bool Analysis::RecipeLoader::RecipeLoader::parse(const std::string& in_text,
 
         if (on_unknown_frame_ptr != nullptr)
         {
-            if (on_unknown_frame_ptr->type != Analysis::APIDumpAnalysis::JsonValue::Type::STRING)
+            if (on_unknown_frame_ptr->type != Utils::Json::JsonValue::Type::STRING)
             {
                 *out_error_ptr = "on_unknown_frame: expected \"mono\", \"skip\" or \"fail\"";
 
@@ -424,7 +424,7 @@ bool Analysis::RecipeLoader::RecipeLoader::parse(const std::string& in_text,
             goto end;
         }
 
-        if (rule_array_ptr->type != Analysis::APIDumpAnalysis::JsonValue::Type::ARRAY)
+        if (rule_array_ptr->type != Utils::Json::JsonValue::Type::ARRAY)
         {
             *out_error_ptr = "rules: expected an array";
 
@@ -467,14 +467,14 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_action(const Analysis::APIDumpAnalysis::JsonValue& in_action,
-                                                        const std::string&                          in_path,
-                                                        Rule*                                       inout_rule_ptr,
-                                                        std::string*                                out_error_ptr)
+bool Analysis::RecipeLoader::RecipeLoader::parse_action(const Utils::Json::JsonValue& in_action,
+                                                        const std::string&            in_path,
+                                                        Rule*                         inout_rule_ptr,
+                                                        std::string*                  out_error_ptr)
 {
     bool result = false;
 
-    if (in_action.type != Analysis::APIDumpAnalysis::JsonValue::Type::OBJECT)
+    if (in_action.type != Utils::Json::JsonValue::Type::OBJECT)
     {
         *out_error_ptr = in_path + ": expected an object";
 
@@ -500,7 +500,7 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_action(const Analysis::APIDumpA
             goto end;
         }
 
-        if (type_ptr->type         != Analysis::APIDumpAnalysis::JsonValue::Type::STRING ||
+        if (type_ptr->type         != Utils::Json::JsonValue::Type::STRING ||
             (type_ptr->string_value != "eye_convergence"                                 &&
              type_ptr->string_value != "eye_offset"                                      &&
              type_ptr->string_value != "multiply"                                        &&
@@ -549,7 +549,7 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_action(const Analysis::APIDumpA
                 goto end;
             }
 
-            if (order_ptr->type         != Analysis::APIDumpAnalysis::JsonValue::Type::STRING ||
+            if (order_ptr->type         != Utils::Json::JsonValue::Type::STRING ||
                 (order_ptr->string_value != "post"                                            &&
                  order_ptr->string_value != "pre"))
             {
@@ -580,7 +580,7 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_action(const Analysis::APIDumpA
                 goto end;
             }
 
-            if (axis_ptr->type         != Analysis::APIDumpAnalysis::JsonValue::Type::STRING ||
+            if (axis_ptr->type         != Utils::Json::JsonValue::Type::STRING ||
                 (axis_ptr->string_value != "x"                                               &&
                  axis_ptr->string_value != "y"                                               &&
                  axis_ptr->string_value != "z"))
@@ -644,13 +644,13 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_baked(const Analysis::APIDumpAnalysis::JsonValue& in_baked,
-                                                       const std::string&                          in_path,
-                                                       Recipe*                                     inout_recipe_ptr,
-                                                       std::string*                                out_error_ptr)
+bool Analysis::RecipeLoader::RecipeLoader::parse_baked(const Utils::Json::JsonValue& in_baked,
+                                                       const std::string&            in_path,
+                                                       Recipe*                       inout_recipe_ptr,
+                                                       std::string*                  out_error_ptr)
 {
     const auto* convergence_ptr              = in_baked.find_ptr("convergence");
-    const auto* covering_draws_ptr      = in_baked.find_ptr("covering_draws");
+    const auto* covering_draws_ptr           = in_baked.find_ptr("covering_draws");
     const auto* known_signatures_ptr         = in_baked.find_ptr("known_signatures");
     const auto* per_eye_textures_ptr         = in_baked.find_ptr("per_eye_textures");
     bool        result                       = false;
@@ -660,7 +660,7 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_baked(const Analysis::APIDumpAn
     uint32_t    signature_scheme_version     = 0;
     const auto* signature_scheme_version_ptr = in_baked.find_ptr("signature_scheme_version");
 
-    if (in_baked.type != Analysis::APIDumpAnalysis::JsonValue::Type::OBJECT)
+    if (in_baked.type != Utils::Json::JsonValue::Type::OBJECT)
     {
         *out_error_ptr = in_path + ": expected an object";
 
@@ -706,7 +706,7 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_baked(const Analysis::APIDumpAn
         goto end;
     }
 
-    if (rule_array_ptr->type != Analysis::APIDumpAnalysis::JsonValue::Type::ARRAY)
+    if (rule_array_ptr->type != Utils::Json::JsonValue::Type::ARRAY)
     {
         *out_error_ptr = in_path + ".draw_rules: expected an array";
 
@@ -858,14 +858,14 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_comfort(const Analysis::APIDumpAnalysis::JsonValue& in_value,
-                                                         const std::string&                          in_path,
-                                                         Comfort*                                    out_comfort_ptr,
-                                                         std::string*                                out_error_ptr)
+bool Analysis::RecipeLoader::RecipeLoader::parse_comfort(const Utils::Json::JsonValue& in_value,
+                                                         const std::string&            in_path,
+                                                         Comfort*                      out_comfort_ptr,
+                                                         std::string*                  out_error_ptr)
 {
     bool result = false;
 
-    if (in_value.type != Analysis::APIDumpAnalysis::JsonValue::Type::OBJECT)
+    if (in_value.type != Utils::Json::JsonValue::Type::OBJECT)
     {
         *out_error_ptr = in_path + ": expected an object";
 
@@ -887,7 +887,7 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_comfort(const Analysis::APIDump
         {
             const bool is_finite = (::isfinite(parallax_ptr->number_value) != 0);
 
-            if (parallax_ptr->type         != Analysis::APIDumpAnalysis::JsonValue::Type::NUMBER ||
+            if (parallax_ptr->type         != Utils::Json::JsonValue::Type::NUMBER ||
                 is_finite                  == false                                              ||
                 parallax_ptr->number_value <= 0.0                                                ||
                 parallax_ptr->number_value >  1.0)
@@ -906,7 +906,7 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_comfort(const Analysis::APIDump
         {
             const bool is_finite = (::isfinite(fraction_ptr->number_value) != 0);
 
-            if (fraction_ptr->type         != Analysis::APIDumpAnalysis::JsonValue::Type::NUMBER ||
+            if (fraction_ptr->type         != Utils::Json::JsonValue::Type::NUMBER ||
                 is_finite                  == false                                              ||
                 fraction_ptr->number_value <= 0.0                                                ||
                 fraction_ptr->number_value >= 1.0)
@@ -925,7 +925,7 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_comfort(const Analysis::APIDump
         {
             const bool is_finite = (::isfinite(overlay_ptr->number_value) != 0);
 
-            if (overlay_ptr->type         != Analysis::APIDumpAnalysis::JsonValue::Type::NUMBER ||
+            if (overlay_ptr->type         != Utils::Json::JsonValue::Type::NUMBER ||
                 is_finite                 == false                                              ||
                 overlay_ptr->number_value <  0.0                                                ||
                 overlay_ptr->number_value >  0.5)
@@ -945,17 +945,17 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_screen_parallax(const Analysis::APIDumpAnalysis::JsonValue& in_value,
-                                                                 const std::string&                          in_path,
-                                                                 ScreenParallax*                             out_screen_parallax_ptr,
-                                                                 std::string*                                out_error_ptr)
+bool Analysis::RecipeLoader::RecipeLoader::parse_screen_parallax(const Utils::Json::JsonValue& in_value,
+                                                                 const std::string&            in_path,
+                                                                 ScreenParallax*               out_screen_parallax_ptr,
+                                                                 std::string*                  out_error_ptr)
 {
     /* An angle of view of a half circle or more is no picture. */
     constexpr double MAX_FIELD_OF_VIEW_DEGREES = 180.0;
 
     bool result = false;
 
-    if (in_value.type != Analysis::APIDumpAnalysis::JsonValue::Type::OBJECT)
+    if (in_value.type != Utils::Json::JsonValue::Type::OBJECT)
     {
         *out_error_ptr = in_path + ": expected an object";
 
@@ -982,7 +982,7 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_screen_parallax(const Analysis:
             goto end;
         }
 
-        if (distance_ptr->type         != Analysis::APIDumpAnalysis::JsonValue::Type::NUMBER ||
+        if (distance_ptr->type         != Utils::Json::JsonValue::Type::NUMBER ||
             ::isfinite(distance_ptr->number_value) == 0                                      ||
             distance_ptr->number_value <= 0.0)
         {
@@ -996,7 +996,7 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_screen_parallax(const Analysis:
 
         if (fov_ptr != nullptr)
         {
-            if (fov_ptr->type         != Analysis::APIDumpAnalysis::JsonValue::Type::NUMBER ||
+            if (fov_ptr->type         != Utils::Json::JsonValue::Type::NUMBER ||
                 ::isfinite(fov_ptr->number_value) == 0                                      ||
                 fov_ptr->number_value <= 0.0                                                ||
                 fov_ptr->number_value >= MAX_FIELD_OF_VIEW_DEGREES)
@@ -1018,10 +1018,10 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_draw_rule(const Analysis::APIDumpAnalysis::JsonValue& in_rule,
-                                                           const std::string&                          in_path,
-                                                           DrawRule*                                   out_rule_ptr,
-                                                           std::string*                                out_error_ptr)
+bool Analysis::RecipeLoader::RecipeLoader::parse_draw_rule(const Utils::Json::JsonValue& in_rule,
+                                                           const std::string&            in_path,
+                                                           DrawRule*                     out_rule_ptr,
+                                                           std::string*                  out_error_ptr)
 {
     const auto* class_ptr     = in_rule.find_ptr("class");
     bool        result        = false;
@@ -1030,7 +1030,7 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_draw_rule(const Analysis::APIDu
 
     *out_rule_ptr = DrawRule();
 
-    if (in_rule.type != Analysis::APIDumpAnalysis::JsonValue::Type::OBJECT)
+    if (in_rule.type != Utils::Json::JsonValue::Type::OBJECT)
     {
         *out_error_ptr = in_path + ": expected an object";
 
@@ -1067,19 +1067,19 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_draw_rule(const Analysis::APIDu
         goto end;
     }
 
-    if (class_ptr->type         == Analysis::APIDumpAnalysis::JsonValue::Type::STRING &&
+    if (class_ptr->type         == Utils::Json::JsonValue::Type::STRING &&
         class_ptr->string_value == "affected")
     {
         out_rule_ptr->draw_class = DrawClass::AFFECTED;
     }
     else
-    if (class_ptr->type         == Analysis::APIDumpAnalysis::JsonValue::Type::STRING &&
+    if (class_ptr->type         == Utils::Json::JsonValue::Type::STRING &&
         class_ptr->string_value == "skipped")
     {
         out_rule_ptr->draw_class = DrawClass::SKIPPED;
     }
     else
-    if (class_ptr->type         == Analysis::APIDumpAnalysis::JsonValue::Type::STRING &&
+    if (class_ptr->type         == Utils::Json::JsonValue::Type::STRING &&
         class_ptr->string_value == "unaffected")
     {
         out_rule_ptr->draw_class = DrawClass::UNAFFECTED;
@@ -1097,7 +1097,7 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_draw_rule(const Analysis::APIDu
         const auto*       equals_any_ptr = when_ptr->find_ptr("equals_any");
         const std::string when_path      = in_path + ".when";
 
-        if (when_ptr->type != Analysis::APIDumpAnalysis::JsonValue::Type::OBJECT)
+        if (when_ptr->type != Utils::Json::JsonValue::Type::OBJECT)
         {
             *out_error_ptr = when_path + ": expected an object";
 
@@ -1113,7 +1113,7 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_draw_rule(const Analysis::APIDu
         }
 
         if (constant_ptr               == nullptr                                            ||
-            constant_ptr->type         != Analysis::APIDumpAnalysis::JsonValue::Type::STRING ||
+            constant_ptr->type         != Utils::Json::JsonValue::Type::STRING ||
             constant_ptr->string_value != "view_matrix")
         {
             *out_error_ptr = when_path + ".constant: expected \"view_matrix\", the only constant a rule can be about";
@@ -1122,7 +1122,7 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_draw_rule(const Analysis::APIDu
         }
 
         if (equals_any_ptr       == nullptr                                ||
-            equals_any_ptr->type != Analysis::APIDumpAnalysis::JsonValue::Type::ARRAY ||
+            equals_any_ptr->type != Utils::Json::JsonValue::Type::ARRAY ||
             equals_any_ptr->item_vec.empty() )
         {
             *out_error_ptr = when_path + ".equals_any: expected a list of matrices, one at least";
@@ -1155,16 +1155,16 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_draw_selector(const Analysis::APIDumpAnalysis::JsonValue& in_value,
-                                                               const std::string&                          in_path,
-                                                               DrawSelector*                               out_selector_ptr,
-                                                               std::string*                                out_error_ptr)
+bool Analysis::RecipeLoader::RecipeLoader::parse_draw_selector(const Utils::Json::JsonValue& in_value,
+                                                               const std::string&            in_path,
+                                                               DrawSelector*                 out_selector_ptr,
+                                                               std::string*                  out_error_ptr)
 {
     bool result = false;
 
     *out_selector_ptr = DrawSelector();
 
-    if (in_value.type != Analysis::APIDumpAnalysis::JsonValue::Type::OBJECT)
+    if (in_value.type != Utils::Json::JsonValue::Type::OBJECT)
     {
         *out_error_ptr = in_path + ": expected an object with draw_keys, pass_keys and / or pass_draws";
 
@@ -1252,10 +1252,10 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_hex_key(const Analysis::APIDumpAnalysis::JsonValue& in_value,
-                                                         const std::string&                          in_path,
-                                                         uint64_t*                                   out_key_ptr,
-                                                         std::string*                                out_error_ptr)
+bool Analysis::RecipeLoader::RecipeLoader::parse_hex_key(const Utils::Json::JsonValue& in_value,
+                                                         const std::string&            in_path,
+                                                         uint64_t*                     out_key_ptr,
+                                                         std::string*                  out_error_ptr)
 {
     constexpr int    HEX_BASE     = 16;
     constexpr size_t N_HEX_DIGITS = 16;
@@ -1264,7 +1264,7 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_hex_key(const Analysis::APIDump
 
     *out_key_ptr = 0;
 
-    if (in_value.type != Analysis::APIDumpAnalysis::JsonValue::Type::STRING)
+    if (in_value.type != Utils::Json::JsonValue::Type::STRING)
     {
         *out_error_ptr = in_path + ": expected a key such as \"0x0123456789abcdef\"";
 
@@ -1305,16 +1305,16 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_hex_key_array(const Analysis::APIDumpAnalysis::JsonValue& in_array,
-                                                               const std::string&                          in_path,
-                                                               std::vector<uint64_t>*                      out_key_vec_ptr,
-                                                               std::string*                                out_error_ptr)
+bool Analysis::RecipeLoader::RecipeLoader::parse_hex_key_array(const Utils::Json::JsonValue& in_array,
+                                                               const std::string&            in_path,
+                                                               std::vector<uint64_t>*        out_key_vec_ptr,
+                                                               std::string*                  out_error_ptr)
 {
     bool result = false;
 
     out_key_vec_ptr->clear();
 
-    if (in_array.type != Analysis::APIDumpAnalysis::JsonValue::Type::ARRAY)
+    if (in_array.type != Utils::Json::JsonValue::Type::ARRAY)
     {
         *out_error_ptr = in_path + ": expected an array of keys";
 
@@ -1345,16 +1345,16 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_key_distance_array(const Analysis::APIDumpAnalysis::JsonValue& in_array,
-                                                                    const std::string&                          in_path,
-                                                                    const std::string&                          in_key_name,
-                                                                    const std::string&                          in_distance_name,
-                                                                    KeyDistanceVector*                          out_key_distance_vec_ptr,
-                                                                    std::string*                                out_error_ptr)
+bool Analysis::RecipeLoader::RecipeLoader::parse_key_distance_array(const Utils::Json::JsonValue& in_array,
+                                                                    const std::string&            in_path,
+                                                                    const std::string&            in_key_name,
+                                                                    const std::string&            in_distance_name,
+                                                                    KeyDistanceVector*            out_key_distance_vec_ptr,
+                                                                    std::string*                  out_error_ptr)
 {
     bool result = false;
 
-    if (in_array.type != Analysis::APIDumpAnalysis::JsonValue::Type::ARRAY)
+    if (in_array.type != Utils::Json::JsonValue::Type::ARRAY)
     {
         *out_error_ptr = in_path + ": expected an array";
 
@@ -1365,13 +1365,13 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_key_distance_array(const Analys
                 n_entry < in_array.item_vec.size();
               ++n_entry)
     {
-        const auto&       entry         = in_array.item_vec.at(n_entry);
-        const std::string entry_path    = in_path + "[" + std::to_string(n_entry) + "]";
-        const auto*       distance_ptr  = entry.find_ptr(in_distance_name);
-        const auto*       key_ptr       = entry.find_ptr(in_key_name);
-        uint64_t          key           = 0;
+        const auto&       entry        = in_array.item_vec.at(n_entry);
+        const std::string entry_path   = in_path + "[" + std::to_string(n_entry) + "]";
+        const auto*       distance_ptr = entry.find_ptr(in_distance_name);
+        const auto*       key_ptr      = entry.find_ptr(in_key_name);
+        uint64_t          key          = 0;
 
-        if (entry.type != Analysis::APIDumpAnalysis::JsonValue::Type::OBJECT)
+        if (entry.type != Utils::Json::JsonValue::Type::OBJECT)
         {
             *out_error_ptr = entry_path + ": expected an object";
 
@@ -1410,7 +1410,7 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_key_distance_array(const Analys
 
         const bool is_finite = (::isfinite(distance_ptr->number_value) != 0);
 
-        if (distance_ptr->type         != Analysis::APIDumpAnalysis::JsonValue::Type::NUMBER ||
+        if (distance_ptr->type         != Utils::Json::JsonValue::Type::NUMBER ||
             is_finite                  == false                                              ||
             distance_ptr->number_value <= 0.0                                                ||
             distance_ptr->number_value >  static_cast<double>(FLT_MAX) )
@@ -1440,14 +1440,14 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_matrix(const Analysis::APIDumpAnalysis::JsonValue& in_array,
-                                                        const std::string&                          in_path,
-                                                        std::array<float, 16>*                      out_matrix_ptr,
-                                                        std::string*                                out_error_ptr)
+bool Analysis::RecipeLoader::RecipeLoader::parse_matrix(const Utils::Json::JsonValue& in_array,
+                                                        const std::string&            in_path,
+                                                        std::array<float, 16>*        out_matrix_ptr,
+                                                        std::string*                  out_error_ptr)
 {
     bool result = false;
 
-    if (in_array.type          != Analysis::APIDumpAnalysis::JsonValue::Type::ARRAY ||
+    if (in_array.type          != Utils::Json::JsonValue::Type::ARRAY ||
         in_array.item_vec.size() != out_matrix_ptr->size() )
     {
         *out_error_ptr = in_path + ": expected 16 numbers";
@@ -1459,10 +1459,10 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_matrix(const Analysis::APIDumpA
                 n_element < out_matrix_ptr->size();
               ++n_element)
     {
-        const auto& element        = in_array.item_vec.at(n_element);
+        const auto&  element        = in_array.item_vec.at(n_element);
         const double absolute_value = ::fabs(element.number_value);
 
-        if (element.type    != Analysis::APIDumpAnalysis::JsonValue::Type::NUMBER ||
+        if (element.type    != Utils::Json::JsonValue::Type::NUMBER ||
             absolute_value  >  static_cast<double>(FLT_MAX) )
         {
             *out_error_ptr = in_path + "[" + std::to_string(n_element) + "]: expected a number that fits a float";
@@ -1479,16 +1479,16 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_pass_draw_array(const Analysis::APIDumpAnalysis::JsonValue& in_array,
-                                                                 const std::string&                          in_path,
-                                                                 std::vector<PassDraw>*                      out_pass_draw_vec_ptr,
-                                                                 std::string*                                out_error_ptr)
+bool Analysis::RecipeLoader::RecipeLoader::parse_pass_draw_array(const Utils::Json::JsonValue& in_array,
+                                                                 const std::string&            in_path,
+                                                                 std::vector<PassDraw>*        out_pass_draw_vec_ptr,
+                                                                 std::string*                  out_error_ptr)
 {
     bool result = false;
 
     out_pass_draw_vec_ptr->clear();
 
-    if (in_array.type != Analysis::APIDumpAnalysis::JsonValue::Type::ARRAY)
+    if (in_array.type != Utils::Json::JsonValue::Type::ARRAY)
     {
         *out_error_ptr = in_path + ": expected an array of objects with a pass_key and a draw_key";
 
@@ -1499,11 +1499,11 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_pass_draw_array(const Analysis:
                 n_item < in_array.item_vec.size();
               ++n_item)
     {
-        const auto&       item = in_array.item_vec.at(n_item);
-        const std::string path = in_path + "[" + std::to_string(n_item) + "]";
+        const auto&       item      = in_array.item_vec.at(n_item);
+        const std::string path      = in_path + "[" + std::to_string(n_item) + "]";
         PassDraw          pass_draw;
 
-        if (item.type != Analysis::APIDumpAnalysis::JsonValue::Type::OBJECT)
+        if (item.type != Utils::Json::JsonValue::Type::OBJECT)
         {
             *out_error_ptr = path + ": expected an object with a pass_key and a draw_key";
 
@@ -1551,14 +1551,14 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_per_eye_textures(const Analysis::APIDumpAnalysis::JsonValue& in_value,
-                                                                  const std::string&                          in_path,
-                                                                  std::vector<PerEyeTexture>*                 out_texture_vec_ptr,
-                                                                  std::string*                                out_error_ptr)
+bool Analysis::RecipeLoader::RecipeLoader::parse_per_eye_textures(const Utils::Json::JsonValue& in_value,
+                                                                  const std::string&            in_path,
+                                                                  std::vector<PerEyeTexture>*   out_texture_vec_ptr,
+                                                                  std::string*                  out_error_ptr)
 {
     bool result = false;
 
-    if (in_value.type != Analysis::APIDumpAnalysis::JsonValue::Type::ARRAY)
+    if (in_value.type != Utils::Json::JsonValue::Type::ARRAY)
     {
         *out_error_ptr = in_path + ": expected an array";
 
@@ -1569,13 +1569,13 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_per_eye_textures(const Analysis
                 n_entry < in_value.item_vec.size();
               ++n_entry)
     {
-        const auto&       entry            = in_value.item_vec.at(n_entry);
-        const std::string entry_path       = in_path + "[" + std::to_string(n_entry) + "]";
-        const auto*       key_ptr          = entry.find_ptr("description_key");
-        const auto*       ordinal_ptr      = entry.find_ptr("ordinal");
+        const auto&       entry       = in_value.item_vec.at(n_entry);
+        const std::string entry_path  = in_path + "[" + std::to_string(n_entry) + "]";
+        const auto*       key_ptr     = entry.find_ptr("description_key");
+        const auto*       ordinal_ptr = entry.find_ptr("ordinal");
         PerEyeTexture     texture;
 
-        if (entry.type != Analysis::APIDumpAnalysis::JsonValue::Type::OBJECT)
+        if (entry.type != Utils::Json::JsonValue::Type::OBJECT)
         {
             *out_error_ptr = entry_path + ": expected an object";
 
@@ -1634,17 +1634,17 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_rule(const Analysis::APIDumpAnalysis::JsonValue& in_rule,
-                                                      const std::string&                          in_path,
-                                                      Rule*                                       out_rule_ptr,
-                                                      std::string*                                out_error_ptr)
+bool Analysis::RecipeLoader::RecipeLoader::parse_rule(const Utils::Json::JsonValue& in_rule,
+                                                      const std::string&            in_path,
+                                                      Rule*                         out_rule_ptr,
+                                                      std::string*                  out_error_ptr)
 {
     const CallDescriptor* call_ptr = nullptr;
     bool                  result   = false;
 
     *out_rule_ptr = Rule();
 
-    if (in_rule.type != Analysis::APIDumpAnalysis::JsonValue::Type::OBJECT)
+    if (in_rule.type != Utils::Json::JsonValue::Type::OBJECT)
     {
         *out_error_ptr = in_path + ": expected an object";
 
@@ -1659,9 +1659,9 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_rule(const Analysis::APIDumpAna
         goto end;
     }
 
-    if (in_rule.at("name").type != Analysis::APIDumpAnalysis::JsonValue::Type::NULL_VALUE)
+    if (in_rule.at("name").type != Utils::Json::JsonValue::Type::NULL_VALUE)
     {
-        if (in_rule.at("name").type != Analysis::APIDumpAnalysis::JsonValue::Type::STRING)
+        if (in_rule.at("name").type != Utils::Json::JsonValue::Type::STRING)
         {
             *out_error_ptr = in_path + ".name: expected a string";
 
@@ -1671,7 +1671,7 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_rule(const Analysis::APIDumpAna
         out_rule_ptr->name = in_rule.at("name").string_value;
     }
 
-    if (in_rule.at("call").type != Analysis::APIDumpAnalysis::JsonValue::Type::STRING)
+    if (in_rule.at("call").type != Utils::Json::JsonValue::Type::STRING)
     {
         *out_error_ptr = in_path + ".call: expected the name of a function";
 
@@ -1723,11 +1723,11 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_state(const Analysis::APIDumpAnalysis::JsonValue& in_value,
-                                                       const std::string&                          in_path,
-                                                       const CallDescriptor&                       in_call,
-                                                       uint32_t*                                   out_state_ptr,
-                                                       std::string*                                out_error_ptr)
+bool Analysis::RecipeLoader::RecipeLoader::parse_state(const Utils::Json::JsonValue& in_value,
+                                                       const std::string&            in_path,
+                                                       const CallDescriptor&         in_call,
+                                                       uint32_t*                     out_state_ptr,
+                                                       std::string*                  out_error_ptr)
 {
     struct StateName
     {
@@ -1773,7 +1773,7 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_state(const Analysis::APIDumpAn
 
     bool result = false;
 
-    if (in_value.type == Analysis::APIDumpAnalysis::JsonValue::Type::NUMBER)
+    if (in_value.type == Utils::Json::JsonValue::Type::NUMBER)
     {
         result = parse_unsigned(in_value,
                                 in_path,
@@ -1781,13 +1781,13 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_state(const Analysis::APIDumpAn
                                 out_error_ptr);
     }
     else
-    if (in_value.type == Analysis::APIDumpAnalysis::JsonValue::Type::STRING)
+    if (in_value.type == Utils::Json::JsonValue::Type::STRING)
     {
-        const bool        is_d3d7    = (in_call.api == Api::D3D7);
-        const StateName*  name_array = (is_d3d7) ? D3D7_STATE_NAME_ARRAY
-                                                 : D3D8_STATE_NAME_ARRAY;
-        const size_t      n_names    = (is_d3d7) ? sizeof(D3D7_STATE_NAME_ARRAY) / sizeof(D3D7_STATE_NAME_ARRAY[0])
-                                                 : sizeof(D3D8_STATE_NAME_ARRAY) / sizeof(D3D8_STATE_NAME_ARRAY[0]);
+        const bool       is_d3d7    = (in_call.api == Api::D3D7);
+        const StateName* name_array = (is_d3d7) ? D3D7_STATE_NAME_ARRAY
+                                                : D3D8_STATE_NAME_ARRAY;
+        const size_t     n_names    = (is_d3d7) ? sizeof(D3D7_STATE_NAME_ARRAY) / sizeof(D3D7_STATE_NAME_ARRAY[0])
+                                                : sizeof(D3D8_STATE_NAME_ARRAY) / sizeof(D3D8_STATE_NAME_ARRAY[0]);
 
         for (size_t n_name = 0;
                     n_name < n_names;
@@ -1814,15 +1814,15 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_state(const Analysis::APIDumpAn
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_unsigned(const Analysis::APIDumpAnalysis::JsonValue& in_value,
-                                                          const std::string&                          in_path,
-                                                          uint32_t*                                   out_value_ptr,
-                                                          std::string*                                out_error_ptr)
+bool Analysis::RecipeLoader::RecipeLoader::parse_unsigned(const Utils::Json::JsonValue& in_value,
+                                                          const std::string&            in_path,
+                                                          uint32_t*                     out_value_ptr,
+                                                          std::string*                  out_error_ptr)
 {
     const double floor_value = ::floor(in_value.number_value);
     bool         result      = false;
 
-    if (in_value.type         != Analysis::APIDumpAnalysis::JsonValue::Type::NUMBER ||
+    if (in_value.type         != Utils::Json::JsonValue::Type::NUMBER ||
         in_value.number_value <  0.0                                                ||
         in_value.number_value >  static_cast<double>(UINT32_MAX)                    ||
         in_value.number_value != floor_value)
@@ -1839,15 +1839,15 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_unsigned(const Analysis::APIDum
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_when(const Analysis::APIDumpAnalysis::JsonValue& in_when,
-                                                      const std::string&                          in_path,
-                                                      const CallDescriptor&                       in_call,
-                                                      Rule*                                       inout_rule_ptr,
-                                                      std::string*                                out_error_ptr)
+bool Analysis::RecipeLoader::RecipeLoader::parse_when(const Utils::Json::JsonValue& in_when,
+                                                      const std::string&            in_path,
+                                                      const CallDescriptor&         in_call,
+                                                      Rule*                         inout_rule_ptr,
+                                                      std::string*                  out_error_ptr)
 {
     bool result = false;
 
-    if (in_when.type != Analysis::APIDumpAnalysis::JsonValue::Type::OBJECT)
+    if (in_when.type != Utils::Json::JsonValue::Type::OBJECT)
     {
         *out_error_ptr = in_path + ": expected an object";
 
@@ -1884,7 +1884,7 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_when(const Analysis::APIDumpAna
     {
         const auto& matrix = in_when.at("matrix");
 
-        if (matrix.type         != Analysis::APIDumpAnalysis::JsonValue::Type::STRING ||
+        if (matrix.type         != Utils::Json::JsonValue::Type::STRING ||
             (matrix.string_value != "any"                                             &&
              matrix.string_value != "orthographic"                                    &&
              matrix.string_value != "perspective"))

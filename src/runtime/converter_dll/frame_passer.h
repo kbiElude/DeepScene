@@ -6,7 +6,7 @@
 #define STEREO_CONVERTERDLL_FRAME_PASSER_H
 
 #include "stereo/transport/i_frame_exporter.h"
-#include "stereo/transport/series_stats.h"
+#include "utils/statistics/series_stats.h"
 #include "session_log.h"
 #include <memory>
 #include <mutex>
@@ -39,8 +39,8 @@ namespace Stereo
             /* Everything which a presented frame touches. Lock order: no other lock is taken while it is held. */
             struct FrameState
             {
-                Stereo::Transport::SeriesStats                     export_cost        = Stereo::Transport::SeriesStats(4.0);  /* what a copy takes the application, ms */
-                Stereo::Transport::SeriesStats                     export_interval    = Stereo::Transport::SeriesStats(20.0); /* between the frames that are passed on */
+                Utils::Statistics::SeriesStats                     export_cost        = Utils::Statistics::SeriesStats(4.0);  /* what a copy takes the application, ms */
+                Utils::Statistics::SeriesStats                     export_interval    = Utils::Statistics::SeriesStats(20.0); /* between the frames that are passed on */
                 std::unique_ptr<Stereo::Transport::IFrameExporter> exporter_ptr;
                 uint64_t                                           frame_index        = 0;
                 bool                                               has_logged_failure = false;
@@ -49,7 +49,7 @@ namespace Stereo
                 double                                             last_report        = 0.0;
                 std::mutex                                         mutex;
                 int64_t                                            start_qpc          = 0; /* of the converter, the clock of the timestamps */
-                Stereo::Transport::SeriesStats                     present_interval   = Stereo::Transport::SeriesStats(20.0); /* between the presents of the application */
+                Utils::Statistics::SeriesStats                     present_interval   = Utils::Statistics::SeriesStats(20.0); /* between the presents of the application */
             };
 
             const SessionLog& m_log;

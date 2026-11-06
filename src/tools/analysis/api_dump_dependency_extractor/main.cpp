@@ -3,11 +3,11 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_analysis/frontends/analysis_session.h"
-#include "analysis/api_dump_analysis/number_parser.h"
 #include "analysis/api_dump_dependencies/access_log.h"
 #include "analysis/api_dump_dependencies/dependency_analyzer.h"
 #include "analysis/api_dump_dependencies/deps_file.h"
 #include "extractor.h"
+#include "utils/command_line/number_parser.h"
 #include <algorithm>
 #include <chrono>
 #include <map>
@@ -74,9 +74,9 @@ bool Analysis::APIDumpDependencyExtractor::parse_arguments(const int&   in_argc,
                 goto end;
             }
 
-            if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(next_argument,
-                                                                        UINT64_MAX,
-                                                                       &out_options_ptr->max_frames) == false)
+            if (Utils::CommandLine::NumberParser::parse_unsigned(next_argument,
+                                                                 UINT64_MAX,
+                                                                 &out_options_ptr->max_frames) == false)
             {
                 *out_error_ptr = "--max-frames needs a number, not " + next_argument;
 
@@ -95,8 +95,8 @@ bool Analysis::APIDumpDependencyExtractor::parse_arguments(const int&   in_argc,
                 goto end;
             }
 
-            if (Analysis::APIDumpAnalysis::NumberParser::parse_double(next_argument,
-                                                                     &out_options_ptr->progress_interval_seconds) == false)
+            if (Utils::CommandLine::NumberParser::parse_double(next_argument,
+                                                               &out_options_ptr->progress_interval_seconds) == false)
             {
                 *out_error_ptr = "--progress-interval needs a number of seconds, not " + next_argument;
 
@@ -117,9 +117,9 @@ bool Analysis::APIDumpDependencyExtractor::parse_arguments(const int&   in_argc,
                 goto end;
             }
 
-            if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(next_argument,
-                                                                        UINT32_MAX,
-                                                                       &n_bytes) == false)
+            if (Utils::CommandLine::NumberParser::parse_unsigned(next_argument,
+                                                                 UINT32_MAX,
+                                                                 &n_bytes) == false)
             {
                 *out_error_ptr = "--skip-chunks-above needs a number of bytes, not " + next_argument;
 
@@ -147,9 +147,9 @@ bool Analysis::APIDumpDependencyExtractor::parse_arguments(const int&   in_argc,
                 goto end;
             }
 
-            if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(next_argument,
-                                                                        MAX_N_THREADS,
-                                                                       &n_threads) == false)
+            if (Utils::CommandLine::NumberParser::parse_unsigned(next_argument,
+                                                                 MAX_N_THREADS,
+                                                                 &n_threads) == false)
             {
                 *out_error_ptr = "--threads needs a number up to " + std::to_string(MAX_N_THREADS) + ", not " + next_argument;
 
@@ -261,12 +261,12 @@ int Analysis::APIDumpDependencyExtractor::run(int   in_argc,
 {
     typedef std::chrono::steady_clock Clock;
 
-    Analysis::APIDumpDependencies::AccessLog              log;
-    Analysis::APIDumpDependencies::DependencyAnalysis     analysis;
-    std::string                                           error;
-    ExitCode                                              exit_code = ExitCode::SUCCESS;
-    Options                                               options;
-    const auto                                            start_time = Clock::now();
+    Analysis::APIDumpDependencies::AccessLog          log;
+    Analysis::APIDumpDependencies::DependencyAnalysis analysis;
+    std::string                                       error;
+    ExitCode                                          exit_code  = ExitCode::SUCCESS;
+    Options                                           options;
+    const auto                                        start_time = Clock::now();
 
     /* Without history: the analysis keeps what it keeps of the frames only as far as the dependencies need it. */
     Analysis::APIDumpAnalysis::Frontends::AnalysisSession session(false);

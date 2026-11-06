@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_analysis/frontends/d3d7_pipeline_state.h"
-#include "analysis/api_dump_analysis/hasher.h"
+#include "utils/hashing/hasher.h"
 #include "Interception/Core/D3D7Utils/constants.h"
 
 /* What a device can have: an index beyond these is not one that D3D7 has. */
@@ -24,10 +24,10 @@ Analysis::APIDumpAnalysis::DrawDescription Analysis::APIDumpAnalysis::Frontends:
                                                                                                                   const uint32_t&                                     in_fvf,
                                                                                                                   const Analysis::APIDumpAnalysis::ResourceId&        in_vertex_buffer_id)
 {
-    Analysis::APIDumpAnalysis::Hasher          layout_hasher;
-    Analysis::APIDumpAnalysis::DrawDescription result = m_fixed_function_state.describe_draw(in_topology,
-                                                                                             in_vertex_count,
-                                                                                             in_is_indexed);
+    Utils::Hashing::Hasher                     layout_hasher;
+    Analysis::APIDumpAnalysis::DrawDescription result        = m_fixed_function_state.describe_draw(in_topology,
+                                                                                                    in_vertex_count,
+                                                                                                    in_is_indexed);
 
     /* The format of the vertices is the format code. Where they come from is told by the vertex buffer, if there is one. */
     layout_hasher.add_u32(in_fvf);

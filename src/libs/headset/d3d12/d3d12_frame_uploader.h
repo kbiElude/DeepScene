@@ -5,8 +5,8 @@
 #ifndef HEADSET_D3D12_D3D12_FRAME_UPLOADER_H
 #define HEADSET_D3D12_D3D12_FRAME_UPLOADER_H
 
-#include "headset/d3d12/d3d12_command_runner.h"
 #include "stereo/transport/types.h"
+#include "utils/d3d12/d3d12_command_runner.h"
 #include <map>
 #include <string>
 #include <d3d12.h>
@@ -70,7 +70,7 @@ namespace Headset
             Microsoft::WRL::ComPtr<ID3D12Device3> m_device_ptr;
             std::string                           m_error; /* what stopped the uploader from being made; empty if nothing did */
             std::map<const void*, Region>         m_region_map; /* by where what was mapped starts */
-            D3D12CommandRunner                    m_runner;     /* last: it is the first to go, and waits for what the GPU reads of the rest */
+            Utils::D3D12::D3D12CommandRunner                    m_runner;     /* last: it is the first to go, and waits for what the GPU reads of the rest */
         };
     }
 }

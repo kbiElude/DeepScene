@@ -70,7 +70,7 @@ namespace
      */
     bool render(const Stereo::Replay::ConsistencyChecker::Options& in_options,
                 const uint32_t&                                    in_frame_index,
-                Stereo::Replay::FrameImages::Image*                out_image_ptr,
+                Utils::Images::Image*                out_image_ptr,
                 std::string*                                       out_error_ptr)
     {
         bool is_hud_skipped   = false;
@@ -273,7 +273,7 @@ namespace
     {
         return [out_record_ptr](const Stereo::Replay::ConsistencyChecker::Options& in_options,
                                 const uint32_t&                                    in_frame_index,
-                                Stereo::Replay::FrameImages::Image*                out_image_ptr,
+                                Utils::Images::Image*                out_image_ptr,
                                 std::string*                                       out_error_ptr)
         {
             out_record_ptr->shard_frame_vec.push_back(std::make_pair(in_options.overlay_probe_shard_index,

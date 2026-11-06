@@ -109,10 +109,10 @@ TEST(OverlayCandidateFinder, ADrawKeyOfTheRecipeIsToldFromAPassKey)
 
 TEST(OverlayCandidateFinder, ARuleOfASignatureIsWhatTheLiveConverterDoes)
 {
-    const auto                     analysis  = make_analysis();
-    const auto&                    structure = analysis.model.pass_structure_interner.get_structure(0);
+    const auto                       analysis  = make_analysis();
+    const auto&                      structure = analysis.model.pass_structure_interner.get_structure(0);
     Analysis::RecipeLoader::DrawRule rule;
-    Analysis::RecipeLoader::Recipe recipe;
+    Analysis::RecipeLoader::Recipe   recipe;
 
     rule.draw_class    = Analysis::RecipeLoader::DrawClass::UNAFFECTED;
     rule.signature_key = structure.draw_signature_vec.at(0).signature_key;
@@ -155,7 +155,7 @@ TEST(OverlayCandidateFinder, TheJsonHasTheKeysAndWhatTheyAgreeOn)
 
     recipe.unaffected.pass_key_vec.push_back(structure.key);
 
-    Analysis::APIDumpAnalysis::JsonWriter writer(false); /* in_is_pretty */
+    Utils::Json::JsonWriter writer(false); /* in_is_pretty */
 
     Analysis::RecipeBake::OverlayCandidateFinder::write_json(Analysis::RecipeBake::OverlayCandidateFinder::find(recipe,
                                                                                                                  analysis),

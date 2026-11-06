@@ -32,7 +32,7 @@
 #ifndef APPCATALOG_CATALOG_LOADER_H
 #define APPCATALOG_CATALOG_LOADER_H
 
-#include "analysis/api_dump_analysis/json_reader.h"
+#include "utils/json/json_reader.h"
 #include "vr/app_catalog/types.h"
 #include <string>
 #include <vector>
@@ -56,34 +56,34 @@ namespace VR
                               std::string*       out_error_ptr);
 
         private:
-            static void         check_availability(AppEntry*                                   inout_app_ptr,
-                                                   const std::string&                          in_title);
-            static std::string  get_directory     (const std::string&                          in_path);
-            static bool         is_absolute_path  (const std::string&                          in_path);
-            static bool         parse_app         (const Analysis::APIDumpAnalysis::JsonValue& in_app,
-                                                   const std::string&                          in_path,
-                                                   const std::string&                          in_base_directory,
-                                                   AppEntry*                                   out_app_ptr,
-                                                   std::string*                                out_title_ptr,
-                                                   std::string*                                out_error_ptr);
-            static bool         parse_download    (const Analysis::APIDumpAnalysis::JsonValue& in_download,
-                                                   const std::string&                          in_path,
-                                                   const std::string&                          in_install_directory,
-                                                   VR::AppInstaller::InstallSpec*              out_spec_ptr,
-                                                   std::string*                                out_error_ptr);
-            static bool         parse_number      (const Analysis::APIDumpAnalysis::JsonValue& in_object,
-                                                   const std::string&                          in_key,
-                                                   const std::string&                          in_path,
-                                                   uint64_t*                                   out_number_ptr,
-                                                   std::string*                                out_error_ptr);
-            static bool         parse_string      (const Analysis::APIDumpAnalysis::JsonValue& in_object,
-                                                   const std::string&                          in_key,
-                                                   const bool&                                 in_is_required,
-                                                   const std::string&                          in_path,
-                                                   std::string*                                out_string_ptr,
-                                                   std::string*                                out_error_ptr);
-            static std::string  resolve_path      (const std::string&                          in_base_directory,
-                                                   const std::string&                          in_path);
+            static void        check_availability(AppEntry*                      inout_app_ptr,
+                                                  const std::string&             in_title);
+            static std::string get_directory     (const std::string&             in_path);
+            static bool        is_absolute_path  (const std::string&             in_path);
+            static bool        parse_app         (const Utils::Json::JsonValue&  in_app,
+                                                  const std::string&             in_path,
+                                                  const std::string&             in_base_directory,
+                                                  AppEntry*                      out_app_ptr,
+                                                  std::string*                   out_title_ptr,
+                                                  std::string*                   out_error_ptr);
+            static bool        parse_download    (const Utils::Json::JsonValue&  in_download,
+                                                  const std::string&             in_path,
+                                                  const std::string&             in_install_directory,
+                                                  VR::AppInstaller::InstallSpec* out_spec_ptr,
+                                                  std::string*                   out_error_ptr);
+            static bool        parse_number      (const Utils::Json::JsonValue&  in_object,
+                                                  const std::string&             in_key,
+                                                  const std::string&             in_path,
+                                                  uint64_t*                      out_number_ptr,
+                                                  std::string*                   out_error_ptr);
+            static bool        parse_string      (const Utils::Json::JsonValue&  in_object,
+                                                  const std::string&             in_key,
+                                                  const bool&                    in_is_required,
+                                                  const std::string&             in_path,
+                                                  std::string*                   out_string_ptr,
+                                                  std::string*                   out_error_ptr);
+            static std::string resolve_path      (const std::string&             in_base_directory,
+                                                  const std::string&             in_path);
         };
     }
 }

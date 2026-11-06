@@ -4,7 +4,7 @@
  */
 #include "vr_player_window.h"
 #include "stereo/core/resolution_policy.h"
-#include "vr/app_installer/file_system.h"
+#include "utils/files/file_system.h"
 #include "imgui.h"
 #include <algorithm>
 #include <float.h>
@@ -75,20 +75,20 @@ VR::VRPlayer::VrPlayerWindow::VrPlayerWindow(const WindowContent& in_content)
 
 bool VR::VRPlayer::VrPlayerWindow::draw_app_card(const size_t& in_n_app)
 {
-    const VR::AppCatalog::AppEntry& app          = m_content.catalog.app_vec.at(in_n_app);
-    const ImGuiStyle&               style        = ImGui::GetStyle();
-    const float                     pad          = style.FramePadding.x * 1.6f;
-    const bool                      is_available = app.unavailable_reason.empty();
-    const bool                      is_selected  = (static_cast<int>(in_n_app) == m_selected_app);
-    const float                     width        = ImGui::GetContentRegionAvail().x;
-    const float                     wrap_width   = width - 2.0f * pad;
-    float                           height       = 2.0f * pad;
-    ImVec2                          reason_size  = ImVec2(0.0f,
-                                                      0.0f);
-    ImVec2                      description_size = ImVec2(0.0f,
+    const VR::AppCatalog::AppEntry& app              = m_content.catalog.app_vec.at(in_n_app);
+    const ImGuiStyle&               style            = ImGui::GetStyle();
+    const float                     pad              = style.FramePadding.x * 1.6f;
+    const bool                      is_available     = app.unavailable_reason.empty();
+    const bool                      is_selected      = (static_cast<int>(in_n_app) == m_selected_app);
+    const float                     width            = ImGui::GetContentRegionAvail().x;
+    const float                     wrap_width       = width - 2.0f * pad;
+    float                           height           = 2.0f * pad;
+    ImVec2                          reason_size      = ImVec2(0.0f,
                                                           0.0f);
-    float                       title_height = 0.0f;
-    bool                        result       = false;
+    ImVec2                          description_size = ImVec2(0.0f,
+                                                              0.0f);
+    float                           title_height     = 0.0f;
+    bool                            result           = false;
 
     ImGui::PushFont(nullptr,
                     style.FontSizeBase * CARD_TITLE_SCALE);
@@ -217,7 +217,7 @@ void VR::VRPlayer::VrPlayerWindow::draw_app_list()
     }
 }
 
-void VR::VRPlayer::VrPlayerWindow::draw_contents(VR::UIHost::ContentExtent* inout_extent_ptr)
+void VR::VRPlayer::VrPlayerWindow::draw_contents(Utils::UIHost::ContentExtent* inout_extent_ptr)
 {
     const ImGuiStyle& style = ImGui::GetStyle();
 
@@ -345,7 +345,7 @@ void VR::VRPlayer::VrPlayerWindow::draw_device_combo()
                   ++n_device)
         {
             const Headset::VRDevices::VrDevice& device    = m_content.device_vec.at(n_device);
-            const bool                     is_usable = device.unavailable_reason.empty();
+            const bool                          is_usable = device.unavailable_reason.empty();
 
             ImGui::PushID(static_cast<int>(n_device) );
             ImGui::BeginDisabled(is_usable == false);
@@ -668,12 +668,12 @@ std::string VR::VRPlayer::VrPlayerWindow::get_size_text(const uint64_t& in_n_byt
     return size_text_i8vec32;
 }
 
-VR::UIHost::WindowOptions VR::VRPlayer::VrPlayerWindow::get_window_options()
+Utils::UIHost::WindowOptions VR::VRPlayer::VrPlayerWindow::get_window_options()
 {
     constexpr int CLIENT_HEIGHT = 620;
     constexpr int CLIENT_WIDTH  = 980;
 
-    VR::UIHost::WindowOptions result;
+    Utils::UIHost::WindowOptions result;
 
     result.class_name    = L"VRPlayerWindow";
     result.client_height = CLIENT_HEIGHT;
@@ -708,7 +708,7 @@ void VR::VRPlayer::VrPlayerWindow::launch()
 
 void VR::VRPlayer::VrPlayerWindow::start_app(const size_t& in_n_app)
 {
-    const VR::AppCatalog::AppEntry& app = m_content.catalog.app_vec.at(in_n_app);
+    const VR::AppCatalog::AppEntry& app           = m_content.catalog.app_vec.at(in_n_app);
     std::string                     error;
     uint32_t                        target_height = 0;
     uint32_t                        target_width  = 0;
@@ -717,7 +717,7 @@ void VR::VRPlayer::VrPlayerWindow::start_app(const size_t& in_n_app)
     if (m_device_index >= 0)
     {
         const Headset::VRDevices::VrDevice& device   = m_content.device_vec.at(static_cast<size_t>(m_device_index) );
-        const float                    fraction = QUALITY_SIZE_FRACTION_ARRAY[m_quality_index];
+        const float                         fraction = QUALITY_SIZE_FRACTION_ARRAY[m_quality_index];
 
         target_height = static_cast<uint32_t>(static_cast<float>(device.eye_height) * fraction + 0.5f);
         target_width  = static_cast<uint32_t>(static_cast<float>(device.eye_width)  * fraction + 0.5f);
@@ -774,7 +774,7 @@ void VR::VRPlayer::VrPlayerWindow::select_defaults()
 
 void VR::VRPlayer::VrPlayerWindow::start_install()
 {
-    const VR::AppCatalog::AppEntry& app = m_content.catalog.app_vec.at(static_cast<size_t>(m_selected_app) );
+    const VR::AppCatalog::AppEntry& app   = m_content.catalog.app_vec.at(static_cast<size_t>(m_selected_app) );
     std::string                     error;
 
     if (m_installer.start(app.install_spec,
@@ -804,7 +804,7 @@ void VR::VRPlayer::VrPlayerWindow::update_install()
         {
             case VR::AppInstaller::InstallPhase::DONE:
             {
-                const bool is_program_there = VR::AppInstaller::FileSystem::is_file(m_content.catalog.app_vec.at(n_app).executable_path);
+                const bool is_program_there = Utils::Files::FileSystem::is_file(m_content.catalog.app_vec.at(n_app).executable_path);
 
                 m_installing_app = -1;
 

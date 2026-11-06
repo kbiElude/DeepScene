@@ -2,14 +2,14 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/api_dump_analysis/number_parser.h"
+#include "utils/command_line/number_parser.h"
 #include "analysis/recipe_loader/recipe_loader.h"
 #include "Capture/APIDumpLoader/WorkloadIndex.h"
 #include "Capture/APIDumpNames/function_names.h"
 #include "tools/stereo_replay/engine_dll/entrypoints.h"
-#include "stereo/replay/frame_images/image_comparer.h"
-#include "stereo/replay/frame_images/image_composer.h"
-#include "stereo/replay/frame_images/png_writer.h"
+#include "utils/images/image_comparer.h"
+#include "utils/images/image_composer.h"
+#include "utils/images/png_writer.h"
 #include "frame_hash_sink.h"
 #include "frame_sampler.h"
 #include "overlay_probe.h"
@@ -117,8 +117,8 @@ namespace Stereo
             /* Says, and writes an image of, how the image of an execution differs from the one of the frame as it is. */
             void write_difference(const std::string&                        in_label,
                                   const std::string&                        in_path,
-                                  const Stereo::Replay::FrameImages::Image& in_image_as_it_is,
-                                  const Stereo::Replay::FrameImages::Image& in_image_of_execution);
+                                  const Utils::Images::Image& in_image_as_it_is,
+                                  const Utils::Images::Image& in_image_of_execution);
         }
     }
 }
@@ -167,9 +167,9 @@ bool Stereo::Replay::ConsistencyChecker::compare_workloads(const Stereo::Replay:
 {
     constexpr size_t N_FRAMES_LISTED = 20;
 
-    std::vector<uint32_t>                             different_frame_vec;
-    uint32_t                                          n_different_frames = 0;
-    Stereo::Replay::ConsistencyChecker::Options       other_options      = in_options;
+    std::vector<uint32_t>                       different_frame_vec;
+    uint32_t                                    n_different_frames  = 0;
+    Stereo::Replay::ConsistencyChecker::Options other_options       = in_options;
     Stereo::Replay::ConsistencyChecker::FrameHashSink other_sink(false); /* in_keeps_images */
     Stereo::Replay::ConsistencyChecker::FrameHashSink own_sink  (false); /* in_keeps_images */
     bool                                              result             = false;
@@ -251,8 +251,8 @@ void Stereo::Replay::ConsistencyChecker::dump_frame(const Stereo::Replay::Consis
                                                     const Variant&                                     in_variant)
 {
     Stereo::Replay::ConsistencyChecker::FrameHashSink direct_sink(true); /* in_keeps_images */
-    std::string                                       error;
-    Stereo::Replay::ConsistencyChecker::Options       options = in_options;
+    std::string                                 error;
+    Stereo::Replay::ConsistencyChecker::Options options = in_options;
     Stereo::Replay::ConsistencyChecker::FrameHashSink twice_sink(true);  /* in_keeps_images */
 
     options.first_frame = in_n_frame;
@@ -287,16 +287,16 @@ void Stereo::Replay::ConsistencyChecker::dump_frame(const Stereo::Replay::Consis
     {
         const std::string prefix = in_options.dump_directory + "/frame_" + std::to_string(in_n_frame);
 
-        const auto& as_it_is_image        = direct_sink.get_image({in_n_frame, 0});
-        const auto& first_execution_image = twice_sink.get_image({in_n_frame, 0});
+        const auto& as_it_is_image         = direct_sink.get_image({in_n_frame, 0});
+        const auto& first_execution_image  = twice_sink.get_image({in_n_frame, 0});
         const auto& second_execution_image = twice_sink.get_image({in_n_frame, 1});
 
-        Stereo::Replay::FrameImages::PngWriter::write_file(prefix + "_as_it_is.png",
-                                                           as_it_is_image);
-        Stereo::Replay::FrameImages::PngWriter::write_file(prefix + "_first_execution.png",
-                                                           first_execution_image);
-        Stereo::Replay::FrameImages::PngWriter::write_file(prefix + "_second_execution.png",
-                                                           second_execution_image);
+        Utils::Images::PngWriter::write_file(prefix + "_as_it_is.png",
+                                             as_it_is_image);
+        Utils::Images::PngWriter::write_file(prefix + "_first_execution.png",
+                                             first_execution_image);
+        Utils::Images::PngWriter::write_file(prefix + "_second_execution.png",
+                                             second_execution_image);
 
         write_difference("first execution",
                          prefix + "_first_execution_difference.png",
@@ -354,10 +354,10 @@ bool Stereo::Replay::ConsistencyChecker::print_comparison(const Variant&        
 {
     constexpr size_t N_FRAMES_LISTED = 20;
 
-    bool                  has_difference         = false;
-    uint32_t              n_executions_differ    = 0;
-    uint32_t              n_first_differs        = 0;
-    uint32_t              n_second_differs       = 0;
+    bool                  has_difference      = false;
+    uint32_t              n_executions_differ = 0;
+    uint32_t              n_first_differs     = 0;
+    uint32_t              n_second_differs    = 0;
     std::vector<uint32_t> first_frame_vec;
 
     for (const auto& baseline_pair : in_baseline_map)
@@ -490,7 +490,7 @@ void Stereo::Replay::ConsistencyChecker::print_usage()
 }
 
 /* Replays the frames of the options one way, and keeps what the sink is given. */
-bool Stereo::Replay::ConsistencyChecker::replay_to_frame(const Stereo::Replay::ConsistencyChecker::Options&  in_options,
+bool Stereo::Replay::ConsistencyChecker::replay_to_frame(const Stereo::Replay::ConsistencyChecker::Options& in_options,
                                                          const uint32_t&                                    in_frame_index,
                                                          Stereo::Replay::ConsistencyChecker::FrameHashSink* out_sink_ptr,
                                                          std::string*                                       out_error_ptr)
@@ -525,7 +525,7 @@ bool Stereo::Replay::ConsistencyChecker::run_probe_shards(const Stereo::Replay::
 {
     char                exe_path_i8vec[MAX_PATH] = {};
     std::vector<HANDLE> process_handle_vec;
-    bool                result = true;
+    bool                result             = true;
 
     if (::GetModuleFileNameA(nullptr,
                              exe_path_i8vec,
@@ -544,12 +544,12 @@ bool Stereo::Replay::ConsistencyChecker::run_probe_shards(const Stereo::Replay::
                   n_shard < in_n_shards;
                 ++n_shard)
     {
-        std::string          command_line = "\"" + std::string(exe_path_i8vec) + "\" \"" + in_options.workload_filename + "\" --overlay-probe \"" +
-                                            in_options.overlay_probe_filename + "\" --recipe \"" + in_options.recipe_filename + "\" --dump-dir \"" +
-                                            in_options.dump_directory + "\" --jobs 1 --overlay-probe-shard " + std::to_string(n_shard) + " " + std::to_string(in_n_shards) +
-                                            " --overlay-probe-result \"" + in_result_filename_vec.at(n_shard) + "\"";
-        PROCESS_INFORMATION  process_information = {};
-        STARTUPINFOA         startup_information = {};
+        std::string         command_line        = "\"" + std::string(exe_path_i8vec) + "\" \"" + in_options.workload_filename + "\" --overlay-probe \"" +
+                                                  in_options.overlay_probe_filename + "\" --recipe \"" + in_options.recipe_filename + "\" --dump-dir \"" +
+                                                  in_options.dump_directory + "\" --jobs 1 --overlay-probe-shard " + std::to_string(n_shard) + " " + std::to_string(in_n_shards) +
+                                                  " --overlay-probe-result \"" + in_result_filename_vec.at(n_shard) + "\"";
+        PROCESS_INFORMATION process_information = {};
+        STARTUPINFOA        startup_information = {};
 
         if (in_options.deps_filename.empty() == false)
         {
@@ -627,7 +627,7 @@ bool Stereo::Replay::ConsistencyChecker::run_variant(const Stereo::Replay::Consi
     constexpr auto POLL_INTERVAL = std::chrono::milliseconds(2);
 
     Stereo::Replay::EngineDLL::FrameExecutionOptions execution_options;
-    bool                                             result = false;
+    bool                                             result            = false;
 
     auto* const engine_ptr = Stereo::Replay::EngineDLL::aiCreateReplayEngine();
 
@@ -747,7 +747,7 @@ bool Stereo::Replay::ConsistencyChecker::run_variants(const Stereo::Replay::Cons
     const auto run_func = [&](const size_t& in_n_variant)
     {
         const auto start_time = std::chrono::steady_clock::now();
-        Run&       run        = run_vec.at(in_n_variant);
+        Run&       run      = run_vec.at(in_n_variant);
 
         run.is_ok   = run_variant(in_options,
                                   *in_variant_ptr_vec.at(in_n_variant),
@@ -815,18 +815,18 @@ bool Stereo::Replay::ConsistencyChecker::take_contact_sheet(const Stereo::Replay
 {
     constexpr uint32_t N_INDEX_READER_THREADS = 2;
 
-    uint32_t                                          n_columns   = 0;
-    Capture::APIDumpLoader::WorkloadIndex             index;
-    bool                                              is_index_built = false;
-    std::string                                       index_error;
-    const bool                                        uses_recipe = (in_options.recipe_filename.empty() == false);
-    Stereo::Replay::ConsistencyChecker::Options       options     = in_options;
-    bool                                              result      = false;
-    std::set<uint32_t>                                frame_set;
-    std::vector<uint32_t>                             frame_vec;
-    std::vector<uint32_t>                             shown_frame_vec;
-    Stereo::Replay::FrameImages::Image                sheet_image;
-    std::vector<Stereo::Replay::FrameImages::Image>   tile_image_vec;
+    uint32_t                                    n_columns       = 0;
+    Capture::APIDumpLoader::WorkloadIndex       index;
+    bool                                        is_index_built  = false;
+    std::string                                 index_error;
+    const bool                                  uses_recipe     = (in_options.recipe_filename.empty() == false);
+    Stereo::Replay::ConsistencyChecker::Options options         = in_options;
+    bool                                        result          = false;
+    std::set<uint32_t>                          frame_set;
+    std::vector<uint32_t>                       frame_vec;
+    std::vector<uint32_t>                       shown_frame_vec;
+    Utils::Images::Image                        sheet_image;
+    std::vector<Utils::Images::Image>           tile_image_vec;
     Stereo::Replay::ConsistencyChecker::FrameHashSink sink(true); /* in_keeps_images */
 
     /* The end of the workload: the range of the options may go beyond it. */
@@ -869,7 +869,7 @@ bool Stereo::Replay::ConsistencyChecker::take_contact_sheet(const Stereo::Replay
 
     for (const auto n_frame : frame_vec)
     {
-        Stereo::Replay::FrameImages::Image tile_image = sink.get_image({n_frame, 0});
+        Utils::Images::Image tile_image = sink.get_image({n_frame, 0});
 
         if (tile_image.width == 0)
         {
@@ -878,14 +878,14 @@ bool Stereo::Replay::ConsistencyChecker::take_contact_sheet(const Stereo::Replay
 
         if (uses_recipe)
         {
-            const Stereo::Replay::FrameImages::Image& right_eye_image = sink.get_image({n_frame, 1});
-            Stereo::Replay::FrameImages::Image        view_image;
+            const Utils::Images::Image& right_eye_image = sink.get_image({n_frame, 1});
+            Utils::Images::Image        view_image;
 
-            if (Stereo::Replay::FrameImages::ImageComposer::make_eye_view((in_options.has_eye_view) ? in_options.eye_view
-                                                                                                    : Stereo::Replay::FrameImages::EyeView::BOTH,
-                                                                          tile_image,
-                                                                          right_eye_image,
-                                                                         &view_image) == false)
+            if (Utils::Images::ImageComposer::make_eye_view((in_options.has_eye_view) ? in_options.eye_view
+                                                                                      : Utils::Images::EyeView::BOTH,
+                                                            tile_image,
+                                                            right_eye_image,
+                                                            &view_image) == false)
             {
                 *out_error_ptr = "The images of the eyes cannot be put together.";
 
@@ -910,23 +910,23 @@ bool Stereo::Replay::ConsistencyChecker::take_contact_sheet(const Stereo::Replay
     n_columns = static_cast<uint32_t>(std::ceil(std::sqrt(static_cast<double>(tile_image_vec.size() ) ) ) );
 
     if (uses_recipe                                                                                                            &&
-        (in_options.has_eye_view == false || in_options.eye_view == Stereo::Replay::FrameImages::EyeView::BOTH) )
+        (in_options.has_eye_view == false || in_options.eye_view == Utils::Images::EyeView::BOTH) )
     {
         n_columns = std::max<uint32_t>(1,
                                        (n_columns + 1) / 2);
     }
 
-    if (Stereo::Replay::FrameImages::ImageComposer::make_contact_sheet(tile_image_vec,
-                                                                       n_columns,
-                                                                      &sheet_image) == false)
+    if (Utils::Images::ImageComposer::make_contact_sheet(tile_image_vec,
+                                                         n_columns,
+                                                         &sheet_image) == false)
     {
         *out_error_ptr = "The contact sheet cannot be made.";
 
         goto end;
     }
 
-    if (Stereo::Replay::FrameImages::PngWriter::write_file(in_options.image_filename,
-                                                           sheet_image) == false)
+    if (Utils::Images::PngWriter::write_file(in_options.image_filename,
+                                             sheet_image) == false)
     {
         *out_error_ptr = "The file " + in_options.image_filename + " cannot be written.";
 
@@ -959,7 +959,7 @@ bool Stereo::Replay::ConsistencyChecker::take_overlay_probe(const Stereo::Replay
     return Stereo::Replay::ConsistencyChecker::OverlayProbe::run(in_options,
                                                                  [](const Stereo::Replay::ConsistencyChecker::Options& in_probe_options,
                                                                     const uint32_t&                                    in_frame_index,
-                                                                    Stereo::Replay::FrameImages::Image*                out_image_ptr,
+                                                                    Utils::Images::Image*                out_image_ptr,
                                                                     std::string*                                       out_error_ptr)
                                                                  {
                                                                      Stereo::Replay::ConsistencyChecker::FrameHashSink sink(true); /* in_keeps_images */
@@ -997,7 +997,7 @@ bool Stereo::Replay::ConsistencyChecker::take_profile(const Stereo::Replay::Cons
     constexpr double   NANOSECONDS_PER_MICROSECOND = 1000.0;
 
     Stereo::Replay::ConsistencyChecker::ReplayProfiler profiler;
-    bool                                               result      = false;
+    bool                                               result   = false;
     Stereo::Replay::ConsistencyChecker::FrameHashSink  sink(false); /* in_keeps_images */
     const bool                                         uses_recipe = (in_options.recipe_filename.empty() == false);
 
@@ -1063,9 +1063,9 @@ end:
 bool Stereo::Replay::ConsistencyChecker::take_screenshot(const Stereo::Replay::ConsistencyChecker::Options& in_options,
                                                          std::string*                                       out_error_ptr)
 {
-    const bool                                        uses_recipe = (in_options.recipe_filename.empty() == false);
-    Stereo::Replay::FrameImages::Image                image;
-    bool                                              result      = false;
+    const bool           uses_recipe = (in_options.recipe_filename.empty() == false);
+    Utils::Images::Image image;
+    bool                 result      = false;
     Stereo::Replay::ConsistencyChecker::FrameHashSink sink(true); /* in_keeps_images */
 
     if (replay_to_frame(in_options,
@@ -1087,13 +1087,13 @@ bool Stereo::Replay::ConsistencyChecker::take_screenshot(const Stereo::Replay::C
 
     if (uses_recipe)
     {
-        const Stereo::Replay::FrameImages::Image& right_eye_image = sink.get_image({in_options.screenshot_frame, 1});
-        Stereo::Replay::FrameImages::Image        view_image;
+        const Utils::Images::Image& right_eye_image = sink.get_image({in_options.screenshot_frame, 1});
+        Utils::Images::Image        view_image;
 
-        if (Stereo::Replay::FrameImages::ImageComposer::make_eye_view(in_options.eye_view,
-                                                                      image,
-                                                                      right_eye_image,
-                                                                     &view_image) == false)
+        if (Utils::Images::ImageComposer::make_eye_view(in_options.eye_view,
+                                                        image,
+                                                        right_eye_image,
+                                                        &view_image) == false)
         {
             *out_error_ptr = "The images of the eyes cannot be put together.";
 
@@ -1103,8 +1103,8 @@ bool Stereo::Replay::ConsistencyChecker::take_screenshot(const Stereo::Replay::C
         image = view_image;
     }
 
-    if (Stereo::Replay::FrameImages::PngWriter::write_file(in_options.image_filename,
-                                                           image) == false)
+    if (Utils::Images::PngWriter::write_file(in_options.image_filename,
+                                             image) == false)
     {
         *out_error_ptr = "The file " + in_options.image_filename + " cannot be written.";
 
@@ -1116,14 +1116,14 @@ end:
     return result;
 }
 
-void Stereo::Replay::ConsistencyChecker::write_difference(const std::string&                        in_label,
-                                                          const std::string&                        in_path,
-                                                          const Stereo::Replay::FrameImages::Image& in_image_as_it_is,
-                                                          const Stereo::Replay::FrameImages::Image& in_image_of_execution)
+void Stereo::Replay::ConsistencyChecker::write_difference(const std::string&          in_label,
+                                                          const std::string&          in_path,
+                                                          const Utils::Images::Image& in_image_as_it_is,
+                                                          const Utils::Images::Image& in_image_of_execution)
 {
-    Stereo::Replay::FrameImages::Image difference_image;
-    const auto                         difference = Stereo::Replay::FrameImages::ImageComparer::compare(in_image_as_it_is,
-                                                                                                        in_image_of_execution);
+    Utils::Images::Image difference_image;
+    const auto           difference       = Utils::Images::ImageComparer::compare(in_image_as_it_is,
+                                                                                                in_image_of_execution);
 
     if (difference.has_same_size == false)
     {
@@ -1153,11 +1153,11 @@ void Stereo::Replay::ConsistencyChecker::write_difference(const std::string&    
             difference.bounding_box_max_y,
             static_cast<uint32_t>(difference.max_channel_difference) );
 
-    if (Stereo::Replay::FrameImages::ImageComparer::make_difference_image(in_image_as_it_is,
-                                                                          in_image_of_execution,
-                                                                         &difference_image) &&
-        Stereo::Replay::FrameImages::PngWriter::write_file(in_path,
-                                                           difference_image) )
+    if (Utils::Images::ImageComparer::make_difference_image(in_image_as_it_is,
+                                                            in_image_of_execution,
+                                                            &difference_image) &&
+        Utils::Images::PngWriter::write_file(in_path,
+                                             difference_image) )
     {
         fprintf(stdout,
                 "  %s: the pixels that differ are red in %s\n",
@@ -1172,8 +1172,8 @@ end:
 int main(int   in_argc,
          char* in_argv[])
 {
-    Stereo::Replay::ConsistencyChecker::ExitCode                    exit_code      = Stereo::Replay::ConsistencyChecker::ExitCode::SUCCESS;
-    bool                                                            is_usage_error = false;
+    Stereo::Replay::ConsistencyChecker::ExitCode                    exit_code       = Stereo::Replay::ConsistencyChecker::ExitCode::SUCCESS;
+    bool                                                            is_usage_error  = false;
     Stereo::Replay::ConsistencyChecker::Options                     options;
     std::vector<Stereo::Replay::ConsistencyChecker::FrameHashSink>  sink_vec;
     std::vector<const Stereo::Replay::ConsistencyChecker::Variant*> variant_ptr_vec;
@@ -1190,9 +1190,9 @@ int main(int   in_argc,
         {
             uint64_t value = 0;
 
-            if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(in_argv[++n_argument],
-                                                                        UINT32_MAX,
-                                                                       &value) == false)
+            if (Utils::CommandLine::NumberParser::parse_unsigned(in_argv[++n_argument],
+                                                                 UINT32_MAX,
+                                                                 &value) == false)
             {
                 is_usage_error = true;
             }
@@ -1205,9 +1205,9 @@ int main(int   in_argc,
         {
             uint64_t value = 0;
 
-            if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(in_argv[++n_argument],
-                                                                        UINT32_MAX,
-                                                                       &value) == false)
+            if (Utils::CommandLine::NumberParser::parse_unsigned(in_argv[++n_argument],
+                                                                 UINT32_MAX,
+                                                                 &value) == false)
             {
                 is_usage_error = true;
             }
@@ -1220,9 +1220,9 @@ int main(int   in_argc,
         {
             uint64_t value = 0;
 
-            if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(in_argv[++n_argument],
-                                                                        UINT32_MAX,
-                                                                       &value) == false)
+            if (Utils::CommandLine::NumberParser::parse_unsigned(in_argv[++n_argument],
+                                                                 UINT32_MAX,
+                                                                 &value) == false)
             {
                 is_usage_error = true;
             }
@@ -1249,8 +1249,8 @@ int main(int   in_argc,
         {
             double separation = 0.0;
 
-            if (Analysis::APIDumpAnalysis::NumberParser::parse_double(in_argv[++n_argument],
-                                                                     &separation) == false)
+            if (Utils::CommandLine::NumberParser::parse_double(in_argv[++n_argument],
+                                                               &separation) == false)
             {
                 is_usage_error = true;
             }
@@ -1278,8 +1278,8 @@ int main(int   in_argc,
         if (argument == "--ways" &&
             has_next)
         {
-            std::string        list = in_argv[++n_argument];
-            size_t             n_start = 0;
+            std::string list    = in_argv[++n_argument];
+            size_t      n_start = 0;
 
             while (n_start <= list.size() )
             {
@@ -1301,25 +1301,25 @@ int main(int   in_argc,
 
             if (eye_name == "left")
             {
-                options.eye_view     = Stereo::Replay::FrameImages::EyeView::LEFT;
+                options.eye_view     = Utils::Images::EyeView::LEFT;
                 options.has_eye_view = true;
             }
             else
             if (eye_name == "right")
             {
-                options.eye_view     = Stereo::Replay::FrameImages::EyeView::RIGHT;
+                options.eye_view     = Utils::Images::EyeView::RIGHT;
                 options.has_eye_view = true;
             }
             else
             if (eye_name == "both")
             {
-                options.eye_view     = Stereo::Replay::FrameImages::EyeView::BOTH;
+                options.eye_view     = Utils::Images::EyeView::BOTH;
                 options.has_eye_view = true;
             }
             else
             if (eye_name == "anaglyph")
             {
-                options.eye_view     = Stereo::Replay::FrameImages::EyeView::ANAGLYPH;
+                options.eye_view     = Utils::Images::EyeView::ANAGLYPH;
                 options.has_eye_view = true;
             }
             else
@@ -1339,9 +1339,9 @@ int main(int   in_argc,
         {
             uint64_t value = 0;
 
-            if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(in_argv[++n_argument],
-                                                                        UINT32_MAX - 1,
-                                                                       &value) == false)
+            if (Utils::CommandLine::NumberParser::parse_unsigned(in_argv[++n_argument],
+                                                                 UINT32_MAX - 1,
+                                                                 &value) == false)
             {
                 is_usage_error = true;
             }
@@ -1376,9 +1376,9 @@ int main(int   in_argc,
         {
             uint64_t value = 0;
 
-            if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(in_argv[++n_argument],
-                                                                        MAXIMUM_WAIT_OBJECTS - 1,
-                                                                       &value) == false ||
+            if (Utils::CommandLine::NumberParser::parse_unsigned(in_argv[++n_argument],
+                                                                 MAXIMUM_WAIT_OBJECTS - 1,
+                                                                 &value) == false ||
                 value == 0)
             {
                 is_usage_error = true;
@@ -1393,12 +1393,12 @@ int main(int   in_argc,
             uint64_t index = 0;
             uint64_t count = 0;
 
-            if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(in_argv[++n_argument],
-                                                                        MAXIMUM_WAIT_OBJECTS,
-                                                                       &index) == false ||
-                Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(in_argv[++n_argument],
-                                                                        MAXIMUM_WAIT_OBJECTS,
-                                                                       &count) == false ||
+            if (Utils::CommandLine::NumberParser::parse_unsigned(in_argv[++n_argument],
+                                                                 MAXIMUM_WAIT_OBJECTS,
+                                                                 &index) == false ||
+                Utils::CommandLine::NumberParser::parse_unsigned(in_argv[++n_argument],
+                                                                 MAXIMUM_WAIT_OBJECTS,
+                                                                 &count) == false ||
                 index >= count)
             {
                 is_usage_error = true;

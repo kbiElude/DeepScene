@@ -30,11 +30,11 @@ namespace
 bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_dependencies(const std::vector<uint8_t>& in_byte_vec,
                                                                              DependencyAnalysis*         inout_analysis_ptr)
 {
-    Analysis::APIDumpAnalysis::ByteReader reader(in_byte_vec.data(),
-                                                 in_byte_vec.size() );
-    const uint64_t                        n_frames    = reader.read_u64();
-    const uint32_t                        n_resources = reader.read_count(MIN_RESOURCE_N_BYTES);
-    bool                                  is_ok       = (n_resources == inout_analysis_ptr->resource_vec.size() );
+    Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
+                                       in_byte_vec.size() );
+    const uint64_t n_frames    = reader.read_u64();
+    const uint32_t n_resources = reader.read_count(MIN_RESOURCE_N_BYTES);
+    bool           is_ok       = (n_resources == inout_analysis_ptr->resource_vec.size() );
 
     inout_analysis_ptr->result.n_frames = n_frames;
 
@@ -45,7 +45,7 @@ bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_dependencies(con
                 ++n_resource)
     {
         ResourceDependencies dependencies;
-        ResourceSummary&     summary = dependencies.summary;
+        ResourceSummary&     summary      = dependencies.summary;
 
         summary.dependency_class                        = read_enum(&reader,
                                                                     DependencyClass::UNUSED);
@@ -61,7 +61,7 @@ bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_dependencies(con
         summary.n_frames_using_earlier_content_possibly = reader.read_u64();
         summary.n_frames_written                        = reader.read_u64();
 
-        const uint32_t n_runs = reader.read_count(MIN_RUN_N_BYTES);
+        const uint32_t n_runs       = reader.read_count(MIN_RUN_N_BYTES);
         uint64_t       n_next_frame = 0; /* the runs are in order, and do not overlap */
 
         for (uint32_t n_run = 0;
@@ -102,7 +102,7 @@ bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_dependencies(con
                     ++n_version)
         {
             ResourceVersion version;
-            const uint8_t   flags = reader.read_u8();
+            const uint8_t   flags   = reader.read_u8();
 
             version.has_writer                 = ((flags & VERSION_FLAG_HAS_WRITER)            != 0);
             version.keeps_earlier_content      = ((flags & VERSION_FLAG_KEEPS_EARLIER_CONTENT) != 0);
@@ -110,7 +110,7 @@ bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_dependencies(con
             version.n_possible_consumer_frames = reader.read_u64();
             version.writer_frame_index         = reader.read_u64();
 
-            const uint32_t n_ranges      = reader.read_count(MIN_RANGE_N_BYTES);
+            const uint32_t n_ranges              = reader.read_count(MIN_RANGE_N_BYTES);
             uint64_t       n_next_consumer_frame = 0;
 
             for (uint32_t n_range = 0;
@@ -155,11 +155,11 @@ bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_dependencies(con
 bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_frames(const std::vector<uint8_t>& in_byte_vec,
                                                                        DependencyAnalysis*         inout_analysis_ptr)
 {
-    Analysis::APIDumpAnalysis::ByteReader reader(in_byte_vec.data(),
-                                                 in_byte_vec.size() );
-    const uint32_t                        n_frames = reader.read_count(MIN_RANGE_N_BYTES);
-    bool                                  is_ok    = true;
-    uint64_t                              next_call_index = 0;
+    Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
+                                       in_byte_vec.size() );
+    const uint32_t n_frames        = reader.read_count(MIN_RANGE_N_BYTES);
+    bool           is_ok           = true;
+    uint64_t       next_call_index = 0;
 
     inout_analysis_ptr->frame_call_range_vec.clear();
 
@@ -194,8 +194,8 @@ bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_meta(const std::
 {
     constexpr size_t MIN_API_N_BYTES = sizeof(uint32_t) + sizeof(uint64_t); /* the length of a name, and a number of calls */
 
-    Analysis::APIDumpAnalysis::ByteReader reader(in_byte_vec.data(),
-                                                 in_byte_vec.size() );
+    Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
+                                       in_byte_vec.size() );
 
     *out_analysis_ptr = DependencyAnalysis();
 
@@ -238,8 +238,8 @@ bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_resources(const 
 }
 
 template<typename Enum>
-Enum Analysis::APIDumpDependencies::DepsSerializer::read_enum(Analysis::APIDumpAnalysis::ByteReader* inout_reader_ptr,
-                                                              const Enum&                            in_last_value)
+Enum Analysis::APIDumpDependencies::DepsSerializer::read_enum(Utils::BinaryIO::ByteReader* inout_reader_ptr,
+                                                              const Enum&                  in_last_value)
 {
     const uint8_t value  = inout_reader_ptr->read_u8();
     Enum          result = static_cast<Enum>(0);
@@ -258,7 +258,7 @@ Enum Analysis::APIDumpDependencies::DepsSerializer::read_enum(Analysis::APIDumpA
 
 std::vector<uint8_t> Analysis::APIDumpDependencies::DepsSerializer::serialize_dependencies(const DependencyAnalysis& in_analysis)
 {
-    Analysis::APIDumpAnalysis::ByteWriter writer;
+    Utils::BinaryIO::ByteWriter writer;
 
     writer.write_u64(in_analysis.result.n_frames);
     writer.write_u32(static_cast<uint32_t>(in_analysis.result.resource_vec.size() ) );
@@ -321,7 +321,7 @@ std::vector<uint8_t> Analysis::APIDumpDependencies::DepsSerializer::serialize_de
 
 std::vector<uint8_t> Analysis::APIDumpDependencies::DepsSerializer::serialize_frames(const DependencyAnalysis& in_analysis)
 {
-    Analysis::APIDumpAnalysis::ByteWriter writer;
+    Utils::BinaryIO::ByteWriter writer;
 
     writer.write_u32(static_cast<uint32_t>(in_analysis.frame_call_range_vec.size() ) );
 
@@ -336,7 +336,7 @@ std::vector<uint8_t> Analysis::APIDumpDependencies::DepsSerializer::serialize_fr
 
 std::vector<uint8_t> Analysis::APIDumpDependencies::DepsSerializer::serialize_meta(const DependencyAnalysis& in_analysis)
 {
-    Analysis::APIDumpAnalysis::ByteWriter writer;
+    Utils::BinaryIO::ByteWriter writer;
 
     writer.write_string(in_analysis.workload_reference.filename);
     writer.write_u64   (in_analysis.workload_reference.header_hash);

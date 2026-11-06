@@ -7,8 +7,8 @@
  * servers of scene.org do is not tested here.
  */
 #include <gtest/gtest.h>
-#include "vr/app_installer/file_system.h"
-#include "vr/app_installer/http_downloader.h"
+#include "utils/files/file_system.h"
+#include "utils/files/http_downloader.h"
 #include "local_http_server.h"
 #include "temp_directory.h"
 #include <Windows.h>
@@ -58,11 +58,11 @@ protected:
 
 TEST_F(HttpDownloaderTest, TheBytesAreWrittenAndTheProgressReachesTheLength)
 {
-    VR::AppInstaller::HttpDownloader downloader(true /* in_is_http_allowed */);
-    bool                             is_monotonic  = true;
-    uint64_t                         n_bytes_done  = 0;
-    uint64_t                         n_bytes_total = 0;
-    uint64_t                         n_previous    = 0;
+    Utils::Files::HttpDownloader downloader(true /* in_is_http_allowed */);
+    bool     is_monotonic  = true;
+    uint64_t n_bytes_done  = 0;
+    uint64_t n_bytes_total = 0;
+    uint64_t n_previous    = 0;
     const std::string                response_body(300000,
                                                    'q');
 
@@ -92,7 +92,7 @@ TEST_F(HttpDownloaderTest, TheBytesAreWrittenAndTheProgressReachesTheLength)
 
 TEST_F(HttpDownloaderTest, ARedirectIsFollowed)
 {
-    VR::AppInstaller::HttpDownloader downloader(true /* in_is_http_allowed */);
+    Utils::Files::HttpDownloader downloader(true /* in_is_http_allowed */);
     Tests::LocalHttpServer::Answer   redirect_answer;
 
     redirect_answer.http_status_code   = 302;
@@ -106,7 +106,7 @@ TEST_F(HttpDownloaderTest, ARedirectIsFollowed)
     ASSERT_TRUE(downloader.download(m_server.get_url("/old"),
                                     m_directory.get_path() + "\\file.bin",
                                     m_is_cancelled,
-                                    VR::AppInstaller::ProgressCallback(),
+                                    Utils::Files::ProgressCallback(),
                                    &m_error) ) << m_error;
     EXPECT_EQ  (get_text(m_directory.get_path() + "\\file.bin"),
                 "the file");
@@ -114,12 +114,12 @@ TEST_F(HttpDownloaderTest, ARedirectIsFollowed)
 
 TEST_F(HttpDownloaderTest, AnAnswerWhichIsNotOkFailsTheDownload)
 {
-    VR::AppInstaller::HttpDownloader downloader(true /* in_is_http_allowed */);
+    Utils::Files::HttpDownloader downloader(true /* in_is_http_allowed */);
 
     EXPECT_FALSE(downloader.download(m_server.get_url("/missing"),
                                      m_directory.get_path() + "\\file.bin",
                                      m_is_cancelled,
-                                     VR::AppInstaller::ProgressCallback(),
+                                     Utils::Files::ProgressCallback(),
                                     &m_error) );
     EXPECT_NE   (m_error.find("404"),
                  std::string::npos) << m_error;
@@ -127,7 +127,7 @@ TEST_F(HttpDownloaderTest, AnAnswerWhichIsNotOkFailsTheDownload)
 
 TEST_F(HttpDownloaderTest, ADownloadWhichEndsBeforeItsLengthFails)
 {
-    VR::AppInstaller::HttpDownloader downloader(true /* in_is_http_allowed */);
+    Utils::Files::HttpDownloader downloader(true /* in_is_http_allowed */);
     Tests::LocalHttpServer::Answer   short_answer = get_answer("short");
 
     short_answer.n_declared_bytes = 1000;
@@ -138,14 +138,14 @@ TEST_F(HttpDownloaderTest, ADownloadWhichEndsBeforeItsLengthFails)
     EXPECT_FALSE(downloader.download(m_server.get_url("/short"),
                                      m_directory.get_path() + "\\file.bin",
                                      m_is_cancelled,
-                                     VR::AppInstaller::ProgressCallback(),
+                                     Utils::Files::ProgressCallback(),
                                     &m_error) );
     EXPECT_FALSE(m_error.empty() );
 }
 
 TEST_F(HttpDownloaderTest, AnAddressWhichIsNotHttpsIsRefusedUnlessTheTestAllowsIt)
 {
-    VR::AppInstaller::HttpDownloader downloader(false /* in_is_http_allowed */);
+    Utils::Files::HttpDownloader downloader(false /* in_is_http_allowed */);
 
     m_server.set_answer("/file",
                         get_answer("the file") );
@@ -153,16 +153,16 @@ TEST_F(HttpDownloaderTest, AnAddressWhichIsNotHttpsIsRefusedUnlessTheTestAllowsI
     EXPECT_FALSE(downloader.download(m_server.get_url("/file"),
                                      m_directory.get_path() + "\\file.bin",
                                      m_is_cancelled,
-                                     VR::AppInstaller::ProgressCallback(),
+                                     Utils::Files::ProgressCallback(),
                                     &m_error) );
     EXPECT_NE   (m_error.find("https"),
                  std::string::npos) << m_error;
-    EXPECT_FALSE(VR::AppInstaller::FileSystem::is_file(m_directory.get_path() + "\\file.bin") );
+    EXPECT_FALSE(Utils::Files::FileSystem::is_file(m_directory.get_path() + "\\file.bin") );
 
     EXPECT_FALSE(downloader.download("not an address",
                                      m_directory.get_path() + "\\file.bin",
                                      m_is_cancelled,
-                                     VR::AppInstaller::ProgressCallback(),
+                                     Utils::Files::ProgressCallback(),
                                     &m_error) );
 }
 
@@ -171,11 +171,11 @@ TEST_F(HttpDownloaderTest, ACancelWhileTheServerSaysNothingEndsTheDownloadAtTheN
     constexpr int                    RECEIVE_TIMEOUT_MS = 400;
 
     std::thread                      cancel_thread;
-    VR::AppInstaller::HttpDownloader downloader(true /* in_is_http_allowed */,
-                                                RECEIVE_TIMEOUT_MS);
-    Tests::LocalHttpServer::Answer   stalled_answer = get_answer(std::string(10000,
-                                                                             'z') );
-    const auto                       start_time     = std::chrono::steady_clock::now();
+    Utils::Files::HttpDownloader downloader(true /* in_is_http_allowed */,
+                                            RECEIVE_TIMEOUT_MS);
+    Tests::LocalHttpServer::Answer stalled_answer = get_answer(std::string(10000,
+                                                                           'z') );
+    const auto                     start_time     = std::chrono::steady_clock::now();
 
     stalled_answer.should_stall = true;
 
@@ -192,7 +192,7 @@ TEST_F(HttpDownloaderTest, ACancelWhileTheServerSaysNothingEndsTheDownloadAtTheN
     EXPECT_FALSE(downloader.download(m_server.get_url("/stall"),
                                      m_directory.get_path() + "\\file.bin",
                                      m_is_cancelled,
-                                     VR::AppInstaller::ProgressCallback(),
+                                     Utils::Files::ProgressCallback(),
                                     &m_error) );
 
     cancel_thread.join();

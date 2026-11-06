@@ -9,7 +9,7 @@
 #include "headset_sink.h"
 #include "i_eye_sink.h"
 #include "preview_sink.h"
-#include "vr/ui_host/imgui_window_host.h"
+#include "utils/ui_host/imgui_window_host.h"
 #include <memory>
 #include <string>
 
@@ -21,7 +21,7 @@ namespace Stereo
          * be with its proportions kept. Stereo images, one for each eye, are side by side. The frames come from an importer, and
          * the window shows them through a sink (see PreviewSink), as the headset will.
          */
-        class StereoPresenterWindow : public VR::UIHost::ImGuiWindowHost
+        class StereoPresenterWindow : public Utils::UIHost::ImGuiWindowHost
         {
         public:
             StereoPresenterWindow(std::unique_ptr<Stereo::Transport::IFrameImporter> in_importer_ptr,
@@ -37,14 +37,14 @@ namespace Stereo
             void set_headset_sink(std::unique_ptr<HeadsetSink> in_sink_ptr);
 
         protected:
-            void draw_contents(VR::UIHost::ContentExtent* inout_extent_ptr) override;
+            void draw_contents(Utils::UIHost::ContentExtent* inout_extent_ptr) override;
 
         private:
             /* The window is made as large as the image, if the screen has room for it, so that it is shown as it is. */
             void fit_window_to_image(const uint32_t& in_width,
                                      const uint32_t& in_height);
 
-            static VR::UIHost::WindowOptions get_window_options(const std::string& in_title);
+            static Utils::UIHost::WindowOptions get_window_options(const std::string& in_title);
 
             std::unique_ptr<Stereo::Transport::IFrameImporter> m_importer_ptr;
             std::unique_ptr<HeadsetSink>                       m_headset_sink_ptr; /* after the importer: it goes first */

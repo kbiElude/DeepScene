@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_analysis/frontends/fixed_function_state.h"
-#include "analysis/api_dump_analysis/hasher.h"
+#include "utils/hashing/hasher.h"
 
 Analysis::APIDumpAnalysis::Frontends::FixedFunctionState::FixedFunctionState(const Rules& in_rules)
     :m_is_state_key_valid(false),
@@ -15,7 +15,7 @@ Analysis::APIDumpAnalysis::Frontends::FixedFunctionState::FixedFunctionState(con
 
 uint64_t Analysis::APIDumpAnalysis::Frontends::FixedFunctionState::compute_state_key() const
 {
-    Analysis::APIDumpAnalysis::Hasher hasher;
+    Utils::Hashing::Hasher hasher;
 
     hasher.add_u64(static_cast<uint64_t>(m_render_state_map.size() ));
 
@@ -55,12 +55,12 @@ Analysis::APIDumpAnalysis::DrawDescription Analysis::APIDumpAnalysis::Frontends:
                                                                                                                    const uint32_t&                                     in_vertex_count,
                                                                                                                    const bool&                                         in_is_indexed)
 {
-    const bool                       is_blending     = (get_render_state_value(m_rules.blend_enable_state,
-                                                                               m_rules.blend_enable_default)   != 0);
-    const bool                       is_depth_test   = (get_render_state_value(m_rules.depth_enable_state,
-                                                                               m_rules.depth_enable_default)   != 0);
-    const bool                       is_stencil_test = (get_render_state_value(m_rules.stencil_enable_state,
-                                                                               m_rules.stencil_enable_default) != 0);
+    const bool                                 is_blending     = (get_render_state_value(m_rules.blend_enable_state,
+                                                                                         m_rules.blend_enable_default)   != 0);
+    const bool                                 is_depth_test   = (get_render_state_value(m_rules.depth_enable_state,
+                                                                                         m_rules.depth_enable_default)   != 0);
+    const bool                                 is_stencil_test = (get_render_state_value(m_rules.stencil_enable_state,
+                                                                                         m_rules.stencil_enable_default) != 0);
     Analysis::APIDumpAnalysis::DrawDescription result;
 
     if (m_is_state_key_valid == false)

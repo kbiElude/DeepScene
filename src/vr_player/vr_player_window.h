@@ -6,8 +6,8 @@
 #define VRPLAYER_VR_PLAYER_WINDOW_H
 
 #include "vr/app_installer/app_installer.h"
-#include "vr/app_installer/http_downloader.h"
-#include "vr/ui_host/imgui_window_host.h"
+#include "utils/files/http_downloader.h"
+#include "utils/ui_host/imgui_window_host.h"
 #include "app_session.h"
 #include "types.h"
 #include <string>
@@ -19,13 +19,13 @@ namespace VR
         /* The window of the VR player: the applications which can be played in VR, the device to play them on, and the button which
          * starts the application with the converter in it. The distance between the eyes is passed on, while the application plays too; the device is not yet.
          */
-        class VrPlayerWindow : public VR::UIHost::ImGuiWindowHost
+        class VrPlayerWindow : public Utils::UIHost::ImGuiWindowHost
         {
         public:
             explicit VrPlayerWindow(const WindowContent& in_content);
 
         protected:
-            void draw_contents(VR::UIHost::ContentExtent* inout_extent_ptr) override;
+            void draw_contents(Utils::UIHost::ContentExtent* inout_extent_ptr) override;
 
         private:
             bool draw_app_card     (const size_t& in_n_app);
@@ -45,14 +45,14 @@ namespace VR
             void update_install    ();
             void update_session    ();
 
-            static std::string               get_size_text    (const uint64_t& in_n_bytes);
-            static VR::UIHost::WindowOptions get_window_options();
+            static std::string                  get_size_text     (const uint64_t& in_n_bytes);
+            static Utils::UIHost::WindowOptions get_window_options();
 
             WindowContent m_content;
             int           m_depth_index;      /* in the depths */
             float         m_depth_strength;   /* of that choice: 1 is the one that the converter works out for each scene */
             int           m_device_index;     /* in the devices; -1 if there is none which can be used */
-            VR::AppInstaller::HttpDownloader m_downloader;
+            Utils::Files::HttpDownloader m_downloader;
             std::string   m_install_error;    /* what the window of the error says                      */
             VR::AppInstaller::AppInstaller m_installer;
             int           m_installing_app;   /* in the catalog; -1 if none is being installed          */

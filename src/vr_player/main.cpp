@@ -6,7 +6,7 @@
  * program; the playback itself is done by another program, which this one starts (not yet).
  */
 #include "vr/app_catalog/catalog_loader.h"
-#include "vr/ui_host/imgui_window_host.h"
+#include "utils/ui_host/imgui_window_host.h"
 #include "headset/xr/openxr_vr_device_provider.h"
 #include "command_line.h"
 #include "vr_player_window.h"
@@ -65,8 +65,8 @@ std::string VR::VRPlayer::find_runtime_directory()
         directory + "\\runtime",
         directory
     };
-    std::string       result         = directory;
-    bool              is_found       = false;
+    std::string result   = directory;
+    bool        is_found = false;
 
     for (const auto& candidate : candidate_array)
     {
@@ -129,9 +129,9 @@ int WINAPI WinMain(HINSTANCE in_instance,
     std::string                                   catalog_filename;
     std::string                                   error;
     VR::VRPlayer::Options                         options;
-    int                                           result = EXIT_FAILURE;
+    int                                           result           = EXIT_FAILURE;
     VR::VRPlayer::WindowContent                   content;
-    const Headset::XR::OpenXrVrDeviceProvider      device_provider;
+    const Headset::XR::OpenXrVrDeviceProvider     device_provider;
     std::unique_ptr<VR::VRPlayer::VrPlayerWindow> window_ptr;
 
     (void) in_command_line;
@@ -185,7 +185,7 @@ int WINAPI WinMain(HINSTANCE in_instance,
     content.is_logging         = options.is_logging;
     content.launcher_directory = VR::VRPlayer::find_runtime_directory();
 
-    VR::UIHost::ImGuiWindowHost::enable_dpi_awareness();
+    Utils::UIHost::ImGuiWindowHost::enable_dpi_awareness();
 
     window_ptr.reset(new VR::VRPlayer::VrPlayerWindow(content) );
 

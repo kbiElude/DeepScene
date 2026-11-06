@@ -6,7 +6,7 @@
  */
 #include <gtest/gtest.h>
 #include "d3d12_device_fixture.h"
-#include "headset/d3d12/d3d12_texture_clearer.h"
+#include "utils/d3d12/d3d12_texture_clearer.h"
 
 class D3D12TextureClearerTest : public D3D12DeviceFixture
 {
@@ -31,8 +31,8 @@ TEST_F(D3D12TextureClearerTest, ATextureIsBlackAndOpaqueAndIsInTheStateItWasIn)
 {
     std::string error;
 
-    Headset::D3D12::D3D12TextureClearer clearer(m_device_ptr.Get(),
-                                               m_queue_ptr.Get() );
+    Utils::D3D12::D3D12TextureClearer clearer(m_device_ptr.Get(),
+                                              m_queue_ptr.Get() );
     auto                               texture_ptr = create_texture(DXGI_FORMAT_B8G8R8A8_UNORM,
                                                                     D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET,
                                                                     D3D12_RESOURCE_STATE_COPY_SOURCE);
@@ -55,14 +55,14 @@ TEST_F(D3D12TextureClearerTest, ATextureInTheStateOfARenderTargetIsClearedAgainA
 {
     std::string error;
 
-    Headset::D3D12::D3D12TextureClearer clearer(m_device_ptr.Get(),
-                                               m_queue_ptr.Get() );
-    auto                               left_ptr  = create_texture(DXGI_FORMAT_B8G8R8A8_UNORM_SRGB,
-                                                                  D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET,
-                                                                  D3D12_RESOURCE_STATE_RENDER_TARGET);
-    auto                               right_ptr = create_texture(DXGI_FORMAT_B8G8R8A8_UNORM_SRGB,
-                                                                  D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET,
-                                                                  D3D12_RESOURCE_STATE_RENDER_TARGET);
+    Utils::D3D12::D3D12TextureClearer clearer(m_device_ptr.Get(),
+                                              m_queue_ptr.Get() );
+    auto left_ptr  = create_texture(DXGI_FORMAT_B8G8R8A8_UNORM_SRGB,
+                                    D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET,
+                                    D3D12_RESOURCE_STATE_RENDER_TARGET);
+    auto right_ptr = create_texture(DXGI_FORMAT_B8G8R8A8_UNORM_SRGB,
+                                    D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET,
+                                    D3D12_RESOURCE_STATE_RENDER_TARGET);
 
     ASSERT_NE(left_ptr,
               nullptr);

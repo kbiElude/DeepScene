@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_dependencies/dependency_analyzer.h"
-#include "analysis/api_dump_dependencies/parallel_for.h"
+#include "utils/parallel/parallel_for.h"
 #include <algorithm>
 
 bool Analysis::APIDumpDependencies::operator==(const FrameUse& in_a,
@@ -20,8 +20,8 @@ Analysis::APIDumpDependencies::DependencyResult Analysis::APIDumpDependencies::D
                                                                                                            const std::vector<Analysis::APIDumpAnalysis::Resource>& in_resource_vec,
                                                                                                            const uint32_t&                                         in_n_threads)
 {
-    const auto&                        event_vec         = in_log.get_event_vec();
-    const auto&                        frame_end_count_vec = in_log.get_frame_end_event_count_vec();
+    const auto& event_vec           = in_log.get_event_vec();
+    const auto& frame_end_count_vec = in_log.get_frame_end_event_count_vec();
     std::vector<uint32_t>              event_index_vec(event_vec.size() );
     std::vector<uint32_t>              frame_index_vec(event_vec.size() );
     std::vector<size_t>                first_event_vec(in_resource_vec.size() + 1,
@@ -102,45 +102,45 @@ Analysis::APIDumpDependencies::DependencyResult Analysis::APIDumpDependencies::D
 
     result.resource_vec.resize(in_resource_vec.size() );
 
-    ParallelFor::run(in_resource_vec.size(),
-                     in_n_threads,
-                     [&](const uint64_t& in_first_resource,
-                         const uint64_t& in_end_resource)
-                     {
-                         for (uint64_t n_resource  = in_first_resource;
-                                       n_resource  < in_end_resource;
-                                     ++n_resource)
-                         {
-                             ResourceAccesses accesses;
+    Utils::Parallel::ParallelFor::run(in_resource_vec.size(),
+                                      in_n_threads,
+                                      [&](const uint64_t& in_first_resource,
+                                          const uint64_t& in_end_resource)
+                                      {
+                                          for (uint64_t n_resource  = in_first_resource;
+                                                        n_resource  < in_end_resource;
+                                                      ++n_resource)
+                                          {
+                                              ResourceAccesses accesses;
 
-                             accesses.event_index_ptr = event_index_vec.data() + first_event_vec.at(n_resource);
-                             accesses.n_events        = first_event_vec.at(n_resource + 1) - first_event_vec.at(n_resource);
+                                              accesses.event_index_ptr = event_index_vec.data() + first_event_vec.at(n_resource);
+                                              accesses.n_events        = first_event_vec.at(n_resource + 1) - first_event_vec.at(n_resource);
 
-                             analyze_resource(in_log,
-                                              frame_index_vec,
-                                              accesses,
-                                              in_resource_vec.at(n_resource).description,
-                                             &result.resource_vec.at(n_resource) );
-                         }
-                     });
+                                              analyze_resource(in_log,
+                                                               frame_index_vec,
+                                                               accesses,
+                                                               in_resource_vec.at(n_resource).description,
+                                                              &result.resource_vec.at(n_resource) );
+                                          }
+                                      });
 
     return result;
 }
 
-void Analysis::APIDumpDependencies::DependencyAnalyzer::analyze_resource(const AccessLog&                                        in_log,
-                                                                         const std::vector<uint32_t>&                            in_frame_index_vec,
-                                                                         const ResourceAccesses&                                 in_accesses,
-                                                                         const Analysis::APIDumpAnalysis::ResourceDescription&   in_description,
-                                                                         ResourceDependencies*                                   out_dependencies_ptr)
+void Analysis::APIDumpDependencies::DependencyAnalyzer::analyze_resource(const AccessLog&                                      in_log,
+                                                                         const std::vector<uint32_t>&                          in_frame_index_vec,
+                                                                         const ResourceAccesses&                               in_accesses,
+                                                                         const Analysis::APIDumpAnalysis::ResourceDescription& in_description,
+                                                                         ResourceDependencies*                                 out_dependencies_ptr)
 {
-    const auto& event_vec = in_log.get_event_vec();
-    size_t      n_access  = 0;
-    ResourceSummary& summary = out_dependencies_ptr->summary;
+    const auto&      event_vec = in_log.get_event_vec();
+    size_t           n_access  = 0;
+    ResourceSummary& summary   = out_dependencies_ptr->summary;
 
     while (n_access < in_accesses.n_events)
     {
-        const uint32_t frame_index = in_frame_index_vec.at(in_accesses.event_index_ptr[n_access]);
-        size_t         end_access  = n_access;
+        const uint32_t frame_index       = in_frame_index_vec.at(in_accesses.event_index_ptr[n_access]);
+        size_t         end_access        = n_access;
         FrameUse       use;
         bool           has_partial_write = false;
         bool           is_replaced       = false;
@@ -369,7 +369,7 @@ bool Analysis::APIDumpDependencies::DependencyAnalyzer::covers_whole_resource(co
 }
 
 Analysis::APIDumpDependencies::CarryKind Analysis::APIDumpDependencies::DependencyAnalyzer::merge_carry(const CarryKind& in_a,
-                                                                                                       const CarryKind& in_b)
+                                                                                                        const CarryKind& in_b)
 {
     CarryKind result = CarryKind::NONE;
 

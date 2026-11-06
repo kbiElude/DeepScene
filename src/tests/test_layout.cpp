@@ -175,3 +175,45 @@ TEST(Layout, AFolderOfAProgramIsInstalled)
                   1u) << folder.string() << " is a folder of a program, and cmake/Install.cmake does not install a program of that name where the folder is";
     }
 }
+
+TEST(Layout, UtilsIncludesNothingOfTheOtherLibrariesOrOfAProgram)
+{
+    const std::regex            include_regex  (R"regex(^\s*#\s*include\s+"([A-Za-z0-9_]+)/)regex");
+    size_t                      n_files        = 0;
+    const std::set<std::string> other_name_set = {"analysis", "headset", "runtime", "stereo", "tests", "tools", "vr", "vr_player"};
+    std::string                 report;
+    const std::filesystem::path utils_path     =std::filesystem::path(Tests::DataFixtures::get_repository_root_path() ) / "src" / "libs" / "utils";
+
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(utils_path) )
+    {
+        if (entry.is_regular_file() == false)
+        {
+            continue;
+        }
+
+        std::ifstream file(entry.path() );
+        std::string   line;
+
+        n_files++;
+
+        while (std::getline(file,
+                            line) )
+        {
+            std::smatch match;
+
+            if (std::regex_search(line,
+                                  match,
+                                  include_regex) )
+            {
+                if (other_name_set.count(match[1].str() ) != 0)
+                {
+                    report += entry.path().string() + ": " + line + "\n";
+                }
+            }
+        }
+    }
+
+    ASSERT_GT(n_files,
+              0u);
+    EXPECT_TRUE(report.empty() ) << "Utils is used by the other libraries, and uses none of them:\n" << report;
+}

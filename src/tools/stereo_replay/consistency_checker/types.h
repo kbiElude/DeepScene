@@ -9,7 +9,7 @@
 
 #include "analysis/recipe_loader/types.h"
 #include "tools/stereo_replay/engine_dll/types.h"
-#include "stereo/replay/frame_images/types.h"
+#include "utils/images/types.h"
 #include <stdint.h>
 #include <string>
 #include <vector>
@@ -35,7 +35,7 @@ namespace Stereo
                 std::string                          dump_directory;
                 uint32_t                             dump_frame                     = UINT32_MAX; /* the images of this frame are written whether or not it differs */
                 float                                eye_separation                 = 0.0f;
-                Stereo::Replay::FrameImages::EyeView eye_view                       = Stereo::Replay::FrameImages::EyeView::BOTH;
+                Utils::Images::EyeView eye_view                       = Utils::Images::EyeView::BOTH;
                 uint32_t                             first_frame                    = 0;
                 bool                                 has_eye_view                   = false;      /* the view of the eyes of a screenshot or a sheet is the one that was asked for */
                 bool                                 has_history                    = false;      /* a screenshot replays the frames before it with the recipe too, as a player does, so that what carries over from frame to frame is right (slow without deps) */

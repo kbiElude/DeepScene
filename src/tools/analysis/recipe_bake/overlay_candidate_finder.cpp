@@ -12,19 +12,19 @@
 #include <string.h>
 
 std::vector<Analysis::RecipeBake::OverlayCandidate> Analysis::RecipeBake::OverlayCandidateFinder::find(const Analysis::RecipeLoader::Recipe&            in_recipe,
-                                                                                                         const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
+                                                                                                       const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
 {
     const Analysis::RecipeApplier::RecipeApplier applier        (in_recipe);
-    const auto&                                  model_ref      = in_analysis.model;
-    const std::vector<uint32_t>                  static_pass_id_vec = Analysis::APIDumpAnalysis::QueryCommands::get_static_camera_pass_id_vec(in_analysis);
+    const auto&                 model_ref          = in_analysis.model;
+    const std::vector<uint32_t> static_pass_id_vec = Analysis::APIDumpAnalysis::QueryCommands::get_static_camera_pass_id_vec(in_analysis);
     const std::set<uint32_t>                     static_pass_id_set (static_pass_id_vec.begin(),
                                                                      static_pass_id_vec.end  () );
     const std::set<uint64_t>                     unaffected_draw_key_set(in_recipe.unaffected.draw_key_vec.begin(),
                                                                          in_recipe.unaffected.draw_key_vec.end  () );
     const std::set<uint64_t>                     unaffected_pass_key_set(in_recipe.unaffected.pass_key_vec.begin(),
                                                                          in_recipe.unaffected.pass_key_vec.end  () );
-    const auto                                   timeline       = Analysis::APIDumpAnalysis::TimelineBuilder::build(in_analysis);
-    std::vector<OverlayCandidate>                result_vec;
+    const auto                    timeline   = Analysis::APIDumpAnalysis::TimelineBuilder::build(in_analysis);
+    std::vector<OverlayCandidate> result_vec;
 
     for (uint32_t n_pass = 0;
                   n_pass < model_ref.pass_structure_interner.get_n_structures();
@@ -187,10 +187,10 @@ Analysis::RecipeBake::LiveClass Analysis::RecipeBake::OverlayCandidateFinder::ge
 
     const auto&                          model_ref = in_analysis.model;
     std::vector<std::array<float, 16> >  camera_vec;
-    uint32_t                             n_affected   = 0;
-    uint32_t                             n_skipped    = 0;
-    uint32_t                             n_unaffected = 0;
-    const auto&                          structure = model_ref.pass_structure_interner.get_structure(in_pass_id);
+    uint32_t    n_affected   = 0;
+    uint32_t    n_skipped    = 0;
+    uint32_t    n_unaffected = 0;
+    const auto& structure    = model_ref.pass_structure_interner.get_structure(in_pass_id);
 
     for (size_t n_constant = 0;
                 n_constant < structure.constant_signature_vec.size();
@@ -312,9 +312,9 @@ const char* Analysis::RecipeBake::OverlayCandidateFinder::get_live_class_name(co
     return result_ptr;
 }
 
-void Analysis::RecipeBake::OverlayCandidateFinder::write_json(const std::vector<OverlayCandidate>&   in_candidate_vec,
-                                                              const Analysis::RecipeLoader::Recipe&  in_recipe,
-                                                              Analysis::APIDumpAnalysis::JsonWriter* inout_writer_ptr)
+void Analysis::RecipeBake::OverlayCandidateFinder::write_json(const std::vector<OverlayCandidate>&  in_candidate_vec,
+                                                              const Analysis::RecipeLoader::Recipe& in_recipe,
+                                                              Utils::Json::JsonWriter*              inout_writer_ptr)
 {
     inout_writer_ptr->begin_object();
 

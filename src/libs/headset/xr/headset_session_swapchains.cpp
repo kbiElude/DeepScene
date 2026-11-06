@@ -5,10 +5,10 @@
 #include "headset_session_impl.h"
 
 bool Headset::XR::HeadsetSession::acquire_eye_textures(const uint32_t&  in_width,
-                                                      const uint32_t&  in_height,
-                                                      ID3D12Resource** out_left_texture_ptr_ptr,
-                                                      ID3D12Resource** out_right_texture_ptr_ptr,
-                                                      std::string*     out_error_ptr)
+                                                       const uint32_t&  in_height,
+                                                       ID3D12Resource** out_left_texture_ptr_ptr,
+                                                       ID3D12Resource** out_right_texture_ptr_ptr,
+                                                       std::string*     out_error_ptr)
 {
     constexpr int64_t WAIT_N_NANOSECONDS = 8 * 1000 * 1000; /* the compositor gives an image back within a frame, which is 14 ms at 72 Hz */
 
@@ -113,8 +113,8 @@ bool Headset::XR::HeadsetSession::Impl::clear_swapchain_images(std::string* out_
 
     if (texture_clearer_ptr == nullptr)
     {
-        texture_clearer_ptr.reset(new Headset::D3D12::D3D12TextureClearer(device_ptr.Get(),
-                                                                         queue_ptr.Get() ));
+        texture_clearer_ptr.reset(new Utils::D3D12::D3D12TextureClearer(device_ptr.Get(),
+                                                                        queue_ptr.Get() ));
     }
 
     if (texture_clearer_ptr->is_ok(out_error_ptr) == false)
@@ -207,8 +207,8 @@ void Headset::XR::HeadsetSession::Impl::destroy_swapchains()
 }
 
 bool Headset::XR::HeadsetSession::Impl::make_swapchains(const uint32_t& in_width,
-                                                       const uint32_t& in_height,
-                                                       std::string*    out_error_ptr)
+                                                        const uint32_t& in_height,
+                                                        std::string*    out_error_ptr)
 {
     bool result = false;
 

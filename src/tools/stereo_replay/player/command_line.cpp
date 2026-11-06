@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "command_line.h"
-#include "analysis/api_dump_analysis/number_parser.h"
+#include "utils/command_line/number_parser.h"
 
 std::vector<std::string> Stereo::Replay::Player::CommandLine::get_handover_argument_vec(const Options& in_options)
 {
@@ -123,8 +123,8 @@ bool Stereo::Replay::Player::CommandLine::parse(const int&   in_argc,
 
             if (has_next)
             {
-                is_parsed = Analysis::APIDumpAnalysis::NumberParser::parse_double(in_argv[n_argument + 1],
-                                                                                 &separation);
+                is_parsed = Utils::CommandLine::NumberParser::parse_double(in_argv[n_argument + 1],
+                                                                           &separation);
             }
 
             if (is_parsed == false)
@@ -251,9 +251,9 @@ bool Stereo::Replay::Player::CommandLine::parse_frame_range(const char* in_text_
         const std::string first_text = text.substr(0,
                                                    dash);
 
-        if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(first_text,
-                                                                    UINT32_MAX,
-                                                                   &first) == false)
+        if (Utils::CommandLine::NumberParser::parse_unsigned(first_text,
+                                                             UINT32_MAX,
+                                                             &first) == false)
         {
             goto end;
         }
@@ -262,9 +262,9 @@ bool Stereo::Replay::Player::CommandLine::parse_frame_range(const char* in_text_
     {
         const std::string last_text = text.substr(dash + 1);
 
-        if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(last_text,
-                                                                    UINT32_MAX,
-                                                                   &last) == false)
+        if (Utils::CommandLine::NumberParser::parse_unsigned(last_text,
+                                                             UINT32_MAX,
+                                                             &last) == false)
         {
             goto end;
         }

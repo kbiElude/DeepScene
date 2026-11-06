@@ -6,7 +6,7 @@
 #define STEREO_PRESENTER_HEADSET_SINK_H
 
 #include "headset/d3d12/d3d12_frame_uploader.h"
-#include "stereo/transport/series_stats.h"
+#include "utils/statistics/series_stats.h"
 #include "stereo/transport/i_frame_importer.h"
 #include "headset/xr/headset_session.h"
 #include <atomic>
@@ -53,12 +53,12 @@ namespace Stereo
                                  double*   out_timestamp_seconds_ptr) const;
 
         private:
-            HeadsetSink(Stereo::Transport::IFrameImporter*                 inout_importer_ptr,
+            HeadsetSink(Stereo::Transport::IFrameImporter*                  inout_importer_ptr,
                         std::unique_ptr<Headset::XR::HeadsetSession>        in_session_ptr,
                         std::unique_ptr<Headset::D3D12::D3D12FrameUploader> in_uploader_ptr,
-                        const ExitFunc&                                    in_exit_func,
-                        const LogFunc&                                     in_log_func,
-                        const bool&                                        in_is_pacing);
+                        const ExitFunc&                                     in_exit_func,
+                        const LogFunc&                                      in_log_func,
+                        const bool&                                         in_is_pacing);
 
             /* Says it once: the same thing every frame is of no use to the person who reads the log. */
             void log_once(const std::string& in_text);
@@ -81,11 +81,11 @@ namespace Stereo
             /* What the frames that the window passes on take, for the log, a second at a time. Of the thread of the window. */
             struct Timing
             {
-                Stereo::Transport::SeriesStats acquire_cost = Stereo::Transport::SeriesStats(4.0);  /* of taking the images of the eyes, ms  */
-                Stereo::Transport::SeriesStats arrival      = Stereo::Transport::SeriesStats(20.0); /* between the frames that are new, ms   */
-                Stereo::Transport::SeriesStats phase        = Stereo::Transport::SeriesStats(0.0);  /* how far into a frame of the headset the images are ready, ms */
+                Utils::Statistics::SeriesStats acquire_cost = Utils::Statistics::SeriesStats(4.0);  /* of taking the images of the eyes, ms  */
+                Utils::Statistics::SeriesStats arrival      = Utils::Statistics::SeriesStats(20.0); /* between the frames that are new, ms   */
+                Utils::Statistics::SeriesStats phase        = Utils::Statistics::SeriesStats(0.0);  /* how far into a frame of the headset the images are ready, ms */
                 double                         last_report  = 0.0;
-                Stereo::Transport::SeriesStats upload_cost  = Stereo::Transport::SeriesStats(4.0);  /* of the copy to the images, ms         */
+                Utils::Statistics::SeriesStats upload_cost  = Utils::Statistics::SeriesStats(4.0);  /* of the copy to the images, ms         */
             };
 
             std::atomic<double>                                m_frame_start;      /* when the compositor asked for the last frame, ms */

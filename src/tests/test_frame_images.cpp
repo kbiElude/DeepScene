@@ -5,10 +5,10 @@
  * Checks of the images of replayed frames: the PNG and the GIF that are written, how two images are compared, and how images are put together.
  */
 #include <gtest/gtest.h>
-#include "stereo/replay/frame_images/gif_writer.h"
-#include "stereo/replay/frame_images/image_comparer.h"
-#include "stereo/replay/frame_images/image_composer.h"
-#include "stereo/replay/frame_images/png_writer.h"
+#include "utils/images/gif_writer.h"
+#include "utils/images/image_comparer.h"
+#include "utils/images/image_composer.h"
+#include "utils/images/png_writer.h"
 #include "miniz.h"
 #include <stdlib.h>
 #include <string.h>
@@ -18,13 +18,13 @@ namespace
     constexpr size_t N_BYTES_PER_PIXEL = 4;
 
     /* An image of one color (B, G, R; opaque). */
-    Stereo::Replay::FrameImages::Image make_image(const uint32_t& in_width,
-                                                  const uint32_t& in_height,
-                                                  const uint8_t&  in_blue,
-                                                  const uint8_t&  in_green,
-                                                  const uint8_t&  in_red)
+    Utils::Images::Image make_image(const uint32_t& in_width,
+                                    const uint32_t& in_height,
+                                    const uint8_t&  in_blue,
+                                    const uint8_t&  in_green,
+                                    const uint8_t&  in_red)
     {
-        Stereo::Replay::FrameImages::Image result;
+        Utils::Images::Image result;
 
         result.height = in_height;
         result.width  = in_width;
@@ -43,7 +43,7 @@ namespace
     }
 
     /* Sets the pixel to the color (B, G, R). */
-    void set_pixel(Stereo::Replay::FrameImages::Image* out_image_ptr,
+    void set_pixel(Utils::Images::Image* out_image_ptr,
                    const uint32_t&                     in_x,
                    const uint32_t&                     in_y,
                    const uint8_t&                      in_blue,
@@ -67,12 +67,12 @@ TEST(PngWriter, AnImageIsAPngWithItsSizeAndItsPixelsInRgbOrder)
 
     const uint8_t signature_u8vec8[N_SIGNATURE] = {0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
 
-    Stereo::Replay::FrameImages::Image image = make_image(WIDTH,
-                                                          HEIGHT,
-                                                          10,
-                                                          20,
-                                                          30);
-    std::vector<uint8_t>               file_u8_vec;
+    Utils::Images::Image image       = make_image(WIDTH,
+                                                                HEIGHT,
+                                                                10,
+                                                                20,
+                                                                30);
+    std::vector<uint8_t> file_u8_vec;
 
     set_pixel(&image,
               2,
@@ -81,8 +81,8 @@ TEST(PngWriter, AnImageIsAPngWithItsSizeAndItsPixelsInRgbOrder)
               2,
               3);
 
-    ASSERT_TRUE(Stereo::Replay::FrameImages::PngWriter::encode(image,
-                                                              &file_u8_vec) );
+    ASSERT_TRUE(Utils::Images::PngWriter::encode(image,
+                                                 &file_u8_vec) );
     ASSERT_GT(file_u8_vec.size(),
               static_cast<size_t>(IHDR_OFFSET + 8) );
     EXPECT_EQ(::memcmp(file_u8_vec.data(),
@@ -137,32 +137,32 @@ TEST(PngWriter, AnImageIsAPngWithItsSizeAndItsPixelsInRgbOrder)
 
 TEST(PngWriter, AnEmptyImageOrOneWithTooFewPixelsIsNotWritten)
 {
-    Stereo::Replay::FrameImages::Image image = make_image(4,
-                                                          4,
-                                                          0,
-                                                          0,
-                                                          0);
-    std::vector<uint8_t>               file_u8_vec;
+    Utils::Images::Image image       = make_image(4,
+                                                                4,
+                                                                0,
+                                                                0,
+                                                                0);
+    std::vector<uint8_t> file_u8_vec;
 
-    EXPECT_FALSE(Stereo::Replay::FrameImages::PngWriter::encode(Stereo::Replay::FrameImages::Image(),
-                                                               &file_u8_vec) );
+    EXPECT_FALSE(Utils::Images::PngWriter::encode(Utils::Images::Image(),
+                                                  &file_u8_vec) );
 
     image.pixel_u8_vec.resize(image.pixel_u8_vec.size() - 1);
 
-    EXPECT_FALSE(Stereo::Replay::FrameImages::PngWriter::encode(image,
-                                                               &file_u8_vec) );
+    EXPECT_FALSE(Utils::Images::PngWriter::encode(image,
+                                                  &file_u8_vec) );
     EXPECT_TRUE(file_u8_vec.empty() );
 }
 
 TEST(ImageComparer, ImagesThatAreTheSameDoNotDiffer)
 {
-    const auto image = make_image(5,
-                                  4,
-                                  1,
-                                  2,
-                                  3);
-    const auto result = Stereo::Replay::FrameImages::ImageComparer::compare(image,
-                                                                            image);
+    const auto image  = make_image(5,
+                                   4,
+                                   1,
+                                   2,
+                                   3);
+    const auto result = Utils::Images::ImageComparer::compare(image,
+                                                              image);
 
     EXPECT_TRUE(result.has_same_size);
     EXPECT_EQ(result.n_differing_pixels,
@@ -173,12 +173,12 @@ TEST(ImageComparer, ImagesThatAreTheSameDoNotDiffer)
 
 TEST(ImageComparer, ThePixelsThatDifferAreCountedAndTheirBoundsAndLargestStepAreSaid)
 {
-    auto       first_image  = make_image(8,
-                                        6,
-                                        100,
-                                        100,
-                                        100);
-    auto       second_image = first_image;
+    auto first_image  = make_image(8,
+                                  6,
+                                  100,
+                                  100,
+                                  100);
+    auto second_image = first_image;
 
     set_pixel(&second_image,
               2,
@@ -193,8 +193,8 @@ TEST(ImageComparer, ThePixelsThatDifferAreCountedAndTheirBoundsAndLargestStepAre
               100,
               100);
 
-    const auto result = Stereo::Replay::FrameImages::ImageComparer::compare(first_image,
-                                                                            second_image);
+    const auto result = Utils::Images::ImageComparer::compare(first_image,
+                                                              second_image);
 
     EXPECT_EQ(result.n_differing_pixels,
               2u);
@@ -212,24 +212,24 @@ TEST(ImageComparer, ThePixelsThatDifferAreCountedAndTheirBoundsAndLargestStepAre
 
 TEST(ImageComparer, ImagesOfOtherSizesDifferInEverythingAndHaveNoDifferenceImage)
 {
-    const auto                          first_image  = make_image(4, 4, 0, 0, 0);
-    const auto                          second_image = make_image(4, 5, 0, 0, 0);
-    Stereo::Replay::FrameImages::Image difference_image;
+    const auto           first_image      = make_image(4, 4, 0, 0, 0);
+    const auto           second_image     = make_image(4, 5, 0, 0, 0);
+    Utils::Images::Image difference_image;
 
-    EXPECT_FALSE(Stereo::Replay::FrameImages::ImageComparer::compare(first_image,
-                                                                     second_image).has_same_size);
-    EXPECT_FALSE(Stereo::Replay::FrameImages::ImageComparer::make_difference_image(first_image,
-                                                                                   second_image,
-                                                                                  &difference_image) );
+    EXPECT_FALSE(Utils::Images::ImageComparer::compare(first_image,
+                                                       second_image).has_same_size);
+    EXPECT_FALSE(Utils::Images::ImageComparer::make_difference_image(first_image,
+                                                                     second_image,
+                                                                     &difference_image) );
     EXPECT_EQ(difference_image.width,
               0u);
 }
 
 TEST(ImageComparer, TheDifferenceImageIsRedWhereThePixelsDifferAndBlackElsewhere)
 {
-    const auto                          first_image  = make_image(3, 2, 7, 7, 7);
-    auto                                second_image = first_image;
-    Stereo::Replay::FrameImages::Image difference_image;
+    const auto           first_image      = make_image(3, 2, 7, 7, 7);
+    auto                 second_image     = first_image;
+    Utils::Images::Image difference_image;
 
     set_pixel(&second_image,
               1,
@@ -238,9 +238,9 @@ TEST(ImageComparer, TheDifferenceImageIsRedWhereThePixelsDifferAndBlackElsewhere
               8,
               7);
 
-    ASSERT_TRUE(Stereo::Replay::FrameImages::ImageComparer::make_difference_image(first_image,
-                                                                                  second_image,
-                                                                                 &difference_image) );
+    ASSERT_TRUE(Utils::Images::ImageComparer::make_difference_image(first_image,
+                                                                    second_image,
+                                                                    &difference_image) );
     ASSERT_EQ(difference_image.width,
               3u);
     ASSERT_EQ(difference_image.height,
@@ -259,13 +259,13 @@ TEST(ImageComparer, TheDifferenceImageIsRedWhereThePixelsDifferAndBlackElsewhere
 
 TEST(ImageComposer, AnAnaglyphHasTheRedOfTheLeftImageAndTheRestOfTheRightOne)
 {
-    const auto                          left_image  = make_image(2, 2, 11, 12, 13);
-    const auto                          right_image = make_image(2, 2, 21, 22, 23);
-    Stereo::Replay::FrameImages::Image anaglyph_image;
+    const auto           left_image     = make_image(2, 2, 11, 12, 13);
+    const auto           right_image    = make_image(2, 2, 21, 22, 23);
+    Utils::Images::Image anaglyph_image;
 
-    ASSERT_TRUE(Stereo::Replay::FrameImages::ImageComposer::make_anaglyph(left_image,
-                                                                          right_image,
-                                                                         &anaglyph_image) );
+    ASSERT_TRUE(Utils::Images::ImageComposer::make_anaglyph(left_image,
+                                                            right_image,
+                                                            &anaglyph_image) );
     ASSERT_EQ(anaglyph_image.pixel_u8_vec.size(),
               4 * N_BYTES_PER_PIXEL);
     EXPECT_EQ(anaglyph_image.pixel_u8_vec.at(0),
@@ -277,25 +277,25 @@ TEST(ImageComposer, AnAnaglyphHasTheRedOfTheLeftImageAndTheRestOfTheRightOne)
     EXPECT_EQ(anaglyph_image.pixel_u8_vec.at(3),
               255);
 
-    EXPECT_FALSE(Stereo::Replay::FrameImages::ImageComposer::make_anaglyph(left_image,
-                                                                           make_image(3, 2, 0, 0, 0),
-                                                                          &anaglyph_image) );
+    EXPECT_FALSE(Utils::Images::ImageComposer::make_anaglyph(left_image,
+                                                             make_image(3, 2, 0, 0, 0),
+                                                             &anaglyph_image) );
 }
 
 TEST(ImageComposer, AContactSheetHasImagesInRowsWithGapsAndEmptySpaceFilled)
 {
     constexpr uint32_t GAP = 4;
 
-    std::vector<Stereo::Replay::FrameImages::Image> image_vec;
-    Stereo::Replay::FrameImages::Image              sheet_image;
+    std::vector<Utils::Images::Image> image_vec;
+    Utils::Images::Image              sheet_image;
 
     image_vec.push_back(make_image(3, 2, 1, 1, 1) );
     image_vec.push_back(make_image(2, 3, 2, 2, 2) );
     image_vec.push_back(make_image(3, 3, 3, 3, 3) );
 
-    ASSERT_TRUE(Stereo::Replay::FrameImages::ImageComposer::make_contact_sheet(image_vec,
-                                                                               2,
-                                                                              &sheet_image) );
+    ASSERT_TRUE(Utils::Images::ImageComposer::make_contact_sheet(image_vec,
+                                                                 2,
+                                                                 &sheet_image) );
 
     /* Two columns of cells 3 wide, two rows of cells 3 high. */
     EXPECT_EQ(sheet_image.width,
@@ -320,60 +320,60 @@ TEST(ImageComposer, AContactSheetHasImagesInRowsWithGapsAndEmptySpaceFilled)
 
 TEST(ImageComposer, NoImagesNoColumnsOrAnEmptyImageGiveNoSheet)
 {
-    std::vector<Stereo::Replay::FrameImages::Image> image_vec;
-    Stereo::Replay::FrameImages::Image              sheet_image;
+    std::vector<Utils::Images::Image> image_vec;
+    Utils::Images::Image              sheet_image;
 
-    EXPECT_FALSE(Stereo::Replay::FrameImages::ImageComposer::make_contact_sheet(image_vec,
-                                                                                1,
-                                                                               &sheet_image) );
+    EXPECT_FALSE(Utils::Images::ImageComposer::make_contact_sheet(image_vec,
+                                                                  1,
+                                                                  &sheet_image) );
 
     image_vec.push_back(make_image(2, 2, 0, 0, 0) );
 
-    EXPECT_FALSE(Stereo::Replay::FrameImages::ImageComposer::make_contact_sheet(image_vec,
-                                                                                0,
-                                                                               &sheet_image) );
+    EXPECT_FALSE(Utils::Images::ImageComposer::make_contact_sheet(image_vec,
+                                                                  0,
+                                                                  &sheet_image) );
 
-    image_vec.push_back(Stereo::Replay::FrameImages::Image() );
+    image_vec.push_back(Utils::Images::Image() );
 
-    EXPECT_FALSE(Stereo::Replay::FrameImages::ImageComposer::make_contact_sheet(image_vec,
-                                                                                2,
-                                                                               &sheet_image) );
+    EXPECT_FALSE(Utils::Images::ImageComposer::make_contact_sheet(image_vec,
+                                                                  2,
+                                                                  &sheet_image) );
 }
 
 TEST(ImageComposer, AnEyeViewIsOneEyeBothSideBySideOrAnAnaglyph)
 {
-    const auto                         left_image  = make_image(2, 2, 11, 12, 13);
-    const auto                         right_image = make_image(2, 2, 21, 22, 23);
-    Stereo::Replay::FrameImages::Image view_image;
+    const auto           left_image  = make_image(2, 2, 11, 12, 13);
+    const auto           right_image = make_image(2, 2, 21, 22, 23);
+    Utils::Images::Image view_image;
 
-    ASSERT_TRUE(Stereo::Replay::FrameImages::ImageComposer::make_eye_view(Stereo::Replay::FrameImages::EyeView::LEFT,
-                                                                          left_image,
-                                                                          right_image,
-                                                                         &view_image) );
+    ASSERT_TRUE(Utils::Images::ImageComposer::make_eye_view(Utils::Images::EyeView::LEFT,
+                                                            left_image,
+                                                            right_image,
+                                                            &view_image) );
     EXPECT_EQ(view_image.pixel_u8_vec.at(0),
               11);
 
-    ASSERT_TRUE(Stereo::Replay::FrameImages::ImageComposer::make_eye_view(Stereo::Replay::FrameImages::EyeView::RIGHT,
-                                                                          left_image,
-                                                                          right_image,
-                                                                         &view_image) );
+    ASSERT_TRUE(Utils::Images::ImageComposer::make_eye_view(Utils::Images::EyeView::RIGHT,
+                                                            left_image,
+                                                            right_image,
+                                                            &view_image) );
     EXPECT_EQ(view_image.pixel_u8_vec.at(0),
               21);
 
     /* Side by side: two images of 2 pixels and the gap between them. */
-    ASSERT_TRUE(Stereo::Replay::FrameImages::ImageComposer::make_eye_view(Stereo::Replay::FrameImages::EyeView::BOTH,
-                                                                          left_image,
-                                                                          right_image,
-                                                                         &view_image) );
+    ASSERT_TRUE(Utils::Images::ImageComposer::make_eye_view(Utils::Images::EyeView::BOTH,
+                                                            left_image,
+                                                            right_image,
+                                                            &view_image) );
     EXPECT_EQ(view_image.width,
               2 + 4 + 2u);
     EXPECT_EQ(view_image.height,
               2u);
 
-    ASSERT_TRUE(Stereo::Replay::FrameImages::ImageComposer::make_eye_view(Stereo::Replay::FrameImages::EyeView::ANAGLYPH,
-                                                                          left_image,
-                                                                          right_image,
-                                                                         &view_image) );
+    ASSERT_TRUE(Utils::Images::ImageComposer::make_eye_view(Utils::Images::EyeView::ANAGLYPH,
+                                                            left_image,
+                                                            right_image,
+                                                            &view_image) );
     EXPECT_EQ(view_image.pixel_u8_vec.at(2),
               13);
     EXPECT_EQ(view_image.pixel_u8_vec.at(0),
@@ -382,12 +382,12 @@ TEST(ImageComposer, AnEyeViewIsOneEyeBothSideBySideOrAnAnaglyph)
 
 TEST(ImageComposer, AnEyeViewOfAnEmptyEyeIsNotMade)
 {
-    Stereo::Replay::FrameImages::Image view_image;
+    Utils::Images::Image view_image;
 
-    EXPECT_FALSE(Stereo::Replay::FrameImages::ImageComposer::make_eye_view(Stereo::Replay::FrameImages::EyeView::RIGHT,
-                                                                           make_image(2, 2, 1, 1, 1),
-                                                                           Stereo::Replay::FrameImages::Image(),
-                                                                          &view_image) );
+    EXPECT_FALSE(Utils::Images::ImageComposer::make_eye_view(Utils::Images::EyeView::RIGHT,
+                                                             make_image(2, 2, 1, 1, 1),
+                                                             Utils::Images::Image(),
+                                                             &view_image) );
     EXPECT_EQ(view_image.width,
               0u);
 }
@@ -398,8 +398,8 @@ namespace
     struct DecodedGif
     {
         std::vector<uint32_t>             delay_vec;   /* in hundredths of a second */
-        uint32_t                          height     = 0;
-        bool                              is_looping = false;
+        uint32_t height     = 0;
+        bool     is_looping = false;
         std::vector<std::vector<uint8_t>> rgb_u8_vec_vec;
         uint32_t                          width      = 0;
     };
@@ -421,13 +421,13 @@ namespace
 
         std::vector<int32_t> prefix_vec(4096, -1);
         std::vector<uint8_t> suffix_vec(4096, 0);
-        uint32_t             bit_buffer = 0;
-        uint32_t             code_size  = in_min_code_size + 1;
-        int32_t              last_code  = -1;
-        uint32_t             n_bits     = 0;
-        size_t               n_byte     = 0;
-        uint32_t             next_code  = end_code + 1;
-        bool                 result     = false;
+        uint32_t bit_buffer = 0;
+        uint32_t code_size  = in_min_code_size + 1;
+        int32_t  last_code  = -1;
+        uint32_t n_bits     = 0;
+        size_t   n_byte     = 0;
+        uint32_t next_code  = end_code + 1;
+        bool     result     = false;
 
         out_index_u8_vec_ptr->clear();
 
@@ -672,9 +672,9 @@ TEST(GifWriter, FramesOfFewColoursComeBackExactlyWithTheirDelayAndPlayForEver)
     set_pixel(&second_image, 4, 2, 255, 0, 255);
     set_pixel(&second_image, 0, 0, 200, 200, 200);
 
-    ASSERT_TRUE(Stereo::Replay::FrameImages::GifWriter::encode({first_image, second_image},
-                                                               700,
-                                                              &file_u8_vec) );
+    ASSERT_TRUE(Utils::Images::GifWriter::encode({first_image, second_image},
+                                                 700,
+                                                 &file_u8_vec) );
     ASSERT_TRUE(decode_gif(file_u8_vec,
                           &gif) );
 
@@ -718,7 +718,7 @@ TEST(GifWriter, ManyColoursInNoOrderFillTheTableOfCodesAndStillComeBackExactly)
     constexpr uint32_t N_COLORS = 200;
     constexpr uint32_t WIDTH    = 300;
 
-    auto                 image = make_image(WIDTH, HEIGHT, 0, 0, 0);
+    auto                 image       = make_image(WIDTH, HEIGHT, 0, 0, 0);
     std::vector<uint8_t> file_u8_vec;
     DecodedGif           gif;
     size_t               n_different = 0;
@@ -752,9 +752,9 @@ TEST(GifWriter, ManyColoursInNoOrderFillTheTableOfCodesAndStillComeBackExactly)
         }
     }
 
-    ASSERT_TRUE(Stereo::Replay::FrameImages::GifWriter::encode({image},
-                                                               100,
-                                                              &file_u8_vec) );
+    ASSERT_TRUE(Utils::Images::GifWriter::encode({image},
+                                                 100,
+                                                 &file_u8_vec) );
     ASSERT_TRUE(decode_gif(file_u8_vec,
                           &gif) );
     ASSERT_EQ(gif.rgb_u8_vec_vec.size(),
@@ -783,10 +783,10 @@ TEST(GifWriter, MoreThan256ColoursAreKeptNearTheirOwn)
     constexpr uint32_t HEIGHT = 64;
     constexpr uint32_t WIDTH  = 256;
 
-    auto                 image = make_image(WIDTH, HEIGHT, 0, 0, 0);
+    auto                 image       = make_image(WIDTH, HEIGHT, 0, 0, 0);
     std::vector<uint8_t> file_u8_vec;
     DecodedGif           gif;
-    double               sum_error = 0.0;
+    double               sum_error   = 0.0;
 
     for (uint32_t n_y = 0;
                   n_y < HEIGHT;
@@ -805,9 +805,9 @@ TEST(GifWriter, MoreThan256ColoursAreKeptNearTheirOwn)
         }
     }
 
-    ASSERT_TRUE(Stereo::Replay::FrameImages::GifWriter::encode({image},
-                                                               100,
-                                                              &file_u8_vec) );
+    ASSERT_TRUE(Utils::Images::GifWriter::encode({image},
+                                                 100,
+                                                 &file_u8_vec) );
     ASSERT_TRUE(decode_gif(file_u8_vec,
                           &gif) );
 
@@ -833,14 +833,14 @@ TEST(GifWriter, NoFramesOrFramesOfDifferentSizesOrEmptyOnesAreNotWritten)
 {
     std::vector<uint8_t> file_u8_vec;
 
-    EXPECT_FALSE(Stereo::Replay::FrameImages::GifWriter::encode({},
-                                                                100,
-                                                               &file_u8_vec) );
-    EXPECT_FALSE(Stereo::Replay::FrameImages::GifWriter::encode({make_image(4, 4, 0, 0, 0),
-                                                                 make_image(4, 5, 0, 0, 0)},
-                                                                100,
-                                                               &file_u8_vec) );
-    EXPECT_FALSE(Stereo::Replay::FrameImages::GifWriter::encode({Stereo::Replay::FrameImages::Image()},
-                                                                100,
-                                                               &file_u8_vec) );
+    EXPECT_FALSE(Utils::Images::GifWriter::encode({},
+                                                  100,
+                                                  &file_u8_vec) );
+    EXPECT_FALSE(Utils::Images::GifWriter::encode({make_image(4, 4, 0, 0, 0),
+                                                   make_image(4, 5, 0, 0, 0)},
+                                                  100,
+                                                  &file_u8_vec) );
+    EXPECT_FALSE(Utils::Images::GifWriter::encode({Utils::Images::Image()},
+                                                  100,
+                                                  &file_u8_vec) );
 }

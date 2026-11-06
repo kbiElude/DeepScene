@@ -240,7 +240,7 @@ Analysis::APIDumpAnalysis::PassDepthSpread Analysis::APIDumpAnalysis::QueryComma
     constexpr double FRACTION_NEAR   = 0.1;
     constexpr float  MAX_FLAT_RATIO  = 1.1f; /* a range is 9% deeper than the one before: flat is one range, or two next to each other */
 
-    const auto&     model_ref = in_analysis.model;
+    const auto&     model_ref         = in_analysis.model;
     DepthHistogram  origin_histogram;
     PassDepthSpread result;
     DepthHistogram  surface_histogram;
@@ -488,7 +488,7 @@ double Analysis::APIDumpAnalysis::QueryCommands::get_seconds(const AnalysisResul
 
 std::vector<uint32_t> Analysis::APIDumpAnalysis::QueryCommands::get_static_camera_pass_id_vec(const AnalysisResult& in_analysis)
 {
-    const auto&           model_ref = in_analysis.model;
+    const auto&           model_ref  = in_analysis.model;
     std::vector<uint32_t> result_vec;
 
     /* The camera of a pass which never changes is the sign of a pass that is drawn in screen space. */
@@ -585,11 +585,11 @@ bool Analysis::APIDumpAnalysis::QueryCommands::parse_resource_access_class(const
     return result;
 }
 
-Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands::run(const std::string&    in_command,
-                                                                                     const AnalysisResult& in_analysis,
-                                                                                     const QueryArguments& in_arguments,
-                                                                                     JsonWriter*           inout_writer_ptr,
-                                                                                     std::string*          out_error_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands::run(const std::string&       in_command,
+                                                                                     const AnalysisResult&    in_analysis,
+                                                                                     const QueryArguments&    in_arguments,
+                                                                                     Utils::Json::JsonWriter* inout_writer_ptr,
+                                                                                     std::string*             out_error_ptr)
 {
     QueryStatus result = QueryStatus::BAD_ARGUMENTS;
 
@@ -655,10 +655,10 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
     return result;
 }
 
-Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands::run_frame(const AnalysisResult& in_analysis,
-                                                                                           const QueryArguments& in_arguments,
-                                                                                           JsonWriter*           inout_writer_ptr,
-                                                                                           std::string*          out_error_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands::run_frame(const AnalysisResult&    in_analysis,
+                                                                                           const QueryArguments&    in_arguments,
+                                                                                           Utils::Json::JsonWriter* inout_writer_ptr,
+                                                                                           std::string*             out_error_ptr)
 {
     const RepresentativeStore::Entry*   entry_ptr     = nullptr;
     RepresentativeStore::EntryPtrVector entry_ptr_vec;
@@ -817,8 +817,8 @@ end:
     return result;
 }
 
-Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands::run_depth(const AnalysisResult& in_analysis,
-                                                                                           JsonWriter*           inout_writer_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands::run_depth(const AnalysisResult&    in_analysis,
+                                                                                           Utils::Json::JsonWriter* inout_writer_ptr)
 {
     constexpr double FRACTION_FAR    = 0.9;
     constexpr double FRACTION_MEDIAN = 0.5;
@@ -896,8 +896,8 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
     return QueryStatus::OK;
 }
 
-Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands::run_info(const AnalysisResult& in_analysis,
-                                                                                          JsonWriter*           inout_writer_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands::run_info(const AnalysisResult&    in_analysis,
+                                                                                          Utils::Json::JsonWriter* inout_writer_ptr)
 {
     const auto&    model_ref = in_analysis.model;
     uint64_t       n_draws   = 0;
@@ -1014,8 +1014,8 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
     return QueryStatus::OK;
 }
 
-Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands::run_overlays(const AnalysisResult& in_analysis,
-                                                                                              JsonWriter*           inout_writer_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands::run_overlays(const AnalysisResult&    in_analysis,
+                                                                                              Utils::Json::JsonWriter* inout_writer_ptr)
 {
     const auto&                 model_ref   = in_analysis.model;
     const std::vector<uint32_t> pass_id_vec = get_static_camera_pass_id_vec(in_analysis);
@@ -1152,10 +1152,10 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
     return QueryStatus::OK;
 }
 
-Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands::run_pass(const AnalysisResult& in_analysis,
-                                                                                          const QueryArguments& in_arguments,
-                                                                                          JsonWriter*           inout_writer_ptr,
-                                                                                          std::string*          out_error_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands::run_pass(const AnalysisResult&    in_analysis,
+                                                                                          const QueryArguments&    in_arguments,
+                                                                                          Utils::Json::JsonWriter* inout_writer_ptr,
+                                                                                          std::string*             out_error_ptr)
 {
     const auto&    model_ref = in_analysis.model;
     QueryStatus    result    = QueryStatus::BAD_ARGUMENTS;
@@ -1316,8 +1316,8 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
                                                 in_arguments);
                         ++n_draw)
             {
-                const uint64_t key         = structure.draw_structure_key_vec.at(static_cast<size_t>(n_draw) );
-                const auto     draw_iter   = model_ref.draw_structure_map.find(key);
+                const uint64_t key       = structure.draw_structure_key_vec.at(static_cast<size_t>(n_draw) );
+                const auto     draw_iter = model_ref.draw_structure_map.find(key);
 
                 if (draw_iter != model_ref.draw_structure_map.end() )
                 {
@@ -1347,9 +1347,9 @@ end:
     return result;
 }
 
-Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands::run_pipelines(const AnalysisResult& in_analysis,
-                                                                                               const QueryArguments& in_arguments,
-                                                                                               JsonWriter*           inout_writer_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands::run_pipelines(const AnalysisResult&    in_analysis,
+                                                                                               const QueryArguments&    in_arguments,
+                                                                                               Utils::Json::JsonWriter* inout_writer_ptr)
 {
     const auto&    model_ref = in_analysis.model;
     const uint64_t n_shapes  = model_ref.frame_shape_interner.get_n_structures();
@@ -1423,9 +1423,9 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
     return QueryStatus::OK;
 }
 
-Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands::run_resources(const AnalysisResult& in_analysis,
-                                                                                               const QueryArguments& in_arguments,
-                                                                                               JsonWriter*           inout_writer_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands::run_resources(const AnalysisResult&    in_analysis,
+                                                                                               const QueryArguments&    in_arguments,
+                                                                                               Utils::Json::JsonWriter* inout_writer_ptr)
 {
     const auto          count_map = ResourceAccessTracker::count_by_class(in_analysis.model.resource_access_vec);
     std::vector<size_t> match_vec;
@@ -1564,9 +1564,9 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
     return QueryStatus::OK;
 }
 
-Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands::run_timeline(const AnalysisResult& in_analysis,
-                                                                                              const QueryArguments& in_arguments,
-                                                                                              JsonWriter*           inout_writer_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands::run_timeline(const AnalysisResult&    in_analysis,
+                                                                                              const QueryArguments&    in_arguments,
+                                                                                              Utils::Json::JsonWriter* inout_writer_ptr)
 {
     const Timeline timeline = TimelineBuilder::build(in_analysis);
 
@@ -1640,8 +1640,8 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
     return QueryStatus::OK;
 }
 
-void Analysis::APIDumpAnalysis::QueryCommands::write_depth_spread(const PassDepthSpread& in_spread,
-                                                                  JsonWriter*            inout_writer_ptr)
+void Analysis::APIDumpAnalysis::QueryCommands::write_depth_spread(const PassDepthSpread&   in_spread,
+                                                                  Utils::Json::JsonWriter* inout_writer_ptr)
 {
     inout_writer_ptr->write_key("depth");
     inout_writer_ptr->begin_object();
@@ -1667,9 +1667,9 @@ void Analysis::APIDumpAnalysis::QueryCommands::write_depth_spread(const PassDept
     inout_writer_ptr->end_object();
 }
 
-void Analysis::APIDumpAnalysis::QueryCommands::write_draw_structure(const uint64_t&      in_key,
-                                                                    const DrawStructure& in_structure,
-                                                                    JsonWriter*          inout_writer_ptr)
+void Analysis::APIDumpAnalysis::QueryCommands::write_draw_structure(const uint64_t&          in_key,
+                                                                    const DrawStructure&     in_structure,
+                                                                    Utils::Json::JsonWriter* inout_writer_ptr)
 {
     inout_writer_ptr->begin_object();
 
@@ -1729,7 +1729,7 @@ void Analysis::APIDumpAnalysis::QueryCommands::write_draw_structure(const uint64
 void Analysis::APIDumpAnalysis::QueryCommands::write_frame(const AnalysisResult&             in_analysis,
                                                            const uint64_t&                   in_frame_index,
                                                            const RepresentativeStore::Entry* in_entry_ptr,
-                                                           JsonWriter*                       inout_writer_ptr)
+                                                           Utils::Json::JsonWriter*          inout_writer_ptr)
 {
     const auto& record = in_analysis.model.frame_record_vec.at(static_cast<size_t>(in_frame_index) );
 
@@ -1829,9 +1829,9 @@ void Analysis::APIDumpAnalysis::QueryCommands::write_frame(const AnalysisResult&
     inout_writer_ptr->end_object();
 }
 
-void Analysis::APIDumpAnalysis::QueryCommands::write_page(const uint64_t&       in_total,
-                                                          const QueryArguments& in_arguments,
-                                                          JsonWriter*           inout_writer_ptr)
+void Analysis::APIDumpAnalysis::QueryCommands::write_page(const uint64_t&          in_total,
+                                                          const QueryArguments&    in_arguments,
+                                                          Utils::Json::JsonWriter* inout_writer_ptr)
 {
     inout_writer_ptr->write_key("total");
     inout_writer_ptr->write_u64(in_total);
@@ -1841,9 +1841,9 @@ void Analysis::APIDumpAnalysis::QueryCommands::write_page(const uint64_t&       
     inout_writer_ptr->write_u64(in_arguments.limit);
 }
 
-void Analysis::APIDumpAnalysis::QueryCommands::write_resource_view(const AnalysisResult& in_analysis,
-                                                                   const ResourceView&   in_view,
-                                                                   JsonWriter*           inout_writer_ptr)
+void Analysis::APIDumpAnalysis::QueryCommands::write_resource_view(const AnalysisResult&    in_analysis,
+                                                                   const ResourceView&      in_view,
+                                                                   Utils::Json::JsonWriter* inout_writer_ptr)
 {
     const uint32_t resource_id_value = get_resource_id_value(in_view.resource_id);
 
@@ -1873,7 +1873,7 @@ void Analysis::APIDumpAnalysis::QueryCommands::write_resource_view(const Analysi
 
 void Analysis::APIDumpAnalysis::QueryCommands::write_sample(const AnalysisResult&          in_analysis,
                                                             const ValueTimeSeries::Sample& in_sample,
-                                                            JsonWriter*                    inout_writer_ptr)
+                                                            Utils::Json::JsonWriter*       inout_writer_ptr)
 {
     constexpr size_t MAX_F32_N_BYTES = 256; /* longer values are given in hex only   */
 
@@ -1909,9 +1909,9 @@ void Analysis::APIDumpAnalysis::QueryCommands::write_sample(const AnalysisResult
     inout_writer_ptr->end_object();
 }
 
-void Analysis::APIDumpAnalysis::QueryCommands::write_series(const AnalysisResult&  in_analysis,
-                                                            const ValueTimeSeries& in_series,
-                                                            JsonWriter*            inout_writer_ptr)
+void Analysis::APIDumpAnalysis::QueryCommands::write_series(const AnalysisResult&    in_analysis,
+                                                            const ValueTimeSeries&   in_series,
+                                                            Utils::Json::JsonWriter* inout_writer_ptr)
 {
     const auto& sample_vec = in_series.get_sample_vec();
 

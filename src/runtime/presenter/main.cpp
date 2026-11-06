@@ -27,7 +27,7 @@ int WINAPI WinMain(HINSTANCE in_instance,
     std::unique_ptr<Stereo::Transport::FrameChannel>          channel_ptr;
     std::string                                               error;
     Stereo::Presenter::Options                                options;
-    int                                                       result = EXIT_FAILURE;
+    int                                                       result       = EXIT_FAILURE;
     std::unique_ptr<Stereo::Presenter::StereoPresenterWindow> window_ptr;
 
     (void) in_command_line;
@@ -67,7 +67,7 @@ int WINAPI WinMain(HINSTANCE in_instance,
         goto end;
     }
 
-    VR::UIHost::ImGuiWindowHost::enable_dpi_awareness();
+    Utils::UIHost::ImGuiWindowHost::enable_dpi_awareness();
 
     /* Direct3D 8 applications pass their images by the memory of the channel: it is what the importer takes. */
     {
@@ -92,20 +92,20 @@ int WINAPI WinMain(HINSTANCE in_instance,
      */
     if (options.use_headset)
     {
-        const std::string log_path    = Stereo::Session::SessionEnvironment::get_log_path(options.session_id);
+        const std::string log_path      = Stereo::Session::SessionEnvironment::get_log_path(options.session_id);
         std::string       headset_error;
-        auto              headset_ptr = Stereo::Presenter::HeadsetSink::create_ptr(window_ptr->get_importer_ptr(),
-                                                                               [&window_ptr]()
-                                                                               {
-                                                                                   window_ptr->request_close();
+        auto              headset_ptr   = Stereo::Presenter::HeadsetSink::create_ptr(window_ptr->get_importer_ptr(),
+                                                                                 [&window_ptr]()
+                                                                                 {
+                                                                                     window_ptr->request_close();
                                                                                },
                                                                                [&log_path, &options](const std::string& in_text)
                                                                                {
-                                                                                   if (options.use_log)
-                                                                                   {
-                                                                                       Stereo::Presenter::PresenterLog::write_line(log_path,
-                                                                                                                                   in_text);
-                                                                                   }
+                                                                                     if (options.use_log)
+                                                                                     {
+                                                                                         Stereo::Presenter::PresenterLog::write_line(log_path,
+                                                                                                                                     in_text);
+                                                                                     }
                                                                                },
                                                                                options.use_pacing,
                                                                                &headset_error);

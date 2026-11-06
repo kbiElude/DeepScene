@@ -5,7 +5,7 @@
  * Replays a workload file. This is the front-end of StereoReplayEngineDLL.dll: a window with the playback controls, or the
  * console (--console), which also gives the speed.
  */
-#include "analysis/api_dump_analysis/number_parser.h"
+#include "utils/command_line/number_parser.h"
 #include "analysis/recipe_loader/recipe_loader.h"
 #include "Capture/APIDumpLoader/WorkloadIndex.h"
 #include "tools/stereo_replay/engine_dll/entrypoints.h"
@@ -176,21 +176,21 @@ int Stereo::Replay::Player::run(int   in_argc,
     Stereo::Replay::EngineDLL::IPlaybackController* controller_ptr     = nullptr;
     constexpr uint32_t N_INDEX_READER_THREADS = 2;
 
-    Stereo::Replay::EngineDLL::IReplayEngine*       engine_ptr         = nullptr;
-    std::string                                     deps_filename;
-    std::string                                     error;
-    int                                             exit_code          = EXIT_FAILURE;
-    Capture::APIDumpLoader::WorkloadIndex           index;
-    bool                                            is_index_built     = false;
-    bool                                            is_recipe_loaded   = true;
-    bool                                            is_workload_picked = true;
-    std::unique_ptr<ConsoleObserver>                observer_ptr;
-    Options                                         options;
-    std::unique_ptr<PreviewWindow>                  preview_ptr;
+    Stereo::Replay::EngineDLL::IReplayEngine* engine_ptr         = nullptr;
+    std::string                               deps_filename;
+    std::string                               error;
+    int                                       exit_code          = EXIT_FAILURE;
+    Capture::APIDumpLoader::WorkloadIndex     index;
+    bool                                      is_index_built     = false;
+    bool                                      is_recipe_loaded   = true;
+    bool                                      is_workload_picked = true;
+    std::unique_ptr<ConsoleObserver>          observer_ptr;
+    Options                                   options;
+    std::unique_ptr<PreviewWindow>            preview_ptr;
     std::shared_ptr<QuitHandler>                    quit_ptr(new QuitHandler() );
-    std::unique_ptr<FrameRangeObserver>             range_ptr;
-    Analysis::RecipeLoader::Recipe                  recipe;
-    int                                             result             = EXIT_FAILURE;
+    std::unique_ptr<FrameRangeObserver> range_ptr;
+    Analysis::RecipeLoader::Recipe      recipe;
+    int                                 result    = EXIT_FAILURE;
 
     if (CommandLine::parse(in_argc,
                            in_argv,
@@ -505,8 +505,8 @@ void Stereo::Replay::Player::run_console(Stereo::Replay::EngineDLL::IPlaybackCon
             double            separation      = 0.0;
             const std::string separation_text = command.substr(2);
 
-            if (Analysis::APIDumpAnalysis::NumberParser::parse_double(separation_text,
-                                                                      &separation) )
+            if (Utils::CommandLine::NumberParser::parse_double(separation_text,
+                                                               &separation) )
             {
                 in_controller_ptr->set_eye_separation(static_cast<float>(separation) );
             }
@@ -524,9 +524,9 @@ void Stereo::Replay::Player::run_console(Stereo::Replay::EngineDLL::IPlaybackCon
             uint64_t          frame      = 0;
             const std::string frame_text = command.substr(2);
 
-            if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(frame_text,
-                                                                        UINT32_MAX,
-                                                                       &frame) )
+            if (Utils::CommandLine::NumberParser::parse_unsigned(frame_text,
+                                                                 UINT32_MAX,
+                                                                 &frame) )
             {
                 in_controller_ptr->play_to_frame(static_cast<uint32_t>(frame) );
             }
@@ -544,8 +544,8 @@ void Stereo::Replay::Player::run_console(Stereo::Replay::EngineDLL::IPlaybackCon
             double            speed      = 0.0;
             const std::string speed_text = command.substr(2);
 
-            if (Analysis::APIDumpAnalysis::NumberParser::parse_double(speed_text,
-                                                                      &speed) )
+            if (Utils::CommandLine::NumberParser::parse_double(speed_text,
+                                                               &speed) )
             {
                 in_controller_ptr->set_speed(speed);
             }

@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "temp_directory.h"
-#include "vr/app_installer/file_system.h"
+#include "utils/files/file_system.h"
 #include <Windows.h>
 #include <atomic>
 
@@ -17,16 +17,16 @@ Tests::TempDirectory::TempDirectory()
     ::GetTempPathW(MAX_PATH,
                    temp_path_i16vec260);
 
-    m_path = VR::AppInstaller::FileSystem::to_utf8(temp_path_i16vec260) + "DemoVRPlayerTests_" + std::to_string(::GetCurrentProcessId() ) + "_" +
+    m_path = Utils::Files::FileSystem::to_utf8(temp_path_i16vec260) + "DemoVRPlayerTests_" + std::to_string(::GetCurrentProcessId() ) + "_" +
              std::to_string(n_directories_made++);
 
-    VR::AppInstaller::FileSystem::create_directories(m_path,
-                                                     &error);
+    Utils::Files::FileSystem::create_directories(m_path,
+                                                 &error);
 }
 
 Tests::TempDirectory::~TempDirectory()
 {
-    VR::AppInstaller::FileSystem::remove_tree(m_path);
+    Utils::Files::FileSystem::remove_tree(m_path);
 }
 
 const std::string& Tests::TempDirectory::get_path() const

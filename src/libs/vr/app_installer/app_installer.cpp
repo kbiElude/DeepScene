@@ -2,14 +2,14 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
+#include "utils/files/file_system.h"
+#include "utils/files/sha256.h"
+#include "utils/files/zip_extractor.h"
 #include "vr/app_installer/app_installer.h"
-#include "vr/app_installer/file_system.h"
-#include "vr/app_installer/sha256.h"
-#include "vr/app_installer/zip_extractor.h"
 #include <Windows.h>
 #include <algorithm>
 
-VR::AppInstaller::AppInstaller::AppInstaller(IDownloader* in_downloader_ptr)
+VR::AppInstaller::AppInstaller::AppInstaller(Utils::Files::IDownloader* in_downloader_ptr)
     :m_downloader_ptr(in_downloader_ptr),
      m_is_busy       (false),
      m_is_cancelled  (false)
@@ -52,20 +52,20 @@ bool VR::AppInstaller::AppInstaller::is_busy() const
 
 void VR::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spec)
 {
-    std::string       archive_hash_hex;
-    const std::string archive_path        = in_spec.install_directory + ".download\\archive.zip";
-    uint64_t          directory_name_hash = 14695981039346656037ull;
-    ProgressCallback  download_func;
-    std::string       error;
-    ProgressCallback  extract_func;
-    bool              is_downloaded       = false;
-    bool              is_installed        = false;
-    DWORD             lock_error          = 0;
-    HANDLE            lock_handle         = nullptr;
-    std::string       lock_name;
-    std::string       mirror_error_text;
-    std::string       staging_directory   = in_spec.install_directory + ".download";
-    std::string       unpacked_directory  = staging_directory + "\\unpacked";
+    std::string                    archive_hash_hex;
+    const std::string              archive_path        = in_spec.install_directory + ".download\\archive.zip";
+    uint64_t                       directory_name_hash = 14695981039346656037ull;
+    Utils::Files::ProgressCallback download_func;
+    std::string                    error;
+    Utils::Files::ProgressCallback extract_func;
+    bool                           is_downloaded       = false;
+    bool                           is_installed        = false;
+    DWORD                          lock_error          = 0;
+    HANDLE                         lock_handle         = nullptr;
+    std::string                    lock_name;
+    std::string                    mirror_error_text;
+    std::string                    staging_directory   = in_spec.install_directory + ".download";
+    std::string                    unpacked_directory  = staging_directory + "\\unpacked";
 
     /* One installation of a directory at a time, whichever DeepScene it is started by. */
     {
@@ -87,7 +87,7 @@ void VR::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spec)
     }
 
     {
-        const std::wstring wide_lock_name = FileSystem::to_wide(lock_name);
+        const std::wstring wide_lock_name = Utils::Files::FileSystem::to_wide(lock_name);
 
         lock_handle = ::CreateMutexW(nullptr,
                                      FALSE,
@@ -104,10 +104,10 @@ void VR::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spec)
         goto end;
     }
 
-    FileSystem::remove_tree(staging_directory);
+    Utils::Files::FileSystem::remove_tree(staging_directory);
 
-    if (FileSystem::create_directories(staging_directory,
-                                       &error) == false)
+    if (Utils::Files::FileSystem::create_directories(staging_directory,
+                                                     &error) == false)
     {
         goto end;
     }
@@ -170,10 +170,10 @@ void VR::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spec)
                  0,
                  0);
 
-    if (Sha256::hash_file(archive_path,
-                          m_is_cancelled,
-                         &archive_hash_hex,
-                         &error) == false)
+    if (Utils::Files::Sha256::hash_file(archive_path,
+                                        m_is_cancelled,
+                                        &archive_hash_hex,
+                                        &error) == false)
     {
         goto end;
     }
@@ -199,25 +199,25 @@ void VR::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spec)
                  0,
                  0);
 
-    if (ZipExtractor::extract(archive_path,
-                              unpacked_directory,
-                              in_spec.n_unpacked_bytes_max,
-                              m_is_cancelled,
-                              extract_func,
-                             &error) == false)
+    if (Utils::Files::ZipExtractor::extract(archive_path,
+                                            unpacked_directory,
+                                            in_spec.n_unpacked_bytes_max,
+                                            m_is_cancelled,
+                                            extract_func,
+                                            &error) == false)
     {
         goto end;
     }
 
     /* The directory is made only now, whole: an installation which did not end leaves nothing which looks like one. */
-    if (FileSystem::is_directory(in_spec.install_directory) )
+    if (Utils::Files::FileSystem::is_directory(in_spec.install_directory) )
     {
-        ::RemoveDirectoryW(FileSystem::to_wide(in_spec.install_directory).c_str() );
+        ::RemoveDirectoryW(Utils::Files::FileSystem::to_wide(in_spec.install_directory).c_str() );
     }
 
     {
-        const std::wstring wide_install_directory  = FileSystem::to_wide(in_spec.install_directory);
-        const std::wstring wide_unpacked_directory = FileSystem::to_wide(unpacked_directory);
+        const std::wstring wide_install_directory  = Utils::Files::FileSystem::to_wide(in_spec.install_directory);
+        const std::wstring wide_unpacked_directory = Utils::Files::FileSystem::to_wide(unpacked_directory);
 
         if (::MoveFileExW(wide_unpacked_directory.c_str(),
                           wide_install_directory.c_str(),
@@ -232,7 +232,7 @@ void VR::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spec)
     is_installed = true;
 
 end:
-    FileSystem::remove_tree(staging_directory);
+    Utils::Files::FileSystem::remove_tree(staging_directory);
 
     if (lock_handle != nullptr)
     {
@@ -281,9 +281,9 @@ void VR::AppInstaller::AppInstaller::set_progress(const InstallPhase& in_phase,
 bool VR::AppInstaller::AppInstaller::start(const InstallSpec& in_spec,
                                            std::string*       out_error_ptr)
 {
-    bool        is_hash_valid = false;
+    bool        is_hash_valid    = false;
     std::string parent_directory;
-    bool        result        = false;
+    bool        result           = false;
 
     if (m_is_busy.load() )
     {
@@ -304,9 +304,9 @@ bool VR::AppInstaller::AppInstaller::start(const InstallSpec& in_spec,
         goto end;
     }
 
-    if (FileSystem::is_directory(in_spec.install_directory) )
+    if (Utils::Files::FileSystem::is_directory(in_spec.install_directory) )
     {
-        if (FileSystem::is_directory_empty(in_spec.install_directory) == false)
+        if (Utils::Files::FileSystem::is_directory_empty(in_spec.install_directory) == false)
         {
             *out_error_ptr = "The folder " + in_spec.install_directory + " is there, but the application is not in it. Remove the folder, "
                              "and launch the application again.";
@@ -325,8 +325,8 @@ bool VR::AppInstaller::AppInstaller::start(const InstallSpec& in_spec,
                                                             n_last_separator_char);
     }
 
-    if (FileSystem::create_directories(parent_directory,
-                                       out_error_ptr) == false)
+    if (Utils::Files::FileSystem::create_directories(parent_directory,
+                                                     out_error_ptr) == false)
     {
         *out_error_ptr = "DeepScene cannot write to " + parent_directory + ", so the application cannot be downloaded there.\n\nMove the folder "
                          "of DeepScene to a place which you can write to, and start it again.";
@@ -334,8 +334,8 @@ bool VR::AppInstaller::AppInstaller::start(const InstallSpec& in_spec,
         goto end;
     }
 
-    if (FileSystem::test_write(parent_directory,
-                               out_error_ptr) == false)
+    if (Utils::Files::FileSystem::test_write(parent_directory,
+                                             out_error_ptr) == false)
     {
         *out_error_ptr = "DeepScene cannot write to " + parent_directory + ", so the application cannot be downloaded there.\n\nMove the folder "
                          "of DeepScene to a place which you can write to, and start it again.";

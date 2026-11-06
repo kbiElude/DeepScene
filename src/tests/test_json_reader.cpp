@@ -5,27 +5,27 @@
  * Tests for JsonReader: what it accepts, what it refuses, and its error messages.
  */
 #include <gtest/gtest.h>
-#include "analysis/api_dump_analysis/json_reader.h"
+#include "utils/json/json_reader.h"
 
-static bool read_json(const std::string&                    in_text,
-                      Analysis::APIDumpAnalysis::JsonValue* out_value_ptr,
-                      std::string*                          out_error_ptr)
+static bool read_json(const std::string&      in_text,
+                      Utils::Json::JsonValue* out_value_ptr,
+                      std::string*            out_error_ptr)
 {
-    return Analysis::APIDumpAnalysis::JsonReader::parse(in_text,
-                                                        out_value_ptr,
-                                                        out_error_ptr);
+    return Utils::Json::JsonReader::parse(in_text,
+                                          out_value_ptr,
+                                          out_error_ptr);
 }
 
 TEST(JsonReader, ScalarsAreRead)
 {
-    std::string                          error;
-    Analysis::APIDumpAnalysis::JsonValue value;
+    std::string            error;
+    Utils::Json::JsonValue value;
 
     ASSERT_TRUE(read_json("true",
                          &value,
                          &error) ) << error;
     EXPECT_EQ  (value.type,
-                Analysis::APIDumpAnalysis::JsonValue::Type::BOOL);
+                Utils::Json::JsonValue::Type::BOOL);
     EXPECT_TRUE(value.bool_value);
 
     ASSERT_TRUE(read_json("false",
@@ -37,7 +37,7 @@ TEST(JsonReader, ScalarsAreRead)
                          &value,
                          &error) );
     EXPECT_EQ  (value.type,
-                Analysis::APIDumpAnalysis::JsonValue::Type::NULL_VALUE);
+                Utils::Json::JsonValue::Type::NULL_VALUE);
 
     ASSERT_TRUE(read_json("  \"text\"\n",
                          &value,
@@ -68,13 +68,13 @@ TEST(JsonReader, NumbersAreRead)
 
     for (const auto& number_case : case_array)
     {
-        Analysis::APIDumpAnalysis::JsonValue value;
+        Utils::Json::JsonValue value;
 
         ASSERT_TRUE(read_json(number_case.text_ptr,
                              &value,
                              nullptr) ) << number_case.text_ptr;
         EXPECT_EQ  (value.type,
-                    Analysis::APIDumpAnalysis::JsonValue::Type::NUMBER);
+                    Utils::Json::JsonValue::Type::NUMBER);
         EXPECT_DOUBLE_EQ(value.number_value,
                          number_case.expected) << number_case.text_ptr;
     }
@@ -82,8 +82,8 @@ TEST(JsonReader, NumbersAreRead)
 
 TEST(JsonReader, ContainersAreRead)
 {
-    std::string                          error;
-    Analysis::APIDumpAnalysis::JsonValue value;
+    std::string            error;
+    Utils::Json::JsonValue value;
 
     ASSERT_TRUE(read_json("{\"a\": [1, 2, {\"b\": null}], \"c\": {}, \"d\": []}",
                          &value,
@@ -94,23 +94,23 @@ TEST(JsonReader, ContainersAreRead)
     EXPECT_DOUBLE_EQ(value.at("a").item_vec.at(1).number_value,
                      2.0);
     EXPECT_EQ(value.at("a").item_vec.at(2).at("b").type,
-              Analysis::APIDumpAnalysis::JsonValue::Type::NULL_VALUE);
+              Utils::Json::JsonValue::Type::NULL_VALUE);
     EXPECT_EQ(value.at("c").type,
-              Analysis::APIDumpAnalysis::JsonValue::Type::OBJECT);
+              Utils::Json::JsonValue::Type::OBJECT);
     EXPECT_TRUE(value.at("c").item_vec.empty() );
     EXPECT_EQ(value.at("d").type,
-              Analysis::APIDumpAnalysis::JsonValue::Type::ARRAY);
+              Utils::Json::JsonValue::Type::ARRAY);
     EXPECT_NE(value.find_ptr("a"),
               nullptr);
     EXPECT_EQ(value.find_ptr("missing"),
               nullptr);
     EXPECT_EQ(value.at("missing").type,
-              Analysis::APIDumpAnalysis::JsonValue::Type::NULL_VALUE);
+              Utils::Json::JsonValue::Type::NULL_VALUE);
 }
 
 TEST(JsonReader, MembersKeepTheirOrder)
 {
-    Analysis::APIDumpAnalysis::JsonValue value;
+    Utils::Json::JsonValue value;
 
     ASSERT_TRUE(read_json("{\"z\":1,\"a\":2,\"m\":3}",
                          &value,
@@ -128,7 +128,7 @@ TEST(JsonReader, MembersKeepTheirOrder)
 
 TEST(JsonReader, EscapesAreRead)
 {
-    Analysis::APIDumpAnalysis::JsonValue value;
+    Utils::Json::JsonValue value;
 
     ASSERT_TRUE(read_json("\"q\\\" b\\\\ s\\/ \\b\\f\\n\\r\\t\"",
                          &value,
@@ -139,7 +139,7 @@ TEST(JsonReader, EscapesAreRead)
 
 TEST(JsonReader, UnicodeEscapesBecomeUtf8)
 {
-    Analysis::APIDumpAnalysis::JsonValue value;
+    Utils::Json::JsonValue value;
 
     ASSERT_TRUE(read_json("\"\\u0041\\u00e9\\u20ac\\ud83d\\ude00\"",
                          &value,
@@ -150,7 +150,7 @@ TEST(JsonReader, UnicodeEscapesBecomeUtf8)
 
 TEST(JsonReader, Utf8InTheTextGoesThrough)
 {
-    Analysis::APIDumpAnalysis::JsonValue value;
+    Utils::Json::JsonValue value;
 
     ASSERT_TRUE(read_json("\"\xC3\xA9\"",
                          &value,
@@ -194,8 +194,8 @@ TEST(JsonReader, TextThatIsNotJsonIsRefusedWithAReason)
 
     for (const auto& error_case : case_array)
     {
-        std::string                          error;
-        Analysis::APIDumpAnalysis::JsonValue value;
+        std::string            error;
+        Utils::Json::JsonValue value;
 
         EXPECT_FALSE(read_json(error_case.text_ptr,
                               &value,
@@ -207,8 +207,8 @@ TEST(JsonReader, TextThatIsNotJsonIsRefusedWithAReason)
 
 TEST(JsonReader, TheErrorSaysWhereTheProblemIs)
 {
-    std::string                          error;
-    Analysis::APIDumpAnalysis::JsonValue value;
+    std::string            error;
+    Utils::Json::JsonValue value;
 
     EXPECT_FALSE(read_json("{\n  \"a\": 1,\n  \"b\": ?\n}",
                           &value,
@@ -221,9 +221,9 @@ TEST(JsonReader, TextThatIsTooDeepIsRefused)
 {
     constexpr size_t MAX_DEPTH = 64; /* deepest nesting accepted        */
 
-    std::string                          error;
-    std::string                          text;
-    Analysis::APIDumpAnalysis::JsonValue value;
+    std::string            error;
+    std::string            text;
+    Utils::Json::JsonValue value;
 
     text.assign(MAX_DEPTH + 1,
                 '[');
@@ -247,7 +247,7 @@ TEST(JsonReader, TextThatIsTooDeepIsRefused)
 
 TEST(JsonReader, AnErrorPointerIsOptional)
 {
-    Analysis::APIDumpAnalysis::JsonValue value;
+    Utils::Json::JsonValue value;
 
     EXPECT_FALSE(read_json("[",
                           &value,
@@ -256,7 +256,7 @@ TEST(JsonReader, AnErrorPointerIsOptional)
 
 TEST(JsonReader, AValueIsClearedBeforeReading)
 {
-    Analysis::APIDumpAnalysis::JsonValue value;
+    Utils::Json::JsonValue value;
 
     ASSERT_TRUE(read_json("[1,2,3]",
                          &value,
@@ -271,8 +271,8 @@ TEST(JsonReader, AValueIsClearedBeforeReading)
 TEST(JsonReader, WhatTheWriterWritesIsRead)
 {
     /* A long array of mixed items. */
-    std::string                          text = "[";
-    Analysis::APIDumpAnalysis::JsonValue value;
+    std::string            text  = "[";
+    Utils::Json::JsonValue value;
 
     for (int n_item = 0;
              n_item < 1000;
@@ -295,7 +295,7 @@ TEST(JsonReader, WhatTheWriterWritesIsRead)
 
 TEST(JsonReader, TheFirstKeyWhichIsNotAllowedIsFound)
 {
-    Analysis::APIDumpAnalysis::JsonValue value;
+    Utils::Json::JsonValue value;
 
     ASSERT_TRUE(read_json("{\"a\": 1, \"c\": 2, \"b\": 3}",
                          &value,
@@ -316,10 +316,10 @@ TEST(JsonReader, AByteOrderMarkIsTakenOffAndAFileWhichIsNotThereIsNotRead)
 {
     std::string text;
 
-    EXPECT_EQ(Analysis::APIDumpAnalysis::JsonReader::strip_byte_order_mark("\xEF\xBB\xBF{}"),
+    EXPECT_EQ(Utils::Json::JsonReader::strip_byte_order_mark("\xEF\xBB\xBF{}"),
               "{}");
-    EXPECT_EQ(Analysis::APIDumpAnalysis::JsonReader::strip_byte_order_mark("{}"),
+    EXPECT_EQ(Utils::Json::JsonReader::strip_byte_order_mark("{}"),
               "{}");
-    EXPECT_FALSE(Analysis::APIDumpAnalysis::JsonReader::read_file("Z:/no/such/file.json",
-                                                                 &text) );
+    EXPECT_FALSE(Utils::Json::JsonReader::read_file("Z:/no/such/file.json",
+                                                    &text) );
 }

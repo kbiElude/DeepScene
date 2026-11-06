@@ -4,8 +4,8 @@
  *
  * Bakes a recipe (see command_line.cpp for the arguments, and recipe_baker.h for what that is).
  */
-#include "analysis/api_dump_analysis/json_reader.h"
-#include "analysis/api_dump_analysis/json_writer.h"
+#include "utils/json/json_reader.h"
+#include "utils/json/json_writer.h"
 #include "analysis/api_dump_analysis/model.h"
 #include "analysis/api_dump_analysis/passes_file.h"
 #include "analysis/api_dump_dependencies/deps_file.h"
@@ -29,17 +29,17 @@ int main(int   in_argc,
     constexpr int EXIT_NOT_COVERED        = 5;
     constexpr int EXIT_SUSPECT_UNAFFECTED = 6;
 
-    Analysis::APIDumpAnalysis::AnalysisResult analysis;
-    std::vector<std::string>                  argument_vec;
+    Analysis::APIDumpAnalysis::AnalysisResult         analysis;
+    std::vector<std::string>                          argument_vec;
     Analysis::APIDumpDependencies::DependencyAnalysis dependencies;
-    Analysis::RecipeBake::BakeReport          report;
-    std::string                               baked_text;
-    std::string                               error;
-    FILE*                                     file_ptr     = nullptr;
-    bool                                      is_written   = false;
-    Analysis::RecipeBake::Options             options;
-    std::string                               recipe_text;
-    int                                       result       = EXIT_SUCCESS;
+    Analysis::RecipeBake::BakeReport                  report;
+    std::string                                       baked_text;
+    std::string                                       error;
+    FILE*                                             file_ptr     = nullptr;
+    bool                                              is_written   = false;
+    Analysis::RecipeBake::Options                     options;
+    std::string                                       recipe_text;
+    int                                               result       = EXIT_SUCCESS;
 
     for (int n_argument = 1;
              n_argument < in_argc;
@@ -62,8 +62,8 @@ int main(int   in_argc,
         goto end;
     }
 
-    if (Analysis::APIDumpAnalysis::JsonReader::read_file(options.recipe_filename,
-                                                        &recipe_text) == false)
+    if (Utils::Json::JsonReader::read_file(options.recipe_filename,
+                                           &recipe_text) == false)
     {
         ::fprintf(stderr,
                   "Error: cannot read %s\n",
@@ -111,7 +111,7 @@ int main(int   in_argc,
         {
             const std::vector<Analysis::RecipeBake::OverlayCandidate> candidate_vec = Analysis::RecipeBake::OverlayCandidateFinder::find(recipe,
                                                                                                                                          analysis);
-            Analysis::APIDumpAnalysis::JsonWriter                     writer(true); /* in_is_pretty */
+            Utils::Json::JsonWriter                     writer(true); /* in_is_pretty */
 
             Analysis::RecipeBake::OverlayCandidateFinder::write_json(candidate_vec,
                                                                      recipe,

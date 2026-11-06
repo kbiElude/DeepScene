@@ -19,6 +19,7 @@ Direct3D 8 is the first API supported, and the demos are what drove the work.
 | `runtime/converter_dll`, `runtime/launcher` | The converter that goes into the running program, and the launcher that puts it there. Built for 32 and 64 bits, to match the program. |
 | `libs/stereo` (Transport), `libs/headset`, `runtime/presenter` | Carry the images of the eyes to the screen: through shared memory, onto the GPU, into a headset or a preview window. |
 | `vr_player`, `libs/vr`, `libs/headset` (vr_devices) | The player: the list of programs, the list of devices, and the window. A program which is not on the computer is downloaded the first time it is launched. |
+| `libs/utils` | What is not about any of the above and any of it may use: image and JSON files, hashing, downloading and unpacking, an ImGui window, Direct3D 12 plumbing. |
 | `apps\` | The catalog and the recipes. The programs the catalog lists are downloaded into it. |
 
 Each part is described in [the documentation](docs/index.html) (open it in a browser). The folders of `src` are the folders of the release (`build_final`): see `docs/components.html`.

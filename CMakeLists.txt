@@ -43,7 +43,8 @@ endif()
 
 include(cmake/Architecture.cmake)
 
-# The libraries, in src/libs: four, by what they are for (each folder has what it is in its CMakeLists.txt).
+# The libraries, in src/libs: five, by what they are for (each folder has what it is in its CMakeLists.txt). Utils is the one the others use.
+add_subdirectory(src/libs/utils)
 add_subdirectory(src/libs/analysis)
 add_subdirectory(src/libs/stereo)
 add_subdirectory(src/libs/vr)

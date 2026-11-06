@@ -11,7 +11,7 @@
 #include "data_fixtures.h"
 #include "fixtures.h"
 #include "temp_directory.h"
-#include "vr/app_installer/file_system.h"
+#include "utils/files/file_system.h"
 #include <algorithm>
 #include <fstream>
 #include <Windows.h>
@@ -325,8 +325,8 @@ TEST_F(CatalogLoaderTest, AnApplicationWhichIsThereIsNotDownloaded)
     const Tests::TempDirectory directory;
     std::string                error;
 
-    ASSERT_TRUE(VR::AppInstaller::FileSystem::create_directories(directory.get_path() + "\\fr08",
-                                                                &error) ) << error;
+    ASSERT_TRUE(Utils::Files::FileSystem::create_directories(directory.get_path() + "\\fr08",
+                                                             &error) ) << error;
 
     {
         std::ofstream file(directory.get_path() + "\\fr08\\fr08v101.exe");

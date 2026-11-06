@@ -8,8 +8,8 @@
 bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_covering(const std::vector<uint8_t>& in_byte_vec,
                                                                        Model*                      out_model_ptr)
 {
-    ByteReader reader(in_byte_vec.data(),
-                      in_byte_vec.size() );
+    Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
+                                       in_byte_vec.size() );
     /* The pass structure, and how many keys it has. */
     constexpr size_t MIN_PASS_N_BYTES = 2 * sizeof(uint32_t);
 
@@ -41,15 +41,15 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_covering(const std
             reader.is_at_end ());
 }
 
-bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_depths(const std::vector<uint8_t>&   in_byte_vec,
+bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_depths(const std::vector<uint8_t>&    in_byte_vec,
                                                                      const DepthHistogramMapMember& in_member_ptr,
-                                                                     Model*                        out_model_ptr)
+                                                                     Model*                         out_model_ptr)
 {
     /* The frame shape and the pass structure, and how many ranges have weight. */
     constexpr size_t MIN_HISTOGRAM_N_BYTES = 3 * sizeof(uint32_t);
 
-    ByteReader reader(in_byte_vec.data(),
-                      in_byte_vec.size() );
+    Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
+                                       in_byte_vec.size() );
     const auto n_histograms = reader.read_count(MIN_HISTOGRAM_N_BYTES);
     bool       is_ok        = true;
 
@@ -103,8 +103,8 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_draws(const std::v
                                       + 2 * sizeof(uint32_t)  /* n bindings, n vertex buffers  */
                                       + sizeof(uint64_t);     /* vertex layout key             */
 
-    ByteReader reader(in_byte_vec.data(),
-                      in_byte_vec.size() );
+    Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
+                                       in_byte_vec.size() );
 
     const auto n_draws = reader.read_count(MIN_DRAW_N_BYTES);
 
@@ -126,8 +126,8 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_frames(const std::
 {
     constexpr size_t FRAME_N_BYTES = 5 * sizeof(uint64_t) + 2 * sizeof(uint32_t);
 
-    ByteReader reader(in_byte_vec.data(),
-                      in_byte_vec.size() );
+    Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
+                                       in_byte_vec.size() );
 
     const auto n_frames = reader.read_count(FRAME_N_BYTES);
     bool       is_ok    = true;
@@ -166,8 +166,8 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_meta(const std::ve
 {
     constexpr size_t MIN_GROUP_N_BYTES = sizeof(uint32_t) + sizeof(uint64_t);
 
-    ByteReader reader(in_byte_vec.data(),
-                      in_byte_vec.size() );
+    Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
+                                       in_byte_vec.size() );
 
     out_analysis_ptr->workload_reference.filename    = reader.read_string();
     out_analysis_ptr->workload_reference.header_hash = reader.read_u64   ();
@@ -228,8 +228,8 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_passes(const std::
                                       +     sizeof(uint64_t)  /* key                          */
                                       + 6 * sizeof(float);    /* viewport                     */
 
-    ByteReader reader(in_byte_vec.data(),
-                      in_byte_vec.size() );
+    Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
+                                       in_byte_vec.size() );
 
     const auto n_passes = reader.read_count(MIN_PASS_N_BYTES);
     bool       is_ok    = true;
@@ -267,8 +267,8 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_representatives(co
 {
     constexpr size_t MIN_ENTRY_N_BYTES = 2 * sizeof(uint64_t) + 2 * sizeof(uint32_t);
 
-    ByteReader reader(in_byte_vec.data(),
-                      in_byte_vec.size() );
+    Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
+                                       in_byte_vec.size() );
     const auto n_shapes = out_model_ptr->frame_shape_interner.get_n_structures();
     bool       is_ok    = true;
 
@@ -346,8 +346,8 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_resource_access(co
 {
     constexpr size_t ACCESS_N_BYTES = 6 * sizeof(uint64_t);
 
-    ByteReader reader(in_byte_vec.data(),
-                      in_byte_vec.size() );
+    Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
+                                       in_byte_vec.size() );
 
     const auto n_resources = reader.read_count                   (ACCESS_N_BYTES);
     const auto n_frames    = out_model_ptr->frame_record_vec.size();
@@ -388,8 +388,8 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_resources(const st
                                           + 14 * sizeof(uint32_t) /* name length, ID, parent view (3), description (9)                  */
                                           + 5 * sizeof(uint8_t);  /* is destroyed, description (4)                                      */
 
-    ByteReader reader(in_byte_vec.data(),
-                      in_byte_vec.size() );
+    Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
+                                       in_byte_vec.size() );
     const auto n_resources = reader.read_count(MIN_RESOURCE_N_BYTES);
     bool       is_ok       = true;
 
@@ -432,8 +432,8 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_series(const std::
 {
     constexpr size_t MIN_SERIES_N_BYTES = 2 * sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint32_t);
 
-    ByteReader reader(in_byte_vec.data(),
-                      in_byte_vec.size() );
+    Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
+                                       in_byte_vec.size() );
 
     const auto n_series = reader.read_count(MIN_SERIES_N_BYTES);
     bool       is_ok    = true;
@@ -483,8 +483,8 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_series(const std::
 bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_shapes(const std::vector<uint8_t>& in_byte_vec,
                                                                      Model*                      out_model_ptr)
 {
-    ByteReader reader(in_byte_vec.data(),
-                      in_byte_vec.size() );
+    Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
+                                       in_byte_vec.size() );
 
     const auto n_shapes = reader.read_count(sizeof(uint32_t) );
     bool       is_ok    = true;
@@ -495,7 +495,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_shapes(const std::
     {
         FrameShape            shape;
         std::vector<uint64_t> pass_key_vec;
-        const auto            n_passes = reader.read_count(sizeof(uint32_t) );
+        const auto            n_passes     = reader.read_count(sizeof(uint32_t) );
 
         for (uint32_t n_pass = 0;
                       n_pass < n_passes && reader.has_failed() == false;
@@ -556,7 +556,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::is_resource_id_valid(const Res
             get_resource_id_value(in_id) <= in_n_resources);
 }
 
-Analysis::APIDumpAnalysis::DataReference Analysis::APIDumpAnalysis::PassesSerializer::read_data_reference(ByteReader* inout_reader_ptr)
+Analysis::APIDumpAnalysis::DataReference Analysis::APIDumpAnalysis::PassesSerializer::read_data_reference(Utils::BinaryIO::ByteReader* inout_reader_ptr)
 {
     DataReference result;
 
@@ -567,7 +567,7 @@ Analysis::APIDumpAnalysis::DataReference Analysis::APIDumpAnalysis::PassesSerial
     return result;
 }
 
-Analysis::APIDumpAnalysis::DrawStructure Analysis::APIDumpAnalysis::PassesSerializer::read_draw_structure(ByteReader* inout_reader_ptr)
+Analysis::APIDumpAnalysis::DrawStructure Analysis::APIDumpAnalysis::PassesSerializer::read_draw_structure(Utils::BinaryIO::ByteReader* inout_reader_ptr)
 {
     constexpr size_t TEXTURE_BINDING_KEY_N_BYTES = 3 * sizeof(uint32_t) + sizeof(uint64_t);
 
@@ -625,8 +625,8 @@ Analysis::APIDumpAnalysis::DrawStructure Analysis::APIDumpAnalysis::PassesSerial
 }
 
 template<typename Enum>
-Enum Analysis::APIDumpAnalysis::PassesSerializer::read_enum(ByteReader* inout_reader_ptr,
-                                                            const Enum& in_last_value)
+Enum Analysis::APIDumpAnalysis::PassesSerializer::read_enum(Utils::BinaryIO::ByteReader* inout_reader_ptr,
+                                                            const Enum&                  in_last_value)
 {
     const uint32_t value  = inout_reader_ptr->read_u32();
     Enum           result = static_cast<Enum>(0);
@@ -643,7 +643,7 @@ Enum Analysis::APIDumpAnalysis::PassesSerializer::read_enum(ByteReader* inout_re
     return result;
 }
 
-Analysis::APIDumpAnalysis::PassInstance Analysis::APIDumpAnalysis::PassesSerializer::read_pass_instance(ByteReader* inout_reader_ptr)
+Analysis::APIDumpAnalysis::PassInstance Analysis::APIDumpAnalysis::PassesSerializer::read_pass_instance(Utils::BinaryIO::ByteReader* inout_reader_ptr)
 {
     PassInstance result;
 
@@ -658,7 +658,7 @@ Analysis::APIDumpAnalysis::PassInstance Analysis::APIDumpAnalysis::PassesSeriali
     return result;
 }
 
-Analysis::APIDumpAnalysis::PassStructure Analysis::APIDumpAnalysis::PassesSerializer::read_pass_structure(ByteReader* inout_reader_ptr)
+Analysis::APIDumpAnalysis::PassStructure Analysis::APIDumpAnalysis::PassesSerializer::read_pass_structure(Utils::BinaryIO::ByteReader* inout_reader_ptr)
 {
     constexpr size_t CONSTANT_SIGNATURE_N_BYTES = 3 * sizeof(uint64_t) + 3 * sizeof(uint32_t);
 
@@ -729,7 +729,7 @@ Analysis::APIDumpAnalysis::PassStructure Analysis::APIDumpAnalysis::PassesSerial
     return result;
 }
 
-Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::PassesSerializer::read_resource_description(ByteReader* inout_reader_ptr)
+Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::PassesSerializer::read_resource_description(Utils::BinaryIO::ByteReader* inout_reader_ptr)
 {
     ResourceDescription result;
 
@@ -756,7 +756,7 @@ Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Passes
     return result;
 }
 
-Analysis::APIDumpAnalysis::ResourceView Analysis::APIDumpAnalysis::PassesSerializer::read_resource_view(ByteReader* inout_reader_ptr)
+Analysis::APIDumpAnalysis::ResourceView Analysis::APIDumpAnalysis::PassesSerializer::read_resource_view(Utils::BinaryIO::ByteReader* inout_reader_ptr)
 {
     ResourceView result;
 
@@ -767,7 +767,7 @@ Analysis::APIDumpAnalysis::ResourceView Analysis::APIDumpAnalysis::PassesSeriali
     return result;
 }
 
-Analysis::APIDumpAnalysis::TransferRecord Analysis::APIDumpAnalysis::PassesSerializer::read_transfer_record(ByteReader* inout_reader_ptr)
+Analysis::APIDumpAnalysis::TransferRecord Analysis::APIDumpAnalysis::PassesSerializer::read_transfer_record(Utils::BinaryIO::ByteReader* inout_reader_ptr)
 {
     TransferRecord result;
 
@@ -781,7 +781,7 @@ Analysis::APIDumpAnalysis::TransferRecord Analysis::APIDumpAnalysis::PassesSeria
     return result;
 }
 
-Analysis::APIDumpAnalysis::Viewport Analysis::APIDumpAnalysis::PassesSerializer::read_viewport(ByteReader* inout_reader_ptr)
+Analysis::APIDumpAnalysis::Viewport Analysis::APIDumpAnalysis::PassesSerializer::read_viewport(Utils::BinaryIO::ByteReader* inout_reader_ptr)
 {
     Viewport result;
 
@@ -797,7 +797,7 @@ Analysis::APIDumpAnalysis::Viewport Analysis::APIDumpAnalysis::PassesSerializer:
 
 std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_covering(const Model& in_model)
 {
-    ByteWriter writer;
+    Utils::BinaryIO::ByteWriter writer;
 
     writer.write_u32(static_cast<uint32_t>(in_model.covering_draw_key_map.size() ));
 
@@ -815,11 +815,11 @@ std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_cove
     return writer.take_bytes();
 }
 
-std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_depths(const Model&                  in_model,
+std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_depths(const Model&                   in_model,
                                                                                    const DepthHistogramMapMember& in_member_ptr)
 {
-    const auto& histogram_map = in_model.*in_member_ptr;
-    ByteWriter  writer;
+    const auto&                 histogram_map = in_model.*in_member_ptr;
+    Utils::BinaryIO::ByteWriter writer;
 
     writer.write_u32(static_cast<uint32_t>(histogram_map.size() ));
 
@@ -858,7 +858,7 @@ std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_dept
 
 std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_draws(const Model& in_model)
 {
-    ByteWriter writer;
+    Utils::BinaryIO::ByteWriter writer;
 
     writer.write_u32(static_cast<uint32_t>(in_model.draw_structure_map.size() ));
 
@@ -875,7 +875,7 @@ std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_draw
 
 std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_frames(const Model& in_model)
 {
-    ByteWriter writer;
+    Utils::BinaryIO::ByteWriter writer;
 
     writer.write_u32(static_cast<uint32_t>(in_model.frame_record_vec.size() ));
 
@@ -895,7 +895,7 @@ std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_fram
 
 std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_meta(const AnalysisResult& in_analysis)
 {
-    ByteWriter writer;
+    Utils::BinaryIO::ByteWriter writer;
 
     writer.write_string(in_analysis.workload_reference.filename);
     writer.write_u64   (in_analysis.workload_reference.header_hash);
@@ -936,8 +936,8 @@ std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_meta
 
 std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_passes(const Model& in_model)
 {
-    const auto n_passes = in_model.pass_structure_interner.get_n_structures();
-    ByteWriter writer;
+    const auto                  n_passes = in_model.pass_structure_interner.get_n_structures();
+    Utils::BinaryIO::ByteWriter writer;
 
     writer.write_u32(static_cast<uint32_t>(n_passes) );
 
@@ -956,8 +956,8 @@ std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_pass
 
 std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_representatives(const Model& in_model)
 {
-    const auto n_shapes = in_model.frame_shape_interner.get_n_structures();
-    ByteWriter writer;
+    const auto                  n_shapes = in_model.frame_shape_interner.get_n_structures();
+    Utils::BinaryIO::ByteWriter writer;
 
     for (uint32_t n_shape = 0;
                   n_shape < n_shapes;
@@ -995,7 +995,7 @@ std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_repr
 
 std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_resource_access(const Model& in_model)
 {
-    ByteWriter writer;
+    Utils::BinaryIO::ByteWriter writer;
 
     writer.write_u32(static_cast<uint32_t>(in_model.resource_access_vec.size() ));
 
@@ -1014,7 +1014,7 @@ std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_reso
 
 std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_resources(const Model& in_model)
 {
-    ByteWriter writer;
+    Utils::BinaryIO::ByteWriter writer;
 
     writer.write_u32(static_cast<uint32_t>(in_model.resource_vec.size() ));
 
@@ -1040,7 +1040,7 @@ std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_reso
 
 std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_series(const Model& in_model)
 {
-    ByteWriter writer;
+    Utils::BinaryIO::ByteWriter writer;
 
     writer.write_u32(static_cast<uint32_t>(in_model.constant_series_map.size() ));
 
@@ -1063,8 +1063,8 @@ std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_seri
 
 std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_shapes(const Model& in_model)
 {
-    const auto n_shapes = in_model.frame_shape_interner.get_n_structures();
-    ByteWriter writer;
+    const auto                  n_shapes = in_model.frame_shape_interner.get_n_structures();
+    Utils::BinaryIO::ByteWriter writer;
 
     writer.write_u32(static_cast<uint32_t>(n_shapes) );
 
@@ -1085,16 +1085,16 @@ std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_shap
     return writer.take_bytes();
 }
 
-void Analysis::APIDumpAnalysis::PassesSerializer::write_data_reference(const DataReference& in_reference,
-                                                                       ByteWriter*          inout_writer_ptr)
+void Analysis::APIDumpAnalysis::PassesSerializer::write_data_reference(const DataReference&         in_reference,
+                                                                       Utils::BinaryIO::ByteWriter* inout_writer_ptr)
 {
     inout_writer_ptr->write_u64(in_reference.content_hash);
     inout_writer_ptr->write_u32(in_reference.data_chunk_id);
     inout_writer_ptr->write_u64(in_reference.n_bytes);
 }
 
-void Analysis::APIDumpAnalysis::PassesSerializer::write_draw_structure(const DrawStructure& in_structure,
-                                                                       ByteWriter*          inout_writer_ptr)
+void Analysis::APIDumpAnalysis::PassesSerializer::write_draw_structure(const DrawStructure&         in_structure,
+                                                                       Utils::BinaryIO::ByteWriter* inout_writer_ptr)
 {
     inout_writer_ptr->write_u64 (in_structure.index_buffer_key);
     inout_writer_ptr->write_bool(in_structure.is_indexed);
@@ -1129,8 +1129,8 @@ void Analysis::APIDumpAnalysis::PassesSerializer::write_draw_structure(const Dra
     inout_writer_ptr->write_u64(in_structure.vertex_layout_key);
 }
 
-void Analysis::APIDumpAnalysis::PassesSerializer::write_pass_instance(const PassInstance& in_instance,
-                                                                      ByteWriter*         inout_writer_ptr)
+void Analysis::APIDumpAnalysis::PassesSerializer::write_pass_instance(const PassInstance&          in_instance,
+                                                                      Utils::BinaryIO::ByteWriter* inout_writer_ptr)
 {
     inout_writer_ptr->write_u64(in_instance.begin_call_index);
     inout_writer_ptr->write_u64(in_instance.begin_timestamp_qpc);
@@ -1141,8 +1141,8 @@ void Analysis::APIDumpAnalysis::PassesSerializer::write_pass_instance(const Pass
     inout_writer_ptr->write_u32(in_instance.structure_id);
 }
 
-void Analysis::APIDumpAnalysis::PassesSerializer::write_pass_structure(const PassStructure& in_structure,
-                                                                       ByteWriter*          inout_writer_ptr)
+void Analysis::APIDumpAnalysis::PassesSerializer::write_pass_structure(const PassStructure&         in_structure,
+                                                                       Utils::BinaryIO::ByteWriter* inout_writer_ptr)
 {
     inout_writer_ptr->write_bool(in_structure.clears_color);
     inout_writer_ptr->write_bool(in_structure.clears_depth);
@@ -1189,8 +1189,8 @@ void Analysis::APIDumpAnalysis::PassesSerializer::write_pass_structure(const Pas
                    inout_writer_ptr);
 }
 
-void Analysis::APIDumpAnalysis::PassesSerializer::write_resource_description(const ResourceDescription& in_description,
-                                                                             ByteWriter*                inout_writer_ptr)
+void Analysis::APIDumpAnalysis::PassesSerializer::write_resource_description(const ResourceDescription&   in_description,
+                                                                             Utils::BinaryIO::ByteWriter* inout_writer_ptr)
 {
     inout_writer_ptr->write_u64 (in_description.api_flags);
     inout_writer_ptr->write_u64 (in_description.content_hash);
@@ -1210,16 +1210,16 @@ void Analysis::APIDumpAnalysis::PassesSerializer::write_resource_description(con
     inout_writer_ptr->write_u32 (in_description.width);
 }
 
-void Analysis::APIDumpAnalysis::PassesSerializer::write_resource_view(const ResourceView& in_view,
-                                                                      ByteWriter*         inout_writer_ptr)
+void Analysis::APIDumpAnalysis::PassesSerializer::write_resource_view(const ResourceView&          in_view,
+                                                                      Utils::BinaryIO::ByteWriter* inout_writer_ptr)
 {
     inout_writer_ptr->write_u32(in_view.layer);
     inout_writer_ptr->write_u32(in_view.mip_level);
     inout_writer_ptr->write_u32(get_resource_id_value(in_view.resource_id) );
 }
 
-void Analysis::APIDumpAnalysis::PassesSerializer::write_transfer_record(const TransferRecord& in_record,
-                                                                        ByteWriter*           inout_writer_ptr)
+void Analysis::APIDumpAnalysis::PassesSerializer::write_transfer_record(const TransferRecord&        in_record,
+                                                                        Utils::BinaryIO::ByteWriter* inout_writer_ptr)
 {
     inout_writer_ptr->write_u64(in_record.call_index);
 
@@ -1234,8 +1234,8 @@ void Analysis::APIDumpAnalysis::PassesSerializer::write_transfer_record(const Tr
                         inout_writer_ptr);
 }
 
-void Analysis::APIDumpAnalysis::PassesSerializer::write_viewport(const Viewport& in_viewport,
-                                                                 ByteWriter*     inout_writer_ptr)
+void Analysis::APIDumpAnalysis::PassesSerializer::write_viewport(const Viewport&              in_viewport,
+                                                                 Utils::BinaryIO::ByteWriter* inout_writer_ptr)
 {
     inout_writer_ptr->write_f32(in_viewport.height);
     inout_writer_ptr->write_f32(in_viewport.max_depth);

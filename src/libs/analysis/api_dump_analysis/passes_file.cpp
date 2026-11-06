@@ -2,10 +2,10 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/api_dump_analysis/hasher.h"
 #include "analysis/api_dump_analysis/passes_file.h"
 #include "analysis/api_dump_analysis/passes_format.h"
 #include "analysis/api_dump_analysis/passes_serializer.h"
+#include "utils/hashing/hasher.h"
 #include <fstream>
 #include <future>
 #include <stdio.h>

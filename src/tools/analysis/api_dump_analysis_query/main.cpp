@@ -2,12 +2,12 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/api_dump_analysis/json_writer.h"
-#include "analysis/api_dump_analysis/number_parser.h"
 #include "analysis/api_dump_analysis/passes_file.h"
 #include "analysis/api_dump_analysis/query_commands.h"
 #include "analysis/api_dump_analysis/workload_identity.h"
 #include "query.h"
+#include "utils/command_line/number_parser.h"
+#include "utils/json/json_writer.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -66,9 +66,9 @@ bool Analysis::APIDumpAnalysisQuery::parse_arguments(const int&   in_argc,
                 goto end;
             }
 
-            if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(next_argument,
-                                                                        UINT64_MAX,
-                                                                       &value) == false)
+            if (Utils::CommandLine::NumberParser::parse_unsigned(next_argument,
+                                                                 UINT64_MAX,
+                                                                 &value) == false)
             {
                 *out_error_ptr = argument + " needs a number, not " + next_argument;
 
@@ -175,9 +175,9 @@ bool Analysis::APIDumpAnalysisQuery::parse_arguments(const int&   in_argc,
             /* The id of a pass, or the index of a frame. */
             uint64_t value = 0;
 
-            if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(argument,
-                                                                        UINT64_MAX,
-                                                                       &value) == false)
+            if (Utils::CommandLine::NumberParser::parse_unsigned(argument,
+                                                                 UINT64_MAX,
+                                                                 &value) == false)
             {
                 *out_error_ptr = "An id must be a number, not " + argument;
 
@@ -251,9 +251,9 @@ int Analysis::APIDumpAnalysisQuery::run(int   in_argc,
                                         char* in_argv[])
 {
     Analysis::APIDumpAnalysis::AnalysisResult analysis;
-    std::string               error;
-    ExitCode                  exit_code = ExitCode::SUCCESS;
-    Options                   options;
+    std::string                               error;
+    ExitCode                                  exit_code = ExitCode::SUCCESS;
+    Options                                   options;
 
     if (parse_arguments(in_argc,
                         in_argv,
@@ -313,7 +313,7 @@ int Analysis::APIDumpAnalysisQuery::run(int   in_argc,
     }
 
     {
-        Analysis::APIDumpAnalysis::JsonWriter writer(options.is_compact == false);
+        Utils::Json::JsonWriter writer(options.is_compact == false);
         const auto                  status = Analysis::APIDumpAnalysis::QueryCommands::run(options.command,
                                                                                            analysis,
                                                                                            options.arguments,

@@ -36,7 +36,7 @@ void Stereo::ConverterDLL::FramePasser::on_present(void* in_device_ptr,
         std::lock_guard<std::mutex> lock(m_frame_state.mutex);
 
         const int64_t interval_qpc = frequency.QuadPart * MIN_COPY_INTERVAL_N_MILLISECONDS / 1000;
-        const double  now_ms       = Stereo::Transport::SeriesStats::get_now();
+        const double  now_ms       = Utils::Statistics::SeriesStats::get_now();
 
         m_frame_state.present_interval.add_interval(now_ms);
 
@@ -60,7 +60,7 @@ void Stereo::ConverterDLL::FramePasser::on_present(void* in_device_ptr,
             {
                 case Stereo::Transport::ExportStatus::EXPORTED:
                 {
-                    const double done_ms = Stereo::Transport::SeriesStats::get_now();
+                    const double done_ms = Utils::Statistics::SeriesStats::get_now();
 
                     m_frame_state.export_cost.add          (done_ms - now_ms);
                     m_frame_state.export_interval.add_interval(now_ms);
@@ -100,7 +100,7 @@ void Stereo::ConverterDLL::FramePasser::on_present(void* in_device_ptr,
 
         /* What the application and the copies do, a second at a time: what tells whether the images come evenly. */
         if (m_log.is_enabled() &&
-            Stereo::Transport::SeriesStats::take_period(&m_frame_state.last_report,
+            Utils::Statistics::SeriesStats::take_period(&m_frame_state.last_report,
                                                         now_ms,
                                                         REPORT_PERIOD_N_MILLISECONDS) )
         {

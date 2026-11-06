@@ -6,14 +6,15 @@
  * answer is told so.
  */
 #include <gtest/gtest.h>
-#include "analysis/api_dump_analysis/json_reader.h"
 #include "analysis/api_dump_dependencies/query_commands.h"
 #include "dependency_scene.h"
+#include "utils/json/json_reader.h"
 
 namespace
 {
     using namespace Analysis::APIDumpAnalysis;
     using namespace Analysis::APIDumpDependencies;
+    using namespace Utils::Json;
 }
 
 class DependencyQueryTest : public ::testing::Test
@@ -114,9 +115,9 @@ protected:
         m_analysis = scene.make_analysis();
     }
 
-    DependencyAnalysis                                m_analysis;
-    Analysis::APIDumpDependencies::QueryArguments     m_arguments;
-    std::string                                       m_error;
+    DependencyAnalysis                            m_analysis;
+    Analysis::APIDumpDependencies::QueryArguments m_arguments;
+    std::string                                   m_error;
 };
 
 TEST_F(DependencyQueryTest, InfoSaysWhatTheFileIsOfAndHowManyResourcesAreOfEachKind)
