@@ -34,11 +34,12 @@ Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::D3D8Frontend(Analysis::APIDu
 
 void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::create_swap_chain_resources(const Interception::Core::D3D8Utils::PresentParameters& in_parameters)
 {
-    Analysis::APIDumpAnalysis::AttachmentSet attachments;
+    Analysis::APIDumpAnalysis::AttachmentSet             attachments;
+    const Analysis::APIDumpAnalysis::ResourceDescription back_buffer_description = D3D8ResourceDescriber::describe_back_buffer(in_parameters);
 
     /* The device makes the back buffer, and the depth buffer if it is asked to, and renders to them to begin with. */
     m_back_buffer_view             = Analysis::APIDumpAnalysis::ResourceView();
-    m_back_buffer_view.resource_id = m_builder_ptr->on_create_resource      (D3D8ResourceDescriber::describe_back_buffer(in_parameters),
+    m_back_buffer_view.resource_id = m_builder_ptr->on_create_resource      (back_buffer_description,
                                                                              "BackBuffer");
     m_color_view                   = m_back_buffer_view;
     m_auto_depth_stencil_id        = Analysis::APIDumpAnalysis::ResourceId::NONE;
@@ -46,7 +47,9 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::create_swap_chain_resou
 
     if (in_parameters.enable_auto_depth_stencil)
     {
-        m_auto_depth_stencil_id = m_builder_ptr->on_create_resource(D3D8ResourceDescriber::describe_auto_depth_stencil(in_parameters),
+        const Analysis::APIDumpAnalysis::ResourceDescription auto_depth_stencil_description = D3D8ResourceDescriber::describe_auto_depth_stencil(in_parameters);
+
+        m_auto_depth_stencil_id = m_builder_ptr->on_create_resource(auto_depth_stencil_description,
                                                                     "AutoDepthStencil");
 
         m_depth_stencil_view.resource_id = m_auto_depth_stencil_id;
@@ -295,12 +298,16 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_clear(const Call
 
     if (in_view.succeeded() )
     {
+        const uint32_t color   = in_view.get_u32(COLOR_ARGUMENT);
+        const float    depth   = in_view.get_f32(DEPTH_ARGUMENT);
+        const uint32_t stencil = in_view.get_u32(STENCIL_ARGUMENT);
+
         Analysis::APIDumpAnalysis::ClearOperation clear = ClearOperationFactory::create(((flags & Interception::Hooks::D3D8::D3DCLEAR_TARGET)  != 0),
                                                                                         ((flags & Interception::Hooks::D3D8::D3DCLEAR_ZBUFFER) != 0),
                                                                                         ((flags & Interception::Hooks::D3D8::D3DCLEAR_STENCIL) != 0),
-                                                                                        in_view.get_u32(COLOR_ARGUMENT),
-                                                                                        in_view.get_f32(DEPTH_ARGUMENT),
-                                                                                        in_view.get_u32(STENCIL_ARGUMENT) );
+                                                                                        color,
+                                                                                        depth,
+                                                                                        stencil);
 
         /* Without rectangles, the clear is of the viewport. */
         clear.has_rectangles         = (in_view.get_u32(COUNT_ARGUMENT) != 0);
@@ -400,6 +407,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_pixel_sha
     else
     {
         Analysis::APIDumpAnalysis::ResourceDescription description;
+        const std::string                              shader_name = "PixelShader " + std::to_string(handle);
 
         description.content_hash     = Analysis::APIDumpAnalysis::Hasher::hash_bytes(function_ptr->data(),
                                                                                      function_ptr->size() );
@@ -409,7 +417,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_pixel_sha
         description.size_in_bytes    = function_ptr->size();
 
         m_pixel_shader_map[handle] = m_builder_ptr->on_create_resource(description,
-                                                                       "PixelShader " + std::to_string(handle) );
+                                                                       shader_name);
     }
 }
 
@@ -441,12 +449,14 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_resource(
     }
     else
     {
-        ObjectTracker::TrackedObject tracked_object;
+        const Analysis::APIDumpAnalysis::ResourceDescription resource_description = in_describe_func_ptr(in_view);
+        const std::string                                    resource_name        = m_namer.get_name(address,
+                                                                                                      info.object_type_name_ptr);
+        ObjectTracker::TrackedObject                         tracked_object;
 
         tracked_object.owns_resource    = true;
-        tracked_object.view.resource_id = m_builder_ptr->on_create_resource(in_describe_func_ptr(in_view),
-                                                                            m_namer.get_name    (address,
-                                                                                                 info.object_type_name_ptr) );
+        tracked_object.view.resource_id = m_builder_ptr->on_create_resource(resource_description,
+                                                                            resource_name);
 
         m_tracker.track(address,
                         tracked_object);
@@ -481,6 +491,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_vertex_sh
         Analysis::APIDumpAnalysis::Hasher              code_hasher;
         Analysis::APIDumpAnalysis::ResourceDescription description;
         VertexShader                                   shader;
+        const std::string                              shader_name = "VertexShader " + std::to_string(handle);
 
         /* A shader with no function is a declaration for the fixed-function pipeline. */
         code_hasher.add_bytes(declaration_ptr->data(),
@@ -503,7 +514,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_vertex_sh
         shader.declaration_hash = Analysis::APIDumpAnalysis::Hasher::hash_bytes(declaration_ptr->data(),
                                                                                 declaration_ptr->size() );
         shader.id               = m_builder_ptr->on_create_resource            (description,
-                                                                                "VertexShader " + std::to_string(handle) );
+                                                                                shader_name);
 
         m_vertex_shader_map[handle] = shader;
     }
@@ -553,10 +564,12 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_draw(const CallV
 
     if (in_view.succeeded() )
     {
-        auto description = m_pipeline_state.describe_draw(get_primitive_topology(type),
-                                                          get_vertex_count      (type,
-                                                                                 n_primitives),
-                                                          in_is_indexed);
+        const Analysis::APIDumpAnalysis::PrimitiveTopology topology     = get_primitive_topology(type);
+        const uint32_t                                     vertex_count = get_vertex_count      (type,
+                                                                                                 n_primitives);
+        auto                                               description  = m_pipeline_state.describe_draw(topology,
+                                                                                                         vertex_count,
+                                                                                                         in_is_indexed);
 
         if (m_builder_ptr->wants_geometry() )
         {
@@ -590,9 +603,12 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_draw_user_pointe
 
     if (in_view.succeeded() )
     {
-        m_builder_ptr->on_draw(m_pipeline_state.describe_user_pointer_draw(get_primitive_topology(type),
-                                                                           get_vertex_count      (type,
-                                                                                                  n_primitives),
+        const Analysis::APIDumpAnalysis::PrimitiveTopology topology     = get_primitive_topology(type);
+        const uint32_t                                     vertex_count = get_vertex_count      (type,
+                                                                                                 n_primitives);
+
+        m_builder_ptr->on_draw(m_pipeline_state.describe_user_pointer_draw(topology,
+                                                                           vertex_count,
                                                                            in_is_indexed,
                                                                            stride) );
     }
@@ -752,9 +768,12 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_lock(const CallV
 
     if (object_ptr != nullptr)
     {
+        const uint32_t n_bytes = in_view.get_u32(BUFFER_N_BYTES_ARGUMENT);
+        const uint32_t offset  = in_view.get_u32(BUFFER_OFFSET_ARGUMENT);
+
         m_geometry_tracker.on_lock(object_ptr->view.resource_id,
-                                   in_view.get_u32(BUFFER_OFFSET_ARGUMENT),
-                                   in_view.get_u32(BUFFER_N_BYTES_ARGUMENT) );
+                                   offset,
+                                   n_bytes);
     }
 }
 
@@ -914,7 +933,9 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_stream_sourc
 
     if (address == 0)
     {
-        if (m_pipeline_state.set_stream_source(in_view.get_u32(STREAM_ARGUMENT),
+        const uint32_t stream = in_view.get_u32(STREAM_ARGUMENT);
+
+        if (m_pipeline_state.set_stream_source(stream,
                                                Analysis::APIDumpAnalysis::ResourceId::NONE,
                                                0) == false)
         {
@@ -928,9 +949,12 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_stream_sourc
     }
     else
     {
-        if (m_pipeline_state.set_stream_source(in_view.get_u32(STREAM_ARGUMENT),
+        const uint32_t stream = in_view.get_u32(STREAM_ARGUMENT);
+        const uint32_t stride = in_view.get_u32(STRIDE_ARGUMENT);
+
+        if (m_pipeline_state.set_stream_source(stream,
                                                object_ptr->view.resource_id,
-                                               in_view.get_u32(STRIDE_ARGUMENT) ) == false)
+                                               stride) == false)
         {
             m_n_unfollowed_calls++;
         }
@@ -1133,9 +1157,10 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::on_call(const Capture::
                                                                  const Capture::APIDumpLoader::Workload&      in_workload)
 {
     const DescribeFuncPtr describe_func_ptr = get_describe_func_ptr(in_call.func);
+    const uint32_t        n_arguments       = Interception::Core::D3D8Utils::get_n_arguments(in_call.func);
     const CallView        view(in_call,
                               in_workload,
-                              Interception::Core::D3D8Utils::get_n_arguments(in_call.func) );
+                              n_arguments);
 
     register_names(view);
 
@@ -1519,17 +1544,22 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::register_buffer(const C
     {
         case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_CREATEINDEXBUFFER:
         {
+            const uint32_t format = in_view.get_u32(FORMAT_ARGUMENT);
+            const uint32_t length = in_view.get_u32(LENGTH_ARGUMENT);
+
             m_geometry_tracker.on_create_index_buffer(in_id,
-                                                      in_view.get_u32(LENGTH_ARGUMENT),
-                                                      in_view.get_u32(FORMAT_ARGUMENT) );
+                                                      length,
+                                                      format);
 
             break;
         }
 
         case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_CREATEVERTEXBUFFER:
         {
+            const uint32_t length = in_view.get_u32(LENGTH_ARGUMENT);
+
             m_geometry_tracker.on_create_vertex_buffer(in_id,
-                                                       in_view.get_u32(LENGTH_ARGUMENT) );
+                                                       length);
 
             break;
         }
@@ -1562,9 +1592,11 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::register_names(const Ca
             if (method_info_ptr != nullptr)
             {
                 /* Create* methods always return new objects; Get* ones return existing objects, which may be unknown to us. */
+                constexpr char CREATE_PREFIX[] = "Create";
+
                 const bool is_create = (::strncmp(method_info_ptr->method_name_ptr,
-                                                  "Create",
-                                                  ::strlen("Create") ) == 0);
+                                                  CREATE_PREFIX,
+                                                  sizeof(CREATE_PREFIX) - 1) == 0);
 
                 for (uint32_t n_argument = 0;
                               n_argument < call.arg_out_vec.size();
@@ -1580,7 +1612,9 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::register_names(const Ca
                     {
                         if (info.kind == Interception::Hooks::D3D8::ValueKind::OBJECT_OUT)
                         {
-                            m_namer.register_object(in_view.get_out_pointer(n_argument),
+                            const uint64_t address = in_view.get_out_pointer(n_argument);
+
+                            m_namer.register_object(address,
                                                     info.object_type_name_ptr,
                                                     is_create);
                         }

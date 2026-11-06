@@ -516,8 +516,9 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_shapes(const std::
 
         if (is_ok)
         {
-            const auto interned_shape_id = out_model_ptr->frame_shape_interner.intern(shape,
-                                                                                      KeyBuilder::compute_key_set_key(pass_key_vec) );
+            const uint64_t pass_key_set_key  = KeyBuilder::compute_key_set_key(pass_key_vec);
+            const auto     interned_shape_id = out_model_ptr->frame_shape_interner.intern(shape,
+                                                                                          pass_key_set_key);
 
             if (interned_shape_id != n_shape)
             {
@@ -944,7 +945,9 @@ std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_pass
                   n_pass < n_passes;
                 ++n_pass)
     {
-        write_pass_structure(in_model.pass_structure_interner.get_structure(n_pass),
+        const auto& pass_structure = in_model.pass_structure_interner.get_structure(n_pass);
+
+        write_pass_structure(pass_structure,
                             &writer);
     }
 

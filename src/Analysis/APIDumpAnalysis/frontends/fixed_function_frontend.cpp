@@ -84,8 +84,11 @@ void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::handle_light_e
     constexpr size_t ENABLE_ARGUMENT = 2;
     constexpr size_t INDEX_ARGUMENT  = 1;
 
-    if (get_fixed_function_state().set_light_enable(in_view.get_u32(INDEX_ARGUMENT),
-                                                    in_view.get_i32(ENABLE_ARGUMENT) != 0) == false)
+    const uint32_t light_index = in_view.get_u32(INDEX_ARGUMENT);
+    const bool     is_enabled  = (in_view.get_i32(ENABLE_ARGUMENT) != 0);
+
+    if (get_fixed_function_state().set_light_enable(light_index,
+                                                    is_enabled) == false)
     {
         m_n_unfollowed_calls++;
     }
@@ -134,13 +137,14 @@ void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::handle_set_lig
     }
     else
     {
-        uint32_t type = 0;
+        const uint32_t light_index = in_view.get_u32(INDEX_ARGUMENT);
+        uint32_t       type        = 0;
 
         ::memcpy(&type,
                  chunk_ptr->data(),
                  sizeof(type) );
 
-        if (get_fixed_function_state().set_light(in_view.get_u32(INDEX_ARGUMENT),
+        if (get_fixed_function_state().set_light(light_index,
                                                  type) == false)
         {
             m_n_unfollowed_calls++;
@@ -153,8 +157,11 @@ void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::handle_set_ren
     constexpr size_t STATE_ARGUMENT = 1;
     constexpr size_t VALUE_ARGUMENT = 2;
 
-    if (get_fixed_function_state().set_render_state(in_view.get_u32(STATE_ARGUMENT),
-                                                    in_view.get_u32(VALUE_ARGUMENT) ) == false)
+    const uint32_t state = in_view.get_u32(STATE_ARGUMENT);
+    const uint32_t value = in_view.get_u32(VALUE_ARGUMENT);
+
+    if (get_fixed_function_state().set_render_state(state,
+                                                    value) == false)
     {
         m_n_unfollowed_calls++;
     }
@@ -167,11 +174,12 @@ void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::handle_set_tex
 
     const uint64_t                      address    = in_view.get_pointer(TEXTURE_ARGUMENT);
     const ObjectTracker::TrackedObject* object_ptr = m_tracker.get_object_ptr(address);
+    const uint32_t                      stage      = in_view.get_u32(STAGE_ARGUMENT);
 
     if (address == 0)
     {
         /* No texture takes the one in the stage away. */
-        if (get_fixed_function_state().set_texture(in_view.get_u32(STAGE_ARGUMENT),
+        if (get_fixed_function_state().set_texture(stage,
                                                    Analysis::APIDumpAnalysis::ResourceView() ) == false)
         {
             m_n_unfollowed_calls++;
@@ -184,7 +192,7 @@ void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::handle_set_tex
     }
     else
     {
-        if (get_fixed_function_state().set_texture(in_view.get_u32(STAGE_ARGUMENT),
+        if (get_fixed_function_state().set_texture(stage,
                                                    object_ptr->view) == false)
         {
             m_n_unfollowed_calls++;
@@ -198,9 +206,13 @@ void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::handle_set_tex
     constexpr size_t STATE_ARGUMENT = 2;
     constexpr size_t VALUE_ARGUMENT = 3;
 
-    if (get_fixed_function_state().set_texture_stage_state(in_view.get_u32(STAGE_ARGUMENT),
-                                                           in_view.get_u32(STATE_ARGUMENT),
-                                                           in_view.get_u32(VALUE_ARGUMENT) ) == false)
+    const uint32_t stage = in_view.get_u32(STAGE_ARGUMENT);
+    const uint32_t state = in_view.get_u32(STATE_ARGUMENT);
+    const uint32_t value = in_view.get_u32(VALUE_ARGUMENT);
+
+    if (get_fixed_function_state().set_texture_stage_state(stage,
+                                                           state,
+                                                           value) == false)
     {
         m_n_unfollowed_calls++;
     }

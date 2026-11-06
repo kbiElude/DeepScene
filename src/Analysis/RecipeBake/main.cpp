@@ -109,10 +109,11 @@ int main(int   in_argc,
 
         if (options.lists_overlays)
         {
-            Analysis::APIDumpAnalysis::JsonWriter writer(true); /* in_is_pretty */
+            const std::vector<Analysis::RecipeBake::OverlayCandidate> candidate_vec = Analysis::RecipeBake::OverlayCandidateFinder::find(recipe,
+                                                                                                                                         analysis);
+            Analysis::APIDumpAnalysis::JsonWriter                     writer(true); /* in_is_pretty */
 
-            Analysis::RecipeBake::OverlayCandidateFinder::write_json(Analysis::RecipeBake::OverlayCandidateFinder::find(recipe,
-                                                                                                                         analysis),
+            Analysis::RecipeBake::OverlayCandidateFinder::write_json(candidate_vec,
                                                                      recipe,
                                                                     &writer);
 
@@ -219,8 +220,10 @@ int main(int   in_argc,
 
         for (const auto& hazard_pair : analysis.summary.n_resolution_hazards_map)
         {
+            const char* hazard_name_ptr = Analysis::APIDumpAnalysis::get_resolution_hazard_name(hazard_pair.first);
+
             ::printf("  %s: %llu calls\n",
-                     Analysis::APIDumpAnalysis::get_resolution_hazard_name(hazard_pair.first),
+                     hazard_name_ptr,
                      static_cast<unsigned long long>(hazard_pair.second) );
         }
     }

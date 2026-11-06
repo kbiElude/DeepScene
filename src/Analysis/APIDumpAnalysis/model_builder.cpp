@@ -237,7 +237,9 @@ uint64_t Analysis::APIDumpAnalysis::ModelBuilder::compute_draw_signature_key(con
         depth_stencil_view_key = m_key_table.get_unwritten_view_key(m_open_pass.attachments.depth_stencil_view);
     }
 
-    return KeyBuilder::compute_draw_signature_key(KeyBuilder::compute_draw_structure_key(m_draw_signature_scratch),
+    const uint64_t structure_key = KeyBuilder::compute_draw_structure_key(m_draw_signature_scratch);
+
+    return KeyBuilder::compute_draw_signature_key(structure_key,
                                                   color_view_key_vec,
                                                   depth_stencil_view_key);
 }
@@ -565,28 +567,34 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_clear(const ClearOperation& in_
     {
         for (const auto& color_view : m_attachments.color_view_vec)
         {
+            const AccessCoverage   coverage = get_clear_coverage(in_clear,
+                                                                 color_view);
+            const SubresourceRange range    = get_subresource_range(color_view);
+
             m_access_tracker.on_write(color_view.resource_id);
 
             emit_access(color_view.resource_id,
                         AccessRole::CLEAR_TARGET,
                         AccessMode::WRITE,
-                        get_clear_coverage(in_clear,
-                                           color_view),
-                        get_subresource_range(color_view) );
+                        coverage,
+                        range);
         }
     }
 
     if (in_clear.clears_depth    ||
         in_clear.clears_stencil)
     {
+        const AccessCoverage   coverage = get_clear_coverage(in_clear,
+                                                             m_attachments.depth_stencil_view);
+        const SubresourceRange range    = get_subresource_range(m_attachments.depth_stencil_view);
+
         m_access_tracker.on_write(m_attachments.depth_stencil_view.resource_id);
 
         emit_access(m_attachments.depth_stencil_view.resource_id,
                     AccessRole::CLEAR_TARGET,
                     AccessMode::WRITE,
-                    get_clear_coverage(in_clear,
-                                       m_attachments.depth_stencil_view),
-                    get_subresource_range(m_attachments.depth_stencil_view) );
+                    coverage,
+                    range);
     }
 
     if (m_has_open_pass         &&
@@ -607,7 +615,9 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_clear(const ClearOperation& in_
 void Analysis::APIDumpAnalysis::ModelBuilder::on_copy(const ResourceView& in_source,
                                                       const ResourceView& in_destination)
 {
-    Hasher hasher;
+    Hasher                 hasher;
+    const SubresourceRange destination_range = get_subresource_range(in_destination);
+    const SubresourceRange source_range      = get_subresource_range(in_source);
 
     m_access_tracker.on_read (in_source.resource_id);
     m_access_tracker.on_write(in_destination.resource_id);
@@ -616,12 +626,12 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_copy(const ResourceView& in_sou
                 AccessRole::TRANSFER_SOURCE,
                 AccessMode::READ,
                 AccessCoverage::UNKNOWN,
-                get_subresource_range(in_source) );
+                source_range);
     emit_access(in_destination.resource_id,
                 AccessRole::TRANSFER_DESTINATION,
                 AccessMode::WRITE,
                 AccessCoverage::UNKNOWN, /* which part of it is not told */
-                get_subresource_range(in_destination) );
+                destination_range);
 
     close_pass_if_rendered_to(in_source);
     close_pass_if_rendered_to(in_destination);
@@ -898,10 +908,11 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_update_constant(const ConstantU
 {
     if (in_update.semantic != ConstantSemantic::UNKNOWN)
     {
-        ConstantState& state = m_constant_state_map[std::make_tuple(in_update.location.block_kind,
-                                                                    get_resource_id_value(in_update.location.block_id),
-                                                                    in_update.location.byte_offset,
-                                                                    in_update.location.byte_size)];
+        const uint32_t block_id_value = get_resource_id_value(in_update.location.block_id);
+        ConstantState& state          = m_constant_state_map[std::make_tuple(in_update.location.block_kind,
+                                                                             block_id_value,
+                                                                             in_update.location.byte_offset,
+                                                                             in_update.location.byte_size)];
 
         /* Assigned in place: the value of the update before keeps its memory. */
         state.block_key = m_key_table.get_unwritten_key(in_update.location.block_id);
@@ -912,7 +923,8 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_update_constant(const ConstantU
 void Analysis::APIDumpAnalysis::ModelBuilder::on_upload(const ResourceView&  in_destination,
                                                         const DataReference& in_data)
 {
-    Hasher hasher;
+    Hasher                 hasher;
+    const SubresourceRange destination_range = get_subresource_range(in_destination);
 
     m_access_tracker.on_write(in_destination.resource_id);
 
@@ -920,7 +932,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_upload(const ResourceView&  in_
                 AccessRole::UPLOAD_DESTINATION,
                 AccessMode::WRITE,
                 AccessCoverage::UNKNOWN, /* which part of it is not told */
-                get_subresource_range(in_destination) );
+                destination_range);
 
     close_pass_if_rendered_to(in_destination);
 
@@ -1039,20 +1051,26 @@ void Analysis::APIDumpAnalysis::ModelBuilder::record_draw_access(const DrawDescr
 
     for (const auto& color_view : m_attachments.color_view_vec)
     {
+        const SubresourceRange range = get_subresource_range(color_view);
+
         emit_access(color_view.resource_id,
                     AccessRole::COLOR_ATTACHMENT,
                     (in_draw.reads_color_attachments) ? AccessMode::READ_WRITE
                                                       : AccessMode::WRITE,
                     AccessCoverage::UNKNOWN,
-                    get_subresource_range(color_view) );
+                    range);
     }
 
-    emit_access(m_attachments.depth_stencil_view.resource_id,
-                AccessRole::DEPTH_STENCIL_ATTACHMENT,
-                (in_draw.reads_depth_stencil) ? AccessMode::READ_WRITE
-                                              : AccessMode::WRITE,
-                AccessCoverage::UNKNOWN,
-                get_subresource_range(m_attachments.depth_stencil_view) );
+    {
+        const SubresourceRange range = get_subresource_range(m_attachments.depth_stencil_view);
+
+        emit_access(m_attachments.depth_stencil_view.resource_id,
+                    AccessRole::DEPTH_STENCIL_ATTACHMENT,
+                    (in_draw.reads_depth_stencil) ? AccessMode::READ_WRITE
+                                                  : AccessMode::WRITE,
+                    AccessCoverage::UNKNOWN,
+                    range);
+    }
 }
 
 void Analysis::APIDumpAnalysis::ModelBuilder::record_draw_depth(const DrawDescription& in_draw)

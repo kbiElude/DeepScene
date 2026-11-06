@@ -323,14 +323,17 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_clear(const Call
     constexpr size_t FLAGS_ARGUMENT   = 3;
     constexpr size_t STENCIL_ARGUMENT = 6;
 
-    const uint32_t flags = in_view.get_u32(FLAGS_ARGUMENT);
+    const uint32_t color   = in_view.get_u32(COLOR_ARGUMENT);
+    const float    depth   = in_view.get_f32(DEPTH_ARGUMENT);
+    const uint32_t flags   = in_view.get_u32(FLAGS_ARGUMENT);
+    const uint32_t stencil = in_view.get_u32(STENCIL_ARGUMENT);
 
     Analysis::APIDumpAnalysis::ClearOperation clear = ClearOperationFactory::create(((flags & Interception::Core::D3D7Utils::D3DCLEAR_TARGET)  != 0),
                                                                                     ((flags & Interception::Core::D3D7Utils::D3DCLEAR_ZBUFFER) != 0),
                                                                                     ((flags & Interception::Core::D3D7Utils::D3DCLEAR_STENCIL) != 0),
-                                                                                    in_view.get_u32(COLOR_ARGUMENT),
-                                                                                    in_view.get_f32(DEPTH_ARGUMENT),
-                                                                                    in_view.get_u32(STENCIL_ARGUMENT) );
+                                                                                    color,
+                                                                                    depth,
+                                                                                    stencil);
 
     /* Without rectangles, the clear is of the viewport. */
     clear.has_rectangles         = (in_view.get_u32(COUNT_ARGUMENT) != 0);
@@ -389,6 +392,8 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_create_surface(c
         const auto                   resource_description = D3D7ResourceDescriber::describe_surface(description,
                                                                                                     m_screen_width,
                                                                                                     m_screen_height);
+        const std::string            surface_name         = m_namer.get_name(address,
+                                                                             "Surface");
         ObjectTracker::TrackedObject tracked_object;
 
         if ( (description.caps.dwCaps & Interception::Core::D3D7Utils::DDSCAPS_PRIMARYSURFACE) != 0)
@@ -398,8 +403,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_create_surface(c
 
         tracked_object.owns_resource    = true;
         tracked_object.view.resource_id = m_builder_ptr->on_create_resource(resource_description,
-                                                                            m_namer.get_name(address,
-                                                                                             "Surface") );
+                                                                            surface_name);
 
         m_tracker.track(address,
                         tracked_object);
@@ -429,15 +433,20 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_create_vertex_bu
                chunk_ptr->data(),
                sizeof(description) );
 
-        tracked_object.owns_resource    = true;
-        tracked_object.view.resource_id = m_builder_ptr->on_create_resource(D3D7ResourceDescriber::describe_vertex_buffer(description),
-                                                                            m_namer.get_name                          (address,
-                                                                                                                       "VertexBuffer") );
+        {
+            const Analysis::APIDumpAnalysis::ResourceDescription resource_description = D3D7ResourceDescriber::describe_vertex_buffer(description);
+            const std::string                                    vertex_buffer_name   = m_namer.get_name(address,
+                                                                                                         "VertexBuffer");
 
-        m_vertex_buffer_fvf_map[Analysis::APIDumpAnalysis::get_resource_id_value(tracked_object.view.resource_id)] = description.dwFVF;
+            tracked_object.owns_resource    = true;
+            tracked_object.view.resource_id = m_builder_ptr->on_create_resource(resource_description,
+                                                                                vertex_buffer_name);
 
-        m_geometry_tracker.on_create_vertex_buffer(tracked_object.view.resource_id,
-                                                   D3D7ResourceDescriber::describe_vertex_buffer(description).size_in_bytes);
+            m_vertex_buffer_fvf_map[Analysis::APIDumpAnalysis::get_resource_id_value(tracked_object.view.resource_id)] = description.dwFVF;
+
+            m_geometry_tracker.on_create_vertex_buffer(tracked_object.view.resource_id,
+                                                       resource_description.size_in_bytes);
+        }
 
         m_tracker.track(address,
                         tracked_object);
@@ -484,7 +493,9 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_draw(const CallV
         m_n_resolution_hazard_map[Analysis::APIDumpAnalysis::ResolutionHazard::SCREEN_SPACE_VERTICES]++;
     }
 
-    auto description = m_pipeline_state.describe_draw(get_primitive_topology(in_view.get_u32(PRIMITIVE_TYPE_ARGUMENT) ),
+    const Analysis::APIDumpAnalysis::PrimitiveTopology topology = get_primitive_topology(in_view.get_u32(PRIMITIVE_TYPE_ARGUMENT) );
+
+    auto description = m_pipeline_state.describe_draw(topology,
                                                       count,
                                                       in_layout.is_indexed,
                                                       fvf,
@@ -519,12 +530,13 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_duplicate_surfac
     }
     else
     {
+        const std::string            surface_name = m_namer.get_name(address,
+                                                                     "Surface");
         ObjectTracker::TrackedObject tracked_object;
 
         tracked_object.owns_resource    = true;
         tracked_object.view.resource_id = m_builder_ptr->on_create_resource(*description_ptr,
-                                                                            m_namer.get_name(address,
-                                                                                             "Surface") );
+                                                                            surface_name);
 
         m_builder_ptr->on_copy(source_ptr->view,
                                tracked_object.view);
@@ -579,10 +591,13 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_get_attached_sur
         }
         else
         {
+            const Analysis::APIDumpAnalysis::ResourceDescription back_buffer_description = D3D7ResourceDescriber::describe_back_buffer(*description_ptr);
+            const std::string                                    surface_name            = m_namer.get_name(address,
+                                                                                                            "Surface");
+
             tracked_object.owns_resource    = true;
-            tracked_object.view.resource_id = m_builder_ptr->on_create_resource(D3D7ResourceDescriber::describe_back_buffer(*description_ptr),
-                                                                                m_namer.get_name                           (address,
-                                                                                                                            "Surface") );
+            tracked_object.view.resource_id = m_builder_ptr->on_create_resource(back_buffer_description,
+                                                                                surface_name);
 
             m_tracker.track(address,
                             tracked_object);
@@ -776,9 +791,10 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::on_call(const Capture::
 {
     const DrawLayout* draw_layout_ptr = find_draw_layout_ptr(in_call.func);
     const bool        is_release      = (m_release_function_set.find(in_call.func) != m_release_function_set.end() );
+    const uint32_t    n_arguments     = Interception::Core::D3D7Utils::get_n_arguments(in_call.func);
     const CallView    view(in_call,
                            in_workload,
-                           Interception::Core::D3D7Utils::get_n_arguments(in_call.func) );
+                           n_arguments);
 
     register_names           (view);
     count_resolution_hazards (view);
@@ -984,17 +1000,25 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::register_names(const Ca
 
     if (in_view.succeeded() )
     {
+        constexpr char CREATE_PREFIX[] = "Create";
+
         const auto* method_info_ptr = Interception::Core::D3D7Utils::get_method_info_ptr(call.func);
+        bool        is_create       = true;
 
         /* The exports of the DLL and the Create* methods always return new objects; Get* ones return existing objects, which may be
          * unknown to us.
          */
-        const bool is_create = (method_info_ptr == nullptr                                                  ||
-                                ::strncmp(method_info_ptr->method_name_ptr,
-                                          "Create",
-                                          ::strlen("Create") ) == 0                                         ||
-                                ::strcmp (method_info_ptr->method_name_ptr,
-                                          "DuplicateSurface")  == 0);
+        if (method_info_ptr != nullptr)
+        {
+            const bool is_create_method     = (::strncmp(method_info_ptr->method_name_ptr,
+                                                         CREATE_PREFIX,
+                                                         sizeof(CREATE_PREFIX) - 1) == 0);
+            const bool is_duplicate_surface = (::strcmp (method_info_ptr->method_name_ptr,
+                                                         "DuplicateSurface")        == 0);
+
+            is_create = (is_create_method     ||
+                         is_duplicate_surface);
+        }
 
         for (uint32_t n_argument = 0;
                       n_argument < call.arg_out_vec.size();
@@ -1010,9 +1034,12 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::register_names(const Ca
             {
                 if (info.kind == Interception::Hooks::D3D7::ValueKind::OBJECT_OUT)
                 {
-                    m_namer.register_object(in_view.get_out_pointer(n_argument),
-                                            get_created_object_type_name_ptr(in_view,
-                                                                             info),
+                    const uint64_t address       = in_view.get_out_pointer(n_argument);
+                    const char*    type_name_ptr = get_created_object_type_name_ptr(in_view,
+                                                                                    info);
+
+                    m_namer.register_object(address,
+                                            type_name_ptr,
                                             is_create);
                 }
             }

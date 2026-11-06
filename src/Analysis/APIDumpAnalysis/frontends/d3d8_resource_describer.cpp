@@ -131,16 +131,20 @@ Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Fronte
     constexpr size_t   POOL_ARGUMENT        = 5;
     constexpr size_t   USAGE_ARGUMENT       = 3;
 
-    const uint32_t edge_length = in_view.get_u32(EDGE_LENGTH_ARGUMENT);
-    auto           result      = describe_surface(edge_length,
-                                                  edge_length,
-                                                  static_cast<Interception::Hooks::D3D8::D3DFORMAT>(in_view.get_u32(FORMAT_ARGUMENT) ),
-                                                  in_view.get_u32(USAGE_ARGUMENT),
-                                                  static_cast<Interception::Hooks::D3D8::D3DPOOL>  (in_view.get_u32(POOL_ARGUMENT) ));
+    const uint32_t                             edge_length = in_view.get_u32(EDGE_LENGTH_ARGUMENT);
+    const Interception::Hooks::D3D8::D3DFORMAT format      = static_cast<Interception::Hooks::D3D8::D3DFORMAT>(in_view.get_u32(FORMAT_ARGUMENT) );
+    const uint32_t                             level_count = in_view.get_u32(LEVELS_ARGUMENT);
+    const Interception::Hooks::D3D8::D3DPOOL   pool        = static_cast<Interception::Hooks::D3D8::D3DPOOL>  (in_view.get_u32(POOL_ARGUMENT) );
+    const uint32_t                             usage       = in_view.get_u32(USAGE_ARGUMENT);
+    auto                                       result      = describe_surface(edge_length,
+                                                                              edge_length,
+                                                                              format,
+                                                                              usage,
+                                                                              pool);
 
     result.depth_or_layer_count = N_CUBE_FACES;
     result.kind                 = Analysis::APIDumpAnalysis::ResourceKind::TEXTURE_CUBE;
-    result.mip_level_count      = MipChain::get_level_count(in_view.get_u32(LEVELS_ARGUMENT),
+    result.mip_level_count      = MipChain::get_level_count(level_count,
                                                             edge_length,
                                                             edge_length);
 
@@ -154,13 +158,17 @@ Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Fronte
     constexpr size_t MULTI_SAMPLE_ARGUMENT = 4;
     constexpr size_t WIDTH_ARGUMENT        = 1;
 
-    auto result = describe_surface(in_view.get_u32(WIDTH_ARGUMENT),
-                                   in_view.get_u32(HEIGHT_ARGUMENT),
-                                   static_cast<Interception::Hooks::D3D8::D3DFORMAT>(in_view.get_u32(FORMAT_ARGUMENT) ),
-                                   Interception::Hooks::D3D8::D3DUSAGE_DEPTHSTENCIL,
-                                   Interception::Hooks::D3D8::D3DPOOL_DEFAULT);
+    const Interception::Hooks::D3D8::D3DFORMAT           format            = static_cast<Interception::Hooks::D3D8::D3DFORMAT>         (in_view.get_u32(FORMAT_ARGUMENT) );
+    const uint32_t                                       height            = in_view.get_u32(HEIGHT_ARGUMENT);
+    const Interception::Hooks::D3D8::D3DMULTISAMPLE_TYPE multi_sample_type = static_cast<Interception::Hooks::D3D8::D3DMULTISAMPLE_TYPE>(in_view.get_u32(MULTI_SAMPLE_ARGUMENT) );
+    const uint32_t                                       width             = in_view.get_u32(WIDTH_ARGUMENT);
+    auto                                                 result            = describe_surface(width,
+                                                                                              height,
+                                                                                              format,
+                                                                                              Interception::Hooks::D3D8::D3DUSAGE_DEPTHSTENCIL,
+                                                                                              Interception::Hooks::D3D8::D3DPOOL_DEFAULT);
 
-    result.sample_count = get_n_samples(static_cast<Interception::Hooks::D3D8::D3DMULTISAMPLE_TYPE>(in_view.get_u32(MULTI_SAMPLE_ARGUMENT) ));
+    result.sample_count = get_n_samples(multi_sample_type);
 
     return result;
 }
@@ -171,9 +179,13 @@ Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Fronte
     constexpr size_t HEIGHT_ARGUMENT = 2;
     constexpr size_t WIDTH_ARGUMENT  = 1;
 
-    return describe_surface(in_view.get_u32(WIDTH_ARGUMENT),
-                            in_view.get_u32(HEIGHT_ARGUMENT),
-                            static_cast<Interception::Hooks::D3D8::D3DFORMAT>(in_view.get_u32(FORMAT_ARGUMENT) ),
+    const Interception::Hooks::D3D8::D3DFORMAT format = static_cast<Interception::Hooks::D3D8::D3DFORMAT>(in_view.get_u32(FORMAT_ARGUMENT) );
+    const uint32_t                             height = in_view.get_u32(HEIGHT_ARGUMENT);
+    const uint32_t                             width  = in_view.get_u32(WIDTH_ARGUMENT);
+
+    return describe_surface(width,
+                            height,
+                            format,
                             0,
                             Interception::Hooks::D3D8::D3DPOOL_SYSTEMMEM);
 }
@@ -185,10 +197,11 @@ Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Fronte
     constexpr size_t POOL_ARGUMENT   = 4;
     constexpr size_t USAGE_ARGUMENT  = 2;
 
+    const Interception::Hooks::D3D8::D3DPOOL       pool   = static_cast<Interception::Hooks::D3D8::D3DPOOL>(in_view.get_u32(POOL_ARGUMENT) );
     Analysis::APIDumpAnalysis::ResourceDescription result;
-    const uint32_t                                 usage = in_view.get_u32(USAGE_ARGUMENT);
+    const uint32_t                                 usage  = in_view.get_u32(USAGE_ARGUMENT);
 
-    result.api_flags        = compute_api_flags(static_cast<Interception::Hooks::D3D8::D3DPOOL>(in_view.get_u32(POOL_ARGUMENT) ),
+    result.api_flags        = compute_api_flags(pool,
                                                 usage);
     result.format.raw_value = in_view.get_u32  (FORMAT_ARGUMENT);
     result.is_dynamic       = ((usage & Interception::Hooks::D3D8::D3DUSAGE_DYNAMIC) != 0);
@@ -205,13 +218,17 @@ Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Fronte
     constexpr size_t MULTI_SAMPLE_ARGUMENT = 4;
     constexpr size_t WIDTH_ARGUMENT        = 1;
 
-    auto result = describe_surface(in_view.get_u32                                  (WIDTH_ARGUMENT),
-                                   in_view.get_u32                                  (HEIGHT_ARGUMENT),
-                                   static_cast<Interception::Hooks::D3D8::D3DFORMAT>(in_view.get_u32(FORMAT_ARGUMENT) ),
-                                   Interception::Hooks::D3D8::D3DUSAGE_RENDERTARGET,
-                                   Interception::Hooks::D3D8::D3DPOOL_DEFAULT);
+    const Interception::Hooks::D3D8::D3DFORMAT           format            = static_cast<Interception::Hooks::D3D8::D3DFORMAT>         (in_view.get_u32(FORMAT_ARGUMENT) );
+    const uint32_t                                       height            = in_view.get_u32(HEIGHT_ARGUMENT);
+    const Interception::Hooks::D3D8::D3DMULTISAMPLE_TYPE multi_sample_type = static_cast<Interception::Hooks::D3D8::D3DMULTISAMPLE_TYPE>(in_view.get_u32(MULTI_SAMPLE_ARGUMENT) );
+    const uint32_t                                       width             = in_view.get_u32(WIDTH_ARGUMENT);
+    auto                                                 result            = describe_surface(width,
+                                                                                              height,
+                                                                                              format,
+                                                                                              Interception::Hooks::D3D8::D3DUSAGE_RENDERTARGET,
+                                                                                              Interception::Hooks::D3D8::D3DPOOL_DEFAULT);
 
-    result.sample_count = get_n_samples(static_cast<Interception::Hooks::D3D8::D3DMULTISAMPLE_TYPE>(in_view.get_u32(MULTI_SAMPLE_ARGUMENT) ));
+    result.sample_count = get_n_samples(multi_sample_type);
 
     return result;
 }
@@ -246,13 +263,19 @@ Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Fronte
     constexpr size_t USAGE_ARGUMENT  = 4;
     constexpr size_t WIDTH_ARGUMENT  = 1;
 
-    auto result = describe_surface(in_view.get_u32                                  (WIDTH_ARGUMENT),
-                                   in_view.get_u32                                  (HEIGHT_ARGUMENT),
-                                   static_cast<Interception::Hooks::D3D8::D3DFORMAT>(in_view.get_u32(FORMAT_ARGUMENT) ),
-                                   in_view.get_u32                                  (USAGE_ARGUMENT),
-                                   static_cast<Interception::Hooks::D3D8::D3DPOOL>  (in_view.get_u32(POOL_ARGUMENT) ));
+    const Interception::Hooks::D3D8::D3DFORMAT format      = static_cast<Interception::Hooks::D3D8::D3DFORMAT>(in_view.get_u32(FORMAT_ARGUMENT) );
+    const uint32_t                             height      = in_view.get_u32(HEIGHT_ARGUMENT);
+    const uint32_t                             level_count = in_view.get_u32(LEVELS_ARGUMENT);
+    const Interception::Hooks::D3D8::D3DPOOL   pool        = static_cast<Interception::Hooks::D3D8::D3DPOOL>  (in_view.get_u32(POOL_ARGUMENT) );
+    const uint32_t                             usage       = in_view.get_u32(USAGE_ARGUMENT);
+    const uint32_t                             width       = in_view.get_u32(WIDTH_ARGUMENT);
+    auto                                       result      = describe_surface(width,
+                                                                              height,
+                                                                              format,
+                                                                              usage,
+                                                                              pool);
 
-    result.mip_level_count = MipChain::get_level_count(in_view.get_u32(LEVELS_ARGUMENT),
+    result.mip_level_count = MipChain::get_level_count(level_count,
                                                        result.width,
                                                        result.height);
 
@@ -265,10 +288,11 @@ Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Fronte
     constexpr size_t POOL_ARGUMENT   = 4;
     constexpr size_t USAGE_ARGUMENT  = 2;
 
+    const Interception::Hooks::D3D8::D3DPOOL       pool   = static_cast<Interception::Hooks::D3D8::D3DPOOL>(in_view.get_u32(POOL_ARGUMENT) );
     Analysis::APIDumpAnalysis::ResourceDescription result;
-    const uint32_t                                 usage = in_view.get_u32(USAGE_ARGUMENT);
+    const uint32_t                                 usage  = in_view.get_u32(USAGE_ARGUMENT);
 
-    result.api_flags     = compute_api_flags(static_cast<Interception::Hooks::D3D8::D3DPOOL>(in_view.get_u32(POOL_ARGUMENT) ),
+    result.api_flags     = compute_api_flags(pool,
                                              usage);
     result.is_dynamic    = ((usage & Interception::Hooks::D3D8::D3DUSAGE_DYNAMIC) != 0);
     result.kind          = Analysis::APIDumpAnalysis::ResourceKind::BUFFER_VERTEX;
@@ -287,15 +311,21 @@ Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Fronte
     constexpr size_t USAGE_ARGUMENT  = 5;
     constexpr size_t WIDTH_ARGUMENT  = 1;
 
-    auto result = describe_surface(in_view.get_u32                                  (WIDTH_ARGUMENT),
-                                   in_view.get_u32                                  (HEIGHT_ARGUMENT),
-                                   static_cast<Interception::Hooks::D3D8::D3DFORMAT>(in_view.get_u32(FORMAT_ARGUMENT) ),
-                                   in_view.get_u32                                  (USAGE_ARGUMENT),
-                                   static_cast<Interception::Hooks::D3D8::D3DPOOL>  (in_view.get_u32(POOL_ARGUMENT) ));
+    const Interception::Hooks::D3D8::D3DFORMAT format      = static_cast<Interception::Hooks::D3D8::D3DFORMAT>(in_view.get_u32(FORMAT_ARGUMENT) );
+    const uint32_t                             height      = in_view.get_u32(HEIGHT_ARGUMENT);
+    const uint32_t                             level_count = in_view.get_u32(LEVELS_ARGUMENT);
+    const Interception::Hooks::D3D8::D3DPOOL   pool        = static_cast<Interception::Hooks::D3D8::D3DPOOL>  (in_view.get_u32(POOL_ARGUMENT) );
+    const uint32_t                             usage       = in_view.get_u32(USAGE_ARGUMENT);
+    const uint32_t                             width       = in_view.get_u32(WIDTH_ARGUMENT);
+    auto                                       result      = describe_surface(width,
+                                                                              height,
+                                                                              format,
+                                                                              usage,
+                                                                              pool);
 
     result.depth_or_layer_count = in_view.get_u32(DEPTH_ARGUMENT);
     result.kind                 = Analysis::APIDumpAnalysis::ResourceKind::TEXTURE_3D;
-    result.mip_level_count      = MipChain::get_level_count(in_view.get_u32(LEVELS_ARGUMENT),
+    result.mip_level_count      = MipChain::get_level_count(level_count,
                                                             result.width,
                                                             result.height);
 

@@ -38,7 +38,9 @@ bool Analysis::RecipeBake::RecipeBaker::bake(const std::string&                 
 
     *out_report_ptr = BakeReport();
 
-    if (Analysis::APIDumpAnalysis::JsonReader::parse(Analysis::APIDumpAnalysis::JsonReader::strip_byte_order_mark(in_recipe_text),
+    const std::string recipe_text = Analysis::APIDumpAnalysis::JsonReader::strip_byte_order_mark(in_recipe_text);
+
+    if (Analysis::APIDumpAnalysis::JsonReader::parse(recipe_text,
                                                     &root,
                                                     &json_error) == false)
     {
@@ -131,14 +133,15 @@ bool Analysis::RecipeBake::RecipeBaker::bake(const std::string&                 
 
         writer.write_key("baked");
 
-        const PerEyeTextureVector per_eye_texture_vec = get_per_eye_texture_vec(in_analysis,
-                                                                                in_dependencies_ptr);
+        const std::vector<uint64_t> covering_draw_key_vec = get_covering_draw_key_vec(recipe,
+                                                                                      in_analysis);
+        const PerEyeTextureVector   per_eye_texture_vec   = get_per_eye_texture_vec(in_analysis,
+                                                                                    in_dependencies_ptr);
 
         out_report_ptr->n_per_eye_textures       = static_cast<uint32_t>(per_eye_texture_vec.size() );
         out_report_ptr->uses_dependencies        = (in_dependencies_ptr != nullptr);
 
-        write_baked(get_covering_draw_key_vec(recipe,
-                                              in_analysis),
+        write_baked(covering_draw_key_vec,
                     convergence_vec,
                     known_signature_key_vec,
                     per_eye_texture_vec,

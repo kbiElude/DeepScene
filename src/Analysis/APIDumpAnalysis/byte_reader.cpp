@@ -101,8 +101,9 @@ float Analysis::APIDumpAnalysis::ByteReader::read_f32()
 
 std::string Analysis::APIDumpAnalysis::ByteReader::read_string()
 {
-    std::string result(read_count(sizeof(char) ),
-                       '\0');
+    const uint32_t n_chars = read_count(sizeof(char) );
+    std::string    result(n_chars,
+                          '\0');
 
     read_bytes(&result[0],
                result.size() );

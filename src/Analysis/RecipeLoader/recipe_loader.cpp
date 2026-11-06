@@ -435,10 +435,11 @@ bool Analysis::RecipeLoader::RecipeLoader::parse(const std::string& in_text,
                     n_rule < rule_array_ptr->item_vec.size();
                   ++n_rule)
         {
-            Rule rule;
+            const std::string rule_path = "rules[" + std::to_string(n_rule) + "]";
+            Rule              rule;
 
             if (parse_rule(rule_array_ptr->item_vec.at(n_rule),
-                           "rules[" + std::to_string(n_rule) + "]",
+                           rule_path,
                           &rule,
                            out_error_ptr) == false)
             {
@@ -1133,10 +1134,11 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_draw_rule(const Analysis::APIDu
                     n_matrix < equals_any_ptr->item_vec.size();
                   ++n_matrix)
         {
-            std::array<float, 16> matrix = {};
+            std::array<float, 16> matrix      = {};
+            const std::string     matrix_path = when_path + ".equals_any[" + std::to_string(n_matrix) + "]";
 
             if (parse_matrix(equals_any_ptr->item_vec.at(n_matrix),
-                             when_path + ".equals_any[" + std::to_string(n_matrix) + "]",
+                             matrix_path,
                             &matrix,
                              out_error_ptr) == false)
             {
@@ -1195,24 +1197,42 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_draw_selector(const Analysis::A
         }
     }
 
-    for (const auto& list : {std::make_pair(std::string("draw_keys"), &out_selector_ptr->draw_key_vec),
-                             std::make_pair(std::string("pass_keys"), &out_selector_ptr->pass_key_vec)})
     {
-        if (in_value.find_ptr(list.first) != nullptr)
+        struct KeyList
         {
-            if (parse_hex_key_array(in_value.at(list.first),
-                                    in_path + "." + list.first,
-                                    list.second,
-                                    out_error_ptr) == false)
-            {
-                goto end;
-            }
+            const char*            name_ptr;
+            std::vector<uint64_t>* key_vec_ptr;
+        };
 
-            if (list.second->empty() )
-            {
-                *out_error_ptr = in_path + "." + list.first + ": the list is empty; leave it out";
+        const KeyList key_list_array[] =
+        {
+            {"draw_keys", &out_selector_ptr->draw_key_vec},
+            {"pass_keys", &out_selector_ptr->pass_key_vec}
+        };
 
-                goto end;
+        for (const auto& list : key_list_array)
+        {
+            const std::string list_name = list.name_ptr;
+
+            if (in_value.find_ptr(list_name) != nullptr)
+            {
+                const auto&       key_array = in_value.at(list_name);
+                const std::string list_path = in_path + "." + list_name;
+
+                if (parse_hex_key_array(key_array,
+                                        list_path,
+                                        list.key_vec_ptr,
+                                        out_error_ptr) == false)
+                {
+                    goto end;
+                }
+
+                if (list.key_vec_ptr->empty() )
+                {
+                    *out_error_ptr = list_path + ": the list is empty; leave it out";
+
+                    goto end;
+                }
             }
         }
     }
@@ -1305,10 +1325,11 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_hex_key_array(const Analysis::A
                 n_key < in_array.item_vec.size();
               ++n_key)
     {
-        uint64_t key = 0;
+        uint64_t          key      = 0;
+        const std::string key_path = in_path + "[" + std::to_string(n_key) + "]";
 
         if (parse_hex_key(in_array.item_vec.at(n_key),
-                          in_path + "[" + std::to_string(n_key) + "]",
+                          key_path,
                          &key,
                           out_error_ptr) == false)
         {

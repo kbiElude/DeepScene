@@ -313,8 +313,10 @@ bool Analysis::APIDumpAnalysis::JsonReader::parse_number(JsonValue* out_value_pt
         }
         else
         {
-            out_value_ptr->number_value = ::strtod(m_text.substr(start,
-                                                                 n_chars).c_str(),
+            const std::string number_text = m_text.substr(start,
+                                                          n_chars);
+
+            out_value_ptr->number_value = ::strtod(number_text.c_str(),
                                                    nullptr);
         }
     }

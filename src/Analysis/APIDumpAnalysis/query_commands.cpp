@@ -1479,13 +1479,14 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
                                          in_arguments);
                 ++n_match)
     {
-        const size_t n_resource = match_vec.at                    (static_cast<size_t>(n_match) );
-        const auto&  access     = model_ref.resource_access_vec.at(n_resource);
-        const auto&  resource   = model_ref.resource_vec.at       (n_resource);
+        const size_t     n_resource  = match_vec.at                    (static_cast<size_t>(n_match) );
+        const auto&      access      = model_ref.resource_access_vec.at(n_resource);
+        const auto&      resource    = model_ref.resource_vec.at       (n_resource);
+        const auto       resource_id = make_resource_id(static_cast<uint32_t>(n_resource + 1) );
         ResourceIdentity identity;
 
         ResourceIdentities::find(model_ref.resource_vec,
-                                 make_resource_id(static_cast<uint32_t>(n_resource + 1) ),
+                                 resource_id,
                                 &identity);
 
         inout_writer_ptr->begin_object();

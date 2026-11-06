@@ -45,9 +45,11 @@ void Analysis::APIDumpAnalysis::PassesFile::append_bytes(const void*           i
 std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesFile::pack_section(const SectionInfo&    in_section_info,
                                                                          const AnalysisResult& in_analysis)
 {
+    const std::vector<uint8_t> section_bytes_vec = serialize_section(in_section_info.tag,
+                                                                     in_analysis);
+
     return SectionedFile::pack_section(in_section_info,
-                                       serialize_section(in_section_info.tag,
-                                                         in_analysis) );
+                                       section_bytes_vec);
 }
 
 bool Analysis::APIDumpAnalysis::PassesFile::read(const std::string& in_filename,
