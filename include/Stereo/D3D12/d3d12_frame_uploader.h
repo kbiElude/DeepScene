@@ -5,6 +5,7 @@
 #ifndef STEREO_D3D12_D3D12_FRAME_UPLOADER_H
 #define STEREO_D3D12_D3D12_FRAME_UPLOADER_H
 
+#include "Stereo/D3D12/d3d12_queue_waiter.h"
 #include "Stereo/Transport/types.h"
 #include <map>
 #include <string>
@@ -30,7 +31,6 @@ namespace Stereo
              */
             D3D12FrameUploader(ID3D12Device*       in_device_ptr,
                                ID3D12CommandQueue* in_queue_ptr);
-            ~D3D12FrameUploader();
 
             D3D12FrameUploader           (const D3D12FrameUploader&) = delete;
             D3D12FrameUploader& operator=(const D3D12FrameUploader&) = delete;
@@ -66,19 +66,14 @@ namespace Stereo
                                    uint64_t*      out_offset_ptr,
                                    std::string*   out_error_ptr);
 
-            /* Waits until what the queue has been given is done. */
-            bool wait_for_queue(std::string* out_error_ptr);
-
 
             Microsoft::WRL::ComPtr<ID3D12CommandAllocator>    m_allocator_ptr;
             Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_command_list_ptr;
             Microsoft::WRL::ComPtr<ID3D12Device3>             m_device_ptr;
             std::string                                       m_error; /* what stopped the uploader from being made; empty if nothing did */
-            HANDLE                                            m_fence_event;
-            Microsoft::WRL::ComPtr<ID3D12Fence>               m_fence_ptr;
-            uint64_t                                          m_fence_value;
             ID3D12CommandQueue*                               m_queue_ptr;
             std::map<const void*, Region>                     m_region_map; /* by where what was mapped starts */
+            D3D12QueueWaiter                                  m_waiter;     /* last: it is the first to go, and waits for what the GPU reads of the rest */
         };
     }
 }

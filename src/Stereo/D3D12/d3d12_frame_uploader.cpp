@@ -6,9 +6,9 @@
 
 Stereo::D3D12::D3D12FrameUploader::D3D12FrameUploader(ID3D12Device*       in_device_ptr,
                                                       ID3D12CommandQueue* in_queue_ptr)
-    :m_fence_event(nullptr),
-     m_fence_value(0),
-     m_queue_ptr  (in_queue_ptr)
+    :m_queue_ptr(in_queue_ptr),
+     m_waiter   (in_device_ptr,
+                 in_queue_ptr)
 {
     if (FAILED(in_device_ptr->QueryInterface(IID_PPV_ARGS(m_device_ptr.GetAddressOf() ))) )
     {
@@ -39,40 +39,13 @@ Stereo::D3D12::D3D12FrameUploader::D3D12FrameUploader(ID3D12Device*       in_dev
     /* A list is made recording; it is closed until the first upload. */
     m_command_list_ptr->Close();
 
-    if (FAILED(m_device_ptr->CreateFence(0, /* in_initial_value */
-                                         D3D12_FENCE_FLAG_NONE,
-                                         IID_PPV_ARGS(m_fence_ptr.GetAddressOf() ))) )
+    if (m_waiter.is_ok(&m_error) == false)
     {
-        m_error = "The fence cannot be made";
-
         goto end;
-    }
-
-    m_fence_event = ::CreateEventW(nullptr,
-                                   FALSE, /* in_manual_reset */
-                                   FALSE, /* in_initial_state */
-                                   nullptr);
-
-    if (m_fence_event == nullptr)
-    {
-        m_error = "The event for the fence cannot be made";
     }
 
 end:
     return;
-}
-
-Stereo::D3D12::D3D12FrameUploader::~D3D12FrameUploader()
-{
-    std::string error;
-
-    /* What the GPU may still be reading is not released before it is done. */
-    if (m_fence_event != nullptr)
-    {
-        wait_for_queue(&error);
-
-        ::CloseHandle(m_fence_event);
-    }
 }
 
 Stereo::D3D12::D3D12FrameUploader::Region* Stereo::D3D12::D3D12FrameUploader::get_region_ptr(const uint8_t* in_pixel_ptr,
@@ -301,41 +274,7 @@ bool Stereo::D3D12::D3D12FrameUploader::upload(const Stereo::Transport::Imported
                                          command_list_ptr_array);
     }
 
-    result = wait_for_queue(out_error_ptr);
-
-end:
-    return result;
-}
-
-bool Stereo::D3D12::D3D12FrameUploader::wait_for_queue(std::string* out_error_ptr)
-{
-    bool result = false;
-
-    m_fence_value++;
-
-    if (FAILED(m_queue_ptr->Signal(m_fence_ptr.Get(),
-                                   m_fence_value) ))
-    {
-        *out_error_ptr = "The queue cannot be signalled";
-
-        goto end;
-    }
-
-    if (m_fence_ptr->GetCompletedValue() < m_fence_value)
-    {
-        if (FAILED(m_fence_ptr->SetEventOnCompletion(m_fence_value,
-                                                     m_fence_event) ))
-        {
-            *out_error_ptr = "The fence cannot be waited for";
-
-            goto end;
-        }
-
-        ::WaitForSingleObject(m_fence_event,
-                              INFINITE);
-    }
-
-    result = true;
+    result = m_waiter.wait(out_error_ptr);
 
 end:
     return result;
