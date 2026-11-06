@@ -150,7 +150,7 @@
 <table>
 <tr><th>Where</th><th>What is written</th><th>Needed for</th></tr>
 <tr><td>Hooks (<code>Interception/Hooks</code>) and <code>APIGroup</code></td><td>The hooked entry points, and the group that the dumper records the calls under.</td><td>capturing it</td></tr>
-<tr><td><code>Analysis/APIDumpAnalysis/frontends</code></td><td>The front end: its state, the mapping of calls to the events above, the counters of unfollowed and unsupported calls, a classifier of resolution hazards. It is added to <code>AnalysisSession</code> (a member, and its group in <code>get_frontend_ptr</code>).</td><td>analysing it: <code>.passes</code>, queries, recipes</td></tr>
+<tr><td><code>analysis/api_dump_analysis/frontends</code></td><td>The front end: its state, the mapping of calls to the events above, the counters of unfollowed and unsupported calls, a classifier of resolution hazards. It is added to <code>AnalysisSession</code> (a member, and its group in <code>get_frontend_ptr</code>).</td><td>analysing it: <code>.passes</code>, queries, recipes</td></tr>
 <tr><td><code>APIDumpPrinter</code></td><td>The names and decoders of its calls and enums.</td><td>reading dumps as text</td></tr>
 <tr><td><code>StereoReplayEngineDLL</code></td><td>An <code>ICallExecutor</code> for the group, registered in the <code>ExecutorRegistry</code>.</td><td>playing it</td></tr>
 <tr><td><code>Stereo</code></td><td>An adapter in the converter: it tells <code>StereoCore</code> what the application does, renders the second eye, and exports the frame (see <a href="live-stereo.html">Live stereo</a>); and the calls its recipe rules may name.</td><td>converting it live</td></tr>

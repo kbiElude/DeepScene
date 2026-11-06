@@ -14,11 +14,11 @@ Direct3D 8 is the first API supported, and the demos are what drove the work.
 
 | Part | What it is |
 | --- | --- |
-| `libs/Analysis`, `tools/Analysis` | The analysis of a capture (the `.passes` file, queries) and the recipes: reading, baking and applying them. |
-| `tools/Replay` (`StereoReplayEngineDLL`, `StereoReplayPlayer`, `StereoReplayConsistencyChecker`) | Play a workload again for both eyes, to try a recipe offline and to check that a frame can be drawn twice. |
-| `runtime/StereoConverterDLL`, `runtime/StereoLauncher` | The converter that goes into the running program, and the launcher that puts it there. Built for 32 and 64 bits, to match the program. |
-| `libs/Stereo` (Transport), `libs/Headset`, `runtime/StereoPresenter` | Carry the images of the eyes to the screen: through shared memory, onto the GPU, into a headset or a preview window. |
-| `VRPlayer`, `libs/VR`, `libs/Headset` (VRDevices) | The player: the list of programs, the list of devices, and the window. A program which is not on the computer is downloaded the first time it is launched. |
+| `libs/analysis`, `tools/analysis` | The analysis of a capture (the `.passes` file, queries) and the recipes: reading, baking and applying them. |
+| `tools/stereo_replay` (`StereoReplayEngineDLL`, `StereoReplayPlayer`, `StereoReplayConsistencyChecker`) | Play a workload again for both eyes, to try a recipe offline and to check that a frame can be drawn twice. |
+| `runtime/converter_dll`, `runtime/launcher` | The converter that goes into the running program, and the launcher that puts it there. Built for 32 and 64 bits, to match the program. |
+| `libs/stereo` (Transport), `libs/headset`, `runtime/presenter` | Carry the images of the eyes to the screen: through shared memory, onto the GPU, into a headset or a preview window. |
+| `vr_player`, `libs/vr`, `libs/headset` (vr_devices) | The player: the list of programs, the list of devices, and the window. A program which is not on the computer is downloaded the first time it is launched. |
 | `apps\` | The catalog and the recipes. The programs the catalog lists are downloaded into it. |
 
 Each part is described in [the documentation](docs/index.html) (open it in a browser). The folders of `src` are the folders of the release (`build_final`): see `docs/components.html`.
@@ -34,7 +34,7 @@ build.bat --debug          :: Debug configuration
 
 Visual Studio 2026 (the generator is set in `deps\APIInterceptor\build.bat`), CMake 3.15 or newer. The tests are built with `-DDEMOVRPLAYER_BUILD_TESTS=ON` (64-bit only).
 
-`build_final\` has `VRPlayer.exe`, `runtime\` (what it starts), `apps\`, and `tools\`: `APIDumper` (capture), `Analysis` and `Replay`.
+`build_final\` has `VRPlayer.exe`, `runtime\` (what it starts), `apps\`, and `tools\`: `api_dumper` (capture), `analysis` and `stereo_replay`.
 
 The first time a program of the catalog is launched, `VRPlayer` downloads it (with its hash checked) into `apps\<id>\` next to itself, so its folder has to be one you can write to. Nothing is written anywhere else.
 

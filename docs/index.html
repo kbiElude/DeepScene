@@ -86,10 +86,10 @@
 <table>
 <tr><th>Group</th><th>Projects</th><th>What they do</th></tr>
 <tr><td>Capture (API Interceptor)</td><td><code>APIDumper</code>, <code>APIDumperDLL</code>, <code>APIDumpLoader</code>, <code>APIDumpPrinter</code>, <code>InjectionLauncher</code>, and the hooks</td><td>The submodule: capture a program, read and print a workload.</td></tr>
-<tr><td>Analysis</td><td><code>libs/Analysis</code>, <code>tools/Analysis</code></td><td>Passes, queries, recipe baking and applying.</td></tr>
-<tr><td>Replay</td><td><code>tools/Replay</code>: <code>StereoReplayEngineDLL</code>, <code>StereoReplayPlayer</code>, <code>StereoReplayConsistencyChecker</code></td><td>Execute a workload's calls again.</td></tr>
-<tr><td>Stereo</td><td><code>libs/Stereo</code>, <code>libs/Headset</code>, <code>runtime</code>: <code>StereoConverterDLL</code>, <code>StereoLauncher</code>, <code>StereoPresenter</code></td><td>The live converter and what carries its images to the screen.</td></tr>
-<tr><td>VR player</td><td><code>VRPlayer</code>, <code>libs/VR</code></td><td>The front end that launches programs and chooses the output.</td></tr>
+<tr><td>Analysis</td><td><code>libs/analysis</code>, <code>tools/analysis</code></td><td>Passes, queries, recipe baking and applying.</td></tr>
+<tr><td>Replay</td><td><code>tools/stereo_replay</code>: <code>StereoReplayEngineDLL</code>, <code>StereoReplayPlayer</code>, <code>StereoReplayConsistencyChecker</code></td><td>Execute a workload's calls again.</td></tr>
+<tr><td>Stereo</td><td><code>libs/stereo</code>, <code>libs/headset</code>, <code>runtime</code>: <code>StereoConverterDLL</code>, <code>StereoLauncher</code>, <code>StereoPresenter</code></td><td>The live converter and what carries its images to the screen.</td></tr>
+<tr><td>VR player</td><td><code>VRPlayer</code>, <code>libs/vr</code></td><td>The front end that launches programs and chooses the output.</td></tr>
 </table>
 
 <div class="note">The project is C++14. Some programs are 32-bit (the injected parts, because the demos are) and some 64-bit (the presenter and the players), so the build makes both and collects them in <code>build_final</code>.</div>

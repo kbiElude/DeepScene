@@ -24,8 +24,8 @@ add_subdirectory(deps/APIInterceptor EXCLUDE_FROM_ALL)
 # A release has the tools which capture a program; nothing else of this project needs them.
 add_custom_target(CaptureTools ALL DEPENDS APIDumper APIDumperDLL APIDumpPrinter)
 
-# What the programs include of each other (src/tools/Replay/StereoReplayEngineDLL/types.h) is named from here; what they include of a library is
-# named from src/libs, which each library says (Analysis/APIDumpAnalysis/model.h).
+# What the programs include of each other (src/tools/stereo_replay/engine_dll/types.h) is named from here; what they include of a library is
+# named from src/libs, which each library says (analysis/api_dump_analysis/model.h).
 include_directories("${DemoVRPlayer_SOURCE_DIR}/src")
 
 # Third-party code: miniz zips and unzips the images and the applications; the OpenXR loader finds the runtime of the headset (a library of its
@@ -42,28 +42,28 @@ if (CMAKE_SIZEOF_VOID_P EQUAL 8)
 endif()
 
 # The libraries, in src/libs: four, by what they are for (each folder has what it is in its CMakeLists.txt).
-add_subdirectory(src/libs/Analysis)
-add_subdirectory(src/libs/Stereo)
-add_subdirectory(src/libs/VR)
-add_subdirectory(src/libs/Headset)
+add_subdirectory(src/libs/analysis)
+add_subdirectory(src/libs/stereo)
+add_subdirectory(src/libs/vr)
+add_subdirectory(src/libs/headset)
 
 # The programs, each in the folder which it is installed as: src/runtime for what the VR player starts, src/tools for the tools, and the VR
-# player in src/VRPlayer. The headset is of the 64-bit programs.
-add_subdirectory(src/runtime/StereoConverterDLL)
-add_subdirectory(src/runtime/StereoLauncher)
-add_subdirectory(src/tools/Analysis/APIDumpAnalysisExtractor)
-add_subdirectory(src/tools/Analysis/APIDumpAnalysisQuery)
-add_subdirectory(src/tools/Analysis/APIDumpDependencyExtractor)
-add_subdirectory(src/tools/Analysis/APIDumpDependencyQuery)
-add_subdirectory(src/tools/Analysis/APIDumpSlicer)
-add_subdirectory(src/tools/Analysis/RecipeBake)
-add_subdirectory(src/tools/Replay/StereoReplayEngineDLL)
-add_subdirectory(src/tools/Replay/StereoReplayPlayer)
-add_subdirectory(src/tools/Replay/StereoReplayConsistencyChecker)
+# player in src/vr_player. The headset is of the 64-bit programs.
+add_subdirectory(src/runtime/converter_dll)
+add_subdirectory(src/runtime/launcher)
+add_subdirectory(src/tools/analysis/api_dump_analysis_extractor)
+add_subdirectory(src/tools/analysis/api_dump_analysis_query)
+add_subdirectory(src/tools/analysis/api_dump_dependency_extractor)
+add_subdirectory(src/tools/analysis/api_dump_dependency_query)
+add_subdirectory(src/tools/analysis/api_dump_slicer)
+add_subdirectory(src/tools/analysis/recipe_bake)
+add_subdirectory(src/tools/stereo_replay/engine_dll)
+add_subdirectory(src/tools/stereo_replay/player)
+add_subdirectory(src/tools/stereo_replay/consistency_checker)
 
 if (CMAKE_SIZEOF_VOID_P EQUAL 8)
-    add_subdirectory(src/runtime/StereoPresenter)
-    add_subdirectory(src/VRPlayer)
+    add_subdirectory(src/runtime/presenter)
+    add_subdirectory(src/vr_player)
 endif()
 
 include(cmake/Tests.cmake)

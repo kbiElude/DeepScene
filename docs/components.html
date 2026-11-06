@@ -26,24 +26,24 @@
 <div class="note">The hooks, the capture (<code>APIDumper</code>, <code>APIDumperDLL</code>, <code>APIDumpLoader</code>, <code>APIDumpPrinter</code>), the injection of a DLL (<code>InjectionLauncher</code>) and a plain replay are in API Interceptor, a submodule: see its <a href="../deps/APIInterceptor/docs/components.html">components</a>.</div>
 
 <h2 id="tree">The tree and the release</h2>
-<p>A project is one of three kinds. A <strong>library</strong> is linked into others. A <strong>DLL</strong> is loaded into a process, usually injected into the program that is being studied. A <strong>program</strong> is started by a person. The source tree is the release: a program has a folder of the name of its file, in the folder its file is in; the libraries are in one folder, <code>src/libs</code>, with the headers beside the sources.</p>
+<p>A project is one of three kinds. A <strong>library</strong> is linked into others. A <strong>DLL</strong> is loaded into a process, usually injected into the program that is being studied. A <strong>program</strong> is started by a person. The source tree is the release: a program has a folder in the folder its file is in, named after the file in <code>snake_case</code> without the prefix of the group (<code>runtime/launcher</code> for <code>StereoLauncher</code>, <code>tools/stereo_replay/player</code> for <code>StereoReplayPlayer</code>); the libraries are in one folder, <code>src/libs</code>, with the headers beside the sources. Every folder of the source is lower-case, with underscores; the namespaces are the same words in PascalCase.</p>
 <table>
 <tr><th>In the source (<code>src/</code>)</th><th>In the release (<code>build_final\</code>)</th><th>What it is</th></tr>
-<tr><td><code>VRPlayer</code></td><td><code>VRPlayer.exe</code></td><td>the program to start</td></tr>
-<tr><td><code>runtime/StereoConverterDLL</code>, <code>StereoLauncher</code>, <code>StereoPresenter</code></td><td><code>runtime\</code></td><td>what the VR player starts</td></tr>
-<tr><td><code>tools/Analysis/&lt;program&gt;</code></td><td><code>tools\Analysis\&lt;program&gt;.exe</code></td><td>the tools of the analysis</td></tr>
-<tr><td><code>tools/Replay/&lt;program&gt;</code></td><td><code>tools\Replay\&lt;program&gt;.exe</code></td><td>the replay: the player, the checker and the engine they load</td></tr>
-<tr><td><code>libs/Analysis</code>, <code>Stereo</code>, <code>Headset</code>, <code>VR</code></td><td>(linked into the programs)</td><td>the four libraries</td></tr>
-<tr><td><code>Tests</code></td><td>(not in the release)</td><td>the tests</td></tr>
+<tr><td><code>vr_player</code></td><td><code>VRPlayer.exe</code></td><td>the program to start</td></tr>
+<tr><td><code>runtime/converter_dll</code>, <code>runtime/launcher</code>, <code>runtime/presenter</code></td><td><code>runtime\</code></td><td>what the VR player starts</td></tr>
+<tr><td><code>tools/analysis/&lt;program&gt;</code></td><td><code>tools\analysis\&lt;program&gt;.exe</code></td><td>the tools of the analysis</td></tr>
+<tr><td><code>tools/stereo_replay/&lt;program&gt;</code></td><td><code>tools\stereo_replay\&lt;program&gt;.exe</code></td><td>the replay: the player, the checker and the engine they load</td></tr>
+<tr><td><code>libs/analysis</code>, <code>libs/stereo</code>, <code>libs/headset</code>, <code>libs/vr</code></td><td>(linked into the programs)</td><td>the four libraries</td></tr>
+<tr><td><code>tests</code></td><td>(not in the release)</td><td>the tests</td></tr>
 </table>
-<p>Each folder of a program or a library has its own <code>CMakeLists.txt</code>, which says what it is made of and links; <code>cmake/Install.cmake</code> says where each program is installed, and a test (<code>Layout</code>) checks that this and the folders say the same. <code>tools\APIDumper\</code> of the release is made of API Interceptor.</p>
-<p>An include names the library, from <code>src/libs</code> (<code>#include "Analysis/APIDumpAnalysis/model.h"</code>), or, for what a program takes of another program, the path from <code>src</code> (<code>#include "tools/Replay/StereoReplayEngineDLL/types.h"</code>). What a program includes of its own folder is named as it is (<code>"command_line.h"</code>). The namespaces of a library follow the path under <code>src/libs</code>: <code>Analysis::APIDumpAnalysis</code>, <code>Stereo::Core</code>, <code>Headset::XR</code>, <code>VR::AppCatalog</code>.</p>
+<p>Each folder of a program or a library has its own <code>CMakeLists.txt</code>, which says what it is made of and links; <code>cmake/Install.cmake</code> says where each program is installed, and a test (<code>Layout</code>) checks that this and the folders say the same. <code>tools\api_dumper\</code> of the release is made of API Interceptor.</p>
+<p>An include names the library, from <code>src/libs</code> (<code>#include "analysis/api_dump_analysis/model.h"</code>), or, for what a program takes of another program, the path from <code>src</code> (<code>#include "tools/stereo_replay/engine_dll/types.h"</code>). What a program includes of its own folder is named as it is (<code>"command_line.h"</code>). The namespaces of a library follow the path under <code>src/libs</code>, in PascalCase:<code>Analysis::APIDumpAnalysis</code>, <code>Stereo::Core</code>, <code>Headset::XR</code>, <code>VR::AppCatalog</code>.</p>
 
 <ol class="toc">
   <li><a href="#libs">Libraries</a></li>
   <li><a href="#runtime">runtime</a></li>
-  <li><a href="#analysis">tools/Analysis</a></li>
-  <li><a href="#replay">tools/Replay</a></li>
+  <li><a href="#analysis">tools/analysis</a></li>
+  <li><a href="#replay">tools/stereo_replay</a></li>
   <li><a href="#vrplayer">VRPlayer</a></li>
   <li><a href="#support">Tests and third-party code</a></li>
 </ol>
@@ -52,7 +52,7 @@
 <p>Four, by what they are for. Each is a folder of parts, and a part is a namespace of the library.</p>
 
 <h3>Analysis</h3>
-<p><em>Library.</em> Turning a workload into a model and the model into a recipe, and what the programs of <code>tools/Analysis</code> and the replay and the converter use of them. See <a href="analysis-and-recipes.html">Analysis &amp; recipes</a>. It reads a workload through the loader of the interceptor. Its parts:</p>
+<p><em>Library.</em> Turning a workload into a model and the model into a recipe, and what the programs of <code>tools/analysis</code> and the replay and the converter use of them. See <a href="analysis-and-recipes.html">Analysis &amp; recipes</a>. It reads a workload through the loader of the interceptor. Its parts:</p>
 
 <h4>APIDumpAnalysis</h4>
 <p>The analysis itself and nothing that is of one API: the session that routes calls, the model builder, the keys and hashes, the tracking of how resources are used, the time series of the camera, the depth histograms, the <code>.passes</code> file (reader and writer), the queries. It is where an API is added to the analysis, by giving it a front end.</p>
@@ -126,7 +126,7 @@
 <h3>StereoPresenter</h3>
 <p><em>Program, 64-bit.</em> Takes the frames from the channel, whatever the bitness of the application, and shows them in a preview window or, with <code>--headset</code>, in a headset. It is started with the id of a session, which the VR player makes and also gives to the launcher; the VR player starts both.</p>
 
-<h2 id="analysis">tools/Analysis</h2>
+<h2 id="analysis">tools/analysis</h2>
 <p>Turning a workload into a model and the model into a recipe. See <a href="analysis-and-recipes.html">Analysis &amp; recipes</a>. The library is <code>Analysis</code>.</p>
 
 <h3>APIDumpAnalysisExtractor</h3>
@@ -147,7 +147,7 @@
 <h3>RecipeBake</h3>
 <p><em>Program.</em> <code>--check</code> writes nothing: it says which kinds of frames (shapes) and which draw signatures of a workload the baked recipe does not know, with how many frames and where the first is, so that a recipe of another capture, or of a shorter one, is found out before a replay leaves those frames to the unknown-frame policy (exit code 5 if there are any). <code>--overlays</code> writes nothing either: it prints as JSON the draws that may be 2D overlays, by the recipe (a draw it leaves alone, as a replay asks by the keys of the draw and of its pass, and as a converter that plays the application as it runs asks by the signature over the cameras of its pass) and by the hint of the analysis (the camera of the pass never changes), with where the two disagree (<code>OverlayCandidateFinder</code>). Reads a <code>.passes</code> file (and, with <code>--deps</code>, the <code>.deps</code> file of the same workload, which says which textures each eye is to have a copy of) and the hand-written rules, and makes the recipe, including the convergence distances (the median depth by vertices) and the limits of the eye separation of each scene (from how near its surfaces are, and the <code>comfort</code> of the recipe). The baking is the class <code>RecipeBaker</code>, which is in the program because the program is its only user (the tests compile it too); the command line is <code>CommandLine</code>.</p>
 
-<h2 id="replay">tools/Replay</h2>
+<h2 id="replay">tools/stereo_replay</h2>
 <p>Executing a workload's calls again, without the program. See <a href="replay.html">Replay</a>. The 32-bit programs have <code>_x86</code> in the name of their file, so that the 64-bit player finds them next to itself.</p>
 
 <h3>StereoReplayEngineDLL</h3>
@@ -168,7 +168,7 @@
 <h2 id="support">Tests and third-party code</h2>
 
 <h3>DemoVRPlayerTests</h3>
-<p><em>Program.</em> The tests, with googletest, of every library and program above. The data files they use are reached through <code>Tests::DataFixtures</code> and the test doubles are in <code>src/Tests/test_doubles.*</code>; a few helpers of the tests of API Interceptor are used as they are. They include a test of the layout of the source against the release, and one that the code is not written twice (<code>known_duplicates.txt</code>). See <a href="building.html#tests">Building</a>.</p>
+<p><em>Program.</em> The tests, with googletest, of every library and program above. The data files they use are reached through <code>Tests::DataFixtures</code> and the test doubles are in <code>src/tests/test_doubles.*</code>; a few helpers of the tests of API Interceptor are used as they are. They include a test of the layout of the source against the release, and one that the code is not written twice (<code>known_duplicates.txt</code>). See <a href="building.html#tests">Building</a>.</p>
 
 <h3>deps</h3>
 <p>API Interceptor (with its own third-party code: Detours, Zstd, Dear ImGui, googletest and the Khronos headers of OpenGL) and the OpenXR SDK, for the headset, and miniz, for the zip files of the applications.</p>
