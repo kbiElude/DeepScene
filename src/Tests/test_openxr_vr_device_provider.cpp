@@ -6,13 +6,13 @@
  * not known to the test, so it checks what holds either way.
  */
 #include <gtest/gtest.h>
-#include "Stereo/XR/headset_session.h"
-#include "Stereo/XR/openxr_vr_device_provider.h"
+#include "Headset/XR/headset_session.h"
+#include "Headset/XR/openxr_vr_device_provider.h"
 
 TEST(OpenXrVrDeviceProviderTest, WithNoRuntimeOrNoHeadsetThereAreNoDevicesAndThatIsNotAnError)
 {
-    const Stereo::XR::OpenXrVrDeviceProvider provider;
-    std::vector<VR::VRDevices::VrDevice>     device_vec = {VR::VRDevices::VrDevice()};
+    const Headset::XR::OpenXrVrDeviceProvider provider;
+    std::vector<Headset::VRDevices::VrDevice>     device_vec = {Headset::VRDevices::VrDevice()};
     std::string                              error;
 
     ASSERT_TRUE(provider.enumerate(&device_vec,
@@ -28,16 +28,16 @@ TEST(OpenXrVrDeviceProviderTest, WithNoRuntimeOrNoHeadsetThereAreNoDevicesAndTha
         EXPECT_FALSE(device.id.empty() );
         EXPECT_TRUE (device.unavailable_reason.empty() );
         EXPECT_EQ   (device.form_factor,
-                     VR::VRDevices::FormFactor::HEAD_MOUNTED_DISPLAY);
+                     Headset::VRDevices::FormFactor::HEAD_MOUNTED_DISPLAY);
     }
 }
 
 TEST(OpenXrVrDeviceProviderTest, AProbeOfTheHeadsetSaysWhyThereIsNoneOrWhatItIs)
 {
-    Stereo::XR::HeadsetInfo info;
+    Headset::XR::HeadsetInfo info;
     std::string             error;
 
-    if (Stereo::XR::HeadsetSession::probe(&info,
+    if (Headset::XR::HeadsetSession::probe(&info,
                                           &error) )
     {
         EXPECT_FALSE(info.system_name.empty() );

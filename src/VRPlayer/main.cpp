@@ -7,7 +7,7 @@
  */
 #include "VR/AppCatalog/catalog_loader.h"
 #include "VR/UIHost/imgui_window_host.h"
-#include "Stereo/XR/openxr_vr_device_provider.h"
+#include "Headset/XR/openxr_vr_device_provider.h"
 #include "command_line.h"
 #include "vr_player_window.h"
 #include <memory>
@@ -131,7 +131,7 @@ int WINAPI WinMain(HINSTANCE in_instance,
     VR::VRPlayer::Options                         options;
     int                                           result = EXIT_FAILURE;
     VR::VRPlayer::WindowContent                   content;
-    const Stereo::XR::OpenXrVrDeviceProvider      device_provider;
+    const Headset::XR::OpenXrVrDeviceProvider      device_provider;
     std::unique_ptr<VR::VRPlayer::VrPlayerWindow> window_ptr;
 
     (void) in_command_line;

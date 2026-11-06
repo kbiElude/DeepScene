@@ -5,10 +5,10 @@
 #ifndef STEREO_PRESENTER_HEADSET_SINK_H
 #define STEREO_PRESENTER_HEADSET_SINK_H
 
-#include "Stereo/D3D12/d3d12_frame_uploader.h"
+#include "Headset/D3D12/d3d12_frame_uploader.h"
 #include "Stereo/Transport/series_stats.h"
 #include "Stereo/Transport/i_frame_importer.h"
-#include "Stereo/XR/headset_session.h"
+#include "Headset/XR/headset_session.h"
 #include <atomic>
 #include <functional>
 #include <memory>
@@ -54,8 +54,8 @@ namespace Stereo
 
         private:
             HeadsetSink(Stereo::Transport::IFrameImporter*                 inout_importer_ptr,
-                        std::unique_ptr<Stereo::XR::HeadsetSession>        in_session_ptr,
-                        std::unique_ptr<Stereo::D3D12::D3D12FrameUploader> in_uploader_ptr,
+                        std::unique_ptr<Headset::XR::HeadsetSession>        in_session_ptr,
+                        std::unique_ptr<Headset::D3D12::D3D12FrameUploader> in_uploader_ptr,
                         const ExitFunc&                                    in_exit_func,
                         const LogFunc&                                     in_log_func,
                         const bool&                                        in_is_pacing);
@@ -104,11 +104,11 @@ namespace Stereo
             LogFunc                                            m_log_func;
             std::mutex                                         m_log_mutex; /* of the set of what was said: two threads say things */
             std::set<std::string>                              m_logged_text_set;
-            std::unique_ptr<Stereo::XR::HeadsetSession>        m_session_ptr;
+            std::unique_ptr<Headset::XR::HeadsetSession>        m_session_ptr;
             std::thread                                        m_thread;
             std::thread                                        m_upload_thread;
             Timing                                             m_timing;
-            std::unique_ptr<Stereo::D3D12::D3D12FrameUploader> m_uploader_ptr;
+            std::unique_ptr<Headset::D3D12::D3D12FrameUploader> m_uploader_ptr;
         };
     }
 }

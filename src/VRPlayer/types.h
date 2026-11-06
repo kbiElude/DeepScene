@@ -6,7 +6,7 @@
 #define VRPLAYER_TYPES_H
 
 #include "VR/AppCatalog/types.h"
-#include "VR/VRDevices/types.h"
+#include "Headset/VRDevices/types.h"
 #include <string>
 #include <vector>
 
@@ -50,7 +50,7 @@ namespace VR
             VR::AppCatalog::Catalog              catalog;
             std::string                          catalog_error;    /* empty if the catalog was read                    */
             std::string                          device_error;     /* empty if the devices were listed                 */
-            std::vector<VR::VRDevices::VrDevice> device_vec;
+            std::vector<Headset::VRDevices::VrDevice> device_vec;
             bool                                 is_logging = false;   /* a log is written for each session                  */
             std::string                          launcher_directory; /* where the launchers and the presenter are         */
         };

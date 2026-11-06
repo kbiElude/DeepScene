@@ -344,7 +344,7 @@ void VR::VRPlayer::VrPlayerWindow::draw_device_combo()
                     n_device < m_content.device_vec.size();
                   ++n_device)
         {
-            const VR::VRDevices::VrDevice& device    = m_content.device_vec.at(n_device);
+            const Headset::VRDevices::VrDevice& device    = m_content.device_vec.at(n_device);
             const bool                     is_usable = device.unavailable_reason.empty();
 
             ImGui::PushID(static_cast<int>(n_device) );
@@ -716,7 +716,7 @@ void VR::VRPlayer::VrPlayerWindow::start_app(const size_t& in_n_app)
     /* An eye of the headset, brought down as the quality says; none without a headset. */
     if (m_device_index >= 0)
     {
-        const VR::VRDevices::VrDevice& device   = m_content.device_vec.at(static_cast<size_t>(m_device_index) );
+        const Headset::VRDevices::VrDevice& device   = m_content.device_vec.at(static_cast<size_t>(m_device_index) );
         const float                    fraction = QUALITY_SIZE_FRACTION_ARRAY[m_quality_index];
 
         target_height = static_cast<uint32_t>(static_cast<float>(device.eye_height) * fraction + 0.5f);

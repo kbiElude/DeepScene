@@ -21,79 +21,101 @@
 </nav></header>
 <main>
 <h1>Components</h1>
-<p class="lead">What each project is for, grouped as the source tree is. The pages before this one follow the jobs; this one follows the code, for the reader who has a project name and wants to know where it fits.</p>
+<p class="lead">What each project is for, in the order of the source tree, which is the order of the release. The pages before this one follow the jobs; this one follows the code, for the reader who has a project name and wants to know where it fits.</p>
 
 <div class="note">The hooks, the capture (<code>APIDumper</code>, <code>APIDumperDLL</code>, <code>APIDumpLoader</code>, <code>APIDumpPrinter</code>), the injection of a DLL (<code>InjectionLauncher</code>) and a plain replay are in API Interceptor, a submodule: see its <a href="../deps/APIInterceptor/docs/components.html">components</a>.</div>
 
-<p>A project is one of three kinds. A <strong>library</strong> is linked into others. A <strong>DLL</strong> is loaded into a process, usually injected into the program that is being studied. A <strong>program</strong> is started by a person. The ones a person starts are the three tools of the analysis (<code>APIDumpAnalysisExtractor</code>, <code>APIDumpAnalysisQuery</code>, <code>RecipeBake</code>), <code>StereoReplayPlayer</code>, <code>StereoReplayConsistencyChecker</code>, <code>StereoLauncher</code> and <code>VRPlayer</code>. The rest is used by those.</p>
+<h2 id="tree">The tree and the release</h2>
+<p>A project is one of three kinds. A <strong>library</strong> is linked into others. A <strong>DLL</strong> is loaded into a process, usually injected into the program that is being studied. A <strong>program</strong> is started by a person. The source tree is the release: a program has a folder of the name of its file, in the folder its file is in; the libraries are in one folder, <code>src/libs</code>, with the headers beside the sources.</p>
+<table>
+<tr><th>In the source (<code>src/</code>)</th><th>In the release (<code>build_final\</code>)</th><th>What it is</th></tr>
+<tr><td><code>VRPlayer</code></td><td><code>VRPlayer.exe</code></td><td>the program to start</td></tr>
+<tr><td><code>runtime/StereoConverterDLL</code>, <code>StereoLauncher</code>, <code>StereoPresenter</code></td><td><code>runtime\</code></td><td>what the VR player starts</td></tr>
+<tr><td><code>tools/Analysis/&lt;program&gt;</code></td><td><code>tools\Analysis\&lt;program&gt;.exe</code></td><td>the tools of the analysis</td></tr>
+<tr><td><code>tools/Replay/&lt;program&gt;</code></td><td><code>tools\Replay\&lt;program&gt;.exe</code></td><td>the replay: the player, the checker and the engine they load</td></tr>
+<tr><td><code>libs/Analysis</code>, <code>Stereo</code>, <code>Headset</code>, <code>VR</code></td><td>(linked into the programs)</td><td>the four libraries</td></tr>
+<tr><td><code>Tests</code></td><td>(not in the release)</td><td>the tests</td></tr>
+</table>
+<p>Each folder of a program or a library has its own <code>CMakeLists.txt</code>, which says what it is made of and links; <code>cmake/Install.cmake</code> says where each program is installed, and a test (<code>Layout</code>) checks that this and the folders say the same. <code>tools\APIDumper\</code> of the release is made of API Interceptor.</p>
+<p>An include names the library, from <code>src/libs</code> (<code>#include "Analysis/APIDumpAnalysis/model.h"</code>), or, for what a program takes of another program, the path from <code>src</code> (<code>#include "tools/Replay/StereoReplayEngineDLL/types.h"</code>). What a program includes of its own folder is named as it is (<code>"command_line.h"</code>). The namespaces of a library follow the path under <code>src/libs</code>: <code>Analysis::APIDumpAnalysis</code>, <code>Stereo::Core</code>, <code>Headset::XR</code>, <code>VR::AppCatalog</code>.</p>
 
 <ol class="toc">
-  <li><a href="#analysis">Analysis</a></li>
-  <li><a href="#replay">Replay</a></li>
-  <li><a href="#stereo">Stereo</a></li>
-  <li><a href="#vr">VR player</a></li>
+  <li><a href="#libs">Libraries</a></li>
+  <li><a href="#runtime">runtime</a></li>
+  <li><a href="#analysis">tools/Analysis</a></li>
+  <li><a href="#replay">tools/Replay</a></li>
+  <li><a href="#vrplayer">VRPlayer</a></li>
   <li><a href="#support">Tests and third-party code</a></li>
 </ol>
 
-<h2 id="analysis">Analysis</h2>
-<p>Turning a workload into a model and the model into a recipe. See <a href="analysis-and-recipes.html">Analysis &amp; recipes</a>.</p>
+<h2 id="libs">Libraries (<code>src/libs</code>)</h2>
+<p>Four, by what they are for. Each is a folder of parts, and a part is a namespace of the library.</p>
 
-<h3>APIDumpAnalysis</h3>
-<p><em>Library.</em> The analysis itself and nothing that is of one API: the session that routes calls, the model builder, the keys and hashes, the tracking of how resources are used, the time series of the camera, the depth histograms, the <code>.passes</code> file (reader and writer), the queries. It is where an API is added to the analysis, by giving it a front end.</p>
+<h3>Analysis</h3>
+<p><em>Library.</em> Turning a workload into a model and the model into a recipe, and what the programs of <code>tools/Analysis</code> and the replay and the converter use of them. See <a href="analysis-and-recipes.html">Analysis &amp; recipes</a>. It reads a workload through the loader of the interceptor. Its parts:</p>
 
-<h3>APIDumpAnalysisFrontends</h3>
-<p><em>Library.</em> The front ends: for each API, what follows its state and says what its calls mean to the model. Direct3D 8 is the first, and Direct3D 7 the second. The two share <code>FixedFunctionFrontend</code>, which follows the objects the program makes and the state of the fixed-function pipeline that does not depend on the API (transforms, lights, render states, textures, a release), and <code>FixedFunctionState</code>, which keeps that state; each API's own front end has the resources, the draws and the vertices. It is a library of its own because it needs <code>D3D8Utils</code> and <code>D3D7Utils</code>, which <code>APIDumpAnalysis</code> does not. The extractor, the replay engine and the live converter all use it.</p>
+<h4>APIDumpAnalysis</h4>
+<p>The analysis itself and nothing that is of one API: the session that routes calls, the model builder, the keys and hashes, the tracking of how resources are used, the time series of the camera, the depth histograms, the <code>.passes</code> file (reader and writer), the queries. It is where an API is added to the analysis, by giving it a front end.</p>
 
-<h3>APIDumpAnalysisExtractor</h3>
-<p><em>Program.</em> Reads a workload and writes a <code>.passes</code> file.</p>
+<h4>APIDumpAnalysis/frontends</h4>
+<p>The front ends: for each API, what follows its state and says what its calls mean to the model. Direct3D 8 is the first, and Direct3D 7 the second. The two share <code>FixedFunctionFrontend</code>, which follows the objects the program makes and the state of the fixed-function pipeline that does not depend on the API (transforms, lights, render states, textures, a release), and <code>FixedFunctionState</code>, which keeps that state; each API's own front end has the resources, the draws and the vertices. They need <code>D3D8Utils</code> and <code>D3D7Utils</code> of the interceptor. The extractor, the replay engine and the live converter all use them.</p>
 
-<h3>APIDumpAnalysisQuery</h3>
-<p><em>Program.</em> Asks a <code>.passes</code> file questions (<code>info</code>, <code>timeline</code> and the others) and prints the answers as JSON. It checks that the workload is the one the file is of (<code>--workload</code> says where it is, <code>--no-verify</code> skips the check).</p>
+<h4>APIDumpDependencies</h4>
+<p>What each frame of a workload does with what the frames before it left in the resources: the <code>AccessLog</code> keeps the accesses that the model builder tells (<code>IAccessSink</code>), the <code>DependencyAnalyzer</code> works out the dependencies (one thread for each of several resources at a time), the <code>.deps</code> file keeps them (<code>DepsFile</code>, on the same sections as a <code>.passes</code> file), and the query commands answer about them. <code>PerEyeCandidates</code> is the one rule that says which resources each eye is to have a copy of. Nothing in it knows an API.</p>
 
-<h3>APIDumpSlicer</h3>
-<p><em>Program.</em> Writes the first frames of a workload, frames 0 to B, as a workload of its own: <code>APIDumpSlicer in.workload slice.workload --frames B</code>. The segments of the file which are wholly in the slice are copied as they are (they are Zstandard frames of their own, found by the index), and only the one that frame B ends in is decoded, cut after the call that ends the frame, and written again, so a slice replays to the same images as the workload up to that frame; <code>StereoReplayConsistencyChecker --same-frames-as</code> checks it. <code>--strip-chunks-above N</code> writes the big data chunks empty (they keep their numbers) for a slice that is only to be analysed. It is the first of the slices; one that leaves out what the frames of a range do not depend on needs the dependency analysis.</p>
+<h4>APIDumpSlicing</h4>
+<p>What the slicer is made of: the writer of a workload file (<code>WorkloadWriter</code>, which compresses with the writer of the dumper) and the cut of the first frames (<code>HeadSlicer</code>).</p>
 
-<h3>APIDumpSlicing</h3>
-<p><em>Library.</em> What the slicer is made of: the writer of a workload file (<code>WorkloadWriter</code>, which compresses with the writer of the dumper) and the cut of the first frames (<code>HeadSlicer</code>).</p>
+<h4>RecipeLoader</h4>
+<p>Reads a recipe and checks it. It is what everything that only wants to read a recipe uses: the replay player, the consistency checker, the launcher and the catalog.</p>
 
-<h3>APIDumpDependencies</h3>
-<p><em>Library.</em> What each frame of a workload does with what the frames before it left in the resources: the <code>AccessLog</code> keeps the accesses that the model builder tells (<code>IAccessSink</code>), the <code>DependencyAnalyzer</code> works out the dependencies (one thread for each of several resources at a time), the <code>.deps</code> file keeps them (<code>DepsFile</code>, on the same sections as a <code>.passes</code> file), and the query commands answer about them. <code>PerEyeCandidates</code> is the one rule that says which resources each eye is to have a copy of. Nothing in it knows an API.</p>
+<h4>RecipeApplier</h4>
+<p>Applies a recipe: given a draw told by its signature and the view matrix, says whether to render it once, per eye, or not at all, and what its convergence distance is. The replay engine and the converter use it; neither needs to bake.</p>
 
-<h3>APIDumpDependencyExtractor</h3>
-<p><em>Program.</em> Reads a workload and writes a <code>.deps</code> file. It reads on several threads, and leaves out the data chunks above 64 KiB (vertices and pixels, which it does not look at): the 4 GB capture of a demo takes about 8 seconds.</p>
+<h3>Stereo</h3>
+<p><em>Library.</em> The decisions of the conversion and the images it makes. See <a href="live-stereo.html">Live stereo</a>. Its parts:</p>
 
-<h3>APIDumpDependencyQuery</h3>
-<p><em>Program.</em> Asks a <code>.deps</code> file questions (<code>info</code>, <code>resources</code>, <code>resource</code>, <code>frame</code>, <code>carries</code>, <code>per-eye</code>) and prints the answers as JSON. It checks that the workload is the one the file is of, as the query tool of the <code>.passes</code> file does.</p>
+<h4>Core</h4>
+<p>The decisions of the conversion, without an API. The class <code>StereoCore</code> decides the class of a draw from the recipe, the view matrix, and what to do with draws and frames the recipe does not know. <code>ConvergenceModel</code> says where the eyes converge and how far apart they are, <code>MatrixSlots</code> which matrices a rule is about and which to put in before a draw, and the resolution policy how much larger than the application asks to render. <code>ScreenParallaxPlanner</code> decides what is done to the vertices of a draw that are already in the space of the picture (moved by their depth, pushed as a whole, or left alone), for the replay engine and the live converter alike. An API adapter asks it what to do and does it.</p>
 
-<h3>RecipeLoader</h3>
-<p><em>Library.</em> Reads a recipe and checks it. It is what everything that only wants to read a recipe links: the replay player, the consistency checker, the launcher and the catalog.</p>
+<h4>D3D7</h4>
+<p>What is done to the vertices of a Direct3D 7 draw that are already in the space of the picture, for an eye: moved by their depth, or all by the same pixels. It works on the bytes of the vertices, so the replay engine (a dumped draw) and the live converter (an application that runs) share it.</p>
 
-<h3>RecipeApplier</h3>
-<p><em>Library.</em> Applies a recipe: given a draw told by its signature and the view matrix, says whether to render it once, per eye, or not at all, and what its convergence distance is. The replay engine and the converter use it; neither needs to bake.</p>
+<h4>Session</h4>
+<p>How the launcher hands a playback over to the converter in the application: through environment variables of the launcher, which the application inherits. Each playback has its own, so that several can run (<code>SessionEnvironment</code>, <code>SessionInfo</code>). It also says where the converter writes its log.</p>
 
-<h3>RecipeBake</h3>
-<p><em>Program.</em> <code>--check</code> writes nothing: it says which kinds of frames (shapes) and which draw signatures of a workload the baked recipe does not know, with how many frames and where the first is, so that a recipe of another capture, or of a shorter one, is found out before a replay leaves those frames to the unknown-frame policy (exit code 5 if there are any). <code>--overlays</code> writes nothing either: it prints as JSON the draws that may be 2D overlays, by the recipe (a draw it leaves alone, as a replay asks by the keys of the draw and of its pass, and as a converter that plays the application as it runs asks by the signature over the cameras of its pass) and by the hint of the analysis (the camera of the pass never changes), with where the two disagree (<code>OverlayCandidateFinder</code>). Reads a <code>.passes</code> file (and, with <code>--deps</code>, the <code>.deps</code> file of the same workload, which says which textures each eye is to have a copy of) and the hand-written rules, and makes the recipe, including the convergence distances (the median depth by vertices) and the limits of the eye separation of each scene (from how near its surfaces are, and the <code>comfort</code> of the recipe). The baking is the class <code>RecipeBaker</code>, which is in the program because the program is its only user (the tests compile it too); the command line is <code>CommandLine</code>.</p>
+<h4>Transport</h4>
+<p>The channel between the converter and the presenter: a frame channel in shared memory, with a producer that writes the eyes of a frame and a consumer that takes the newest. The consumer also says what it accepts, how far to converge and how strong the 3D is. The exporter and importer are interfaces, so that the converter does not know what is on the other end.</p>
 
-<h2 id="replay">Replay</h2>
-<p>Executing a workload's calls again, without the program. See <a href="replay.html">Replay</a>.</p>
+<h4>Replay/FrameImages</h4>
+<p>The images of replayed frames as plain data: written as PNG files (compressed by miniz), compared (how many pixels differ, where, by how much, and an image that shows it), and put together (the two eyes as a red-cyan anaglyph, many frames as a contact sheet). The tools that look at frames use it, so that none has a writer of its own.</p>
 
-<h3>StereoReplayEngineDLL</h3>
-<p><em>DLL, built for 32 and 64 bits.</em> The replay engine. It is the replay engine of the interceptor (its executors for DirectDraw 7 and Direct3D 7, Direct3D 8, OpenGL and the Win32 windows, the remapping of objects, locks and client arrays) with what stereo needs added: a frame executor that plays a frame twice and binds the matrix of each eye, one that paces the frames, and a Direct3D 7 executor that keeps a copy of some objects for each eye.</p>
+<h3>Headset</h3>
+<p><em>Library.</em> What shows the images in a headset. The OpenXR session is of the 64-bit programs. Its parts:</p>
 
-<h3>StereoReplayPlayer</h3>
-<p><em>Program.</em> A control window (ImGui, through <code>UIHost</code>) around the replay engine: choose a workload and optionally a recipe, play and pause. A 64-bit player starts the 32-bit one for a 32-bit workload.</p>
+<h4>D3D12</h4>
+<p>Puts the eyes of a frame from the memory of the channel into Direct3D 12 textures without a copy by the CPU (<code>D3D12FrameUploader</code>), and fills the textures of a swap chain with black (<code>D3D12TextureClearer</code>), on the commands of one <code>D3D12CommandRunner</code>. The presenter and the headset use it.</p>
 
-<h3>StereoReplayConsistencyChecker</h3>
-<p><em>Program, without a window.</em> Replays a workload several ways, hashes the images of each frame and compares the ways: that a replay is repeatable, and that a frame executed twice draws the same as once. It is the test that the replay engine is fit for stereo conversion, and it can write the images of a frame that differs.</p>
+<h4>XR</h4>
+<p>The headset: a session of an OpenXR runtime that shows the eyes on a screen in the room, which can be flat or curved, sized to the view of the headset (<code>screen_geometry</code>); and the provider that lists the headsets of the machine.</p>
 
-<h3>StereoReplayFrameImages</h3>
-<p><em>Library.</em> The images of replayed frames as plain data: written as PNG files (compressed by miniz), compared (how many pixels differ, where, by how much, and an image that shows it), and put together (the two eyes as a red-cyan anaglyph, many frames as a contact sheet). The tools that look at frames use it, so that none has a writer of its own.</p>
+<h4>VRDevices</h4>
+<p>Where the list of devices comes from, behind an interface: a stub of made-up devices, and the provider of OpenXR runtimes in <code>XR</code>.</p>
 
-<h2 id="stereo">Stereo</h2>
-<p>The live converter, and what carries its images to a screen. See <a href="live-stereo.html">Live stereo</a>.</p>
+<h3>VR</h3>
+<p><em>Library.</em> What the VR player is made of, besides the headset. See <a href="vr-player.html">VR player</a>. Its parts:</p>
 
-<h3>StereoCore</h3>
-<p><em>Library.</em> The decisions of the conversion, without an API. The class <code>StereoCore</code>, which gives the library its name, decides the class of a draw from the recipe, the view matrix, and what to do with draws and frames the recipe does not know. <code>ConvergenceModel</code> says where the eyes converge and how far apart they are, <code>MatrixSlots</code> which matrices a rule is about and which to put in before a draw, and the resolution policy how much larger than the application asks to render. <code>ScreenParallaxPlanner</code> decides what is done to the vertices of a draw that are already in the space of the picture (moved by their depth, pushed as a whole, or left alone), for the replay engine and the live converter alike. An API adapter asks it what to do and does it.</p>
+<h4>AppCatalog</h4>
+<p>The list of applications that can be launched: for each, its executable, arguments, working directory and recipe, where it is downloaded from if it is not there, and the reason it is unavailable if it is. The name and description come from the recipe if the catalog does not give them.</p>
+
+<h4>AppInstaller</h4>
+<p>Puts an application where it is played: <code>HttpDownloader</code> gets the zip file over https (WinHTTP, so the proxy and the certificates of the system), <code>Sha256</code> checks it against the hash of the catalog, <code>ZipExtractor</code> unpacks it with miniz (and refuses a name which would put a file outside the directory), and <code>AppInstaller</code> does the three in a thread of its own, reports the progress, and moves the result into place whole, so that a cancel or a failure leaves nothing behind. It writes under the directory of the applications only.</p>
+
+<h4>UIHost</h4>
+<p>A window drawn with ImGui over a Direct3D 11 device of its own: the device, the swap chain and the message loop. The control window of the player, the VR player and the presenter use it, so none of them repeats it.</p>
+
+<h2 id="runtime">runtime</h2>
+<p>What the VR player starts. The live converter, and what carries its images to a screen. See <a href="live-stereo.html">Live stereo</a>. The converter and the launcher are built for x86 and for x64 (see <code>build.bat</code>), since the launcher has to be of the architecture of the application.</p>
 
 <h3>StereoConverterDLL</h3>
 <p><em>DLL, built for 32 and 64 bits, to match the application.</em> The converter, injected into the program. <code>Converter</code> orders the work of each call; <code>CallFeeder</code> gives the analysis the calls as a dump would; the Direct3D 8 adapter renders the second eye (<code>D3D8EyeRenderer</code>), scales the resolution, forces windowed mode, and exports the frame into the channel's memory; <code>FramePasser</code> and <code>SessionLog</code> pass frames on and write the log.</p>
@@ -101,46 +123,52 @@
 <h3>StereoLauncher</h3>
 <p><em>Program.</em> Starts a program with <code>StereoConverterDLL</code> injected, given a recipe, and reads the session log the converter writes.</p>
 
-<h3>StereoSession</h3>
-<p><em>Library.</em> How the launcher hands a playback over to the converter in the application: through environment variables of the launcher, which the application inherits. Each playback has its own, so that several can run (<code>SessionEnvironment</code>, <code>SessionInfo</code>). It also says where the converter writes its log.</p>
-
-<h3>StereoTransport</h3>
-<p><em>Library.</em> The channel between the converter and the presenter: a frame channel in shared memory, with a producer that writes the eyes of a frame and a consumer that takes the newest. The consumer also says what it accepts, how far to converge and how strong the 3D is. The exporter and importer are interfaces, so that the converter does not know what is on the other end.</p>
-
-<h3>StereoD3D7</h3>
-<p><em>Library.</em> What is done to the vertices of a Direct3D 7 draw that are already in the space of the picture, for an eye: moved by their depth, or all by the same pixels. It works on the bytes of the vertices, so the replay engine (a dumped draw) and the live converter (an application that runs) share it.</p>
-
-<h3>StereoD3D12</h3>
-<p><em>Library.</em> Puts the eyes of a frame from the memory of the channel into Direct3D 12 textures without a copy by the CPU. The presenter and the headset use it.</p>
-
-<h3>StereoXR</h3>
-<p><em>Library, 64-bit.</em> The headset: a session of an OpenXR runtime that shows the eyes on a screen in the room, which can be flat or curved, sized to the view of the headset (<code>screen_geometry</code>); and the provider that lists the headsets of the machine.</p>
-
 <h3>StereoPresenter</h3>
 <p><em>Program, 64-bit.</em> Takes the frames from the channel, whatever the bitness of the application, and shows them in a preview window or, with <code>--headset</code>, in a headset. It is started with the id of a session, which the VR player makes and also gives to the launcher; the VR player starts both.</p>
 
-<h2 id="vr">VR player</h2>
+<h2 id="analysis">tools/Analysis</h2>
+<p>Turning a workload into a model and the model into a recipe. See <a href="analysis-and-recipes.html">Analysis &amp; recipes</a>. The library is <code>Analysis</code>.</p>
+
+<h3>APIDumpAnalysisExtractor</h3>
+<p><em>Program.</em> Reads a workload and writes a <code>.passes</code> file.</p>
+
+<h3>APIDumpAnalysisQuery</h3>
+<p><em>Program.</em> Asks a <code>.passes</code> file questions (<code>info</code>, <code>timeline</code> and the others) and prints the answers as JSON. It checks that the workload is the one the file is of (<code>--workload</code> says where it is, <code>--no-verify</code> skips the check).</p>
+
+<h3>APIDumpDependencyExtractor</h3>
+<p><em>Program.</em> Reads a workload and writes a <code>.deps</code> file. It reads on several threads, and leaves out the data chunks above 64 KiB (vertices and pixels, which it does not look at): the 4 GB capture of a demo takes about 8 seconds.</p>
+
+<h3>APIDumpDependencyQuery</h3>
+<p><em>Program.</em> Asks a <code>.deps</code> file questions (<code>info</code>, <code>resources</code>, <code>resource</code>, <code>frame</code>, <code>carries</code>, <code>per-eye</code>) and prints the answers as JSON. It checks that the workload is the one the file is of, as the query tool of the <code>.passes</code> file does.</p>
+
+<h3>APIDumpSlicer</h3>
+<p><em>Program.</em> Writes the first frames of a workload, frames 0 to B, as a workload of its own: <code>APIDumpSlicer in.workload slice.workload --frames B</code>. The segments of the file which are wholly in the slice are copied as they are (they are Zstandard frames of their own, found by the index), and only the one that frame B ends in is decoded, cut after the call that ends the frame, and written again, so a slice replays to the same images as the workload up to that frame; <code>StereoReplayConsistencyChecker --same-frames-as</code> checks it. <code>--strip-chunks-above N</code> writes the big data chunks empty (they keep their numbers) for a slice that is only to be analysed. It is the first of the slices; one that leaves out what the frames of a range do not depend on needs the dependency analysis.</p>
+
+<h3>RecipeBake</h3>
+<p><em>Program.</em> <code>--check</code> writes nothing: it says which kinds of frames (shapes) and which draw signatures of a workload the baked recipe does not know, with how many frames and where the first is, so that a recipe of another capture, or of a shorter one, is found out before a replay leaves those frames to the unknown-frame policy (exit code 5 if there are any). <code>--overlays</code> writes nothing either: it prints as JSON the draws that may be 2D overlays, by the recipe (a draw it leaves alone, as a replay asks by the keys of the draw and of its pass, and as a converter that plays the application as it runs asks by the signature over the cameras of its pass) and by the hint of the analysis (the camera of the pass never changes), with where the two disagree (<code>OverlayCandidateFinder</code>). Reads a <code>.passes</code> file (and, with <code>--deps</code>, the <code>.deps</code> file of the same workload, which says which textures each eye is to have a copy of) and the hand-written rules, and makes the recipe, including the convergence distances (the median depth by vertices) and the limits of the eye separation of each scene (from how near its surfaces are, and the <code>comfort</code> of the recipe). The baking is the class <code>RecipeBaker</code>, which is in the program because the program is its only user (the tests compile it too); the command line is <code>CommandLine</code>.</p>
+
+<h2 id="replay">tools/Replay</h2>
+<p>Executing a workload's calls again, without the program. See <a href="replay.html">Replay</a>. The 32-bit programs have <code>_x86</code> in the name of their file, so that the 64-bit player finds them next to itself.</p>
+
+<h3>StereoReplayEngineDLL</h3>
+<p><em>DLL, built for 32 and 64 bits.</em> The replay engine. It is the replay engine of the interceptor (its executors for DirectDraw 7 and Direct3D 7, Direct3D 8, OpenGL and the Win32 windows, the remapping of objects, locks and client arrays) with what stereo needs added: a frame executor that plays a frame twice and binds the matrix of each eye, one that paces the frames, and a Direct3D 7 executor that keeps a copy of some objects for each eye. Its public headers (<code>i_playback_controller.h</code>, <code>types.h</code> and the others) are in its folder, beside its sources.</p>
+
+<h3>StereoReplayPlayer</h3>
+<p><em>Program.</em> A control window (ImGui, through <code>UIHost</code>) around the replay engine: choose a workload and optionally a recipe, play and pause. A 64-bit player starts the 32-bit one for a 32-bit workload.</p>
+
+<h3>StereoReplayConsistencyChecker</h3>
+<p><em>Program, without a window.</em> Replays a workload several ways, hashes the images of each frame and compares the ways: that a replay is repeatable, and that a frame executed twice draws the same as once. It is the test that the replay engine is fit for stereo conversion, and it can write the images of a frame that differs.</p>
+
+<h2 id="vrplayer">VRPlayer</h2>
 <p>The front end that chooses what to run and where to see it. See <a href="vr-player.html">VR player</a>.</p>
 
 <h3>VRPlayer</h3>
 <p><em>Program, 64-bit.</em> A window that lists the applications of the catalog and the devices, starts the chosen application through the launcher and the presenter, and lets the user change the settings of a running session.</p>
 
-<h3>AppCatalog</h3>
-<p><em>Library.</em> The list of applications that can be launched: for each, its executable, arguments, working directory and recipe, where it is downloaded from if it is not there, and the reason it is unavailable if it is. The name and description come from the recipe if the catalog does not give them.</p>
-
-<h3>AppInstaller</h3>
-<p><em>Library.</em> Puts an application where it is played: <code>HttpDownloader</code> gets the zip file over https (WinHTTP, so the proxy and the certificates of the system), <code>Sha256</code> checks it against the hash of the catalog, <code>ZipExtractor</code> unpacks it with miniz (and refuses a name which would put a file outside the directory), and <code>AppInstaller</code> does the three in a thread of its own, reports the progress, and moves the result into place whole, so that a cancel or a failure leaves nothing behind. It writes under the directory of the applications only.</p>
-
-<h3>VRDevices</h3>
-<p><em>Library.</em> Where the list of devices comes from, behind an interface: a stub of made-up devices, and the provider of OpenXR runtimes in <code>StereoXR</code>.</p>
-
-<h3>UIHost</h3>
-<p><em>Library.</em> A window drawn with ImGui over a Direct3D 11 device of its own: the device, the swap chain and the message loop. The control window of the player, the VR player and the presenter use it, so none of them repeats it.</p>
-
 <h2 id="support">Tests and third-party code</h2>
 
 <h3>DemoVRPlayerTests</h3>
-<p><em>Program.</em> The tests, with googletest, of every library above. The data files they use are reached through <code>Tests::DataFixtures</code> and the test doubles are in <code>src/Tests/test_doubles.*</code>; a few helpers of the tests of API Interceptor are used as they are. See <a href="building.html#tests">Building</a>.</p>
+<p><em>Program.</em> The tests, with googletest, of every library and program above. The data files they use are reached through <code>Tests::DataFixtures</code> and the test doubles are in <code>src/Tests/test_doubles.*</code>; a few helpers of the tests of API Interceptor are used as they are. They include a test of the layout of the source against the release, and one that the code is not written twice (<code>known_duplicates.txt</code>). See <a href="building.html#tests">Building</a>.</p>
 
 <h3>deps</h3>
 <p>API Interceptor (with its own third-party code: Detours, Zstd, Dear ImGui, googletest and the Khronos headers of OpenGL) and the OpenXR SDK, for the headset, and miniz, for the zip files of the applications.</p>

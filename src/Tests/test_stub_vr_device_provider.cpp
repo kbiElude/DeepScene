@@ -6,15 +6,15 @@
  * there which cannot be used, with the reason.
  */
 #include <gtest/gtest.h>
-#include "VR/VRDevices/stub_vr_device_provider.h"
+#include "Headset/VRDevices/stub_vr_device_provider.h"
 #include <set>
 
 TEST(StubVrDeviceProviderTest, TheListIsTheSameEveryTime)
 {
-    const VR::VRDevices::StubVrDeviceProvider provider;
+    const Headset::VRDevices::StubVrDeviceProvider provider;
     std::string                               error;
-    std::vector<VR::VRDevices::VrDevice>      first_vec;
-    std::vector<VR::VRDevices::VrDevice>      second_vec;
+    std::vector<Headset::VRDevices::VrDevice>      first_vec;
+    std::vector<Headset::VRDevices::VrDevice>      second_vec;
 
     ASSERT_TRUE(provider.enumerate(&first_vec,
                                    &error) ) << error;
@@ -36,10 +36,10 @@ TEST(StubVrDeviceProviderTest, TheListIsTheSameEveryTime)
 
 TEST(StubVrDeviceProviderTest, EveryDeviceHasAnIdAndANameAndAnIdOfItsOwn)
 {
-    const VR::VRDevices::StubVrDeviceProvider provider;
+    const Headset::VRDevices::StubVrDeviceProvider provider;
     std::set<std::string>                     id_set;
     std::string                               error;
-    std::vector<VR::VRDevices::VrDevice>      device_vec;
+    std::vector<Headset::VRDevices::VrDevice>      device_vec;
 
     ASSERT_TRUE(provider.enumerate(&device_vec,
                                    &error) ) << error;
@@ -56,11 +56,11 @@ TEST(StubVrDeviceProviderTest, EveryDeviceHasAnIdAndANameAndAnIdOfItsOwn)
 
 TEST(StubVrDeviceProviderTest, SomeDevicesCanBeUsedAndOneCannotWithTheReason)
 {
-    const VR::VRDevices::StubVrDeviceProvider provider;
+    const Headset::VRDevices::StubVrDeviceProvider provider;
     size_t                                    n_unavailable = 0;
     size_t                                    n_usable      = 0;
     std::string                               error;
-    std::vector<VR::VRDevices::VrDevice>      device_vec;
+    std::vector<Headset::VRDevices::VrDevice>      device_vec;
 
     ASSERT_TRUE(provider.enumerate(&device_vec,
                                    &error) ) << error;
@@ -85,9 +85,9 @@ TEST(StubVrDeviceProviderTest, SomeDevicesCanBeUsedAndOneCannotWithTheReason)
 
 TEST(StubVrDeviceProviderTest, WhatWasInTheVectorIsReplacedNotAddedTo)
 {
-    const VR::VRDevices::StubVrDeviceProvider stub;
-    const VR::VRDevices::IVrDeviceProvider&   provider   = stub;
-    std::vector<VR::VRDevices::VrDevice>      device_vec = {VR::VRDevices::VrDevice()};
+    const Headset::VRDevices::StubVrDeviceProvider stub;
+    const Headset::VRDevices::IVrDeviceProvider&   provider   = stub;
+    std::vector<Headset::VRDevices::VrDevice>      device_vec = {Headset::VRDevices::VrDevice()};
 
     ASSERT_TRUE(provider.enumerate(&device_vec,
                                    nullptr) );

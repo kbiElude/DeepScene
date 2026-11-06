@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 #include "d3d12_device_fixture.h"
 #include "data_fixtures.h"
-#include "Stereo/D3D12/d3d12_frame_uploader.h"
+#include "Headset/D3D12/d3d12_frame_uploader.h"
 #include "Stereo/Transport/frame_channel.h"
 #include "Stereo/Transport/host_memory_importer.h"
 #include <vector>
@@ -109,7 +109,7 @@ TEST_F(D3D12FrameUploaderTest, TheEyesOfAFrameAreInTheTexturesAndTheTexturesAreI
               nullptr) << error;
 
     Stereo::Transport::HostMemoryImporter importer(std::move(consumer_ptr) );
-    Stereo::D3D12::D3D12FrameUploader     uploader(m_device_ptr.Get(),
+    Headset::D3D12::D3D12FrameUploader     uploader(m_device_ptr.Get(),
                                                    m_queue_ptr.Get() );
     Stereo::Transport::ImportedFrame      frame;
     auto                                  left_ptr  = create_texture(DXGI_FORMAT_B8G8R8A8_UNORM);
@@ -154,7 +154,7 @@ TEST_F(D3D12FrameUploaderTest, FramesOfOtherSlotsAndOfOneEyeAreUploadedToo)
               nullptr) << error;
 
     Stereo::Transport::HostMemoryImporter importer(std::move(consumer_ptr) );
-    Stereo::D3D12::D3D12FrameUploader     uploader(m_device_ptr.Get(),
+    Headset::D3D12::D3D12FrameUploader     uploader(m_device_ptr.Get(),
                                                    m_queue_ptr.Get() );
     Stereo::Transport::ImportedFrame      frame;
     auto                                  left_ptr  = create_texture(DXGI_FORMAT_B8G8R8A8_UNORM);
@@ -204,7 +204,7 @@ TEST_F(D3D12FrameUploaderTest, ATextureSmallerThanAnEyeIsRefused)
               nullptr) << error;
 
     Stereo::Transport::HostMemoryImporter importer(std::move(consumer_ptr) );
-    Stereo::D3D12::D3D12FrameUploader     uploader(m_device_ptr.Get(),
+    Headset::D3D12::D3D12FrameUploader     uploader(m_device_ptr.Get(),
                                                    m_queue_ptr.Get() );
     Stereo::Transport::ImportedFrame      frame;
     auto                                  texture_ptr = create_texture(DXGI_FORMAT_B8G8R8A8_UNORM);

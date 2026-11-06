@@ -102,7 +102,6 @@ namespace
         std::map<std::string, std::vector<std::string> >     file_vec_by_run;
         GroupCountMap                                        result;
         const std::vector<std::filesystem::path>             folder_vec = {root / "src",
-                                                                           root / "include",
                                                                            root / "deps" / "APIInterceptor" / "src",
                                                                            root / "deps" / "APIInterceptor" / "include"};
 

@@ -8,8 +8,8 @@
 #include <mmsystem.h>
 
 Stereo::Presenter::HeadsetSink::HeadsetSink(Stereo::Transport::IFrameImporter*                 inout_importer_ptr,
-                                            std::unique_ptr<Stereo::XR::HeadsetSession>        in_session_ptr,
-                                            std::unique_ptr<Stereo::D3D12::D3D12FrameUploader> in_uploader_ptr,
+                                            std::unique_ptr<Headset::XR::HeadsetSession>        in_session_ptr,
+                                            std::unique_ptr<Headset::D3D12::D3D12FrameUploader> in_uploader_ptr,
                                             const ExitFunc&                                    in_exit_func,
                                             const LogFunc&                                     in_log_func,
                                             const bool&                                        in_is_pacing)
@@ -70,15 +70,15 @@ std::unique_ptr<Stereo::Presenter::HeadsetSink> Stereo::Presenter::HeadsetSink::
                                                                                            std::string*                       out_error_ptr)
 {
     std::unique_ptr<HeadsetSink>                       result_ptr;
-    auto                                               session_ptr = Stereo::XR::HeadsetSession::create_ptr(out_error_ptr);
-    std::unique_ptr<Stereo::D3D12::D3D12FrameUploader> uploader_ptr;
+    auto                                               session_ptr = Headset::XR::HeadsetSession::create_ptr(out_error_ptr);
+    std::unique_ptr<Headset::D3D12::D3D12FrameUploader> uploader_ptr;
 
     if (session_ptr == nullptr)
     {
         goto end;
     }
 
-    uploader_ptr.reset(new Stereo::D3D12::D3D12FrameUploader(session_ptr->get_device_ptr(),
+    uploader_ptr.reset(new Headset::D3D12::D3D12FrameUploader(session_ptr->get_device_ptr(),
                                                              session_ptr->get_queue_ptr() ));
 
     if (uploader_ptr->is_ok(out_error_ptr) == false)
@@ -171,7 +171,7 @@ void Stereo::Presenter::HeadsetSink::upload_frame(const Stereo::Transport::Impor
     if (m_uploader_ptr->upload(in_frame,
                                left_texture_ptr,
                                right_texture_ptr,
-                               Stereo::XR::HeadsetSession::get_texture_state(),
+                               Headset::XR::HeadsetSession::get_texture_state(),
                               &error) == false)
     {
         log_once(error);
