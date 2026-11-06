@@ -5,6 +5,7 @@
 #ifndef STEREO_CORE_TYPES_H
 #define STEREO_CORE_TYPES_H
 
+#include "common/api_function_argument.h"
 #include "common/types.h"
 #include <array>
 #include <functional>

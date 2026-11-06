@@ -6,6 +6,7 @@
 #define STEREO_CONVERTERDLL_CALL_FEEDER_H
 
 #include "analysis/api_dump_analysis/frontends/analysis_session.h"
+#include "common/api_function_argument.h"
 #include "common/callbacks.h"
 #include <functional>
 #include <map>

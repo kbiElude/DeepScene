@@ -6,6 +6,7 @@
 #define STEREO_CONVERTERDLL_D3D7_EYE_RENDERER_H
 
 #include "analysis/recipe/types.h"
+#include "common/api_function_argument.h"
 #include "common/types.h"
 #include "interception/hooks/D3D7/types.h"
 #include "stereo/core/stereo_core.h"

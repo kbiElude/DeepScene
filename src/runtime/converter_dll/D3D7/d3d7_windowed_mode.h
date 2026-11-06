@@ -5,6 +5,7 @@
 #ifndef STEREO_CONVERTERDLL_D3D7_WINDOWED_MODE_H
 #define STEREO_CONVERTERDLL_D3D7_WINDOWED_MODE_H
 
+#include "common/api_function_argument.h"
 #include "common/types.h"
 #include "interception/hooks/D3D7/types.h"
 #include "stereo/core/resolution_policy.h"

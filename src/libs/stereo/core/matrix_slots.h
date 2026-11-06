@@ -11,6 +11,7 @@
 #define STEREO_CORE_MATRIX_SLOTS_H
 
 #include "analysis/recipe/recipe_applier.h"
+#include "common/api_function_argument.h"
 #include "stereo/core/types.h"
 #include <array>
 #include <map>

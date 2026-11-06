@@ -6,6 +6,7 @@
 #define APIDUMPANALYSIS_FRONTENDS_D3D8_RESOLUTION_HAZARDS_H
 
 #include "analysis/api_dump_analysis/types.h"
+#include "common/api_function_argument.h"
 #include "common/callbacks.h"
 #include <stdint.h>
 

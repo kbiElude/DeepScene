@@ -6,6 +6,7 @@
 #define STEREO_CONVERTERDLL_D3D8_RESOLUTION_SCALER_H
 
 #include "analysis/api_dump_analysis/types.h"
+#include "common/api_function_argument.h"
 #include "interception/hooks/D3D8/argument_modifier.h"
 #include "stereo/core/resolution_policy.h"
 #include "stereo/core/stereo_core.h"

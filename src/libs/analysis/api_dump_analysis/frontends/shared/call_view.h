@@ -11,6 +11,7 @@
 
 #include "analysis/api_dump_analysis/types.h"
 #include "capture/api_dump_loader/api_dump_loader.h"
+#include "common/api_function_argument.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <vector>

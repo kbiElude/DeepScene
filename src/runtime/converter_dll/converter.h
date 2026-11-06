@@ -11,6 +11,7 @@
 #include "stereo/core/stereo_core.h"
 #include "stereo/transport/frame_channel.h"
 #include "call_feeder.h"
+#include "common/api_function_argument.h"
 #include "D3D7/d3d7_eye_renderer.h"
 #include "D3D7/d3d7_host_memory_exporter.h"
 #include "D3D7/d3d7_windowed_mode.h"

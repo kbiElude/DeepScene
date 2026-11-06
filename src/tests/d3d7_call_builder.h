@@ -9,6 +9,7 @@
 #define TESTS_D3D7_CALL_BUILDER_H
 
 #include "capture/api_dump_loader/api_dump_loader.h"
+#include "common/api_function_argument.h"
 #include "interception/hooks/D3D7/types.h"
 #include <stdint.h>
 #include <vector>

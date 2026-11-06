@@ -18,6 +18,7 @@
 #define STEREO_CORE_STEREO_CORE_H
 
 #include "analysis/recipe/recipe_applier.h"
+#include "common/api_function_argument.h"
 #include "stereo/core/convergence_model.h"
 #include "stereo/core/matrix_slots.h"
 #include "stereo/core/screen_parallax_planner.h"
