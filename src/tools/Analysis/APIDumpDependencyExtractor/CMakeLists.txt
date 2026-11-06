@@ -4,6 +4,6 @@ file(GLOB Sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
 
 add_executable(APIDumpDependencyExtractor ${Sources})
 
-target_link_libraries(APIDumpDependencyExtractor APIDumpAnalysis APIDumpAnalysisFrontends APIDumpDependencies)
+target_link_libraries(APIDumpDependencyExtractor Analysis)
 
 source_group ("APIDumpDependencyExtractor source files" FILES ${Sources})

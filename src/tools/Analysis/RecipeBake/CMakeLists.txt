@@ -4,6 +4,6 @@ file(GLOB Sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
 
 add_executable(RecipeBake ${Sources})
 
-target_link_libraries(RecipeBake RecipeApplier APIDumpDependencies)
+target_link_libraries(RecipeBake Analysis)
 
 source_group ("RecipeBake source files" FILES ${Sources})

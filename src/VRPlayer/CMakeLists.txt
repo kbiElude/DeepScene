@@ -5,6 +5,6 @@ file(GLOB Sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
 
 add_executable(VRPlayer WIN32 ${Sources})
 
-target_link_libraries(VRPlayer AppCatalog InjectionLauncher StereoCore StereoTransport StereoXR UIHost VRDevices)
+target_link_libraries(VRPlayer Headset InjectionLauncher Stereo VR)
 
 source_group ("VRPlayer source files" FILES ${Sources})

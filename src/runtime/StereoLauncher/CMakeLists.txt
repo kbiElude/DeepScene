@@ -4,7 +4,7 @@ file(GLOB Sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
 
 add_executable(StereoLauncher ${Sources})
 
-target_link_libraries(StereoLauncher RecipeLoader InjectionLauncher StereoSession)
+target_link_libraries(StereoLauncher InjectionLauncher Stereo)
 
 add_dependencies(StereoLauncher StereoConverterDLL)
 

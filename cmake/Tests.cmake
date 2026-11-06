@@ -69,11 +69,7 @@ if (DEMOVRPLAYER_BUILD_TESTS)
     target_compile_definitions(DemoVRPlayerTests PRIVATE DEMOVRPLAYER_APPS_DIR="${DemoVRPlayer_SOURCE_DIR}/apps"
                                                          DEMOVRPLAYER_REPOSITORY_ROOT="${DemoVRPlayer_SOURCE_DIR}"
                                                          DEMOVRPLAYER_TESTS_DATA_DIR="${DemoVRPlayer_SOURCE_DIR}/src/Tests/data")
-    target_link_libraries(DemoVRPlayerTests gtest_main APIInterceptorTestSupport ReplayEngineCore APIDumpAnalysis APIDumpAnalysisFrontends APIDumpDependencies APIDumpLoader APIDumpSlicing AppCatalog AppInstaller D3D7Utils D3D8Utils InjectionLauncher ws2_32 RecipeApplier RecipeLoader StereoCore StereoD3D12 StereoD3D7 StereoReplayEngineDLL StereoReplayFrameImages StereoSession StereoTransport VRDevices)
-
-    if (CMAKE_SIZEOF_VOID_P EQUAL 8)
-        target_link_libraries(DemoVRPlayerTests StereoXR)
-    endif()
+    target_link_libraries(DemoVRPlayerTests gtest_main APIInterceptorTestSupport APIDumpLoader Analysis D3D7Utils D3D8Utils Headset InjectionLauncher ReplayEngineCore Stereo StereoReplayEngineDLL VR ws2_32)
 
     enable_testing()
     add_test(NAME DemoVRPlayerTests COMMAND DemoVRPlayerTests)

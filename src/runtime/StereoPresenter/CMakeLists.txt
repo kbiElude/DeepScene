@@ -4,6 +4,6 @@ file(GLOB Sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
 
 add_executable(StereoPresenter WIN32 ${Sources})
 
-target_link_libraries(StereoPresenter StereoD3D12 StereoSession StereoTransport StereoXR UIHost winmm)
+target_link_libraries(StereoPresenter Headset Stereo VR winmm)
 
 source_group ("StereoPresenter source files" FILES ${Sources})

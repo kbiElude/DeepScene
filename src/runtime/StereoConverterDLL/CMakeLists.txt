@@ -9,6 +9,6 @@ add_library(StereoConverterDLL SHARED ${Sources}
 
 target_include_directories(StereoConverterDLL PRIVATE "${APIInterceptor_SOURCE_DIR}/src/Replay/ReplayEngineDLL")
 
-target_link_libraries(StereoConverterDLL APIDumpAnalysisFrontends APIInterceptor D3D7Utils D3D8Utils StereoCore StereoD3D7 StereoSession StereoTransport winmm)
+target_link_libraries(StereoConverterDLL APIInterceptor D3D7Utils D3D8Utils Stereo winmm)
 
 source_group ("StereoConverterDLL source files" FILES ${Sources})

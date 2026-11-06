@@ -28,12 +28,7 @@ include_directories("${DemoVRPlayer_SOURCE_DIR}/include"
                     "${DemoVRPlayer_SOURCE_DIR}/src")
 
 # The libraries.
-include(cmake/Analysis.cmake)
-include(cmake/AppInstaller.cmake)
-include(cmake/Replay.cmake)
-include(cmake/Stereo.cmake)
-include(cmake/VR.cmake)
-include(cmake/Headset.cmake)
+include(cmake/Libraries.cmake)
 
 # The programs, each in the folder which it is installed as: src/runtime for what the VR player starts, src/tools for the tools, and the VR
 # player in src/VRPlayer. The headset is of the 64-bit programs.

@@ -5,7 +5,7 @@ file(GLOB Sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
 
 add_executable(StereoReplayConsistencyChecker ${Sources})
 
-target_link_libraries(StereoReplayConsistencyChecker APIDumpAnalysis APIDumpNames RecipeLoader StereoReplayEngineDLL StereoReplayFrameImages)
+target_link_libraries(StereoReplayConsistencyChecker APIDumpNames Analysis Stereo StereoReplayEngineDLL)
 
 if (CMAKE_SIZEOF_VOID_P EQUAL 4)
     set_target_properties(StereoReplayConsistencyChecker PROPERTIES OUTPUT_NAME "StereoReplayConsistencyChecker_x86")

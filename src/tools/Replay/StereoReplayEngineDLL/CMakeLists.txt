@@ -6,7 +6,7 @@ file(GLOB Sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
 add_library(StereoReplayEngineDLL SHARED ${Sources})
 
 target_compile_definitions(StereoReplayEngineDLL PRIVATE STEREOREPLAYENGINEDLL_BUILDING_DLL)
-target_link_libraries     (StereoReplayEngineDLL APIDumpAnalysisFrontends APIDumpDependencies APIDumpLoader RecipeApplier ReplayEngineCore StereoCore StereoD3D7)
+target_link_libraries     (StereoReplayEngineDLL APIDumpLoader Analysis ReplayEngineCore Stereo)
 
 if (CMAKE_SIZEOF_VOID_P EQUAL 4)
     set_target_properties(StereoReplayEngineDLL PROPERTIES OUTPUT_NAME "StereoReplayEngineDLL_x86")
