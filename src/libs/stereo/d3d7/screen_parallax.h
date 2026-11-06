@@ -5,7 +5,7 @@
 #ifndef STEREO_D3D7_SCREEN_PARALLAX_H
 #define STEREO_D3D7_SCREEN_PARALLAX_H
 
-#include "analysis/recipe_loader/types.h"
+#include "analysis/recipe/types.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -15,7 +15,7 @@ namespace Stereo
     {
         /* Gives the vertices of a Direct3D 7 draw parallax for an eye, when the vertices are already in the space of the picture (the
          * position of a vertex is in pixels, with the reciprocal of its depth: no matrix moves it, so the matrix of the eye cannot). See
-         * Analysis::RecipeLoader::ScreenParallax for what is done to a vertex, and why. This is what is done to the bytes of the vertices,
+         * Analysis::Recipe::ScreenParallax for what is done to a vertex, and why. This is what is done to the bytes of the vertices,
          * whoever holds them: a dump that is replayed, or an application that runs.
          */
         class ScreenParallax
@@ -26,7 +26,7 @@ namespace Stereo
             {
                 float                       convergence_distance  = 1.0f;  /* in the units of the camera of the application     */
                 float                       eye_separation        = 0.0f;  /* the same units                                    */
-                Analysis::RecipeLoader::Eye eye                   = Analysis::RecipeLoader::Eye::LEFT;
+                Analysis::Recipe::Eye eye                   = Analysis::Recipe::Eye::LEFT;
                 float                       field_of_view_degrees = 90.0f; /* of the width of the picture                       */
                 float                       picture_width         = 0.0f;  /* in pixels: of what the vertices are positioned in */
             };
@@ -41,8 +41,8 @@ namespace Stereo
             };
 
             /* How far a vertex of the reciprocal of the depth is moved sideways for the eye, in pixels: positive to the right. */
-            static float get_shift(const Parameters& in_parameters,
-                                   const float&      in_reciprocal_depth);
+            static float get_shift(const Parameters&   in_parameters,
+                                   const float&        in_reciprocal_depth);
             static float get_shift(const ShiftFactors& in_factors,
                                    const float&        in_reciprocal_depth);
 

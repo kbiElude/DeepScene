@@ -5,7 +5,7 @@
 #ifndef STEREO_REPLAY_ENGINEDLL_TYPES_H
 #define STEREO_REPLAY_ENGINEDLL_TYPES_H
 
-#include "analysis/recipe_loader/types.h"
+#include "analysis/recipe/types.h"
 #include "Replay/ReplayEngineDLL/types.h"
 #include <stdint.h>
 #include <string>
@@ -32,7 +32,7 @@ namespace Stereo
             /* Applies to the frames first_frame to last_frame, counted from 0; the others are executed as they are read. */
             struct FrameExecutionOptions
             {
-                Analysis::RecipeLoader::Eye eye            = Analysis::RecipeLoader::Eye::LEFT; /* BUFFERED_ONCE: the eye to render for; TWICE: the left one, then the right one */
+                Analysis::Recipe::Eye eye            = Analysis::Recipe::Eye::LEFT; /* BUFFERED_ONCE: the eye to render for; TWICE: the left one, then the right one */
                 uint32_t       first_frame    = 0;
                 uint32_t       last_frame     = UINT32_MAX;
                 FrameExecution mode           = FrameExecution::DIRECT;

@@ -6,7 +6,7 @@
  * where.
  */
 #include <gtest/gtest.h>
-#include "analysis/recipe_loader/recipe_loader.h"
+#include "analysis/recipe/recipe_loader.h"
 #include "Interception/Core/D3D7Utils/constants.h"
 #include "Interception/Hooks/D3D8/types.h"
 #include "data_fixtures.h"
@@ -42,12 +42,12 @@ protected:
     void expect_refused(const std::string& in_text,
                         const std::string& in_message_part)
     {
-        Analysis::RecipeLoader::Recipe recipe;
-        std::string                    error;
+        Analysis::Recipe::Recipe recipe;
+        std::string              error;
 
-        EXPECT_FALSE(Analysis::RecipeLoader::RecipeLoader::parse(in_text,
-                                                                &recipe,
-                                                                &error) ) << in_text;
+        EXPECT_FALSE(Analysis::Recipe::RecipeLoader::parse(in_text,
+                                                           &recipe,
+                                                           &error) ) << in_text;
         EXPECT_NE   (error.find(in_message_part),
                      std::string::npos) << in_message_part << " not in: " << error;
     }
@@ -58,12 +58,12 @@ protected:
 
 TEST_F(RecipeLoaderTest, TheExampleFileIsRead)
 {
-    std::string                    error;
-    Analysis::RecipeLoader::Recipe recipe;
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::load(Tests::DataFixtures::get_recipe_example_filename(),
-                                                              &recipe,
-                                                              &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::load(Tests::DataFixtures::get_recipe_example_filename(),
+                                                        &recipe,
+                                                        &error) ) << error;
 
     EXPECT_EQ(recipe.version,
               0u);
@@ -73,7 +73,7 @@ TEST_F(RecipeLoaderTest, TheExampleFileIsRead)
               "fr08");
     EXPECT_FALSE(recipe.target_description.empty() );
     EXPECT_EQ(recipe.unknown_frame_policy,
-              Analysis::RecipeLoader::UnknownFramePolicy::MONO);
+              Analysis::Recipe::UnknownFramePolicy::MONO);
     ASSERT_EQ(recipe.known_shape_key_vec.size(),
               1u);
     EXPECT_EQ(recipe.known_shape_key_vec.at(0),
@@ -93,11 +93,11 @@ TEST_F(RecipeLoaderTest, TheExampleFileIsRead)
     const auto& offset_rule = recipe.rule_vec.at(2);
 
     EXPECT_EQ(offset_rule.action_kind,
-              Analysis::RecipeLoader::ActionKind::EYE_OFFSET);
+              Analysis::Recipe::ActionKind::EYE_OFFSET);
     EXPECT_EQ(offset_rule.offset_axis,
-              Analysis::RecipeLoader::Axis::Y);
+              Analysis::Recipe::Axis::Y);
     EXPECT_EQ(offset_rule.multiply_order,
-              Analysis::RecipeLoader::MultiplyOrder::PRE);
+              Analysis::Recipe::MultiplyOrder::PRE);
 
     const auto& view_rule = recipe.rule_vec.at(0);
 
@@ -106,11 +106,11 @@ TEST_F(RecipeLoaderTest, TheExampleFileIsRead)
     EXPECT_EQ(view_rule.function,
               APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_SETTRANSFORM);
     EXPECT_EQ(view_rule.action_kind,
-              Analysis::RecipeLoader::ActionKind::MULTIPLY);
+              Analysis::Recipe::ActionKind::MULTIPLY);
     EXPECT_EQ(view_rule.multiply_order,
-              Analysis::RecipeLoader::MultiplyOrder::POST);
+              Analysis::Recipe::MultiplyOrder::POST);
     EXPECT_EQ(view_rule.matrix_kind,
-              Analysis::RecipeLoader::MatrixKind::ANY);
+              Analysis::Recipe::MatrixKind::ANY);
     EXPECT_EQ(view_rule.matrix_argument_index,
               2u);
     ASSERT_EQ(view_rule.argument_condition_vec.size(),
@@ -132,9 +132,9 @@ TEST_F(RecipeLoaderTest, TheExampleFileIsRead)
     const auto& projection_rule = recipe.rule_vec.at(1);
 
     EXPECT_EQ(projection_rule.action_kind,
-              Analysis::RecipeLoader::ActionKind::REPLACE);
+              Analysis::Recipe::ActionKind::REPLACE);
     EXPECT_EQ(projection_rule.matrix_kind,
-              Analysis::RecipeLoader::MatrixKind::PERSPECTIVE);
+              Analysis::Recipe::MatrixKind::PERSPECTIVE);
     ASSERT_EQ(projection_rule.argument_condition_vec.size(),
               1u);
     EXPECT_EQ(projection_rule.argument_condition_vec.at(0).value,
@@ -144,39 +144,39 @@ TEST_F(RecipeLoaderTest, TheExampleFileIsRead)
 
 TEST_F(RecipeLoaderTest, AFileThatIsNotThereIsReported)
 {
-    std::string                    error;
-    Analysis::RecipeLoader::Recipe recipe;
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
 
-    EXPECT_FALSE(Analysis::RecipeLoader::RecipeLoader::load("this_recipe_does_not_exist.json",
-                                                           &recipe,
-                                                           &error) );
+    EXPECT_FALSE(Analysis::Recipe::RecipeLoader::load("this_recipe_does_not_exist.json",
+                                                      &recipe,
+                                                      &error) );
     EXPECT_NE   (error.find("Cannot open"),
                  std::string::npos);
 }
 
 TEST_F(RecipeLoaderTest, ARecipeWithNoRulesIsRead)
 {
-    std::string                    error;
-    Analysis::RecipeLoader::Recipe recipe;
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("",
-                                                                             ""),
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("",
+                                                                       ""),
                                                            &recipe,
                                                            &error) ) << error;
 
     EXPECT_TRUE(recipe.rule_vec.empty() );
     EXPECT_TRUE(recipe.known_shape_key_vec.empty() );
     EXPECT_EQ  (recipe.unknown_frame_policy,
-                Analysis::RecipeLoader::UnknownFramePolicy::MONO);
+                Analysis::Recipe::UnknownFramePolicy::MONO);
 }
 
 TEST_F(RecipeLoaderTest, TheOptionalPartsOfARuleCanBeLeftOut)
 {
-    std::string                    error;
-    Analysis::RecipeLoader::Recipe recipe;
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("",
-                                                                             "{\"call\": " + m_good_call + ", \"action\": " + m_good_action + "}"),
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("",
+                                                                       "{\"call\": " + m_good_call + ", \"action\": " + m_good_action + "}"),
                                                            &recipe,
                                                            &error) ) << error;
 
@@ -185,18 +185,18 @@ TEST_F(RecipeLoaderTest, TheOptionalPartsOfARuleCanBeLeftOut)
     EXPECT_TRUE(recipe.rule_vec.at(0).name.empty() );
     EXPECT_TRUE(recipe.rule_vec.at(0).argument_condition_vec.empty() );
     EXPECT_EQ  (recipe.rule_vec.at(0).matrix_kind,
-                Analysis::RecipeLoader::MatrixKind::ANY);
+                Analysis::Recipe::MatrixKind::ANY);
 }
 
 TEST_F(RecipeLoaderTest, ARuleCanBeAboutTheTransformsOfDirect3D7)
 {
-    std::string                    error;
-    Analysis::RecipeLoader::Recipe recipe;
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("",
-                                                                             get_rule_text("\"IDirect3DDevice7::SetTransform\"",
-                                                                                           "{\"state\": \"D3DTRANSFORMSTATE_VIEW\"}",
-                                                                                           m_good_action) ),
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("",
+                                                                       get_rule_text("\"IDirect3DDevice7::SetTransform\"",
+                                                                                     "{\"state\": \"D3DTRANSFORMSTATE_VIEW\"}",
+                                                                                     m_good_action) ),
                                                            &recipe,
                                                            &error) ) << error;
 
@@ -232,22 +232,22 @@ TEST_F(RecipeLoaderTest, EveryPolicyForUnknownFramesIsRead)
 {
     const struct
     {
-        const char*                                text_ptr;
-        Analysis::RecipeLoader::UnknownFramePolicy policy;
+        const char*                          text_ptr;
+        Analysis::Recipe::UnknownFramePolicy policy;
     } case_array[] =
     {
-        {"mono", Analysis::RecipeLoader::UnknownFramePolicy::MONO},
-        {"skip", Analysis::RecipeLoader::UnknownFramePolicy::SKIP},
-        {"fail", Analysis::RecipeLoader::UnknownFramePolicy::FAIL}
+        {"mono", Analysis::Recipe::UnknownFramePolicy::MONO},
+        {"skip", Analysis::Recipe::UnknownFramePolicy::SKIP},
+        {"fail", Analysis::Recipe::UnknownFramePolicy::FAIL}
     };
 
     for (const auto& policy_case : case_array)
     {
-        Analysis::RecipeLoader::Recipe recipe;
-        std::string                    error;
+        Analysis::Recipe::Recipe recipe;
+        std::string              error;
 
-        ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text(std::string("\"on_unknown_frame\": \"") + policy_case.text_ptr + "\",",
-                                                                                 ""),
+        ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text(std::string("\"on_unknown_frame\": \"") + policy_case.text_ptr + "\",",
+                                                                           ""),
                                                                &recipe,
                                                                &error) ) << error;
         EXPECT_EQ  (recipe.unknown_frame_policy,
@@ -370,11 +370,11 @@ TEST_F(RecipeLoaderTest, KeysMustBeSixteenHexDigitsAfter0x)
 
 TEST_F(RecipeLoaderTest, KeysInCapitalLettersAreRead)
 {
-    std::string                    error;
-    Analysis::RecipeLoader::Recipe recipe;
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"known_shape_keys\": [\"0xFEDCBA9876543210\"],",
-                                                                             ""),
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"known_shape_keys\": [\"0xFEDCBA9876543210\"],",
+                                                                       ""),
                                                            &recipe,
                                                            &error) ) << error;
     EXPECT_EQ  (recipe.known_shape_key_vec.at(0),
@@ -438,13 +438,13 @@ TEST_F(RecipeLoaderTest, TheStateOfATransformIsANameOrANumber)
 
     for (const auto& state_case : case_array)
     {
-        Analysis::RecipeLoader::Recipe recipe;
-        std::string                    error;
+        Analysis::Recipe::Recipe recipe;
+        std::string              error;
 
-        ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("",
-                                                                                 get_rule_text(m_good_call,
-                                                                                               std::string("{\"state\": ") + state_case.state_ptr + "}",
-                                                                                               m_good_action) ),
+        ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("",
+                                                                           get_rule_text(m_good_call,
+                                                                                         std::string("{\"state\": ") + state_case.state_ptr + "}",
+                                                                                         m_good_action) ),
                                                                &recipe,
                                                                &error) ) << error;
         EXPECT_EQ  (recipe.rule_vec.at(0).argument_condition_vec.at(0).value,
@@ -472,24 +472,24 @@ TEST_F(RecipeLoaderTest, TheKindOfMatrixIsOneOfThree)
 {
     const struct
     {
-        const char*                        text_ptr;
-        Analysis::RecipeLoader::MatrixKind kind;
+        const char*                  text_ptr;
+        Analysis::Recipe::MatrixKind kind;
     } case_array[] =
     {
-        {"any",          Analysis::RecipeLoader::MatrixKind::ANY},
-        {"orthographic", Analysis::RecipeLoader::MatrixKind::ORTHOGRAPHIC},
-        {"perspective",  Analysis::RecipeLoader::MatrixKind::PERSPECTIVE}
+        {"any",          Analysis::Recipe::MatrixKind::ANY},
+        {"orthographic", Analysis::Recipe::MatrixKind::ORTHOGRAPHIC},
+        {"perspective",  Analysis::Recipe::MatrixKind::PERSPECTIVE}
     };
 
     for (const auto& kind_case : case_array)
     {
-        Analysis::RecipeLoader::Recipe recipe;
-        std::string                    error;
+        Analysis::Recipe::Recipe recipe;
+        std::string              error;
 
-        ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("",
-                                                                                 get_rule_text(m_good_call,
-                                                                                               std::string("{\"matrix\": \"") + kind_case.text_ptr + "\"}",
-                                                                                               m_good_action) ),
+        ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("",
+                                                                           get_rule_text(m_good_call,
+                                                                                         std::string("{\"matrix\": \"") + kind_case.text_ptr + "\"}",
+                                                                                         m_good_action) ),
                                                                &recipe,
                                                                &error) ) << error;
         EXPECT_EQ  (recipe.rule_vec.at(0).matrix_kind,
@@ -521,17 +521,17 @@ TEST_F(RecipeLoaderTest, AMultiplyAndAnEyeOffsetNeedAnOrderAndAReplaceHasNone)
                                                  get_action_text("\"type\": \"replace\", \"order\": \"post\"") ) ),
                    "rules[0].action.order: replace has no order");
 
-    std::string                    error;
-    Analysis::RecipeLoader::Recipe recipe;
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("",
-                                                                             get_rule_text(m_good_call,
-                                                                                           "{}",
-                                                                                           get_action_text("\"type\": \"multiply\", \"order\": \"pre\"") ) ),
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("",
+                                                                       get_rule_text(m_good_call,
+                                                                                     "{}",
+                                                                                     get_action_text("\"type\": \"multiply\", \"order\": \"pre\"") ) ),
                                                            &recipe,
                                                            &error) ) << error;
     EXPECT_EQ  (recipe.rule_vec.at(0).multiply_order,
-                Analysis::RecipeLoader::MultiplyOrder::PRE);
+                Analysis::Recipe::MultiplyOrder::PRE);
 }
 
 TEST_F(RecipeLoaderTest, TheTypeOfAnActionIsEyeOffsetMultiplyOrReplace)
@@ -603,13 +603,13 @@ TEST_F(RecipeLoaderTest, TheNamesOfRulesAreUnique)
                                    rule_text + "," + rule_text),
                    "rules[1].name: \"a\" is used by another rule");
 
-    std::string                    error;
-    Analysis::RecipeLoader::Recipe recipe;
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
 
     /* Unnamed rules do not clash. */
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("",
-                                                                             "{\"call\": " + m_good_call + ", \"action\": " + m_good_action + "}," +
-                                                                             "{\"call\": " + m_good_call + ", \"action\": " + m_good_action + "}"),
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("",
+                                                                       "{\"call\": " + m_good_call + ", \"action\": " + m_good_action + "}," +
+                                                                       "{\"call\": " + m_good_call + ", \"action\": " + m_good_action + "}"),
                                                            &recipe,
                                                            &error) ) << error;
     EXPECT_EQ  (recipe.rule_vec.size(),
@@ -618,28 +618,28 @@ TEST_F(RecipeLoaderTest, TheNamesOfRulesAreUnique)
 
 TEST_F(RecipeLoaderTest, AFailedReadLeavesNothingBehind)
 {
-    std::string                    error;
-    Analysis::RecipeLoader::Recipe recipe;
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::load(Tests::DataFixtures::get_recipe_example_filename(),
-                                                              &recipe,
-                                                              &error) );
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::load(Tests::DataFixtures::get_recipe_example_filename(),
+                                                        &recipe,
+                                                        &error) );
 
-    EXPECT_FALSE(Analysis::RecipeLoader::RecipeLoader::parse("{\"recipe_version\": 3}",
-                                                            &recipe,
-                                                            &error) );
+    EXPECT_FALSE(Analysis::Recipe::RecipeLoader::parse("{\"recipe_version\": 3}",
+                                                       &recipe,
+                                                       &error) );
     EXPECT_TRUE (recipe.rule_vec.empty() );
     EXPECT_TRUE (recipe.known_shape_key_vec.empty() );
 }
 
 TEST_F(RecipeLoaderTest, ATextWhichStartsWithAByteOrderMarkLoads)
 {
-    Analysis::RecipeLoader::Recipe recipe;
-    std::string                    error;
+    Analysis::Recipe::Recipe recipe;
+    std::string              error;
 
-    EXPECT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(std::string("\xEF\xBB\xBF") + get_recipe_text("", ""),
-                                                           &recipe,
-                                                           &error) ) << error;
+    EXPECT_TRUE(Analysis::Recipe::RecipeLoader::parse(std::string("\xEF\xBB\xBF") + get_recipe_text("", ""),
+                                                      &recipe,
+                                                      &error) ) << error;
 }
 
 TEST_F(RecipeLoaderTest, AnEmptyListOfKnownShapesIsRefused)
@@ -650,12 +650,12 @@ TEST_F(RecipeLoaderTest, AnEmptyListOfKnownShapesIsRefused)
 
 TEST_F(RecipeLoaderTest, WithoutSelectorsEveryDrawIsAffected)
 {
-    Analysis::RecipeLoader::Recipe recipe;
-    std::string                    error;
+    Analysis::Recipe::Recipe recipe;
+    std::string              error;
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("", ""),
-                                                           &recipe,
-                                                           &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("", ""),
+                                                      &recipe,
+                                                      &error) ) << error;
 
     EXPECT_TRUE (recipe.affected.draw_key_vec.empty() );
     EXPECT_TRUE (recipe.affected.pass_key_vec.empty() );
@@ -674,21 +674,21 @@ TEST_F(RecipeLoaderTest, AnEyeOffsetNeedsAnAxisAndAnOrderAndTakesNoMatrices)
     const std::string call = "\"IDirect3DDevice8::SetTransform\"";
     const std::string when = "{\"state\": \"D3DTS_VIEW\"}";
 
-    Analysis::RecipeLoader::Recipe recipe;
-    std::string                    error;
+    Analysis::Recipe::Recipe recipe;
+    std::string              error;
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("", get_rule_text(call, when, "{\"type\": \"eye_offset\", \"order\": \"post\", \"axis\": \"z\"}") ),
-                                                           &recipe,
-                                                           &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("", get_rule_text(call, when, "{\"type\": \"eye_offset\", \"order\": \"post\", \"axis\": \"z\"}") ),
+                                                      &recipe,
+                                                      &error) ) << error;
 
     ASSERT_EQ(recipe.rule_vec.size(),
               1u);
     EXPECT_EQ(recipe.rule_vec.at(0).action_kind,
-              Analysis::RecipeLoader::ActionKind::EYE_OFFSET);
+              Analysis::Recipe::ActionKind::EYE_OFFSET);
     EXPECT_EQ(recipe.rule_vec.at(0).offset_axis,
-              Analysis::RecipeLoader::Axis::Z);
+              Analysis::Recipe::Axis::Z);
     EXPECT_EQ(recipe.rule_vec.at(0).multiply_order,
-              Analysis::RecipeLoader::MultiplyOrder::POST);
+              Analysis::Recipe::MultiplyOrder::POST);
 
     expect_refused(get_recipe_text("", get_rule_text(call, when, "{\"type\": \"eye_offset\", \"order\": \"post\"}") ),
                    ".axis is missing");
@@ -718,12 +718,12 @@ TEST_F(RecipeLoaderTest, SelectorsThatAreNotRightAreRefusedWithTheirPlace)
 
 TEST_F(RecipeLoaderTest, SkippedDrawsAndPassesAreRead)
 {
-    Analysis::RecipeLoader::Recipe recipe;
-    std::string                    error;
+    Analysis::Recipe::Recipe recipe;
+    std::string              error;
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"skipped\": {\"pass_keys\": [\"0x0000000000000012\"], \"draw_keys\": [\"0x0000000000000034\"]},", ""),
-                                                           &recipe,
-                                                           &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"skipped\": {\"pass_keys\": [\"0x0000000000000012\"], \"draw_keys\": [\"0x0000000000000034\"]},", ""),
+                                                      &recipe,
+                                                      &error) ) << error;
 
     EXPECT_EQ(recipe.skipped.pass_key_vec,
               (std::vector<uint64_t>{0x12ull}) );
@@ -731,9 +731,9 @@ TEST_F(RecipeLoaderTest, SkippedDrawsAndPassesAreRead)
               (std::vector<uint64_t>{0x34ull}) );
 
     /* A skipped draw may also be named affected or unaffected: skipping wins, so it is not a conflict. */
-    EXPECT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"skipped\": {\"draw_keys\": [\"0x0000000000000034\"]}, \"unaffected\": {\"draw_keys\": [\"0x0000000000000034\"]},", ""),
-                                                           &recipe,
-                                                           &error) ) << error;
+    EXPECT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"skipped\": {\"draw_keys\": [\"0x0000000000000034\"]}, \"unaffected\": {\"draw_keys\": [\"0x0000000000000034\"]},", ""),
+                                                      &recipe,
+                                                      &error) ) << error;
 
     expect_refused(get_recipe_text("\"skipped\": {},", ""),
                    "skipped: names no draw and no pass");
@@ -747,25 +747,25 @@ TEST_F(RecipeLoaderTest, AKeyInBothListsOfTheSameKindIsRefusedButOneKeyOfEachKin
                    "a key is in both");
 
     /* A pass and a draw may have the same key: they are keys of different things. */
-    Analysis::RecipeLoader::Recipe recipe;
-    std::string                    error;
+    Analysis::Recipe::Recipe recipe;
+    std::string              error;
 
-    EXPECT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"unaffected\": {\"pass_keys\": [\"0x0000000000000012\"]}, \"affected\": {\"draw_keys\": [\"0x0000000000000012\"]},", ""),
-                                                           &recipe,
-                                                           &error) ) << error;
+    EXPECT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"unaffected\": {\"pass_keys\": [\"0x0000000000000012\"]}, \"affected\": {\"draw_keys\": [\"0x0000000000000012\"]},", ""),
+                                                      &recipe,
+                                                      &error) ) << error;
 }
 
 TEST_F(RecipeLoaderTest, BakedDrawRulesAreRead)
 {
-    std::string                    error;
-    Analysis::RecipeLoader::Recipe recipe;
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": ["
-                                                                            "{\"signature\": \"0x0000000000000001\", \"class\": \"skipped\"},"
-                                                                            "{\"signature\": \"0x0000000000000002\", \"class\": \"unaffected\","
-                                                                            " \"when\": {\"constant\": \"view_matrix\", \"equals_any\": [" + get_matrix_text("2.5") + "," + get_matrix_text("3") + "]}},"
-                                                                            "{\"signature\": \"0x0000000000000002\", \"class\": \"affected\"}]},",
-                                                                            ""),
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": ["
+                                                                      "{\"signature\": \"0x0000000000000001\", \"class\": \"skipped\"},"
+                                                                      "{\"signature\": \"0x0000000000000002\", \"class\": \"unaffected\","
+                                                                      " \"when\": {\"constant\": \"view_matrix\", \"equals_any\": [" + get_matrix_text("2.5") + "," + get_matrix_text("3") + "]}},"
+                                                                      "{\"signature\": \"0x0000000000000002\", \"class\": \"affected\"}]},",
+                                                                      ""),
                                                            &recipe,
                                                            &error) ) << error;
 
@@ -774,13 +774,13 @@ TEST_F(RecipeLoaderTest, BakedDrawRulesAreRead)
     EXPECT_TRUE(recipe.is_baked);
 
     EXPECT_EQ  (recipe.draw_rule_vec.at(0).draw_class,
-                Analysis::RecipeLoader::DrawClass::SKIPPED);
+                Analysis::Recipe::DrawClass::SKIPPED);
     EXPECT_EQ  (recipe.draw_rule_vec.at(0).signature_key,
                 1u);
     EXPECT_TRUE(recipe.draw_rule_vec.at(0).view_matrix_vec.empty() );
 
     EXPECT_EQ  (recipe.draw_rule_vec.at(1).draw_class,
-                Analysis::RecipeLoader::DrawClass::UNAFFECTED);
+                Analysis::Recipe::DrawClass::UNAFFECTED);
     ASSERT_EQ  (recipe.draw_rule_vec.at(1).view_matrix_vec.size(),
                 2u);
     EXPECT_FLOAT_EQ(recipe.draw_rule_vec.at(1).view_matrix_vec.at(0).at(12),
@@ -789,16 +789,16 @@ TEST_F(RecipeLoaderTest, BakedDrawRulesAreRead)
                     3.0f);
 
     EXPECT_EQ  (recipe.draw_rule_vec.at(2).draw_class,
-                Analysis::RecipeLoader::DrawClass::AFFECTED);
+                Analysis::Recipe::DrawClass::AFFECTED);
 }
 
 TEST_F(RecipeLoaderTest, ARecipeWithoutABakedSectionIsNotBaked)
 {
-    std::string                    error;
-    Analysis::RecipeLoader::Recipe recipe;
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("",
-                                                                            ""),
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("",
+                                                                      ""),
                                                            &recipe,
                                                            &error) ) << error;
 
@@ -854,12 +854,12 @@ TEST_F(RecipeLoaderTest, WhatIsWrongInABakedSectionIsRefused)
 
 TEST_F(RecipeLoaderTest, TheKnownSignaturesOfABakedSectionAreRead)
 {
-    std::string                    error;
-    Analysis::RecipeLoader::Recipe recipe;
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": [],"
-                                                                            " \"known_signatures\": [\"0x0000000000000003\", \"0x0000000000000001\"]},",
-                                                                            ""),
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": [],"
+                                                                      " \"known_signatures\": [\"0x0000000000000003\", \"0x0000000000000001\"]},",
+                                                                      ""),
                                                            &recipe,
                                                            &error) ) << error;
 
@@ -880,19 +880,19 @@ TEST_F(RecipeLoaderTest, AnEyeConvergenceTakesNothing)
     const std::string call = "\"IDirect3DDevice8::SetTransform\"";
     const std::string when = "{\"state\": \"D3DTS_PROJECTION\", \"matrix\": \"perspective\"}";
 
-    Analysis::RecipeLoader::Recipe recipe;
-    std::string                    error;
+    Analysis::Recipe::Recipe recipe;
+    std::string              error;
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("", get_rule_text(call, when, "{\"type\": \"eye_convergence\"}") ),
-                                                           &recipe,
-                                                           &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("", get_rule_text(call, when, "{\"type\": \"eye_convergence\"}") ),
+                                                      &recipe,
+                                                      &error) ) << error;
 
     ASSERT_EQ(recipe.rule_vec.size(),
               1u);
     EXPECT_EQ(recipe.rule_vec.at(0).action_kind,
-              Analysis::RecipeLoader::ActionKind::EYE_CONVERGENCE);
+              Analysis::Recipe::ActionKind::EYE_CONVERGENCE);
     EXPECT_EQ(recipe.rule_vec.at(0).matrix_kind,
-              Analysis::RecipeLoader::MatrixKind::PERSPECTIVE);
+              Analysis::Recipe::MatrixKind::PERSPECTIVE);
 
     expect_refused(get_recipe_text("", get_rule_text(call, when, "{\"type\": \"eye_convergence\", \"order\": \"post\"}") ),
                    "eye_convergence takes no order or matrices");
@@ -904,13 +904,13 @@ TEST_F(RecipeLoaderTest, AnEyeConvergenceTakesNothing)
 
 TEST_F(RecipeLoaderTest, BakedConvergenceDistancesAreRead)
 {
-    std::string                    error;
-    Analysis::RecipeLoader::Recipe recipe;
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": [],"
-                                                                            " \"convergence\": [{\"signature\": \"0x0000000000000001\", \"distance\": 12.5},"
-                                                                            " {\"signature\": \"0x0000000000000002\", \"distance\": 3}]},",
-                                                                            ""),
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": [],"
+                                                                      " \"convergence\": [{\"signature\": \"0x0000000000000001\", \"distance\": 12.5},"
+                                                                      " {\"signature\": \"0x0000000000000002\", \"distance\": 3}]},",
+                                                                      ""),
                                                            &recipe,
                                                            &error) ) << error;
 
@@ -949,12 +949,12 @@ TEST_F(RecipeLoaderTest, WhatIsWrongInTheBakedConvergenceDistancesIsRefused)
 
 TEST_F(RecipeLoaderTest, BakedSceneConvergenceDistancesAreReadAndWhatIsWrongInThemIsRefused)
 {
-    std::string                    error;
-    Analysis::RecipeLoader::Recipe recipe;
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": [],"
-                                                                            " \"scene_convergence\": [{\"shape\": \"0x00000000000000ab\", \"distance\": 7.5}]},",
-                                                                            ""),
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": [],"
+                                                                      " \"scene_convergence\": [{\"shape\": \"0x00000000000000ab\", \"distance\": 7.5}]},",
+                                                                      ""),
                                                            &recipe,
                                                            &error) ) << error;
 
@@ -977,20 +977,20 @@ TEST_F(RecipeLoaderTest, BakedSceneConvergenceDistancesAreReadAndWhatIsWrongInTh
 
 TEST_F(RecipeLoaderTest, TheScreenParallaxOfARecipeIsReadAndWhatIsWrongInItIsRefused)
 {
-    std::string                    error;
-    Analysis::RecipeLoader::Recipe recipe;
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
 
     /* Without it, nothing which no matrix moves is moved. */
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("",
-                                                                             ""),
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("",
+                                                                       ""),
                                                            &recipe,
                                                            &error) ) << error;
 
     EXPECT_FALSE(recipe.screen_parallax.is_enabled);
 
     /* The angle of view is 90 degrees unless it is said. */
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"screen_parallax\": {\"convergence_distance\": 5},",
-                                                                             ""),
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"screen_parallax\": {\"convergence_distance\": 5},",
+                                                                       ""),
                                                            &recipe,
                                                            &error) ) << error;
 
@@ -1000,8 +1000,8 @@ TEST_F(RecipeLoaderTest, TheScreenParallaxOfARecipeIsReadAndWhatIsWrongInItIsRef
     EXPECT_FLOAT_EQ(recipe.screen_parallax.field_of_view_degrees,
                     90.0f);
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"screen_parallax\": {\"convergence_distance\": 2.5, \"field_of_view_degrees\": 60},",
-                                                                             ""),
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"screen_parallax\": {\"convergence_distance\": 2.5, \"field_of_view_degrees\": 60},",
+                                                                       ""),
                                                            &recipe,
                                                            &error) ) << error;
 
@@ -1036,20 +1036,20 @@ TEST_F(RecipeLoaderTest, TheScreenParallaxOfARecipeIsReadAndWhatIsWrongInItIsRef
 
 TEST_F(RecipeLoaderTest, TheComfortOfARecipeIsReadAndWhatIsWrongInItIsRefused)
 {
-    std::string                    error;
-    Analysis::RecipeLoader::Recipe recipe;
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
 
     /* Without it, there is no limit. */
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("",
-                                                                             ""),
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("",
+                                                                       ""),
                                                            &recipe,
                                                            &error) ) << error;
 
     EXPECT_FLOAT_EQ(recipe.comfort.max_near_parallax,
                     0.0f);
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"comfort\": {\"max_near_parallax\": 0.03},",
-                                                                             ""),
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"comfort\": {\"max_near_parallax\": 0.03},",
+                                                                       ""),
                                                            &recipe,
                                                            &error) ) << error;
 
@@ -1060,8 +1060,8 @@ TEST_F(RecipeLoaderTest, TheComfortOfARecipeIsReadAndWhatIsWrongInItIsRefused)
     EXPECT_GT      (default_near_fraction,
                     0.0f);
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"comfort\": {\"max_near_parallax\": 0.05, \"near_fraction\": 0.01},",
-                                                                             ""),
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"comfort\": {\"max_near_parallax\": 0.05, \"near_fraction\": 0.01},",
+                                                                       ""),
                                                            &recipe,
                                                            &error) ) << error;
 
@@ -1095,12 +1095,12 @@ TEST_F(RecipeLoaderTest, TheComfortOfARecipeIsReadAndWhatIsWrongInItIsRefused)
 
 TEST_F(RecipeLoaderTest, BakedSceneSeparationLimitsAreReadAndWhatIsWrongInThemIsRefused)
 {
-    std::string                    error;
-    Analysis::RecipeLoader::Recipe recipe;
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": [],"
-                                                                            " \"scene_max_separation\": [{\"shape\": \"0x00000000000000ab\", \"separation\": 0.25}]},",
-                                                                            ""),
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": [],"
+                                                                      " \"scene_max_separation\": [{\"shape\": \"0x00000000000000ab\", \"separation\": 0.25}]},",
+                                                                      ""),
                                                            &recipe,
                                                            &error) ) << error;
 
@@ -1123,27 +1123,27 @@ TEST_F(RecipeLoaderTest, BakedSceneSeparationLimitsAreReadAndWhatIsWrongInThemIs
 
 TEST_F(RecipeLoaderTest, TheParallaxOfTheOverlayIsReadAndZeroSwitchesItOff)
 {
-    std::string                    error;
-    Analysis::RecipeLoader::Recipe recipe;
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("",
-                                                                             ""),
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("",
+                                                                       ""),
                                                            &recipe,
                                                            &error) ) << error;
 
     EXPECT_FLOAT_EQ(recipe.comfort.overlay_parallax,
                     0.0f);
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"comfort\": {\"overlay_parallax\": 0.04},",
-                                                                             ""),
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"comfort\": {\"overlay_parallax\": 0.04},",
+                                                                       ""),
                                                            &recipe,
                                                            &error) ) << error;
 
     EXPECT_FLOAT_EQ(recipe.comfort.overlay_parallax,
                     0.04f);
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"comfort\": {\"overlay_parallax\": 0},",
-                                                                             ""),
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"comfort\": {\"overlay_parallax\": 0},",
+                                                                       ""),
                                                            &recipe,
                                                            &error) ) << error;
 
@@ -1163,12 +1163,12 @@ TEST_F(RecipeLoaderTest, TheParallaxOfTheOverlayIsReadAndZeroSwitchesItOff)
 
 TEST_F(RecipeLoaderTest, BakedCoveringSignaturesAreRead)
 {
-    std::string                    error;
-    Analysis::RecipeLoader::Recipe recipe;
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": [],"
-                                                                            " \"covering_draws\": [\"0x00000000000000ab\", \"0x00000000000000cd\"]},",
-                                                                            ""),
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": [],"
+                                                                      " \"covering_draws\": [\"0x00000000000000ab\", \"0x00000000000000cd\"]},",
+                                                                      ""),
                                                            &recipe,
                                                            &error) ) << error;
 
@@ -1182,12 +1182,12 @@ TEST_F(RecipeLoaderTest, BakedCoveringSignaturesAreRead)
 
 TEST_F(RecipeLoaderTest, PerEyeTexturesAreReadAndWhatIsWrongInThemIsRefused)
 {
-    std::string                    error;
-    Analysis::RecipeLoader::Recipe recipe;
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": [],"
-                                                                            " \"per_eye_textures\": [{\"description_key\": \"0x14779f78666e20cb\", \"ordinal\": 1}]},",
-                                                                            ""),
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": [],"
+                                                                      " \"per_eye_textures\": [{\"description_key\": \"0x14779f78666e20cb\", \"ordinal\": 1}]},",
+                                                                      ""),
                                                            &recipe,
                                                            &error) ) << error;
 
@@ -1212,12 +1212,12 @@ TEST_F(RecipeLoaderTest, PerEyeTexturesAreReadAndWhatIsWrongInThemIsRefused)
 
 TEST_F(RecipeLoaderTest, ADrawInOnePassIsNamedByTheKeysOfBoth)
 {
-    Analysis::RecipeLoader::Recipe recipe;
-    std::string                    error;
+    Analysis::Recipe::Recipe recipe;
+    std::string              error;
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"skipped\": {\"pass_draws\": [{\"pass_key\": \"0x0000000000000012\", \"draw_key\": \"0x0000000000000034\"}]},", ""),
-                                                           &recipe,
-                                                           &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"skipped\": {\"pass_draws\": [{\"pass_key\": \"0x0000000000000012\", \"draw_key\": \"0x0000000000000034\"}]},", ""),
+                                                      &recipe,
+                                                      &error) ) << error;
 
     ASSERT_EQ(recipe.skipped.pass_draw_vec.size(),
               1u);
@@ -1243,28 +1243,28 @@ TEST_F(RecipeLoaderTest, ADrawInOnePassIsNamedByTheKeysOfBoth)
     expect_refused(get_recipe_text("\"unaffected\": {\"pass_draws\": [{\"pass_key\": \"0x0000000000000012\", \"draw_key\": \"0x0000000000000034\"}]}, "
                                    "\"affected\": {\"pass_draws\": [{\"pass_key\": \"0x0000000000000012\", \"draw_key\": \"0x0000000000000034\"}]},", ""),
                    "a key is in both");
-    EXPECT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"unaffected\": {\"pass_draws\": [{\"pass_key\": \"0x0000000000000012\", \"draw_key\": \"0x0000000000000034\"}]}, "
-                                                                            "\"affected\": {\"pass_draws\": [{\"pass_key\": \"0x0000000000000056\", \"draw_key\": \"0x0000000000000034\"}]},", ""),
+    EXPECT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"unaffected\": {\"pass_draws\": [{\"pass_key\": \"0x0000000000000012\", \"draw_key\": \"0x0000000000000034\"}]}, "
+                                                                      "\"affected\": {\"pass_draws\": [{\"pass_key\": \"0x0000000000000056\", \"draw_key\": \"0x0000000000000034\"}]},", ""),
                                                            &recipe,
                                                            &error) ) << error;
 }
 
 TEST_F(RecipeLoaderTest, PassSelectorsThatTheLiveConverterIgnoresAreDescribed)
 {
-    Analysis::RecipeLoader::Recipe recipe;
-    std::string                    error;
+    Analysis::Recipe::Recipe recipe;
+    std::string              error;
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"unaffected\": {\"draw_keys\": [\"0x0000000000000001\"]},", ""),
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"unaffected\": {\"draw_keys\": [\"0x0000000000000001\"]},", ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+    EXPECT_TRUE(Analysis::Recipe::RecipeLoader::describe_pass_selectors_live_ignores(recipe).empty() );
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"unaffected\": {\"pass_keys\": [\"0x0000000000000001\", \"0x0000000000000002\"]}, "
+                                                                      "\"skipped\": {\"pass_draws\": [{\"pass_key\": \"0x0000000000000012\", \"draw_key\": \"0x0000000000000034\"}]},", ""),
                                                            &recipe,
                                                            &error) ) << error;
-    EXPECT_TRUE(Analysis::RecipeLoader::RecipeLoader::describe_pass_selectors_live_ignores(recipe).empty() );
 
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(get_recipe_text("\"unaffected\": {\"pass_keys\": [\"0x0000000000000001\", \"0x0000000000000002\"]}, "
-                                                                            "\"skipped\": {\"pass_draws\": [{\"pass_key\": \"0x0000000000000012\", \"draw_key\": \"0x0000000000000034\"}]},", ""),
-                                                           &recipe,
-                                                           &error) ) << error;
-
-    const auto note_vec = Analysis::RecipeLoader::RecipeLoader::describe_pass_selectors_live_ignores(recipe);
+    const auto note_vec = Analysis::Recipe::RecipeLoader::describe_pass_selectors_live_ignores(recipe);
 
     ASSERT_EQ(note_vec.size(),
               2u);

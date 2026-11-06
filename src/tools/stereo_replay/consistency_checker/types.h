@@ -7,7 +7,7 @@
 #ifndef STEREO_REPLAY_CONSISTENCYCHECKER_TYPES_H
 #define STEREO_REPLAY_CONSISTENCYCHECKER_TYPES_H
 
-#include "analysis/recipe_loader/types.h"
+#include "analysis/recipe/types.h"
 #include "tools/stereo_replay/engine_dll/types.h"
 #include "utils/images/types.h"
 #include <stdint.h>
@@ -49,7 +49,7 @@ namespace Stereo
                 bool                                 is_profiling                   = false;      /* the frames are replayed once, and where the time goes is said */
                 uint32_t                             last_frame                     = 999;
                 uint32_t                             n_jobs                         = 1;          /* the processes that an overlay probe is shared between */
-                Analysis::RecipeLoader::Recipe       recipe;
+                Analysis::Recipe::Recipe       recipe;
                 std::string                          recipe_filename;
                 std::string                          same_frames_workload_filename;               /* the frames are replayed from this workload too, and compared (a slice of the workload, for one) */
                 uint32_t                             screenshot_frame               = UINT32_MAX; /* the frame to write the image of: the replay of the workload stops at it */

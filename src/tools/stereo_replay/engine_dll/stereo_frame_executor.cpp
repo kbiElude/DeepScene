@@ -38,8 +38,8 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::begin_frame_execution(const
 
     /* The eye of the execution, for the objects which each eye has a copy of. */
     {
-        const Analysis::RecipeLoader::Eye eye = (m_frame_execution.mode == FrameExecution::TWICE) ? ((in_n_execution == N_LEFT_EXECUTION) ? Analysis::RecipeLoader::Eye::LEFT
-                                                                                                                                         : Analysis::RecipeLoader::Eye::RIGHT)
+        const Analysis::Recipe::Eye eye = (m_frame_execution.mode == FrameExecution::TWICE) ? ((in_n_execution == N_LEFT_EXECUTION) ? Analysis::Recipe::Eye::LEFT
+                                                                                                                                   : Analysis::Recipe::Eye::RIGHT)
                                                                                                   : m_frame_execution.eye;
 
         set_executors_eye(eye);
@@ -203,7 +203,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_buffered_frame(cons
         {
             switch (m_recipe_applier_ptr->get_unknown_frame_policy() )
             {
-                case Analysis::RecipeLoader::UnknownFramePolicy::FAIL:
+                case Analysis::Recipe::UnknownFramePolicy::FAIL:
                 {
                     char message_i8vec128[128];
 
@@ -220,14 +220,14 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_buffered_frame(cons
                     break;
                 }
 
-                case Analysis::RecipeLoader::UnknownFramePolicy::SKIP:
+                case Analysis::Recipe::UnknownFramePolicy::SKIP:
                 {
                     skips = true;
 
                     break;
                 }
 
-                case Analysis::RecipeLoader::UnknownFramePolicy::MONO:
+                case Analysis::Recipe::UnknownFramePolicy::MONO:
                 {
                     break;
                 }
@@ -344,12 +344,12 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_draw_call(const Cap
                                                                        const bool&                                    in_is_affected,
                                                                        const bool&                                    in_is_presented,
                                                                        const uint64_t&                                in_cover_key,
-                                                                       const Analysis::RecipeLoader::Eye&             in_eye,
+                                                                       const Analysis::Recipe::Eye&                   in_eye,
                                                                        const uint32_t&                                in_pass_structure_id)
 {
-    const uint64_t                        shape_key = m_session_ptr->get_completed_frame().shape_key;
+    const uint64_t                             shape_key = m_session_ptr->get_completed_frame().shape_key;
     Stereo::Core::ScreenParallaxPlanner::Input input;
-    bool                                  is_moved  = false;
+    bool                                       is_moved  = false;
     OverlayChunkSource                    overlay(in_chunk_source);
     const float                           picture_width = m_session_ptr->get_model().pass_structure_interner.get_structure(in_pass_structure_id).viewport.width;
     Stereo::Core::ScreenShiftPlan         plan;
@@ -427,13 +427,13 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_frame(::Replay::Rep
 {
     const uint32_t n_frame      = in_host_ptr->get_n_frames_presented();
     /* A frame which a slice leaves out has no content which anything reads: it is played as it is, with only the calls that set state, which is quicker */
-    const bool     is_dead      = (m_slice_skipper_ptr != nullptr &&
-                                   m_slice_skipper_ptr->is_dead_frame(n_frame) );
-    const bool     is_buffered  = (m_frame_execution.mode != FrameExecution::DIRECT        &&
-                                   is_dead                == false                         &&
-                                   n_frame                >= m_frame_execution.first_frame &&
-                                   n_frame                <= m_frame_execution.last_frame);
-    bool           result       = false;
+    const bool is_dead     = (m_slice_skipper_ptr != nullptr &&
+                              m_slice_skipper_ptr->is_dead_frame(n_frame) );
+    const bool is_buffered = (m_frame_execution.mode != FrameExecution::DIRECT        &&
+                              is_dead                == false                         &&
+                              n_frame                >= m_frame_execution.first_frame &&
+                              n_frame                <= m_frame_execution.last_frame);
+    bool       result      = false;
 
     m_host_ptr = in_host_ptr;
 
@@ -462,18 +462,18 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_rewritten_call(cons
                                                                             const size_t&                                  in_n_call,
                                                                             const uint32_t&                                in_n_execution)
 {
-    const uint64_t                     call_index = m_session_ptr->get_completed_frame().first_call_index + in_n_call;
-    Analysis::RecipeLoader::Eye        eye        = m_frame_execution.eye;
-    const auto&                        frame      = m_session_ptr->get_completed_frame();
-    uint32_t                           pass_index = 0;
-    Analysis::RecipeApplier::CallPlace place;
-    bool                               result     = false;
+    const uint64_t              call_index = m_session_ptr->get_completed_frame().first_call_index + in_n_call;
+    Analysis::Recipe::Eye       eye        = m_frame_execution.eye;
+    const auto&                 frame      = m_session_ptr->get_completed_frame();
+    uint32_t                    pass_index = 0;
+    Analysis::Recipe::CallPlace place;
+    bool                        result     = false;
 
     /* Executed twice: the first execution is the left eye, the second the right one. */
     if (m_frame_execution.mode == FrameExecution::TWICE)
     {
-        eye = (in_n_execution == 0) ? Analysis::RecipeLoader::Eye::LEFT
-                                    : Analysis::RecipeLoader::Eye::RIGHT;
+        eye = (in_n_execution == 0) ? Analysis::Recipe::Eye::LEFT
+                                    : Analysis::Recipe::Eye::RIGHT;
     }
 
     /* The draws are in the order of the calls. */
@@ -617,7 +617,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::is_per_eye_texture(const Ca
 {
     Analysis::APIDumpAnalysis::ResourceIdentity identity;
     Analysis::APIDumpAnalysis::ResourceView     view;
-    bool                                        result = false;
+    bool                                        result   = false;
 
     /* The analysis has followed the call that made the object by the time the object is asked about: calls are read before they are played. */
     if (m_recipe_applier_ptr != nullptr &&
@@ -642,7 +642,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::is_per_eye_texture(const Ca
 void Stereo::Replay::EngineDLL::StereoFrameExecutor::on_frame_presented()
 {
     /* What is not rendered for two eyes is rendered for the left one. */
-    set_executors_eye(Analysis::RecipeLoader::Eye::LEFT);
+    set_executors_eye(Analysis::Recipe::Eye::LEFT);
 }
 
 void Stereo::Replay::EngineDLL::StereoFrameExecutor::on_rewind()
@@ -691,7 +691,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::read_next_call(const Captur
     return result;
 }
 
-void Stereo::Replay::EngineDLL::StereoFrameExecutor::set_executors_eye(const Analysis::RecipeLoader::Eye& in_eye)
+void Stereo::Replay::EngineDLL::StereoFrameExecutor::set_executors_eye(const Analysis::Recipe::Eye& in_eye)
 {
     for (const auto executor_ptr : m_host_ptr->get_call_executor_ptr_vec() )
     {
@@ -729,9 +729,9 @@ void Stereo::Replay::EngineDLL::StereoFrameExecutor::set_image_sink(IFrameImageS
     m_image_sink_ptr = in_sink_ptr;
 }
 
-void Stereo::Replay::EngineDLL::StereoFrameExecutor::set_recipe(const Analysis::RecipeLoader::Recipe& in_recipe)
+void Stereo::Replay::EngineDLL::StereoFrameExecutor::set_recipe(const Analysis::Recipe::Recipe& in_recipe)
 {
-    m_recipe_applier_ptr.reset(new Analysis::RecipeApplier::RecipeApplier(in_recipe) );
+    m_recipe_applier_ptr.reset(new Analysis::Recipe::RecipeApplier(in_recipe) );
     m_rewriter_ptr.reset      (new FrameRewriter(*m_recipe_applier_ptr) );
     m_matrix_binder_ptr.reset (new EyeMatrixBinder(*m_rewriter_ptr,
                                                    [this](const Capture::APIDumpLoader::DumpedAPICall&   in_call,

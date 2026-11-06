@@ -8,7 +8,7 @@ Stereo::Replay::EngineDLL::EyeMatrixBinder::Slot::Slot()
     :bound               (Bound::NOTHING),
      bound_separation    (0.0f),
      has_rewritten_call  (false),
-     rewritten_eye       (Analysis::RecipeLoader::Eye::LEFT),
+     rewritten_eye       (Analysis::Recipe::Eye::LEFT),
      rewritten_separation(0.0f)
 {
     /* Stub */
@@ -22,13 +22,13 @@ Stereo::Replay::EngineDLL::EyeMatrixBinder::EyeMatrixBinder(const FrameRewriter&
     /* Stub */
 }
 
-bool Stereo::Replay::EngineDLL::EyeMatrixBinder::before_draw(const bool&                        in_is_affected,
-                                                             const Analysis::RecipeLoader::Eye& in_eye,
-                                                             const float&                       in_eye_separation)
+bool Stereo::Replay::EngineDLL::EyeMatrixBinder::before_draw(const bool&                  in_is_affected,
+                                                             const Analysis::Recipe::Eye& in_eye,
+                                                             const float&                 in_eye_separation)
 {
     bool        result = true;
     const Bound wanted = (in_is_affected == false)                                    ? Bound::MONO
-                       : (in_eye         == Analysis::RecipeLoader::Eye::LEFT) ? Bound::LEFT
+                       : (in_eye         == Analysis::Recipe::Eye::LEFT) ? Bound::LEFT
                                                                                       : Bound::RIGHT;
 
     for (auto& slot_pair : m_slot_map)
@@ -106,8 +106,8 @@ Stereo::Replay::EngineDLL::EyeMatrixBinder::SlotKey Stereo::Replay::EngineDLL::E
 
 bool Stereo::Replay::EngineDLL::EyeMatrixBinder::on_call(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
                                                          const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
-                                                         const Analysis::RecipeApplier::CallPlace&      in_place,
-                                                         const Analysis::RecipeLoader::Eye&             in_eye,
+                                                         const Analysis::Recipe::CallPlace&             in_place,
+                                                         const Analysis::Recipe::Eye&                   in_eye,
                                                          const float&                                   in_eye_separation)
 {
     SlotKey key;
@@ -152,9 +152,9 @@ end:
     return result;
 }
 
-bool Stereo::Replay::EngineDLL::EyeMatrixBinder::rewrite(const Analysis::RecipeLoader::Eye& in_eye,
-                                                         const float&                       in_eye_separation,
-                                                         Slot*                              inout_slot_ptr) const
+bool Stereo::Replay::EngineDLL::EyeMatrixBinder::rewrite(const Analysis::Recipe::Eye& in_eye,
+                                                         const float&                 in_eye_separation,
+                                                         Slot*                        inout_slot_ptr) const
 {
     inout_slot_ptr->has_rewritten_call = m_rewriter.rewrite(inout_slot_ptr->buffer.get_call_vec().front(),
                                                             inout_slot_ptr->place,

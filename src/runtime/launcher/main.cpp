@@ -5,7 +5,7 @@
  * Starts an application with the stereo converter in it (see command_line.cpp for the arguments). The converter is a DLL of the
  * architecture of the application, so there is a launcher of each: it is the launcher which Detours can inject from.
  */
-#include "analysis/recipe_loader/recipe_loader.h"
+#include "analysis/recipe/recipe_loader.h"
 #include "Capture/InjectionLauncher/launcher.h"
 #include "stereo/session/session_environment.h"
 #include "command_line.h"
@@ -100,7 +100,7 @@ int Stereo::Launcher::run(const std::vector<std::string>& in_argument_vec)
     Capture::InjectionLauncher::LaunchRequest      request;
     Options                                        options;
     PROCESS_INFORMATION                            process_info = {};
-    Analysis::RecipeLoader::Recipe                 recipe;
+    Analysis::Recipe::Recipe                       recipe;
     ExitCode                                       result       = ExitCode::LAUNCH_FAILED;
     Stereo::Session::SessionInfo                   session_info;
 
@@ -166,9 +166,9 @@ int Stereo::Launcher::run(const std::vector<std::string>& in_argument_vec)
     }
 
     /* A recipe which cannot be used is better found here than after the application is up. */
-    if (Analysis::RecipeLoader::RecipeLoader::load(options.recipe_path,
-                                                  &recipe,
-                                                  &error) == false)
+    if (Analysis::Recipe::RecipeLoader::load(options.recipe_path,
+                                             &recipe,
+                                             &error) == false)
     {
         fprintf(stderr,
                 "[!] The recipe [%s] cannot be used: %s\n",

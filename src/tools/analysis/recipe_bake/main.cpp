@@ -13,7 +13,7 @@
 #include "overlay_candidate_finder.h"
 #include "recipe_baker.h"
 #include "recipe_checker.h"
-#include "analysis/recipe_loader/recipe_loader.h"
+#include "analysis/recipe/recipe_loader.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
@@ -91,11 +91,11 @@ int main(int   in_argc,
     if (options.checks_only ||
         options.lists_overlays)
     {
-        Analysis::RecipeLoader::Recipe recipe;
+        Analysis::Recipe::Recipe recipe;
 
-        if (Analysis::RecipeLoader::RecipeLoader::load(options.recipe_filename,
-                                                      &recipe,
-                                                      &error) == false)
+        if (Analysis::Recipe::RecipeLoader::load(options.recipe_filename,
+                                                 &recipe,
+                                                 &error) == false)
         {
             ::fprintf(stderr,
                       "Error: %s: %s\n",

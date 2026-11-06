@@ -4,23 +4,23 @@
  */
 #include "stereo/core/matrix_slots.h"
 
-uint32_t Stereo::Core::MatrixSlots::bind(const Analysis::RecipeLoader::DrawClass& in_draw_class,
-                                         const Analysis::RecipeLoader::Eye&       in_eye,
-                                         const float&                             in_convergence_distance,
-                                         const float&                             in_eye_separation,
-                                         const bool&                              in_is_final_target,
-                                         const float&                             in_overlay_parallax,
-                                         std::vector<MatrixChange>*               inout_change_vec_ptr)
+uint32_t Stereo::Core::MatrixSlots::bind(const Analysis::Recipe::DrawClass& in_draw_class,
+                                         const Analysis::Recipe::Eye&       in_eye,
+                                         const float&                       in_convergence_distance,
+                                         const float&                       in_eye_separation,
+                                         const bool&                        in_is_final_target,
+                                         const float&                       in_overlay_parallax,
+                                         std::vector<MatrixChange>*         inout_change_vec_ptr)
 {
     uint32_t   n_changes  = 0;
-    const bool is_overlay = (in_draw_class       != Analysis::RecipeLoader::DrawClass::AFFECTED &&
+    const bool is_overlay = (in_draw_class       != Analysis::Recipe::DrawClass::AFFECTED &&
                              in_is_final_target  &&
                              in_overlay_parallax >  0.0f);
-    const bool is_left    = (in_eye == Analysis::RecipeLoader::Eye::LEFT);
+    const bool is_left    = (in_eye == Analysis::Recipe::Eye::LEFT);
 
     Bound wanted = Bound::MONO;
 
-    if (in_draw_class == Analysis::RecipeLoader::DrawClass::AFFECTED)
+    if (in_draw_class == Analysis::Recipe::DrawClass::AFFECTED)
     {
         wanted = (is_left) ? Bound::LEFT
                            : Bound::RIGHT;
@@ -74,11 +74,11 @@ uint32_t Stereo::Core::MatrixSlots::bind(const Analysis::RecipeLoader::DrawClass
             {
                 for (const auto* rule_ptr : slot.rule_ptr_vec)
                 {
-                    if (Analysis::RecipeApplier::RecipeApplier::apply_rule(*rule_ptr,
-                                                                           in_eye,
-                                                                           in_eye_separation,
-                                                                          &change.matrix_fp32vec16,
-                                                                           in_convergence_distance) )
+                    if (Analysis::Recipe::RecipeApplier::apply_rule(*rule_ptr,
+                                                                    in_eye,
+                                                                    in_eye_separation,
+                                                                    &change.matrix_fp32vec16,
+                                                                    in_convergence_distance) )
                     {
                         is_for_eye = true;
                     }
@@ -89,10 +89,10 @@ uint32_t Stereo::Core::MatrixSlots::bind(const Analysis::RecipeLoader::DrawClass
             {
                 for (const auto* rule_ptr : slot.rule_ptr_vec)
                 {
-                    if (Analysis::RecipeApplier::RecipeApplier::apply_overlay_shift(*rule_ptr,
-                                                                                    in_eye,
-                                                                                    in_overlay_parallax,
-                                                                                   &change.matrix_fp32vec16) )
+                    if (Analysis::Recipe::RecipeApplier::apply_overlay_shift(*rule_ptr,
+                                                                             in_eye,
+                                                                             in_overlay_parallax,
+                                                                             &change.matrix_fp32vec16) )
                     {
                         is_for_eye = true;
                     }
@@ -134,7 +134,7 @@ void Stereo::Core::MatrixSlots::forget()
     m_slot_map.clear();
 }
 
-bool Stereo::Core::MatrixSlots::on_matrix_call(const Analysis::RecipeApplier::RecipeApplier&           in_applier,
+bool Stereo::Core::MatrixSlots::on_matrix_call(const Analysis::Recipe::RecipeApplier&                  in_applier,
                                                const APIInterceptor::APIFunction&                      in_function,
                                                const std::vector<APIInterceptor::APIFunctionArgument>& in_argument_vec,
                                                const std::array<float, 16>&                            in_matrix)
@@ -159,7 +159,7 @@ bool Stereo::Core::MatrixSlots::on_matrix_call(const Analysis::RecipeApplier::Re
                  &m_scratch_key);
 
     slot.rule_ptr_vec = in_applier.get_matching_rule_ptr_vec(m_scratch_call,
-                                                             Analysis::RecipeApplier::CallPlace() );
+                                                             Analysis::Recipe::CallPlace() );
 
     /* Whatever this call replaces is not what the device is to have. */
     m_slot_map.erase(m_scratch_key);

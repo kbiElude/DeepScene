@@ -5,7 +5,7 @@
 #ifndef STEREO_CONVERTERDLL_D3D8_EYE_RENDERER_H
 #define STEREO_CONVERTERDLL_D3D8_EYE_RENDERER_H
 
-#include "analysis/recipe_loader/types.h"
+#include "analysis/recipe/types.h"
 #include "Common/types.h"
 #include "Interception/Hooks/D3D8/types.h"
 #include "stereo/core/stereo_core.h"
@@ -51,7 +51,7 @@ namespace Stereo
                         const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
 
             /* A draw of the class is about to be made: puts in the device the matrices for the left eye. Returns false if it is not to be. */
-            bool on_pre_draw(const Analysis::RecipeLoader::DrawClass&   in_draw_class,
+            bool on_pre_draw(const Analysis::Recipe::DrawClass&         in_draw_class,
                              const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
 
         private:
@@ -88,7 +88,7 @@ namespace Stereo
             std::vector<Stereo::Core::MatrixChange> m_change_vec; /* of the draw being made: its entries are used again */
             Stereo::Core::StereoCore*               m_core_ptr;
             void*                                   m_device_ptr;
-            Analysis::RecipeLoader::DrawClass       m_draw_class;
+            Analysis::Recipe::DrawClass       m_draw_class;
             DeviceMirror                            m_mirror;
             std::map<void*, void*>                  m_twin_map; /* the application's -> its twin */
         };

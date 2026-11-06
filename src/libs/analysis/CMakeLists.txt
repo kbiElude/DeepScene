@@ -1,5 +1,5 @@
 # Analysis: what a capture is made of (APIDumpAnalysis, with the front ends of each API), what each frame does with what the frames before it left
-# (APIDumpDependencies), the cutting of a capture (APIDumpSlicing), and the recipes (RecipeLoader, RecipeApplier). Everything here reads a
+# (APIDumpDependencies), the cutting of a capture (APIDumpSlicing), and the recipes (Recipe: their data, reading and applying). Everything here reads a
 # workload through the loader of the interceptor (APIDumpLoader). The programs which make the analysis and ask it are in src/tools/analysis.
 file(GLOB_RECURSE Sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
                                             "${CMAKE_CURRENT_SOURCE_DIR}/*.h")

@@ -21,7 +21,7 @@ namespace
     constexpr uint32_t FVF_TRANSFORMED_BY_MATRIX = 0x142; /* XYZ, a diffuse color, one set of texture coordinates */
     constexpr size_t   VERTEX_N_BYTES     = 32;
 
-    Stereo::D3D7::ScreenParallax::Parameters make_parameters(const Analysis::RecipeLoader::Eye& in_eye)
+    Stereo::D3D7::ScreenParallax::Parameters make_parameters(const Analysis::Recipe::Eye& in_eye)
     {
         Stereo::D3D7::ScreenParallax::Parameters result;
 
@@ -96,8 +96,8 @@ namespace
 
 TEST(D3D7ScreenParallax, AVertexAtTheConvergenceDistanceIsNotMovedAndThoseNearerAndFurtherAreMovedTheOtherWayForEachEye)
 {
-    const auto left  = make_parameters(Analysis::RecipeLoader::Eye::LEFT);
-    const auto right = make_parameters(Analysis::RecipeLoader::Eye::RIGHT);
+    const auto left  = make_parameters(Analysis::Recipe::Eye::LEFT);
+    const auto right = make_parameters(Analysis::Recipe::Eye::RIGHT);
 
     const float convergence_reciprocal = 1.0f / 5.0f;
 
@@ -132,10 +132,10 @@ TEST(D3D7ScreenParallax, AVertexAtTheConvergenceDistanceIsNotMovedAndThoseNearer
 
 TEST(D3D7ScreenParallax, TheShiftIsThatOfACameraMovedHalfTheSeparationToTheSide)
 {
-    const auto  left            = make_parameters(Analysis::RecipeLoader::Eye::LEFT);
-    const float reciprocal      = 0.5f; /* a depth of 2 */
-    const float focal_length    = 320.0f / tanf(45.0f * 3.14159265358979f / 180.0f); /* half the width, over the tangent of half the angle of view */
-    const float expected_shift  = focal_length * (2.0f / 2.0f) * (reciprocal - 0.2f);
+    const auto  left       = make_parameters(Analysis::Recipe::Eye::LEFT);
+    const float reciprocal = 0.5f; /* a depth of 2 */
+const float focal_length    = 320.0f / tanf(45.0f * 3.14159265358979f / 180.0f); /* half the width, over the tangent of half the angle of view */
+const float expected_shift  = focal_length * (2.0f / 2.0f) * (reciprocal - 0.2f);
 
     EXPECT_NEAR(Stereo::D3D7::ScreenParallax::get_shift(left,
                                               reciprocal),
@@ -163,7 +163,7 @@ TEST(D3D7ScreenParallax, TheShiftIsThatOfACameraMovedHalfTheSeparationToTheSide)
 
 TEST(D3D7ScreenParallax, WhatIsBehindTheCameraOrNotANumberIsPutWhereItCannotGoWrong)
 {
-    const auto left = make_parameters(Analysis::RecipeLoader::Eye::LEFT);
+    const auto left = make_parameters(Analysis::Recipe::Eye::LEFT);
 
     /* No depth, or a negative one, is the same as the furthest there is. */
     EXPECT_FLOAT_EQ(Stereo::D3D7::ScreenParallax::get_shift(left,
@@ -217,7 +217,7 @@ TEST(D3D7ScreenParallax, OnlyTheXOfEachVertexIsMoved)
                                                {1.0f, 0.2f, 0.01f});
     auto       vertices        = vertices_before;
 
-    Stereo::D3D7::ScreenParallax::shift_vertices(make_parameters(Analysis::RecipeLoader::Eye::LEFT),
+    Stereo::D3D7::ScreenParallax::shift_vertices(make_parameters(Analysis::Recipe::Eye::LEFT),
                                        VERTEX_N_BYTES,
                                        3,
                                        vertices.data() );
@@ -279,9 +279,9 @@ TEST(D3D7DrawRewriter, ADrawOfPreTransformedVerticesIsCopiedWithTheVerticesMoved
 {
     Tests::MapChunkSource                                 source;
     OverlayChunkSource                             overlay(source);
-    Capture::APIDumpLoader::DumpedAPICall          rewritten;
-    const auto                                     original_vertices = make_vertices({10.0f, 20.0f},
-                                                                                     {1.0f, 0.2f});
+    Capture::APIDumpLoader::DumpedAPICall rewritten;
+    const auto                            original_vertices = make_vertices({10.0f, 20.0f},
+                                                                            {1.0f, 0.2f});
 
     source.chunk_map[7] = original_vertices;
 
@@ -291,7 +291,7 @@ TEST(D3D7DrawRewriter, ADrawOfPreTransformedVerticesIsCopiedWithTheVerticesMoved
 
     ASSERT_TRUE(D3D7DrawRewriter::rewrite(call,
                                             source,
-                                            make_parameters(Analysis::RecipeLoader::Eye::LEFT),
+                                            make_parameters(Analysis::Recipe::Eye::LEFT),
                                            &overlay,
                                            &rewritten) );
 
@@ -327,7 +327,7 @@ TEST(D3D7DrawRewriter, ADrawOfPreTransformedVerticesIsCopiedWithTheVerticesMoved
 
     ASSERT_TRUE(D3D7DrawRewriter::rewrite(call,
                                             source,
-                                            make_parameters(Analysis::RecipeLoader::Eye::RIGHT),
+                                            make_parameters(Analysis::Recipe::Eye::RIGHT),
                                            &right_overlay,
                                            &right_rewritten) );
     EXPECT_LT(get_x(*right_overlay.get_data_chunk_ptr(right_rewritten.arg_in_vec.back().get_data_chunk_id() ),
@@ -422,7 +422,7 @@ TEST(D3D7DrawRewriter, ADrawWhichTheIndicesComeBeforeTheVerticesOfHasTheVertices
 
     ASSERT_TRUE(D3D7DrawRewriter::rewrite(call,
                                             source,
-                                            make_parameters(Analysis::RecipeLoader::Eye::LEFT),
+                                            make_parameters(Analysis::Recipe::Eye::LEFT),
                                            &overlay,
                                            &rewritten) );
 
@@ -449,7 +449,7 @@ TEST(D3D7DrawRewriter, WhatIsNotADrawOfPreTransformedVerticesWhichThereIsRoomFor
                                                                  2,
                                                                  7),
                                              source,
-                                             make_parameters(Analysis::RecipeLoader::Eye::LEFT),
+                                             make_parameters(Analysis::Recipe::Eye::LEFT),
                                             &overlay,
                                             &rewritten) );
 
@@ -462,7 +462,7 @@ TEST(D3D7DrawRewriter, WhatIsNotADrawOfPreTransformedVerticesWhichThereIsRoomFor
 
     EXPECT_FALSE(D3D7DrawRewriter::rewrite(clear_call,
                                              source,
-                                             make_parameters(Analysis::RecipeLoader::Eye::LEFT),
+                                             make_parameters(Analysis::Recipe::Eye::LEFT),
                                             &overlay,
                                             &rewritten) );
 
@@ -471,19 +471,19 @@ TEST(D3D7DrawRewriter, WhatIsNotADrawOfPreTransformedVerticesWhichThereIsRoomFor
                                                                  3,
                                                                  7),
                                              source,
-                                             make_parameters(Analysis::RecipeLoader::Eye::LEFT),
+                                             make_parameters(Analysis::Recipe::Eye::LEFT),
                                             &overlay,
                                             &rewritten) );
     EXPECT_FALSE(D3D7DrawRewriter::rewrite(make_draw_primitive(FVF_PRETRANSFORMED,
                                                                  2,
                                                                  99),
                                              source,
-                                             make_parameters(Analysis::RecipeLoader::Eye::LEFT),
+                                             make_parameters(Analysis::Recipe::Eye::LEFT),
                                             &overlay,
                                             &rewritten) );
 
     /* Eyes which are not apart have nothing to be moved by. */
-    auto together = make_parameters(Analysis::RecipeLoader::Eye::LEFT);
+    auto together = make_parameters(Analysis::Recipe::Eye::LEFT);
 
     together.eye_separation = 0.0f;
 
@@ -510,10 +510,10 @@ TEST(D3D7ScreenParallax, AVertexAtAnEdgeIsNotMovedFromItAndMovesAsAnyOtherWhereT
     const bool is_held_left_eye_vec [N_EDGE_VERTICES] = {true,  false, false, true};
     const bool is_held_right_eye_vec[N_EDGE_VERTICES] = {false, true,  true,  false};
 
-    for (const auto& eye : {Analysis::RecipeLoader::Eye::LEFT,
-                            Analysis::RecipeLoader::Eye::RIGHT})
+    for (const auto& eye : {Analysis::Recipe::Eye::LEFT,
+                            Analysis::Recipe::Eye::RIGHT})
     {
-        const bool* const is_held_vec = (eye == Analysis::RecipeLoader::Eye::LEFT) ? is_held_left_eye_vec
+        const bool* const is_held_vec = (eye == Analysis::Recipe::Eye::LEFT) ? is_held_left_eye_vec
                                                                                    : is_held_right_eye_vec;
         auto              vertices    = make_vertices(x_vec,
                                                       reciprocal_vec);

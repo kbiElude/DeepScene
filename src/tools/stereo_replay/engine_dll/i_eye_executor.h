@@ -5,7 +5,7 @@
 #ifndef STEREO_REPLAY_ENGINEDLL_I_EYE_EXECUTOR_H
 #define STEREO_REPLAY_ENGINEDLL_I_EYE_EXECUTOR_H
 
-#include "analysis/recipe_loader/types.h"
+#include "analysis/recipe/types.h"
 #include <functional>
 #include <stdint.h>
 
@@ -29,7 +29,7 @@ namespace Stereo
                 /* The eye that the calls which follow are executed for, until the next time: the objects which each eye has a copy of are the ones of
                  * that eye. The left one to begin with, and for what is not rendered for two eyes.
                  */
-                virtual void set_eye(const Analysis::RecipeLoader::Eye& in_eye) = 0;
+                virtual void set_eye(const Analysis::Recipe::Eye& in_eye) = 0;
 
                 /* What tells which objects have a copy for each eye; none, if it is not set. */
                 virtual void set_per_eye_predicate(const PerEyePredicate& in_predicate) = 0;

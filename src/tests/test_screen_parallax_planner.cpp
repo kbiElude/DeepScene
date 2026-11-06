@@ -5,17 +5,17 @@
  * Tests for ScreenParallaxPlanner: what is done to a draw of vertices in the space of the picture, whichever adapter asks.
  */
 #include <gtest/gtest.h>
-#include "analysis/recipe_applier/recipe_applier.h"
+#include "analysis/recipe/recipe_applier.h"
 #include "stereo/core/screen_parallax_planner.h"
 
 namespace
 {
     constexpr uint64_t COVERING_KEY = 0xc0ffee;
 
-    Analysis::RecipeLoader::Recipe make_recipe(const bool&  in_has_screen_parallax,
-                                               const float& in_overlay_parallax)
+    Analysis::Recipe::Recipe make_recipe(const bool&  in_has_screen_parallax,
+                                         const float& in_overlay_parallax)
     {
-        Analysis::RecipeLoader::Recipe result;
+        Analysis::Recipe::Recipe result;
 
         result.comfort.overlay_parallax            = in_overlay_parallax;
         result.covering_draw_key_vec.push_back(COVERING_KEY);
@@ -42,8 +42,8 @@ namespace
 
 TEST(ScreenParallaxPlanner, AnAffectedDrawIsMovedByItsDepthAtTheDistanceOfTheSceneAndNeverFurtherApartThanItsLimit)
 {
-    const Analysis::RecipeApplier::RecipeApplier applier(make_recipe(true,
-                                                                     0.0f) );
+    const Analysis::Recipe::RecipeApplier applier(make_recipe(true,
+                                                              0.0f) );
     auto                                         input = make_input(true);
 
     input.convergence_distance = 40.0f;
@@ -66,8 +66,8 @@ TEST(ScreenParallaxPlanner, AnAffectedDrawIsMovedByItsDepthAtTheDistanceOfTheSce
 
 TEST(ScreenParallaxPlanner, ASceneWithNoDistanceHasTheDistanceOfTheRecipeAndALimitAboveTheSeparationChangesNothing)
 {
-    const Analysis::RecipeApplier::RecipeApplier applier(make_recipe(true,
-                                                                     0.0f) );
+    const Analysis::Recipe::RecipeApplier applier(make_recipe(true,
+                                                              0.0f) );
     auto                                         input = make_input(true);
 
     input.separation_limit = 9.0f;
@@ -83,8 +83,8 @@ TEST(ScreenParallaxPlanner, ASceneWithNoDistanceHasTheDistanceOfTheRecipeAndALim
 
 TEST(ScreenParallaxPlanner, ADrawWithoutScreenParallaxInTheRecipeIsLeftAsItIs)
 {
-    const Analysis::RecipeApplier::RecipeApplier applier(make_recipe(false,
-                                                                     0.0f) );
+    const Analysis::Recipe::RecipeApplier applier(make_recipe(false,
+                                                              0.0f) );
 
     EXPECT_EQ(Stereo::Core::ScreenParallaxPlanner::plan(applier,
                                                         make_input(true) ).kind,
@@ -93,10 +93,10 @@ TEST(ScreenParallaxPlanner, ADrawWithoutScreenParallaxInTheRecipeIsLeftAsItIs)
 
 TEST(ScreenParallaxPlanner, ADrawWhichCoversTheViewIsNeverMovedSideways)
 {
-    const Analysis::RecipeApplier::RecipeApplier applier(make_recipe(true,
-                                                                     0.1f) );
-    auto                                         affected   = make_input(true);
-    auto                                         unaffected = make_input(false);
+    const Analysis::Recipe::RecipeApplier applier(make_recipe(true,
+                                                              0.1f) );
+    auto affected   = make_input(true);
+    auto unaffected = make_input(false);
 
     affected.cover_key   = COVERING_KEY;
     unaffected.cover_key = COVERING_KEY;
@@ -111,8 +111,8 @@ TEST(ScreenParallaxPlanner, ADrawWhichCoversTheViewIsNeverMovedSideways)
 
 TEST(ScreenParallaxPlanner, ADrawWithTheKeyOfACoveringOneThatDoesNotReachBothSidesIsMovedLikeAnyOther)
 {
-    const Analysis::RecipeApplier::RecipeApplier applier(make_recipe(true,
-                                                                     0.1f) );
+    const Analysis::Recipe::RecipeApplier applier(make_recipe(true,
+                                                              0.1f) );
     auto                                         input = make_input(true);
 
     input.cover_key          = COVERING_KEY;
@@ -132,12 +132,12 @@ TEST(ScreenParallaxPlanner, ADrawWithTheKeyOfACoveringOneThatDoesNotReachBothSid
 
 TEST(ScreenParallaxPlanner, AnOverlayIsPushedHalfTheAmountToEachSideTheOtherWayForEachEye)
 {
-    const Analysis::RecipeApplier::RecipeApplier applier(make_recipe(true,
-                                                                     0.05f) );
-    auto                                         left  = make_input(false);
-    auto                                         right = make_input(false);
+    const Analysis::Recipe::RecipeApplier applier(make_recipe(true,
+                                                              0.05f) );
+    auto left  = make_input(false);
+    auto right = make_input(false);
 
-    right.eye = Analysis::RecipeLoader::Eye::RIGHT;
+    right.eye = Analysis::Recipe::Eye::RIGHT;
 
     const auto left_plan  = Stereo::Core::ScreenParallaxPlanner::plan(applier,
                                                                       left);
@@ -154,12 +154,12 @@ TEST(ScreenParallaxPlanner, AnOverlayIsPushedHalfTheAmountToEachSideTheOtherWayF
 
 TEST(ScreenParallaxPlanner, AnOverlayIsNotPushedWhenItIsNotPresentedNotWantedOrTheRecipeHasNoAmount)
 {
-    const Analysis::RecipeApplier::RecipeApplier pushing(make_recipe(true,
-                                                                     0.05f) );
-    const Analysis::RecipeApplier::RecipeApplier not_pushing(make_recipe(true,
-                                                                         0.0f) );
-    auto                                         not_presented = make_input(false);
-    auto                                         not_wanted    = make_input(false);
+    const Analysis::Recipe::RecipeApplier pushing(make_recipe(true,
+                                                              0.05f) );
+    const Analysis::Recipe::RecipeApplier not_pushing(make_recipe(true,
+                                                                  0.0f) );
+    auto not_presented = make_input(false);
+    auto not_wanted    = make_input(false);
 
     not_presented.is_presented    = false;
     not_wanted.is_overlay_pushed = false;

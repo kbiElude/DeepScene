@@ -5,13 +5,13 @@
 #include "stereo/core/stereo_core.h"
 #include <stdlib.h>
 
-Stereo::Core::StereoCore::StereoCore(const Analysis::RecipeLoader::Recipe& in_recipe,
-                                     const FailFunc&                       in_fail_func)
+Stereo::Core::StereoCore::StereoCore(const Analysis::Recipe::Recipe& in_recipe,
+                                     const FailFunc&                 in_fail_func)
     :m_applier               (in_recipe),
      m_fail_func             (in_fail_func),
      m_is_last_draw_covering (false),
      m_is_overlay_pushed     (false),
-     m_last_draw_class       (Analysis::RecipeLoader::DrawClass::AFFECTED),
+     m_last_draw_class       (Analysis::Recipe::DrawClass::AFFECTED),
      m_last_draw_cover_key   (0),
      m_n_unknown_draws       (0),
      m_n_unknown_frames      (0),
@@ -34,10 +34,10 @@ Stereo::Core::StereoCore::StereoCore(const Analysis::RecipeLoader::Recipe& in_re
     }
 }
 
-uint32_t Stereo::Core::StereoCore::bind_matrices(const Analysis::RecipeLoader::DrawClass& in_draw_class,
-                                                 const Analysis::RecipeLoader::Eye&       in_eye,
-                                                 std::vector<MatrixChange>*               inout_change_vec_ptr,
-                                                 const bool&                              in_is_final_target)
+uint32_t Stereo::Core::StereoCore::bind_matrices(const Analysis::Recipe::DrawClass& in_draw_class,
+                                                 const Analysis::Recipe::Eye&       in_eye,
+                                                 std::vector<MatrixChange>*         inout_change_vec_ptr,
+                                                 const bool&                        in_is_final_target)
 {
     return m_matrix_slots.bind(in_draw_class,
                                in_eye,
@@ -49,8 +49,8 @@ uint32_t Stereo::Core::StereoCore::bind_matrices(const Analysis::RecipeLoader::D
                                inout_change_vec_ptr);
 }
 
-Analysis::RecipeLoader::DrawClass Stereo::Core::StereoCore::classify_draw(const uint64_t& in_signature_key,
-                                                                          const uint64_t& in_cover_key)
+Analysis::Recipe::DrawClass Stereo::Core::StereoCore::classify_draw(const uint64_t& in_signature_key,
+                                                                    const uint64_t& in_cover_key)
 {
     if (m_applier.is_signature_known(in_signature_key) == false)
     {
@@ -154,11 +154,11 @@ void Stereo::Core::StereoCore::on_view_matrix_set(const std::array<float, 16>& i
     m_view_matrix_fp32vec16 = in_matrix;
 }
 
-Stereo::Core::ScreenShiftPlan Stereo::Core::StereoCore::plan_screen_shift(const Analysis::RecipeLoader::Eye& in_eye,
-                                                                          const bool&                        in_has_extent,
-                                                                          const bool&                        in_is_presented,
-                                                                          const float&                       in_picture_width,
-                                                                          const bool&                        in_reaches_both_sides) const
+Stereo::Core::ScreenShiftPlan Stereo::Core::StereoCore::plan_screen_shift(const Analysis::Recipe::Eye& in_eye,
+                                                                          const bool&                  in_has_extent,
+                                                                          const bool&                  in_is_presented,
+                                                                          const float&                 in_picture_width,
+                                                                          const bool&                  in_reaches_both_sides) const
 {
     ScreenParallaxPlanner::Input input;
 
@@ -167,7 +167,7 @@ Stereo::Core::ScreenShiftPlan Stereo::Core::StereoCore::plan_screen_shift(const 
     input.eye                  = in_eye;
     input.eye_separation       = m_convergence_model.get_effective_eye_separation();
     input.has_extent           = in_has_extent;
-    input.is_affected          = (m_last_draw_class == Analysis::RecipeLoader::DrawClass::AFFECTED);
+    input.is_affected          = (m_last_draw_class == Analysis::Recipe::DrawClass::AFFECTED);
     input.is_overlay_pushed    = m_is_overlay_pushed;
     input.is_presented         = in_is_presented;
     input.picture_width        = in_picture_width;

@@ -56,7 +56,7 @@ Stereo::D3D7::ScreenParallax::ShiftFactors Stereo::D3D7::ScreenParallax::make_sh
     const float focal_length_pixels = (in_parameters.picture_width * HALF) / ::tanf(in_parameters.field_of_view_degrees * HALF * DEGREES_TO_RADIANS);
 
     result.convergence_reciprocal   = 1.0f / in_parameters.convergence_distance;
-    result.is_left                  = (in_parameters.eye == Analysis::RecipeLoader::Eye::LEFT);
+    result.is_left                  = (in_parameters.eye == Analysis::Recipe::Eye::LEFT);
     result.magnitude_per_reciprocal = focal_length_pixels * (in_parameters.eye_separation * HALF);
     result.max_reciprocal           = result.convergence_reciprocal / MAX_DEPTH_FRACTION;
 
@@ -155,8 +155,8 @@ void Stereo::D3D7::ScreenParallax::shift_vertices(const Parameters& in_parameter
               ++n_vertex)
     {
         uint8_t* const vertex_ptr = inout_vertex_ptr + n_vertex * in_vertex_n_bytes;
-        float          reciprocal = 0.0f;
-        float          x          = 0.0f;
+        float reciprocal = 0.0f;
+        float x          = 0.0f;
 
         ::memcpy(&x,
                  vertex_ptr + X_OFFSET,

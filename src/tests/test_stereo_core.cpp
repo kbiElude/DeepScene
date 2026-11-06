@@ -5,7 +5,7 @@
  * Tests for StereoCore: what a converter which plays an application as it runs decides from a baked recipe, and when it refuses to.
  */
 #include <gtest/gtest.h>
-#include "analysis/recipe_loader/recipe_loader.h"
+#include "analysis/recipe/recipe_loader.h"
 #include "stereo/core/stereo_core.h"
 #include <string>
 #include <vector>
@@ -15,8 +15,8 @@ class StereoCoreTest : public ::testing::Test
 protected:
     /* The matrices for the draw, as a vector of their own. */
     static std::vector<Stereo::Core::MatrixChange> bind_matrices(Stereo::Core::StereoCore*      inout_core_ptr,
-                                                                 const Analysis::RecipeLoader::DrawClass& in_draw_class,
-                                                                 const Analysis::RecipeLoader::Eye&       in_eye,
+                                                                 const Analysis::Recipe::DrawClass& in_draw_class,
+                                                                 const Analysis::Recipe::Eye&       in_eye,
                                                                  const bool&                              in_is_final_target = false)
     {
         std::vector<Stereo::Core::MatrixChange> result_vec;
@@ -33,16 +33,16 @@ protected:
     static constexpr uint32_t STATE_VIEW       = 2;   /* D3DTS_VIEW       */
     static constexpr uint32_t STATE_WORLD      = 256; /* D3DTS_WORLD      */
 
-    static Analysis::RecipeLoader::Recipe make_recipe(const std::string& in_baked_part,
-                                                      const std::string& in_rule_part)
+    static Analysis::Recipe::Recipe make_recipe(const std::string& in_baked_part,
+                                                const std::string& in_rule_part)
     {
-        Analysis::RecipeLoader::Recipe recipe;
-        std::string                    error;
+        Analysis::Recipe::Recipe recipe;
+        std::string              error;
 
-        EXPECT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse("{\"recipe_version\": 0, \"key_scheme_version\": 1, " + in_baked_part +
-                                                                "\"rules\": [" + in_rule_part + "]}",
-                                                               &recipe,
-                                                               &error) ) << error;
+        EXPECT_TRUE(Analysis::Recipe::RecipeLoader::parse("{\"recipe_version\": 0, \"key_scheme_version\": 1, " + in_baked_part +
+                                                          "\"rules\": [" + in_rule_part + "]}",
+                                                          &recipe,
+                                                          &error) ) << error;
 
         return recipe;
     }
@@ -121,7 +121,7 @@ TEST_F(StereoCoreTest, ARuleAboutAPassOrAFrameShapeIsRefusedForItCannotBeFollowe
 
 TEST_F(StereoCoreTest, TheMatrixOfARuleIsKeptAndPutInForTheEyeThatDrawsAreMadeFor)
 {
-    const auto               arguments = make_set_transform_arguments(STATE_VIEW);
+    const auto               arguments   = make_set_transform_arguments(STATE_VIEW);
     std::vector<std::string> message_vec;
     Stereo::Core::StereoCore core(make_recipe(get_baked_text(""),
                                               get_view_rule_text() ),
@@ -138,11 +138,11 @@ TEST_F(StereoCoreTest, TheMatrixOfARuleIsKeptAndPutInForTheEyeThatDrawsAreMadeFo
                                     make_translation(10.0f) ));
 
     const auto left  = bind_matrices(&core,
-                                     Analysis::RecipeLoader::DrawClass::AFFECTED,
-                                     Analysis::RecipeLoader::Eye::LEFT);
+                                     Analysis::Recipe::DrawClass::AFFECTED,
+                                     Analysis::Recipe::Eye::LEFT);
     const auto right = bind_matrices(&core,
-                                     Analysis::RecipeLoader::DrawClass::AFFECTED,
-                                     Analysis::RecipeLoader::Eye::RIGHT);
+                                     Analysis::Recipe::DrawClass::AFFECTED,
+                                     Analysis::Recipe::Eye::RIGHT);
 
     ASSERT_EQ(left.size(),
               1u);
@@ -177,32 +177,32 @@ TEST_F(StereoCoreTest, AMatrixIsPutInOnlyWhenTheDeviceHasAnotherOne)
                         make_translation(10.0f) );
 
     EXPECT_EQ(bind_matrices(&core,
-                            Analysis::RecipeLoader::DrawClass::AFFECTED,
-                            Analysis::RecipeLoader::Eye::LEFT).size(),
+                            Analysis::Recipe::DrawClass::AFFECTED,
+                            Analysis::Recipe::Eye::LEFT).size(),
               1u);
 
     /* The device has it already. */
     EXPECT_TRUE(bind_matrices(&core,
-                              Analysis::RecipeLoader::DrawClass::AFFECTED,
-                              Analysis::RecipeLoader::Eye::LEFT).empty() );
+                              Analysis::Recipe::DrawClass::AFFECTED,
+                              Analysis::Recipe::Eye::LEFT).empty() );
 
     EXPECT_EQ(bind_matrices(&core,
-                            Analysis::RecipeLoader::DrawClass::AFFECTED,
-                            Analysis::RecipeLoader::Eye::RIGHT).size(),
+                            Analysis::Recipe::DrawClass::AFFECTED,
+                            Analysis::Recipe::Eye::RIGHT).size(),
               1u);
 
     /* A draw which the recipe leaves alone gets the matrix as the application set it. */
     const auto mono = bind_matrices(&core,
-                                    Analysis::RecipeLoader::DrawClass::UNAFFECTED,
-                                    Analysis::RecipeLoader::Eye::RIGHT);
+                                    Analysis::Recipe::DrawClass::UNAFFECTED,
+                                    Analysis::Recipe::Eye::RIGHT);
 
     ASSERT_EQ(mono.size(),
               1u);
     EXPECT_EQ(mono.at(0).matrix_fp32vec16,
               make_translation(10.0f) );
     EXPECT_TRUE(bind_matrices(&core,
-                              Analysis::RecipeLoader::DrawClass::UNAFFECTED,
-                              Analysis::RecipeLoader::Eye::LEFT).empty() );
+                              Analysis::Recipe::DrawClass::UNAFFECTED,
+                              Analysis::Recipe::Eye::LEFT).empty() );
 }
 
 TEST_F(StereoCoreTest, AnotherSeparationMakesTheMatrixAgain)
@@ -218,14 +218,14 @@ TEST_F(StereoCoreTest, AnotherSeparationMakesTheMatrixAgain)
                         make_translation(10.0f) );
 
     const auto first = bind_matrices(&core,
-                                     Analysis::RecipeLoader::DrawClass::AFFECTED,
-                                     Analysis::RecipeLoader::Eye::LEFT);
+                                     Analysis::Recipe::DrawClass::AFFECTED,
+                                     Analysis::Recipe::Eye::LEFT);
 
     core.set_eye_separation(1.0f);
 
     const auto second = bind_matrices(&core,
-                                      Analysis::RecipeLoader::DrawClass::AFFECTED,
-                                      Analysis::RecipeLoader::Eye::LEFT);
+                                      Analysis::Recipe::DrawClass::AFFECTED,
+                                      Analysis::Recipe::Eye::LEFT);
 
     ASSERT_EQ(first.size(),
               1u);
@@ -248,8 +248,8 @@ TEST_F(StereoCoreTest, ACallThatNoRuleIsAboutIsLeftToTheCaller)
                                      make_set_transform_arguments(STATE_VIEW),
                                      make_translation(1.0f) ));
     EXPECT_TRUE(bind_matrices(&core,
-                              Analysis::RecipeLoader::DrawClass::AFFECTED,
-                              Analysis::RecipeLoader::Eye::LEFT).empty() );
+                              Analysis::Recipe::DrawClass::AFFECTED,
+                              Analysis::Recipe::Eye::LEFT).empty() );
 }
 
 TEST_F(StereoCoreTest, MatricesThatWereKeptCanBeForgotten)
@@ -264,8 +264,8 @@ TEST_F(StereoCoreTest, MatricesThatWereKeptCanBeForgotten)
     core.forget_matrices();
 
     EXPECT_TRUE(bind_matrices(&core,
-                              Analysis::RecipeLoader::DrawClass::AFFECTED,
-                              Analysis::RecipeLoader::Eye::LEFT).empty() );
+                              Analysis::Recipe::DrawClass::AFFECTED,
+                              Analysis::Recipe::Eye::LEFT).empty() );
 }
 
 TEST_F(StereoCoreTest, ADrawIsToldByItsSignatureAndTheViewMatrixTheApplicationHas)
@@ -279,9 +279,9 @@ TEST_F(StereoCoreTest, ADrawIsToldByItsSignatureAndTheViewMatrixTheApplicationHa
 
     /* The application has set no camera: the device has the identity. */
     EXPECT_EQ(core.classify_draw(1, 0),
-              Analysis::RecipeLoader::DrawClass::AFFECTED);
+              Analysis::Recipe::DrawClass::AFFECTED);
     EXPECT_EQ(core.classify_draw(2, 0),
-              Analysis::RecipeLoader::DrawClass::SKIPPED);
+              Analysis::Recipe::DrawClass::SKIPPED);
 
     core.on_view_matrix_set({1.0f, 0.0f, 0.0f, 0.0f,
                              0.0f, 1.0f, 0.0f, 0.0f,
@@ -289,7 +289,7 @@ TEST_F(StereoCoreTest, ADrawIsToldByItsSignatureAndTheViewMatrixTheApplicationHa
                              0.0f, 0.0f, 2.5f, 1.0f});
 
     EXPECT_EQ(core.classify_draw(1, 0),
-              Analysis::RecipeLoader::DrawClass::UNAFFECTED);
+              Analysis::Recipe::DrawClass::UNAFFECTED);
 }
 
 TEST_F(StereoCoreTest, DrawsOfASignatureTheRecipeDoesNotKnowAreCounted)
@@ -306,7 +306,7 @@ TEST_F(StereoCoreTest, DrawsOfASignatureTheRecipeDoesNotKnowAreCounted)
 
     /* It is affected, like any draw no rule is about. */
     EXPECT_EQ(core.classify_draw(99, 0),
-              Analysis::RecipeLoader::DrawClass::AFFECTED);
+              Analysis::Recipe::DrawClass::AFFECTED);
     EXPECT_EQ(core.get_n_unknown_draws(),
               1u);
 }
@@ -383,8 +383,8 @@ TEST_F(StereoCoreTest, TheConvergenceDistanceShearsTheProjectionForEachEyeAndIsS
 
     /* None is set: the application's projection, for the eye. */
     auto left = bind_matrices(&core,
-                              Analysis::RecipeLoader::DrawClass::AFFECTED,
-                              Analysis::RecipeLoader::Eye::LEFT);
+                              Analysis::Recipe::DrawClass::AFFECTED,
+                              Analysis::Recipe::Eye::LEFT);
 
     ASSERT_EQ(left.size(),
               1u);
@@ -398,8 +398,8 @@ TEST_F(StereoCoreTest, TheConvergenceDistanceShearsTheProjectionForEachEyeAndIsS
 
     /* A projection made for another distance is not the one to have. */
     left = bind_matrices(&core,
-                         Analysis::RecipeLoader::DrawClass::AFFECTED,
-                         Analysis::RecipeLoader::Eye::LEFT);
+                         Analysis::Recipe::DrawClass::AFFECTED,
+                         Analysis::Recipe::Eye::LEFT);
 
     ASSERT_EQ(left.size(),
               1u);
@@ -407,8 +407,8 @@ TEST_F(StereoCoreTest, TheConvergenceDistanceShearsTheProjectionForEachEyeAndIsS
                     -0.02f);
 
     const auto right = bind_matrices(&core,
-                                     Analysis::RecipeLoader::DrawClass::AFFECTED,
-                                     Analysis::RecipeLoader::Eye::RIGHT);
+                                     Analysis::Recipe::DrawClass::AFFECTED,
+                                     Analysis::Recipe::Eye::RIGHT);
 
     ASSERT_EQ(right.size(),
               1u);
@@ -416,8 +416,8 @@ TEST_F(StereoCoreTest, TheConvergenceDistanceShearsTheProjectionForEachEyeAndIsS
                     0.02f);
 
     EXPECT_TRUE(bind_matrices(&core,
-                              Analysis::RecipeLoader::DrawClass::AFFECTED,
-                              Analysis::RecipeLoader::Eye::RIGHT).empty() );
+                              Analysis::Recipe::DrawClass::AFFECTED,
+                              Analysis::Recipe::Eye::RIGHT).empty() );
 
     core.set_convergence_distance(-1.0f);
     core.set_convergence_distance(NAN);
@@ -430,15 +430,15 @@ TEST_F(StereoCoreTest, TheConvergenceDistanceShearsTheProjectionForEachEyeAndIsS
 
 TEST_F(StereoCoreTest, TheDistanceOfTheRecipeIsFollowedForEachDrawUnlessOneIsSet)
 {
-    const auto                projection_arguments = make_set_transform_arguments(STATE_PROJECTION);
-    std::vector<std::string>  message_vec;
-    auto                      recipe = make_recipe(get_baked_text(""),
-                                                   "{\"call\": \"IDirect3DDevice8::SetTransform\", \"when\": {\"state\": \"D3DTS_PROJECTION\","
-                                                   " \"matrix\": \"perspective\"}, \"action\": {\"type\": \"eye_convergence\"}}");
-    std::array<float, 16>     projection_f32mat = {1.0f, 0.0f, 0.0f, 0.0f,
-                                                   0.0f, 1.0f, 0.0f, 0.0f,
-                                                   0.0f, 0.0f, 1.0f, 1.0f,
-                                                   0.0f, 0.0f, 0.0f, 0.0f};
+    const auto               projection_arguments = make_set_transform_arguments(STATE_PROJECTION);
+    std::vector<std::string> message_vec;
+    auto                     recipe               = make_recipe(get_baked_text(""),
+                                                                "{\"call\": \"IDirect3DDevice8::SetTransform\", \"when\": {\"state\": \"D3DTS_PROJECTION\","
+                                                                " \"matrix\": \"perspective\"}, \"action\": {\"type\": \"eye_convergence\"}}");
+    std::array<float, 16>    projection_f32mat    = {1.0f, 0.0f, 0.0f, 0.0f,
+                                                     0.0f, 1.0f, 0.0f, 0.0f,
+                                                     0.0f, 0.0f, 1.0f, 1.0f,
+                                                     0.0f, 0.0f, 0.0f, 0.0f};
 
     /* The signatures of get_baked_text() are 1 and 2: the first converges at 5, the second has no distance. */
     recipe.convergence_vec.push_back({5.0f, 1});
@@ -458,8 +458,8 @@ TEST_F(StereoCoreTest, TheDistanceOfTheRecipeIsFollowedForEachDrawUnlessOneIsSet
     core.classify_draw(1, 0);
 
     auto left = bind_matrices(&core,
-                              Analysis::RecipeLoader::DrawClass::AFFECTED,
-                              Analysis::RecipeLoader::Eye::LEFT);
+                              Analysis::Recipe::DrawClass::AFFECTED,
+                              Analysis::Recipe::Eye::LEFT);
 
     ASSERT_EQ(left.size(),
               1u);
@@ -470,8 +470,8 @@ TEST_F(StereoCoreTest, TheDistanceOfTheRecipeIsFollowedForEachDrawUnlessOneIsSet
     core.classify_draw(2, 0);
 
     left = bind_matrices(&core,
-                         Analysis::RecipeLoader::DrawClass::AFFECTED,
-                         Analysis::RecipeLoader::Eye::LEFT);
+                         Analysis::Recipe::DrawClass::AFFECTED,
+                         Analysis::Recipe::Eye::LEFT);
 
     ASSERT_EQ(left.size(),
               1u);
@@ -483,8 +483,8 @@ TEST_F(StereoCoreTest, TheDistanceOfTheRecipeIsFollowedForEachDrawUnlessOneIsSet
     core.classify_draw(1, 0);
 
     left = bind_matrices(&core,
-                         Analysis::RecipeLoader::DrawClass::AFFECTED,
-                         Analysis::RecipeLoader::Eye::LEFT);
+                         Analysis::Recipe::DrawClass::AFFECTED,
+                         Analysis::Recipe::Eye::LEFT);
 
     ASSERT_EQ(left.size(),
               1u);
@@ -495,15 +495,15 @@ TEST_F(StereoCoreTest, TheDistanceOfTheRecipeIsFollowedForEachDrawUnlessOneIsSet
 
 TEST_F(StereoCoreTest, TheDistanceOfTheSceneIsTakenAtOnceAtFirstAndThenEasedTowardWhatTheNextSceneHasAndASetOneBeatsIt)
 {
-    const auto                projection_arguments = make_set_transform_arguments(STATE_PROJECTION);
-    std::vector<std::string>  message_vec;
-    auto                      recipe = make_recipe(get_baked_text(""),
-                                                   "{\"call\": \"IDirect3DDevice8::SetTransform\", \"when\": {\"state\": \"D3DTS_PROJECTION\","
-                                                   " \"matrix\": \"perspective\"}, \"action\": {\"type\": \"eye_convergence\"}}");
-    std::array<float, 16>     projection_f32mat = {1.0f, 0.0f, 0.0f, 0.0f,
-                                                   0.0f, 1.0f, 0.0f, 0.0f,
-                                                   0.0f, 0.0f, 1.0f, 1.0f,
-                                                   0.0f, 0.0f, 0.0f, 0.0f};
+    const auto               projection_arguments = make_set_transform_arguments(STATE_PROJECTION);
+    std::vector<std::string> message_vec;
+    auto                     recipe               = make_recipe(get_baked_text(""),
+                                                                "{\"call\": \"IDirect3DDevice8::SetTransform\", \"when\": {\"state\": \"D3DTS_PROJECTION\","
+                                                                " \"matrix\": \"perspective\"}, \"action\": {\"type\": \"eye_convergence\"}}");
+    std::array<float, 16>    projection_f32mat    = {1.0f, 0.0f, 0.0f, 0.0f,
+                                                     0.0f, 1.0f, 0.0f, 0.0f,
+                                                     0.0f, 0.0f, 1.0f, 1.0f,
+                                                     0.0f, 0.0f, 0.0f, 0.0f};
 
     /* Two scenes, with the shape keys 100 and 200; the signature 1 converges at 5, and the draw is told of it until a scene is known. */
     recipe.convergence_vec.push_back({5.0f, 1});
@@ -527,8 +527,8 @@ TEST_F(StereoCoreTest, TheDistanceOfTheSceneIsTakenAtOnceAtFirstAndThenEasedTowa
                                     core.classify_draw(1, 0);
 
                                     const auto left = bind_matrices(&core,
-                                                                    Analysis::RecipeLoader::DrawClass::AFFECTED,
-                                                                    Analysis::RecipeLoader::Eye::LEFT);
+                                                                    Analysis::Recipe::DrawClass::AFFECTED,
+                                                                    Analysis::Recipe::Eye::LEFT);
 
                                     return (left.empty() ) ? 0.0f
                                                            : left.at(0).matrix_fp32vec16.at(8);
@@ -579,7 +579,7 @@ TEST_F(StereoCoreTest, TheDistanceOfTheSceneIsTakenAtOnceAtFirstAndThenEasedTowa
 
 TEST_F(StereoCoreTest, TheStrengthOfThe3DMakesTheDistanceBetweenTheEyesAThirtiethOfTheDistanceTheyConvergeAtTimesIt)
 {
-    const auto               arguments = make_set_transform_arguments(STATE_VIEW);
+    const auto               arguments   = make_set_transform_arguments(STATE_VIEW);
     std::vector<std::string> message_vec;
     Stereo::Core::StereoCore core(make_recipe(get_baked_text(""),
                                               get_view_rule_text() ),
@@ -595,11 +595,11 @@ TEST_F(StereoCoreTest, TheStrengthOfThe3DMakesTheDistanceBetweenTheEyesAThirtiet
     const auto get_separation_func = [&core]()
                                      {
                                          const auto left  = bind_matrices(&core,
-                                                                          Analysis::RecipeLoader::DrawClass::AFFECTED,
-                                                                          Analysis::RecipeLoader::Eye::LEFT);
-                                         const auto right = bind_matrices(&core,
-                                                                          Analysis::RecipeLoader::DrawClass::AFFECTED,
-                                                                          Analysis::RecipeLoader::Eye::RIGHT);
+                                                                          Analysis::Recipe::DrawClass::AFFECTED,
+                                                                          Analysis::Recipe::Eye::LEFT);
+                                         const auto right               = bind_matrices(&core,
+                                                                                        Analysis::Recipe::DrawClass::AFFECTED,
+                                                                                        Analysis::Recipe::Eye::RIGHT);
 
                                          return ::fabsf(left.at(0).matrix_fp32vec16.at(12) - right.at(0).matrix_fp32vec16.at(12) );
                                      };
@@ -668,8 +668,8 @@ TEST_F(StereoCoreTest, WhatTheRecipeLeavesAloneAndIsMadeToWhatIsPresentedIsPushe
 
     /* Pushed: the left picture toward the right, the right one toward the left, by the parallax in all. */
     auto left = bind_matrices(&core,
-                              Analysis::RecipeLoader::DrawClass::UNAFFECTED,
-                              Analysis::RecipeLoader::Eye::LEFT,
+                              Analysis::Recipe::DrawClass::UNAFFECTED,
+                              Analysis::Recipe::Eye::LEFT,
                               true); /* in_is_final_target */
 
     ASSERT_EQ(left.size(),
@@ -678,8 +678,8 @@ TEST_F(StereoCoreTest, WhatTheRecipeLeavesAloneAndIsMadeToWhatIsPresentedIsPushe
                     0.04f);
 
     auto right = bind_matrices(&core,
-                               Analysis::RecipeLoader::DrawClass::UNAFFECTED,
-                               Analysis::RecipeLoader::Eye::RIGHT,
+                               Analysis::Recipe::DrawClass::UNAFFECTED,
+                               Analysis::Recipe::Eye::RIGHT,
                                true); /* in_is_final_target */
 
     ASSERT_EQ(right.size(),
@@ -689,8 +689,8 @@ TEST_F(StereoCoreTest, WhatTheRecipeLeavesAloneAndIsMadeToWhatIsPresentedIsPushe
 
     /* A draw to a texture is not: what it makes is used elsewhere. The application's matrix is put back. */
     left = bind_matrices(&core,
-                         Analysis::RecipeLoader::DrawClass::UNAFFECTED,
-                         Analysis::RecipeLoader::Eye::LEFT,
+                         Analysis::Recipe::DrawClass::UNAFFECTED,
+                         Analysis::Recipe::Eye::LEFT,
                          false); /* in_is_final_target */
 
     ASSERT_EQ(left.size(),
@@ -700,14 +700,14 @@ TEST_F(StereoCoreTest, WhatTheRecipeLeavesAloneAndIsMadeToWhatIsPresentedIsPushe
 
     /* Nor is the same draw again, which finds the matrix in the device. */
     EXPECT_TRUE(bind_matrices(&core,
-                              Analysis::RecipeLoader::DrawClass::UNAFFECTED,
-                              Analysis::RecipeLoader::Eye::LEFT,
+                              Analysis::Recipe::DrawClass::UNAFFECTED,
+                              Analysis::Recipe::Eye::LEFT,
                               false).empty() );
 
     /* An affected draw is for the eyes the way it always was. */
     left = bind_matrices(&core,
-                         Analysis::RecipeLoader::DrawClass::AFFECTED,
-                         Analysis::RecipeLoader::Eye::LEFT,
+                         Analysis::Recipe::DrawClass::AFFECTED,
+                         Analysis::Recipe::Eye::LEFT,
                          true); /* in_is_final_target */
 
     ASSERT_EQ(left.size(),
@@ -736,8 +736,8 @@ TEST_F(StereoCoreTest, WithoutAParallaxForTheOverlayWhatTheRecipeLeavesAloneIsTh
                                     projection) );
 
     const auto left = bind_matrices(&core,
-                                    Analysis::RecipeLoader::DrawClass::UNAFFECTED,
-                                    Analysis::RecipeLoader::Eye::LEFT,
+                                    Analysis::Recipe::DrawClass::UNAFFECTED,
+                                    Analysis::Recipe::Eye::LEFT,
                                     true); /* in_is_final_target */
 
     ASSERT_EQ(left.size(),
@@ -745,8 +745,8 @@ TEST_F(StereoCoreTest, WithoutAParallaxForTheOverlayWhatTheRecipeLeavesAloneIsTh
     EXPECT_FLOAT_EQ(left.at(0).matrix_fp32vec16.at(8),
                     0.0f);
     EXPECT_TRUE(bind_matrices(&core,
-                              Analysis::RecipeLoader::DrawClass::UNAFFECTED,
-                              Analysis::RecipeLoader::Eye::RIGHT,
+                              Analysis::Recipe::DrawClass::UNAFFECTED,
+                              Analysis::Recipe::Eye::RIGHT,
                               true).empty() ); /* in_is_final_target */
 }
 
@@ -770,11 +770,11 @@ TEST_F(StereoCoreTest, ASceneTheRecipeDoesNotKnowKeepsTheLimitOfTheSceneBeforeAn
     const auto separation_func = [&core]()
                                  {
                                      const auto left  = bind_matrices(&core,
-                                                                      Analysis::RecipeLoader::DrawClass::AFFECTED,
-                                                                      Analysis::RecipeLoader::Eye::LEFT);
-                                     const auto right = bind_matrices(&core,
-                                                                      Analysis::RecipeLoader::DrawClass::AFFECTED,
-                                                                      Analysis::RecipeLoader::Eye::RIGHT);
+                                                                      Analysis::Recipe::DrawClass::AFFECTED,
+                                                                      Analysis::Recipe::Eye::LEFT);
+                                     const auto right           = bind_matrices(&core,
+                                                                                Analysis::Recipe::DrawClass::AFFECTED,
+                                                                                Analysis::Recipe::Eye::RIGHT);
 
                                      return (left.empty() || right.empty() ) ? 0.0f
                                                                              : ::fabsf(left.at(0).matrix_fp32vec16.at(12) - right.at(0).matrix_fp32vec16.at(12) );
@@ -831,8 +831,8 @@ TEST_F(StereoCoreTest, WhatTheRecipeSaysOfTheOverlayIsHowFarAndTheOverlayIsNotPu
 
     /* The recipe has an amount, and nobody has asked: nothing is moved. */
     const auto left = bind_matrices(&core,
-                                    Analysis::RecipeLoader::DrawClass::UNAFFECTED,
-                                    Analysis::RecipeLoader::Eye::LEFT,
+                                    Analysis::Recipe::DrawClass::UNAFFECTED,
+                                    Analysis::Recipe::Eye::LEFT,
                                     true); /* in_is_final_target */
 
     ASSERT_EQ(left.size(),
@@ -844,8 +844,8 @@ TEST_F(StereoCoreTest, WhatTheRecipeSaysOfTheOverlayIsHowFarAndTheOverlayIsNotPu
     core.set_is_overlay_pushed(true);
 
     const auto pushed = bind_matrices(&core,
-                                      Analysis::RecipeLoader::DrawClass::UNAFFECTED,
-                                      Analysis::RecipeLoader::Eye::LEFT,
+                                      Analysis::Recipe::DrawClass::UNAFFECTED,
+                                      Analysis::Recipe::Eye::LEFT,
                                       true); /* in_is_final_target */
 
     ASSERT_EQ(pushed.size(),
@@ -856,8 +856,8 @@ TEST_F(StereoCoreTest, WhatTheRecipeSaysOfTheOverlayIsHowFarAndTheOverlayIsNotPu
     core.set_is_overlay_pushed(false);
 
     const auto back = bind_matrices(&core,
-                                    Analysis::RecipeLoader::DrawClass::UNAFFECTED,
-                                    Analysis::RecipeLoader::Eye::LEFT,
+                                    Analysis::Recipe::DrawClass::UNAFFECTED,
+                                    Analysis::Recipe::Eye::LEFT,
                                     true); /* in_is_final_target */
 
     ASSERT_EQ(back.size(),
@@ -895,8 +895,8 @@ TEST_F(StereoCoreTest, ADrawThatCoversTheWholeOfTheViewIsNotPushedWhateverThePer
     core.classify_draw(1, 0);
 
     auto left = bind_matrices(&core,
-                              Analysis::RecipeLoader::DrawClass::UNAFFECTED,
-                              Analysis::RecipeLoader::Eye::LEFT,
+                              Analysis::Recipe::DrawClass::UNAFFECTED,
+                              Analysis::Recipe::Eye::LEFT,
                               true); /* in_is_final_target */
 
     ASSERT_EQ(left.size(),
@@ -908,8 +908,8 @@ TEST_F(StereoCoreTest, ADrawThatCoversTheWholeOfTheViewIsNotPushedWhateverThePer
     core.classify_draw(1, 7);
 
     left = bind_matrices(&core,
-                         Analysis::RecipeLoader::DrawClass::UNAFFECTED,
-                         Analysis::RecipeLoader::Eye::LEFT,
+                         Analysis::Recipe::DrawClass::UNAFFECTED,
+                         Analysis::Recipe::Eye::LEFT,
                          true); /* in_is_final_target */
 
     ASSERT_EQ(left.size(),
@@ -921,8 +921,8 @@ TEST_F(StereoCoreTest, ADrawThatCoversTheWholeOfTheViewIsNotPushedWhateverThePer
     core.classify_draw(1, 0);
 
     left = bind_matrices(&core,
-                         Analysis::RecipeLoader::DrawClass::UNAFFECTED,
-                         Analysis::RecipeLoader::Eye::LEFT,
+                         Analysis::Recipe::DrawClass::UNAFFECTED,
+                         Analysis::Recipe::Eye::LEFT,
                          true); /* in_is_final_target */
 
     ASSERT_EQ(left.size(),

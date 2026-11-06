@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/recipe_loader/recipe_loader.h"
+#include "analysis/recipe/recipe_loader.h"
 #include "Capture/APIDumpLoader/api_info.h"
 #include "Common/frame_boundary.h"
 #include "Common/vtable.h"
@@ -17,7 +17,7 @@
 #include <Windows.h>
 
 Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&              in_session_info,
-                                           const Analysis::RecipeLoader::Recipe&            in_recipe,
+                                           const Analysis::Recipe::Recipe&                  in_recipe,
                                            std::unique_ptr<Stereo::Transport::FrameChannel> in_channel_ptr)
     :m_channel_ptr(std::move(in_channel_ptr) ),
      m_log        (in_session_info)
@@ -173,7 +173,7 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
                                            });
     }
 
-    for (const auto& note : Analysis::RecipeLoader::RecipeLoader::describe_pass_selectors_live_ignores(in_recipe) )
+    for (const auto& note : Analysis::Recipe::RecipeLoader::describe_pass_selectors_live_ignores(in_recipe) )
     {
         m_log.write("Warning: " + note);
     }
@@ -186,25 +186,25 @@ Stereo::ConverterDLL::Converter::~Converter()
     m_log.write("The converter is removed");
 }
 
-void Stereo::ConverterDLL::Converter::count_draw(const Analysis::RecipeLoader::DrawClass& in_draw_class)
+void Stereo::ConverterDLL::Converter::count_draw(const Analysis::Recipe::DrawClass& in_draw_class)
 {
     switch (in_draw_class)
     {
-        case Analysis::RecipeLoader::DrawClass::SKIPPED:
+        case Analysis::Recipe::DrawClass::SKIPPED:
         {
             m_live_state.n_skipped_draws++;
 
             break;
         }
 
-        case Analysis::RecipeLoader::DrawClass::UNAFFECTED:
+        case Analysis::Recipe::DrawClass::UNAFFECTED:
         {
             m_live_state.n_unaffected_draws++;
 
             break;
         }
 
-        case Analysis::RecipeLoader::DrawClass::AFFECTED:
+        case Analysis::Recipe::DrawClass::AFFECTED:
         default:
         {
             m_live_state.n_affected_draws++;
@@ -222,15 +222,15 @@ std::unique_ptr<Stereo::ConverterDLL::Converter> Stereo::ConverterDLL::Converter
 
     if (Stereo::Session::SessionEnvironment::read(&session_info) )
     {
-        Analysis::RecipeLoader::Recipe recipe;
-        auto                           channel_ptr = Stereo::Transport::FrameChannel::open_ptr(session_info.session_id,
-                                                                                              &error);
+        Analysis::Recipe::Recipe recipe;
+        auto                     channel_ptr = Stereo::Transport::FrameChannel::open_ptr(session_info.session_id,
+                                                                                        &error);
 
         if (channel_ptr != nullptr)
         {
-            const bool is_recipe_loaded = Analysis::RecipeLoader::RecipeLoader::load(session_info.recipe_path,
-                                                                                    &recipe,
-                                                                                    &error);
+            const bool is_recipe_loaded = Analysis::Recipe::RecipeLoader::load(session_info.recipe_path,
+                                                                               &recipe,
+                                                                               &error);
 
             if (is_recipe_loaded)
             {
@@ -248,23 +248,23 @@ std::string Stereo::ConverterDLL::Converter::make_statistics_line() const
 {
     const uint64_t n_failed_twins = m_live_state.d3d7_renderer_ptr->get_n_failed_twins();
     const uint64_t n_twins        = m_live_state.d3d7_renderer_ptr->get_n_twins       ();
-    LARGE_INTEGER frequency;
+    LARGE_INTEGER  frequency;
 
     ::QueryPerformanceFrequency(&frequency);
 
-    const double n_frames_d       = static_cast<double>((m_live_state.n_frames > 0) ? m_live_state.n_frames : 1);
-    const std::string cost_text   = ", the callbacks took " + std::to_string(1000.0 * static_cast<double>(m_live_state.n_callback_ticks.load() ) / static_cast<double>(frequency.QuadPart) / n_frames_d) + " ms a frame, " + std::to_string(1000.0 * static_cast<double>(m_live_state.n_draw_ticks.load() ) / static_cast<double>(frequency.QuadPart) / n_frames_d) + " of them in the draws of Direct3D 7";
-    const std::string twin_text   = (n_twins + n_failed_twins > 0) ? ", "                                  +
-                                                                       std::to_string(n_twins)         +
-                                                                       " surfaces with a twin, "       +
-                                                                       std::to_string(n_failed_twins)  +
-                                                                       " twins that could not be made, "   +
-                                                                       std::to_string(m_live_state.d3d7_renderer_ptr->get_n_unmirrored_calls() ) +
-                                                                       " calls not made for the right eye" +
-                                                                       ", "                                +
-                                                                       std::to_string(m_live_state.d3d7_renderer_ptr->get_n_pixel_calls() ) +
-                                                                       " calls on the back buffer in pixels it no longer has"
-                                                                     : std::string();
+    const double      n_frames_d = static_cast<double>((m_live_state.n_frames > 0) ? m_live_state.n_frames : 1);
+    const std::string cost_text  = ", the callbacks took " + std::to_string(1000.0 * static_cast<double>(m_live_state.n_callback_ticks.load() ) / static_cast<double>(frequency.QuadPart) / n_frames_d) + " ms a frame, " + std::to_string(1000.0 * static_cast<double>(m_live_state.n_draw_ticks.load() ) / static_cast<double>(frequency.QuadPart) / n_frames_d) + " of them in the draws of Direct3D 7";
+    const std::string twin_text  = (n_twins + n_failed_twins > 0) ? ", "                                  +
+                                                                      std::to_string(n_twins)         +
+                                                                      " surfaces with a twin, "       +
+                                                                      std::to_string(n_failed_twins)  +
+                                                                      " twins that could not be made, "   +
+                                                                      std::to_string(m_live_state.d3d7_renderer_ptr->get_n_unmirrored_calls() ) +
+                                                                      " calls not made for the right eye" +
+                                                                      ", "                                +
+                                                                      std::to_string(m_live_state.d3d7_renderer_ptr->get_n_pixel_calls() ) +
+                                                                      " calls on the back buffer in pixels it no longer has"
+                                                                    : std::string();
 
     return "After "                                                       +
            std::to_string(m_live_state.n_frames)                          +
@@ -616,7 +616,7 @@ bool Stereo::ConverterDLL::Converter::on_set_transform(const uint32_t&          
 }
 
 void Stereo::ConverterDLL::Converter::pass_d3d7_frame(void* in_primary_surface_ptr,
-                                                       void* in_back_buffer_ptr)
+                                                      void* in_back_buffer_ptr)
 {
     constexpr uint32_t BACK_BUFFER_CAPS = 0x00000004; /* DDSCAPS_BACKBUFFER */
 

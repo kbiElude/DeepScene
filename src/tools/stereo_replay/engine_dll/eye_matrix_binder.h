@@ -39,9 +39,9 @@ namespace Stereo
                 /* Executes what the draw needs: for a draw which is affected, the matrices for the eye, for another one the matrices as
                  * the application set them. Returns false if executing a call fails.
                  */
-                bool before_draw(const bool&                        in_is_affected,
-                                 const Analysis::RecipeLoader::Eye& in_eye,
-                                 const float&                       in_eye_separation);
+                bool before_draw(const bool&                  in_is_affected,
+                                 const Analysis::Recipe::Eye& in_eye,
+                                 const float&                 in_eye_separation);
 
                 /* Forgets the calls kept, for when other calls have changed what the device has. */
                 void forget();
@@ -51,8 +51,8 @@ namespace Stereo
                  */
                 bool on_call(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
                              const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
-                             const Analysis::RecipeApplier::CallPlace&      in_place,
-                             const Analysis::RecipeLoader::Eye&             in_eye,
+                             const Analysis::Recipe::CallPlace&             in_place,
+                             const Analysis::Recipe::Eye&                   in_eye,
                              const float&                                   in_eye_separation);
 
             private:
@@ -77,17 +77,17 @@ namespace Stereo
                     float                                 bound_separation;  /* the separation the matrix in the device was made for */
                     FrameBuffer                           buffer;            /* the call as the application made it, with its chunks */
                     std::unique_ptr<OverlayChunkSource>   overlay;           /* the buffer, with the matrix of the rewritten call  */
-                    Analysis::RecipeApplier::CallPlace    place;
+                    Analysis::Recipe::CallPlace    place;
                     Capture::APIDumpLoader::DumpedAPICall rewritten_call;
-                    Analysis::RecipeLoader::Eye           rewritten_eye;
+                    Analysis::Recipe::Eye           rewritten_eye;
                     float                                 rewritten_separation;
                     bool                                  has_rewritten_call;
                 };
 
                 /* Makes the call of the slot for the eye. Returns false if the recipe changes nothing. */
-                bool rewrite(const Analysis::RecipeLoader::Eye& in_eye,
-                             const float&                       in_eye_separation,
-                             Slot*                              inout_slot_ptr) const;
+                bool rewrite(const Analysis::Recipe::Eye& in_eye,
+                             const float&                 in_eye_separation,
+                             Slot*                        inout_slot_ptr) const;
 
                 static SlotKey get_slot_key(const Capture::APIDumpLoader::DumpedAPICall& in_call);
 

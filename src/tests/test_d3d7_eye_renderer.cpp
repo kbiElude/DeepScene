@@ -44,7 +44,7 @@ namespace
     public:
         CoreFixture()
         {
-            Analysis::RecipeLoader::Recipe recipe;
+            Analysis::Recipe::Recipe recipe;
 
             recipe.is_baked                              = true;
             recipe.screen_parallax.convergence_distance  = 5.0f;
@@ -173,12 +173,12 @@ namespace
 
 TEST(D3D7EyeRenderer, ADrawIsMadeForTheRightEyeToTheTwinsAndForTheLeftEyeWithTheVerticesMovedTheOtherWay)
 {
-    CoreFixture                           fixture;
+    CoreFixture                            fixture;
     Stereo::ConverterDLL::D3D7WindowedMode windowed_mode;
     Stereo::ConverterDLL::D3D7EyeRenderer renderer(fixture.core_ptr.get(),
                                                    &windowed_mode);
-    auto                                  direct_draw_ptr = Tests::make_direct_draw();
-    auto                                  device_ptr      = Tests::make_device();
+    auto direct_draw_ptr = Tests::make_direct_draw();
+    auto device_ptr      = Tests::make_device();
 
     Tests::FakeSurface* const render_target_ptr = Tests::make_surface(direct_draw_ptr.get(),
                                                                       make_description(Caps::DDSCAPS_3DDEVICE,
@@ -204,8 +204,8 @@ TEST(D3D7EyeRenderer, ADrawIsMadeForTheRightEyeToTheTwinsAndForTheLeftEyeWithThe
               2u);
 
     /* The right eye first, to the twin, then the left eye, to what the application set. */
-    const auto  twin_text     = "SetRenderTarget " + std::to_string(reinterpret_cast<uintptr_t>(renderer.get_twin_ptr(render_target_ptr) ));
-    const auto  original_text = "SetRenderTarget " + std::to_string(reinterpret_cast<uintptr_t>(render_target_ptr) );
+    const auto twin_text     = "SetRenderTarget " + std::to_string(reinterpret_cast<uintptr_t>(renderer.get_twin_ptr(render_target_ptr) ));
+    const auto original_text = "SetRenderTarget " + std::to_string(reinterpret_cast<uintptr_t>(render_target_ptr) );
 
     ASSERT_GE(device_ptr->call_vec.size(),
               5u);
@@ -243,12 +243,12 @@ TEST(D3D7EyeRenderer, ADrawIsMadeForTheRightEyeToTheTwinsAndForTheLeftEyeWithThe
 
 TEST(D3D7EyeRenderer, TheTexturesTheApplicationSetAreTheirTwinsForTheRightEyeAndAreBackAfterIt)
 {
-    CoreFixture                           fixture;
+    CoreFixture                            fixture;
     Stereo::ConverterDLL::D3D7WindowedMode windowed_mode;
     Stereo::ConverterDLL::D3D7EyeRenderer renderer(fixture.core_ptr.get(),
                                                    &windowed_mode);
-    auto                                  direct_draw_ptr = Tests::make_direct_draw();
-    auto                                  device_ptr      = Tests::make_device();
+    auto direct_draw_ptr = Tests::make_direct_draw();
+    auto device_ptr      = Tests::make_device();
 
     Tests::FakeSurface* const render_target_ptr = Tests::make_surface(direct_draw_ptr.get(),
                                                                       make_description(Caps::DDSCAPS_3DDEVICE,
@@ -303,12 +303,12 @@ TEST(D3D7EyeRenderer, TheTexturesTheApplicationSetAreTheirTwinsForTheRightEyeAnd
 
 TEST(D3D7EyeRenderer, ADrawToASurfaceWhichHasNoTwinIsCountedAndMadeOnceForTheLeftEyeAlone)
 {
-    CoreFixture                           fixture;
+    CoreFixture                            fixture;
     Stereo::ConverterDLL::D3D7WindowedMode windowed_mode;
     Stereo::ConverterDLL::D3D7EyeRenderer renderer(fixture.core_ptr.get(),
                                                    &windowed_mode);
-    auto                                  direct_draw_ptr = Tests::make_direct_draw();
-    auto                                  device_ptr      = Tests::make_device();
+    auto direct_draw_ptr = Tests::make_direct_draw();
+    auto device_ptr      = Tests::make_device();
 
     /* A surface that the application did not make to render to (it is not seen to be one). */
     Tests::FakeSurface* const plain_ptr = Tests::make_surface(direct_draw_ptr.get(),
@@ -341,12 +341,12 @@ TEST(D3D7EyeRenderer, ADrawToASurfaceWhichHasNoTwinIsCountedAndMadeOnceForTheLef
 
 TEST(D3D7EyeRenderer, AClearIsMadeForTheRightEyeToTheTwinAndTheApplicationsOwnIsLeftToIt)
 {
-    CoreFixture                           fixture;
+    CoreFixture                            fixture;
     Stereo::ConverterDLL::D3D7WindowedMode windowed_mode;
     Stereo::ConverterDLL::D3D7EyeRenderer renderer(fixture.core_ptr.get(),
                                                    &windowed_mode);
-    auto                                  direct_draw_ptr = Tests::make_direct_draw();
-    auto                                  device_ptr      = Tests::make_device();
+    auto direct_draw_ptr = Tests::make_direct_draw();
+    auto device_ptr      = Tests::make_device();
 
     Tests::FakeSurface* const render_target_ptr = Tests::make_surface(direct_draw_ptr.get(),
                                                                       make_description(Caps::DDSCAPS_3DDEVICE,
@@ -382,7 +382,7 @@ TEST(D3D7EyeRenderer, AClearIsMadeForTheRightEyeToTheTwinAndTheApplicationsOwnIs
 
 TEST(D3D7EyeRenderer, ACopyToASurfaceWhichHasATwinIsMadeToTheTwinFromTheTwinOfItsSource)
 {
-    CoreFixture                           fixture;
+    CoreFixture                            fixture;
     Stereo::ConverterDLL::D3D7WindowedMode windowed_mode;
     Stereo::ConverterDLL::D3D7EyeRenderer renderer(fixture.core_ptr.get(),
                                                    &windowed_mode);
@@ -648,10 +648,10 @@ TEST(D3D7EyeRenderer, AStridedDrawIsMadeForTheRightEyeAsItIsAndTheCallOfTheAppli
 
     /* The arrays of the application (the position of 3 vertices, 12 bytes each), as the dump and the hook have them: the structure, and the chunk. */
     const float                                            position_f32vec9[9] = {0.1f, 0.9f, 0.5f, 0.9f, 0.9f, 0.5f, 0.5f, 0.45f, 0.5f};
-    Interception::Hooks::D3D7::D3DDRAWPRIMITIVESTRIDEDDATA strided             = {};
+    Interception::Hooks::D3D7::D3DDRAWPRIMITIVESTRIDEDDATA strided          = {};
     std::vector<uint8_t>                                   arrays_u8_vec;
-    const uint32_t                                         n_arrays            = Interception::Core::D3D7Utils::StridedLayout::N_ARRAYS;
-    const uint32_t                                         position_n_bytes    = sizeof(position_f32vec9);
+    const uint32_t                                         n_arrays         = Interception::Core::D3D7Utils::StridedLayout::N_ARRAYS;
+    const uint32_t                                         position_n_bytes = sizeof(position_f32vec9);
 
     strided.position.lpvData  = const_cast<float*>(position_f32vec9);
     strided.position.dwStride = 12;
@@ -756,7 +756,7 @@ namespace
         void lock_and_unlock(const uint32_t& in_flags,
                              const bool&     in_is_whole_surface)
         {
-            const RECT rect = {0, 0, 10, 10};
+            const RECT rect          = {0, 0, 10, 10};
             const auto rect_chunk_id = (in_is_whole_surface) ? 0u
                                                              : APIInterceptor::register_data_chunk(&rect,
                                                                                                    static_cast<uint32_t>(sizeof(rect) ));
@@ -783,12 +783,12 @@ namespace
             }
         }
 
-        Tests::FakeSurface*                                 back_buffer_ptr = nullptr;
-        CoreFixture                                         core_fixture;
-        std::unique_ptr<Tests::FakeDirectDraw>              direct_draw_ptr;
-        Tests::FakeSurface*                                 primary_ptr     = nullptr;
+        Tests::FakeSurface*                                    back_buffer_ptr = nullptr;
+        CoreFixture                                            core_fixture;
+        std::unique_ptr<Tests::FakeDirectDraw>                 direct_draw_ptr;
+        Tests::FakeSurface*                                    primary_ptr     = nullptr;
         std::unique_ptr<Stereo::ConverterDLL::D3D7EyeRenderer> renderer_ptr;
-        Stereo::ConverterDLL::D3D7WindowedMode              windowed_mode;
+        Stereo::ConverterDLL::D3D7WindowedMode                 windowed_mode;
     };
 }
 

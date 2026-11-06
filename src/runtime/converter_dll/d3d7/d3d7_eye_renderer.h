@@ -5,7 +5,7 @@
 #ifndef STEREO_CONVERTERDLL_D3D7_EYE_RENDERER_H
 #define STEREO_CONVERTERDLL_D3D7_EYE_RENDERER_H
 
-#include "analysis/recipe_loader/types.h"
+#include "analysis/recipe/types.h"
 #include "Common/types.h"
 #include "Interception/Hooks/D3D7/types.h"
 #include "stereo/core/stereo_core.h"
@@ -43,8 +43,8 @@ namespace Stereo
                                        uint32_t*       out_n_bytes_ptr)> ChunkFunc;
 
             /* The windowed mode says how much larger than the application asks the back buffer is made (see D3D7WindowedMode::get_render_scale()). */
-            D3D7EyeRenderer(Stereo::Core::StereoCore*  in_core_ptr,
-                            const D3D7WindowedMode*    in_windowed_mode_ptr);
+            D3D7EyeRenderer(Stereo::Core::StereoCore* in_core_ptr,
+                            const D3D7WindowedMode*   in_windowed_mode_ptr);
 
             uint64_t get_n_failed_twins() const;
             uint64_t get_n_twins       () const;
@@ -145,10 +145,10 @@ namespace Stereo
             /* Makes the draw for the eye, with its vertices moved if the core says they are to be (or, if the draw must be made, as it is
              * otherwise). Returns true if the draw was made.
              */
-            bool draw_for_eye(const Analysis::RecipeLoader::Eye& in_eye,
-                              const DrawArguments&               in_draw_arguments,
-                              const float&                       in_picture_width,
-                              const bool&                        in_must_draw);
+            bool draw_for_eye(const Analysis::Recipe::Eye& in_eye,
+                              const DrawArguments&         in_draw_arguments,
+                              const float&                 in_picture_width,
+                              const bool&                  in_must_draw);
 
             /* The device renders to the twin of what the application set, with the twins of its textures; false if what it renders to has no
              * twin, and nothing was changed.

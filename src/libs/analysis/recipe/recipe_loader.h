@@ -5,17 +5,17 @@
  * Loads a recipe from JSON text or a file. Every check that needs no application is done here: names, numbers and keys are
  * valid, and no unknown field is left. The format is described in docs/recipe-format.html.
  */
-#ifndef RECIPELOADER_RECIPE_LOADER_H
-#define RECIPELOADER_RECIPE_LOADER_H
+#ifndef RECIPE_RECIPE_LOADER_H
+#define RECIPE_RECIPE_LOADER_H
 
-#include "analysis/recipe_loader/types.h"
+#include "analysis/recipe/types.h"
 #include "utils/json/json_reader.h"
 #include <string>
 #include <vector>
 
 namespace Analysis
 {
-    namespace RecipeLoader
+    namespace Recipe
     {
         class RecipeLoader
         {
@@ -137,4 +137,4 @@ namespace Analysis
     }
 }
 
-#endif /* RECIPELOADER_RECIPE_LOADER_H */
+#endif /* RECIPE_RECIPE_LOADER_H */

@@ -155,11 +155,11 @@ void Stereo::Replay::EngineDLL::StereoReplayEngine::reset()
 }
 
 bool Stereo::Replay::EngineDLL::StereoReplayEngine::set_dependencies_file(const char*  in_filename_ptr,
-                                                                       std::string* out_error_ptr)
+                                                                          std::string* out_error_ptr)
 {
     Analysis::APIDumpDependencies::DependencyAnalysis dependencies;
     std::string                                       reason;
-    bool                                              result = false;
+    bool                                              result       = false;
 
     if (Analysis::APIDumpDependencies::DepsFile::read(in_filename_ptr,
                                                      &dependencies,
@@ -201,7 +201,7 @@ void Stereo::Replay::EngineDLL::StereoReplayEngine::set_frame_image_sink(IFrameI
     m_stereo_executor.set_image_sink(in_sink_ptr);
 }
 
-void Stereo::Replay::EngineDLL::StereoReplayEngine::set_recipe(const Analysis::RecipeLoader::Recipe& in_recipe)
+void Stereo::Replay::EngineDLL::StereoReplayEngine::set_recipe(const Analysis::Recipe::Recipe& in_recipe)
 {
     m_stereo_executor.set_recipe(in_recipe);
 }

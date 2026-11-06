@@ -7,7 +7,7 @@
  */
 #include <gtest/gtest.h>
 #include "tools/analysis/recipe_bake/recipe_baker.h"
-#include "analysis/recipe_loader/recipe_loader.h"
+#include "analysis/recipe/recipe_loader.h"
 #include "model_test_helper.h"
 #include <algorithm>
 #include <stdio.h>
@@ -27,8 +27,8 @@ protected:
                                                             uint64_t*       out_second_pass_key_ptr)
     {
         Analysis::APIDumpAnalysis::AnalysisResult result;
-        Tests::ModelTestHelper    helper;
-        const auto                swapchain_image = helper.create_swapchain_image();
+        Tests::ModelTestHelper                    helper;
+        const auto                                swapchain_image = helper.create_swapchain_image();
 
         helper.bind(swapchain_image);
 
@@ -83,17 +83,17 @@ TEST_F(RecipeBakerTest, SignaturesOfOneClassGetOneRuleEach)
                                                                             1, 2,
                                                                             false,
                                                                            &second_pass_key);
-    std::string                    text;
-    Analysis::RecipeLoader::Recipe recipe;
+    std::string                      text;
+    Analysis::Recipe::Recipe         recipe;
 
     ASSERT_TRUE(Analysis::RecipeBake::RecipeBaker::bake(make_recipe_text(second_pass_key),
                                                         analysis,
                                                        &text,
                                                        &report,
                                                        &error) ) << error;
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(text,
-                                                           &recipe,
-                                                           &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(text,
+                                                      &recipe,
+                                                      &error) ) << error;
 
     EXPECT_EQ(report.n_signatures,
               2u);
@@ -106,7 +106,7 @@ TEST_F(RecipeBakerTest, SignaturesOfOneClassGetOneRuleEach)
     ASSERT_EQ(recipe.draw_rule_vec.size(),
               1u);
     EXPECT_EQ  (recipe.draw_rule_vec.at(0).draw_class,
-                Analysis::RecipeLoader::DrawClass::UNAFFECTED);
+                Analysis::Recipe::DrawClass::UNAFFECTED);
     EXPECT_TRUE(recipe.draw_rule_vec.at(0).view_matrix_vec.empty() );
 }
 
@@ -119,17 +119,17 @@ TEST_F(RecipeBakerTest, ASignatureThatPassesOfDifferentClassesDrawIsToldApartByT
                                                                             2, 5,
                                                                             true,
                                                                            &second_pass_key);
-    std::string                    text;
-    Analysis::RecipeLoader::Recipe recipe;
+    std::string                      text;
+    Analysis::Recipe::Recipe         recipe;
 
     ASSERT_TRUE(Analysis::RecipeBake::RecipeBaker::bake(make_recipe_text(second_pass_key),
                                                         analysis,
                                                        &text,
                                                        &report,
                                                        &error) ) << error;
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(text,
-                                                           &recipe,
-                                                           &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(text,
+                                                      &recipe,
+                                                      &error) ) << error;
 
     EXPECT_EQ(report.n_ambiguous_signatures,
               1u);
@@ -140,7 +140,7 @@ TEST_F(RecipeBakerTest, ASignatureThatPassesOfDifferentClassesDrawIsToldApartByT
     ASSERT_EQ(recipe.draw_rule_vec.size(),
               1u);
     EXPECT_EQ(recipe.draw_rule_vec.at(0).draw_class,
-              Analysis::RecipeLoader::DrawClass::UNAFFECTED);
+              Analysis::Recipe::DrawClass::UNAFFECTED);
     ASSERT_EQ(recipe.draw_rule_vec.at(0).view_matrix_vec.size(),
               1u);
 
@@ -175,7 +175,7 @@ TEST_F(RecipeBakerTest, PassesOfDifferentClassesWithTheSameViewMatrixCannotBeBak
                                                                             1, 5,
                                                                             true,
                                                                            &second_pass_key);
-    std::string                    text;
+    std::string                      text;
 
     EXPECT_FALSE(Analysis::RecipeBake::RecipeBaker::bake(make_recipe_text(second_pass_key),
                                                          analysis,
@@ -195,7 +195,7 @@ TEST_F(RecipeBakerTest, PassesOfDifferentClassesWithNoViewMatrixCannotBeBaked)
                                                                             1, 5,
                                                                             false,
                                                                            &second_pass_key);
-    std::string                    text;
+    std::string                      text;
 
     EXPECT_FALSE(Analysis::RecipeBake::RecipeBaker::bake(make_recipe_text(second_pass_key),
                                                          analysis,
@@ -215,18 +215,18 @@ TEST_F(RecipeBakerTest, BakingKeepsTheRestOfTheRecipeAndCanBeDoneAgain)
                                                                             1, 2,
                                                                             false,
                                                                            &second_pass_key);
-    std::string                    again_text;
-    std::string                    first_text;
-    Analysis::RecipeLoader::Recipe recipe;
+    std::string                      again_text;
+    std::string                      first_text;
+    Analysis::Recipe::Recipe         recipe;
 
     ASSERT_TRUE(Analysis::RecipeBake::RecipeBaker::bake(make_recipe_text(second_pass_key),
                                                         analysis,
                                                        &first_text,
                                                        &report,
                                                        &error) ) << error;
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(first_text,
-                                                           &recipe,
-                                                           &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(first_text,
+                                                      &recipe,
+                                                      &error) ) << error;
 
     EXPECT_EQ(recipe.target_name,
               "test");
@@ -257,9 +257,9 @@ TEST_F(RecipeBakerTest, ABakedSectionOfAnotherVersionIsReplaced)
                                                                             1, 2,
                                                                             false,
                                                                            &second_pass_key);
-    std::string                    recipe_text     = make_recipe_text(second_pass_key);
-    std::string                    text;
-    Analysis::RecipeLoader::Recipe recipe;
+    std::string                      recipe_text     = make_recipe_text(second_pass_key);
+    std::string                      text;
+    Analysis::Recipe::Recipe         recipe;
 
     recipe_text.insert(1,
                        "\"baked\": {\"signature_scheme_version\": 99, \"draw_rules\": []},");
@@ -269,9 +269,9 @@ TEST_F(RecipeBakerTest, ABakedSectionOfAnotherVersionIsReplaced)
                                                        &text,
                                                        &report,
                                                        &error) ) << error;
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(text,
-                                                           &recipe,
-                                                           &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(text,
+                                                      &recipe,
+                                                      &error) ) << error;
 
     EXPECT_EQ(recipe.draw_rule_vec.size(),
               1u);
@@ -279,10 +279,10 @@ TEST_F(RecipeBakerTest, ABakedSectionOfAnotherVersionIsReplaced)
 
 TEST_F(RecipeBakerTest, ARecipeThatIsNotValidIsRefused)
 {
-    Analysis::RecipeBake::BakeReport report;
-    std::string                      error;
-    Analysis::APIDumpAnalysis::AnalysisResult      analysis;
-    std::string                    text;
+    Analysis::RecipeBake::BakeReport          report;
+    std::string                               error;
+    Analysis::APIDumpAnalysis::AnalysisResult analysis;
+    std::string                               text;
 
     EXPECT_FALSE(Analysis::RecipeBake::RecipeBaker::bake("{",
                                                          analysis,
@@ -310,17 +310,17 @@ TEST_F(RecipeBakerTest, EverySignatureTheAnalysisSawIsListedAsKnown)
                                                                             1, 2,
                                                                             false,
                                                                            &second_pass_key);
-    std::string                    text;
-    Analysis::RecipeLoader::Recipe recipe;
+    std::string                      text;
+    Analysis::Recipe::Recipe         recipe;
 
     ASSERT_TRUE(Analysis::RecipeBake::RecipeBaker::bake(make_recipe_text(second_pass_key),
                                                         analysis,
                                                        &text,
                                                        &report,
                                                        &error) ) << error;
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(text,
-                                                           &recipe,
-                                                           &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(text,
+                                                      &recipe,
+                                                      &error) ) << error;
 
     EXPECT_EQ(recipe.known_signature_key_vec.size(),
               report.n_signatures);
@@ -334,21 +334,21 @@ TEST_F(RecipeBakerTest, AnAffectedSignatureGetsTheMedianDepthOfItsPassesAndAnUna
 {
     constexpr size_t N_FLOATS_PER_MATRIX = 16;
 
-    Analysis::APIDumpAnalysis::AnalysisResult                  analysis;
-    Tests::ModelTestHelper                     helper;
-    const auto                                 swapchain_image = helper.create_swapchain_image();
-    std::array<float, N_FLOATS_PER_MATRIX>     model_f32mat    = {1, 0, 0, 0,
-                                                                  0, 1, 0, 0,
-                                                                  0, 0, 1, 0,
-                                                                  0, 0, 10, 1};
-    std::array<float, N_FLOATS_PER_MATRIX>     view_f32mat     = {1, 0, 0, 0,
-                                                                  0, 1, 0, 0,
-                                                                  0, 0, 1, 0,
-                                                                  0, 0, 0, 1};
-    Analysis::RecipeBake::BakeReport report;
-    Analysis::RecipeLoader::Recipe   recipe;
-    std::string                      error;
-    std::string                      text;
+    Analysis::APIDumpAnalysis::AnalysisResult analysis;
+    Tests::ModelTestHelper                    helper;
+    const auto                                swapchain_image = helper.create_swapchain_image();
+    std::array<float, N_FLOATS_PER_MATRIX>    model_f32mat    = {1, 0, 0, 0,
+                                                                 0, 1, 0, 0,
+                                                                 0, 0, 1, 0,
+                                                                 0, 0, 10, 1};
+    std::array<float, N_FLOATS_PER_MATRIX>    view_f32mat     = {1, 0, 0, 0,
+                                                                 0, 1, 0, 0,
+                                                                 0, 0, 1, 0,
+                                                                 0, 0, 0, 1};
+    Analysis::RecipeBake::BakeReport          report;
+    Analysis::Recipe::Recipe                  recipe;
+    std::string                               error;
+    std::string                               text;
 
     helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::VIEW_MATRIX,
                       128,
@@ -377,9 +377,9 @@ TEST_F(RecipeBakerTest, AnAffectedSignatureGetsTheMedianDepthOfItsPassesAndAnUna
                                                        &text,
                                                        &report,
                                                        &error) ) << error;
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(text,
-                                                           &recipe,
-                                                           &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(text,
+                                                      &recipe,
+                                                      &error) ) << error;
 
     EXPECT_EQ(report.n_convergence_distances,
               1u);
@@ -401,17 +401,17 @@ TEST_F(RecipeBakerTest, AnAffectedSignatureWithNoDepthIsReportedAndHasNoDistance
                                                                             1, 2,
                                                                             false,
                                                                            &second_pass_key);
-    std::string                    text;
-    Analysis::RecipeLoader::Recipe recipe;
+    std::string                      text;
+    Analysis::Recipe::Recipe         recipe;
 
     ASSERT_TRUE(Analysis::RecipeBake::RecipeBaker::bake(make_recipe_text(second_pass_key),
                                                         analysis,
                                                        &text,
                                                        &report,
                                                        &error) ) << error;
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(text,
-                                                           &recipe,
-                                                           &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(text,
+                                                      &recipe,
+                                                      &error) ) << error;
 
     /* No matrix was set, so no draw is in front of a camera. */
     EXPECT_EQ(report.n_convergence_distances,
@@ -425,21 +425,21 @@ TEST_F(RecipeBakerTest, PassesThatShareASignatureShareOneDistanceSoThatTheDrawsO
 {
     constexpr size_t N_FLOATS_PER_MATRIX = 16;
 
-    Analysis::APIDumpAnalysis::AnalysisResult              analysis;
-    Tests::ModelTestHelper                 helper;
-    const auto                             swapchain_image = helper.create_swapchain_image();
-    std::array<float, N_FLOATS_PER_MATRIX> model_f32mat    = {1, 0, 0, 0,
-                                                              0, 1, 0, 0,
-                                                              0, 0, 1, 0,
-                                                              0, 0, 10, 1};
-    std::array<float, N_FLOATS_PER_MATRIX> view_f32mat     = {1, 0, 0, 0,
-                                                              0, 1, 0, 0,
-                                                              0, 0, 1, 0,
-                                                              0, 0, 0, 1};
-    Analysis::RecipeBake::BakeReport report;
-    Analysis::RecipeLoader::Recipe   recipe;
-    std::string                      error;
-    std::string                      text;
+    Analysis::APIDumpAnalysis::AnalysisResult analysis;
+    Tests::ModelTestHelper                    helper;
+    const auto                                swapchain_image = helper.create_swapchain_image();
+    std::array<float, N_FLOATS_PER_MATRIX>    model_f32mat    = {1, 0, 0, 0,
+                                                                 0, 1, 0, 0,
+                                                                 0, 0, 1, 0,
+                                                                 0, 0, 10, 1};
+    std::array<float, N_FLOATS_PER_MATRIX>    view_f32mat     = {1, 0, 0, 0,
+                                                                 0, 1, 0, 0,
+                                                                 0, 0, 1, 0,
+                                                                 0, 0, 0, 1};
+    Analysis::RecipeBake::BakeReport          report;
+    Analysis::Recipe::Recipe                  recipe;
+    std::string                               error;
+    std::string                               text;
 
     helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::VIEW_MATRIX,
                       128,
@@ -471,9 +471,9 @@ TEST_F(RecipeBakerTest, PassesThatShareASignatureShareOneDistanceSoThatTheDrawsO
                                                        &text,
                                                        &report,
                                                        &error) ) << error;
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(text,
-                                                           &recipe,
-                                                           &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(text,
+                                                      &recipe,
+                                                      &error) ) << error;
 
     EXPECT_EQ(report.n_convergence_groups,
               1u);
@@ -489,21 +489,21 @@ TEST_F(RecipeBakerTest, EachKindOfFrameGetsTheDistanceOfItsOwnPasses)
 {
     constexpr size_t N_FLOATS_PER_MATRIX = 16;
 
-    Analysis::APIDumpAnalysis::AnalysisResult              analysis;
-    Tests::ModelTestHelper                 helper;
-    const auto                             swapchain_image = helper.create_swapchain_image();
-    std::array<float, N_FLOATS_PER_MATRIX> model_f32mat    = {1, 0, 0, 0,
-                                                              0, 1, 0, 0,
-                                                              0, 0, 1, 0,
-                                                              0, 0, 10, 1};
-    std::array<float, N_FLOATS_PER_MATRIX> view_f32mat     = {1, 0, 0, 0,
-                                                              0, 1, 0, 0,
-                                                              0, 0, 1, 0,
-                                                              0, 0, 0, 1};
-    Analysis::RecipeBake::BakeReport report;
-    Analysis::RecipeLoader::Recipe   recipe;
-    std::string                      error;
-    std::string                      text;
+    Analysis::APIDumpAnalysis::AnalysisResult analysis;
+    Tests::ModelTestHelper                    helper;
+    const auto                                swapchain_image = helper.create_swapchain_image();
+    std::array<float, N_FLOATS_PER_MATRIX>    model_f32mat    = {1, 0, 0, 0,
+                                                                 0, 1, 0, 0,
+                                                                 0, 0, 1, 0,
+                                                                 0, 0, 10, 1};
+    std::array<float, N_FLOATS_PER_MATRIX>    view_f32mat     = {1, 0, 0, 0,
+                                                                 0, 1, 0, 0,
+                                                                 0, 0, 1, 0,
+                                                                 0, 0, 0, 1};
+    Analysis::RecipeBake::BakeReport          report;
+    Analysis::Recipe::Recipe                  recipe;
+    std::string                               error;
+    std::string                               text;
 
     helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::VIEW_MATRIX,
                       128,
@@ -535,9 +535,9 @@ TEST_F(RecipeBakerTest, EachKindOfFrameGetsTheDistanceOfItsOwnPasses)
                                                        &text,
                                                        &report,
                                                        &error) ) << error;
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(text,
-                                                           &recipe,
-                                                           &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(text,
+                                                      &recipe,
+                                                      &error) ) << error;
 
     EXPECT_EQ(report.n_scene_distances,
               2u);
@@ -563,25 +563,25 @@ TEST_F(RecipeBakerTest, ASceneGetsALimitOfTheSeparationFromItsNearestSurfacesAnd
 {
     constexpr size_t N_FLOATS_PER_MATRIX = 16;
 
-    Analysis::APIDumpAnalysis::AnalysisResult              analysis;
-    Tests::ModelTestHelper                 helper;
-    const auto                             swapchain_image   = helper.create_swapchain_image();
-    std::array<float, N_FLOATS_PER_MATRIX> model_f32mat      = {1, 0, 0, 0,
-                                                                0, 1, 0, 0,
-                                                                0, 0, 1, 0,
-                                                                0, 0, 10, 1};
-    std::array<float, N_FLOATS_PER_MATRIX> projection_f32mat = {1, 0, 0,     0,
-                                                                0, 1, 0,     0,
-                                                                0, 0, 1,     1,
-                                                                0, 0, -0.1f, 0};
-    std::array<float, N_FLOATS_PER_MATRIX> view_f32mat       = {1, 0, 0, 0,
-                                                                0, 1, 0, 0,
-                                                                0, 0, 1, 0,
-                                                                0, 0, 0, 1};
-    Analysis::RecipeBake::BakeReport report;
-    Analysis::RecipeLoader::Recipe   recipe;
-    std::string                      error;
-    std::string                      text;
+    Analysis::APIDumpAnalysis::AnalysisResult analysis;
+    Tests::ModelTestHelper                    helper;
+    const auto                                swapchain_image   = helper.create_swapchain_image();
+    std::array<float, N_FLOATS_PER_MATRIX>    model_f32mat      = {1, 0, 0, 0,
+                                                                   0, 1, 0, 0,
+                                                                   0, 0, 1, 0,
+                                                                   0, 0, 10, 1};
+    std::array<float, N_FLOATS_PER_MATRIX>    projection_f32mat = {1, 0, 0,     0,
+                                                                   0, 1, 0,     0,
+                                                                   0, 0, 1,     1,
+                                                                   0, 0, -0.1f, 0};
+    std::array<float, N_FLOATS_PER_MATRIX>    view_f32mat       = {1, 0, 0, 0,
+                                                                   0, 1, 0, 0,
+                                                                   0, 0, 1, 0,
+                                                                   0, 0, 0, 1};
+    Analysis::RecipeBake::BakeReport          report;
+    Analysis::Recipe::Recipe                  recipe;
+    std::string                               error;
+    std::string                               text;
 
     helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::PROJECTION_MATRIX,
                       192,
@@ -611,9 +611,9 @@ TEST_F(RecipeBakerTest, ASceneGetsALimitOfTheSeparationFromItsNearestSurfacesAnd
                                                        &text,
                                                        &report,
                                                        &error) ) << error;
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(text,
-                                                           &recipe,
-                                                           &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(text,
+                                                      &recipe,
+                                                      &error) ) << error;
 
     EXPECT_EQ(report.n_scene_limits,
               1u);
@@ -632,21 +632,21 @@ TEST_F(RecipeBakerTest, WithoutComfortNoSceneHasALimit)
 {
     constexpr size_t N_FLOATS_PER_MATRIX = 16;
 
-    Analysis::APIDumpAnalysis::AnalysisResult              analysis;
-    Tests::ModelTestHelper                 helper;
-    const auto                             swapchain_image = helper.create_swapchain_image();
-    std::array<float, N_FLOATS_PER_MATRIX> model_f32mat    = {1, 0, 0, 0,
-                                                              0, 1, 0, 0,
-                                                              0, 0, 1, 0,
-                                                              0, 0, 10, 1};
-    std::array<float, N_FLOATS_PER_MATRIX> view_f32mat     = {1, 0, 0, 0,
-                                                              0, 1, 0, 0,
-                                                              0, 0, 1, 0,
-                                                              0, 0, 0, 1};
-    Analysis::RecipeBake::BakeReport report;
-    Analysis::RecipeLoader::Recipe   recipe;
-    std::string                      error;
-    std::string                      text;
+    Analysis::APIDumpAnalysis::AnalysisResult analysis;
+    Tests::ModelTestHelper                    helper;
+    const auto                                swapchain_image = helper.create_swapchain_image();
+    std::array<float, N_FLOATS_PER_MATRIX>    model_f32mat    = {1, 0, 0, 0,
+                                                                 0, 1, 0, 0,
+                                                                 0, 0, 1, 0,
+                                                                 0, 0, 10, 1};
+    std::array<float, N_FLOATS_PER_MATRIX>    view_f32mat     = {1, 0, 0, 0,
+                                                                 0, 1, 0, 0,
+                                                                 0, 0, 1, 0,
+                                                                 0, 0, 0, 1};
+    Analysis::RecipeBake::BakeReport          report;
+    Analysis::Recipe::Recipe                  recipe;
+    std::string                               error;
+    std::string                               text;
 
     helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::VIEW_MATRIX,
                       128,
@@ -666,9 +666,9 @@ TEST_F(RecipeBakerTest, WithoutComfortNoSceneHasALimit)
                                                        &text,
                                                        &report,
                                                        &error) ) << error;
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(text,
-                                                           &recipe,
-                                                           &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(text,
+                                                      &recipe,
+                                                      &error) ) << error;
 
     EXPECT_EQ(report.n_scene_limits,
               0u);
@@ -681,17 +681,17 @@ TEST_F(RecipeBakerTest, TheKeysOfTheDrawsThatCoverTheViewAreBakedOnlyForThePasse
 {
     constexpr size_t N_FLOATS_PER_MATRIX = 16;
 
-    Analysis::APIDumpAnalysis::AnalysisResult              analysis;
-    Tests::ModelTestHelper                 helper;
-    const auto                             swapchain_image   = helper.create_swapchain_image();
-    std::array<float, N_FLOATS_PER_MATRIX> projection_f32mat = {1, 0, 0,     0,
-                                                                0, 1, 0,     0,
-                                                                0, 0, 1,     1,
-                                                                0, 0, -0.1f, 0};
-    std::array<float, N_FLOATS_PER_MATRIX> view_f32mat       = {1, 0, 0, 0,
-                                                                0, 1, 0, 0,
-                                                                0, 0, 1, 0,
-                                                                0, 0, 0, 1};
+    Analysis::APIDumpAnalysis::AnalysisResult analysis;
+    Tests::ModelTestHelper                    helper;
+    const auto                                swapchain_image   = helper.create_swapchain_image();
+    std::array<float, N_FLOATS_PER_MATRIX>    projection_f32mat = {1, 0, 0,     0,
+                                                                   0, 1, 0,     0,
+                                                                   0, 0, 1,     1,
+                                                                   0, 0, -0.1f, 0};
+    std::array<float, N_FLOATS_PER_MATRIX>    view_f32mat       = {1, 0, 0, 0,
+                                                                   0, 1, 0, 0,
+                                                                   0, 0, 1, 0,
+                                                                   0, 0, 0, 1};
 
     helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::PROJECTION_MATRIX,
                       192,
@@ -714,7 +714,7 @@ TEST_F(RecipeBakerTest, TheKeysOfTheDrawsThatCoverTheViewAreBakedOnlyForThePasse
     for (const bool is_pass_left_alone : {true, false})
     {
         Analysis::RecipeBake::BakeReport report;
-        Analysis::RecipeLoader::Recipe   recipe;
+        Analysis::Recipe::Recipe         recipe;
         std::string                      error;
         std::string                      text;
 
@@ -724,9 +724,9 @@ TEST_F(RecipeBakerTest, TheKeysOfTheDrawsThatCoverTheViewAreBakedOnlyForThePasse
                                                            &text,
                                                            &report,
                                                            &error) ) << error;
-        ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(text,
-                                                               &recipe,
-                                                               &error) ) << error;
+        ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(text,
+                                                          &recipe,
+                                                          &error) ) << error;
 
         /* The mesh of a scene can have the key of a quad of an overlay: the keys of a pass that is moved by nothing do not count. */
         EXPECT_EQ(recipe.covering_draw_key_vec.size(),
@@ -756,7 +756,7 @@ TEST_F(RecipeBakerTest, ATextureThatFramesCarryOverIsBakedAsOneThatEachEyeHasACo
 
     Analysis::APIDumpAnalysis::AnalysisResult analysis;
     std::string                               text;
-    Analysis::RecipeLoader::Recipe            recipe;
+    Analysis::Recipe::Recipe                  recipe;
 
     analysis.model = helper.get_model();
 
@@ -765,9 +765,9 @@ TEST_F(RecipeBakerTest, ATextureThatFramesCarryOverIsBakedAsOneThatEachEyeHasACo
                                                        &text,
                                                        &report,
                                                        &error) ) << error;
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(text,
-                                                           &recipe,
-                                                           &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(text,
+                                                      &recipe,
+                                                      &error) ) << error;
 
     /* Only the texture that is carried over, and it is told from the one made like it by the order. */
     ASSERT_EQ(recipe.per_eye_texture_vec.size(),

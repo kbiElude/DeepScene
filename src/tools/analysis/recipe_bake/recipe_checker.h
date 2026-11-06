@@ -16,7 +16,7 @@
 
 #include "analysis/api_dump_analysis/model.h"
 #include "types.h"
-#include "analysis/recipe_loader/types.h"
+#include "analysis/recipe/types.h"
 #include <stdio.h>
 
 namespace Analysis
@@ -27,15 +27,15 @@ namespace Analysis
         {
         public:
             /* The shapes are in the order of the first frame that has them; the signatures in the order of their keys. */
-            static CoverageReport check(const Analysis::RecipeLoader::Recipe&            in_recipe,
+            static CoverageReport check(const Analysis::Recipe::Recipe&                  in_recipe,
                                         const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis);
 
             /* Says what the report has, for a person: the kinds of frames and the draw signatures that are not known, with where the first frame of each is,
              * and what is wrong with the passes that the recipe leaves alone.
              */
-            static void print_report(FILE*                                 in_file_handle,
-                                     const CoverageReport&                 in_report,
-                                     const Analysis::RecipeLoader::Recipe& in_recipe);
+            static void print_report(FILE*                           in_file_handle,
+                                     const CoverageReport&           in_report,
+                                     const Analysis::Recipe::Recipe& in_recipe);
 
         private:
             static UnaffectedWarning make_warning(const OverlayCandidate&      in_candidate,

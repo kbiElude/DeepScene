@@ -96,11 +96,8 @@
 <h4>APIDumpSlicing</h4>
 <p>What the slicer is made of: the writer of a workload file (<code>WorkloadWriter</code>, which compresses with the writer of the dumper) and the cut of the first frames (<code>HeadSlicer</code>).</p>
 
-<h4>RecipeLoader</h4>
-<p>Reads a recipe and checks it. It is what everything that only wants to read a recipe uses: the replay player, the consistency checker, the launcher and the catalog.</p>
-
-<h4>RecipeApplier</h4>
-<p>Applies a recipe: given a draw told by its signature and the view matrix, says whether to render it once, per eye, or not at all, and what its convergence distance is. The replay engine and the converter use it; neither needs to bake.</p>
+<h4>Recipe</h4>
+<p>What a recipe is, and the two things done with it that are not baking. <code>types.h</code> is the recipe as data (rules, draw selectors, convergence, the policy for unknown frames). <code>RecipeLoader</code> reads a recipe and checks it; it is what everything that only wants to read a recipe uses: the replay player, the consistency checker, the launcher and the catalog. <code>RecipeApplier</code> applies it: given a draw told by its signature and the view matrix, it says whether to render it once, per eye, or not at all, and what its convergence distance is; the replay engine and the converter use it, and neither needs to bake. The applier uses the types and not the loader, so a program which only reads a recipe does not need the applier's headers.</p>
 
 <h3>Stereo</h3>
 <p><em>Library.</em> The decisions of the conversion and the images it makes. See <a href="live-stereo.html">Live stereo</a>. Its parts:</p>

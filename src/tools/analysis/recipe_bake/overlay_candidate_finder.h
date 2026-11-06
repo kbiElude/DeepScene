@@ -11,9 +11,9 @@
 
 #include "utils/json/json_writer.h"
 #include "analysis/api_dump_analysis/model.h"
-#include "analysis/recipe_applier/recipe_applier.h"
+#include "analysis/recipe/recipe_applier.h"
 #include "types.h"
-#include "analysis/recipe_loader/types.h"
+#include "analysis/recipe/types.h"
 #include <vector>
 
 namespace Analysis
@@ -24,20 +24,20 @@ namespace Analysis
         {
         public:
             /* The draws of the passes of the analysis (one for each signature of a pass) that either opinion calls an overlay, in the order of the passes. */
-            static std::vector<OverlayCandidate> find(const Analysis::RecipeLoader::Recipe&            in_recipe,
+            static std::vector<OverlayCandidate> find(const Analysis::Recipe::Recipe&                  in_recipe,
                                                       const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis);
 
             static const char* get_agreement_name (const OverlayAgreement& in_agreement);
             static const char* get_live_class_name(const LiveClass&        in_live_class);
 
             /* Writes the candidates as JSON, with keys as hex strings. */
-            static void write_json(const std::vector<OverlayCandidate>&  in_candidate_vec,
-                                   const Analysis::RecipeLoader::Recipe& in_recipe,
-                                   Utils::Json::JsonWriter*              inout_writer_ptr);
+            static void write_json(const std::vector<OverlayCandidate>& in_candidate_vec,
+                                   const Analysis::Recipe::Recipe&      in_recipe,
+                                   Utils::Json::JsonWriter*             inout_writer_ptr);
 
         private:
             /* What the converter does with the draws of the signature, for each of the cameras of the pass; a pass with no camera has one with no numbers in it. */
-            static LiveClass get_live_class(const Analysis::RecipeApplier::RecipeApplier&    in_applier,
+            static LiveClass get_live_class(const Analysis::Recipe::RecipeApplier&           in_applier,
                                             const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis,
                                             const uint32_t&                                  in_pass_id,
                                             const uint64_t&                                  in_signature_key);

@@ -17,7 +17,7 @@
 #include <string.h>
 
 Stereo::ConverterDLL::D3D7EyeRenderer::D3D7EyeRenderer(Stereo::Core::StereoCore* in_core_ptr,
-                                                     const D3D7WindowedMode* in_windowed_mode_ptr)
+                                                       const D3D7WindowedMode*   in_windowed_mode_ptr)
     :m_core_ptr          (in_core_ptr),
      m_has_pixel_write   (false),
      m_is_right_eye_off  (false),
@@ -279,9 +279,9 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre_draw(const APIInterceptor::AP
                                                         const ChunkFunc&                           in_chunk_func,
                                                         const float&                               in_picture_width)
 {
-    DrawArguments  draw_arguments;
-    bool           result = true;
-    RightEyeScope  scope;
+    DrawArguments draw_arguments;
+    bool          result         = true;
+    RightEyeScope scope;
 
     /* A draw which the renderer does not know is not made for the right eye. */
     if (read_draw_arguments(in_function,
@@ -311,7 +311,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre_draw(const APIInterceptor::AP
         enter_right_eye(draw_arguments.device_ptr,
                        &scope) )
     {
-        draw_for_eye(Analysis::RecipeLoader::Eye::RIGHT,
+        draw_for_eye(Analysis::Recipe::Eye::RIGHT,
                      draw_arguments,
                      in_picture_width,
                      true); /* in_must_draw */
@@ -325,7 +325,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre_draw(const APIInterceptor::AP
                                  "a draw while the device renders to a surface which has no twin");
     }
 
-    result = (draw_for_eye(Analysis::RecipeLoader::Eye::LEFT,
+    result = (draw_for_eye(Analysis::Recipe::Eye::LEFT,
                            draw_arguments,
                            in_picture_width,
                            false) == false); /* in_must_draw */
@@ -348,8 +348,8 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::copy_pixel_write_to_both_eyes(void* 
     constexpr uint32_t BLT_FLAG_WAIT = 0x01000000; /* DDBLT_WAIT */
 
     void* const twin_ptr       = get_twin_ptr(in_back_buffer_ptr);
-    uint32_t    display_height = 0;
-    uint32_t    display_width  = 0;
+    uint32_t display_height = 0;
+    uint32_t display_width  = 0;
 
     if (twin_ptr == nullptr)
     {
@@ -357,8 +357,8 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::copy_pixel_write_to_both_eyes(void* 
     }
 
     {
-        const OwnCallScope                         own_call_scope;
-        Interception::Hooks::D3D7::DDSURFACEDESC2  description      = {};
+        const OwnCallScope                        own_call_scope;
+        Interception::Hooks::D3D7::DDSURFACEDESC2 description    = {};
         auto* const                                surface_ptr      = static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(in_back_buffer_ptr);
         void** const                               surface_vtable   = APIInterceptor::get_vtable_ptr(in_back_buffer_ptr);
         auto* const                                twin_surface_ptr = static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(twin_ptr);
@@ -484,10 +484,10 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::draw(const DrawArguments& in_draw_ar
     }
 }
 
-bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::RecipeLoader::Eye& in_eye,
-                                                         const DrawArguments&               in_draw_arguments,
-                                                         const float&                       in_picture_width,
-                                                         const bool&                        in_must_draw)
+bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::Recipe::Eye& in_eye,
+                                                         const DrawArguments&         in_draw_arguments,
+                                                         const float&                 in_picture_width,
+                                                         const bool&                  in_must_draw)
 {
     Stereo::D3D7::ScreenParallax::Parameters parameters;
     Stereo::Core::ScreenShiftPlan            plan;
@@ -695,7 +695,7 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::leave_right_eye(void*               
 }
 
 void Stereo::ConverterDLL::D3D7EyeRenderer::note_unmirrored(const APIInterceptor::APIFunction& in_function,
-                                                           const char*                        in_reason_ptr)
+                                                            const char*                        in_reason_ptr)
 {
     constexpr size_t MAX_N_NOTES = 8;
 
@@ -730,9 +730,9 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::mirror_blt(const APIInterceptor::API
         const size_t rect_argument   = (is_fast) ? 4 : 3;
         void* const  destination_ptr = const_cast<void*>(in_arguments_ptr[DESTINATION_ARGUMENT].get_ptr() );
         void* const  twin_ptr        = get_twin_ptr(destination_ptr);
-        uint32_t     flags           = 0;
-        uint32_t     x               = 0;
-        uint32_t     y               = 0;
+        uint32_t flags = 0;
+        uint32_t x     = 0;
+        uint32_t y     = 0;
 
         if (twin_ptr                               != nullptr                         &&
             in_arguments_ptr[source_argument].type == APIInterceptor::ARGTYPE_VOID_PTR)
@@ -804,17 +804,17 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::play_clear(const uint32_t&          
     constexpr size_t   STENCIL_ARGUMENT    = 6;
     constexpr size_t   Z_ARGUMENT          = 5;
 
-    uint32_t                                       color           = 0;
-    uint32_t                                       count           = 0;
-    void*                                          device_ptr      = nullptr;
-    uint32_t                                       flags           = 0;
-    bool                                           is_scaled       = false;
-    bool                                           result          = true;
+    uint32_t                                        color      = 0;
+    uint32_t                                        count      = 0;
+    void*                                           device_ptr = nullptr;
+    uint32_t                                        flags      = 0;
+    bool                                            is_scaled  = false;
+    bool                                            result     = true;
     std::vector<Interception::Hooks::D3D7::D3DRECT> rect_vec;
-    const Interception::Hooks::D3D7::D3DRECT*      rects_ptr       = nullptr;
-    const float                                    scale           = get_render_scale();
-    RightEyeScope                                  scope;
-    uint32_t                                       stencil         = 0;
+    const Interception::Hooks::D3D7::D3DRECT*       rects_ptr  = nullptr;
+    const float                                     scale      = get_render_scale();
+    RightEyeScope                                   scope;
+    uint32_t                                        stencil    = 0;
 
     if (in_n_arguments < N_ARGUMENTS_CLEAR                                           ||
         in_arguments_ptr[DEVICE_ARGUMENT].type != APIInterceptor::ARGTYPE_VOID_PTR   ||
@@ -914,8 +914,8 @@ end:
 void Stereo::ConverterDLL::D3D7EyeRenderer::set_effective_viewport(void* in_device_ptr) const
 {
     const OwnCallScope                      own_call_scope;
-    const float                             scale    = get_render_scale();
-    Interception::Hooks::D3D7::D3DVIEWPORT7 viewport = m_mirror.viewport;
+    const float                             scale          = get_render_scale();
+    Interception::Hooks::D3D7::D3DVIEWPORT7 viewport       = m_mirror.viewport;
     void** const                            vtable   = APIInterceptor::get_vtable_ptr(in_device_ptr);
 
     if (scale != 1.0f)
@@ -967,8 +967,8 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::read_draw_arguments(const APIInterce
     constexpr uint32_t VERTEX_BUFFER_ARGUMENT  = 2;
     constexpr uint32_t VERTICES_ARGUMENT       = 3;
 
-    uint32_t flags_argument = 0;
-    bool     result         = false;
+    uint32_t flags_argument        = 0;
+    bool     result                = false;
     uint32_t strided_data_argument = 0; /* the arrays of a strided draw follow the arguments of the call, as a chunk */
 
     switch (in_function)
@@ -1054,10 +1054,10 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::read_draw_arguments(const APIInterce
     {
         case DrawKind::STRIDED:
         {
-            const void* structure_ptr          = nullptr;
-            uint32_t    n_structure_bytes      = 0;
-            const void* arrays_ptr             = nullptr;
-            uint32_t    n_arrays_bytes         = 0;
+            const void* structure_ptr     = nullptr;
+            uint32_t    n_structure_bytes = 0;
+            const void* arrays_ptr        = nullptr;
+            uint32_t    n_arrays_bytes    = 0;
 
             if (in_n_arguments <= strided_data_argument                                                          ||
                 in_arguments_ptr[STRIDED_ARGUMENT].type        != APIInterceptor::ARGTYPE_DATA_CHUNK_ID           ||
@@ -1138,11 +1138,11 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::read_vertex_buffer(DrawArguments* in
 {
     constexpr DWORD LOCK_READ_FLAGS = 0x1 | 0x10; /* DDLOCK_WAIT | DDLOCK_READONLY */
 
-    Interception::Hooks::D3D7::D3DVERTEXBUFFERDESC description       = {};
-    void*                                          data_ptr          = nullptr;
-    DWORD                                          n_bytes           = 0;
+    Interception::Hooks::D3D7::D3DVERTEXBUFFERDESC description    = {};
+    void*                                          data_ptr       = nullptr;
+    DWORD                                          n_bytes        = 0;
     const OwnCallScope                             own_call_scope;
-    bool                                           result            = false;
+    bool                                           result         = false;
     void* const                                    vertex_buffer_ptr = inout_draw_arguments_ptr->vertex_buffer_ptr;
     void** const                                   vtable            = APIInterceptor::get_vtable_ptr(vertex_buffer_ptr);
 

@@ -59,12 +59,12 @@ namespace Stereo
                 void  set_eye_separation (const float&                            in_eye_separation);
                 void  set_frame_execution(const FrameExecutionOptions&            in_options);
                 /* The frames which the hurry says are hurried through are not read back for the sink. Not owned; may be none. */
-                void  set_hurry          (const FrameHurry*                       in_hurry_ptr);
-                void  set_image_sink     (IFrameImageSink*                        in_sink_ptr);
+                void set_hurry     (const FrameHurry* in_hurry_ptr);
+                void set_image_sink(IFrameImageSink*  in_sink_ptr);
 
                 /* The frames which the skipper says are dead are played as they are (see SliceSkipper). Not owned; may be none. */
-                void  set_slice_skipper  (const SliceSkipper*                     in_slice_skipper_ptr);
-                void  set_recipe         (const Analysis::RecipeLoader::Recipe&   in_recipe);
+                void set_slice_skipper(const SliceSkipper*             in_slice_skipper_ptr);
+                void set_recipe       (const Analysis::Recipe::Recipe& in_recipe);
 
             private:
                 struct EyeSnapshot
@@ -100,7 +100,7 @@ namespace Stereo
                                             const bool&                                      in_is_affected,
                                             const bool&                                      in_is_presented,
                                             const uint64_t&                                  in_cover_key,
-                                            const Analysis::RecipeLoader::Eye&               in_eye,
+                                            const Analysis::Recipe::Eye&                     in_eye,
                                             const uint32_t&                                  in_pass_structure_id);
                 bool execute_rewritten_call(const Capture::APIDumpLoader::DumpedAPICall&     in_call,
                                             const ::Replay::ReplayEngineDLL::IChunkSource&   in_chunk_source,
@@ -112,7 +112,7 @@ namespace Stereo
                 bool read_back_buffer      (std::vector<uint8_t>*                            out_pixel_u8_vec_ptr,
                                             FrameImage*                                      out_image_ptr);
                 bool read_next_call        (const Capture::APIDumpLoader::DumpedAPICall**    out_call_ptr_ptr);
-                void set_executors_eye     (const Analysis::RecipeLoader::Eye&               in_eye);
+                void set_executors_eye     (const Analysis::Recipe::Eye&                     in_eye);
                 bool write_back_buffer     (const std::vector<uint8_t>&                      in_pixel_u8_vec);
 
                 EyeHistory                                                             m_eye_history;
@@ -125,7 +125,7 @@ namespace Stereo
                 IFrameImageSink*                                                       m_image_sink_ptr;
                 const SliceSkipper*                                                    m_slice_skipper_ptr;
                 std::unique_ptr<EyeMatrixBinder>                                       m_matrix_binder_ptr;
-                std::unique_ptr<Analysis::RecipeApplier::RecipeApplier>                m_recipe_applier_ptr;
+                std::unique_ptr<Analysis::Recipe::RecipeApplier>                m_recipe_applier_ptr;
                 std::unique_ptr<FrameRewriter>                                         m_rewriter_ptr;
                 std::unique_ptr<Analysis::APIDumpAnalysis::Frontends::AnalysisSession> m_session_ptr;
             };

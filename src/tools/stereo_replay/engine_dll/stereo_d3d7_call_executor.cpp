@@ -6,7 +6,7 @@
 
 Stereo::Replay::EngineDLL::StereoD3D7CallExecutor::StereoD3D7CallExecutor(::Replay::ReplayEngineDLL::ObjectRemapper* in_remapper_ptr)
     :D3D7CallExecutor  (in_remapper_ptr),
-     m_eye             (Analysis::RecipeLoader::Eye::LEFT),
+     m_eye             (Analysis::Recipe::Eye::LEFT),
      m_is_building_twin(false),
      m_needs_twin      (false)
 {
@@ -32,9 +32,9 @@ bool Stereo::Replay::EngineDLL::StereoD3D7CallExecutor::after_call(const Capture
 
     if (is_setup)
     {
-        const Analysis::RecipeLoader::Eye eye = m_eye;
+        const Analysis::Recipe::Eye eye = m_eye;
 
-        m_eye              = Analysis::RecipeLoader::Eye::RIGHT;
+        m_eye              = Analysis::Recipe::Eye::RIGHT;
         m_is_building_twin = true;
 
         result = run_handler(in_call.func,
@@ -119,7 +119,7 @@ void Stereo::Replay::EngineDLL::StereoD3D7CallExecutor::on_reset()
 
 void* Stereo::Replay::EngineDLL::StereoD3D7CallExecutor::resolve_object(void* in_object_ptr) const
 {
-    void* const twin_ptr = (m_eye            == Analysis::RecipeLoader::Eye::RIGHT &&
+    void* const twin_ptr = (m_eye            == Analysis::Recipe::Eye::RIGHT &&
                             in_object_ptr    != nullptr)                           ? find_right_twin(in_object_ptr)
                                                                                    : nullptr;
 
@@ -127,7 +127,7 @@ void* Stereo::Replay::EngineDLL::StereoD3D7CallExecutor::resolve_object(void* in
                                  : in_object_ptr;
 }
 
-void Stereo::Replay::EngineDLL::StereoD3D7CallExecutor::set_eye(const Analysis::RecipeLoader::Eye& in_eye)
+void Stereo::Replay::EngineDLL::StereoD3D7CallExecutor::set_eye(const Analysis::Recipe::Eye& in_eye)
 {
     /* The device keeps what was set on it by the eye before: the target and the textures must be those of this eye, or that eye
      * would draw into (and read) the other's copy.
@@ -147,7 +147,7 @@ void Stereo::Replay::EngineDLL::StereoD3D7CallExecutor::set_eye(const Analysis::
 
             if (twin_ptr != nullptr)
             {
-                set_device_render_target( (m_eye == Analysis::RecipeLoader::Eye::RIGHT) ? twin_ptr
+                set_device_render_target( (m_eye == Analysis::Recipe::Eye::RIGHT) ? twin_ptr
                                                                                         : render_target_ptr);
             }
         }
@@ -160,7 +160,7 @@ void Stereo::Replay::EngineDLL::StereoD3D7CallExecutor::set_eye(const Analysis::
             if (twin_ptr != nullptr)
             {
                 set_device_texture(stage_iterator.first,
-                                   (m_eye == Analysis::RecipeLoader::Eye::RIGHT) ? twin_ptr
+                                   (m_eye == Analysis::Recipe::Eye::RIGHT) ? twin_ptr
                                                                                  : stage_iterator.second);
             }
         }

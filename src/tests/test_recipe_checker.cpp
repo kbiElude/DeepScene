@@ -36,13 +36,13 @@ namespace
 
 TEST(RecipeChecker, ARecipeThatListsNothingKnowsEverything)
 {
-    uint64_t                                  first_shape_key  = 0;
-    uint64_t                                  second_shape_key = 0;
-    const auto                                analysis         = make_analysis(&first_shape_key,
-                                                                               &second_shape_key);
-    const Analysis::RecipeLoader::Recipe      recipe;
-    const auto                                report           = Analysis::RecipeBake::RecipeChecker::check(recipe,
-                                                                                                             analysis);
+    uint64_t                       first_shape_key  = 0;
+    uint64_t                       second_shape_key = 0;
+    const auto                     analysis         = make_analysis(&first_shape_key,
+                                                                    &second_shape_key);
+    const Analysis::Recipe::Recipe recipe;
+    const auto                     report           = Analysis::RecipeBake::RecipeChecker::check(recipe,
+                                                                                                  analysis);
 
     EXPECT_EQ(report.n_frames,
               3u);
@@ -54,11 +54,11 @@ TEST(RecipeChecker, ARecipeThatListsNothingKnowsEverything)
 
 TEST(RecipeChecker, AShapeThatTheRecipeDoesNotListIsUnknownWithItsFramesAndWhereItFirstIs)
 {
-    uint64_t                           first_shape_key  = 0;
-    uint64_t                           second_shape_key = 0;
-    const auto                         analysis         = make_analysis(&first_shape_key,
-                                                                        &second_shape_key);
-    Analysis::RecipeLoader::Recipe     recipe;
+    uint64_t                 first_shape_key  = 0;
+    uint64_t                 second_shape_key = 0;
+    const auto               analysis         = make_analysis(&first_shape_key,
+                                                              &second_shape_key);
+    Analysis::Recipe::Recipe recipe;
 
     recipe.known_shape_key_vec.push_back(first_shape_key);
 
@@ -79,12 +79,12 @@ TEST(RecipeChecker, AShapeThatTheRecipeDoesNotListIsUnknownWithItsFramesAndWhere
 
 TEST(RecipeChecker, ASignatureThatTheRecipeDoesNotListIsUnknown)
 {
-    uint64_t                           first_shape_key  = 0;
-    uint64_t                           second_shape_key = 0;
-    const auto                         analysis         = make_analysis(&first_shape_key,
-                                                                        &second_shape_key);
-    Analysis::RecipeLoader::Recipe     recipe;
-    std::set<uint64_t>                 signature_key_set;
+    uint64_t                 first_shape_key   = 0;
+    uint64_t                 second_shape_key  = 0;
+    const auto               analysis          = make_analysis(&first_shape_key,
+                                                               &second_shape_key);
+    Analysis::Recipe::Recipe recipe;
+    std::set<uint64_t>       signature_key_set;
 
     for (uint32_t n_pass = 0;
                   n_pass < analysis.model.pass_structure_interner.get_n_structures();
@@ -114,12 +114,12 @@ TEST(RecipeChecker, ASignatureThatTheRecipeDoesNotListIsUnknown)
 
 TEST(RecipeChecker, APassTheRecipeLeavesAloneWhoseVerticesAreAtManyDepthsIsA3DSceneAndIsSaidSo)
 {
-    uint64_t                       first_shape_key  = 0;
-    uint64_t                       second_shape_key = 0;
-    auto                           analysis         = make_analysis(&first_shape_key,
-                                                                    &second_shape_key);
-    const auto&                    structure        = analysis.model.pass_structure_interner.get_structure(0);
-    Analysis::RecipeLoader::Recipe recipe;
+    uint64_t                 first_shape_key  = 0;
+    uint64_t                 second_shape_key = 0;
+    auto                     analysis         = make_analysis(&first_shape_key,
+                                                              &second_shape_key);
+    const auto&              structure        = analysis.model.pass_structure_interner.get_structure(0);
+    Analysis::Recipe::Recipe recipe;
 
     recipe.unaffected.pass_key_vec.push_back(structure.key);
 
@@ -175,19 +175,19 @@ TEST(RecipeChecker, APassTheRecipeLeavesAloneWhoseVerticesAreAtManyDepthsIsA3DSc
 
 TEST(RecipeChecker, ADrawKeyOfAnOverlayThatBothWaysOfPlayingLeaveAloneIsNotSaidToBeWrong)
 {
-    uint64_t                       first_shape_key  = 0;
-    uint64_t                       second_shape_key = 0;
-    auto                           analysis         = make_analysis(&first_shape_key,
-                                                                    &second_shape_key);
-    const auto&                    structure        = analysis.model.pass_structure_interner.get_structure(0);
-    Analysis::RecipeLoader::DrawRule rule;
-    Analysis::RecipeLoader::Recipe recipe;
+    uint64_t                                  first_shape_key  = 0;
+    uint64_t                                  second_shape_key = 0;
+    auto                                      analysis         = make_analysis(&first_shape_key,
+                                                                               &second_shape_key);
+    const auto&                               structure        = analysis.model.pass_structure_interner.get_structure(0);
+    Analysis::Recipe::DrawRule                rule;
+    Analysis::Recipe::Recipe                  recipe;
     Analysis::APIDumpAnalysis::DepthHistogram histogram;
 
     /* The replay is told by the key of the draw, the converter by its signature: both are given, and the pass is flat. */
     recipe.unaffected.draw_key_vec.push_back(structure.draw_signature_vec.at(0).structure_key);
 
-    rule.draw_class    = Analysis::RecipeLoader::DrawClass::UNAFFECTED;
+    rule.draw_class    = Analysis::Recipe::DrawClass::UNAFFECTED;
     rule.signature_key = structure.draw_signature_vec.at(0).signature_key;
 
     recipe.draw_rule_vec.push_back(rule);

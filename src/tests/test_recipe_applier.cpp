@@ -5,7 +5,7 @@
  * Tests for RecipeApplier: which rules are about a call, and what a rule does to a matrix.
  */
 #include <gtest/gtest.h>
-#include "analysis/recipe_applier/recipe_applier.h"
+#include "analysis/recipe/recipe_applier.h"
 #include "Interception/Hooks/D3D8/types.h"
 
 class RecipeApplierTest : public ::testing::Test
@@ -38,10 +38,10 @@ protected:
     }
 
     /* A rule for SetTransform with the state D3DTS_VIEW. */
-    static Analysis::RecipeLoader::Rule make_view_rule()
+    static Analysis::Recipe::Rule make_view_rule()
     {
-        Analysis::RecipeLoader::Rule rule;
-        Analysis::RecipeLoader::ArgumentCondition condition;
+        Analysis::Recipe::Rule              rule;
+        Analysis::Recipe::ArgumentCondition condition;
 
         condition.argument_index = 1;
         condition.value          = Interception::Hooks::D3D8::D3DTS_VIEW;
@@ -69,11 +69,11 @@ protected:
         return call;
     }
 
-    static std::vector<const Analysis::RecipeLoader::Rule*> match(const Analysis::RecipeLoader::Recipe&      in_recipe,
-                                                                  const Capture::APIDumpLoader::DumpedAPICall&     in_call,
-                                                                  const Analysis::RecipeApplier::CallPlace&  in_place)
+    static std::vector<const Analysis::Recipe::Rule*> match(const Analysis::Recipe::Recipe&      in_recipe,
+                                                            const Capture::APIDumpLoader::DumpedAPICall&     in_call,
+                                                            const Analysis::Recipe::CallPlace&  in_place)
     {
-        const Analysis::RecipeApplier::RecipeApplier applier(in_recipe);
+        const Analysis::Recipe::RecipeApplier applier(in_recipe);
 
         return applier.get_matching_rule_ptr_vec(in_call,
                                                  in_place);
@@ -82,7 +82,7 @@ protected:
 
 TEST_F(RecipeApplierTest, ARuleIsAboutTheFunctionAndTheArgumentsItNames)
 {
-    Analysis::RecipeLoader::Recipe recipe;
+    Analysis::Recipe::Recipe recipe;
 
     recipe.rule_vec.push_back(make_view_rule() );
 
@@ -107,8 +107,8 @@ TEST_F(RecipeApplierTest, ARuleIsAboutTheFunctionAndTheArgumentsItNames)
 
 TEST_F(RecipeApplierTest, AConditionOnAnArgumentThatIsNotThereOrOfAnotherTypeIsNotMet)
 {
-    Analysis::RecipeLoader::Recipe recipe;
-    auto                           rule = make_view_rule();
+    Analysis::Recipe::Recipe recipe;
+    auto                     rule   = make_view_rule();
 
     rule.argument_condition_vec.at(0).argument_index = 7;
 
@@ -127,11 +127,11 @@ TEST_F(RecipeApplierTest, AConditionOnAnArgumentThatIsNotThereOrOfAnotherTypeIsN
 
 TEST_F(RecipeApplierTest, OnlyTheFunctionsWithARuleHaveARule)
 {
-    Analysis::RecipeLoader::Recipe recipe;
+    Analysis::Recipe::Recipe recipe;
 
     recipe.rule_vec.push_back(make_view_rule() );
 
-    const Analysis::RecipeApplier::RecipeApplier applier(recipe);
+    const Analysis::Recipe::RecipeApplier applier(recipe);
 
     EXPECT_TRUE (applier.has_rule_for(SET_TRANSFORM) );
     EXPECT_FALSE(applier.has_rule_for(APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_SETMATERIAL) );
@@ -139,8 +139,8 @@ TEST_F(RecipeApplierTest, OnlyTheFunctionsWithARuleHaveARule)
 
 TEST_F(RecipeApplierTest, ARuleWithNoConditionsIsAboutEveryCallOfItsFunction)
 {
-    Analysis::RecipeLoader::Recipe recipe;
-    auto                           rule = make_view_rule();
+    Analysis::Recipe::Recipe recipe;
+    auto                     rule   = make_view_rule();
 
     rule.argument_condition_vec.clear();
 
@@ -154,16 +154,16 @@ TEST_F(RecipeApplierTest, ARuleWithNoConditionsIsAboutEveryCallOfItsFunction)
 
 TEST_F(RecipeApplierTest, ARuleWithPassKeysIsAboutTheCallsOfThosePasses)
 {
-    Analysis::RecipeLoader::Recipe recipe;
-    auto                           rule = make_view_rule();
+    Analysis::Recipe::Recipe recipe;
+    auto                     rule   = make_view_rule();
 
     rule.pass_key_vec = {0x11, 0x22};
 
     recipe.rule_vec.push_back(rule);
 
-    Analysis::RecipeApplier::CallPlace in_pass;
-    Analysis::RecipeApplier::CallPlace in_other_pass;
-    Analysis::RecipeApplier::CallPlace in_no_pass;
+    Analysis::Recipe::CallPlace in_pass;
+    Analysis::Recipe::CallPlace in_other_pass;
+    Analysis::Recipe::CallPlace in_no_pass;
 
     in_pass.has_pass       = true;
     in_pass.pass_key       = 0x22;
@@ -182,15 +182,15 @@ TEST_F(RecipeApplierTest, ARuleWithPassKeysIsAboutTheCallsOfThosePasses)
 
 TEST_F(RecipeApplierTest, ARuleWithShapeKeysIsAboutTheCallsOfThoseFrames)
 {
-    Analysis::RecipeLoader::Recipe recipe;
-    auto                           rule = make_view_rule();
+    Analysis::Recipe::Recipe recipe;
+    auto                     rule   = make_view_rule();
 
     rule.shape_key_vec = {0xaa};
 
     recipe.rule_vec.push_back(rule);
 
-    Analysis::RecipeApplier::CallPlace known_frame;
-    Analysis::RecipeApplier::CallPlace other_frame;
+    Analysis::Recipe::CallPlace known_frame;
+    Analysis::Recipe::CallPlace other_frame;
 
     known_frame.shape_key = 0xaa;
     other_frame.shape_key = 0xbb;
@@ -205,15 +205,15 @@ TEST_F(RecipeApplierTest, ARuleWithShapeKeysIsAboutTheCallsOfThoseFrames)
 
 TEST_F(RecipeApplierTest, BothKindsOfKeysMustMatchWhenThereAreBoth)
 {
-    Analysis::RecipeLoader::Recipe recipe;
-    auto                           rule = make_view_rule();
+    Analysis::Recipe::Recipe recipe;
+    auto                     rule   = make_view_rule();
 
     rule.pass_key_vec  = {0x11};
     rule.shape_key_vec = {0xaa};
 
     recipe.rule_vec.push_back(rule);
 
-    Analysis::RecipeApplier::CallPlace place;
+    Analysis::Recipe::CallPlace place;
 
     place.has_pass  = true;
     place.pass_key  = 0x11;
@@ -232,9 +232,9 @@ TEST_F(RecipeApplierTest, BothKindsOfKeysMustMatchWhenThereAreBoth)
 
 TEST_F(RecipeApplierTest, TheRulesThatMatchComeInTheOrderOfTheRecipe)
 {
-    Analysis::RecipeLoader::Recipe recipe;
-    auto                           first  = make_view_rule();
-    auto                           second = make_view_rule();
+    Analysis::Recipe::Recipe recipe;
+    auto                     first  = make_view_rule();
+    auto                     second = make_view_rule();
 
     first.name  = "first";
     second.name = "second";
@@ -242,7 +242,7 @@ TEST_F(RecipeApplierTest, TheRulesThatMatchComeInTheOrderOfTheRecipe)
     recipe.rule_vec.push_back(first);
     recipe.rule_vec.push_back(second);
 
-    const Analysis::RecipeApplier::RecipeApplier applier(recipe);
+    const Analysis::Recipe::RecipeApplier applier(recipe);
     const auto                                rule_ptr_vec = applier.get_matching_rule_ptr_vec(make_set_transform(Interception::Hooks::D3D8::D3DTS_VIEW),
                                                                                                {});
 
@@ -256,21 +256,21 @@ TEST_F(RecipeApplierTest, TheRulesThatMatchComeInTheOrderOfTheRecipe)
 
 TEST_F(RecipeApplierTest, AProductWithTheRecipesMatrixAfterOrBeforeTheCallsIsNotTheSame)
 {
-    Analysis::RecipeLoader::Rule rule = make_view_rule();
+    Analysis::Recipe::Rule rule = make_view_rule();
 
-    rule.action_kind              = Analysis::RecipeLoader::ActionKind::MULTIPLY;
+    rule.action_kind              = Analysis::Recipe::ActionKind::MULTIPLY;
     rule.left_matrix_fp32vec16    = make_scale(2.0f);
     rule.right_matrix_fp32vec16   = make_scale(2.0f);
 
     auto matrix = make_translation(1.0f);
 
     /* Row vectors: M * X scales the translation too, X * M leaves it. */
-    rule.multiply_order = Analysis::RecipeLoader::MultiplyOrder::POST;
+    rule.multiply_order = Analysis::Recipe::MultiplyOrder::POST;
 
-    ASSERT_TRUE(Analysis::RecipeApplier::RecipeApplier::apply_rule(rule,
-                                                                   Analysis::RecipeLoader::Eye::LEFT,
-                                                                  0.0f,
-                                                                  &matrix) );
+    ASSERT_TRUE(Analysis::Recipe::RecipeApplier::apply_rule(rule,
+                                                            Analysis::Recipe::Eye::LEFT,
+                                                            0.0f,
+                                                            &matrix) );
     EXPECT_FLOAT_EQ(matrix.at(12),
                     2.0f);
     EXPECT_FLOAT_EQ(matrix.at(0),
@@ -278,12 +278,12 @@ TEST_F(RecipeApplierTest, AProductWithTheRecipesMatrixAfterOrBeforeTheCallsIsNot
 
     matrix = make_translation(1.0f);
 
-    rule.multiply_order = Analysis::RecipeLoader::MultiplyOrder::PRE;
+    rule.multiply_order = Analysis::Recipe::MultiplyOrder::PRE;
 
-    ASSERT_TRUE(Analysis::RecipeApplier::RecipeApplier::apply_rule(rule,
-                                                                   Analysis::RecipeLoader::Eye::LEFT,
-                                                                  0.0f,
-                                                                  &matrix) );
+    ASSERT_TRUE(Analysis::Recipe::RecipeApplier::apply_rule(rule,
+                                                            Analysis::Recipe::Eye::LEFT,
+                                                            0.0f,
+                                                            &matrix) );
     EXPECT_FLOAT_EQ(matrix.at(12),
                     1.0f);
     EXPECT_FLOAT_EQ(matrix.at(0),
@@ -292,22 +292,22 @@ TEST_F(RecipeApplierTest, AProductWithTheRecipesMatrixAfterOrBeforeTheCallsIsNot
 
 TEST_F(RecipeApplierTest, EachEyeGetsItsOwnMatrix)
 {
-    Analysis::RecipeLoader::Rule rule = make_view_rule();
+    Analysis::Recipe::Rule rule = make_view_rule();
 
-    rule.action_kind    = Analysis::RecipeLoader::ActionKind::MULTIPLY;
-    rule.multiply_order = Analysis::RecipeLoader::MultiplyOrder::POST;
+    rule.action_kind    = Analysis::Recipe::ActionKind::MULTIPLY;
+    rule.multiply_order = Analysis::Recipe::MultiplyOrder::POST;
 
     auto left  = make_identity();
     auto right = make_identity();
 
-    ASSERT_TRUE(Analysis::RecipeApplier::RecipeApplier::apply_rule(rule,
-                                                                   Analysis::RecipeLoader::Eye::LEFT,
-                                                                   0.0f,
-                                                                  &left) );
-    ASSERT_TRUE(Analysis::RecipeApplier::RecipeApplier::apply_rule(rule,
-                                                                   Analysis::RecipeLoader::Eye::RIGHT,
-                                                                   0.0f,
-                                                                  &right) );
+    ASSERT_TRUE(Analysis::Recipe::RecipeApplier::apply_rule(rule,
+                                                            Analysis::Recipe::Eye::LEFT,
+                                                            0.0f,
+                                                            &left) );
+    ASSERT_TRUE(Analysis::Recipe::RecipeApplier::apply_rule(rule,
+                                                            Analysis::Recipe::Eye::RIGHT,
+                                                            0.0f,
+                                                            &right) );
 
     EXPECT_FLOAT_EQ(left.at(12),
                     1.0f);
@@ -317,69 +317,69 @@ TEST_F(RecipeApplierTest, EachEyeGetsItsOwnMatrix)
 
 TEST_F(RecipeApplierTest, ReplacingPutsTheRecipesMatrixInPlaceOfTheCalls)
 {
-    Analysis::RecipeLoader::Rule rule = make_view_rule();
+    Analysis::Recipe::Rule rule = make_view_rule();
 
-    rule.action_kind = Analysis::RecipeLoader::ActionKind::REPLACE;
+    rule.action_kind = Analysis::Recipe::ActionKind::REPLACE;
 
     auto matrix = make_scale(5.0f);
 
-    ASSERT_TRUE(Analysis::RecipeApplier::RecipeApplier::apply_rule(rule,
-                                                                   Analysis::RecipeLoader::Eye::RIGHT,
-                                                                  0.0f,
-                                                                  &matrix) );
+    ASSERT_TRUE(Analysis::Recipe::RecipeApplier::apply_rule(rule,
+                                                            Analysis::Recipe::Eye::RIGHT,
+                                                            0.0f,
+                                                            &matrix) );
     EXPECT_EQ(matrix,
               make_translation(-1.0f) );
 }
 
 TEST_F(RecipeApplierTest, ARuleAboutPerspectiveOrOrthographicMatricesLeavesTheOthersAlone)
 {
-    Analysis::RecipeLoader::Rule rule = make_view_rule();
+    Analysis::Recipe::Rule rule = make_view_rule();
 
-    rule.action_kind = Analysis::RecipeLoader::ActionKind::REPLACE;
+    rule.action_kind = Analysis::Recipe::ActionKind::REPLACE;
 
     /* D3D perspective: the last column is (0, 0, 1, 0); orthographic: (0, 0, 0, 1). */
-    std::array<float, 16> perspective = make_identity();
+    std::array<float, 16> perspective  = make_identity();
     std::array<float, 16> orthographic = make_identity();
 
     perspective.at(11)  = 1.0f;
     perspective.at(15)  = 0.0f;
 
-    rule.matrix_kind = Analysis::RecipeLoader::MatrixKind::PERSPECTIVE;
+    rule.matrix_kind = Analysis::Recipe::MatrixKind::PERSPECTIVE;
 
     auto matrix = perspective;
 
-    EXPECT_TRUE (Analysis::RecipeApplier::RecipeApplier::apply_rule(rule, Analysis::RecipeLoader::Eye::LEFT, 0.0f, &matrix) );
+    EXPECT_TRUE (Analysis::Recipe::RecipeApplier::apply_rule(rule, Analysis::Recipe::Eye::LEFT, 0.0f, &matrix) );
 
     matrix = orthographic;
 
-    EXPECT_FALSE(Analysis::RecipeApplier::RecipeApplier::apply_rule(rule, Analysis::RecipeLoader::Eye::LEFT, 0.0f, &matrix) );
+    EXPECT_FALSE(Analysis::Recipe::RecipeApplier::apply_rule(rule, Analysis::Recipe::Eye::LEFT, 0.0f, &matrix) );
     EXPECT_EQ   (matrix,
                  orthographic);
 
-    rule.matrix_kind = Analysis::RecipeLoader::MatrixKind::ORTHOGRAPHIC;
+    rule.matrix_kind = Analysis::Recipe::MatrixKind::ORTHOGRAPHIC;
 
-    EXPECT_TRUE (Analysis::RecipeApplier::RecipeApplier::apply_rule(rule, Analysis::RecipeLoader::Eye::LEFT, 0.0f, &matrix) );
+    EXPECT_TRUE (Analysis::Recipe::RecipeApplier::apply_rule(rule, Analysis::Recipe::Eye::LEFT, 0.0f, &matrix) );
 
     matrix = perspective;
 
-    EXPECT_FALSE(Analysis::RecipeApplier::RecipeApplier::apply_rule(rule, Analysis::RecipeLoader::Eye::LEFT, 0.0f, &matrix) );
+    EXPECT_FALSE(Analysis::Recipe::RecipeApplier::apply_rule(rule, Analysis::Recipe::Eye::LEFT, 0.0f, &matrix) );
     EXPECT_EQ   (matrix,
                  perspective);
 
-    rule.matrix_kind = Analysis::RecipeLoader::MatrixKind::ANY;
+    rule.matrix_kind = Analysis::Recipe::MatrixKind::ANY;
 
-    EXPECT_TRUE(Analysis::RecipeApplier::RecipeApplier::apply_rule(rule, Analysis::RecipeLoader::Eye::LEFT, 0.0f, &matrix) );
+    EXPECT_TRUE(Analysis::Recipe::RecipeApplier::apply_rule(rule, Analysis::Recipe::Eye::LEFT, 0.0f, &matrix) );
 }
 
 TEST_F(RecipeApplierTest, AFrameIsKnownIfItsShapeIsListedOrNoShapeIs)
 {
-    Analysis::RecipeLoader::Recipe recipe;
+    Analysis::Recipe::Recipe recipe;
 
-    EXPECT_TRUE(Analysis::RecipeApplier::RecipeApplier(recipe).is_frame_known(0x1234) );
+    EXPECT_TRUE(Analysis::Recipe::RecipeApplier(recipe).is_frame_known(0x1234) );
 
     recipe.known_shape_key_vec = {0xaa, 0xbb};
 
-    const Analysis::RecipeApplier::RecipeApplier applier(recipe);
+    const Analysis::Recipe::RecipeApplier applier(recipe);
 
     EXPECT_TRUE (applier.is_frame_known(0xbb) );
     EXPECT_FALSE(applier.is_frame_known(0xcc) );
@@ -387,20 +387,20 @@ TEST_F(RecipeApplierTest, AFrameIsKnownIfItsShapeIsListedOrNoShapeIs)
 
 TEST_F(RecipeApplierTest, ThePolicyForUnknownFramesIsThatOfTheRecipe)
 {
-    Analysis::RecipeLoader::Recipe recipe;
+    Analysis::Recipe::Recipe recipe;
 
-    recipe.unknown_frame_policy = Analysis::RecipeLoader::UnknownFramePolicy::SKIP;
+    recipe.unknown_frame_policy = Analysis::Recipe::UnknownFramePolicy::SKIP;
 
-    EXPECT_EQ(Analysis::RecipeApplier::RecipeApplier(recipe).get_unknown_frame_policy(),
-              Analysis::RecipeLoader::UnknownFramePolicy::SKIP);
+    EXPECT_EQ(Analysis::Recipe::RecipeApplier(recipe).get_unknown_frame_policy(),
+              Analysis::Recipe::UnknownFramePolicy::SKIP);
 }
 
 TEST_F(RecipeApplierTest, EveryDrawIsAffectedUnlessARecipeNamesItOrItsPass)
 {
-    Analysis::RecipeLoader::Recipe recipe;
+    Analysis::Recipe::Recipe recipe;
 
     {
-        const Analysis::RecipeApplier::RecipeApplier applier(recipe);
+        const Analysis::Recipe::RecipeApplier applier(recipe);
 
         EXPECT_TRUE(applier.is_draw_affected(1,
                                              2) );
@@ -409,7 +409,7 @@ TEST_F(RecipeApplierTest, EveryDrawIsAffectedUnlessARecipeNamesItOrItsPass)
     recipe.unaffected.pass_key_vec = {10};
     recipe.unaffected.draw_key_vec = {20};
 
-    const Analysis::RecipeApplier::RecipeApplier applier(recipe);
+    const Analysis::Recipe::RecipeApplier applier(recipe);
 
     EXPECT_FALSE(applier.is_draw_affected(10,
                                           1) );
@@ -421,14 +421,14 @@ TEST_F(RecipeApplierTest, EveryDrawIsAffectedUnlessARecipeNamesItOrItsPass)
 
 TEST_F(RecipeApplierTest, ADrawKeyBeatsAPassKeyAndAnAffectedKeyBeatsNothing)
 {
-    Analysis::RecipeLoader::Recipe recipe;
+    Analysis::Recipe::Recipe recipe;
 
     recipe.unaffected.pass_key_vec = {10, 11};
     recipe.unaffected.draw_key_vec = {20};
     recipe.affected.draw_key_vec   = {30};
     recipe.affected.pass_key_vec   = {11};
 
-    const Analysis::RecipeApplier::RecipeApplier applier(recipe);
+    const Analysis::Recipe::RecipeApplier applier(recipe);
 
     /* A draw named affected, inside an unaffected pass. */
     EXPECT_TRUE (applier.is_draw_affected(10,
@@ -445,10 +445,10 @@ TEST_F(RecipeApplierTest, ADrawKeyBeatsAPassKeyAndAnAffectedKeyBeatsNothing)
 
 TEST_F(RecipeApplierTest, ADrawIsSkippedIfItOrItsPassIsNamed)
 {
-    Analysis::RecipeLoader::Recipe recipe;
+    Analysis::Recipe::Recipe recipe;
 
     {
-        const Analysis::RecipeApplier::RecipeApplier applier(recipe);
+        const Analysis::Recipe::RecipeApplier applier(recipe);
 
         EXPECT_FALSE(applier.is_draw_skipped(1,
                                              2) );
@@ -457,7 +457,7 @@ TEST_F(RecipeApplierTest, ADrawIsSkippedIfItOrItsPassIsNamed)
     recipe.skipped.pass_key_vec = {10};
     recipe.skipped.draw_key_vec = {20};
 
-    const Analysis::RecipeApplier::RecipeApplier applier(recipe);
+    const Analysis::Recipe::RecipeApplier applier(recipe);
 
     EXPECT_TRUE (applier.is_draw_skipped(10,
                                          1) );
@@ -471,32 +471,32 @@ TEST_F(RecipeApplierTest, AnEyeOffsetMovesTheEyesApartByHalfTheSeparationEachAlo
 {
     struct AxisCase
     {
-        Analysis::RecipeLoader::Axis axis;
-        size_t                       n_element;
+        Analysis::Recipe::Axis axis;
+        size_t                 n_element;
     };
 
-    const AxisCase case_array[] = {{Analysis::RecipeLoader::Axis::X, 12},
-                                   {Analysis::RecipeLoader::Axis::Y, 13},
-                                   {Analysis::RecipeLoader::Axis::Z, 14}};
+    const AxisCase case_array[] = {{Analysis::Recipe::Axis::X, 12},
+                                   {Analysis::Recipe::Axis::Y, 13},
+                                   {Analysis::Recipe::Axis::Z, 14}};
 
     for (const auto& axis_case : case_array)
     {
-        Analysis::RecipeLoader::Rule rule;
-        auto                         left  = make_identity();
-        auto                         right = make_identity();
+        Analysis::Recipe::Rule rule;
+        auto                   left  = make_identity();
+        auto                   right = make_identity();
 
-        rule.action_kind    = Analysis::RecipeLoader::ActionKind::EYE_OFFSET;
-        rule.multiply_order = Analysis::RecipeLoader::MultiplyOrder::POST;
+        rule.action_kind    = Analysis::Recipe::ActionKind::EYE_OFFSET;
+        rule.multiply_order = Analysis::Recipe::MultiplyOrder::POST;
         rule.offset_axis    = axis_case.axis;
 
-        ASSERT_TRUE(Analysis::RecipeApplier::RecipeApplier::apply_rule(rule,
-                                                                       Analysis::RecipeLoader::Eye::LEFT,
-                                                                       0.2f,
-                                                                      &left) );
-        ASSERT_TRUE(Analysis::RecipeApplier::RecipeApplier::apply_rule(rule,
-                                                                       Analysis::RecipeLoader::Eye::RIGHT,
-                                                                       0.2f,
-                                                                      &right) );
+        ASSERT_TRUE(Analysis::Recipe::RecipeApplier::apply_rule(rule,
+                                                                Analysis::Recipe::Eye::LEFT,
+                                                                0.2f,
+                                                                &left) );
+        ASSERT_TRUE(Analysis::Recipe::RecipeApplier::apply_rule(rule,
+                                                                Analysis::Recipe::Eye::RIGHT,
+                                                                0.2f,
+                                                                &right) );
 
         EXPECT_FLOAT_EQ(left.at(axis_case.n_element),
                         0.1f);
@@ -507,27 +507,27 @@ TEST_F(RecipeApplierTest, AnEyeOffsetMovesTheEyesApartByHalfTheSeparationEachAlo
 
 TEST_F(RecipeApplierTest, AnEyeOffsetGrowsWithTheSeparationAndIsNothingWithoutIt)
 {
-    Analysis::RecipeLoader::Rule rule;
+    Analysis::Recipe::Rule rule;
 
-    rule.action_kind    = Analysis::RecipeLoader::ActionKind::EYE_OFFSET;
-    rule.multiply_order = Analysis::RecipeLoader::MultiplyOrder::POST;
+    rule.action_kind    = Analysis::Recipe::ActionKind::EYE_OFFSET;
+    rule.multiply_order = Analysis::Recipe::MultiplyOrder::POST;
 
     auto narrow = make_identity();
-    auto wider   = make_identity();
-    auto none  = make_identity();
+    auto wider  = make_identity();
+    auto none   = make_identity();
 
-    ASSERT_TRUE(Analysis::RecipeApplier::RecipeApplier::apply_rule(rule,
-                                                                   Analysis::RecipeLoader::Eye::LEFT,
-                                                                   0.2f,
-                                                                  &narrow) );
-    ASSERT_TRUE(Analysis::RecipeApplier::RecipeApplier::apply_rule(rule,
-                                                                   Analysis::RecipeLoader::Eye::LEFT,
-                                                                   0.4f,
-                                                                  &wider) );
-    ASSERT_TRUE(Analysis::RecipeApplier::RecipeApplier::apply_rule(rule,
-                                                                   Analysis::RecipeLoader::Eye::LEFT,
-                                                                   0.0f,
-                                                                  &none) );
+    ASSERT_TRUE(Analysis::Recipe::RecipeApplier::apply_rule(rule,
+                                                            Analysis::Recipe::Eye::LEFT,
+                                                            0.2f,
+                                                            &narrow) );
+    ASSERT_TRUE(Analysis::Recipe::RecipeApplier::apply_rule(rule,
+                                                            Analysis::Recipe::Eye::LEFT,
+                                                            0.4f,
+                                                            &wider) );
+    ASSERT_TRUE(Analysis::Recipe::RecipeApplier::apply_rule(rule,
+                                                            Analysis::Recipe::Eye::LEFT,
+                                                            0.0f,
+                                                            &none) );
 
     EXPECT_FLOAT_EQ(wider.at(12),
                     2.0f * narrow.at(12) );
@@ -543,26 +543,26 @@ TEST_F(RecipeApplierTest, AnEyeOffsetIsMultipliedInTheOrderTheRuleSays)
                                          0, 0, 2, 0,
                                          0, 0, 0, 1};
 
-    Analysis::RecipeLoader::Rule rule;
-    auto                         post = scale;
-    auto                         pre  = scale;
+    Analysis::Recipe::Rule rule;
+    auto                   post = scale;
+    auto                   pre  = scale;
 
-    rule.action_kind = Analysis::RecipeLoader::ActionKind::EYE_OFFSET;
-    rule.offset_axis = Analysis::RecipeLoader::Axis::X;
+    rule.action_kind = Analysis::Recipe::ActionKind::EYE_OFFSET;
+    rule.offset_axis = Analysis::Recipe::Axis::X;
 
-    rule.multiply_order = Analysis::RecipeLoader::MultiplyOrder::POST;
+    rule.multiply_order = Analysis::Recipe::MultiplyOrder::POST;
 
-    ASSERT_TRUE(Analysis::RecipeApplier::RecipeApplier::apply_rule(rule,
-                                                                   Analysis::RecipeLoader::Eye::LEFT,
-                                                                   1.0f,
-                                                                  &post) );
+    ASSERT_TRUE(Analysis::Recipe::RecipeApplier::apply_rule(rule,
+                                                            Analysis::Recipe::Eye::LEFT,
+                                                            1.0f,
+                                                            &post) );
 
-    rule.multiply_order = Analysis::RecipeLoader::MultiplyOrder::PRE;
+    rule.multiply_order = Analysis::Recipe::MultiplyOrder::PRE;
 
-    ASSERT_TRUE(Analysis::RecipeApplier::RecipeApplier::apply_rule(rule,
-                                                                   Analysis::RecipeLoader::Eye::LEFT,
-                                                                   1.0f,
-                                                                  &pre) );
+    ASSERT_TRUE(Analysis::Recipe::RecipeApplier::apply_rule(rule,
+                                                            Analysis::Recipe::Eye::LEFT,
+                                                            1.0f,
+                                                            &pre) );
 
     EXPECT_FLOAT_EQ(post.at(12),
                     0.5f);
@@ -572,90 +572,90 @@ TEST_F(RecipeApplierTest, AnEyeOffsetIsMultipliedInTheOrderTheRuleSays)
 
 TEST_F(RecipeApplierTest, AnEyeOffsetOfAnotherKindOfMatrixIsLeftAlone)
 {
-    Analysis::RecipeLoader::Rule rule;
-    auto                         matrix = make_identity();
+    Analysis::Recipe::Rule rule;
+    auto                   matrix = make_identity();
 
-    rule.action_kind    = Analysis::RecipeLoader::ActionKind::EYE_OFFSET;
-    rule.matrix_kind    = Analysis::RecipeLoader::MatrixKind::PERSPECTIVE;
-    rule.multiply_order = Analysis::RecipeLoader::MultiplyOrder::POST;
+    rule.action_kind    = Analysis::Recipe::ActionKind::EYE_OFFSET;
+    rule.matrix_kind    = Analysis::Recipe::MatrixKind::PERSPECTIVE;
+    rule.multiply_order = Analysis::Recipe::MultiplyOrder::POST;
 
     /* An identity is not a perspective projection. */
-    EXPECT_FALSE(Analysis::RecipeApplier::RecipeApplier::apply_rule(rule,
-                                                                    Analysis::RecipeLoader::Eye::LEFT,
-                                                                    1.0f,
-                                                                   &matrix) );
+    EXPECT_FALSE(Analysis::Recipe::RecipeApplier::apply_rule(rule,
+                                                             Analysis::Recipe::Eye::LEFT,
+                                                             1.0f,
+                                                             &matrix) );
     EXPECT_EQ   (matrix,
                  make_identity() );
 }
 
 TEST_F(RecipeApplierTest, ADrawIsAffectedUnlessARuleSaysOtherwise)
 {
-    Analysis::RecipeLoader::DrawRule rule;
-    Analysis::RecipeLoader::Recipe   recipe;
+    Analysis::Recipe::DrawRule rule;
+    Analysis::Recipe::Recipe   recipe;
 
-    rule.draw_class    = Analysis::RecipeLoader::DrawClass::UNAFFECTED;
+    rule.draw_class    = Analysis::Recipe::DrawClass::UNAFFECTED;
     rule.signature_key = 7;
 
     recipe.draw_rule_vec.push_back(rule);
 
-    const Analysis::RecipeApplier::RecipeApplier applier(recipe);
+    const Analysis::Recipe::RecipeApplier applier(recipe);
 
     EXPECT_EQ(applier.classify_draw(7,
                                     make_identity() ),
-              Analysis::RecipeLoader::DrawClass::UNAFFECTED);
+              Analysis::Recipe::DrawClass::UNAFFECTED);
     EXPECT_EQ(applier.classify_draw(8,
                                     make_identity() ),
-              Analysis::RecipeLoader::DrawClass::AFFECTED);
+              Analysis::Recipe::DrawClass::AFFECTED);
 }
 
 TEST_F(RecipeApplierTest, ADrawRuleWithMatricesAppliesWhileTheViewMatrixIsOneOfThem)
 {
-    Analysis::RecipeLoader::Recipe   recipe;
-    Analysis::RecipeLoader::DrawRule skipped_rule;
-    Analysis::RecipeLoader::DrawRule unaffected_rule;
+    Analysis::Recipe::Recipe   recipe;
+    Analysis::Recipe::DrawRule skipped_rule;
+    Analysis::Recipe::DrawRule unaffected_rule;
 
-    unaffected_rule.draw_class    = Analysis::RecipeLoader::DrawClass::UNAFFECTED;
+    unaffected_rule.draw_class    = Analysis::Recipe::DrawClass::UNAFFECTED;
     unaffected_rule.signature_key = 7;
     unaffected_rule.view_matrix_vec.push_back(make_translation(2.5f) );
     unaffected_rule.view_matrix_vec.push_back(make_translation(3.0f) );
 
-    skipped_rule.draw_class    = Analysis::RecipeLoader::DrawClass::SKIPPED;
+    skipped_rule.draw_class    = Analysis::Recipe::DrawClass::SKIPPED;
     skipped_rule.signature_key = 7;
     skipped_rule.view_matrix_vec.push_back(make_translation(9.0f) );
 
     recipe.draw_rule_vec.push_back(unaffected_rule);
     recipe.draw_rule_vec.push_back(skipped_rule);
 
-    const Analysis::RecipeApplier::RecipeApplier applier(recipe);
+    const Analysis::Recipe::RecipeApplier applier(recipe);
 
     EXPECT_EQ(applier.classify_draw(7,
                                     make_translation(2.5f) ),
-              Analysis::RecipeLoader::DrawClass::UNAFFECTED);
+              Analysis::Recipe::DrawClass::UNAFFECTED);
     EXPECT_EQ(applier.classify_draw(7,
                                     make_translation(3.0f) ),
-              Analysis::RecipeLoader::DrawClass::UNAFFECTED);
+              Analysis::Recipe::DrawClass::UNAFFECTED);
     EXPECT_EQ(applier.classify_draw(7,
                                     make_translation(9.0f) ),
-              Analysis::RecipeLoader::DrawClass::SKIPPED);
+              Analysis::Recipe::DrawClass::SKIPPED);
 
     /* No rule applies to another camera, so the draw is affected. */
     EXPECT_EQ(applier.classify_draw(7,
                                     make_translation(4.0f) ),
-              Analysis::RecipeLoader::DrawClass::AFFECTED);
+              Analysis::Recipe::DrawClass::AFFECTED);
     EXPECT_EQ(applier.classify_draw(7,
                                     make_identity() ),
-              Analysis::RecipeLoader::DrawClass::AFFECTED);
+              Analysis::Recipe::DrawClass::AFFECTED);
 }
 
 TEST_F(RecipeApplierTest, ASignatureIsKnownIfTheRecipeListsItOrListsNone)
 {
-    Analysis::RecipeLoader::Recipe recipe;
+    Analysis::Recipe::Recipe recipe;
 
-    EXPECT_TRUE(Analysis::RecipeApplier::RecipeApplier(recipe).is_signature_known(5) );
+    EXPECT_TRUE(Analysis::Recipe::RecipeApplier(recipe).is_signature_known(5) );
 
     recipe.known_signature_key_vec.push_back(7);
 
-    const Analysis::RecipeApplier::RecipeApplier applier(recipe);
+    const Analysis::Recipe::RecipeApplier applier(recipe);
 
     EXPECT_TRUE (applier.is_signature_known(7) );
     EXPECT_FALSE(applier.is_signature_known(5) );
@@ -663,11 +663,11 @@ TEST_F(RecipeApplierTest, ASignatureIsKnownIfTheRecipeListsItOrListsNone)
 
 TEST_F(RecipeApplierTest, AnEyeConvergenceShearsAPerspectiveProjectionSoThatWhatIsAtTheDistanceIsAtTheSamePlaceInBothEyes)
 {
-    Analysis::RecipeLoader::Rule rule;
-    auto                         left  = make_identity();
+    Analysis::Recipe::Rule rule;
+    auto                   left = make_identity();
 
-    rule.action_kind = Analysis::RecipeLoader::ActionKind::EYE_CONVERGENCE;
-    rule.matrix_kind = Analysis::RecipeLoader::MatrixKind::PERSPECTIVE;
+    rule.action_kind = Analysis::Recipe::ActionKind::EYE_CONVERGENCE;
+    rule.matrix_kind = Analysis::Recipe::MatrixKind::PERSPECTIVE;
 
     left.at(0)  = 2.0f;
     left.at(11) = 1.0f;
@@ -675,16 +675,16 @@ TEST_F(RecipeApplierTest, AnEyeConvergenceShearsAPerspectiveProjectionSoThatWhat
 
     auto right = left;
 
-    ASSERT_TRUE(Analysis::RecipeApplier::RecipeApplier::apply_rule(rule,
-                                                                   Analysis::RecipeLoader::Eye::LEFT,
-                                                                   0.2f,
-                                                                  &left,
-                                                                   5.0f) );
-    ASSERT_TRUE(Analysis::RecipeApplier::RecipeApplier::apply_rule(rule,
-                                                                   Analysis::RecipeLoader::Eye::RIGHT,
-                                                                   0.2f,
-                                                                  &right,
-                                                                   5.0f) );
+    ASSERT_TRUE(Analysis::Recipe::RecipeApplier::apply_rule(rule,
+                                                            Analysis::Recipe::Eye::LEFT,
+                                                            0.2f,
+                                                            &left,
+                                                            5.0f) );
+    ASSERT_TRUE(Analysis::Recipe::RecipeApplier::apply_rule(rule,
+                                                            Analysis::Recipe::Eye::RIGHT,
+                                                            0.2f,
+                                                            &right,
+                                                            5.0f) );
 
     /* Row 2, column 0: the view of the left eye moves a point to the right by half the separation (see make_eye_offset_matrix); a
      * point 5 away and straight ahead is then at 2 * 0.1 + 5 * left[8] = 0 in clip space.
@@ -699,10 +699,10 @@ TEST_F(RecipeApplierTest, AnEyeConvergenceShearsAPerspectiveProjectionSoThatWhat
 
 TEST_F(RecipeApplierTest, AnEyeConvergenceDoesNothingWithoutADistanceOrASeparationAndIsOnlyForAPerspectiveProjection)
 {
-    Analysis::RecipeLoader::Rule rule;
-    auto                         perspective = make_identity();
+    Analysis::Recipe::Rule rule;
+    auto                   perspective = make_identity();
 
-    rule.action_kind = Analysis::RecipeLoader::ActionKind::EYE_CONVERGENCE;
+    rule.action_kind = Analysis::Recipe::ActionKind::EYE_CONVERGENCE;
 
     perspective.at(11) = 1.0f;
     perspective.at(15) = 0.0f;
@@ -710,38 +710,38 @@ TEST_F(RecipeApplierTest, AnEyeConvergenceDoesNothingWithoutADistanceOrASeparati
     auto matrix = perspective;
 
     /* It is a rule about the matrix, though it changes nothing: the converter keeps it as the one of the eye. */
-    EXPECT_TRUE(Analysis::RecipeApplier::RecipeApplier::apply_rule(rule,
-                                                                   Analysis::RecipeLoader::Eye::LEFT,
-                                                                   0.2f,
-                                                                  &matrix) );
+    EXPECT_TRUE(Analysis::Recipe::RecipeApplier::apply_rule(rule,
+                                                            Analysis::Recipe::Eye::LEFT,
+                                                            0.2f,
+                                                            &matrix) );
     EXPECT_EQ  (matrix,
                 perspective);
-    EXPECT_TRUE(Analysis::RecipeApplier::RecipeApplier::apply_rule(rule,
-                                                                   Analysis::RecipeLoader::Eye::LEFT,
-                                                                   0.0f,
-                                                                  &matrix,
-                                                                   5.0f) );
+    EXPECT_TRUE(Analysis::Recipe::RecipeApplier::apply_rule(rule,
+                                                            Analysis::Recipe::Eye::LEFT,
+                                                            0.0f,
+                                                            &matrix,
+                                                            5.0f) );
     EXPECT_EQ  (matrix,
                 perspective);
 
     matrix = make_identity();
 
-    EXPECT_FALSE(Analysis::RecipeApplier::RecipeApplier::apply_rule(rule,
-                                                                    Analysis::RecipeLoader::Eye::LEFT,
-                                                                    0.2f,
-                                                                   &matrix,
-                                                                    5.0f) );
+    EXPECT_FALSE(Analysis::Recipe::RecipeApplier::apply_rule(rule,
+                                                             Analysis::Recipe::Eye::LEFT,
+                                                             0.2f,
+                                                             &matrix,
+                                                             5.0f) );
     EXPECT_EQ   (matrix,
                  make_identity() );
 }
 
 TEST_F(RecipeApplierTest, TheConvergenceDistanceOfASignatureIsTheRecipesAndZeroForOneItDoesNotHave)
 {
-    Analysis::RecipeLoader::Recipe recipe;
+    Analysis::Recipe::Recipe recipe;
 
     recipe.convergence_vec.push_back({12.5f, 7});
 
-    const Analysis::RecipeApplier::RecipeApplier applier(recipe);
+    const Analysis::Recipe::RecipeApplier applier(recipe);
 
     EXPECT_FLOAT_EQ(applier.get_convergence_distance(7),
                     12.5f);
@@ -751,11 +751,11 @@ TEST_F(RecipeApplierTest, TheConvergenceDistanceOfASignatureIsTheRecipesAndZeroF
 
 TEST_F(RecipeApplierTest, TheConvergenceDistanceOfAShapeIsTheRecipesAndZeroForOneItDoesNotHave)
 {
-    Analysis::RecipeLoader::Recipe recipe;
+    Analysis::Recipe::Recipe recipe;
 
     recipe.scene_convergence_vec.push_back({3.5f, 11});
 
-    const Analysis::RecipeApplier::RecipeApplier applier(recipe);
+    const Analysis::Recipe::RecipeApplier applier(recipe);
 
     EXPECT_FLOAT_EQ(applier.get_scene_convergence_distance(11),
                     3.5f);
@@ -765,11 +765,11 @@ TEST_F(RecipeApplierTest, TheConvergenceDistanceOfAShapeIsTheRecipesAndZeroForOn
 
 TEST_F(RecipeApplierTest, TheLimitOfTheSeparationOfAShapeIsTheRecipesAndZeroForOneItDoesNotHave)
 {
-    Analysis::RecipeLoader::Recipe recipe;
+    Analysis::Recipe::Recipe recipe;
 
     recipe.scene_separation_vec.push_back({0.25f, 11});
 
-    const Analysis::RecipeApplier::RecipeApplier applier(recipe);
+    const Analysis::Recipe::RecipeApplier applier(recipe);
 
     EXPECT_FLOAT_EQ(applier.get_scene_max_separation(11),
                     0.25f);
@@ -779,81 +779,81 @@ TEST_F(RecipeApplierTest, TheLimitOfTheSeparationOfAShapeIsTheRecipesAndZeroForO
 
 TEST_F(RecipeApplierTest, AnOverlayIsPushedOnlyByTheRuleOfAProjectionAndOnlyInAPerspectiveMatrix)
 {
-    Analysis::RecipeLoader::Rule convergence_rule;
-    Analysis::RecipeLoader::Rule offset_rule;
+    Analysis::Recipe::Rule convergence_rule;
+    Analysis::Recipe::Rule offset_rule;
 
-    convergence_rule.action_kind = Analysis::RecipeLoader::ActionKind::EYE_CONVERGENCE;
-    offset_rule.action_kind      = Analysis::RecipeLoader::ActionKind::EYE_OFFSET;
+    convergence_rule.action_kind = Analysis::Recipe::ActionKind::EYE_CONVERGENCE;
+    offset_rule.action_kind      = Analysis::Recipe::ActionKind::EYE_OFFSET;
 
-    std::array<float, 16> perspective = {1.0f, 0.0f, 0.0f, 0.0f,
-                                         0.0f, 1.0f, 0.0f, 0.0f,
-                                         0.0f, 0.0f, 1.0f, 1.0f,
-                                         0.0f, 0.0f, 0.0f, 0.0f};
+    std::array<float, 16> perspective  = {1.0f, 0.0f, 0.0f, 0.0f,
+                                          0.0f, 1.0f, 0.0f, 0.0f,
+                                          0.0f, 0.0f, 1.0f, 1.0f,
+                                          0.0f, 0.0f, 0.0f, 0.0f};
     std::array<float, 16> orthographic = {1.0f, 0.0f, 0.0f, 0.0f,
                                           0.0f, 1.0f, 0.0f, 0.0f,
                                           0.0f, 0.0f, 1.0f, 0.0f,
                                           0.0f, 0.0f, 0.0f, 1.0f};
-    std::array<float, 16> matrix      = perspective;
+    std::array<float, 16> matrix       = perspective;
 
-    EXPECT_TRUE(Analysis::RecipeApplier::RecipeApplier::apply_overlay_shift(convergence_rule,
-                                                                            Analysis::RecipeLoader::Eye::LEFT,
-                                                                            0.05f,
-                                                                           &matrix) );
+    EXPECT_TRUE(Analysis::Recipe::RecipeApplier::apply_overlay_shift(convergence_rule,
+                                                                     Analysis::Recipe::Eye::LEFT,
+                                                                     0.05f,
+                                                                     &matrix) );
     EXPECT_FLOAT_EQ(matrix.at(8),
                     0.05f);
 
     matrix = perspective;
 
-    EXPECT_TRUE(Analysis::RecipeApplier::RecipeApplier::apply_overlay_shift(convergence_rule,
-                                                                            Analysis::RecipeLoader::Eye::RIGHT,
-                                                                            0.05f,
-                                                                           &matrix) );
+    EXPECT_TRUE(Analysis::Recipe::RecipeApplier::apply_overlay_shift(convergence_rule,
+                                                                     Analysis::Recipe::Eye::RIGHT,
+                                                                     0.05f,
+                                                                     &matrix) );
     EXPECT_FLOAT_EQ(matrix.at(8),
                     -0.05f);
 
     matrix = perspective;
 
-    EXPECT_FALSE(Analysis::RecipeApplier::RecipeApplier::apply_overlay_shift(offset_rule,
-                                                                             Analysis::RecipeLoader::Eye::LEFT,
-                                                                             0.05f,
-                                                                            &matrix) );
+    EXPECT_FALSE(Analysis::Recipe::RecipeApplier::apply_overlay_shift(offset_rule,
+                                                                      Analysis::Recipe::Eye::LEFT,
+                                                                      0.05f,
+                                                                      &matrix) );
     EXPECT_EQ   (matrix,
                  perspective);
 
     matrix = orthographic;
 
-    EXPECT_FALSE(Analysis::RecipeApplier::RecipeApplier::apply_overlay_shift(convergence_rule,
-                                                                             Analysis::RecipeLoader::Eye::LEFT,
-                                                                             0.05f,
-                                                                            &matrix) );
+    EXPECT_FALSE(Analysis::Recipe::RecipeApplier::apply_overlay_shift(convergence_rule,
+                                                                      Analysis::Recipe::Eye::LEFT,
+                                                                      0.05f,
+                                                                      &matrix) );
     EXPECT_EQ   (matrix,
                  orthographic);
 }
 
 TEST_F(RecipeApplierTest, TheParallaxOfTheOverlayIsTheRecipesAndZeroWithoutOne)
 {
-    Analysis::RecipeLoader::Recipe recipe;
+    Analysis::Recipe::Recipe recipe;
 
-    EXPECT_FLOAT_EQ(Analysis::RecipeApplier::RecipeApplier(recipe).get_overlay_parallax(),
+    EXPECT_FLOAT_EQ(Analysis::Recipe::RecipeApplier(recipe).get_overlay_parallax(),
                     0.0f);
 
     recipe.comfort.overlay_parallax = 0.04f;
 
-    EXPECT_FLOAT_EQ(Analysis::RecipeApplier::RecipeApplier(recipe).get_overlay_parallax(),
+    EXPECT_FLOAT_EQ(Analysis::Recipe::RecipeApplier(recipe).get_overlay_parallax(),
                     0.04f);
 }
 
 TEST(RecipeApplierPerEyeTextures, ATextureIsOneThatEachEyeHasACopyOfWhenTheRecipeNamesItsKeyAndItsOrdinal)
 {
-    Analysis::RecipeLoader::Recipe recipe;
-    Analysis::RecipeLoader::PerEyeTexture texture;
+    Analysis::Recipe::Recipe        recipe;
+    Analysis::Recipe::PerEyeTexture texture;
 
     texture.description_key = 0x1234;
     texture.ordinal         = 1;
 
     recipe.per_eye_texture_vec.push_back(texture);
 
-    const Analysis::RecipeApplier::RecipeApplier applier(recipe);
+    const Analysis::Recipe::RecipeApplier applier(recipe);
 
     Analysis::APIDumpAnalysis::ResourceIdentity identity;
 
@@ -875,9 +875,9 @@ TEST(RecipeApplierPerEyeTextures, ATextureIsOneThatEachEyeHasACopyOfWhenTheRecip
 
 TEST_F(RecipeApplierTest, ADrawInOnePassBeatsTheKeyOfTheDrawAndTheKeyOfThePassAndLeavesTheSameDrawInOtherPassesAlone)
 {
-    Analysis::RecipeLoader::Recipe recipe;
-    Analysis::RecipeLoader::PassDraw unaffected_pass_draw;
-    Analysis::RecipeLoader::PassDraw affected_pass_draw;
+    Analysis::Recipe::Recipe   recipe;
+    Analysis::Recipe::PassDraw unaffected_pass_draw;
+    Analysis::Recipe::PassDraw affected_pass_draw;
 
     /* The draw 30 is in the passes 10 and 11 (a scene is drawn by one of them, and an overlay by the other). */
     recipe.unaffected.draw_key_vec = {30};
@@ -892,7 +892,7 @@ TEST_F(RecipeApplierTest, ADrawInOnePassBeatsTheKeyOfTheDrawAndTheKeyOfThePassAn
     recipe.skipped.pass_draw_vec    = {unaffected_pass_draw};
     recipe.unaffected.pass_draw_vec = {unaffected_pass_draw};
 
-    const Analysis::RecipeApplier::RecipeApplier applier(recipe);
+    const Analysis::Recipe::RecipeApplier applier(recipe);
 
     /* The draw in its pass is named unaffected; in the pass that names it affected, that wins over the key of the draw and of the pass. */
     EXPECT_FALSE(applier.is_draw_affected(11,

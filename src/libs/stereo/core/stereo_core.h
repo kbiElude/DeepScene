@@ -17,7 +17,7 @@
 #ifndef STEREO_CORE_STEREO_CORE_H
 #define STEREO_CORE_STEREO_CORE_H
 
-#include "analysis/recipe_applier/recipe_applier.h"
+#include "analysis/recipe/recipe_applier.h"
 #include "stereo/core/convergence_model.h"
 #include "stereo/core/matrix_slots.h"
 #include "stereo/core/screen_parallax_planner.h"
@@ -34,8 +34,8 @@ namespace Stereo
         {
         public:
             /* Fails, through the function, if the recipe is not baked or has rules that cannot be followed as the application runs. */
-            StereoCore(const Analysis::RecipeLoader::Recipe& in_recipe,
-                       const FailFunc&                       in_fail_func);
+            StereoCore(const Analysis::Recipe::Recipe& in_recipe,
+                       const FailFunc&                 in_fail_func);
 
             /* The matrices to put in the device before a draw of the class, for the eye, that are not in it yet: for a draw which is
              * affected, those the recipe changes are made for the eye, for any other the application's (a draw that is made to what the
@@ -45,16 +45,16 @@ namespace Stereo
              * The changes are written to the first entries of the vector, which the caller keeps from one call to the next so that
              * the room of its entries is used again; the entries after them are not meant. Returns how many there are.
              */
-            uint32_t bind_matrices(const Analysis::RecipeLoader::DrawClass& in_draw_class,
-                                   const Analysis::RecipeLoader::Eye&       in_eye,
-                                   std::vector<MatrixChange>*               inout_change_vec_ptr,
-                                   const bool&                              in_is_final_target = false);
+            uint32_t bind_matrices(const Analysis::Recipe::DrawClass& in_draw_class,
+                                   const Analysis::Recipe::Eye&       in_eye,
+                                   std::vector<MatrixChange>*         inout_change_vec_ptr,
+                                   const bool&                        in_is_final_target = false);
 
             /* What the recipe does to a draw by its signature and the view matrix the application has now. A draw that covers the whole of the
              * view (a flash) is not pushed toward the viewer: the picture of it would be moved, and leave a strip of the screen bare.
              */
-            Analysis::RecipeLoader::DrawClass classify_draw(const uint64_t& in_signature_key,
-                                                            const uint64_t& in_cover_key);
+            Analysis::Recipe::DrawClass classify_draw(const uint64_t& in_signature_key,
+                                                      const uint64_t& in_cover_key);
 
             /* Forgets the matrices kept, for when the device has other ones than the converter knows of (it was reset). */
             void forget_matrices();
@@ -94,11 +94,11 @@ namespace Stereo
              * picture width is that of the viewport the draw is made with, and the draw is presented if it is made to what the application
              * presents.
              */
-            ScreenShiftPlan plan_screen_shift(const Analysis::RecipeLoader::Eye& in_eye,
-                                              const bool&                        in_has_extent,
-                                              const bool&                        in_is_presented,
-                                              const float&                       in_picture_width,
-                                              const bool&                        in_reaches_both_sides) const;
+            ScreenShiftPlan plan_screen_shift(const Analysis::Recipe::Eye& in_eye,
+                                              const bool&                  in_has_extent,
+                                              const bool&                  in_is_presented,
+                                              const float&                 in_picture_width,
+                                              const bool&                  in_reaches_both_sides) const;
 
             /* Fails, through the function, if the condition does not hold: for the places where an adapter finds that the application
              * does something that only holding the calls of a pass back could convert right.
@@ -142,12 +142,12 @@ namespace Stereo
             void fail(const std::string& in_message) const;
 
 
-            Analysis::RecipeApplier::RecipeApplier m_applier;
+            Analysis::Recipe::RecipeApplier m_applier;
             ConvergenceModel                       m_convergence_model;
             FailFunc                               m_fail_func;
             bool                                   m_is_last_draw_covering; /* the draw that was classified last covers the whole of the view */
             bool                                   m_is_overlay_pushed;     /* the person asks for the overlay to be pushed                    */
-            Analysis::RecipeLoader::DrawClass      m_last_draw_class;       /* of the draw that was classified last                            */
+            Analysis::Recipe::DrawClass      m_last_draw_class;       /* of the draw that was classified last                            */
             uint64_t                               m_last_draw_cover_key;   /* the same                                                         */
             MatrixSlots                            m_matrix_slots;
             uint64_t                               m_n_unknown_draws;

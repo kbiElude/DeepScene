@@ -544,7 +544,7 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::probe_entries(const Optio
         }
 
         /* The draw is left out in its pass, not in the other passes which have a draw of its structure (a pass that draws a scene may be one of them). */
-        Analysis::RecipeLoader::PassDraw pass_draw;
+        Analysis::Recipe::PassDraw pass_draw;
 
         pass_draw.draw_key = entry.structure_key;
         pass_draw.pass_key = entry.pass_key;

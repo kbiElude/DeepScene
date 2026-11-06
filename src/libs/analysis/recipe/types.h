@@ -6,8 +6,8 @@
  * into. Frames and passes are referred to by match keys (see KeyBuilder), which are the same in every run, never by frame
  * indices or analysis IDs, which are not.
  */
-#ifndef RECIPELOADER_TYPES_H
-#define RECIPELOADER_TYPES_H
+#ifndef RECIPE_TYPES_H
+#define RECIPE_TYPES_H
 
 #include "Common/types.h"
 #include <array>
@@ -17,7 +17,7 @@
 
 namespace Analysis
 {
-    namespace RecipeLoader
+    namespace Recipe
     {
         /* The axes of a matrix: the first three components of its last row move along them. */
         enum class Axis
@@ -244,4 +244,4 @@ namespace Analysis
     }
 }
 
-#endif /* RECIPELOADER_TYPES_H */
+#endif /* RECIPE_TYPES_H */

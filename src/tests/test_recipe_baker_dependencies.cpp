@@ -7,7 +7,7 @@
  */
 #include <gtest/gtest.h>
 #include "tools/analysis/recipe_bake/recipe_baker.h"
-#include "analysis/recipe_loader/recipe_loader.h"
+#include "analysis/recipe/recipe_loader.h"
 #include "dependency_scene.h"
 #include "model_test_helper.h"
 
@@ -49,7 +49,7 @@ TEST(RecipeBakerDependencies, TexturesWhichFramesUseByTurnsAreBothBakedAsOnesTha
 {
     Analysis::APIDumpAnalysis::AnalysisResult analysis;
     Analysis::RecipeBake::BakeReport          report;
-    Analysis::RecipeLoader::Recipe            recipe;
+    Analysis::Recipe::Recipe                  recipe;
     std::string                               error;
     std::string                               text;
     const auto                                dependencies = make_ping_pong_dependencies();
@@ -63,9 +63,9 @@ TEST(RecipeBakerDependencies, TexturesWhichFramesUseByTurnsAreBothBakedAsOnesTha
                                                        &report,
                                                        &error,
                                                        &dependencies) ) << error;
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(text,
-                                                           &recipe,
-                                                           &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(text,
+                                                      &recipe,
+                                                      &error) ) << error;
 
     EXPECT_TRUE(report.uses_dependencies);
     EXPECT_EQ  (report.n_per_eye_textures,

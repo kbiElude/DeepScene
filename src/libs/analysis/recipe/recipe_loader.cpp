@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_analysis/passes_format.h"
-#include "analysis/recipe_loader/recipe_loader.h"
+#include "analysis/recipe/recipe_loader.h"
 #include "Interception/Core/D3D7Utils/constants.h"
 #include "Interception/Hooks/D3D8/types.h"
 #include <algorithm>
@@ -14,10 +14,10 @@
 #include <stdlib.h>
 #include <utility>
 
-bool Analysis::RecipeLoader::RecipeLoader::check_keys(const Utils::Json::JsonValue&   in_object,
-                                                      const std::vector<std::string>& in_allowed_key_vec,
-                                                      const std::string&              in_path,
-                                                      std::string*                    out_error_ptr)
+bool Analysis::Recipe::RecipeLoader::check_keys(const Utils::Json::JsonValue&   in_object,
+                                                const std::vector<std::string>& in_allowed_key_vec,
+                                                const std::string&              in_path,
+                                                std::string*                    out_error_ptr)
 {
     const std::string* unknown_key_ptr = in_object.find_unknown_key_ptr(in_allowed_key_vec);
 
@@ -30,7 +30,7 @@ bool Analysis::RecipeLoader::RecipeLoader::check_keys(const Utils::Json::JsonVal
     return (unknown_key_ptr == nullptr);
 }
 
-const Analysis::RecipeLoader::RecipeLoader::CallDescriptor* Analysis::RecipeLoader::RecipeLoader::find_call_descriptor_ptr(const std::string& in_name)
+const Analysis::Recipe::RecipeLoader::CallDescriptor* Analysis::Recipe::RecipeLoader::find_call_descriptor_ptr(const std::string& in_name)
 {
     /* The functions a rule can apply to: name, function and argument positions (argument 0 is the object it is called on). */
     static const CallDescriptor CALL_DESCRIPTOR_ARRAY[] =
@@ -52,8 +52,8 @@ const Analysis::RecipeLoader::RecipeLoader::CallDescriptor* Analysis::RecipeLoad
     return result_ptr;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::has_common_key(const std::vector<uint64_t>& in_a,
-                                                          const std::vector<uint64_t>& in_b)
+bool Analysis::Recipe::RecipeLoader::has_common_key(const std::vector<uint64_t>& in_a,
+                                                    const std::vector<uint64_t>& in_b)
 {
     bool result = false;
 
@@ -70,8 +70,8 @@ bool Analysis::RecipeLoader::RecipeLoader::has_common_key(const std::vector<uint
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::has_common_pass_draw(const std::vector<PassDraw>& in_a,
-                                                                const std::vector<PassDraw>& in_b)
+bool Analysis::Recipe::RecipeLoader::has_common_pass_draw(const std::vector<PassDraw>& in_a,
+                                                          const std::vector<PassDraw>& in_b)
 {
     bool result = false;
 
@@ -87,7 +87,7 @@ bool Analysis::RecipeLoader::RecipeLoader::has_common_pass_draw(const std::vecto
     return result;
 }
 
-std::vector<std::string> Analysis::RecipeLoader::RecipeLoader::describe_pass_selectors_live_ignores(const Recipe& in_recipe)
+std::vector<std::string> Analysis::Recipe::RecipeLoader::describe_pass_selectors_live_ignores(const Recipe& in_recipe)
 {
     struct Named
     {
@@ -119,9 +119,9 @@ std::vector<std::string> Analysis::RecipeLoader::RecipeLoader::describe_pass_sel
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::load(const std::string& in_filename,
-                                                Recipe*            out_recipe_ptr,
-                                                std::string*       out_error_ptr)
+bool Analysis::Recipe::RecipeLoader::load(const std::string& in_filename,
+                                          Recipe*            out_recipe_ptr,
+                                          std::string*       out_error_ptr)
 {
     bool        result = false;
     std::string text;
@@ -142,9 +142,9 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse(const std::string& in_text,
-                                                 Recipe*            out_recipe_ptr,
-                                                 std::string*       out_error_ptr)
+bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
+                                           Recipe*            out_recipe_ptr,
+                                           std::string*       out_error_ptr)
 {
     constexpr uint32_t SUPPORTED_RECIPE_VERSION = 0;
 
@@ -467,10 +467,10 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_action(const Utils::Json::JsonValue& in_action,
-                                                        const std::string&            in_path,
-                                                        Rule*                         inout_rule_ptr,
-                                                        std::string*                  out_error_ptr)
+bool Analysis::Recipe::RecipeLoader::parse_action(const Utils::Json::JsonValue& in_action,
+                                                  const std::string&            in_path,
+                                                  Rule*                         inout_rule_ptr,
+                                                  std::string*                  out_error_ptr)
 {
     bool result = false;
 
@@ -644,10 +644,10 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_baked(const Utils::Json::JsonValue& in_baked,
-                                                       const std::string&            in_path,
-                                                       Recipe*                       inout_recipe_ptr,
-                                                       std::string*                  out_error_ptr)
+bool Analysis::Recipe::RecipeLoader::parse_baked(const Utils::Json::JsonValue& in_baked,
+                                                 const std::string&            in_path,
+                                                 Recipe*                       inout_recipe_ptr,
+                                                 std::string*                  out_error_ptr)
 {
     const auto* convergence_ptr              = in_baked.find_ptr("convergence");
     const auto* covering_draws_ptr           = in_baked.find_ptr("covering_draws");
@@ -858,10 +858,10 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_comfort(const Utils::Json::JsonValue& in_value,
-                                                         const std::string&            in_path,
-                                                         Comfort*                      out_comfort_ptr,
-                                                         std::string*                  out_error_ptr)
+bool Analysis::Recipe::RecipeLoader::parse_comfort(const Utils::Json::JsonValue& in_value,
+                                                   const std::string&            in_path,
+                                                   Comfort*                      out_comfort_ptr,
+                                                   std::string*                  out_error_ptr)
 {
     bool result = false;
 
@@ -945,10 +945,10 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_screen_parallax(const Utils::Json::JsonValue& in_value,
-                                                                 const std::string&            in_path,
-                                                                 ScreenParallax*               out_screen_parallax_ptr,
-                                                                 std::string*                  out_error_ptr)
+bool Analysis::Recipe::RecipeLoader::parse_screen_parallax(const Utils::Json::JsonValue& in_value,
+                                                           const std::string&            in_path,
+                                                           ScreenParallax*               out_screen_parallax_ptr,
+                                                           std::string*                  out_error_ptr)
 {
     /* An angle of view of a half circle or more is no picture. */
     constexpr double MAX_FIELD_OF_VIEW_DEGREES = 180.0;
@@ -1018,10 +1018,10 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_draw_rule(const Utils::Json::JsonValue& in_rule,
-                                                           const std::string&            in_path,
-                                                           DrawRule*                     out_rule_ptr,
-                                                           std::string*                  out_error_ptr)
+bool Analysis::Recipe::RecipeLoader::parse_draw_rule(const Utils::Json::JsonValue& in_rule,
+                                                     const std::string&            in_path,
+                                                     DrawRule*                     out_rule_ptr,
+                                                     std::string*                  out_error_ptr)
 {
     const auto* class_ptr     = in_rule.find_ptr("class");
     bool        result        = false;
@@ -1155,10 +1155,10 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_draw_selector(const Utils::Json::JsonValue& in_value,
-                                                               const std::string&            in_path,
-                                                               DrawSelector*                 out_selector_ptr,
-                                                               std::string*                  out_error_ptr)
+bool Analysis::Recipe::RecipeLoader::parse_draw_selector(const Utils::Json::JsonValue& in_value,
+                                                         const std::string&            in_path,
+                                                         DrawSelector*                 out_selector_ptr,
+                                                         std::string*                  out_error_ptr)
 {
     bool result = false;
 
@@ -1252,10 +1252,10 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_hex_key(const Utils::Json::JsonValue& in_value,
-                                                         const std::string&            in_path,
-                                                         uint64_t*                     out_key_ptr,
-                                                         std::string*                  out_error_ptr)
+bool Analysis::Recipe::RecipeLoader::parse_hex_key(const Utils::Json::JsonValue& in_value,
+                                                   const std::string&            in_path,
+                                                   uint64_t*                     out_key_ptr,
+                                                   std::string*                  out_error_ptr)
 {
     constexpr int    HEX_BASE     = 16;
     constexpr size_t N_HEX_DIGITS = 16;
@@ -1305,10 +1305,10 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_hex_key_array(const Utils::Json::JsonValue& in_array,
-                                                               const std::string&            in_path,
-                                                               std::vector<uint64_t>*        out_key_vec_ptr,
-                                                               std::string*                  out_error_ptr)
+bool Analysis::Recipe::RecipeLoader::parse_hex_key_array(const Utils::Json::JsonValue& in_array,
+                                                         const std::string&            in_path,
+                                                         std::vector<uint64_t>*        out_key_vec_ptr,
+                                                         std::string*                  out_error_ptr)
 {
     bool result = false;
 
@@ -1345,12 +1345,12 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_key_distance_array(const Utils::Json::JsonValue& in_array,
-                                                                    const std::string&            in_path,
-                                                                    const std::string&            in_key_name,
-                                                                    const std::string&            in_distance_name,
-                                                                    KeyDistanceVector*            out_key_distance_vec_ptr,
-                                                                    std::string*                  out_error_ptr)
+bool Analysis::Recipe::RecipeLoader::parse_key_distance_array(const Utils::Json::JsonValue& in_array,
+                                                              const std::string&            in_path,
+                                                              const std::string&            in_key_name,
+                                                              const std::string&            in_distance_name,
+                                                              KeyDistanceVector*            out_key_distance_vec_ptr,
+                                                              std::string*                  out_error_ptr)
 {
     bool result = false;
 
@@ -1440,10 +1440,10 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_matrix(const Utils::Json::JsonValue& in_array,
-                                                        const std::string&            in_path,
-                                                        std::array<float, 16>*        out_matrix_ptr,
-                                                        std::string*                  out_error_ptr)
+bool Analysis::Recipe::RecipeLoader::parse_matrix(const Utils::Json::JsonValue& in_array,
+                                                  const std::string&            in_path,
+                                                  std::array<float, 16>*        out_matrix_ptr,
+                                                  std::string*                  out_error_ptr)
 {
     bool result = false;
 
@@ -1479,10 +1479,10 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_pass_draw_array(const Utils::Json::JsonValue& in_array,
-                                                                 const std::string&            in_path,
-                                                                 std::vector<PassDraw>*        out_pass_draw_vec_ptr,
-                                                                 std::string*                  out_error_ptr)
+bool Analysis::Recipe::RecipeLoader::parse_pass_draw_array(const Utils::Json::JsonValue& in_array,
+                                                           const std::string&            in_path,
+                                                           std::vector<PassDraw>*        out_pass_draw_vec_ptr,
+                                                           std::string*                  out_error_ptr)
 {
     bool result = false;
 
@@ -1551,10 +1551,10 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_per_eye_textures(const Utils::Json::JsonValue& in_value,
-                                                                  const std::string&            in_path,
-                                                                  std::vector<PerEyeTexture>*   out_texture_vec_ptr,
-                                                                  std::string*                  out_error_ptr)
+bool Analysis::Recipe::RecipeLoader::parse_per_eye_textures(const Utils::Json::JsonValue& in_value,
+                                                            const std::string&            in_path,
+                                                            std::vector<PerEyeTexture>*   out_texture_vec_ptr,
+                                                            std::string*                  out_error_ptr)
 {
     bool result = false;
 
@@ -1634,10 +1634,10 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_rule(const Utils::Json::JsonValue& in_rule,
-                                                      const std::string&            in_path,
-                                                      Rule*                         out_rule_ptr,
-                                                      std::string*                  out_error_ptr)
+bool Analysis::Recipe::RecipeLoader::parse_rule(const Utils::Json::JsonValue& in_rule,
+                                                const std::string&            in_path,
+                                                Rule*                         out_rule_ptr,
+                                                std::string*                  out_error_ptr)
 {
     const CallDescriptor* call_ptr = nullptr;
     bool                  result   = false;
@@ -1723,11 +1723,11 @@ end:
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_state(const Utils::Json::JsonValue& in_value,
-                                                       const std::string&            in_path,
-                                                       const CallDescriptor&         in_call,
-                                                       uint32_t*                     out_state_ptr,
-                                                       std::string*                  out_error_ptr)
+bool Analysis::Recipe::RecipeLoader::parse_state(const Utils::Json::JsonValue& in_value,
+                                                 const std::string&            in_path,
+                                                 const CallDescriptor&         in_call,
+                                                 uint32_t*                     out_state_ptr,
+                                                 std::string*                  out_error_ptr)
 {
     struct StateName
     {
@@ -1814,10 +1814,10 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_state(const Utils::Json::JsonVa
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_unsigned(const Utils::Json::JsonValue& in_value,
-                                                          const std::string&            in_path,
-                                                          uint32_t*                     out_value_ptr,
-                                                          std::string*                  out_error_ptr)
+bool Analysis::Recipe::RecipeLoader::parse_unsigned(const Utils::Json::JsonValue& in_value,
+                                                    const std::string&            in_path,
+                                                    uint32_t*                     out_value_ptr,
+                                                    std::string*                  out_error_ptr)
 {
     const double floor_value = ::floor(in_value.number_value);
     bool         result      = false;
@@ -1839,11 +1839,11 @@ bool Analysis::RecipeLoader::RecipeLoader::parse_unsigned(const Utils::Json::Jso
     return result;
 }
 
-bool Analysis::RecipeLoader::RecipeLoader::parse_when(const Utils::Json::JsonValue& in_when,
-                                                      const std::string&            in_path,
-                                                      const CallDescriptor&         in_call,
-                                                      Rule*                         inout_rule_ptr,
-                                                      std::string*                  out_error_ptr)
+bool Analysis::Recipe::RecipeLoader::parse_when(const Utils::Json::JsonValue& in_when,
+                                                const std::string&            in_path,
+                                                const CallDescriptor&         in_call,
+                                                Rule*                         inout_rule_ptr,
+                                                std::string*                  out_error_ptr)
 {
     bool result = false;
 

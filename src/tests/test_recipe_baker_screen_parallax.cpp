@@ -7,7 +7,7 @@
  */
 #include <gtest/gtest.h>
 #include "tools/analysis/recipe_bake/recipe_baker.h"
-#include "analysis/recipe_loader/recipe_loader.h"
+#include "analysis/recipe/recipe_loader.h"
 #include "model_test_helper.h"
 
 namespace
@@ -50,7 +50,7 @@ TEST(RecipeBakerScreenParallax, ADrawWhichCoversTheViewIsNotToBeMovedSidewaysInA
     analysis.model = helper.get_model();
 
     Analysis::RecipeBake::BakeReport report;
-    Analysis::RecipeLoader::Recipe   recipe;
+    Analysis::Recipe::Recipe         recipe;
     std::string                      error;
     std::string                      text;
 
@@ -61,9 +61,9 @@ TEST(RecipeBakerScreenParallax, ADrawWhichCoversTheViewIsNotToBeMovedSidewaysInA
                                                        &text,
                                                        &report,
                                                        &error) ) << error;
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(text,
-                                                           &recipe,
-                                                           &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(text,
+                                                      &recipe,
+                                                      &error) ) << error;
 
     EXPECT_EQ(recipe.covering_draw_key_vec.size(),
               1u);
@@ -74,9 +74,9 @@ TEST(RecipeBakerScreenParallax, ADrawWhichCoversTheViewIsNotToBeMovedSidewaysInA
                                                        &text,
                                                        &report,
                                                        &error) ) << error;
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(text,
-                                                           &recipe,
-                                                           &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(text,
+                                                      &recipe,
+                                                      &error) ) << error;
 
     EXPECT_TRUE(recipe.covering_draw_key_vec.empty() );
 }
@@ -85,7 +85,7 @@ TEST(RecipeBakerScreenParallax, TheDistanceOfASceneAndHowFarApartTheEyesMayBeAre
 {
     const auto                       analysis = make_analysis();
     Analysis::RecipeBake::BakeReport report;
-    Analysis::RecipeLoader::Recipe   recipe;
+    Analysis::Recipe::Recipe         recipe;
     std::string                      error;
     std::string                      text;
 
@@ -100,9 +100,9 @@ TEST(RecipeBakerScreenParallax, TheDistanceOfASceneAndHowFarApartTheEyesMayBeAre
                                                        &text,
                                                        &report,
                                                        &error) ) << error;
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(text,
-                                                           &recipe,
-                                                           &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(text,
+                                                      &recipe,
+                                                      &error) ) << error;
 
     /* The recipe is kept as it was written. */
     EXPECT_TRUE(recipe.screen_parallax.is_enabled);
@@ -120,7 +120,7 @@ TEST(RecipeBakerScreenParallax, TheDistanceOfASceneAndHowFarApartTheEyesMayBeAre
                 0.04f);
 
     /* A narrower angle of view makes the same separation more of the width, so the limit is smaller: the scale is the reciprocal of the tangent. */
-    Analysis::RecipeLoader::Recipe narrow_recipe;
+    Analysis::Recipe::Recipe narrow_recipe;
 
     ASSERT_TRUE(Analysis::RecipeBake::RecipeBaker::bake("{\"recipe_version\": 0, \"key_scheme_version\": 1, \"target\": {\"name\": \"test\", \"description\": \"a test\"},"
                                                         "\"comfort\": {\"max_near_parallax\": 0.03, \"near_fraction\": 0.5},"
@@ -130,9 +130,9 @@ TEST(RecipeBakerScreenParallax, TheDistanceOfASceneAndHowFarApartTheEyesMayBeAre
                                                        &text,
                                                        &report,
                                                        &error) ) << error;
-    ASSERT_TRUE(Analysis::RecipeLoader::RecipeLoader::parse(text,
-                                                           &narrow_recipe,
-                                                           &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(text,
+                                                      &narrow_recipe,
+                                                      &error) ) << error;
 
     ASSERT_EQ(narrow_recipe.scene_separation_vec.size(),
               1u);

@@ -29,9 +29,9 @@
 #include "utils/json/json_writer.h"
 #include "analysis/api_dump_analysis/model.h"
 #include "analysis/api_dump_dependencies/types.h"
-#include "analysis/recipe_applier/recipe_applier.h"
+#include "analysis/recipe/recipe_applier.h"
 #include "types.h"
-#include "analysis/recipe_loader/types.h"
+#include "analysis/recipe/types.h"
 #include <array>
 #include <map>
 #include <set>
@@ -60,13 +60,13 @@ namespace Analysis
                              const Analysis::APIDumpDependencies::DependencyAnalysis* in_dependencies_ptr = nullptr);
 
         private:
-            typedef std::map<Analysis::RecipeLoader::DrawClass, std::set<uint32_t> > ClassMap;
-            typedef std::vector<Analysis::RecipeLoader::DrawConvergence>             ConvergenceVector;
-            typedef std::vector<Analysis::RecipeLoader::SceneConvergence>            SceneConvergenceVector;
-            typedef std::vector<Analysis::RecipeLoader::SceneSeparation>             SceneSeparationVector;
+            typedef std::map<Analysis::Recipe::DrawClass, std::set<uint32_t> > ClassMap;
+            typedef std::vector<Analysis::Recipe::DrawConvergence>             ConvergenceVector;
+            typedef std::vector<Analysis::Recipe::SceneConvergence>            SceneConvergenceVector;
+            typedef std::vector<Analysis::Recipe::SceneSeparation>             SceneSeparationVector;
             typedef std::vector<std::array<float, 16> >                              MatrixVector;
-            typedef std::vector<Analysis::RecipeLoader::PerEyeTexture>               PerEyeTextureVector;
-            typedef std::vector<Analysis::RecipeLoader::DrawRule>                    RuleVector;
+            typedef std::vector<Analysis::Recipe::PerEyeTexture>               PerEyeTextureVector;
+            typedef std::vector<Analysis::Recipe::DrawRule>                    RuleVector;
 
             /* The rules of a signature which passes of different classes draw: each class that is not affected is told by the view
              * matrices of its passes. Returns false, and says why, if the matrices do not tell the classes apart.
@@ -76,18 +76,18 @@ namespace Analysis
                                                   const ClassMap&                                  in_class_map,
                                                   RuleVector*                                      inout_rule_vec_ptr,
                                                   std::string*                                     out_error_ptr);
-            static void compute_convergence      (const Analysis::RecipeLoader::Recipe&            in_recipe,
+            static void compute_convergence      (const Analysis::Recipe::Recipe&                  in_recipe,
                                                   const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis,
                                                   ConvergenceVector*                               out_convergence_vec_ptr,
                                                   BakeReport*                                      out_report_ptr);
-            static bool compute_draw_rules       (const Analysis::RecipeLoader::Recipe&            in_recipe,
+            static bool compute_draw_rules       (const Analysis::Recipe::Recipe&                  in_recipe,
                                                   const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis,
                                                   std::vector<uint64_t>*                           out_known_signature_key_vec_ptr,
                                                   RuleVector*                                      out_rule_vec_ptr,
                                                   BakeReport*                                      out_report_ptr,
                                                   std::string*                                     out_error_ptr);
 
-            static void compute_scene_convergence(const Analysis::RecipeLoader::Recipe&            in_recipe,
+            static void compute_scene_convergence(const Analysis::Recipe::Recipe&                  in_recipe,
                                                   const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis,
                                                   SceneConvergenceVector*                          out_scene_convergence_vec_ptr,
                                                   SceneSeparationVector*                           out_scene_separation_vec_ptr,
@@ -96,7 +96,7 @@ namespace Analysis
             /* The keys of the draws that cover the whole of the view, in the passes that the recipe leaves alone: only those are moved by the
              * overlay, and the mesh of a scene can have the same key.
              */
-            static std::vector<uint64_t> get_covering_draw_key_vec(const Analysis::RecipeLoader::Recipe&            in_recipe,
+            static std::vector<uint64_t> get_covering_draw_key_vec(const Analysis::Recipe::Recipe&                  in_recipe,
                                                                    const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis);
 
             /* The textures which frames carry over from the frame before, which each eye has a copy of (the back buffer is not one: the player keeps
@@ -104,11 +104,11 @@ namespace Analysis
             static PerEyeTextureVector get_per_eye_texture_vec(const Analysis::APIDumpAnalysis::AnalysisResult&         in_analysis,
                                                                const Analysis::APIDumpDependencies::DependencyAnalysis* in_dependencies_ptr);
 
-            static const char* get_class_name(const Analysis::RecipeLoader::DrawClass& in_class);
+            static const char* get_class_name(const Analysis::Recipe::DrawClass& in_class);
 
-            static Analysis::RecipeLoader::DrawClass get_draw_class(const Analysis::RecipeApplier::RecipeApplier& in_applier,
-                                                                    const uint64_t&                               in_pass_key,
-                                                                    const uint64_t&                               in_structure_key);
+            static Analysis::Recipe::DrawClass get_draw_class(const Analysis::Recipe::RecipeApplier& in_applier,
+                                                              const uint64_t&                        in_pass_key,
+                                                              const uint64_t&                        in_structure_key);
 
             /* As the keys are written in a recipe. */
             static std::string get_key_text(const uint64_t& in_key);

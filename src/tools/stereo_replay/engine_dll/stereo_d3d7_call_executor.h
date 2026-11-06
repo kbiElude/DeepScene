@@ -24,8 +24,8 @@ namespace Stereo
             public:
                 StereoD3D7CallExecutor(::Replay::ReplayEngineDLL::ObjectRemapper* in_remapper_ptr);
 
-                void set_eye              (const Analysis::RecipeLoader::Eye& in_eye)       override;
-                void set_per_eye_predicate(const PerEyePredicate&             in_predicate) override;
+                void set_eye              (const Analysis::Recipe::Eye& in_eye)       override;
+                void set_per_eye_predicate(const PerEyePredicate&       in_predicate) override;
 
             protected:
                 bool  after_call          (const Capture::APIDumpLoader::DumpedAPICall& in_call,
@@ -46,7 +46,7 @@ namespace Stereo
                 /* True if an object of the call has a copy for each eye: a call which sets such an object up is made for both. */
                 bool involves_per_eye_object() const;
 
-                Analysis::RecipeLoader::Eye m_eye;
+                Analysis::Recipe::Eye m_eye;
                 bool                        m_is_building_twin; /* the call is made for the right eye's copies */
                 bool                        m_needs_twin;       /* the call made an object which each eye has a copy of */
                 PerEyePredicate             m_per_eye_predicate;

@@ -43,8 +43,8 @@ namespace
 
 TEST(OverlayCandidateFinder, ARecipeThatLeavesNothingAloneAndAnalysisWithoutCamerasHaveNoCandidates)
 {
-    const auto                           analysis = make_analysis();
-    const Analysis::RecipeLoader::Recipe recipe;
+    const auto                     analysis = make_analysis();
+    const Analysis::Recipe::Recipe recipe;
 
     EXPECT_TRUE(Analysis::RecipeBake::OverlayCandidateFinder::find(recipe,
                                                                    analysis).empty() );
@@ -52,9 +52,9 @@ TEST(OverlayCandidateFinder, ARecipeThatLeavesNothingAloneAndAnalysisWithoutCame
 
 TEST(OverlayCandidateFinder, ADrawOfAPassTheRecipeLeavesAloneIsACandidateTheHintDoesNotShare)
 {
-    const auto                     analysis  = make_analysis();
-    const auto&                    structure = analysis.model.pass_structure_interner.get_structure(0);
-    Analysis::RecipeLoader::Recipe recipe;
+    const auto               analysis  = make_analysis();
+    const auto&              structure = analysis.model.pass_structure_interner.get_structure(0);
+    Analysis::Recipe::Recipe recipe;
 
     recipe.unaffected.pass_key_vec.push_back(structure.key);
 
@@ -88,9 +88,9 @@ TEST(OverlayCandidateFinder, ADrawOfAPassTheRecipeLeavesAloneIsACandidateTheHint
 
 TEST(OverlayCandidateFinder, ADrawKeyOfTheRecipeIsToldFromAPassKey)
 {
-    const auto                     analysis  = make_analysis();
-    const auto&                    structure = analysis.model.pass_structure_interner.get_structure(1);
-    Analysis::RecipeLoader::Recipe recipe;
+    const auto               analysis  = make_analysis();
+    const auto&              structure = analysis.model.pass_structure_interner.get_structure(1);
+    Analysis::Recipe::Recipe recipe;
 
     recipe.unaffected.draw_key_vec.push_back(structure.draw_signature_vec.at(0).structure_key);
 
@@ -109,12 +109,12 @@ TEST(OverlayCandidateFinder, ADrawKeyOfTheRecipeIsToldFromAPassKey)
 
 TEST(OverlayCandidateFinder, ARuleOfASignatureIsWhatTheLiveConverterDoes)
 {
-    const auto                       analysis  = make_analysis();
-    const auto&                      structure = analysis.model.pass_structure_interner.get_structure(0);
-    Analysis::RecipeLoader::DrawRule rule;
-    Analysis::RecipeLoader::Recipe   recipe;
+    const auto                 analysis  = make_analysis();
+    const auto&                structure = analysis.model.pass_structure_interner.get_structure(0);
+    Analysis::Recipe::DrawRule rule;
+    Analysis::Recipe::Recipe   recipe;
 
-    rule.draw_class    = Analysis::RecipeLoader::DrawClass::UNAFFECTED;
+    rule.draw_class    = Analysis::Recipe::DrawClass::UNAFFECTED;
     rule.signature_key = structure.draw_signature_vec.at(0).signature_key;
 
     recipe.draw_rule_vec.push_back(rule);
@@ -135,9 +135,9 @@ TEST(OverlayCandidateFinder, ARuleOfASignatureIsWhatTheLiveConverterDoes)
 
 TEST(OverlayCandidateFinder, ASkippedDrawIsNotAnOverlay)
 {
-    const auto                     analysis  = make_analysis();
-    const auto&                    structure = analysis.model.pass_structure_interner.get_structure(0);
-    Analysis::RecipeLoader::Recipe recipe;
+    const auto               analysis  = make_analysis();
+    const auto&              structure = analysis.model.pass_structure_interner.get_structure(0);
+    Analysis::Recipe::Recipe recipe;
 
     recipe.skipped.pass_key_vec.push_back(structure.key);
 
@@ -147,9 +147,9 @@ TEST(OverlayCandidateFinder, ASkippedDrawIsNotAnOverlay)
 
 TEST(OverlayCandidateFinder, TheJsonHasTheKeysAndWhatTheyAgreeOn)
 {
-    const auto                     analysis  = make_analysis();
-    const auto&                    structure = analysis.model.pass_structure_interner.get_structure(0);
-    Analysis::RecipeLoader::Recipe recipe;
+    const auto               analysis  = make_analysis();
+    const auto&              structure = analysis.model.pass_structure_interner.get_structure(0);
+    Analysis::Recipe::Recipe recipe;
 
     recipe.target_name = "test";
 

@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/recipe_loader/recipe_loader.h"
+#include "analysis/recipe/recipe_loader.h"
 #include "utils/files/file_system.h"
 #include "vr_player/app_catalog/catalog_loader.h"
 #include <algorithm>
@@ -11,8 +11,8 @@
 void VRPlayer::AppCatalog::CatalogLoader::check_availability(AppEntry*          inout_app_ptr,
                                                              const std::string& in_title)
 {
-    std::string                    error;
-    Analysis::RecipeLoader::Recipe recipe;
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
 
     inout_app_ptr->name = in_title;
 
@@ -21,9 +21,9 @@ void VRPlayer::AppCatalog::CatalogLoader::check_availability(AppEntry*          
         inout_app_ptr->unavailable_reason = "The recipe cannot be found: " + inout_app_ptr->recipe_path;
     }
     else
-    if (Analysis::RecipeLoader::RecipeLoader::load(inout_app_ptr->recipe_path,
-                                                  &recipe,
-                                                  &error) == false)
+    if (Analysis::Recipe::RecipeLoader::load(inout_app_ptr->recipe_path,
+                                             &recipe,
+                                             &error) == false)
     {
         inout_app_ptr->unavailable_reason = "The recipe is not valid: " + error;
     }

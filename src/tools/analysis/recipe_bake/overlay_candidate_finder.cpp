@@ -11,10 +11,10 @@
 #include <set>
 #include <string.h>
 
-std::vector<Analysis::RecipeBake::OverlayCandidate> Analysis::RecipeBake::OverlayCandidateFinder::find(const Analysis::RecipeLoader::Recipe&            in_recipe,
+std::vector<Analysis::RecipeBake::OverlayCandidate> Analysis::RecipeBake::OverlayCandidateFinder::find(const Analysis::Recipe::Recipe&                  in_recipe,
                                                                                                        const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
 {
-    const Analysis::RecipeApplier::RecipeApplier applier        (in_recipe);
+    const Analysis::Recipe::RecipeApplier applier        (in_recipe);
     const auto&                 model_ref          = in_analysis.model;
     const std::vector<uint32_t> static_pass_id_vec = Analysis::APIDumpAnalysis::QueryCommands::get_static_camera_pass_id_vec(in_analysis);
     const std::set<uint32_t>                     static_pass_id_set (static_pass_id_vec.begin(),
@@ -102,7 +102,7 @@ std::vector<Analysis::RecipeBake::OverlayCandidate> Analysis::RecipeBake::Overla
 
                 if (std::any_of(in_recipe.unaffected.pass_draw_vec.begin(),
                                 in_recipe.unaffected.pass_draw_vec.end  (),
-                                [&](const Analysis::RecipeLoader::PassDraw& in_pass_draw)
+                                [&](const Analysis::Recipe::PassDraw& in_pass_draw)
                                 {
                                     return (in_pass_draw.pass_key == structure.key &&
                                             in_pass_draw.draw_key == draw_signature.structure_key);
@@ -178,7 +178,7 @@ const char* Analysis::RecipeBake::OverlayCandidateFinder::get_agreement_name(con
     return result_ptr;
 }
 
-Analysis::RecipeBake::LiveClass Analysis::RecipeBake::OverlayCandidateFinder::get_live_class(const Analysis::RecipeApplier::RecipeApplier&    in_applier,
+Analysis::RecipeBake::LiveClass Analysis::RecipeBake::OverlayCandidateFinder::get_live_class(const Analysis::Recipe::RecipeApplier&           in_applier,
                                                                                              const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis,
                                                                                              const uint32_t&                                  in_pass_id,
                                                                                              const uint64_t&                                  in_signature_key)
@@ -229,21 +229,21 @@ Analysis::RecipeBake::LiveClass Analysis::RecipeBake::OverlayCandidateFinder::ge
         switch (in_applier.classify_draw(in_signature_key,
                                          camera) )
         {
-            case Analysis::RecipeLoader::DrawClass::AFFECTED:
+            case Analysis::Recipe::DrawClass::AFFECTED:
             {
                 n_affected++;
 
                 break;
             }
 
-            case Analysis::RecipeLoader::DrawClass::SKIPPED:
+            case Analysis::Recipe::DrawClass::SKIPPED:
             {
                 n_skipped++;
 
                 break;
             }
 
-            case Analysis::RecipeLoader::DrawClass::UNAFFECTED:
+            case Analysis::Recipe::DrawClass::UNAFFECTED:
             {
                 n_unaffected++;
 
@@ -312,9 +312,9 @@ const char* Analysis::RecipeBake::OverlayCandidateFinder::get_live_class_name(co
     return result_ptr;
 }
 
-void Analysis::RecipeBake::OverlayCandidateFinder::write_json(const std::vector<OverlayCandidate>&  in_candidate_vec,
-                                                              const Analysis::RecipeLoader::Recipe& in_recipe,
-                                                              Utils::Json::JsonWriter*              inout_writer_ptr)
+void Analysis::RecipeBake::OverlayCandidateFinder::write_json(const std::vector<OverlayCandidate>& in_candidate_vec,
+                                                              const Analysis::Recipe::Recipe&      in_recipe,
+                                                              Utils::Json::JsonWriter*             inout_writer_ptr)
 {
     inout_writer_ptr->begin_object();
 

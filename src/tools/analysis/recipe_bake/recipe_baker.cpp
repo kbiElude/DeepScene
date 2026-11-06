@@ -8,9 +8,9 @@
 #include "analysis/api_dump_analysis/resource_identity.h"
 #include "analysis/api_dump_analysis/workload_identity.h"
 #include "analysis/api_dump_dependencies/per_eye_candidates.h"
-#include "analysis/recipe_applier/recipe_applier.h"
+#include "analysis/recipe/recipe_applier.h"
 #include "recipe_baker.h"
-#include "analysis/recipe_loader/recipe_loader.h"
+#include "analysis/recipe/recipe_loader.h"
 #include <algorithm>
 #include <map>
 #include <math.h>
@@ -25,16 +25,16 @@ bool Analysis::RecipeBake::RecipeBaker::bake(const std::string&                 
                                              std::string*                                             out_error_ptr,
                                              const Analysis::APIDumpDependencies::DependencyAnalysis* in_dependencies_ptr)
 {
-    std::string                    authored_text;
-    ConvergenceVector              convergence_vec;
-    std::string                    json_error;
-    std::vector<uint64_t>          known_signature_key_vec;
-    Analysis::RecipeLoader::Recipe recipe;
-    bool                           result                  = false;
-    Utils::Json::JsonValue         root;
-    RuleVector                     rule_vec;
-    SceneConvergenceVector         scene_convergence_vec;
-    SceneSeparationVector          scene_separation_vec;
+    std::string              authored_text;
+    ConvergenceVector        convergence_vec;
+    std::string              json_error;
+    std::vector<uint64_t>    known_signature_key_vec;
+    Analysis::Recipe::Recipe recipe;
+    bool                     result                  = false;
+    Utils::Json::JsonValue   root;
+    RuleVector               rule_vec;
+    SceneConvergenceVector   scene_convergence_vec;
+    SceneSeparationVector    scene_separation_vec;
 
     *out_report_ptr = BakeReport();
 
@@ -79,9 +79,9 @@ bool Analysis::RecipeBake::RecipeBaker::bake(const std::string&                 
         authored_text = writer.get_text();
     }
 
-    if (Analysis::RecipeLoader::RecipeLoader::parse(authored_text,
-                                                   &recipe,
-                                                    out_error_ptr) == false)
+    if (Analysis::Recipe::RecipeLoader::parse(authored_text,
+                                              &recipe,
+                                              out_error_ptr) == false)
     {
         goto end;
     }
@@ -178,8 +178,8 @@ bool Analysis::RecipeBake::RecipeBaker::compute_conditional_rules(const Analysis
                                       "of a pass back until it knows which pass it is, which the "
                                       "converter cannot do yet";
 
-    std::map<Analysis::RecipeLoader::DrawClass, MatrixVector> matrix_vec_by_class;
-    bool                                                      result              = false;
+    std::map<Analysis::Recipe::DrawClass, MatrixVector> matrix_vec_by_class;
+    bool                                                result              = false;
 
     for (const auto& class_pair : in_class_map)
     {
@@ -251,9 +251,9 @@ bool Analysis::RecipeBake::RecipeBaker::compute_conditional_rules(const Analysis
     for (const auto& matrix_pair : matrix_vec_by_class)
     {
         /* What no rule applies to is affected. */
-        if (matrix_pair.first != Analysis::RecipeLoader::DrawClass::AFFECTED)
+        if (matrix_pair.first != Analysis::Recipe::DrawClass::AFFECTED)
         {
-            Analysis::RecipeLoader::DrawRule rule;
+            Analysis::Recipe::DrawRule rule;
 
             if (matrix_pair.second.size() > MAX_VIEW_MATRICES_PER_RULE)
             {
@@ -284,7 +284,7 @@ end:
     return result;
 }
 
-void Analysis::RecipeBake::RecipeBaker::compute_convergence(const Analysis::RecipeLoader::Recipe&            in_recipe,
+void Analysis::RecipeBake::RecipeBaker::compute_convergence(const Analysis::Recipe::Recipe&                  in_recipe,
                                                             const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis,
                                                             ConvergenceVector*                               out_convergence_vec_ptr,
                                                             BakeReport*                                      out_report_ptr)
@@ -296,7 +296,7 @@ void Analysis::RecipeBake::RecipeBaker::compute_convergence(const Analysis::Reci
     const auto&                                                   model_ref              = in_analysis.model;
     const uint32_t                                                n_passes               = static_cast<uint32_t>(model_ref.pass_structure_interner.get_n_structures() );
 
-    const Analysis::RecipeApplier::RecipeApplier applier              (in_recipe);
+    const Analysis::Recipe::RecipeApplier applier              (in_recipe);
     std::vector<uint32_t>                        parent_vec           (n_passes);
     std::map<uint64_t, uint32_t>                 pass_of_signature_map;
 
@@ -337,7 +337,7 @@ void Analysis::RecipeBake::RecipeBaker::compute_convergence(const Analysis::Reci
         {
             if (get_draw_class(applier,
                                structure.key,
-                               draw_signature.structure_key) == Analysis::RecipeLoader::DrawClass::AFFECTED)
+                               draw_signature.structure_key) == Analysis::Recipe::DrawClass::AFFECTED)
             {
                 const auto emplaced = pass_of_signature_map.emplace(draw_signature.signature_key,
                                                                     n_pass);
@@ -368,7 +368,7 @@ void Analysis::RecipeBake::RecipeBaker::compute_convergence(const Analysis::Reci
         if (histogram_iterator != group_histogram_map.end() &&
             histogram_iterator->second.is_empty() == false)
         {
-            Analysis::RecipeLoader::DrawConvergence convergence;
+            Analysis::Recipe::DrawConvergence convergence;
 
             convergence.distance      = histogram_iterator->second.get_depth_at_fraction(FRACTION_MEDIAN);
             convergence.signature_key = signature_pair.first;
@@ -395,7 +395,7 @@ void Analysis::RecipeBake::RecipeBaker::compute_convergence(const Analysis::Reci
     out_report_ptr->n_convergence_distances = static_cast<uint32_t>(out_convergence_vec_ptr->size() );
 }
 
-void Analysis::RecipeBake::RecipeBaker::compute_scene_convergence(const Analysis::RecipeLoader::Recipe&            in_recipe,
+void Analysis::RecipeBake::RecipeBaker::compute_scene_convergence(const Analysis::Recipe::Recipe&                  in_recipe,
                                                                   const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis,
                                                                   SceneConvergenceVector*                          out_scene_convergence_vec_ptr,
                                                                   SceneSeparationVector*                           out_scene_separation_vec_ptr,
@@ -403,7 +403,7 @@ void Analysis::RecipeBake::RecipeBaker::compute_scene_convergence(const Analysis
 {
     constexpr double FRACTION_MEDIAN = 0.5;
 
-    const Analysis::RecipeApplier::RecipeApplier applier(in_recipe);
+    const Analysis::Recipe::RecipeApplier applier(in_recipe);
     const auto& model_ref = in_analysis.model;
     const auto  n_shapes  = model_ref.frame_shape_interner.get_n_structures();
 
@@ -432,7 +432,7 @@ void Analysis::RecipeBake::RecipeBaker::compute_scene_convergence(const Analysis
             {
                 is_affected = is_affected || (get_draw_class(applier,
                                                              structure.key,
-                                                             draw_signature.structure_key) == Analysis::RecipeLoader::DrawClass::AFFECTED);
+                                                             draw_signature.structure_key) == Analysis::Recipe::DrawClass::AFFECTED);
             }
 
             if (is_affected                                                  &&
@@ -468,7 +468,7 @@ void Analysis::RecipeBake::RecipeBaker::compute_scene_convergence(const Analysis
 
         if (histogram.is_empty() == false)
         {
-            Analysis::RecipeLoader::SceneConvergence convergence;
+            Analysis::Recipe::SceneConvergence convergence;
 
             convergence.distance  = histogram.get_depth_at_fraction                           (FRACTION_MEDIAN);
             convergence.shape_key = Analysis::APIDumpAnalysis::ModelBuilder::compute_shape_key(model_ref,
@@ -487,9 +487,9 @@ void Analysis::RecipeBake::RecipeBaker::compute_scene_convergence(const Analysis
                 near_depth                          > 0.0f &&
                 near_depth                          < convergence.distance)
             {
-                Analysis::RecipeLoader::SceneSeparation separation;
-                const float                             scale      = (projection_scale > 0.0f) ? projection_scale
-                                                                                               : 1.0f;
+                Analysis::Recipe::SceneSeparation separation;
+                const float                       scale      = (projection_scale > 0.0f) ? projection_scale
+                                                                                         : 1.0f;
 
                 separation.max_separation = 2.0f * in_recipe.comfort.max_near_parallax / (scale * (1.0f / near_depth - 1.0f / convergence.distance));
                 separation.shape_key      = convergence.shape_key;
@@ -507,7 +507,7 @@ void Analysis::RecipeBake::RecipeBaker::compute_scene_convergence(const Analysis
     out_report_ptr->n_scene_limits    = static_cast<uint32_t>(out_scene_separation_vec_ptr->size() );
 }
 
-bool Analysis::RecipeBake::RecipeBaker::compute_draw_rules(const Analysis::RecipeLoader::Recipe&            in_recipe,
+bool Analysis::RecipeBake::RecipeBaker::compute_draw_rules(const Analysis::Recipe::Recipe&                  in_recipe,
                                                            const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis,
                                                            std::vector<uint64_t>*                           out_known_signature_key_vec_ptr,
                                                            RuleVector*                                      out_rule_vec_ptr,
@@ -516,7 +516,7 @@ bool Analysis::RecipeBake::RecipeBaker::compute_draw_rules(const Analysis::Recip
 {
     typedef std::map<uint64_t, ClassMap> SignatureMap;
 
-    const Analysis::RecipeApplier::RecipeApplier applier(in_recipe);
+    const Analysis::Recipe::RecipeApplier applier(in_recipe);
     const auto&  model_ref     = in_analysis.model;
     bool         result        = false;
     SignatureMap signature_map;
@@ -553,9 +553,9 @@ bool Analysis::RecipeBake::RecipeBaker::compute_draw_rules(const Analysis::Recip
         if (signature_pair.second.size() == 1)
         {
             /* Every pass draws it the same way: the rule needs no condition. */
-            if (signature_pair.second.begin()->first != Analysis::RecipeLoader::DrawClass::AFFECTED)
+            if (signature_pair.second.begin()->first != Analysis::Recipe::DrawClass::AFFECTED)
             {
-                Analysis::RecipeLoader::DrawRule rule;
+                Analysis::Recipe::DrawRule rule;
 
                 rule.draw_class    = signature_pair.second.begin()->first;
                 rule.signature_key = signature_pair.first;
@@ -606,7 +606,7 @@ Analysis::RecipeBake::RecipeBaker::PerEyeTextureVector Analysis::RecipeBake::Rec
                                                                     in_dependencies_ptr->resource_vec.at(candidate.n_resource).id,
                                                                    &identity) )
             {
-                Analysis::RecipeLoader::PerEyeTexture texture;
+                Analysis::Recipe::PerEyeTexture texture;
 
                 texture.description_key = identity.description_key;
                 texture.ordinal         = identity.ordinal;
@@ -636,7 +636,7 @@ Analysis::RecipeBake::RecipeBaker::PerEyeTextureVector Analysis::RecipeBake::Rec
                                                                         resource.id,
                                                                        &identity) )
                 {
-                    Analysis::RecipeLoader::PerEyeTexture texture;
+                    Analysis::Recipe::PerEyeTexture texture;
 
                     texture.description_key = identity.description_key;
                     texture.ordinal         = identity.ordinal;
@@ -650,7 +650,7 @@ Analysis::RecipeBake::RecipeBaker::PerEyeTextureVector Analysis::RecipeBake::Rec
     return result_vec;
 }
 
-std::vector<uint64_t> Analysis::RecipeBake::RecipeBaker::get_covering_draw_key_vec(const Analysis::RecipeLoader::Recipe&            in_recipe,
+std::vector<uint64_t> Analysis::RecipeBake::RecipeBaker::get_covering_draw_key_vec(const Analysis::Recipe::Recipe&                  in_recipe,
                                                                                    const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
 {
     const std::set<uint64_t> unaffected_pass_key_set(in_recipe.unaffected.pass_key_vec.begin(),
@@ -676,27 +676,27 @@ std::vector<uint64_t> Analysis::RecipeBake::RecipeBaker::get_covering_draw_key_v
                                  key_set.end  () );
 }
 
-const char* Analysis::RecipeBake::RecipeBaker::get_class_name(const Analysis::RecipeLoader::DrawClass& in_class)
+const char* Analysis::RecipeBake::RecipeBaker::get_class_name(const Analysis::Recipe::DrawClass& in_class)
 {
     const char* result_ptr = "affected";
 
     switch (in_class)
     {
-        case Analysis::RecipeLoader::DrawClass::SKIPPED:
+        case Analysis::Recipe::DrawClass::SKIPPED:
         {
             result_ptr = "skipped";
 
             break;
         }
 
-        case Analysis::RecipeLoader::DrawClass::UNAFFECTED:
+        case Analysis::Recipe::DrawClass::UNAFFECTED:
         {
             result_ptr = "unaffected";
 
             break;
         }
 
-        case Analysis::RecipeLoader::DrawClass::AFFECTED:
+        case Analysis::Recipe::DrawClass::AFFECTED:
         default:
         {
             break;
@@ -706,22 +706,22 @@ const char* Analysis::RecipeBake::RecipeBaker::get_class_name(const Analysis::Re
     return result_ptr;
 }
 
-Analysis::RecipeLoader::DrawClass Analysis::RecipeBake::RecipeBaker::get_draw_class(const Analysis::RecipeApplier::RecipeApplier& in_applier,
-                                                                                    const uint64_t&                               in_pass_key,
-                                                                                    const uint64_t&                               in_structure_key)
+Analysis::Recipe::DrawClass Analysis::RecipeBake::RecipeBaker::get_draw_class(const Analysis::Recipe::RecipeApplier& in_applier,
+                                                                              const uint64_t&                        in_pass_key,
+                                                                              const uint64_t&                        in_structure_key)
 {
-    Analysis::RecipeLoader::DrawClass result = Analysis::RecipeLoader::DrawClass::UNAFFECTED;
+    Analysis::Recipe::DrawClass result = Analysis::Recipe::DrawClass::UNAFFECTED;
 
     if (in_applier.is_draw_skipped(in_pass_key,
                                    in_structure_key) )
     {
-        result = Analysis::RecipeLoader::DrawClass::SKIPPED;
+        result = Analysis::Recipe::DrawClass::SKIPPED;
     }
     else
     if (in_applier.is_draw_affected(in_pass_key,
                                     in_structure_key) )
     {
-        result = Analysis::RecipeLoader::DrawClass::AFFECTED;
+        result = Analysis::Recipe::DrawClass::AFFECTED;
     }
 
     return result;

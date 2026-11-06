@@ -6,22 +6,22 @@
 #include "frame_rewriter.h"
 #include <string.h>
 
-Stereo::Replay::EngineDLL::FrameRewriter::FrameRewriter(const Analysis::RecipeApplier::RecipeApplier& in_applier)
+Stereo::Replay::EngineDLL::FrameRewriter::FrameRewriter(const Analysis::Recipe::RecipeApplier& in_applier)
     :m_applier(in_applier)
 {
     /* Stub */
 }
 
 bool Stereo::Replay::EngineDLL::FrameRewriter::has_matching_rule(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                 const Analysis::RecipeApplier::CallPlace&    in_place) const
+                                                                 const Analysis::Recipe::CallPlace&           in_place) const
 {
     return (m_applier.get_matching_rule_ptr_vec(in_call,
                                                 in_place).empty() == false);
 }
 
 bool Stereo::Replay::EngineDLL::FrameRewriter::rewrite(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                       const Analysis::RecipeApplier::CallPlace&    in_place,
-                                                       const Analysis::RecipeLoader::Eye&           in_eye,
+                                                       const Analysis::Recipe::CallPlace&           in_place,
+                                                       const Analysis::Recipe::Eye&                 in_eye,
                                                        const float&                                 in_eye_separation,
                                                        OverlayChunkSource*                          inout_overlay_ptr,
                                                        Capture::APIDumpLoader::DumpedAPICall*       out_call_ptr) const
@@ -63,10 +63,10 @@ bool Stereo::Replay::EngineDLL::FrameRewriter::rewrite(const Capture::APIDumpLoa
 
     for (const auto rule_ptr : rule_ptr_vec)
     {
-        result |= Analysis::RecipeApplier::RecipeApplier::apply_rule(*rule_ptr,
-                                                                     in_eye,
-                                                                     in_eye_separation,
-                                                                    &matrix);
+        result |= Analysis::Recipe::RecipeApplier::apply_rule(*rule_ptr,
+                                                              in_eye,
+                                                              in_eye_separation,
+                                                              &matrix);
     }
 
     if (result)

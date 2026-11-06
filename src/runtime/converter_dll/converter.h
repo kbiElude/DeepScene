@@ -5,7 +5,7 @@
 #ifndef STEREO_CONVERTERDLL_CONVERTER_H
 #define STEREO_CONVERTERDLL_CONVERTER_H
 
-#include "analysis/recipe_loader/types.h"
+#include "analysis/recipe/types.h"
 #include "Common/callbacks.h"
 #include "stereo/session/types.h"
 #include "stereo/core/stereo_core.h"
@@ -46,11 +46,11 @@ namespace Stereo
 
         private:
             Converter(const Stereo::Session::SessionInfo&              in_session_info,
-                      const Analysis::RecipeLoader::Recipe&            in_recipe,
+                      const Analysis::Recipe::Recipe&                  in_recipe,
                       std::unique_ptr<Stereo::Transport::FrameChannel> in_channel_ptr);
 
             /* Counts the draw by what the recipe made of it. */
-            void count_draw(const Analysis::RecipeLoader::DrawClass& in_draw_class);
+            void count_draw(const Analysis::Recipe::DrawClass& in_draw_class);
 
             /* What the log gets every so many frames. */
             std::string make_statistics_line() const;

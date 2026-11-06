@@ -9,7 +9,7 @@
 Stereo::ConverterDLL::D3D8EyeRenderer::D3D8EyeRenderer(Stereo::Core::StereoCore* in_core_ptr)
     :m_core_ptr  (in_core_ptr),
      m_device_ptr(nullptr),
-     m_draw_class(Analysis::RecipeLoader::DrawClass::AFFECTED)
+     m_draw_class(Analysis::Recipe::DrawClass::AFFECTED)
 {
     /* Stub */
 }
@@ -367,7 +367,7 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::on_post(const APIInterceptor::APIFun
 
             if (is_draw)
             {
-                if (m_draw_class != Analysis::RecipeLoader::DrawClass::SKIPPED)
+                if (m_draw_class != Analysis::Recipe::DrawClass::SKIPPED)
                 {
                     play_right_eye(in_function,
                                    in_arguments_ptr);
@@ -475,21 +475,21 @@ bool Stereo::ConverterDLL::D3D8EyeRenderer::on_pre(const APIInterceptor::APIFunc
     return true;
 }
 
-bool Stereo::ConverterDLL::D3D8EyeRenderer::on_pre_draw(const Analysis::RecipeLoader::DrawClass&   in_draw_class,
+bool Stereo::ConverterDLL::D3D8EyeRenderer::on_pre_draw(const Analysis::Recipe::DrawClass&         in_draw_class,
                                                         const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
 {
     m_draw_class = in_draw_class;
 
-    if (in_draw_class != Analysis::RecipeLoader::DrawClass::SKIPPED)
+    if (in_draw_class != Analysis::Recipe::DrawClass::SKIPPED)
     {
         apply_matrices(const_cast<void*>        (in_arguments_ptr[0].get_ptr() ),
                        m_core_ptr->bind_matrices(in_draw_class,
-                                                 Analysis::RecipeLoader::Eye::LEFT,
+                                                 Analysis::Recipe::Eye::LEFT,
                                                 &m_change_vec,
                                                  m_mirror.render_target_ptr == m_mirror.back_buffer_ptr) );
     }
 
-    return (in_draw_class != Analysis::RecipeLoader::DrawClass::SKIPPED);
+    return (in_draw_class != Analysis::Recipe::DrawClass::SKIPPED);
 }
 
 void Stereo::ConverterDLL::D3D8EyeRenderer::play_right_eye(const APIInterceptor::APIFunction&         in_function,
@@ -548,7 +548,7 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::play_right_eye(const APIInterceptor:
 
         {
             const uint32_t n_changes = m_core_ptr->bind_matrices(m_draw_class,
-                                                                 Analysis::RecipeLoader::Eye::RIGHT,
+                                                                 Analysis::Recipe::Eye::RIGHT,
                                                                 &m_change_vec,
                                                                  m_mirror.render_target_ptr == m_mirror.back_buffer_ptr);
 

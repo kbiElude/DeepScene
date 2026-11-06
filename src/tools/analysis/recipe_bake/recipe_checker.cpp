@@ -10,7 +10,7 @@
 #include <set>
 #include <string>
 
-Analysis::RecipeBake::CoverageReport Analysis::RecipeBake::RecipeChecker::check(const Analysis::RecipeLoader::Recipe&            in_recipe,
+Analysis::RecipeBake::CoverageReport Analysis::RecipeBake::RecipeChecker::check(const Analysis::Recipe::Recipe&                  in_recipe,
                                                                                 const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
 {
     const auto&                           model_ref            = in_analysis.model;
@@ -18,9 +18,9 @@ Analysis::RecipeBake::CoverageReport Analysis::RecipeBake::RecipeChecker::check(
                                                                 in_recipe.known_shape_key_vec.end() );
     const std::set<uint64_t>              known_signature_set  (in_recipe.known_signature_key_vec.begin(),
                                                                 in_recipe.known_signature_key_vec.end() );
-    CoverageReport                        result;
-    std::map<uint32_t, UnknownShape>      shape_map;
-    std::map<uint64_t, uint64_t>          signature_pass_kind_count_map;
+    CoverageReport                   result;
+    std::map<uint32_t, UnknownShape> shape_map;
+    std::map<uint64_t, uint64_t>     signature_pass_kind_count_map;
 
     for (const auto& frame_record : model_ref.frame_record_vec)
     {
@@ -150,9 +150,9 @@ Analysis::RecipeBake::UnaffectedWarning Analysis::RecipeBake::RecipeChecker::mak
     return result;
 }
 
-void Analysis::RecipeBake::RecipeChecker::print_report(FILE*                                 in_file_handle,
-                                                        const CoverageReport&                 in_report,
-                                                        const Analysis::RecipeLoader::Recipe& in_recipe)
+void Analysis::RecipeBake::RecipeChecker::print_report(FILE*                           in_file_handle,
+                                                       const CoverageReport&           in_report,
+                                                       const Analysis::Recipe::Recipe& in_recipe)
 {
     constexpr size_t N_ENTRIES_LISTED = 40;
 
@@ -160,21 +160,21 @@ void Analysis::RecipeBake::RecipeChecker::print_report(FILE*                    
 
     switch (in_recipe.unknown_frame_policy)
     {
-        case Analysis::RecipeLoader::UnknownFramePolicy::FAIL:
+        case Analysis::Recipe::UnknownFramePolicy::FAIL:
         {
             policy_text = "stops the replay";
 
             break;
         }
 
-        case Analysis::RecipeLoader::UnknownFramePolicy::MONO:
+        case Analysis::Recipe::UnknownFramePolicy::MONO:
         {
             policy_text = "is played as it is, for both eyes";
 
             break;
         }
 
-        case Analysis::RecipeLoader::UnknownFramePolicy::SKIP:
+        case Analysis::Recipe::UnknownFramePolicy::SKIP:
         {
             policy_text = "is not played";
 

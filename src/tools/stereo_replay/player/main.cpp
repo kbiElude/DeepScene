@@ -6,7 +6,7 @@
  * console (--console), which also gives the speed.
  */
 #include "utils/command_line/number_parser.h"
-#include "analysis/recipe_loader/recipe_loader.h"
+#include "analysis/recipe/recipe_loader.h"
 #include "Capture/APIDumpLoader/WorkloadIndex.h"
 #include "tools/stereo_replay/engine_dll/entrypoints.h"
 #include "command_line.h"
@@ -189,7 +189,7 @@ int Stereo::Replay::Player::run(int   in_argc,
     std::unique_ptr<PreviewWindow>            preview_ptr;
     std::shared_ptr<QuitHandler>                    quit_ptr(new QuitHandler() );
     std::unique_ptr<FrameRangeObserver> range_ptr;
-    Analysis::RecipeLoader::Recipe      recipe;
+    Analysis::Recipe::Recipe            recipe;
     int                                 result    = EXIT_FAILURE;
 
     if (CommandLine::parse(in_argc,
@@ -246,9 +246,9 @@ int Stereo::Replay::Player::run(int   in_argc,
 
     if (options.recipe_filename.empty() == false)
     {
-        is_recipe_loaded = Analysis::RecipeLoader::RecipeLoader::load(options.recipe_filename,
-                                                                     &recipe,
-                                                                     &error);
+        is_recipe_loaded = Analysis::Recipe::RecipeLoader::load(options.recipe_filename,
+                                                                &recipe,
+                                                                &error);
     }
 
     if (is_recipe_loaded == false)
@@ -324,8 +324,8 @@ int Stereo::Replay::Player::run(int   in_argc,
     {
         Stereo::Replay::EngineDLL::FrameExecutionOptions execution_options;
 
-        execution_options.eye  = (options.eye_mode == EyeMode::RIGHT) ? Analysis::RecipeLoader::Eye::RIGHT
-                                                                      : Analysis::RecipeLoader::Eye::LEFT;
+        execution_options.eye  = (options.eye_mode == EyeMode::RIGHT) ? Analysis::Recipe::Eye::RIGHT
+                                                                      : Analysis::Recipe::Eye::LEFT;
         execution_options.mode = (options.eye_mode == EyeMode::BOTH)  ? Stereo::Replay::EngineDLL::FrameExecution::TWICE
                                                                       : Stereo::Replay::EngineDLL::FrameExecution::BUFFERED_ONCE;
 

@@ -4,8 +4,8 @@
  */
 #include "stereo/core/screen_parallax_planner.h"
 
-Stereo::Core::ScreenShiftPlan Stereo::Core::ScreenParallaxPlanner::plan(const Analysis::RecipeApplier::RecipeApplier& in_applier,
-                                                                        const Input&                                  in_input)
+Stereo::Core::ScreenShiftPlan Stereo::Core::ScreenParallaxPlanner::plan(const Analysis::Recipe::RecipeApplier& in_applier,
+                                                                        const Input&                           in_input)
 {
     constexpr float HALF = 0.5f;
 
@@ -45,7 +45,7 @@ Stereo::Core::ScreenShiftPlan Stereo::Core::ScreenParallaxPlanner::plan(const An
         const float half_shift = overlay_parallax * in_input.picture_width * HALF;
 
         result.kind                 = ScreenShiftPlan::Kind::UNIFORM;
-        result.uniform_shift_pixels = (in_input.eye == Analysis::RecipeLoader::Eye::LEFT) ? half_shift
+        result.uniform_shift_pixels = (in_input.eye == Analysis::Recipe::Eye::LEFT) ? half_shift
                                                                                           : -half_shift;
     }
 

@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "utils/command_line/number_parser.h"
-#include "analysis/recipe_loader/recipe_loader.h"
+#include "analysis/recipe/recipe_loader.h"
 #include "Capture/APIDumpLoader/WorkloadIndex.h"
 #include "Capture/APIDumpNames/function_names.h"
 #include "tools/stereo_replay/engine_dll/entrypoints.h"
@@ -1442,9 +1442,9 @@ int main(int   in_argc,
     {
         std::string error;
 
-        if (Analysis::RecipeLoader::RecipeLoader::load(options.recipe_filename,
-                                                      &options.recipe,
-                                                      &error) == false)
+        if (Analysis::Recipe::RecipeLoader::load(options.recipe_filename,
+                                                 &options.recipe,
+                                                 &error) == false)
         {
             fprintf(stdout,
                     "The recipe cannot be read: %s\n",

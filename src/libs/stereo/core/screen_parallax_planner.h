@@ -5,8 +5,8 @@
 #ifndef STEREO_CORE_SCREEN_PARALLAX_PLANNER_H
 #define STEREO_CORE_SCREEN_PARALLAX_PLANNER_H
 
-#include "analysis/recipe_applier/recipe_applier.h"
-#include "analysis/recipe_loader/types.h"
+#include "analysis/recipe/recipe_applier.h"
+#include "analysis/recipe/types.h"
 #include <stdint.h>
 
 namespace Stereo
@@ -25,7 +25,7 @@ namespace Stereo
             };
 
             float                       convergence_distance  = 0.0f; /* of PER_VERTEX, in the units of the camera of the application */
-            Analysis::RecipeLoader::Eye eye                   = Analysis::RecipeLoader::Eye::LEFT;
+            Analysis::Recipe::Eye eye                   = Analysis::Recipe::Eye::LEFT;
             float                       eye_separation        = 0.0f; /* of PER_VERTEX, the same units                              */
             float                       field_of_view_degrees = 0.0f; /* of PER_VERTEX                                              */
             Kind                        kind                  = Kind::NONE;
@@ -45,7 +45,7 @@ namespace Stereo
             {
                 float                       convergence_distance = 0.0f;  /* of the scene the draw is in; 0: the recipe's own                    */
                 uint64_t                    cover_key            = 0;     /* of the draw by its signature and size                                */
-                Analysis::RecipeLoader::Eye eye                  = Analysis::RecipeLoader::Eye::LEFT;
+                Analysis::Recipe::Eye eye                  = Analysis::Recipe::Eye::LEFT;
                 float                       eye_separation       = 0.0f;  /* of the frame, in the units of the camera of the application          */
                 bool                        has_extent           = false; /* the adapter knows where the vertices of the draw are (reaches_both_sides)  */
                 bool                        is_affected          = false; /* the recipe does not leave the draw alone                             */
@@ -62,8 +62,8 @@ namespace Stereo
              * A draw which the recipe affects is moved by its depth, if the recipe has screen parallax. One that it leaves alone is pushed,
              * if it is made to what is presented and the person wants it, by Comfort::overlay_parallax.
              */
-            static ScreenShiftPlan plan(const Analysis::RecipeApplier::RecipeApplier& in_applier,
-                                        const Input&                                  in_input);
+            static ScreenShiftPlan plan(const Analysis::Recipe::RecipeApplier& in_applier,
+                                        const Input&                           in_input);
         };
     }
 }
