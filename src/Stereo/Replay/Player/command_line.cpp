@@ -247,19 +247,27 @@ bool Stereo::Replay::Player::CommandLine::parse_frame_range(const char* in_text_
         goto end;
     }
 
-    if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(text.substr(0,
-                                                                            dash),
-                                                                UINT32_MAX,
-                                                               &first) == false)
     {
-        goto end;
+        const std::string first_text = text.substr(0,
+                                                   dash);
+
+        if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(first_text,
+                                                                    UINT32_MAX,
+                                                                   &first) == false)
+        {
+            goto end;
+        }
     }
 
-    if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(text.substr(dash + 1),
-                                                                UINT32_MAX,
-                                                               &last) == false)
     {
-        goto end;
+        const std::string last_text = text.substr(dash + 1);
+
+        if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(last_text,
+                                                                    UINT32_MAX,
+                                                                   &last) == false)
+        {
+            goto end;
+        }
     }
 
     if (last < first)

@@ -75,8 +75,10 @@ void Stereo::ConverterDLL::CallFeeder::analyze(const Capture::APIDumpLoader::Dum
         std::sort(m_chunk_id_vec.begin(),
                   m_chunk_id_vec.end  () );
 
-        m_chunk_id_vec.erase(std::unique       (m_chunk_id_vec.begin(),
-                                                m_chunk_id_vec.end  () ),
+        const auto duplicates_begin_iterator = std::unique(m_chunk_id_vec.begin(),
+                                                           m_chunk_id_vec.end  () );
+
+        m_chunk_id_vec.erase(duplicates_begin_iterator,
                              m_chunk_id_vec.end() );
 
         const uint32_t first_chunk_id = m_chunk_id_vec.front();

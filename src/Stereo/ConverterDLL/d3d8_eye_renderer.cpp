@@ -398,7 +398,9 @@ bool Stereo::ConverterDLL::D3D8EyeRenderer::on_pre(const APIInterceptor::APIFunc
         case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DSURFACE8_LOCKRECT:
         case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DTEXTURE8_LOCKRECT:
         {
-            m_core_ptr->require_fast_path(get_twin_ptr(const_cast<void*>(in_arguments_ptr[0].get_ptr() )) == nullptr,
+            const bool is_ok = (get_twin_ptr(const_cast<void*>(in_arguments_ptr[0].get_ptr() )) == nullptr);
+
+            m_core_ptr->require_fast_path(is_ok,
                                           "The application locks a render target, whose images the right eye would not have");
 
             break;
@@ -436,7 +438,9 @@ bool Stereo::ConverterDLL::D3D8EyeRenderer::on_pre(const APIInterceptor::APIFunc
             /* A surface that is not there is no change, in Direct3D 8: of the render target, and of the depth buffer. */
             if (render_target_ptr != nullptr)
             {
-                m_core_ptr->require_fast_path(get_twin_ptr(render_target_ptr) != nullptr,
+                const bool is_ok = (get_twin_ptr(render_target_ptr) != nullptr);
+
+                m_core_ptr->require_fast_path(is_ok,
                                               "The application renders to a surface that the converter did not see being made");
 
                 m_mirror.render_target_ptr = render_target_ptr;
@@ -542,11 +546,15 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::play_right_eye(const APIInterceptor:
             }
         }
 
-        apply_matrices(device_ptr,
-                       m_core_ptr->bind_matrices(m_draw_class,
-                                                 Analysis::RecipeLoader::Eye::RIGHT,
-                                                &m_change_vec,
-                                                 m_mirror.render_target_ptr == m_mirror.back_buffer_ptr) );
+        {
+            const uint32_t n_changes = m_core_ptr->bind_matrices(m_draw_class,
+                                                                 Analysis::RecipeLoader::Eye::RIGHT,
+                                                                &m_change_vec,
+                                                                 m_mirror.render_target_ptr == m_mirror.back_buffer_ptr);
+
+            apply_matrices(device_ptr,
+                           n_changes);
+        }
 
         repeat_call(in_function,
                     in_arguments_ptr);

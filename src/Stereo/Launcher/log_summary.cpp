@@ -33,8 +33,10 @@ namespace
 
         if (n_digit_start != n_digit_end)
         {
-            result = ::strtoull(in_line.substr(n_digit_start,
-                                               n_digit_end - n_digit_start).c_str(),
+            const std::string digit_text = in_line.substr(n_digit_start,
+                                                          n_digit_end - n_digit_start);
+
+            result = ::strtoull(digit_text.c_str(),
                                 nullptr,
                                 10);
         }

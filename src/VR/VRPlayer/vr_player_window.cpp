@@ -130,10 +130,12 @@ bool VR::VRPlayer::VrPlayerWindow::draw_app_card(const size_t& in_n_app)
 
         if (is_selected)
         {
+            const ImU32 accent_color = ImGui::GetColorU32(ACCENT_COLOR);
+
             ImGui::GetWindowDrawList()->AddRectFilled(min,
                                                       ImVec2(min.x + CARD_ACCENT_BAR_WIDTH * style.FontScaleDpi,
                                                              min.y + height),
-                                                      ImGui::GetColorU32(ACCENT_COLOR) );
+                                                      accent_color);
         }
 
         ImGui::SetCursorScreenPos(ImVec2(min.x + pad,
@@ -294,10 +296,12 @@ void VR::VRPlayer::VrPlayerWindow::draw_details()
 
         if (app.is_download_needed)
         {
+            const std::string size_text = get_size_text(app.install_spec.n_archive_bytes);
+
             ImGui::PushStyleColor(ImGuiCol_Text,
                                   DIM_TEXT_COLOR);
             ImGui::TextWrapped("It is not on this computer yet: it is downloaded (%s) the first time it is launched.",
-                               get_size_text(app.install_spec.n_archive_bytes).c_str() );
+                               size_text.c_str() );
             ImGui::PopStyleColor();
         }
 

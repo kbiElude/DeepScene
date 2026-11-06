@@ -92,11 +92,16 @@ bool VR::AppCatalog::CatalogLoader::load(const std::string& in_filename,
         goto end;
     }
 
-    result = parse(text,
-                   get_directory(resolve_path(std::string(),
-                                              in_filename) ),
-                   out_catalog_ptr,
-                   out_error_ptr);
+    {
+        const std::string resolved_filename = resolve_path(std::string(),
+                                                           in_filename);
+        const std::string directory         = get_directory(resolved_filename);
+
+        result = parse(text,
+                       directory,
+                       out_catalog_ptr,
+                       out_error_ptr);
+    }
 
 end:
     return result;
@@ -116,7 +121,9 @@ bool VR::AppCatalog::CatalogLoader::parse(const std::string& in_text,
 
     *out_catalog_ptr = Catalog();
 
-    if (Analysis::APIDumpAnalysis::JsonReader::parse(Analysis::APIDumpAnalysis::JsonReader::strip_byte_order_mark(in_text),
+    const std::string catalog_text = Analysis::APIDumpAnalysis::JsonReader::strip_byte_order_mark(in_text);
+
+    if (Analysis::APIDumpAnalysis::JsonReader::parse(catalog_text,
                                                     &root,
                                                     &json_error) == false)
     {

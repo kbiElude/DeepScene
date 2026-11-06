@@ -118,13 +118,17 @@ bool VR::AppInstaller::Sha256::hash_file(const std::string&       in_path,
     DWORD                n_read_bytes = 0;
     bool                 result       = false;
 
-    file_handle = ::CreateFileW(FileSystem::to_wide(in_path).c_str(),
-                                GENERIC_READ,
-                                FILE_SHARE_READ,
-                                nullptr,
-                                OPEN_EXISTING,
-                                FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
-                                nullptr);
+    {
+        const std::wstring wide_path = FileSystem::to_wide(in_path);
+
+        file_handle = ::CreateFileW(wide_path.c_str(),
+                                    GENERIC_READ,
+                                    FILE_SHARE_READ,
+                                    nullptr,
+                                    OPEN_EXISTING,
+                                    FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
+                                    nullptr);
+    }
 
     if (file_handle == INVALID_HANDLE_VALUE)
     {

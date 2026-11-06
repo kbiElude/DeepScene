@@ -104,10 +104,11 @@ bool Stereo::Replay::Player::PreviewWindow::create(std::string* out_error_ptr)
 
 bool Stereo::Replay::Player::PreviewWindow::create_device(std::string* out_error_ptr)
 {
-    ID3DBlob*            error_blob_ptr  = nullptr;
-    ID3DBlob*            pixel_blob_ptr  = nullptr;
-    bool                 result          = false;
-    ID3DBlob*            vertex_blob_ptr = nullptr;
+    ID3DBlob*    error_blob_ptr        = nullptr;
+    ID3DBlob*    pixel_blob_ptr        = nullptr;
+    bool         result                = false;
+    const size_t shader_source_n_chars = ::strlen(SHADER_SOURCE);
+    ID3DBlob*    vertex_blob_ptr       = nullptr;
 
     {
         DXGI_SWAP_CHAIN_DESC swap_chain_desc = {};
@@ -140,7 +141,7 @@ bool Stereo::Replay::Player::PreviewWindow::create_device(std::string* out_error
     }
 
     if (FAILED(::D3DCompile(SHADER_SOURCE,
-                            ::strlen(SHADER_SOURCE),
+                            shader_source_n_chars,
                             nullptr, /* source name */
                             nullptr, /* defines     */
                             nullptr, /* include     */
@@ -157,7 +158,7 @@ bool Stereo::Replay::Player::PreviewWindow::create_device(std::string* out_error
     }
 
     if (FAILED(::D3DCompile(SHADER_SOURCE,
-                            ::strlen(SHADER_SOURCE),
+                            shader_source_n_chars,
                             nullptr, /* source name */
                             nullptr, /* defines     */
                             nullptr, /* include     */

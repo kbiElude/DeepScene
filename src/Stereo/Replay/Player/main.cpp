@@ -109,9 +109,11 @@ void Stereo::Replay::Player::ConsoleObserver::on_state_changed(const Stereo::Rep
 {
     (void) in_old_state;
 
+    const char* state_name_ptr = ::Replay::ReplayPlayerSupport::StateNames::get_state_name_ptr(in_new_state);
+
     fprintf(stdout,
             "[*] %s\n",
-            ::Replay::ReplayPlayerSupport::StateNames::get_state_name_ptr(in_new_state) );
+            state_name_ptr);
 
     /* A pause, or the end, closes a stretch of frames; the time to the next one does not count. */
     if (in_new_state != Stereo::Replay::EngineDLL::PlaybackState::PLAYING)
@@ -485,12 +487,13 @@ void Stereo::Replay::Player::run_console(Stereo::Replay::EngineDLL::IPlaybackCon
 
         if (command == "s")
         {
-            const auto status = in_controller_ptr->get_status();
+            const auto  status         = in_controller_ptr->get_status();
+            const char* state_name_ptr = (status.is_seeking) ? "seeking"
+                                                             : ::Replay::ReplayPlayerSupport::StateNames::get_state_name_ptr(status.state);
 
             fprintf(stdout,
                     "[*] %s: %llu calls, %u frames\n",
-                    (status.is_seeking) ? "seeking"
-                                        : ::Replay::ReplayPlayerSupport::StateNames::get_state_name_ptr(status.state),
+                    state_name_ptr,
                     static_cast<unsigned long long>(status.n_calls_executed),
                     status.n_frames_presented);
         }
@@ -499,9 +502,10 @@ void Stereo::Replay::Player::run_console(Stereo::Replay::EngineDLL::IPlaybackCon
                             2,
                             "e ") == 0)
         {
-            double separation = 0.0;
+            double            separation      = 0.0;
+            const std::string separation_text = command.substr(2);
 
-            if (Analysis::APIDumpAnalysis::NumberParser::parse_double(command.substr(2),
+            if (Analysis::APIDumpAnalysis::NumberParser::parse_double(separation_text,
                                                                       &separation) )
             {
                 in_controller_ptr->set_eye_separation(static_cast<float>(separation) );
@@ -517,9 +521,10 @@ void Stereo::Replay::Player::run_console(Stereo::Replay::EngineDLL::IPlaybackCon
                             2,
                             "g ") == 0)
         {
-            uint64_t frame = 0;
+            uint64_t          frame      = 0;
+            const std::string frame_text = command.substr(2);
 
-            if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(command.substr(2),
+            if (Analysis::APIDumpAnalysis::NumberParser::parse_unsigned(frame_text,
                                                                         UINT32_MAX,
                                                                        &frame) )
             {
@@ -536,9 +541,10 @@ void Stereo::Replay::Player::run_console(Stereo::Replay::EngineDLL::IPlaybackCon
                             2,
                             "x ") == 0)
         {
-            double speed = 0.0;
+            double            speed      = 0.0;
+            const std::string speed_text = command.substr(2);
 
-            if (Analysis::APIDumpAnalysis::NumberParser::parse_double(command.substr(2),
+            if (Analysis::APIDumpAnalysis::NumberParser::parse_double(speed_text,
                                                                       &speed) )
             {
                 in_controller_ptr->set_speed(speed);

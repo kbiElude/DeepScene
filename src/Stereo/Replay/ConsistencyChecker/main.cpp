@@ -878,12 +878,13 @@ bool Stereo::Replay::ConsistencyChecker::take_contact_sheet(const Stereo::Replay
 
         if (uses_recipe)
         {
-            Stereo::Replay::FrameImages::Image view_image;
+            const Stereo::Replay::FrameImages::Image& right_eye_image = sink.get_image({n_frame, 1});
+            Stereo::Replay::FrameImages::Image        view_image;
 
             if (Stereo::Replay::FrameImages::ImageComposer::make_eye_view((in_options.has_eye_view) ? in_options.eye_view
                                                                                                     : Stereo::Replay::FrameImages::EyeView::BOTH,
                                                                           tile_image,
-                                                                          sink.get_image({n_frame, 1}),
+                                                                          right_eye_image,
                                                                          &view_image) == false)
             {
                 *out_error_ptr = "The images of the eyes cannot be put together.";
@@ -1027,13 +1028,15 @@ bool Stereo::Replay::ConsistencyChecker::take_profile(const Stereo::Replay::Cons
 
     for (const auto& entry : profiler.get_slowest_functions(N_FUNCTIONS_LISTED) )
     {
+        const char* function_name_ptr = Capture::APIDumpNames::get_function_name(entry.function);
+
         fprintf(stdout,
                 "  %10.1f %10llu %12.2f %10.1f  %s\n",
                 static_cast<double>(entry.total_n_nanoseconds) / NANOSECONDS_PER_MILLISECOND,
                 static_cast<unsigned long long>(entry.n_calls),
                 static_cast<double>(entry.total_n_nanoseconds) / static_cast<double>(entry.n_calls) / NANOSECONDS_PER_MICROSECOND,
                 static_cast<double>(entry.max_n_nanoseconds) / NANOSECONDS_PER_MICROSECOND,
-                Capture::APIDumpNames::get_function_name(entry.function) );
+                function_name_ptr);
     }
 
     fprintf(stdout,
@@ -1041,12 +1044,14 @@ bool Stereo::Replay::ConsistencyChecker::take_profile(const Stereo::Replay::Cons
 
     for (const auto& entry : profiler.get_slowest_frames(N_FRAMES_LISTED) )
     {
+        const char* slowest_function_name_ptr = Capture::APIDumpNames::get_function_name(entry.slowest_function);
+
         fprintf(stdout,
                 "  frame %6u: %8.1f ms in %llu calls; the slowest call is %s (%.1f ms)\n",
                 entry.n_frame,
                 static_cast<double>(entry.total_n_nanoseconds) / NANOSECONDS_PER_MILLISECOND,
                 static_cast<unsigned long long>(entry.n_calls),
-                Capture::APIDumpNames::get_function_name(entry.slowest_function),
+                slowest_function_name_ptr,
                 static_cast<double>(entry.slowest_n_nanoseconds) / NANOSECONDS_PER_MILLISECOND);
     }
 
@@ -1082,11 +1087,12 @@ bool Stereo::Replay::ConsistencyChecker::take_screenshot(const Stereo::Replay::C
 
     if (uses_recipe)
     {
-        Stereo::Replay::FrameImages::Image view_image;
+        const Stereo::Replay::FrameImages::Image& right_eye_image = sink.get_image({in_options.screenshot_frame, 1});
+        Stereo::Replay::FrameImages::Image        view_image;
 
         if (Stereo::Replay::FrameImages::ImageComposer::make_eye_view(in_options.eye_view,
                                                                       image,
-                                                                      sink.get_image({in_options.screenshot_frame, 1}),
+                                                                      right_eye_image,
                                                                      &view_image) == false)
         {
             *out_error_ptr = "The images of the eyes cannot be put together.";

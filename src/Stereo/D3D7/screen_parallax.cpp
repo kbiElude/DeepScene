@@ -13,7 +13,9 @@ static constexpr float EDGE_REACH = 0.005f;
 float Stereo::D3D7::ScreenParallax::get_shift(const Parameters& in_parameters,
                                               const float&      in_reciprocal_depth)
 {
-    return get_shift(make_shift_factors(in_parameters),
+    const ShiftFactors factors = make_shift_factors(in_parameters);
+
+    return get_shift(factors,
                      in_reciprocal_depth);
 }
 
@@ -24,8 +26,9 @@ float Stereo::D3D7::ScreenParallax::get_shift(const ShiftFactors& in_factors,
      * camera (a reciprocal that is huge, or not a number): they are put at the edge of what there is, which is infinity at one end, and a tenth
      * of the convergence distance at the other.
      */
-    const float reciprocal = (in_reciprocal_depth == in_reciprocal_depth) ? std::min(std::max(in_reciprocal_depth,
-                                                                                              0.0f),
+    const float above_zero = std::max(in_reciprocal_depth,
+                                      0.0f);
+    const float reciprocal = (in_reciprocal_depth == in_reciprocal_depth) ? std::min(above_zero,
                                                                                      in_factors.max_reciprocal)
                                                                           : 0.0f; /* not a number */
     const float magnitude  = in_factors.magnitude_per_reciprocal * (reciprocal - in_factors.convergence_reciprocal);

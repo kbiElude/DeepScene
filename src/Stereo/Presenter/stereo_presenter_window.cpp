@@ -116,16 +116,22 @@ void Stereo::Presenter::StereoPresenterWindow::fit_window_to_image(const uint32_
 
     monitor.cbSize = sizeof(monitor);
 
-    ::AdjustWindowRectEx(&frame,
-                         static_cast<DWORD>(::GetWindowLongW(window,
-                                                             GWL_STYLE) ),
-                         FALSE, /* bMenu */
-                         static_cast<DWORD>(::GetWindowLongW(window,
-                                                             GWL_EXSTYLE) ));
+    {
+        const DWORD extended_style = static_cast<DWORD>(::GetWindowLongW(window,
+                                                                         GWL_EXSTYLE) );
+        const DWORD style          = static_cast<DWORD>(::GetWindowLongW(window,
+                                                                         GWL_STYLE) );
 
-    const BOOL has_monitor_info = ::GetMonitorInfoW(::MonitorFromWindow(window,
-                                                                        MONITOR_DEFAULTTONEAREST),
-                                                   &monitor);
+        ::AdjustWindowRectEx(&frame,
+                             style,
+                             FALSE, /* bMenu */
+                             extended_style);
+    }
+
+    const HMONITOR nearest_monitor  = ::MonitorFromWindow(window,
+                                                          MONITOR_DEFAULTTONEAREST);
+    const BOOL     has_monitor_info = ::GetMonitorInfoW(nearest_monitor,
+                                                       &monitor);
 
     if (has_monitor_info != FALSE)
     {

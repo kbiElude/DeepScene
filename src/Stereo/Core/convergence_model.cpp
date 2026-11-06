@@ -99,9 +99,10 @@ float Stereo::Core::ConvergenceModel::get_effective_eye_separation() const
      * allowed to take it further. A strength below 1 is a wish for less, which the limit follows.
      */
     const float natural_separation = m_depth_strength * m_ipd_scale * SEPARATION_PER_CONVERGENCE_DISTANCE * convergence_distance;
+    const float wished_for_part    = std::min(m_depth_strength,
+                                              1.0f);
     const float separation         = (m_scene_max_separation > 0.0f) ? std::min(natural_separation,
-                                                                                 m_scene_max_separation * std::min(m_depth_strength,
-                                                                                                                   1.0f) )
+                                                                                 m_scene_max_separation * wished_for_part)
                                                                      : natural_separation;
 
     return (m_depth_strength     >  0.0f  &&

@@ -44,9 +44,13 @@ void Stereo::Replay::Player::ControlWindow::draw_contents(VR::UIHost::ContentExt
                                       status.state == Stereo::Replay::EngineDLL::PlaybackState::FINISHED);
     const bool        is_playing   = (status.state == Stereo::Replay::EngineDLL::PlaybackState::PLAYING);
 
-    ImGui::Text("State: %s",
-                (status.is_seeking) ? "seeking"
-                                    : ::Replay::ReplayPlayerSupport::StateNames::get_state_name_ptr(status.state) );
+    {
+        const char* state_name_ptr = (status.is_seeking) ? "seeking"
+                                                         : ::Replay::ReplayPlayerSupport::StateNames::get_state_name_ptr(status.state);
+
+        ImGui::Text("State: %s",
+                    state_name_ptr);
+    }
 
     extend_content(inout_extent_ptr);
 
@@ -386,9 +390,14 @@ void Stereo::Replay::Player::ControlWindow::place_below_replay_window()
 
         ::GetWindowRect(get_window(),
                        &control_rect);
-        ::GetMonitorInfoW(::MonitorFromRect(&replay_rect,
-                                            MONITOR_DEFAULTTONEAREST),
-                         &monitor_info);
+
+        {
+            const HMONITOR replay_monitor = ::MonitorFromRect(&replay_rect,
+                                                              MONITOR_DEFAULTTONEAREST);
+
+            ::GetMonitorInfoW(replay_monitor,
+                             &monitor_info);
+        }
 
         /* Under the window of the replay, in the middle; if that leaves the screen, it is moved back into it. */
         x = placement.x + (placement.width - (control_rect.right - control_rect.left) ) / N_PARTS_TO_CENTER;

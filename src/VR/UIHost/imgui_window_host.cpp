@@ -281,12 +281,17 @@ void VR::UIHost::ImGuiWindowHost::fit_to_content()
         outer_rect.bottom = m_content_height;
         outer_rect.right  = m_content_width;
 
-        ::AdjustWindowRectEx(&outer_rect,
-                             static_cast<DWORD>(::GetWindowLongW(m_hwnd,
-                                                                 GWL_STYLE) ),
-                             FALSE,
-                             static_cast<DWORD>(::GetWindowLongW(m_hwnd,
-                                                                 GWL_EXSTYLE) ));
+        {
+            const DWORD extended_style = static_cast<DWORD>(::GetWindowLongW(m_hwnd,
+                                                                             GWL_EXSTYLE) );
+            const DWORD style          = static_cast<DWORD>(::GetWindowLongW(m_hwnd,
+                                                                             GWL_STYLE) );
+
+            ::AdjustWindowRectEx(&outer_rect,
+                                 style,
+                                 FALSE,
+                                 extended_style);
+        }
 
         ::SetWindowPos(m_hwnd,
                        nullptr,

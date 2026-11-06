@@ -137,19 +137,24 @@ void Stereo::ConverterDLL::D3D8ResolutionScaler::on_create_device(Interception::
                    ")");
 
         /* Both eyes are passed on side by side, in an image of a size which has its limit; it is better said here than seen as no picture. */
-        m_core_ptr->require_supported(EyeImageLimits::fits(m_real_width,
-                                                           m_real_height),
-                                      "At the render scale "                                                          +
-                                      std::to_string(m_policy.get_scale() )                                           +
-                                      " the images of the eyes are "                                                  +
-                                      std::to_string(m_real_width)                                                    +
-                                      " x "                                                                           +
-                                      std::to_string(m_real_height)                                                   +
-                                      " each, which is larger than what can be passed on ("                           +
-                                      std::to_string(EyeImageLimits::get_max_width() ) +
-                                      " x "                                                                           +
-                                      std::to_string(EyeImageLimits::get_max_height() )        +
-                                      " each); lower the render scale");
+        {
+            const bool        is_supported = EyeImageLimits::fits(m_real_width,
+                                                                  m_real_height);
+            const std::string reason       = "At the render scale "                                    +
+                                             std::to_string(m_policy.get_scale() )                     +
+                                             " the images of the eyes are "                            +
+                                             std::to_string(m_real_width)                              +
+                                             " x "                                                     +
+                                             std::to_string(m_real_height)                             +
+                                             " each, which is larger than what can be passed on ("     +
+                                             std::to_string(EyeImageLimits::get_max_width() )          +
+                                             " x "                                                     +
+                                             std::to_string(EyeImageLimits::get_max_height() )         +
+                                             " each); lower the render scale";
+
+            m_core_ptr->require_supported(is_supported,
+                                          reason);
+        }
 
         inout_parameters_ptr->BackBufferHeight = m_real_height;
         inout_parameters_ptr->BackBufferWidth  = m_real_width;
@@ -174,8 +179,10 @@ void Stereo::ConverterDLL::D3D8ResolutionScaler::on_pre(const APIInterceptor::AP
 
         if (is_hazard)
         {
+            const std::string reason = std::string(get_hazard_reason(hazard) ) + ", while it is rendered larger than it asks";
+
             m_core_ptr->require_fast_path(false, /* in_is_ok */
-                                          std::string(get_hazard_reason(hazard) ) + ", while it is rendered larger than it asks");
+                                          reason);
         }
     }
 }

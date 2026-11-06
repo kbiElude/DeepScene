@@ -453,11 +453,12 @@ void VR::VRPlayer::AppSession::update()
             }
             else
             {
-                const std::string output = read_output(m_output_pipe);
+                const std::string output  = read_output(m_output_pipe);
+                const std::string message = (output.empty() ) ? "The launcher stopped with the code " + std::to_string(exit_code) + "."
+                                                              : output;
 
                 end_session(SessionState::FAILED,
-                            (output.empty() ) ? "The launcher stopped with the code " + std::to_string(exit_code) + "."
-                                              : output);
+                            message);
             }
         }
         else

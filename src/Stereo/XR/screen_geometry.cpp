@@ -26,13 +26,16 @@ Stereo::XR::CylinderScreen Stereo::XR::ScreenGeometry::fit_cylinder(const FieldO
      */
     const float    available_horizontal = in_field_of_view.angle_right - in_field_of_view.angle_left;
     const float    available_vertical   = in_field_of_view.angle_up    - in_field_of_view.angle_down;
+    const float    vertical_limit       = 2.0f * in_aspect_ratio * ::tanf(available_vertical / 2.0f);
+    const float    fitted_angle         = std::min(available_horizontal,
+                                                   vertical_limit) * FILL_OF_VIEW * in_scale;
+    const float    upper_limited_angle  = std::min(MAX_CENTRAL_ANGLE,
+                                                   fitted_angle);
     CylinderScreen result;
 
     result.aspect_ratio  = in_aspect_ratio;
     result.central_angle = std::max(MIN_CENTRAL_ANGLE,
-                                    std::min(MAX_CENTRAL_ANGLE,
-                                             std::min(available_horizontal,
-                                                      2.0f * in_aspect_ratio * ::tanf(available_vertical / 2.0f) ) * FILL_OF_VIEW * in_scale) );
+                                    upper_limited_angle);
     result.radius        = in_distance;
 
     return result;

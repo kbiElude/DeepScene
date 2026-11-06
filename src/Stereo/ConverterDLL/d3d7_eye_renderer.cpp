@@ -505,6 +505,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::RecipeL
         in_draw_arguments.n_vertices    != 0   &&
         in_draw_arguments.vertices_ptr  != nullptr)
     {
+        const bool is_presented       = m_surface_twins.is_back_buffer(m_mirror.render_target_ptr);
         const bool reaches_both_sides = Stereo::D3D7::ScreenParallax::reaches_both_sides(static_cast<const uint8_t*>(in_draw_arguments.vertices_ptr),
                                                                                          vertex_n_bytes,
                                                                                          in_draw_arguments.n_vertices,
@@ -514,7 +515,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::RecipeL
 
         plan = m_core_ptr->plan_screen_shift(in_eye,
                                              /* has_extent */ true,
-                                             m_surface_twins.is_back_buffer(m_mirror.render_target_ptr),
+                                             is_presented,
                                              in_picture_width,
                                              reaches_both_sides);
 
@@ -772,12 +773,15 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::mirror_blt(const APIInterceptor::API
             if (APIInterceptor::read_number(in_arguments_ptr[4],
                         &flags) )
             {
+                const void* const destination_rect_ptr = get_chunk_ptr(in_arguments_ptr[1]);
+                const void* const fx_ptr               = get_chunk_ptr(in_arguments_ptr[5]);
+
                 APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_BLT>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_BLT)(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(twin_ptr),
-                                                                                                                                                                  static_cast<const RECT*>(get_chunk_ptr(in_arguments_ptr[1]) ),
+                                                                                                                                                                  static_cast<const RECT*>(destination_rect_ptr),
                                                                                                                                                                   static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(source_ptr),
                                                                                                                                                                   static_cast<const RECT*>(rect_ptr),
                                                                                                                                                                   flags,
-                                                                                                                                                                  static_cast<const Interception::Hooks::D3D7::DDBLTFX*>(get_chunk_ptr(in_arguments_ptr[5]) ));
+                                                                                                                                                                  static_cast<const Interception::Hooks::D3D7::DDBLTFX*>(fx_ptr) );
 
 
                 result = true;

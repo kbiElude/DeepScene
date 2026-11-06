@@ -63,10 +63,11 @@ std::string Stereo::Launcher::get_own_directory()
                          path_i8vec260,
                          MAX_PATH);
 
-    const std::string path = path_i8vec260;
+    const std::string path                  = path_i8vec260;
+    const size_t      n_last_separator_char = path.find_last_of('\\');
 
     return path.substr(0,
-                       path.find_last_of('\\') );
+                       n_last_separator_char);
 }
 
 bool Stereo::Launcher::is_file(const std::string& in_path)
@@ -226,9 +227,11 @@ int Stereo::Launcher::run(const std::vector<std::string>& in_argument_vec)
         /* The converter stops an application which it cannot convert, and says why in its log. */
         if (exit_code == Stereo::Session::SessionEnvironment::get_converter_failed_exit_code() )
         {
+            const std::string failure_reason = get_converter_failure_reason(options.session_id);
+
             fprintf(stdout,
                     "[!] %s\n",
-                    get_converter_failure_reason(options.session_id).c_str() );
+                    failure_reason.c_str() );
 
             result = ExitCode::CONVERTER_FAILED;
         }

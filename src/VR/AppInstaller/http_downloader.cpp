@@ -183,13 +183,17 @@ bool VR::AppInstaller::HttpDownloader::download(const std::string&       in_url,
         n_bytes_total = n_content_length_bytes;
     }
 
-    file_handle = ::CreateFileW(FileSystem::to_wide(in_file_path).c_str(),
-                                GENERIC_WRITE,
-                                0, /* share mode */
-                                nullptr,
-                                CREATE_ALWAYS,
-                                FILE_ATTRIBUTE_NORMAL,
-                                nullptr);
+    {
+        const std::wstring wide_file_path = FileSystem::to_wide(in_file_path);
+
+        file_handle = ::CreateFileW(wide_file_path.c_str(),
+                                    GENERIC_WRITE,
+                                    0, /* share mode */
+                                    nullptr,
+                                    CREATE_ALWAYS,
+                                    FILE_ATTRIBUTE_NORMAL,
+                                    nullptr);
+    }
 
     if (file_handle == INVALID_HANDLE_VALUE)
     {

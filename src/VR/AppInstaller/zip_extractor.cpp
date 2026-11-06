@@ -29,8 +29,12 @@ bool VR::AppInstaller::ZipExtractor::extract(const std::string&       in_archive
 
     mz_zip_zero_struct(&zip_archive);
 
-    archive_file_ptr = ::_wfopen(FileSystem::to_wide(in_archive_path).c_str(),
-                                 L"rb");
+    {
+        const std::wstring wide_archive_path = FileSystem::to_wide(in_archive_path);
+
+        archive_file_ptr = ::_wfopen(wide_archive_path.c_str(),
+                                     L"rb");
+    }
 
     if (archive_file_ptr == nullptr)
     {
@@ -142,20 +146,28 @@ bool VR::AppInstaller::ZipExtractor::extract(const std::string&       in_archive
             const size_t n_last_separator_character = entry_path.find_last_of('\\');
             WriteContext write_context;
 
-            if (FileSystem::create_directories(entry_path.substr(0,
-                                                                 n_last_separator_character),
-                                               out_error_ptr) == false)
             {
-                goto end;
+                const std::string entry_directory = entry_path.substr(0,
+                                                                      n_last_separator_character);
+
+                if (FileSystem::create_directories(entry_directory,
+                                                   out_error_ptr) == false)
+                {
+                    goto end;
+                }
             }
 
-            file_handle = ::CreateFileW(FileSystem::to_wide(entry_path).c_str(),
-                                        GENERIC_WRITE,
-                                        0, /* share mode */
-                                        nullptr,
-                                        CREATE_NEW,
-                                        FILE_ATTRIBUTE_NORMAL,
-                                        nullptr);
+            {
+                const std::wstring wide_entry_path = FileSystem::to_wide(entry_path);
+
+                file_handle = ::CreateFileW(wide_entry_path.c_str(),
+                                            GENERIC_WRITE,
+                                            0, /* share mode */
+                                            nullptr,
+                                            CREATE_NEW,
+                                            FILE_ATTRIBUTE_NORMAL,
+                                            nullptr);
+            }
 
             if (file_handle == INVALID_HANDLE_VALUE)
             {

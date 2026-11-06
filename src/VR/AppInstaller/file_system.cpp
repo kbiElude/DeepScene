@@ -66,10 +66,11 @@ bool VR::AppInstaller::FileSystem::is_directory(const std::string& in_path)
 
 bool VR::AppInstaller::FileSystem::is_directory_empty(const std::string& in_path)
 {
-    WIN32_FIND_DATAW find_data;
-    const HANDLE     find_handle = ::FindFirstFileW((to_wide(in_path) + L"\\*").c_str(),
-                                                   &find_data);
-    bool             result      = true;
+    WIN32_FIND_DATAW   find_data;
+    const std::wstring wide_pattern = to_wide(in_path) + L"\\*";
+    const HANDLE       find_handle  = ::FindFirstFileW(wide_pattern.c_str(),
+                                                       &find_data);
+    bool               result       = true;
 
     if (find_handle != INVALID_HANDLE_VALUE)
     {
@@ -130,10 +131,12 @@ bool VR::AppInstaller::FileSystem::remove_tree(const std::string& in_path)
                     }
                     else
                     {
-                        ::SetFileAttributesW(to_wide(child_path).c_str(),
+                        const std::wstring wide_child_path = to_wide(child_path);
+
+                        ::SetFileAttributesW(wide_child_path.c_str(),
                                              FILE_ATTRIBUTE_NORMAL);
 
-                        result = (::DeleteFileW(to_wide(child_path).c_str() ) != FALSE) && result;
+                        result = (::DeleteFileW(wide_child_path.c_str() ) != FALSE) && result;
                     }
                 }
             }

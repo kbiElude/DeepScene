@@ -86,9 +86,13 @@ void VR::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spec)
         lock_name = "Local\\DeepScene.Install." + std::to_string(directory_name_hash);
     }
 
-    lock_handle = ::CreateMutexW(nullptr,
-                                 FALSE,
-                                 FileSystem::to_wide(lock_name).c_str() );
+    {
+        const std::wstring wide_lock_name = FileSystem::to_wide(lock_name);
+
+        lock_handle = ::CreateMutexW(nullptr,
+                                     FALSE,
+                                     wide_lock_name.c_str() );
+    }
 
     lock_error = ::GetLastError();
 
@@ -122,10 +126,11 @@ void VR::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spec)
                 n_url < in_spec.url_vec.size();
               ++n_url)
     {
-        std::string url_error;
+        const std::string progress_text = "Downloading from " + get_host(in_spec.url_vec.at(n_url) );
+        std::string       url_error;
 
         set_progress(InstallPhase::DOWNLOADING,
-                     "Downloading from " + get_host(in_spec.url_vec.at(n_url) ),
+                     progress_text,
                      0,
                      in_spec.n_archive_bytes);
 
@@ -210,13 +215,18 @@ void VR::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spec)
         ::RemoveDirectoryW(FileSystem::to_wide(in_spec.install_directory).c_str() );
     }
 
-    if (::MoveFileExW(FileSystem::to_wide(unpacked_directory).c_str(),
-                      FileSystem::to_wide(in_spec.install_directory).c_str(),
-                      0) == FALSE)
     {
-        error = "Cannot put the application in " + in_spec.install_directory + " (error " + std::to_string(::GetLastError() ) + ")";
+        const std::wstring wide_install_directory  = FileSystem::to_wide(in_spec.install_directory);
+        const std::wstring wide_unpacked_directory = FileSystem::to_wide(unpacked_directory);
 
-        goto end;
+        if (::MoveFileExW(wide_unpacked_directory.c_str(),
+                          wide_install_directory.c_str(),
+                          0) == FALSE)
+        {
+            error = "Cannot put the application in " + in_spec.install_directory + " (error " + std::to_string(::GetLastError() ) + ")";
+
+            goto end;
+        }
     }
 
     is_installed = true;
@@ -308,8 +318,12 @@ bool VR::AppInstaller::AppInstaller::start(const InstallSpec& in_spec,
     /* Everything which is written is under the directory of the applications: when it cannot be, the user is told so, and nothing is
      * written anywhere else.
      */
-    parent_directory = in_spec.install_directory.substr(0,
-                                                        in_spec.install_directory.find_last_of("\\/") );
+    {
+        const size_t n_last_separator_char = in_spec.install_directory.find_last_of("\\/");
+
+        parent_directory = in_spec.install_directory.substr(0,
+                                                            n_last_separator_char);
+    }
 
     if (FileSystem::create_directories(parent_directory,
                                        out_error_ptr) == false)

@@ -107,10 +107,16 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
     m_live_state.d3d7_renderer_ptr.reset(new D3D7EyeRenderer(m_live_state.core_ptr.get(),
                                                            &m_live_state.d3d7_windowed_mode) );
     m_live_state.renderer_ptr.reset(new D3D8EyeRenderer(m_live_state.core_ptr.get                               () ));
-    m_frame_passer_ptr.reset       (new FramePasser    (std::unique_ptr<Stereo::Transport::IFrameExporter>(new D3D8HostMemoryExporter(m_channel_ptr.get() )),
-                                                        m_log) );
-    m_d3d7_frame_passer_ptr.reset  (new FramePasser    (std::unique_ptr<Stereo::Transport::IFrameExporter>(new D3D7HostMemoryExporter(m_channel_ptr.get() )),
-                                                        m_log) );
+
+    {
+        std::unique_ptr<Stereo::Transport::IFrameExporter> d3d7_exporter_ptr(new D3D7HostMemoryExporter(m_channel_ptr.get() ));
+        std::unique_ptr<Stereo::Transport::IFrameExporter> d3d8_exporter_ptr(new D3D8HostMemoryExporter(m_channel_ptr.get() ));
+
+        m_frame_passer_ptr.reset     (new FramePasser(std::move(d3d8_exporter_ptr),
+                                                      m_log) );
+        m_d3d7_frame_passer_ptr.reset(new FramePasser(std::move(d3d7_exporter_ptr),
+                                                      m_log) );
+    }
 
     {
         /* Said by the program which shows the images, before it starts the application: the device is made with it. */
@@ -639,6 +645,8 @@ void Stereo::ConverterDLL::Converter::pass_d3d7_frame(void* in_primary_surface_p
 
     if (back_buffer_ptr != nullptr)
     {
+        void* const back_buffer_twin_ptr = m_live_state.d3d7_renderer_ptr->get_twin_ptr(back_buffer_ptr);
+
         /* A debugging aid: the images of the eyes of one frame, to look at. */
         if ( (m_live_state.dump_frame != 0 &&
               m_live_state.n_frames   == m_live_state.dump_frame)    ||
@@ -651,9 +659,10 @@ void Stereo::ConverterDLL::Converter::pass_d3d7_frame(void* in_primary_surface_p
             if (::GetTempPathA(MAX_PATH,
                                temp_i8vec260) != 0)
             {
-                const bool is_written = D3D7HostMemoryExporter::write_debug_image(back_buffer_ptr,
-                                                                                  m_live_state.d3d7_renderer_ptr->get_twin_ptr(back_buffer_ptr),
-                                                                                  std::string(temp_i8vec260) + "apistereo_frame_" + std::to_string(m_live_state.n_frames) + ".bmp");
+                const std::string filename   = std::string(temp_i8vec260) + "apistereo_frame_" + std::to_string(m_live_state.n_frames) + ".bmp";
+                const bool        is_written = D3D7HostMemoryExporter::write_debug_image(back_buffer_ptr,
+                                                                                         back_buffer_twin_ptr,
+                                                                                         filename);
 
                 m_log.write((is_written) ? "A frame is written to a file" : "A frame cannot be written to a file");
             }
@@ -661,7 +670,7 @@ void Stereo::ConverterDLL::Converter::pass_d3d7_frame(void* in_primary_surface_p
 
         m_d3d7_frame_passer_ptr->on_present(nullptr, /* in_device_ptr */
                                             back_buffer_ptr,
-                                            m_live_state.d3d7_renderer_ptr->get_twin_ptr(back_buffer_ptr) );
+                                            back_buffer_twin_ptr);
 
         if (is_to_release)
         {

@@ -70,8 +70,12 @@ int WINAPI WinMain(HINSTANCE in_instance,
     VR::UIHost::ImGuiWindowHost::enable_dpi_awareness();
 
     /* Direct3D 8 applications pass their images by the memory of the channel: it is what the importer takes. */
-    window_ptr.reset(new Stereo::Presenter::StereoPresenterWindow(std::unique_ptr<Stereo::Transport::IFrameImporter>(new Stereo::Transport::HostMemoryImporter(std::move(channel_ptr) )),
-                                                                  options.title) );
+    {
+        std::unique_ptr<Stereo::Transport::IFrameImporter> importer_ptr(new Stereo::Transport::HostMemoryImporter(std::move(channel_ptr) ));
+
+        window_ptr.reset(new Stereo::Presenter::StereoPresenterWindow(std::move(importer_ptr),
+                                                                      options.title) );
+    }
 
     if (window_ptr->create(&error) == false)
     {
