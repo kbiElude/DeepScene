@@ -7,33 +7,15 @@
 Stereo::D3D12::D3D12TextureClearer::D3D12TextureClearer(ID3D12Device*       in_device_ptr,
                                                         ID3D12CommandQueue* in_queue_ptr)
     :m_device_ptr(in_device_ptr),
-     m_queue_ptr (in_queue_ptr),
-     m_waiter    (in_device_ptr,
+     m_runner    (in_device_ptr,
                   in_queue_ptr)
 {
     D3D12_DESCRIPTOR_HEAP_DESC view_heap_desc = {};
 
-    if (FAILED(m_device_ptr->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
-                                                    IID_PPV_ARGS(m_allocator_ptr.GetAddressOf() ))) )
+    if (m_runner.is_ok(&m_error) == false)
     {
-        m_error = "The command allocator cannot be made";
-
         goto end;
     }
-
-    if (FAILED(m_device_ptr->CreateCommandList(0, /* in_node_mask */
-                                               D3D12_COMMAND_LIST_TYPE_DIRECT,
-                                               m_allocator_ptr.Get(),
-                                               nullptr, /* in_initial_state_ptr */
-                                               IID_PPV_ARGS(m_command_list_ptr.GetAddressOf() ))) )
-    {
-        m_error = "The command list cannot be made";
-
-        goto end;
-    }
-
-    /* A list is made recording; it is closed until the first clear. */
-    m_command_list_ptr->Close();
 
     view_heap_desc.NumDescriptors = 1;
     view_heap_desc.Type           = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
@@ -42,13 +24,6 @@ Stereo::D3D12::D3D12TextureClearer::D3D12TextureClearer(ID3D12Device*       in_d
                                                   IID_PPV_ARGS(m_view_heap_ptr.GetAddressOf() ))) )
     {
         m_error = "The heap for the view of a texture cannot be made";
-
-        goto end;
-    }
-
-    if (m_waiter.is_ok(&m_error) == false)
-    {
-        goto end;
     }
 
 end:
@@ -62,7 +37,8 @@ bool Stereo::D3D12::D3D12TextureClearer::clear_to_black(ID3D12Resource*         
 {
     constexpr float BLACK_FP32VEC4[4] = {0.0f, 0.0f, 0.0f, 1.0f};
 
-    bool result = false;
+    ID3D12GraphicsCommandList* list_ptr = nullptr;
+    bool                       result   = false;
 
     if (m_error.empty() == false)
     {
@@ -71,18 +47,10 @@ bool Stereo::D3D12::D3D12TextureClearer::clear_to_black(ID3D12Resource*         
         goto end;
     }
 
-    if (FAILED(m_allocator_ptr->Reset() ) )
+    list_ptr = m_runner.begin_list_ptr(out_error_ptr);
+
+    if (list_ptr == nullptr)
     {
-        *out_error_ptr = "The command allocator cannot be reset";
-
-        goto end;
-    }
-
-    if (FAILED(m_command_list_ptr->Reset(m_allocator_ptr.Get(),
-                                         nullptr) ))
-    {
-        *out_error_ptr = "The command list cannot be reset";
-
         goto end;
     }
 
@@ -107,14 +75,14 @@ bool Stereo::D3D12::D3D12TextureClearer::clear_to_black(ID3D12Resource*         
             barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
             barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-            m_command_list_ptr->ResourceBarrier(1,
-                                               &barrier);
+            list_ptr->ResourceBarrier(1,
+                                     &barrier);
         }
 
-        m_command_list_ptr->ClearRenderTargetView(view_handle,
-                                                  BLACK_FP32VEC4,
-                                                  0, /* in_n_rects */
-                                                  nullptr);
+        list_ptr->ClearRenderTargetView(view_handle,
+                                        BLACK_FP32VEC4,
+                                        0, /* in_n_rects */
+                                        nullptr);
 
         if (in_texture_state != D3D12_RESOURCE_STATE_RENDER_TARGET)
         {
@@ -126,26 +94,12 @@ bool Stereo::D3D12::D3D12TextureClearer::clear_to_black(ID3D12Resource*         
             barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
             barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-            m_command_list_ptr->ResourceBarrier(1,
-                                               &barrier);
+            list_ptr->ResourceBarrier(1,
+                                     &barrier);
         }
     }
 
-    if (FAILED(m_command_list_ptr->Close() ))
-    {
-        *out_error_ptr = "The command list cannot be closed";
-
-        goto end;
-    }
-
-    {
-        ID3D12CommandList* const command_list_ptr_array[] = {m_command_list_ptr.Get()};
-
-        m_queue_ptr->ExecuteCommandLists(1,
-                                         command_list_ptr_array);
-    }
-
-    result = m_waiter.wait(out_error_ptr);
+    result = m_runner.finish_list(out_error_ptr);
 
 end:
     return result;

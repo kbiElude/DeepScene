@@ -5,7 +5,7 @@
 #ifndef STEREO_D3D12_D3D12_FRAME_UPLOADER_H
 #define STEREO_D3D12_D3D12_FRAME_UPLOADER_H
 
-#include "Stereo/D3D12/d3d12_queue_waiter.h"
+#include "Stereo/D3D12/d3d12_command_runner.h"
 #include "Stereo/Transport/types.h"
 #include <map>
 #include <string>
@@ -67,13 +67,10 @@ namespace Stereo
                                    std::string*   out_error_ptr);
 
 
-            Microsoft::WRL::ComPtr<ID3D12CommandAllocator>    m_allocator_ptr;
-            Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_command_list_ptr;
-            Microsoft::WRL::ComPtr<ID3D12Device3>             m_device_ptr;
-            std::string                                       m_error; /* what stopped the uploader from being made; empty if nothing did */
-            ID3D12CommandQueue*                               m_queue_ptr;
-            std::map<const void*, Region>                     m_region_map; /* by where what was mapped starts */
-            D3D12QueueWaiter                                  m_waiter;     /* last: it is the first to go, and waits for what the GPU reads of the rest */
+            Microsoft::WRL::ComPtr<ID3D12Device3> m_device_ptr;
+            std::string                           m_error; /* what stopped the uploader from being made; empty if nothing did */
+            std::map<const void*, Region>         m_region_map; /* by where what was mapped starts */
+            D3D12CommandRunner                    m_runner;     /* last: it is the first to go, and waits for what the GPU reads of the rest */
         };
     }
 }

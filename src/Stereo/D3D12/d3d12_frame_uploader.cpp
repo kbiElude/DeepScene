@@ -6,9 +6,8 @@
 
 Stereo::D3D12::D3D12FrameUploader::D3D12FrameUploader(ID3D12Device*       in_device_ptr,
                                                       ID3D12CommandQueue* in_queue_ptr)
-    :m_queue_ptr(in_queue_ptr),
-     m_waiter   (in_device_ptr,
-                 in_queue_ptr)
+    :m_runner(in_device_ptr,
+              in_queue_ptr)
 {
     if (FAILED(in_device_ptr->QueryInterface(IID_PPV_ARGS(m_device_ptr.GetAddressOf() ))) )
     {
@@ -17,29 +16,7 @@ Stereo::D3D12::D3D12FrameUploader::D3D12FrameUploader(ID3D12Device*       in_dev
         goto end;
     }
 
-    if (FAILED(m_device_ptr->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
-                                                    IID_PPV_ARGS(m_allocator_ptr.GetAddressOf() ))) )
-    {
-        m_error = "The command allocator cannot be made";
-
-        goto end;
-    }
-
-    if (FAILED(m_device_ptr->CreateCommandList(0, /* in_node_mask */
-                                               D3D12_COMMAND_LIST_TYPE_DIRECT,
-                                               m_allocator_ptr.Get(),
-                                               nullptr, /* in_initial_state_ptr */
-                                               IID_PPV_ARGS(m_command_list_ptr.GetAddressOf() ))) )
-    {
-        m_error = "The command list cannot be made";
-
-        goto end;
-    }
-
-    /* A list is made recording; it is closed until the first upload. */
-    m_command_list_ptr->Close();
-
-    if (m_waiter.is_ok(&m_error) == false)
+    if (m_runner.is_ok(&m_error) == false)
     {
         goto end;
     }
@@ -138,12 +115,13 @@ bool Stereo::D3D12::D3D12FrameUploader::upload(const Stereo::Transport::Imported
 {
     constexpr uint32_t N_EYES = 2;
 
-    const uint32_t        eye_width           = (in_frame.info.n_eyes > 1) ? in_frame.info.width / in_frame.info.n_eyes
-                                                                          : in_frame.info.width;
-    uint64_t              pixel_offset        = 0;
-    Region*               region_ptr          = nullptr;
-    bool                  result              = false;
-    ID3D12Resource* const texture_ptr_array[] = {in_left_texture_ptr, in_right_texture_ptr};
+    const uint32_t             eye_width           = (in_frame.info.n_eyes > 1) ? in_frame.info.width / in_frame.info.n_eyes
+                                                                                : in_frame.info.width;
+    ID3D12GraphicsCommandList* list_ptr            = nullptr;
+    uint64_t                   pixel_offset        = 0;
+    Region*                    region_ptr          = nullptr;
+    bool                       result              = false;
+    ID3D12Resource* const      texture_ptr_array[] = {in_left_texture_ptr, in_right_texture_ptr};
 
     if (m_error.empty() == false)
     {
@@ -168,18 +146,10 @@ bool Stereo::D3D12::D3D12FrameUploader::upload(const Stereo::Transport::Imported
         goto end;
     }
 
-    if (FAILED(m_allocator_ptr->Reset() ))
+    list_ptr = m_runner.begin_list_ptr(out_error_ptr);
+
+    if (list_ptr == nullptr)
     {
-        *out_error_ptr = "The command allocator cannot be reset";
-
-        goto end;
-    }
-
-    if (FAILED(m_command_list_ptr->Reset(m_allocator_ptr.Get(),
-                                         nullptr) ))
-    {
-        *out_error_ptr = "The command list cannot be reset";
-
         goto end;
     }
 
@@ -199,7 +169,7 @@ bool Stereo::D3D12::D3D12FrameUploader::upload(const Stereo::Transport::Imported
         {
             *out_error_ptr = "A texture is smaller than an eye of the frame";
 
-            m_command_list_ptr->Close();
+            m_runner.abandon_list();
 
             goto end;
         }
@@ -234,11 +204,11 @@ bool Stereo::D3D12::D3D12FrameUploader::upload(const Stereo::Transport::Imported
             barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
             barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-            m_command_list_ptr->ResourceBarrier(1,
+            list_ptr->ResourceBarrier(1,
                                                &barrier);
         }
 
-        m_command_list_ptr->CopyTextureRegion(&destination,
+        list_ptr->CopyTextureRegion(&destination,
                                                0, /* in_dst_x */
                                                0, /* in_dst_y */
                                                0, /* in_dst_z */
@@ -255,26 +225,12 @@ bool Stereo::D3D12::D3D12FrameUploader::upload(const Stereo::Transport::Imported
             barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
             barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
-            m_command_list_ptr->ResourceBarrier(1,
+            list_ptr->ResourceBarrier(1,
                                                &barrier);
         }
     }
 
-    if (FAILED(m_command_list_ptr->Close() ))
-    {
-        *out_error_ptr = "The command list cannot be closed";
-
-        goto end;
-    }
-
-    {
-        ID3D12CommandList* const command_list_ptr_array[] = {m_command_list_ptr.Get()};
-
-        m_queue_ptr->ExecuteCommandLists(1,
-                                         command_list_ptr_array);
-    }
-
-    result = m_waiter.wait(out_error_ptr);
+    result = m_runner.finish_list(out_error_ptr);
 
 end:
     return result;

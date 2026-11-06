@@ -5,7 +5,7 @@
 #ifndef STEREO_D3D12_D3D12_TEXTURE_CLEARER_H
 #define STEREO_D3D12_D3D12_TEXTURE_CLEARER_H
 
-#include "Stereo/D3D12/d3d12_queue_waiter.h"
+#include "Stereo/D3D12/d3d12_command_runner.h"
 #include <string>
 #include <d3d12.h>
 #include <dxgi.h>
@@ -45,13 +45,10 @@ namespace Stereo
             bool is_ok(std::string* out_error_ptr) const;
 
         private:
-            Microsoft::WRL::ComPtr<ID3D12CommandAllocator>    m_allocator_ptr;
-            Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_command_list_ptr;
-            Microsoft::WRL::ComPtr<ID3D12Device>              m_device_ptr;
-            std::string                                       m_error; /* what stopped the clearer from being made; empty if nothing did */
-            ID3D12CommandQueue*                               m_queue_ptr;
-            Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>      m_view_heap_ptr;
-            D3D12QueueWaiter                                  m_waiter; /* last: it is the first to go, and waits for what the GPU does with the rest */
+            Microsoft::WRL::ComPtr<ID3D12Device>         m_device_ptr;
+            std::string                                  m_error; /* what stopped the clearer from being made; empty if nothing did */
+            D3D12CommandRunner                           m_runner;
+            Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_view_heap_ptr;
         };
     }
 }
