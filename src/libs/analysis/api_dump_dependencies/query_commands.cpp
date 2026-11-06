@@ -258,8 +258,11 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_frame(const Depend
                                                                     JsonWriter*               inout_writer_ptr,
                                                                     std::string*              out_error_ptr)
 {
-    std::vector<size_t> n_resource_vec;
-    QueryStatus         result         = QueryStatus::BAD_ARGUMENTS;
+    typedef Analysis::APIDumpAnalysis::QueryArguments PagingArguments;
+
+    std::vector<size_t>   n_resource_vec;
+    const PagingArguments paging         = get_paging(in_arguments);
+    QueryStatus           result         = QueryStatus::BAD_ARGUMENTS;
 
     if (in_arguments.has_frame_index == false)
     {
@@ -316,7 +319,7 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_frame(const Depend
     inout_writer_ptr->begin_object();
 
     Analysis::APIDumpAnalysis::QueryCommands::write_page(n_resource_vec.size(),
-                                                         get_paging(in_arguments),
+                                                         paging,
                                                          inout_writer_ptr);
 
     inout_writer_ptr->write_key   ("items");
@@ -324,7 +327,7 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_frame(const Depend
 
     for (uint64_t n_item = in_arguments.offset;
                   n_item < Analysis::APIDumpAnalysis::QueryCommands::get_page_end(n_resource_vec.size(),
-                                                                                  get_paging(in_arguments) );
+                                                                                  paging );
                 ++n_item)
     {
         const size_t                n_resource   = n_resource_vec.at(static_cast<size_t>(n_item) );
@@ -548,7 +551,10 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_resource(const Dep
                                                                        JsonWriter*               inout_writer_ptr,
                                                                        std::string*              out_error_ptr)
 {
-    QueryStatus result = QueryStatus::BAD_ARGUMENTS;
+    typedef Analysis::APIDumpAnalysis::QueryArguments PagingArguments;
+
+    const PagingArguments paging = get_paging(in_arguments);
+    QueryStatus           result = QueryStatus::BAD_ARGUMENTS;
 
     if (in_arguments.has_resource_id == false)
     {
@@ -583,7 +589,7 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_resource(const Dep
         inout_writer_ptr->begin_object();
 
         Analysis::APIDumpAnalysis::QueryCommands::write_page(dependencies.use_run_vec.size(),
-                                                             get_paging(in_arguments),
+                                                             paging,
                                                              inout_writer_ptr);
 
         inout_writer_ptr->write_key   ("items");
@@ -591,7 +597,7 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_resource(const Dep
 
         for (uint64_t n_run = in_arguments.offset;
                       n_run < Analysis::APIDumpAnalysis::QueryCommands::get_page_end(dependencies.use_run_vec.size(),
-                                                                                     get_paging(in_arguments) );
+                                                                                     paging );
                     ++n_run)
         {
             const UseRun& run = dependencies.use_run_vec.at(static_cast<size_t>(n_run) );
@@ -621,7 +627,7 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_resource(const Dep
         inout_writer_ptr->begin_object();
 
         Analysis::APIDumpAnalysis::QueryCommands::write_page(dependencies.version_vec.size(),
-                                                             get_paging(in_arguments),
+                                                             paging,
                                                              inout_writer_ptr);
 
         inout_writer_ptr->write_key   ("items");
@@ -629,7 +635,7 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_resource(const Dep
 
         for (uint64_t n_version = in_arguments.offset;
                       n_version < Analysis::APIDumpAnalysis::QueryCommands::get_page_end(dependencies.version_vec.size(),
-                                                                                         get_paging(in_arguments) );
+                                                                                         paging );
                     ++n_version)
         {
             const ResourceVersion& version = dependencies.version_vec.at(static_cast<size_t>(n_version) );
@@ -682,7 +688,10 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_resources(const De
                                                                         const QueryArguments&     in_arguments,
                                                                         JsonWriter*               inout_writer_ptr)
 {
-    std::vector<size_t> n_resource_vec;
+    typedef Analysis::APIDumpAnalysis::QueryArguments PagingArguments;
+
+    std::vector<size_t>   n_resource_vec;
+    const PagingArguments paging         = get_paging(in_arguments);
 
     for (size_t n_resource = 0;
                 n_resource < in_analysis.result.resource_vec.size();
@@ -700,7 +709,7 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_resources(const De
     inout_writer_ptr->begin_object();
 
     Analysis::APIDumpAnalysis::QueryCommands::write_page(n_resource_vec.size(),
-                                                         get_paging(in_arguments),
+                                                         paging,
                                                          inout_writer_ptr);
 
     inout_writer_ptr->write_key   ("items");
@@ -708,7 +717,7 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_resources(const De
 
     for (uint64_t n_item = in_arguments.offset;
                   n_item < Analysis::APIDumpAnalysis::QueryCommands::get_page_end(n_resource_vec.size(),
-                                                                                  get_paging(in_arguments) );
+                                                                                  paging );
                 ++n_item)
     {
         const size_t n_resource = n_resource_vec.at(static_cast<size_t>(n_item) );

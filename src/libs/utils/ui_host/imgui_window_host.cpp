@@ -73,8 +73,12 @@ Utils::UIHost::ImGuiWindowHost::~ImGuiWindowHost()
         ::DestroyWindow(m_hwnd);
     }
 
-    ::UnregisterClassW(m_options.class_name.c_str(),
-                       ::GetModuleHandleW(nullptr) );
+    {
+        const HMODULE module_handle = ::GetModuleHandleW(nullptr);
+
+        ::UnregisterClassW(m_options.class_name.c_str(),
+                           module_handle);
+    }
 }
 
 bool Utils::UIHost::ImGuiWindowHost::create(std::string* out_error_ptr)

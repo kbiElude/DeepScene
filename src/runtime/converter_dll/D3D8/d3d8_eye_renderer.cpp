@@ -482,11 +482,15 @@ bool Stereo::ConverterDLL::D3D8EyeRenderer::on_pre_draw(const Analysis::Recipe::
 
     if (in_draw_class != Analysis::Recipe::DrawClass::SKIPPED)
     {
-        apply_matrices(const_cast<void*>        (in_arguments_ptr[0].get_ptr() ),
-                       m_core_ptr->bind_matrices(in_draw_class,
-                                                 Analysis::Recipe::Eye::LEFT,
-                                                &m_change_vec,
-                                                 m_mirror.render_target_ptr == m_mirror.back_buffer_ptr) );
+        void* const    device_ptr      = const_cast<void*>(in_arguments_ptr[0].get_ptr() );
+        const bool     is_final_target = (m_mirror.render_target_ptr == m_mirror.back_buffer_ptr);
+        const uint32_t n_changes       = m_core_ptr->bind_matrices(in_draw_class,
+                                                                   Analysis::Recipe::Eye::LEFT,
+                                                                  &m_change_vec,
+                                                                   is_final_target);
+
+        apply_matrices(device_ptr,
+                       n_changes);
     }
 
     return (in_draw_class != Analysis::Recipe::DrawClass::SKIPPED);

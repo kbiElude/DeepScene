@@ -1450,10 +1450,13 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::on_call(const Capture::
                 constexpr size_t FACE_ARGUMENT  = 1;
                 constexpr size_t LEVEL_ARGUMENT = 2;
 
+                const uint32_t face      = view.get_u32(FACE_ARGUMENT);
+                const uint32_t mip_level = view.get_u32(LEVEL_ARGUMENT);
+
                 handle_unlock(view,
                               view.get_n_head_arguments(),
-                              view.get_u32(FACE_ARGUMENT),
-                              view.get_u32(LEVEL_ARGUMENT) );
+                              face,
+                              mip_level);
 
                 break;
             }
@@ -1472,10 +1475,12 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::on_call(const Capture::
             {
                 constexpr size_t LEVEL_ARGUMENT = 1;
 
+                const uint32_t mip_level = view.get_u32(LEVEL_ARGUMENT);
+
                 handle_unlock(view,
                               view.get_n_head_arguments(),
                               0,
-                              view.get_u32(LEVEL_ARGUMENT) );
+                              mip_level);
 
                 break;
             }

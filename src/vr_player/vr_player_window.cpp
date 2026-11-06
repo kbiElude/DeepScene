@@ -459,13 +459,14 @@ void VRPlayer::VrPlayerWindow::draw_header()
     ImGui::PopStyleColor();
 
     {
-        const ImVec2 min = ImGui::GetCursorScreenPos();
+        const ImU32  accent_color = ImGui::GetColorU32(ACCENT_COLOR);
+        const ImVec2 min          = ImGui::GetCursorScreenPos();
 
         ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(min.x,
                                                          min.y + SMALL_GAP * style.FontScaleDpi),
                                                   ImVec2(min.x + ImGui::GetContentRegionAvail().x,
                                                          min.y + (SMALL_GAP + ACCENT_LINE_HEIGHT) * style.FontScaleDpi),
-                                                  ImGui::GetColorU32(ACCENT_COLOR) );
+                                                  accent_color);
 
         ImGui::Dummy(ImVec2(0.0f,
                             3.0f * SMALL_GAP * style.FontScaleDpi) );
