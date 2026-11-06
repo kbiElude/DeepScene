@@ -33,11 +33,11 @@
 <tr><td><code>runtime/converter_dll</code>, <code>runtime/launcher</code>, <code>runtime/presenter</code></td><td><code>runtime\</code></td><td>what the VR player starts</td></tr>
 <tr><td><code>tools/analysis/&lt;program&gt;</code></td><td><code>tools\analysis\&lt;program&gt;_x64.exe</code></td><td>the tools of the analysis</td></tr>
 <tr><td><code>tools/stereo_replay/&lt;program&gt;</code></td><td><code>tools\stereo_replay\&lt;program&gt;_x64.exe</code> and <code>_x86.exe</code></td><td>the replay: the player, the checker and the engine they load</td></tr>
-<tr><td><code>libs/utils</code>, <code>libs/analysis</code>, <code>libs/stereo</code>, <code>libs/headset</code>, <code>libs/vr</code></td><td>(linked into the programs)</td><td>the five libraries</td></tr>
+<tr><td><code>libs/utils</code>, <code>libs/analysis</code>, <code>libs/stereo</code>, <code>libs/headset</code>, <code>libs/vr_player</code></td><td>(linked into the programs)</td><td>the five libraries</td></tr>
 <tr><td><code>tests</code></td><td>(not in the release)</td><td>the tests</td></tr>
 </table>
 <p>Each folder of a program or a library has its own <code>CMakeLists.txt</code>, which says what it is made of and links; <code>cmake/Install.cmake</code> says where each program is installed, and a test (<code>Layout</code>) checks that this and the folders say the same. <code>tools\api_dumper\</code> of the release is made of API Interceptor.</p>
-<p>An include names the library, from <code>src/libs</code> (<code>#include "analysis/api_dump_analysis/model.h"</code>), or, for what a program takes of another program, the path from <code>src</code> (<code>#include "tools/stereo_replay/engine_dll/types.h"</code>). What a program includes of its own folder is named as it is (<code>"command_line.h"</code>). The namespaces of a library follow the path under <code>src/libs</code>, in PascalCase:<code>Analysis::APIDumpAnalysis</code>, <code>Stereo::Core</code>, <code>Headset::XR</code>, <code>VR::AppCatalog</code>.</p>
+<p>An include names the library, from <code>src/libs</code> (<code>#include "analysis/api_dump_analysis/model.h"</code>), or, for what a program takes of another program, the path from <code>src</code> (<code>#include "tools/stereo_replay/engine_dll/types.h"</code>). What a program includes of its own folder is named as it is (<code>"command_line.h"</code>). The namespaces of a library follow the path under <code>src/libs</code>, in PascalCase:<code>Analysis::APIDumpAnalysis</code>, <code>Stereo::Core</code>, <code>Headset::XR</code>, <code>VRPlayer::AppCatalog</code>, <code>Utils::Images</code>.</p>
 
 <ol class="toc">
   <li><a href="#libs">Libraries</a></li>
@@ -129,8 +129,8 @@
 <h4>VRDevices</h4>
 <p>Where the list of devices comes from, behind an interface: a stub of made-up devices, and the provider of OpenXR runtimes in <code>XR</code>.</p>
 
-<h3>VR</h3>
-<p><em>Library.</em> What the VR player is made of, besides the headset. See <a href="vr-player.html">VR player</a>. Its parts:</p>
+<h3>VRPlayer (<code>libs/vr_player</code>)</h3>
+<p><em>Library</em> (the target is <code>VRPlayerBackend</code>, since <code>VRPlayer</code> is the program). What the VR player is made of, besides the headset and the window: the part of the player which does not draw. The namespace is <code>VRPlayer</code>, the same as the program's. See <a href="vr-player.html">VR player</a>. Its parts:</p>
 
 <h4>AppCatalog</h4>
 <p>The list of applications that can be launched: for each, its executable, arguments, working directory and recipe, where it is downloaded from if it is not there, and the reason it is unavailable if it is. The name and description come from the recipe if the catalog does not give them.</p>

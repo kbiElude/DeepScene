@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <stdio.h>
 
-VR::VRPlayer::AppSession::AppSession()
+VRPlayer::AppSession::AppSession()
     :m_depth_strength    (0.0f),
      m_has_depth_strength(false),
      m_has_is_overlay_pushed(false),
@@ -21,13 +21,13 @@ VR::VRPlayer::AppSession::AppSession()
     /* Stub */
 }
 
-VR::VRPlayer::AppSession::~AppSession()
+VRPlayer::AppSession::~AppSession()
 {
     /* What still runs ends with the job. */
     close_handles();
 }
 
-void VR::VRPlayer::AppSession::close_handles()
+void VRPlayer::AppSession::close_handles()
 {
     m_channel_ptr.reset();
 
@@ -44,8 +44,8 @@ void VR::VRPlayer::AppSession::close_handles()
     }
 }
 
-void VR::VRPlayer::AppSession::end_session(const SessionState& in_state,
-                                           const std::string&  in_message)
+void VRPlayer::AppSession::end_session(const SessionState& in_state,
+                                       const std::string&  in_message)
 {
     /* The window, the launcher and the application all belong to the job. */
     if (m_job != nullptr)
@@ -60,7 +60,7 @@ void VR::VRPlayer::AppSession::end_session(const SessionState& in_state,
     m_state   = in_state;
 }
 
-std::string VR::VRPlayer::AppSession::get_command_line(const SessionRequest& in_request)
+std::string VRPlayer::AppSession::get_command_line(const SessionRequest& in_request)
 {
     std::string result = quote_argument(in_request.launcher_path) + " --recipe " + quote_argument(in_request.recipe_path) +
                          " --session " + quote_argument(in_request.session_id);
@@ -83,17 +83,17 @@ std::string VR::VRPlayer::AppSession::get_command_line(const SessionRequest& in_
     return result + " --wait " + quote_argument(in_request.executable_path);
 }
 
-const std::string& VR::VRPlayer::AppSession::get_message() const
+const std::string& VRPlayer::AppSession::get_message() const
 {
     return m_message;
 }
 
-VR::VRPlayer::SessionState VR::VRPlayer::AppSession::get_state() const
+VRPlayer::SessionState VRPlayer::AppSession::get_state() const
 {
     return m_state;
 }
 
-std::string VR::VRPlayer::AppSession::get_presenter_command_line(const SessionRequest& in_request)
+std::string VRPlayer::AppSession::get_presenter_command_line(const SessionRequest& in_request)
 {
     return quote_argument(in_request.presenter_path) + " --session " + quote_argument(in_request.session_id) +
            ((in_request.title.empty() ) ? std::string()
@@ -107,7 +107,7 @@ std::string VR::VRPlayer::AppSession::get_presenter_command_line(const SessionRe
                                         : std::string() );
 }
 
-void VR::VRPlayer::AppSession::set_is_overlay_pushed(const bool& in_is_pushed)
+void VRPlayer::AppSession::set_is_overlay_pushed(const bool& in_is_pushed)
 {
     /* Said when it changes, like the strength. */
     if (m_channel_ptr != nullptr)
@@ -123,7 +123,7 @@ void VR::VRPlayer::AppSession::set_is_overlay_pushed(const bool& in_is_pushed)
     }
 }
 
-void VR::VRPlayer::AppSession::set_depth_strength(const float& in_depth_strength)
+void VRPlayer::AppSession::set_depth_strength(const float& in_depth_strength)
 {
     /* Said when it changes, so that what else sets it through the channel is not overridden at every frame. */
     if (m_channel_ptr != nullptr)
@@ -139,7 +139,7 @@ void VR::VRPlayer::AppSession::set_depth_strength(const float& in_depth_strength
     }
 }
 
-std::string VR::VRPlayer::AppSession::quote_argument(const std::string& in_argument)
+std::string VRPlayer::AppSession::quote_argument(const std::string& in_argument)
 {
     size_t      n_backslashes = 0;
     std::string result        = "\"";
@@ -176,7 +176,7 @@ std::string VR::VRPlayer::AppSession::quote_argument(const std::string& in_argum
     return result + "\"";
 }
 
-std::string VR::VRPlayer::AppSession::read_output(const HANDLE& in_pipe)
+std::string VRPlayer::AppSession::read_output(const HANDLE& in_pipe)
 {
     char        buffer_i8vec512[512];
     DWORD       n_available = 0;
@@ -205,30 +205,30 @@ std::string VR::VRPlayer::AppSession::read_output(const HANDLE& in_pipe)
     return result;
 }
 
-bool VR::VRPlayer::AppSession::start(const VR::AppCatalog::AppEntry& in_app,
-                                     const std::string&              in_launcher_directory,
-                                     const uint32_t&                 in_target_eye_width,
-                                     const uint32_t&                 in_target_eye_height,
-                                     const bool&                     in_use_headset,
-                                     const bool&                     in_pace_to_headset,
-                                     const bool&                     in_write_log,
-                                     std::string*                    out_error_ptr)
+bool VRPlayer::AppSession::start(const VRPlayer::AppCatalog::AppEntry& in_app,
+                                 const std::string&                    in_launcher_directory,
+                                 const uint32_t&                       in_target_eye_width,
+                                 const uint32_t&                       in_target_eye_height,
+                                 const bool&                           in_use_headset,
+                                 const bool&                           in_pace_to_headset,
+                                 const bool&                           in_write_log,
+                                 std::string*                          out_error_ptr)
 {
-    Capture::InjectionLauncher::TargetArchitecture   architecture      = Capture::InjectionLauncher::TargetArchitecture::UNKNOWN;
+    Capture::InjectionLauncher::TargetArchitecture   architecture           = Capture::InjectionLauncher::TargetArchitecture::UNKNOWN;
     std::unique_ptr<Stereo::Transport::FrameChannel> channel_ptr;
-    HANDLE                                           job               = nullptr;
-    JOBOBJECT_EXTENDED_LIMIT_INFORMATION             job_limit         = {};
+    HANDLE                                           job                    = nullptr;
+    JOBOBJECT_EXTENDED_LIMIT_INFORMATION             job_limit              = {};
     std::string                                      launcher_command_line;
-    PROCESS_INFORMATION                              launcher_info     = {};
-    HANDLE                                           pipe_read         = nullptr;
-    HANDLE                                           pipe_write        = nullptr;
+    PROCESS_INFORMATION                              launcher_info          = {};
+    HANDLE                                           pipe_read              = nullptr;
+    HANDLE                                           pipe_write             = nullptr;
     SessionRequest                                   request;
-    bool                                             result            = false;
-    SECURITY_ATTRIBUTES                              security          = {};
-    STARTUPINFOA                                     startup_info      = {};
+    bool                                             result                 = false;
+    SECURITY_ATTRIBUTES                              security               = {};
+    STARTUPINFOA                                     startup_info           = {};
     std::string                                      presenter_command_line;
-    PROCESS_INFORMATION                              presenter_info    = {};
-    HANDLE                                           presenter_process = nullptr;
+    PROCESS_INFORMATION                              presenter_info         = {};
+    HANDLE                                           presenter_process      = nullptr;
 
     if (m_state == SessionState::RUNNING)
     {
@@ -434,7 +434,7 @@ end:
     return result;
 }
 
-void VR::VRPlayer::AppSession::update()
+void VRPlayer::AppSession::update()
 {
     DWORD exit_code = 0;
 

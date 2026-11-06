@@ -7,7 +7,7 @@
  * written to, a cancel) leaves nothing behind.
  */
 #include <gtest/gtest.h>
-#include "vr/app_installer/app_installer.h"
+#include "vr_player/app_installer/app_installer.h"
 #include "utils/files/file_system.h"
 #include "utils/files/sha256.h"
 #include "temp_directory.h"
@@ -104,7 +104,7 @@ protected:
     }
 
     /* Waits for the end of the installation: DONE, FAILED or CANCELLED. */
-    VR::AppInstaller::InstallProgress wait_for_end_of_installation()
+    VRPlayer::AppInstaller::InstallProgress wait_for_end_of_installation()
     {
         const auto start_time = std::chrono::steady_clock::now();
 
@@ -128,11 +128,11 @@ protected:
         return file_text.str();
     }
 
-    Tests::TempDirectory           m_directory;
-    FakeDownloader                 m_downloader;
-    VR::AppInstaller::AppInstaller m_installer;
-    VR::AppInstaller::InstallSpec  m_spec;
-    Tests::ZipBuilder              m_zip;
+    Tests::TempDirectory                 m_directory;
+    FakeDownloader                       m_downloader;
+    VRPlayer::AppInstaller::AppInstaller m_installer;
+    VRPlayer::AppInstaller::InstallSpec  m_spec;
+    Tests::ZipBuilder                    m_zip;
 };
 
 TEST_F(AppInstallerTest, TheApplicationIsPutInItsDirectoryAndNothingIsLeftNextToIt)
@@ -142,10 +142,10 @@ TEST_F(AppInstallerTest, TheApplicationIsPutInItsDirectoryAndNothingIsLeftNextTo
     ASSERT_TRUE(m_installer.start(m_spec,
                                  &error) ) << error;
 
-    const VR::AppInstaller::InstallProgress progress = wait_for_end_of_installation();
+    const VRPlayer::AppInstaller::InstallProgress progress = wait_for_end_of_installation();
 
     ASSERT_EQ(progress.phase,
-              VR::AppInstaller::InstallPhase::DONE) << progress.message;
+              VRPlayer::AppInstaller::InstallPhase::DONE) << progress.message;
 
     EXPECT_EQ(get_text(m_spec.install_directory + "\\app.exe"),
               "program");
@@ -164,10 +164,10 @@ TEST_F(AppInstallerTest, AFileWhichIsNotTheExpectedOneIsNotUsed)
     ASSERT_TRUE(m_installer.start(m_spec,
                                  &error) ) << error;
 
-    const VR::AppInstaller::InstallProgress progress = wait_for_end_of_installation();
+    const VRPlayer::AppInstaller::InstallProgress progress = wait_for_end_of_installation();
 
     EXPECT_EQ(progress.phase,
-              VR::AppInstaller::InstallPhase::FAILED);
+              VRPlayer::AppInstaller::InstallPhase::FAILED);
     EXPECT_NE(progress.message.find("not the file which was expected"),
               std::string::npos) << progress.message;
     EXPECT_FALSE(Utils::Files::FileSystem::is_directory(m_spec.install_directory) );
@@ -185,7 +185,7 @@ TEST_F(AppInstallerTest, TheNextAddressIsTriedWhenOneFailsAndAllFailingSaysSoWit
                                  &error) ) << error;
 
     EXPECT_EQ(wait_for_end_of_installation().phase,
-              VR::AppInstaller::InstallPhase::DONE);
+              VRPlayer::AppInstaller::InstallPhase::DONE);
     EXPECT_EQ(m_downloader.m_n_calls,
               2);
 
@@ -197,10 +197,10 @@ TEST_F(AppInstallerTest, TheNextAddressIsTriedWhenOneFailsAndAllFailingSaysSoWit
     ASSERT_TRUE(m_installer.start(m_spec,
                                  &error) ) << error;
 
-    const VR::AppInstaller::InstallProgress progress = wait_for_end_of_installation();
+    const VRPlayer::AppInstaller::InstallProgress progress = wait_for_end_of_installation();
 
     EXPECT_EQ(progress.phase,
-              VR::AppInstaller::InstallPhase::FAILED);
+              VRPlayer::AppInstaller::InstallPhase::FAILED);
     EXPECT_NE(progress.message.find("broken.example"),
               std::string::npos) << progress.message;
     EXPECT_NE(progress.message.find(m_spec.page_url),
@@ -226,10 +226,10 @@ TEST_F(AppInstallerTest, AnArchiveWhichWritesOutsideItsDirectoryIsRefusedAndWrit
     ASSERT_TRUE(m_installer.start(m_spec,
                                  &error) ) << error;
 
-    const VR::AppInstaller::InstallProgress progress = wait_for_end_of_installation();
+    const VRPlayer::AppInstaller::InstallProgress progress = wait_for_end_of_installation();
 
     EXPECT_EQ(progress.phase,
-              VR::AppInstaller::InstallPhase::FAILED);
+              VRPlayer::AppInstaller::InstallPhase::FAILED);
     EXPECT_FALSE(Utils::Files::FileSystem::is_file(m_directory.get_path() + "\\escaped.txt") );
     EXPECT_FALSE(Utils::Files::FileSystem::is_file(m_directory.get_path() + "\\apps\\escaped.txt") );
     EXPECT_FALSE(Utils::Files::FileSystem::is_directory(m_spec.install_directory) );
@@ -266,7 +266,7 @@ TEST_F(AppInstallerTest, AnApplicationWhoseDirectoryIsTakenOrWhichIsNotWellDescr
     EXPECT_TRUE(m_installer.start(m_spec,
                                  &error) ) << "an empty directory can be used";
     EXPECT_EQ  (wait_for_end_of_installation().phase,
-                VR::AppInstaller::InstallPhase::DONE);
+                VRPlayer::AppInstaller::InstallPhase::DONE);
 
     EXPECT_FALSE(m_installer.start(m_spec,
                                   &error) ) << "the application is there";
@@ -301,7 +301,7 @@ TEST_F(AppInstallerTest, ACancelEndsTheInstallationAndLeavesNothing)
     m_installer.cancel();
 
     EXPECT_EQ(wait_for_end_of_installation().phase,
-              VR::AppInstaller::InstallPhase::CANCELLED);
+              VRPlayer::AppInstaller::InstallPhase::CANCELLED);
     EXPECT_FALSE(Utils::Files::FileSystem::is_directory(m_spec.install_directory) );
     EXPECT_FALSE(Utils::Files::FileSystem::is_directory(m_spec.install_directory + ".download") );
 }

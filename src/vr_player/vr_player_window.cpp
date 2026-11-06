@@ -51,7 +51,7 @@ static constexpr float DETAILS_TITLE_SCALE      = 1.7f;
 static constexpr float PAGE_TITLE_SCALE         = 2.0f;
 static constexpr float SECTION_TITLE_SCALE      = 1.2f;
 
-VR::VRPlayer::VrPlayerWindow::VrPlayerWindow(const WindowContent& in_content)
+VRPlayer::VrPlayerWindow::VrPlayerWindow(const WindowContent& in_content)
     :ImGuiWindowHost       (get_window_options() ),
      m_content             (in_content),
      m_depth_index         (DEFAULT_DEPTH_INDEX),
@@ -73,22 +73,22 @@ VR::VRPlayer::VrPlayerWindow::VrPlayerWindow(const WindowContent& in_content)
     select_defaults();
 }
 
-bool VR::VRPlayer::VrPlayerWindow::draw_app_card(const size_t& in_n_app)
+bool VRPlayer::VrPlayerWindow::draw_app_card(const size_t& in_n_app)
 {
-    const VR::AppCatalog::AppEntry& app              = m_content.catalog.app_vec.at(in_n_app);
-    const ImGuiStyle&               style            = ImGui::GetStyle();
-    const float                     pad              = style.FramePadding.x * 1.6f;
-    const bool                      is_available     = app.unavailable_reason.empty();
-    const bool                      is_selected      = (static_cast<int>(in_n_app) == m_selected_app);
-    const float                     width            = ImGui::GetContentRegionAvail().x;
-    const float                     wrap_width       = width - 2.0f * pad;
-    float                           height           = 2.0f * pad;
-    ImVec2                          reason_size      = ImVec2(0.0f,
-                                                          0.0f);
-    ImVec2                          description_size = ImVec2(0.0f,
-                                                              0.0f);
-    float                           title_height     = 0.0f;
-    bool                            result           = false;
+    const VRPlayer::AppCatalog::AppEntry& app              = m_content.catalog.app_vec.at(in_n_app);
+    const ImGuiStyle&                     style            = ImGui::GetStyle();
+    const float                           pad              = style.FramePadding.x * 1.6f;
+    const bool                            is_available     = app.unavailable_reason.empty();
+    const bool                            is_selected      = (static_cast<int>(in_n_app) == m_selected_app);
+    const float                           width            = ImGui::GetContentRegionAvail().x;
+    const float                           wrap_width       = width - 2.0f * pad;
+    float                                 height           = 2.0f * pad;
+    ImVec2                                reason_size      = ImVec2(0.0f,
+                                                                0.0f);
+    ImVec2                                description_size = ImVec2(0.0f,
+                                                                    0.0f);
+    float                                 title_height     = 0.0f;
+    bool                                  result           = false;
 
     ImGui::PushFont(nullptr,
                     style.FontSizeBase * CARD_TITLE_SCALE);
@@ -185,7 +185,7 @@ bool VR::VRPlayer::VrPlayerWindow::draw_app_card(const size_t& in_n_app)
     return result;
 }
 
-void VR::VRPlayer::VrPlayerWindow::draw_app_list()
+void VRPlayer::VrPlayerWindow::draw_app_list()
 {
     if (m_content.catalog_error.empty() == false)
     {
@@ -217,7 +217,7 @@ void VR::VRPlayer::VrPlayerWindow::draw_app_list()
     }
 }
 
-void VR::VRPlayer::VrPlayerWindow::draw_contents(Utils::UIHost::ContentExtent* inout_extent_ptr)
+void VRPlayer::VrPlayerWindow::draw_contents(Utils::UIHost::ContentExtent* inout_extent_ptr)
 {
     const ImGuiStyle& style = ImGui::GetStyle();
 
@@ -263,7 +263,7 @@ void VR::VRPlayer::VrPlayerWindow::draw_contents(Utils::UIHost::ContentExtent* i
     draw_install_error();
 }
 
-void VR::VRPlayer::VrPlayerWindow::draw_details()
+void VRPlayer::VrPlayerWindow::draw_details()
 {
     const ImGuiStyle& style = ImGui::GetStyle();
 
@@ -278,7 +278,7 @@ void VR::VRPlayer::VrPlayerWindow::draw_details()
     }
 
     {
-        const VR::AppCatalog::AppEntry& app = m_content.catalog.app_vec.at(static_cast<size_t>(m_selected_app) );
+        const VRPlayer::AppCatalog::AppEntry& app = m_content.catalog.app_vec.at(static_cast<size_t>(m_selected_app) );
 
         ImGui::PushFont(nullptr,
                         style.FontSizeBase * DETAILS_TITLE_SCALE);
@@ -321,7 +321,7 @@ end:
     return;
 }
 
-void VR::VRPlayer::VrPlayerWindow::draw_device_combo()
+void VRPlayer::VrPlayerWindow::draw_device_combo()
 {
     constexpr const char* NO_DEVICE_TEXT = "2D preview only";
 
@@ -405,7 +405,7 @@ void VR::VRPlayer::VrPlayerWindow::draw_device_combo()
     ImGui::PopStyleColor();
 }
 
-void VR::VRPlayer::VrPlayerWindow::draw_header()
+void VRPlayer::VrPlayerWindow::draw_header()
 {
     const ImGuiStyle& style = ImGui::GetStyle();
 
@@ -433,7 +433,7 @@ void VR::VRPlayer::VrPlayerWindow::draw_header()
     }
 }
 
-void VR::VRPlayer::VrPlayerWindow::draw_launch_area()
+void VRPlayer::VrPlayerWindow::draw_launch_area()
 {
     const ImGuiStyle& style         = ImGui::GetStyle();
     const float       button_height = ImGui::GetFrameHeight() * 1.6f;
@@ -458,12 +458,12 @@ void VR::VRPlayer::VrPlayerWindow::draw_launch_area()
 
     if (m_installing_app >= 0)
     {
-        const VR::AppInstaller::InstallProgress progress          = m_installer.get_progress();
-        const float                             progress_fraction = (progress.n_bytes_total != 0) ? static_cast<float>(static_cast<double>(progress.n_bytes_done) /
-                                                                                                                       static_cast<double>(progress.n_bytes_total) )
-                                                                                                  : 0.0f;
-        const std::string                       progress_text     = (progress.n_bytes_total != 0) ? get_size_text(progress.n_bytes_done) + " of " + get_size_text(progress.n_bytes_total)
-                                                                                                  : std::string();
+        const VRPlayer::AppInstaller::InstallProgress progress          = m_installer.get_progress();
+        const float                                   progress_fraction = (progress.n_bytes_total != 0) ? static_cast<float>(static_cast<double>(progress.n_bytes_done) /
+                                                                                                                             static_cast<double>(progress.n_bytes_total) )
+                                                                                                        : 0.0f;
+        const std::string                             progress_text     = (progress.n_bytes_total != 0) ? get_size_text(progress.n_bytes_done) + " of " + get_size_text(progress.n_bytes_total)
+                                                                                                        : std::string();
 
         ImGui::Text("%s: %s",
                     m_content.catalog.app_vec.at(static_cast<size_t>(m_installing_app) ).name.c_str(),
@@ -516,7 +516,7 @@ void VR::VRPlayer::VrPlayerWindow::draw_launch_area()
     }
 }
 
-void VR::VRPlayer::VrPlayerWindow::draw_install_error()
+void VRPlayer::VrPlayerWindow::draw_install_error()
 {
     constexpr float WIDTH = 460.0f;
 
@@ -550,7 +550,7 @@ void VR::VRPlayer::VrPlayerWindow::draw_install_error()
     }
 }
 
-void VR::VRPlayer::VrPlayerWindow::draw_vr_settings()
+void VRPlayer::VrPlayerWindow::draw_vr_settings()
 {
     const ImGuiStyle& style = ImGui::GetStyle();
 
@@ -643,7 +643,7 @@ void VR::VRPlayer::VrPlayerWindow::draw_vr_settings()
     }
 }
 
-std::string VR::VRPlayer::VrPlayerWindow::get_size_text(const uint64_t& in_n_bytes)
+std::string VRPlayer::VrPlayerWindow::get_size_text(const uint64_t& in_n_bytes)
 {
     constexpr double N_BYTES_PER_KB = 1024.0;
     constexpr double N_BYTES_PER_MB = 1024.0 * 1024.0;
@@ -668,7 +668,7 @@ std::string VR::VRPlayer::VrPlayerWindow::get_size_text(const uint64_t& in_n_byt
     return size_text_i8vec32;
 }
 
-Utils::UIHost::WindowOptions VR::VRPlayer::VrPlayerWindow::get_window_options()
+Utils::UIHost::WindowOptions VRPlayer::VrPlayerWindow::get_window_options()
 {
     constexpr int CLIENT_HEIGHT = 620;
     constexpr int CLIENT_WIDTH  = 980;
@@ -685,7 +685,7 @@ Utils::UIHost::WindowOptions VR::VRPlayer::VrPlayerWindow::get_window_options()
     return result;
 }
 
-bool VR::VRPlayer::VrPlayerWindow::is_launch_possible() const
+bool VRPlayer::VrPlayerWindow::is_launch_possible() const
 {
     /* A device is not needed: with none, the picture is shown in the window. */
     return (m_selected_app >= 0                                                                                          &&
@@ -694,7 +694,7 @@ bool VR::VRPlayer::VrPlayerWindow::is_launch_possible() const
             m_content.catalog.app_vec.at(static_cast<size_t>(m_selected_app) ).unavailable_reason.empty() );
 }
 
-void VR::VRPlayer::VrPlayerWindow::launch()
+void VRPlayer::VrPlayerWindow::launch()
 {
     if (m_content.catalog.app_vec.at(static_cast<size_t>(m_selected_app) ).is_download_needed)
     {
@@ -706,12 +706,12 @@ void VR::VRPlayer::VrPlayerWindow::launch()
     }
 }
 
-void VR::VRPlayer::VrPlayerWindow::start_app(const size_t& in_n_app)
+void VRPlayer::VrPlayerWindow::start_app(const size_t& in_n_app)
 {
-    const VR::AppCatalog::AppEntry& app           = m_content.catalog.app_vec.at(in_n_app);
-    std::string                     error;
-    uint32_t                        target_height = 0;
-    uint32_t                        target_width  = 0;
+    const VRPlayer::AppCatalog::AppEntry& app           = m_content.catalog.app_vec.at(in_n_app);
+    std::string                           error;
+    uint32_t                              target_height = 0;
+    uint32_t                              target_width  = 0;
 
     /* An eye of the headset, brought down as the quality says; none without a headset. */
     if (m_device_index >= 0)
@@ -745,7 +745,7 @@ void VR::VRPlayer::VrPlayerWindow::start_app(const size_t& in_n_app)
     }
 }
 
-void VR::VRPlayer::VrPlayerWindow::select_defaults()
+void VRPlayer::VrPlayerWindow::select_defaults()
 {
     /* The first application which can be played, or else the first one: its reason is what is shown. */
     for (size_t n_app = 0;
@@ -772,10 +772,10 @@ void VR::VRPlayer::VrPlayerWindow::select_defaults()
     }
 }
 
-void VR::VRPlayer::VrPlayerWindow::start_install()
+void VRPlayer::VrPlayerWindow::start_install()
 {
-    const VR::AppCatalog::AppEntry& app   = m_content.catalog.app_vec.at(static_cast<size_t>(m_selected_app) );
-    std::string                     error;
+    const VRPlayer::AppCatalog::AppEntry& app   = m_content.catalog.app_vec.at(static_cast<size_t>(m_selected_app) );
+    std::string                           error;
 
     if (m_installer.start(app.install_spec,
                          &error) )
@@ -793,16 +793,16 @@ void VR::VRPlayer::VrPlayerWindow::start_install()
     }
 }
 
-void VR::VRPlayer::VrPlayerWindow::update_install()
+void VRPlayer::VrPlayerWindow::update_install()
 {
     if (m_installing_app >= 0)
     {
-        const VR::AppInstaller::InstallProgress progress = m_installer.get_progress();
-        const size_t                            n_app    = static_cast<size_t>(m_installing_app);
+        const VRPlayer::AppInstaller::InstallProgress progress = m_installer.get_progress();
+        const size_t                                  n_app    = static_cast<size_t>(m_installing_app);
 
         switch (progress.phase)
         {
-            case VR::AppInstaller::InstallPhase::DONE:
+            case VRPlayer::AppInstaller::InstallPhase::DONE:
             {
                 const bool is_program_there = Utils::Files::FileSystem::is_file(m_content.catalog.app_vec.at(n_app).executable_path);
 
@@ -827,7 +827,7 @@ void VR::VRPlayer::VrPlayerWindow::update_install()
                 break;
             }
 
-            case VR::AppInstaller::InstallPhase::CANCELLED:
+            case VRPlayer::AppInstaller::InstallPhase::CANCELLED:
             {
                 m_installing_app  = -1;
                 m_is_status_error = false;
@@ -836,7 +836,7 @@ void VR::VRPlayer::VrPlayerWindow::update_install()
                 break;
             }
 
-            case VR::AppInstaller::InstallPhase::FAILED:
+            case VRPlayer::AppInstaller::InstallPhase::FAILED:
             {
                 m_install_error             = progress.message;
                 m_installing_app            = -1;
@@ -856,7 +856,7 @@ void VR::VRPlayer::VrPlayerWindow::update_install()
     }
 }
 
-void VR::VRPlayer::VrPlayerWindow::update_session()
+void VRPlayer::VrPlayerWindow::update_session()
 {
     const SessionState previous_state = m_session.get_state();
 
@@ -875,7 +875,7 @@ void VR::VRPlayer::VrPlayerWindow::update_session()
     }
 }
 
-void VR::VRPlayer::VrPlayerWindow::set_up_style()
+void VRPlayer::VrPlayerWindow::set_up_style()
 {
     constexpr float FRAME_ROUNDING   = 6.0f;
     constexpr float PANEL_ROUNDING   = 10.0f;

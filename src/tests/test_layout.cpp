@@ -53,8 +53,8 @@ namespace
         {
             return std::isupper(static_cast<unsigned char>(in_character) ) != 0;
         };
-        const std::string prefix        = get_group_prefix(in_destination);
-        std::string       name          = in_program_name;
+        const std::string prefix = get_group_prefix(in_destination);
+        std::string       name   = in_program_name;
         std::string       result;
 
         if (name.compare(0,
@@ -107,8 +107,8 @@ namespace
     {
         const std::set<std::string> interceptor_name_set = {"APIDumper", "APIDumperDLL", "APIDumpPrinter"};
         std::ifstream               file(std::filesystem::path(Tests::DataFixtures::get_repository_root_path() ) / "cmake" / "Install.cmake");
-        std::stringstream           text;
-        DestinationMap              result;
+        std::stringstream text;
+        DestinationMap    result;
 
         text << file.rdbuf();
 
@@ -144,10 +144,10 @@ TEST(Layout, AProgramWhichIsInstalledHasTheFolderOfItsNameWhereItIsInstalled)
 
 TEST(Layout, AFolderOfAProgramIsInstalled)
 {
-    const DestinationMap                installed_map = read_installed_programs();
-    const std::filesystem::path         src_path      = std::filesystem::path(Tests::DataFixtures::get_repository_root_path() ) / "src";
-    std::set<std::filesystem::path>     expected_set;
-    std::set<std::filesystem::path>     folder_set;
+    const DestinationMap            installed_map = read_installed_programs();
+    const std::filesystem::path     src_path      = std::filesystem::path(Tests::DataFixtures::get_repository_root_path() ) / "src";
+    std::set<std::filesystem::path> expected_set;
+    std::set<std::filesystem::path> folder_set;
 
     for (const auto& program : installed_map)
     {
@@ -180,9 +180,9 @@ TEST(Layout, UtilsIncludesNothingOfTheOtherLibrariesOrOfAProgram)
 {
     const std::regex            include_regex  (R"regex(^\s*#\s*include\s+"([A-Za-z0-9_]+)/)regex");
     size_t                      n_files        = 0;
-    const std::set<std::string> other_name_set = {"analysis", "headset", "runtime", "stereo", "tests", "tools", "vr", "vr_player"};
+    const std::set<std::string> other_name_set = {"analysis", "headset", "runtime", "stereo", "tests", "tools", "vr_player"};
     std::string                 report;
-    const std::filesystem::path utils_path     =std::filesystem::path(Tests::DataFixtures::get_repository_root_path() ) / "src" / "libs" / "utils";
+    const std::filesystem::path utils_path     = std::filesystem::path(Tests::DataFixtures::get_repository_root_path() ) / "src" / "libs" / "utils";
 
     for (const auto& entry : std::filesystem::recursive_directory_iterator(utils_path) )
     {

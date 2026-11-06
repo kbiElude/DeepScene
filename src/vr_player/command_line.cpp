@@ -4,7 +4,7 @@
  */
 #include "command_line.h"
 
-const char* VR::VRPlayer::CommandLine::get_usage_ptr()
+const char* VRPlayer::CommandLine::get_usage_ptr()
 {
     return "Usage: VRPlayer [--catalog file.json] [--log]\n"
            "Lists the applications of the catalog, which are played in VR with the recipe given for each. Without --catalog, the\n"
@@ -13,9 +13,9 @@ const char* VR::VRPlayer::CommandLine::get_usage_ptr()
            "session): what they do each second, and why the headset is or is not used.\n";
 }
 
-bool VR::VRPlayer::CommandLine::parse(const std::vector<std::string>& in_argument_vec,
-                                      Options*                        out_options_ptr,
-                                      std::string*                    out_error_ptr)
+bool VRPlayer::CommandLine::parse(const std::vector<std::string>& in_argument_vec,
+                                  Options*                        out_options_ptr,
+                                  std::string*                    out_error_ptr)
 {
     bool result = false;
 

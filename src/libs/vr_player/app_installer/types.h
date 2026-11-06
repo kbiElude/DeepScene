@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-namespace VR
+namespace VRPlayer
 {
     namespace AppInstaller
     {

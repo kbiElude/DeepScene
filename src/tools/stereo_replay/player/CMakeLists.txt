@@ -4,7 +4,7 @@ file(GLOB Sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
 
 add_executable(StereoReplayPlayer ${Sources})
 
-target_link_libraries(StereoReplayPlayer APIDumpLoader Analysis ImGui ReplayPlayerSupport StereoReplayEngineDLL VR)
+target_link_libraries(StereoReplayPlayer APIDumpLoader Analysis ImGui ReplayPlayerSupport StereoReplayEngineDLL Utils)
 
 set_architecture_name(StereoReplayPlayer)
 

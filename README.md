@@ -18,7 +18,7 @@ Direct3D 8 is the first API supported, and the demos are what drove the work.
 | `tools/stereo_replay` (`StereoReplayEngineDLL`, `StereoReplayPlayer`, `StereoReplayConsistencyChecker`) | Play a workload again for both eyes, to try a recipe offline and to check that a frame can be drawn twice. |
 | `runtime/converter_dll`, `runtime/launcher` | The converter that goes into the running program, and the launcher that puts it there. Built for 32 and 64 bits, to match the program. |
 | `libs/stereo` (Transport), `libs/headset`, `runtime/presenter` | Carry the images of the eyes to the screen: through shared memory, onto the GPU, into a headset or a preview window. |
-| `vr_player`, `libs/vr`, `libs/headset` (vr_devices) | The player: the list of programs, the list of devices, and the window. A program which is not on the computer is downloaded the first time it is launched. |
+| `vr_player`, `libs/vr_player`, `libs/headset` (vr_devices) | The player: the list of programs, the list of devices, and the window. A program which is not on the computer is downloaded the first time it is launched. |
 | `libs/utils` | What is not about any of the above and any of it may use: image and JSON files, hashing, downloading and unpacking, an ImGui window, Direct3D 12 plumbing. |
 | `apps\` | The catalog and the recipes. The programs the catalog lists are downloaded into it. |
 

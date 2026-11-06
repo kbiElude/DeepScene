@@ -10,13 +10,13 @@
 #define APPINSTALLER_APP_INSTALLER_H
 
 #include "utils/files/i_downloader.h"
-#include "vr/app_installer/types.h"
+#include "vr_player/app_installer/types.h"
 #include <atomic>
 #include <mutex>
 #include <string>
 #include <thread>
 
-namespace VR
+namespace VRPlayer
 {
     namespace AppInstaller
     {

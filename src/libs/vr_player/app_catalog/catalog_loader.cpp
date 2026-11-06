@@ -4,12 +4,12 @@
  */
 #include "analysis/recipe_loader/recipe_loader.h"
 #include "utils/files/file_system.h"
-#include "vr/app_catalog/catalog_loader.h"
+#include "vr_player/app_catalog/catalog_loader.h"
 #include <algorithm>
 #include <set>
 
-void VR::AppCatalog::CatalogLoader::check_availability(AppEntry*          inout_app_ptr,
-                                                       const std::string& in_title)
+void VRPlayer::AppCatalog::CatalogLoader::check_availability(AppEntry*          inout_app_ptr,
+                                                             const std::string& in_title)
 {
     std::string                    error;
     Analysis::RecipeLoader::Recipe recipe;
@@ -61,7 +61,7 @@ void VR::AppCatalog::CatalogLoader::check_availability(AppEntry*          inout_
     }
 }
 
-std::string VR::AppCatalog::CatalogLoader::get_directory(const std::string& in_path)
+std::string VRPlayer::AppCatalog::CatalogLoader::get_directory(const std::string& in_path)
 {
     const size_t n_separator = in_path.find_last_of("\\/");
 
@@ -70,16 +70,16 @@ std::string VR::AppCatalog::CatalogLoader::get_directory(const std::string& in_p
                                               : std::string();
 }
 
-bool VR::AppCatalog::CatalogLoader::is_absolute_path(const std::string& in_path)
+bool VRPlayer::AppCatalog::CatalogLoader::is_absolute_path(const std::string& in_path)
 {
     /* A drive, or a network share; a path which starts with a separator only is of the current drive. */
     return ((in_path.size() >= 2 && in_path.at(1) == ':')                          ||
             (in_path.size() >= 2 && in_path.at(0) == '\\' && in_path.at(1) == '\\'));
 }
 
-bool VR::AppCatalog::CatalogLoader::load(const std::string& in_filename,
-                                         Catalog*           out_catalog_ptr,
-                                         std::string*       out_error_ptr)
+bool VRPlayer::AppCatalog::CatalogLoader::load(const std::string& in_filename,
+                                               Catalog*           out_catalog_ptr,
+                                               std::string*       out_error_ptr)
 {
     bool        result = false;
     std::string text;
@@ -107,10 +107,10 @@ end:
     return result;
 }
 
-bool VR::AppCatalog::CatalogLoader::parse(const std::string& in_text,
-                                          const std::string& in_base_directory,
-                                          Catalog*           out_catalog_ptr,
-                                          std::string*       out_error_ptr)
+bool VRPlayer::AppCatalog::CatalogLoader::parse(const std::string& in_text,
+                                                const std::string& in_base_directory,
+                                                Catalog*           out_catalog_ptr,
+                                                std::string*       out_error_ptr)
 {
     constexpr double SUPPORTED_CATALOG_VERSION = 0.0;
 
@@ -202,12 +202,12 @@ end:
     return result;
 }
 
-bool VR::AppCatalog::CatalogLoader::parse_app(const Utils::Json::JsonValue& in_app,
-                                              const std::string&            in_path,
-                                              const std::string&            in_base_directory,
-                                              AppEntry*                     out_app_ptr,
-                                              std::string*                  out_title_ptr,
-                                              std::string*                  out_error_ptr)
+bool VRPlayer::AppCatalog::CatalogLoader::parse_app(const Utils::Json::JsonValue& in_app,
+                                                    const std::string&            in_path,
+                                                    const std::string&            in_base_directory,
+                                                    AppEntry*                     out_app_ptr,
+                                                    std::string*                  out_title_ptr,
+                                                    std::string*                  out_error_ptr)
 {
     std::string executable;
     std::string recipe;
@@ -347,11 +347,11 @@ end:
     return result;
 }
 
-bool VR::AppCatalog::CatalogLoader::parse_download(const Utils::Json::JsonValue&  in_download,
-                                                   const std::string&             in_path,
-                                                   const std::string&             in_install_directory,
-                                                   VR::AppInstaller::InstallSpec* out_spec_ptr,
-                                                   std::string*                   out_error_ptr)
+bool VRPlayer::AppCatalog::CatalogLoader::parse_download(const Utils::Json::JsonValue&        in_download,
+                                                         const std::string&                   in_path,
+                                                         const std::string&                   in_install_directory,
+                                                         VRPlayer::AppInstaller::InstallSpec* out_spec_ptr,
+                                                         std::string*                         out_error_ptr)
 {
     bool is_parsed = false;
     bool result    = false;
@@ -467,11 +467,11 @@ end:
     return result;
 }
 
-bool VR::AppCatalog::CatalogLoader::parse_number(const Utils::Json::JsonValue& in_object,
-                                                 const std::string&            in_key,
-                                                 const std::string&            in_path,
-                                                 uint64_t*                     out_number_ptr,
-                                                 std::string*                  out_error_ptr)
+bool VRPlayer::AppCatalog::CatalogLoader::parse_number(const Utils::Json::JsonValue& in_object,
+                                                       const std::string&            in_key,
+                                                       const std::string&            in_path,
+                                                       uint64_t*                     out_number_ptr,
+                                                       std::string*                  out_error_ptr)
 {
     constexpr double N_BYTES_MAX = 4294967296.0;
 
@@ -496,12 +496,12 @@ end:
     return result;
 }
 
-bool VR::AppCatalog::CatalogLoader::parse_string(const Utils::Json::JsonValue& in_object,
-                                                 const std::string&            in_key,
-                                                 const bool&                   in_is_required,
-                                                 const std::string&            in_path,
-                                                 std::string*                  out_string_ptr,
-                                                 std::string*                  out_error_ptr)
+bool VRPlayer::AppCatalog::CatalogLoader::parse_string(const Utils::Json::JsonValue& in_object,
+                                                       const std::string&            in_key,
+                                                       const bool&                   in_is_required,
+                                                       const std::string&            in_path,
+                                                       std::string*                  out_string_ptr,
+                                                       std::string*                  out_error_ptr)
 {
     const auto* value_ptr = in_object.find_ptr(in_key);
     bool        result    = false;
@@ -537,8 +537,8 @@ end:
     return result;
 }
 
-std::string VR::AppCatalog::CatalogLoader::resolve_path(const std::string& in_base_directory,
-                                                        const std::string& in_path)
+std::string VRPlayer::AppCatalog::CatalogLoader::resolve_path(const std::string& in_base_directory,
+                                                              const std::string& in_path)
 {
     std::string              joined   = (is_absolute_path(in_path) || in_base_directory.empty() ) ? in_path
                                                                                                : in_base_directory + "\\" + in_path;

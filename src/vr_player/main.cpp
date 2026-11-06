@@ -5,7 +5,7 @@
  * The VR player: lists the applications which can be played in VR, and the devices to play them on. It is a window, not a console
  * program; the playback itself is done by another program, which this one starts (not yet).
  */
-#include "vr/app_catalog/catalog_loader.h"
+#include "vr_player/app_catalog/catalog_loader.h"
 #include "utils/ui_host/imgui_window_host.h"
 #include "headset/xr/openxr_vr_device_provider.h"
 #include "command_line.h"
@@ -16,20 +16,17 @@
 #include <vector>
 #include <Windows.h>
 
-namespace VR
+namespace VRPlayer
 {
-    namespace VRPlayer
-    {
-        std::string find_catalog();
-        std::string find_runtime_directory();
-        std::string get_directory(const std::string& in_path);
-        std::string get_program_path();
-        bool        is_file      (const std::string& in_path);
-        void        show_error   (const std::string& in_message);
-    }
+    std::string find_catalog();
+    std::string find_runtime_directory();
+    std::string get_directory(const std::string& in_path);
+    std::string get_program_path();
+    bool        is_file      (const std::string& in_path);
+    void        show_error   (const std::string& in_message);
 }
 
-std::string VR::VRPlayer::find_catalog()
+std::string VRPlayer::find_catalog()
 {
     const std::string directory      = get_directory(get_program_path() );
     const std::string candidate_array[] =
@@ -56,7 +53,7 @@ std::string VR::VRPlayer::find_catalog()
     return result;
 }
 
-std::string VR::VRPlayer::find_runtime_directory()
+std::string VRPlayer::find_runtime_directory()
 {
     /* What VRPlayer starts is in runtime\ of a release, and beside the program in a build folder. */
     const std::string directory      = get_directory(get_program_path() );
@@ -84,7 +81,7 @@ std::string VR::VRPlayer::find_runtime_directory()
     return result;
 }
 
-std::string VR::VRPlayer::get_directory(const std::string& in_path)
+std::string VRPlayer::get_directory(const std::string& in_path)
 {
     const size_t n_separator = in_path.find_last_of("\\/");
 
@@ -93,7 +90,7 @@ std::string VR::VRPlayer::get_directory(const std::string& in_path)
                                               : std::string();
 }
 
-std::string VR::VRPlayer::get_program_path()
+std::string VRPlayer::get_program_path()
 {
     char path_i8vec260[MAX_PATH] = {};
 
@@ -104,7 +101,7 @@ std::string VR::VRPlayer::get_program_path()
     return path_i8vec260;
 }
 
-bool VR::VRPlayer::is_file(const std::string& in_path)
+bool VRPlayer::is_file(const std::string& in_path)
 {
     const DWORD attributes = ::GetFileAttributesA(in_path.c_str() );
 
@@ -112,7 +109,7 @@ bool VR::VRPlayer::is_file(const std::string& in_path)
             (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0);
 }
 
-void VR::VRPlayer::show_error(const std::string& in_message)
+void VRPlayer::show_error(const std::string& in_message)
 {
     ::MessageBoxA(nullptr,
                   in_message.c_str(),
@@ -125,14 +122,14 @@ int WINAPI WinMain(HINSTANCE in_instance,
                    LPSTR     in_command_line,
                    int       in_show_command)
 {
-    std::vector<std::string>                      argument_vec;
-    std::string                                   catalog_filename;
-    std::string                                   error;
-    VR::VRPlayer::Options                         options;
-    int                                           result           = EXIT_FAILURE;
-    VR::VRPlayer::WindowContent                   content;
-    const Headset::XR::OpenXrVrDeviceProvider     device_provider;
-    std::unique_ptr<VR::VRPlayer::VrPlayerWindow> window_ptr;
+    std::vector<std::string>                  argument_vec;
+    std::string                               catalog_filename;
+    std::string                               error;
+    VRPlayer::Options                         options;
+    int                                       result           = EXIT_FAILURE;
+    VRPlayer::WindowContent                   content;
+    const Headset::XR::OpenXrVrDeviceProvider device_provider;
+    std::unique_ptr<VRPlayer::VrPlayerWindow> window_ptr;
 
     (void) in_command_line;
     (void) in_instance;
@@ -146,28 +143,28 @@ int WINAPI WinMain(HINSTANCE in_instance,
         argument_vec.push_back(__argv[n_argument]);
     }
 
-    if (VR::VRPlayer::CommandLine::parse(argument_vec,
+    if (VRPlayer::CommandLine::parse(argument_vec,
                                         &options,
                                         &error) == false)
     {
-        VR::VRPlayer::show_error(error + "\n\n" + VR::VRPlayer::CommandLine::get_usage_ptr() );
+        VRPlayer::show_error(error + "\n\n" + VRPlayer::CommandLine::get_usage_ptr() );
 
         goto end;
     }
 
-    catalog_filename = (options.catalog_filename.empty() ) ? VR::VRPlayer::find_catalog()
+    catalog_filename = (options.catalog_filename.empty() ) ? VRPlayer::find_catalog()
                                                            : options.catalog_filename;
 
     /* A catalog which cannot be read is shown in the window, which is more use than nothing. */
     if (catalog_filename.empty() == false)
     {
-        const bool is_catalog_loaded = VR::AppCatalog::CatalogLoader::load(catalog_filename,
+        const bool is_catalog_loaded = VRPlayer::AppCatalog::CatalogLoader::load(catalog_filename,
                                                                           &content.catalog,
                                                                           &content.catalog_error);
 
         if (is_catalog_loaded == false)
         {
-            content.catalog = VR::AppCatalog::Catalog();
+            content.catalog = VRPlayer::AppCatalog::Catalog();
         }
     }
 
@@ -183,15 +180,15 @@ int WINAPI WinMain(HINSTANCE in_instance,
     }
 
     content.is_logging         = options.is_logging;
-    content.launcher_directory = VR::VRPlayer::find_runtime_directory();
+    content.launcher_directory = VRPlayer::find_runtime_directory();
 
     Utils::UIHost::ImGuiWindowHost::enable_dpi_awareness();
 
-    window_ptr.reset(new VR::VRPlayer::VrPlayerWindow(content) );
+    window_ptr.reset(new VRPlayer::VrPlayerWindow(content) );
 
     if (window_ptr->create(&error) == false)
     {
-        VR::VRPlayer::show_error(error);
+        VRPlayer::show_error(error);
 
         goto end;
     }

@@ -5,11 +5,11 @@
 #include "utils/files/file_system.h"
 #include "utils/files/sha256.h"
 #include "utils/files/zip_extractor.h"
-#include "vr/app_installer/app_installer.h"
+#include "vr_player/app_installer/app_installer.h"
 #include <Windows.h>
 #include <algorithm>
 
-VR::AppInstaller::AppInstaller::AppInstaller(Utils::Files::IDownloader* in_downloader_ptr)
+VRPlayer::AppInstaller::AppInstaller::AppInstaller(Utils::Files::IDownloader* in_downloader_ptr)
     :m_downloader_ptr(in_downloader_ptr),
      m_is_busy       (false),
      m_is_cancelled  (false)
@@ -17,7 +17,7 @@ VR::AppInstaller::AppInstaller::AppInstaller(Utils::Files::IDownloader* in_downl
     /* Nothing to do. */
 }
 
-VR::AppInstaller::AppInstaller::~AppInstaller()
+VRPlayer::AppInstaller::AppInstaller::~AppInstaller()
 {
     cancel();
 
@@ -27,12 +27,12 @@ VR::AppInstaller::AppInstaller::~AppInstaller()
     }
 }
 
-void VR::AppInstaller::AppInstaller::cancel()
+void VRPlayer::AppInstaller::AppInstaller::cancel()
 {
     m_is_cancelled = true;
 }
 
-VR::AppInstaller::InstallProgress VR::AppInstaller::AppInstaller::get_progress() const
+VRPlayer::AppInstaller::InstallProgress VRPlayer::AppInstaller::AppInstaller::get_progress() const
 {
     InstallProgress result;
 
@@ -45,12 +45,12 @@ VR::AppInstaller::InstallProgress VR::AppInstaller::AppInstaller::get_progress()
     return result;
 }
 
-bool VR::AppInstaller::AppInstaller::is_busy() const
+bool VRPlayer::AppInstaller::AppInstaller::is_busy() const
 {
     return m_is_busy.load();
 }
 
-void VR::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spec)
+void VRPlayer::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spec)
 {
     std::string                    archive_hash_hex;
     const std::string              archive_path        = in_spec.install_directory + ".download\\archive.zip";
@@ -265,10 +265,10 @@ end:
     m_is_busy = false;
 }
 
-void VR::AppInstaller::AppInstaller::set_progress(const InstallPhase& in_phase,
-                                                  const std::string&  in_message,
-                                                  const uint64_t&     in_n_bytes_done,
-                                                  const uint64_t&     in_n_bytes_total)
+void VRPlayer::AppInstaller::AppInstaller::set_progress(const InstallPhase& in_phase,
+                                                        const std::string&  in_message,
+                                                        const uint64_t&     in_n_bytes_done,
+                                                        const uint64_t&     in_n_bytes_total)
 {
     std::lock_guard<std::mutex> state_lock(m_shared_state.progress_mutex);
 
@@ -278,8 +278,8 @@ void VR::AppInstaller::AppInstaller::set_progress(const InstallPhase& in_phase,
     m_shared_state.progress.phase         = in_phase;
 }
 
-bool VR::AppInstaller::AppInstaller::start(const InstallSpec& in_spec,
-                                           std::string*       out_error_ptr)
+bool VRPlayer::AppInstaller::AppInstaller::start(const InstallSpec& in_spec,
+                                                 std::string*       out_error_ptr)
 {
     bool        is_hash_valid    = false;
     std::string parent_directory;
@@ -373,7 +373,7 @@ end:
     return result;
 }
 
-std::string VR::AppInstaller::AppInstaller::get_host(const std::string& in_url)
+std::string VRPlayer::AppInstaller::AppInstaller::get_host(const std::string& in_url)
 {
     const size_t n_scheme_separator_character = in_url.find("://");
 
@@ -388,7 +388,7 @@ std::string VR::AppInstaller::AppInstaller::get_host(const std::string& in_url)
                                                                      : n_host_end_character - n_host_start_character);
 }
 
-bool VR::AppInstaller::AppInstaller::is_sha256_hex(const std::string& in_text)
+bool VRPlayer::AppInstaller::AppInstaller::is_sha256_hex(const std::string& in_text)
 {
     return (in_text.size() == 64                                                 &&
             in_text.find_first_not_of("0123456789abcdef") == std::string::npos);

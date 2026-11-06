@@ -9,24 +9,24 @@
 
 TEST(VrCommandLineTest, NoArgumentsMeanTheCatalogNextToTheProgram)
 {
-    std::string      error;
-    VR::VRPlayer::Options options;
+    std::string       error;
+    VRPlayer::Options options;
 
-    ASSERT_TRUE(VR::VRPlayer::CommandLine::parse({},
-                                                &options,
-                                                &error) ) << error;
+    ASSERT_TRUE(VRPlayer::CommandLine::parse({},
+                                             &options,
+                                             &error) ) << error;
 
     EXPECT_TRUE(options.catalog_filename.empty() );
 }
 
 TEST(VrCommandLineTest, TheCatalogCanBeNamed)
 {
-    std::string      error;
-    VR::VRPlayer::Options options;
+    std::string       error;
+    VRPlayer::Options options;
 
-    ASSERT_TRUE(VR::VRPlayer::CommandLine::parse({"--catalog", "my apps.json"},
-                                                &options,
-                                                &error) ) << error;
+    ASSERT_TRUE(VRPlayer::CommandLine::parse({"--catalog", "my apps.json"},
+                                             &options,
+                                             &error) ) << error;
 
     EXPECT_EQ(options.catalog_filename,
               "my apps.json");
@@ -34,17 +34,17 @@ TEST(VrCommandLineTest, TheCatalogCanBeNamed)
 
 TEST(VrCommandLineTest, ACatalogWithoutAFileAndUnknownArgumentsAreRefused)
 {
-    std::string      error;
-    VR::VRPlayer::Options options;
+    std::string       error;
+    VRPlayer::Options options;
 
-    EXPECT_FALSE(VR::VRPlayer::CommandLine::parse({"--catalog"},
-                                                 &options,
-                                                 &error) );
+    EXPECT_FALSE(VRPlayer::CommandLine::parse({"--catalog"},
+                                              &options,
+                                              &error) );
     EXPECT_FALSE(error.empty() );
 
-    EXPECT_FALSE(VR::VRPlayer::CommandLine::parse({"--fullscreen"},
-                                                 &options,
-                                                 &error) );
+    EXPECT_FALSE(VRPlayer::CommandLine::parse({"--fullscreen"},
+                                              &options,
+                                              &error) );
     EXPECT_NE   (error.find("--fullscreen"),
                  std::string::npos);
 }

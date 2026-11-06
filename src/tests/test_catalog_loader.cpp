@@ -7,7 +7,7 @@
  * the error.
  */
 #include <gtest/gtest.h>
-#include "vr/app_catalog/catalog_loader.h"
+#include "vr_player/app_catalog/catalog_loader.h"
 #include "data_fixtures.h"
 #include "fixtures.h"
 #include "temp_directory.h"
@@ -55,14 +55,14 @@ protected:
 
     bool parse(const std::string& in_text)
     {
-        return VR::AppCatalog::CatalogLoader::parse(in_text,
-                                                    get_directory(Tests::DataFixtures::get_recipe_example_filename() ),
-                                                   &m_catalog,
-                                                   &m_error);
+        return VRPlayer::AppCatalog::CatalogLoader::parse(in_text,
+                                                          get_directory(Tests::DataFixtures::get_recipe_example_filename() ),
+                                                          &m_catalog,
+                                                          &m_error);
     }
 
-    VR::AppCatalog::Catalog m_catalog;
-    std::string             m_error;
+    VRPlayer::AppCatalog::Catalog m_catalog;
+    std::string                   m_error;
 };
 
 TEST_F(CatalogLoaderTest, AnApplicationTakesItsNameAndDescriptionFromTheRecipe)
@@ -117,10 +117,10 @@ TEST_F(CatalogLoaderTest, RelativePathsAreRelativeToTheCatalogAndTheOtherSeparat
 
 TEST_F(CatalogLoaderTest, DotsInAPathAreResolvedSoThatTheDisplayedPathIsWhereTheFileIs)
 {
-    ASSERT_TRUE(VR::AppCatalog::CatalogLoader::parse("{\"catalog_version\": 0, \"apps\": [{\"id\": \"a\", \"recipe\": \"../r/./x.json\", \"executable\": \"C:/p/../q/e.exe\"}]}",
-                                                     "D:\\base\\dir",
-                                                    &m_catalog,
-                                                    &m_error) ) << m_error;
+    ASSERT_TRUE(VRPlayer::AppCatalog::CatalogLoader::parse("{\"catalog_version\": 0, \"apps\": [{\"id\": \"a\", \"recipe\": \"../r/./x.json\", \"executable\": \"C:/p/../q/e.exe\"}]}",
+                                                           "D:\\base\\dir",
+                                                           &m_catalog,
+                                                           &m_error) ) << m_error;
 
     EXPECT_EQ(m_catalog.app_vec.at(0).recipe_path,
               "D:\\base\\r\\x.json");
@@ -128,10 +128,10 @@ TEST_F(CatalogLoaderTest, DotsInAPathAreResolvedSoThatTheDisplayedPathIsWhereThe
               "C:\\q\\e.exe");
 
     /* A ".." above the root of a drive has nothing to remove. */
-    ASSERT_TRUE(VR::AppCatalog::CatalogLoader::parse("{\"catalog_version\": 0, \"apps\": [{\"id\": \"a\", \"recipe\": \"r.json\", \"executable\": \"C:/../e.exe\"}]}",
-                                                     "D:\\base",
-                                                    &m_catalog,
-                                                    &m_error) ) << m_error;
+    ASSERT_TRUE(VRPlayer::AppCatalog::CatalogLoader::parse("{\"catalog_version\": 0, \"apps\": [{\"id\": \"a\", \"recipe\": \"r.json\", \"executable\": \"C:/../e.exe\"}]}",
+                                                           "D:\\base",
+                                                           &m_catalog,
+                                                           &m_error) ) << m_error;
 
     EXPECT_EQ(m_catalog.app_vec.at(0).executable_path,
               "C:\\..\\e.exe");
@@ -205,9 +205,9 @@ TEST_F(CatalogLoaderTest, WhatIsNotRightIsRefusedWithItsPlace)
 
 TEST_F(CatalogLoaderTest, ACatalogWhichIsNotThereIsNotRead)
 {
-    EXPECT_FALSE(VR::AppCatalog::CatalogLoader::load("Z:/no/such/catalog.json",
-                                                    &m_catalog,
-                                                    &m_error) );
+    EXPECT_FALSE(VRPlayer::AppCatalog::CatalogLoader::load("Z:/no/such/catalog.json",
+                                                           &m_catalog,
+                                                           &m_error) );
     EXPECT_NE   (m_error.find("Cannot open"),
                  std::string::npos);
 }
@@ -215,9 +215,9 @@ TEST_F(CatalogLoaderTest, ACatalogWhichIsNotThereIsNotRead)
 TEST_F(CatalogLoaderTest, TheCatalogWhichComesWithTheRepositoryListsTheAppsOfTheRepository)
 {
     /* Its executable is downloaded when it is first launched, so the catalog is usable without it. */
-    ASSERT_TRUE(VR::AppCatalog::CatalogLoader::load(std::string(DEMOVRPLAYER_APPS_DIR) + "/apps.json",
-                                                   &m_catalog,
-                                                   &m_error) ) << m_error;
+    ASSERT_TRUE(VRPlayer::AppCatalog::CatalogLoader::load(std::string(DEMOVRPLAYER_APPS_DIR) + "/apps.json",
+                                                          &m_catalog,
+                                                          &m_error) ) << m_error;
     ASSERT_EQ  (m_catalog.app_vec.size(),
                 2u);
 
@@ -261,11 +261,11 @@ TEST_F(CatalogLoaderTest, TheCatalogWhichComesWithTheRepositoryListsTheAppsOfThe
 
 TEST_F(CatalogLoaderTest, AnApplicationTakesTheAmountOfItsOverlayFromTheRecipe)
 {
-    ASSERT_TRUE(VR::AppCatalog::CatalogLoader::parse("{\"catalog_version\": 0, \"apps\": [{\"id\": \"fr08\", \"recipe\": \"fr08_overlay.json\", \"executable\": \"" +
-                                                     get_json_path(Tests::Fixtures::get_test_executable_path() ) + "\"}]}",
-                                                     get_directory(Tests::DataFixtures::get_recipe_example_filename() ),
-                                                    &m_catalog,
-                                                    &m_error) ) << m_error;
+    ASSERT_TRUE(VRPlayer::AppCatalog::CatalogLoader::parse("{\"catalog_version\": 0, \"apps\": [{\"id\": \"fr08\", \"recipe\": \"fr08_overlay.json\", \"executable\": \"" +
+                                                           get_json_path(Tests::Fixtures::get_test_executable_path() ) + "\"}]}",
+                                                           get_directory(Tests::DataFixtures::get_recipe_example_filename() ),
+                                                           &m_catalog,
+                                                           &m_error) ) << m_error;
     ASSERT_EQ  (m_catalog.app_vec.size(),
                 1u);
 
@@ -291,15 +291,15 @@ TEST_F(CatalogLoaderTest, AnApplicationWhichIsNotThereIsDownloadedWhenTheCatalog
 {
     const Tests::TempDirectory directory;
 
-    ASSERT_TRUE(VR::AppCatalog::CatalogLoader::parse(get_download_text("fr08/fr08v101.exe",
-                                                                       GOOD_DOWNLOAD),
+    ASSERT_TRUE(VRPlayer::AppCatalog::CatalogLoader::parse(get_download_text("fr08/fr08v101.exe",
+                                                                             GOOD_DOWNLOAD),
                                                      directory.get_path(),
                                                     &m_catalog,
                                                     &m_error) ) << m_error;
     ASSERT_EQ  (m_catalog.app_vec.size(),
                 1u);
 
-    const VR::AppCatalog::AppEntry& app = m_catalog.app_vec.at(0);
+    const VRPlayer::AppCatalog::AppEntry& app = m_catalog.app_vec.at(0);
 
     EXPECT_TRUE(app.is_download_needed);
     EXPECT_TRUE(app.unavailable_reason.empty() ) << app.unavailable_reason;
@@ -334,8 +334,8 @@ TEST_F(CatalogLoaderTest, AnApplicationWhichIsThereIsNotDownloaded)
         file << "program";
     }
 
-    ASSERT_TRUE(VR::AppCatalog::CatalogLoader::parse(get_download_text("fr08/fr08v101.exe",
-                                                                       GOOD_DOWNLOAD),
+    ASSERT_TRUE(VRPlayer::AppCatalog::CatalogLoader::parse(get_download_text("fr08/fr08v101.exe",
+                                                                             GOOD_DOWNLOAD),
                                                      directory.get_path(),
                                                     &m_catalog,
                                                     &m_error) ) << m_error;
@@ -372,8 +372,8 @@ TEST_F(CatalogLoaderTest, WhatIsNotRightInADownloadIsRefusedWithItsPlace)
 
     for (const Case& test_case : case_array)
     {
-        EXPECT_FALSE(VR::AppCatalog::CatalogLoader::parse(get_download_text(test_case.executable,
-                                                                            test_case.download),
+        EXPECT_FALSE(VRPlayer::AppCatalog::CatalogLoader::parse(get_download_text(test_case.executable,
+                                                                                  test_case.download),
                                                           "C:\\apps",
                                                          &m_catalog,
                                                          &m_error) ) << test_case.expected;

@@ -47,7 +47,7 @@ include(cmake/Architecture.cmake)
 add_subdirectory(src/libs/utils)
 add_subdirectory(src/libs/analysis)
 add_subdirectory(src/libs/stereo)
-add_subdirectory(src/libs/vr)
+add_subdirectory(src/libs/vr_player)
 add_subdirectory(src/libs/headset)
 
 # The programs, each in the folder which it is installed as: src/runtime for what the VR player starts, src/tools for the tools, and the VR
