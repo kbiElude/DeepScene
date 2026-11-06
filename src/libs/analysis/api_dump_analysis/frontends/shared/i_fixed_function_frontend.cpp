@@ -2,11 +2,11 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/api_dump_analysis/frontends/shared/fixed_function_frontend.h"
+#include "analysis/api_dump_analysis/frontends/shared/i_fixed_function_frontend.h"
 #include <algorithm>
 #include <string.h>
 
-Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::FixedFunctionFrontend(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr)
+Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::IFixedFunctionFrontend(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr)
     :m_builder_ptr        (in_builder_ptr),
      m_n_unfollowed_calls (0),
      m_n_unsupported_calls(0)
@@ -14,8 +14,8 @@ Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::FixedFunctionFronte
     /* Stub */
 }
 
-bool Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::find_resource_view(const uint64_t&                          in_address,
-                                                                                     Analysis::APIDumpAnalysis::ResourceView* out_view_ptr) const
+bool Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::find_resource_view(const uint64_t&                          in_address,
+                                                                                      Analysis::APIDumpAnalysis::ResourceView* out_view_ptr) const
 {
     const ObjectTracker::TrackedObject* object_ptr = m_tracker.get_object_ptr(in_address);
     const bool                          result     = (object_ptr != nullptr);
@@ -28,27 +28,27 @@ bool Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::find_resource_
     return result;
 }
 
-const std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t>& Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::get_n_resolution_hazards() const
+const std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t>& Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::get_n_resolution_hazards() const
 {
     return m_n_resolution_hazard_map;
 }
 
-uint64_t Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::get_n_unfollowed_calls() const
+uint64_t Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::get_n_unfollowed_calls() const
 {
     return m_n_unfollowed_calls;
 }
 
-uint64_t Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::get_n_unsupported_calls() const
+uint64_t Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::get_n_unsupported_calls() const
 {
     return m_n_unsupported_calls;
 }
 
-const Analysis::APIDumpAnalysis::Frontends::ObjectTracker& Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::get_tracker() const
+const Analysis::APIDumpAnalysis::Frontends::ObjectTracker& Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::get_tracker() const
 {
     return m_tracker;
 }
 
-const Analysis::APIDumpAnalysis::ResourceDescription* Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::find_resource_description_ptr(const Analysis::APIDumpAnalysis::ResourceId& in_id) const
+const Analysis::APIDumpAnalysis::ResourceDescription* Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::find_resource_description_ptr(const Analysis::APIDumpAnalysis::ResourceId& in_id) const
 {
     const uint32_t                                        index      = Analysis::APIDumpAnalysis::get_resource_id_value(in_id);
     const Analysis::APIDumpAnalysis::ResourceDescription* result_ptr = nullptr;
@@ -62,7 +62,7 @@ const Analysis::APIDumpAnalysis::ResourceDescription* Analysis::APIDumpAnalysis:
     return result_ptr;
 }
 
-Analysis::APIDumpAnalysis::Viewport Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::get_full_viewport(const Analysis::APIDumpAnalysis::ResourceView& in_view) const
+Analysis::APIDumpAnalysis::Viewport Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::get_full_viewport(const Analysis::APIDumpAnalysis::ResourceView& in_view) const
 {
     const Analysis::APIDumpAnalysis::ResourceDescription* description_ptr = find_resource_description_ptr(in_view.resource_id);
     Analysis::APIDumpAnalysis::Viewport                   result;
@@ -79,7 +79,7 @@ Analysis::APIDumpAnalysis::Viewport Analysis::APIDumpAnalysis::Frontends::FixedF
     return result;
 }
 
-void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::handle_light_enable(const CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_light_enable(const CallView& in_view)
 {
     constexpr size_t ENABLE_ARGUMENT = 2;
     constexpr size_t INDEX_ARGUMENT  = 1;
@@ -94,7 +94,7 @@ void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::handle_light_e
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::handle_release(const CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_release(const CallView& in_view)
 {
     constexpr size_t OBJECT_ARGUMENT = 0;
 
@@ -122,7 +122,7 @@ void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::handle_release
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::handle_set_light(const CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_set_light(const CallView& in_view)
 {
     constexpr size_t INDEX_ARGUMENT = 1;
     constexpr size_t LIGHT_ARGUMENT = 2;
@@ -152,7 +152,7 @@ void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::handle_set_lig
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::handle_set_render_state(const CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_set_render_state(const CallView& in_view)
 {
     constexpr size_t STATE_ARGUMENT = 1;
     constexpr size_t VALUE_ARGUMENT = 2;
@@ -167,7 +167,7 @@ void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::handle_set_ren
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::handle_set_texture(const CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_set_texture(const CallView& in_view)
 {
     constexpr size_t STAGE_ARGUMENT   = 1;
     constexpr size_t TEXTURE_ARGUMENT = 2;
@@ -200,7 +200,7 @@ void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::handle_set_tex
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::handle_set_texture_stage_state(const CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_set_texture_stage_state(const CallView& in_view)
 {
     constexpr size_t STAGE_ARGUMENT = 1;
     constexpr size_t STATE_ARGUMENT = 2;
@@ -218,7 +218,7 @@ void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::handle_set_tex
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontend::handle_set_transform(const CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_set_transform(const CallView& in_view)
 {
     constexpr size_t MATRIX_ARGUMENT = 2;
     constexpr size_t MATRIX_N_BYTES  = 16 * sizeof(float); /* D3DMATRIX, of both APIs */

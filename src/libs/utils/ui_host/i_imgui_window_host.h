@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#ifndef UTILS_UIHOST_IMGUI_WINDOW_HOST_H
-#define UTILS_UIHOST_IMGUI_WINDOW_HOST_H
+#ifndef UTILS_UIHOST_I_IMGUI_WINDOW_HOST_H
+#define UTILS_UIHOST_I_IMGUI_WINDOW_HOST_H
 
 #include "utils/ui_host/types.h"
 #include <string>
@@ -22,11 +22,11 @@ namespace Utils
          * the scale of the monitor are here, and what the window shows is in the class which derives from this one. It lives on the
          * thread which runs it.
          */
-        class ImGuiWindowHost
+        class IImGuiWindowHost
         {
         public:
-            explicit ImGuiWindowHost (const WindowOptions& in_options);
-            virtual  ~ImGuiWindowHost();
+            explicit IImGuiWindowHost (const WindowOptions& in_options);
+            virtual  ~IImGuiWindowHost();
 
             /* Creates the window and the device. Returns false, with the reason, if that fails. */
             bool create(std::string* out_error_ptr);
@@ -96,4 +96,4 @@ namespace Utils
     }
 }
 
-#endif /* UTILS_UIHOST_IMGUI_WINDOW_HOST_H */
+#endif /* UTILS_UIHOST_I_IMGUI_WINDOW_HOST_H */

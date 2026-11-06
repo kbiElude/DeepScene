@@ -91,7 +91,7 @@ static constexpr float PAGE_TITLE_SCALE         = 2.0f;
 static constexpr float SECTION_TITLE_SCALE      = 1.2f;
 
 VRPlayer::VrPlayerWindow::VrPlayerWindow(const WindowContent& in_content)
-    :ImGuiWindowHost       (get_window_options() ),
+    :IImGuiWindowHost      (get_window_options() ),
      m_content             (in_content),
      m_depth_index         (DEFAULT_DEPTH_INDEX),
      m_depth_strength      (DEPTH_STRENGTH_ARRAY[DEFAULT_DEPTH_INDEX]),

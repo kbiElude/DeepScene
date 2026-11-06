@@ -6,7 +6,7 @@
  * write reaches, and where the frames end.
  */
 #include <gtest/gtest.h>
-#include "analysis/api_dump_analysis/access_sink.h"
+#include "analysis/api_dump_analysis/i_access_sink.h"
 #include "model_test_helper.h"
 #include <vector>
 

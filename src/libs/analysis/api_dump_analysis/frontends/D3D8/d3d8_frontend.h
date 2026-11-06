@@ -12,7 +12,7 @@
 #include "analysis/api_dump_analysis/frontends/D3D8/d3d8_geometry_tracker.h"
 #include "analysis/api_dump_analysis/frontends/shared/object_tracker.h"
 #include "analysis/api_dump_analysis/frontends/D3D8/d3d8_pipeline_state.h"
-#include "analysis/api_dump_analysis/frontends/shared/fixed_function_frontend.h"
+#include "analysis/api_dump_analysis/frontends/shared/i_fixed_function_frontend.h"
 #include "analysis/api_dump_analysis/frontends/shared/i_api_frontend.h"
 #include "analysis/api_dump_analysis/model_builder.h"
 #include "interception/core/D3D8Utils/types.h"
@@ -26,7 +26,7 @@ namespace Analysis
     {
         namespace Frontends
         {
-            class D3D8Frontend : public FixedFunctionFrontend
+            class D3D8Frontend : public IFixedFunctionFrontend
             {
             public:
                 /* The builder must outlive the front end. */

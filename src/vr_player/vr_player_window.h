@@ -7,7 +7,7 @@
 
 #include "vr_player/app_installer/app_installer.h"
 #include "utils/files/http_downloader.h"
-#include "utils/ui_host/imgui_window_host.h"
+#include "utils/ui_host/i_imgui_window_host.h"
 #include "app_session.h"
 #include "types.h"
 #include <string>
@@ -17,7 +17,7 @@ namespace VRPlayer
     /* The window of the VR player: the applications which can be played in VR, the device to play them on, and the button which
      * starts the application with the converter in it. The distance between the eyes is passed on, while the application plays too; the device is not yet.
      */
-    class VrPlayerWindow : public Utils::UIHost::ImGuiWindowHost
+    class VrPlayerWindow : public Utils::UIHost::IImGuiWindowHost
     {
     public:
         explicit VrPlayerWindow(const WindowContent& in_content);

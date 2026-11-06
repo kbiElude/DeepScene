@@ -16,7 +16,7 @@
 #include <string>
 
 Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::D3D8Frontend(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr)
-    :FixedFunctionFrontend  (in_builder_ptr),
+    :IFixedFunctionFrontend (in_builder_ptr),
      m_auto_depth_stencil_id(Analysis::APIDumpAnalysis::ResourceId::NONE),
      m_base_vertex_index    (0)
 {

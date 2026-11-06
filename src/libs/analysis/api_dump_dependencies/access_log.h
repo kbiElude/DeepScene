@@ -8,7 +8,7 @@
 #ifndef APIDUMPDEPENDENCIES_ACCESS_LOG_H
 #define APIDUMPDEPENDENCIES_ACCESS_LOG_H
 
-#include "analysis/api_dump_analysis/access_sink.h"
+#include "analysis/api_dump_analysis/i_access_sink.h"
 #include "analysis/api_dump_dependencies/types.h"
 #include <stdint.h>
 #include <vector>

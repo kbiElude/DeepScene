@@ -7,7 +7,7 @@
 
 #include "tools/stereo_replay/engine_dll/i_playback_controller.h"
 #include "tools/stereo_replay/engine_dll/i_replay_observer.h"
-#include "utils/ui_host/imgui_window_host.h"
+#include "utils/ui_host/i_imgui_window_host.h"
 #include <mutex>
 #include <string>
 #include <Windows.h>
@@ -21,7 +21,7 @@ namespace Stereo
             /* The window with the playback controls: play / pause, reset, and what has been replayed so far. It lives apart from the
              * windows of the replay, so that what the replay does to its API state is not touched.
              */
-            class ControlWindow : public Utils::UIHost::ImGuiWindowHost,
+            class ControlWindow : public Utils::UIHost::IImGuiWindowHost,
                                   public Stereo::Replay::EngineDLL::IReplayObserver
             {
             public:

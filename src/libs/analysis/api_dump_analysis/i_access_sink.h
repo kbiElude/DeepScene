@@ -6,8 +6,8 @@
  * end. The dependencies between frames are made of it (see AccessEvent for what an access is). A sink is optional, and must not call the
  * builder which calls it.
  */
-#ifndef APIDUMPANALYSIS_ACCESS_SINK_H
-#define APIDUMPANALYSIS_ACCESS_SINK_H
+#ifndef APIDUMPANALYSIS_I_ACCESS_SINK_H
+#define APIDUMPANALYSIS_I_ACCESS_SINK_H
 
 #include "analysis/api_dump_analysis/types.h"
 #include <stdint.h>
@@ -36,4 +36,4 @@ namespace Analysis
     }
 }
 
-#endif /* APIDUMPANALYSIS_ACCESS_SINK_H */
+#endif /* APIDUMPANALYSIS_I_ACCESS_SINK_H */

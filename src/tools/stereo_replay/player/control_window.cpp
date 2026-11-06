@@ -16,7 +16,7 @@ static constexpr float EYE_SEPARATION_MAX = 2.0f;
 
 Stereo::Replay::Player::ControlWindow::ControlWindow(Stereo::Replay::EngineDLL::IPlaybackController* in_controller_ptr,
                                                      const std::string&                              in_title)
-    :ImGuiWindowHost       (get_window_options(in_title) ),
+    :IImGuiWindowHost      (get_window_options(in_title) ),
      m_controller_ptr      (in_controller_ptr),
      m_go_to_frame         (0),
      m_has_eye_separation  (false),

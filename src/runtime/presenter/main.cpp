@@ -67,7 +67,7 @@ int WINAPI WinMain(HINSTANCE in_instance,
         goto end;
     }
 
-    Utils::UIHost::ImGuiWindowHost::enable_dpi_awareness();
+    Utils::UIHost::IImGuiWindowHost::enable_dpi_awareness();
 
     /* Direct3D 8 applications pass their images by the memory of the channel: it is what the importer takes. */
     {

@@ -14,7 +14,7 @@
 #ifndef APIDUMPANALYSIS_MODEL_BUILDER_H
 #define APIDUMPANALYSIS_MODEL_BUILDER_H
 
-#include "analysis/api_dump_analysis/access_sink.h"
+#include "analysis/api_dump_analysis/i_access_sink.h"
 #include "analysis/api_dump_analysis/model.h"
 #include "analysis/api_dump_analysis/resource_access_tracker.h"
 #include "analysis/api_dump_analysis/resource_key_table.h"

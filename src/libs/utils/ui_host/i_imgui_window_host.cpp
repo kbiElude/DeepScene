@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "utils/ui_host/imgui_window_host.h"
+#include "utils/ui_host/i_imgui_window_host.h"
 #include "imgui.h"
 #include "imgui_impl_dx11.h"
 #include "imgui_impl_win32.h"
@@ -27,7 +27,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND   in_window,
                                                              WPARAM in_wparam,
                                                              LPARAM in_lparam);
 
-Utils::UIHost::ImGuiWindowHost::ImGuiWindowHost(const WindowOptions& in_options)
+Utils::UIHost::IImGuiWindowHost::IImGuiWindowHost(const WindowOptions& in_options)
     :m_content_height        (0),
      m_content_width         (0),
      m_device_context_ptr    (nullptr),
@@ -41,7 +41,7 @@ Utils::UIHost::ImGuiWindowHost::ImGuiWindowHost(const WindowOptions& in_options)
     /* Stub */
 }
 
-Utils::UIHost::ImGuiWindowHost::~ImGuiWindowHost()
+Utils::UIHost::IImGuiWindowHost::~IImGuiWindowHost()
 {
     if (m_is_imgui_ready)
     {
@@ -81,7 +81,7 @@ Utils::UIHost::ImGuiWindowHost::~ImGuiWindowHost()
     }
 }
 
-bool Utils::UIHost::ImGuiWindowHost::create(std::string* out_error_ptr)
+bool Utils::UIHost::IImGuiWindowHost::create(std::string* out_error_ptr)
 {
     constexpr POINT ORIGIN = {0, 0};
 
@@ -105,7 +105,7 @@ bool Utils::UIHost::ImGuiWindowHost::create(std::string* out_error_ptr)
     window_class.hCursor       = ::LoadCursorA(nullptr,
                                                IDC_ARROW);
     window_class.hInstance     = module_handle;
-    window_class.lpfnWndProc   = &ImGuiWindowHost::window_proc;
+    window_class.lpfnWndProc   = &IImGuiWindowHost::window_proc;
     window_class.lpszClassName = m_options.class_name.c_str();
 
     if (::RegisterClassExW(&window_class) == 0)
@@ -198,7 +198,7 @@ end:
     return result;
 }
 
-bool Utils::UIHost::ImGuiWindowHost::create_device()
+bool Utils::UIHost::IImGuiWindowHost::create_device()
 {
     constexpr UINT N_BUFFERS = 2;
 
@@ -231,7 +231,7 @@ bool Utils::UIHost::ImGuiWindowHost::create_device()
     return result;
 }
 
-void Utils::UIHost::ImGuiWindowHost::create_render_target()
+void Utils::UIHost::IImGuiWindowHost::create_render_target()
 {
     ID3D11Texture2D* back_buffer_ptr = nullptr;
 
@@ -246,7 +246,7 @@ void Utils::UIHost::ImGuiWindowHost::create_render_target()
     }
 }
 
-void Utils::UIHost::ImGuiWindowHost::destroy_render_target()
+void Utils::UIHost::IImGuiWindowHost::destroy_render_target()
 {
     if (m_render_target_view_ptr != nullptr)
     {
@@ -256,12 +256,12 @@ void Utils::UIHost::ImGuiWindowHost::destroy_render_target()
     }
 }
 
-void Utils::UIHost::ImGuiWindowHost::enable_dpi_awareness()
+void Utils::UIHost::IImGuiWindowHost::enable_dpi_awareness()
 {
     ImGui_ImplWin32_EnableDpiAwareness();
 }
 
-void Utils::UIHost::ImGuiWindowHost::extend_content(ContentExtent* inout_extent_ptr)
+void Utils::UIHost::IImGuiWindowHost::extend_content(ContentExtent* inout_extent_ptr)
 {
     inout_extent_ptr->bottom = std::max<float>(inout_extent_ptr->bottom,
                                                ImGui::GetItemRectMax().y);
@@ -269,7 +269,7 @@ void Utils::UIHost::ImGuiWindowHost::extend_content(ContentExtent* inout_extent_
                                                ImGui::GetItemRectMax().x);
 }
 
-void Utils::UIHost::ImGuiWindowHost::fit_to_content()
+void Utils::UIHost::IImGuiWindowHost::fit_to_content()
 {
     RECT client_rect = {};
     RECT outer_rect  = {};
@@ -309,22 +309,22 @@ void Utils::UIHost::ImGuiWindowHost::fit_to_content()
     }
 }
 
-ID3D11DeviceContext* Utils::UIHost::ImGuiWindowHost::get_device_context_ptr() const
+ID3D11DeviceContext* Utils::UIHost::IImGuiWindowHost::get_device_context_ptr() const
 {
     return m_device_context_ptr;
 }
 
-ID3D11Device* Utils::UIHost::ImGuiWindowHost::get_device_ptr() const
+ID3D11Device* Utils::UIHost::IImGuiWindowHost::get_device_ptr() const
 {
     return m_device_ptr;
 }
 
-HWND Utils::UIHost::ImGuiWindowHost::get_window() const
+HWND Utils::UIHost::IImGuiWindowHost::get_window() const
 {
     return m_hwnd;
 }
 
-bool Utils::UIHost::ImGuiWindowHost::handle_message(const HWND&   in_window,
+bool Utils::UIHost::IImGuiWindowHost::handle_message(const HWND&   in_window,
                                                     const UINT&   in_message,
                                                     const WPARAM& in_wparam,
                                                     const LPARAM& in_lparam,
@@ -339,12 +339,12 @@ bool Utils::UIHost::ImGuiWindowHost::handle_message(const HWND&   in_window,
     return false;
 }
 
-void Utils::UIHost::ImGuiWindowHost::on_resized_to_content()
+void Utils::UIHost::IImGuiWindowHost::on_resized_to_content()
 {
     /* Stub */
 }
 
-LRESULT Utils::UIHost::ImGuiWindowHost::process_message(const HWND&   in_window,
+LRESULT Utils::UIHost::IImGuiWindowHost::process_message(const HWND&   in_window,
                                                         const UINT&   in_message,
                                                         const WPARAM& in_wparam,
                                                         const LPARAM& in_lparam)
@@ -421,7 +421,7 @@ end:
     return result;
 }
 
-void Utils::UIHost::ImGuiWindowHost::render_frame()
+void Utils::UIHost::IImGuiWindowHost::render_frame()
 {
     const float clear_color_fp32vec4[] = {0.1f, 0.1f, 0.12f, 1.0f};
 
@@ -474,7 +474,7 @@ void Utils::UIHost::ImGuiWindowHost::render_frame()
                               0); /* flags         */
 }
 
-void Utils::UIHost::ImGuiWindowHost::request_close()
+void Utils::UIHost::IImGuiWindowHost::request_close()
 {
     ::PostMessageW(m_hwnd,
                    WM_CLOSE,
@@ -482,7 +482,7 @@ void Utils::UIHost::ImGuiWindowHost::request_close()
                    0);
 }
 
-void Utils::UIHost::ImGuiWindowHost::resize(const UINT& in_width,
+void Utils::UIHost::IImGuiWindowHost::resize(const UINT& in_width,
                                             const UINT& in_height)
 {
     if (m_swap_chain_ptr != nullptr)
@@ -499,7 +499,7 @@ void Utils::UIHost::ImGuiWindowHost::resize(const UINT& in_width,
     }
 }
 
-void Utils::UIHost::ImGuiWindowHost::run()
+void Utils::UIHost::IImGuiWindowHost::run()
 {
     constexpr DWORD MINIMIZED_SLEEP_MS = 20;
 
@@ -537,16 +537,16 @@ void Utils::UIHost::ImGuiWindowHost::run()
     }
 }
 
-LRESULT CALLBACK Utils::UIHost::ImGuiWindowHost::window_proc(HWND   in_window,
+LRESULT CALLBACK Utils::UIHost::IImGuiWindowHost::window_proc(HWND   in_window,
                                                              UINT   in_message,
                                                              WPARAM in_wparam,
                                                              LPARAM in_lparam)
 {
-    ImGuiWindowHost* window_ptr = nullptr;
+    IImGuiWindowHost* window_ptr = nullptr;
 
     if (in_message == WM_NCCREATE)
     {
-        window_ptr = static_cast<ImGuiWindowHost*>(reinterpret_cast<CREATESTRUCTW*>(in_lparam)->lpCreateParams);
+        window_ptr = static_cast<IImGuiWindowHost*>(reinterpret_cast<CREATESTRUCTW*>(in_lparam)->lpCreateParams);
 
         ::SetWindowLongPtrW(in_window,
                             GWLP_USERDATA,
@@ -554,7 +554,7 @@ LRESULT CALLBACK Utils::UIHost::ImGuiWindowHost::window_proc(HWND   in_window,
     }
     else
     {
-        window_ptr = reinterpret_cast<ImGuiWindowHost*>(::GetWindowLongPtrW(in_window,
+        window_ptr = reinterpret_cast<IImGuiWindowHost*>(::GetWindowLongPtrW(in_window,
                                                                             GWLP_USERDATA) );
     }
 

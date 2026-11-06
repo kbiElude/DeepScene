@@ -9,9 +9,9 @@
 
 Stereo::Presenter::StereoPresenterWindow::StereoPresenterWindow(std::unique_ptr<Stereo::Transport::IFrameImporter> in_importer_ptr,
                                                                 const std::string&                                 in_title)
-    :ImGuiWindowHost(get_window_options(in_title) ),
-     m_importer_ptr (std::move(in_importer_ptr) ),
-     m_is_styled    (false)
+    :IImGuiWindowHost(get_window_options(in_title) ),
+     m_importer_ptr  (std::move(in_importer_ptr) ),
+     m_is_styled     (false)
 {
     /* Stub */
 }
