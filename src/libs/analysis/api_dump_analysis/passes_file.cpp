@@ -135,20 +135,22 @@ bool Analysis::APIDumpAnalysis::PassesFile::read_bytes(const std::vector<uint8_t
         }
     }
 
-    const auto read_section_func = [out_analysis_ptr](const uint32_t&             in_tag,
-                                                      const std::vector<uint8_t>& in_raw_byte_vec)
     {
-        return read_section_bytes(in_tag,
-                                  in_raw_byte_vec,
-                                  out_analysis_ptr);
-    };
+        const auto read_section_func = [out_analysis_ptr](const uint32_t&             in_tag,
+                                                          const std::vector<uint8_t>& in_raw_byte_vec)
+        {
+            return read_section_bytes(in_tag,
+                                      in_raw_byte_vec,
+                                      out_analysis_ptr);
+        };
 
-    result = SectionedFile::read_sections(in_byte_vec,
-                                          sizeof(PassesFormat::FileHeader),
-                                          SECTION_INFO_ARRAY,
-                                          N_SECTIONS,
-                                          read_section_func,
-                                          out_error_ptr);
+        result = SectionedFile::read_sections(in_byte_vec,
+                                              sizeof(PassesFormat::FileHeader),
+                                              SECTION_INFO_ARRAY,
+                                              N_SECTIONS,
+                                              read_section_func,
+                                              out_error_ptr);
+    }
 
 end:
     return result;
