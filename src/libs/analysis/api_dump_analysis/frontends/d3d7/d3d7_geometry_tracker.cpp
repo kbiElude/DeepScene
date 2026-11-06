@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/api_dump_analysis/frontends/d3d7_geometry_tracker.h"
+#include "analysis/api_dump_analysis/frontends/d3d7/d3d7_geometry_tracker.h"
 #include <algorithm>
 #include <array>
 #include <math.h>

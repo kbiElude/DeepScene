@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/api_dump_analysis/frontends/clear_operation_factory.h"
+#include "analysis/api_dump_analysis/frontends/shared/clear_operation_factory.h"
 
 Analysis::APIDumpAnalysis::ClearOperation Analysis::APIDumpAnalysis::Frontends::ClearOperationFactory::create(const bool&     in_clears_color,
                                                                                                               const bool&     in_clears_depth,

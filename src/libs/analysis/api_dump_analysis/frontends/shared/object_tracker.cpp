@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/api_dump_analysis/frontends/object_tracker.h"
+#include "analysis/api_dump_analysis/frontends/shared/object_tracker.h"
 
 Analysis::APIDumpAnalysis::Frontends::ObjectTracker::ObjectTracker()
 {

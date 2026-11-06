@@ -5,7 +5,7 @@
  * Tests for D3D8GeometryTracker: what the unlocks of buffers put in them, and the vertices of a draw that are told from it.
  */
 #include <gtest/gtest.h>
-#include "analysis/api_dump_analysis/frontends/d3d8_geometry_tracker.h"
+#include "analysis/api_dump_analysis/frontends/d3d8/d3d8_geometry_tracker.h"
 #include <string.h>
 
 namespace

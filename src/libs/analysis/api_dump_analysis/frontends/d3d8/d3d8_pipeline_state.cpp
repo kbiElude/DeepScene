@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/api_dump_analysis/frontends/d3d8_pipeline_state.h"
+#include "analysis/api_dump_analysis/frontends/d3d8/d3d8_pipeline_state.h"
 #include "utils/hashing/hasher.h"
 #include "Interception/Hooks/D3D8/types.h"
 

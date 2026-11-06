@@ -4,7 +4,7 @@
  */
 #include "d3d8_resolution_scaler.h"
 #include "eye_image_limits.h"
-#include "analysis/api_dump_analysis/frontends/d3d8_resolution_hazards.h"
+#include "analysis/api_dump_analysis/frontends/d3d8/d3d8_resolution_hazards.h"
 #include "Common/macros.h"
 #include "Common/vtable.h"
 #include <string.h>

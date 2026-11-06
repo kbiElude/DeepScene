@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/api_dump_analysis/frontends/mip_chain.h"
+#include "analysis/api_dump_analysis/frontends/shared/mip_chain.h"
 #include <algorithm>
 
 uint32_t Analysis::APIDumpAnalysis::Frontends::MipChain::get_level_count(const uint32_t& in_n_levels_asked,

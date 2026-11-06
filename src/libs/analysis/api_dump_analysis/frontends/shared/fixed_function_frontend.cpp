@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/api_dump_analysis/frontends/fixed_function_frontend.h"
+#include "analysis/api_dump_analysis/frontends/shared/fixed_function_frontend.h"
 #include <algorithm>
 #include <string.h>
 

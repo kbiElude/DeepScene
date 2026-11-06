@@ -9,7 +9,7 @@
 #ifndef APIDUMPANALYSIS_FRONTENDS_D3D8_PIPELINE_STATE_H
 #define APIDUMPANALYSIS_FRONTENDS_D3D8_PIPELINE_STATE_H
 
-#include "analysis/api_dump_analysis/frontends/fixed_function_state.h"
+#include "analysis/api_dump_analysis/frontends/shared/fixed_function_state.h"
 #include "analysis/api_dump_analysis/types.h"
 #include <map>
 #include <stdint.h>

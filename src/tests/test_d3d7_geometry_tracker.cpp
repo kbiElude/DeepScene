@@ -5,7 +5,7 @@
  * Checks of the tracker of the vertices of Direct3D 7 draws: the positions it samples, from memory and from vertex buffers.
  */
 #include <gtest/gtest.h>
-#include "analysis/api_dump_analysis/frontends/d3d7_geometry_tracker.h"
+#include "analysis/api_dump_analysis/frontends/d3d7/d3d7_geometry_tracker.h"
 #include "d3d7_call_builder.h"
 #include <limits>
 

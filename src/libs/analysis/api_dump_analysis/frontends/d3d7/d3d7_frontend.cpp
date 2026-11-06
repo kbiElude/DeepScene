@@ -2,9 +2,9 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/api_dump_analysis/frontends/d3d7_frontend.h"
-#include "analysis/api_dump_analysis/frontends/clear_operation_factory.h"
-#include "analysis/api_dump_analysis/frontends/d3d7_resource_describer.h"
+#include "analysis/api_dump_analysis/frontends/d3d7/d3d7_frontend.h"
+#include "analysis/api_dump_analysis/frontends/shared/clear_operation_factory.h"
+#include "analysis/api_dump_analysis/frontends/d3d7/d3d7_resource_describer.h"
 #include "Capture/APIDumpLoader/api_info.h"
 #include "Interception/Core/D3D7Utils/argument_info.h"
 #include "Interception/Core/D3D7Utils/constants.h"

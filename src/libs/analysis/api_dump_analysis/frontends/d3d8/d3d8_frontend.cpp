@@ -2,10 +2,10 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/api_dump_analysis/frontends/d3d8_frontend.h"
-#include "analysis/api_dump_analysis/frontends/clear_operation_factory.h"
-#include "analysis/api_dump_analysis/frontends/d3d8_resolution_hazards.h"
-#include "analysis/api_dump_analysis/frontends/d3d8_resource_describer.h"
+#include "analysis/api_dump_analysis/frontends/d3d8/d3d8_frontend.h"
+#include "analysis/api_dump_analysis/frontends/shared/clear_operation_factory.h"
+#include "analysis/api_dump_analysis/frontends/d3d8/d3d8_resolution_hazards.h"
+#include "analysis/api_dump_analysis/frontends/d3d8/d3d8_resource_describer.h"
 #include "utils/hashing/hasher.h"
 #include "Interception/Hooks/D3D8/types.h"
 #include "Interception/Core/D3D8Utils/argument_info.h"

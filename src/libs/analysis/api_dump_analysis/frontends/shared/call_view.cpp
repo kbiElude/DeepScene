@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/api_dump_analysis/frontends/call_view.h"
+#include "analysis/api_dump_analysis/frontends/shared/call_view.h"
 #include "utils/hashing/hasher.h"
 
 Analysis::APIDumpAnalysis::Frontends::CallView::CallView(const Capture::APIDumpLoader::DumpedAPICall& in_call,

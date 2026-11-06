@@ -12,12 +12,12 @@
 #ifndef APIDUMPANALYSIS_FRONTENDS_D3D7_FRONTEND_H
 #define APIDUMPANALYSIS_FRONTENDS_D3D7_FRONTEND_H
 
-#include "analysis/api_dump_analysis/frontends/call_view.h"
-#include "analysis/api_dump_analysis/frontends/d3d7_geometry_tracker.h"
-#include "analysis/api_dump_analysis/frontends/d3d7_pipeline_state.h"
-#include "analysis/api_dump_analysis/frontends/fixed_function_frontend.h"
-#include "analysis/api_dump_analysis/frontends/i_api_frontend.h"
-#include "analysis/api_dump_analysis/frontends/object_tracker.h"
+#include "analysis/api_dump_analysis/frontends/shared/call_view.h"
+#include "analysis/api_dump_analysis/frontends/d3d7/d3d7_geometry_tracker.h"
+#include "analysis/api_dump_analysis/frontends/d3d7/d3d7_pipeline_state.h"
+#include "analysis/api_dump_analysis/frontends/shared/fixed_function_frontend.h"
+#include "analysis/api_dump_analysis/frontends/shared/i_api_frontend.h"
+#include "analysis/api_dump_analysis/frontends/shared/object_tracker.h"
 #include "analysis/api_dump_analysis/model_builder.h"
 #include "Interception/Hooks/D3D7/types.h"
 #include <map>

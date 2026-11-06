@@ -9,7 +9,7 @@
 #define APIDUMPANALYSIS_FRONTENDS_D3D8_RESOURCE_DESCRIBER_H
 
 #include "analysis/api_dump_analysis/types.h"
-#include "analysis/api_dump_analysis/frontends/call_view.h"
+#include "analysis/api_dump_analysis/frontends/shared/call_view.h"
 #include "Interception/Core/D3D8Utils/types.h"
 
 namespace Analysis

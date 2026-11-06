@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/api_dump_analysis/frontends/d3d8_resource_describer.h"
-#include "analysis/api_dump_analysis/frontends/mip_chain.h"
+#include "analysis/api_dump_analysis/frontends/d3d8/d3d8_resource_describer.h"
+#include "analysis/api_dump_analysis/frontends/shared/mip_chain.h"
 #include <algorithm>
 
 uint64_t Analysis::APIDumpAnalysis::Frontends::D3D8ResourceDescriber::compute_api_flags(const Interception::Hooks::D3D8::D3DPOOL& in_pool,
