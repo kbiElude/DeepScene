@@ -1,5 +1,5 @@
 # The projects of the solution in folders, the same as the source tree is.
-include(${APIInterceptor_SOURCE_DIR}/cmake/FolderHelpers.cmake)
+include(${APIInterceptor_SOURCE_DIR}/cmake/folder_helpers.cmake)
 
 assign_folder("libs"                Analysis Headset Stereo Utils VRPlayerBackend)
 assign_folder("runtime"             StereoConverterDLL StereoLauncher StereoPresenter)

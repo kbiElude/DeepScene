@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Checks that the source tree is the release: a program which cmake/Install.cmake installs has a folder where it is installed, named after it
+ * Checks that the source tree is the release: a program which cmake/install.cmake installs has a folder where it is installed, named after it
  * (src/tools/analysis/recipe_bake for tools/analysis/RecipeBake.exe), and each folder of a program is installed. A folder is the name of the
  * program in snake_case, without the prefix of its group (runtime/launcher for StereoLauncher, tools/stereo_replay/player for
  * StereoReplayPlayer). What is installed from the interceptor (the dumper and its printer) is in its own tree.
@@ -102,11 +102,11 @@ namespace
                                        : src_path / in_destination / folder;
     }
 
-    /* The programs that cmake/Install.cmake installs from this project. */
+    /* The programs that cmake/install.cmake installs from this project. */
     DestinationMap read_installed_programs()
     {
         const std::set<std::string> interceptor_name_set = {"APIDumper", "APIDumperDLL", "APIDumpPrinter"};
-        std::ifstream file(std::filesystem::path(Tests::DataFixtures::get_repository_root_path() ) / "cmake" / "Install.cmake");
+        std::ifstream file(std::filesystem::path(Tests::DataFixtures::get_repository_root_path() ) / "cmake" / "install.cmake");
         std::stringstream text;
         DestinationMap    result;
 
@@ -172,7 +172,7 @@ TEST(Layout, AFolderOfAProgramIsInstalled)
     for (const auto& folder : folder_set)
     {
         EXPECT_EQ(expected_set.count(folder),
-                  1u) << folder.string() << " is a folder of a program, and cmake/Install.cmake does not install a program of that name where the folder is";
+                  1u) << folder.string() << " is a folder of a program, and cmake/install.cmake does not install a program of that name where the folder is";
     }
 }
 

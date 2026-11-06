@@ -4,7 +4,7 @@
 #   cmake --install build_x64 --config <Config> --prefix build_final
 #
 # Only what is named here is installed. Every program but VRPlayer has the architecture it is built for in its name (_x64 or _x86, see
-# Architecture.cmake), so a program that has both has them side by side, which is where each looks for its partners. The ones of the interceptor
+# architecture.cmake), so a program that has both has them side by side, which is where each looks for its partners. The ones of the interceptor
 # (the dumper, its DLL, the printer) are given the suffix as they are installed.
 #
 #   build_final\                        VRPlayer.exe
@@ -14,7 +14,7 @@
 #   build_final\tools\analysis\         the extractors and the query tools of the analysis (of the passes and of the dependencies), the slicer
 #                                       and the baker of the recipes
 #   build_final\tools\stereo_replay\    the replay player, the replay engine and the consistency checker
-include(${APIInterceptor_SOURCE_DIR}/cmake/InstallHelpers.cmake)
+include(${APIInterceptor_SOURCE_DIR}/cmake/install_helpers.cmake)
 
 install_with_suffix(APIDumper                 "tools/api_dumper")
 install_with_suffix(APIDumperDLL              "tools/api_dumper")

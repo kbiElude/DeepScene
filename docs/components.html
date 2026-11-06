@@ -40,7 +40,7 @@
 <tr><td><code>libs/utils</code>, <code>libs/analysis</code>, <code>libs/stereo</code>, <code>libs/headset</code>, <code>libs/vr_player</code></td><td>(linked into the programs)</td><td>the five libraries</td></tr>
 <tr><td><code>tests</code></td><td>(not in the release)</td><td>the tests</td></tr>
 </table>
-<p>Each folder of a program or a library has its own <code>CMakeLists.txt</code>, which says what it is made of and links; <code>cmake/Install.cmake</code> says where each program is installed, and a test (<code>Layout</code>) checks that this and the folders say the same. <code>tools\api_dumper\</code> of the release is made of API Interceptor.</p>
+<p>Each folder of a program or a library has its own <code>CMakeLists.txt</code>, which says what it is made of and links; <code>cmake/install.cmake</code> says where each program is installed, and a test (<code>Layout</code>) checks that this and the folders say the same. <code>tools\api_dumper\</code> of the release is made of API Interceptor.</p>
 <p>An include names the library, from <code>src/libs</code> (<code>#include "analysis/api_dump_analysis/model.h"</code>), or, for what a program takes of another program, the path from <code>src</code> (<code>#include "tools/stereo_replay/engine_dll/types.h"</code>). What a program includes of its own folder is named as it is (<code>"command_line.h"</code>). The namespaces of a library follow the path under <code>src/libs</code>, in PascalCase: <code>Analysis::APIDumpAnalysis</code>, <code>Stereo::Core</code>, <code>Headset::XR</code>, <code>VRPlayer::AppCatalog</code>, <code>Utils::Images</code>.</p>
 
 <ol class="toc">

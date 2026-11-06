@@ -73,7 +73,7 @@
 <h2 id="conventions">Conventions and what checks them</h2>
 <table>
 <tr><th>Rule</th><th>Checked by</th></tr>
-<tr><td>Folders and files lower-case <code>snake_case</code>; namespaces PascalCase; executables PascalCase with <code>_x64</code> or <code>_x86</code> (<code>VRPlayer.exe</code> excepted)</td><td><code>Layout</code> test, <code>cmake/Architecture.cmake</code>, <code>cmake/Install.cmake</code></td></tr>
+<tr><td>Folders and files lower-case <code>snake_case</code>; namespaces PascalCase; executables PascalCase with <code>_x64</code> or <code>_x86</code> (<code>VRPlayer.exe</code> excepted)</td><td><code>Layout</code> test, <code>cmake/architecture.cmake</code>, <code>cmake/install.cmake</code></td></tr>
 <tr><td>Everything in a named namespace, definitions qualified (<code>Ret NS::f()</code>), no anonymous namespaces, no <code>using</code> directives</td><td>review</td></tr>
 <tr><td>Code is not written twice: a shared type or helper goes where both users can reach it</td><td><code>DuplicateCode</code> test (exceptions in <code>known_duplicates.txt</code>, which is for real exceptions, not for convenience)</td></tr>
 <tr><td>One return per function (<code>goto end</code> for an early exit), Allman braces always, one argument per line in calls of two or more, one condition per line in a longer <code>if</code></td><td>review</td></tr>

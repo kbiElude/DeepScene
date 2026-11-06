@@ -41,7 +41,7 @@ if (CMAKE_SIZEOF_VOID_P EQUAL 8)
     add_subdirectory(deps/OpenXR-SDK EXCLUDE_FROM_ALL)
 endif()
 
-include(cmake/Architecture.cmake)
+include(cmake/architecture.cmake)
 
 # The libraries, in src/libs: five, by what they are for (each folder has what it is in its CMakeLists.txt). Utils is the one the others use.
 add_subdirectory(src/libs/utils)
@@ -69,6 +69,6 @@ if (CMAKE_SIZEOF_VOID_P EQUAL 8)
     add_subdirectory(src/vr_player)
 endif()
 
-include(cmake/Tests.cmake)
-include(cmake/Install.cmake)
-include(cmake/Folders.cmake)
+include(cmake/tests.cmake)
+include(cmake/install.cmake)
+include(cmake/folders.cmake)
