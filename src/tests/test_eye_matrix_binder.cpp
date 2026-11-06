@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 #include "interception/hooks/D3D8/types.h"
 #include "eye_matrix_binder.h"
-#include "replay_test_doubles.h"
+#include "map_chunk_source.h"
 #include <string.h>
 
 constexpr uint32_t MATRIX_CHUNK_ID = 3;

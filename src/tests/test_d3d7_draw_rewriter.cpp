@@ -7,7 +7,7 @@
  */
 #include <gtest/gtest.h>
 #include "D3D7/d3d7_draw_rewriter.h"
-#include "replay_test_doubles.h"
+#include "map_chunk_source.h"
 #include <map>
 #include <math.h>
 #include <string.h>

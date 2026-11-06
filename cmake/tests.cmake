@@ -66,7 +66,7 @@ if (DEMOVRPLAYER_BUILD_TESTS)
                                                          "${DemoVRPlayer_SOURCE_DIR}/src/runtime/converter_dll"
                                                          "${DemoVRPlayer_SOURCE_DIR}/src/tools/stereo_replay/engine_dll"
                                                          "${DemoVRPlayer_SOURCE_DIR}/src/tools/stereo_replay/player"
-                                                         "${APIInterceptor_SOURCE_DIR}/src/Tests")
+                                                         "${APIInterceptor_SOURCE_DIR}/src/tests")
     target_compile_definitions(DemoVRPlayerTests PRIVATE DEMOVRPLAYER_APPS_DIR="${DemoVRPlayer_SOURCE_DIR}/apps"
                                                          DEMOVRPLAYER_REPOSITORY_ROOT="${DemoVRPlayer_SOURCE_DIR}"
                                                          DEMOVRPLAYER_TESTS_DATA_DIR="${DemoVRPlayer_SOURCE_DIR}/src/tests/data")

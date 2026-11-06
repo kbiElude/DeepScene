@@ -6,7 +6,8 @@
  */
 #include <gtest/gtest.h>
 #include "frame_runner.h"
-#include "replay_test_doubles.h"
+#include "map_chunk_source.h"
+#include "stub_call_executor.h"
 #include <algorithm>
 #include <string>
 

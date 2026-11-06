@@ -6,7 +6,7 @@
  */
 #include <gtest/gtest.h>
 #include "tools/stereo_replay/engine_dll/entrypoints.h"
-#include "replay_test_doubles.h"
+#include "pausing_interceptor.h"
 #include "workload_file_builder.h"
 #include <chrono>
 #include <thread>

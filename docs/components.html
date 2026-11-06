@@ -193,7 +193,7 @@
 <h2 id="support">Tests and third-party code</h2>
 
 <h3>DemoVRPlayerTests</h3>
-<p><em>Program.</em> The tests, with googletest, of every library and program above. The data files they use are reached through <code>Tests::DataFixtures</code> and the fake DirectDraw is in <code>src/tests/fake_direct_draw.h</code>; a few helpers of the tests of API Interceptor (<code>replay_test_doubles.h</code> and others) are used as they are. They include tests of the layout of the source against the release (and that <code>Utils</code> includes nothing of the other libraries), and one that the code is not written twice (<code>known_duplicates.txt</code>). See <a href="building.html#tests">Building</a>.</p>
+<p><em>Program.</em> The tests, with googletest, of every library and program above. The data files they use are reached through <code>Tests::DataFixtures</code> and the fake DirectDraw is in <code>src/tests/fake_direct_draw.h</code>; a few helpers of the tests of API Interceptor (<code>map_chunk_source.h</code>, <code>pausing_interceptor.h</code> and others) are used as they are. They include tests of the layout of the source against the release (and that <code>Utils</code> includes nothing of the other libraries), and one that the code is not written twice (<code>known_duplicates.txt</code>). See <a href="building.html#tests">Building</a>.</p>
 
 <h3>deps</h3>
 <p>API Interceptor (with its own third-party code: Detours, Zstd, Dear ImGui, googletest and the Khronos headers of OpenGL) and the OpenXR SDK, for the headset, and miniz, for the zip files of the applications.</p>
