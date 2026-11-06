@@ -139,3 +139,7 @@ svg .screen { stroke: var(--fg); stroke-width: 2.5; fill: none; }
 svg .dashed { stroke: var(--muted); stroke-width: 1.2; fill: none; stroke-dasharray: 4 3; }
 svg text.l { fill: var(--eye-left); }
 svg text.r { fill: var(--eye-right); }
+
+header.site .break { flex-basis: 100%; height: 0; }
+header.site .label { margin-left: auto; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); opacity: 0.7; }
+header.site .break + .label ~ a { font-size: 0.9rem; }
