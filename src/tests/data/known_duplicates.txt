@@ -12,5 +12,5 @@
 4 src/libs/analysis/api_dump_analysis/passes_file.cpp|src/libs/analysis/api_dump_dependencies/deps_file.cpp
 20 src/tools/analysis/api_dump_analysis_extractor/main.cpp|src/tools/analysis/api_dump_dependency_extractor/main.cpp
 4 src/tools/analysis/api_dump_analysis_query/main.cpp|src/tools/analysis/api_dump_dependency_query/main.cpp
-1 src/runtime/converter_dll/d3d7_eye_renderer.cpp|src/runtime/converter_dll/d3d8_eye_renderer.cpp
+1 src/runtime/converter_dll/d3d7/d3d7_eye_renderer.cpp|src/runtime/converter_dll/d3d8/d3d8_eye_renderer.cpp
 1 src/tools/stereo_replay/consistency_checker/stop_observer.h|src/tools/stereo_replay/player/frame_range_observer.h

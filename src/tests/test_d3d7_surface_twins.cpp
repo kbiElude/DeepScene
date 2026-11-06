@@ -7,7 +7,7 @@
  */
 #include <gtest/gtest.h>
 #include "Interception/Core/D3D7Utils/constants.h"
-#include "d3d7_surface_twins.h"
+#include "d3d7/d3d7_surface_twins.h"
 #include "fake_direct_draw.h"
 #include <string>
 
