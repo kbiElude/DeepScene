@@ -157,7 +157,7 @@
 <p><em>Program.</em> Asks a <code>.passes</code> file questions (<code>info</code>, <code>timeline</code> and the others) and prints the answers as JSON. It checks that the workload is the one the file is of (<code>--workload</code> says where it is, <code>--no-verify</code> skips the check).</p>
 
 <h3>APIDumpDependencyExtractor</h3>
-<p><em>Program.</em> Reads a workload and writes a <code>.deps</code> file. It reads on several threads, and leaves out the data chunks above 64 KiB (vertices and pixels, which it does not look at): the 4 GB capture of a demo takes about 8 seconds.</p>
+<p><em>Program.</em> Reads a workload and writes a <code>.deps</code> file. It reads on several threads, and leaves out the data chunks above 64 KiB (vertices and pixels, which it does not look at).</p>
 
 <h3>APIDumpDependencyQuery</h3>
 <p><em>Program.</em> Asks a <code>.deps</code> file questions (<code>info</code>, <code>resources</code>, <code>resource</code>, <code>frame</code>, <code>carries</code>, <code>per-eye</code>) and prints the answers as JSON. It checks that the workload is the one the file is of, as the query tool of the <code>.passes</code> file does.</p>

@@ -72,29 +72,28 @@
 <p>The only setting is <em>Image quality</em> in VR Player: <em>Full</em> (the resolution of the headset), <em>Half of the pixels</em> and <em>A quarter of the pixels</em>, which bring the target down by the square root of that in each direction, for a graphics card that is hard pressed. Without a headset, nothing is made larger. The analysis must see what the program asked for, not what was scaled, so the scaler restores the original values in the data the feeder sees (<code>CallFeeder::set_chunk_func</code>).</p>
 
 <h2 id="pacing">Keeping the frames even and the lag short</h2>
-<p>In a headset two things are felt: how <em>late</em> a picture is, and whether the motion is <em>even</em>. A frame that is shown twice, with the one after it skipped, is judder, and it is felt even when every frame is fast. The converter and the presenter therefore do three things: they get a frame from the program to the headset with as little work on the program's own thread as they can, they make the program produce one frame for each frame of the headset, and they hold the headset's frame for an image that is a few milliseconds late. This section says what each does, and why; the numbers are from the session log (see <a href="#log-lines">Reading the log</a>).</p>
+<p>In a headset two things are felt: how <em>late</em> a picture is, and whether the motion is <em>even</em>. A frame that is shown twice, with the one after it skipped, is judder, and it is felt even when every frame is fast. The converter and the presenter therefore do three things: they get a frame from the program to the headset with as little work on the program's own thread as they can, they make the program produce one frame for each frame of the headset, and they hold the headset's frame for an image that is a few milliseconds late. This section says what each does, and why; the session log (see <a href="#log-lines">Reading the log</a>) shows how each behaves.</p>
 
 <h3>The way of a frame</h3>
 <p>Each frame passes four threads. None waits for the one after it, except that the program waits for the exporter's thread when it has its next frame to hand over (and then it has been through long ago).</p>
 <figure>
 <svg viewBox="0 0 900 350" role="img" aria-label="The way of a frame through four threads, in time">
-  <text class="title" x="10" y="22">One frame, from the left to the right (about 18 ms of work at the resolution of the headset; not to scale)</text>
+  <text class="title" x="10" y="22">One frame, from the left to the right (not to scale)</text>
 
   <path class="group" d="M150 40V300"/><path class="group" d="M424 40V300"/><path class="group" d="M698 40V300"/>
   <text class="small" x="153" y="52">the headset asks for a frame</text>
-  <text class="small" x="427" y="52">…and again, 13.9 ms later</text>
+  <text class="small" x="427" y="52">…and again, a frame of the headset later</text>
   <text class="small" x="701" y="52">…and again</text>
 
   <text x="10" y="86">Program</text><text class="small" x="10" y="102">(its own thread)</text>
   <rect class="box" x="150" y="68" width="79" height="40" rx="5"/><text x="189" y="92" text-anchor="middle">render</text>
-  <rect class="box3" x="229" y="68" width="158" height="40" rx="5"/><text x="308" y="86" text-anchor="middle">GPU copies to</text><text class="small" x="308" y="100" text-anchor="middle">system memory, ≈ 4.5 ms</text>
-  <text class="small" x="150" y="124">4 ms</text>
+  <rect class="box3" x="229" y="68" width="158" height="40" rx="5"/><text x="308" y="86" text-anchor="middle">GPU copies to</text><text class="small" x="308" y="100" text-anchor="middle">system memory</text>
 
   <text x="10" y="166">Exporter thread</text><text class="small" x="10" y="182">(in the program)</text>
-  <rect class="box3" x="387" y="144" width="197" height="56" rx="5"/><text x="485" y="162" text-anchor="middle">rows copied to the channel</text><text class="small" x="485" y="177" text-anchor="middle">≈ 3 ms (a thread for each eye)</text><text class="small" x="485" y="190" text-anchor="middle">while the next frame renders</text>
+  <rect class="box3" x="387" y="144" width="197" height="56" rx="5"/><text x="485" y="162" text-anchor="middle">rows copied to the channel</text><text class="small" x="485" y="177" text-anchor="middle">a thread for each eye</text><text class="small" x="485" y="190" text-anchor="middle">while the next frame renders</text>
 
   <text x="10" y="246">Viewer thread</text><text class="small" x="10" y="262">(its own, not the window's)</text>
-  <rect class="box2" x="584" y="228" width="217" height="40" rx="5"/><text x="692" y="246" text-anchor="middle">GPU copy to the eyes' images</text><text class="small" x="692" y="260" text-anchor="middle">≈ 7 ms, then the images are given back</text>
+  <rect class="box2" x="584" y="228" width="217" height="40" rx="5"/><text x="692" y="246" text-anchor="middle">GPU copy to the eyes' images</text><text class="small" x="692" y="260" text-anchor="middle">then the images are given back</text>
 
   <text x="10" y="326">Compositor thread</text>
   <rect class="box4" x="150" y="308" width="60" height="26" rx="5"/><text x="180" y="326" text-anchor="middle">frame</text>
@@ -109,21 +108,22 @@
 <figcaption>The program hands a frame over when the GPU copies are made; a thread of the converter then copies it to the shared memory while the program goes on with the next frame. A thread of the presenter, which waits for nothing but the frames, copies it to the images of the headset. (The rows of the right eye are copied by a second thread of the converter, at the same time as those of the left.)</figcaption>
 </figure>
 
-<h3>What was changed, and what it gave</h3>
-<p>The first measurements, with the program rendered at four times its size (3200 × 2400 for each eye, 61 MB for a frame), showed a program held to 28 frames a second by the copy out of it, and a headset that showed 62% of its frames a second time. The compositor itself was never the problem: it ran at 72 Hz without a late frame. The steps, in the order they were taken, and what the log said after each:</p>
+<h3>What was changed, and why</h3>
+<p>The first version rendered the program at four times its size for each eye. The copy out of the program held the program back, and the headset showed many of its frames a second time, though the compositor itself was never the problem. The steps, in the order they were taken:</p>
 <table>
-<tr><th>Step</th><th>Why</th><th>After it</th></tr>
-<tr><td>Surfaces in system memory are kept from frame to frame, and the rows go from them straight to the channel</td><td>Two new surfaces of 30 MB were made for each frame, and each frame was copied twice by the CPU</td><td>The copy cost of the program fell from 32 ms to 18 ms: 28 → 45 frames a second</td></tr>
-<tr><td>A thread of the converter copies the rows to the channel; two sets of surfaces let the next frame be read meanwhile</td><td>10 ms of copying was on the thread that renders</td><td>The program makes 62 frames a second</td></tr>
-<tr><td>The headset takes the frames on a thread of its own, about every millisecond; the window stops previewing while it does</td><td>The upload was in the window's loop, which ends in a wait for the screen of the PC and also copied each image to the preview: about 45 frames a second reached the headset whatever the program made</td><td>The presenter receives every frame the program makes: 73 a second; the images shown as new rose from 44 to 64 of 72 a second</td></tr>
-<tr><td>The program is made to produce one frame for each frame of the headset (<a href="#pacing-signal">below</a>)</td><td>Two clocks that are almost the same drift against each other</td><td>The program presents 72 frames a second, evenly; the images shown as new stay near 63 until the next step</td></tr>
-<tr><td>The headset's frame waits a few milliseconds for an image that is late (<a href="#late-images">below</a>)</td><td>An image that arrives just after the compositor asked is shown a frame late, with the one before shown twice</td><td>69 of 72 frames show a new image; repeats fell from 9 to 2 a second (median)</td></tr>
-<tr><td>The program is rendered at the resolution of the headset (2064 × 1548 for each eye) and not at four times its size (3200 × 2400); the rows of the two eyes are copied by two threads (<a href="#resolution">Resolution</a>)</td><td>61 MB a frame was more than the copies could do in a frame without help: the GPU copy took 8 ms, the rows 10 ms, the copy to the headset 11 ms</td><td>The GPU copy 4.5 ms, the rows 2.7 ms, the copy to the headset 6.9 ms; 69.7 of 72 frames show a new image, the median second has no repeat, and 41 of 75 seconds have none at all</td></tr>
-<tr><td>The session logs keep their file open</td><td>Opening and closing a file for each line, which a program that watches files then looks at, probably held the program for a frame about once a second</td><td>The program's frames over 20 ms fell from about 4 to 2 a second</td></tr>
+<tr><th>Step</th><th>Why</th></tr>
+<tr><td>Surfaces in system memory are kept from frame to frame, and the rows go from them straight to the channel</td><td>Two new large surfaces were made for each frame, and each frame was copied twice by the CPU</td></tr>
+<tr><td>A thread of the converter copies the rows to the channel; two sets of surfaces let the next frame be read meanwhile</td><td>The copying was on the thread that renders</td></tr>
+<tr><td>The headset takes the frames on a thread of its own, about every millisecond; the window stops previewing while it does</td><td>The upload was in the loop of the window, which ends in a wait for the screen of the PC and also copied each image to the preview, so the frames that reached the headset were limited by it, whatever the program made</td></tr>
+<tr><td>The program is made to produce one frame for each frame of the headset (<a href="#pacing-signal">below</a>)</td><td>Two clocks that are almost the same drift against each other</td></tr>
+<tr><td>The headset's frame waits a few milliseconds for an image that is late (<a href="#late-images">below</a>)</td><td>An image that arrives just after the compositor asked is shown a frame late, with the one before shown twice</td></tr>
+<tr><td>The program is rendered at the resolution of the headset and not at four times its size; the rows of the two eyes are copied by two threads (<a href="#resolution">Resolution</a>)</td><td>A frame of four times the size was more than the copies could do in a frame of the headset without help</td></tr>
+<tr><td>The session logs keep their file open</td><td>Opening and closing a file for each line, which a program that watches files then looks at, probably held the program for a frame now and then</td></tr>
 </table>
 
+
 <h3 id="pacing-signal">One frame for each frame of the headset</h3>
-<p>A program that renders as fast as it can, and a headset that shows 72 frames a second, drift against each other. The top half of the figure shows it with a program that is a little faster: a frame of the program is made that the compositor never takes (image 1), and with a slower program a frame is taken twice. It is felt as judder even when nothing is slow, and it needs no hitch to happen.</p>
+<p>A program that renders as fast as it can, and a headset that shows frames at a fixed rate, drift against each other. The top half of the figure shows it with a program that is a little faster: a frame of the program is made that the compositor never takes (image 1), and with a slower program a frame is taken twice. It is felt as judder even when nothing is slow, and it needs no hitch to happen.</p>
 <figure>
 <svg viewBox="0 0 900 380" role="img" aria-label="Without pacing images are skipped; with pacing each is shown once">
   <text class="title" x="10" y="20">Not paced: the program makes a frame every 90, the headset asks every 100 (not to scale)</text>
@@ -163,12 +163,12 @@
 <p>With the headset, the presenter therefore tells the program when to make a frame. Each time the compositor asks for one (<code>xrWaitFrame</code> returns) the presenter signals the frame channel (<code>FrameChannel::signal_pace()</code>, a named event). The converter, after the program has presented a frame, waits for that signal (<code>wait_for_pace()</code>), and only then lets the program begin the next one. So the program makes one frame for each frame of the headset, and begins it when the headset asks, which also leaves the GPU room.</p>
 <ul>
   <li><strong>The delay.</strong> The frame is not begun at the signal but a delay after it, so that its images are ready at the right moment (see below). The delay is counted <em>from the signal</em> and not from the moment the program notices it: a frame that has to wait for the signal is then not longer by the delay, and one that is late goes on at once. (When the delay was added to the wait, the program alternated between long and short frames.) The wait is made with a timer that is fine to a millisecond or less, since a coarser one would be a frame.</li>
-  <li><strong>The right moment.</strong> The compositor builds its layers as soon as it asks for a frame, from the images that are ready by then. The presenter therefore measures how far into a frame of the headset each set of images is ready (<code>HeadsetSink::tune_pace()</code>) and moves the delay until it is ready at 0.3 of a frame, about 4 ms. The copy takes more than a frame, so this cannot be worked out beforehand; the log shows it as <em>images ready into the frame</em> and <em>pace delay</em>.</li>
+  <li><strong>The right moment.</strong> The compositor builds its layers as soon as it asks for a frame, from the images that are ready by then. The presenter therefore measures how far into a frame of the headset each set of images is ready (<code>HeadsetSink::tune_pace()</code>) and moves the delay until it is ready at 0.3 of a frame. The copy takes more than a frame, so this cannot be worked out beforehand; the log shows it as <em>images ready into the frame</em> and <em>pace delay</em>.</li>
   <li><strong>Where it cannot hurt.</strong> A program is not made to wait for a presenter that has not signalled for a quarter of a second (a headset that was taken off), nor longer than 100 ms for one signal. The delay and the signal are in the header of the channel.</li>
 </ul>
 
 <h3 id="late-images">An image that is a few milliseconds late</h3>
-<p>The copy of a frame to the headset takes 11 ms on average and up to 20 ms or more, so the images are sometimes ready just after the compositor asks. Without help, that frame shows the one before again, and the next shows the new images a frame late: a repeat and a skip for one late copy. The room is there to avoid it: the compositor's frame can be ended any time within its period, and it is ended in under a millisecond.</p>
+<p>The copy of a frame to the headset takes a good part of a frame, and varies, so the images are sometimes ready just after the compositor asks. Without help, that frame shows the one before again, and the next shows the new images a frame late: a repeat and a skip for one late copy. The room is there to avoid it: the compositor's frame can be ended any time within its period, and it is ended in under a millisecond.</p>
 <figure>
 <svg viewBox="0 0 900 220" role="img" aria-label="The frame of the compositor waits a few milliseconds for a late image">
   <text x="10" y="40">Before</text>
@@ -186,22 +186,22 @@
 </figure>
 
 <h3>How long it takes, and what it does not change</h3>
-<p>From the start of the program's frame to the compositor taking its images it is, by the numbers above, about 4 + 4.5 + 2.7 + 6.9 ms of work and a margin of about 10 ms before the next request: close to 28 ms, two frames of the headset (it was 43 ms before the resolution was brought down to the headset's and the rows were copied by two threads). That is how far the picture lags behind what the program did. The program's own sound is not delayed, so the picture trails the music by that much. The margin is on purpose; a smaller one gives a shorter lag and more repeats when a copy is late (the target of 0.3 of a frame can be changed in <code>HeadsetSink::tune_pace()</code>).</p>
+<p>From the start of the program's frame to the compositor taking its images there is the work of the four threads of the figure, and a margin before the next request: about two frames of the headset. That is how far the picture lags behind what the program did. The program's own sound is not delayed, so the picture trails the music by that much. The margin is on purpose; a smaller one gives a shorter lag and more repeats when a copy is late (the target of 0.3 of a frame can be changed in <code>HeadsetSink::tune_pace()</code>).</p>
 <p>The headset's own pipeline (the runtime, the link to the headset) comes after this and is not measured here. The screen is fixed in the room, and the compositor moves it with the head by itself, so the lag does not lag the head: only the picture on the screen.</p>
 
 <h3 id="log-lines">Reading the log</h3>
-<p>The log is off unless it is asked for: <code>--log</code> on StereoLauncher and StereoPresenter (VR Player has no control for it). (Off, only what has to be said is written: why the converter stops the application, a frame that cannot be passed on, and a headset that cannot be used.) <code>%TEMP%\apistereo_&lt;session&gt;.log</code> has these lines each second, as count, mean, worst and how many were late, in milliseconds. What a good second looks like at 72 Hz:</p>
+<p>The log is off unless it is asked for: <code>--log</code> on StereoLauncher and StereoPresenter (VR Player has no control for it). (Off, only what has to be said is written: why the converter stops the application, a frame that cannot be passed on, and a headset that cannot be used.) <code>%TEMP%\apistereo_&lt;session&gt;.log</code> has these lines each second, as count, mean, worst and how many were late, in milliseconds. What each line tells:</p>
 <table>
-<tr><th>Line</th><th>Entry</th><th>What it tells</th><th>Good is</th></tr>
-<tr><td rowspan="3"><em>Pacing</em> (the converter)</td><td>app presents</td><td>The time between the program's frames</td><td>About 14 ms, few over 20</td></tr>
-<tr><td>asking for the copies / locking</td><td>What the program waits for to give the frame away</td><td>≈ 4–5 ms at the resolution of the headset; locking at 0</td></tr>
-<tr><td>copy to the channel (thread), waiting for the thread, waiting for the screen</td><td>The thread's copy; whether the program waits for it; whether the program waits for the headset</td><td>Thread ≈ 3 ms, waiting for it at 0; for the screen, a few ms on most frames</td></tr>
-<tr><td rowspan="3"><em>Frames to the headset</em> (the presenter)</td><td>arrivals</td><td>The time between the frames that reach the presenter</td><td>About 14 ms</td></tr>
-<tr><td>copy to the images</td><td>The GPU copy to the headset's images</td><td>≈ 7 ms, few spikes</td></tr>
-<tr><td>images ready into the frame, pace delay</td><td>Where in a frame of the headset the images are ready, and the delay that aims at 0.3 of it</td><td>Mean about 4 ms (the aim is 0.3 of a frame)</td></tr>
-<tr><td rowspan="3"><em>Frames of the compositor</em></td><td>frames</td><td>The headset's own frames</td><td>13.9 ms, none late</td></tr>
-<tr><td>wait for new images</td><td>How often, and for how long, a frame held for an image</td><td>Some waits of a few ms; never over the 6 ms</td></tr>
-<tr><td>images new / repeated / empty</td><td>What the frames of the headset showed</td><td>New near 72; repeated near 0</td></tr>
+<tr><th>Line</th><th>Entry</th><th>What it tells</th></tr>
+<tr><td rowspan="3"><em>Pacing</em> (the converter)</td><td>app presents</td><td>The time between the program's frames</td></tr>
+<tr><td>asking for the copies / locking</td><td>What the program waits for to give the frame away</td></tr>
+<tr><td>copy to the channel (thread), waiting for the thread, waiting for the screen</td><td>The thread's copy; whether the program waits for it; whether the program waits for the headset</td></tr>
+<tr><td rowspan="3"><em>Frames to the headset</em> (the presenter)</td><td>arrivals</td><td>The time between the frames that reach the presenter</td></tr>
+<tr><td>copy to the images</td><td>The GPU copy to the headset's images</td></tr>
+<tr><td>images ready into the frame, pace delay</td><td>Where in a frame of the headset the images are ready, and the delay that aims at 0.3 of it</td></tr>
+<tr><td rowspan="3"><em>Frames of the compositor</em></td><td>frames</td><td>The headset's own frames</td></tr>
+<tr><td>wait for new images</td><td>How often, and for how long, a frame held for an image</td></tr>
+<tr><td>images new / repeated / empty</td><td>What the frames of the headset showed</td></tr>
 </table>
 <p>Seconds in which the program stalls (a scene that loads, a gap of 100 ms or more) show as fewer presents and many repeats. The converter and the presenter cannot show images the program has not made, and the log tells such a second from a delay of ours: if the program's presents are even and the repeats are many, the delay is ours.</p>
 
@@ -214,9 +214,9 @@
 
 <h3>What is left</h3>
 <ul>
-  <li><strong>The program's own stalls.</strong> A scene that loads, or generates content, can take 100 ms in a frame; the headset then shows the image before. Nothing downstream can fix it.</li>
-  <li><strong>The GPU copy out of the program</strong> (≈ 4.5 ms) is the largest part of the frame the program is held for. It waits for the GPU to finish rendering, which D3D8 cannot be asked to do later.</li>
-  <li><strong>The copy to the headset's images</strong> (7 ms on average, up to 16) waits for the GPU on the CPU, and has spikes. The OpenXR binding for Direct3D 12 has the runtime wait for the work that was submitted to the session's queue, so the wait is probably only needed to keep the shared memory safe, and could be given up for a fence that is looked at later.</li>
+  <li><strong>The program's own stalls.</strong> A scene that loads, or generates content, can take several frames of the headset in one; the headset then shows the image before. Nothing downstream can fix it.</li>
+  <li><strong>The GPU copy out of the program</strong> is the largest part of the frame the program is held for. It waits for the GPU to finish rendering, which D3D8 cannot be asked to do later.</li>
+  <li><strong>The copy to the headset's images</strong> waits for the GPU on the CPU, and has spikes. The OpenXR binding for Direct3D 12 has the runtime wait for the work that was submitted to the session's queue, so the wait is probably only needed to keep the shared memory safe, and could be given up for a fence that is looked at later.</li>
   <li>Sharing the GPU's own surfaces with the presenter instead of the system memory would take the CPU copies away; Direct3D 8 cannot do it, so it would take a wrapper for the program's device.</li>
 </ul>
 
