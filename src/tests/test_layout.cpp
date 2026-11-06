@@ -144,10 +144,10 @@ TEST(Layout, AProgramWhichIsInstalledHasTheFolderOfItsNameWhereItIsInstalled)
 
 TEST(Layout, AFolderOfAProgramIsInstalled)
 {
-    const DestinationMap            installed_map = read_installed_programs();
-    const std::filesystem::path     src_path      = std::filesystem::path(Tests::DataFixtures::get_repository_root_path() ) / "src";
     std::set<std::filesystem::path> expected_set;
     std::set<std::filesystem::path> folder_set;
+    const DestinationMap            installed_map = read_installed_programs();
+    const std::filesystem::path     src_path      = std::filesystem::path(Tests::DataFixtures::get_repository_root_path() ) / "src";
 
     for (const auto& program : installed_map)
     {

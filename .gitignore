@@ -7,7 +7,7 @@
 *.tmp
 *.passes
 *.workload
-!src/Tests/data/*.workload
+!src/tests/data/*.workload
 
 # The index of a workload which a tool makes next to it (see WorkloadIndex)
 *.workload.index
