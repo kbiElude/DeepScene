@@ -23,7 +23,7 @@
 <h1>Adding an app</h1>
 <p class="lead">How to take a 2D program from nothing to a recipe that turns it into stereo 3D, and to a line in the catalog of the VR player. The facts about the program are read from its analysis by an LLM; a person decides, and looks at the pictures.</p>
 
-<div class="note">Today the converter handles Direct3D 8 programs whose camera is set with <code>SetTransform</code> (see <a href="#limits">What this does not cover</a>). The steps are the same for another API once it has its front end and its converter adapter (<a href="analysis-and-recipes.html#frontends">What adding an API takes</a>); only what the rules can name changes.</div>
+<div class="note">Today the converter handles Direct3D 8 programs whose camera is set with <code>SetTransform</code>, and Direct3D 7 programs whose vertices are already in pixels (see <a href="#limits">What this does not cover</a>). The steps are the same for another API once it has its front end and its converter adapter (<a href="analysis-and-recipes.html#frontends">What adding an API takes</a>); only what the rules can name changes.</div>
 
 <div class="note">The commands are written from the folder of a release (<code>build_final</code>): the programs are in <code>tools\api_dumper</code>, <code>tools\analysis</code> and <code>tools\stereo_replay</code> (see <a href="building.html#release">The collected build</a>).</div>
 

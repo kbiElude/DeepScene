@@ -22,7 +22,7 @@
 <main>
 <h1>Recipe format</h1>
 <p class="lead">A recipe is JSON. <code>RecipeLoader</code> checks everything that needs no application: names, numbers and keys are valid, and no unknown field is left. See <a href="analysis-and-recipes.html">Analysis &amp; recipes</a> for how one is made.</p>
-<div class="note">The keys and the <code>baked</code> section do not depend on the API. The <code>rules</code> section does: a rule names the call it applies to (and the state of that call) in the terms of its API. The example below is Direct3D 8, the first API with a front end and the only one whose calls a rule can name today; a recipe for another API would name that API's calls.</div>
+<div class="note">The keys and the <code>baked</code> section do not depend on the API. The <code>rules</code> section does: a rule names the call it applies to (and the state of that call) in the terms of its API. A rule can name <code>IDirect3DDevice8::SetTransform</code> or <code>IDirect3DDevice7::SetTransform</code> today (the table is in <code>recipe_loader_rules.cpp</code>); the example below is Direct3D 8, the first API with a front end, and a recipe for another API would name that API's calls.</div>
 <pre><code>  {
     "recipe_version": 0,
     "key_scheme_version": 1,                       must equal this build's, or the keys would not match

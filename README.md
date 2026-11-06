@@ -8,7 +8,7 @@ It works in three steps:
 2. **Process** the capture: the analysis tells what each draw of the program is (the scene, the interface, the post-processing), and a **recipe** says how each draw is to be treated for stereo.
 3. **Play** it in 3D: a converter is injected into the running program, renders the two eyes from what the program draws, and passes the images on to a window or a headset. `VRPlayer` is the front end that lists the programs and starts them.
 
-Direct3D 8 is the first API supported, and the demos are what drove the work.
+Direct3D 8 is the first API supported, and Direct3D 7 the second (for programs whose vertices are already in pixels); the demos are what drove the work.
 
 ## What is in here
 
@@ -33,7 +33,7 @@ build.bat --from-scratch   :: clean, configure and build
 build.bat --debug          :: Debug configuration
 ```
 
-Visual Studio 2026 (the generator is set in `deps\APIInterceptor\build.bat`), CMake 3.15 or newer. The tests are built with `-DDEMOVRPLAYER_BUILD_TESTS=ON` (64-bit only).
+Visual Studio 2026 (the generator is set in `deps\APIInterceptor\build.bat`), CMake 3.15 or newer. The tests are built with `-DDEMOVRPLAYER_BUILD_TESTS=ON` (in both builds; the 32-bit one leaves out the tests of the headset).
 
 `build_final\` has `VRPlayer.exe`, `runtime\` (what it starts), `apps\`, and `tools\`: `api_dumper` (capture), `analysis` and `stereo_replay`.
 
