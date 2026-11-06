@@ -38,14 +38,16 @@ void Stereo::Presenter::StereoPresenterWindow::draw_contents(Utils::UIHost::Cont
 
     if (m_sink_ptr == nullptr)
     {
+        const auto fit_window_func = [this](const uint32_t& in_width,
+                                            const uint32_t& in_height)
+        {
+            fit_window_to_image(in_width,
+                                in_height);
+        };
+
         m_sink_ptr.reset(new PreviewSink(get_device_ptr(),
                                          get_device_context_ptr(),
-                                         [this](const uint32_t& in_width,
-                                                const uint32_t& in_height)
-                                         {
-                                             fit_window_to_image(in_width,
-                                                                 in_height);
-                                         }) );
+                                         fit_window_func) );
     }
 
     /* The headset reads the frames, if there is one: the channel has room for one reader. */

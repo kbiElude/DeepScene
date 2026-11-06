@@ -23,12 +23,14 @@ Stereo::Replay::EngineDLL::StereoReplayEngine::StereoReplayEngine()
 
     const auto d3d7_executor_ptr = std::make_shared<StereoD3D7CallExecutor>(m_engine.get_remapper_ptr() );
 
+    const auto is_per_eye_func = [this](const uint64_t& in_dumped_address)
+    {
+        return m_stereo_executor.is_per_eye_texture(Capture::APIDumpLoader::APIGroup::D3D7,
+                                                    in_dumped_address);
+    };
+
     /* Asked when an object is made, whether each eye has a copy of it. */
-    d3d7_executor_ptr->set_per_eye_predicate([this](const uint64_t& in_dumped_address)
-                                             {
-                                                 return m_stereo_executor.is_per_eye_texture(Capture::APIDumpLoader::APIGroup::D3D7,
-                                                                                             in_dumped_address);
-                                             });
+    d3d7_executor_ptr->set_per_eye_predicate(is_per_eye_func);
 
     m_engine.add_call_executor(Capture::APIDumpLoader::APIGroup::D3D7,
                                d3d7_executor_ptr);

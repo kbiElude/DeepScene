@@ -25,15 +25,19 @@ Stereo::ConverterDLL::D3D8HostMemoryExporter::D3D8HostMemoryExporter(Stereo::Tra
      m_next_set    (0),
      m_write_cost  (8.0)
 {
-    m_eye_thread = std::thread([this]()
-                               {
-                                   run_eye_thread();
-                               });
+    const auto run_eye_thread_func = [this]()
+    {
+        run_eye_thread();
+    };
 
-    m_thread = std::thread([this]()
-                           {
-                               run_thread();
-                           });
+    m_eye_thread = std::thread(run_eye_thread_func);
+
+    const auto run_thread_func = [this]()
+    {
+        run_thread();
+    };
+
+    m_thread = std::thread(run_thread_func);
 }
 
 Stereo::ConverterDLL::D3D8HostMemoryExporter::~D3D8HostMemoryExporter()
@@ -304,11 +308,13 @@ void Stereo::ConverterDLL::D3D8HostMemoryExporter::run_eye_thread()
 
     while (true)
     {
+        const auto is_eye_job_queued_func = [this]()
+        {
+            return (m_is_eye_stopping || m_eye_state == ExportJobState::QUEUED);
+        };
+
         m_eye_condition.wait(lock,
-                             [this]()
-                             {
-                                 return (m_is_eye_stopping || m_eye_state == ExportJobState::QUEUED);
-                             });
+                             is_eye_job_queued_func);
 
         if (m_is_eye_stopping)
         {
@@ -341,11 +347,13 @@ void Stereo::ConverterDLL::D3D8HostMemoryExporter::run_thread()
 
     while (true)
     {
+        const auto is_job_queued_func = [this]()
+        {
+            return (m_is_stopping || m_job_state == ExportJobState::QUEUED);
+        };
+
         m_condition.wait(lock,
-                         [this]()
-                         {
-                             return (m_is_stopping || m_job_state == ExportJobState::QUEUED);
-                         });
+                         is_job_queued_func);
 
         if (m_is_stopping)
         {
@@ -398,12 +406,14 @@ void Stereo::ConverterDLL::D3D8HostMemoryExporter::wait_for_job()
     const double                 wait_start_ms = Utils::Statistics::SeriesStats::get_now();
     std::unique_lock<std::mutex> lock(m_mutex);
 
+    const auto is_job_finished_func = [this]()
+    {
+        return (m_job_state == ExportJobState::DONE ||
+                m_job_state == ExportJobState::IDLE);
+    };
+
     m_done_condition.wait(lock,
-                          [this]()
-                          {
-                              return (m_job_state == ExportJobState::DONE ||
-                                      m_job_state == ExportJobState::IDLE);
-                          });
+                          is_job_finished_func);
 
     if (m_job_state == ExportJobState::DONE)
     {
@@ -474,11 +484,13 @@ void Stereo::ConverterDLL::D3D8HostMemoryExporter::write_job()
     {
         std::unique_lock<std::mutex> lock(m_eye_mutex);
 
+        const auto is_eye_job_done_func = [this]()
+        {
+            return (m_eye_state == ExportJobState::DONE);
+        };
+
         m_eye_done_condition.wait(lock,
-                                  [this]()
-                                  {
-                                      return (m_eye_state == ExportJobState::DONE);
-                                  });
+                                  is_eye_job_done_func);
 
         is_ok         = (is_ok && m_eye_is_ok);
         m_eye_state   = ExportJobState::IDLE;

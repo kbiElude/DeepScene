@@ -111,34 +111,38 @@ end:
 bool Stereo::Replay::ConsistencyChecker::take_overlay_probe(const Stereo::Replay::ConsistencyChecker::Options& in_options,
                                                             std::string*                                       out_error_ptr)
 {
+    const auto render_frame_func = [](const Stereo::Replay::ConsistencyChecker::Options& in_probe_options,
+                                      const uint32_t&                                    in_frame_index,
+                                      Utils::Images::Image*                out_image_ptr,
+                                      std::string*                                       out_error_ptr)
+    {
+        Stereo::Replay::ConsistencyChecker::FrameHashSink sink(true); /* in_keeps_images */
+
+        const bool is_ok = replay_to_frame(in_probe_options,
+                                           in_frame_index,
+                                          &sink,
+                                           out_error_ptr);
+
+        if (is_ok)
+        {
+            *out_image_ptr = sink.get_image({in_frame_index, 0});
+        }
+
+        return is_ok;
+    };
+
+    const auto merge_parts_func = [&in_options](const uint32_t&                 in_n_shards,
+                                                const std::vector<std::string>& in_result_filename_vec,
+                                                std::string*                    out_part_error_ptr)
+    {
+        return run_probe_shards(in_options,
+                                in_n_shards,
+                                in_result_filename_vec,
+                                out_part_error_ptr);
+    };
+
     return Stereo::Replay::ConsistencyChecker::OverlayProbe::run(in_options,
-                                                                 [](const Stereo::Replay::ConsistencyChecker::Options& in_probe_options,
-                                                                    const uint32_t&                                    in_frame_index,
-                                                                    Utils::Images::Image*                out_image_ptr,
-                                                                    std::string*                                       out_error_ptr)
-                                                                 {
-                                                                     Stereo::Replay::ConsistencyChecker::FrameHashSink sink(true); /* in_keeps_images */
-
-                                                                     const bool is_ok = replay_to_frame(in_probe_options,
-                                                                                                        in_frame_index,
-                                                                                                       &sink,
-                                                                                                        out_error_ptr);
-
-                                                                     if (is_ok)
-                                                                     {
-                                                                         *out_image_ptr = sink.get_image({in_frame_index, 0});
-                                                                     }
-
-                                                                     return is_ok;
-                                                                 },
-                                                                 [&in_options](const uint32_t&                 in_n_shards,
-                                                                               const std::vector<std::string>& in_result_filename_vec,
-                                                                               std::string*                    out_part_error_ptr)
-                                                                 {
-                                                                     return run_probe_shards(in_options,
-                                                                                             in_n_shards,
-                                                                                             in_result_filename_vec,
-                                                                                             out_part_error_ptr);
-                                                                 },
+                                                                 render_frame_func,
+                                                                 merge_parts_func,
                                                                  out_error_ptr);
 }

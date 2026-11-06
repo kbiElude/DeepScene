@@ -252,48 +252,56 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_buffered_frame(cons
     if (result                                 &&
         buffer.get_call_vec().empty() == false)
     {
+        const auto begin_execution_func = [this, uses_history](const uint32_t& in_n_execution)
+        {
+            return begin_frame_execution(uses_history,
+                                         in_n_execution);
+        };
+
+        const auto get_call_executor_func = [this](const Capture::APIDumpLoader::DumpedAPICall& in_call)
+        {
+            return m_host_ptr->get_call_executor_ptr(Capture::APIDumpLoader::get_api_group(in_call.func) );
+        };
+
+        const auto execute_call_func = [this, is_rewritten](const Capture::APIDumpLoader::DumpedAPICall&   in_call,
+                                                            const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
+                                                            const size_t&                                  in_n_call,
+                                                            const uint32_t&                                in_n_execution)
+        {
+            bool is_ok = false;
+
+            if (is_rewritten)
+            {
+                is_ok = execute_rewritten_call(in_call,
+                                               in_chunk_source,
+                                               in_n_call,
+                                               in_n_execution);
+            }
+            else
+            {
+                is_ok = m_host_ptr->execute_call(in_call,
+                                                 in_chunk_source);
+            }
+
+            return is_ok;
+        };
+
+        const auto capture_execution_func = [this, in_n_frame, uses_history](const uint32_t& in_n_execution)
+        {
+            return capture_execution(in_n_frame,
+                                     in_n_execution,
+                                     uses_history);
+        };
+
         result = FrameRunner::run(buffer,
                                   has_boundary,
                                   skips,
                                   m_frame_execution,
                                   m_host_ptr->get_call_executor_ptr_vec(),
-                                  [this, uses_history](const uint32_t& in_n_execution)
-                                  {
-                                      return begin_frame_execution(uses_history,
-                                                                   in_n_execution);
-                                  },
-                                  [this](const Capture::APIDumpLoader::DumpedAPICall& in_call)
-                                  {
-                                      return m_host_ptr->get_call_executor_ptr(Capture::APIDumpLoader::get_api_group(in_call.func) );
-                                  },
-                                  [this, is_rewritten](const Capture::APIDumpLoader::DumpedAPICall&   in_call,
-                                                       const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
-                                                       const size_t&                                  in_n_call,
-                                                       const uint32_t&                                in_n_execution)
-                                  {
-                                      bool is_ok = false;
-
-                                      if (is_rewritten)
-                                      {
-                                          is_ok = execute_rewritten_call(in_call,
-                                                                         in_chunk_source,
-                                                                         in_n_call,
-                                                                         in_n_execution);
-                                      }
-                                      else
-                                      {
-                                          is_ok = m_host_ptr->execute_call(in_call,
-                                                                           in_chunk_source);
-                                      }
-
-                                      return is_ok;
-                                  },
-                                  [this, in_n_frame, uses_history](const uint32_t& in_n_execution)
-                                  {
-                                      return capture_execution(in_n_frame,
-                                                               in_n_execution,
-                                                               uses_history);
-                                  });
+                                  begin_execution_func,
+                                  get_call_executor_func,
+                                  execute_call_func,
+                                  capture_execution_func);
     }
 
     return result;
@@ -476,15 +484,17 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_rewritten_call(cons
                                     : Analysis::Recipe::Eye::RIGHT;
     }
 
+    const auto is_draw_before_call_func = [](const Analysis::APIDumpAnalysis::DrawInstance& in_draw,
+                                             const uint64_t&                                in_call_index)
+    {
+        return (in_draw.call_index < in_call_index);
+    };
+
     /* The draws are in the order of the calls. */
     const auto draw_iterator = std::lower_bound(frame.draw_instance_vec.begin(),
                                                 frame.draw_instance_vec.end  (),
                                                 call_index,
-                                                [](const Analysis::APIDumpAnalysis::DrawInstance& in_draw,
-                                                   const uint64_t&                                in_call_index)
-                                                {
-                                                    return (in_draw.call_index < in_call_index);
-                                                });
+                                                is_draw_before_call_func);
 
     if (draw_iterator             != frame.draw_instance_vec.end() &&
         draw_iterator->call_index == call_index)
@@ -733,13 +743,16 @@ void Stereo::Replay::EngineDLL::StereoFrameExecutor::set_recipe(const Analysis::
 {
     m_recipe_applier_ptr.reset(new Analysis::Recipe::RecipeApplier(in_recipe) );
     m_rewriter_ptr.reset      (new FrameRewriter(*m_recipe_applier_ptr) );
+
+    const auto execute_call_func = [this](const Capture::APIDumpLoader::DumpedAPICall&   in_call,
+                                          const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source)
+    {
+        return m_host_ptr->execute_call(in_call,
+                                        in_chunk_source);
+    };
+
     m_matrix_binder_ptr.reset (new EyeMatrixBinder(*m_rewriter_ptr,
-                                                   [this](const Capture::APIDumpLoader::DumpedAPICall&   in_call,
-                                                          const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source)
-                                                   {
-                                                       return m_host_ptr->execute_call(in_call,
-                                                                                       in_chunk_source);
-                                                   }) );
+                                                   execute_call_func) );
     m_session_ptr.reset       (new Analysis::APIDumpAnalysis::Frontends::AnalysisSession(false) ); /* in_keeps_history */
 }
 

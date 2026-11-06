@@ -122,17 +122,19 @@ bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::rewrite(const Capture::APIDump
 
     if (Stereo::D3D7::ScreenParallax::is_valid(in_parameters) )
     {
+        const auto shift_vertices_func = [&in_parameters](const uint32_t& in_vertex_n_bytes,
+                                                          const size_t&   in_n_vertices,
+                                                          uint8_t*        inout_vertex_ptr)
+        {
+            Stereo::D3D7::ScreenParallax::shift_vertices(in_parameters,
+                                                         in_vertex_n_bytes,
+                                                         in_n_vertices,
+                                                         inout_vertex_ptr);
+        };
+
         result = rewrite_vertices(in_call,
                                   in_chunk_source,
-                                  [&in_parameters](const uint32_t& in_vertex_n_bytes,
-                                                   const size_t&   in_n_vertices,
-                                                   uint8_t*        inout_vertex_ptr)
-                                  {
-                                      Stereo::D3D7::ScreenParallax::shift_vertices(in_parameters,
-                                                                                   in_vertex_n_bytes,
-                                                                                   in_n_vertices,
-                                                                                   inout_vertex_ptr);
-                                  },
+                                  shift_vertices_func,
                                   inout_overlay_ptr,
                                   out_call_ptr);
     }
@@ -150,17 +152,19 @@ bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::rewrite_by(const Capture::APID
 
     if (in_shift != 0.0f)
     {
+        const auto shift_vertices_by_func = [in_shift](const uint32_t& in_vertex_n_bytes,
+                                                       const size_t&   in_n_vertices,
+                                                       uint8_t*        inout_vertex_ptr)
+        {
+            Stereo::D3D7::ScreenParallax::shift_vertices_by(in_shift,
+                                                            in_vertex_n_bytes,
+                                                            in_n_vertices,
+                                                            inout_vertex_ptr);
+        };
+
         result = rewrite_vertices(in_call,
                                   in_chunk_source,
-                                  [in_shift](const uint32_t& in_vertex_n_bytes,
-                                             const size_t&   in_n_vertices,
-                                             uint8_t*        inout_vertex_ptr)
-                                  {
-                                      Stereo::D3D7::ScreenParallax::shift_vertices_by(in_shift,
-                                                                                      in_vertex_n_bytes,
-                                                                                      in_n_vertices,
-                                                                                      inout_vertex_ptr);
-                                  },
+                                  shift_vertices_by_func,
                                   inout_overlay_ptr,
                                   out_call_ptr);
     }

@@ -94,21 +94,26 @@ int WINAPI WinMain(HINSTANCE in_instance,
     {
         const std::string log_path      = Stereo::Session::SessionEnvironment::get_log_path(options.session_id);
         std::string       headset_error;
-        auto              headset_ptr   = Stereo::Presenter::HeadsetSink::create_ptr(window_ptr->get_importer_ptr(),
-                                                                                 [&window_ptr]()
-                                                                                 {
-                                                                                     window_ptr->request_close();
-                                                                               },
-                                                                               [&log_path, &options](const std::string& in_text)
-                                                                               {
-                                                                                     if (options.use_log)
-                                                                                     {
-                                                                                         Stereo::Presenter::PresenterLog::write_line(log_path,
-                                                                                                                                     in_text);
-                                                                                     }
-                                                                               },
-                                                                               options.use_pacing,
-                                                                               &headset_error);
+
+        const auto request_close_func = [&window_ptr]()
+        {
+            window_ptr->request_close();
+        };
+
+        const auto write_log_func = [&log_path, &options](const std::string& in_text)
+        {
+            if (options.use_log)
+            {
+                Stereo::Presenter::PresenterLog::write_line(log_path,
+                                                            in_text);
+            }
+        };
+
+        auto headset_ptr = Stereo::Presenter::HeadsetSink::create_ptr(window_ptr->get_importer_ptr(),
+                                                                      request_close_func,
+                                                                      write_log_func,
+                                                                      options.use_pacing,
+                                                                     &headset_error);
 
         if (headset_ptr != nullptr)
         {

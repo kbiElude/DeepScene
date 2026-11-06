@@ -64,26 +64,31 @@ std::vector<Analysis::APIDumpDependencies::PerEyeCandidate> Analysis::APIDumpDep
               ++n_group)
     {
         const auto& group         = group_vec.at(n_group);
+
+        const auto is_in_group_func = [&](const PerEyeCandidate& in_candidate)
+        {
+            const auto iterator = group_by_resource_map.find(in_candidate.n_resource);
+
+            return (iterator != group_by_resource_map.end() &&
+                    iterator->second == n_group);
+        };
+
         const bool  has_candidate = std::any_of(result_vec.begin(),
                                                 result_vec.end  (),
-                                                [&](const PerEyeCandidate& in_candidate)
-                                                {
-                                                    const auto iterator = group_by_resource_map.find(in_candidate.n_resource);
-
-                                                    return (iterator != group_by_resource_map.end() &&
-                                                            iterator->second == n_group);
-                                                });
+                                                is_in_group_func);
 
         if (has_candidate)
         {
             for (const size_t n_resource : group.n_resource_vec)
             {
+                const auto is_resource_listed_func = [&](const PerEyeCandidate& in_candidate)
+                {
+                    return (in_candidate.n_resource == n_resource);
+                };
+
                 const bool is_listed = std::any_of(result_vec.begin(),
                                                    result_vec.end  (),
-                                                   [&](const PerEyeCandidate& in_candidate)
-                                                   {
-                                                       return (in_candidate.n_resource == n_resource);
-                                                   });
+                                                   is_resource_listed_func);
 
                 if (is_listed == false)
                 {
@@ -98,13 +103,15 @@ std::vector<Analysis::APIDumpDependencies::PerEyeCandidate> Analysis::APIDumpDep
         }
     }
 
+    const auto is_resource_less_func = [](const PerEyeCandidate& in_a,
+                                          const PerEyeCandidate& in_b)
+    {
+        return (in_a.n_resource < in_b.n_resource);
+    };
+
     std::sort(result_vec.begin(),
               result_vec.end  (),
-              [](const PerEyeCandidate& in_a,
-                 const PerEyeCandidate& in_b)
-              {
-                  return (in_a.n_resource < in_b.n_resource);
-              });
+              is_resource_less_func);
 
     for (auto& candidate : result_vec)
     {
@@ -211,13 +218,15 @@ std::vector<Analysis::APIDumpDependencies::RotationGroup> Analysis::APIDumpDepen
         }
     }
 
+    const auto is_group_less_func = [](const RotationGroup& in_a,
+                                       const RotationGroup& in_b)
+    {
+        return (in_a.n_resource_vec.front() < in_b.n_resource_vec.front() );
+    };
+
     std::sort(result_vec.begin(),
               result_vec.end  (),
-              [](const RotationGroup& in_a,
-                 const RotationGroup& in_b)
-              {
-                  return (in_a.n_resource_vec.front() < in_b.n_resource_vec.front() );
-              });
+              is_group_less_func);
 
     return result_vec;
 }

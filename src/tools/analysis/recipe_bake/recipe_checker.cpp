@@ -53,13 +53,15 @@ Analysis::RecipeBake::CoverageReport Analysis::RecipeBake::RecipeChecker::check(
         }
     }
 
+    const auto is_shape_less_func = [](const UnknownShape& in_shape_a,
+                                       const UnknownShape& in_shape_b)
+    {
+        return in_shape_a.first_frame_index < in_shape_b.first_frame_index;
+    };
+
     std::sort(result.unknown_shape_vec.begin(),
               result.unknown_shape_vec.end  (),
-              [](const UnknownShape& in_shape_a,
-                 const UnknownShape& in_shape_b)
-              {
-                  return in_shape_a.first_frame_index < in_shape_b.first_frame_index;
-              });
+              is_shape_less_func);
 
     for (uint32_t n_pass = 0;
                   n_pass < model_ref.pass_structure_interner.get_n_structures();

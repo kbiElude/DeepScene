@@ -400,13 +400,15 @@ void Utils::Images::GifWriter::quantize(const Image&              in_image,
                                  : (n_axis == 1) ? 5
                                                  : 0;
 
+            const auto is_channel_less_func = [shift, CHANNEL_MASK](const uint16_t& in_color_a,
+                                                                    const uint16_t& in_color_b)
+            {
+                return (((in_color_a >> shift) & CHANNEL_MASK) < ((in_color_b >> shift) & CHANNEL_MASK) );
+            };
+
             std::sort(box.color_vec.begin(),
                       box.color_vec.end  (),
-                      [shift, CHANNEL_MASK](const uint16_t& in_color_a,
-                                            const uint16_t& in_color_b)
-                      {
-                          return (((in_color_a >> shift) & CHANNEL_MASK) < ((in_color_b >> shift) & CHANNEL_MASK) );
-                      });
+                      is_channel_less_func);
 
             while (n_split + 1 < box.color_vec.size() &&
                    n_pixels_below * 2 < box.n_pixels)

@@ -107,58 +107,60 @@ bool Analysis::APIDumpDependencies::DepsFile::read_bytes(const std::vector<uint8
         }
     }
 
+    const auto read_section_func = [out_analysis_ptr](const uint32_t&             in_tag,
+                                                      const std::vector<uint8_t>& in_raw_byte_vec)
+    {
+        bool is_valid = false;
+
+        switch (in_tag)
+        {
+            case DepsFormat::TAG_FCAL:
+            {
+                is_valid = DepsSerializer::deserialize_frames(in_raw_byte_vec,
+                                                              out_analysis_ptr);
+
+                break;
+            }
+
+            case DepsFormat::TAG_META:
+            {
+                /* The first of them: it starts the analysis, which the others add to. */
+                is_valid = DepsSerializer::deserialize_meta(in_raw_byte_vec,
+                                                            out_analysis_ptr);
+
+                break;
+            }
+
+            case DepsFormat::TAG_RDEP:
+            {
+                is_valid = DepsSerializer::deserialize_dependencies(in_raw_byte_vec,
+                                                                    out_analysis_ptr);
+
+                break;
+            }
+
+            case DepsFormat::TAG_RSRC:
+            {
+                is_valid = DepsSerializer::deserialize_resources(in_raw_byte_vec,
+                                                                 out_analysis_ptr);
+
+                break;
+            }
+
+            default:
+            {
+                break;
+            }
+        }
+
+        return is_valid;
+    };
+
     result = Analysis::APIDumpAnalysis::SectionedFile::read_sections(in_byte_vec,
                                                                      sizeof(DepsFormat::FileHeader),
                                                                      SECTION_INFO_ARRAY,
                                                                      N_SECTIONS,
-                                                                     [out_analysis_ptr](const uint32_t&             in_tag,
-                                                                                        const std::vector<uint8_t>& in_raw_byte_vec)
-                                                                     {
-                                                                         bool is_valid = false;
-
-                                                                         switch (in_tag)
-                                                                         {
-                                                                             case DepsFormat::TAG_FCAL:
-                                                                             {
-                                                                                 is_valid = DepsSerializer::deserialize_frames(in_raw_byte_vec,
-                                                                                                                               out_analysis_ptr);
-
-                                                                                 break;
-                                                                             }
-
-                                                                             case DepsFormat::TAG_META:
-                                                                             {
-                                                                                 /* The first of them: it starts the analysis, which the others add to. */
-                                                                                 is_valid = DepsSerializer::deserialize_meta(in_raw_byte_vec,
-                                                                                                                             out_analysis_ptr);
-
-                                                                                 break;
-                                                                             }
-
-                                                                             case DepsFormat::TAG_RDEP:
-                                                                             {
-                                                                                 is_valid = DepsSerializer::deserialize_dependencies(in_raw_byte_vec,
-                                                                                                                                     out_analysis_ptr);
-
-                                                                                 break;
-                                                                             }
-
-                                                                             case DepsFormat::TAG_RSRC:
-                                                                             {
-                                                                                 is_valid = DepsSerializer::deserialize_resources(in_raw_byte_vec,
-                                                                                                                                  out_analysis_ptr);
-
-                                                                                 break;
-                                                                             }
-
-                                                                             default:
-                                                                             {
-                                                                                 break;
-                                                                             }
-                                                                         }
-
-                                                                         return is_valid;
-                                                                     },
+                                                                     read_section_func,
                                                                      out_error_ptr);
 
 end:

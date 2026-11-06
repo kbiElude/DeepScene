@@ -20,14 +20,16 @@ namespace
 const Analysis::APIDumpDependencies::ResourceVersion* Analysis::APIDumpDependencies::QueryCommands::find_consumed_version_ptr(const ResourceDependencies& in_dependencies,
                                                                                                                               const uint64_t&             in_frame_index)
 {
+    const auto is_version_before_frame_func = [&](const ResourceVersion& in_version)
+    {
+        return (in_version.has_writer == false ||
+                in_version.writer_frame_index < in_frame_index);
+    };
+
     /* The versions are in the order of their writers; the frame uses the last one which a frame before it wrote (or the one that nobody wrote). */
     const auto end_iterator = std::partition_point(in_dependencies.version_vec.begin(),
                                                    in_dependencies.version_vec.end(),
-                                                   [&](const ResourceVersion& in_version)
-                                                   {
-                                                       return (in_version.has_writer == false ||
-                                                               in_version.writer_frame_index < in_frame_index);
-                                                   });
+                                                   is_version_before_frame_func);
 
     return (end_iterator == in_dependencies.version_vec.begin() ) ? nullptr
                                                                   : &*(end_iterator - 1);
@@ -36,15 +38,17 @@ const Analysis::APIDumpDependencies::ResourceVersion* Analysis::APIDumpDependenc
 const Analysis::APIDumpDependencies::UseRun* Analysis::APIDumpDependencies::QueryCommands::find_use_run_ptr(const ResourceDependencies& in_dependencies,
                                                                                                             const uint64_t&             in_frame_index)
 {
+    const auto is_run_before_frame_func = [](const UseRun& in_run,
+                                             const uint64_t& in_value)
+    {
+        return (in_run.last_frame_index < in_value);
+    };
+
     /* The runs are in order and do not overlap: the one that the frame is in is the first which does not end before it. */
     const auto run_iterator = std::lower_bound(in_dependencies.use_run_vec.begin(),
                                                in_dependencies.use_run_vec.end(),
                                                in_frame_index,
-                                               [](const UseRun& in_run,
-                                                  const uint64_t& in_value)
-                                               {
-                                                   return (in_run.last_frame_index < in_value);
-                                               });
+                                               is_run_before_frame_func);
 
     return (run_iterator != in_dependencies.use_run_vec.end()  &&
             run_iterator->first_frame_index <= in_frame_index) ? &*run_iterator

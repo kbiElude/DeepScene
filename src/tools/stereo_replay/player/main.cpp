@@ -336,10 +336,12 @@ int Stereo::Replay::Player::run(int   in_argc,
 
         preview_ptr.reset(new PreviewWindow(options.eye_mode) );
 
-        preview_ptr->set_close_func([quit_ptr]()
-                                    {
-                                        quit_ptr->request();
-                                    });
+        const auto request_quit_func = [quit_ptr]()
+        {
+            quit_ptr->request();
+        };
+
+        preview_ptr->set_close_func(request_quit_func);
 
         if (preview_ptr->create(&error) == false)
         {
@@ -414,10 +416,12 @@ int Stereo::Replay::Player::run(int   in_argc,
             window.set_n_frames(index.get_n_frames() );
         }
 
-        quit_ptr->set_target([&window]()
-                             {
-                                 window.request_close();
-                             });
+        const auto close_window_func = [&window]()
+        {
+            window.request_close();
+        };
+
+        quit_ptr->set_target(close_window_func);
 
         /* The window is up before the replay makes its own, so that it can be put below it. */
         engine_ptr->add_replay_observer(&window);

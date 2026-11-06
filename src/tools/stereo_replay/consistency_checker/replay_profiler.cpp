@@ -30,14 +30,16 @@ std::vector<Stereo::Replay::ConsistencyChecker::ReplayProfiler::FrameEntry> Ster
         result_vec.push_back(frame_pair.second);
     }
 
+    const auto is_frame_costlier_func = [](const FrameEntry& in_frame_a,
+                                           const FrameEntry& in_frame_b)
+    {
+        return (in_frame_a.total_n_nanoseconds != in_frame_b.total_n_nanoseconds) ? (in_frame_a.total_n_nanoseconds > in_frame_b.total_n_nanoseconds)
+                                                                                  : (in_frame_a.n_frame                < in_frame_b.n_frame);
+    };
+
     std::sort(result_vec.begin(),
               result_vec.end  (),
-              [](const FrameEntry& in_frame_a,
-                 const FrameEntry& in_frame_b)
-              {
-                  return (in_frame_a.total_n_nanoseconds != in_frame_b.total_n_nanoseconds) ? (in_frame_a.total_n_nanoseconds > in_frame_b.total_n_nanoseconds)
-                                                                                            : (in_frame_a.n_frame                < in_frame_b.n_frame);
-              });
+              is_frame_costlier_func);
 
     if (result_vec.size() > in_n_frames)
     {
@@ -56,14 +58,16 @@ std::vector<Stereo::Replay::ConsistencyChecker::ReplayProfiler::FunctionEntry> S
         result_vec.push_back(function_pair.second);
     }
 
+    const auto is_function_costlier_func = [](const FunctionEntry& in_function_a,
+                                              const FunctionEntry& in_function_b)
+    {
+        return (in_function_a.total_n_nanoseconds != in_function_b.total_n_nanoseconds) ? (in_function_a.total_n_nanoseconds > in_function_b.total_n_nanoseconds)
+                                                                                        : (in_function_a.function            < in_function_b.function);
+    };
+
     std::sort(result_vec.begin(),
               result_vec.end  (),
-              [](const FunctionEntry& in_function_a,
-                 const FunctionEntry& in_function_b)
-              {
-                  return (in_function_a.total_n_nanoseconds != in_function_b.total_n_nanoseconds) ? (in_function_a.total_n_nanoseconds > in_function_b.total_n_nanoseconds)
-                                                                                                  : (in_function_a.function            < in_function_b.function);
-              });
+              is_function_costlier_func);
 
     if (result_vec.size() > in_n_functions)
     {

@@ -30,20 +30,26 @@ Stereo::Presenter::HeadsetSink::HeadsetSink(Stereo::Transport::IFrameImporter*  
      m_session_ptr     (std::move(in_session_ptr) ),
      m_uploader_ptr    (std::move(in_uploader_ptr) )
 {
-    m_session_ptr->set_frame_func([this](const double& in_period_n_milliseconds)
-                                  {
-                                      on_compositor_frame(in_period_n_milliseconds);
-                                  });
+    const auto on_frame_func = [this](const double& in_period_n_milliseconds)
+    {
+        on_compositor_frame(in_period_n_milliseconds);
+    };
 
-    m_thread = std::thread([this]()
-                           {
-                               run_frames();
-                           });
+    m_session_ptr->set_frame_func(on_frame_func);
 
-    m_upload_thread = std::thread([this]()
-                                  {
-                                      run_uploads();
-                                  });
+    const auto run_frames_func = [this]()
+    {
+        run_frames();
+    };
+
+    m_thread = std::thread(run_frames_func);
+
+    const auto run_uploads_func = [this]()
+    {
+        run_uploads();
+    };
+
+    m_upload_thread = std::thread(run_uploads_func);
 }
 
 Stereo::Presenter::HeadsetSink::~HeadsetSink()

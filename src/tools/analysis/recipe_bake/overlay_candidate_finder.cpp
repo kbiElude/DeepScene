@@ -100,13 +100,15 @@ std::vector<Analysis::RecipeBake::OverlayCandidate> Analysis::RecipeBake::Overla
                     candidate.reason_vec.push_back("recipe_unaffected_pass");
                 }
 
+                const auto is_unaffected_func = [&](const Analysis::Recipe::PassDraw& in_pass_draw)
+                {
+                    return (in_pass_draw.pass_key == structure.key &&
+                            in_pass_draw.draw_key == draw_signature.structure_key);
+                };
+
                 if (std::any_of(in_recipe.unaffected.pass_draw_vec.begin(),
                                 in_recipe.unaffected.pass_draw_vec.end  (),
-                                [&](const Analysis::Recipe::PassDraw& in_pass_draw)
-                                {
-                                    return (in_pass_draw.pass_key == structure.key &&
-                                            in_pass_draw.draw_key == draw_signature.structure_key);
-                                }) )
+                                is_unaffected_func) )
                 {
                     candidate.reason_vec.push_back("recipe_unaffected_draw_in_pass");
                 }

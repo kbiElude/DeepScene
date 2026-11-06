@@ -22,15 +22,17 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
     :m_channel_ptr(std::move(in_channel_ptr) ),
      m_log        (in_session_info)
 {
+    const auto write_failure_func = [this](const std::string& in_message)
+    {
+        m_log.write_failure("The application cannot be converted: " + in_message);
+
+        ::TerminateProcess(::GetCurrentProcess(),
+                           Stereo::Session::SessionEnvironment::get_converter_failed_exit_code() );
+    };
+
     /* A converter that finds that it cannot convert the application right ends it, and says why in the log. */
     m_live_state.core_ptr.reset(new Stereo::Core::StereoCore(in_recipe,
-                                                             [this](const std::string& in_message)
-                                                             {
-                                                                 m_log.write_failure("The application cannot be converted: " + in_message);
-
-                                                                 ::TerminateProcess(::GetCurrentProcess(),
-                                                                                    Stereo::Session::SessionEnvironment::get_converter_failed_exit_code() );
-                                                             }) );
+                                                             write_failure_func) );
 
     /* The calls that the front end of Direct3D 8 follows, before and after. A frame is passed on before the present, since what the
      * back buffer holds after a present is not defined.
@@ -152,25 +154,31 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
                                                            target_height);
         m_live_state.d3d7_windowed_mode.set_is_enabled(is_shown_elsewhere);
 
+        const auto get_render_target_func = [this]()
+        {
+            return m_live_state.renderer_ptr->get_render_target_ptr();
+        };
+
+        const auto write_log_func = [this](const std::string& in_message)
+        {
+            m_log.write(in_message);
+        };
+
         m_live_state.scaler_ptr.reset(new D3D8ResolutionScaler(target_width,
                                                                target_height,
                                                                m_live_state.core_ptr.get(),
-                                                               [this]()
-                                                               {
-                                                                   return m_live_state.renderer_ptr->get_render_target_ptr();
-                                                               },
-                                                               [this](const std::string& in_message)
-                                                               {
-                                                                   m_log.write(in_message);
-                                                               }) );
+                                                               get_render_target_func,
+                                                               write_log_func) );
+
+        const auto restore_chunk_func = [this](const APIInterceptor::APIFunction& in_function,
+                                               std::vector<uint8_t>*              inout_chunk_ptr)
+        {
+            m_live_state.scaler_ptr->restore_chunk(in_function,
+                                                   inout_chunk_ptr);
+        };
 
         /* The analysis sees the application as it asked to be, or the signatures of its draws would depend on the scale. */
-        m_live_state.feeder.set_chunk_func([this](const APIInterceptor::APIFunction& in_function,
-                                                  std::vector<uint8_t>*              inout_chunk_ptr)
-                                           {
-                                               m_live_state.scaler_ptr->restore_chunk(in_function,
-                                                                                      inout_chunk_ptr);
-                                           });
+        m_live_state.feeder.set_chunk_func(restore_chunk_func);
     }
 
     for (const auto& note : Analysis::Recipe::RecipeLoader::describe_pass_selectors_live_ignores(in_recipe) )
@@ -481,17 +489,19 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
 
                 ::QueryPerformanceCounter(&draw_start_qpc);
 
+                const auto get_chunk_func = [this](const uint32_t& in_chunk_id,
+                                                   const void**    out_data_ptr_ptr,
+                                                   uint32_t*       out_n_bytes_ptr)
+                {
+                    return m_live_state.feeder.get_last_call_chunk(in_chunk_id,
+                                                                   out_data_ptr_ptr,
+                                                                   out_n_bytes_ptr);
+                };
+
                 *out_should_pass_through_ptr = m_live_state.d3d7_renderer_ptr->on_pre_draw(in_api_func,
                                                                                            in_n_arguments,
                                                                                            in_arguments_ptr,
-                                                                                           [this](const uint32_t& in_chunk_id,
-                                                                                                  const void**    out_data_ptr_ptr,
-                                                                                                  uint32_t*       out_n_bytes_ptr)
-                                                                                           {
-                                                                                               return m_live_state.feeder.get_last_call_chunk(in_chunk_id,
-                                                                                                                                              out_data_ptr_ptr,
-                                                                                                                                              out_n_bytes_ptr);
-                                                                                           },
+                                                                                           get_chunk_func,
                                                                                            m_live_state.feeder.get_viewport().width);
 
                 ::QueryPerformanceCounter(&draw_end_qpc);

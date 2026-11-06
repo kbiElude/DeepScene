@@ -176,16 +176,18 @@ std::vector<uint32_t> Stereo::Replay::ConsistencyChecker::OverlayProbe::get_shar
         group_vec.push_back(group);
     }
 
+    const auto is_group_later_func = [](const Group& in_group_a,
+                                        const Group& in_group_b)
+    {
+        return (in_group_a.frame_index > in_group_b.frame_index);
+    };
+
     /* The frames that cost most go first, each group to the shard that would be done with it soonest, which is the shard with the least to do unless the frame is
      * made there already (the frame as it is is made once for each shard that has a draw of it). Only the list says it, so every process comes to the same.
      */
     std::stable_sort(group_vec.begin(),
                      group_vec.end  (),
-                     [](const Group& in_group_a,
-                        const Group& in_group_b)
-                     {
-                         return (in_group_a.frame_index > in_group_b.frame_index);
-                     });
+                     is_group_later_func);
 
     for (const auto& group : group_vec)
     {
@@ -680,13 +682,15 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::run(const Options&       
             }
         }
 
+        const auto is_entry_less_func = [](const OverlayProbeEntry& in_entry_a,
+                                           const OverlayProbeEntry& in_entry_b)
+        {
+            return (in_entry_a.index < in_entry_b.index);
+        };
+
         std::sort(entry_vec.begin(),
                   entry_vec.end  (),
-                  [](const OverlayProbeEntry& in_entry_a,
-                     const OverlayProbeEntry& in_entry_b)
-                  {
-                      return (in_entry_a.index < in_entry_b.index);
-                  });
+                  is_entry_less_func);
     }
     else
     if (probe_entries(in_options,

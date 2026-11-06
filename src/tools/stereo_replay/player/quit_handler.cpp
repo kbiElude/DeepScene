@@ -47,9 +47,11 @@ void Stereo::Replay::Player::QuitHandler::wait()
 {
     std::unique_lock<std::mutex> lock(m_state.mutex);
 
+    const auto is_requested_func = [this]()
+    {
+        return m_state.is_requested;
+    };
+
     m_state.cv.wait(lock,
-                    [this]()
-                    {
-                        return m_state.is_requested;
-                    });
+                    is_requested_func);
 }

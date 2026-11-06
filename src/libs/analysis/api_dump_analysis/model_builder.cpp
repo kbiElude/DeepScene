@@ -120,13 +120,15 @@ void Analysis::APIDumpAnalysis::ModelBuilder::complete_pass()
                                &state_pair.second.update.value_u8_vec});
     }
 
+    const auto is_signature_key_less_func = [](const ConstantInEffect& in_a,
+                                               const ConstantInEffect& in_b)
+    {
+        return KeyBuilder::compute_constant_signature_key(in_a.first) < KeyBuilder::compute_constant_signature_key(in_b.first);
+    };
+
     std::sort(constant_vec.begin(),
               constant_vec.end(),
-              [](const ConstantInEffect& in_a,
-                 const ConstantInEffect& in_b)
-              {
-                  return KeyBuilder::compute_constant_signature_key(in_a.first) < KeyBuilder::compute_constant_signature_key(in_b.first);
-              });
+              is_signature_key_less_func);
 
     for (const auto& constant : constant_vec)
     {
@@ -312,21 +314,23 @@ void Analysis::APIDumpAnalysis::ModelBuilder::fill_draw_structure(const DrawDesc
         out_structure_ptr->vertex_buffer_key_vec.push_back(get_key_func(vertex_buffer_id) );
     }
 
+    const auto is_binding_less_func = [](const TextureBindingKey& in_a,
+                                         const TextureBindingKey& in_b)
+    {
+        const auto order_a = std::make_tuple(in_a.binding_point.group,
+                                             in_a.binding_point.index,
+                                             in_a.binding_point.element);
+        const auto order_b = std::make_tuple(in_b.binding_point.group,
+                                             in_b.binding_point.index,
+                                             in_b.binding_point.element);
+
+        return (order_a < order_b);
+    };
+
     /* The order in which the application binds the textures is not what the draw is. */
     std::sort(out_structure_ptr->texture_binding_key_vec.begin(),
               out_structure_ptr->texture_binding_key_vec.end(),
-              [](const TextureBindingKey& in_a,
-                 const TextureBindingKey& in_b)
-              {
-                  const auto order_a = std::make_tuple(in_a.binding_point.group,
-                                                       in_a.binding_point.index,
-                                                       in_a.binding_point.element);
-                  const auto order_b = std::make_tuple(in_b.binding_point.group,
-                                                       in_b.binding_point.index,
-                                                       in_b.binding_point.element);
-
-                  return (order_a < order_b);
-              });
+              is_binding_less_func);
 }
 
 uint64_t Analysis::APIDumpAnalysis::ModelBuilder::compute_shape_key(const Model&    in_model,
@@ -347,13 +351,15 @@ bool Analysis::APIDumpAnalysis::ModelBuilder::find_pass_index(const CompletedFra
                                                               const uint64_t&       in_call_index,
                                                               uint32_t*             out_pass_index_ptr)
 {
+    const auto is_pass_before_call_func = [&in_call_index](const PassInstance& in_pass)
+    {
+        return (in_pass.last_draw_call_index < in_call_index);
+    };
+
     /* The last draws of the passes only grow, so the first pass at or after the call is found by halving. */
     const auto pass_iterator = std::partition_point(in_frame.pass_instance_vec.begin(),
                                                     in_frame.pass_instance_vec.end  (),
-                                                    [&in_call_index](const PassInstance& in_pass)
-                                                    {
-                                                        return (in_pass.last_draw_call_index < in_call_index);
-                                                    });
+                                                    is_pass_before_call_func);
     const bool result         = (pass_iterator != in_frame.pass_instance_vec.end() );
 
     if (result)

@@ -303,13 +303,15 @@ std::string Utils::Files::ZipExtractor::to_lower(const std::string& in_text)
 {
     std::string result = in_text;
 
+    const auto to_lower_func = [](const char in_character)
+    {
+        return static_cast<char>(::tolower(static_cast<unsigned char>(in_character) ) );
+    };
+
     std::transform(result.begin(),
                    result.end  (),
                    result.begin(),
-                   [](const char in_character)
-                   {
-                       return static_cast<char>(::tolower(static_cast<unsigned char>(in_character) ) );
-                   });
+                   to_lower_func);
 
     return result;
 }

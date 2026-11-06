@@ -102,29 +102,31 @@ Analysis::APIDumpDependencies::DependencyResult Analysis::APIDumpDependencies::D
 
     result.resource_vec.resize(in_resource_vec.size() );
 
+    const auto analyze_resources_func = [&](const uint64_t& in_first_resource,
+                                            const uint64_t& in_end_resource)
+    {
+        for (uint64_t n_resource  = in_first_resource;
+                      n_resource  < in_end_resource;
+                    ++n_resource)
+        {
+            ResourceAccesses accesses;
+            /* The range is of the indices of a vector, so it fits size_t on a 32-bit build too. */
+            const size_t    resource_index = static_cast<size_t>(n_resource);
+
+            accesses.event_index_ptr = event_index_vec.data() + first_event_vec.at(resource_index);
+            accesses.n_events        = first_event_vec.at(resource_index + 1) - first_event_vec.at(resource_index);
+
+            analyze_resource(in_log,
+                             frame_index_vec,
+                             accesses,
+                             in_resource_vec.at(resource_index).description,
+                            &result.resource_vec.at(resource_index) );
+        }
+    };
+
     Utils::Parallel::ParallelFor::run(in_resource_vec.size(),
                                       in_n_threads,
-                                      [&](const uint64_t& in_first_resource,
-                                          const uint64_t& in_end_resource)
-                                      {
-                                          for (uint64_t n_resource  = in_first_resource;
-                                                        n_resource  < in_end_resource;
-                                                      ++n_resource)
-                                          {
-                                              ResourceAccesses accesses;
-                                              /* The range is of the indices of a vector, so it fits size_t on a 32-bit build too. */
-                                              const size_t    resource_index = static_cast<size_t>(n_resource);
-
-                                              accesses.event_index_ptr = event_index_vec.data() + first_event_vec.at(resource_index);
-                                              accesses.n_events        = first_event_vec.at(resource_index + 1) - first_event_vec.at(resource_index);
-
-                                              analyze_resource(in_log,
-                                                               frame_index_vec,
-                                                               accesses,
-                                                               in_resource_vec.at(resource_index).description,
-                                                              &result.resource_vec.at(resource_index) );
-                                          }
-                                      });
+                                      analyze_resources_func);
 
     return result;
 }
