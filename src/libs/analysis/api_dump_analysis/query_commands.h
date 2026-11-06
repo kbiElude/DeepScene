@@ -15,6 +15,10 @@
  *   resources  what the frames did with each resource, optionally of one class (paged)
  *
  * Times are in seconds since the first call of the workload. Keys are hex strings.
+ *
+ * The definitions are in query_commands.cpp (the choice of the command, info, pipelines and timeline, and the paging), query_commands_frame.cpp (frame),
+ * query_commands_pass.cpp (pass), query_commands_resources.cpp (resources) and query_commands_overlays.cpp (overlays and depth), each with the helpers
+ * which it needs.
  */
 #ifndef APIDUMPANALYSIS_QUERY_COMMANDS_H
 #define APIDUMPANALYSIS_QUERY_COMMANDS_H
