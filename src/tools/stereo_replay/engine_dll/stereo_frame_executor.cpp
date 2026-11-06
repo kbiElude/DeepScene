@@ -6,7 +6,7 @@
 #include "Capture/APIDumpLoader/api_info.h"
 #include "Common/macros.h"
 #include "stereo/core/screen_parallax_planner.h"
-#include "d3d7_draw_rewriter.h"
+#include "d3d7/d3d7_draw_rewriter.h"
 #include "frame_runner.h"
 #include "i_eye_executor.h"
 #include "stereo_frame_executor.h"

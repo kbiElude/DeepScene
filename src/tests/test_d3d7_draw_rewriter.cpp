@@ -6,7 +6,7 @@
  * vertices is the only call that is changed.
  */
 #include <gtest/gtest.h>
-#include "d3d7_draw_rewriter.h"
+#include "d3d7/d3d7_draw_rewriter.h"
 #include "replay_test_doubles.h"
 #include <map>
 #include <math.h>
