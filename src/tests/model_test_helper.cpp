@@ -259,7 +259,7 @@ uint64_t Tests::ModelTestHelper::get_next_call_index() const
 std::vector<uint64_t> Tests::ModelTestHelper::get_ordered_pass_keys(const uint64_t& in_frame_index) const
 {
     const auto&           model          = get_model();
-    const auto&           frame_record   = model.frame_record_vec.at(in_frame_index);
+    const auto&           frame_record   = model.frame_record_vec.at(static_cast<size_t>(in_frame_index) );
     std::vector<uint64_t> result_vec;
 
     for (const auto& entry_ptr : model.representative_store.get_entry_ptr_vec(frame_record.shape_id) )
@@ -279,7 +279,7 @@ std::vector<uint64_t> Tests::ModelTestHelper::get_ordered_pass_keys(const uint64
 uint64_t Tests::ModelTestHelper::get_shape_key(const uint64_t& in_frame_index) const
 {
     const auto&           model        = get_model();
-    const auto&           frame_record = model.frame_record_vec.at(in_frame_index);
+    const auto&           frame_record = model.frame_record_vec.at(static_cast<size_t>(in_frame_index) );
     std::vector<uint64_t> pass_key_vec;
 
     for (const auto& pass_structure_id : model.frame_shape_interner.get_structure(frame_record.shape_id).pass_structure_id_vec)

@@ -112,15 +112,17 @@ Analysis::APIDumpDependencies::DependencyResult Analysis::APIDumpDependencies::D
                                                       ++n_resource)
                                           {
                                               ResourceAccesses accesses;
+                                              /* The range is of the indices of a vector, so it fits size_t on a 32-bit build too. */
+                                              const size_t    resource_index = static_cast<size_t>(n_resource);
 
-                                              accesses.event_index_ptr = event_index_vec.data() + first_event_vec.at(n_resource);
-                                              accesses.n_events        = first_event_vec.at(n_resource + 1) - first_event_vec.at(n_resource);
+                                              accesses.event_index_ptr = event_index_vec.data() + first_event_vec.at(resource_index);
+                                              accesses.n_events        = first_event_vec.at(resource_index + 1) - first_event_vec.at(resource_index);
 
                                               analyze_resource(in_log,
                                                                frame_index_vec,
                                                                accesses,
-                                                               in_resource_vec.at(n_resource).description,
-                                                              &result.resource_vec.at(n_resource) );
+                                                               in_resource_vec.at(resource_index).description,
+                                                              &result.resource_vec.at(resource_index) );
                                           }
                                       });
 
