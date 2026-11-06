@@ -15,13 +15,13 @@ namespace VRPlayer
     {
         enum class InstallPhase
         {
-            IDLE,
-            DOWNLOADING,
-            VERIFYING,
-            EXTRACTING,
+            CANCELLED,
             DONE,
+            DOWNLOADING,
+            EXTRACTING,
             FAILED,
-            CANCELLED
+            IDLE,
+            VERIFYING
         };
 
         /* Where an application comes from, and what the archive it comes in has to be. */
