@@ -443,6 +443,29 @@ end:
     return result;
 }
 
+bool Stereo::XR::HeadsetSession::Impl::read_recommended_eye_size(uint32_t* out_width_ptr,
+                                                                 uint32_t* out_height_ptr) const
+{
+    uint32_t                n_views       = 0;
+    bool                    result        = false;
+    XrViewConfigurationView view_array[2] = {{XR_TYPE_VIEW_CONFIGURATION_VIEW}, {XR_TYPE_VIEW_CONFIGURATION_VIEW}};
+
+    if (XR_SUCCEEDED(::xrEnumerateViewConfigurationViews(instance,
+                                                         system_id,
+                                                         XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
+                                                         2,
+                                                        &n_views,
+                                                         view_array) ) &&
+        n_views > 0)
+    {
+        *out_height_ptr = view_array[0].recommendedImageRectHeight;
+        *out_width_ptr  = view_array[0].recommendedImageRectWidth;
+        result          = true;
+    }
+
+    return result;
+}
+
 bool Stereo::XR::HeadsetSession::Impl::set_up(std::string* out_error_ptr)
 {
     bool result = false;

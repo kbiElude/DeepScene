@@ -9,12 +9,14 @@
 #ifndef STEREO_XR_HEADSET_SESSION_IMPL_H
 #define STEREO_XR_HEADSET_SESSION_IMPL_H
 
+#include "Stereo/D3D12/d3d12_texture_clearer.h"
 #include "Stereo/Transport/series_stats.h"
 #include "Stereo/XR/headset_session.h"
 #include "Stereo/XR/screen_geometry.h"
 #include <array>
 #include <atomic>
 #include <condition_variable>
+#include <memory>
 #include <mutex>
 #include <set>
 #include <string>
@@ -70,6 +72,11 @@ struct Stereo::XR::HeadsetSession::Impl
 
     void add_log(const std::string& in_text);
 
+    /* Every image of the swap chains of the eyes is made black, and is shown as it is until something is copied to the next: what the images
+     * hold when a swap chain is made is whatever was in the memory, which flickers. False, and the reason, if it could not be done.
+     */
+    bool clear_swapchain_images(std::string* out_error_ptr);
+
     /* The action that puts the screen where the head is, with the buttons it is on. */
     bool create_actions(std::string* out_error_ptr);
 
@@ -122,6 +129,10 @@ struct Stereo::XR::HeadsetSession::Impl
     /* Reads the button that puts the screen where the head is. */
     bool read_recenter();
 
+    /* The size of the image of an eye that the runtime recommends: what the headset is meant to be rendered at. False if it does not say. */
+    bool read_recommended_eye_size(uint32_t* out_width_ptr,
+                                   uint32_t* out_height_ptr) const;
+
     /* Makes everything of a session, in the order that each part needs the one before. */
     bool set_up(std::string* out_error_ptr);
 
@@ -163,6 +174,7 @@ struct Stereo::XR::HeadsetSession::Impl
     ::XrSession                                session               = XR_NULL_HANDLE;
     uint32_t                                   swapchain_height      = 0;
     uint32_t                                   swapchain_width       = 0;
+    std::unique_ptr<Stereo::D3D12::D3D12TextureClearer> texture_clearer_ptr; /* made with the first swap chain */
     Timing                                     timing;
     XrSystemId                                 system_id             = XR_NULL_SYSTEM_ID;
     std::string                                system_name;

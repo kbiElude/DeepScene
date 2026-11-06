@@ -153,22 +153,8 @@ bool Stereo::XR::HeadsetSession::probe(HeadsetInfo* out_info_ptr,
     out_info_ptr->system_name  = impl.system_name;
 
     /* The size of the image of an eye that the runtime recommends: what the headset is meant to be rendered at. */
-    {
-        uint32_t                n_views       = 0;
-        XrViewConfigurationView view_array[2] = {{XR_TYPE_VIEW_CONFIGURATION_VIEW}, {XR_TYPE_VIEW_CONFIGURATION_VIEW}};
-
-        if (XR_SUCCEEDED(::xrEnumerateViewConfigurationViews(impl.instance,
-                                                             impl.system_id,
-                                                             XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
-                                                             2,
-                                                            &n_views,
-                                                             view_array) ) &&
-            n_views > 0)
-        {
-            out_info_ptr->eye_height = view_array[0].recommendedImageRectHeight;
-            out_info_ptr->eye_width  = view_array[0].recommendedImageRectWidth;
-        }
-    }
+    impl.read_recommended_eye_size(&out_info_ptr->eye_width,
+                                   &out_info_ptr->eye_height);
 
     result = true;
 

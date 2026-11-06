@@ -103,6 +103,93 @@ end:
     return result;
 }
 
+bool Stereo::XR::HeadsetSession::Impl::clear_swapchain_images(std::string* out_error_ptr)
+{
+    constexpr int64_t WAIT_N_NANOSECONDS = 100 * 1000 * 1000; /* a swap chain that was just made gives its images back at once */
+
+    const D3D12_RESOURCE_STATES texture_state = HeadsetSession::get_texture_state();
+    const DXGI_FORMAT           view_format   = static_cast<DXGI_FORMAT>(format);
+    bool                        result        = true;
+
+    if (texture_clearer_ptr == nullptr)
+    {
+        texture_clearer_ptr.reset(new Stereo::D3D12::D3D12TextureClearer(device_ptr.Get(),
+                                                                         queue_ptr.Get() ));
+    }
+
+    if (texture_clearer_ptr->is_ok(out_error_ptr) == false)
+    {
+        result = false;
+
+        goto end;
+    }
+
+    for (auto& eye : eye_array)
+    {
+        for (size_t n_image = 0;
+                    n_image < eye.image_vec.size();
+                  ++n_image)
+        {
+            XrSwapchainImageAcquireInfo acquire_info = {XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO};
+            uint32_t                    image_index  = 0;
+            XrSwapchainImageReleaseInfo release_info = {XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};
+            XrSwapchainImageWaitInfo    wait_info    = {XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO};
+
+            wait_info.timeout = WAIT_N_NANOSECONDS;
+
+            if (XR_FAILED(::xrAcquireSwapchainImage(eye.swapchain,
+                                                   &acquire_info,
+                                                   &image_index) ))
+            {
+                *out_error_ptr = "An image of the swap chain cannot be taken";
+                result         = false;
+
+                goto end;
+            }
+
+            if (::xrWaitSwapchainImage(eye.swapchain,
+                                      &wait_info) != XR_SUCCESS)
+            {
+                *out_error_ptr = "An image of the swap chain cannot be waited for";
+                result         = false;
+
+                goto end;
+            }
+
+            /* An image that was taken is given back whether or not it could be made black. */
+            {
+                ID3D12Resource* const texture_ptr = eye.image_vec.at(image_index).texture;
+
+                if (texture_clearer_ptr->clear_to_black(texture_ptr,
+                                                        view_format,
+                                                        texture_state,
+                                                        out_error_ptr) == false)
+                {
+                    result = false;
+                }
+            }
+
+            if (XR_FAILED(::xrReleaseSwapchainImage(eye.swapchain,
+                                                   &release_info) ))
+            {
+                *out_error_ptr = "An image of the swap chain cannot be given back";
+                result         = false;
+
+                goto end;
+            }
+        }
+
+        /* Black is shown only if every image of the eye is. */
+        if (result)
+        {
+            eye.has_image = true;
+        }
+    }
+
+end:
+    return result;
+}
+
 void Stereo::XR::HeadsetSession::Impl::destroy_swapchains()
 {
     for (auto& eye : eye_array)
@@ -193,6 +280,16 @@ bool Stereo::XR::HeadsetSession::Impl::make_swapchains(const uint32_t& in_width,
     swapchain_width   = in_width;
     has_logged_screen = false;
     result            = true;
+
+    /* What the images hold now is whatever was in the memory; black is shown until the application's first frame is copied. */
+    {
+        std::string clear_error;
+
+        if (clear_swapchain_images(&clear_error) == false)
+        {
+            add_log("The images of the swap chains cannot be made black: " + clear_error);
+        }
+    }
 
     add_log("The swap chains of the eyes are " +
             std::to_string(in_width)           +

@@ -223,9 +223,27 @@ void Stereo::XR::HeadsetSession::Impl::on_session_state_changed(const XrSessionS
             if (XR_SUCCEEDED(::xrBeginSession(session,
                                              &begin_info) ))
             {
+                std::string error;
+                uint32_t    eye_height = 0;
+                uint32_t    eye_width  = 0;
+
                 std::lock_guard<std::mutex> lock(mutex);
 
                 is_running = true;
+
+                /* Black is shown from the start, until the frames of the application come (they make the swap chains again if they are of another
+                 * size): with nothing to show, the runtime shows what it likes, and it flickers.
+                 */
+                if (read_recommended_eye_size(&eye_width,
+                                              &eye_height) )
+                {
+                    if (make_swapchains(eye_width,
+                                        eye_height,
+                                        &error) == false)
+                    {
+                        add_log("The black screen cannot be shown before the first frame: " + error);
+                    }
+                }
             }
 
             break;
