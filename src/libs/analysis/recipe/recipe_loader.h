@@ -4,6 +4,9 @@
  *
  * Loads a recipe from JSON text or a file. Every check that needs no application is done here: names, numbers and keys are
  * valid, and no unknown field is left. The format is described in docs/recipe-format.html.
+ *
+ * The definitions are in recipe_loader.cpp (loading, and the plain values), recipe_loader_rules.cpp (the rules: the functions they apply to,
+ * and when) and recipe_loader_baked.cpp (the baked section of a recipe).
  */
 #ifndef RECIPE_RECIPE_LOADER_H
 #define RECIPE_RECIPE_LOADER_H
