@@ -8,8 +8,8 @@
 #include <gtest/gtest.h>
 #include "analysis/api_dump_slicing/head_slicer.h"
 #include "analysis/api_dump_slicing/workload_writer.h"
-#include "Capture/APIDumpLoader/WorkloadIndex.h"
-#include "Capture/APIDumpLoader/WorkloadReader.h"
+#include "Capture/APIDumpLoader/workload_index.h"
+#include "Capture/APIDumpLoader/workload_reader.h"
 #include "temp_directory.h"
 #include "workload_file_builder.h"
 #include <algorithm>

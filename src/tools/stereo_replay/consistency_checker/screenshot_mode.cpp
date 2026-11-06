@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "screenshot_mode.h"
-#include "Capture/APIDumpLoader/WorkloadIndex.h"
+#include "Capture/APIDumpLoader/workload_index.h"
 #include "frame_hash_sink.h"
 #include "frame_sampler.h"
 #include "replay_runner.h"

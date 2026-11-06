@@ -4,7 +4,7 @@
  */
 #include "analysis/api_dump_analysis/frontends/analysis_session.h"
 #include "analysis/api_dump_analysis/workload_identity.h"
-#include "Capture/APIDumpLoader/WorkloadReader.h"
+#include "Capture/APIDumpLoader/workload_reader.h"
 
 Analysis::APIDumpAnalysis::Frontends::AnalysisSession::AnalysisSession(const bool& in_keeps_history)
     :m_builder               (in_keeps_history),

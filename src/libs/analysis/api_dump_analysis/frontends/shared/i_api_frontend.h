@@ -6,7 +6,7 @@
 #define APIDUMPANALYSIS_FRONTENDS_I_API_FRONTEND_H
 
 #include "analysis/api_dump_analysis/types.h"
-#include "Capture/APIDumpLoader/APIDumpLoader.h"
+#include "Capture/APIDumpLoader/api_dump_loader.h"
 #include <map>
 #include <stdint.h>
 

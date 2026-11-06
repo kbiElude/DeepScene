@@ -5,7 +5,7 @@
 #ifndef STEREO_REPLAY_ENGINEDLL_D3D7_DRAW_REWRITER_H
 #define STEREO_REPLAY_ENGINEDLL_D3D7_DRAW_REWRITER_H
 
-#include "Capture/APIDumpLoader/APIDumpLoader.h"
+#include "Capture/APIDumpLoader/api_dump_loader.h"
 #include "stereo/d3d7/screen_parallax.h"
 #include "overlay_chunk_source.h"
 #include <functional>

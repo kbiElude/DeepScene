@@ -10,7 +10,7 @@
 #define APIDUMPANALYSIS_FRONTENDS_CALL_VIEW_H
 
 #include "analysis/api_dump_analysis/types.h"
-#include "Capture/APIDumpLoader/APIDumpLoader.h"
+#include "Capture/APIDumpLoader/api_dump_loader.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <vector>

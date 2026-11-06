@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 #include "analysis/api_dump_analysis/frontends/analysis_session.h"
 #include "analysis/api_dump_analysis/key_builder.h"
-#include "Capture/APIDumpLoader/WorkloadReader.h"
+#include "Capture/APIDumpLoader/workload_reader.h"
 #include "d3d8_call_builder.h"
 #include "data_fixtures.h"
 #include "workload_file_builder.h"
