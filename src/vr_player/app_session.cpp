@@ -254,7 +254,7 @@ bool VR::VRPlayer::AppSession::start(const VR::AppCatalog::AppEntry& in_app,
     request.session_id        = std::to_string(::GetCurrentProcessId() ) + "-" + std::to_string(::GetTickCount64() );
     request.title             = in_app.name;
     request.use_headset       = in_use_headset;
-    request.presenter_path       = in_launcher_directory + "\\StereoPresenter.exe";
+    request.presenter_path       = in_launcher_directory + "\\StereoPresenter_x64.exe";
     request.working_directory = in_app.working_directory;
 
     if (::GetFileAttributesA(request.launcher_path.c_str() ) == INVALID_FILE_ATTRIBUTES)

@@ -41,6 +41,8 @@ if (CMAKE_SIZEOF_VOID_P EQUAL 8)
     add_subdirectory(deps/OpenXR-SDK EXCLUDE_FROM_ALL)
 endif()
 
+include(cmake/Architecture.cmake)
+
 # The libraries, in src/libs: four, by what they are for (each folder has what it is in its CMakeLists.txt).
 add_subdirectory(src/libs/analysis)
 add_subdirectory(src/libs/stereo)

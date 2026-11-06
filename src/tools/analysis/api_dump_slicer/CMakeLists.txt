@@ -6,4 +6,6 @@ add_executable(APIDumpSlicer ${Sources})
 
 target_link_libraries(APIDumpSlicer Analysis)
 
+set_architecture_name(APIDumpSlicer)
+
 source_group ("APIDumpSlicer source files" FILES ${Sources})

@@ -6,4 +6,6 @@ add_executable(APIDumpAnalysisExtractor ${Sources})
 
 target_link_libraries(APIDumpAnalysisExtractor Analysis)
 
+set_architecture_name(APIDumpAnalysisExtractor)
+
 source_group ("APIDumpAnalysisExtractor source files" FILES ${Sources})

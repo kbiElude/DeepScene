@@ -8,4 +8,6 @@ target_link_libraries(StereoLauncher InjectionLauncher Stereo)
 
 add_dependencies(StereoLauncher StereoConverterDLL)
 
+set_architecture_name(StereoLauncher)
+
 source_group ("StereoLauncher source files" FILES ${Sources})

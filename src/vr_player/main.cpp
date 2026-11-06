@@ -72,7 +72,7 @@ std::string VR::VRPlayer::find_runtime_directory()
     {
         if (is_found == false)
         {
-            is_found = is_file(candidate + "\\StereoPresenter.exe");
+            is_found = is_file(candidate + "\\StereoPresenter_x64.exe");
 
             if (is_found)
             {

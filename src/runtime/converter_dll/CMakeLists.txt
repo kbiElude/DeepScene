@@ -11,4 +11,6 @@ target_include_directories(StereoConverterDLL PRIVATE "${APIInterceptor_SOURCE_D
 
 target_link_libraries(StereoConverterDLL APIInterceptor D3D7Utils D3D8Utils Stereo winmm)
 
+set_architecture_name(StereoConverterDLL)
+
 source_group ("StereoConverterDLL source files" FILES ${Sources})

@@ -6,4 +6,6 @@ add_executable(StereoPresenter WIN32 ${Sources})
 
 target_link_libraries(StereoPresenter Headset Stereo VR winmm)
 
+set_architecture_name(StereoPresenter)
+
 source_group ("StereoPresenter source files" FILES ${Sources})

@@ -6,8 +6,9 @@ add_executable(StereoReplayPlayer ${Sources})
 
 target_link_libraries(StereoReplayPlayer APIDumpLoader Analysis ImGui ReplayPlayerSupport StereoReplayEngineDLL VR)
 
+set_architecture_name(StereoReplayPlayer)
+
 if (CMAKE_SIZEOF_VOID_P EQUAL 4)
-    set_target_properties(StereoReplayPlayer PROPERTIES OUTPUT_NAME "StereoReplayPlayer_x86")
     # A segment of the workload is 100 to 200 MB, and the replay reads several ahead: a 32-bit process has two gigabytes unless it says it can have four.
     target_link_options(StereoReplayPlayer PRIVATE /LARGEADDRESSAWARE)
 endif()

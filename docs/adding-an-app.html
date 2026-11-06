@@ -53,7 +53,7 @@
 <p>What to capture decides what the recipe knows. The analysis groups frames into <em>shapes</em> (the kinds of passes a frame is made of), and a recipe knows only the shapes it saw; any other frame is treated as the recipe says (<code>on_unknown_frame</code>, mono by default). So one capture should walk through every kind of screen the program has: the loader, the menu, each scene, the transitions. Play it the way a user would, once.</p>
 
 <h2 id="extract">2. Extract the passes</h2>
-<pre><code>tools\analysis\APIDumpAnalysisExtractor result_dump.workload -o app.passes --stats</code></pre>
+<pre><code>tools\analysis\APIDumpAnalysisExtractor_x64 result_dump.workload -o app.passes --stats</code></pre>
 <p>Before going on, look at the summary it prints, or at <code>APIDumpAnalysisQuery app.passes info</code>. A capture is good for the next steps when:</p>
 <ul>
   <li><code>n_unfollowed_calls</code> and <code>n_unsupported_calls</code> are <strong>0</strong>. The first counts calls that the analysis could not make sense of (a call whose arguments were not as expected); the second, calls of an API that the front end does not know. Either means the passes found may be wrong, and the cause is a bug or a gap in the front end, not something a recipe can fix.</li>
@@ -135,7 +135,7 @@ marked unclear, with the question that would settle it.</code></pre>
 <p>An LLM can write this file, and the model of step 3 usually already has what it needs. Check three things in what it wrote: that every key is one from the output of <code>APIDumpAnalysisQuery</code> (the loader checks that a key is well formed, but it cannot know that the program has it), that <code>known_shape_keys</code> are shapes and not pass keys, and that nothing was added that the evidence did not support.</p>
 
 <h2 id="bake">5. Bake the recipe</h2>
-<pre><code>tools\analysis\RecipeBake recipe.json app.passes -o myapp.json</code></pre>
+<pre><code>tools\analysis\RecipeBake_x64 recipe.json app.passes -o myapp.json</code></pre>
 <p>A converter in the running program can use only what is known when a draw is issued, and a pass or a shape is not (the pass is not over yet). The baker therefore turns what is known offline into what is known live: for every draw signature the analysis saw, whether it is an interface or a scene (<code>draw_rules</code>, with the view matrix where one signature is both), the distance at which the eyes converge for each signature and for each shape (the median depth by vertices of what it draws), and the list of signatures it knew. It prints a summary: the number of signatures, of rules, of signatures that only the view matrix tells apart, and how many have a distance.</p>
 <ul>
   <li><strong>Exit 3</strong> means the recipe cannot be baked, and says why. The usual one: a signature that is drawn as an interface in one pass and as a scene in another, with the same view matrix, so that nothing known when it is issued tells the two apart. The message names the signature; the remedy is in the rules (<code>draw_keys</code> say which draws of an affected pass are an interface).</li>
@@ -146,7 +146,7 @@ marked unclear, with the question that would settle it.</code></pre>
 <h2 id="check">6. Check it offline</h2>
 <p>The offline replay tools take a recipe, so a recipe can be checked on the capture before it meets the program. This is the step where a person looks.</p>
 <pre><code>tools\stereo_replay\StereoReplayPlayer_x86.exe --recipe myapp.json --eye both --eye-separation 0.1 result_dump.workload
-tools\stereo_replay\StereoReplayConsistencyChecker_x86 result_dump.workload --recipe myapp.json --from 0 --to 200 --dump-dir out</code></pre>
+tools\stereo_replay\StereoReplayConsistencyChecker_x86.exe result_dump.workload --recipe myapp.json --from 0 --to 200 --dump-dir out</code></pre>
 <ul>
   <li><strong>StereoReplayPlayer</strong> renders the frames for both eyes and shows the images side by side. Look for the things below, with <code>--eye left</code> and <code>--eye right</code> to see one at a time.</li>
   <li><strong>StereoReplayConsistencyChecker</strong> replays the frames twice, the first time for the left eye and the second for the right, and compares the images with those of a replay without the recipe. With a recipe that changes nothing it must find no difference; with the real one, differences are expected, and the checker's job is to say where the replay itself is unstable (a frame that cannot be executed twice is not one that stereo conversion can handle). Mind that some frames of any program differ on a second execution; compare with the same run without the recipe before blaming the recipe.</li>

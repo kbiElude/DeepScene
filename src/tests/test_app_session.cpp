@@ -46,15 +46,15 @@ TEST(AppSessionTest, TheWindowIsStartedWithTheSessionAndTheTitle)
     VR::VRPlayer::SessionRequest request;
 
     request.session_id  = "12-34";
-    request.presenter_path = "C:\\VR Player\\StereoPresenter.exe";
+    request.presenter_path = "C:\\VR Player\\StereoPresenter_x64.exe";
 
     EXPECT_EQ(VR::VRPlayer::AppSession::get_presenter_command_line(request),
-              "\"C:\\VR Player\\StereoPresenter.exe\" --session \"12-34\"");
+              "\"C:\\VR Player\\StereoPresenter_x64.exe\" --session \"12-34\"");
 
     request.title = "fr08 \"in\" VR";
 
     EXPECT_EQ(VR::VRPlayer::AppSession::get_presenter_command_line(request),
-              "\"C:\\VR Player\\StereoPresenter.exe\" --session \"12-34\" --title \"fr08 \\\"in\\\" VR\"");
+              "\"C:\\VR Player\\StereoPresenter_x64.exe\" --session \"12-34\" --title \"fr08 \\\"in\\\" VR\"");
 }
 
 TEST(AppSessionTest, TheWindowIsToShowTheImagesInTheHeadsetOnlyIfAskedTo)
@@ -138,7 +138,7 @@ TEST(AppSessionTest, AWindowWhichIsNotInstalledIsReportedWithItsPath)
                               true,  /* in_pace_to_headset */
                               false, /* in_write_log */
                               &error) );
-    EXPECT_NE   (error.find("StereoPresenter.exe"),
+    EXPECT_NE   (error.find("StereoPresenter_x64.exe"),
                  std::string::npos) << error;
     EXPECT_EQ   (session.get_state(),
                  VR::VRPlayer::SessionState::IDLE);

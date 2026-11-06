@@ -7,8 +7,9 @@ add_executable(StereoReplayConsistencyChecker ${Sources})
 
 target_link_libraries(StereoReplayConsistencyChecker APIDumpNames Analysis Stereo StereoReplayEngineDLL)
 
+set_architecture_name(StereoReplayConsistencyChecker)
+
 if (CMAKE_SIZEOF_VOID_P EQUAL 4)
-    set_target_properties(StereoReplayConsistencyChecker PROPERTIES OUTPUT_NAME "StereoReplayConsistencyChecker_x86")
     target_link_options(StereoReplayConsistencyChecker PRIVATE /LARGEADDRESSAWARE)
 endif()
 
