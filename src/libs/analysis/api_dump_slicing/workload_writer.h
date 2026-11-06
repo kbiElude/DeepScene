@@ -25,15 +25,15 @@ namespace Analysis
         class WorkloadWriter
         {
         public:
-            ~WorkloadWriter();
-
-            /* Flushes and closes the file. False if it cannot be written. Called by the destructor too, if it was not. */
-            bool close();
-
             /* The file is made new. Returns nullptr, and says why, if it cannot be. */
             static WorkloadWriterUniquePtr create(const char*                                               in_filename_ptr,
                                                   const APIInterceptor::WorkloadFormat::WorkloadFileHeader& in_header,
                                                   std::string*                                              out_error_ptr);
+
+            ~WorkloadWriter();
+
+            /* Flushes and closes the file. False if it cannot be written. Called by the destructor too, if it was not. */
+            bool close();
 
             /* The bytes that the file has so far. */
             uint64_t get_n_bytes_written() const;
