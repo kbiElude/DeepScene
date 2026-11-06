@@ -11,7 +11,8 @@
 #   build_final\runtime\             what VRPlayer starts: StereoPresenter, StereoLauncher and StereoConverterDLL
 #   build_final\apps\                the catalog and the recipes (an application is downloaded into it the first time it is launched)
 #   build_final\tools\APIDumper\     what captures a program: the dumper, its DLL and the printer (from the interceptor)
-#   build_final\tools\Analysis\      the extractor and the query tool of the analysis, and the baker of the recipes
+#   build_final\tools\Analysis\      the extractors and the query tools of the analysis (of the passes and of the dependencies), the slicer
+#                                    and the baker of the recipes
 #   build_final\tools\Replay\        the replay player, the replay engine and the consistency checker
 include(${APIInterceptor_SOURCE_DIR}/cmake/InstallHelpers.cmake)
 
@@ -26,9 +27,11 @@ install_as_built(StereoReplayPlayer             "tools/Replay")
 
 # What is not made in 32 bits: the 64-bit tree installs it alone.
 if (CMAKE_SIZEOF_VOID_P EQUAL 8)
-    install_as_built(APIDumpAnalysisExtractor "tools/Analysis")
-    install_as_built(APIDumpAnalysisQuery     "tools/Analysis")
-    install_as_built(APIDumpPrinter           "tools/APIDumper")
+    install_as_built(APIDumpAnalysisExtractor   "tools/Analysis")
+    install_as_built(APIDumpAnalysisQuery       "tools/Analysis")
+    install_as_built(APIDumpDependencyExtractor "tools/Analysis")
+    install_as_built(APIDumpDependencyQuery     "tools/Analysis")
+    install_as_built(APIDumpPrinter             "tools/APIDumper")
     install_as_built(APIDumpSlicer            "tools/Analysis")
     install_as_built(RecipeBake               "tools/Analysis")
     install_as_built(StereoPresenter          "runtime")
@@ -40,4 +43,9 @@ if (CMAKE_SIZEOF_VOID_P EQUAL 8)
             DESTINATION "apps")
     install(DIRECTORY   "${DemoVRPlayer_SOURCE_DIR}/apps/recipes"
             DESTINATION "apps")
+
+    # What each folder of the release is.
+    install(FILES       "${DemoVRPlayer_SOURCE_DIR}/cmake/release_README.txt"
+            DESTINATION "."
+            RENAME      "README.txt")
 endif()
