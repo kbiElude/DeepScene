@@ -5,8 +5,8 @@
  * Tests for OverlayCandidateFinder: the draws that the recipe leaves alone, or that the hint of the analysis calls overlays, and where the two disagree.
  */
 #include <gtest/gtest.h>
-#include "Analysis/RecipeBake/command_line.h"
-#include "Analysis/RecipeBake/overlay_candidate_finder.h"
+#include "tools/Analysis/RecipeBake/command_line.h"
+#include "tools/Analysis/RecipeBake/overlay_candidate_finder.h"
 #include "model_test_helper.h"
 #include <algorithm>
 #include <string>

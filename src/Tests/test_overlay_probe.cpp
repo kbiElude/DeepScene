@@ -5,7 +5,7 @@
  * Tests for OverlayProbe: which of the candidates for 2D overlays make pixels of the picture, with the frame replayed with and without each of them.
  */
 #include <gtest/gtest.h>
-#include "Stereo/Replay/ConsistencyChecker/overlay_probe.h"
+#include "tools/Replay/StereoReplayConsistencyChecker/overlay_probe.h"
 #include "temp_directory.h"
 #include <fstream>
 #include <iterator>

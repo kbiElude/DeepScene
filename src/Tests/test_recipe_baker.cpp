@@ -6,7 +6,7 @@
  * the recipe names, and a recipe that cannot be baked is refused with the reason.
  */
 #include <gtest/gtest.h>
-#include "Analysis/RecipeBake/recipe_baker.h"
+#include "tools/Analysis/RecipeBake/recipe_baker.h"
 #include "Analysis/RecipeLoader/recipe_loader.h"
 #include "model_test_helper.h"
 #include <algorithm>

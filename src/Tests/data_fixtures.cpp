@@ -37,6 +37,11 @@ std::string Tests::DataFixtures::get_recipe_example_filename()
     return std::string(DEMOVRPLAYER_TESTS_DATA_DIR) + "/recipes/fr08_example.json";
 }
 
+std::string Tests::DataFixtures::get_repository_root_path()
+{
+    return DEMOVRPLAYER_REPOSITORY_ROOT;
+}
+
 std::string Tests::DataFixtures::get_test_executable_path()
 {
     char path_i8vec260[MAX_PATH] = {};

@@ -5,7 +5,7 @@
  * Checks of the choice of the frames that a contact sheet shows.
  */
 #include <gtest/gtest.h>
-#include "Stereo/Replay/ConsistencyChecker/frame_sampler.h"
+#include "tools/Replay/StereoReplayConsistencyChecker/frame_sampler.h"
 
 TEST(FrameSampler, FramesAreSpreadEvenlyFromTheFirstToTheLast)
 {

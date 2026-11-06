@@ -6,7 +6,7 @@
  * apart they may be, are worked out from how deep the surfaces are, with the angle of view that the recipe says in the place of the projection.
  */
 #include <gtest/gtest.h>
-#include "Analysis/RecipeBake/recipe_baker.h"
+#include "tools/Analysis/RecipeBake/recipe_baker.h"
 #include "Analysis/RecipeLoader/recipe_loader.h"
 #include "model_test_helper.h"
 

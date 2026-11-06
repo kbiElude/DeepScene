@@ -5,7 +5,7 @@
  * Tests for the summary that the launcher gives of the log of the converter.
  */
 #include <gtest/gtest.h>
-#include "Stereo/Launcher/log_summary.h"
+#include "runtime/StereoLauncher/log_summary.h"
 
 namespace
 {

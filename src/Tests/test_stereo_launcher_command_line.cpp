@@ -5,7 +5,7 @@
  * Tests for the command line of the stereo launcher.
  */
 #include <gtest/gtest.h>
-#include "Stereo/Launcher/command_line.h"
+#include "runtime/StereoLauncher/command_line.h"
 
 TEST(StereoLauncherCommandLineTest, EverythingIsRead)
 {

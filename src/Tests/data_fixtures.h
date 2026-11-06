@@ -27,6 +27,9 @@ namespace Tests
         /* A recipe which uses every field (data/recipes/fr08_example.json). */
         static std::string get_recipe_example_filename();
 
+        /* The folder of this project, with src, cmake and apps in it. */
+        static std::string get_repository_root_path();
+
         /* The path of the program which runs the tests: a file which is there, and is not what a test asks a loader for. */
         static std::string get_test_executable_path();
 

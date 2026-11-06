@@ -5,7 +5,7 @@
  * Tests for the command line of the stereo host.
  */
 #include <gtest/gtest.h>
-#include "Stereo/Presenter/command_line.h"
+#include "runtime/StereoPresenter/command_line.h"
 
 TEST(StereoPresenterCommandLineTest, TheSessionAndTheTitleAreRead)
 {

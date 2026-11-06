@@ -6,7 +6,7 @@
  * the analysis miss when frames use two textures by turns.
  */
 #include <gtest/gtest.h>
-#include "Analysis/RecipeBake/recipe_baker.h"
+#include "tools/Analysis/RecipeBake/recipe_baker.h"
 #include "Analysis/RecipeLoader/recipe_loader.h"
 #include "dependency_scene.h"
 #include "model_test_helper.h"

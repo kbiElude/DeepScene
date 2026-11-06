@@ -8,6 +8,7 @@
  * removed makes the list shorter: take it out of the file.
  */
 #include <gtest/gtest.h>
+#include "data_fixtures.h"
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
@@ -26,8 +27,7 @@ namespace
 
     std::filesystem::path get_root_path()
     {
-        /* The data folder is src/Tests/data of this project. */
-        return std::filesystem::path(DEMOVRPLAYER_TESTS_DATA_DIR).parent_path().parent_path().parent_path();
+        return std::filesystem::path(Tests::DataFixtures::get_repository_root_path() );
     }
 
     /* Generated, third party and test files are not what this checks. */

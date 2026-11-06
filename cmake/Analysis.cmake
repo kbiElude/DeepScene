@@ -1,5 +1,5 @@
-# The analysis of a capture, the recipes, and the programs which make them and ask them. Everything here reads a workload through the loader
-# of the interceptor (APIDumpLoader).
+# The analysis of a capture and the recipes. Everything here reads a workload through the loader of the interceptor (APIDumpLoader). The
+# programs which make the analysis and ask it are in src/tools/Analysis.
 
 file(GLOB APIDumpAnalysisIncludes CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/include/Analysis/APIDumpAnalysis/*.h")
 file(GLOB APIDumpAnalysisSources CONFIGURE_DEPENDS  "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpAnalysis/*.cpp")
@@ -56,42 +56,6 @@ target_link_libraries(RecipeApplier PUBLIC RecipeLoader)
 source_group ("Recipe Applier include files" FILES ${RecipeApplierIncludes})
 source_group ("Recipe Applier source files"  FILES ${RecipeApplierSources})
 
-file(GLOB APIDumpAnalysisExtractorSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpAnalysisExtractor/*.cpp"
-                                                            "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpAnalysisExtractor/*.h")
-
-add_executable(APIDumpAnalysisExtractor ${APIDumpAnalysisExtractorSources})
-
-target_link_libraries(APIDumpAnalysisExtractor APIDumpAnalysis APIDumpAnalysisFrontends)
-
-source_group ("APIDumpAnalysisExtractor source files" FILES ${APIDumpAnalysisExtractorSources})
-
-file(GLOB APIDumpAnalysisQuerySources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpAnalysisQuery/*.cpp"
-                                                        "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpAnalysisQuery/*.h")
-
-add_executable(APIDumpAnalysisQuery ${APIDumpAnalysisQuerySources})
-
-target_link_libraries(APIDumpAnalysisQuery APIDumpAnalysis)
-
-source_group ("APIDumpAnalysisQuery source files" FILES ${APIDumpAnalysisQuerySources})
-
-file(GLOB APIDumpDependencyExtractorSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpDependencyExtractor/*.cpp"
-                                                              "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpDependencyExtractor/*.h")
-
-add_executable(APIDumpDependencyExtractor ${APIDumpDependencyExtractorSources})
-
-target_link_libraries(APIDumpDependencyExtractor APIDumpAnalysis APIDumpAnalysisFrontends APIDumpDependencies)
-
-source_group ("APIDumpDependencyExtractor source files" FILES ${APIDumpDependencyExtractorSources})
-
-file(GLOB APIDumpDependencyQuerySources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpDependencyQuery/*.cpp"
-                                                          "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpDependencyQuery/*.h")
-
-add_executable(APIDumpDependencyQuery ${APIDumpDependencyQuerySources})
-
-target_link_libraries(APIDumpDependencyQuery APIDumpDependencies)
-
-source_group ("APIDumpDependencyQuery source files" FILES ${APIDumpDependencyQuerySources})
-
 # Writes a workload, and cuts the first frames of one out of another. The compressor is the one of the dumper (a source of its DLL, which a program cannot link).
 file(GLOB APIDumpSlicingIncludes CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/include/Analysis/APIDumpSlicing/*.h")
 file(GLOB APIDumpSlicingSources CONFIGURE_DEPENDS  "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpSlicing/*.cpp")
@@ -104,23 +68,3 @@ target_link_libraries(APIDumpSlicing PUBLIC APIDumpLoader)
 
 source_group ("APIDump Slicing include files" FILES ${APIDumpSlicingIncludes})
 source_group ("APIDump Slicing source files"  FILES ${APIDumpSlicingSources})
-
-file(GLOB APIDumpSlicerSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpSlicer/*.cpp"
-                                                 "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/APIDumpSlicer/*.h")
-
-add_executable(APIDumpSlicer ${APIDumpSlicerSources})
-
-target_include_directories(APIDumpSlicer PRIVATE "${DemoVRPlayer_SOURCE_DIR}/src")
-target_link_libraries     (APIDumpSlicer APIDumpAnalysis APIDumpSlicing)
-
-source_group ("APIDumpSlicer source files" FILES ${APIDumpSlicerSources})
-
-file(GLOB RecipeBakeSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/RecipeBake/*.cpp"
-                                              "${DemoVRPlayer_SOURCE_DIR}/src/Analysis/RecipeBake/*.h")
-
-add_executable(RecipeBake ${RecipeBakeSources})
-
-target_include_directories(RecipeBake PRIVATE "${DemoVRPlayer_SOURCE_DIR}/src")
-target_link_libraries     (RecipeBake RecipeApplier APIDumpDependencies)
-
-source_group ("RecipeBake source files" FILES ${RecipeBakeSources})

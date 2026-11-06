@@ -5,7 +5,7 @@
  * Tests for the command line of the VR player.
  */
 #include <gtest/gtest.h>
-#include "VR/VRPlayer/command_line.h"
+#include "VRPlayer/command_line.h"
 
 TEST(VrCommandLineTest, NoArgumentsMeanTheCatalogNextToTheProgram)
 {

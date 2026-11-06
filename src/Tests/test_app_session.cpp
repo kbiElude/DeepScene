@@ -7,7 +7,7 @@
  */
 #include <gtest/gtest.h>
 #include "fixtures.h"
-#include "VR/VRPlayer/app_session.h"
+#include "VRPlayer/app_session.h"
 #include <Windows.h>
 
 TEST(AppSessionTest, EveryValueOfTheLauncherCommandLineIsQuoted)

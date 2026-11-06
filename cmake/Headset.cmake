@@ -1,5 +1,5 @@
-# The headset, the window which shows what the converter of an application passes on, and the VR player. They are 64-bit whatever the
-# application is (the playback is done by the converter, which has both builds).
+# The headset: the OpenXR loader and the library which shows the images of the eyes in it. The presenter and the VR player which use it are in
+# src/runtime and src/VRPlayer; they are 64-bit whatever the application is (the playback is done by the converter, which has both builds).
 if (CMAKE_SIZEOF_VOID_P EQUAL 4)
     return()
 endif()
@@ -24,25 +24,3 @@ target_link_libraries     (StereoXR PUBLIC openxr_loader StereoD3D12 VRDevices)
 
 source_group ("StereoXR include files" FILES ${StereoXRIncludes})
 source_group ("StereoXR source files"  FILES ${StereoXRSources})
-
-file(GLOB StereoPresenterSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Presenter/*.cpp"
-                                                   "${DemoVRPlayer_SOURCE_DIR}/src/Stereo/Presenter/*.h")
-
-# The window which shows what the converter of an application passes on.
-add_executable(StereoPresenter WIN32 ${StereoPresenterSources})
-
-target_include_directories(StereoPresenter PRIVATE "${DemoVRPlayer_SOURCE_DIR}/src")
-target_link_libraries     (StereoPresenter StereoD3D12 StereoSession StereoTransport StereoXR UIHost winmm)
-
-source_group ("StereoPresenter source files" FILES ${StereoPresenterSources})
-
-file(GLOB VRPlayerSources CONFIGURE_DEPENDS "${DemoVRPlayer_SOURCE_DIR}/src/VR/VRPlayer/*.cpp"
-                                            "${DemoVRPlayer_SOURCE_DIR}/src/VR/VRPlayer/*.h")
-
-# The front-end of the VR playback: a window.
-add_executable(VRPlayer WIN32 ${VRPlayerSources})
-
-target_include_directories(VRPlayer PRIVATE "${DemoVRPlayer_SOURCE_DIR}/src")
-target_link_libraries     (VRPlayer AppCatalog InjectionLauncher StereoCore StereoTransport StereoXR UIHost VRDevices)
-
-source_group ("VRPlayer source files" FILES ${VRPlayerSources})

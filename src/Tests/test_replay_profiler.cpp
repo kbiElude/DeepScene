@@ -6,7 +6,7 @@
  * and it is summed by function and by frame.
  */
 #include <gtest/gtest.h>
-#include "Stereo/Replay/ConsistencyChecker/replay_profiler.h"
+#include "tools/Replay/StereoReplayConsistencyChecker/replay_profiler.h"
 
 namespace
 {

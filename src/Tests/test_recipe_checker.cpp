@@ -6,7 +6,7 @@
  */
 #include <gtest/gtest.h>
 #include "Analysis/APIDumpAnalysis/depth_histogram.h"
-#include "Analysis/RecipeBake/recipe_checker.h"
+#include "tools/Analysis/RecipeBake/recipe_checker.h"
 #include "model_test_helper.h"
 
 namespace

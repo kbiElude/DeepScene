@@ -5,7 +5,7 @@
  * Checks of the command line of the slicer.
  */
 #include <gtest/gtest.h>
-#include "Analysis/APIDumpSlicer/command_line.h"
+#include "tools/Analysis/APIDumpSlicer/command_line.h"
 
 TEST(SlicerCommandLine, AFrameAloneAndAFrameFromZeroAreTheSame)
 {
