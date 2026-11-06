@@ -10,20 +10,22 @@
 <header class="site"><nav>
   <a class="brand" href="index.html">DeepScene</a>
   <a href="index.html">Overview</a>
-  <a href="analysis-and-recipes.html">Analysis &amp; recipes</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="analysis.html">Analysis</a>
+  <a href="recipes.html">Recipes</a>
+  <a href="stereo.html">Stereo</a>
   <a href="replay.html">Replay</a>
-  <a href="live-stereo.html">Live stereo</a>
+  <a href="live-conversion.html">Live conversion</a>
   <a href="vr-player.html">VR player</a>
-  <a class="current" href="adding-an-app.html">Adding an app</a>
-  <a href="components.html">Components</a>
-  <a href="building.html">Building</a>
+  <a class="current" href="contributing.html">Contributing</a>
+  <a href="components.html">Reference</a>
   <a href="../deps/APIInterceptor/docs/index.html">API Interceptor</a>
 </nav></header>
 <main>
 <h1>Adding an app</h1>
 <p class="lead">How to take a 2D program from nothing to a recipe that turns it into stereo 3D, and to a line in the catalog of the VR player. The facts about the program are read from its analysis by an LLM; a person decides, and looks at the pictures.</p>
 
-<div class="note">Today the converter handles Direct3D 8 programs whose camera is set with <code>SetTransform</code>, and Direct3D 7 programs whose vertices are already in pixels (see <a href="#limits">What this does not cover</a>). The steps are the same for another API once it has its front end and its converter adapter (<a href="analysis-and-recipes.html#frontends">What adding an API takes</a>); only what the rules can name changes.</div>
+<div class="note">Today the converter handles Direct3D 8 programs whose camera is set with <code>SetTransform</code>, and Direct3D 7 programs whose vertices are already in pixels (see <a href="#limits">What this does not cover</a>). The steps are the same for another API once it has its front end and its converter adapter (<a href="analysis.html#frontends">What adding an API takes</a>); only what the rules can name changes.</div>
 
 <div class="note">The commands are written from the folder of a release (<code>build_final</code>): the programs are in <code>tools\api_dumper</code>, <code>tools\analysis</code> and <code>tools\stereo_replay</code> (see <a href="building.html#release">The collected build</a>).</div>
 
@@ -58,12 +60,12 @@
 <ul>
   <li><code>n_unfollowed_calls</code> and <code>n_unsupported_calls</code> are <strong>0</strong>. The first counts calls that the analysis could not make sense of (a call whose arguments were not as expected); the second, calls of an API that the front end does not know. Either means the passes found may be wrong, and the cause is a bug or a gap in the front end, not something a recipe can fix.</li>
   <li><code>key_collisions</code> is <strong>0</strong> (two different structures with the same key would be taken for one).</li>
-  <li><code>n_resolution_hazards</code> is empty, or it is understood: a hazard is a call whose meaning depends on the size of the target in pixels, so rendering larger than the program asks would break it (see <a href="analysis-and-recipes.html#frontend">the Direct3D 8 front end</a>).</li>
+  <li><code>n_resolution_hazards</code> is empty, or it is understood: a hazard is a call whose meaning depends on the size of the target in pixels, so rendering larger than the program asks would break it (see <a href="analysis.html#frontends">the Direct3D 8 front end</a>).</li>
   <li><code>frame_shapes</code> is a small number. Hundreds of shapes mean that something that varies from frame to frame (a particle pass, a loading bar) is cutting the frames up; that is worth understanding before writing any rule.</li>
 </ul>
 
 <h2 id="investigate">3. Investigate with an LLM</h2>
-<p>The question is the one the analysis deliberately does not answer (<a href="analysis-and-recipes.html#limits">What it does not do</a>): <strong>which passes of this program are the 3D scene, and which are an interface that must not be shifted?</strong> The analysis gives the facts; deciding is the work of whoever reads them. An LLM is good at this reading, for three reasons that the tools are built around:</p>
+<p>The question is the one the analysis deliberately does not answer (<a href="analysis.html#limits">What it does not do</a>): <strong>which passes of this program are the 3D scene, and which are an interface that must not be shifted?</strong> The analysis gives the facts; deciding is the work of whoever reads them. An LLM is good at this reading, for three reasons that the tools are built around:</p>
 <ul>
   <li><code>APIDumpAnalysisQuery</code> prints <strong>JSON</strong>, with <code>--compact</code> for one line, and pages it with <code>--limit</code> and <code>--offset</code>, so that no answer is larger than the model can hold.</li>
   <li>Everything is named by a <strong>key</strong> (a hex string) or an id that the model copies and does not have to understand. It never reads pixels, and of vertices only a few positions per draw, for the depth of surfaces; contents appear only as hashes.</li>
@@ -84,7 +86,7 @@
 </table>
 
 <h3>Giving the model its job</h3>
-<p>Give it a shell where it can run the query tool, the text of <code>APIDumpAnalysisQuery</code>'s usage, the <a href="recipe-format.html">recipe format</a>, and the table above. Ask for evidence, not for a verdict. A prompt that works:</p>
+<p>Give it a shell where it can run the query tool, the text of <code>APIDumpAnalysisQuery</code>'s usage, the <a href="recipes.html#format">recipe format</a>, and the table above. Ask for evidence, not for a verdict. A prompt that works:</p>
 <pre><code>You are helping to make a stereo-3D recipe for a 2D Direct3D 8 program.
 The analysis of its capture is in app.passes. Run APIDumpAnalysisQuery on it
 (usage and recipe format attached), with --compact and --limit, and do not
@@ -129,7 +131,7 @@ marked unclear, with the question that would settle it.</code></pre>
 }</code></pre>
 <ul>
   <li><code>unaffected</code> is the answer of step 3. Everything not listed is a scene draw, so a missed interface pass shows as an interface that is doubled; a pass wrongly listed shows as a scene that does not move between the eyes.</li>
-  <li>The <code>eye_offset</code> rule moves each eye along an axis by half of the separation, which is a setting of the VR player (the depth choice), not of the recipe. <code>eye_convergence</code> shears the projection so that what is at the convergence distance is at the screen; the distance is measured and baked in step 5. See <a href="recipe-format.html">Recipe format</a> for every action.</li>
+  <li>The <code>eye_offset</code> rule moves each eye along an axis by half of the separation, which is a setting of the VR player (the depth choice), not of the recipe. <code>eye_convergence</code> shears the projection so that what is at the convergence distance is at the screen; the distance is measured and baked in step 5. See <a href="recipes.html#format">Recipe format</a> for every action.</li>
   <li><code>known_shape_keys</code> should be the shapes of the capture. Leave <code>on_unknown_frame</code> at <code>mono</code> unless a program has screens that must not appear at all (<code>skip</code>) or that should never occur (<code>fail</code>, which stops the converter with a message, useful while testing).</li>
 </ul>
 <p>An LLM can write this file, and the model of step 3 usually already has what it needs. Check three things in what it wrote: that every key is one from the output of <code>APIDumpAnalysisQuery</code> (the loader checks that a key is well formed, but it cannot know that the program has it), that <code>known_shape_keys</code> are shapes and not pass keys, and that nothing was added that the evidence did not support.</p>
@@ -201,7 +203,7 @@ tools\stereo_replay\StereoReplayConsistencyChecker_x86.exe result_dump.workload 
 <h2 id="limits">What this does not cover</h2>
 <ul>
   <li><strong>The camera has to be set with <code>SetTransform</code>.</strong> The calls a rule can apply to today are <code>IDirect3DDevice8::SetTransform</code> and <code>IDirect3DDevice7::SetTransform</code> (which has transform states named <code>D3DTRANSFORMSTATE_VIEW</code> and so on). A program that passes its matrices to a vertex shader as constants (<code>SetVertexShaderConstant</code>) has a camera that the converter cannot move yet: the analysis follows such constants, but a rule that changes them is new work in the loader, the baker and the converter, not a recipe.</li>
-  <li><strong>Direct3D 8, and Direct3D 7 for vertices in pixels.</strong> A Direct3D 7 program whose vertices a matrix moves has no adapter yet (see <a href="live-stereo.html#d3d7">Direct3D 7</a>). An OpenGL program can be captured, analysed in part and replayed, but there is no front end that gives it passes, and no converter adapter. See <a href="index.html#api">One API is not all of them</a>.</li>
+  <li><strong>Direct3D 8, and Direct3D 7 for vertices in pixels.</strong> A Direct3D 7 program whose vertices a matrix moves has no adapter yet (see <a href="live-conversion.html#d3d7">Direct3D 7</a>). An OpenGL program can be captured, analysed in part and replayed, but there is no front end that gives it passes, and no converter adapter. See <a href="index.html#api">One API is not all of them</a>.</li>
   <li><strong>The LLM reads facts; it does not see the program.</strong> A fault that the facts cannot show (a pass that is an interface in some frames and a scene in others, with the same structure) is found by a person, in step 6.</li>
 </ul>
 

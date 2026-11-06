@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Analysis</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site"><nav>
+  <a class="brand" href="index.html">DeepScene</a>
+  <a href="index.html">Overview</a>
+  <a href="architecture.html">Architecture</a>
+  <a class="current" href="analysis.html">Analysis</a>
+  <a href="recipes.html">Recipes</a>
+  <a href="stereo.html">Stereo</a>
+  <a href="replay.html">Replay</a>
+  <a href="live-conversion.html">Live conversion</a>
+  <a href="vr-player.html">VR player</a>
+  <a href="contributing.html">Contributing</a>
+  <a href="components.html">Reference</a>
+  <a href="../deps/APIInterceptor/docs/index.html">API Interceptor</a>
+</nav></header>
+<main>
+<h1>Analysis</h1>
+<p class="lead">A workload says what a program did. The analysis says what it meant: which draws make the scene, which the interface, how deep the scene is, and which frames depend on which. It lives in <code>libs/analysis</code>.</p>
+<ol class="toc">
+  <li><a href="#for">What it is for</a></li>
+  <li><a href="#model">The model</a></li>
+  <li><a href="#flow">How a call goes through</a></li>
+  <li><a href="#frontends">One front end per API</a></li>
+  <li><a href="#passes">Passes and draws</a></li>
+  <li><a href="#keys">Keys</a></li>
+  <li><a href="#depth">The depth of a draw</a></li>
+  <li><a href="#frames">Frames, shapes and what is recorded</a></li>
+  <li><a href="#dependencies">Dependencies between frames</a></li>
+  <li><a href="#output">The files, and the same analysis live</a></li>
+  <li><a href="#limits">What it does not do</a></li>
+</ol>
+
+<h2 id="for">What it is for</h2>
+<p>For stereo the converter needs two things for every draw: whether it is part of the 3D scene (to be drawn once per eye) or flat (drawn once), and the <a href="stereo.html#convergence">convergence distance</a> of the scene it is in. The program will not say either. The analysis reads the capture once and records the facts from which both are decided, and the <a href="recipes.html">recipe</a> keeps the decision in a form the live converter can follow. The analysis itself never judges: which passes are an interface is for the recipe, by rules, or by the person who writes them.</p>
+
+<h2 id="model">The model</h2>
+<p>A capture of a demo has hundreds of thousands of frames but only a few dozen <em>kinds</em> of frames. The model is built around that: what is kept grows with the variety of what the program did, not with the length of the capture.</p>
+<figure>
+<svg viewBox="0 0 900 300" role="img" aria-label="The model: frames point at shapes, shapes at pass structures, passes at draw structures">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="box3" x="10" y="30" width="190" height="236" rx="8"/><text class="title" x="105" y="52" text-anchor="middle">Frames (many)</text>
+  <rect class="box4" x="26" y="66" width="158" height="26" rx="4"/><text class="small" x="105" y="83" text-anchor="middle">frame 0 → shape A</text>
+  <rect class="box4" x="26" y="98" width="158" height="26" rx="4"/><text class="small" x="105" y="115" text-anchor="middle">frame 1 → shape A</text>
+  <rect class="box4" x="26" y="130" width="158" height="26" rx="4"/><text class="small" x="105" y="147" text-anchor="middle">frame 2 → shape B</text>
+  <text class="small" x="105" y="178" text-anchor="middle">…</text>
+  <text class="small" x="105" y="210" text-anchor="middle">a small record each:</text><text class="small" x="105" y="226" text-anchor="middle">when, which calls, counts</text>
+  <rect class="box" x="250" y="30" width="190" height="236" rx="8"/><text class="title" x="345" y="52" text-anchor="middle">Frame shapes (dozens)</text>
+  <rect class="box4" x="266" y="66" width="158" height="26" rx="4"/><text class="small" x="345" y="83" text-anchor="middle">A = { P1, P2, P3 }</text>
+  <rect class="box4" x="266" y="98" width="158" height="26" rx="4"/><text class="small" x="345" y="115" text-anchor="middle">B = { P1, P4 }</text>
+  <text class="small" x="345" y="160" text-anchor="middle">a shape is the set of the</text><text class="small" x="345" y="176" text-anchor="middle">passes of a frame</text>
+  <text class="small" x="345" y="208" text-anchor="middle">only a few "representative"</text><text class="small" x="345" y="224" text-anchor="middle">frames keep their detail</text>
+  <rect class="box" x="490" y="30" width="190" height="236" rx="8"/><text class="title" x="585" y="52" text-anchor="middle">Pass structures</text>
+  <rect class="box4" x="506" y="66" width="158" height="26" rx="4"/><text class="small" x="585" y="83" text-anchor="middle">P1: targets, clears, viewport</text>
+  <rect class="box4" x="506" y="98" width="158" height="26" rx="4"/><text class="small" x="585" y="115" text-anchor="middle">P2 …</text>
+  <text class="small" x="585" y="160" text-anchor="middle">where it renders, how,</text><text class="small" x="585" y="176" text-anchor="middle">the kinds of draws it holds,</text><text class="small" x="585" y="192" text-anchor="middle">the constants in effect</text>
+  <rect class="box" x="730" y="30" width="160" height="236" rx="8"/><text class="title" x="810" y="52" text-anchor="middle">Draw structures</text>
+  <text class="small" x="810" y="82" text-anchor="middle">buffers, textures, shaders,</text><text class="small" x="810" y="98" text-anchor="middle">state: what a draw is,</text><text class="small" x="810" y="114" text-anchor="middle">with the counts left out</text>
+  <path class="arrow" d="M200 148H248"/><path class="arrow" d="M440 148H488"/><path class="arrow" d="M680 148H728"/>
+  <text class="small" x="450" y="290" text-anchor="middle">Every box on the right is stored once however often it occurs; the boxes on its left refer to it by a number.</text>
+</svg>
+<figcaption>Each structure is interned: a new one is compared with what is there and stored only if it is new. That is why a capture of gigabytes gives a model of kilobytes.</figcaption>
+</figure>
+
+<h2 id="flow">How a call goes through</h2>
+<figure>
+<svg viewBox="0 0 900 230" role="img" aria-label="A call through the session, a front end and the model builder">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="box3" x="10" y="80" width="110" height="56" rx="6"/><text x="65" y="105" text-anchor="middle">workload</text><text class="small" x="65" y="122" text-anchor="middle">segments</text>
+  <rect class="box" x="160" y="80" width="130" height="56" rx="6"/><text x="225" y="103" text-anchor="middle">AnalysisSession</text><text class="small" x="225" y="120" text-anchor="middle">routes each call</text>
+  <rect class="box2" x="350" y="30" width="170" height="50" rx="6"/><text x="435" y="52" text-anchor="middle">Direct3D 8 front end</text><text class="small" x="435" y="68" text-anchor="middle">follows its device</text>
+  <rect class="box2" x="350" y="95" width="170" height="50" rx="6"/><text x="435" y="117" text-anchor="middle">Direct3D 7 front end</text><text class="small" x="435" y="133" text-anchor="middle">follows its device</text>
+  <rect class="group" x="350" y="160" width="170" height="50" rx="6"/><text x="435" y="182" text-anchor="middle">an API with no front end</text><text class="small" x="435" y="198" text-anchor="middle">counted, skipped</text>
+  <rect class="box" x="590" y="70" width="140" height="76" rx="6"/><text x="660" y="98" text-anchor="middle">ModelBuilder</text><text class="small" x="660" y="116" text-anchor="middle">passes, keys,</text><text class="small" x="660" y="132" text-anchor="middle">frames, depth</text>
+  <rect class="box3" x="770" y="70" width="120" height="76" rx="6"/><text x="830" y="102" text-anchor="middle">model</text><text class="small" x="830" y="120" text-anchor="middle">then .passes</text>
+  <path class="arrow" d="M120 108H158"/><path class="arrow" d="M290 98L348 62"/><path class="arrow" d="M290 112L348 118"/><path class="arrow" d="M290 122L348 182"/>
+  <path class="arrow" d="M520 58L588 90"/><path class="arrow" d="M520 120L588 112"/><path class="arrow" d="M730 108H768"/>
+  <text class="small" x="555" y="50">events</text>
+</svg>
+<figcaption>Each call goes through three stages. The model builder never sees an API call, which is why it is API-neutral.</figcaption>
+</figure>
+<p><code>AnalysisSession::run()</code> reads the workload one <em>segment</em> at a time (a block of calls with their data chunks, as the dumper cut it) and never holds more than the one in hand. For each call it takes the API group, counts the call under it, tells the model builder which call this is (so that everything that comes out can be traced to a call index and time), hands the call to the front end of the group, and notes whether the call ended a frame. The totals it keeps include calls <em>unfollowed</em> (an object the front end does not know, or arguments it could not read) and <em>unsupported</em> (things it does not follow at all); both mean that what was found may be wrong, and a good capture has none.</p>
+
+<h2 id="frontends">One front end per API</h2>
+<p>A front end follows the state of <em>one</em> API and reports what its calls come to, with everything resolved: a draw is reported with the resources it uses, not with the calls that bound them. It is the only part of the analysis that knows what a function is called, what its arguments mean, or what state a device has. The contract is <code>IAPIFrontend::on_call</code> and a fixed set of events to the model builder:</p>
+<table>
+<tr><th>Event</th><th>Meaning</th></tr>
+<tr><td><code>on_create_resource</code>, <code>on_destroy_resource</code></td><td>A resource appears or goes, with its description.</td></tr>
+<tr><td><code>on_set_attachments</code>, <code>on_set_viewport</code></td><td>What is rendered to, and where.</td></tr>
+<tr><td><code>on_update_constant</code></td><td>A constant takes a value, with a meaning if the front end knows one (a matrix of the model, the view, the projection).</td></tr>
+<tr><td><code>on_clear</code>, <code>on_copy</code>, <code>on_upload</code></td><td>Work that touches a resource and is not a draw.</td></tr>
+<tr><td><code>on_draw</code></td><td>A draw, described with every resource and piece of state it uses.</td></tr>
+<tr><td><code>on_frame_presented</code></td><td>The frame ends.</td></tr>
+</table>
+<p>What a front end must <em>not</em> do is let its API show through. The shared vocabulary is chosen so that more than one API can say what it means in it: a <em>binding point</em> (where a resource is bound, in three numbers), a <em>constant location</em> (a range of bytes in a block of one of four kinds: a buffer, loose shader constants, fixed-function state, push constants), a <em>resource</em> with a <em>format class</em> (colour, compressed, depth, depth-stencil), shader stages that include compute and tessellation, and <em>resolution hazards</em> (calls whose meaning depends on the size of the target in pixels, which say whether the program can be rendered larger without noticing). Some of this room is unused today; it is there so that adding an API does not mean changing the model.</p>
+<p>Direct3D 8 and Direct3D 7 have front ends, in <code>frontends/d3d8</code> and <code>frontends/d3d7</code>. What they share is in <code>frontends/shared</code>: the call view, the object tracker (what is alive at which address, and what it is in the model; an address is forgotten when its object is released), <code>FixedFunctionState</code> (the fixed-function pipeline's state, from which the state key is made) and <code>FixedFunctionFrontend</code>, the base class that follows the objects and that state for both. What differs is what a resource is: in Direct3D 8 a texture, vertex buffer or surface; in Direct3D 7 a DirectDraw surface, whose roles (primary, back buffer, depth, texture) come from its caps. <code>AnalysisSession</code> routes calls to them. Adding one is described in <a href="contributing.html#new-api">Contributing</a>.</p>
+
+<h2 id="passes">Passes and draws</h2>
+<p>The model builder works with <em>passes</em>. A pass starts with the first draw or clear after the previous pass ended, and ends when what is rendered to changes, when a clear or a viewport change comes after a draw, when a copy or an upload touches what the pass renders to, or when the frame ends. A buffer written between two draws does not end a pass.</p>
+<figure>
+<svg viewBox="0 0 900 250" role="img" aria-label="The calls of a frame split into passes">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <text class="title" x="10" y="20">The calls of one frame</text>
+  <rect class="box4" x="10" y="35" width="52" height="34" rx="4"/><text x="36" y="57" text-anchor="middle">Clear</text>
+  <rect class="box4" x="68" y="35" width="70" height="34" rx="4"/><text x="103" y="57" text-anchor="middle">SetTransf.</text>
+  <rect class="box" x="144" y="35" width="48" height="34" rx="4"/><text x="168" y="57" text-anchor="middle">Draw</text>
+  <rect class="box" x="198" y="35" width="48" height="34" rx="4"/><text x="222" y="57" text-anchor="middle">Draw</text>
+  <rect class="box4" x="262" y="35" width="84" height="34" rx="4"/><text x="304" y="57" text-anchor="middle">SetRenderT.</text>
+  <rect class="box" x="352" y="35" width="48" height="34" rx="4"/><text x="376" y="57" text-anchor="middle">Draw</text>
+  <rect class="box" x="406" y="35" width="48" height="34" rx="4"/><text x="430" y="57" text-anchor="middle">Draw</text>
+  <rect class="box4" x="470" y="35" width="84" height="34" rx="4"/><text x="512" y="57" text-anchor="middle">SetRenderT.</text>
+  <rect class="box" x="560" y="35" width="48" height="34" rx="4"/><text x="584" y="57" text-anchor="middle">Draw</text>
+  <rect class="box" x="614" y="35" width="48" height="34" rx="4"/><text x="638" y="57" text-anchor="middle">Draw</text>
+  <rect class="box3" x="678" y="35" width="70" height="34" rx="4"/><text x="713" y="57" text-anchor="middle">Present</text>
+  <path class="arrowline" d="M10 90H254"/><path class="arrowline" d="M10 84V96"/><path class="arrowline" d="M254 84V96"/>
+  <path class="arrowline" d="M262 90H462"/><path class="arrowline" d="M262 84V96"/><path class="arrowline" d="M462 84V96"/>
+  <path class="arrowline" d="M470 90H670"/><path class="arrowline" d="M470 84V96"/><path class="arrowline" d="M670 84V96"/>
+  <text x="132" y="112" text-anchor="middle">pass 1: renders to A</text>
+  <text x="362" y="112" text-anchor="middle">pass 2: renders to B</text>
+  <text x="570" y="112" text-anchor="middle">pass 3: renders to A again</text>
+  <rect class="box" x="60" y="140" width="140" height="40" rx="6"/><text x="130" y="165" text-anchor="middle">pass structure P1</text>
+  <rect class="box" x="290" y="140" width="140" height="40" rx="6"/><text x="360" y="165" text-anchor="middle">pass structure P2</text>
+  <rect class="box" x="500" y="140" width="140" height="40" rx="6"/><text x="570" y="165" text-anchor="middle">pass structure P3</text>
+  <path class="arrow" d="M130 118V138"/><path class="arrow" d="M360 118V138"/><path class="arrow" d="M570 118V138"/>
+  <rect class="box3" x="250" y="205" width="220" height="38" rx="6"/><text x="360" y="229" text-anchor="middle">frame shape {P1, P2, P3}</text>
+  <path class="arrow" d="M130 182L260 207"/><path class="arrow" d="M360 182V203"/><path class="arrow" d="M570 182L460 207"/>
+</svg>
+<figcaption>State set before a draw belongs to that draw. If pass 3 reads what pass 2 drew, P3 is not P1 even though both render to A: what they read is told apart by what drew it (see Keys).</figcaption>
+</figure>
+<p>When a pass ends its <em>pass structure</em> is made: where it renders to and how, the kinds of draws it holds (sorted, each once) and the constants in effect (by what they are, not their values). A <em>draw</em> is described twice. The <em>draw structure</em> says what the draw is: the keys of its buffers, shaders and textures, its state, vertex layout and topology, with the counts left out. The <em>draw signature</em> says what the draw is <em>at the moment it is issued</em>, which is all a live converter can know.</p>
+
+<h2 id="keys">Keys</h2>
+<p>Addresses, creation order and times differ from run to run, and several threads can change the order of creation calls. Everything the analysis stores as an identity is therefore a <em>key</em>: a 64-bit digest of the values that make the thing what it is, which comes out the same in another run. The rule for what is hashed (<code>Hasher</code> in <code>libs/utils/hashing</code>: integers little-endian, floats by their bits, sizes with what has a variable size) <strong>must never change</strong>, since keys are written into <code>.passes</code> files and recipes. A <em>hash</em> is the digest of bytes (the contents of a resource, the code of a shader); a <em>key</em> is the identity of a structure, built from values by <code>KeyBuilder</code>, and can contain hashes.</p>
+<figure>
+<svg viewBox="0 0 900 250" role="img" aria-label="How the keys are built from each other">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="box" x="10" y="60" width="150" height="56" rx="6"/><text x="85" y="84" text-anchor="middle">description key</text><text class="small" x="85" y="102" text-anchor="middle">how a resource was made</text>
+  <rect class="box" x="200" y="60" width="150" height="56" rx="6"/><text x="275" y="84" text-anchor="middle">resource key</text><text class="small" x="275" y="102" text-anchor="middle">+ the pass that wrote it</text>
+  <rect class="box" x="390" y="60" width="160" height="56" rx="6"/><text x="470" y="84" text-anchor="middle">draw structure key</text><text class="small" x="470" y="102" text-anchor="middle">buffers, textures, state</text>
+  <rect class="box" x="590" y="60" width="150" height="56" rx="6"/><text x="665" y="84" text-anchor="middle">pass structure key</text><text class="small" x="665" y="102" text-anchor="middle">views, draws, constants</text>
+  <rect class="box3" x="760" y="150" width="130" height="56" rx="6"/><text x="825" y="174" text-anchor="middle">frame shape key</text><text class="small" x="825" y="192" text-anchor="middle">set of pass keys</text>
+  <rect class="box2" x="390" y="150" width="160" height="56" rx="6"/><text x="470" y="174" text-anchor="middle">draw signature key</text><text class="small" x="470" y="192" text-anchor="middle">at the moment of the draw</text>
+  <rect class="box" x="200" y="150" width="150" height="56" rx="6"/><text x="275" y="174" text-anchor="middle">unwritten key</text><text class="small" x="275" y="192" text-anchor="middle">as if nothing had written</text>
+  <path class="arrow" d="M160 88H198"/><path class="arrow" d="M350 88H388"/><path class="arrow" d="M550 88H588"/>
+  <path class="arrow" d="M740 100L780 148"/>
+  <path class="arrow" d="M350 178H388"/>
+  <path class="arrow" d="M275 118V148"/>
+  <path class="arrow" d="M665 58V30H275V58"/>
+  <text class="small" x="470" y="22" text-anchor="middle">a pass that ends is recorded as the writer of its targets</text>
+</svg>
+<figcaption>A resource's key includes the key of the pass that wrote to it earlier in this frame, so a texture read by post-processing is told by what drew it. The table of keys is reset every frame.</figcaption>
+</figure>
+<p>The one that matters most is the <strong>draw signature key</strong>. The pass a draw belongs to is not known until the pass ends, so the signature uses the <em>unwritten</em> keys of the structure and the targets. It is what a live converter can match, and what a recipe's rules are about: the same code makes the keys offline and in the running program, so a rule baked from a capture matches a draw of the program as it runs. Two different structures with the same key are possible in principle; they are counted and compared when interned, so a collision does no harm beyond the count.</p>
+
+<h2 id="depth">The depth of a draw</h2>
+<p>When a draw is made, the builder also works out how deep it is and counts it into the <strong>depth histogram</strong> of the open pass, from which the recipe's <a href="stereo.html#convergence">convergence distances</a> come.</p>
+<figure>
+<svg viewBox="0 0 900 250" role="img" aria-label="How the depth of a draw is measured">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <text class="title" x="10" y="20">Seen from above</text>
+  <rect class="box4" x="100" y="138" width="44" height="24" rx="4"/><text x="122" y="155" text-anchor="middle" class="small">camera</text>
+  <path class="arrow" d="M144 150H880"/><text class="small" x="880" y="140" text-anchor="end">the way the camera looks</text>
+  <rect class="box" x="400" y="62" width="30" height="30" rx="4"/><text class="small" x="415" y="52" text-anchor="middle">object</text>
+  <path class="arrowline" d="M415 92V150" stroke-dasharray="4 3"/>
+  <path class="arrowline" d="M122 138L400 85" stroke-dasharray="1 4"/>
+  <text class="small" x="230" y="96" text-anchor="middle">straight-line distance: not used</text>
+  <path class="arrowline" d="M144 190H415"/><path class="arrowline" d="M144 184V196"/><path class="arrowline" d="M415 184V196"/>
+  <text x="280" y="212" text-anchor="middle">depth: along the way the camera looks</text>
+  <rect class="group" x="10" y="60" width="80" height="40" rx="4"/><text class="small" x="50" y="78" text-anchor="middle">behind</text><text class="small" x="50" y="92" text-anchor="middle">not counted</text>
+  <rect class="box" x="640" y="200" width="30" height="30" rx="4"/><text class="small" x="655" y="196" text-anchor="middle" dy="-4">farther: a greater depth</text>
+</svg>
+<figcaption>Depth is where the origin of the object is along the view direction, not its straight-line distance: an object off to the side is as deep as one in the middle at the same place along the view.</figcaption>
+</figure>
+<ul>
+  <li><strong>Depth</strong> is the translation of the model matrix (the identity if none was set), carried through the view matrix. It is only worked out for a pass with a view matrix and a <em>perspective</em> projection: an orthographic one has nothing to converge at.</li>
+  <li><strong>Weight</strong> is the vertex count, so a large object counts for more than a particle. <strong>Bins</strong> are logarithmic, eight to each doubling of the distance from 1/128 to 2<sup>17</sup> (192 bins); a draw behind the camera or nearer than the first bin is not counted.</li>
+  <li><strong>Surface depth</strong> is the same measure for the <em>vertices</em> of the draw. The origin of a large mesh can be far away, or behind the camera, while its walls are close (a tunnel made of a few polygons around the camera), so the front end also follows what is written to vertex and index buffers and, for a draw, samples up to 64 of its vertices, carries each to camera space and counts it if it is in front of the near plane and inside the view. Only positions in model space are read; pre-transformed vertices and vertex-shader inputs are not. This is done only by the offline analysis, which has the time: the converter inside a program keeps no buffers and reads no vertex.</li>
+  <li><strong>Covering the view.</strong> A draw whose vertices reach all four edges of the picture (within half a percent) is a flash or a fade, and must not be pushed or moved sideways. A signature does not tell them from text (both go through one dynamic buffer with one state), so the key used is the signature <em>and</em> the size of the draw, kept if any draw with it covered the view and baked as <code>covering_draws</code>. A key is not proof, so the converter also looks at the vertices the draw uses.</li>
+</ul>
+
+<h2 id="frames">Frames, shapes and what is recorded</h2>
+<p>A present ends a frame. The builder then ends the open pass, makes the frame's <em>shape</em> (the sorted numbers of its pass structures; order is ignored, since independent passes may run in any order) and interns it, so a frame becomes a small record that points at its shape; it adds the depth histogram of each pass to the one of the same pass structure in the same shape; it closes the books on resource access; and it keeps the <em>detail</em> of the frame (the instance of each pass, the copies and uploads between them) only if it is a <em>representative</em> frame of its shape: the first frame of the shape, then the lightest and the heaviest by draw count if those are others.</p>
+<ul>
+  <li><strong>Resource access</strong> (<code>ResourceAccessTracker</code>): for each resource, its first read and first and last write, and in how many frames it was read, written and <em>loop carried</em> (read before it was written in the frame, and written in it: what feedback effects do). It is classed <em>loop carried</em>, <em>unused</em>, <em>unread</em>, <em>static</em> (made once and read afterwards) or <em>frame local</em>. This tells what a replay must carry from one frame to the next.</li>
+  <li><strong>Camera constants</strong> are tracked only when the front end gave them a meaning; the camera ones are recorded as a time series per pass structure, a sample only when the value changes.</li>
+  <li><strong>The timeline</strong> (built when a query asks): frames in time order as runs of one shape, how often each shape and pass occurs, and the <em>setup frames</em>, which are much longer than a typical frame.</li>
+</ul>
+
+<h2 id="dependencies">Dependencies between frames</h2>
+<p>The model says what the passes of a frame are, not how frames depend on each other, which a stereo replay needs: a frame played once per eye reads what the frame before it left in the resources, and that is not the same for both eyes if the frame before rendered it. The dependencies are made apart, by a pass of their own over the workload, and kept in a <code>.deps</code> file.</p>
+<p>The model builder tells every use of a resource to a sink (<code>IAccessSink</code>): what it is used as, whether it is read, written or both, how much of it a write reaches, which part, on which queue. The front ends only translate their calls into these events, so a front end for another API makes the dependencies without the analysis knowing it. From them the <code>DependencyAnalyzer</code> says, for each resource and frame, whether the frame uses what an earlier frame left in it: <em>certainly</em>, <em>possibly</em> (only part was written first, or how much is not known), or not at all. It can only over-report what is carried, never under-report it.</p>
+<ul>
+  <li><strong>Per-eye textures.</strong> A resource needs a copy for each eye when it is rendered to and some frame uses what an earlier frame left in it, <em>whether that frame writes it too or not</em>. <code>RecipeBake --deps</code> puts them in the recipe. Targets that frames write by turns (a double buffer, a swap chain's images) are a <em>rotation group</em> and are listed together, so an eye never finds what another eye's frame rendered.</li>
+  <li><strong>Dead frames.</strong> A frame is <em>dead</em> for a seek if nothing the target frame or any later frame reads comes of it. The replay uses this to leave out most of the work when it jumps to a frame (<a href="replay.html#seek">Replay</a>).</li>
+</ul>
+
+<h2 id="output">The files, and the same analysis live</h2>
+<p>The model, the summary and the reference to the workload make an <code>AnalysisResult</code>, which <code>PassesFile</code> writes. Each section is serialized in its own thread and compressed with Zstandard; its header carries the size, the tag, the version and an XXH64 of the raw bytes. The file is written beside the real one and takes its place when complete, so a failure leaves the old file as it was. A reader skips sections it does not know and refuses a known section of another version, and checks what a file this code wrote must satisfy (sizes that fit, resource IDs consecutive, structures in order); one that fails is refused. The sections are listed in <code>passes_format.h</code>. A <code>.passes</code> file remembers which workload it is of (its size and hashes of 4 KiB from its start, middle and end), and the query tools refuse the wrong capture.</p>
+<p>The converter inside a program runs the same <code>AnalysisSession</code>, fed by <code>CallFeeder</code> with the calls as they are made, built <em>without history</em>: no frame records, no representative detail, no camera series. What it keeps grows only with the kinds of frames, passes and draws. It needs two things the running program provides: the draw signature of each draw, as it is issued, to match against the recipe, and the shape key of each frame, when the present is made, to ease toward the scene's convergence distance.</p>
+<table>
+<tr><th>Tool</th><th>Use</th></tr>
+<tr><td><code>APIDumpAnalysisExtractor</code></td><td>Workload to <code>.passes</code>.</td></tr>
+<tr><td><code>APIDumpAnalysisQuery</code></td><td>Asks a <code>.passes</code> file questions, as JSON: <code>info</code>, <code>timeline</code>, <code>pipelines</code>, <code>resources</code>, <code>overlays</code>, <code>depth</code>, <code>pass</code>, <code>frame</code>. Its usage text lists the options.</td></tr>
+<tr><td><code>APIDumpDependencyExtractor</code>, <code>APIDumpDependencyQuery</code></td><td>Workload to <code>.deps</code>, and questions about it.</td></tr>
+<tr><td><code>APIDumpSlicer</code></td><td>The first frames of a workload as a workload of their own.</td></tr>
+<tr><td><code>RecipeBake</code></td><td>Hand-written rules plus <code>.passes</code> (and <code>.deps</code>) to a baked recipe (<a href="recipes.html">Recipes</a>).</td></tr>
+</table>
+
+<h2 id="limits">What it does not do</h2>
+<ul class="tight">
+  <li>Only Direct3D 8 and Direct3D 7 have a front end. Calls of an API that has none are counted and skipped; a capture of an OpenGL program gives an empty model.</li>
+  <li>Unsupported calls (state blocks, patches, additional swap chains, <code>MultiplyTransform</code>, volume unlocks in Direct3D 8; state blocks, <code>MultiplyTransform</code>, <code>ProcessVertices</code> and GDI contexts of surfaces in Direct3D 7) are not followed; passes and draws made with them are not right, and the summary says how many there were.</li>
+  <li>It never reads pixels: contents appear only as the hash in a resource's description key. Vertices are read, while the file is made, for the surface depth, and only histograms are kept.</li>
+  <li>It does not judge. Scene against interface is for the recipe.</li>
+</ul>
+</main>
+</body>
+</html>

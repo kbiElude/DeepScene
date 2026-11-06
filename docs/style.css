@@ -16,6 +16,8 @@
   --box3-stroke: #b7791f;
   --box4-fill: #f4ecfa;
   --box4-stroke: #7b45b0;
+  --eye-left: #c0392b;
+  --eye-right: #1f77b4;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -37,6 +39,8 @@
     --box3-stroke: #e0a846;
     --box4-fill: #2d2038;
     --box4-stroke: #c096e6;
+    --eye-left: #ef7f73;
+    --eye-right: #6ea8ff;
   }
 }
 
@@ -119,3 +123,19 @@ svg marker path { fill: var(--muted); }
 @media (max-width: 40rem) {
   h1 { font-size: 1.6rem; }
 }
+
+/* equations and small asides */
+div.math { font: 0.95em/1.6 ui-monospace, "Cascadia Mono", Consolas, monospace; background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 0.6rem 1rem; margin: 1rem 0; overflow-x: auto; }
+div.math .why { display: block; color: var(--muted); font: 0.85rem/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; margin-top: 0.3rem; }
+ul.tight li { margin: 0.15rem 0; }
+.pill { display: inline-block; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 0 0.6rem; font-size: 0.85rem; }
+
+/* eyes in diagrams */
+svg .eyeL { fill: var(--eye-left); stroke: var(--eye-left); stroke-width: 1.5; }
+svg .eyeR { fill: var(--eye-right); stroke: var(--eye-right); stroke-width: 1.5; }
+svg .rayL { stroke: var(--eye-left); stroke-width: 1.5; fill: none; }
+svg .rayR { stroke: var(--eye-right); stroke-width: 1.5; fill: none; }
+svg .screen { stroke: var(--fg); stroke-width: 2.5; fill: none; }
+svg .dashed { stroke: var(--muted); stroke-width: 1.2; fill: none; stroke-dasharray: 4 3; }
+svg text.l { fill: var(--eye-left); }
+svg text.r { fill: var(--eye-right); }

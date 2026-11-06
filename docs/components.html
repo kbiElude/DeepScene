@@ -10,13 +10,15 @@
 <header class="site"><nav>
   <a class="brand" href="index.html">DeepScene</a>
   <a href="index.html">Overview</a>
-  <a href="analysis-and-recipes.html">Analysis &amp; recipes</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="analysis.html">Analysis</a>
+  <a href="recipes.html">Recipes</a>
+  <a href="stereo.html">Stereo</a>
   <a href="replay.html">Replay</a>
-  <a href="live-stereo.html">Live stereo</a>
+  <a href="live-conversion.html">Live conversion</a>
   <a href="vr-player.html">VR player</a>
-  <a href="adding-an-app.html">Adding an app</a>
-  <a class="current" href="components.html">Components</a>
-  <a href="building.html">Building</a>
+  <a href="contributing.html">Contributing</a>
+  <a class="current" href="components.html">Reference</a>
   <a href="../deps/APIInterceptor/docs/index.html">API Interceptor</a>
 </nav></header>
 <main>
@@ -82,7 +84,7 @@
 <p>A window drawn with ImGui over a Direct3D 11 device of its own: the device, the swap chain and the message loop. The control window of the replay player, the VR player and the presenter use it, so none of them repeats it.</p>
 
 <h3>Analysis</h3>
-<p><em>Library.</em> Turning a workload into a model and the model into a recipe, and what the programs of <code>tools/analysis</code> and the replay and the converter use of them. See <a href="analysis-and-recipes.html">Analysis &amp; recipes</a>. It reads a workload through the loader of the interceptor. Its parts:</p>
+<p><em>Library.</em> Turning a workload into a model and the model into a recipe, and what the programs of <code>tools/analysis</code> and the replay and the converter use of them. See <a href="analysis.html">Analysis</a>. It reads a workload through the loader of the interceptor. Its parts:</p>
 
 <h4>APIDumpAnalysis</h4>
 <p>The analysis itself and nothing that is of one API: the session that routes calls, the model builder, the keys and hashes, the tracking of how resources are used, the time series of the camera, the depth histograms, the <code>.passes</code> file (reader and writer), the queries (<code>QueryCommands</code>, one class in five files: the choice of the command with the small ones, and the frame, the pass, the resources and the overlays with the depth). The reading and writing of bytes and of JSON and the hasher which it uses are in <code>Utils</code>. It is where an API is added to the analysis, by giving it a front end.</p>
@@ -100,7 +102,7 @@
 <p>What a recipe is, and the two things done with it that are not baking. <code>types.h</code> is the recipe as data (rules, draw selectors, convergence, the policy for unknown frames). <code>RecipeLoader</code> reads a recipe and checks it; it is what everything that only wants to read a recipe uses: the replay player, the consistency checker, the launcher and the catalog. <code>RecipeApplier</code> applies it: given a draw told by its signature and the view matrix, it says whether to render it once, per eye, or not at all, and what its convergence distance is; the replay engine and the converter use it, and neither needs to bake. The applier uses the types and not the loader, so a program which only reads a recipe does not need the applier's headers.</p>
 
 <h3>Stereo</h3>
-<p><em>Library.</em> The decisions of the conversion and the images it makes. See <a href="live-stereo.html">Live stereo</a>. Its parts:</p>
+<p><em>Library.</em> The decisions of the conversion and the images it makes. See <a href="live-conversion.html">Live conversion</a>. Its parts:</p>
 
 <h4>Core</h4>
 <p>The decisions of the conversion, without an API. The class <code>StereoCore</code> decides the class of a draw from the recipe, the view matrix, and what to do with draws and frames the recipe does not know. <code>ConvergenceModel</code> says where the eyes converge and how far apart they are, <code>MatrixSlots</code> which matrices a rule is about and which to put in before a draw, and the resolution policy how much larger than the application asks to render. <code>ScreenParallaxPlanner</code> decides what is done to the vertices of a draw that are already in the space of the picture (moved by their depth, pushed as a whole, or left alone), for the replay engine and the live converter alike. An API adapter asks it what to do and does it.</p>
@@ -136,7 +138,7 @@
 <p>Puts an application where it is played: <code>AppInstaller</code> gets the zip file over https, checks it against the hash of the catalog and unpacks it (with what <code>Utils::Files</code> has for the three) in a thread of its own, reports the progress, and moves the result into place whole, so that a cancel or a failure leaves nothing behind. It writes under the directory of the applications only.</p>
 
 <h2 id="runtime">runtime</h2>
-<p>What the VR player starts. The live converter, and what carries its images to a screen. See <a href="live-stereo.html">Live stereo</a>. The converter and the launcher are built for x86 and for x64 (see <code>build.bat</code>), since the launcher has to be of the architecture of the application.</p>
+<p>What the VR player starts. The live converter, and what carries its images to a screen. See <a href="live-conversion.html">Live conversion</a>. The converter and the launcher are built for x86 and for x64 (see <code>build.bat</code>), since the launcher has to be of the architecture of the application.</p>
 
 <h3>StereoConverterDLL</h3>
 <p><em>DLL, built for 32 and 64 bits, to match the application.</em> The converter, injected into the program. <code>Converter</code> orders the work of each call; <code>CallFeeder</code> gives the analysis the calls as a dump would; the Direct3D 8 adapter (<code>d3d8/</code>) renders the second eye (<code>D3D8EyeRenderer</code>), scales the resolution, forces windowed mode, and exports the frame into the channel's memory, and the Direct3D 7 one (<code>d3d7/</code>) does the same with the surfaces and the draws of its API (<code>D3D7EyeRenderer</code>, <code>D3D7SurfaceTwins</code>); <code>FramePasser</code> and <code>SessionLog</code>, which both use, pass frames on and write the log.</p>
@@ -148,7 +150,7 @@
 <p><em>Program, 64-bit.</em> Takes the frames from the channel, whatever the bitness of the application, and shows them in a preview window or, with <code>--headset</code>, in a headset. It is started with the id of a session, which the VR player makes and also gives to the launcher; the VR player starts both.</p>
 
 <h2 id="analysis">tools/analysis</h2>
-<p>Turning a workload into a model and the model into a recipe. See <a href="analysis-and-recipes.html">Analysis &amp; recipes</a>. The library is <code>Analysis</code>.</p>
+<p>Turning a workload into a model and the model into a recipe. See <a href="analysis.html">Analysis</a>. The library is <code>Analysis</code>.</p>
 
 <h3>APIDumpAnalysisExtractor</h3>
 <p><em>Program.</em> Reads a workload and writes a <code>.passes</code> file.</p>

@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site"><nav>
+  <a class="brand" href="index.html">DeepScene</a>
+  <a href="index.html">Overview</a>
+  <a class="current" href="architecture.html">Architecture</a>
+  <a href="analysis.html">Analysis</a>
+  <a href="recipes.html">Recipes</a>
+  <a href="stereo.html">Stereo</a>
+  <a href="replay.html">Replay</a>
+  <a href="live-conversion.html">Live conversion</a>
+  <a href="vr-player.html">VR player</a>
+  <a href="contributing.html">Contributing</a>
+  <a href="components.html">Reference</a>
+  <a href="../deps/APIInterceptor/docs/index.html">API Interceptor</a>
+</nav></header>
+<main>
+<h1>Architecture</h1>
+<p class="lead">Three layers: the submodule that captures and replays calls, five libraries, and the programs built from them. This page is the map; <a href="components.html">Reference</a> describes each project.</p>
+
+<h2 id="layers">The layers</h2>
+<figure>
+<svg viewBox="0 0 900 330" role="img" aria-label="Layers: API Interceptor, libraries, programs">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="group" x="10" y="8" width="880" height="104" rx="10"/><text class="title" x="24" y="30">Programs (src/vr_player, src/runtime, src/tools)</text>
+  <rect class="box4" x="30" y="44" width="120" height="50" rx="6"/><text x="90" y="66" text-anchor="middle">VRPlayer</text><text class="small" x="90" y="82" text-anchor="middle">the front end</text>
+  <rect class="box4" x="170" y="44" width="150" height="50" rx="6"/><text x="245" y="66" text-anchor="middle">launcher, converter,</text><text x="245" y="82" text-anchor="middle">presenter</text>
+  <rect class="box4" x="340" y="44" width="170" height="50" rx="6"/><text x="425" y="66" text-anchor="middle">replay engine, player,</text><text x="425" y="82" text-anchor="middle">checker</text>
+  <rect class="box4" x="530" y="44" width="170" height="50" rx="6"/><text x="615" y="66" text-anchor="middle">extractors, queries,</text><text x="615" y="82" text-anchor="middle">slicer, RecipeBake</text>
+  <rect class="group" x="10" y="124" width="880" height="104" rx="10"/><text class="title" x="24" y="146">Libraries (src/libs): what the programs share</text>
+  <rect class="box" x="30" y="158" width="150" height="50" rx="6"/><text x="105" y="187" text-anchor="middle">analysis</text>
+  <rect class="box" x="200" y="158" width="150" height="50" rx="6"/><text x="275" y="187" text-anchor="middle">stereo</text>
+  <rect class="box" x="370" y="158" width="150" height="50" rx="6"/><text x="445" y="187" text-anchor="middle">headset</text>
+  <rect class="box" x="540" y="158" width="150" height="50" rx="6"/><text x="615" y="187" text-anchor="middle">vr_player</text>
+  <rect class="box2" x="710" y="158" width="160" height="50" rx="6"/><text x="790" y="187" text-anchor="middle">utils</text>
+  <rect class="group" x="10" y="240" width="880" height="80" rx="10"/><text class="title" x="24" y="262">API Interceptor (deps/APIInterceptor, a submodule with its own repository)</text>
+  <rect class="box3" x="30" y="274" width="830" height="36" rx="6"/><text x="445" y="297" text-anchor="middle">hooks · dumper · workload loader · printer · replay engine core · injection launcher · D3D7 / D3D8 helpers</text>
+  <path class="arrow" d="M245 94V156"/><path class="arrow" d="M425 94V156"/><path class="arrow" d="M615 94V156"/><path class="arrow" d="M90 94V156"/>
+  <path class="arrow" d="M105 208V272"/>
+</svg>
+<figcaption>Arrows point at what a layer builds on. The project outside the submodule never captures or hooks anything by itself: it uses what the submodule records, loads, replays and injects.</figcaption>
+</figure>
+
+<h2 id="libraries">The libraries and one rule</h2>
+<figure>
+<svg viewBox="0 0 900 330" role="img" aria-label="Dependencies between the libraries">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="box" x="90" y="24" width="200" height="50" rx="6"/><text x="190" y="46" text-anchor="middle">headset</text><text class="small" x="190" y="62" text-anchor="middle">OpenXR session, GPU upload</text>
+  <rect class="box" x="90" y="110" width="200" height="50" rx="6"/><text x="190" y="132" text-anchor="middle">stereo</text><text class="small" x="190" y="148" text-anchor="middle">decisions, channel, parallax</text>
+  <rect class="box" x="600" y="110" width="200" height="50" rx="6"/><text x="700" y="132" text-anchor="middle">vr_player</text><text class="small" x="700" y="148" text-anchor="middle">catalog, installer</text>
+  <rect class="box" x="345" y="196" width="210" height="50" rx="6"/><text x="450" y="218" text-anchor="middle">analysis</text><text class="small" x="450" y="234" text-anchor="middle">model, keys, recipe, queries</text>
+  <rect class="box2" x="345" y="278" width="210" height="44" rx="6"/><text x="450" y="304" text-anchor="middle">utils: depends on nothing of ours</text>
+  <rect class="group" x="650" y="196" width="230" height="126" rx="8"/><text class="small" x="765" y="216" text-anchor="middle">from the submodule</text>
+  <rect class="box3" x="670" y="228" width="190" height="34" rx="6"/><text x="765" y="250" text-anchor="middle">workload loader</text>
+  <rect class="box3" x="670" y="270" width="190" height="34" rx="6"/><text x="765" y="292" text-anchor="middle">D3D7 / D3D8 helpers</text>
+  <path class="arrow" d="M190 74V108"/><path class="arrow" d="M240 160L360 196"/><path class="arrow" d="M660 160L540 196"/><path class="arrow" d="M450 246V276"/><path class="arrow" d="M555 221L668 245"/>
+  <path class="dashed" d="M290 60H330V300H343"/><text class="small" x="326" y="272" text-anchor="end">every library may use utils</text>
+</svg>
+<figcaption>The rule: a library uses only the ones below it, and <code>utils</code> uses none of them. A test fails if a header of <code>utils</code> includes anything from another library or a program.</figcaption>
+</figure>
+<table>
+<tr><th>Library</th><th>What it is for</th><th>Its parts</th></tr>
+<tr><td><code>utils</code></td><td>What no other library owns and any may use.</td><td><code>images</code>, <code>binary_io</code>, <code>json</code>, <code>command_line</code>, <code>hashing</code>, <code>parallel</code>, <code>statistics</code>, <code>files</code>, <code>ui_host</code>, <code>d3d12</code></td></tr>
+<tr><td><code>analysis</code></td><td>Turns a workload into a model and the model into a recipe; also reads and applies recipes.</td><td><code>api_dump_analysis</code> (with the front ends), <code>api_dump_dependencies</code>, <code>api_dump_slicing</code>, <code>recipe</code></td></tr>
+<tr><td><code>stereo</code></td><td>What the converter decides and what it hands on, whatever the API is.</td><td><code>core</code>, <code>d3d7</code>, <code>session</code>, <code>transport</code></td></tr>
+<tr><td><code>headset</code></td><td>Shows the images in a headset.</td><td><code>d3d12</code>, <code>xr</code>, <code>vr_devices</code></td></tr>
+<tr><td><code>vr_player</code></td><td>What the VR player is made of besides the window and the headset.</td><td><code>app_catalog</code>, <code>app_installer</code></td></tr>
+</table>
+<p>A part is a folder and a namespace of its library: <code>src/libs/analysis/recipe</code> is <code>Analysis::Recipe</code>. Headers sit beside their sources; an include names the library from <code>src/libs</code> (<code>#include "stereo/core/stereo_core.h"</code>).</p>
+
+<h2 id="tree">Source tree and release</h2>
+<p>The tree of the source is the tree of the release: a program is in a folder of the name of its file, in the folder its file installs to, and a test checks it. Folders are lower-case with underscores; executables keep their product names and carry their architecture.</p>
+<table>
+<tr><th>Source (<code>src/</code>)</th><th>Release (<code>build_final\</code>)</th><th>What it is</th></tr>
+<tr><td><code>vr_player</code></td><td><code>VRPlayer.exe</code></td><td>The program a person starts.</td></tr>
+<tr><td><code>runtime/launcher</code>, <code>converter_dll</code>, <code>presenter</code></td><td><code>runtime\StereoLauncher_x86.exe</code>, <code>StereoConverterDLL_x86.dll</code>, <code>StereoPresenter_x64.exe</code> (and the <code>_x64</code> ones)</td><td>What VRPlayer starts.</td></tr>
+<tr><td><code>tools/analysis/*</code></td><td><code>tools\analysis\*_x64.exe</code></td><td>Extractors and query tools, the slicer, <code>RecipeBake</code>.</td></tr>
+<tr><td><code>tools/stereo_replay/*</code></td><td><code>tools\stereo_replay\StereoReplay*_x86.exe</code> (and <code>_x64</code>)</td><td>The replay engine, player and checker.</td></tr>
+<tr><td>(from the submodule)</td><td><code>tools\api_dumper\</code></td><td>The dumper and the printer.</td></tr>
+<tr><td><code>apps/</code> in the repository</td><td><code>apps\</code></td><td>The catalog and the recipes; applications are downloaded into it on first launch.</td></tr>
+</table>
+
+<h2 id="processes">The processes of a live session</h2>
+<figure>
+<svg viewBox="0 0 900 340" role="img" aria-label="The processes of a live session">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="box4" x="20" y="20" width="170" height="70" rx="8"/><text class="title" x="105" y="46" text-anchor="middle">VRPlayer</text><text class="small" x="105" y="64" text-anchor="middle">64-bit</text><text class="small" x="105" y="80" text-anchor="middle">window, catalog, session</text>
+  <rect class="box4" x="270" y="20" width="170" height="70" rx="8"/><text class="title" x="355" y="46" text-anchor="middle">StereoLauncher</text><text class="small" x="355" y="64" text-anchor="middle">32 or 64-bit: the same</text><text class="small" x="355" y="80" text-anchor="middle">as the application</text>
+  <rect class="group" x="270" y="120" width="320" height="130" rx="10"/><text class="small" x="430" y="140" text-anchor="middle">the application's own process</text>
+  <rect class="box4" x="290" y="150" width="130" height="80" rx="6"/><text x="355" y="180" text-anchor="middle">application</text><text class="small" x="355" y="198" text-anchor="middle">unchanged</text>
+  <rect class="box3" x="440" y="150" width="130" height="80" rx="6"/><text x="505" y="176" text-anchor="middle">converter DLL</text><text class="small" x="505" y="194" text-anchor="middle">hooks, decisions,</text><text class="small" x="505" y="210" text-anchor="middle">second eye</text>
+  <rect class="box" x="650" y="150" width="140" height="80" rx="6"/><text class="title" x="720" y="176" text-anchor="middle">StereoPresenter</text><text class="small" x="720" y="194" text-anchor="middle">64-bit</text><text class="small" x="720" y="210" text-anchor="middle">window or headset</text>
+  <rect class="box2" x="650" y="270" width="140" height="44" rx="6"/><text x="720" y="296" text-anchor="middle">headset (OpenXR)</text>
+  <rect class="box3" x="440" y="276" width="130" height="38" rx="6"/><text x="505" y="299" text-anchor="middle">frame channel</text>
+  <path class="arrow" d="M190 55H268"/><path class="arrow" d="M355 90V148"/><path class="arrow" d="M420 190H438"/>
+  <path class="arrow" d="M505 230V274"/><path class="arrow" d="M572 295H648"/><path class="arrow" d="M720 230V268"/>
+  <path class="arrow" d="M190 80Q420 100 648 160"/><text class="small" x="560" y="108" text-anchor="middle">starts it, with a session id</text>
+  <text class="small" x="30" y="170">The launcher injects the DLL.</text><text class="small" x="30" y="188">The session id is how the three</text><text class="small" x="30" y="206">find one another (environment</text><text class="small" x="30" y="224">variables, a named memory).</text>
+</svg>
+<figcaption>VRPlayer makes a session id and starts the launcher and the presenter with it. The launcher puts the converter in the application; the converter writes the two images into the frame channel (shared memory), and the presenter, which is always 64-bit, takes them from it. The controls of the player travel the other way through the same channel.</figcaption>
+</figure>
+<p>The launcher and the converter match the bitness of the application (the demos are 32-bit); everything that touches the headset is 64-bit. That is why most projects are built for both and the release has an <code>_x86</code> and an <code>_x64</code> file of each. See <a href="live-conversion.html">Live conversion</a>.</p>
+
+<h2 id="data">The files that flow between them</h2>
+<figure>
+<svg viewBox="0 0 900 270" role="img" aria-label="Files and the tools that make and read them">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="box" x="10" y="100" width="100" height="46" rx="6"/><text x="60" y="127" text-anchor="middle">APIDumper</text>
+  <rect class="box3" x="140" y="100" width="110" height="46" rx="6"/><text x="195" y="120" text-anchor="middle">.workload</text><text class="small" x="195" y="136" text-anchor="middle">+ .index</text>
+  <rect class="box" x="290" y="40" width="130" height="46" rx="6"/><text x="355" y="60" text-anchor="middle">Analysis</text><text class="small" x="355" y="76" text-anchor="middle">Extractor</text>
+  <rect class="box3" x="450" y="40" width="90" height="46" rx="6"/><text x="495" y="68" text-anchor="middle">.passes</text>
+  <rect class="box" x="290" y="160" width="130" height="46" rx="6"/><text x="355" y="180" text-anchor="middle">Dependency</text><text class="small" x="355" y="196" text-anchor="middle">Extractor</text>
+  <rect class="box3" x="450" y="160" width="90" height="46" rx="6"/><text x="495" y="188" text-anchor="middle">.deps</text>
+  <rect class="box" x="580" y="96" width="120" height="54" rx="6"/><text x="640" y="120" text-anchor="middle">RecipeBake</text><text class="small" x="640" y="138" text-anchor="middle">+ hand-written rules</text>
+  <rect class="box3" x="740" y="96" width="140" height="54" rx="6"/><text x="810" y="120" text-anchor="middle">recipe .json</text><text class="small" x="810" y="138" text-anchor="middle">read by every user</text>
+  <rect class="box2" x="580" y="200" width="300" height="52" rx="6"/><text x="730" y="222" text-anchor="middle">launcher + converter · replay player and checker</text><text class="small" x="730" y="240" text-anchor="middle">(the players also use .deps, to seek quickly)</text>
+  <path class="arrow" d="M110 123H138"/><path class="arrow" d="M250 112L288 70"/><path class="arrow" d="M250 134L288 178"/><path class="arrow" d="M420 63H448"/><path class="arrow" d="M420 183H448"/>
+  <path class="arrow" d="M540 63L578 108"/><path class="arrow" d="M540 183L578 140"/><path class="arrow" d="M700 123H738"/><path class="arrow" d="M810 150V198"/>
+  <path class="arrow" d="M540 195L578 215"/>
+  <rect class="box3" x="10" y="200" width="150" height="46" rx="6"/><text x="85" y="220" text-anchor="middle">apps.json (catalog)</text><text class="small" x="85" y="236" text-anchor="middle">read by VRPlayer</text>
+</svg>
+<figcaption>Yellow boxes are files, blue boxes programs that make or change them. Everything that needs to know about a program reads the recipe; nothing at play time reads the workload or the analysis.</figcaption>
+</figure>
+
+<h2 id="where">Where to look</h2>
+<table>
+<tr><th>If you want to change…</th><th>Look in</th></tr>
+<tr><td>How far apart the eyes are, where they converge, the comfort limits</td><td><code>libs/stereo/core</code> (<code>ConvergenceModel</code>), the baker in <code>tools/analysis/recipe_bake</code>; see <a href="stereo.html">Stereo</a></td></tr>
+<tr><td>How a draw is classified live (scene, interface, skipped)</td><td><code>libs/stereo/core</code> (<code>StereoCore</code>), <code>libs/analysis/recipe</code> (<code>RecipeApplier</code>)</td></tr>
+<tr><td>What the analysis understands of an API</td><td><code>libs/analysis/api_dump_analysis/frontends/&lt;api&gt;</code></td></tr>
+<tr><td>How the second eye is drawn in the running program</td><td><code>runtime/converter_dll/&lt;api&gt;</code></td></tr>
+<tr><td>What a recipe can say</td><td><code>libs/analysis/recipe</code> (types, loader, applier) and <code>tools/analysis/recipe_bake</code></td></tr>
+<tr><td>How a capture is replayed for two eyes</td><td><code>tools/stereo_replay/engine_dll</code></td></tr>
+<tr><td>How an image reaches a headset</td><td><code>libs/headset/xr</code>, <code>runtime/presenter</code></td></tr>
+<tr><td>The catalog and the downloading of programs</td><td><code>libs/vr_player</code>, <code>apps/</code></td></tr>
+<tr><td>A helper that is not about any of these</td><td><code>libs/utils</code> (and nothing in it may use another library)</td></tr>
+</table>
+</main>
+</body>
+</html>

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contributing</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site"><nav>
+  <a class="brand" href="index.html">DeepScene</a>
+  <a href="index.html">Overview</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="analysis.html">Analysis</a>
+  <a href="recipes.html">Recipes</a>
+  <a href="stereo.html">Stereo</a>
+  <a href="replay.html">Replay</a>
+  <a href="live-conversion.html">Live conversion</a>
+  <a href="vr-player.html">VR player</a>
+  <a class="current" href="contributing.html">Contributing</a>
+  <a href="components.html">Reference</a>
+  <a href="../deps/APIInterceptor/docs/index.html">API Interceptor</a>
+</nav></header>
+<main>
+<h1>Contributing</h1>
+<p class="lead">How to build the project, where things go, which rules the tests enforce, and the two most common pieces of work: supporting a new program, and supporting a new graphics API.</p>
+<ol class="toc">
+  <li><a href="#build">Build and test</a></li>
+  <li><a href="#layout">Where things go</a></li>
+  <li><a href="#conventions">Conventions and what checks them</a></li>
+  <li><a href="#pitfalls">Pitfalls</a></li>
+  <li><a href="#new-app">Adding an application</a></li>
+  <li><a href="#new-api">Adding an API</a></li>
+</ol>
+
+<h2 id="build">Build and test</h2>
+<p>CMake, MSVC, C++14, two builds: 32-bit for what is injected into a program, 64-bit for the rest. <code>build.bat</code> makes both and collects a release in <code>build_final\</code>; the tests are built in both. Close <code>VRPlayer</code> before running it, since it empties <code>build_final\</code> (which also removes the downloaded applications). The details, the layout of the release and the CMake files are in <a href="building.html">Building &amp; testing</a>.</p>
+
+<h2 id="layout">Where things go</h2>
+<figure>
+<svg viewBox="0 0 900 270" role="img" aria-label="Source tree mirrors the release and libraries">
+  <rect class="box" x="10" y="20" width="270" height="230" rx="8"/><text class="title" x="145" y="44" text-anchor="middle">src/libs: what is shared</text>
+  <text class="small" x="26" y="72">utils: depends on nothing</text>
+  <text class="small" x="26" y="94">analysis: model, recipes, front ends</text>
+  <text class="small" x="26" y="116">stereo: decisions, images, channel</text>
+  <text class="small" x="26" y="138">headset: OpenXR output</text>
+  <text class="small" x="26" y="160">vr_player: what does not draw</text>
+  <text class="small" x="26" y="196">a part is a folder, and a namespace:</text>
+  <text class="small" x="26" y="214">libs/analysis/recipe = Analysis::Recipe</text>
+  <rect class="box2" x="320" y="20" width="270" height="230" rx="8"/><text class="title" x="455" y="44" text-anchor="middle">src: one folder per program</text>
+  <text class="small" x="336" y="72">vr_player → VRPlayer.exe</text>
+  <text class="small" x="336" y="94">runtime/launcher → runtime\StereoLauncher_*</text>
+  <text class="small" x="336" y="116">tools/analysis/recipe_bake → RecipeBake_x64</text>
+  <text class="small" x="336" y="138">tools/stereo_replay/player →</text>
+  <text class="small" x="336" y="156">   StereoReplayPlayer_*</text>
+  <text class="small" x="336" y="196">folder = file name in snake_case,</text>
+  <text class="small" x="336" y="214">without the prefix of its group</text>
+  <rect class="box3" x="630" y="20" width="260" height="230" rx="8"/><text class="title" x="760" y="44" text-anchor="middle">Rules the Layout test checks</text>
+  <text class="small" x="646" y="72">every installed program has its folder</text>
+  <text class="small" x="646" y="94">every program folder is installed</text>
+  <text class="small" x="646" y="116">utils includes no other library</text>
+  <text class="small" x="646" y="150">Headers sit beside their sources;</text>
+  <text class="small" x="646" y="168">there is no include/ folder.</text>
+  <text class="small" x="646" y="204">Includes name a library from src/libs:</text>
+  <text class="small" x="646" y="222">"stereo/core/stereo_core.h"</text>
+</svg>
+<figcaption>The source tree is the release: the path of a program in <code>src</code> tells where it is installed.</figcaption>
+</figure>
+<p>Put code where its <em>dependencies</em> say it belongs. Something with no knowledge of the rest (files, JSON, windows, hashes) goes into <code>utils</code>; something that knows what a draw is goes into <code>analysis</code> or <code>stereo</code>; something that knows an API's calls goes into an API's folder (<code>frontends/d3d8</code>, <code>converter_dll/d3d7</code>). A program's own folder holds only what that program does. The table of every project and its purpose is the <a href="components.html">Reference</a>.</p>
+
+<h2 id="conventions">Conventions and what checks them</h2>
+<table>
+<tr><th>Rule</th><th>Checked by</th></tr>
+<tr><td>Folders and files lower-case <code>snake_case</code>; namespaces PascalCase; executables PascalCase with <code>_x64</code> or <code>_x86</code> (<code>VRPlayer.exe</code> excepted)</td><td><code>Layout</code> test, <code>cmake/Architecture.cmake</code>, <code>cmake/Install.cmake</code></td></tr>
+<tr><td>Everything in a named namespace, definitions qualified (<code>Ret NS::f()</code>), no anonymous namespaces, no <code>using</code> directives</td><td>review</td></tr>
+<tr><td>Code is not written twice: a shared type or helper goes where both users can reach it</td><td><code>DuplicateCode</code> test (exceptions in <code>known_duplicates.txt</code>, which is for real exceptions, not for convenience)</td></tr>
+<tr><td>One return per function (<code>goto end</code> for an early exit), Allman braces always, one argument per line in calls of two or more, one condition per line in a longer <code>if</code></td><td>review</td></tr>
+<tr><td>Members, functions and variables in alphabetical order; runs of declarations and statements aligned in columns</td><td>review, helper scripts</td></tr>
+<tr><td>Names say what and in which unit; no shortened words; suffixes <code>_ptr</code> (pointer, and what returns one), <code>_func</code> (lambda), <code>_vec</code>, <code>_set</code>, <code>_map</code></td><td>review</td></tr>
+<tr><td>Constants are <code>constexpr UPPER_CASE</code>, function-local unless two functions share them; no magic numbers</td><td>review</td></tr>
+<tr><td>Comments are short, and say why or state a contract</td><td>review</td></tr>
+<tr><td>Docs change in the same work as the code they describe</td><td>review</td></tr>
+</table>
+<p>The conventions of API Interceptor, which this project follows, are in <a href="../deps/APIInterceptor/docs/building.html#conventions">its Building &amp; testing</a>.</p>
+
+<h2 id="pitfalls">Pitfalls</h2>
+<ul>
+  <li><strong>Folder names.</strong> Never name a folder <code>common</code>, <code>capture</code>, <code>interception</code> or <code>replay</code>. API Interceptor has folders of those names on the include path, and since the disk is case-insensitive, <code>"Common/types.h"</code> from here can resolve to the wrong one with an error that points nowhere. What the front ends of the analysis share is in <code>shared</code> for this reason.</li>
+  <li><strong>Build the result before you commit.</strong> Both builds and both test programs: a header that is missing in one architecture only is a common failure (the headset is 64-bit only, <code>windows.h</code> is needed where a constant of it is used).</li>
+  <li><strong>Direct and indirect includes.</strong> A header is included by the file that uses a name from it; after a file is split, each part includes what it uses, not what the old file happened to pull in.</li>
+  <li><strong>The 32-bit side.</strong> Code that runs in the injected converter cannot use what the 64-bit side has (the headset, D3D12). Keep the two separated by the frame channel, and keep what both need in <code>utils</code> or <code>stereo</code>.</li>
+</ul>
+
+<h2 id="new-app">Adding an application</h2>
+<p>A program is supported when it has a <em>recipe</em>: a file that says which draws are the 3D scene, which are an interface and where the eyes should converge. The work is: capture it, analyse it, decide with evidence what each pass is, write and bake the recipe, check it, and add it to the catalog. <a href="adding-an-app.html">Adding an application</a> has every step, the commands and a prompt that works for the part an LLM does well. Background: <a href="analysis.html">Analysis</a> (what the tools tell you), <a href="recipes.html">Recipes</a> (what a recipe holds and how it is baked), <a href="replay.html">Replay</a> (how to check it without the headset).</p>
+
+<h2 id="new-api">Adding an API</h2>
+<p>An API is added in layers, each of which can be finished and tested before the next. The layers are in the order they are needed; the stereo maths, the recipe format, the frame channel, the presenter and the VR player do not change, which is the point of the design (see <a href="architecture.html">Architecture</a>).</p>
+<figure>
+<svg viewBox="0 0 900 260" role="img" aria-label="Layers to add for a new API in order">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="box" x="10" y="30" width="200" height="90" rx="6"/><text x="110" y="56" text-anchor="middle">1 Capture</text><text class="small" x="110" y="76" text-anchor="middle">hooks and API info in</text><text class="small" x="110" y="92" text-anchor="middle">API Interceptor</text><text class="small" x="110" y="108" text-anchor="middle">(its own docs)</text>
+  <rect class="box" x="250" y="30" width="200" height="90" rx="6"/><text x="350" y="56" text-anchor="middle">2 Front end</text><text class="small" x="350" y="76" text-anchor="middle">frontends/&lt;api&gt;, registered in</text><text class="small" x="350" y="92" text-anchor="middle">AnalysisSession; tested with</text><text class="small" x="350" y="108" text-anchor="middle">a harness over captured calls</text>
+  <rect class="box2" x="490" y="30" width="200" height="90" rx="6"/><text x="590" y="56" text-anchor="middle">3 Replay</text><text class="small" x="590" y="76" text-anchor="middle">an executor in the engine</text><text class="small" x="590" y="92" text-anchor="middle">that runs the calls again</text><text class="small" x="590" y="108" text-anchor="middle">once for each eye</text>
+  <rect class="box4" x="730" y="30" width="160" height="90" rx="6"/><text x="810" y="56" text-anchor="middle">4 Live adapter</text><text class="small" x="810" y="76" text-anchor="middle">converter_dll/&lt;api&gt;:</text><text class="small" x="810" y="92" text-anchor="middle">eye renderer, window,</text><text class="small" x="810" y="108" text-anchor="middle">exporter</text>
+  <path class="arrow" d="M210 75H248"/><path class="arrow" d="M450 75H488"/><path class="arrow" d="M690 75H728"/>
+  <text class="small" x="450" y="170" text-anchor="middle">The analysis, the recipe, the stereo decisions, the channel and the player are shared and stay as they are.</text>
+  <text class="small" x="450" y="196" text-anchor="middle">Each layer ends with tests, and with a page of these docs saying what it does and does not cover.</text>
+</svg>
+<figcaption>Layers 1 and 2 give an analysis of the API (and therefore a recipe); 3 gives checking without a headset; 4 gives live conversion.</figcaption>
+</figure>
+<ol>
+  <li><strong>Capture.</strong> The program's calls must reach a workload file: hooks for the API's entry points and the description of its functions and structures. That is API Interceptor's work, described in its own docs; start from how Direct3D 7 was added there.</li>
+  <li><strong>A front end for the analysis.</strong> A class in <code>frontends/&lt;api&gt;</code> that follows the state of the API and reports through the events of the <a href="analysis.html#frontends">front end contract</a>. For an API with a fixed-function pipeline, derive from <code>FixedFunctionFrontend</code> in <code>frontends/shared</code>, which already follows the objects and the fixed-function state; what you write is what a resource is in your API, how its roles are told, and what the draw calls mean. Anything the shared vocabulary cannot say is a hint to extend it in an API-neutral way, not to put the API's words in the model. Register the front end in <code>AnalysisSession</code>, and test it on a captured slice (the Direct3D 7 tests use a call builder and a harness over it, <code>d3d7_call_builder.h</code> and <code>d3d7_frontend_harness.h</code>). From here the extractor, the query tools, the recipe rules and the baker work for the API.</li>
+  <li><strong>Replay.</strong> The replay engine runs the calls of a workload and has them executed for each eye through the executor interfaces of <code>tools/stereo_replay/engine_dll</code> (<code>IEyeExecutor</code> and the ones beside it). The API's executor is a folder there, as <code>d3d7/</code> is. The consistency checker is how it is verified: the images of the converted replay must equal the images of the original in the modes that must be equal (see <a href="replay.html#programs">Replay</a>).</li>
+  <li><strong>A live adapter.</strong> In <code>runtime/converter_dll/&lt;api&gt;</code>: an eye renderer (draw what the program draws for the second eye, with the decisions of <code>StereoCore</code>), a windowed mode (have the program render to something that is not shown, at the size of the headset's image), and an exporter (pass the finished frame to the frame channel). <code>Converter</code> holds the adapters and gives each call to the one of its API. Anything the adapter cannot follow it must refuse at once and say so, not render something wrong (<a href="live-conversion.html#adapters">Decisions and adapters</a>).</li>
+  <li><strong>The edges.</strong> Add the API to the table of <a href="index.html#api">What is supported</a>, and its limits to the pages whose limits it changes. Check that the layout test still passes with the new folders, and that both builds and both test programs are green.</li>
+</ol>
+<div class="note">The order matters for effort as well: after step 2 you can already read a program of the new API, decide what its passes are and write recipes; after step 3 you can check them with no headset. Do not start the live adapter before the replay shows the recipes are right.</div>
+</main>
+</body>
+</html>

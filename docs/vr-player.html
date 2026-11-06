@@ -10,13 +10,15 @@
 <header class="site"><nav>
   <a class="brand" href="index.html">DeepScene</a>
   <a href="index.html">Overview</a>
-  <a href="analysis-and-recipes.html">Analysis &amp; recipes</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="analysis.html">Analysis</a>
+  <a href="recipes.html">Recipes</a>
+  <a href="stereo.html">Stereo</a>
   <a href="replay.html">Replay</a>
-  <a href="live-stereo.html">Live stereo</a>
+  <a href="live-conversion.html">Live conversion</a>
   <a class="current" href="vr-player.html">VR player</a>
-  <a href="adding-an-app.html">Adding an app</a>
-  <a href="components.html">Components</a>
-  <a href="building.html">Building</a>
+  <a href="contributing.html">Contributing</a>
+  <a href="components.html">Reference</a>
   <a href="../deps/APIInterceptor/docs/index.html">API Interceptor</a>
 </nav></header>
 <main>
@@ -25,6 +27,25 @@
 
 <h2 id="download">The first launch</h2>
 <p>A program of the catalog which is not on the computer yet is marked so, with the size of what is downloaded. Launch starts the download (the zip file, from the addresses of the catalog, one after the other until one works), and the window shows the progress, with a button to cancel. The file is checked against the hash of the catalog and unpacked into <code>apps\&lt;id&gt;\</code> beside <code>VRPlayer.exe</code>, and the program then starts by itself. The next launches start it at once. If something goes wrong (the network, a file which is not the expected one, a folder which cannot be written to, a virus scanner which removes the program), a window says what, and nothing is left half done.</p>
+
+<h2 id="launch">The launch sequence</h2>
+<p><code>AppSession::start()</code> does the following, in this order. The order is the reason for each step.</p>
+<figure>
+<svg viewBox="0 0 900 250" role="img" aria-label="Order of the steps of a launch">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="box" x="10" y="30" width="160" height="70" rx="6"/><text x="90" y="55" text-anchor="middle">1 find the launcher</text><text class="small" x="90" y="73" text-anchor="middle">of the architecture of</text><text class="small" x="90" y="88" text-anchor="middle">the program (x86 / x64)</text>
+  <rect class="box" x="190" y="30" width="160" height="70" rx="6"/><text x="270" y="55" text-anchor="middle">2 open the channel</text><text class="small" x="270" y="73" text-anchor="middle">named from the session,</text><text class="small" x="270" y="88" text-anchor="middle">target eye size written</text>
+  <rect class="box" x="370" y="30" width="160" height="70" rx="6"/><text x="450" y="55" text-anchor="middle">3 make a job</text><text class="small" x="450" y="73" text-anchor="middle">everything started is in it,</text><text class="small" x="450" y="88" text-anchor="middle">killed when it closes</text>
+  <rect class="box2" x="550" y="30" width="160" height="70" rx="6"/><text x="630" y="55" text-anchor="middle">4 start the presenter</text><text class="small" x="630" y="73" text-anchor="middle">suspended, into the job,</text><text class="small" x="630" y="88" text-anchor="middle">then resumed</text>
+  <rect class="box4" x="730" y="30" width="160" height="70" rx="6"/><text x="810" y="55" text-anchor="middle">5 start the launcher</text><text class="small" x="810" y="73" text-anchor="middle">same way; its output</text><text class="small" x="810" y="88" text-anchor="middle">goes to a pipe</text>
+  <path class="arrow" d="M170 65H188"/><path class="arrow" d="M350 65H368"/><path class="arrow" d="M530 65H548"/><path class="arrow" d="M710 65H728"/>
+  <text class="small" x="450" y="150" text-anchor="middle">The launcher starts the program suspended, injects the converter DLL and resumes it.</text>
+  <text class="small" x="450" y="170" text-anchor="middle">The converter finds the channel by the session name, and reads the eye size before it makes the program's device.</text>
+  <text class="small" x="450" y="190" text-anchor="middle">Closing the session (or VRPlayer dying) closes the job, which ends the presenter, the launcher and the program.</text>
+</svg>
+<figcaption>Steps 2 and 3 come first so that what is said through the channel is there when the converter first looks, and so that nothing started can get out of the job.</figcaption>
+</figure>
+<p>The window comes before the launcher so that it is there when the first image arrives. The two helpers are suspended until they are in the job, since a process that starts another before that would leave one outside it. The pipe keeps what the launcher says, so the window can show why a program stopped.</p>
 
 <h2>Pieces</h2>
 <figure>

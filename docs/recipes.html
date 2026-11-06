@@ -3,26 +3,77 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Recipe format</title>
+<title>Recipes</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="site"><nav>
   <a class="brand" href="index.html">DeepScene</a>
   <a href="index.html">Overview</a>
-  <a href="analysis-and-recipes.html">Analysis &amp; recipes</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="analysis.html">Analysis</a>
+  <a class="current" href="recipes.html">Recipes</a>
+  <a href="stereo.html">Stereo</a>
   <a href="replay.html">Replay</a>
-  <a href="live-stereo.html">Live stereo</a>
+  <a href="live-conversion.html">Live conversion</a>
   <a href="vr-player.html">VR player</a>
-  <a href="adding-an-app.html">Adding an app</a>
-  <a href="components.html">Components</a>
-  <a href="building.html">Building</a>
+  <a href="contributing.html">Contributing</a>
+  <a href="components.html">Reference</a>
   <a href="../deps/APIInterceptor/docs/index.html">API Interceptor</a>
 </nav></header>
 <main>
-<h1>Recipe format</h1>
-<p class="lead">A recipe is JSON. <code>RecipeLoader</code> checks everything that needs no application: names, numbers and keys are valid, and no unknown field is left. See <a href="analysis-and-recipes.html">Analysis &amp; recipes</a> for how one is made.</p>
-<div class="note">The keys and the <code>baked</code> section do not depend on the API. The <code>rules</code> section does: a rule names the call it applies to (and the state of that call) in the terms of its API. A rule can name <code>IDirect3DDevice8::SetTransform</code> or <code>IDirect3DDevice7::SetTransform</code> today (the table is in <code>recipe_loader_rules.cpp</code>); the example below is Direct3D 8, the first API with a front end, and a recipe for another API would name that API's calls.</div>
+<h1>Recipes</h1>
+<p class="lead">A recipe is the one file that says how to turn one program into stereo: which draws are the scene, which are flat, and the numbers that go with them. Everything that needs to know about a program reads its recipe; nothing at play time reads the capture.</p>
+<ol class="toc">
+  <li><a href="#what">What a recipe holds</a></li>
+  <li><a href="#baking">Baking: from what is known offline to what is known live</a></li>
+  <li><a href="#making">How one is made</a></li>
+  <li><a href="#format">The format</a></li>
+</ol>
+
+<h2 id="what">What a recipe holds</h2>
+<p>A recipe is JSON, in two kinds of parts. A person (often with an LLM reading the analysis) writes the <em>decisions</em>; <code>RecipeBake</code> adds the <em>measurements</em> in a section called <code>baked</code> and never touches the rest.</p>
+<figure>
+<svg viewBox="0 0 900 330" role="img" aria-label="The parts of a recipe: written by hand and baked">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="group" x="10" y="10" width="430" height="310" rx="10"/><text class="title" x="24" y="32">Written by a person</text>
+  <rect class="box" x="30" y="48" width="390" height="46" rx="6"/><text x="225" y="68" text-anchor="middle"><tspan font-weight="bold">unaffected / affected / skipped</tspan></text><text class="small" x="225" y="84" text-anchor="middle">which passes and draws are flat, which are scene, which are not played</text>
+  <rect class="box" x="30" y="102" width="390" height="46" rx="6"/><text x="225" y="122" text-anchor="middle"><tspan font-weight="bold">rules</tspan></text><text class="small" x="225" y="138" text-anchor="middle">which matrix to change for each eye (eye_offset, eye_convergence)</text>
+  <rect class="box" x="30" y="156" width="390" height="46" rx="6"/><text x="225" y="176" text-anchor="middle"><tspan font-weight="bold">comfort</tspan></text><text class="small" x="225" y="192" text-anchor="middle">how much parallax is acceptable; how far to push the interface</text>
+  <rect class="box" x="30" y="210" width="390" height="46" rx="6"/><text x="225" y="230" text-anchor="middle"><tspan font-weight="bold">screen_parallax</tspan></text><text class="small" x="225" y="246" text-anchor="middle">convergence and field of view, for vertices already in pixels</text>
+  <rect class="box" x="30" y="264" width="390" height="46" rx="6"/><text x="225" y="284" text-anchor="middle"><tspan font-weight="bold">known_shape_keys, on_unknown_frame</tspan></text><text class="small" x="225" y="300" text-anchor="middle">what the recipe was made for, and what to do with any other frame</text>
+  <rect class="group" x="460" y="10" width="430" height="310" rx="10"/><text class="title" x="474" y="32">Baked by RecipeBake from the analysis</text>
+  <rect class="box3" x="480" y="48" width="390" height="46" rx="6"/><text x="675" y="68" text-anchor="middle"><tspan font-weight="bold">draw_rules, known_signatures</tspan></text><text class="small" x="675" y="84" text-anchor="middle">the decisions above, by draw signature, which a live converter can match</text>
+  <rect class="box3" x="480" y="102" width="390" height="46" rx="6"/><text x="675" y="122" text-anchor="middle"><tspan font-weight="bold">scene_convergence, convergence</tspan></text><text class="small" x="675" y="138" text-anchor="middle">the median depth, by vertices, per kind of frame and per signature</text>
+  <rect class="box3" x="480" y="156" width="390" height="46" rx="6"/><text x="675" y="176" text-anchor="middle"><tspan font-weight="bold">scene_max_separation</tspan></text><text class="small" x="675" y="192" text-anchor="middle">the ceiling of the eye separation per kind of frame, from comfort</text>
+  <rect class="box3" x="480" y="210" width="390" height="46" rx="6"/><text x="675" y="230" text-anchor="middle"><tspan font-weight="bold">per_eye_textures</tspan></text><text class="small" x="675" y="246" text-anchor="middle">the textures each eye needs its own copy of (from the .deps)</text>
+  <rect class="box3" x="480" y="264" width="390" height="46" rx="6"/><text x="675" y="284" text-anchor="middle"><tspan font-weight="bold">covering_draws</tspan></text><text class="small" x="675" y="300" text-anchor="middle">draws that cover the whole view: never pushed sideways</text>
+  <path class="arrow" d="M420 140H478"/>
+</svg>
+<figcaption>The left side is the judgement, the right side is arithmetic over the analysis. Bake again whenever the capture changes; do not edit the baked part.</figcaption>
+</figure>
+<p>The numbers in the right-hand column are what <a href="stereo.html">Stereo</a> explains: the convergence distance, the ceiling of the separation, and the pushing of the interface. Two version numbers guard the file: <code>key_scheme_version</code> must equal that of the build that reads it (or the keys would not match anything), and the baked <code>signature_scheme_version</code> the same for signatures. The loader refuses a recipe of another scheme instead of guessing.</p>
+
+<h2 id="baking">Baking: from what is known offline to what is known live</h2>
+<p>An offline replay knows more than a converter inside a running program. The replay knows the pass a draw belongs to; the converter, when the draw is issued, does not, since the pass is not over yet. A converter can only match a draw by its <a href="analysis.html#keys">signature</a> and the view matrix. The baker bridges the two.</p>
+<figure>
+<svg viewBox="0 0 900 190" role="img" aria-label="What a replay knows and what a live converter knows">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="box" x="20" y="30" width="250" height="110" rx="8"/><text class="title" x="145" y="54" text-anchor="middle">Offline (replay)</text><text class="small" x="145" y="78" text-anchor="middle">knows the pass of every draw,</text><text class="small" x="145" y="94" text-anchor="middle">the shape of the frame, the keys</text><text class="small" x="145" y="116" text-anchor="middle">rules may name passes</text>
+  <rect class="box3" x="325" y="30" width="250" height="110" rx="8"/><text class="title" x="450" y="54" text-anchor="middle">RecipeBake</text><text class="small" x="450" y="78" text-anchor="middle">for every signature the analysis saw:</text><text class="small" x="450" y="94" text-anchor="middle">scene or interface, and with which</text><text class="small" x="450" y="110" text-anchor="middle">view matrix; the distances</text>
+  <rect class="box2" x="630" y="30" width="250" height="110" rx="8"/><text class="title" x="755" y="54" text-anchor="middle">Live (converter)</text><text class="small" x="755" y="78" text-anchor="middle">knows the signature of a draw</text><text class="small" x="755" y="94" text-anchor="middle">and the view matrix now</text><text class="small" x="755" y="116" text-anchor="middle">cannot follow a rule about a pass</text>
+  <path class="arrow" d="M270 85H323"/><path class="arrow" d="M575 85H628"/>
+  <text class="small" x="450" y="170" text-anchor="middle">when a signature is both scene and interface under the same view matrix, nothing known live can tell them apart: the bake fails (exit 3) and says which</text>
+</svg>
+<figcaption>Rules by pass or by frame shape work only offline. A recipe that needs one for a live run is refused by the converter at once, with a message, rather than drawing wrong images.</figcaption>
+</figure>
+<p><code>RecipeBake</code> also checks a recipe without writing anything: <code>--check</code> lists the frame shapes and draw signatures of a capture that the recipe does not know (exit code 5), and a pass left alone whose vertices are at many depths, which is a 3D scene seen from one place and not an overlay (exit code 6). <code>--overlays</code> prints the draws that may be 2D overlays, by the recipe and by the hint of the analysis, and where the two disagree.</p>
+
+<h2 id="making">How one is made</h2>
+<p>The steps are captured in <a href="adding-an-app.html">Adding an app</a>: capture, extract, investigate the analysis (an LLM reading the query tool's JSON is good at this), draft the rules, bake, check offline with the <a href="replay.html">replay tools</a>, try live. The recipes that ship are in <code>apps/recipes</code>.</p>
+
+<h2 id="format">The format</h2>
+<p><code>RecipeLoader</code> checks everything that needs no program: names, numbers and keys are valid, and no unknown field is left. The keys and the <code>baked</code> section do not depend on the API. The <code>rules</code> section does: a rule names the call it applies to (and the state of that call) in the terms of its API. A rule can name <code>IDirect3DDevice8::SetTransform</code> or <code>IDirect3DDevice7::SetTransform</code> today (the table is in <code>recipe_loader_rules.cpp</code>); the example is Direct3D 8, and a recipe for another API would name that API's calls.</p>
 <pre><code>  {
     "recipe_version": 0,
     "key_scheme_version": 1,                       must equal this build's, or the keys would not match
@@ -129,7 +180,7 @@
       }
     ]
   }</code></pre>
-<p>Keys are the strings <code>APIDumpAnalysisQuery</code> prints. The functions a rule can apply to, and the conditions each allows, are listed in <code>recipe_loader_rules.cpp</code>.</p>
+<p>Keys are the strings <code>APIDumpAnalysisQuery</code> prints.</p>
 </main>
 </body>
 </html>

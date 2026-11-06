@@ -10,68 +10,81 @@
 <header class="site"><nav>
   <a class="brand" href="index.html">DeepScene</a>
   <a class="current" href="index.html">Overview</a>
-  <a href="analysis-and-recipes.html">Analysis &amp; recipes</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="analysis.html">Analysis</a>
+  <a href="recipes.html">Recipes</a>
+  <a href="stereo.html">Stereo</a>
   <a href="replay.html">Replay</a>
-  <a href="live-stereo.html">Live stereo</a>
+  <a href="live-conversion.html">Live conversion</a>
   <a href="vr-player.html">VR player</a>
-  <a href="adding-an-app.html">Adding an app</a>
-  <a href="components.html">Components</a>
-  <a href="building.html">Building</a>
+  <a href="contributing.html">Contributing</a>
+  <a href="components.html">Reference</a>
   <a href="../deps/APIInterceptor/docs/index.html">API Interceptor</a>
 </nav></header>
 <main>
 <h1>DeepScene</h1>
-<p class="lead">A set of tools to capture the graphics API calls of a Windows program, study them, and use what was learned to turn a plain 3D demo into stereo 3D, live, on a monitor or in a VR headset.</p>
+<p class="lead">Turns a plain 3D Windows program into stereo 3D, live, on a monitor or in a VR headset, without its source code and without changing it. These pages are for someone who is going to work on the project: they assume you know C++ and graphics APIs, and explain what is specific to this codebase.</p>
 
-<div class="note">The capture is done by <a href="../deps/APIInterceptor/docs/index.html">API Interceptor</a>, a library which this project has as a submodule. Everything else is here.</div>
-
-<h2>The jobs</h2>
-<div class="cards">
-  <div class="card"><h3><a href="../deps/APIInterceptor/docs/capture.html">Capture</a></h3><p>Record every call of a program into a workload file, with the dumper of API Interceptor.</p></div>
-  <div class="card"><h3><a href="replay.html">Replay</a></h3><p>Play a workload back without the program, for both eyes, to try a recipe and to check that a frame can be drawn twice.</p></div>
-  <div class="card"><h3><a href="analysis-and-recipes.html">Analysis &amp; recipes</a></h3><p>Turn a workload into a <code>.passes</code> file, then bake a recipe that says how each draw is to be treated.</p></div>
-  <div class="card"><h3><a href="live-stereo.html">Live stereo</a></h3><p>Inject a converter into the running program: it renders two eyes and passes the images on.</p></div>
-  <div class="card"><h3><a href="vr-player.html">VR player</a></h3><p>Launch programs, show the stereo image in a window, or in a headset through OpenXR.</p></div>
-</div>
-
-<h2>How the parts fit</h2>
+<h2>The idea</h2>
+<p>A 3D program draws every frame once, from one camera. For stereo, the part of the frame that is a 3D <em>scene</em> has to be drawn twice, from two cameras a little apart, while what is flat (a menu, text, a full-screen fade) is drawn once. The program cannot be asked to do that, and its source is not there. So DeepScene works from outside, in three steps:</p>
 <figure>
-<svg viewBox="0 0 900 430" role="img" aria-label="Overview of the data flow between the tools">
+<svg viewBox="0 0 900 190" role="img" aria-label="The three steps: capture, study, play">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
-
-  <rect class="group" x="10" y="10" width="880" height="150" rx="10"/>
-  <text class="title" x="24" y="32">Offline: study a program</text>
-  <rect class="box" x="30" y="50" width="130" height="50" rx="6"/><text x="95" y="80" text-anchor="middle">APIDumper</text>
-  <rect class="box3" x="210" y="50" width="140" height="50" rx="6"/><text x="280" y="72" text-anchor="middle">workload file</text><text class="small" x="280" y="88" text-anchor="middle">every call + data</text>
-  <rect class="box" x="400" y="50" width="150" height="50" rx="6"/><text x="475" y="72" text-anchor="middle">Extractor</text><text class="small" x="475" y="88" text-anchor="middle">analysis passes</text>
-  <rect class="box3" x="600" y="50" width="120" height="50" rx="6"/><text x="660" y="72" text-anchor="middle">.passes</text><text class="small" x="660" y="88" text-anchor="middle">model of the program</text>
-  <rect class="box" x="760" y="50" width="110" height="50" rx="6"/><text x="815" y="72" text-anchor="middle">RecipeBake</text><text class="small" x="815" y="88" text-anchor="middle">+ rules</text>
-  <path class="arrow" d="M160 75H208"/><path class="arrow" d="M350 75H398"/><path class="arrow" d="M550 75H598"/><path class="arrow" d="M720 75H758"/>
-  <rect class="box2" x="30" y="115" width="130" height="34" rx="6"/><text x="95" y="137" text-anchor="middle">StereoReplayPlayer</text>
-  <path class="arrow" d="M280 100V132H162"/>
-  <rect class="box2" x="400" y="115" width="150" height="34" rx="6"/><text x="475" y="137" text-anchor="middle">Query / Printer</text>
-  <path class="arrow" d="M660 100V132H552"/>
-
-  <rect class="box3" x="760" y="190" width="110" height="46" rx="6"/><text x="815" y="211" text-anchor="middle">recipe</text><text class="small" x="815" y="226" text-anchor="middle">JSON</text>
-  <path class="arrow" d="M815 100V188"/>
-
-  <rect class="group" x="10" y="260" width="880" height="160" rx="10"/>
-  <text class="title" x="24" y="282">Live: convert a running program</text>
-  <rect class="box" x="30" y="305" width="130" height="50" rx="6"/><text x="95" y="327" text-anchor="middle">StereoLauncher</text><text class="small" x="95" y="343" text-anchor="middle">32-bit</text>
-  <rect class="box4" x="210" y="305" width="160" height="90" rx="6"/><text x="290" y="327" text-anchor="middle">Program + StereoConverterDLL</text><text class="small" x="290" y="345" text-anchor="middle">hooks, analysis,</text><text class="small" x="290" y="359" text-anchor="middle">two-eye rendering</text><text class="small" x="290" y="373" text-anchor="middle">32-bit</text>
-  <rect class="box3" x="420" y="305" width="140" height="50" rx="6"/><text x="490" y="327" text-anchor="middle">frame channel</text><text class="small" x="490" y="343" text-anchor="middle">shared memory</text>
-  <rect class="box" x="610" y="305" width="130" height="50" rx="6"/><text x="675" y="327" text-anchor="middle">StereoPresenter</text><text class="small" x="675" y="343" text-anchor="middle">64-bit</text>
-  <rect class="box2" x="770" y="290" width="110" height="34" rx="6"/><text x="825" y="312" text-anchor="middle">preview window</text>
-  <rect class="box2" x="770" y="336" width="110" height="34" rx="6"/><text x="825" y="358" text-anchor="middle">headset (OpenXR)</text>
-  <path class="arrow" d="M160 330H208"/><path class="arrow" d="M370 330H418"/><path class="arrow" d="M560 330H608"/><path class="arrow" d="M740 322L768 310"/><path class="arrow" d="M740 340L768 352"/>
-  <path class="arrow" d="M815 236V262H95V303" />
-  <text class="small" x="450" y="256" text-anchor="middle">recipe is read by the launcher</text>
+  <rect class="box" x="20" y="30" width="230" height="90" rx="8"/><text class="title" x="135" y="56" text-anchor="middle">1 Capture</text><text class="small" x="135" y="78" text-anchor="middle">record every API call of the</text><text class="small" x="135" y="94" text-anchor="middle">program, with its data</text><text class="small" x="135" y="110" text-anchor="middle">(API Interceptor)</text>
+  <rect class="box3" x="20" y="140" width="230" height="36" rx="6"/><text x="135" y="163" text-anchor="middle">workload file</text>
+  <rect class="box" x="335" y="30" width="230" height="90" rx="8"/><text class="title" x="450" y="56" text-anchor="middle">2 Study</text><text class="small" x="450" y="78" text-anchor="middle">find out what each draw is:</text><text class="small" x="450" y="94" text-anchor="middle">scene, interface, effect;</text><text class="small" x="450" y="110" text-anchor="middle">how deep the scene is</text>
+  <rect class="box3" x="335" y="140" width="230" height="36" rx="6"/><text x="450" y="163" text-anchor="middle">analysis, then a recipe (JSON)</text>
+  <rect class="box" x="650" y="30" width="230" height="90" rx="8"/><text class="title" x="765" y="56" text-anchor="middle">3 Play</text><text class="small" x="765" y="78" text-anchor="middle">a converter inside the running</text><text class="small" x="765" y="94" text-anchor="middle">program draws the scene twice</text><text class="small" x="765" y="110" text-anchor="middle">and passes both images on</text>
+  <rect class="box2" x="650" y="140" width="230" height="36" rx="6"/><text x="765" y="163" text-anchor="middle">monitor window or VR headset</text>
+  <path class="arrow" d="M250 75H333"/><path class="arrow" d="M565 75H648"/>
 </svg>
-<figcaption>Offline tools study a program once; the recipe they produce is what the live converter reads.</figcaption>
+<figcaption>Capture and study are done once for a program; playing uses only the recipe that came out of them.</figcaption>
 </figure>
 
-<h2 id="api">One API is not all of them</h2>
-<p>Direct3D 8 is the first API the tools support, and the demos are what drove the work, but the code is arranged for more. The parts that depend on an API are the ones listed in the table; everything else (the model of the analysis, the keys, the <code>.passes</code> file, the recipe format, the stereo decisions of <code>StereoCore</code>, the frame channel, the presenter and the VR player) does not know which API a program uses.</p>
+<h3>What the converter does to a frame</h3>
+<p>A converter is a DLL that is injected into the program. It sits on the calls the program makes to its graphics API, and for each draw it asks the recipe whether the draw is scene or interface. A scene draw is made for each eye, with a camera moved half the eye separation to each side; an interface draw is made once. The two finished images go to another process, which shows them.</p>
+<figure>
+<svg viewBox="0 0 900 250" role="img" aria-label="The program without and with the converter">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <text class="title" x="10" y="22">Without</text>
+  <rect class="box4" x="30" y="35" width="150" height="46" rx="6"/><text x="105" y="63" text-anchor="middle">program</text>
+  <rect class="box" x="260" y="35" width="150" height="46" rx="6"/><text x="335" y="63" text-anchor="middle">graphics API</text>
+  <rect class="box2" x="490" y="35" width="150" height="46" rx="6"/><text x="565" y="63" text-anchor="middle">one picture</text>
+  <path class="arrow" d="M180 58H258"/><path class="arrow" d="M410 58H488"/>
+
+  <text class="title" x="10" y="122">With</text>
+  <rect class="box4" x="30" y="135" width="120" height="46" rx="6"/><text x="90" y="163" text-anchor="middle">program</text>
+  <rect class="box3" x="210" y="125" width="160" height="66" rx="6"/><text x="290" y="150" text-anchor="middle">converter</text><text class="small" x="290" y="168" text-anchor="middle">+ recipe</text>
+  <rect class="box" x="430" y="135" width="120" height="46" rx="6"/><text x="490" y="163" text-anchor="middle">graphics API</text>
+  <rect class="box2" x="610" y="125" width="130" height="30" rx="6"/><text x="675" y="145" text-anchor="middle" class="l">left picture</text>
+  <rect class="box2" x="610" y="165" width="130" height="30" rx="6"/><text x="675" y="185" text-anchor="middle" class="r">right picture</text>
+  <rect class="box" x="780" y="135" width="105" height="46" rx="6"/><text x="832" y="153" text-anchor="middle">presenter</text><text class="small" x="832" y="169" text-anchor="middle">window / headset</text>
+  <path class="arrow" d="M150 158H208"/><path class="arrow" d="M370 150L428 150"/><path class="arrow" d="M370 170L428 170"/><path class="arrow" d="M550 150L608 140"/><path class="arrow" d="M550 166L608 180"/><path class="arrow" d="M740 140L778 150"/><path class="arrow" d="M740 180L778 168"/>
+  <text class="small" x="400" y="115" text-anchor="middle">a scene draw goes down twice, an interface draw once</text>
+</svg>
+<figcaption>The program does not know. It makes its usual calls; the converter repeats the ones that belong to the scene.</figcaption>
+</figure>
+<p>The hard parts are therefore two. <a href="analysis.html">Telling scene from interface</a> without the program's help, in a way that works while the program runs, and <a href="stereo.html">giving the two pictures the right parallax</a>, so that the result is comfortable to look at.</p>
+
+<h2>Words used on these pages</h2>
+<table>
+<tr><th>Word</th><th>Meaning</th></tr>
+<tr><td><strong>Workload</strong></td><td>The file of every API call a program made, with the data they refer to, written by the dumper of API Interceptor.</td></tr>
+<tr><td><strong>Frame</strong></td><td>The calls up to a present (or a flip). Every present is a frame.</td></tr>
+<tr><td><strong>Pass</strong></td><td>Draws that render into the same targets in one go.</td></tr>
+<tr><td><strong>Draw signature</strong></td><td>A 64-bit key that says what a draw is <em>at the moment it is issued</em>: the one thing a converter inside a running program can know of a draw (<a href="analysis.html#keys">Keys</a>).</td></tr>
+<tr><td><strong>Frame shape</strong></td><td>The kinds of passes a frame is made of. A capture of a demo has hundreds of thousands of frames and a few dozen shapes.</td></tr>
+<tr><td><strong>Recipe</strong></td><td>A JSON file that says how to treat each draw of one program: scene or interface, and the numbers that go with it (<a href="recipes.html">Recipes</a>).</td></tr>
+<tr><td><strong>Eye separation</strong></td><td>The distance between the two cameras, in the units of the program's camera.</td></tr>
+<tr><td><strong>Convergence distance</strong></td><td>The distance from the camera at which the pictures of the two eyes coincide. What is there appears at the screen; nearer things stand out of it, farther ones lie behind it.</td></tr>
+<tr><td><strong>Parallax</strong></td><td>How far apart the same point is in the two pictures. It is zero at the convergence distance.</td></tr>
+<tr><td><strong>Front end</strong></td><td>The part of the analysis that follows the state of <em>one</em> graphics API and says what its calls mean.</td></tr>
+<tr><td><strong>Adapter</strong></td><td>The part of the converter that knows <em>one</em> graphics API.</td></tr>
+<tr><td><strong>Twin</strong></td><td>A copy of a render target, depth buffer or texture that the converter keeps for the second eye.</td></tr>
+</table>
+
+<h2 id="api">What is supported</h2>
+<p>Direct3D 8 was the first API, the demos are what drove the work, and the code is arranged for more. What depends on an API is exactly the row of this table; everything else (the model of the analysis, the keys, the recipe format, the decisions of the stereo core, the frame channel, the presenter and the player) does not know which API a program uses.</p>
 <table>
 <tr><th>API</th><th>Hooks and dump</th><th>Printer</th><th>Analysis</th><th>Replay</th><th>Stereo conversion</th></tr>
 <tr><td>DirectDraw 7 and Direct3D 7</td><td>yes</td><td>yes</td><td>yes (front end)</td><td>yes (executor)</td><td>yes (adapter)</td></tr>
@@ -79,21 +92,19 @@
 <tr><td>OpenGL</td><td>yes</td><td>yes</td><td>not yet</td><td>yes (executor)</td><td>not yet</td></tr>
 <tr><td>Win32 windows (GDI32, User32, WGL)</td><td>yes</td><td>yes</td><td>not applicable</td><td>yes (window handling)</td><td>not applicable</td></tr>
 </table>
-<p>Adding an API means adding its row: its hooks, the front end that follows its state, its names for the printer, its replay executor and its converter adapter. The page <a href="analysis-and-recipes.html#frontends">Analysis &amp; recipes</a> lists what each piece is and where it goes.</p>
+<p>Adding an API means adding its row: see <a href="contributing.html#new-api">Adding an API</a>. The converter handles Direct3D 8 programs whose camera is set with <code>SetTransform</code>, and Direct3D 7 programs whose vertices are already in pixels. The programs are 32-bit, because the demos are; the player and the presenter are 64-bit. Only the Oculus Quest 3 has been tested as a headset.</p>
 
-<h2>Where the code is</h2>
-<p>Each project is described in <a href="components.html">Components</a>.</p>
-<table>
-<tr><th>Group</th><th>Projects</th><th>What they do</th></tr>
-<tr><td>Capture (API Interceptor)</td><td><code>APIDumper</code>, <code>APIDumperDLL</code>, <code>APIDumpLoader</code>, <code>APIDumpPrinter</code>, <code>InjectionLauncher</code>, and the hooks</td><td>The submodule: capture a program, read and print a workload.</td></tr>
-<tr><td>Analysis</td><td><code>libs/analysis</code>, <code>tools/analysis</code></td><td>Passes, queries, recipe baking and applying.</td></tr>
-<tr><td>Replay</td><td><code>tools/stereo_replay</code>: <code>StereoReplayEngineDLL</code>, <code>StereoReplayPlayer</code>, <code>StereoReplayConsistencyChecker</code></td><td>Execute a workload's calls again.</td></tr>
-<tr><td>Stereo</td><td><code>libs/stereo</code>, <code>libs/headset</code>, <code>runtime</code>: <code>StereoConverterDLL</code>, <code>StereoLauncher</code>, <code>StereoPresenter</code></td><td>The live converter and what carries its images to the screen.</td></tr>
-<tr><td>VR player</td><td><code>VRPlayer</code>, <code>libs/vr_player</code></td><td>The front end that launches programs and chooses the output.</td></tr>
-<tr><td>Utils</td><td><code>libs/utils</code></td><td>What any of the above may use: image and JSON files, hashing, downloading, an ImGui window, Direct3D 12 plumbing.</td></tr>
-</table>
-
-<div class="note">The project is C++14. Some programs are 32-bit (the injected parts, because the demos are) and some 64-bit (the presenter and the players), so the build makes both and collects them in <code>build_final</code>.</div>
+<h2>Where to go next</h2>
+<div class="cards">
+  <div class="card"><h3><a href="architecture.html">Architecture</a></h3><p>The libraries, the programs, how they depend on each other, and where to find things.</p></div>
+  <div class="card"><h3><a href="stereo.html">Stereo</a></h3><p>How the separation, the convergence and the comfort limits are worked out, with the maths.</p></div>
+  <div class="card"><h3><a href="analysis.html">Analysis</a></h3><p>How a workload becomes a model: passes, keys, shapes, dependencies.</p></div>
+  <div class="card"><h3><a href="recipes.html">Recipes</a></h3><p>What a recipe holds, how one is baked, and the file format.</p></div>
+  <div class="card"><h3><a href="replay.html">Replay</a></h3><p>Playing a capture again for both eyes, to try a recipe and to check a frame can be drawn twice.</p></div>
+  <div class="card"><h3><a href="live-conversion.html">Live conversion</a></h3><p>The converter inside the program, and the channel to the presenter.</p></div>
+  <div class="card"><h3><a href="vr-player.html">VR player</a></h3><p>The front end, and the path of an image into a headset.</p></div>
+  <div class="card"><h3><a href="contributing.html">Contributing</a></h3><p>Building, testing, the layout and the conventions, adding an API or a program.</p></div>
+</div>
 </main>
 </body>
 </html>
