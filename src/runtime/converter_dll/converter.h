@@ -125,7 +125,7 @@ namespace Stereo
             };
 
             std::unique_ptr<Stereo::Transport::FrameChannel> m_channel_ptr;
-    std::unique_ptr<FramePasser>                     m_d3d7_frame_passer_ptr;
+            std::unique_ptr<FramePasser>                     m_d3d7_frame_passer_ptr;
             std::unique_ptr<FramePasser>                     m_frame_passer_ptr;
             LiveState                                        m_live_state;
             SessionLog                                       m_log;

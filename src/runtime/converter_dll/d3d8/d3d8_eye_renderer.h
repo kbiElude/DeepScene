@@ -88,9 +88,9 @@ namespace Stereo
             std::vector<Stereo::Core::MatrixChange> m_change_vec; /* of the draw being made: its entries are used again */
             Stereo::Core::StereoCore*               m_core_ptr;
             void*                                   m_device_ptr;
-            Analysis::Recipe::DrawClass       m_draw_class;
+            Analysis::Recipe::DrawClass             m_draw_class;
             DeviceMirror                            m_mirror;
-            std::map<void*, void*>                  m_twin_map; /* the application's -> its twin */
+            std::map<void*, void*>                  m_twin_map;   /* the application's -> its twin */
         };
     }
 }

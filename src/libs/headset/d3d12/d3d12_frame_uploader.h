@@ -68,9 +68,9 @@ namespace Headset
 
 
             Microsoft::WRL::ComPtr<ID3D12Device3> m_device_ptr;
-            std::string                           m_error; /* what stopped the uploader from being made; empty if nothing did */
+            std::string                           m_error;      /* what stopped the uploader from being made; empty if nothing did */
             std::map<const void*, Region>         m_region_map; /* by where what was mapped starts */
-            Utils::D3D12::D3D12CommandRunner                    m_runner;     /* last: it is the first to go, and waits for what the GPU reads of the rest */
+            Utils::D3D12::D3D12CommandRunner      m_runner;     /* last: it is the first to go, and waits for what the GPU reads of the rest */
         };
     }
 }

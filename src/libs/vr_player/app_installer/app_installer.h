@@ -65,9 +65,9 @@ namespace VRPlayer
             static std::string get_host     (const std::string& in_url);
             static bool        is_sha256_hex(const std::string& in_text);
 
-            Utils::Files::IDownloader*        m_downloader_ptr;
-            std::atomic<bool>   m_is_busy;      /* not guarded: set by start() and by the thread, read by the window */
-            std::atomic<bool>   m_is_cancelled; /* not guarded: set by the window, read by the thread                */
+            Utils::Files::IDownloader* m_downloader_ptr;
+            std::atomic<bool>          m_is_busy;      /* not guarded: set by start() and by the thread, read by the window */
+            std::atomic<bool>          m_is_cancelled; /* not guarded: set by the window, read by the thread                */
             mutable SharedState m_shared_state;
             std::thread         m_thread;
         };

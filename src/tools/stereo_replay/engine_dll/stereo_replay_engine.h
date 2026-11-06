@@ -54,15 +54,15 @@ namespace Stereo
             private:
                 /* Declared in the order the engine needs them: the engine, whose thread uses the others, is the first to go. */
                 Analysis::APIDumpDependencies::DependencyAnalysis m_dependencies;
-                FrameHurry                           m_hurry;
-                bool                                 m_has_dependencies;
-                bool                                 m_has_seek_target;  /* a seek with the dependencies was asked for, and m_seek_target_frame is its frame */
-                PresentSkipper                       m_present_skipper;
-                uint32_t                             m_seek_target_frame;
-                SliceSkipper                         m_slice_skipper;
-                std::string                          m_workload_filename; /* what was loaded; the dependencies are checked against it */
-                StereoFrameExecutor                  m_stereo_executor;
-                PacedFrameExecutor                   m_paced_executor;
+                FrameHurry                                        m_hurry;
+                bool                                              m_has_dependencies;
+                bool                                              m_has_seek_target;   /* a seek with the dependencies was asked for, and m_seek_target_frame is its frame */
+                PresentSkipper                                    m_present_skipper;
+                uint32_t                                          m_seek_target_frame;
+                SliceSkipper                                      m_slice_skipper;
+                std::string                                       m_workload_filename; /* what was loaded; the dependencies are checked against it */
+                StereoFrameExecutor                               m_stereo_executor;
+                PacedFrameExecutor                                m_paced_executor;
                 ::Replay::ReplayEngineDLL::ReplayEngine m_engine;
             };
         }

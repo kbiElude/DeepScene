@@ -160,10 +160,10 @@ std::vector<uint32_t> Stereo::Replay::ConsistencyChecker::OverlayProbe::get_shar
     };
 
     std::vector<Group>                      group_vec;
-    std::vector<std::set<uint32_t> >        frame_set_vec(in_n_shards);
-    std::vector<uint64_t>                   load_vec(in_n_shards,
-                                                     0);
-    std::vector<uint32_t>                   result(in_entry_vec.size(),
+    std::vector<std::set<uint32_t> > frame_set_vec(in_n_shards);
+    std::vector<uint64_t>            load_vec     (in_n_shards,
+                                                   0);
+    std::vector<uint32_t>            result       (in_entry_vec.size(),
                                                    0);
 
     for (const auto& group_pair : get_pass_group_map(in_entry_vec) )

@@ -30,9 +30,9 @@ namespace Analysis
             /* The resources are as the model builder made them, by the number less 1 (see Analysis::APIDumpAnalysis::Model::resource_vec); the
              * accesses may name no others.
              */
-            static DependencyResult analyze(const AccessLog&                                          in_log,
-                                            const std::vector<Analysis::APIDumpAnalysis::Resource>&   in_resource_vec,
-                                            const uint32_t&                                           in_n_threads);
+            static DependencyResult analyze(const AccessLog&                                        in_log,
+                                            const std::vector<Analysis::APIDumpAnalysis::Resource>& in_resource_vec,
+                                            const uint32_t&                                         in_n_threads);
 
         private:
             /* The accesses to one resource: the indices (in the log) of those from the first to the end, in the order they were made in. */
@@ -50,11 +50,11 @@ namespace Analysis
             static CarryKind merge_carry(const CarryKind& in_a,
                                          const CarryKind& in_b);
 
-            static void analyze_resource(const AccessLog&                                          in_log,
-                                         const std::vector<uint32_t>&                              in_frame_index_vec,
-                                         const ResourceAccesses&                                   in_accesses,
-                                         const Analysis::APIDumpAnalysis::ResourceDescription&     in_description,
-                                         ResourceDependencies*                                     out_dependencies_ptr);
+            static void analyze_resource(const AccessLog&                                      in_log,
+                                         const std::vector<uint32_t>&                          in_frame_index_vec,
+                                         const ResourceAccesses&                               in_accesses,
+                                         const Analysis::APIDumpAnalysis::ResourceDescription& in_description,
+                                         ResourceDependencies*                                 out_dependencies_ptr);
         };
     }
 }

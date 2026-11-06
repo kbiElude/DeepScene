@@ -17,9 +17,9 @@ constexpr float MIN_CENTRAL_ANGLE = 0.1f;
 
 
 Headset::XR::CylinderScreen Headset::XR::ScreenGeometry::fit_cylinder(const FieldOfView& in_field_of_view,
-                                                                    const float&       in_aspect_ratio,
-                                                                    const float&       in_distance,
-                                                                    const float&       in_scale)
+                                                                      const float&       in_aspect_ratio,
+                                                                      const float&       in_distance,
+                                                                      const float&       in_scale)
 {
     /* Along the curve, the screen is as wide as the angle it spans; its height is that over the aspect ratio, and is seen from the
      * middle of the cylinder as the angle whose tangent is half of it over the radius.
@@ -42,9 +42,9 @@ Headset::XR::CylinderScreen Headset::XR::ScreenGeometry::fit_cylinder(const Fiel
 }
 
 Headset::XR::QuadScreen Headset::XR::ScreenGeometry::fit_quad(const FieldOfView& in_field_of_view,
-                                                            const float&       in_aspect_ratio,
-                                                            const float&       in_distance,
-                                                            const float&       in_scale)
+                                                              const float&       in_aspect_ratio,
+                                                              const float&       in_distance,
+                                                              const float&       in_scale)
 {
     const float available_horizontal = 2.0f * in_distance * ::tanf((in_field_of_view.angle_right - in_field_of_view.angle_left) / 2.0f);
     const float available_vertical   = 2.0f * in_distance * ::tanf((in_field_of_view.angle_up    - in_field_of_view.angle_down) / 2.0f);
@@ -58,7 +58,7 @@ Headset::XR::QuadScreen Headset::XR::ScreenGeometry::fit_quad(const FieldOfView&
 }
 
 Headset::XR::FieldOfView Headset::XR::ScreenGeometry::get_common_field_of_view(const FieldOfView& in_first,
-                                                                             const FieldOfView& in_second)
+                                                                               const FieldOfView& in_second)
 {
     /* Both eyes see where they overlap; the screen is in the middle, so it reaches as far to one side as to the other. */
     const float down  = std::max(in_first.angle_down,
@@ -86,9 +86,9 @@ Headset::XR::FieldOfView Headset::XR::ScreenGeometry::get_common_field_of_view(c
 }
 
 float Headset::XR::ScreenGeometry::get_yaw(const float& in_x,
-                                          const float& in_y,
-                                          const float& in_z,
-                                          const float& in_w)
+                                           const float& in_y,
+                                           const float& in_z,
+                                           const float& in_w)
 {
     /* What the orientation does to a vector which looks down -Z, as the angle it is turned about the vertical axis. */
     return ::atan2f(2.0f        * (in_x * in_z + in_w * in_y),

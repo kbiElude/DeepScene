@@ -33,10 +33,10 @@ namespace Stereo
             struct FrameExecutionOptions
             {
                 Analysis::Recipe::Eye eye            = Analysis::Recipe::Eye::LEFT; /* BUFFERED_ONCE: the eye to render for; TWICE: the left one, then the right one */
-                uint32_t       first_frame    = 0;
-                uint32_t       last_frame     = UINT32_MAX;
-                FrameExecution mode           = FrameExecution::DIRECT;
-                bool           restores_state = false; /* TWICE: the state of the device is restored before the second execution */
+                uint32_t              first_frame    = 0;
+                uint32_t              last_frame     = UINT32_MAX;
+                FrameExecution        mode           = FrameExecution::DIRECT;
+                bool                  restores_state = false;                       /* TWICE: the state of the device is restored before the second execution */
             };
         }
     }

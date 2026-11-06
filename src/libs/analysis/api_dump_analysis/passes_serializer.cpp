@@ -9,7 +9,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_covering(const std
                                                                        Model*                      out_model_ptr)
 {
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
-                                       in_byte_vec.size() );
+                                       in_byte_vec.size());
     /* The pass structure, and how many keys it has. */
     constexpr size_t MIN_PASS_N_BYTES = 2 * sizeof(uint32_t);
 
@@ -49,7 +49,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_depths(const std::
     constexpr size_t MIN_HISTOGRAM_N_BYTES = 3 * sizeof(uint32_t);
 
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
-                                       in_byte_vec.size() );
+                                       in_byte_vec.size());
     const auto n_histograms = reader.read_count(MIN_HISTOGRAM_N_BYTES);
     bool       is_ok        = true;
 
@@ -104,7 +104,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_draws(const std::v
                                       + sizeof(uint64_t);     /* vertex layout key             */
 
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
-                                       in_byte_vec.size() );
+                                       in_byte_vec.size());
 
     const auto n_draws = reader.read_count(MIN_DRAW_N_BYTES);
 
@@ -127,7 +127,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_frames(const std::
     constexpr size_t FRAME_N_BYTES = 5 * sizeof(uint64_t) + 2 * sizeof(uint32_t);
 
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
-                                       in_byte_vec.size() );
+                                       in_byte_vec.size());
 
     const auto n_frames = reader.read_count(FRAME_N_BYTES);
     bool       is_ok    = true;
@@ -167,7 +167,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_meta(const std::ve
     constexpr size_t MIN_GROUP_N_BYTES = sizeof(uint32_t) + sizeof(uint64_t);
 
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
-                                       in_byte_vec.size() );
+                                       in_byte_vec.size());
 
     out_analysis_ptr->workload_reference.filename    = reader.read_string();
     out_analysis_ptr->workload_reference.header_hash = reader.read_u64   ();
@@ -229,7 +229,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_passes(const std::
                                       + 6 * sizeof(float);    /* viewport                     */
 
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
-                                       in_byte_vec.size() );
+                                       in_byte_vec.size());
 
     const auto n_passes = reader.read_count(MIN_PASS_N_BYTES);
     bool       is_ok    = true;
@@ -268,7 +268,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_representatives(co
     constexpr size_t MIN_ENTRY_N_BYTES = 2 * sizeof(uint64_t) + 2 * sizeof(uint32_t);
 
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
-                                       in_byte_vec.size() );
+                                       in_byte_vec.size());
     const auto n_shapes = out_model_ptr->frame_shape_interner.get_n_structures();
     bool       is_ok    = true;
 
@@ -347,7 +347,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_resource_access(co
     constexpr size_t ACCESS_N_BYTES = 6 * sizeof(uint64_t);
 
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
-                                       in_byte_vec.size() );
+                                       in_byte_vec.size());
 
     const auto n_resources = reader.read_count                   (ACCESS_N_BYTES);
     const auto n_frames    = out_model_ptr->frame_record_vec.size();
@@ -389,7 +389,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_resources(const st
                                           + 5 * sizeof(uint8_t);  /* is destroyed, description (4)                                      */
 
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
-                                       in_byte_vec.size() );
+                                       in_byte_vec.size());
     const auto n_resources = reader.read_count(MIN_RESOURCE_N_BYTES);
     bool       is_ok       = true;
 
@@ -433,7 +433,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_series(const std::
     constexpr size_t MIN_SERIES_N_BYTES = 2 * sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint32_t);
 
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
-                                       in_byte_vec.size() );
+                                       in_byte_vec.size());
 
     const auto n_series = reader.read_count(MIN_SERIES_N_BYTES);
     bool       is_ok    = true;
@@ -484,7 +484,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_shapes(const std::
                                                                      Model*                      out_model_ptr)
 {
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
-                                       in_byte_vec.size() );
+                                       in_byte_vec.size());
 
     const auto n_shapes = reader.read_count(sizeof(uint32_t) );
     bool       is_ok    = true;

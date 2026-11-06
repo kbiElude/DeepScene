@@ -88,26 +88,26 @@ namespace Stereo
                 Utils::Statistics::SeriesStats upload_cost  = Utils::Statistics::SeriesStats(4.0);  /* of the copy to the images, ms         */
             };
 
-            std::atomic<double>                                m_frame_start;      /* when the compositor asked for the last frame, ms */
-            ExitFunc                                           m_exit_func;
-            std::atomic<double>                                m_frame_period;     /* of the headset, ms                               */
-            bool                                               m_is_pacing;
-            bool                                               m_has_frame;
-            std::atomic<bool>                                  m_is_stopping;
-            std::atomic<uint64_t>                              m_shown_frame_index;     /* for the window, if m_has_shown_frame */
-            std::atomic<bool>                                  m_has_shown_frame;
-            std::atomic<double>                                m_shown_timestamp;       /* of that frame, seconds               */
-            uint64_t                                           m_last_frame_index; /* of the frame which was copied last, if m_has_frame */
-            Stereo::Transport::IFrameImporter*                 m_importer_ptr;
-            float                                              m_ipd_scale_sent;   /* of the thread of the compositor; 0: none yet */
-            double                                             m_pace_delay;       /* in ms: of the upload thread                      */
-            LogFunc                                            m_log_func;
-            std::mutex                                         m_log_mutex; /* of the set of what was said: two threads say things */
-            std::set<std::string>                              m_logged_text_set;
+            std::atomic<double>                                 m_frame_start;           /* when the compositor asked for the last frame, ms */
+            ExitFunc                                            m_exit_func;
+            std::atomic<double>                                 m_frame_period;          /* of the headset, ms                               */
+            bool                                                m_is_pacing;
+            bool                                                m_has_frame;
+            std::atomic<bool>                                   m_is_stopping;
+            std::atomic<uint64_t>                               m_shown_frame_index;     /* for the window, if m_has_shown_frame */
+            std::atomic<bool>                                   m_has_shown_frame;
+            std::atomic<double>                                 m_shown_timestamp;       /* of that frame, seconds               */
+            uint64_t                                            m_last_frame_index;      /* of the frame which was copied last, if m_has_frame */
+            Stereo::Transport::IFrameImporter*                  m_importer_ptr;
+            float                                               m_ipd_scale_sent;        /* of the thread of the compositor; 0: none yet */
+            double                                              m_pace_delay;            /* in ms: of the upload thread                      */
+            LogFunc                                             m_log_func;
+            std::mutex                                          m_log_mutex;             /* of the set of what was said: two threads say things */
+            std::set<std::string>                               m_logged_text_set;
             std::unique_ptr<Headset::XR::HeadsetSession>        m_session_ptr;
-            std::thread                                        m_thread;
-            std::thread                                        m_upload_thread;
-            Timing                                             m_timing;
+            std::thread                                         m_thread;
+            std::thread                                         m_upload_thread;
+            Timing                                              m_timing;
             std::unique_ptr<Headset::D3D12::D3D12FrameUploader> m_uploader_ptr;
         };
     }

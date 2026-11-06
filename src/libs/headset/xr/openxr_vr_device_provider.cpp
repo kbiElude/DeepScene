@@ -6,7 +6,7 @@
 #include "headset/xr/headset_session.h"
 
 bool Headset::XR::OpenXrVrDeviceProvider::enumerate(std::vector<Headset::VRDevices::VrDevice>* out_device_vec_ptr,
-                                                   std::string*                          out_error_ptr) const
+                                                    std::string*                               out_error_ptr) const
 {
     HeadsetInfo info;
     std::string reason;

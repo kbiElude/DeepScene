@@ -130,15 +130,15 @@ namespace Analysis
          */
         struct DependencyAnalysis
         {
-            std::vector<FrameCallRange>                    frame_call_range_vec;       /* of the frames which ended                              */
-            bool                                           is_truncated      = false;  /* the workload ends in the middle of a segment           */
-            uint64_t                                       n_calls           = 0;
-            std::map<std::string, uint64_t>                n_calls_by_api_map;         /* by the name of the API (see APIGroup)                  */
-            uint32_t                                       pointer_n_bytes   = 0;      /* of the process which was dumped                        */
-            uint64_t                                       qpc_frequency     = 0;      /* ticks per second                                       */
-            DependencyResult                               result;
+            std::vector<FrameCallRange>                      frame_call_range_vec;       /* of the frames which ended                              */
+            bool                                             is_truncated      = false;  /* the workload ends in the middle of a segment           */
+            uint64_t                                         n_calls           = 0;
+            std::map<std::string, uint64_t>                  n_calls_by_api_map;         /* by the name of the API (see APIGroup)                  */
+            uint32_t                                         pointer_n_bytes   = 0;      /* of the process which was dumped                        */
+            uint64_t                                         qpc_frequency     = 0;      /* ticks per second                                       */
+            DependencyResult                                 result;
             std::vector<Analysis::APIDumpAnalysis::Resource> resource_vec;
-            Analysis::APIDumpAnalysis::WorkloadReference   workload_reference;
+            Analysis::APIDumpAnalysis::WorkloadReference     workload_reference;
         };
 
         bool operator==(const FrameUse& in_a,

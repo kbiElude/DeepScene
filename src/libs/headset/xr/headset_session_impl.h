@@ -147,7 +147,7 @@ struct Headset::XR::HeadsetSession::Impl
     Microsoft::WRL::ComPtr<ID3D12Device>       device_ptr;
     std::array<EyeSwapchain, 2>                eye_array;
     HeadsetSession::FrameFunc                  frame_func;
-    Headset::XR::FieldOfView                    field_of_view;
+    Headset::XR::FieldOfView                   field_of_view;
     int64_t                                    format                      = 0;
     bool                                       has_field_of_view           = false;
     bool                                       has_logged_screen           = false;
@@ -157,28 +157,28 @@ struct Headset::XR::HeadsetSession::Impl
     bool                                       is_placed                   = false;
     bool                                       is_running                  = false;
     XrSpace                                    local_space                 = XR_NULL_HANDLE;
-    std::condition_variable                    image_condition;       /* told when the images of the eyes are given back */
+    std::condition_variable                    image_condition;                      /* told when the images of the eyes are given back */
     std::vector<std::string>                   log_line_vec;
     std::mutex                                 log_mutex;
     std::set<int>                              logged_result_set;
     std::atomic<float>                         ipd                         = {0.0f}; /* between the eyes of the person, in metres, smoothed; 0: not known */
-    uint64_t                                   image_serial                = 0; /* how many times the images of the eyes were given back; the lock guards it */
+    uint64_t                                   image_serial                = 0;      /* how many times the images of the eyes were given back; the lock guards it */
     uint32_t                                   max_height                  = 0;
     uint32_t                                   max_width                   = 0;
-    std::mutex                                 mutex;                 /* guards is_running, the swap chains and the layers */
+    std::mutex                                 mutex;                                /* guards is_running, the swap chains and the layers */
     XrCompositionLayerQuad                     quad_layer_array[2]         = {};
     Microsoft::WRL::ComPtr<ID3D12CommandQueue> queue_ptr;
     std::string                                runtime_name;
     float                                      screen_position_fp32vec3[3] = {};
     float                                      screen_yaw                  = 0.0f;
     ::XrSession                                session               = XR_NULL_HANDLE;
-    uint32_t                                   swapchain_height      = 0;
-    uint32_t                                   swapchain_width       = 0;
+    uint32_t                                           swapchain_height      = 0;
+    uint32_t                                           swapchain_width       = 0;
     std::unique_ptr<Utils::D3D12::D3D12TextureClearer> texture_clearer_ptr; /* made with the first swap chain */
-    Timing                                     timing;
-    XrSystemId                                 system_id             = XR_NULL_SYSTEM_ID;
-    std::string                                system_name;
-    XrSpace                                    view_space            = XR_NULL_HANDLE;
+    Timing                                             timing;
+    XrSystemId                                         system_id             = XR_NULL_SYSTEM_ID;
+    std::string                                        system_name;
+    XrSpace                                            view_space            = XR_NULL_HANDLE;
 };
 
 #endif /* HEADSET_XR_HEADSET_SESSION_IMPL_H */

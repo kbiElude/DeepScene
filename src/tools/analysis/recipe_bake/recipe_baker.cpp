@@ -296,8 +296,8 @@ void Analysis::RecipeBake::RecipeBaker::compute_convergence(const Analysis::Reci
     const auto&                                                   model_ref              = in_analysis.model;
     const uint32_t                                                n_passes               = static_cast<uint32_t>(model_ref.pass_structure_interner.get_n_structures() );
 
-    const Analysis::Recipe::RecipeApplier applier              (in_recipe);
-    std::vector<uint32_t>                        parent_vec           (n_passes);
+    const Analysis::Recipe::RecipeApplier applier   (in_recipe);
+    std::vector<uint32_t>                 parent_vec(n_passes);
     std::map<uint64_t, uint32_t>                 pass_of_signature_map;
 
     /* A pass is found by the group it is in: passes which draw the same signature are in one, whatever follows. */
@@ -654,7 +654,7 @@ std::vector<uint64_t> Analysis::RecipeBake::RecipeBaker::get_covering_draw_key_v
                                                                                    const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
 {
     const std::set<uint64_t> unaffected_pass_key_set(in_recipe.unaffected.pass_key_vec.begin(),
-                                                     in_recipe.unaffected.pass_key_vec.end  () );
+                                                     in_recipe.unaffected.pass_key_vec.end  ());
     std::set<uint64_t>       key_set;
 
     for (const auto& pass_pair : in_analysis.model.covering_draw_key_map)

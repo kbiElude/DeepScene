@@ -147,7 +147,7 @@ namespace Analysis
             DrawRuleIndexMap                      m_draw_rule_index_map;
             std::set<uint64_t>                    m_covering_draw_key_set;
             std::set<uint64_t>                    m_known_signature_key_set;
-            Analysis::Recipe::Recipe        m_recipe;
+            Analysis::Recipe::Recipe              m_recipe;
             std::set<APIInterceptor::APIFunction> m_rule_function_set;
             std::map<uint64_t, float>             m_scene_convergence_distance_map;
             std::map<uint64_t, float>             m_scene_max_separation_map;

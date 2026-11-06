@@ -27,8 +27,8 @@ bool Analysis::APIDumpAnalysis::WorkloadIdentity::hash_piece(const std::string& 
                                                              const uint64_t&    in_offset,
                                                              uint64_t*          out_hash_ptr)
 {
-    std::ifstream        file(in_filename,
-                              std::ios::binary);
+    std::ifstream        file        (in_filename,
+                                      std::ios::binary);
     std::vector<uint8_t> piece_u8_vec(N_PIECE_BYTES);
     bool                 result = false;
 
@@ -83,8 +83,8 @@ bool Analysis::APIDumpAnalysis::WorkloadIdentity::read(const std::string& in_fil
                                                        WorkloadReference* out_reference_ptr,
                                                        std::string*       out_error_ptr)
 {
-    std::ifstream     file(in_filename,
-                           std::ios::binary | std::ios::ate);
+    std::ifstream file(in_filename,
+                       std::ios::binary | std::ios::ate);
     uint64_t          header_offset = 0;
     uint64_t          middle_offset = 0;
     WorkloadReference reference;

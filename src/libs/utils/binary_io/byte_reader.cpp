@@ -102,8 +102,8 @@ float Utils::BinaryIO::ByteReader::read_f32()
 std::string Utils::BinaryIO::ByteReader::read_string()
 {
     const uint32_t n_chars = read_count(sizeof(char) );
-    std::string    result(n_chars,
-                          '\0');
+    std::string result(n_chars,
+                       '\0');
 
     read_bytes(&result[0],
                result.size() );

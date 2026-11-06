@@ -255,9 +255,9 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_set_display_mode(const APIIn
 }
 
 void Stereo::ConverterDLL::D3D7WindowedMode::handle_sized_surface(const Interception::Hooks::D3D7::DDSURFACEDESC2& in_description,
-                                                                  void*                                             in_direct_draw_ptr,
-                                                                  void**                                            out_surface_ptr_ptr,
-                                                                  bool*                                             out_should_pass_through_ptr)
+                                                                  void*                                            in_direct_draw_ptr,
+                                                                  void**                                           out_surface_ptr_ptr,
+                                                                  bool*                                            out_should_pass_through_ptr)
 {
     constexpr uint32_t CAPS_OF_SURFACES_RENDERED_TO = Interception::Core::D3D7Utils::DDSCAPS_3DDEVICE |
                                                       Interception::Core::D3D7Utils::DDSCAPS_ZBUFFER;

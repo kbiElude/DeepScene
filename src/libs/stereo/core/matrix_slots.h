@@ -76,7 +76,7 @@ namespace Stereo
                 float                                            bound_separation           = 0.0f;
                 APIInterceptor::APIFunction                      function                   = APIInterceptor::APIFunction::APIFUNCTION_UNKNOWN;
                 std::array<float, 16>                            matrix_fp32vec16           = {}; /* as the application set it */
-                std::vector<const Analysis::Recipe::Rule*> rule_ptr_vec;
+                std::vector<const Analysis::Recipe::Rule*>       rule_ptr_vec;
             };
 
 

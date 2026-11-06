@@ -226,7 +226,7 @@ bool Analysis::APIDumpSlicing::HeadSlicer::slice(const std::string&  in_workload
                   ++n_segment)
         {
             const auto&          entry = index.get_segment_vec().at(n_segment);
-            std::vector<uint8_t> segment_u8_vec(static_cast<size_t>(entry.n_compressed_bytes) );
+            std::vector<uint8_t> segment_u8_vec(static_cast<size_t>(entry.n_compressed_bytes));
 
             if (::_fseeki64(input_handle,
                             static_cast<long long>(entry.file_offset_n_bytes),

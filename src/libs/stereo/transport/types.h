@@ -66,10 +66,10 @@ namespace Stereo
          */
         struct ExportSource
         {
-            void* api_device_ptr     = nullptr;
-            void* left_surface_ptr   = nullptr;
-            void* right_surface_ptr  = nullptr;
-            double timestamp_seconds = 0.0; /* of the present, since the producer started */
+            void*  api_device_ptr     = nullptr;
+            void*  left_surface_ptr   = nullptr;
+            void*  right_surface_ptr  = nullptr;
+            double timestamp_seconds  = 0.0; /* of the present, since the producer started */
         };
     }
 }

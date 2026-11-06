@@ -28,8 +28,8 @@ bool Analysis::APIDumpDependencies::DepsFile::read(const std::string&  in_filena
                                                    std::string*        out_error_ptr)
 {
     std::vector<uint8_t> byte_vec;
-    std::ifstream        file(in_filename,
-                              std::ios::binary | std::ios::ate);
+    std::ifstream file(in_filename,
+                       std::ios::binary | std::ios::ate);
     bool                 result = false;
 
     if (file.is_open() == false)

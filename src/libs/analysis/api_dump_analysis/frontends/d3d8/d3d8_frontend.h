@@ -45,9 +45,9 @@ namespace Analysis
 
             private:
                 /* What the base class needs of the front end. */
-                void                                                forget_resource       (const Analysis::APIDumpAnalysis::ResourceId& in_id) override;
-                FixedFunctionState&                                 get_fixed_function_state() override;
-                Analysis::APIDumpAnalysis::ConstantSemantic         get_transform_semantic(const uint32_t&                              in_state) const override;
+                void                                        forget_resource         (const Analysis::APIDumpAnalysis::ResourceId& in_id)    override;
+                FixedFunctionState&                         get_fixed_function_state()                                                      override;
+                Analysis::APIDumpAnalysis::ConstantSemantic get_transform_semantic  (const uint32_t&                              in_state) const override;
 
                 /* Tells what a Create* method makes. */
                 typedef Analysis::APIDumpAnalysis::ResourceDescription (*DescribeFuncPtr)(const CallView& in_view);

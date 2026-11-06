@@ -11,19 +11,58 @@
 #include <stdio.h>
 
 /* The look of the window: one accent color on dark panels. */
-static const ImVec4 ACCENT_COLOR        (0.33f, 0.42f, 0.95f, 1.00f);
-static const ImVec4 ACCENT_ACTIVE_COLOR (0.27f, 0.35f, 0.85f, 1.00f);
-static const ImVec4 ACCENT_HOVERED_COLOR(0.42f, 0.50f, 1.00f, 1.00f);
-static const ImVec4 BORDER_COLOR        (0.20f, 0.22f, 0.28f, 1.00f);
-static const ImVec4 DIM_TEXT_COLOR      (0.58f, 0.61f, 0.70f, 1.00f);
-static const ImVec4 ERROR_TEXT_COLOR    (1.00f, 0.45f, 0.45f, 1.00f);
-static const ImVec4 FRAME_COLOR         (0.15f, 0.165f, 0.20f, 1.00f);
-static const ImVec4 FRAME_HOVERED_COLOR (0.19f, 0.21f, 0.26f, 1.00f);
-static const ImVec4 PANEL_COLOR         (0.105f, 0.115f, 0.145f, 1.00f);
-static const ImVec4 SELECTED_COLOR      (0.20f, 0.25f, 0.50f, 0.55f);
-static const ImVec4 SELECTED_HOVERED_COLOR(0.22f, 0.28f, 0.55f, 0.45f);
-static const ImVec4 TEXT_COLOR          (0.92f, 0.93f, 0.96f, 1.00f);
-static const ImVec4 WINDOW_COLOR        (0.07f, 0.075f, 0.095f, 1.00f);
+static const ImVec4 ACCENT_COLOR          (0.33f,
+                                           0.42f,
+                                           0.95f,
+                                           1.00f);
+static const ImVec4 ACCENT_ACTIVE_COLOR   (0.27f,
+                                           0.35f,
+                                           0.85f,
+                                           1.00f);
+static const ImVec4 ACCENT_HOVERED_COLOR  (0.42f,
+                                           0.50f,
+                                           1.00f,
+                                           1.00f);
+static const ImVec4 BORDER_COLOR          (0.20f,
+                                           0.22f,
+                                           0.28f,
+                                           1.00f);
+static const ImVec4 DIM_TEXT_COLOR        (0.58f,
+                                           0.61f,
+                                           0.70f,
+                                           1.00f);
+static const ImVec4 ERROR_TEXT_COLOR      (1.00f,
+                                           0.45f,
+                                           0.45f,
+                                           1.00f);
+static const ImVec4 FRAME_COLOR           (0.15f,
+                                           0.165f,
+                                           0.20f,
+                                           1.00f);
+static const ImVec4 FRAME_HOVERED_COLOR   (0.19f,
+                                           0.21f,
+                                           0.26f,
+                                           1.00f);
+static const ImVec4 PANEL_COLOR           (0.105f,
+                                           0.115f,
+                                           0.145f,
+                                           1.00f);
+static const ImVec4 SELECTED_COLOR        (0.20f,
+                                           0.25f,
+                                           0.50f,
+                                           0.55f);
+static const ImVec4 SELECTED_HOVERED_COLOR(0.22f,
+                                           0.28f,
+                                           0.55f,
+                                           0.45f);
+static const ImVec4 TEXT_COLOR            (0.92f,
+                                           0.93f,
+                                           0.96f,
+                                           1.00f);
+static const ImVec4 WINDOW_COLOR          (0.07f,
+                                           0.075f,
+                                           0.095f,
+                                           1.00f);
 
 /* Sizes at 100% scale; the scale of the monitor is applied. */
 static constexpr float ACCENT_LINE_HEIGHT           = 2.0f;

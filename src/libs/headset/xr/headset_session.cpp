@@ -59,7 +59,7 @@ void Headset::XR::HeadsetSession::Impl::add_log(const std::string& in_text)
 
 std::unique_ptr<Headset::XR::HeadsetSession> Headset::XR::HeadsetSession::create_ptr(std::string* out_error_ptr)
 {
-    std::unique_ptr<Impl>           impl_ptr(new Impl() );
+    std::unique_ptr<Impl> impl_ptr(new Impl());
     std::unique_ptr<HeadsetSession> result_ptr;
 
     if (impl_ptr->set_up(out_error_ptr) == false)
@@ -134,7 +134,7 @@ D3D12_RESOURCE_STATES Headset::XR::HeadsetSession::get_texture_state()
 }
 
 bool Headset::XR::HeadsetSession::probe(HeadsetInfo* out_info_ptr,
-                                       std::string* out_error_ptr)
+                                        std::string* out_error_ptr)
 {
     Impl impl;
     bool result = false;

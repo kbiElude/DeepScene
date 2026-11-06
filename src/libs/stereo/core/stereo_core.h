@@ -143,16 +143,16 @@ namespace Stereo
 
 
             Analysis::Recipe::RecipeApplier m_applier;
-            ConvergenceModel                       m_convergence_model;
-            FailFunc                               m_fail_func;
-            bool                                   m_is_last_draw_covering; /* the draw that was classified last covers the whole of the view */
-            bool                                   m_is_overlay_pushed;     /* the person asks for the overlay to be pushed                    */
-            Analysis::Recipe::DrawClass      m_last_draw_class;       /* of the draw that was classified last                            */
-            uint64_t                               m_last_draw_cover_key;   /* the same                                                         */
-            MatrixSlots                            m_matrix_slots;
-            uint64_t                               m_n_unknown_draws;
-            uint64_t                               m_n_unknown_frames;
-            std::array<float, 16>                  m_view_matrix_fp32vec16;
+            ConvergenceModel                m_convergence_model;
+            FailFunc                        m_fail_func;
+            bool                            m_is_last_draw_covering; /* the draw that was classified last covers the whole of the view */
+            bool                            m_is_overlay_pushed;     /* the person asks for the overlay to be pushed                    */
+            Analysis::Recipe::DrawClass     m_last_draw_class;       /* of the draw that was classified last                            */
+            uint64_t                        m_last_draw_cover_key;   /* the same                                                         */
+            MatrixSlots                     m_matrix_slots;
+            uint64_t                        m_n_unknown_draws;
+            uint64_t                        m_n_unknown_frames;
+            std::array<float, 16>           m_view_matrix_fp32vec16;
         };
     }
 }

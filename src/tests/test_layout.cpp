@@ -106,7 +106,7 @@ namespace
     DestinationMap read_installed_programs()
     {
         const std::set<std::string> interceptor_name_set = {"APIDumper", "APIDumperDLL", "APIDumpPrinter"};
-        std::ifstream               file(std::filesystem::path(Tests::DataFixtures::get_repository_root_path() ) / "cmake" / "Install.cmake");
+        std::ifstream file(std::filesystem::path(Tests::DataFixtures::get_repository_root_path() ) / "cmake" / "Install.cmake");
         std::stringstream text;
         DestinationMap    result;
 
@@ -191,7 +191,7 @@ TEST(Layout, UtilsIncludesNothingOfTheOtherLibrariesOrOfAProgram)
             continue;
         }
 
-        std::ifstream file(entry.path() );
+        std::ifstream file(entry.path());
         std::string   line;
 
         n_files++;

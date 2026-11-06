@@ -125,7 +125,7 @@ namespace Stereo
                 IFrameImageSink*                                                       m_image_sink_ptr;
                 const SliceSkipper*                                                    m_slice_skipper_ptr;
                 std::unique_ptr<EyeMatrixBinder>                                       m_matrix_binder_ptr;
-                std::unique_ptr<Analysis::Recipe::RecipeApplier>                m_recipe_applier_ptr;
+                std::unique_ptr<Analysis::Recipe::RecipeApplier>                       m_recipe_applier_ptr;
                 std::unique_ptr<FrameRewriter>                                         m_rewriter_ptr;
                 std::unique_ptr<Analysis::APIDumpAnalysis::Frontends::AnalysisSession> m_session_ptr;
             };

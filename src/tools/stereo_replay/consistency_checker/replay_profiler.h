@@ -48,7 +48,7 @@ namespace Stereo
                 };
 
                 /* The clock is the steady clock of the system unless another is given. */
-                explicit ReplayProfiler(const ClockFunc& in_clock_func = ClockFunc() );
+                explicit ReplayProfiler(const ClockFunc& in_clock_func = ClockFunc());
 
                 /* What was seen is read when the replay is over: the engine's thread is the one that writes it. */
 
@@ -58,7 +58,7 @@ namespace Stereo
                 /* The functions whose calls took longest in all, longest first. */
                 std::vector<FunctionEntry> get_slowest_functions(const size_t& in_n_functions) const;
 
-                uint64_t get_n_calls() const;
+                uint64_t get_n_calls            () const;
                 uint64_t get_total_n_nanoseconds() const;
 
                 void on_call_replayed(const Capture::APIDumpLoader::DumpedAPICall& in_call,

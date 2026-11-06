@@ -54,8 +54,8 @@ Analysis::APIDumpAnalysis::Frontends::IAPIFrontend* Analysis::APIDumpAnalysis::F
 }
 
 bool Analysis::APIDumpAnalysis::Frontends::AnalysisSession::find_resource_view(const Capture::APIDumpLoader::APIGroup&  in_group,
-                                                                                 const uint64_t&                          in_address,
-                                                                                 Analysis::APIDumpAnalysis::ResourceView* out_view_ptr) const
+                                                                               const uint64_t&                          in_address,
+                                                                               Analysis::APIDumpAnalysis::ResourceView* out_view_ptr) const
 {
     bool result = false;
 

@@ -82,9 +82,9 @@ namespace Stereo
 
             /* A surface that is rendered to and is as large as the images of the application is made as large as the back buffer. */
             void handle_sized_surface(const Interception::Hooks::D3D7::DDSURFACEDESC2& in_description,
-                                      void*                                             in_direct_draw_ptr,
-                                      void**                                            out_surface_ptr_ptr,
-                                      bool*                                             out_should_pass_through_ptr);
+                                      void*                                            in_direct_draw_ptr,
+                                      void**                                           out_surface_ptr_ptr,
+                                      bool*                                            out_should_pass_through_ptr);
 
 
 

@@ -53,7 +53,7 @@ namespace Stereo
             void handle_create_surface      (const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
             void handle_get_attached_surface(const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
             void handle_release             (const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
-                                              const APIInterceptor::APIFunctionArgument* in_returned_value_ptr);
+                                             const APIInterceptor::APIFunctionArgument* in_returned_value_ptr);
 
             /* Makes the twin of the surface, the same size and format, and keeps it for the surface; nullptr, and a failure counted, if it
              * cannot be made.

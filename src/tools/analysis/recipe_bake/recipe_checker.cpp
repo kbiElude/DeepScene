@@ -14,10 +14,10 @@ Analysis::RecipeBake::CoverageReport Analysis::RecipeBake::RecipeChecker::check(
                                                                                 const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
 {
     const auto&                           model_ref            = in_analysis.model;
-    const std::set<uint64_t>              known_shape_set      (in_recipe.known_shape_key_vec.begin(),
-                                                                in_recipe.known_shape_key_vec.end() );
-    const std::set<uint64_t>              known_signature_set  (in_recipe.known_signature_key_vec.begin(),
-                                                                in_recipe.known_signature_key_vec.end() );
+    const std::set<uint64_t> known_shape_set    (in_recipe.known_shape_key_vec.begin(),
+                                                 in_recipe.known_shape_key_vec.end());
+    const std::set<uint64_t> known_signature_set(in_recipe.known_signature_key_vec.begin(),
+                                                 in_recipe.known_signature_key_vec.end());
     CoverageReport                   result;
     std::map<uint32_t, UnknownShape> shape_map;
     std::map<uint64_t, uint64_t>     signature_pass_kind_count_map;

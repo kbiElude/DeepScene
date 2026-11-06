@@ -22,10 +22,10 @@ Analysis::APIDumpDependencies::DependencyResult Analysis::APIDumpDependencies::D
 {
     const auto& event_vec           = in_log.get_event_vec();
     const auto& frame_end_count_vec = in_log.get_frame_end_event_count_vec();
-    std::vector<uint32_t>              event_index_vec(event_vec.size() );
-    std::vector<uint32_t>              frame_index_vec(event_vec.size() );
-    std::vector<size_t>                first_event_vec(in_resource_vec.size() + 1,
-                                                       0);
+    std::vector<uint32_t> event_index_vec(event_vec.size());
+    std::vector<uint32_t> frame_index_vec(event_vec.size());
+    std::vector<size_t>   first_event_vec(in_resource_vec.size() + 1,
+                                          0);
     DependencyResult                   result;
 
     /* The frame of each access: the accesses up to the end of frame N are of frames up to N. */

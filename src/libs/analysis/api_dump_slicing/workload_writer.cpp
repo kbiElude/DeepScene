@@ -117,11 +117,11 @@ bool Analysis::APIDumpSlicing::WorkloadWriter::close()
     return result;
 }
 
-Analysis::APIDumpSlicing::WorkloadWriterUniquePtr Analysis::APIDumpSlicing::WorkloadWriter::create(const char*                                                 in_filename_ptr,
-                                                                                                   const APIInterceptor::WorkloadFormat::WorkloadFileHeader&   in_header,
-                                                                                                   std::string*                                                out_error_ptr)
+Analysis::APIDumpSlicing::WorkloadWriterUniquePtr Analysis::APIDumpSlicing::WorkloadWriter::create(const char*                                               in_filename_ptr,
+                                                                                                   const APIInterceptor::WorkloadFormat::WorkloadFileHeader& in_header,
+                                                                                                   std::string*                                              out_error_ptr)
 {
-    WorkloadWriterUniquePtr result_ptr(new WorkloadWriter() );
+    WorkloadWriterUniquePtr result_ptr(new WorkloadWriter());
 
     result_ptr->m_file_handle = ::fopen(in_filename_ptr,
                                         "wb");

@@ -18,12 +18,12 @@
 
 namespace VRPlayer
 {
-    std::string find_catalog();
+    std::string find_catalog          ();
     std::string find_runtime_directory();
-    std::string get_directory(const std::string& in_path);
-    std::string get_program_path();
-    bool        is_file      (const std::string& in_path);
-    void        show_error   (const std::string& in_message);
+    std::string get_directory         (const std::string& in_path);
+    std::string get_program_path      ();
+    bool        is_file               (const std::string& in_path);
+    void        show_error            (const std::string& in_message);
 }
 
 std::string VRPlayer::find_catalog()

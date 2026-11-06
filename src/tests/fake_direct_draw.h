@@ -64,7 +64,7 @@ namespace Tests
         void**                    vtable_ptr = nullptr; /* must be the first member */
         std::vector<std::string>  call_vec;             /* in order: what was called, with the arguments that matter as text */
         std::vector<std::vector<uint8_t> > vertex_vec_vec; /* what the draws were given */
-        D3D7::D3DVIEWPORT7        viewport = {};
+        D3D7::D3DVIEWPORT7         viewport = {};
         std::vector<D3D7::D3DRECT> last_clear_rect_vec;
     };
 

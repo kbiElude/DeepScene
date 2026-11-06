@@ -52,7 +52,7 @@ Stereo::ConverterDLL::D3D7SurfaceTwins::D3D7SurfaceTwins()
 }
 
 bool Stereo::ConverterDLL::D3D7SurfaceTwins::get_caps(void*     in_surface_ptr,
-                                                       uint32_t* out_caps_ptr)
+                                                      uint32_t* out_caps_ptr)
 {
     Interception::Hooks::D3D7::DDSURFACEDESC2 description    = {};
     void** const                              surface_vtable = APIInterceptor::get_vtable_ptr(in_surface_ptr);

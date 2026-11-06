@@ -185,8 +185,8 @@ void Utils::Images::GifWriter::compress_lzw(const std::vector<uint8_t>& in_index
     uint32_t             n_bits      = 0;
     uint32_t             next_code   = FIRST_FREE_CODE;
     int32_t              prefix_code = -1; /* none yet */
-  std::vector<int16_t>  table        (static_cast<size_t>(MAX_N_CODES) * N_SYMBOLS,
-                                      -1);
+  std::vector<int16_t> table(static_cast<size_t>(MAX_N_CODES) * N_SYMBOLS,
+                             -1);
 
     const auto emit_func = [&](const uint32_t& in_code)
     {
@@ -298,17 +298,17 @@ void Utils::Images::GifWriter::quantize(const Image&              in_image,
     constexpr uint32_t CHANNEL_MASK      = 31;
 
     const size_t                n_pixels = static_cast<size_t>(in_image.width) * in_image.height;
-    std::vector<uint8_t>        box_of_bin_u8_vec(N_BINS,
-                                                  0);
-    std::vector<ColorBox>       box_vec(1);
-    std::vector<uint32_t>       count_u32_vec(N_BINS,
-                                              0);
-    std::vector<uint32_t>       sum_b_u32_vec (N_BINS,
-                                               0);
-    std::vector<uint32_t>       sum_g_u32_vec (N_BINS,
-                                               0);
-    std::vector<uint32_t>       sum_r_u32_vec (N_BINS,
-                                               0);
+    std::vector<uint8_t>  box_of_bin_u8_vec(N_BINS,
+                                            0);
+    std::vector<ColorBox> box_vec          (1);
+    std::vector<uint32_t> count_u32_vec    (N_BINS,
+                                            0);
+    std::vector<uint32_t> sum_b_u32_vec    (N_BINS,
+                                            0);
+    std::vector<uint32_t> sum_g_u32_vec    (N_BINS,
+                                            0);
+    std::vector<uint32_t> sum_r_u32_vec    (N_BINS,
+                                            0);
 
     out_palette_u8vec768_ptr->fill(0);
 

@@ -24,11 +24,11 @@ namespace Stereo
             /* What the shift of a vertex depends on. */
             struct Parameters
             {
-                float                       convergence_distance  = 1.0f;  /* in the units of the camera of the application     */
-                float                       eye_separation        = 0.0f;  /* the same units                                    */
+                float                 convergence_distance  = 1.0f;  /* in the units of the camera of the application     */
+                float                 eye_separation        = 0.0f;  /* the same units                                    */
                 Analysis::Recipe::Eye eye                   = Analysis::Recipe::Eye::LEFT;
-                float                       field_of_view_degrees = 90.0f; /* of the width of the picture                       */
-                float                       picture_width         = 0.0f;  /* in pixels: of what the vertices are positioned in */
+                float                 field_of_view_degrees = 90.0f; /* of the width of the picture                       */
+                float                 picture_width         = 0.0f;  /* in pixels: of what the vertices are positioned in */
             };
 
             /* What is the same for every vertex of a draw, worked out once (the focal length takes a tangent). */

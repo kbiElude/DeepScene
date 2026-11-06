@@ -77,9 +77,9 @@ namespace Stereo
                     float                                 bound_separation;  /* the separation the matrix in the device was made for */
                     FrameBuffer                           buffer;            /* the call as the application made it, with its chunks */
                     std::unique_ptr<OverlayChunkSource>   overlay;           /* the buffer, with the matrix of the rewritten call  */
-                    Analysis::Recipe::CallPlace    place;
+                    Analysis::Recipe::CallPlace           place;
                     Capture::APIDumpLoader::DumpedAPICall rewritten_call;
-                    Analysis::Recipe::Eye           rewritten_eye;
+                    Analysis::Recipe::Eye                 rewritten_eye;
                     float                                 rewritten_separation;
                     bool                                  has_rewritten_call;
                 };

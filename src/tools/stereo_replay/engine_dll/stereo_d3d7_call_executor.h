@@ -46,11 +46,11 @@ namespace Stereo
                 /* True if an object of the call has a copy for each eye: a call which sets such an object up is made for both. */
                 bool involves_per_eye_object() const;
 
-                Analysis::Recipe::Eye m_eye;
-                bool                        m_is_building_twin; /* the call is made for the right eye's copies */
-                bool                        m_needs_twin;       /* the call made an object which each eye has a copy of */
-                PerEyePredicate             m_per_eye_predicate;
-                std::map<void*, void*>      m_right_twin_map;   /* the copy of each eye's object: by the left one */
+                Analysis::Recipe::Eye  m_eye;
+                bool                   m_is_building_twin; /* the call is made for the right eye's copies */
+                bool                   m_needs_twin;       /* the call made an object which each eye has a copy of */
+                PerEyePredicate        m_per_eye_predicate;
+                std::map<void*, void*> m_right_twin_map;   /* the copy of each eye's object: by the left one */
             };
         }
     }

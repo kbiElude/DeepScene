@@ -444,7 +444,7 @@ end:
 }
 
 bool Headset::XR::HeadsetSession::Impl::read_recommended_eye_size(uint32_t* out_width_ptr,
-                                                                 uint32_t* out_height_ptr) const
+                                                                  uint32_t* out_height_ptr) const
 {
     uint32_t                n_views       = 0;
     bool                    result        = false;

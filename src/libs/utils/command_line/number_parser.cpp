@@ -7,7 +7,7 @@
 #include <stdlib.h>
 
 bool Utils::CommandLine::NumberParser::parse_double(const std::string& in_text,
-                                             double*            out_value_ptr)
+                                                    double*            out_value_ptr)
 {
     char*  end_ptr   = nullptr;
     bool   is_finite = false;
@@ -40,8 +40,8 @@ end:
 }
 
 bool Utils::CommandLine::NumberParser::parse_unsigned(const std::string& in_text,
-                                               const uint64_t&    in_max_value,
-                                               uint64_t*          out_value_ptr)
+                                                      const uint64_t&    in_max_value,
+                                                      uint64_t*          out_value_ptr)
 {
     constexpr uint64_t BASE = 10;
 

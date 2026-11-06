@@ -31,10 +31,10 @@ namespace Tests
         const Analysis::APIDumpAnalysis::Model&             get_model   () const;
 
     private:
-        Analysis::APIDumpAnalysis::ModelBuilder          m_builder;
+        Analysis::APIDumpAnalysis::ModelBuilder            m_builder;
         Analysis::APIDumpAnalysis::Frontends::D3D8Frontend m_frontend;
-        size_t                                 m_n_builder_calls_fed;
-        uint64_t                               m_n_calls_fed;
+        size_t                                             m_n_builder_calls_fed;
+        uint64_t                                           m_n_calls_fed;
     };
 }
 

@@ -22,9 +22,9 @@ namespace Stereo
             public:
                 explicit PresentSkipper(const FrameHurry* in_hurry_ptr);
 
-                void on_call_replayed (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                       const uint32_t&                              in_n_frame,
-                                       const bool&                                  in_was_executed) override;
+                void on_call_replayed   (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                         const uint32_t&                              in_n_frame,
+                                         const bool&                                  in_was_executed) override;
                 bool should_execute_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                          const uint32_t&                              in_n_frame) override;
 

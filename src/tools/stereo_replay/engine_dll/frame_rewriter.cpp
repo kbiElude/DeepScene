@@ -71,7 +71,7 @@ bool Stereo::Replay::EngineDLL::FrameRewriter::rewrite(const Capture::APIDumpLoa
 
     if (result)
     {
-        Capture::APIDumpLoader::DataChunk new_chunk(sizeof(matrix) );
+        Capture::APIDumpLoader::DataChunk new_chunk(sizeof(matrix));
 
         ::memcpy(new_chunk.data(),
                  matrix.data(),

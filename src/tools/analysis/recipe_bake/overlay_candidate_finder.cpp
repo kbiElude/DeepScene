@@ -14,15 +14,15 @@
 std::vector<Analysis::RecipeBake::OverlayCandidate> Analysis::RecipeBake::OverlayCandidateFinder::find(const Analysis::Recipe::Recipe&                  in_recipe,
                                                                                                        const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
 {
-    const Analysis::Recipe::RecipeApplier applier        (in_recipe);
+    const Analysis::Recipe::RecipeApplier applier(in_recipe);
     const auto&                 model_ref          = in_analysis.model;
     const std::vector<uint32_t> static_pass_id_vec = Analysis::APIDumpAnalysis::QueryCommands::get_static_camera_pass_id_vec(in_analysis);
-    const std::set<uint32_t>                     static_pass_id_set (static_pass_id_vec.begin(),
-                                                                     static_pass_id_vec.end  () );
-    const std::set<uint64_t>                     unaffected_draw_key_set(in_recipe.unaffected.draw_key_vec.begin(),
-                                                                         in_recipe.unaffected.draw_key_vec.end  () );
-    const std::set<uint64_t>                     unaffected_pass_key_set(in_recipe.unaffected.pass_key_vec.begin(),
-                                                                         in_recipe.unaffected.pass_key_vec.end  () );
+    const std::set<uint32_t> static_pass_id_set     (static_pass_id_vec.begin(),
+                                                     static_pass_id_vec.end  ());
+    const std::set<uint64_t> unaffected_draw_key_set(in_recipe.unaffected.draw_key_vec.begin(),
+                                                     in_recipe.unaffected.draw_key_vec.end  ());
+    const std::set<uint64_t> unaffected_pass_key_set(in_recipe.unaffected.pass_key_vec.begin(),
+                                                     in_recipe.unaffected.pass_key_vec.end  ());
     const auto                    timeline   = Analysis::APIDumpAnalysis::TimelineBuilder::build(in_analysis);
     std::vector<OverlayCandidate> result_vec;
 

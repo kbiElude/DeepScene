@@ -43,10 +43,10 @@ namespace Stereo
                                        const uint32_t& in_n_execution) const override;
 
             private:
-                std::set<uint32_t>                                     m_frame_to_keep_set;
-                std::map<ImageKey, uint64_t>                           m_hash_map;
+                std::set<uint32_t>                       m_frame_to_keep_set;
+                std::map<ImageKey, uint64_t>             m_hash_map;
                 std::map<ImageKey, Utils::Images::Image> m_image_map;
-                bool                                                   m_keeps_images;
+                bool                                     m_keeps_images;
             };
         }
     }

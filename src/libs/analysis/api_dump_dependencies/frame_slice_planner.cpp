@@ -23,7 +23,7 @@ Analysis::APIDumpDependencies::FrameSlice Analysis::APIDumpDependencies::FrameSl
     const uint64_t                     n_frames     = in_analysis.result.n_frames;
     std::deque<uint64_t>               frame_queue;
     FrameSlice                         result;
-    std::vector<std::vector<bool> >    is_needed_vec_vec(resource_vec.size() );
+    std::vector<std::vector<bool> > is_needed_vec_vec(resource_vec.size());
     std::vector<std::vector<VersionRef> > consumed_vec_vec(static_cast<size_t>(n_frames) ); /* by frame: what it uses of the frames before it */
 
     result.is_live_vec.assign(static_cast<size_t>(n_frames),

@@ -147,15 +147,15 @@ namespace Analysis
                 bool                         clears_color         = false;
                 bool                         clears_depth         = false;
                 bool                         clears_stencil       = false;
-                std::set<uint64_t>           covering_draw_key_set;  /* keys of the draws of the pass that cover the view */
+                std::set<uint64_t>           covering_draw_key_set;        /* keys of the draws of the pass that cover the view */
                 DepthHistogram               depth_histogram;
-                std::map<uint64_t, uint64_t> draw_signature_map;          /* key of the draw structure -> key of its signature */
-                bool                        has_draws            = false;
-                uint64_t                    last_draw_call_index = 0;     /* last draw, or the clear if there is none */
-                uint64_t                    n_draws              = 0;
-                uint64_t                    n_vertices           = 0;
-                DepthHistogram              surface_depth_histogram;
-                Viewport                    viewport;
+                std::map<uint64_t, uint64_t> draw_signature_map;           /* key of the draw structure -> key of its signature */
+                bool                         has_draws            = false;
+                uint64_t                     last_draw_call_index = 0;     /* last draw, or the clear if there is none */
+                uint64_t                     n_draws              = 0;
+                uint64_t                     n_vertices           = 0;
+                DepthHistogram               surface_depth_histogram;
+                Viewport                     viewport;
             };
 
             void close_pass               ();
@@ -166,11 +166,11 @@ namespace Analysis
             uint64_t compute_draw_signature_key(const DrawDescription& in_draw);
 
             /* Tells the sink, if there is one, of a use of a resource at this call. A resource which is NONE is no use. */
-            void emit_access(const ResourceId&        in_resource_id,
-                             const AccessRole&        in_role,
-                             const AccessMode&        in_mode,
-                             const AccessCoverage&    in_coverage,
-                             const SubresourceRange&  in_subresource_range);
+            void emit_access(const ResourceId&       in_resource_id,
+                             const AccessRole&       in_role,
+                             const AccessMode&       in_mode,
+                             const AccessCoverage&   in_coverage,
+                             const SubresourceRange& in_subresource_range);
 
             /* With the keys the resources have by the time of the draw, or with the ones they would have if no pass had written to them. */
             void fill_draw_structure(const DrawDescription& in_draw,
@@ -180,10 +180,10 @@ namespace Analysis
             bool find_draw_matrices(DrawMatrices* out_matrices_ptr) const;
 
             /* Adds what the histograms of a frame hold to those of the model, for the shape of the frame. */
-            static void merge_depth_histograms(const uint32_t&                                     in_shape_id,
-                                               const std::vector<DepthHistogram>&                  in_histogram_vec,
-                                               const std::vector<PassInstance>&                    in_pass_instance_vec,
-                                               std::map<DepthHistogramKey, DepthHistogram>*        inout_map_ptr);
+            static void merge_depth_histograms(const uint32_t&                              in_shape_id,
+                                               const std::vector<DepthHistogram>&           in_histogram_vec,
+                                               const std::vector<PassInstance>&             in_pass_instance_vec,
+                                               std::map<DepthHistogramKey, DepthHistogram>* inout_map_ptr);
 
             /* How much of the view a clear reaches: all of it, or what the viewport and the rectangles of the clear leave of it. */
             AccessCoverage get_clear_coverage(const ClearOperation& in_clear,

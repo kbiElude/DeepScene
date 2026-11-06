@@ -45,12 +45,12 @@ namespace VRPlayer
     /* What the window shows. */
     struct WindowContent
     {
-        VRPlayer::AppCatalog::Catalog              catalog;
-        std::string                          catalog_error;    /* empty if the catalog was read                    */
-        std::string                          device_error;     /* empty if the devices were listed                 */
+        VRPlayer::AppCatalog::Catalog             catalog;
+        std::string                               catalog_error;        /* empty if the catalog was read                    */
+        std::string                               device_error;         /* empty if the devices were listed                 */
         std::vector<Headset::VRDevices::VrDevice> device_vec;
-        bool                                 is_logging = false;   /* a log is written for each session                  */
-        std::string                          launcher_directory; /* where the launchers and the presenter are         */
+        bool                                      is_logging = false;   /* a log is written for each session                  */
+        std::string                               launcher_directory;   /* where the launchers and the presenter are         */
     };
 }
 

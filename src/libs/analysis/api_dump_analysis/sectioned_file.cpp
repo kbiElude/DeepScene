@@ -30,7 +30,7 @@ std::vector<uint8_t> Analysis::APIDumpAnalysis::SectionedFile::pack_section(cons
 
     SectionHeader        section_header = {};
     std::vector<uint8_t> result_vec;
-    std::vector<uint8_t> stored_byte_vec(::ZSTD_compressBound(in_raw_byte_vec.size() ) );
+    std::vector<uint8_t> stored_byte_vec(::ZSTD_compressBound(in_raw_byte_vec.size() ));
 
     const size_t n_stored_bytes = ::ZSTD_compress(stored_byte_vec.data(),
                                                   stored_byte_vec.size(),
@@ -160,7 +160,7 @@ bool Analysis::APIDumpAnalysis::SectionedFile::read_sections(const std::vector<u
             goto end;
         }
 
-        std::vector<uint8_t> raw_byte_vec(static_cast<size_t>(header.n_raw_bytes) );
+        std::vector<uint8_t> raw_byte_vec(static_cast<size_t>(header.n_raw_bytes));
         const size_t         n_decompressed = ::ZSTD_decompress(raw_byte_vec.data(),
                                                                 raw_byte_vec.size(),
                                                                 stored_ptr,

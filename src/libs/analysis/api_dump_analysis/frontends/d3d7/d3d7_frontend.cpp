@@ -792,9 +792,9 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::on_call(const Capture::
     const DrawLayout* draw_layout_ptr = find_draw_layout_ptr(in_call.func);
     const bool        is_release      = (m_release_function_set.find(in_call.func) != m_release_function_set.end() );
     const uint32_t    n_arguments     = Interception::Core::D3D7Utils::get_n_arguments(in_call.func);
-    const CallView    view(in_call,
-                           in_workload,
-                           n_arguments);
+    const CallView view(in_call,
+                        in_workload,
+                        n_arguments);
 
     register_names           (view);
     count_resolution_hazards (view);

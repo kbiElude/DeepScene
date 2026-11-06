@@ -48,14 +48,14 @@ namespace Stereo
         private:
             void release_texture();
 
-            ID3D11DeviceContext* m_context_ptr;
-            ID3D11Device*        m_device_ptr;
-            uint32_t             m_height;
-            uint64_t             m_last_frame_index;
-            SizeChangedFunc      m_size_changed_func;
-            ID3D11Texture2D*     m_texture_ptr;
+            ID3D11DeviceContext*      m_context_ptr;
+            ID3D11Device*             m_device_ptr;
+            uint32_t                  m_height;
+            uint64_t                  m_last_frame_index;
+            SizeChangedFunc           m_size_changed_func;
+            ID3D11Texture2D*          m_texture_ptr;
             ID3D11ShaderResourceView* m_view_ptr;
-            uint32_t             m_width;
+            uint32_t                  m_width;
         };
     }
 }

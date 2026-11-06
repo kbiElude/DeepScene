@@ -5,7 +5,7 @@
 #include "headset/vr_devices/stub_vr_device_provider.h"
 
 bool Headset::VRDevices::StubVrDeviceProvider::enumerate(std::vector<VrDevice>* out_device_vec_ptr,
-                                                    std::string*           out_error_ptr) const
+                                                         std::string*           out_error_ptr) const
 {
     VrDevice device;
 

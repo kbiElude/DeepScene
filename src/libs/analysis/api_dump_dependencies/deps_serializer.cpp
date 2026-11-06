@@ -31,7 +31,7 @@ bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_dependencies(con
                                                                              DependencyAnalysis*         inout_analysis_ptr)
 {
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
-                                       in_byte_vec.size() );
+                                       in_byte_vec.size());
     const uint64_t n_frames    = reader.read_u64();
     const uint32_t n_resources = reader.read_count(MIN_RESOURCE_N_BYTES);
     bool           is_ok       = (n_resources == inout_analysis_ptr->resource_vec.size() );
@@ -156,7 +156,7 @@ bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_frames(const std
                                                                        DependencyAnalysis*         inout_analysis_ptr)
 {
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
-                                       in_byte_vec.size() );
+                                       in_byte_vec.size());
     const uint32_t n_frames        = reader.read_count(MIN_RANGE_N_BYTES);
     bool           is_ok           = true;
     uint64_t       next_call_index = 0;
@@ -195,7 +195,7 @@ bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_meta(const std::
     constexpr size_t MIN_API_N_BYTES = sizeof(uint32_t) + sizeof(uint64_t); /* the length of a name, and a number of calls */
 
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
-                                       in_byte_vec.size() );
+                                       in_byte_vec.size());
 
     *out_analysis_ptr = DependencyAnalysis();
 

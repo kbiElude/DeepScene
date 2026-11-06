@@ -5,7 +5,7 @@
 #include "headset/d3d12/d3d12_frame_uploader.h"
 
 Headset::D3D12::D3D12FrameUploader::D3D12FrameUploader(ID3D12Device*       in_device_ptr,
-                                                      ID3D12CommandQueue* in_queue_ptr)
+                                                       ID3D12CommandQueue* in_queue_ptr)
     :m_runner(in_device_ptr,
               in_queue_ptr)
 {
@@ -26,8 +26,8 @@ end:
 }
 
 Headset::D3D12::D3D12FrameUploader::Region* Headset::D3D12::D3D12FrameUploader::get_region_ptr(const uint8_t* in_pixel_ptr,
-                                                                                             uint64_t*      out_offset_ptr,
-                                                                                             std::string*   out_error_ptr)
+                                                                                               uint64_t*      out_offset_ptr,
+                                                                                               std::string*   out_error_ptr)
 {
     MEMORY_BASIC_INFORMATION memory = {};
     Region*                  result_ptr = nullptr;
@@ -108,10 +108,10 @@ bool Headset::D3D12::D3D12FrameUploader::is_ok(std::string* out_error_ptr) const
 }
 
 bool Headset::D3D12::D3D12FrameUploader::upload(const Stereo::Transport::ImportedFrame& in_frame,
-                                               ID3D12Resource*                         in_left_texture_ptr,
-                                               ID3D12Resource*                         in_right_texture_ptr,
-                                               const D3D12_RESOURCE_STATES&            in_texture_state,
-                                               std::string*                            out_error_ptr)
+                                                ID3D12Resource*                         in_left_texture_ptr,
+                                                ID3D12Resource*                         in_right_texture_ptr,
+                                                const D3D12_RESOURCE_STATES&            in_texture_state,
+                                                std::string*                            out_error_ptr)
 {
     constexpr uint32_t N_EYES = 2;
 

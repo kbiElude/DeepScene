@@ -39,12 +39,12 @@ namespace Stereo
             public:
                 explicit ConsoleObserver(QuitHandler* in_quit_ptr);
 
-                void on_error(const std::string&                    in_message) override;
-                void on_frame_presented(const uint32_t&                       in_n_frame) override;
-                void on_state_changed(const Stereo::Replay::EngineDLL::PlaybackState& in_old_state,
-                                      const Stereo::Replay::EngineDLL::PlaybackState& in_new_state) override;
-                void on_window_closed()                                                     override;
-                void on_window_placed(const Stereo::Replay::EngineDLL::WindowPlacement& in_placement) override;
+                void on_error          (const std::string&                                in_message)   override;
+                void on_frame_presented(const uint32_t&                                   in_n_frame)   override;
+                void on_state_changed  (const Stereo::Replay::EngineDLL::PlaybackState&   in_old_state,
+                                        const Stereo::Replay::EngineDLL::PlaybackState&   in_new_state) override;
+                void on_window_closed  ()                                                               override;
+                void on_window_placed  (const Stereo::Replay::EngineDLL::WindowPlacement& in_placement) override;
 
             private:
                 /* The engine calls its observers one at a time, so no lock is needed here. */
@@ -57,12 +57,12 @@ namespace Stereo
             };
 
             /* The file of the dependencies which is named like the workload: its name with the extension .deps. */
-            std::string get_default_deps_filename(const std::string&                           in_workload_path);
+            std::string get_default_deps_filename(const std::string& in_workload_path);
 
-            int  run(int                                   in_argc,
-                     char*                                 in_argv[]);
-            void run_console(Stereo::Replay::EngineDLL::IPlaybackController*  in_controller_ptr,
-                             const std::shared_ptr<QuitHandler>&    in_quit_ptr);
+            int  run        (int                                             in_argc,
+                             char*                                           in_argv[]);
+            void run_console(Stereo::Replay::EngineDLL::IPlaybackController* in_controller_ptr,
+                             const std::shared_ptr<QuitHandler>&             in_quit_ptr);
         }
     }
 }
@@ -187,7 +187,7 @@ int Stereo::Replay::Player::run(int   in_argc,
     std::unique_ptr<ConsoleObserver>          observer_ptr;
     Options                                   options;
     std::unique_ptr<PreviewWindow>            preview_ptr;
-    std::shared_ptr<QuitHandler>                    quit_ptr(new QuitHandler() );
+    std::shared_ptr<QuitHandler> quit_ptr(new QuitHandler());
     std::unique_ptr<FrameRangeObserver> range_ptr;
     Analysis::Recipe::Recipe            recipe;
     int                                 result    = EXIT_FAILURE;

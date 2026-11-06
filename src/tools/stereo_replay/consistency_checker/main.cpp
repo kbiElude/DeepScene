@@ -73,24 +73,24 @@ namespace Stereo
                                  std::string*    out_error_ptr);
 
             /* Starts the parts of an overlay probe, each as a process of this program, and waits for them (see OverlayProbe::RunShardsFunc). */
-            bool run_probe_shards(const Options&                    in_options,
-                                  const uint32_t&                   in_n_shards,
-                                  const std::vector<std::string>&   in_result_filename_vec,
-                                  std::string*                      out_error_ptr);
+            bool run_probe_shards(const Options&                  in_options,
+                                  const uint32_t&                 in_n_shards,
+                                  const std::vector<std::string>& in_result_filename_vec,
+                                  std::string*                    out_error_ptr);
 
-            bool run_variant(const Options&                                  in_options,
-                             const Variant&                                  in_variant,
-                             FrameHashSink*                                  out_sink_ptr,
-                             std::string*                                    out_error_ptr,
-                             ::Replay::ReplayEngineDLL::ICallInterceptor*    in_interceptor_ptr = nullptr);
+            bool run_variant(const Options&                               in_options,
+                             const Variant&                               in_variant,
+                             FrameHashSink*                               out_sink_ptr,
+                             std::string*                                 out_error_ptr,
+                             ::Replay::ReplayEngineDLL::ICallInterceptor* in_interceptor_ptr = nullptr);
 
             /* Replays the frames the ways in the vector, one after the other or all at once, and prints how long each took. The sinks are in the order of
              * the ways.
              */
-            bool run_variants(const Options&                      in_options,
-                              const std::vector<const Variant*>&  in_variant_ptr_vec,
-                              std::vector<FrameHashSink>*         out_sink_vec_ptr,
-                              std::string*                        out_error_ptr);
+            bool run_variants(const Options&                     in_options,
+                              const std::vector<const Variant*>& in_variant_ptr_vec,
+                              std::vector<FrameHashSink>*        out_sink_vec_ptr,
+                              std::string*                       out_error_ptr);
 
             /* Replays the workload once, up to the last of the frames that the options have a contact sheet of, and writes the sheet: the frames spread evenly
              * from the first frame of the options to the last (or the end of the workload), each as a screenshot is.
@@ -115,8 +115,8 @@ namespace Stereo
                                  std::string*   out_error_ptr);
 
             /* Says, and writes an image of, how the image of an execution differs from the one of the frame as it is. */
-            void write_difference(const std::string&                        in_label,
-                                  const std::string&                        in_path,
+            void write_difference(const std::string&          in_label,
+                                  const std::string&          in_path,
                                   const Utils::Images::Image& in_image_as_it_is,
                                   const Utils::Images::Image& in_image_of_execution);
         }
@@ -570,7 +570,7 @@ bool Stereo::Replay::ConsistencyChecker::run_probe_shards(const Stereo::Replay::
 
         /* The command line of CreateProcess is written to: it is a copy. */
         std::vector<char> command_line_i8_vec(command_line.begin(),
-                                              command_line.end  () );
+                                              command_line.end  ());
 
         command_line_i8_vec.push_back('\0');
 
@@ -731,7 +731,7 @@ bool Stereo::Replay::ConsistencyChecker::run_variants(const Stereo::Replay::Cons
         double      seconds = 0.0;
     };
 
-    std::vector<Run> run_vec(in_variant_ptr_vec.size() );
+    std::vector<Run> run_vec(in_variant_ptr_vec.size());
     bool             result = true;
 
     out_sink_vec_ptr->clear();

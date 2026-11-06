@@ -38,15 +38,15 @@ namespace Stereo
                 /* Whether the call makes content (what the dead frames of a slice leave out); false for the calls that set state, make or release an object. */
                 static bool is_content_call(const APIInterceptor::APIFunction& in_function);
 
-                void on_call_replayed   (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                         const uint32_t&                              in_n_frame,
-                                         const bool&                                  in_was_executed) override;
+                void on_call_replayed(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                      const uint32_t&                              in_n_frame,
+                                      const bool&                                  in_was_executed) override;
 
                 /* Whether the slice leaves out the content of the frame; false if there is no slice. Any thread. */
-                bool is_dead_frame      (const uint32_t&                              in_n_frame) const;
+                bool is_dead_frame(const uint32_t& in_n_frame) const;
 
                 /* The frames which the slice says are dead are left out from now on. Any thread. */
-                void set_slice          (const Analysis::APIDumpDependencies::FrameSlice& in_slice);
+                void set_slice(const Analysis::APIDumpDependencies::FrameSlice& in_slice);
 
                 bool should_execute_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                          const uint32_t&                              in_n_frame) override;

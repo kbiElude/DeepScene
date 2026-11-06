@@ -18,7 +18,7 @@ namespace Headset
         {
         public:
             bool enumerate(std::vector<Headset::VRDevices::VrDevice>* out_device_vec_ptr,
-                           std::string*                          out_error_ptr) const override;
+                           std::string*                               out_error_ptr) const override;
         };
     }
 }

@@ -31,9 +31,9 @@ namespace Analysis
             bool close();
 
             /* The file is made new. Returns nullptr, and says why, if it cannot be. */
-            static WorkloadWriterUniquePtr create(const char*                                                 in_filename_ptr,
-                                                  const APIInterceptor::WorkloadFormat::WorkloadFileHeader&   in_header,
-                                                  std::string*                                                out_error_ptr);
+            static WorkloadWriterUniquePtr create(const char*                                               in_filename_ptr,
+                                                  const APIInterceptor::WorkloadFormat::WorkloadFileHeader& in_header,
+                                                  std::string*                                              out_error_ptr);
 
             /* The bytes that the file has so far. */
             uint64_t get_n_bytes_written() const;

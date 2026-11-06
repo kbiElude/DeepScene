@@ -47,9 +47,9 @@ namespace Analysis
 
             private:
                 /* What the base class needs of the front end. */
-                void                                                forget_resource       (const Analysis::APIDumpAnalysis::ResourceId& in_id) override;
-                FixedFunctionState&                                 get_fixed_function_state() override;
-                Analysis::APIDumpAnalysis::ConstantSemantic         get_transform_semantic(const uint32_t&                              in_state) const override;
+                void                                        forget_resource         (const Analysis::APIDumpAnalysis::ResourceId& in_id)    override;
+                FixedFunctionState&                         get_fixed_function_state()                                                      override;
+                Analysis::APIDumpAnalysis::ConstantSemantic get_transform_semantic  (const uint32_t&                              in_state) const override;
 
                 /* Where the arguments of a draw are. */
                 struct DrawLayout
@@ -69,19 +69,19 @@ namespace Analysis
 
 
 
-                void handle_add_attached_surface   (const CallView&   in_view);
-                void handle_clear                  (const CallView&   in_view);
-                void handle_create_device          (const CallView&   in_view);
-                void handle_create_surface         (const CallView&   in_view);
-                void handle_create_vertex_buffer   (const CallView&   in_view);
-                void handle_draw                   (const CallView&   in_view,
-                                                    const DrawLayout& in_layout);
-                void handle_duplicate_surface      (const CallView&   in_view);
-                void handle_get_attached_surface   (const CallView&   in_view);
-                void handle_set_display_mode       (const CallView&   in_view);
-                void handle_set_render_target      (const CallView&   in_view);
-                void handle_set_viewport           (const CallView&   in_view);
-                void handle_unlock                 (const CallView&   in_view);
+                void handle_add_attached_surface(const CallView&   in_view);
+                void handle_clear               (const CallView&   in_view);
+                void handle_create_device       (const CallView&   in_view);
+                void handle_create_surface      (const CallView&   in_view);
+                void handle_create_vertex_buffer(const CallView&   in_view);
+                void handle_draw                (const CallView&   in_view,
+                                                 const DrawLayout& in_layout);
+                void handle_duplicate_surface   (const CallView&   in_view);
+                void handle_get_attached_surface(const CallView&   in_view);
+                void handle_set_display_mode    (const CallView&   in_view);
+                void handle_set_render_target   (const CallView&   in_view);
+                void handle_set_viewport        (const CallView&   in_view);
+                void handle_unlock              (const CallView&   in_view);
 
                 /* A copy from a surface to another, or a fill of a surface if there is no source: Blt, BltFast and Load. */
                 void handle_write_to_surface(const CallView& in_view,

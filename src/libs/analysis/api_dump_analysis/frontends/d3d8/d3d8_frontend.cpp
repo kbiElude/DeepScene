@@ -1158,9 +1158,9 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::on_call(const Capture::
 {
     const DescribeFuncPtr describe_func_ptr = get_describe_func_ptr(in_call.func);
     const uint32_t        n_arguments       = Interception::Core::D3D8Utils::get_n_arguments(in_call.func);
-    const CallView        view(in_call,
-                              in_workload,
-                              n_arguments);
+    const CallView view(in_call,
+                        in_workload,
+                        n_arguments);
 
     register_names(view);
 

@@ -77,7 +77,7 @@ namespace Analysis
             static const char* get_primitive_topology_name   (const PrimitiveTopology&    in_topology);
             static const char* get_resource_access_class_name(const ResourceAccessClass&  in_class);
             static double      get_seconds                   (const AnalysisResult&       in_analysis,
-                                                               const uint64_t&             in_timestamp_qpc);
+                                                              const uint64_t&             in_timestamp_qpc);
 
             static const char* get_transfer_kind_name(const TransferKind& in_kind);
 

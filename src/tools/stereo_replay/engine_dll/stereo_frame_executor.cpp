@@ -350,7 +350,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_draw_call(const Cap
     const uint64_t                             shape_key = m_session_ptr->get_completed_frame().shape_key;
     Stereo::Core::ScreenParallaxPlanner::Input input;
     bool                                       is_moved  = false;
-    OverlayChunkSource                    overlay(in_chunk_source);
+    OverlayChunkSource overlay(in_chunk_source);
     const float                           picture_width = m_session_ptr->get_model().pass_structure_interner.get_structure(in_pass_structure_id).viewport.width;
     Stereo::Core::ScreenShiftPlan         plan;
     Capture::APIDumpLoader::DumpedAPICall rewritten;

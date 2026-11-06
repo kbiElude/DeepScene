@@ -21,11 +21,11 @@ namespace Stereo
 {
     namespace Launcher
     {
-        std::string get_converter_failure_reason(const std::string& in_session_id);
-        std::string get_own_directory();
-        bool        is_file          (const std::string& in_path);
-        std::vector<std::string> read_log_lines(const std::string& in_session_id);
-        int         run              (const std::vector<std::string>& in_argument_vec);
+        std::string              get_converter_failure_reason(const std::string&              in_session_id);
+        std::string              get_own_directory           ();
+        bool                     is_file                     (const std::string&              in_path);
+        std::vector<std::string> read_log_lines              (const std::string&              in_session_id);
+        int                      run                         (const std::vector<std::string>& in_argument_vec);
     }
 }
 
@@ -33,7 +33,7 @@ std::string Stereo::Launcher::get_converter_failure_reason(const std::string& in
 {
     const std::string marker = "The application cannot be converted:";
     std::string       line;
-    std::ifstream     log(Stereo::Session::SessionEnvironment::get_log_path(in_session_id) );
+    std::ifstream log(Stereo::Session::SessionEnvironment::get_log_path(in_session_id));
     std::string       result = "The converter stopped the application; its log says why.";
 
     /* The last of the lines it wrote, without what it adds to each (the process, the program, the recipe). */
@@ -81,7 +81,7 @@ bool Stereo::Launcher::is_file(const std::string& in_path)
 std::vector<std::string> Stereo::Launcher::read_log_lines(const std::string& in_session_id)
 {
     std::string              line;
-    std::ifstream            log(Stereo::Session::SessionEnvironment::get_log_path(in_session_id) );
+    std::ifstream log(Stereo::Session::SessionEnvironment::get_log_path(in_session_id));
     std::vector<std::string> result_vec;
 
     while (std::getline(log,
