@@ -5,7 +5,7 @@
 #ifndef STEREO_CORE_TYPES_H
 #define STEREO_CORE_TYPES_H
 
-#include "Common/types.h"
+#include "common/types.h"
 #include <array>
 #include <functional>
 #include <string>

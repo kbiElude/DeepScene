@@ -7,12 +7,12 @@
  * surfaces are fakes with virtual tables (see fake_direct_draw.h).
  */
 #include <gtest/gtest.h>
-#include "Common/callbacks.h"
-#include "Interception/Core/D3D7Utils/constants.h"
-#include "Interception/Core/D3D7Utils/strided_layout.h"
+#include "common/callbacks.h"
+#include "interception/core/D3D7Utils/constants.h"
+#include "interception/core/D3D7Utils/strided_layout.h"
 #include "stereo/core/stereo_core.h"
-#include "d3d7/d3d7_eye_renderer.h"
-#include "d3d7/d3d7_windowed_mode.h"
+#include "D3D7/d3d7_eye_renderer.h"
+#include "D3D7/d3d7_windowed_mode.h"
 #include "fake_direct_draw.h"
 #include <algorithm>
 

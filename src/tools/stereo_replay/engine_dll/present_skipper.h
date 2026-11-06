@@ -5,7 +5,7 @@
 #ifndef STEREO_REPLAY_ENGINEDLL_PRESENT_SKIPPER_H
 #define STEREO_REPLAY_ENGINEDLL_PRESENT_SKIPPER_H
 
-#include "Replay/ReplayEngineDLL/i_call_interceptor.h"
+#include "replay/replay_engine_dll/i_call_interceptor.h"
 #include "frame_hurry.h"
 
 namespace Stereo

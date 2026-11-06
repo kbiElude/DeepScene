@@ -8,7 +8,7 @@
 #define STEREO_REPLAY_CONSISTENCYCHECKER_REPLAY_RUNNER_H
 
 #include "frame_hash_sink.h"
-#include "Replay/ReplayEngineDLL/i_call_interceptor.h"
+#include "replay/replay_engine_dll/i_call_interceptor.h"
 #include "types.h"
 #include <stdint.h>
 #include <string>

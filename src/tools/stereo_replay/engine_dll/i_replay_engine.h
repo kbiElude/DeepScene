@@ -6,7 +6,7 @@
 #define STEREO_REPLAY_ENGINEDLL_I_REPLAY_ENGINE_H
 
 #include "analysis/recipe/types.h"
-#include "Replay/ReplayEngineDLL/i_replay_engine.h"
+#include "replay/replay_engine_dll/i_replay_engine.h"
 #include "i_call_interceptor.h"
 #include "i_frame_image_sink.h"
 #include "i_playback_controller.h"

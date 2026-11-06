@@ -6,7 +6,7 @@
  * recipe leaves alone and as the recipe changes it for the others, and only when the next draw needs the other one.
  */
 #include <gtest/gtest.h>
-#include "Interception/Hooks/D3D8/types.h"
+#include "interception/hooks/D3D8/types.h"
 #include "eye_matrix_binder.h"
 #include "replay_test_doubles.h"
 #include <string.h>

@@ -3,8 +3,8 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "d3d8_frontend_harness.h"
-#include "Capture/APIDumpLoader/workload_reader.h"
-#include "Capture/APIDumpLoader/api_info.h"
+#include "capture/api_dump_loader/workload_reader.h"
+#include "capture/api_dump_loader/api_info.h"
 
 Tests::D3D8FrontendHarness::D3D8FrontendHarness()
     :m_frontend           (&m_builder),

@@ -3,8 +3,8 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/recipe/recipe_loader.h"
-#include "Interception/Core/D3D7Utils/constants.h"
-#include "Interception/Hooks/D3D8/types.h"
+#include "interception/core/D3D7Utils/constants.h"
+#include "interception/hooks/D3D8/types.h"
 #include <stdint.h>
 
 const Analysis::Recipe::RecipeLoader::CallDescriptor* Analysis::Recipe::RecipeLoader::find_call_descriptor_ptr(const std::string& in_name)

@@ -7,8 +7,8 @@
  */
 #include <gtest/gtest.h>
 #include "analysis/recipe/recipe_loader.h"
-#include "Interception/Core/D3D7Utils/constants.h"
-#include "Interception/Hooks/D3D8/types.h"
+#include "interception/core/D3D7Utils/constants.h"
+#include "interception/hooks/D3D8/types.h"
 #include "data_fixtures.h"
 
 class RecipeLoaderTest : public ::testing::Test

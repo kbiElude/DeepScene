@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "d3d7_scene.h"
-#include "Interception/Core/D3D7Utils/constants.h"
+#include "interception/core/D3D7Utils/constants.h"
 
 Tests::D3D7Scene::D3D7Scene()
     :m_back_buffer_surface(0),

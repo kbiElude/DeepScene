@@ -2,14 +2,14 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Writes a workload file: the layout that the dumper writes and the loader reads (see Common/workload_format.h), a segment at a time. The compression is the
+ * Writes a workload file: the layout that the dumper writes and the loader reads (see common/workload_format.h), a segment at a time. The compression is the
  * dumper's (ZstdFileWriter): each segment is a Zstandard frame of its own.
  */
 #ifndef ANALYSIS_APIDUMPSLICING_WORKLOAD_WRITER_H
 #define ANALYSIS_APIDUMPSLICING_WORKLOAD_WRITER_H
 
-#include "Capture/APIDumpLoader/api_dump_loader.h"
-#include "Common/workload_format.h"
+#include "capture/api_dump_loader/api_dump_loader.h"
+#include "common/workload_format.h"
 #include <memory>
 #include <stdio.h>
 #include <string>

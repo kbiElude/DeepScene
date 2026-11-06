@@ -6,7 +6,7 @@
  */
 #include <gtest/gtest.h>
 #include "analysis/recipe/recipe_applier.h"
-#include "Interception/Hooks/D3D8/types.h"
+#include "interception/hooks/D3D8/types.h"
 
 class RecipeApplierTest : public ::testing::Test
 {

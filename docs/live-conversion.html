@@ -47,7 +47,7 @@
   <rect class="box" x="380" y="48" width="260" height="40" rx="6"/><text x="510" y="73" text-anchor="middle">CallFeeder → AnalysisSession</text>
   <rect class="box" x="380" y="100" width="260" height="40" rx="6"/><text x="510" y="125" text-anchor="middle">StereoCore: what to do with this draw</text>
   <rect class="box" x="380" y="152" width="260" height="40" rx="6"/><text x="510" y="177" text-anchor="middle">Converter: order of the work of each call</text>
-  <rect class="box2" x="380" y="204" width="260" height="40" rx="6"/><text x="510" y="229" text-anchor="middle">adapter (d3d8/ or d3d7/): the second eye</text>
+  <rect class="box2" x="380" y="204" width="260" height="40" rx="6"/><text x="510" y="229" text-anchor="middle">adapter (D3D8/ or D3D7/): the second eye</text>
   <rect class="box3" x="30" y="204" width="130" height="50" rx="6"/><text x="95" y="226" text-anchor="middle">recipe</text><text class="small" x="95" y="242" text-anchor="middle">read at start</text>
   <rect class="box3" x="200" y="278" width="440" height="36" rx="6"/><text x="420" y="301" text-anchor="middle">exporter of the adapter → frame channel</text>
   <path class="arrow" d="M160 85H198"/><path class="arrow" d="M330 72L378 68"/><path class="arrow" d="M330 98L378 118"/>
@@ -67,7 +67,7 @@
 <tr><td><code>Converter</code></td><td>Registers the callbacks and orders the work of each call: feed the analysis, keep matrices, classify and render draws, take the settings the VR player changed.</td></tr>
 <tr><td><code>CallFeeder</code></td><td>Gives the analysis each call as a dump would, for Direct3D 7 and 8 alike; keeps the calls that wait for results in per-thread pools.</td></tr>
 <tr><td><code>StereoCore</code></td><td>The decisions: the class of a draw from the recipe and the view matrix, unknown draws and frames. Owns <code>ConvergenceModel</code> (where the eyes converge and how far apart they are) and <code>MatrixSlots</code> (the matrices a rule is about, and which to put in before a draw).</td></tr>
-<tr><td>The adapter for an API</td><td><code>D3D8EyeRenderer</code>, <code>D3D8ResolutionScaler</code>, <code>D3D8WindowedMode</code>, <code>D3D8HostMemoryExporter</code> in <code>runtime/converter_dll/d3d8</code>; <code>D3D7EyeRenderer</code>, <code>D3D7SurfaceTwins</code>, <code>D3D7WindowedMode</code>, <code>D3D7HostMemoryExporter</code> in <code>d3d7</code>.</td></tr>
+<tr><td>The adapter for an API</td><td><code>D3D8EyeRenderer</code>, <code>D3D8ResolutionScaler</code>, <code>D3D8WindowedMode</code>, <code>D3D8HostMemoryExporter</code> in <code>runtime/converter_dll/D3D8</code>; <code>D3D7EyeRenderer</code>, <code>D3D7SurfaceTwins</code>, <code>D3D7WindowedMode</code>, <code>D3D7HostMemoryExporter</code> in <code>d3d7</code>.</td></tr>
 <tr><td><code>FramePasser</code>, <code>SessionLog</code></td><td>What both adapters share: pass the presented frame on to the channel (at most one in 8 ms) and wait for the headset to want the next; one log line per event.</td></tr>
 </table>
 <p>What a converter can know when a draw is issued is less than a replay knows: the pass is not known yet, so a draw is told by its signature and the view matrix, and a rule about a pass or a frame shape cannot be followed. Where a program needs more than that, the converter fails at once through <code>StereoCore::require_fast_path</code> instead of producing wrong images; the same goes for what an adapter cannot follow (a program that locks a render target, or resets the device).</p>

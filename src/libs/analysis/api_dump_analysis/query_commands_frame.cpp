@@ -4,7 +4,7 @@
  */
 #include "analysis/api_dump_analysis/query_commands.h"
 #include "analysis/api_dump_analysis/model_builder.h"
-#include "Common/macros.h"
+#include "common/macros.h"
 
 const char* Analysis::APIDumpAnalysis::QueryCommands::get_transfer_kind_name(const TransferKind& in_kind)
 {

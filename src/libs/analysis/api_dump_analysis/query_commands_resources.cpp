@@ -5,7 +5,7 @@
 #include "analysis/api_dump_analysis/query_commands.h"
 #include "analysis/api_dump_analysis/resource_access_tracker.h"
 #include "analysis/api_dump_analysis/resource_identity.h"
-#include "Common/macros.h"
+#include "common/macros.h"
 #include <algorithm>
 
 const char* Analysis::APIDumpAnalysis::QueryCommands::get_resource_access_class_name(const ResourceAccessClass& in_class)

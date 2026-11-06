@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "Interception/Hooks/D3D8/types.h"
+#include "interception/hooks/D3D8/types.h"
 #include "pixel_converter.h"
 #include "pixel_row_writer.h"
 #include <string.h>

@@ -3,8 +3,8 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "d3d7_call_builder.h"
-#include "Common/types.h"
-#include "Interception/Core/D3D7Utils/constants.h"
+#include "common/types.h"
+#include "interception/core/D3D7Utils/constants.h"
 #include <string.h>
 
 Tests::D3D7CallBuilder::D3D7CallBuilder()

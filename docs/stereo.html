@@ -129,7 +129,7 @@ shift(right eye) = −shift(left eye)
   <li><strong>A draw that covers the whole view is never moved</strong> (a flash, a fade): its two pictures apart would leave a strip of the screen bare. The recipe knows such draws by key, but a key can be shared by a piece of sky that is drawn as a full-screen quad, so the converter also checks that the draw's own vertices reach both sides of the view.</li>
   <li><strong>A draw into a texture is moved like any other</strong>, so that the texture is the picture of the eye. The quad that draws the texture to the screen is flat, and is left where it is.</li>
 </ul>
-<p>The decisions about which draw is moved how are in <code>ScreenParallaxPlanner</code> (<code>libs/stereo/core</code>), which the replay engine and the live converter both use; the bytes are moved by <code>ScreenParallax</code> (<code>libs/stereo/d3d7</code>).</p>
+<p>The decisions about which draw is moved how are in <code>ScreenParallaxPlanner</code> (<code>libs/stereo/core</code>), which the replay engine and the live converter both use; the bytes are moved by <code>ScreenParallax</code> (<code>libs/stereo/D3D7</code>).</p>
 
 <h2 id="separation">How far apart the eyes are</h2>
 <p>The separation is not a fixed number of the program's units: a corridor and a hillside would need very different ones. It follows the distance at which the eyes converge, by the rule of thumb that the cameras of a stereo shot are a thirtieth of that distance apart, and it is scaled by what the person asks and by the person's eyes:</p>

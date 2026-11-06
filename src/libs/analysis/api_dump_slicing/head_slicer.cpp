@@ -4,9 +4,9 @@
  */
 #include "analysis/api_dump_slicing/head_slicer.h"
 #include "analysis/api_dump_slicing/workload_writer.h"
-#include "Capture/APIDumpLoader/workload_index.h"
-#include "Capture/APIDumpLoader/workload_reader.h"
-#include "Capture/APIDumpLoader/api_info.h"
+#include "capture/api_dump_loader/workload_index.h"
+#include "capture/api_dump_loader/workload_reader.h"
+#include "capture/api_dump_loader/api_info.h"
 #include <algorithm>
 #include <stdio.h>
 #include <string.h>

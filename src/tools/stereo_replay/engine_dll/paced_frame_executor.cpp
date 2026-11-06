@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "Capture/APIDumpLoader/api_info.h"
+#include "capture/api_dump_loader/api_info.h"
 #include "paced_frame_executor.h"
 #include <Windows.h>
 #include <mmsystem.h>

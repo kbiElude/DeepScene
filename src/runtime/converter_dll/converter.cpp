@@ -3,10 +3,10 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/recipe/recipe_loader.h"
-#include "Capture/APIDumpLoader/api_info.h"
-#include "Common/frame_boundary.h"
-#include "Common/vtable.h"
-#include "Interception/Hooks/D3D8/types.h"
+#include "capture/api_dump_loader/api_info.h"
+#include "common/frame_boundary.h"
+#include "common/vtable.h"
+#include "interception/hooks/D3D8/types.h"
 #include "stereo/session/session_environment.h"
 #include "converter.h"
 #include "environment.h"

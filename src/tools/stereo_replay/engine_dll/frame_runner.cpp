@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "frame_runner.h"
-#include "Common/macros.h"
+#include "common/macros.h"
 
 bool Stereo::Replay::EngineDLL::FrameRunner::run(const FrameBuffer&                                            in_buffer,
                                                  const bool&                                                   in_is_complete,

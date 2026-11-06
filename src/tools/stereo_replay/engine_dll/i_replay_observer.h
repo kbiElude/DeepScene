@@ -5,7 +5,7 @@
 #ifndef STEREO_REPLAY_ENGINEDLL_I_REPLAY_OBSERVER_H
 #define STEREO_REPLAY_ENGINEDLL_I_REPLAY_OBSERVER_H
 
-#include "Replay/ReplayEngineDLL/i_replay_observer.h"
+#include "replay/replay_engine_dll/i_replay_observer.h"
 #include "types.h"
 
 namespace Stereo

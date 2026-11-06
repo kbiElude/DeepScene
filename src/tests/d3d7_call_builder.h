@@ -8,8 +8,8 @@
 #ifndef TESTS_D3D7_CALL_BUILDER_H
 #define TESTS_D3D7_CALL_BUILDER_H
 
-#include "Capture/APIDumpLoader/api_dump_loader.h"
-#include "Interception/Hooks/D3D7/types.h"
+#include "capture/api_dump_loader/api_dump_loader.h"
+#include "interception/hooks/D3D7/types.h"
 #include <stdint.h>
 #include <vector>
 

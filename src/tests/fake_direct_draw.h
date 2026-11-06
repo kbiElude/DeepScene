@@ -9,8 +9,8 @@
 #ifndef TESTS_FAKE_DIRECT_DRAW_H
 #define TESTS_FAKE_DIRECT_DRAW_H
 
-#include "Common/types.h"
-#include "Interception/Hooks/D3D7/types.h"
+#include "common/types.h"
+#include "interception/hooks/D3D7/types.h"
 #include <array>
 #include <memory>
 #include <string>

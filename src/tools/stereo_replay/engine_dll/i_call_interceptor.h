@@ -5,7 +5,7 @@
 #ifndef STEREO_REPLAY_ENGINEDLL_I_CALL_INTERCEPTOR_H
 #define STEREO_REPLAY_ENGINEDLL_I_CALL_INTERCEPTOR_H
 
-#include "Replay/ReplayEngineDLL/i_call_interceptor.h"
+#include "replay/replay_engine_dll/i_call_interceptor.h"
 
 namespace Stereo
 {

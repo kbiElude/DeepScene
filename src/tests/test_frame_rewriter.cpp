@@ -6,7 +6,7 @@
  * is left alone.
  */
 #include <gtest/gtest.h>
-#include "Interception/Hooks/D3D8/types.h"
+#include "interception/hooks/D3D8/types.h"
 #include "frame_rewriter.h"
 #include "replay_test_doubles.h"
 #include <string.h>

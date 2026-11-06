@@ -9,7 +9,7 @@
 #define RECIPE_RECIPE_APPLIER_H
 
 #include "analysis/api_dump_analysis/resource_identity.h"
-#include "Capture/APIDumpLoader/api_dump_loader.h"
+#include "capture/api_dump_loader/api_dump_loader.h"
 #include "analysis/recipe/types.h"
 #include <array>
 #include <map>

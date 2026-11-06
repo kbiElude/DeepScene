@@ -38,7 +38,7 @@ namespace
                                  (in_relative_path.size() > 4 && in_relative_path.compare(in_relative_path.size() - 4, 4, ".cpp") == 0) ) );
 
         return (is_source                                                        &&
-                in_relative_path.find("/Tests/")              == std::string::npos &&
+                in_relative_path.find("/tests/")              == std::string::npos &&
                 in_relative_path.find("/tests/")              == std::string::npos &&
                 in_relative_path.find("/entrypoints/")        == std::string::npos &&
                 in_relative_path.find("Hooks/OpenGL/")        == std::string::npos);

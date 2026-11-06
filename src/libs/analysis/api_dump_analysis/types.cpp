@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_analysis/types.h"
-#include "Common/macros.h"
+#include "common/macros.h"
 
 const char* Analysis::APIDumpAnalysis::get_resolution_hazard_name(const ResolutionHazard& in_hazard)
 {

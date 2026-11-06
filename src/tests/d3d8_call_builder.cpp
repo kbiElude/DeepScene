@@ -4,7 +4,7 @@
  */
 #include "d3d8_call_builder.h"
 #include "d3d8_struct_bytes.h"
-#include "Common/types.h"
+#include "common/types.h"
 #include <string.h>
 
 Tests::D3D8CallBuilder::D3D8CallBuilder()

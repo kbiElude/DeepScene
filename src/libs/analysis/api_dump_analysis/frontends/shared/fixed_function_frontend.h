@@ -12,7 +12,7 @@
 #include "analysis/api_dump_analysis/frontends/shared/call_view.h"
 #include "analysis/api_dump_analysis/frontends/shared/fixed_function_state.h"
 #include "analysis/api_dump_analysis/frontends/shared/i_api_frontend.h"
-#include "Capture/APIDumpLoader/object_namer.h"
+#include "capture/api_dump_loader/object_namer.h"
 #include "analysis/api_dump_analysis/frontends/shared/object_tracker.h"
 #include "analysis/api_dump_analysis/model_builder.h"
 #include <map>

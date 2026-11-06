@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "profile_mode.h"
-#include "Capture/APIDumpNames/function_names.h"
+#include "capture/api_dump_names/function_names.h"
 #include "frame_hash_sink.h"
 #include "replay_profiler.h"
 #include "replay_runner.h"

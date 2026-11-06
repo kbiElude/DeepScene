@@ -9,7 +9,7 @@
 #ifndef RECIPE_TYPES_H
 #define RECIPE_TYPES_H
 
-#include "Common/types.h"
+#include "common/types.h"
 #include <array>
 #include <stdint.h>
 #include <string>

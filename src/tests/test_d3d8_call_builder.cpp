@@ -5,9 +5,9 @@
  * Checks that the calls built for the tests look like the calls which the dumper stores.
  */
 #include <gtest/gtest.h>
-#include "Capture/APIDumpLoader/api_info.h"
-#include "Interception/Core/D3D8Utils/argument_info.h"
-#include "Interception/Core/D3D8Utils/methods.h"
+#include "capture/api_dump_loader/api_info.h"
+#include "interception/core/D3D8Utils/argument_info.h"
+#include "interception/core/D3D8Utils/methods.h"
 #include "d3d8_call_builder.h"
 
 TEST(D3D8CallBuilder, CallsHaveTheArgumentCountsOfTheirMethods)

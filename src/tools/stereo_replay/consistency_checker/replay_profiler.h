@@ -9,7 +9,7 @@
 #ifndef STEREO_REPLAY_CONSISTENCYCHECKER_REPLAY_PROFILER_H
 #define STEREO_REPLAY_CONSISTENCYCHECKER_REPLAY_PROFILER_H
 
-#include "Replay/ReplayEngineDLL/i_call_interceptor.h"
+#include "replay/replay_engine_dll/i_call_interceptor.h"
 #include <functional>
 #include <map>
 #include <mutex>

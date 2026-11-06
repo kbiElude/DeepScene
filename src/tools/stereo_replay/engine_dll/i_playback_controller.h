@@ -5,7 +5,7 @@
 #ifndef STEREO_REPLAY_ENGINEDLL_I_PLAYBACK_CONTROLLER_H
 #define STEREO_REPLAY_ENGINEDLL_I_PLAYBACK_CONTROLLER_H
 
-#include "Replay/ReplayEngineDLL/i_playback_controller.h"
+#include "replay/replay_engine_dll/i_playback_controller.h"
 #include "types.h"
 
 namespace Stereo

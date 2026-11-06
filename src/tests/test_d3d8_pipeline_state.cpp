@@ -5,8 +5,8 @@
  * Checks of the key of the state of a D3D8 draw: what tells draws apart, and what does not.
  */
 #include <gtest/gtest.h>
-#include "analysis/api_dump_analysis/frontends/d3d8/d3d8_pipeline_state.h"
-#include "Interception/Hooks/D3D8/types.h"
+#include "analysis/api_dump_analysis/frontends/D3D8/d3d8_pipeline_state.h"
+#include "interception/hooks/D3D8/types.h"
 
 TEST(D3D8PipelineState, StateKeyOfNothingSetIsStable)
 {

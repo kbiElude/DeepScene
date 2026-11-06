@@ -6,7 +6,7 @@
  * architecture of the application, so there is a launcher of each: it is the launcher which Detours can inject from.
  */
 #include "analysis/recipe/recipe_loader.h"
-#include "Capture/InjectionLauncher/launcher.h"
+#include "capture/injection_launcher/launcher.h"
 #include "stereo/session/session_environment.h"
 #include "command_line.h"
 #include "log_summary.h"

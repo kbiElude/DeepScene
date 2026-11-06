@@ -9,7 +9,7 @@
 #define TESTS_D3D8_FRONTEND_HARNESS_H
 
 #include "analysis/api_dump_analysis/model_builder.h"
-#include "analysis/api_dump_analysis/frontends/d3d8/d3d8_frontend.h"
+#include "analysis/api_dump_analysis/frontends/D3D8/d3d8_frontend.h"
 #include "d3d8_call_builder.h"
 #include <stddef.h>
 

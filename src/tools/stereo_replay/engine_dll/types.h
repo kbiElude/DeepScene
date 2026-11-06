@@ -6,7 +6,7 @@
 #define STEREO_REPLAY_ENGINEDLL_TYPES_H
 
 #include "analysis/recipe/types.h"
-#include "Replay/ReplayEngineDLL/types.h"
+#include "replay/replay_engine_dll/types.h"
 #include <stdint.h>
 #include <string>
 

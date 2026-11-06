@@ -9,7 +9,7 @@
 #ifndef APIDUMPANALYSIS_TYPES_H
 #define APIDUMPANALYSIS_TYPES_H
 
-#include "Capture/APIDumpLoader/api_info.h"
+#include "capture/api_dump_loader/api_info.h"
 #include <array>
 #include <map>
 #include <memory>

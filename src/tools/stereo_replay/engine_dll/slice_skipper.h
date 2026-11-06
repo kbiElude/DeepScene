@@ -6,7 +6,7 @@
 #define STEREO_REPLAY_ENGINEDLL_SLICE_SKIPPER_H
 
 #include "analysis/api_dump_dependencies/types.h"
-#include "Replay/ReplayEngineDLL/i_call_interceptor.h"
+#include "replay/replay_engine_dll/i_call_interceptor.h"
 #include <atomic>
 #include <deque>
 #include <memory>

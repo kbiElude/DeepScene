@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_slicing/workload_writer.h"
-#include "Capture/APIDumperDLL/zstd_file_writer.h"
+#include "capture/api_dumper_dll/zstd_file_writer.h"
 #include <string.h>
 
 namespace

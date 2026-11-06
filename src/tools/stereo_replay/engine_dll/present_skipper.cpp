@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "Capture/APIDumpLoader/api_info.h"
+#include "capture/api_dump_loader/api_info.h"
 #include "present_skipper.h"
 
 Stereo::Replay::EngineDLL::PresentSkipper::PresentSkipper(const FrameHurry* in_hurry_ptr)

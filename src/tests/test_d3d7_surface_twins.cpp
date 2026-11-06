@@ -6,8 +6,8 @@
  * what is attached to it, and when it goes. The surfaces are fakes with virtual tables (see fake_direct_draw.h).
  */
 #include <gtest/gtest.h>
-#include "Interception/Core/D3D7Utils/constants.h"
-#include "d3d7/d3d7_surface_twins.h"
+#include "interception/core/D3D7Utils/constants.h"
+#include "D3D7/d3d7_surface_twins.h"
 #include "fake_direct_draw.h"
 #include <string>
 

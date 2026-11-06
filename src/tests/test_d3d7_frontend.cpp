@@ -6,7 +6,7 @@
  */
 #include <gtest/gtest.h>
 #include "analysis/api_dump_analysis/resource_identity.h"
-#include "Interception/Core/D3D7Utils/constants.h"
+#include "interception/core/D3D7Utils/constants.h"
 #include "d3d7_scene.h"
 
 TEST(D3D7Frontend, SurfacesAreResourcesNamedLikeThePrinterNamesThem)

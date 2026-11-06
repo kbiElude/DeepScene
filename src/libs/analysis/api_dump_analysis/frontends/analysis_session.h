@@ -8,8 +8,8 @@
 #ifndef APIDUMPANALYSIS_FRONTENDS_ANALYSIS_SESSION_H
 #define APIDUMPANALYSIS_FRONTENDS_ANALYSIS_SESSION_H
 
-#include "analysis/api_dump_analysis/frontends/d3d7/d3d7_frontend.h"
-#include "analysis/api_dump_analysis/frontends/d3d8/d3d8_frontend.h"
+#include "analysis/api_dump_analysis/frontends/D3D7/d3d7_frontend.h"
+#include "analysis/api_dump_analysis/frontends/D3D8/d3d8_frontend.h"
 #include "analysis/api_dump_analysis/frontends/shared/types.h"
 #include "analysis/api_dump_analysis/model_builder.h"
 #include "analysis/api_dump_analysis/types.h"

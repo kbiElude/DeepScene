@@ -4,7 +4,7 @@
  *
  * The interception library (APIInterceptor) has the DllMain of this DLL, and tells it when it is put in and taken out.
  */
-#include "Common/globals.h"
+#include "common/globals.h"
 #include "converter.h"
 #include <memory>
 

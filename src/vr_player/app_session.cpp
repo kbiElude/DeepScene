@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "Capture/InjectionLauncher/launcher.h"
+#include "capture/injection_launcher/launcher.h"
 #include "app_session.h"
 #include <algorithm>
 #include <stdio.h>

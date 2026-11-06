@@ -5,8 +5,8 @@
  * Checks of the data file which the tests of the analysis run on.
  */
 #include <gtest/gtest.h>
-#include "Capture/APIDumpLoader/workload_reader.h"
-#include "Capture/APIDumpLoader/api_info.h"
+#include "capture/api_dump_loader/workload_reader.h"
+#include "capture/api_dump_loader/api_info.h"
 #include "data_fixtures.h"
 #include <vector>
 

@@ -5,8 +5,8 @@
  * Checks of which calls of a Direct3D 8 application depend on the size of what it renders to in pixels.
  */
 #include <gtest/gtest.h>
-#include "analysis/api_dump_analysis/frontends/d3d8/d3d8_resolution_hazards.h"
-#include "Interception/Hooks/D3D8/types.h"
+#include "analysis/api_dump_analysis/frontends/D3D8/d3d8_resolution_hazards.h"
+#include "interception/hooks/D3D8/types.h"
 #include <vector>
 
 class D3D8ResolutionHazardsTest : public ::testing::Test

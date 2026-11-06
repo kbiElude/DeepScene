@@ -7,7 +7,7 @@
  */
 #include "utils/command_line/number_parser.h"
 #include "analysis/recipe/recipe_loader.h"
-#include "Capture/APIDumpLoader/workload_index.h"
+#include "capture/api_dump_loader/workload_index.h"
 #include "tools/stereo_replay/engine_dll/entrypoints.h"
 #include "command_line.h"
 #include "control_window.h"

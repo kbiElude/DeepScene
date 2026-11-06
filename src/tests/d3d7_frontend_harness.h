@@ -7,7 +7,7 @@
 #ifndef TESTS_D3D7_FRONTEND_HARNESS_H
 #define TESTS_D3D7_FRONTEND_HARNESS_H
 
-#include "analysis/api_dump_analysis/frontends/d3d7/d3d7_frontend.h"
+#include "analysis/api_dump_analysis/frontends/D3D7/d3d7_frontend.h"
 #include "analysis/api_dump_analysis/model_builder.h"
 #include "d3d7_call_builder.h"
 #include <stddef.h>

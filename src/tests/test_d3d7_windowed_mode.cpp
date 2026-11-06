@@ -6,9 +6,9 @@
  * place of the application's, and what it writes where the application is to get the result.
  */
 #include <gtest/gtest.h>
-#include "Common/callbacks.h"
-#include "Interception/Core/D3D7Utils/constants.h"
-#include "d3d7/d3d7_windowed_mode.h"
+#include "common/callbacks.h"
+#include "interception/core/D3D7Utils/constants.h"
+#include "D3D7/d3d7_windowed_mode.h"
 #include "fake_direct_draw.h"
 
 namespace
