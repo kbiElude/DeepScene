@@ -66,18 +66,24 @@ namespace Analysis
                                           GlMatrix*       out_projection_f32mat_ptr) const;
 
                 const std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t>& get_n_resolution_hazards() const override;
-
-                uint64_t get_n_unfollowed_calls() const override;
-
-                uint64_t get_n_unsupported_calls() const override;
-
-                void on_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                             const Capture::APIDumpLoader::Workload&      in_workload) override;
+                uint64_t                                                               get_n_unfollowed_calls  () const override;
+                uint64_t                                                               get_n_unsupported_calls () const override;
+                void                                                                   on_call                 (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                                                                const Capture::APIDumpLoader::Workload&      in_workload) override;
 
             private:
                 /* The texture of the program that the draw samples with each unit, as bindings. */
                 void add_texture_bindings(const GlContextState&                       in_state,
                                           Analysis::APIDumpAnalysis::DrawDescription* out_description_ptr) const;
+
+                /* The pixels of the window are copied to a level of the texture that the active unit has bound (the depth of the window, for a texture of depth);
+                 * false if the program has not given the texture a size.
+                 */
+                bool copy_to_bound_texture(const GlContextState& in_state,
+                                           const uint32_t&       in_level);
+
+                /* A call that depends on the size of what is rendered to in pixels. */
+                void count_hazard(const Analysis::APIDumpAnalysis::ResolutionHazard& in_hazard);
 
                 /* Makes the resources of the window, and tells the builder what is rendered to and where, if that has not been done. */
                 void ensure_default_framebuffer(const GlContextState& in_state);
@@ -90,72 +96,98 @@ namespace Analysis
                                                             const std::vector<APIInterceptor::APIFunctionArgument>& in_argument_vec) const;
 
                 /* A call of glActiveTexture: the unit that the calls of textures are for from now on. */
-                void handle_active_texture  (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                             GlContextState*                              inout_state_ptr);
+                void handle_active_texture(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                           GlContextState*                              inout_state_ptr);
+
                 /* A call of glDrawArrays or glDrawElements: a draw from the arrays that the dumper copied into it. */
-                void handle_array_draw      (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                             const Capture::APIDumpLoader::Workload&      in_workload,
-                                             const bool&                                  in_is_indexed,
-                                             GlContextState*                              inout_state_ptr);
-                void handle_begin           (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                             GlContextState*                              inout_state_ptr);
-                /* A call of glCallList: the calls of the list are made, as the list has them. */
-                void handle_call_list       (const Capture::APIDumpLoader::DumpedAPICall& in_call);
+                void handle_array_draw(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                       const Capture::APIDumpLoader::Workload&      in_workload,
+                                       const bool&                                  in_is_indexed,
+                                       GlContextState*                              inout_state_ptr);
+
+                void handle_begin(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                  GlContextState*                              inout_state_ptr);
+
                 /* A call of glBindTexture: of a two dimensional texture, the one that the active unit has from now on. */
-                void handle_bind_texture    (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                             GlContextState*                              inout_state_ptr);
-                void handle_clear           (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                             GlContextState*                              inout_state_ptr);
-                void handle_clear_color     (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                             GlContextState*                              inout_state_ptr);
-                void handle_clear_depth     (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                             GlContextState*                              inout_state_ptr);
-                void handle_clear_stencil   (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                             GlContextState*                              inout_state_ptr);
-                /* The textures of glDeleteTextures are gone, and their resources. */
-                void handle_delete_textures (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                             const Capture::APIDumpLoader::Workload&      in_workload);
+                void handle_bind_texture(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                         GlContextState*                              inout_state_ptr);
+
+                /* A call of glCallList: the calls of the list are made, as the list has them. */
+                void handle_call_list(const Capture::APIDumpLoader::DumpedAPICall& in_call);
+
+                void handle_clear        (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                          GlContextState*                              inout_state_ptr);
+                void handle_clear_color  (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                          GlContextState*                              inout_state_ptr);
+                void handle_clear_depth  (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                          GlContextState*                              inout_state_ptr);
+                void handle_clear_stencil(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                          GlContextState*                              inout_state_ptr);
+
+                /* A call of glCopyTexImage2D: the pixels of the window give the texture its size, and are copied to it. */
+                void handle_copy_tex_image(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                           GlContextState*                              inout_state_ptr);
+
+                /* A call of glCopyTexSubImage2D: the pixels of the window are copied to a part of the texture. */
+                void handle_copy_tex_sub_image(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                               GlContextState*                              inout_state_ptr);
+
                 /* The lists of glDeleteLists are gone. */
-                void handle_delete_lists    (const Capture::APIDumpLoader::DumpedAPICall& in_call);
-                void handle_enable          (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                             const bool&                                  in_is_enabled,
-                                             GlContextState*                              inout_state_ptr);
+                void handle_delete_lists(const Capture::APIDumpLoader::DumpedAPICall& in_call);
+
+                /* The textures of glDeleteTextures are gone, and their resources. */
+                void handle_delete_textures(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                            const Capture::APIDumpLoader::Workload&      in_workload);
+
+                void handle_enable(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                   const bool&                                  in_is_enabled,
+                                   GlContextState*                              inout_state_ptr);
+
                 /* The vertices since the glBegin are a draw. */
-                void handle_end             (GlContextState* inout_state_ptr);
+                void handle_end(GlContextState* inout_state_ptr);
+
                 /* A list which was being made is made, and its calls are made when it is called. */
-                void handle_end_list        (GlContextState* inout_state_ptr);
+                void handle_end_list(GlContextState* inout_state_ptr);
+
                 /* A call of GL: kept in the list that its context is making, or made, or both. It is also how the calls of a called list are made. */
-                void handle_gl_call         (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                             const Capture::APIDumpLoader::Workload&      in_workload);
-                void handle_make_current    (const Capture::APIDumpLoader::DumpedAPICall& in_call);
+                void handle_gl_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                    const Capture::APIDumpLoader::Workload&      in_workload);
+
+                void handle_make_current(const Capture::APIDumpLoader::DumpedAPICall& in_call);
+
                 /* A call that loads or multiplies the current matrix: the matrix is what its arguments (or its data) say. */
-                void handle_matrix          (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                             const Capture::APIDumpLoader::Workload&      in_workload,
-                                             GlContextState*                              inout_state_ptr);
-                void handle_matrix_mode     (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                             GlContextState*                              inout_state_ptr);
-                void handle_new_list        (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                             GlContextState*                              inout_state_ptr);
-                void handle_pop_attributes  (GlContextState* inout_state_ptr);
-                void handle_pop_matrix      (GlContextState* inout_state_ptr);
-                void handle_push_attributes (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                             GlContextState*                              inout_state_ptr);
-                void handle_push_matrix     (GlContextState* inout_state_ptr);
-                void handle_scissor         (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                             GlContextState*                              inout_state_ptr);
+                void handle_matrix(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                   const Capture::APIDumpLoader::Workload&      in_workload,
+                                   GlContextState*                              inout_state_ptr);
+
+                void handle_matrix_mode    (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                            GlContextState*                              inout_state_ptr);
+                void handle_new_list       (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                            GlContextState*                              inout_state_ptr);
+                void handle_pop_attributes (GlContextState*                              inout_state_ptr);
+                void handle_pop_matrix     (GlContextState*                              inout_state_ptr);
+                void handle_push_attributes(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                            GlContextState*                              inout_state_ptr);
+                void handle_push_matrix    (GlContextState*                              inout_state_ptr);
+                void handle_scissor        (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                            GlContextState*                              inout_state_ptr);
+
                 /* A call which sets a value of the pipeline that a draw is told apart by (a function, a mode, a mask). */
-                void handle_state_value     (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                             GlContextState*                              inout_state_ptr);
+                void handle_state_value(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                        GlContextState*                              inout_state_ptr);
+
                 /* A call of glTexImage2D: the first level gives the texture its size (and resource), a level has pixels or not. */
-                void handle_tex_image       (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                             const Capture::APIDumpLoader::Workload&      in_workload,
-                                             GlContextState*                              inout_state_ptr);
+                void handle_tex_image(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                      const Capture::APIDumpLoader::Workload&      in_workload,
+                                      GlContextState*                              inout_state_ptr);
+
                 /* A glVertex of the block that is open: it is counted, and its position kept if the builder wants the geometry. */
-                void handle_vertex          (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                             const Capture::APIDumpLoader::Workload&      in_workload,
-                                             GlContextState*                              inout_state_ptr);
-                void handle_viewport        (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                             GlContextState*                              inout_state_ptr);
+                void handle_vertex(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                   const Capture::APIDumpLoader::Workload&      in_workload,
+                                   GlContextState*                              inout_state_ptr);
+
+                void handle_viewport(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                     GlContextState*                              inout_state_ptr);
 
                 /* Keeps the call in the list that the context is making, with the data that it refers to. */
                 void record_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
@@ -165,10 +197,10 @@ namespace Analysis
                 /* Tells the model builder the model-view and the projection matrix of the context, those of them which are not what it was told last. */
                 void report_matrices(const GlContextState& in_state);
 
-                void report_matrix(const GlMatrix&                                   in_matrix_f32mat,
+                void report_matrix(const GlMatrix&                                    in_matrix_f32mat,
                                    const Analysis::APIDumpAnalysis::ConstantSemantic& in_semantic,
-                                   const uint64_t&                                   in_byte_offset,
-                                   GlReportedMatrix*                                 inout_reported_ptr);
+                                   const uint64_t&                                    in_byte_offset,
+                                   GlReportedMatrix*                                  inout_reported_ptr);
 
                 /* The resource of the texture that is bound to the active unit: made, or made again if the size is not what it was. */
                 void specify_texture(const GlContextState& in_state,
@@ -182,11 +214,14 @@ namespace Analysis
                                           const GlContextState&                        in_state,
                                           const uint32_t&                              in_level);
 
+                /* The name of the texture that the active unit has bound (0 if it has none). */
+                static uint32_t get_bound_texture_name(const GlContextState& in_state);
+
                 /* The stack of the matrices that glMatrixMode has chosen. */
                 static std::vector<GlMatrix>* get_current_stack_ptr(GlContextState* inout_state_ptr);
 
-                /* The name of the texture that the active unit has bound (0 if it has none). */
-                static uint32_t get_bound_texture_name(const GlContextState& in_state);
+                /* What an image of the internal format holds: color, or depth (or depth and stencil). */
+                static Analysis::APIDumpAnalysis::FormatClass get_format_class(const uint32_t& in_internal_format);
 
                 /* A context as it starts: what the specification says, and a stack of the identity for each kind of matrix. */
                 static GlContextState get_initial_context_state();
@@ -197,31 +232,12 @@ namespace Analysis
                 /* What the mode of a glBegin makes of the vertices; quads are two triangles and a loop of lines is a strip of them. */
                 static Analysis::APIDumpAnalysis::PrimitiveTopology get_primitive_topology(const uint32_t& in_mode);
 
-                /* True for the calls whose effects the front end does not follow yet. */
-                static bool is_unsupported_function(const APIInterceptor::APIFunction& in_function);
-
                 /* True if the two boxes are the same. */
                 static bool is_same_box(const GlBox& in_first,
                                         const GlBox& in_second);
 
-                /* Reads the first N arguments of the call as numbers; false if it has fewer, or one that is not a number. */
-                template<typename T, size_t N>
-                static bool read_arguments(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                           std::array<T, N>*                            out_value_array_ptr)
-                {
-                    bool result = (in_call.arg_in_vec.size() >= N);
-
-                    for (size_t n_value = 0;
-                                result   &&
-                                n_value < N;
-                              ++n_value)
-                    {
-                        result = APIInterceptor::read_number(in_call.arg_in_vec.at(n_value),
-                                                             &out_value_array_ptr->at(n_value) );
-                    }
-
-                    return result;
-                }
+                /* True for the calls whose effects the front end does not follow yet. */
+                static bool is_unsupported_function(const APIInterceptor::APIFunction& in_function);
 
                 /* A box from the four arguments of glViewport or glScissor. */
                 static bool read_box(const Capture::APIDumpLoader::DumpedAPICall& in_call,
@@ -241,6 +257,25 @@ namespace Analysis
                 /* Puts back what the mask of a glPushAttrib asked to be saved. */
                 static void restore_attributes(const GlAttributeFrame& in_frame,
                                                GlAttributes*           inout_attributes_ptr);
+
+                /* Reads the first N arguments of the call as numbers; false if it has fewer, or one that is not a number. */
+                template<typename T, size_t N>
+                static bool read_arguments(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                           std::array<T, N>*                            out_value_array_ptr)
+                {
+                    bool result = (in_call.arg_in_vec.size() >= N);
+
+                    for (size_t n_value = 0;
+                                result   &&
+                                n_value < N;
+                              ++n_value)
+                    {
+                        result = APIInterceptor::read_number(in_call.arg_in_vec.at(n_value),
+                                                             &out_value_array_ptr->at(n_value) );
+                    }
+
+                    return result;
+                }
 
                 GlArrayDrawDescriber                                            m_array_draw_describer;
                 Analysis::APIDumpAnalysis::ModelBuilder*                        m_builder_ptr;

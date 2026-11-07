@@ -25,9 +25,30 @@ const char* Analysis::APIDumpAnalysis::get_resolution_hazard_name(const Resoluti
             break;
         }
 
+        case ResolutionHazard::LINE_WIDTH_STATES:
+        {
+            result_ptr = "line_width_states";
+
+            break;
+        }
+
+        case ResolutionHazard::PIXEL_READBACKS:
+        {
+            result_ptr = "pixel_readbacks";
+
+            break;
+        }
+
         case ResolutionHazard::POINT_SIZE_STATES:
         {
             result_ptr = "point_size_states";
+
+            break;
+        }
+
+        case ResolutionHazard::SCISSOR_BOXES:
+        {
+            result_ptr = "scissor_boxes";
 
             break;
         }

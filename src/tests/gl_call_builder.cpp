@@ -140,6 +140,47 @@ void Tests::GlCallBuilder::clear_stencil(const int32_t& in_stencil)
              {APIInterceptor::APIFunctionArgument::create_i32(in_stencil)});
 }
 
+void Tests::GlCallBuilder::copy_tex_image_2d(const uint32_t& in_level,
+                                             const uint32_t& in_internal_format,
+                                             const int32_t&  in_x,
+                                             const int32_t&  in_y,
+                                             const int32_t&  in_width,
+                                             const int32_t&  in_height)
+{
+    constexpr uint32_t GL_TEXTURE_2D = 0x0DE1;
+
+    add_call(APIInterceptor::APIFUNCTION_GL_GLCOPYTEXIMAGE2D,
+             {APIInterceptor::APIFunctionArgument::create_u32_glenum(GL_TEXTURE_2D),
+              APIInterceptor::APIFunctionArgument::create_i32       (static_cast<int32_t>(in_level) ),
+              APIInterceptor::APIFunctionArgument::create_u32_glenum(in_internal_format),
+              APIInterceptor::APIFunctionArgument::create_i32       (in_x),
+              APIInterceptor::APIFunctionArgument::create_i32       (in_y),
+              APIInterceptor::APIFunctionArgument::create_i32       (in_width),
+              APIInterceptor::APIFunctionArgument::create_i32       (in_height),
+              APIInterceptor::APIFunctionArgument::create_i32       (0)});
+}
+
+void Tests::GlCallBuilder::copy_tex_sub_image_2d(const uint32_t& in_level,
+                                                 const int32_t&  in_x_offset,
+                                                 const int32_t&  in_y_offset,
+                                                 const int32_t&  in_x,
+                                                 const int32_t&  in_y,
+                                                 const int32_t&  in_width,
+                                                 const int32_t&  in_height)
+{
+    constexpr uint32_t GL_TEXTURE_2D = 0x0DE1;
+
+    add_call(APIInterceptor::APIFUNCTION_GL_GLCOPYTEXSUBIMAGE2D,
+             {APIInterceptor::APIFunctionArgument::create_u32_glenum(GL_TEXTURE_2D),
+              APIInterceptor::APIFunctionArgument::create_i32       (static_cast<int32_t>(in_level) ),
+              APIInterceptor::APIFunctionArgument::create_i32       (in_x_offset),
+              APIInterceptor::APIFunctionArgument::create_i32       (in_y_offset),
+              APIInterceptor::APIFunctionArgument::create_i32       (in_x),
+              APIInterceptor::APIFunctionArgument::create_i32       (in_y),
+              APIInterceptor::APIFunctionArgument::create_i32       (in_width),
+              APIInterceptor::APIFunctionArgument::create_i32       (in_height)});
+}
+
 void Tests::GlCallBuilder::delete_lists(const int32_t& in_first_list,
                                         const int32_t& in_range)
 {
@@ -250,6 +291,12 @@ void Tests::GlCallBuilder::frustum(const double& in_left,
 const Capture::APIDumpLoader::Workload& Tests::GlCallBuilder::get_workload() const
 {
     return m_workload;
+}
+
+void Tests::GlCallBuilder::line_width(const float& in_width)
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLLINEWIDTH,
+             {APIInterceptor::APIFunctionArgument::create_fp32(in_width)});
 }
 
 void Tests::GlCallBuilder::load_identity()
@@ -387,6 +434,12 @@ void Tests::GlCallBuilder::ortho(const double& in_left,
               APIInterceptor::APIFunctionArgument::create_fp64(in_far)});
 }
 
+void Tests::GlCallBuilder::point_size(const float& in_size)
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLPOINTSIZE,
+             {APIInterceptor::APIFunctionArgument::create_fp32(in_size)});
+}
+
 void Tests::GlCallBuilder::pop_attrib()
 {
     add_call(APIInterceptor::APIFUNCTION_GL_GLPOPATTRIB,
@@ -409,6 +462,24 @@ void Tests::GlCallBuilder::push_matrix()
 {
     add_call(APIInterceptor::APIFUNCTION_GL_GLPUSHMATRIX,
              {});
+}
+
+void Tests::GlCallBuilder::read_pixels(const int32_t& in_x,
+                                       const int32_t& in_y,
+                                       const int32_t& in_width,
+                                       const int32_t& in_height)
+{
+    constexpr uint32_t GL_RGB           = 0x1907;
+    constexpr uint32_t GL_UNSIGNED_BYTE = 0x1401;
+
+    add_call(APIInterceptor::APIFUNCTION_GL_GLREADPIXELS,
+             {APIInterceptor::APIFunctionArgument::create_i32       (in_x),
+              APIInterceptor::APIFunctionArgument::create_i32       (in_y),
+              APIInterceptor::APIFunctionArgument::create_i32       (in_width),
+              APIInterceptor::APIFunctionArgument::create_i32       (in_height),
+              APIInterceptor::APIFunctionArgument::create_u32_glenum(GL_RGB),
+              APIInterceptor::APIFunctionArgument::create_u32_glenum(GL_UNSIGNED_BYTE),
+              make_pointer_argument(0)});
 }
 
 void Tests::GlCallBuilder::rotate(const float& in_angle_degrees,

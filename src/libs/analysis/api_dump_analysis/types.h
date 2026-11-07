@@ -128,7 +128,10 @@ namespace Analysis
         {
             CLEARS_WITH_RECTANGLES, /* a clear of parts of a target, which are in pixels           */
             COPIES_WITH_RECTANGLES, /* a copy of parts of a surface, which are in pixels           */
+            LINE_WIDTH_STATES,      /* the width of lines, which is in pixels                      */
+            PIXEL_READBACKS,        /* a read of pixels of a surface, which are at places in pixels */
             POINT_SIZE_STATES,      /* the size of points, which is in pixels                      */
+            SCISSOR_BOXES,          /* a scissor box, which is in pixels                           */
             SCREEN_SPACE_VERTICES,  /* vertices which are positioned in pixels                     */
             SHADER_CREATIONS,       /* shaders, whose constants may hold the size of the screen    */
             SIZE_QUERIES            /* the application asks how large the viewport or a surface is */

@@ -47,7 +47,7 @@ Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence Analysis::APIDumpAnaly
 }
 
 Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence Analysis::APIDumpAnalysis::Frontends::GlListClassifier::combine(const GlListEyeDependence& in_first,
-                                                                                                                         const GlListEyeDependence& in_second)
+                                                                                                                          const GlListEyeDependence& in_second)
 {
     const uint32_t first_rank  = get_rank(in_first);
     const uint32_t second_rank = get_rank(in_second);

@@ -181,10 +181,10 @@ const Analysis::APIDumpAnalysis::Frontends::GlBlobStore& Analysis::APIDumpAnalys
 }
 
 std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDumpAnalysis::Frontends::GlArrayDrawDescriber::make_geometry_sample(const std::vector<GlClientArray>&        in_array_vec,
-                                                                                                                                                   const Capture::APIDumpLoader::DataChunk* in_indices_chunk_ptr,
-                                                                                                                                                   const uint32_t&                          in_index_type,
-                                                                                                                                                   const int32_t&                           in_first,
-                                                                                                                                                   const int32_t&                           in_count) const
+                                                                                                                                                  const Capture::APIDumpLoader::DataChunk* in_indices_chunk_ptr,
+                                                                                                                                                  const uint32_t&                          in_index_type,
+                                                                                                                                                  const int32_t&                           in_first,
+                                                                                                                                                  const int32_t&                           in_count) const
 {
     const GlClientArray*                                       position_array_ptr = nullptr;
     std::shared_ptr<Analysis::APIDumpAnalysis::GeometrySample> result_ptr;

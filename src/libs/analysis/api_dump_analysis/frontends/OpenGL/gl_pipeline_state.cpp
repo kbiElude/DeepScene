@@ -25,7 +25,7 @@ uint64_t Analysis::APIDumpAnalysis::Frontends::GlPipelineState::compute_state_ke
 }
 
 Analysis::APIDumpAnalysis::DrawDescription Analysis::APIDumpAnalysis::Frontends::GlPipelineState::describe_draw(const Analysis::APIDumpAnalysis::PrimitiveTopology& in_topology,
-                                                                                                                  const uint32_t&                                     in_vertex_count) const
+                                                                                                                const uint32_t&                                     in_vertex_count) const
 {
     constexpr uint32_t BLEND        = 0x0BE2;
     constexpr uint32_t DEPTH_TEST   = 0x0B71;

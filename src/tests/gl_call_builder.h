@@ -59,6 +59,21 @@ namespace Tests
                            const float&    in_alpha);
         void clear_depth  (const double&   in_depth);
         void clear_stencil(const int32_t&  in_stencil);
+        /* The pixels of the window copied to the bound texture (the first gives the texture its size). */
+        void copy_tex_image_2d    (const uint32_t& in_level,
+                                   const uint32_t& in_internal_format,
+                                   const int32_t&  in_x,
+                                   const int32_t&  in_y,
+                                   const int32_t&  in_width,
+                                   const int32_t&  in_height);
+        void copy_tex_sub_image_2d(const uint32_t& in_level,
+                                   const int32_t&  in_x_offset,
+                                   const int32_t&  in_y_offset,
+                                   const int32_t&  in_x,
+                                   const int32_t&  in_y,
+                                   const int32_t&  in_width,
+                                   const int32_t&  in_height);
+
         void delete_lists (const int32_t&  in_first_list,
                            const int32_t&  in_range);
         void delete_textures(const std::vector<uint32_t>& in_name_u32vec);
@@ -88,6 +103,8 @@ namespace Tests
 
         const Capture::APIDumpLoader::Workload& get_workload() const;
 
+        void line_width(const float& in_width);
+
         void load_identity();
 
         /* The matrices are stored as data chunks, as the dumper stores the argument of glLoadMatrix and glMultMatrix. */
@@ -114,10 +131,17 @@ namespace Tests
                    const double& in_near,
                    const double& in_far);
 
+        void point_size(const float& in_size);
+
         void pop_attrib ();
         void pop_matrix ();
         void push_attrib(const uint32_t& in_mask);
         void push_matrix();
+
+        void read_pixels(const int32_t& in_x,
+                         const int32_t& in_y,
+                         const int32_t& in_width,
+                         const int32_t& in_height);
 
         /* glRotatef, glScalef and glTranslated: a float one and a double one of each are the same to the front end. */
         void rotate(const float& in_angle_degrees,

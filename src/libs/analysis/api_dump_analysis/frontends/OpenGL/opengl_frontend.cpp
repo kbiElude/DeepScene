@@ -51,6 +51,41 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::add_texture_bindings(
     }
 }
 
+bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::copy_to_bound_texture(const GlContextState& in_state,
+                                                                                 const uint32_t&       in_level)
+{
+    const uint32_t name             = get_bound_texture_name(in_state);
+    const auto     texture_iterator = m_texture_map.find(name);
+    const bool     result           = (texture_iterator != m_texture_map.end() );
+
+    if (result)
+    {
+        ensure_default_framebuffer(in_state);
+
+        /* What is copied is the color of the window, or its depth if the texture is of depth. */
+        const auto format_class = get_format_class(texture_iterator->second.internal_format);
+        const auto source       = (format_class == Analysis::APIDumpAnalysis::FormatClass::COLOR) ? m_color_view
+                                                                                                   : m_depth_stencil_view;
+
+        Analysis::APIDumpAnalysis::ResourceView destination;
+
+        destination.mip_level   = in_level;
+        destination.resource_id = texture_iterator->second.resource_id;
+
+        m_builder_ptr->on_copy(source,
+                               destination);
+
+        count_hazard(Analysis::APIDumpAnalysis::ResolutionHazard::COPIES_WITH_RECTANGLES);
+    }
+
+    return result;
+}
+
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::count_hazard(const Analysis::APIDumpAnalysis::ResolutionHazard& in_hazard)
+{
+    m_n_resolution_hazard_map[in_hazard]++;
+}
+
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::ensure_default_framebuffer(const GlContextState& in_state)
 {
     if (m_has_default_framebuffer == false)
@@ -150,7 +185,7 @@ uint32_t Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_bound_texture
 }
 
 Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_call_eye_dependence(const APIInterceptor::APIFunction&                      in_function,
-                                                                                                                                         const std::vector<APIInterceptor::APIFunctionArgument>& in_argument_vec) const
+                                                                                                                                        const std::vector<APIInterceptor::APIFunctionArgument>& in_argument_vec) const
 {
     GlListEyeDependence result = GlListClassifier::classify_call(in_function);
 
@@ -232,6 +267,29 @@ std::vector<Analysis::APIDumpAnalysis::Frontends::GlMatrix>* Analysis::APIDumpAn
     }
 
     return result_ptr;
+}
+
+Analysis::APIDumpAnalysis::FormatClass Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_format_class(const uint32_t& in_internal_format)
+{
+    constexpr uint32_t DEPTH_COMPONENT   = 0x1902;
+    constexpr uint32_t DEPTH_STENCIL     = 0x84F9;
+    constexpr uint32_t FIRST_DEPTH_SIZED = 0x81A5; /* GL_DEPTH_COMPONENT16 to GL_DEPTH_COMPONENT32 */
+    constexpr uint32_t LAST_DEPTH_SIZED  = 0x81A7;
+
+    Analysis::APIDumpAnalysis::FormatClass result = Analysis::APIDumpAnalysis::FormatClass::COLOR;
+
+    if (in_internal_format == DEPTH_COMPONENT                                                  ||
+        (in_internal_format >= FIRST_DEPTH_SIZED && in_internal_format <= LAST_DEPTH_SIZED) )
+    {
+        result = Analysis::APIDumpAnalysis::FormatClass::DEPTH;
+    }
+    else
+    if (in_internal_format == DEPTH_STENCIL)
+    {
+        result = Analysis::APIDumpAnalysis::FormatClass::DEPTH_STENCIL;
+    }
+
+    return result;
 }
 
 Analysis::APIDumpAnalysis::Frontends::GlContextState Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_initial_context_state()
@@ -563,6 +621,11 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_clear(const Ca
         clear.stencil                = inout_state_ptr->attributes.clear_stencil;
 
         m_builder_ptr->on_clear(clear);
+
+        if (clear.has_rectangles)
+        {
+            count_hazard(Analysis::APIDumpAnalysis::ResolutionHazard::CLEARS_WITH_RECTANGLES);
+        }
     }
 }
 
@@ -610,6 +673,72 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_clear_stencil(
     }
     else
     {
+        m_n_unfollowed_calls++;
+    }
+}
+
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_copy_tex_image(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                                 GlContextState*                              inout_state_ptr)
+{
+    /* glCopyTexImage2D(target, level, internalformat, x, y, width, height, border). */
+    constexpr uint32_t TEXTURE_2D = 0x0DE1;
+
+    std::array<int32_t, 7> image_array = {};
+
+    if (read_arguments(in_call,
+                       &image_array) == false)
+    {
+        m_n_unfollowed_calls++;
+    }
+    else
+    if (static_cast<uint32_t>(image_array.at(0) ) != TEXTURE_2D)
+    {
+        m_n_unsupported_calls++;
+    }
+    else
+    {
+        const uint32_t level = static_cast<uint32_t>(image_array.at(1) );
+
+        /* The copy gives the first level of the texture its size, as glTexImage2D does. */
+        if (level == 0)
+        {
+            specify_texture(*inout_state_ptr,
+                            static_cast<uint32_t>(image_array.at(2) ),
+                            static_cast<uint32_t>(image_array.at(5) ),
+                            static_cast<uint32_t>(image_array.at(6) ) );
+        }
+
+        if (copy_to_bound_texture(*inout_state_ptr,
+                                  level) == false)
+        {
+            m_n_unfollowed_calls++;
+        }
+    }
+}
+
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_copy_tex_sub_image(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                                     GlContextState*                              inout_state_ptr)
+{
+    /* glCopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height). */
+    constexpr uint32_t TEXTURE_2D = 0x0DE1;
+
+    std::array<uint32_t, 2> image_array = {};
+
+    if (read_arguments(in_call,
+                       &image_array) == false)
+    {
+        m_n_unfollowed_calls++;
+    }
+    else
+    if (image_array.at(0) != TEXTURE_2D)
+    {
+        m_n_unsupported_calls++;
+    }
+    else
+    if (copy_to_bound_texture(*inout_state_ptr,
+                              image_array.at(1) ) == false)
+    {
+        /* A part of a texture that has not been given a size. */
         m_n_unfollowed_calls++;
     }
 }
@@ -905,6 +1034,22 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
                     break;
                 }
 
+                case APIInterceptor::APIFUNCTION_GL_GLCOPYTEXIMAGE2D:
+                {
+                    handle_copy_tex_image(in_call,
+                                          state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLCOPYTEXSUBIMAGE2D:
+                {
+                    handle_copy_tex_sub_image(in_call,
+                                              state_ptr);
+
+                    break;
+                }
+
                 case APIInterceptor::APIFUNCTION_GL_GLDELETELISTS:
                 {
                     handle_delete_lists(in_call);
@@ -963,10 +1108,24 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
                     break;
                 }
 
+                case APIInterceptor::APIFUNCTION_GL_GLLINEWIDTH:
+                {
+                    count_hazard(Analysis::APIDumpAnalysis::ResolutionHazard::LINE_WIDTH_STATES);
+
+                    break;
+                }
+
                 case APIInterceptor::APIFUNCTION_GL_GLNEWLIST:
                 {
                     handle_new_list(in_call,
                                     state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLPOINTSIZE:
+                {
+                    count_hazard(Analysis::APIDumpAnalysis::ResolutionHazard::POINT_SIZE_STATES);
 
                     break;
                 }
@@ -996,6 +1155,16 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
                 case APIInterceptor::APIFUNCTION_GL_GLPUSHMATRIX:
                 {
                     handle_push_matrix(state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLREADPIXELS:
+                {
+                    /* What a program reads back is used by the program, which the model does not follow. */
+                    count_hazard(Analysis::APIDumpAnalysis::ResolutionHazard::PIXEL_READBACKS);
+
+                    m_n_unsupported_calls++;
 
                     break;
                 }
@@ -1270,6 +1439,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_scissor(const 
                 &box) )
     {
         inout_state_ptr->attributes.scissor_box = box;
+
+        count_hazard(Analysis::APIDumpAnalysis::ResolutionHazard::SCISSOR_BOXES);
     }
     else
     {
@@ -1541,10 +1712,7 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::is_unsupported_functi
         case APIInterceptor::APIFUNCTION_GL_GLCOMPRESSEDTEXIMAGE2D:
         case APIInterceptor::APIFUNCTION_GL_GLCOMPRESSEDTEXSUBIMAGE2D:
         case APIInterceptor::APIFUNCTION_GL_GLCOPYPIXELS:
-        case APIInterceptor::APIFUNCTION_GL_GLCOPYTEXIMAGE2D:
-        case APIInterceptor::APIFUNCTION_GL_GLCOPYTEXSUBIMAGE2D:
         case APIInterceptor::APIFUNCTION_GL_GLDRAWPIXELS:
-        case APIInterceptor::APIFUNCTION_GL_GLREADPIXELS:
         case APIInterceptor::APIFUNCTION_GL_GLTEXIMAGE1D:
         case APIInterceptor::APIFUNCTION_GL_GLTEXIMAGE3D:
         case APIInterceptor::APIFUNCTION_GL_GLTEXSUBIMAGE1D:
@@ -1832,10 +2000,10 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_matrices(const
                   &m_reported_projection);
 }
 
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_matrix(const GlMatrix&                                   in_matrix_f32mat,
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_matrix(const GlMatrix&                                    in_matrix_f32mat,
                                                                          const Analysis::APIDumpAnalysis::ConstantSemantic& in_semantic,
-                                                                         const uint64_t&                                   in_byte_offset,
-                                                                         GlReportedMatrix*                                 inout_reported_ptr)
+                                                                         const uint64_t&                                    in_byte_offset,
+                                                                         GlReportedMatrix*                                  inout_reported_ptr)
 {
     const bool is_changed = (inout_reported_ptr->has_value     == false ||
                              inout_reported_ptr->matrix_f32mat != in_matrix_f32mat);
@@ -1927,11 +2095,6 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::specify_texture(const
                                                                            const uint32_t&       in_width,
                                                                            const uint32_t&       in_height)
 {
-    constexpr uint32_t DEPTH_COMPONENT   = 0x1902;
-    constexpr uint32_t DEPTH_STENCIL     = 0x84F9;
-    constexpr uint32_t FIRST_DEPTH_SIZED = 0x81A5; /* GL_DEPTH_COMPONENT16 to GL_DEPTH_COMPONENT32 */
-    constexpr uint32_t LAST_DEPTH_SIZED  = 0x81A7;
-
     const uint32_t name             = get_bound_texture_name(in_state);
     const auto     texture_iterator = m_texture_map.find(name);
     const bool     is_known         = (texture_iterator != m_texture_map.end() );
@@ -1955,22 +2118,11 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::specify_texture(const
             m_builder_ptr->on_destroy_resource(texture_iterator->second.resource_id);
         }
 
-        description.format.format_class = Analysis::APIDumpAnalysis::FormatClass::COLOR;
+        description.format.format_class = get_format_class(in_internal_format);
         description.format.raw_value    = in_internal_format;
         description.height              = in_height;
         description.kind                = Analysis::APIDumpAnalysis::ResourceKind::TEXTURE_2D;
         description.width               = in_width;
-
-        if (in_internal_format == DEPTH_COMPONENT                                                       ||
-            (in_internal_format >= FIRST_DEPTH_SIZED && in_internal_format <= LAST_DEPTH_SIZED) )
-        {
-            description.format.format_class = Analysis::APIDumpAnalysis::FormatClass::DEPTH;
-        }
-        else
-        if (in_internal_format == DEPTH_STENCIL)
-        {
-            description.format.format_class = Analysis::APIDumpAnalysis::FormatClass::DEPTH_STENCIL;
-        }
 
         texture.height          = in_height;
         texture.internal_format = in_internal_format;
