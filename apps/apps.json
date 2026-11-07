@@ -35,6 +35,24 @@
         "unpacked_size": 6220091,
         "page": "https://files.scene.org/view/demos/groups/elitegroup/e_kasp22.zip"
       }
+    },
+    {
+      "id": "gerbera",
+      "title": "Gerbera",
+      "recipe": "recipes/gerbera.json",
+      "executable": "gerbera/PajaPlayer.exe",
+      "download": {
+        "urls": [
+          "https://archive.scene.org/pub/parties/2001/assembly01/demo/gerbera_final_by_moppi_productions.zip",
+          "https://mirror.netcologne.de/scene.org/parties/2001/assembly01/demo/gerbera_final_by_moppi_productions.zip",
+          "https://mirror.scenesat.com/scene.org/parties/2001/assembly01/demo/gerbera_final_by_moppi_productions.zip",
+          "https://http.jp.scene.org/parties/2001/assembly01/demo/gerbera_final_by_moppi_productions.zip"
+        ],
+        "sha256": "c6c426cfa4c1efd490fa1f4960f58ee3fc1c8981517df530a11d443c4b77157e",
+        "size": 7877223,
+        "unpacked_size": 8106918,
+        "page": "https://files.scene.org/view/parties/2001/assembly01/demo/gerbera_final_by_moppi_productions.zip"
+      }
     }
   ]
 }

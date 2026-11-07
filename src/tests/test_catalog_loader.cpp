@@ -219,7 +219,7 @@ TEST_F(CatalogLoaderTest, TheCatalogWhichComesWithTheRepositoryListsTheAppsOfThe
                                                           &m_catalog,
                                                           &m_error) ) << m_error;
     ASSERT_EQ  (m_catalog.app_vec.size(),
-                2u);
+                3u);
 
     EXPECT_EQ(m_catalog.app_vec.at(0).id,
               "fr08");
@@ -256,6 +256,22 @@ TEST_F(CatalogLoaderTest, TheCatalogWhichComesWithTheRepositoryListsTheAppsOfThe
     EXPECT_EQ(m_catalog.app_vec.at(1).install_spec.n_archive_bytes,
               4389733u);
     EXPECT_NE(m_catalog.app_vec.at(1).install_spec.install_directory.find("\\apps\\kasparov"),
+              std::string::npos);
+
+    /* Gerbera (OpenGL): the archive is listed; there is no recipe yet, and the entry says so instead of being left out. */
+    EXPECT_EQ(m_catalog.app_vec.at(2).id,
+              "gerbera");
+    EXPECT_EQ(m_catalog.app_vec.at(2).name,
+              "Gerbera");
+    EXPECT_NE(m_catalog.app_vec.at(2).unavailable_reason.find("recipe"),
+              std::string::npos) << m_catalog.app_vec.at(2).unavailable_reason;
+    EXPECT_GE(m_catalog.app_vec.at(2).install_spec.url_vec.size(),
+              2u);
+    EXPECT_EQ(m_catalog.app_vec.at(2).install_spec.sha256_hex.size(),
+              64u);
+    EXPECT_EQ(m_catalog.app_vec.at(2).install_spec.n_archive_bytes,
+              7877223u);
+    EXPECT_NE(m_catalog.app_vec.at(2).install_spec.install_directory.find("\\apps\\gerbera"),
               std::string::npos);
 }
 
