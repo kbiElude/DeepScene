@@ -239,9 +239,11 @@ void Stereo::ConverterDLL::D3D8ResolutionScaler::on_set_viewport(Interception::H
 void Stereo::ConverterDLL::D3D8ResolutionScaler::restore_chunk(const APIInterceptor::APIFunction& in_function,
                                                                std::vector<uint8_t>*              inout_chunk_ptr) const
 {
-    if (in_function                  == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3D8_CREATEDEVICE &&
-        m_asked_width                != 0                                                        &&
-        inout_chunk_ptr->size()      == sizeof(Interception::Hooks::D3D8::D3DPRESENT_PARAMETERS) )
+    const size_t n_chunk_bytes = inout_chunk_ptr->size();
+
+    if (in_function   == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3D8_CREATEDEVICE &&
+        m_asked_width != 0                                                        &&
+        n_chunk_bytes == sizeof(Interception::Hooks::D3D8::D3DPRESENT_PARAMETERS) )
     {
         Interception::Hooks::D3D8::D3DPRESENT_PARAMETERS parameters;
 

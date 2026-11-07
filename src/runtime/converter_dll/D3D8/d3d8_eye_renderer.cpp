@@ -141,10 +141,11 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::handle_create_texture(const APIInter
     constexpr size_t USAGE_ARGUMENT_INDEX   = 4;
     constexpr size_t WIDTH_ARGUMENT_INDEX   = 1;
 
-    void* const texture_ptr = const_cast<void*>(in_arguments_ptr[TEXTURE_ARGUMENT_INDEX].get_ptr() );
+    void* const    texture_ptr = const_cast<void*>(in_arguments_ptr[TEXTURE_ARGUMENT_INDEX].get_ptr() );
+    const uint32_t usage       = in_arguments_ptr[USAGE_ARGUMENT_INDEX].get_u32();
 
-    if (texture_ptr                                                                                           != nullptr &&
-        (in_arguments_ptr[USAGE_ARGUMENT_INDEX].get_u32() & Interception::Hooks::D3D8::D3DUSAGE_RENDERTARGET) != 0)
+    if (texture_ptr                                                != nullptr &&
+        (usage & Interception::Hooks::D3D8::D3DUSAGE_RENDERTARGET) != 0)
     {
         void* const                                   device_ptr = const_cast<void*>(in_arguments_ptr[0].get_ptr() );
         Interception::Hooks::D3D8::IDirect3DTexture8* twin_ptr   = nullptr;

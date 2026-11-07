@@ -99,19 +99,25 @@ void Stereo::ConverterDLL::FramePasser::on_present(void* in_device_ptr,
         ++m_frame_state.frame_index;
 
         /* What the application and the copies do, a second at a time: what tells whether the images come evenly. */
-        if (m_log.is_enabled() &&
-            Utils::Statistics::SeriesStats::take_period(&m_frame_state.last_report,
-                                                        now_ms,
-                                                        REPORT_PERIOD_N_MILLISECONDS) )
+        const bool is_log_enabled = m_log.is_enabled();
+
+        if (is_log_enabled)
         {
-            m_log.write("Pacing (ms): "                                                          +
-                        m_frame_state.present_interval.take_text("app presents")                 +
-                        "; "                                                                    +
-                        m_frame_state.export_interval.take_text("frames passed on")              +
-                        "; "                                                                    +
-                        m_frame_state.export_cost.take_text("copy cost")                        +
-                        "; "                                                                    +
-                        m_frame_state.exporter_ptr->take_timing_text() );
+            const bool is_report_due = Utils::Statistics::SeriesStats::take_period(&m_frame_state.last_report,
+                                                                                   now_ms,
+                                                                                   REPORT_PERIOD_N_MILLISECONDS);
+
+            if (is_report_due)
+            {
+                m_log.write("Pacing (ms): "                                                          +
+                            m_frame_state.present_interval.take_text("app presents")                 +
+                            "; "                                                                    +
+                            m_frame_state.export_interval.take_text("frames passed on")              +
+                            "; "                                                                    +
+                            m_frame_state.export_cost.take_text("copy cost")                        +
+                            "; "                                                                    +
+                            m_frame_state.exporter_ptr->take_timing_text() );
+            }
         }
     }
 }

@@ -147,12 +147,28 @@ void Stereo::ConverterDLL::D3D7SurfaceTwins::handle_get_attached_surface(const A
     void* const surface_ptr  = const_cast<void*>(in_arguments_ptr[SURFACE_ARGUMENT].get_ptr() );
 
     /* What the application asked for is a structure, which the arguments hold as a chunk: the surface that it got knows what it is. */
-    if (attached_ptr == nullptr                    ||
-        get_twin_ptr(attached_ptr) != nullptr      ||
-        get_caps(attached_ptr,
-                &caps) == false)
+    if (attached_ptr == nullptr)
     {
         goto end;
+    }
+
+    {
+        void* const known_twin_ptr = get_twin_ptr(attached_ptr);
+
+        if (known_twin_ptr != nullptr)
+        {
+            goto end;
+        }
+    }
+
+    {
+        const bool has_caps = get_caps(attached_ptr,
+                                      &caps);
+
+        if (has_caps == false)
+        {
+            goto end;
+        }
     }
 
     /* What the primary surface gives as its back buffer: the chain of the application, or the surface of its own that a window has. */
@@ -266,11 +282,21 @@ void* Stereo::ConverterDLL::D3D7SurfaceTwins::make_twin_ptr(void*       in_surfa
 
     description.dwSize = static_cast<DWORD>(sizeof(description) );
 
-    if (m_direct_draw_ptr == nullptr                                                                                                                                                                  ||
-        FAILED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_GETSURFACEDESC>(surface_vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_GETSURFACEDESC)(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(in_surface_ptr),
-                                                                                                                                                                                              &description) ))
+    if (m_direct_draw_ptr == nullptr)
     {
         goto end;
+    }
+
+    {
+        const auto    get_description_func_ptr = APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_GETSURFACEDESC>(surface_vtable,
+                                                                                                                                                   Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_GETSURFACEDESC);
+        const HRESULT get_description_result   = get_description_func_ptr(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(in_surface_ptr),
+                                                                          &description);
+
+        if (FAILED(get_description_result) )
+        {
+            goto end;
+        }
     }
 
     description.dwBackBufferCount = 0;

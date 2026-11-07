@@ -174,11 +174,16 @@ Stereo::Transport::ExportStatus Stereo::ConverterDLL::D3D8HostMemoryExporter::ex
         }
     }
 
-    if (n_eyes == 2                                                      &&
-        (description_array.at(0).Width  != description_array.at(1).Width ||
-         description_array.at(0).Height != description_array.at(1).Height) )
+    if (n_eyes == 2)
     {
-        goto end;
+        const auto& left_description  = description_array.at(0);
+        const auto& right_description = description_array.at(1);
+
+        if (left_description.Width  != right_description.Width ||
+            left_description.Height != right_description.Height)
+        {
+            goto end;
+        }
     }
 
     /* Both copies are asked for before either is waited for, so that the GPU makes them one after the other without the CPU between. */

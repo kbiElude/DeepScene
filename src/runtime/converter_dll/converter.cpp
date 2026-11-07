@@ -133,17 +133,25 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
             float height = 0.0f;
             float width  = 0.0f;
 
-            if (is_shown_elsewhere == false                          &&
-                Environment::get_number("APISTEREO_TARGET_EYE_WIDTH",
-                                        &width)                        &&
-                Environment::get_number("APISTEREO_TARGET_EYE_HEIGHT",
-                                        &height) )
+            if (is_shown_elsewhere == false)
             {
-                target_height      = static_cast<uint32_t>(height);
-                target_width       = static_cast<uint32_t>(width);
-                is_shown_elsewhere = true;
+                const bool has_width = Environment::get_number("APISTEREO_TARGET_EYE_WIDTH",
+                                                               &width);
 
-                m_log.write("The images of the eyes are " + std::to_string(target_width) + " x " + std::to_string(target_height) + ", from APISTEREO_TARGET_EYE_WIDTH and APISTEREO_TARGET_EYE_HEIGHT");
+                if (has_width)
+                {
+                    const bool has_height = Environment::get_number("APISTEREO_TARGET_EYE_HEIGHT",
+                                                                    &height);
+
+                    if (has_height)
+                    {
+                        target_height      = static_cast<uint32_t>(height);
+                        target_width       = static_cast<uint32_t>(width);
+                        is_shown_elsewhere = true;
+
+                        m_log.write("The images of the eyes are " + std::to_string(target_width) + " x " + std::to_string(target_height) + ", from APISTEREO_TARGET_EYE_WIDTH and APISTEREO_TARGET_EYE_HEIGHT");
+                    }
+                }
             }
         }
 
@@ -380,26 +388,32 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
     /* The frame is presented: the application makes the next one when the screen wants it, which is what the program that shows the
      * frames says (if it does). Outside the lock of the converter, since it is as long as a frame.
      */
-    if (OwnCallScope::is_active() == false &&
+    const bool is_own_call = OwnCallScope::is_active();
+
+    if (is_own_call == false &&
         in_api_func == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_PRESENT)
     {
         this_ptr->m_frame_passer_ptr->wait_for_pace();
     }
     else
-    if (OwnCallScope::is_active() == false &&
+    if (is_own_call == false &&
         in_api_func == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_FLIP)
     {
         this_ptr->m_d3d7_frame_passer_ptr->wait_for_pace();
     }
     else
-    if (OwnCallScope::is_active() == false                                      &&
-        APIInterceptor::is_frame_boundary(in_api_func,
-                                          in_n_arguments_out,
-                                          in_arguments_out_ptr)                 &&
-        (in_api_func == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_BLT ||
-         in_api_func == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_BLTFAST) )
+    if (is_own_call == false)
     {
-        this_ptr->m_d3d7_frame_passer_ptr->wait_for_pace();
+        const bool is_frame_boundary = APIInterceptor::is_frame_boundary(in_api_func,
+                                                                         in_n_arguments_out,
+                                                                         in_arguments_out_ptr);
+
+        if (is_frame_boundary                                                       &&
+            (in_api_func == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_BLT ||
+             in_api_func == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_BLTFAST) )
+        {
+            this_ptr->m_d3d7_frame_passer_ptr->wait_for_pace();
+        }
     }
 }
 
@@ -737,13 +751,17 @@ void Stereo::ConverterDLL::Converter::read_channel_settings(std::vector<std::str
 
     const bool is_overlay_pushed = m_channel_ptr->get_is_overlay_pushed();
 
-    if (m_live_state.is_overlay_push_forced == false &&
-        is_overlay_pushed != m_live_state.core_ptr->get_is_overlay_pushed() )
+    if (m_live_state.is_overlay_push_forced == false)
     {
-        m_live_state.core_ptr->set_is_overlay_pushed(is_overlay_pushed);
+        const bool was_overlay_pushed = m_live_state.core_ptr->get_is_overlay_pushed();
 
-        out_log_line_vec_ptr->push_back((is_overlay_pushed) ? "What the recipe leaves alone is now pushed toward the viewer"
-                                                            : "What the recipe leaves alone is no longer pushed toward the viewer");
+        if (is_overlay_pushed != was_overlay_pushed)
+        {
+            m_live_state.core_ptr->set_is_overlay_pushed(is_overlay_pushed);
+
+            out_log_line_vec_ptr->push_back((is_overlay_pushed) ? "What the recipe leaves alone is now pushed toward the viewer"
+                                                                : "What the recipe leaves alone is no longer pushed toward the viewer");
+        }
     }
 
     const bool has_convergence_distance = m_channel_ptr->get_convergence_distance(&convergence_distance);

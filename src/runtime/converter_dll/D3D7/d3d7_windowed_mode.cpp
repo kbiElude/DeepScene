@@ -62,12 +62,25 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_create_surface(const APIInte
     Interception::Hooks::D3D7::IDirectDrawSurface7* back_buffer_ptr         = nullptr;
     Interception::Hooks::D3D7::IDirectDrawSurface7* primary_ptr             = nullptr;
 
-    if (in_arguments_ptr[DESCRIPTION_ARGUMENT].type != APIInterceptor::ARGTYPE_DATA_CHUNK_ID                                      ||
-        in_arguments_ptr[SURFACE_ARGUMENT].type     != APIInterceptor::ARGTYPE_VOID_PTR                                           ||
-        APIInterceptor::get_data_chunk(in_arguments_ptr[DESCRIPTION_ARGUMENT].get_data_chunk_id(),
-                                      &chunk_ptr,
-                                      &n_chunk_bytes) == false                                                                    ||
-        n_chunk_bytes != sizeof(Interception::Hooks::D3D7::DDSURFACEDESC2) )
+    if (in_arguments_ptr[DESCRIPTION_ARGUMENT].type != APIInterceptor::ARGTYPE_DATA_CHUNK_ID ||
+        in_arguments_ptr[SURFACE_ARGUMENT].type     != APIInterceptor::ARGTYPE_VOID_PTR)
+    {
+        goto end;
+    }
+
+    {
+        const auto chunk_id  = in_arguments_ptr[DESCRIPTION_ARGUMENT].get_data_chunk_id();
+        const bool has_chunk = APIInterceptor::get_data_chunk(chunk_id,
+                                                             &chunk_ptr,
+                                                             &n_chunk_bytes);
+
+        if (has_chunk == false)
+        {
+            goto end;
+        }
+    }
+
+    if (n_chunk_bytes != sizeof(Interception::Hooks::D3D7::DDSURFACEDESC2) )
     {
         goto end;
     }
@@ -95,7 +108,8 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_create_surface(const APIInte
         const OwnCallScope own_call_scope;
         void** const       vtable = APIInterceptor::get_vtable_ptr(direct_draw_ptr);
 
-        const auto create_surface_func = APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAW7_CREATESURFACE>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAW7_CREATESURFACE);
+        const auto create_surface_func_ptr = APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAW7_CREATESURFACE>(vtable,
+                                                                                                                                       Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAW7_CREATESURFACE);
 
         /* The surface that is shown is the one of the window. */
         primary_description.dwSize      = static_cast<DWORD>(sizeof(primary_description) );
@@ -116,22 +130,28 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_create_surface(const APIInte
         back_buffer_description.ddsCaps.dwCaps = Interception::Core::D3D7Utils::DDSCAPS_3DDEVICE |
                                                  Interception::Core::D3D7Utils::DDSCAPS_OFFSCREENPLAIN;
 
-        if (SUCCEEDED(create_surface_func(static_cast<Interception::Hooks::D3D7::IDirectDraw7*>(direct_draw_ptr),
-                                          &primary_description,
-                                          &primary_ptr,
-                                           nullptr) )                                              &&
-            SUCCEEDED(create_surface_func(static_cast<Interception::Hooks::D3D7::IDirectDraw7*>(direct_draw_ptr),
-                                          &back_buffer_description,
-                                          &back_buffer_ptr,
-                                           nullptr) ))
+        const HRESULT create_primary_result = create_surface_func_ptr(static_cast<Interception::Hooks::D3D7::IDirectDraw7*>(direct_draw_ptr),
+                                                                      &primary_description,
+                                                                      &primary_ptr,
+                                                                       nullptr);
+
+        if (SUCCEEDED(create_primary_result) )
         {
-            m_back_buffer_ptr = back_buffer_ptr;
-            m_primary_ptr     = primary_ptr;
+            const HRESULT create_back_buffer_result = create_surface_func_ptr(static_cast<Interception::Hooks::D3D7::IDirectDraw7*>(direct_draw_ptr),
+                                                                              &back_buffer_description,
+                                                                              &back_buffer_ptr,
+                                                                               nullptr);
 
-            /* What the application is to get is where it asked for it. */
-            *static_cast<void**>(const_cast<void*>(in_arguments_ptr[SURFACE_ARGUMENT].get_ptr() )) = primary_ptr;
+            if (SUCCEEDED(create_back_buffer_result) )
+            {
+                m_back_buffer_ptr = back_buffer_ptr;
+                m_primary_ptr     = primary_ptr;
 
-            *out_should_pass_through_ptr = false;
+                /* What the application is to get is where it asked for it. */
+                *static_cast<void**>(const_cast<void*>(in_arguments_ptr[SURFACE_ARGUMENT].get_ptr() )) = primary_ptr;
+
+                *out_should_pass_through_ptr = false;
+            }
         }
     }
 
@@ -148,15 +168,29 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_get_attached_surface(const A
 
     const void* chunk_ptr     = nullptr;
     uint32_t    n_chunk_bytes = 0;
+    const void* surface_ptr   = in_arguments_ptr[SURFACE_ARGUMENT].get_ptr();
 
-    if (m_back_buffer_ptr                                               == nullptr                         ||
-        in_arguments_ptr[SURFACE_ARGUMENT].get_ptr()                    != m_primary_ptr                   ||
-        in_arguments_ptr[CAPS_ARGUMENT].type                            != APIInterceptor::ARGTYPE_DATA_CHUNK_ID ||
-        in_arguments_ptr[RESULT_ARGUMENT].type                          != APIInterceptor::ARGTYPE_VOID_PTR      ||
-        APIInterceptor::get_data_chunk(in_arguments_ptr[CAPS_ARGUMENT].get_data_chunk_id(),
-                                      &chunk_ptr,
-                                      &n_chunk_bytes) == false                                              ||
-        n_chunk_bytes != sizeof(Interception::Hooks::D3D7::DDSCAPS2) )
+    if (m_back_buffer_ptr                      == nullptr                               ||
+        surface_ptr                            != m_primary_ptr                         ||
+        in_arguments_ptr[CAPS_ARGUMENT].type   != APIInterceptor::ARGTYPE_DATA_CHUNK_ID ||
+        in_arguments_ptr[RESULT_ARGUMENT].type != APIInterceptor::ARGTYPE_VOID_PTR)
+    {
+        goto end;
+    }
+
+    {
+        const auto chunk_id  = in_arguments_ptr[CAPS_ARGUMENT].get_data_chunk_id();
+        const bool has_chunk = APIInterceptor::get_data_chunk(chunk_id,
+                                                             &chunk_ptr,
+                                                             &n_chunk_bytes);
+
+        if (has_chunk == false)
+        {
+            goto end;
+        }
+    }
+
+    if (n_chunk_bytes != sizeof(Interception::Hooks::D3D7::DDSCAPS2) )
     {
         goto end;
     }
@@ -221,35 +255,41 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_set_display_mode(const APIIn
     uint32_t width  = 0;
 
     /* The size is the one of the images of the application, which is what the back buffer is made as large as. */
-    if (APIInterceptor::read_number(in_arguments_ptr[WIDTH_ARGUMENT],
-                &width)  &&
-        APIInterceptor::read_number(in_arguments_ptr[HEIGHT_ARGUMENT],
-                &height))
+    const bool has_width = APIInterceptor::read_number(in_arguments_ptr[WIDTH_ARGUMENT],
+                                                      &width);
+
+    if (has_width)
     {
-        m_display_height = height;
-        m_display_width  = width;
+        const bool has_height = APIInterceptor::read_number(in_arguments_ptr[HEIGHT_ARGUMENT],
+                                                           &height);
 
-        /* The back buffer is made as large as the images that are shown allow, with the proportions of the display mode; not larger than the channel
-         * holds, for the two eyes side by side.
-         */
-        if (m_target_height != 0 &&
-            m_target_width  != 0)
+        if (has_height)
         {
-            const float channel_scale = EyeImageLimits::get_largest_scale(width,
-                                                                          height);
-            const float fit_scale     = Stereo::Core::ResolutionPolicy::get_fit_scale(m_target_width,
-                                                                                      m_target_height,
-                                                                                      width,
-                                                                                      height);
-            const float surface_scale = Stereo::Core::ResolutionPolicy::get_fit_scale(MAX_RENDER_TARGET_EXTENT,
-                                                                                      MAX_RENDER_TARGET_EXTENT,
-                                                                                      width,
-                                                                                      height);
-            const float smaller_scale = (fit_scale < channel_scale) ? fit_scale
-                                                                    : channel_scale;
+            m_display_height = height;
+            m_display_width  = width;
 
-            m_policy = Stereo::Core::ResolutionPolicy((surface_scale < smaller_scale) ? surface_scale
-                                                                                      : smaller_scale);
+            /* The back buffer is made as large as the images that are shown allow, with the proportions of the display mode; not larger than the channel
+             * holds, for the two eyes side by side.
+             */
+            if (m_target_height != 0 &&
+                m_target_width  != 0)
+            {
+                const float channel_scale = EyeImageLimits::get_largest_scale(width,
+                                                                              height);
+                const float fit_scale     = Stereo::Core::ResolutionPolicy::get_fit_scale(m_target_width,
+                                                                                          m_target_height,
+                                                                                          width,
+                                                                                          height);
+                const float surface_scale = Stereo::Core::ResolutionPolicy::get_fit_scale(MAX_RENDER_TARGET_EXTENT,
+                                                                                          MAX_RENDER_TARGET_EXTENT,
+                                                                                          width,
+                                                                                          height);
+                const float smaller_scale = (fit_scale < channel_scale) ? fit_scale
+                                                                        : channel_scale;
+
+                m_policy = Stereo::Core::ResolutionPolicy((surface_scale < smaller_scale) ? surface_scale
+                                                                                          : smaller_scale);
+            }
         }
     }
 }
@@ -264,16 +304,17 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_sized_surface(const Intercep
     constexpr uint32_t FLAGS_OF_SIZE                = Interception::Core::D3D7Utils::DDSD_HEIGHT |
                                                       Interception::Core::D3D7Utils::DDSD_WIDTH;
 
+    const bool                                      is_policy_identity = m_policy.is_identity();
     Interception::Hooks::D3D7::DDSURFACEDESC2       scaled_description = in_description;
     Interception::Hooks::D3D7::IDirectDrawSurface7* surface_ptr        = nullptr;
 
     /* Only a surface that is as large as the images of the application is, and only if they are made larger. */
-    if (m_policy.is_identity()                                                                     ||
-        m_display_width == 0                                                                       ||
-        (in_description.ddsCaps.dwCaps & CAPS_OF_SURFACES_RENDERED_TO) == 0                        ||
-        (in_description.dwFlags & FLAGS_OF_SIZE)                       != FLAGS_OF_SIZE            ||
-        in_description.dwHeight != m_display_height                                                ||
-        in_description.dwWidth  != m_display_width)
+    if (is_policy_identity                                                                 ||
+        m_display_width                                                == 0                ||
+        (in_description.ddsCaps.dwCaps & CAPS_OF_SURFACES_RENDERED_TO) == 0                ||
+        (in_description.dwFlags & FLAGS_OF_SIZE)                       != FLAGS_OF_SIZE    ||
+        in_description.dwHeight                                        != m_display_height ||
+        in_description.dwWidth                                         != m_display_width)
     {
         goto end;
     }
@@ -373,11 +414,15 @@ bool Stereo::ConverterDLL::D3D7WindowedMode::on_pre(const APIInterceptor::APIFun
         case APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_FLIP:
         {
             /* A window has no chain to flip: the images are taken from the back buffer by the converter, and nothing is shown. */
-            if (in_n_arguments >= N_ARGUMENTS_FLIP                                &&
-                in_arguments_ptr[0].get_ptr() == m_primary_ptr                    &&
-                m_primary_ptr                 != nullptr)
+            if (in_n_arguments >= N_ARGUMENTS_FLIP)
             {
-                result = false;
+                const void* surface_ptr = in_arguments_ptr[0].get_ptr();
+
+                if (surface_ptr   == m_primary_ptr &&
+                    m_primary_ptr != nullptr)
+                {
+                    result = false;
+                }
             }
 
             break;
