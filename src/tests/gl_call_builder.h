@@ -10,6 +10,8 @@
 
 #include "capture/api_dump_loader/api_dump_loader.h"
 #include "common/api_function_argument.h"
+#include <array>
+#include <stddef.h>
 #include <stdint.h>
 #include <vector>
 
@@ -38,12 +40,51 @@ namespace Tests
         void disable      (const uint32_t& in_capability);
         void enable       (const uint32_t& in_capability);
 
+        void frustum(const double& in_left,
+                     const double& in_right,
+                     const double& in_bottom,
+                     const double& in_top,
+                     const double& in_near,
+                     const double& in_far);
+
         const Capture::APIDumpLoader::Workload& get_workload() const;
+
+        void load_identity();
+
+        /* The matrices are stored as data chunks, as the dumper stores the argument of glLoadMatrix and glMultMatrix. */
+        void load_matrix       (const std::array<float, 16>&  in_matrix_f32mat);
+        void load_matrix_double(const std::array<double, 16>& in_matrix_d64mat);
 
         /* A context address of 0 is an unbind. A call which does not succeed returns FALSE. */
         void make_current(const uint64_t& in_device_context_address,
                           const uint64_t& in_context_address,
                           const bool&     in_succeeds = true);
+
+        void matrix_mode(const uint32_t& in_mode);
+
+        void mult_matrix(const std::array<float, 16>& in_matrix_f32mat);
+
+        void ortho(const double& in_left,
+                   const double& in_right,
+                   const double& in_bottom,
+                   const double& in_top,
+                   const double& in_near,
+                   const double& in_far);
+
+        void pop_attrib ();
+        void pop_matrix ();
+        void push_attrib(const uint32_t& in_mask);
+        void push_matrix();
+
+        /* glRotatef, glScalef and glTranslated: a float one and a double one of each are the same to the front end. */
+        void rotate(const float& in_angle_degrees,
+                    const float& in_x,
+                    const float& in_y,
+                    const float& in_z);
+
+        void scale(const float& in_x,
+                   const float& in_y,
+                   const float& in_z);
 
         void scissor(const int32_t& in_x,
                      const int32_t& in_y,
@@ -54,12 +95,21 @@ namespace Tests
 
         void swap_buffers(const uint64_t& in_device_context_address);
 
+        void translate(const double& in_x,
+                       const double& in_y,
+                       const double& in_z);
+
         void viewport(const int32_t& in_x,
                       const int32_t& in_y,
                       const int32_t& in_width,
                       const int32_t& in_height);
 
     private:
+        /* A call whose only argument is the data chunk made of the bytes. */
+        void add_chunk_call(const APIInterceptor::APIFunction& in_function,
+                            const void*                        in_data_ptr,
+                            const size_t&                      in_n_bytes);
+
         static APIInterceptor::APIFunctionArgument make_pointer_argument(const uint64_t& in_address);
 
         uint64_t                         m_next_timestamp;

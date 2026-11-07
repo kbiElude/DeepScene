@@ -4,6 +4,8 @@
  */
 #include "gl_call_builder.h"
 #include "common/types.h"
+#include <memory>
+#include <string.h>
 
 Tests::GlCallBuilder::GlCallBuilder()
     :m_next_timestamp(0),
@@ -43,6 +45,24 @@ void Tests::GlCallBuilder::add_call(const APIInterceptor::APIFunction&         i
     m_next_timestamp += TICKS_BETWEEN_CALLS;
 
     m_workload.dumped_api_call_vec_ptr->emplace_back(std::move(call) );
+}
+
+void Tests::GlCallBuilder::add_chunk_call(const APIInterceptor::APIFunction& in_function,
+                                          const void*                        in_data_ptr,
+                                          const size_t&                      in_n_bytes)
+{
+    const uint32_t chunk_id = m_workload.first_data_chunk_id + static_cast<uint32_t>(m_workload.data_chunk_ptr_vec.size() );
+
+    Capture::APIDumpLoader::DataChunkUniquePtr chunk_ptr(new Capture::APIDumpLoader::DataChunk(in_n_bytes) );
+
+    ::memcpy(chunk_ptr->data(),
+             in_data_ptr,
+             in_n_bytes);
+
+    m_workload.data_chunk_ptr_vec.push_back(std::move(chunk_ptr) );
+
+    add_call(in_function,
+             {APIInterceptor::APIFunctionArgument::create_data_chunk_id(chunk_id)});
 }
 
 void Tests::GlCallBuilder::begin(const uint32_t& in_mode)
@@ -93,9 +113,45 @@ void Tests::GlCallBuilder::enable(const uint32_t& in_capability)
              {APIInterceptor::APIFunctionArgument::create_u32_glenum(in_capability)});
 }
 
+void Tests::GlCallBuilder::frustum(const double& in_left,
+                                   const double& in_right,
+                                   const double& in_bottom,
+                                   const double& in_top,
+                                   const double& in_near,
+                                   const double& in_far)
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLFRUSTUM,
+             {APIInterceptor::APIFunctionArgument::create_fp64(in_left),
+              APIInterceptor::APIFunctionArgument::create_fp64(in_right),
+              APIInterceptor::APIFunctionArgument::create_fp64(in_bottom),
+              APIInterceptor::APIFunctionArgument::create_fp64(in_top),
+              APIInterceptor::APIFunctionArgument::create_fp64(in_near),
+              APIInterceptor::APIFunctionArgument::create_fp64(in_far)});
+}
+
 const Capture::APIDumpLoader::Workload& Tests::GlCallBuilder::get_workload() const
 {
     return m_workload;
+}
+
+void Tests::GlCallBuilder::load_identity()
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLLOADIDENTITY,
+             {});
+}
+
+void Tests::GlCallBuilder::load_matrix(const std::array<float, 16>& in_matrix_f32mat)
+{
+    add_chunk_call(APIInterceptor::APIFUNCTION_GL_GLLOADMATRIXF,
+                   in_matrix_f32mat.data(),
+                   sizeof(in_matrix_f32mat) );
+}
+
+void Tests::GlCallBuilder::load_matrix_double(const std::array<double, 16>& in_matrix_d64mat)
+{
+    add_chunk_call(APIInterceptor::APIFUNCTION_GL_GLLOADMATRIXD,
+                   in_matrix_d64mat.data(),
+                   sizeof(in_matrix_d64mat) );
 }
 
 APIInterceptor::APIFunctionArgument Tests::GlCallBuilder::make_pointer_argument(const uint64_t& in_address)
@@ -112,6 +168,81 @@ void Tests::GlCallBuilder::make_current(const uint64_t& in_device_context_addres
               make_pointer_argument(in_context_address)},
              APIInterceptor::APIFunctionArgument::create_i32((in_succeeds) ? 1
                                                                            : 0) );
+}
+
+void Tests::GlCallBuilder::matrix_mode(const uint32_t& in_mode)
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLMATRIXMODE,
+             {APIInterceptor::APIFunctionArgument::create_u32_glenum(in_mode)});
+}
+
+void Tests::GlCallBuilder::mult_matrix(const std::array<float, 16>& in_matrix_f32mat)
+{
+    add_chunk_call(APIInterceptor::APIFUNCTION_GL_GLMULTMATRIXF,
+                   in_matrix_f32mat.data(),
+                   sizeof(in_matrix_f32mat) );
+}
+
+void Tests::GlCallBuilder::ortho(const double& in_left,
+                                 const double& in_right,
+                                 const double& in_bottom,
+                                 const double& in_top,
+                                 const double& in_near,
+                                 const double& in_far)
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLORTHO,
+             {APIInterceptor::APIFunctionArgument::create_fp64(in_left),
+              APIInterceptor::APIFunctionArgument::create_fp64(in_right),
+              APIInterceptor::APIFunctionArgument::create_fp64(in_bottom),
+              APIInterceptor::APIFunctionArgument::create_fp64(in_top),
+              APIInterceptor::APIFunctionArgument::create_fp64(in_near),
+              APIInterceptor::APIFunctionArgument::create_fp64(in_far)});
+}
+
+void Tests::GlCallBuilder::pop_attrib()
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLPOPATTRIB,
+             {});
+}
+
+void Tests::GlCallBuilder::pop_matrix()
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLPOPMATRIX,
+             {});
+}
+
+void Tests::GlCallBuilder::push_attrib(const uint32_t& in_mask)
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLPUSHATTRIB,
+             {APIInterceptor::APIFunctionArgument::create_u32(in_mask)});
+}
+
+void Tests::GlCallBuilder::push_matrix()
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLPUSHMATRIX,
+             {});
+}
+
+void Tests::GlCallBuilder::rotate(const float& in_angle_degrees,
+                                  const float& in_x,
+                                  const float& in_y,
+                                  const float& in_z)
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLROTATEF,
+             {APIInterceptor::APIFunctionArgument::create_fp32(in_angle_degrees),
+              APIInterceptor::APIFunctionArgument::create_fp32(in_x),
+              APIInterceptor::APIFunctionArgument::create_fp32(in_y),
+              APIInterceptor::APIFunctionArgument::create_fp32(in_z)});
+}
+
+void Tests::GlCallBuilder::scale(const float& in_x,
+                                 const float& in_y,
+                                 const float& in_z)
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLSCALEF,
+             {APIInterceptor::APIFunctionArgument::create_fp32(in_x),
+              APIInterceptor::APIFunctionArgument::create_fp32(in_y),
+              APIInterceptor::APIFunctionArgument::create_fp32(in_z)});
 }
 
 void Tests::GlCallBuilder::scissor(const int32_t& in_x,
@@ -136,6 +267,16 @@ void Tests::GlCallBuilder::swap_buffers(const uint64_t& in_device_context_addres
     add_call(APIInterceptor::APIFUNCTION_GDI32_SWAPBUFFERS,
              {make_pointer_argument(in_device_context_address)},
              APIInterceptor::APIFunctionArgument::create_i32(1) );
+}
+
+void Tests::GlCallBuilder::translate(const double& in_x,
+                                     const double& in_y,
+                                     const double& in_z)
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLTRANSLATED,
+             {APIInterceptor::APIFunctionArgument::create_fp64(in_x),
+              APIInterceptor::APIFunctionArgument::create_fp64(in_y),
+              APIInterceptor::APIFunctionArgument::create_fp64(in_z)});
 }
 
 void Tests::GlCallBuilder::viewport(const int32_t& in_x,

@@ -4,9 +4,14 @@
  *
  * Follows the calls of an OpenGL application (GL, WGL and SwapBuffers) and tells the model builder what they come to.
  *
- * What it follows: the contexts and which one each thread has current, the viewport and the scissor box and test of each, the
- * values that a clear uses, the clears, and the end of the frames. What it does not follow yet (draws, copies and reads of the
- * framebuffer) is counted as unsupported, so that a model made of it says that its passes are not right.
+ * What it follows: the contexts and which one each thread has current; of each, the viewport, the scissor box and test, the values that a
+ * clear uses, the stack of attributes (glPushAttrib puts back what the program set after it) and the stacks of matrices (a model-view, a
+ * projection, and the others, which are only kept right); the clears; and the end of the frames. What it does not follow yet (draws,
+ * copies and reads of the framebuffer) is counted as unsupported, so that a model made of it says that its passes are not right.
+ *
+ * The matrices: OpenGL has one matrix for the model and the view together, and a projection of its own. The front end tells the model builder
+ * the two as they are, each when it changes (MODEL_VIEW_MATRIX and PROJECTION_MATRIX, in the state of the fixed-function pipeline, at
+ * the offsets 0 and 64), and does not tell a model from a view, which the calls do not.
  *
  * The window is the default framebuffer: one of them for the whole workload, made at the first clear with the size of the viewport that
  * the context has by then (the size of the window is not in the calls; a context starts with a viewport of the whole window, and the
@@ -23,6 +28,7 @@
 #include <map>
 #include <stddef.h>
 #include <stdint.h>
+#include <vector>
 
 namespace Analysis
 {
@@ -38,6 +44,13 @@ namespace Analysis
 
                 bool find_resource_view(const uint64_t&                          in_address,
                                         Analysis::APIDumpAnalysis::ResourceView* out_view_ptr) const override;
+
+                /* The current model-view and projection matrices of the context that the thread has current (for the checks of the tests);
+                 * false if it has none.
+                 */
+                bool get_current_matrices(const uint32_t& in_thread_id,
+                                          GlMatrix*       out_modelview_f32mat_ptr,
+                                          GlMatrix*       out_projection_f32mat_ptr) const;
 
                 const std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t>& get_n_resolution_hazards() const override;
 
@@ -55,28 +68,57 @@ namespace Analysis
                 /* The state of the context that the thread has current; nullptr if it has none. */
                 GlContextState* find_current_context_ptr(const uint32_t& in_thread_id);
 
-                void handle_clear        (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                          GlContextState*                              inout_state_ptr);
-                void handle_clear_color  (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                          GlContextState*                              inout_state_ptr);
-                void handle_clear_depth  (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                          GlContextState*                              inout_state_ptr);
-                void handle_clear_stencil(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                          GlContextState*                              inout_state_ptr);
-                void handle_enable       (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                          const bool&                                  in_is_enabled,
-                                          GlContextState*                              inout_state_ptr);
-                void handle_make_current (const Capture::APIDumpLoader::DumpedAPICall& in_call);
-                void handle_scissor      (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                          GlContextState*                              inout_state_ptr);
-                void handle_viewport     (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                          GlContextState*                              inout_state_ptr);
+                void handle_clear           (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                             GlContextState*                              inout_state_ptr);
+                void handle_clear_color     (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                             GlContextState*                              inout_state_ptr);
+                void handle_clear_depth     (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                             GlContextState*                              inout_state_ptr);
+                void handle_clear_stencil   (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                             GlContextState*                              inout_state_ptr);
+                void handle_enable          (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                             const bool&                                  in_is_enabled,
+                                             GlContextState*                              inout_state_ptr);
+                void handle_make_current    (const Capture::APIDumpLoader::DumpedAPICall& in_call);
+                /* A call that loads or multiplies the current matrix: the matrix is what its arguments (or its data) say. */
+                void handle_matrix          (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                             const Capture::APIDumpLoader::Workload&      in_workload,
+                                             GlContextState*                              inout_state_ptr);
+                void handle_matrix_mode     (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                             GlContextState*                              inout_state_ptr);
+                void handle_pop_attributes  (GlContextState* inout_state_ptr);
+                void handle_pop_matrix      (GlContextState* inout_state_ptr);
+                void handle_push_attributes (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                             GlContextState*                              inout_state_ptr);
+                void handle_push_matrix     (GlContextState* inout_state_ptr);
+                void handle_scissor         (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                             GlContextState*                              inout_state_ptr);
+                void handle_viewport        (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                             GlContextState*                              inout_state_ptr);
+
+                /* Tells the model builder the model-view and the projection matrix of the context, those of them which are not what it was told last. */
+                void report_matrices(const GlContextState& in_state);
+
+                void report_matrix(const GlMatrix&                                   in_matrix_f32mat,
+                                   const Analysis::APIDumpAnalysis::ConstantSemantic& in_semantic,
+                                   const uint64_t&                                   in_byte_offset,
+                                   GlReportedMatrix*                                 inout_reported_ptr);
+
+                /* The stack of the matrices that glMatrixMode has chosen. */
+                static std::vector<GlMatrix>* get_current_stack_ptr(GlContextState* inout_state_ptr);
+
+                /* A context as it starts: what the specification says, and a stack of the identity for each kind of matrix. */
+                static GlContextState get_initial_context_state();
 
                 /* The viewport of the model, from the box of the context. */
                 static Analysis::APIDumpAnalysis::Viewport get_model_viewport(const GlContextState& in_state);
 
                 /* True for the calls whose effects the front end does not follow yet. */
                 static bool is_unsupported_function(const APIInterceptor::APIFunction& in_function);
+
+                /* True if the two boxes are the same. */
+                static bool is_same_box(const GlBox& in_first,
+                                        const GlBox& in_second);
 
                 /* Reads the first N arguments of the call as numbers; false if it has fewer, or one that is not a number. */
                 template<typename T, size_t N>
@@ -101,6 +143,21 @@ namespace Analysis
                 static bool read_box(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                      GlBox*                                       out_box_ptr);
 
+                /* The matrix that a call of glLoadMatrix or glMultMatrix has stored as its argument, of floats or of doubles. */
+                static bool read_matrix_chunk(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                              const Capture::APIDumpLoader::Workload&      in_workload,
+                                              const bool&                                  in_is_double,
+                                              GlMatrix*                                    out_matrix_f32mat_ptr);
+
+                /* The matrix that the call has to load into the current one, or to multiply it by; false if its arguments cannot be read. */
+                static bool read_matrix_operand(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                const Capture::APIDumpLoader::Workload&      in_workload,
+                                                GlMatrix*                                    out_matrix_f32mat_ptr);
+
+                /* Puts back what the mask of a glPushAttrib asked to be saved. */
+                static void restore_attributes(const GlAttributeFrame& in_frame,
+                                               GlAttributes*           inout_attributes_ptr);
+
                 Analysis::APIDumpAnalysis::ModelBuilder*                        m_builder_ptr;
                 Analysis::APIDumpAnalysis::ResourceView                         m_color_view;
                 std::map<uint64_t, GlContextState>                              m_context_map;                   /* by the address of the context */
@@ -112,6 +169,8 @@ namespace Analysis
                 std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t> m_n_resolution_hazard_map;
                 uint64_t                                                        m_n_unfollowed_calls;
                 uint64_t                                                        m_n_unsupported_calls;
+                GlReportedMatrix                                                m_reported_modelview;
+                GlReportedMatrix                                                m_reported_projection;
             };
         }
     }

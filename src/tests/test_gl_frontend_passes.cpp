@@ -5,70 +5,13 @@
  * Checks of the OpenGL front end following the contexts, the window, the clears and the frames.
  */
 #include <gtest/gtest.h>
-#include "analysis/api_dump_analysis/frontends/OpenGL/opengl_frontend.h"
 #include "analysis/api_dump_analysis/frontends/analysis_session.h"
-#include "frontend_harness.h"
-#include "gl_call_builder.h"
-#include <vector>
+#include "gl_frontend_fixture.h"
 
 namespace
 {
-    constexpr uint64_t CONTEXT_ADDRESS        = 0x10000;
-    constexpr uint64_t DEVICE_CONTEXT_ADDRESS = 0x63012365;
-    constexpr uint64_t OTHER_CONTEXT_ADDRESS  = 0x10001;
-
-    constexpr uint32_t COLOR_BUFFER_BIT   = 0x4000;
-    constexpr uint32_t DEPTH_BUFFER_BIT   = 0x0100;
-    constexpr uint32_t QUADS              = 0x0007;
-    constexpr uint32_t SCISSOR_TEST       = 0x0C11;
-    constexpr uint32_t STENCIL_BUFFER_BIT = 0x0400;
-
-    /* Keeps the accesses that the model builder tells of. */
-    class RecordingSink : public Analysis::APIDumpAnalysis::IAccessSink
+    class GlFrontendPasses : public Tests::GlFrontendFixture
     {
-    public:
-        void on_access(const Analysis::APIDumpAnalysis::AccessEvent& in_event) override
-        {
-            event_vec.push_back(in_event);
-        }
-
-        void on_frame_ended(const uint64_t& in_frame_index,
-                            const uint64_t& in_first_call_index,
-                            const uint64_t& in_last_call_index) override
-        {
-            (void) in_frame_index;
-            (void) in_first_call_index;
-            (void) in_last_call_index;
-        }
-
-        std::vector<Analysis::APIDumpAnalysis::AccessEvent> event_vec;
-    };
-
-    class GlFrontendPasses : public ::testing::Test
-    {
-    protected:
-        typedef Tests::FrontendHarness<Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend,
-                                       Tests::GlCallBuilder>                                 Harness;
-
-        void feed()
-        {
-            m_harness.feed(m_builder);
-        }
-
-        /* A context which is current, and the viewport that an application sets first. */
-        void start(const int32_t& in_width,
-                   const int32_t& in_height)
-        {
-            m_builder.make_current(DEVICE_CONTEXT_ADDRESS,
-                                   CONTEXT_ADDRESS);
-            m_builder.viewport    (0,
-                                   0,
-                                   in_width,
-                                   in_height);
-        }
-
-        Tests::GlCallBuilder m_builder;
-        Harness              m_harness;
     };
 }
 
@@ -303,7 +246,7 @@ TEST_F(GlFrontendPasses, TwoThreadsEachHaveTheirOwnCurrentContext)
 
 TEST_F(GlFrontendPasses, AClearWithTheScissorTestOnReachesPartOfTheWindow)
 {
-    RecordingSink sink;
+    Tests::RecordingAccessSink sink;
 
     m_harness.get_builder().set_access_sink(&sink);
 
@@ -353,25 +296,21 @@ TEST_F(GlFrontendPasses, DrawsAreNotFollowedYetAndAreCounted)
               0u);
 }
 
-TEST(GlFrontendSession, TheSessionGivesTheCallsOfOpenGLAndTheSwapToTheFrontEnd)
+TEST_F(GlFrontendPasses, TheSessionGivesTheCallsOfOpenGLAndTheSwapToTheFrontEnd)
 {
     Analysis::APIDumpAnalysis::Frontends::AnalysisSession session;
-    Tests::GlCallBuilder                                   builder;
     bool                                                   did_swap_end_frame = false;
 
-    builder.make_current  (DEVICE_CONTEXT_ADDRESS,
-                           CONTEXT_ADDRESS);
-    builder.viewport      (0,
-                           0,
-                           640,
-                           480);
-    builder.clear         (COLOR_BUFFER_BIT);
-    builder.swap_buffers  (DEVICE_CONTEXT_ADDRESS);
+    start(640,
+          480);
 
-    for (const auto& call : *builder.get_workload().dumped_api_call_vec_ptr)
+    m_builder.clear       (COLOR_BUFFER_BIT);
+    m_builder.swap_buffers(DEVICE_CONTEXT_ADDRESS);
+
+    for (const auto& call : *m_builder.get_workload().dumped_api_call_vec_ptr)
     {
         did_swap_end_frame = session.process_call(call,
-                                                  builder.get_workload() );
+                                                  m_builder.get_workload() );
     }
 
     /* The last call is the swap: it ended the frame, and no call was left for lack of a front end. */
