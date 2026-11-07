@@ -18,8 +18,8 @@ void Stereo::Replay::EngineDLL::SliceSkipper::clear_slice()
 
 Capture::APIDumpLoader::ChunkWantedFunc Stereo::Replay::EngineDLL::SliceSkipper::get_chunk_wanted_func() const
 {
-    const Analysis::APIDumpDependencies::FrameSlice* const slice_ptr = m_slice_ptr;
     Capture::APIDumpLoader::ChunkWantedFunc                result;
+    const Analysis::APIDumpDependencies::FrameSlice* const slice_ptr = m_slice_ptr;
 
     /* A slice is never freed, so the function may outlive the skipper's use of it; it is the same decision as should_execute_call() makes. */
     if (slice_ptr != nullptr)

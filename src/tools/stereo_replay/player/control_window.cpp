@@ -229,7 +229,7 @@ void Stereo::Replay::Player::ControlWindow::draw_contents(Utils::UIHost::Content
             m_is_redo_on_release                  &&
             status.n_frames_presented >  0)
         {
-            m_controller_ptr->reset();
+            m_controller_ptr->reset        ();
             m_controller_ptr->play_to_frame(status.n_frames_presented - 1);
         }
 
@@ -428,7 +428,7 @@ void Stereo::Replay::Player::ControlWindow::request_seek(const uint32_t& in_n_fr
 {
     if (in_n_frame != in_current_frame)
     {
-        if (in_n_frame > in_current_frame ||
+        if (in_n_frame            > in_current_frame ||
             m_is_back_warning_off)
         {
             m_controller_ptr->play_to_frame(in_n_frame);

@@ -76,7 +76,7 @@ bool Stereo::Replay::EngineDLL::StereoReplayEngine::load(const char*  in_filenam
     m_has_seek_target = false;
 
     m_engine.set_chunk_wanted_func(Capture::APIDumpLoader::ChunkWantedFunc() );
-    m_slice_skipper.clear_slice();
+    m_slice_skipper.clear_slice   ();
 
     const bool result = m_engine.load(in_filename_ptr,
                                       out_error_ptr);
@@ -184,7 +184,7 @@ bool Stereo::Replay::EngineDLL::StereoReplayEngine::set_dependencies_file(const 
 
         if (workload_match == Analysis::APIDumpAnalysis::WorkloadMatch::MISMATCH)
         {
-            *out_error_ptr = std::string(in_filename_ptr) +
+            *out_error_ptr = std::string(in_filename_ptr)                 +
                              " is not of the workload which was loaded: " +
                              reason;
 

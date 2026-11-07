@@ -199,7 +199,7 @@ const Analysis::APIDumpAnalysis::Viewport& Stereo::ConverterDLL::CallFeeder::get
 
 bool Stereo::ConverterDLL::CallFeeder::is_draw(const APIInterceptor::APIFunction& in_function)
 {
-    return (in_function == APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVE         ||
+    return (in_function == APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVE        ||
             in_function == APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVESTRIDED ||
             in_function == APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVEVB      ||
             in_function == APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWPRIMITIVE               ||

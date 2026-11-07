@@ -31,10 +31,11 @@ namespace Stereo
 
 std::string Stereo::Launcher::get_converter_failure_reason(const std::string& in_session_id)
 {
-    const std::string marker = "The application cannot be converted:";
     std::string       line;
-    std::ifstream log(Stereo::Session::SessionEnvironment::get_log_path(in_session_id));
+    const std::string marker = "The application cannot be converted:";
     std::string       result = "The converter stopped the application; its log says why.";
+
+    std::ifstream log(Stereo::Session::SessionEnvironment::get_log_path(in_session_id));
 
     /* The last of the lines it wrote, without what it adds to each (the process, the program, the recipe). */
     while (std::getline(log,
@@ -74,15 +75,16 @@ bool Stereo::Launcher::is_file(const std::string& in_path)
 {
     const DWORD attributes = ::GetFileAttributesA(in_path.c_str() );
 
-    return (attributes != INVALID_FILE_ATTRIBUTES              &&
+    return (attributes                              != INVALID_FILE_ATTRIBUTES &&
             (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0);
 }
 
 std::vector<std::string> Stereo::Launcher::read_log_lines(const std::string& in_session_id)
 {
     std::string              line;
-    std::ifstream log(Stereo::Session::SessionEnvironment::get_log_path(in_session_id));
     std::vector<std::string> result_vec;
+
+    std::ifstream log(Stereo::Session::SessionEnvironment::get_log_path(in_session_id));
 
     while (std::getline(log,
                         line) )
@@ -154,7 +156,7 @@ int Stereo::Launcher::run(const std::vector<std::string>& in_argument_vec)
     }
 
     request.dll_path = get_own_directory() + ((architecture == Capture::InjectionLauncher::TargetArchitecture::X86) ? "\\StereoConverterDLL_x86.dll"
-                                                                                                            : "\\StereoConverterDLL_x64.dll");
+                                                                                                                    : "\\StereoConverterDLL_x64.dll");
 
     if (is_file(request.dll_path) == false)
     {
@@ -209,7 +211,7 @@ int Stereo::Launcher::run(const std::vector<std::string>& in_argument_vec)
             "[*] Started [%s] (process %lu).\n",
             options.executable_path.c_str(),
             process_info.dwProcessId);
-    fflush(stdout);
+    fflush (stdout);
 
     if (options.should_wait)
     {

@@ -28,11 +28,11 @@ namespace Stereo
                 typedef std::function<bool(const uint32_t& in_n_execution)> CaptureFunc;
 
                 /* The call is the n-th of the frame, and is executed in the given execution. */
-                typedef std::function<bool          (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                     const ::Replay::ReplayEngineDLL::IChunkSource&                          in_chunk_source,
-                                                     const size_t&                                in_n_call,
-                                                     const uint32_t&                              in_n_execution)> ExecuteFunc;
-                typedef std::function<::Replay::ReplayEngineDLL::ICallExecutor*(const Capture::APIDumpLoader::DumpedAPICall& in_call)>        GetExecutorFunc;
+                typedef std::function<bool                                     (const Capture::APIDumpLoader::DumpedAPICall&   in_call,
+                                                                                const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
+                                                                                const size_t&                                  in_n_call,
+                                                                                const uint32_t&                                in_n_execution)> ExecuteFunc;
+                typedef std::function<::Replay::ReplayEngineDLL::ICallExecutor*(const Capture::APIDumpLoader::DumpedAPICall&   in_call)>        GetExecutorFunc;
 
                 /* The frame is complete if it ends with the present; otherwise (the workload ends in the middle of it) it is executed
                  * once whatever the options say, and nothing is captured. A frame which skips the calls that repeat is executed once without

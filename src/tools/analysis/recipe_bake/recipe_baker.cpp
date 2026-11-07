@@ -139,11 +139,11 @@ bool Analysis::RecipeBake::RecipeBaker::bake(const std::string&                 
 
         const std::vector<uint64_t> covering_draw_key_vec = get_covering_draw_key_vec(recipe,
                                                                                       in_analysis);
-        const PerEyeTextureVector   per_eye_texture_vec   = get_per_eye_texture_vec(in_analysis,
-                                                                                    in_dependencies_ptr);
+        const PerEyeTextureVector   per_eye_texture_vec   = get_per_eye_texture_vec  (in_analysis,
+                                                                                      in_dependencies_ptr);
 
-        out_report_ptr->n_per_eye_textures       = static_cast<uint32_t>(per_eye_texture_vec.size() );
-        out_report_ptr->uses_dependencies        = (in_dependencies_ptr != nullptr);
+        out_report_ptr->n_per_eye_textures = static_cast<uint32_t>(per_eye_texture_vec.size() );
+        out_report_ptr->uses_dependencies  = (in_dependencies_ptr != nullptr);
 
         write_baked(covering_draw_key_vec,
                     convergence_vec,
@@ -537,7 +537,7 @@ void Analysis::RecipeBake::RecipeBaker::compute_scene_convergence(const Analysis
                 histogram.merge(histogram_iterator->second);
 
                 const auto surface_iterator = model_ref.surface_depth_histogram_map.find(Analysis::APIDumpAnalysis::DepthHistogramKey(n_shape,
-                                                                                                                                       pass_id) );
+                                                                                                                                      pass_id) );
 
                 if (surface_iterator != model_ref.surface_depth_histogram_map.end() )
                 {
@@ -579,8 +579,8 @@ void Analysis::RecipeBake::RecipeBaker::compute_scene_convergence(const Analysis
              */
             const float near_depth = surface_histogram.get_depth_at_fraction(static_cast<double>(in_recipe.comfort.near_fraction));
 
-            if (in_recipe.comfort.max_near_parallax > 0.0f &&
-                near_depth                          > 0.0f &&
+            if (in_recipe.comfort.max_near_parallax > 0.0f                 &&
+                near_depth                          > 0.0f                 &&
                 near_depth                          < convergence.distance)
             {
                 Analysis::Recipe::SceneSeparation separation;
@@ -730,7 +730,7 @@ Analysis::RecipeBake::RecipeBaker::PerEyeTextureVector Analysis::RecipeBake::Rec
                     n_resource < in_analysis.model.resource_vec.size();
                   ++n_resource)
         {
-            const auto& resource = in_analysis.model.resource_vec.at(n_resource);
+            const auto& resource = in_analysis.model.resource_vec.at                         (n_resource);
             const auto  access   = Analysis::APIDumpAnalysis::ResourceAccessTracker::classify(in_analysis.model.resource_access_vec.at(n_resource) );
 
             /* What a frame carries over in the back buffer is kept apart for the eyes by the player (it reads and writes the pixels). */
@@ -777,7 +777,7 @@ float Analysis::RecipeBake::RecipeBaker::get_projection_scale(const Analysis::AP
             {
                 const auto& sample_vec = series_iterator->second.get_sample_vec();
 
-                if (sample_vec.empty() == false                           &&
+                if (sample_vec.empty()                     == false         &&
                     sample_vec.front().value_u8_vec.size() >= sizeof(float) )
                 {
                     ::memcpy(&result,

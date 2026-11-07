@@ -37,8 +37,8 @@ namespace Stereo
             /* What is known of the windows that are not to be made inactive: their procedures, as the application set them. */
             struct Subclasses
             {
-                std::mutex                mutex;
-                std::map<HWND, WNDPROC>   procedure_map;
+                std::mutex              mutex;
+                std::map<HWND, WNDPROC> procedure_map;
             };
 
             static Subclasses& get_subclasses();

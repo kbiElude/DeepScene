@@ -70,9 +70,9 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_create_surface(const APIInte
 
     {
         const auto chunk_id  = in_arguments_ptr[DESCRIPTION_ARGUMENT].get_data_chunk_id();
-        const bool has_chunk = APIInterceptor::get_data_chunk(chunk_id,
-                                                             &chunk_ptr,
-                                                             &n_chunk_bytes);
+        const bool has_chunk = APIInterceptor::get_data_chunk                          (chunk_id,
+                                                                                       &chunk_ptr,
+                                                                                       &n_chunk_bytes);
 
         if (has_chunk == false)
         {
@@ -112,8 +112,8 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_create_surface(const APIInte
                                                                                                                                        Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAW7_CREATESURFACE);
 
         /* The surface that is shown is the one of the window. */
-        primary_description.dwSize      = static_cast<DWORD>(sizeof(primary_description) );
-        primary_description.dwFlags     = Interception::Core::D3D7Utils::DDSD_CAPS;
+        primary_description.dwSize         = static_cast<DWORD>(sizeof(primary_description) );
+        primary_description.dwFlags        = Interception::Core::D3D7Utils::DDSD_CAPS;
         primary_description.ddsCaps.dwCaps = Interception::Core::D3D7Utils::DDSCAPS_PRIMARYSURFACE;
 
         /* The back buffer is a surface of its own that is rendered to: of the size of the display mode that was asked for, and of the format
@@ -180,9 +180,9 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_get_attached_surface(const A
 
     {
         const auto chunk_id  = in_arguments_ptr[CAPS_ARGUMENT].get_data_chunk_id();
-        const bool has_chunk = APIInterceptor::get_data_chunk(chunk_id,
-                                                             &chunk_ptr,
-                                                             &n_chunk_bytes);
+        const bool has_chunk = APIInterceptor::get_data_chunk                   (chunk_id,
+                                                                                &chunk_ptr,
+                                                                                &n_chunk_bytes);
 
         if (has_chunk == false)
         {
@@ -199,10 +199,11 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_get_attached_surface(const A
     if ( (static_cast<const Interception::Hooks::D3D7::DDSCAPS2*>(chunk_ptr)->dwCaps & Interception::Core::D3D7Utils::DDSCAPS_BACKBUFFER) != 0)
     {
         const OwnCallScope own_call_scope;
-        void** const       vtable = APIInterceptor::get_vtable_ptr(m_back_buffer_ptr);
+        void** const       vtable         = APIInterceptor::get_vtable_ptr(m_back_buffer_ptr);
 
         /* What a call that gives a surface gives is a reference to it. */
-        APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_ADDREF>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_ADDREF)(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(m_back_buffer_ptr) );
+        APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_ADDREF>(vtable,
+                                                                                                  Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_ADDREF)(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(m_back_buffer_ptr) );
 
         *static_cast<void**>(const_cast<void*>(in_arguments_ptr[RESULT_ARGUMENT].get_ptr() )) = m_back_buffer_ptr;
 
@@ -220,7 +221,7 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_set_cooperative_level(const 
     constexpr size_t   WINDOW_ARGUMENT          = 1;
 
     const OwnCallScope own_call_scope;
-    void* const        direct_draw_ptr = const_cast<void*>(in_arguments_ptr[DIRECT_DRAW_ARGUMENT].get_ptr() );
+    void* const        direct_draw_ptr = const_cast<void*>             (in_arguments_ptr[DIRECT_DRAW_ARGUMENT].get_ptr() );
     void** const       vtable          = APIInterceptor::get_vtable_ptr(direct_draw_ptr);
     HWND               window          = nullptr;
 
@@ -237,9 +238,10 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_set_cooperative_level(const 
 
     m_invisible_windows.add(window);
 
-    APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAW7_SETCOOPERATIVELEVEL>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAW7_SETCOOPERATIVELEVEL)(static_cast<Interception::Hooks::D3D7::IDirectDraw7*>(direct_draw_ptr),
-                                                                                                                                                                         window,
-                                                                                                                                                                         COOPERATIVE_LEVEL_NORMAL);
+    APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAW7_SETCOOPERATIVELEVEL>(vtable,
+                                                                                                    Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAW7_SETCOOPERATIVELEVEL)(static_cast<Interception::Hooks::D3D7::IDirectDraw7*>(direct_draw_ptr),
+                                                                                                                                                                              window,
+                                                                                                                                                                              COOPERATIVE_LEVEL_NORMAL);
 }
 
 void Stereo::ConverterDLL::D3D7WindowedMode::handle_set_display_mode(const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
@@ -274,8 +276,8 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_set_display_mode(const APIIn
             if (m_target_height != 0 &&
                 m_target_width  != 0)
             {
-                const float channel_scale = EyeImageLimits::get_largest_scale(width,
-                                                                              height);
+                const float channel_scale = EyeImageLimits::get_largest_scale            (width,
+                                                                                          height);
                 const float fit_scale     = Stereo::Core::ResolutionPolicy::get_fit_scale(m_target_width,
                                                                                           m_target_height,
                                                                                           width,
@@ -326,10 +328,11 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_sized_surface(const Intercep
         scaled_description.dwHeight = get_scaled_extent(in_description.dwHeight);
         scaled_description.dwWidth  = get_scaled_extent(in_description.dwWidth);
 
-        if (SUCCEEDED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAW7_CREATESURFACE>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAW7_CREATESURFACE)(static_cast<Interception::Hooks::D3D7::IDirectDraw7*>(in_direct_draw_ptr),
-                                                                                                                                                                              &scaled_description,
-                                                                                                                                                                              &surface_ptr,
-                                                                                                                                                                               nullptr) ))
+        if (SUCCEEDED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAW7_CREATESURFACE>(vtable,
+                                                                                                                Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAW7_CREATESURFACE)(static_cast<Interception::Hooks::D3D7::IDirectDraw7*>(in_direct_draw_ptr),
+                                                                                                                                                                                   &scaled_description,
+                                                                                                                                                                                   &surface_ptr,
+                                                                                                                                                                                    nullptr) ))
         {
             *out_surface_ptr_ptr         = surface_ptr;
             *out_should_pass_through_ptr = false;

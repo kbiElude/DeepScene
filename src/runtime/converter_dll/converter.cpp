@@ -66,7 +66,9 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
         {
             m_live_state.core_ptr->set_eye_separation(value);
 
-            m_log.write("The eye separation is " + std::to_string(value) + ", from APISTEREO_EYE_SEPARATION");
+            m_log.write("The eye separation is "           +
+                        std::to_string(value)              +
+                        ", from APISTEREO_EYE_SEPARATION");
         }
 
         if (Environment::get_number("APISTEREO_DEPTH_STRENGTH",
@@ -74,7 +76,9 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
         {
             m_live_state.core_ptr->set_depth_strength(value);
 
-            m_log.write("The strength of the 3D is " + std::to_string(value) + ", from APISTEREO_DEPTH_STRENGTH");
+            m_log.write("The strength of the 3D is "       +
+                        std::to_string(value)              +
+                        ", from APISTEREO_DEPTH_STRENGTH");
         }
 
         if (Environment::get_number("APISTEREO_PUSH_OVERLAY",
@@ -84,7 +88,9 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
 
             m_live_state.is_overlay_push_forced = true;
 
-            m_log.write("What the recipe leaves alone is pushed toward the viewer: " + std::to_string(value != 0.0f) + ", from APISTEREO_PUSH_OVERLAY");
+            m_log.write("What the recipe leaves alone is pushed toward the viewer: " +
+                        std::to_string(value != 0.0f)                                +
+                        ", from APISTEREO_PUSH_OVERLAY");
         }
 
         if (Environment::get_number("APISTEREO_DUMP_EVERY",
@@ -107,8 +113,8 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
     }
 
     m_live_state.d3d7_renderer_ptr.reset(new D3D7EyeRenderer(m_live_state.core_ptr.get(),
-                                                           &m_live_state.d3d7_windowed_mode) );
-    m_live_state.renderer_ptr.reset(new D3D8EyeRenderer(m_live_state.core_ptr.get                               () ));
+                                                            &m_live_state.d3d7_windowed_mode) );
+    m_live_state.renderer_ptr.reset     (new D3D8EyeRenderer(m_live_state.core_ptr.get() ));
 
     {
         std::unique_ptr<Stereo::Transport::IFrameExporter> d3d7_exporter_ptr(new D3D7HostMemoryExporter(m_channel_ptr.get() ));
@@ -159,8 +165,8 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
          * it is, and a window of it is not made invisible.
          */
         m_live_state.d3d7_windowed_mode.set_target_eye_size(target_width,
-                                                           target_height);
-        m_live_state.d3d7_windowed_mode.set_is_enabled(is_shown_elsewhere);
+                                                            target_height);
+        m_live_state.d3d7_windowed_mode.set_is_enabled     (is_shown_elsewhere);
 
         const auto get_render_target_func = [this]()
         {
@@ -191,7 +197,8 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
 
     for (const auto& note : Analysis::Recipe::RecipeLoader::describe_pass_selectors_live_ignores(in_recipe) )
     {
-        m_log.write("Warning: " + note);
+        m_log.write("Warning: " +
+                    note);
     }
 
     m_log.write("The converter is loaded");
@@ -269,18 +276,22 @@ std::string Stereo::ConverterDLL::Converter::make_statistics_line() const
     ::QueryPerformanceFrequency(&frequency);
 
     const double      n_frames_d = static_cast<double>((m_live_state.n_frames > 0) ? m_live_state.n_frames : 1);
-    const std::string cost_text  = ", the callbacks took " + std::to_string(1000.0 * static_cast<double>(m_live_state.n_callback_ticks.load() ) / static_cast<double>(frequency.QuadPart) / n_frames_d) + " ms a frame, " + std::to_string(1000.0 * static_cast<double>(m_live_state.n_draw_ticks.load() ) / static_cast<double>(frequency.QuadPart) / n_frames_d) + " of them in the draws of Direct3D 7";
-    const std::string twin_text  = (n_twins + n_failed_twins > 0) ? ", "                                  +
-                                                                      std::to_string(n_twins)         +
-                                                                      " surfaces with a twin, "       +
-                                                                      std::to_string(n_failed_twins)  +
-                                                                      " twins that could not be made, "   +
-                                                                      std::to_string(m_live_state.d3d7_renderer_ptr->get_n_unmirrored_calls() ) +
-                                                                      " calls not made for the right eye" +
-                                                                      ", "                                +
-                                                                      std::to_string(m_live_state.d3d7_renderer_ptr->get_n_pixel_calls() ) +
-                                                                      " calls on the back buffer in pixels it no longer has"
-                                                                    : std::string();
+    const std::string cost_text  = ", the callbacks took "                                                                                                                    +
+                                   std::to_string(1000.0 * static_cast<double>(m_live_state.n_callback_ticks.load() ) / static_cast<double>(frequency.QuadPart) / n_frames_d) +
+                                   " ms a frame, "                                                                                                                            +
+                                   std::to_string(1000.0 * static_cast<double>(m_live_state.n_draw_ticks.load    () ) / static_cast<double>(frequency.QuadPart) / n_frames_d) +
+                                   " of them in the draws of Direct3D 7";
+    const std::string twin_text  = (n_twins + n_failed_twins > 0) ? ", "                                                                      +
+                                                                    std::to_string(n_twins)                                                   +
+                                                                    " surfaces with a twin, "                                                 +
+                                                                    std::to_string(n_failed_twins)                                            +
+                                                                    " twins that could not be made, "                                         +
+                                                                    std::to_string(m_live_state.d3d7_renderer_ptr->get_n_unmirrored_calls() ) +
+                                                                    " calls not made for the right eye"                                       +
+                                                                    ", "                                                                      +
+                                                                    std::to_string(m_live_state.d3d7_renderer_ptr->get_n_pixel_calls() )      +
+                                                                    " calls on the back buffer in pixels it no longer has"
+                                                                  : std::string();
 
     return "After "                                                       +
            std::to_string(m_live_state.n_frames)                          +
@@ -390,13 +401,13 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
      */
     const bool is_own_call = OwnCallScope::is_active();
 
-    if (is_own_call == false &&
+    if (is_own_call == false                                                     &&
         in_api_func == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_PRESENT)
     {
         this_ptr->m_frame_passer_ptr->wait_for_pace();
     }
     else
-    if (is_own_call == false &&
+    if (is_own_call == false                                                     &&
         in_api_func == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_FLIP)
     {
         this_ptr->m_d3d7_frame_passer_ptr->wait_for_pace();
@@ -408,9 +419,9 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
                                                                          in_n_arguments_out,
                                                                          in_arguments_out_ptr);
 
-        if (is_frame_boundary                                                       &&
-            (in_api_func == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_BLT ||
-             in_api_func == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_BLTFAST) )
+        if (is_frame_boundary                                                                  &&
+            (in_api_func      == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_BLT      ||
+             in_api_func      == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_BLTFAST) )
         {
             this_ptr->m_d3d7_frame_passer_ptr->wait_for_pace();
         }
@@ -488,7 +499,7 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
         else
         {
             const auto draw_class = m_live_state.core_ptr->classify_draw(m_live_state.feeder.get_last_draw_signature_key(),
-                                                                                      m_live_state.feeder.get_last_draw_cover_key() );
+                                                                         m_live_state.feeder.get_last_draw_cover_key    () );
 
             /* A draw of Direct3D 7 is made by the renderer if it moves the vertices for the eye. */
             if (is_d3d8)
@@ -646,7 +657,7 @@ void Stereo::ConverterDLL::Converter::pass_d3d7_frame(void* in_primary_surface_p
 
     const OwnCallScope                              own_call_scope;
     Interception::Hooks::D3D7::IDirectDrawSurface7* back_buffer_ptr = static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>( (in_back_buffer_ptr != nullptr) ? in_back_buffer_ptr
-                                                                                                                                          : m_live_state.d3d7_windowed_mode.get_back_buffer_ptr() );
+                                                                                                                                                                    : m_live_state.d3d7_windowed_mode.get_back_buffer_ptr() );
     bool                                            is_to_release   = false;
 
     /* The application renders to the back buffer of its window if it is made to; otherwise the chain it flips with has one. */
@@ -657,9 +668,10 @@ void Stereo::ConverterDLL::Converter::pass_d3d7_frame(void* in_primary_surface_p
 
         caps.dwCaps = BACK_BUFFER_CAPS;
 
-        is_to_release = SUCCEEDED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_GETATTACHEDSURFACE>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_GETATTACHEDSURFACE)(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(in_primary_surface_ptr),
-                                                                                                                                                                                                         &caps,
-                                                                                                                                                                                                         &back_buffer_ptr) );
+        is_to_release = SUCCEEDED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_GETATTACHEDSURFACE>(vtable,
+                                                                                                                                       Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_GETATTACHEDSURFACE)(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(in_primary_surface_ptr),
+                                                                                                                                                                                                                      &caps,
+                                                                                                                                                                                                                      &back_buffer_ptr) );
 
         if (is_to_release == false)
         {
@@ -672,10 +684,10 @@ void Stereo::ConverterDLL::Converter::pass_d3d7_frame(void* in_primary_surface_p
         void* const back_buffer_twin_ptr = m_live_state.d3d7_renderer_ptr->get_twin_ptr(back_buffer_ptr);
 
         /* A debugging aid: the images of the eyes of one frame, to look at. */
-        if ( (m_live_state.dump_frame != 0 &&
-              m_live_state.n_frames   == m_live_state.dump_frame)    ||
-             (m_live_state.dump_every != 0                          &&
-              m_live_state.n_frames   >= m_live_state.dump_first_frame &&
+        if ( (m_live_state.dump_frame                           != 0                             &&
+              m_live_state.n_frames                             == m_live_state.dump_frame)      ||
+             (m_live_state.dump_every                           != 0                             &&
+              m_live_state.n_frames                             >= m_live_state.dump_first_frame &&
               m_live_state.n_frames   % m_live_state.dump_every == 0) )
         {
             char temp_i8vec260[MAX_PATH] = {};
@@ -683,12 +695,16 @@ void Stereo::ConverterDLL::Converter::pass_d3d7_frame(void* in_primary_surface_p
             if (::GetTempPathA(MAX_PATH,
                                temp_i8vec260) != 0)
             {
-                const std::string filename   = std::string(temp_i8vec260) + "apistereo_frame_" + std::to_string(m_live_state.n_frames) + ".bmp";
+                const std::string filename   = std::string(temp_i8vec260)            +
+                                               "apistereo_frame_"                    +
+                                               std::to_string(m_live_state.n_frames) +
+                                               ".bmp";
                 const bool        is_written = D3D7HostMemoryExporter::write_debug_image(back_buffer_ptr,
                                                                                          back_buffer_twin_ptr,
                                                                                          filename);
 
-                m_log.write((is_written) ? "A frame is written to a file" : "A frame cannot be written to a file");
+                m_log.write((is_written) ? "A frame is written to a file"
+                                         : "A frame cannot be written to a file");
             }
         }
 
@@ -700,7 +716,8 @@ void Stereo::ConverterDLL::Converter::pass_d3d7_frame(void* in_primary_surface_p
         {
             void** const back_buffer_vtable = APIInterceptor::get_vtable_ptr(back_buffer_ptr);
 
-            APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_RELEASE>(back_buffer_vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_RELEASE)(back_buffer_ptr);
+            APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_RELEASE>(back_buffer_vtable,
+                                                                                                       Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_RELEASE)(back_buffer_ptr);
         }
     }
 }
@@ -719,7 +736,8 @@ void Stereo::ConverterDLL::Converter::read_channel_settings(std::vector<std::str
         {
             m_live_state.core_ptr->set_eye_separation(eye_separation);
 
-            out_log_line_vec_ptr->push_back("The eye separation is now " + std::to_string(eye_separation) );
+            out_log_line_vec_ptr->push_back("The eye separation is now "   +
+                                            std::to_string(eye_separation) );
         }
     }
 
@@ -731,7 +749,8 @@ void Stereo::ConverterDLL::Converter::read_channel_settings(std::vector<std::str
         {
             m_live_state.core_ptr->set_depth_strength(depth_strength);
 
-            out_log_line_vec_ptr->push_back("The strength of the 3D is now " + std::to_string(depth_strength) );
+            out_log_line_vec_ptr->push_back("The strength of the 3D is now " +
+                                            std::to_string(depth_strength) );
         }
     }
 
@@ -745,7 +764,8 @@ void Stereo::ConverterDLL::Converter::read_channel_settings(std::vector<std::str
         {
             m_live_state.core_ptr->set_ipd_scale(ipd_scale);
 
-            out_log_line_vec_ptr->push_back("The scale of the eyes of the person is now " + std::to_string(ipd_scale) );
+            out_log_line_vec_ptr->push_back("The scale of the eyes of the person is now " +
+                                            std::to_string(ipd_scale) );
         }
     }
 
@@ -772,7 +792,8 @@ void Stereo::ConverterDLL::Converter::read_channel_settings(std::vector<std::str
         {
             m_live_state.core_ptr->set_convergence_distance(convergence_distance);
 
-            out_log_line_vec_ptr->push_back("The convergence distance is now " + std::to_string(convergence_distance) );
+            out_log_line_vec_ptr->push_back("The convergence distance is now " +
+                                            std::to_string(convergence_distance) );
         }
     }
 }

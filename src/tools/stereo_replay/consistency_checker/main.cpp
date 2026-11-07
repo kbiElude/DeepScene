@@ -135,10 +135,12 @@ int main(int   in_argc,
 
     if (options.overlay_probe_filename.empty() == false)
     {
+        const bool has_dump_directory  = (options.dump_directory.empty()  == false);
+        const bool has_recipe_filename = (options.recipe_filename.empty() == false);
         std::string error;
 
-        if (options.recipe_filename.empty() ||
-            options.dump_directory.empty() )
+        if (has_recipe_filename == false ||
+            has_dump_directory  == false)
         {
             fprintf(stdout,
                     "--overlay-probe needs --recipe and --dump-dir.\n");
@@ -214,11 +216,12 @@ int main(int   in_argc,
     {
         for (const auto& way_name : options.way_name_vec)
         {
-            const auto* variant_ptr = Stereo::Replay::ConsistencyChecker::get_variant_ptr(way_name);
+            const bool  has_recipe_filename = (options.recipe_filename.empty() == false);
+            const auto* variant_ptr         = Stereo::Replay::ConsistencyChecker::get_variant_ptr(way_name);
 
-            if (variant_ptr == nullptr        ||
+            if (variant_ptr == nullptr                                    ||
                 (variant_ptr->uses_recipe &&
-                 options.recipe_filename.empty() ) )
+                 has_recipe_filename == false) )
             {
                 fprintf(stdout,
                         "The way \"%s\" is not one that can be replayed here: again, twice, restore, or recipe with --recipe.\n",
@@ -251,21 +254,26 @@ int main(int   in_argc,
         }
     }
 
-    if (options.dump_frame != UINT32_MAX &&
-        options.dump_directory.empty() == false)
+    if (options.dump_frame != UINT32_MAX)
     {
-        /* The frame is the one that the last way makes: the one under test. */
-        Stereo::Replay::ConsistencyChecker::dump_frame(options,
-                                                       options.dump_frame,
-                                                       *variant_ptr_vec.back() );
+        const bool has_dump_directory = (options.dump_directory.empty() == false);
+
+        if (has_dump_directory)
+        {
+            /* The frame is the one that the last way makes: the one under test. */
+            Stereo::Replay::ConsistencyChecker::dump_frame(options,
+                                                           options.dump_frame,
+                                                           *variant_ptr_vec.back() );
+        }
     }
 
     {
-        uint32_t first_frame            = 0;
-        bool     has_difference_to_dump = false;
+        uint32_t     first_frame            = 0;
+        bool         has_difference_to_dump = false;
+        const size_t n_sinks                = sink_vec.size();
 
         for (size_t n_variant = 1;
-                    n_variant < sink_vec.size();
+                    n_variant < n_sinks;
                   ++n_variant)
         {
             uint32_t   variant_first_frame = 0;
@@ -275,8 +283,8 @@ int main(int   in_argc,
                                                                                                  &variant_first_frame);
 
             /* The last way is the one under test; the ones before it only show how much a replay differs from itself. */
-            if (has_difference                        &&
-                n_variant      == sink_vec.size() - 1)
+            if (has_difference          &&
+                n_variant == n_sinks - 1)
             {
                 first_frame            = variant_first_frame;
                 has_difference_to_dump = true;

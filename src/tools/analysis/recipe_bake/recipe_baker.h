@@ -62,11 +62,11 @@ namespace Analysis
         private:
             typedef std::map<Analysis::Recipe::DrawClass, std::set<uint32_t> > ClassMap;
             typedef std::vector<Analysis::Recipe::DrawConvergence>             ConvergenceVector;
-            typedef std::vector<Analysis::Recipe::SceneConvergence>            SceneConvergenceVector;
-            typedef std::vector<Analysis::Recipe::SceneSeparation>             SceneSeparationVector;
-            typedef std::vector<std::array<float, 16> >                              MatrixVector;
+            typedef std::vector<std::array<float, 16> >                        MatrixVector;
             typedef std::vector<Analysis::Recipe::PerEyeTexture>               PerEyeTextureVector;
             typedef std::vector<Analysis::Recipe::DrawRule>                    RuleVector;
+            typedef std::vector<Analysis::Recipe::SceneConvergence>            SceneConvergenceVector;
+            typedef std::vector<Analysis::Recipe::SceneSeparation>             SceneSeparationVector;
 
             /* The rules of a signature which passes of different classes draw: each class that is not affected is told by the view
              * matrices of its passes. Returns false, and says why, if the matrices do not tell the classes apart.

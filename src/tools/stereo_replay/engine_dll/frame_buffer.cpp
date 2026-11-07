@@ -27,8 +27,9 @@ void Stereo::Replay::EngineDLL::FrameBuffer::add_call(const Capture::APIDumpLoad
                 const uint32_t chunk_id       = argument.get_data_chunk_id        ();
                 const auto*    chunk_ptr      = in_chunk_source.get_data_chunk_ptr(chunk_id);
                 const auto     chunk_iterator = m_chunk_map.lower_bound           (chunk_id);
-                const bool     is_new         = (chunk_iterator        == m_chunk_map.end() ||
-                                                 chunk_iterator->first != chunk_id);
+
+                const bool is_new = (chunk_iterator        == m_chunk_map.end() ||
+                                     chunk_iterator->first != chunk_id);
 
                 /* One search for both the check and the place to put the chunk. */
                 if (chunk_ptr != nullptr &&

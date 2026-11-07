@@ -65,48 +65,49 @@ static const ImVec4 WINDOW_COLOR          (0.07f,
                                            1.00f);
 
 /* Sizes at 100% scale; the scale of the monitor is applied. */
-static constexpr float ACCENT_LINE_HEIGHT           = 2.0f;
-static constexpr float CARD_ACCENT_BAR_WIDTH        = 3.0f;
-static constexpr int   DEFAULT_DEPTH_INDEX          = 1;
+static constexpr float ACCENT_LINE_HEIGHT    = 2.0f;
+static constexpr float CARD_ACCENT_BAR_WIDTH = 3.0f;
+static constexpr int   DEFAULT_DEPTH_INDEX   = 1;
 
 /* The depth that can be asked for: less than the converter works out for each scene, as much, and a little more where the scene allows it. */
-static constexpr size_t N_DEPTHS                                  = 3;
-static const char* const DEPTH_NAME_ARRAY[N_DEPTHS]               = {"Reduced", "Natural", "More"};
-static constexpr float   DEPTH_STRENGTH_ARRAY[N_DEPTHS]           = {0.65f, 1.0f, 1.25f};
+static constexpr size_t  N_DEPTHS                       = 3;
+static const char* const DEPTH_NAME_ARRAY[N_DEPTHS]     = {"Reduced", "Natural", "More"};
+static constexpr float   DEPTH_STRENGTH_ARRAY[N_DEPTHS] = {0.65f, 1.0f, 1.25f};
 
 /* How the pixels of an eye of the headset are brought down, in each direction: half the pixels and a quarter of them. */
-static constexpr size_t N_QUALITIES                                  = 3;
-static const char* const QUALITY_NAME_ARRAY[N_QUALITIES]             = {"Full (the resolution of the headset)", "Half of the pixels", "A quarter of the pixels"};
-static constexpr float   QUALITY_SIZE_FRACTION_ARRAY[N_QUALITIES]    = {1.0f, 0.70710678f, 0.5f};
-static constexpr float LAUNCH_BUTTON_WIDTH          = 200.0f;
-static constexpr float LIST_MIN_WIDTH               = 280.0f;
-static constexpr float LIST_WIDTH_FRACTION          = 0.38f;
-static constexpr float SMALL_GAP                    = 6.0f;
-static constexpr float STATUS_N_LINES               = 3.0f;
+static constexpr size_t N_QUALITIES                               = 3;
+static const char* const QUALITY_NAME_ARRAY[N_QUALITIES]          = {"Full (the resolution of the headset)", "Half of the pixels", "A quarter of the pixels"};
+static constexpr float   QUALITY_SIZE_FRACTION_ARRAY[N_QUALITIES] = {1.0f, 0.70710678f, 0.5f};
+
+static constexpr float LAUNCH_BUTTON_WIDTH = 200.0f;
+static constexpr float LIST_MIN_WIDTH      = 280.0f;
+static constexpr float LIST_WIDTH_FRACTION = 0.38f;
+static constexpr float SMALL_GAP           = 6.0f;
+static constexpr float STATUS_N_LINES      = 3.0f;
 
 /* Sizes of the text, relative to the size of the body text. */
-static constexpr float CARD_TITLE_SCALE         = 1.25f;
-static constexpr float DETAILS_TITLE_SCALE      = 1.7f;
-static constexpr float PAGE_TITLE_SCALE         = 2.0f;
-static constexpr float SECTION_TITLE_SCALE      = 1.2f;
+static constexpr float CARD_TITLE_SCALE    = 1.25f;
+static constexpr float DETAILS_TITLE_SCALE = 1.7f;
+static constexpr float PAGE_TITLE_SCALE    = 2.0f;
+static constexpr float SECTION_TITLE_SCALE = 1.2f;
 
 VRPlayer::VrPlayerWindow::VrPlayerWindow(const WindowContent& in_content)
-    :IImGuiWindowHost      (get_window_options() ),
-     m_content             (in_content),
-     m_depth_index         (DEFAULT_DEPTH_INDEX),
-     m_depth_strength      (DEPTH_STRENGTH_ARRAY[DEFAULT_DEPTH_INDEX]),
-     m_device_index        (-1),
-     m_downloader          (false), /* in_is_http_allowed */
-     m_installer           (&m_downloader),
-     m_installing_app      (-1),
-     m_is_status_error     (false),
-     m_is_styled           (false),
-     m_pace_to_headset     (true),
-     m_overlay_app         (-1),
-     m_push_overlay        (false),
-     m_write_log           (in_content.is_logging),
-     m_quality_index       (0),
-     m_selected_app        (-1),
+    :IImGuiWindowHost           (get_window_options() ),
+     m_content                  (in_content),
+     m_depth_index              (DEFAULT_DEPTH_INDEX),
+     m_depth_strength           (DEPTH_STRENGTH_ARRAY[DEFAULT_DEPTH_INDEX]),
+     m_device_index             (-1),
+     m_downloader               (false), /* in_is_http_allowed */
+     m_installer                (&m_downloader),
+     m_installing_app           (-1),
+     m_is_status_error          (false),
+     m_is_styled                (false),
+     m_pace_to_headset          (true),
+     m_overlay_app              (-1),
+     m_push_overlay             (false),
+     m_write_log                (in_content.is_logging),
+     m_quality_index            (0),
+     m_selected_app             (-1),
      m_should_open_install_error(false)
 {
     select_defaults();
@@ -123,7 +124,7 @@ bool VRPlayer::VrPlayerWindow::draw_app_card(const size_t& in_n_app)
     const float                           wrap_width       = width - 2.0f * pad;
     float                                 height           = 2.0f * pad;
     ImVec2                                reason_size      = ImVec2(0.0f,
-                                                                0.0f);
+                                                                    0.0f);
     ImVec2                                description_size = ImVec2(0.0f,
                                                                     0.0f);
     float                                 title_height     = 0.0f;
@@ -180,43 +181,43 @@ bool VRPlayer::VrPlayerWindow::draw_app_card(const size_t& in_n_app)
         ImGui::SetCursorScreenPos(ImVec2(min.x + pad,
                                          min.y + pad) );
 
-        ImGui::PushFont(nullptr,
-                        style.FontSizeBase * CARD_TITLE_SCALE);
+        ImGui::PushFont      (nullptr,
+                              style.FontSizeBase * CARD_TITLE_SCALE);
         ImGui::PushStyleColor(ImGuiCol_Text,
                               (is_available) ? TEXT_COLOR
                                              : DIM_TEXT_COLOR);
         ImGui::TextUnformatted(app.name.c_str() );
-        ImGui::PopStyleColor();
-        ImGui::PopFont();
+        ImGui::PopStyleColor  ();
+        ImGui::PopFont        ();
 
         ImGui::SetCursorScreenPos(ImVec2(min.x + pad,
                                          ImGui::GetCursorScreenPos().y) );
-        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + wrap_width);
+        ImGui::PushTextWrapPos   (ImGui::GetCursorPosX() + wrap_width);
 
         if (app.description.empty() == false)
         {
-            ImGui::PushStyleColor(ImGuiCol_Text,
-                                  DIM_TEXT_COLOR);
+            ImGui::PushStyleColor (ImGuiCol_Text,
+                                   DIM_TEXT_COLOR);
             ImGui::TextUnformatted(app.description.c_str() );
-            ImGui::PopStyleColor();
+            ImGui::PopStyleColor  ();
         }
 
         if (is_available == false)
         {
             ImGui::SetCursorScreenPos(ImVec2(min.x + pad,
                                              ImGui::GetCursorScreenPos().y) );
-            ImGui::PushStyleColor(ImGuiCol_Text,
-                                  ERROR_TEXT_COLOR);
-            ImGui::TextUnformatted(app.unavailable_reason.c_str() );
-            ImGui::PopStyleColor();
+            ImGui::PushStyleColor    (ImGuiCol_Text,
+                                      ERROR_TEXT_COLOR);
+            ImGui::TextUnformatted   (app.unavailable_reason.c_str() );
+            ImGui::PopStyleColor     ();
         }
 
         ImGui::PopTextWrapPos();
 
         ImGui::SetCursorScreenPos(ImVec2(min.x,
                                          min.y + height + style.ItemSpacing.y) );
-        ImGui::Dummy(ImVec2(0.0f,
-                            0.0f) );
+        ImGui::Dummy             (ImVec2(0.0f,
+                                         0.0f) );
     }
 
     ImGui::PopID();
@@ -230,17 +231,17 @@ void VRPlayer::VrPlayerWindow::draw_app_list()
     {
         ImGui::PushStyleColor(ImGuiCol_Text,
                               ERROR_TEXT_COLOR);
-        ImGui::TextWrapped("The catalog cannot be read: %s",
-                           m_content.catalog_error.c_str() );
-        ImGui::PopStyleColor();
+        ImGui::TextWrapped   ("The catalog cannot be read: %s",
+                              m_content.catalog_error.c_str() );
+        ImGui::PopStyleColor ();
     }
     else
     if (m_content.catalog.app_vec.empty() )
     {
         ImGui::PushStyleColor(ImGuiCol_Text,
                               DIM_TEXT_COLOR);
-        ImGui::TextWrapped("The catalog lists no applications.");
-        ImGui::PopStyleColor();
+        ImGui::TextWrapped    ("The catalog lists no applications.");
+        ImGui::PopStyleColor  ();
     }
     else
     {
@@ -310,8 +311,8 @@ void VRPlayer::VrPlayerWindow::draw_details()
     {
         ImGui::PushStyleColor(ImGuiCol_Text,
                               DIM_TEXT_COLOR);
-        ImGui::TextWrapped("Select an application on the left.");
-        ImGui::PopStyleColor();
+        ImGui::TextWrapped   ("Select an application on the left.");
+        ImGui::PopStyleColor ();
 
         goto end;
     }
@@ -319,18 +320,18 @@ void VRPlayer::VrPlayerWindow::draw_details()
     {
         const VRPlayer::AppCatalog::AppEntry& app = m_content.catalog.app_vec.at(static_cast<size_t>(m_selected_app) );
 
-        ImGui::PushFont(nullptr,
-                        style.FontSizeBase * DETAILS_TITLE_SCALE);
+        ImGui::PushFont       (nullptr,
+                               style.FontSizeBase * DETAILS_TITLE_SCALE);
         ImGui::TextUnformatted(app.name.c_str() );
-        ImGui::PopFont();
+        ImGui::PopFont        ();
 
         if (app.unavailable_reason.empty() == false)
         {
             ImGui::PushStyleColor(ImGuiCol_Text,
                                   ERROR_TEXT_COLOR);
-            ImGui::TextWrapped("%s",
-                               app.unavailable_reason.c_str() );
-            ImGui::PopStyleColor();
+            ImGui::TextWrapped   ("%s",
+                                  app.unavailable_reason.c_str() );
+            ImGui::PopStyleColor ();
         }
 
         if (app.is_download_needed)
@@ -339,9 +340,9 @@ void VRPlayer::VrPlayerWindow::draw_details()
 
             ImGui::PushStyleColor(ImGuiCol_Text,
                                   DIM_TEXT_COLOR);
-            ImGui::TextWrapped("It is not on this computer yet: it is downloaded (%s) the first time it is launched.",
-                               size_text.c_str() );
-            ImGui::PopStyleColor();
+            ImGui::TextWrapped   ("It is not on this computer yet: it is downloaded (%s) the first time it is launched.",
+                                  size_text.c_str() );
+            ImGui::PopStyleColor ();
         }
 
         ImGui::TextWrapped("%s",
@@ -373,7 +374,7 @@ void VRPlayer::VrPlayerWindow::draw_device_combo()
     }
 
     /* With no runtime, or no headset, there is nothing to choose: the picture is shown in the window, and the list says so. */
-    ImGui::BeginDisabled(has_devices == false);
+    ImGui::BeginDisabled   (has_devices == false);
     ImGui::SetNextItemWidth(-FLT_MIN);
 
     if (ImGui::BeginCombo("##device",
@@ -386,7 +387,7 @@ void VRPlayer::VrPlayerWindow::draw_device_combo()
             const Headset::VRDevices::VrDevice& device    = m_content.device_vec.at(n_device);
             const bool                          is_usable = device.unavailable_reason.empty();
 
-            ImGui::PushID(static_cast<int>(n_device) );
+            ImGui::PushID       (static_cast<int>(n_device) );
             ImGui::BeginDisabled(is_usable == false);
 
             if (ImGui::Selectable((is_usable) ? device.name.c_str()
@@ -448,15 +449,15 @@ void VRPlayer::VrPlayerWindow::draw_header()
 {
     const ImGuiStyle& style = ImGui::GetStyle();
 
-    ImGui::PushFont(nullptr,
-                    style.FontSizeBase * PAGE_TITLE_SCALE);
+    ImGui::PushFont       (nullptr,
+                           style.FontSizeBase * PAGE_TITLE_SCALE);
     ImGui::TextUnformatted("DeepScene");
-    ImGui::PopFont();
+    ImGui::PopFont        ();
 
-    ImGui::PushStyleColor(ImGuiCol_Text,
-                          DIM_TEXT_COLOR);
+    ImGui::PushStyleColor (ImGuiCol_Text,
+                           DIM_TEXT_COLOR);
     ImGui::TextUnformatted("Play your 2D demos in stereo");
-    ImGui::PopStyleColor();
+    ImGui::PopStyleColor  ();
 
     {
         const ImU32  accent_color = ImGui::GetColorU32(ACCENT_COLOR);
@@ -492,7 +493,7 @@ void VRPlayer::VrPlayerWindow::draw_install_error()
     {
         ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + WIDTH * style.FontScaleDpi);
         ImGui::TextUnformatted(m_install_error.c_str() );
-        ImGui::PopTextWrapPos();
+        ImGui::PopTextWrapPos ();
 
         ImGui::Spacing();
 
@@ -509,11 +510,11 @@ void VRPlayer::VrPlayerWindow::draw_install_error()
 
 void VRPlayer::VrPlayerWindow::draw_launch_area()
 {
-    const ImGuiStyle& style         = ImGui::GetStyle();
+    const ImGuiStyle& style         = ImGui::GetStyle      ();
     const float       button_height = ImGui::GetFrameHeight() * 1.6f;
-    const float       button_width  = LAUNCH_BUTTON_WIDTH * style.FontScaleDpi;
+    const float       button_width  = LAUNCH_BUTTON_WIDTH     * style.FontScaleDpi;
     const bool        is_possible   = is_launch_possible();
-    const float       status_height = STATUS_N_LINES * ImGui::GetTextLineHeightWithSpacing();
+    const float       status_height = STATUS_N_LINES          * ImGui::GetTextLineHeightWithSpacing();
     const float       area_height   = button_height + status_height;
     const float       free_height   = ImGui::GetContentRegionAvail().y;
 
@@ -539,9 +540,9 @@ void VRPlayer::VrPlayerWindow::draw_launch_area()
         const std::string                             progress_text     = (progress.n_bytes_total != 0) ? get_size_text(progress.n_bytes_done) + " of " + get_size_text(progress.n_bytes_total)
                                                                                                         : std::string();
 
-        ImGui::Text("%s: %s",
-                    m_content.catalog.app_vec.at(static_cast<size_t>(m_installing_app) ).name.c_str(),
-                    progress.message.c_str() );
+        ImGui::Text       ("%s: %s",
+                           m_content.catalog.app_vec.at(static_cast<size_t>(m_installing_app) ).name.c_str(),
+                           progress.message.c_str() );
         ImGui::ProgressBar(progress_fraction,
                            ImVec2(-FLT_MIN,
                                   0.0f),
@@ -559,12 +560,12 @@ void VRPlayer::VrPlayerWindow::draw_launch_area()
     }
 
     ImGui::PopTextWrapPos();
-    ImGui::PopStyleColor();
+    ImGui::PopStyleColor ();
 
     /* The button does not move with the length of what is said above it. */
     ImGui::SetCursorPosY(status_top + status_height);
     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 0.5f * std::max<float>(0.0f,
-                                                                       ImGui::GetContentRegionAvail().x - button_width) );
+                                                                         ImGui::GetContentRegionAvail().x - button_width) );
 
     if (m_installing_app >= 0)
     {
@@ -594,10 +595,10 @@ void VRPlayer::VrPlayerWindow::draw_vr_settings()
 {
     const ImGuiStyle& style = ImGui::GetStyle();
 
-    ImGui::PushFont(nullptr,
-                    style.FontSizeBase * SECTION_TITLE_SCALE);
+    ImGui::PushFont       (nullptr,
+                           style.FontSizeBase * SECTION_TITLE_SCALE);
     ImGui::TextUnformatted("VR settings");
-    ImGui::PopFont();
+    ImGui::PopFont        ();
 
     ImGui::Spacing();
 
@@ -605,9 +606,9 @@ void VRPlayer::VrPlayerWindow::draw_vr_settings()
     {
         ImGui::PushStyleColor(ImGuiCol_Text,
                               ERROR_TEXT_COLOR);
-        ImGui::TextWrapped("The devices cannot be listed: %s",
-                           m_content.device_error.c_str() );
-        ImGui::PopStyleColor();
+        ImGui::TextWrapped   ("The devices cannot be listed: %s",
+                              m_content.device_error.c_str() );
+        ImGui::PopStyleColor ();
     }
     else
     {
@@ -641,10 +642,10 @@ void VRPlayer::VrPlayerWindow::draw_vr_settings()
 
     ImGui::PushStyleColor(ImGuiCol_Text,
                           DIM_TEXT_COLOR);
-    ImGui::TextWrapped("Natural suits each scene. Reduced is flatter; More is deeper, within what is comfortable. Can be changed while it plays.");
-    ImGui::PopStyleColor();
+    ImGui::TextWrapped   ("Natural suits each scene. Reduced is flatter; More is deeper, within what is comfortable. Can be changed while it plays.");
+    ImGui::PopStyleColor ();
 
-    ImGui::Spacing();
+    ImGui::Spacing        ();
     ImGui::TextUnformatted("Image quality");
 
     ImGui::SetNextItemWidth(-FLT_MIN);
@@ -668,8 +669,8 @@ void VRPlayer::VrPlayerWindow::draw_vr_settings()
 
     ImGui::PushStyleColor(ImGuiCol_Text,
                           DIM_TEXT_COLOR);
-    ImGui::TextWrapped("Full is the resolution of the headset; lower is easier on the graphics card. Set at start; headset only.");
-    ImGui::PopStyleColor();
+    ImGui::TextWrapped   ("Full is the resolution of the headset; lower is easier on the graphics card. Set at start; headset only.");
+    ImGui::PopStyleColor ();
 
     /* The overlay is pushed for an application whose recipe says an amount, and not for one that does not; no control for it. */
     {
@@ -715,12 +716,12 @@ Utils::UIHost::WindowOptions VRPlayer::VrPlayerWindow::get_window_options()
 
     Utils::UIHost::WindowOptions result;
 
-    result.class_name    = L"VRPlayerWindow";
-    result.client_height = CLIENT_HEIGHT;
-    result.client_width  = CLIENT_WIDTH;
-    result.is_resizable       = true;
-    result.title              = "DeepScene";
-    result.uses_system_font   = true;
+    result.class_name       = L"VRPlayerWindow";
+    result.client_height    = CLIENT_HEIGHT;
+    result.client_width     = CLIENT_WIDTH;
+    result.is_resizable     = true;
+    result.title            = "DeepScene";
+    result.uses_system_font = true;
 
     return result;
 }
@@ -765,7 +766,7 @@ void VRPlayer::VrPlayerWindow::select_defaults()
                 n_app < m_content.catalog.app_vec.size();
               ++n_app)
     {
-        const auto& candidate_app           = m_content.catalog.app_vec.at(n_app);
+        const auto& candidate_app           = m_content.catalog.app_vec.at          (n_app);
         const bool  is_candidate_available  = candidate_app.unavailable_reason.empty();
         bool        is_selected_unavailable = false;
 
@@ -776,8 +777,8 @@ void VRPlayer::VrPlayerWindow::select_defaults()
             is_selected_unavailable = (selected_app.unavailable_reason.empty() == false);
         }
 
-        if (m_selected_app < 0 ||
-            (is_selected_unavailable &&
+        if (m_selected_app           < 0 ||
+            (is_selected_unavailable     &&
              is_candidate_available) )
         {
             m_selected_app = static_cast<int>(n_app);
@@ -788,7 +789,7 @@ void VRPlayer::VrPlayerWindow::select_defaults()
                 n_device < m_content.device_vec.size();
               ++n_device)
     {
-        const auto& device              = m_content.device_vec.at(n_device);
+        const auto& device              = m_content.device_vec.at        (n_device);
         const bool  is_device_available = device.unavailable_reason.empty();
 
         if (m_device_index < 0 &&
@@ -882,6 +883,7 @@ void VRPlayer::VrPlayerWindow::start_install()
     {
         m_installing_app  = m_selected_app;
         m_is_status_error = false;
+
         m_status.clear();
     }
     else
@@ -917,7 +919,8 @@ void VRPlayer::VrPlayerWindow::update_install()
                 else
                 {
                     /* What a virus scanner does with a packed demo, which is what this one is. */
-                    m_install_error             = "The application was unpacked, but its program is not there: " + m_content.catalog.app_vec.at(n_app).executable_path +
+                    m_install_error             = "The application was unpacked, but its program is not there: "                                                      +
+                                                  m_content.catalog.app_vec.at(n_app).executable_path                                                                 +
                                                   "\n\nA virus scanner may have removed it. Look in its quarantine, allow the file, and launch the application again.";
                     m_is_status_error           = true;
                     m_should_open_install_error = true;
@@ -963,8 +966,10 @@ void VRPlayer::VrPlayerWindow::update_session()
     m_session.update();
 
     /* The depth, and the overlay, can be changed while the application plays. */
-    m_session.set_depth_strength(m_depth_strength);
-    m_session.set_is_overlay_pushed(m_push_overlay && m_overlay_app >= 0 && m_overlay_app == m_selected_app);
+    m_session.set_depth_strength   (m_depth_strength);
+    m_session.set_is_overlay_pushed(m_push_overlay                   &&
+                                    m_overlay_app >= 0               &&
+                                    m_overlay_app == m_selected_app);
 
     if (previous_state == SessionState::RUNNING)
     {

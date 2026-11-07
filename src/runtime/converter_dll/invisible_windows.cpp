@@ -27,14 +27,14 @@ LRESULT CALLBACK Stereo::ConverterDLL::InvisibleWindows::handle_message(HWND   i
                                                                         WPARAM in_w_param,
                                                                         LPARAM in_l_param)
 {
-    LRESULT result      = 0;
-    WNDPROC procedure   = nullptr;
-    WPARAM  w_param     = in_w_param;
+    LRESULT result    = 0;
+    WNDPROC procedure = nullptr;
+    WPARAM  w_param   = in_w_param;
 
     {
-        auto&                       subclasses = get_subclasses();
+        auto&                       subclasses             = get_subclasses();
         std::lock_guard<std::mutex> lock(subclasses.mutex);
-        const auto                  iterator   = subclasses.procedure_map.find(in_window);
+        const auto                  iterator               = subclasses.procedure_map.find(in_window);
 
         if (iterator != subclasses.procedure_map.end() )
         {
@@ -104,8 +104,8 @@ end:
 
 void Stereo::ConverterDLL::InvisibleWindows::keep_active(const HWND& in_window)
 {
-    auto&                       subclasses = get_subclasses();
-    bool                        is_new     = false;
+    auto& subclasses = get_subclasses();
+    bool  is_new     = false;
 
     {
         std::lock_guard<std::mutex> lock(subclasses.mutex);

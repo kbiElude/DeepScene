@@ -85,9 +85,9 @@ bool Stereo::Replay::EngineDLL::StereoD3D7CallExecutor::involves_per_eye_object(
                 if (dumped_value != 0)
                 {
                     const auto remapper_ptr = get_call_context().get_remapper_ptr();
-                    const bool has_live     = remapper_ptr->get(::Replay::ReplayEngineDLL::ObjectKind::D3D7_OBJECT,
-                                                                dumped_value,
-                                                               &live_value);
+                    const bool has_live     = remapper_ptr->get                  (::Replay::ReplayEngineDLL::ObjectKind::D3D7_OBJECT,
+                                                                                  dumped_value,
+                                                                                 &live_value);
 
                     if (has_live)
                     {
@@ -141,9 +141,9 @@ void Stereo::Replay::EngineDLL::StereoD3D7CallExecutor::on_reset()
 
 void* Stereo::Replay::EngineDLL::StereoD3D7CallExecutor::resolve_object(void* in_object_ptr) const
 {
-    void* const twin_ptr = (m_eye            == Analysis::Recipe::Eye::RIGHT &&
-                            in_object_ptr    != nullptr)                           ? find_right_twin(in_object_ptr)
-                                                                                   : nullptr;
+    void* const twin_ptr = (m_eye         == Analysis::Recipe::Eye::RIGHT &&
+                            in_object_ptr != nullptr)                     ? find_right_twin(in_object_ptr)
+                                                                          : nullptr;
 
     return (twin_ptr != nullptr) ? twin_ptr
                                  : in_object_ptr;
@@ -178,7 +178,7 @@ void Stereo::Replay::EngineDLL::StereoD3D7CallExecutor::set_eye(const Analysis::
             if (twin_ptr != nullptr)
             {
                 set_device_render_target( (m_eye == Analysis::Recipe::Eye::RIGHT) ? twin_ptr
-                                                                                        : render_target_ptr);
+                                                                                  : render_target_ptr);
             }
         }
 
@@ -191,7 +191,7 @@ void Stereo::Replay::EngineDLL::StereoD3D7CallExecutor::set_eye(const Analysis::
             {
                 set_device_texture(stage_iterator.first,
                                    (m_eye == Analysis::Recipe::Eye::RIGHT) ? twin_ptr
-                                                                                 : stage_iterator.second);
+                                                                           : stage_iterator.second);
             }
         }
     }

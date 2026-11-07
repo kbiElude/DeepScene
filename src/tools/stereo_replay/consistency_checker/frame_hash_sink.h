@@ -25,6 +25,7 @@ namespace Stereo
                 /* A frame, and the execution of it that an image is of. */
                 typedef std::pair<uint32_t, uint32_t> ImageKey;
 
+
                 explicit FrameHashSink(const bool& in_keeps_images);
 
                 const std::map<ImageKey, uint64_t>& get_hash_map() const;

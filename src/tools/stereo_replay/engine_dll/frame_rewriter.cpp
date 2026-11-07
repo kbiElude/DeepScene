@@ -50,7 +50,7 @@ bool Stereo::Replay::EngineDLL::FrameRewriter::rewrite(const Capture::APIDumpLoa
     {
         const auto* chunk_ptr = inout_overlay_ptr->get_data_chunk_ptr(in_call.arg_in_vec.at(n_argument).get_data_chunk_id() );
 
-        if (chunk_ptr          == nullptr       ||
+        if (chunk_ptr         == nullptr        ||
             chunk_ptr->size() != sizeof(matrix) )
         {
             goto end;

@@ -13,11 +13,13 @@
 Analysis::RecipeBake::CoverageReport Analysis::RecipeBake::RecipeChecker::check(const Analysis::Recipe::Recipe&                  in_recipe,
                                                                                 const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
 {
-    const auto&                           model_ref            = in_analysis.model;
-    const std::set<uint64_t> known_shape_set    (in_recipe.known_shape_key_vec.begin(),
-                                                 in_recipe.known_shape_key_vec.end());
+    const auto& model_ref = in_analysis.model;
+
+    const std::set<uint64_t> known_shape_set    (in_recipe.known_shape_key_vec.begin    (),
+                                                 in_recipe.known_shape_key_vec.end      ());
     const std::set<uint64_t> known_signature_set(in_recipe.known_signature_key_vec.begin(),
-                                                 in_recipe.known_signature_key_vec.end());
+                                                 in_recipe.known_signature_key_vec.end  ());
+
     CoverageReport                   result;
     std::map<uint32_t, UnknownShape> shape_map;
     std::map<uint64_t, uint64_t>     signature_pass_kind_count_map;
@@ -42,7 +44,7 @@ Analysis::RecipeBake::CoverageReport Analysis::RecipeBake::RecipeChecker::check(
         shape_pair.second.shape_key = Analysis::APIDumpAnalysis::ModelBuilder::compute_shape_key(model_ref,
                                                                                                  shape_pair.first);
 
-        const bool is_known = (known_shape_set.empty() ||
+        const bool is_known = (known_shape_set.empty()                                 ||
                                known_shape_set.count(shape_pair.second.shape_key) != 0);
 
         if (is_known == false)
@@ -53,15 +55,17 @@ Analysis::RecipeBake::CoverageReport Analysis::RecipeBake::RecipeChecker::check(
         }
     }
 
-    const auto is_shape_less_func = [](const UnknownShape& in_shape_a,
-                                       const UnknownShape& in_shape_b)
     {
-        return in_shape_a.first_frame_index < in_shape_b.first_frame_index;
-    };
+        const auto is_shape_less_func = [](const UnknownShape& in_shape_a,
+                                           const UnknownShape& in_shape_b)
+        {
+            return in_shape_a.first_frame_index < in_shape_b.first_frame_index;
+        };
 
-    std::sort(result.unknown_shape_vec.begin(),
-              result.unknown_shape_vec.end  (),
-              is_shape_less_func);
+        std::sort(result.unknown_shape_vec.begin(),
+                  result.unknown_shape_vec.end  (),
+                  is_shape_less_func);
+    }
 
     for (uint32_t n_pass = 0;
                   n_pass < model_ref.pass_structure_interner.get_n_structures();
@@ -89,12 +93,13 @@ Analysis::RecipeBake::CoverageReport Analysis::RecipeBake::RecipeChecker::check(
     for (const auto& candidate : OverlayCandidateFinder::find(in_recipe,
                                                               in_analysis) )
     {
-        const bool is_left_alone  = (candidate.is_replay_unaffected                ||
-                                     candidate.live_class == LiveClass::UNAFFECTED ||
-                                     candidate.live_class == LiveClass::MIXED);
-        const bool is_deep        = (is_left_alone                    &&
-                                     candidate.depth_spread.has_depth &&
+        const bool is_left_alone  = (candidate.is_replay_unaffected                            ||
+                                     candidate.live_class             == LiveClass::UNAFFECTED ||
+                                     candidate.live_class             == LiveClass::MIXED);
+        const bool is_deep        = (is_left_alone                                             &&
+                                     candidate.depth_spread.has_depth                          &&
                                      candidate.depth_spread.is_flat   == false);
+
         const bool is_disagreeing = (std::find(candidate.reason_vec.begin(),
                                                candidate.reason_vec.end  (),
                                                "replay_and_live_disagree") != candidate.reason_vec.end() );
@@ -120,7 +125,7 @@ Analysis::RecipeBake::CoverageReport Analysis::RecipeBake::RecipeChecker::check(
 
     for (const auto& signature_pair : signature_pass_kind_count_map)
     {
-        const bool is_known = (known_signature_set.empty() ||
+        const bool is_known = (known_signature_set.empty()                           ||
                                known_signature_set.count(signature_pair.first) != 0);
 
         if (is_known == false)

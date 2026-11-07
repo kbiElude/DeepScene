@@ -39,8 +39,8 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::begin_frame_execution(const
     /* The eye of the execution, for the objects which each eye has a copy of. */
     {
         const Analysis::Recipe::Eye eye = (m_frame_execution.mode == FrameExecution::TWICE) ? ((in_n_execution == N_LEFT_EXECUTION) ? Analysis::Recipe::Eye::LEFT
-                                                                                                                                   : Analysis::Recipe::Eye::RIGHT)
-                                                                                                  : m_frame_execution.eye;
+                                                                                                                                    : Analysis::Recipe::Eye::RIGHT)
+                                                                                            : m_frame_execution.eye;
 
         set_executors_eye(eye);
     }
@@ -372,10 +372,12 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_draw_call(const Cap
                                                                        const Analysis::Recipe::Eye&                   in_eye,
                                                                        const uint32_t&                                in_pass_structure_id)
 {
-    const uint64_t                             shape_key = m_session_ptr->get_completed_frame().shape_key;
     Stereo::Core::ScreenParallaxPlanner::Input input;
     bool                                       is_moved  = false;
+    const uint64_t                             shape_key = m_session_ptr->get_completed_frame().shape_key;
+
     OverlayChunkSource overlay(in_chunk_source);
+
     const float                           picture_width = m_session_ptr->get_model().pass_structure_interner.get_structure(in_pass_structure_id).viewport.width;
     Stereo::Core::ScreenShiftPlan         plan;
     Capture::APIDumpLoader::DumpedAPICall rewritten;
@@ -624,10 +626,10 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::get_eye_history_need(const 
 
             if (is_per_eye == false)
             {
-                *out_error_ptr = "Frame "                                                                    +
-                                 std::to_string(in_frame.frame_index)                                        +
-                                 " carries "                                                                 +
-                                 resource.debug_name                                                         +
+                *out_error_ptr = "Frame "                                                                                                                        +
+                                 std::to_string(in_frame.frame_index)                                                                                            +
+                                 " carries "                                                                                                                     +
+                                 resource.debug_name                                                                                                             +
                                  " over from the previous frame, which cannot be rendered for two eyes: the recipe does not say that each eye has a copy of it.";
 
                 result = false;
@@ -760,7 +762,7 @@ void Stereo::Replay::EngineDLL::StereoFrameExecutor::set_image_sink(IFrameImageS
 void Stereo::Replay::EngineDLL::StereoFrameExecutor::set_recipe(const Analysis::Recipe::Recipe& in_recipe)
 {
     m_recipe_applier_ptr.reset(new Analysis::Recipe::RecipeApplier(in_recipe) );
-    m_rewriter_ptr.reset      (new FrameRewriter(*m_recipe_applier_ptr) );
+    m_rewriter_ptr.reset      (new FrameRewriter                  (*m_recipe_applier_ptr) );
 
     const auto execute_call_func = [this](const Capture::APIDumpLoader::DumpedAPICall&   in_call,
                                           const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source)
@@ -769,8 +771,8 @@ void Stereo::Replay::EngineDLL::StereoFrameExecutor::set_recipe(const Analysis::
                                         in_chunk_source);
     };
 
-    m_matrix_binder_ptr.reset (new EyeMatrixBinder(*m_rewriter_ptr,
-                                                   execute_call_func) );
+    m_matrix_binder_ptr.reset (new EyeMatrixBinder                                      (*m_rewriter_ptr,
+                                                                                         execute_call_func) );
     m_session_ptr.reset       (new Analysis::APIDumpAnalysis::Frontends::AnalysisSession(false) ); /* in_keeps_history */
 }
 

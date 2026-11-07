@@ -16,12 +16,14 @@ bool Stereo::Replay::EngineDLL::FrameRunner::run(const FrameBuffer&             
                                                  const CaptureFunc&                                            in_capture_func)
 {
     std::vector<::Replay::ReplayEngineDLL::ExecutionClass> class_vec;
-    const bool                  is_twice     = (in_is_complete                  &&
-                                                in_skips_repeated_calls == false &&
-                                                in_options.mode         == FrameExecution::TWICE);
-    const size_t                n_calls      = in_buffer.get_call_vec().size();
-    const uint32_t              n_executions = (is_twice) ? 2 : 1;
-    bool                        result       = false;
+
+    const bool     is_twice     = (in_is_complete                                    &&
+                                   in_skips_repeated_calls == false                  &&
+                                   in_options.mode         == FrameExecution::TWICE);
+    const size_t   n_calls      = in_buffer.get_call_vec().size();
+    const uint32_t n_executions = (is_twice) ? 2
+                                             : 1;
+    bool           result       = false;
 
     /* Asked once, since the answer is the same in every execution. */
     class_vec.reserve(n_calls);

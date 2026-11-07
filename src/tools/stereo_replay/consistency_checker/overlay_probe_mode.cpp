@@ -113,7 +113,7 @@ bool Stereo::Replay::ConsistencyChecker::take_overlay_probe(const Stereo::Replay
 {
     const auto render_frame_func = [](const Stereo::Replay::ConsistencyChecker::Options& in_probe_options,
                                       const uint32_t&                                    in_frame_index,
-                                      Utils::Images::Image*                out_image_ptr,
+                                      Utils::Images::Image*                              out_image_ptr,
                                       std::string*                                       out_error_ptr)
     {
         Stereo::Replay::ConsistencyChecker::FrameHashSink sink(true); /* in_keeps_images */

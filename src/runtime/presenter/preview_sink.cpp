@@ -113,7 +113,7 @@ void Stereo::Presenter::PreviewSink::on_frame(const Stereo::Transport::ImportedF
                             ++n_row)
                 {
                     ::memcpy(static_cast<uint8_t*>(mapped.pData) + static_cast<size_t>(n_row) * mapped.RowPitch,
-                             in_frame.pixel_ptr + static_cast<size_t>(n_row) * info.pitch,
+                             in_frame.pixel_ptr                  + static_cast<size_t>(n_row) * info.pitch,
                              static_cast<size_t>(info.width) * BYTES_PER_PIXEL);
                 }
 

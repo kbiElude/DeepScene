@@ -28,7 +28,7 @@ namespace Stereo
                                const Capture::APIDumpLoader::DataChunk& in_chunk);
 
             private:
-                const ::Replay::ReplayEngineDLL::IChunkSource&                                   m_base;
+                const ::Replay::ReplayEngineDLL::IChunkSource&        m_base;
                 std::map<uint32_t, Capture::APIDumpLoader::DataChunk> m_chunk_map;
             };
         }

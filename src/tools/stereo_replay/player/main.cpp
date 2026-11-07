@@ -95,7 +95,7 @@ void Stereo::Replay::Player::ConsoleObserver::on_frame_presented(const uint32_t&
     const double now_ms = static_cast<double>(ticks.QuadPart) * m_ms_per_tick;
 
     /* The time since the frame before; the first one has none. */
-    if (in_n_frame != 0 &&
+    if (in_n_frame      != 0   &&
         m_last_frame_ms != 0.0)
     {
         m_frame_time_ms_vec.push_back(now_ms - m_last_frame_ms);
@@ -150,8 +150,8 @@ void Stereo::Replay::Player::ConsoleObserver::print_frame_times(std::vector<doub
         fprintf(stdout,
                 "[*] frame times: %zu frames, median %.2f ms, 99%% %.2f ms, worst %.2f ms\n",
                 sorted_ms_vec.size(),
-                sorted_ms_vec.at(sorted_ms_vec.size() / 2),
-                sorted_ms_vec.at(sorted_ms_vec.size() * (N_PERCENT - 1) / N_PERCENT),
+                sorted_ms_vec.at  (sorted_ms_vec.size() / 2),
+                sorted_ms_vec.at  (sorted_ms_vec.size() * (N_PERCENT - 1) / N_PERCENT),
                 sorted_ms_vec.back() );
     }
 }
@@ -161,7 +161,7 @@ std::string Stereo::Replay::Player::get_default_deps_filename(const std::string&
     const size_t n_slash = in_workload_path.find_last_of("\\/");
     const size_t n_dot   = in_workload_path.find_last_of('.');
 
-    return (n_dot != std::string::npos &&
+    return (n_dot    != std::string::npos                     &&
             (n_slash == std::string::npos || n_dot > n_slash) ) ? in_workload_path.substr(0,
                                                                                           n_dot) + ".deps"
                                                                 : std::string();
@@ -171,27 +171,26 @@ int Stereo::Replay::Player::run(int   in_argc,
                                 char* in_argv[])
 {
     /* Used when the command line gives no distance. */
-    constexpr float DEFAULT_EYE_SEPARATION = 0.1f;
-
-    Stereo::Replay::EngineDLL::IPlaybackController* controller_ptr     = nullptr;
+    constexpr float    DEFAULT_EYE_SEPARATION = 0.1f;
     constexpr uint32_t N_INDEX_READER_THREADS = 2;
 
-    Stereo::Replay::EngineDLL::IReplayEngine* engine_ptr         = nullptr;
-    std::string                               deps_filename;
-    std::string                               error;
-    int                                       exit_code          = EXIT_FAILURE;
-    bool                                      has_deps_file      = false;
-    Capture::APIDumpLoader::WorkloadIndex     index;
-    bool                                      is_index_built     = false;
-    bool                                      is_recipe_loaded   = true;
-    bool                                      is_workload_picked = true;
-    std::unique_ptr<ConsoleObserver>          observer_ptr;
-    Options                                   options;
-    std::unique_ptr<PreviewWindow>            preview_ptr;
-    std::shared_ptr<QuitHandler> quit_ptr(new QuitHandler());
-    std::unique_ptr<FrameRangeObserver> range_ptr;
-    Analysis::Recipe::Recipe            recipe;
-    int                                 result    = EXIT_FAILURE;
+    Stereo::Replay::EngineDLL::IPlaybackController* controller_ptr     = nullptr;
+    Stereo::Replay::EngineDLL::IReplayEngine*       engine_ptr         = nullptr;
+    std::string                                     deps_filename;
+    std::string                                     error;
+    int                                             exit_code          = EXIT_FAILURE;
+    bool                                            has_deps_file      = false;
+    Capture::APIDumpLoader::WorkloadIndex           index;
+    bool                                            is_index_built     = false;
+    bool                                            is_recipe_loaded   = true;
+    bool                                            is_workload_picked = true;
+    std::unique_ptr<ConsoleObserver>                observer_ptr;
+    Options                                         options;
+    std::unique_ptr<PreviewWindow>                  preview_ptr;
+    std::shared_ptr<QuitHandler>                    quit_ptr(new QuitHandler());
+    std::unique_ptr<FrameRangeObserver>             range_ptr;
+    Analysis::Recipe::Recipe                        recipe;
+    int                                             result             = EXIT_FAILURE;
 
     if (CommandLine::parse(in_argc,
                            in_argv,
@@ -281,7 +280,7 @@ int Stereo::Replay::Player::run(int   in_argc,
 
     /* What a seek goes by: the dependencies between the frames, if the file of them is there. A file which is not of this workload is said, and not used. */
     deps_filename = (options.deps_filename.empty() ) ? get_default_deps_filename(options.workload_path)
-                                                    : options.deps_filename;
+                                                     : options.deps_filename;
 
     if (deps_filename.empty() == false)
     {

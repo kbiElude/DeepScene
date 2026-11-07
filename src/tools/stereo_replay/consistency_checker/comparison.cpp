@@ -19,9 +19,10 @@ bool Stereo::Replay::ConsistencyChecker::compare_workloads(const Stereo::Replay:
     std::vector<uint32_t>                       different_frame_vec;
     uint32_t                                    n_different_frames  = 0;
     Stereo::Replay::ConsistencyChecker::Options other_options       = in_options;
+    bool                                        result              = false;
+
     Stereo::Replay::ConsistencyChecker::FrameHashSink other_sink(false); /* in_keeps_images */
     Stereo::Replay::ConsistencyChecker::FrameHashSink own_sink  (false); /* in_keeps_images */
-    bool                                              result             = false;
 
     other_options.workload_filename = in_options.same_frames_workload_filename;
 
@@ -41,53 +42,61 @@ bool Stereo::Replay::ConsistencyChecker::compare_workloads(const Stereo::Replay:
         goto end;
     }
 
-    for (const auto& own_pair : own_sink.get_hash_map() )
     {
-        const auto other_iterator = other_sink.get_hash_map().find(own_pair.first);
-        const bool is_same        = (other_iterator         != other_sink.get_hash_map().end() &&
-                                     other_iterator->second == own_pair.second);
+        const auto&  other_hash_map = other_sink.get_hash_map();
+        const auto&  own_hash_map   = own_sink.get_hash_map();
+        const size_t n_other_images = other_hash_map.size();
+        const size_t n_own_images   = own_hash_map.size();
 
-        if (is_same)
+        for (const auto& own_pair : own_hash_map)
         {
-            continue;
+            const auto other_end      = other_hash_map.end();
+            const auto other_iterator = other_hash_map.find(own_pair.first);
+            const bool is_same        = (other_iterator         != other_end &&
+                                         other_iterator->second == own_pair.second);
+
+            if (is_same)
+            {
+                continue;
+            }
+
+            n_different_frames++;
+
+            if (different_frame_vec.size() < N_FRAMES_LISTED)
+            {
+                different_frame_vec.push_back(own_pair.first.first);
+            }
         }
 
-        n_different_frames++;
-
-        if (different_frame_vec.size() < N_FRAMES_LISTED)
-        {
-            different_frame_vec.push_back(own_pair.first.first);
-        }
-    }
-
-    fprintf(stdout,
-            "Frames %u to %u, as they are, of %s and of %s: %zu images of the first, %zu of the second; %u of the first differ from the second or are not in it.\n",
-            in_options.first_frame,
-            in_options.last_frame,
-            in_options.workload_filename.c_str(),
-            in_options.same_frames_workload_filename.c_str(),
-            own_sink.get_hash_map().size(),
-            other_sink.get_hash_map().size(),
-            n_different_frames);
-
-    if (different_frame_vec.empty() == false)
-    {
         fprintf(stdout,
-                "  first frames that differ:");
+                "Frames %u to %u, as they are, of %s and of %s: %zu images of the first, %zu of the second; %u of the first differ from the second or are not in it.\n",
+                in_options.first_frame,
+                in_options.last_frame,
+                in_options.workload_filename.c_str            (),
+                in_options.same_frames_workload_filename.c_str(),
+                n_own_images,
+                n_other_images,
+                n_different_frames);
 
-        for (const auto n_frame : different_frame_vec)
+        if (different_frame_vec.empty() == false)
         {
             fprintf(stdout,
-                    " %u",
-                    n_frame);
+                    "  first frames that differ:");
+
+            for (const auto n_frame : different_frame_vec)
+            {
+                fprintf(stdout,
+                        " %u",
+                        n_frame);
+            }
+
+            fprintf(stdout,
+                    "\n");
         }
 
-        fprintf(stdout,
-                "\n");
+        *out_has_difference_ptr = (n_different_frames != 0              ||
+                                   n_own_images       != n_other_images);
     }
-
-    *out_has_difference_ptr = (n_different_frames                 != 0 ||
-                               own_sink.get_hash_map().size()     != other_sink.get_hash_map().size() );
 
     result = true;
 end:
@@ -100,9 +109,10 @@ void Stereo::Replay::ConsistencyChecker::dump_frame(const Stereo::Replay::Consis
                                                     const Variant&                                     in_variant)
 {
     Stereo::Replay::ConsistencyChecker::FrameHashSink direct_sink(true); /* in_keeps_images */
+    Stereo::Replay::ConsistencyChecker::FrameHashSink twice_sink(true);  /* in_keeps_images */
+
     std::string                                 error;
     Stereo::Replay::ConsistencyChecker::Options options = in_options;
-    Stereo::Replay::ConsistencyChecker::FrameHashSink twice_sink(true);  /* in_keeps_images */
 
     options.first_frame = in_n_frame;
     options.last_frame  = in_n_frame;
@@ -134,11 +144,13 @@ void Stereo::Replay::ConsistencyChecker::dump_frame(const Stereo::Replay::Consis
     }
 
     {
-        const std::string prefix = in_options.dump_directory + "/frame_" + std::to_string(in_n_frame);
+        const std::string prefix = in_options.dump_directory +
+                                   "/frame_"                 +
+                                   std::to_string(in_n_frame);
 
         const auto& as_it_is_image         = direct_sink.get_image({in_n_frame, 0});
-        const auto& first_execution_image  = twice_sink.get_image({in_n_frame, 0});
-        const auto& second_execution_image = twice_sink.get_image({in_n_frame, 1});
+        const auto& first_execution_image  = twice_sink.get_image ({in_n_frame, 0});
+        const auto& second_execution_image = twice_sink.get_image ({in_n_frame, 1});
 
         Utils::Images::PngWriter::write_file(prefix + "_as_it_is.png",
                                              as_it_is_image);
@@ -179,6 +191,8 @@ bool Stereo::Replay::ConsistencyChecker::print_comparison(const Variant&        
     uint32_t              n_second_differs    = 0;
     std::vector<uint32_t> first_frame_vec;
 
+    const auto hash_map_end = in_hash_map.end();
+
     for (const auto& baseline_pair : in_baseline_map)
     {
         const uint32_t n_frame = baseline_pair.first.first;
@@ -186,10 +200,10 @@ bool Stereo::Replay::ConsistencyChecker::print_comparison(const Variant&        
         const auto     second  = in_hash_map.find({n_frame, 1});
 
         /* An image which is not there is a difference, except for the second execution of a way which has one only. */
-        const bool first_differs  = (first           == in_hash_map.end()                              ||
+        const bool first_differs  = (first           == hash_map_end                                     ||
                                      first->second   != baseline_pair.second);
         const bool second_differs = (in_variant.mode == Stereo::Replay::EngineDLL::FrameExecution::TWICE &&
-                                     (second         == in_hash_map.end()                          ||
+                                     (second         == hash_map_end                                     ||
                                       second->second != baseline_pair.second) );
 
         if (first_differs)
@@ -207,8 +221,8 @@ bool Stereo::Replay::ConsistencyChecker::print_comparison(const Variant&        
             ++n_second_differs;
         }
 
-        if (first         != in_hash_map.end() &&
-            second        != in_hash_map.end() &&
+        if (first         != hash_map_end &&
+            second        != hash_map_end &&
             first->second != second->second)
         {
             ++n_executions_differ;

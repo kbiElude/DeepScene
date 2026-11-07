@@ -22,7 +22,7 @@ namespace VRPlayer
     class AppSession
     {
     public:
-        AppSession();
+         AppSession();
         ~AppSession();
 
         /* What went wrong, if the state is FAILED. */

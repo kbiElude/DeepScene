@@ -193,7 +193,6 @@ namespace Stereo
             bool read_vertex_buffer(DrawArguments* inout_draw_arguments_ptr);
 
 
-
             Stereo::Core::StereoCore* m_core_ptr;
             bool                      m_has_pixel_write; /* the back buffer is locked to be written, all of it */
             DeviceMirror              m_mirror;

@@ -319,9 +319,9 @@ int Analysis::APIDumpDependencyExtractor::run(int   in_argc,
                 options.input_filename.c_str() );
         fflush(stdout);
 
-        session.set_access_sink                  (&log);
-        session.set_max_frames                   (options.max_frames);
-        session.set_n_reader_threads             (options.n_threads);
+        session.set_access_sink                   (&log);
+        session.set_max_frames                    (options.max_frames);
+        session.set_n_reader_threads              (options.n_threads);
         session.set_skip_data_chunks_above_n_bytes(options.skip_data_chunks_above_n_bytes);
 
         if (session.run(options.input_filename.c_str(),
@@ -341,14 +341,14 @@ int Analysis::APIDumpDependencyExtractor::run(int   in_argc,
 
         {
             const auto summary = session.get_summary();
-            auto       model   = session.take_model();
+            auto       model   = session.take_model ();
 
             analysis.frame_call_range_vec = log.get_frame_call_range_vec();
             analysis.is_truncated         = summary.is_truncated;
             analysis.n_calls              = summary.n_calls;
             analysis.pointer_n_bytes      = summary.pointer_n_bytes;
             analysis.qpc_frequency        = summary.qpc_frequency;
-            analysis.resource_vec         = std::move(model.resource_vec);
+            analysis.resource_vec         = std::move                     (model.resource_vec);
             analysis.workload_reference   = session.get_workload_reference();
 
             for (const auto& group : summary.n_calls_by_group_map)

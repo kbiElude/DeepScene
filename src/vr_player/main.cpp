@@ -105,7 +105,7 @@ bool VRPlayer::is_file(const std::string& in_path)
 {
     const DWORD attributes = ::GetFileAttributesA(in_path.c_str() );
 
-    return (attributes != INVALID_FILE_ATTRIBUTES              &&
+    return (attributes                              != INVALID_FILE_ATTRIBUTES &&
             (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0);
 }
 
@@ -124,11 +124,11 @@ int WINAPI WinMain(HINSTANCE in_instance,
 {
     std::vector<std::string>                  argument_vec;
     std::string                               catalog_filename;
+    VRPlayer::WindowContent                   content;
+    const Headset::XR::OpenXrVrDeviceProvider device_provider;
     std::string                               error;
     VRPlayer::Options                         options;
     int                                       result           = EXIT_FAILURE;
-    VRPlayer::WindowContent                   content;
-    const Headset::XR::OpenXrVrDeviceProvider device_provider;
     std::unique_ptr<VRPlayer::VrPlayerWindow> window_ptr;
 
     (void) in_command_line;
@@ -159,8 +159,8 @@ int WINAPI WinMain(HINSTANCE in_instance,
     if (catalog_filename.empty() == false)
     {
         const bool is_catalog_loaded = VRPlayer::AppCatalog::CatalogLoader::load(catalog_filename,
-                                                                          &content.catalog,
-                                                                          &content.catalog_error);
+                                                                                &content.catalog,
+                                                                                &content.catalog_error);
 
         if (is_catalog_loaded == false)
         {

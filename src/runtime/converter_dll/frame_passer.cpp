@@ -62,7 +62,7 @@ void Stereo::ConverterDLL::FramePasser::on_present(void* in_device_ptr,
                 {
                     const double done_ms = Utils::Statistics::SeriesStats::get_now();
 
-                    m_frame_state.export_cost.add          (done_ms - now_ms);
+                    m_frame_state.export_cost.add             (done_ms - now_ms);
                     m_frame_state.export_interval.add_interval(now_ms);
 
                     if (m_frame_state.has_logged_frame == false)
@@ -109,13 +109,13 @@ void Stereo::ConverterDLL::FramePasser::on_present(void* in_device_ptr,
 
             if (is_report_due)
             {
-                m_log.write("Pacing (ms): "                                                          +
-                            m_frame_state.present_interval.take_text("app presents")                 +
-                            "; "                                                                    +
-                            m_frame_state.export_interval.take_text("frames passed on")              +
-                            "; "                                                                    +
-                            m_frame_state.export_cost.take_text("copy cost")                        +
-                            "; "                                                                    +
+                m_log.write("Pacing (ms): "                                             +
+                            m_frame_state.present_interval.take_text("app presents")    +
+                            "; "                                                        +
+                            m_frame_state.export_interval.take_text("frames passed on") +
+                            "; "                                                        +
+                            m_frame_state.export_cost.take_text("copy cost")            +
+                            "; "                                                        +
                             m_frame_state.exporter_ptr->take_timing_text() );
             }
         }

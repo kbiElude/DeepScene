@@ -9,9 +9,11 @@
 
 bool Stereo::Replay::ConsistencyChecker::CommandLine::are_image_options_valid(const Options& in_options)
 {
-    const bool is_contact_sheet = (in_options.contact_sheet_n_frames != 0);
-    const bool is_screenshot    = (in_options.screenshot_frame       != UINT32_MAX);
-    bool       result           = false;
+    const bool has_image_filename  = (in_options.image_filename.empty () == false);
+    const bool has_recipe_filename = (in_options.recipe_filename.empty() == false);
+    const bool is_contact_sheet    = (in_options.contact_sheet_n_frames != 0);
+    const bool is_screenshot       = (in_options.screenshot_frame       != UINT32_MAX);
+    bool       result              = false;
 
     if (is_contact_sheet &&
         is_screenshot)
@@ -22,13 +24,13 @@ bool Stereo::Replay::ConsistencyChecker::CommandLine::are_image_options_valid(co
     if (is_contact_sheet ||
         is_screenshot)
     {
-        result = (in_options.image_filename.empty() == false &&
-                  (in_options.has_eye_view == false          ||
-                   in_options.recipe_filename.empty() == false) );
+        result = (has_image_filename                       &&
+                  (in_options.has_eye_view == false ||
+                   has_recipe_filename) );
     }
     else
     {
-        result = (in_options.image_filename.empty() &&
+        result = (has_image_filename      == false &&
                   in_options.has_eye_view == false);
     }
 
@@ -144,11 +146,15 @@ bool Stereo::Replay::ConsistencyChecker::CommandLine::parse(const std::vector<st
                 n_argument < in_argument_vec.size();
               ++n_argument)
     {
-        const std::string&  argument   = in_argument_vec.at(n_argument);
-        const FlagOption*   flag_ptr   = nullptr;
-        const bool          has_next   = (n_argument + 1 < in_argument_vec.size() );
-        const NumberOption* number_ptr = nullptr;
-        const TextOption*   text_ptr   = nullptr;
+        const std::string&  argument              = in_argument_vec.at(n_argument);
+        const FlagOption*   flag_ptr              = nullptr;
+        const bool          has_next              = (n_argument + 1 < in_argument_vec.size() );
+        const bool          has_workload_filename = (out_options_ptr->workload_filename.empty() == false);
+        const bool          is_argument_empty     = argument.empty();
+        const char          first_character       = (is_argument_empty) ? '\0'
+                                                                        : argument.at(0);
+        const NumberOption* number_ptr            = nullptr;
+        const TextOption*   text_ptr              = nullptr;
 
         for (const auto& option : FLAG_OPTION_ARRAY)
         {
@@ -191,12 +197,16 @@ bool Stereo::Replay::ConsistencyChecker::CommandLine::parse(const std::vector<st
             }
         }
 
-        if (argument == "--overlay-probe-shard" &&
-            n_argument + 2 >= in_argument_vec.size() )
+        if (argument == "--overlay-probe-shard")
         {
-            *out_error_ptr = argument + " needs the number of the part and the number of the parts";
+            const size_t n_arguments = in_argument_vec.size();
 
-            goto end;
+            if (n_argument + 2 >= n_arguments)
+            {
+                *out_error_ptr = argument + " needs the number of the part and the number of the parts";
+
+                goto end;
+            }
         }
 
         if (flag_ptr != nullptr)
@@ -213,7 +223,11 @@ bool Stereo::Replay::ConsistencyChecker::CommandLine::parse(const std::vector<st
                                number_ptr->most,
                                &(out_options_ptr->*(number_ptr->member_ptr) ) ) == false)
             {
-                *out_error_ptr = argument + " needs a whole number from " + std::to_string(number_ptr->least) + " to " + std::to_string(number_ptr->most);
+                *out_error_ptr = argument                          +
+                                 " needs a whole number from "     +
+                                 std::to_string(number_ptr->least) +
+                                 " to "                            +
+                                 std::to_string(number_ptr->most);
 
                 goto end;
             }
@@ -238,7 +252,7 @@ bool Stereo::Replay::ConsistencyChecker::CommandLine::parse(const std::vector<st
             const std::string& value_text = in_argument_vec.at(++n_argument);
 
             if (parse_eye_view(value_text,
-                               &out_options_ptr->eye_view) == false)
+                              &out_options_ptr->eye_view) == false)
             {
                 *out_error_ptr = "--eye is left, right, both or anaglyph";
 
@@ -254,7 +268,7 @@ bool Stereo::Replay::ConsistencyChecker::CommandLine::parse(const std::vector<st
             const std::string& value_text = in_argument_vec.at(++n_argument);
 
             if (Utils::CommandLine::NumberParser::parse_double(value_text,
-                                                               &separation) == false)
+                                                              &separation) == false)
             {
                 *out_error_ptr = "--eye-separation needs a number";
 
@@ -274,14 +288,14 @@ bool Stereo::Replay::ConsistencyChecker::CommandLine::parse(const std::vector<st
             const bool has_index = parse_unsigned(index_text,
                                                   0,
                                                   MAXIMUM_WAIT_OBJECTS,
-                                                  &out_options_ptr->overlay_probe_shard_index);
+                                                 &out_options_ptr->overlay_probe_shard_index);
 
             if (has_index)
             {
                 const bool has_count = parse_unsigned(count_text,
                                                       0,
                                                       MAXIMUM_WAIT_OBJECTS,
-                                                      &out_options_ptr->overlay_probe_shard_count);
+                                                     &out_options_ptr->overlay_probe_shard_count);
 
                 if (has_count)
                 {
@@ -302,16 +316,16 @@ bool Stereo::Replay::ConsistencyChecker::CommandLine::parse(const std::vector<st
         if (argument == "--ways")
         {
             const std::string&             value_text   = in_argument_vec.at(++n_argument);
-            const std::vector<std::string> way_name_vec = split_list(value_text);
+            const std::vector<std::string> way_name_vec = split_list        (value_text);
 
             out_options_ptr->way_name_vec.insert(out_options_ptr->way_name_vec.end(),
-                                                 way_name_vec.begin(),
-                                                 way_name_vec.end() );
+                                                 way_name_vec.begin               (),
+                                                 way_name_vec.end                 () );
         }
         else
-        if (argument.empty()                           == false &&
-            argument.at(0)                             != '-'   &&
-            out_options_ptr->workload_filename.empty() )
+        if (is_argument_empty     == false &&
+            first_character       != '-'   &&
+            has_workload_filename == false)
         {
             out_options_ptr->workload_filename = argument;
         }
@@ -423,7 +437,7 @@ std::vector<std::string> Stereo::Replay::ConsistencyChecker::CommandLine::split_
                                                                        : n_comma - n_first_character) );
 
         n_first_character = (n_comma == std::string::npos) ? in_list.size() + 1
-                                                           : n_comma + 1;
+                                                           : n_comma        + 1;
     }
 
     return result;

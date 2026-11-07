@@ -12,8 +12,8 @@
 bool Stereo::Replay::ConsistencyChecker::take_profile(const Stereo::Replay::ConsistencyChecker::Options& in_options,
                                                       std::string*                                       out_error_ptr)
 {
-    constexpr size_t   N_FRAMES_LISTED    = 10;
-    constexpr size_t   N_FUNCTIONS_LISTED = 15;
+    constexpr size_t   N_FRAMES_LISTED             = 10;
+    constexpr size_t   N_FUNCTIONS_LISTED          = 15;
     constexpr double   NANOSECONDS_PER_MILLISECOND = 1000000.0;
     constexpr double   NANOSECONDS_PER_MICROSECOND = 1000.0;
 
@@ -39,8 +39,8 @@ bool Stereo::Replay::ConsistencyChecker::take_profile(const Stereo::Replay::Cons
             in_options.first_frame,
             in_options.last_frame,
             (uses_recipe) ? ", for the eyes of the recipe" : "",
-            static_cast<unsigned long long>(profiler.get_n_calls() ),
-            static_cast<double>(profiler.get_total_n_nanoseconds() ) / NANOSECONDS_PER_MILLISECOND,
+            static_cast<unsigned long long>(profiler.get_n_calls            () ),
+            static_cast<double>            (profiler.get_total_n_nanoseconds() ) / NANOSECONDS_PER_MILLISECOND,
             "total ms",
             "calls",
             "average us",
@@ -53,10 +53,10 @@ bool Stereo::Replay::ConsistencyChecker::take_profile(const Stereo::Replay::Cons
 
         fprintf(stdout,
                 "  %10.1f %10llu %12.2f %10.1f  %s\n",
-                static_cast<double>(entry.total_n_nanoseconds) / NANOSECONDS_PER_MILLISECOND,
+                static_cast<double>            (entry.total_n_nanoseconds) / NANOSECONDS_PER_MILLISECOND,
                 static_cast<unsigned long long>(entry.n_calls),
-                static_cast<double>(entry.total_n_nanoseconds) / static_cast<double>(entry.n_calls) / NANOSECONDS_PER_MICROSECOND,
-                static_cast<double>(entry.max_n_nanoseconds) / NANOSECONDS_PER_MICROSECOND,
+                static_cast<double>            (entry.total_n_nanoseconds) / static_cast<double>(entry.n_calls) / NANOSECONDS_PER_MICROSECOND,
+                static_cast<double>            (entry.max_n_nanoseconds)                                        / NANOSECONDS_PER_MICROSECOND,
                 function_name_ptr);
     }
 
@@ -70,10 +70,10 @@ bool Stereo::Replay::ConsistencyChecker::take_profile(const Stereo::Replay::Cons
         fprintf(stdout,
                 "  frame %6u: %8.1f ms in %llu calls; the slowest call is %s (%.1f ms)\n",
                 entry.n_frame,
-                static_cast<double>(entry.total_n_nanoseconds) / NANOSECONDS_PER_MILLISECOND,
+                static_cast<double>            (entry.total_n_nanoseconds)   / NANOSECONDS_PER_MILLISECOND,
                 static_cast<unsigned long long>(entry.n_calls),
                 slowest_function_name_ptr,
-                static_cast<double>(entry.slowest_n_nanoseconds) / NANOSECONDS_PER_MILLISECOND);
+                static_cast<double>            (entry.slowest_n_nanoseconds) / NANOSECONDS_PER_MILLISECOND);
     }
 
     result = true;

@@ -10,7 +10,7 @@ std::vector<uint32_t> Stereo::Replay::ConsistencyChecker::FrameSampler::sample(c
 {
     std::vector<uint32_t> result_vec;
 
-    if (in_n_frames    == 0 ||
+    if (in_n_frames    == 0             ||
         in_first_frame >  in_last_frame)
     {
         goto end;
@@ -25,7 +25,7 @@ std::vector<uint32_t> Stereo::Replay::ConsistencyChecker::FrameSampler::sample(c
 
     if (static_cast<uint64_t>(in_last_frame) - in_first_frame + 1 <= in_n_frames)
     {
-        for (uint64_t n_frame = in_first_frame;
+        for (uint64_t n_frame =  in_first_frame;
                       n_frame <= in_last_frame;
                     ++n_frame)
         {

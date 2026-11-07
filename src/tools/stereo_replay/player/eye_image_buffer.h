@@ -54,7 +54,7 @@ namespace Stereo
                  * Returns false if there was none.
                  */
                 bool take(std::array<Image, N_EYES>* inout_image_array_ptr,
-                          std::array<bool, N_EYES>*  out_is_new_array_ptr);
+                          std::array<bool,  N_EYES>* out_is_new_array_ptr);
 
             private:
                 /* Lock order: no other lock is taken while it is held. */

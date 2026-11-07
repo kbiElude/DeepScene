@@ -18,8 +18,8 @@ void Stereo::Replay::EngineDLL::FrameHurry::clear()
 
 bool Stereo::Replay::EngineDLL::FrameHurry::is_hurrying(const uint32_t& in_n_frame) const
 {
-    return (m_has_frame &&
-            in_n_frame < m_until_frame);
+    return (m_has_frame                 &&
+            in_n_frame  < m_until_frame);
 }
 
 void Stereo::Replay::EngineDLL::FrameHurry::set_until_frame(const uint32_t& in_n_frame)

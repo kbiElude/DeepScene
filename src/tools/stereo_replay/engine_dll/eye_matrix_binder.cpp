@@ -26,18 +26,18 @@ bool Stereo::Replay::EngineDLL::EyeMatrixBinder::before_draw(const bool&        
                                                              const Analysis::Recipe::Eye& in_eye,
                                                              const float&                 in_eye_separation)
 {
-    bool        result = true;
-    const EyeMatrixBinding wanted = (in_is_affected == false)                                    ? EyeMatrixBinding::MONO
-                       : (in_eye         == Analysis::Recipe::Eye::LEFT) ? EyeMatrixBinding::LEFT
-                                                                                      : EyeMatrixBinding::RIGHT;
+    bool                   result = true;
+    const EyeMatrixBinding wanted = (in_is_affected == false)                       ? EyeMatrixBinding::MONO
+                                  : (in_eye         == Analysis::Recipe::Eye::LEFT) ? EyeMatrixBinding::LEFT
+                                                                                    : EyeMatrixBinding::RIGHT;
 
     for (auto& slot_pair : m_slot_map)
     {
         Slot& slot = *slot_pair.second;
 
         /* A matrix made for another separation is not the one to have, though it is for the eye. */
-        if (slot.bound             != wanted             ||
-            (wanted                != EyeMatrixBinding::MONO        &&
+        if (slot.bound             != wanted                 ||
+            (wanted                != EyeMatrixBinding::MONO &&
              slot.bound_separation != in_eye_separation) )
         {
             bool is_for_eye = false;

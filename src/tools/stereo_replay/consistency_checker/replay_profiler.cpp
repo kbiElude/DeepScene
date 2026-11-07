@@ -39,7 +39,7 @@ std::vector<Stereo::Replay::ConsistencyChecker::ReplayProfiler::FrameEntry> Ster
                                            const FrameEntry& in_frame_b)
     {
         return (in_frame_a.total_n_nanoseconds != in_frame_b.total_n_nanoseconds) ? (in_frame_a.total_n_nanoseconds > in_frame_b.total_n_nanoseconds)
-                                                                                  : (in_frame_a.n_frame                < in_frame_b.n_frame);
+                                                                                  : (in_frame_a.n_frame             < in_frame_b.n_frame);
     };
 
     std::sort(result_vec.begin(),
@@ -98,7 +98,7 @@ void Stereo::Replay::ConsistencyChecker::ReplayProfiler::on_call_replayed(const 
     {
         std::lock_guard<std::mutex> lock(m_mutex);
 
-        FrameEntry&    frame_entry    = m_frame_map[in_n_frame];
+        FrameEntry&    frame_entry    = m_frame_map   [in_n_frame];
         FunctionEntry& function_entry = m_function_map[in_call.func];
 
         frame_entry.n_frame              = in_n_frame;

@@ -31,14 +31,14 @@ int main(int   in_argc,
 
     Analysis::APIDumpAnalysis::AnalysisResult         analysis;
     std::vector<std::string>                          argument_vec;
-    Analysis::APIDumpDependencies::DependencyAnalysis dependencies;
-    Analysis::RecipeBake::BakeReport                  report;
     std::string                                       baked_text;
+    Analysis::APIDumpDependencies::DependencyAnalysis dependencies;
     std::string                                       error;
     FILE*                                             file_ptr     = nullptr;
     bool                                              is_written   = false;
     Analysis::RecipeBake::Options                     options;
     std::string                                       recipe_text;
+    Analysis::RecipeBake::BakeReport                  report;
     int                                               result       = EXIT_SUCCESS;
 
     for (int n_argument = 1;
@@ -111,7 +111,8 @@ int main(int   in_argc,
         {
             const std::vector<Analysis::RecipeBake::OverlayCandidate> candidate_vec = Analysis::RecipeBake::OverlayCandidateFinder::find(recipe,
                                                                                                                                          analysis);
-            Utils::Json::JsonWriter                     writer(true); /* in_is_pretty */
+
+            Utils::Json::JsonWriter writer(true); /* in_is_pretty */
 
             Analysis::RecipeBake::OverlayCandidateFinder::write_json(candidate_vec,
                                                                      recipe,
@@ -131,7 +132,7 @@ int main(int   in_argc,
                                                               coverage,
                                                               recipe);
 
-            const bool has_unknown_shape     = (coverage.unknown_shape_vec.empty()     == false);
+            const bool has_unknown_shape     = (coverage.unknown_shape_vec.empty    () == false);
             const bool has_unknown_signature = (coverage.unknown_signature_vec.empty() == false);
 
             if (has_unknown_shape     ||
@@ -218,6 +219,7 @@ int main(int   in_argc,
              report.n_convergence_distances,
              report.n_convergence_groups,
              report.n_signatures_without_depth);
+
     if (analysis.summary.n_resolution_hazards_map.empty() == false)
     {
         ::printf("The application does what depends on the size of what it renders to, which a render scale above 1 may break (it is stopped if it does):\n");

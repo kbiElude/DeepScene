@@ -28,9 +28,10 @@ void Stereo::ConverterDLL::D3D8WindowedMode::on_create_device(Interception::Hook
     Interception::Hooks::D3D8::D3DDISPLAYMODE display_mode = {};
     void** const                              vtable       = APIInterceptor::get_vtable_ptr(in_direct3d_ptr);
     const HWND                                window       = (inout_parameters_ptr->hDeviceWindow != nullptr) ? inout_parameters_ptr->hDeviceWindow
-                                                                                        : in_focus_window;
+                                                                                                              : in_focus_window;
 
-    const auto get_display_mode_func = APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3D8_GETADAPTERDISPLAYMODE>(vtable, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3D8_GETADAPTERDISPLAYMODE);
+    const auto get_display_mode_func = APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3D8_GETADAPTERDISPLAYMODE>(vtable,
+                                                                                                                                       Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3D8_GETADAPTERDISPLAYMODE);
 
     /* A window shows the format of the desktop. */
     if (SUCCEEDED(get_display_mode_func(in_direct3d_ptr,

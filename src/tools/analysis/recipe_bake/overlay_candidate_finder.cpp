@@ -15,29 +15,33 @@ std::vector<Analysis::RecipeBake::OverlayCandidate> Analysis::RecipeBake::Overla
                                                                                                        const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
 {
     const Analysis::Recipe::RecipeApplier applier(in_recipe);
+
     const auto&                 model_ref          = in_analysis.model;
     const std::vector<uint32_t> static_pass_id_vec = Analysis::APIDumpAnalysis::QueryCommands::get_static_camera_pass_id_vec(in_analysis);
+
     const std::set<uint32_t> static_pass_id_set     (static_pass_id_vec.begin(),
                                                      static_pass_id_vec.end  ());
     const std::set<uint64_t> unaffected_draw_key_set(in_recipe.unaffected.draw_key_vec.begin(),
                                                      in_recipe.unaffected.draw_key_vec.end  ());
     const std::set<uint64_t> unaffected_pass_key_set(in_recipe.unaffected.pass_key_vec.begin(),
                                                      in_recipe.unaffected.pass_key_vec.end  ());
-    const auto                    timeline   = Analysis::APIDumpAnalysis::TimelineBuilder::build(in_analysis);
+
     std::vector<OverlayCandidate> result_vec;
+    const auto                    timeline   = Analysis::APIDumpAnalysis::TimelineBuilder::build(in_analysis);
 
     for (uint32_t n_pass = 0;
                   n_pass < model_ref.pass_structure_interner.get_n_structures();
                 ++n_pass)
     {
-        const auto& structure         = model_ref.pass_structure_interner.get_structure(n_pass);
         uint64_t    first_frame_index = 0;
         const bool  has_first_frame   = Analysis::APIDumpAnalysis::QueryCommands::get_first_frame_index(in_analysis,
                                                                                                         n_pass,
                                                                                                        &first_frame_index);
-        const bool  is_static_camera  = (static_pass_id_set.count(n_pass) != 0);
-        const auto  depth_spread      = Analysis::APIDumpAnalysis::QueryCommands::get_pass_depth_spread(in_analysis,
-                                                                                                         n_pass);
+        const auto& structure         = model_ref.pass_structure_interner.get_structure                (n_pass);
+
+        const auto depth_spread      = Analysis::APIDumpAnalysis::QueryCommands::get_pass_depth_spread(in_analysis,
+                                                                                                       n_pass);
+        const bool is_static_camera  = (static_pass_id_set.count(n_pass) != 0);
 
         for (const auto& draw_signature : structure.draw_signature_vec)
         {
@@ -53,19 +57,21 @@ std::vector<Analysis::RecipeBake::OverlayCandidate> Analysis::RecipeBake::Overla
             candidate.is_replay_skipped    = is_skipped;
             candidate.is_replay_unaffected = (is_replay_affected == false &&
                                               is_skipped         == false);
-            candidate.live_class           = get_live_class(applier,
-                                                            in_analysis,
-                                                            n_pass,
-                                                            draw_signature.signature_key);
+
+            candidate.live_class = get_live_class(applier,
+                                                  in_analysis,
+                                                  n_pass,
+                                                  draw_signature.signature_key);
+
             candidate.n_frames             = timeline.pass_usage_vec.at(n_pass).n_frames;
             candidate.pass_id              = n_pass;
             candidate.pass_key             = structure.key;
             candidate.signature_key        = draw_signature.signature_key;
             candidate.structure_key        = draw_signature.structure_key;
 
-            const bool is_recipe_overlay = (candidate.is_replay_unaffected                ||
-                                            candidate.live_class == LiveClass::UNAFFECTED ||
-                                            candidate.live_class == LiveClass::MIXED);
+            const bool is_recipe_overlay = (candidate.is_replay_unaffected                          ||
+                                            candidate.live_class           == LiveClass::UNAFFECTED ||
+                                            candidate.live_class           == LiveClass::MIXED);
 
             if (is_recipe_overlay ||
                 is_static_camera)
@@ -102,7 +108,7 @@ std::vector<Analysis::RecipeBake::OverlayCandidate> Analysis::RecipeBake::Overla
 
                 const auto is_unaffected_func = [&](const Analysis::Recipe::PassDraw& in_pass_draw)
                 {
-                    return (in_pass_draw.pass_key == structure.key &&
+                    return (in_pass_draw.pass_key == structure.key                &&
                             in_pass_draw.draw_key == draw_signature.structure_key);
                 };
 

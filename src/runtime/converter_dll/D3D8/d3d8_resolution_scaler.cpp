@@ -140,16 +140,16 @@ void Stereo::ConverterDLL::D3D8ResolutionScaler::on_create_device(Interception::
         {
             const bool        is_supported = EyeImageLimits::fits(m_real_width,
                                                                   m_real_height);
-            const std::string reason       = "At the render scale "                                    +
-                                             std::to_string(m_policy.get_scale() )                     +
-                                             " the images of the eyes are "                            +
-                                             std::to_string(m_real_width)                              +
-                                             " x "                                                     +
-                                             std::to_string(m_real_height)                             +
-                                             " each, which is larger than what can be passed on ("     +
-                                             std::to_string(EyeImageLimits::get_max_width() )          +
-                                             " x "                                                     +
-                                             std::to_string(EyeImageLimits::get_max_height() )         +
+            const std::string reason       = "At the render scale "                                +
+                                             std::to_string(m_policy.get_scale() )                 +
+                                             " the images of the eyes are "                        +
+                                             std::to_string(m_real_width)                          +
+                                             " x "                                                 +
+                                             std::to_string(m_real_height)                         +
+                                             " each, which is larger than what can be passed on (" +
+                                             std::to_string(EyeImageLimits::get_max_width() )      +
+                                             " x "                                                 +
+                                             std::to_string(EyeImageLimits::get_max_height() )     +
                                              " each); lower the render scale";
 
             m_core_ptr->require_supported(is_supported,
@@ -179,7 +179,8 @@ void Stereo::ConverterDLL::D3D8ResolutionScaler::on_pre(const APIInterceptor::AP
 
         if (is_hazard)
         {
-            const std::string reason = std::string(get_hazard_reason(hazard) ) + ", while it is rendered larger than it asks";
+            const std::string reason = std::string(get_hazard_reason(hazard) )      +
+                                       ", while it is rendered larger than it asks";
 
             m_core_ptr->require_fast_path(false, /* in_is_ok */
                                           reason);
@@ -202,8 +203,9 @@ void Stereo::ConverterDLL::D3D8ResolutionScaler::on_set_viewport(Interception::H
         Interception::Hooks::D3D8::D3DSURFACE_DESC description = {};
         void** const                               vtable      = APIInterceptor::get_vtable_ptr(render_target_ptr);
 
-        const HRESULT description_result = APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_GETDESC>(vtable, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_GETDESC)(static_cast<Interception::Hooks::D3D8::IDirect3DSurface8*>(render_target_ptr),
-                                                                                                                                                                                                &description);
+        const HRESULT description_result = APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_GETDESC>(vtable,
+                                                                                                                                    Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_GETDESC)(static_cast<Interception::Hooks::D3D8::IDirect3DSurface8*>(render_target_ptr),
+                                                                                                                                                                                                      &description);
 
         if (SUCCEEDED(description_result) )
         {

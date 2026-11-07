@@ -21,16 +21,16 @@ namespace VRPlayer
     /* What is needed to start an application with the stereo converter in it. */
     struct SessionRequest
     {
-        std::string arguments;          /* of the application                                                          */
+        std::string arguments;          /* of the application                                                   */
         std::string executable_path;
-        std::string launcher_path;      /* StereoLauncher of the architecture of the application                       */
-        bool        is_logging          = false; /* the converter and the presenter write a log of the session                    */
-        bool        pace_to_headset     = true;  /* the application makes a frame for each one of the headset                    */
+        std::string launcher_path;      /* StereoLauncher of the architecture of the application                */
+        bool        is_logging          = false; /* the converter and the presenter write a log of the session  */
+        bool        pace_to_headset     = true;  /* the application makes a frame for each one of the headset   */
         std::string recipe_path;
         std::string session_id;
-        std::string title;              /* of the window which shows the images                                        */
-        bool        use_headset         = false; /* the window shows them in the headset too, if there is one         */
-        std::string presenter_path;        /* StereoPresenter, which shows the images of the application                     */
+        std::string title;              /* of the window which shows the images                                  */
+        bool        use_headset         = false; /* the window shows them in the headset too, if there is one    */
+        std::string presenter_path;        /* StereoPresenter, which shows the images of the application         */
         std::string working_directory;
     };
 
@@ -46,11 +46,11 @@ namespace VRPlayer
     struct WindowContent
     {
         VRPlayer::AppCatalog::Catalog             catalog;
-        std::string                               catalog_error;        /* empty if the catalog was read                    */
-        std::string                               device_error;         /* empty if the devices were listed                 */
+        std::string                               catalog_error;        /* empty if the catalog was read             */
+        std::string                               device_error;         /* empty if the devices were listed          */
         std::vector<Headset::VRDevices::VrDevice> device_vec;
-        bool                                      is_logging = false;   /* a log is written for each session                  */
-        std::string                               launcher_directory;   /* where the launchers and the presenter are         */
+        bool                                      is_logging = false;   /* a log is written for each session         */
+        std::string                               launcher_directory;   /* where the launchers and the presenter are */
     };
 }
 

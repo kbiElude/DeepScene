@@ -65,7 +65,7 @@ bool Analysis::APIDumpDependencyQuery::parse_arguments(const int&   in_argc,
 
             if (Utils::CommandLine::NumberParser::parse_unsigned(next_argument,
                                                                  UINT64_MAX,
-                                                                 &value) == false)
+                                                                &value) == false)
             {
                 *out_error_ptr = argument + " needs a number, not " + next_argument;
 
@@ -106,8 +106,8 @@ bool Analysis::APIDumpDependencyQuery::parse_arguments(const int&   in_argc,
             ++n_argument;
         }
         else
-        if (argument.empty() == false &&
-            argument.at(0)   == '-')
+        if (argument.empty()  == false &&
+            argument.at   (0) == '-')
         {
             *out_error_ptr = "Unknown option " + argument;
 
@@ -135,7 +135,7 @@ bool Analysis::APIDumpDependencyQuery::parse_arguments(const int&   in_argc,
 
             if (Utils::CommandLine::NumberParser::parse_unsigned(argument,
                                                                  UINT64_MAX,
-                                                                 &value) == false)
+                                                                &value) == false)
             {
                 *out_error_ptr = "An id must be a number, not " + argument;
 
@@ -143,7 +143,7 @@ bool Analysis::APIDumpDependencyQuery::parse_arguments(const int&   in_argc,
             }
 
             out_options_ptr->arguments.frame_index     = value;
-            out_options_ptr->arguments.has_frame_index = (out_options_ptr->command == "frame" ||
+            out_options_ptr->arguments.has_frame_index = (out_options_ptr->command == "frame"   ||
                                                           out_options_ptr->command == "carries" ||
                                                           out_options_ptr->command == "slice");
             out_options_ptr->arguments.has_resource_id = (out_options_ptr->command == "resource");
@@ -246,9 +246,10 @@ int Analysis::APIDumpDependencyQuery::run(int   in_argc,
     {
         const std::string workload_filename = (options.workload_filename.empty() ) ? analysis.workload_reference.filename
                                                                                    : options.workload_filename;
-        const auto        match             = Analysis::APIDumpAnalysis::WorkloadIdentity::verify(workload_filename,
-                                                                                                    analysis.workload_reference,
-                                                                                                   &error);
+
+        const auto match = Analysis::APIDumpAnalysis::WorkloadIdentity::verify(workload_filename,
+                                                                               analysis.workload_reference,
+                                                                              &error);
 
         if (match == Analysis::APIDumpAnalysis::WorkloadMatch::MISMATCH)
         {
@@ -272,11 +273,12 @@ int Analysis::APIDumpDependencyQuery::run(int   in_argc,
 
     {
         Utils::Json::JsonWriter writer(options.is_compact == false);
-        const auto                            status = Analysis::APIDumpDependencies::QueryCommands::run(options.command,
-                                                                                                         analysis,
-                                                                                                         options.arguments,
-                                                                                                        &writer,
-                                                                                                        &error);
+
+        const auto status = Analysis::APIDumpDependencies::QueryCommands::run(options.command,
+                                                                              analysis,
+                                                                              options.arguments,
+                                                                             &writer,
+                                                                             &error);
 
         if (status == Analysis::APIDumpAnalysis::QueryStatus::OK)
         {

@@ -62,8 +62,11 @@ void VRPlayer::AppSession::end_session(const SessionState& in_state,
 
 std::string VRPlayer::AppSession::get_command_line(const SessionRequest& in_request)
 {
-    std::string result = quote_argument(in_request.launcher_path) + " --recipe " + quote_argument(in_request.recipe_path) +
-                         " --session " + quote_argument(in_request.session_id);
+    std::string result = quote_argument(in_request.launcher_path) +
+                         " --recipe "                             +
+                         quote_argument(in_request.recipe_path)   +
+                         " --session "                            +
+                         quote_argument(in_request.session_id);
 
     if (in_request.is_logging)
     {
@@ -72,15 +75,19 @@ std::string VRPlayer::AppSession::get_command_line(const SessionRequest& in_requ
 
     if (in_request.arguments.empty() == false)
     {
-        result += " --arguments " + quote_argument(in_request.arguments);
+        result += " --arguments "                      +
+                  quote_argument(in_request.arguments);
     }
 
     if (in_request.working_directory.empty() == false)
     {
-        result += " --working-directory " + quote_argument(in_request.working_directory);
+        result += " --working-directory "                      +
+                  quote_argument(in_request.working_directory);
     }
 
-    return result + " --wait " + quote_argument(in_request.executable_path);
+    return result                                     +
+           " --wait "                                 +
+           quote_argument(in_request.executable_path);
 }
 
 const std::string& VRPlayer::AppSession::get_message() const
@@ -90,16 +97,18 @@ const std::string& VRPlayer::AppSession::get_message() const
 
 std::string VRPlayer::AppSession::get_presenter_command_line(const SessionRequest& in_request)
 {
-    return quote_argument(in_request.presenter_path) + " --session " + quote_argument(in_request.session_id) +
-           ((in_request.title.empty() ) ? std::string()
-                                        : " --title " + quote_argument(in_request.title) ) +
-           ((in_request.use_headset)    ? std::string(" --headset")
-                                        : std::string() ) +
-           ((in_request.use_headset      &&
+    return quote_argument(in_request.presenter_path)                                                 +
+            " --session "                                                                            +
+           quote_argument(in_request.session_id)                                                     +
+           ((in_request.title.empty() )           ? std::string()
+                                                  : " --title " + quote_argument(in_request.title) ) +
+           ((in_request.use_headset)              ? std::string(" --headset")
+                                                  : std::string() )                                  +
+           ((in_request.use_headset               &&
              in_request.pace_to_headset == false) ? std::string(" --no-pacing")
-                                                  : std::string() ) +
-           ((in_request.is_logging)     ? std::string(" --log")
-                                        : std::string() );
+                                                  : std::string() )                                  +
+           ((in_request.is_logging)               ? std::string(" --log")
+                                                  : std::string() );
 }
 
 VRPlayer::SessionState VRPlayer::AppSession::get_state() const
@@ -147,27 +156,42 @@ std::string VRPlayer::AppSession::quote_argument(const std::string& in_argument)
 std::string VRPlayer::AppSession::read_output(const HANDLE& in_pipe)
 {
     char        buffer_i8vec512[512];
+    bool        is_reading  = true;
     DWORD       n_available = 0;
     DWORD       n_read      = 0;
     std::string result;
 
     /* The launcher has exited, so everything it wrote is in the pipe, and nothing has to be waited for. */
-    while (::PeekNamedPipe(in_pipe,
-                           nullptr,
-                           0,
-                           nullptr,
-                          &n_available,
-                           nullptr) != FALSE &&
-           n_available > 0                    &&
-           ::ReadFile(in_pipe,
-                      buffer_i8vec512,
-                      sizeof(buffer_i8vec512),
-                     &n_read,
-                      nullptr) != FALSE        &&
-           n_read > 0)
+    while (is_reading)
     {
-        result.append(buffer_i8vec512,
-                      n_read);
+        const BOOL is_peeked = ::PeekNamedPipe(in_pipe,
+                                               nullptr,
+                                               0,
+                                               nullptr,
+                                              &n_available,
+                                               nullptr);
+
+        is_reading = false;
+        n_read     = 0;
+
+        if (is_peeked   != FALSE &&
+            n_available >  0)
+        {
+            const BOOL is_read = ::ReadFile(in_pipe,
+                                            buffer_i8vec512,
+                                            sizeof(buffer_i8vec512),
+                                           &n_read,
+                                            nullptr);
+
+            is_reading = (is_read != FALSE &&
+                          n_read  >  0);
+        }
+
+        if (is_reading)
+        {
+            result.append(buffer_i8vec512,
+                          n_read);
+        }
     }
 
     return result;
@@ -178,7 +202,7 @@ void VRPlayer::AppSession::set_depth_strength(const float& in_depth_strength)
     /* Said when it changes, so that what else sets it through the channel is not overridden at every frame. */
     if (m_channel_ptr != nullptr)
     {
-        if (m_has_depth_strength == false ||
+        if (m_has_depth_strength == false             ||
             m_depth_strength     != in_depth_strength)
         {
             m_channel_ptr->set_depth_strength(in_depth_strength);
@@ -194,7 +218,7 @@ void VRPlayer::AppSession::set_is_overlay_pushed(const bool& in_is_pushed)
     /* Said when it changes, like the strength. */
     if (m_channel_ptr != nullptr)
     {
-        if (m_has_is_overlay_pushed == false ||
+        if (m_has_is_overlay_pushed == false         ||
             m_is_overlay_pushed     != in_is_pushed)
         {
             m_channel_ptr->set_is_overlay_pushed(in_is_pushed);
@@ -249,19 +273,22 @@ bool VRPlayer::AppSession::start(const VRPlayer::AppCatalog::AppEntry& in_app,
     request.is_logging        = in_write_log;
     request.pace_to_headset   = in_pace_to_headset;
     request.launcher_path     = in_launcher_directory + ((architecture == Capture::InjectionLauncher::TargetArchitecture::X86) ? "\\StereoLauncher_x86.exe"
-                                                                                                                       : "\\StereoLauncher_x64.exe");
+                                                                                                                               : "\\StereoLauncher_x64.exe");
     request.recipe_path       = in_app.recipe_path;
     request.session_id        = std::to_string(::GetCurrentProcessId() ) + "-" + std::to_string(::GetTickCount64() );
     request.title             = in_app.name;
     request.use_headset       = in_use_headset;
-    request.presenter_path       = in_launcher_directory + "\\StereoPresenter_x64.exe";
+
+    request.presenter_path    = in_launcher_directory + "\\StereoPresenter_x64.exe";
     request.working_directory = in_app.working_directory;
 
     if (::GetFileAttributesA(request.launcher_path.c_str() ) == INVALID_FILE_ATTRIBUTES)
     {
-        *out_error_ptr = "The launcher for " + std::string((architecture == Capture::InjectionLauncher::TargetArchitecture::X86) ? "32-bit"
-                                                                                                                          : "64-bit") +
-                         " applications is not installed: " + request.launcher_path;
+        *out_error_ptr = "The launcher for "                                                                           +
+                         std::string((architecture == Capture::InjectionLauncher::TargetArchitecture::X86) ? "32-bit"
+                                                                                                           : "64-bit") +
+                         " applications is not installed: "                                                            +
+                         request.launcher_path;
 
         goto end;
     }
@@ -335,9 +362,9 @@ bool VRPlayer::AppSession::start(const VRPlayer::AppCatalog::AppEntry& in_app,
                            HANDLE_FLAG_INHERIT,
                            0);
 
-    launcher_command_line = get_command_line(request);
-    startup_info.cb       = sizeof(startup_info);
-    presenter_command_line   = get_presenter_command_line(request);
+    launcher_command_line  = get_command_line          (request);
+    startup_info.cb        = sizeof                    (startup_info);
+    presenter_command_line = get_presenter_command_line(request);
 
     /* The window first: it is there when the first image comes. Both are suspended until they are in the job, so that nothing they
      * start can get out of it.
@@ -380,7 +407,8 @@ bool VRPlayer::AppSession::start(const VRPlayer::AppCatalog::AppEntry& in_app,
                         &startup_info,
                         &launcher_info) == FALSE)
     {
-        *out_error_ptr = "The launcher cannot be started: " + request.launcher_path;
+        *out_error_ptr = "The launcher cannot be started: " +
+                         request.launcher_path;
 
         goto end;
     }
@@ -399,14 +427,14 @@ bool VRPlayer::AppSession::start(const VRPlayer::AppCatalog::AppEntry& in_app,
     m_has_depth_strength = false;
 
     m_has_is_overlay_pushed = false;
-    m_job                = job;
-    m_launcher_process   = launcher_info.hProcess;
-    m_output_pipe        = pipe_read;
-    m_state              = SessionState::RUNNING;
+    m_job                   = job;
+    m_launcher_process      = launcher_info.hProcess;
+    m_output_pipe           = pipe_read;
+    m_state                 = SessionState::RUNNING;
     m_presenter_process     = presenter_process;
-    job                  = nullptr;
-    pipe_read            = nullptr;
-    result               = true;
+    job                     = nullptr;
+    pipe_read               = nullptr;
+    result                  = true;
     presenter_process       = nullptr;
 
 end:
@@ -454,7 +482,9 @@ void VRPlayer::AppSession::update()
             else
             {
                 const std::string output  = read_output(m_output_pipe);
-                const std::string message = (output.empty() ) ? "The launcher stopped with the code " + std::to_string(exit_code) + "."
+                const std::string message = (output.empty() ) ? "The launcher stopped with the code " +
+                                                                std::to_string(exit_code)             +
+                                                                "."
                                                               : output;
 
                 end_session(SessionState::FAILED,

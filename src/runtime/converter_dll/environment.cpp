@@ -13,7 +13,7 @@ bool Stereo::ConverterDLL::Environment::get_number(const char* in_name_ptr,
     const unsigned long n_chars           = ::GetEnvironmentVariableA(in_name_ptr,
                                                                       value_i8vec32,
                                                                       static_cast<DWORD>(sizeof(value_i8vec32) ));
-    const bool          result            = (n_chars > 0                      &&
+    const bool          result            = (n_chars > 0                     &&
                                              n_chars < sizeof(value_i8vec32) );
 
     if (result)

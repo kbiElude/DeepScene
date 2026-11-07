@@ -54,8 +54,9 @@ bool Stereo::Replay::ConsistencyChecker::replay_to_frame(const Stereo::Replay::C
                                                          Stereo::Replay::ConsistencyChecker::FrameHashSink* out_sink_ptr,
                                                          std::string*                                       out_error_ptr)
 {
-    const bool                                  uses_recipe = (in_options.recipe_filename.empty() == false);
-    Stereo::Replay::ConsistencyChecker::Options options     = in_options;
+    const bool                                  has_deps_file = (in_options.deps_filename.empty  () == false);
+    const bool                                  uses_recipe   = (in_options.recipe_filename.empty() == false);
+    Stereo::Replay::ConsistencyChecker::Options options       = in_options;
 
     options.first_frame = in_frame_index;
     options.last_frame  = in_frame_index;
@@ -64,7 +65,7 @@ bool Stereo::Replay::ConsistencyChecker::replay_to_frame(const Stereo::Replay::C
      * what the eyes carry over from frame to frame right; the dependencies leave out what nothing after the frame reads, which makes it quick.
      */
     if (in_options.has_history ||
-        in_options.deps_filename.empty() == false)
+        has_deps_file)
     {
         options.first_frame = 0;
 
@@ -96,9 +97,9 @@ bool Stereo::Replay::ConsistencyChecker::run_variant(const Stereo::Replay::Consi
     execution_options.restores_state = in_variant.restores_state;
 
     {
-        auto* const                                    controller_ptr = engine_ptr->get_playback_controller_ptr();
-        Stereo::Replay::ConsistencyChecker::StopObserver observer(controller_ptr,
-                                                                  in_options.last_frame);
+        auto* const                                      controller_ptr = engine_ptr->get_playback_controller_ptr();
+        Stereo::Replay::ConsistencyChecker::StopObserver observer       (controller_ptr,
+                                                                         in_options.last_frame);
 
         engine_ptr->add_replay_observer (&observer);
 
@@ -112,17 +113,19 @@ bool Stereo::Replay::ConsistencyChecker::run_variant(const Stereo::Replay::Consi
 
         if (in_variant.uses_recipe)
         {
-            engine_ptr->set_recipe(in_options.recipe);
+            engine_ptr->set_recipe                                       (in_options.recipe);
             engine_ptr->get_playback_controller_ptr()->set_eye_separation(in_options.eye_separation);
         }
 
         if (engine_ptr->load(in_options.workload_filename.c_str(),
-                             out_error_ptr) == false)
+                             out_error_ptr)                         == false)
         {
             goto end;
         }
 
-        if (in_options.deps_filename.empty() == false)
+        const bool has_deps_file = (in_options.deps_filename.empty() == false);
+
+        if (has_deps_file)
         {
             const bool is_deps_set = engine_ptr->set_dependencies_file(in_options.deps_filename.c_str(),
                                                                        out_error_ptr);
@@ -136,7 +139,7 @@ bool Stereo::Replay::ConsistencyChecker::run_variant(const Stereo::Replay::Consi
         controller_ptr->set_speed(0.0);
 
         /* Going to the last frame is what a seek does, which leaves out what the dependencies say nothing after it reads. */
-        if (in_options.deps_filename.empty() &&
+        if (has_deps_file          == false &&
             in_options.has_history == false)
         {
             controller_ptr->play();
@@ -194,8 +197,9 @@ bool Stereo::Replay::ConsistencyChecker::run_variants(const Stereo::Replay::Cons
         double      seconds = 0.0;
     };
 
-    std::vector<Run> run_vec(in_variant_ptr_vec.size());
-    bool             result = true;
+    const size_t     n_variants = in_variant_ptr_vec.size();
+    std::vector<Run> run_vec(n_variants);
+    bool             result     = true;
 
     out_sink_vec_ptr->clear();
     out_sink_vec_ptr->reserve(in_variant_ptr_vec.size() );
@@ -210,12 +214,12 @@ bool Stereo::Replay::ConsistencyChecker::run_variants(const Stereo::Replay::Cons
     const auto run_func = [&](const size_t& in_n_variant)
     {
         const auto start_time = std::chrono::steady_clock::now();
-        Run&       run      = run_vec.at(in_n_variant);
+        Run&       run        = run_vec.at                    (in_n_variant);
 
-        run.is_ok   = run_variant(in_options,
-                                  *in_variant_ptr_vec.at(in_n_variant),
-                                  &out_sink_vec_ptr->at(in_n_variant),
-                                  &run.error);
+        run.is_ok   = run_variant                  (in_options,
+                                                    *in_variant_ptr_vec.at(in_n_variant),
+                                                    &out_sink_vec_ptr->at (in_n_variant),
+                                                    &run.error);
         run.seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - start_time).count();
     };
     const auto print_func = [&](const size_t& in_n_variant)
@@ -223,8 +227,8 @@ bool Stereo::Replay::ConsistencyChecker::run_variants(const Stereo::Replay::Cons
         fprintf(stdout,
                 "%-34s %zu images in %.1f s\n",
                 in_variant_ptr_vec.at(in_n_variant)->name_ptr,
-                out_sink_vec_ptr->at(in_n_variant).get_hash_map().size(),
-                run_vec.at(in_n_variant).seconds);
+                out_sink_vec_ptr->at (in_n_variant).get_hash_map().size(),
+                run_vec.at           (in_n_variant).seconds);
         fflush(stdout);
     };
 
@@ -247,7 +251,7 @@ bool Stereo::Replay::ConsistencyChecker::run_variants(const Stereo::Replay::Cons
     }
 
     for (size_t n_variant = 0;
-                n_variant < in_variant_ptr_vec.size() && result;
+                n_variant < n_variants && result;
               ++n_variant)
     {
         if (in_options.is_parallel == false)
@@ -257,9 +261,9 @@ bool Stereo::Replay::ConsistencyChecker::run_variants(const Stereo::Replay::Cons
 
         if (run_vec.at(n_variant).is_ok == false)
         {
-            *out_error_ptr = std::string("Replaying the frames ")                          +
-                             in_variant_ptr_vec.at(n_variant)->name_ptr                    +
-                             " failed: "                                                    +
+            *out_error_ptr = std::string("Replaying the frames ")       +
+                             in_variant_ptr_vec.at(n_variant)->name_ptr +
+                             " failed: "                                +
                              run_vec.at(n_variant).error;
 
             result = false;

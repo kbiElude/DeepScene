@@ -30,14 +30,16 @@ Stereo::ConverterDLL::D3D7HostMemoryExporter::~D3D7HostMemoryExporter()
 Stereo::Transport::ExportStatus Stereo::ConverterDLL::D3D7HostMemoryExporter::export_frame(const uint64_t&                        in_frame_index,
                                                                                            const Stereo::Transport::ExportSource& in_source)
 {
-    std::array<LockedSurface, N_EYES>   locked_array;
-    uint32_t                            n_eyes            = (in_source.right_surface_ptr != nullptr) ? 2 : 1;
-    uint32_t                            n_locked          = 0;
-    uint8_t*                            destination_ptr   = nullptr;
-    Stereo::Transport::FrameInfo        info;
-    uint32_t                            pitch             = 0;
-    Stereo::Transport::ExportStatus     result            = Stereo::Transport::ExportStatus::FAILED;
-    std::array<void*, N_EYES>           surface_ptr_array = {in_source.left_surface_ptr, in_source.right_surface_ptr};
+    std::array<LockedSurface, N_EYES> locked_array;
+    uint32_t                          n_eyes            = (in_source.right_surface_ptr != nullptr) ? 2
+                                                                                                   : 1;
+    uint32_t                          n_locked          = 0;
+    uint8_t*                          destination_ptr   = nullptr;
+    Stereo::Transport::FrameInfo      info;
+    uint32_t                          pitch             = 0;
+    Stereo::Transport::ExportStatus   result            = Stereo::Transport::ExportStatus::FAILED;
+    std::array<void*, N_EYES>         surface_ptr_array = {in_source.left_surface_ptr,
+                                                           in_source.right_surface_ptr};
 
     /* The other side has not said that it takes what the exporter passes on: not a failure, the frame is left out. */
     if (is_host_memory_negotiated() == false)
@@ -57,7 +59,7 @@ Stereo::Transport::ExportStatus Stereo::ConverterDLL::D3D7HostMemoryExporter::ex
                 ++n_eye)
     {
         if (lock_surface(surface_ptr_array.at(n_eye),
-                        &locked_array.at(n_eye) ) == false)
+                        &locked_array.at     (n_eye) ) == false)
         {
             goto end;
         }
@@ -65,11 +67,16 @@ Stereo::Transport::ExportStatus Stereo::ConverterDLL::D3D7HostMemoryExporter::ex
         ++n_locked;
     }
 
-    if (n_eyes == 2                                                                         &&
-        (locked_array.at(0).description.dwWidth  != locked_array.at(1).description.dwWidth ||
-         locked_array.at(0).description.dwHeight != locked_array.at(1).description.dwHeight) )
+    if (n_eyes == 2)
     {
-        goto end;
+        const auto& left_description  = locked_array.at(0).description;
+        const auto& right_description = locked_array.at(1).description;
+
+        if (left_description.dwWidth  != right_description.dwWidth ||
+            left_description.dwHeight != right_description.dwHeight)
+        {
+            goto end;
+        }
     }
 
     info.frame_index       = in_frame_index;
@@ -135,7 +142,7 @@ uint32_t Stereo::ConverterDLL::D3D7HostMemoryExporter::get_pixel_format(const In
         goto end;
     }
 
-    if (in_pixel_format.dwRGBBitCount == N_BITS_32 &&
+    if (in_pixel_format.dwRGBBitCount == N_BITS_32           &&
         in_pixel_format.dwRBitMask    == MASK_RED_X8R8G8B8   &&
         in_pixel_format.dwGBitMask    == MASK_GREEN_X8R8G8B8 &&
         in_pixel_format.dwBBitMask    == MASK_BLUE_X8R8G8B8)
@@ -143,7 +150,7 @@ uint32_t Stereo::ConverterDLL::D3D7HostMemoryExporter::get_pixel_format(const In
         result = Interception::Hooks::D3D8::D3DFMT_X8R8G8B8;
     }
     else
-    if (in_pixel_format.dwRGBBitCount == N_BITS_16 &&
+    if (in_pixel_format.dwRGBBitCount == N_BITS_16         &&
         in_pixel_format.dwRBitMask    == MASK_RED_R5G6B5   &&
         in_pixel_format.dwGBitMask    == MASK_GREEN_R5G6B5 &&
         in_pixel_format.dwBBitMask    == MASK_BLUE_X1R5G5B5)
@@ -151,7 +158,7 @@ uint32_t Stereo::ConverterDLL::D3D7HostMemoryExporter::get_pixel_format(const In
         result = Interception::Hooks::D3D8::D3DFMT_R5G6B5;
     }
     else
-    if (in_pixel_format.dwRGBBitCount == N_BITS_16 &&
+    if (in_pixel_format.dwRGBBitCount == N_BITS_16           &&
         in_pixel_format.dwRBitMask    == MASK_RED_X1R5G5B5   &&
         in_pixel_format.dwGBitMask    == MASK_GREEN_X1R5G5B5 &&
         in_pixel_format.dwBBitMask    == MASK_BLUE_X1R5G5B5)
@@ -172,10 +179,11 @@ bool Stereo::ConverterDLL::D3D7HostMemoryExporter::lock_surface(void*          i
     void** const vtable = APIInterceptor::get_vtable_ptr(in_surface_ptr);
 
     out_locked_ptr->description        = {};
-    out_locked_ptr->description.dwSize = static_cast<DWORD>(sizeof(out_locked_ptr->description) );
+    out_locked_ptr->description.dwSize = static_cast<DWORD>                                          (sizeof(out_locked_ptr->description) );
     out_locked_ptr->surface_ptr        = static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(in_surface_ptr);
 
-    const auto lock_func = APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_LOCK>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_LOCK);
+    const auto lock_func = APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_LOCK>(vtable,
+                                                                                                                   Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_LOCK);
 
     out_locked_ptr->is_locked = SUCCEEDED(lock_func(out_locked_ptr->surface_ptr,
                                                     nullptr,
@@ -192,8 +200,9 @@ void Stereo::ConverterDLL::D3D7HostMemoryExporter::unlock_surface(LockedSurface*
     {
         void** const vtable = APIInterceptor::get_vtable_ptr(inout_locked_ptr->surface_ptr);
 
-        APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_UNLOCK>(vtable, Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_UNLOCK)(inout_locked_ptr->surface_ptr,
-                                                                                                                                                                nullptr);
+        APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_UNLOCK>(vtable,
+                                                                                                  Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_UNLOCK)(inout_locked_ptr->surface_ptr,
+                                                                                                                                                                      nullptr);
 
         inout_locked_ptr->is_locked = false;
     }
@@ -207,33 +216,41 @@ void Stereo::ConverterDLL::D3D7HostMemoryExporter::wait_for_pace()
      * come), there is no screen to keep time by, and a window which is not flipped keeps none: the application is held to the rate of a screen, or
      * what it does to the time of its music would not be what it does when it is shown.
      */
-    const bool is_paced_by_screen = (is_host_memory_negotiated() &&
-                                     wait_for_screen() );
+    const bool is_negotiated      = is_host_memory_negotiated();
+    bool       is_paced_by_screen = false;
 
-    if (is_paced_by_screen == false &&
-        Environment::is_set("APISTEREO_NO_FRAME_LIMIT") == false) /* a debugging aid: the cost of a frame, with nothing to wait for */
+    if (is_negotiated)
     {
-        LARGE_INTEGER frequency;
-        LARGE_INTEGER now;
+        is_paced_by_screen = wait_for_screen();
+    }
 
-        ::QueryPerformanceFrequency(&frequency);
-        ::QueryPerformanceCounter  (&now);
+    if (is_paced_by_screen == false)
+    {
+        const bool is_limiter_disabled = Environment::is_set("APISTEREO_NO_FRAME_LIMIT"); /* a debugging aid: the cost of a frame, with nothing to wait for */
 
-        const LONGLONG frame_n_ticks = frequency.QuadPart / FALLBACK_N_FRAMES_PER_SECOND;
-        const LONGLONG due_qpc       = m_last_frame_qpc + frame_n_ticks;
-
-        if (m_last_frame_qpc != 0 &&
-            now.QuadPart < due_qpc)
+        if (is_limiter_disabled == false)
         {
-            ::Sleep(static_cast<DWORD>( (due_qpc - now.QuadPart) * 1000 / frequency.QuadPart) );
+            LARGE_INTEGER frequency;
+            LARGE_INTEGER now;
+
+            ::QueryPerformanceFrequency(&frequency);
+            ::QueryPerformanceCounter  (&now);
+
+            const LONGLONG frame_n_ticks = frequency.QuadPart / FALLBACK_N_FRAMES_PER_SECOND;
+            const LONGLONG due_qpc       = m_last_frame_qpc + frame_n_ticks;
+
+            if (m_last_frame_qpc != 0       &&
+                now.QuadPart     <  due_qpc)
+            {
+                ::Sleep(static_cast<DWORD>( (due_qpc - now.QuadPart) * 1000 / frequency.QuadPart) );
+            }
+
+            ::QueryPerformanceCounter(&now);
+
+            m_last_frame_qpc = now.QuadPart;
         }
-
-        ::QueryPerformanceCounter(&now);
-
-        m_last_frame_qpc = now.QuadPart;
     }
     else
-    if (is_paced_by_screen)
     {
         /* The next frame of the limiter is counted from this one if the screen stops keeping time. */
         LARGE_INTEGER now;
@@ -269,7 +286,7 @@ bool Stereo::ConverterDLL::D3D7HostMemoryExporter::write_debug_image(void*      
                 ++n_eye)
     {
         if (lock_surface(surface_ptr_array.at(n_eye),
-                        &locked_array.at(n_eye) ) == false)
+                        &locked_array.at     (n_eye) ) == false)
         {
             goto end;
         }
@@ -290,20 +307,29 @@ bool Stereo::ConverterDLL::D3D7HostMemoryExporter::write_debug_image(void*      
         const auto&    description = locked_array.at(n_eye).description;
         const uint32_t format      = get_pixel_format(description.ddpfPixelFormat);
 
-        if (format == 0                                      ||
-            description.dwWidth  != width                    ||
-            description.dwHeight != height                   ||
-            PixelRowWriter::write_eye(format,
-                                      width,
-                                      height,
-                                      static_cast<const uint8_t*>(description.lpSurface),
-                                      static_cast<uint32_t>(description.lPitch),
-                                      n_eye,
-                                      pixel_u8_vec.data(),
-                                      width * n_eyes * BYTES_PER_PIXEL,
-                                     &scratch_u8_vec) == false)
+        if (format               == 0      ||
+            description.dwWidth  != width  ||
+            description.dwHeight != height)
         {
             goto end;
+        }
+
+        {
+            uint8_t* const pixel_ptr  = pixel_u8_vec.data();
+            const bool     is_written = PixelRowWriter::write_eye(format,
+                                                                  width,
+                                                                  height,
+                                                                  static_cast<const uint8_t*>(description.lpSurface),
+                                                                  static_cast<uint32_t>      (description.lPitch),
+                                                                  n_eye,
+                                                                  pixel_ptr,
+                                                                  width * n_eyes * BYTES_PER_PIXEL,
+                                                                 &scratch_u8_vec);
+
+            if (is_written == false)
+            {
+                goto end;
+            }
         }
     }
 
@@ -329,8 +355,22 @@ bool Stereo::ConverterDLL::D3D7HostMemoryExporter::write_debug_image(void*      
             ::memcpy(header_u8vec54 + 26, &n_planes,         sizeof(n_planes) );
             ::memcpy(header_u8vec54 + 28, &n_bits,           sizeof(n_bits) );
 
-            result = (::fwrite(header_u8vec54, 1, sizeof(header_u8vec54), file_ptr) == sizeof(header_u8vec54) &&
-                      ::fwrite(pixel_u8_vec.data(), 1, pixel_u8_vec.size(), file_ptr) == pixel_u8_vec.size() );
+            const size_t n_header_written = ::fwrite(header_u8vec54,
+                                                     1,
+                                                     sizeof(header_u8vec54),
+                                                     file_ptr);
+
+            if (n_header_written == sizeof(header_u8vec54) )
+            {
+                const size_t   n_pixel_bytes   = pixel_u8_vec.size();
+                const uint8_t* pixel_ptr       = pixel_u8_vec.data();
+                const size_t   n_pixel_written = ::fwrite         (pixel_ptr,
+                                                                   1,
+                                                                   n_pixel_bytes,
+                                                                   file_ptr);
+
+                result = (n_pixel_written == n_pixel_bytes);
+            }
 
             ::fclose(file_ptr);
         }
@@ -354,16 +394,23 @@ bool Stereo::ConverterDLL::D3D7HostMemoryExporter::write_eye(const LockedSurface
 {
     const auto&    description = in_locked.description;
     const uint32_t format      = get_pixel_format(description.ddpfPixelFormat);
+    bool           result      = false;
 
-    return (format != 0                         &&
-            description.lpSurface != nullptr    &&
-            PixelRowWriter::write_eye(format,
-                                      description.dwWidth,
-                                      description.dwHeight,
-                                      static_cast<const uint8_t*>(description.lpSurface),
-                                      static_cast<uint32_t>(description.lPitch),
-                                      in_eye,
-                                      out_destination_ptr,
-                                      in_pitch,
-                                     &m_converted_u8_vec_array.at(in_eye) ) );
+    if (format                != 0       &&
+        description.lpSurface != nullptr)
+    {
+        std::vector<uint8_t>* const scratch_ptr = &m_converted_u8_vec_array.at(in_eye);
+
+        result = PixelRowWriter::write_eye(format,
+                                           description.dwWidth,
+                                           description.dwHeight,
+                                           static_cast<const uint8_t*>(description.lpSurface),
+                                           static_cast<uint32_t>      (description.lPitch),
+                                           in_eye,
+                                           out_destination_ptr,
+                                           in_pitch,
+                                           scratch_ptr);
+    }
+
+    return result;
 }

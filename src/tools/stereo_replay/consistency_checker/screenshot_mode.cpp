@@ -31,6 +31,7 @@ bool Stereo::Replay::ConsistencyChecker::take_contact_sheet(const Stereo::Replay
     std::vector<uint32_t>                       shown_frame_vec;
     Utils::Images::Image                        sheet_image;
     std::vector<Utils::Images::Image>           tile_image_vec;
+
     Stereo::Replay::ConsistencyChecker::FrameHashSink sink(true); /* in_keeps_images */
 
     /* The end of the workload: the range of the options may go beyond it. */
@@ -62,8 +63,8 @@ bool Stereo::Replay::ConsistencyChecker::take_contact_sheet(const Stereo::Replay
         goto end;
     }
 
-    frame_set.insert(frame_vec.begin(),
-                     frame_vec.end() );
+    frame_set.insert       (frame_vec.begin(),
+                            frame_vec.end() );
     sink.set_frames_to_keep(frame_set);
 
     options.first_frame = frame_vec.front();
@@ -119,7 +120,7 @@ bool Stereo::Replay::ConsistencyChecker::take_contact_sheet(const Stereo::Replay
     /* About as many tiles across as down; a tile with both eyes is twice as wide as one with an eye. */
     n_columns = static_cast<uint32_t>(std::ceil(std::sqrt(static_cast<double>(tile_image_vec.size() ) ) ) );
 
-    if (uses_recipe                                                                                                            &&
+    if (uses_recipe                                                                               &&
         (in_options.has_eye_view == false || in_options.eye_view == Utils::Images::EyeView::BOTH) )
     {
         n_columns = std::max<uint32_t>(1,
@@ -138,7 +139,9 @@ bool Stereo::Replay::ConsistencyChecker::take_contact_sheet(const Stereo::Replay
     if (Utils::Images::PngWriter::write_file(in_options.image_filename,
                                              sheet_image) == false)
     {
-        *out_error_ptr = "The file " + in_options.image_filename + " cannot be written.";
+        *out_error_ptr = "The file "               +
+                         in_options.image_filename +
+                         " cannot be written.";
 
         goto end;
     }
@@ -183,7 +186,9 @@ bool Stereo::Replay::ConsistencyChecker::take_screenshot(const Stereo::Replay::C
 
     if (image.width == 0)
     {
-        *out_error_ptr = "The workload has no frame " + std::to_string(in_options.screenshot_frame) + ".";
+        *out_error_ptr = "The workload has no frame "                +
+                         std::to_string(in_options.screenshot_frame) +
+                         ".";
 
         goto end;
     }
@@ -209,7 +214,9 @@ bool Stereo::Replay::ConsistencyChecker::take_screenshot(const Stereo::Replay::C
     if (Utils::Images::PngWriter::write_file(in_options.image_filename,
                                              image) == false)
     {
-        *out_error_ptr = "The file " + in_options.image_filename + " cannot be written.";
+        *out_error_ptr = "The file "               +
+                         in_options.image_filename +
+                         " cannot be written.";
 
         goto end;
     }

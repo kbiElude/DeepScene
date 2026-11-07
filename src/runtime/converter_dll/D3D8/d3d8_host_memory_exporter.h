@@ -105,27 +105,28 @@ namespace Stereo
             /* Copies the rows of the surfaces of the job to the channel. */
             void write_job();
 
-            std::condition_variable m_condition;           /* wakes the thread                                   */
-            std::condition_variable m_done_condition;      /* wakes the application when the job is done         */
-            uint8_t*                m_eye_destination_ptr; /* of the work of the thread of the right eye   */
-            std::condition_variable m_eye_condition;       /* wakes the thread of the right eye                  */
-            std::condition_variable m_eye_done_condition;
-            bool                    m_eye_is_ok;
-            std::mutex              m_eye_mutex;           /* guards the state of the work of the right eye      */
-            uint32_t                m_eye_pitch;
-            ExportJobState          m_eye_state;
-            std::thread             m_eye_thread;
-            bool                    m_is_eye_stopping;
+            std::condition_variable                  m_condition;           /* wakes the thread                                   */
+            std::condition_variable                  m_done_condition;      /* wakes the application when the job is done         */
+            uint8_t*                                 m_eye_destination_ptr; /* of the work of the thread of the right eye   */
+            std::condition_variable                  m_eye_condition;       /* wakes the thread of the right eye                  */
+            std::condition_variable                  m_eye_done_condition;
+            bool                                     m_eye_is_ok;
+            std::mutex                               m_eye_mutex;           /* guards the state of the work of the right eye      */
+            uint32_t                                 m_eye_pitch;
+            ExportJobState                           m_eye_state;
+            std::thread                              m_eye_thread;
+            bool                                     m_is_eye_stopping;
+
             std::array<std::vector<uint8_t>, N_EYES>        m_converted_u8_vec_array; /* of the threads: one for each eye */
-            Utils::Statistics::SeriesStats m_issue_cost;       /* of asking the device for the copies, ms */
-            Utils::Statistics::SeriesStats m_job_wait;         /* of waiting for the thread, ms           */
-            Job                            m_job;
-            ExportJobState                 m_job_state;
-            uint32_t                       m_job_set;          /* which set of surfaces the job is of */
-            Utils::Statistics::SeriesStats m_lock_cost;        /* of locking the surfaces, ms            */
-            Utils::Statistics::SeriesStats m_pace_wait;        /* of waiting for the screen, ms          */
-            std::mutex                     m_mutex;            /* guards the state of the job, and the series of the thread */
-            uint32_t                       m_next_set;
+            Utils::Statistics::SeriesStats                  m_issue_cost;       /* of asking the device for the copies, ms */
+            Utils::Statistics::SeriesStats                  m_job_wait;         /* of waiting for the thread, ms           */
+            Job                                             m_job;
+            ExportJobState                                  m_job_state;
+            uint32_t                                        m_job_set;          /* which set of surfaces the job is of */
+            Utils::Statistics::SeriesStats                  m_lock_cost;        /* of locking the surfaces, ms            */
+            Utils::Statistics::SeriesStats                  m_pace_wait;        /* of waiting for the screen, ms          */
+            std::mutex                                      m_mutex;            /* guards the state of the job, and the series of the thread */
+            uint32_t                                        m_next_set;
             std::array<std::array<Staging, N_EYES>, N_SETS> m_staging_array;
             bool                                            m_is_stopping;
             std::thread                                     m_thread;

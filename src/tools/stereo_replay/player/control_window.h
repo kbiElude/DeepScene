@@ -51,7 +51,7 @@ namespace Stereo
                                            const UINT&                   in_message,
                                            const WPARAM&                 in_wparam,
                                            const LPARAM&                 in_lparam,
-                                           LRESULT*                      out_result_ptr) override;
+                                           LRESULT*                      out_result_ptr)   override;
                 void on_resized_to_content()                                               override;
 
             private:

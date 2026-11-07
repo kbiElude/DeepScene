@@ -288,9 +288,10 @@ int Analysis::APIDumpAnalysisQuery::run(int   in_argc,
     {
         const std::string workload_filename = (options.workload_filename.empty() ) ? analysis.workload_reference.filename
                                                                                    : options.workload_filename;
-        const auto        match             = Analysis::APIDumpAnalysis::WorkloadIdentity::verify(workload_filename,
-                                                                                                    analysis.workload_reference,
-                                                                                                   &error);
+
+        const auto match = Analysis::APIDumpAnalysis::WorkloadIdentity::verify(workload_filename,
+                                                                               analysis.workload_reference,
+                                                                              &error);
 
         if (match == Analysis::APIDumpAnalysis::WorkloadMatch::MISMATCH)
         {

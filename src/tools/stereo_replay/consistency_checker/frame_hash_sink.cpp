@@ -31,17 +31,21 @@ void Stereo::Replay::ConsistencyChecker::FrameHashSink::on_frame_image(const uin
                                                                        const Stereo::Replay::EngineDLL::FrameImage& in_image)
 {
     constexpr size_t N_BYTES_PER_PIXEL = 4;
+    const size_t     n_bytes           = static_cast<size_t>(in_image.width) * in_image.height * N_BYTES_PER_PIXEL;
 
-    const size_t   n_bytes = static_cast<size_t>(in_image.width) * in_image.height * N_BYTES_PER_PIXEL;
     const ImageKey key(in_n_frame,
                        in_n_execution);
 
     m_hash_map[key] = Utils::Hashing::Hasher::hash_bytes(in_image.pixel_ptr,
                                                          n_bytes);
 
-    if (m_keeps_images                                                   &&
-        (m_frame_to_keep_set.empty()                                     ||
-         m_frame_to_keep_set.find(in_n_frame) != m_frame_to_keep_set.end() ) )
+    const auto keep_end           = m_frame_to_keep_set.end();
+    const auto keep_iterator      = m_frame_to_keep_set.find(in_n_frame);
+    const bool is_selection_empty = m_frame_to_keep_set.empty();
+
+    if (m_keeps_images                         &&
+        (is_selection_empty                    ||
+         keep_iterator != keep_end) )
     {
         Utils::Images::Image image;
 

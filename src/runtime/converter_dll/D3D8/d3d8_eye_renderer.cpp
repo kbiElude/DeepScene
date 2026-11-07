@@ -20,7 +20,7 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::apply_matrices(void*           in_de
     constexpr size_t STATE_ARGUMENT_INDEX = 1;
 
     const auto set_transform_func = APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_SETTRANSFORM>(in_device_ptr,
-                                                                                                                Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_SETTRANSFORM);
+                                                                                                                                 Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_SETTRANSFORM);
 
     for (uint32_t n_change = 0;
                   n_change < in_n_changes;
@@ -29,7 +29,7 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::apply_matrices(void*           in_de
         const auto& change = m_change_vec.at(n_change);
 
         set_transform_func(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>    (in_device_ptr),
-                           static_cast<Interception::Hooks::D3D8::D3DTRANSFORMSTATETYPE>(change.argument_vec.at(STATE_ARGUMENT_INDEX).get_u32() ),
+                           static_cast<Interception::Hooks::D3D8::D3DTRANSFORMSTATETYPE>(change.argument_vec.at      (STATE_ARGUMENT_INDEX).get_u32() ),
                            reinterpret_cast<const Interception::Hooks::D3D8::D3DMATRIX*>(change.matrix_fp32vec16.data() ));
     }
 }
@@ -40,7 +40,7 @@ void* Stereo::ConverterDLL::D3D8EyeRenderer::get_back_buffer_twin_ptr(void* in_d
     void*                                         result_ptr      = nullptr;
 
     const auto get_back_buffer_func = APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_GETBACKBUFFER>(in_device_ptr,
-                                                                                                                   Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_GETBACKBUFFER);
+                                                                                                                                    Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_GETBACKBUFFER);
 
     if (SUCCEEDED(get_back_buffer_func(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(in_device_ptr),
                                        0, /* BackBuffer */
@@ -50,7 +50,7 @@ void* Stereo::ConverterDLL::D3D8EyeRenderer::get_back_buffer_twin_ptr(void* in_d
         result_ptr = get_twin_ptr(back_buffer_ptr);
 
         APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_RELEASE>(back_buffer_ptr,
-                                                                                 Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_RELEASE)(back_buffer_ptr);
+                                                                                                 Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_RELEASE)(back_buffer_ptr);
     }
 
     return result_ptr;
@@ -109,8 +109,8 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::handle_create_device(const APIInterc
     {
         /* What the device renders to to begin with is a back buffer and a depth buffer that the application never asked for. */
         if (SUCCEEDED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_GETRENDERTARGET>(m_device_ptr,
-                                                                                                     Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_GETRENDERTARGET)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(m_device_ptr),
-                                                                                                                                                                              &render_target_ptr) ))
+                                                                                                                      Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_GETRENDERTARGET)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(m_device_ptr),
+                                                                                                                                                                                               &render_target_ptr) ))
         {
             make_surface_twin_ptr(m_device_ptr,
                                   render_target_ptr);
@@ -120,8 +120,8 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::handle_create_device(const APIInterc
         }
 
         if (SUCCEEDED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_GETDEPTHSTENCILSURFACE>(m_device_ptr,
-                                                                                                            Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_GETDEPTHSTENCILSURFACE)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(m_device_ptr),
-                                                                                                                                                                                            &depth_ptr) ))
+                                                                                                                             Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_GETDEPTHSTENCILSURFACE)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(m_device_ptr),
+                                                                                                                                                                                                             &depth_ptr) ))
         {
             make_surface_twin_ptr(m_device_ptr,
                                   depth_ptr);
@@ -141,7 +141,7 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::handle_create_texture(const APIInter
     constexpr size_t USAGE_ARGUMENT_INDEX   = 4;
     constexpr size_t WIDTH_ARGUMENT_INDEX   = 1;
 
-    void* const    texture_ptr = const_cast<void*>(in_arguments_ptr[TEXTURE_ARGUMENT_INDEX].get_ptr() );
+    void* const    texture_ptr = const_cast<void*>                             (in_arguments_ptr[TEXTURE_ARGUMENT_INDEX].get_ptr() );
     const uint32_t usage       = in_arguments_ptr[USAGE_ARGUMENT_INDEX].get_u32();
 
     if (texture_ptr                                                != nullptr &&
@@ -151,14 +151,14 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::handle_create_texture(const APIInter
         Interception::Hooks::D3D8::IDirect3DTexture8* twin_ptr   = nullptr;
 
         if (SUCCEEDED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_CREATETEXTURE>(device_ptr,
-                                                                                                   Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_CREATETEXTURE)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(device_ptr),
-                                                                                                                                                                           in_arguments_ptr[WIDTH_ARGUMENT_INDEX].get_u32           (),
-                                                                                                                                                                           in_arguments_ptr[HEIGHT_ARGUMENT_INDEX].get_u32          (),
-                                                                                                                                                                           in_arguments_ptr[LEVELS_ARGUMENT_INDEX].get_u32          (),
-                                                                                                                                                                           in_arguments_ptr[USAGE_ARGUMENT_INDEX].get_u32           (),
-                                                                                                                                                                           static_cast<Interception::Hooks::D3D8::D3DFORMAT>        (in_arguments_ptr[FORMAT_ARGUMENT_INDEX].get_u32() ),
-                                                                                                                                                                           static_cast<Interception::Hooks::D3D8::D3DPOOL>          (in_arguments_ptr[POOL_ARGUMENT_INDEX].get_u32  () ),
-                                                                                                                                                                          &twin_ptr) ))
+                                                                                                                    Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_CREATETEXTURE)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(device_ptr),
+                                                                                                                                                                                            in_arguments_ptr[WIDTH_ARGUMENT_INDEX].get_u32           (),
+                                                                                                                                                                                            in_arguments_ptr[HEIGHT_ARGUMENT_INDEX].get_u32          (),
+                                                                                                                                                                                            in_arguments_ptr[LEVELS_ARGUMENT_INDEX].get_u32          (),
+                                                                                                                                                                                            in_arguments_ptr[USAGE_ARGUMENT_INDEX].get_u32           (),
+                                                                                                                                                                                            static_cast<Interception::Hooks::D3D8::D3DFORMAT>        (in_arguments_ptr[FORMAT_ARGUMENT_INDEX].get_u32() ),
+                                                                                                                                                                                            static_cast<Interception::Hooks::D3D8::D3DPOOL>          (in_arguments_ptr[POOL_ARGUMENT_INDEX].get_u32  () ),
+                                                                                                                                                                                           &twin_ptr) ))
         {
             m_twin_map[texture_ptr] = twin_ptr;
         }
@@ -192,9 +192,9 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::handle_get_surface_level(const APIIn
         Interception::Hooks::D3D8::IDirect3DSurface8* twin_ptr = nullptr;
 
         if (SUCCEEDED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DTEXTURE8_GETSURFACELEVEL>(texture_twin_ptr,
-                                                                                                      Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DTEXTURE8_GETSURFACELEVEL)(static_cast<Interception::Hooks::D3D8::IDirect3DTexture8*>(texture_twin_ptr),
-                                                                                                                                                                                 in_arguments_ptr[LEVEL_ARGUMENT_INDEX].get_u32(),
-                                                                                                                                                                                &twin_ptr) ))
+                                                                                                                       Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DTEXTURE8_GETSURFACELEVEL)(static_cast<Interception::Hooks::D3D8::IDirect3DTexture8*>(texture_twin_ptr),
+                                                                                                                                                                                                  in_arguments_ptr[LEVEL_ARGUMENT_INDEX].get_u32(),
+                                                                                                                                                                                                 &twin_ptr) ))
         {
             m_twin_map[surface_ptr] = twin_ptr;
         }
@@ -215,10 +215,10 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::handle_update_texture(const APIInter
         void* const device_ptr = const_cast<void*>(in_arguments_ptr[0].get_ptr() );
 
         APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_UPDATETEXTURE>(device_ptr,
-                                                                                      Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_UPDATETEXTURE)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>     (device_ptr),
-                                                                                                                                                              static_cast<Interception::Hooks::D3D8::IDirect3DBaseTexture8*>((source_twin_ptr != nullptr) ? source_twin_ptr
-                                                                                                                                                                                                                                                          : source_ptr),
-                                                                                                                                                              static_cast<Interception::Hooks::D3D8::IDirect3DBaseTexture8*>(destination_twin_ptr));
+                                                                                                      Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_UPDATETEXTURE)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>     (device_ptr),
+                                                                                                                                                                              static_cast<Interception::Hooks::D3D8::IDirect3DBaseTexture8*>((source_twin_ptr != nullptr) ? source_twin_ptr
+                                                                                                                                                                                                                                                                          : source_ptr),
+                                                                                                                                                                              static_cast<Interception::Hooks::D3D8::IDirect3DBaseTexture8*>(destination_twin_ptr));
     }
 }
 
@@ -231,30 +231,30 @@ void* Stereo::ConverterDLL::D3D8EyeRenderer::make_surface_twin_ptr(void* in_devi
     if (get_twin_ptr(in_surface_ptr) == nullptr)
     {
         if (SUCCEEDED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_GETDESC>(in_surface_ptr,
-                                                                                              Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_GETDESC)(static_cast<Interception::Hooks::D3D8::IDirect3DSurface8*>(in_surface_ptr),
-                                                                                                                                                                &description) ))
+                                                                                                               Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_GETDESC)(static_cast<Interception::Hooks::D3D8::IDirect3DSurface8*>(in_surface_ptr),
+                                                                                                                                                                                 &description) ))
         {
             if ((description.Usage & Interception::Hooks::D3D8::D3DUSAGE_DEPTHSTENCIL) != 0)
             {
                 APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_CREATEDEPTHSTENCILSURFACE>(in_device_ptr,
-                                                                                                          Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_CREATEDEPTHSTENCILSURFACE)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(in_device_ptr),
-                                                                                                                                                                                              description.Width,
-                                                                                                                                                                                              description.Height,
-                                                                                                                                                                                              description.Format,
-                                                                                                                                                                                              description.MultiSampleType,
-                                                                                                                                                                                             &twin_ptr);
+                                                                                                                          Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_CREATEDEPTHSTENCILSURFACE)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(in_device_ptr),
+                                                                                                                                                                                                              description.Width,
+                                                                                                                                                                                                              description.Height,
+                                                                                                                                                                                                              description.Format,
+                                                                                                                                                                                                              description.MultiSampleType,
+                                                                                                                                                                                                             &twin_ptr);
             }
             else
             if ((description.Usage & Interception::Hooks::D3D8::D3DUSAGE_RENDERTARGET) != 0)
             {
                 APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_CREATERENDERTARGET>(in_device_ptr,
-                                                                                                   Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_CREATERENDERTARGET)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(in_device_ptr),
-                                                                                                                                                                                description.Width,
-                                                                                                                                                                                description.Height,
-                                                                                                                                                                                description.Format,
-                                                                                                                                                                                description.MultiSampleType,
-                                                                                                                                                                                FALSE, /* Lockable */
-                                                                                                                                                                               &twin_ptr);
+                                                                                                                   Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_CREATERENDERTARGET)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(in_device_ptr),
+                                                                                                                                                                                                description.Width,
+                                                                                                                                                                                                description.Height,
+                                                                                                                                                                                                description.Format,
+                                                                                                                                                                                                description.MultiSampleType,
+                                                                                                                                                                                                FALSE, /* Lockable */
+                                                                                                                                                                                               &twin_ptr);
             }
         }
 
@@ -507,10 +507,14 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::play_right_eye(const APIInterceptor:
     void*                                        twin_target_ptr    = nullptr;
     Interception::Hooks::D3D8::D3DVIEWPORT8      viewport           = {};
 
-    const auto get_viewport_func      = APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_GETVIEWPORT>    (device_ptr, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_GETVIEWPORT);
-    const auto set_render_target_func = APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_SETRENDERTARGET>(device_ptr, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_SETRENDERTARGET);
-    const auto set_texture_func       = APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_SETTEXTURE>     (device_ptr, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_SETTEXTURE);
-    const auto set_viewport_func      = APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_SETVIEWPORT>    (device_ptr, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_SETVIEWPORT);
+    const auto get_viewport_func      = APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_GETVIEWPORT>    (device_ptr,
+                                                                                                                                        Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_GETVIEWPORT);
+    const auto set_render_target_func = APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_SETRENDERTARGET>(device_ptr,
+                                                                                                                                        Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_SETRENDERTARGET);
+    const auto set_texture_func       = APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_SETTEXTURE>     (device_ptr,
+                                                                                                                                        Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_SETTEXTURE);
+    const auto set_viewport_func      = APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_SETVIEWPORT>    (device_ptr,
+                                                                                                                                        Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_SETVIEWPORT);
 
     twin_target_ptr = get_twin_ptr(m_mirror.render_target_ptr);
     twin_depth_ptr  = (m_mirror.depth_stencil_ptr != nullptr) ? get_twin_ptr(m_mirror.depth_stencil_ptr)
@@ -596,13 +600,13 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::repeat_call(const APIInterceptor::AP
         case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_CLEAR:
         {
             APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_CLEAR>(device_ptr,
-                                                                                  Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_CLEAR)(device,
-                                                                                                                                                  in_arguments_ptr[1].get_u32                           (),
-                                                                                                                                                  static_cast<const Interception::Hooks::D3D8::D3DRECT*>(in_arguments_ptr[2].get_ptr() ),
-                                                                                                                                                  in_arguments_ptr[3].get_u32                           (),
-                                                                                                                                                  in_arguments_ptr[4].get_u32                           (),
-                                                                                                                                                  in_arguments_ptr[5].get_fp32                          (),
-                                                                                                                                                  in_arguments_ptr[6].get_u32                           () );
+                                                                                                  Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_CLEAR)(device,
+                                                                                                                                                                  in_arguments_ptr[1].get_u32                           (),
+                                                                                                                                                                  static_cast<const Interception::Hooks::D3D8::D3DRECT*>(in_arguments_ptr[2].get_ptr() ),
+                                                                                                                                                                  in_arguments_ptr[3].get_u32                           (),
+                                                                                                                                                                  in_arguments_ptr[4].get_u32                           (),
+                                                                                                                                                                  in_arguments_ptr[5].get_fp32                          (),
+                                                                                                                                                                  in_arguments_ptr[6].get_u32                           () );
 
             break;
         }
@@ -610,12 +614,12 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::repeat_call(const APIInterceptor::AP
         case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_DRAWINDEXEDPRIMITIVE:
         {
             APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_DRAWINDEXEDPRIMITIVE>(device_ptr,
-                                                                                                 Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_DRAWINDEXEDPRIMITIVE)(device,
-                                                                                                                                                                                static_cast<Interception::Hooks::D3D8::D3DPRIMITIVETYPE>(in_arguments_ptr[1].get_u32() ),
-                                                                                                                                                                                in_arguments_ptr[2].get_u32                             (),
-                                                                                                                                                                                in_arguments_ptr[3].get_u32                             (),
-                                                                                                                                                                                in_arguments_ptr[4].get_u32                             (),
-                                                                                                                                                                                in_arguments_ptr[5].get_u32                             () );
+                                                                                                                 Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_DRAWINDEXEDPRIMITIVE)(device,
+                                                                                                                                                                                                static_cast<Interception::Hooks::D3D8::D3DPRIMITIVETYPE>(in_arguments_ptr[1].get_u32() ),
+                                                                                                                                                                                                in_arguments_ptr[2].get_u32                             (),
+                                                                                                                                                                                                in_arguments_ptr[3].get_u32                             (),
+                                                                                                                                                                                                in_arguments_ptr[4].get_u32                             (),
+                                                                                                                                                                                                in_arguments_ptr[5].get_u32                             () );
 
             break;
         }
@@ -623,15 +627,15 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::repeat_call(const APIInterceptor::AP
         case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_DRAWINDEXEDPRIMITIVEUP:
         {
             APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_DRAWINDEXEDPRIMITIVEUP>(device_ptr,
-                                                                                                   Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_DRAWINDEXEDPRIMITIVEUP)(device,
-                                                                                                                                                                                    static_cast<Interception::Hooks::D3D8::D3DPRIMITIVETYPE>(in_arguments_ptr[1].get_u32() ),
-                                                                                                                                                                                    in_arguments_ptr[2].get_u32                             (),
-                                                                                                                                                                                    in_arguments_ptr[3].get_u32                             (),
-                                                                                                                                                                                    in_arguments_ptr[4].get_u32                             (),
-                                                                                                                                                                                    in_arguments_ptr[5].get_ptr                             (),
-                                                                                                                                                                                    static_cast<Interception::Hooks::D3D8::D3DFORMAT>       (in_arguments_ptr[6].get_u32() ),
-                                                                                                                                                                                    in_arguments_ptr[7].get_ptr                             (),
-                                                                                                                                                                                    in_arguments_ptr[8].get_u32                             () );
+                                                                                                                   Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_DRAWINDEXEDPRIMITIVEUP)(device,
+                                                                                                                                                                                                    static_cast<Interception::Hooks::D3D8::D3DPRIMITIVETYPE>(in_arguments_ptr[1].get_u32() ),
+                                                                                                                                                                                                    in_arguments_ptr[2].get_u32                             (),
+                                                                                                                                                                                                    in_arguments_ptr[3].get_u32                             (),
+                                                                                                                                                                                                    in_arguments_ptr[4].get_u32                             (),
+                                                                                                                                                                                                    in_arguments_ptr[5].get_ptr                             (),
+                                                                                                                                                                                                    static_cast<Interception::Hooks::D3D8::D3DFORMAT>       (in_arguments_ptr[6].get_u32() ),
+                                                                                                                                                                                                    in_arguments_ptr[7].get_ptr                             (),
+                                                                                                                                                                                                    in_arguments_ptr[8].get_u32                             () );
 
             break;
         }
@@ -639,10 +643,10 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::repeat_call(const APIInterceptor::AP
         case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_DRAWPRIMITIVE:
         {
             APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_DRAWPRIMITIVE>(device_ptr,
-                                                                                          Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_DRAWPRIMITIVE)(device,
-                                                                                                                                                                  static_cast<Interception::Hooks::D3D8::D3DPRIMITIVETYPE>(in_arguments_ptr[1].get_u32() ),
-                                                                                                                                                                  in_arguments_ptr[2].get_u32                             (),
-                                                                                                                                                                  in_arguments_ptr[3].get_u32                             () );
+                                                                                                          Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_DRAWPRIMITIVE)(device,
+                                                                                                                                                                                  static_cast<Interception::Hooks::D3D8::D3DPRIMITIVETYPE>(in_arguments_ptr[1].get_u32() ),
+                                                                                                                                                                                  in_arguments_ptr[2].get_u32                             (),
+                                                                                                                                                                                  in_arguments_ptr[3].get_u32                             () );
 
             break;
         }
@@ -650,11 +654,11 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::repeat_call(const APIInterceptor::AP
         case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_DRAWPRIMITIVEUP:
         {
             APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_DRAWPRIMITIVEUP>(device_ptr,
-                                                                                            Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_DRAWPRIMITIVEUP)(device,
-                                                                                                                                                                      static_cast<Interception::Hooks::D3D8::D3DPRIMITIVETYPE>(in_arguments_ptr[1].get_u32() ),
-                                                                                                                                                                      in_arguments_ptr[2].get_u32                             (),
-                                                                                                                                                                      in_arguments_ptr[3].get_ptr                             (),
-                                                                                                                                                                      in_arguments_ptr[4].get_u32                             () );
+                                                                                                            Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_DRAWPRIMITIVEUP)(device,
+                                                                                                                                                                                      static_cast<Interception::Hooks::D3D8::D3DPRIMITIVETYPE>(in_arguments_ptr[1].get_u32() ),
+                                                                                                                                                                                      in_arguments_ptr[2].get_u32                             (),
+                                                                                                                                                                                      in_arguments_ptr[3].get_ptr                             (),
+                                                                                                                                                                                      in_arguments_ptr[4].get_u32                             () );
 
             break;
         }

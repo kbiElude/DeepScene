@@ -55,7 +55,7 @@ bool Stereo::Replay::Player::EyeImageBuffer::submit(const uint32_t&             
                       n_published_eye < N_EYES;
                     ++n_published_eye)
         {
-            const bool is_shown = (m_eye_mode == EyeMode::BOTH ||
+            const bool is_shown = (m_eye_mode      == EyeMode::BOTH ||
                                    n_published_eye == n_eye);
 
             if (is_shown)

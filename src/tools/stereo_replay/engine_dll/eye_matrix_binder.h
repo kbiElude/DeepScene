@@ -31,8 +31,8 @@ namespace Stereo
             class EyeMatrixBinder
             {
             public:
-                typedef std::function<bool(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                           const ::Replay::ReplayEngineDLL::IChunkSource&                 in_chunk_source)> ExecuteFunc;
+                typedef std::function<bool(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
+                                           const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source)> ExecuteFunc;
 
                 EyeMatrixBinder(const FrameRewriter& in_rewriter,
                                 const ExecuteFunc&   in_execute_func);
@@ -83,8 +83,8 @@ namespace Stereo
 
                 static SlotKey get_slot_key(const Capture::APIDumpLoader::DumpedAPICall& in_call);
 
-                ExecuteFunc                          m_execute_func;
-                const FrameRewriter&                 m_rewriter;
+                ExecuteFunc                               m_execute_func;
+                const FrameRewriter&                      m_rewriter;
                 std::map<SlotKey, std::unique_ptr<Slot> > m_slot_map;
             };
         }

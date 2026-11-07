@@ -99,11 +99,12 @@ bool Stereo::ConverterDLL::D3D8HostMemoryExporter::ensure_staging(void*         
     release_staging(inout_staging_ptr);
 
     /* The surface may not be lockable; a system memory copy of it always is. */
-    if (SUCCEEDED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_CREATEIMAGESURFACE>(device_vtable, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_CREATEIMAGESURFACE)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(in_device_ptr),
-                                                                                                                                                                                                      in_description.Width,
-                                                                                                                                                                                                      in_description.Height,
-                                                                                                                                                                                                      in_description.Format,
-                                                                                                                                                                                                     &inout_staging_ptr->surface_ptr) ))
+    if (SUCCEEDED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_CREATEIMAGESURFACE>(device_vtable,
+                                                                                                                     Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_CREATEIMAGESURFACE)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(in_device_ptr),
+                                                                                                                                                                                                  in_description.Width,
+                                                                                                                                                                                                  in_description.Height,
+                                                                                                                                                                                                  in_description.Format,
+                                                                                                                                                                                                 &inout_staging_ptr->surface_ptr) ))
     {
         inout_staging_ptr->description = in_description;
         result                         = true;
@@ -126,8 +127,10 @@ Stereo::Transport::ExportStatus Stereo::ConverterDLL::D3D8HostMemoryExporter::ex
     std::array<void*, N_EYES>                                      surface_ptr_array = {in_source.left_surface_ptr, in_source.right_surface_ptr};
     void** const                                                   device_vtable     = APIInterceptor::get_vtable_ptr(in_source.api_device_ptr);
 
-    const auto get_back_buffer_func = APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_GETBACKBUFFER>(device_vtable, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_GETBACKBUFFER);
-    const auto copy_rects_func      = APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_COPYRECTS>     (device_vtable, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_COPYRECTS);
+    const auto copy_rects_func      = APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_COPYRECTS>    (device_vtable,
+                                                                                                                                    Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_COPYRECTS);
+    const auto get_back_buffer_func = APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_GETBACKBUFFER>(device_vtable,
+                                                                                                                                    Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_GETBACKBUFFER);
 
     /* The other side has not said that it takes what the exporter passes on: not a failure, the frame is left out. */
     if (is_host_memory_negotiated() == false)
@@ -160,8 +163,9 @@ Stereo::Transport::ExportStatus Stereo::ConverterDLL::D3D8HostMemoryExporter::ex
     {
         void** const surface_vtable = APIInterceptor::get_vtable_ptr(surface_ptr_array.at(n_eye) );
 
-        if (FAILED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_GETDESC>(surface_vtable, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_GETDESC)(static_cast<Interception::Hooks::D3D8::IDirect3DSurface8*>(surface_ptr_array.at(n_eye) ),
-                                                                                                                                                                                &description_array.at(n_eye) ) ))
+        if (FAILED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_GETDESC>(surface_vtable,
+                                                                                                            Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_GETDESC)(static_cast<Interception::Hooks::D3D8::IDirect3DSurface8*>(surface_ptr_array.at(n_eye) ),
+                                                                                                                                                                              &description_array.at(n_eye) ) ))
         {
             goto end;
         }
@@ -267,7 +271,8 @@ end:
     {
         void** const vtable = APIInterceptor::get_vtable_ptr(back_buffer_ptr);
 
-        APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_RELEASE>(vtable, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_RELEASE)(back_buffer_ptr);
+        APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_RELEASE>(vtable,
+                                                                                                 Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_RELEASE)(back_buffer_ptr);
     }
 
     return result;
@@ -281,10 +286,11 @@ bool Stereo::ConverterDLL::D3D8HostMemoryExporter::lock_staging(Staging*        
     bool                                      result      = false;
     void** const                              vtable      = APIInterceptor::get_vtable_ptr(inout_staging_ptr->surface_ptr);
 
-    if (SUCCEEDED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_LOCKRECT>(vtable, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_LOCKRECT)(inout_staging_ptr->surface_ptr,
-                                                                                                                                                                       &locked_rect,
-                                                                                                                                                                        nullptr,
-                                                                                                                                                                        Interception::Hooks::D3D8::D3DLOCK_READONLY) ))
+    if (SUCCEEDED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_LOCKRECT>(vtable,
+                                                                                                            Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_LOCKRECT)(inout_staging_ptr->surface_ptr,
+                                                                                                                                                                               &locked_rect,
+                                                                                                                                                                                nullptr,
+                                                                                                                                                                                Interception::Hooks::D3D8::D3DLOCK_READONLY) ))
     {
         *out_bits_ptr_ptr           = static_cast<const uint8_t*>(locked_rect.pBits);
         *out_pitch_ptr              = static_cast<uint32_t>(locked_rect.Pitch);
@@ -301,7 +307,8 @@ void Stereo::ConverterDLL::D3D8HostMemoryExporter::release_staging(Staging* inou
     {
         void** const vtable = APIInterceptor::get_vtable_ptr(inout_staging_ptr->surface_ptr);
 
-        APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_RELEASE>(vtable, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_RELEASE)(inout_staging_ptr->surface_ptr);
+        APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_RELEASE>(vtable,
+                                                                                                 Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_RELEASE)(inout_staging_ptr->surface_ptr);
     }
 
     *inout_staging_ptr = Staging();
@@ -315,7 +322,8 @@ void Stereo::ConverterDLL::D3D8HostMemoryExporter::run_eye_thread()
     {
         const auto is_eye_job_queued_func = [this]()
         {
-            return (m_is_eye_stopping || m_eye_state == ExportJobState::QUEUED);
+            return (m_is_eye_stopping                           ||
+                    m_eye_state       == ExportJobState::QUEUED);
         };
 
         m_eye_condition.wait(lock,
@@ -354,7 +362,8 @@ void Stereo::ConverterDLL::D3D8HostMemoryExporter::run_thread()
     {
         const auto is_job_queued_func = [this]()
         {
-            return (m_is_stopping || m_job_state == ExportJobState::QUEUED);
+            return (m_is_stopping                            ||
+                    m_job_state   == ExportJobState::QUEUED);
         };
 
         m_condition.wait(lock,
@@ -383,14 +392,14 @@ std::string Stereo::ConverterDLL::D3D8HostMemoryExporter::take_timing_text()
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    return m_issue_cost.take_text("asking for the copies") +
-           "; "                                            +
-           m_lock_cost.take_text ("locking")               +
-           "; "                                            +
-           m_job_wait.take_text  ("waiting for the thread")+
-           "; "                                            +
+    return m_issue_cost.take_text("asking for the copies")        +
+           "; "                                                   +
+           m_lock_cost.take_text ("locking")                      +
+           "; "                                                   +
+           m_job_wait.take_text  ("waiting for the thread")       +
+           "; "                                                   +
            m_write_cost.take_text("copy to the channel (thread)") +
-           "; "                                            +
+           "; "                                                   +
            m_pace_wait.take_text ("waiting for the screen");
 }
 
@@ -400,7 +409,8 @@ void Stereo::ConverterDLL::D3D8HostMemoryExporter::unlock_staging(Staging* inout
     {
         void** const vtable = APIInterceptor::get_vtable_ptr(inout_staging_ptr->surface_ptr);
 
-        APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_UNLOCKRECT>(vtable, Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_UNLOCKRECT)(inout_staging_ptr->surface_ptr);
+        APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DSURFACE8_UNLOCKRECT>(vtable,
+                                                                                                    Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DSURFACE8_UNLOCKRECT)(inout_staging_ptr->surface_ptr);
 
         inout_staging_ptr->is_locked = false;
     }
@@ -456,7 +466,7 @@ bool Stereo::ConverterDLL::D3D8HostMemoryExporter::write_eye(const uint32_t& in_
     return PixelRowWriter::write_eye(description.Format,
                                      description.Width,
                                      description.Height,
-                                     m_job.source_ptr_array.at(in_eye),
+                                     m_job.source_ptr_array.at  (in_eye),
                                      m_job.source_pitch_array.at(in_eye),
                                      in_eye,
                                      out_destination_ptr,
@@ -466,15 +476,15 @@ bool Stereo::ConverterDLL::D3D8HostMemoryExporter::write_eye(const uint32_t& in_
 
 void Stereo::ConverterDLL::D3D8HostMemoryExporter::write_job()
 {
-    const double   start_ms        = Utils::Statistics::SeriesStats::get_now();
-    uint8_t*       destination_ptr = get_channel_ptr()->begin_write_ptr(m_job.info);
+    const double   start_ms        = Utils::Statistics::SeriesStats::get_now   ();
+    uint8_t*       destination_ptr = get_channel_ptr()->begin_write_ptr        (m_job.info);
     bool           is_ok           = (destination_ptr != nullptr);
     const uint32_t pitch           = Stereo::Transport::FrameChannel::get_pitch(m_job.info.width);
 
     /* The right eye is copied by a thread of its own while this one copies the left: the rows of an eye are 30 MB at 3200 x 2400, which is
      * as long as a CPU takes for them, and the two do not touch the same memory.
      */
-    if (is_ok &&
+    if (is_ok                 &&
         m_job.info.n_eyes > 1)
     {
         {
@@ -496,8 +506,8 @@ void Stereo::ConverterDLL::D3D8HostMemoryExporter::write_job()
                           pitch);
     }
 
-    if (destination_ptr != nullptr &&
-        m_job.info.n_eyes > 1)
+    if (destination_ptr   != nullptr &&
+        m_job.info.n_eyes >  1)
     {
         std::unique_lock<std::mutex> lock(m_eye_mutex);
 

@@ -632,7 +632,7 @@ void Stereo::Replay::Player::PreviewWindow::upload(const EyeImageBuffer::Image& 
         in_image.height != 0)
     {
         /* An image of another size gets a new texture. */
-        if (inout_texture_ptr->tex_ptr != nullptr          &&
+        if (inout_texture_ptr->tex_ptr != nullptr         &&
             (inout_texture_ptr->height != in_image.height ||
              inout_texture_ptr->width  != in_image.width) )
         {

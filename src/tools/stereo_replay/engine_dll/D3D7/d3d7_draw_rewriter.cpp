@@ -41,10 +41,10 @@ bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::find_extent(const Capture::API
     {
         const auto& fvf_argument        = in_call.arg_in_vec.at(FVF_ARGUMENT);
         const auto& n_vertices_argument = in_call.arg_in_vec.at(N_VERTICES_ARGUMENT);
-        const bool  has_fvf             = read_number(fvf_argument,
-                                                     &fvf);
-        const bool  has_n_vertices      = read_number(n_vertices_argument,
-                                                     &n_vertices);
+        const bool  has_fvf             = read_number          (fvf_argument,
+                                                               &fvf);
+        const bool  has_n_vertices      = read_number          (n_vertices_argument,
+                                                               &n_vertices);
 
         if (has_fvf        == false ||
             has_n_vertices == false)
@@ -70,8 +70,8 @@ bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::find_extent(const Capture::API
 
     vertex_n_bytes = Interception::Core::D3D7Utils::VertexFormat::get_n_vertex_bytes(fvf);
 
-    if (vertex_n_bytes == 0                                    ||
-        chunk_argument_vec.size() < ((is_indexed) ? 2u : 1u))
+    if (vertex_n_bytes            == 0                         ||
+        chunk_argument_vec.size() <  ((is_indexed) ? 2u : 1u))
     {
         goto end;
     }
@@ -217,10 +217,10 @@ bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::rewrite_vertices(const Capture
     {
         const auto& fvf_argument        = in_call.arg_in_vec.at(FVF_ARGUMENT);
         const auto& n_vertices_argument = in_call.arg_in_vec.at(N_VERTICES_ARGUMENT);
-        const bool  has_fvf             = read_number(fvf_argument,
-                                                     &fvf);
-        const bool  has_n_vertices      = read_number(n_vertices_argument,
-                                                     &value);
+        const bool  has_fvf             = read_number          (fvf_argument,
+                                                               &fvf);
+        const bool  has_n_vertices      = read_number          (n_vertices_argument,
+                                                               &value);
 
         if (has_fvf        == false ||
             has_n_vertices == false)
@@ -249,7 +249,7 @@ bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::rewrite_vertices(const Capture
         }
     }
 
-    if (n_argument == 0 ||
+    if (n_argument     == 0 ||
         vertex_n_bytes == 0)
     {
         goto end;
@@ -266,7 +266,7 @@ bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::rewrite_vertices(const Capture
     n_vertices_chunk = chunk_ptr->size() / vertex_n_bytes;
     n_vertices_arg   = n_vertices;
 
-    if (n_vertices_chunk < n_vertices_arg ||
+    if (n_vertices_chunk <  n_vertices_arg ||
         n_vertices_arg   == 0)
     {
         goto end;

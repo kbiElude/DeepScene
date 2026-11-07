@@ -52,10 +52,10 @@ namespace Stereo
             {
             public:
                 /* Replays the workload up to the frame with the options (its recipe), and gives the image of the left eye. */
-                typedef std::function<bool(const Options&                          in_options,
-                                           const uint32_t&                         in_frame_index,
-                                           Utils::Images::Image*     out_image_ptr,
-                                           std::string*                            out_error_ptr)> RenderFunc;
+                typedef std::function<bool(const Options&        in_options,
+                                           const uint32_t&       in_frame_index,
+                                           Utils::Images::Image* out_image_ptr,
+                                           std::string*          out_error_ptr)> RenderFunc;
 
                 /* Runs the parts of the probe, each in a process of its own: the part k of n_shards looks at the candidates of the frames that are the k-th, the (k+n)-th
                  * and so on of the frames of the list, leaves the list of what it found in the k-th file, and writes the images. Gives false if one of them fails. */

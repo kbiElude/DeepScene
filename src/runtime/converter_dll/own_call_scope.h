@@ -17,10 +17,10 @@ namespace Stereo
         class OwnCallScope
         {
         public:
-            OwnCallScope();
+             OwnCallScope();
             ~OwnCallScope();
 
-            OwnCallScope(const OwnCallScope&)            = delete;
+            OwnCallScope           (const OwnCallScope&) = delete;
             OwnCallScope& operator=(const OwnCallScope&) = delete;
 
             /* True if the calling thread is in a scope. */

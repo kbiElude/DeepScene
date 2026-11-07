@@ -87,8 +87,6 @@ namespace Stereo
                                       void**                                           out_surface_ptr_ptr,
                                       bool*                                            out_should_pass_through_ptr);
 
-
-
             void*                          m_back_buffer_ptr;
             uint32_t                       m_display_height;
             uint32_t                       m_display_width;

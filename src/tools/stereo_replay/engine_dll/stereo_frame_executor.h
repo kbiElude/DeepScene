@@ -58,6 +58,7 @@ namespace Stereo
                 void  on_rewind          () override;
                 void  set_eye_separation (const float&                            in_eye_separation);
                 void  set_frame_execution(const FrameExecutionOptions&            in_options);
+
                 /* The frames which the hurry says are hurried through are not read back for the sink. Not owned; may be none. */
                 void set_hurry     (const FrameHurry* in_hurry_ptr);
                 void set_image_sink(IFrameImageSink*  in_sink_ptr);

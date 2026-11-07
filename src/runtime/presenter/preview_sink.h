@@ -33,15 +33,14 @@ namespace Stereo
                         const SizeChangedFunc& in_size_changed_func);
             ~PreviewSink();
 
-            PreviewSink(const PreviewSink&)            = delete;
+            PreviewSink           (const PreviewSink&) = delete;
             PreviewSink& operator=(const PreviewSink&) = delete;
 
             /* Null until the first frame. */
             ID3D11ShaderResourceView* get_view_ptr() const;
 
             uint32_t get_height() const;
-
-            uint32_t get_width() const;
+            uint32_t get_width () const;
 
             void on_frame(const Stereo::Transport::ImportedFrame& in_frame) override;
 
