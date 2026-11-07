@@ -398,6 +398,7 @@ namespace Analysis
         /* One draw, with everything that a front end has resolved by the time it is made. Follows GeometrySample and TextureBinding. */
         struct DrawDescription
         {
+            uint64_t                              first_call_index        = UINT64_MAX;                /* the call that begins the calls of the draw, if there are more than the one of the draw (glBegin, for a block that glEnd ends); UINT64_MAX: none */
             std::shared_ptr<const GeometrySample> geometry_ptr;                                        /* null: the front end does not know the vertices */
             ResourceId                            index_buffer_id         = ResourceId::NONE;
             uint32_t                              instance_count          = 1;
@@ -516,6 +517,7 @@ namespace Analysis
         {
             uint64_t call_index    = 0;
             uint64_t cover_key     = 0; /* of the draw by its signature and size (see KeyBuilder::compute_draw_cover_key) */
+            uint64_t first_call_index = 0; /* the call that begins the calls of the draw: call_index, unless they are a block (glBegin to glEnd), which a draw that is left out leaves out whole */
             uint32_t pass_index    = 0; /* a position in CompletedFrame::pass_instance_vec */
             uint64_t structure_key = 0;
         };

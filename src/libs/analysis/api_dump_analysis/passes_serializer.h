@@ -27,10 +27,14 @@ namespace Analysis
             /* The histograms that the model keeps in a member: for how deep the draws are, and for how deep their surfaces are. */
             typedef std::map<DepthHistogramKey, DepthHistogram> Model::* DepthHistogramMapMember;
 
-            static bool                 deserialize_covering       (const std::vector<uint8_t>&    in_byte_vec,
-                                                                    Model*                         out_model_ptr);
+            /* The sets of keys of draw structures that the model keeps by pass: for the draws that cover the view, and for those with an orthographic projection. */
+            typedef std::map<uint32_t, std::set<uint64_t> > Model::* DrawKeyMapMember;
+
             static bool                 deserialize_depths         (const std::vector<uint8_t>&    in_byte_vec,
                                                                     const DepthHistogramMapMember& in_member_ptr,
+                                                                    Model*                         out_model_ptr);
+            static bool                 deserialize_draw_keys      (const std::vector<uint8_t>&    in_byte_vec,
+                                                                    const DrawKeyMapMember&        in_member_ptr,
                                                                     Model*                         out_model_ptr);
             static bool                 deserialize_draws          (const std::vector<uint8_t>&    in_byte_vec,
                                                                     Model*                         out_model_ptr);
@@ -50,9 +54,10 @@ namespace Analysis
                                                                     Model*                         out_model_ptr);
             static bool                 deserialize_shapes         (const std::vector<uint8_t>&    in_byte_vec,
                                                                     Model*                         out_model_ptr);
-            static std::vector<uint8_t> serialize_covering         (const Model&                   in_model);
             static std::vector<uint8_t> serialize_depths           (const Model&                   in_model,
                                                                     const DepthHistogramMapMember& in_member_ptr);
+            static std::vector<uint8_t> serialize_draw_keys        (const Model&                   in_model,
+                                                                    const DrawKeyMapMember&        in_member_ptr);
             static std::vector<uint8_t> serialize_draws            (const Model&                   in_model);
             static std::vector<uint8_t> serialize_frames           (const Model&                   in_model);
             static std::vector<uint8_t> serialize_meta             (const AnalysisResult&          in_analysis);

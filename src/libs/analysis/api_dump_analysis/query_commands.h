@@ -9,7 +9,7 @@
  *   info       what the analysis is of, and how much it found
  *   timeline   runs of frames of one shape, in time order (paged)
  *   pipelines  frame shapes and the pass structures each is made of (paged)
- *   overlays   passes whose camera never changes, and the draws of them: candidates for 2D overlays, as a recipe "unaffected" list (a hint only)
+ *   overlays   passes whose camera never changes, and the draws of them, and the draws with an orthographic projection: candidates for 2D overlays, as a recipe "unaffected" list (a hint only)
  *   pass       one pass structure, with its draws (paged) and camera constants
  *   frame      one frame by index, or a representative frame of a shape
  *   resources  what the frames did with each resource, optionally of one class (paged)

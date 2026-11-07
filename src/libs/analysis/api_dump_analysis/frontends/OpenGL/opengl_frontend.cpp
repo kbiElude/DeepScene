@@ -496,6 +496,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_begin(const Ca
         GlImmediateBlock& block = inout_state_ptr->immediate_block;
 
         /* A glBegin that comes while a block is open starts it again. */
+        block.first_call_index = m_builder_ptr->get_call_index();
         block.is_open         = true;
         block.mode            = mode_array.at(0);
         block.n_vertices      = 0;
@@ -865,6 +866,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_end(GlContextS
 
         auto description = inout_state_ptr->pipeline_state.describe_draw(topology,
                                                                          block.n_vertices);
+
+        /* The vertices are calls of the draw: a draw that is left out is left out from the glBegin. */
+        description.first_call_index = block.first_call_index;
 
         add_texture_bindings(*inout_state_ptr,
                              &description);

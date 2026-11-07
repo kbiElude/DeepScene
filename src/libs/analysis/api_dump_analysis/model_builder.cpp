@@ -211,6 +211,12 @@ void Analysis::APIDumpAnalysis::ModelBuilder::complete_pass()
                                                               m_open_pass.covering_draw_key_set.end  () );
             }
 
+            if (m_open_pass.orthographic_draw_key_set.empty() == false)
+            {
+                m_model.orthographic_draw_key_map[pass_id].insert(m_open_pass.orthographic_draw_key_set.begin(),
+                                                                  m_open_pass.orthographic_draw_key_set.end  () );
+            }
+
             m_frame_depth_histogram_vec.push_back        (m_open_pass.depth_histogram);
             m_frame_surface_depth_histogram_vec.push_back(m_open_pass.surface_depth_histogram);
         }
@@ -418,6 +424,9 @@ bool Analysis::APIDumpAnalysis::ModelBuilder::find_draw_matrices(DrawMatrices* o
         }
     }
 
+    out_matrices_ptr->is_orthographic = (out_matrices_ptr->has_projection &&
+                                         is_orthographic);
+
     return (has_view        &&
             is_orthographic == false);
 }
@@ -443,6 +452,11 @@ bool Analysis::APIDumpAnalysis::ModelBuilder::find_pass_index(const CompletedFra
     }
 
     return result;
+}
+
+uint64_t Analysis::APIDumpAnalysis::ModelBuilder::get_call_index() const
+{
+    return m_call_index;
 }
 
 Analysis::APIDumpAnalysis::AccessCoverage Analysis::APIDumpAnalysis::ModelBuilder::get_clear_coverage(const ClearOperation& in_clear,
@@ -737,6 +751,19 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_draw(const DrawDescription& in_
         const auto     signature_pair = m_open_pass.draw_signature_map.emplace(key,
                                                                                signature_key);
 
+        if (m_keeps_history)
+        {
+            DrawMatrices matrices;
+
+            find_draw_matrices(&matrices);
+
+            /* An orthographic projection is what a 2D overlay is drawn with: the draw is told by its structure, for the pass. */
+            if (matrices.is_orthographic)
+            {
+                m_open_pass.orthographic_draw_key_set.insert(key);
+            }
+        }
+
         if (known_entry == m_model.draw_structure_map.end() )
         {
             m_model.draw_structure_map.emplace(key,
@@ -770,9 +797,15 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_draw(const DrawDescription& in_
             m_model.n_key_collisions++;
         }
 
+        /* The calls of a draw begin with its own, unless the front end says that they begin earlier (it is not later than the call of the draw). */
+        const bool     has_first_call = (in_draw.first_call_index <= m_call_index);
+        const uint64_t first_call     = (has_first_call) ? in_draw.first_call_index
+                                                         : m_call_index;
+
         /* The pass is not complete yet, so it is the next one to be added to the frame. */
         m_frame_draw_instance_vec.push_back({m_call_index,
                                              m_last_draw_cover_key,
+                                             first_call,
                                              static_cast<uint32_t>(m_frame_pass_instance_vec.size() ),
                                              key});
     }

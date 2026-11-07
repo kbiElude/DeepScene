@@ -32,11 +32,25 @@ std::vector<uint8_t> Analysis::APIDumpAnalysis::SectionedFile::pack_section(cons
     std::vector<uint8_t> result_vec;
     std::vector<uint8_t> stored_byte_vec(::ZSTD_compressBound(in_raw_byte_vec.size() ));
 
-    const size_t n_stored_bytes = ::ZSTD_compress(stored_byte_vec.data(),
-                                                  stored_byte_vec.size(),
-                                                  in_raw_byte_vec.data(),
-                                                  in_raw_byte_vec.size(),
-                                                  COMPRESSION_LEVEL);
+    ::ZSTD_CCtx* const compression_context = ::ZSTD_createCCtx();
+
+    /* A checksum of the content ends the frame, so that a bit of a section that is damaged is noticed whether or not the decompressor needs it (there are
+     * bits of a small frame that it does not).
+     */
+    ::ZSTD_CCtx_setParameter(compression_context,
+                             ::ZSTD_c_compressionLevel,
+                             COMPRESSION_LEVEL);
+    ::ZSTD_CCtx_setParameter(compression_context,
+                             ::ZSTD_c_checksumFlag,
+                             1);
+
+    const size_t n_stored_bytes = ::ZSTD_compress2(compression_context,
+                                                   stored_byte_vec.data(),
+                                                   stored_byte_vec.size(),
+                                                   in_raw_byte_vec.data(),
+                                                   in_raw_byte_vec.size() );
+
+    ::ZSTD_freeCCtx(compression_context);
 
     /* The buffer is as big as the worst case needs, so this does not fail unless something is very wrong. */
     if (::ZSTD_isError(n_stored_bytes) == 0)

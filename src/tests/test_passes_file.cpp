@@ -850,3 +850,24 @@ TEST(PassesFile, TheSignaturesOfTheDrawsThatCoverTheViewAreReadBack)
     EXPECT_EQ(read.model.covering_draw_key_map,
               analysis.model.covering_draw_key_map);
 }
+
+TEST(PassesFile, TheKeysOfTheDrawsWithAnOrthographicProjectionAreReadBack)
+{
+    Analysis::APIDumpAnalysis::AnalysisResult analysis = Tests::PassesFileHelpers::analyze_slice();
+    Analysis::APIDumpAnalysis::AnalysisResult read;
+    std::string                               error;
+
+    analysis.model.orthographic_draw_key_map[0] = {0x77u, 0x0123456789abcdefull};
+
+    const std::vector<uint8_t> byte_vec = Analysis::APIDumpAnalysis::PassesFile::write_bytes(analysis);
+
+    ASSERT_TRUE(Analysis::APIDumpAnalysis::PassesFile::read_bytes(byte_vec,
+                                                                 &read,
+                                                                 &error) ) << error;
+
+    EXPECT_EQ(read.model.orthographic_draw_key_map,
+              analysis.model.orthographic_draw_key_map);
+    /* The two sets of keys are kept apart. */
+    EXPECT_EQ(read.model.covering_draw_key_map,
+              analysis.model.covering_draw_key_map);
+}

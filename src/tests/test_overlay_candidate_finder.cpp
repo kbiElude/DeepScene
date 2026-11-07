@@ -86,6 +86,42 @@ TEST(OverlayCandidateFinder, ADrawOfAPassTheRecipeLeavesAloneIsACandidateTheHint
                            "replay_and_live_disagree") );
 }
 
+TEST(OverlayCandidateFinder, ADrawWithAnOrthographicProjectionIsACandidateEvenInAPassWhoseCameraChanges)
+{
+    Analysis::APIDumpAnalysis::AnalysisResult analysis;
+    Tests::ModelTestHelper                    helper;
+    const auto                                swapchain_image = helper.create_swapchain_image();
+    const Analysis::Recipe::Recipe            recipe;
+
+    helper.bind(swapchain_image);
+
+    /* The scene (perspective) and a panel (orthographic) are drawn into the one pass. */
+    helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::PROJECTION_MATRIX,
+                      64,
+                      {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0});
+    helper.draw      (1);
+    helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::PROJECTION_MATRIX,
+                      64,
+                      {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1});
+    helper.draw      (2);
+    helper.end_frame ();
+
+    analysis.model = helper.get_model();
+
+    const auto candidate_vec = Analysis::RecipeBake::OverlayCandidateFinder::find(recipe,
+                                                                                  analysis);
+
+    /* The panel, and not the scene. */
+    ASSERT_EQ(candidate_vec.size(),
+              1u);
+    EXPECT_EQ(candidate_vec.at(0).agreement,
+              Analysis::RecipeBake::OverlayAgreement::HEURISTIC_ONLY);
+    EXPECT_TRUE(has_reason(candidate_vec.at(0),
+                           "orthographic_projection") );
+    EXPECT_FALSE(has_reason(candidate_vec.at(0),
+                            "static_camera") );
+}
+
 TEST(OverlayCandidateFinder, ADrawKeyOfTheRecipeIsToldFromAPassKey)
 {
     const auto               analysis  = make_analysis();

@@ -269,3 +269,50 @@ TEST_F(GlFrontendDraws, TheCallsOfAListAreNotMadeByTheMatrixStack)
     EXPECT_FLOAT_EQ(m_modelview_f32mat.at(12),
                     0.0f);
 }
+
+TEST_F(GlFrontendDraws, TheCallsOfABlockBeginWithItsGlBegin)
+{
+    start(640,
+          480);
+
+    m_builder.clear       (COLOR_BUFFER_BIT);
+    add_triangle          (TRIANGLES); /* the calls 3 (glBegin), 4 to 6 (the vertices) and 7 (glEnd) */
+    m_builder.swap_buffers(DEVICE_CONTEXT_ADDRESS);
+
+    feed();
+
+    const auto& draw_vec = m_harness.get_builder().get_completed_frame().draw_instance_vec;
+
+    ASSERT_EQ(draw_vec.size(),
+              1u);
+
+    EXPECT_EQ(draw_vec.at(0).call_index,
+              7u);
+    EXPECT_EQ(draw_vec.at(0).first_call_index,
+              3u);
+}
+
+TEST_F(GlFrontendDraws, ADrawOfArraysBeginsWithItsOwnCall)
+{
+    start(640,
+          480);
+
+    m_builder.clear       (COLOR_BUFFER_BIT);
+    m_builder.draw_arrays (TRIANGLES,
+                           0,
+                           3,
+                           {Tests::GlCallBuilder::make_vertex_array({{0.0f, 0.0f, -1.0f},
+                                                                     {1.0f, 0.0f, -1.0f},
+                                                                     {0.0f, 1.0f, -1.0f} })});
+    m_builder.swap_buffers(DEVICE_CONTEXT_ADDRESS);
+
+    feed();
+
+    const auto& draw_vec = m_harness.get_builder().get_completed_frame().draw_instance_vec;
+
+    ASSERT_EQ(draw_vec.size(),
+              1u);
+
+    EXPECT_EQ(draw_vec.at(0).first_call_index,
+              draw_vec.at(0).call_index);
+}

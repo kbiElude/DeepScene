@@ -96,25 +96,30 @@ namespace Stereo
                 /* A draw: with its vertices moved for the eye if they are in the space of the picture and the recipe says how (see ScreenParallax),
                  * as it is otherwise. The pass is the structure of the pass which the draw is in.
                  */
-                bool execute_draw_call     (const Capture::APIDumpLoader::DumpedAPICall&     in_call,
-                                            const ::Replay::ReplayEngineDLL::IChunkSource&   in_chunk_source,
-                                            const bool&                                      in_is_affected,
-                                            const bool&                                      in_is_presented,
-                                            const uint64_t&                                  in_cover_key,
-                                            const Analysis::Recipe::Eye&                     in_eye,
-                                            const uint32_t&                                  in_pass_structure_id);
-                bool execute_rewritten_call(const Capture::APIDumpLoader::DumpedAPICall&     in_call,
-                                            const ::Replay::ReplayEngineDLL::IChunkSource&   in_chunk_source,
-                                            const size_t&                                    in_n_call,
-                                            const uint32_t&                                  in_n_execution);
-                bool get_eye_history_need  (const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
-                                            bool*                                            out_needs_history_ptr,
-                                            std::string*                                     out_error_ptr) const;
-                bool read_back_buffer      (std::vector<uint8_t>*                            out_pixel_u8_vec_ptr,
-                                            FrameImage*                                      out_image_ptr);
-                bool read_next_call        (const Capture::APIDumpLoader::DumpedAPICall**    out_call_ptr_ptr);
-                void set_executors_eye     (const Analysis::Recipe::Eye&                     in_eye);
-                bool write_back_buffer     (const std::vector<uint8_t>&                      in_pixel_u8_vec);
+                bool execute_draw_call     (const Capture::APIDumpLoader::DumpedAPICall&   in_call,
+                                            const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
+                                            const bool&                                    in_is_affected,
+                                            const bool&                                    in_is_presented,
+                                            const uint64_t&                                in_cover_key,
+                                            const Analysis::Recipe::Eye&                   in_eye,
+                                            const uint32_t&                                in_pass_structure_id);
+                bool execute_rewritten_call(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
+                                            const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
+                                            const size_t&                                  in_n_call,
+                                            const uint32_t&                                in_n_execution);
+                /* The calls of the draws that the recipe leaves out and which come before the call of the draw (the glBegin and the vertices of a block that a
+                 * glEnd makes a draw of) are left out with it: a primitive is drawn as its vertices are given, and a draw that only loses its glEnd is still seen.
+                 */
+                void find_skipped_call_ranges(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame);
+                bool get_eye_history_need    (const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
+                                              bool*                                            out_needs_history_ptr,
+                                              std::string*                                     out_error_ptr) const;
+                bool is_call_skipped         (const uint64_t&                                  in_call_index) const;
+                bool read_back_buffer        (std::vector<uint8_t>*                            out_pixel_u8_vec_ptr,
+                                              FrameImage*                                      out_image_ptr);
+                bool read_next_call          (const Capture::APIDumpLoader::DumpedAPICall**    out_call_ptr_ptr);
+                void set_executors_eye       (const Analysis::Recipe::Eye&                     in_eye);
+                bool write_back_buffer       (const std::vector<uint8_t>&                      in_pixel_u8_vec);
 
                 EyeHistory                                                             m_eye_history;
                 std::atomic<float>                                                     m_eye_separation; /* set by any thread; read once for each frame */
@@ -129,6 +134,7 @@ namespace Stereo
                 std::unique_ptr<Analysis::Recipe::RecipeApplier>                       m_recipe_applier_ptr;
                 std::unique_ptr<FrameRewriter>                                         m_rewriter_ptr;
                 std::unique_ptr<Analysis::APIDumpAnalysis::Frontends::AnalysisSession> m_session_ptr;
+                std::vector<std::pair<uint64_t, uint64_t> >                            m_skipped_call_range_vec; /* of the frame being played: from the first call to the last, in order */
             };
         }
     }

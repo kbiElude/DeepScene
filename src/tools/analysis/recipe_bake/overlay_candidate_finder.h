@@ -3,8 +3,9 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
  * Finds the draws that may be 2D overlays, by two opinions: the recipe's (the draws it leaves alone, by their keys as a replay asks, and by their signatures as a
- * converter that plays the application as it runs asks, over the cameras the pass has), and the hint of the analysis (the camera of the pass never changes; see
- * QueryCommands::get_static_camera_pass_id_vec). The draws on which they disagree are the ones for a person to look at.
+ * converter that plays the application as it runs asks, over the cameras the pass has), and the hints of the analysis (the camera of the pass never changes; see
+ * QueryCommands::get_static_camera_pass_id_vec; or the draw was drawn with an orthographic projection; see Model::orthographic_draw_key_map). The draws on which
+ * they disagree are the ones for a person to look at.
  */
 #ifndef RECIPEBAKE_OVERLAY_CANDIDATE_FINDER_H
 #define RECIPEBAKE_OVERLAY_CANDIDATE_FINDER_H

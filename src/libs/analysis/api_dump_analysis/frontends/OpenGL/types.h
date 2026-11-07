@@ -189,6 +189,7 @@ namespace Analysis
              */
             struct GlImmediateBlock
             {
+                uint64_t                             first_call_index = 0;     /* the glBegin */
                 bool                                 is_open         = false;
                 uint32_t                             mode            = 0;
                 uint32_t                             n_vertices      = 0;

@@ -1917,3 +1917,112 @@ TEST(ModelBuilder, AnOrthographicProjectionOfOpenGLHasNoDepth)
     EXPECT_TRUE(helper.get_model().depth_histogram_map.empty() );
     EXPECT_TRUE(helper.get_model().surface_depth_histogram_map.empty() );
 }
+
+namespace
+{
+    /* The projection of the first and the second draw of a pass: orthographic (the last element is 1) or perspective (it is 0, and the one before it is 1). */
+    std::array<float, 16> make_orthographic_f32mat()
+    {
+        return {1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1};
+    }
+
+    std::array<float, 16> make_perspective_f32mat()
+    {
+        return {1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 1, 1,
+                0, 0, 0, 0};
+    }
+}
+
+TEST(ModelBuilder, ADrawWithAnOrthographicProjectionIsToldApartInItsPass)
+{
+    Tests::ModelTestHelper helper;
+    const auto             swapchain_image = helper.create_swapchain_image();
+
+    helper.bind(swapchain_image);
+
+    /* A scene and a panel of a screen, in the one pass. */
+    helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::PROJECTION_MATRIX,
+                      64,
+                      make_perspective_f32mat() );
+    helper.draw      (1);
+    helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::PROJECTION_MATRIX,
+                      64,
+                      make_orthographic_f32mat() );
+    helper.draw      (2);
+    helper.end_frame ();
+
+    const auto& model = helper.get_model();
+
+    EXPECT_EQ(model.draw_structure_map.size(),
+              2u);
+    ASSERT_EQ(model.orthographic_draw_key_map.size(),
+              1u);
+    EXPECT_EQ(model.orthographic_draw_key_map.begin()->second.size(),
+              1u);
+}
+
+TEST(ModelBuilder, NoDrawWithAPerspectiveProjectionOrNoProjectionIsOrthographic)
+{
+    Tests::ModelTestHelper helper;
+    const auto             swapchain_image = helper.create_swapchain_image();
+
+    helper.bind(swapchain_image);
+    helper.draw(1); /* no projection */
+    helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::PROJECTION_MATRIX,
+                      64,
+                      make_perspective_f32mat() );
+    helper.draw      (2);
+    helper.end_frame ();
+
+    EXPECT_TRUE(helper.get_model().orthographic_draw_key_map.empty() );
+}
+
+TEST(ModelBuilder, AnOrthographicDrawIsToldByItsKeyWhateverTheFrame)
+{
+    Tests::ModelTestHelper helper;
+    const auto             swapchain_image = helper.create_swapchain_image();
+
+    for (uint32_t n_frame = 0;
+                  n_frame < 3;
+                ++n_frame)
+    {
+        helper.bind      (swapchain_image);
+        helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::PROJECTION_MATRIX,
+                          64,
+                          make_orthographic_f32mat() );
+        helper.draw      (5);
+        helper.end_frame ();
+    }
+
+    ASSERT_EQ(helper.get_model().orthographic_draw_key_map.size(),
+              1u);
+    EXPECT_EQ(helper.get_model().orthographic_draw_key_map.begin()->second.size(),
+              1u);
+}
+
+TEST(ModelBuilder, TheCallsOfADrawBeginWithItsOwnUnlessTheFrontEndSaysTheyBeginEarlier)
+{
+    Tests::ModelTestHelper helper;
+    const auto             swapchain_image = helper.create_swapchain_image();
+
+    helper.bind    (swapchain_image);
+    helper.draw    (1);
+    helper.draw    (2);
+    helper.end_frame();
+
+    const auto& draw_vec = helper.get_builder().get_completed_frame().draw_instance_vec;
+
+    ASSERT_EQ(draw_vec.size(),
+              2u);
+
+    for (const auto& draw : draw_vec)
+    {
+        EXPECT_EQ(draw.first_call_index,
+                  draw.call_index);
+    }
+}

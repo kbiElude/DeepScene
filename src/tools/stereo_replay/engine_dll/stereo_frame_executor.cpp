@@ -251,6 +251,13 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_buffered_frame(cons
         }
     }
 
+    m_skipped_call_range_vec.clear();
+
+    if (is_rewritten)
+    {
+        find_skipped_call_ranges(m_session_ptr->get_completed_frame() );
+    }
+
     /* The device is as the calls of a frame played as they are leave it, not as the binder believes. */
     if (is_rewritten        == false &&
         m_matrix_binder_ptr != nullptr)
@@ -521,6 +528,12 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_rewritten_call(cons
                                                 call_index,
                                                 is_draw_before_call_func);
 
+    if (is_call_skipped(call_index) )
+    {
+        /* A call of a draw that is left out, before the call of the draw. */
+        result = true;
+    }
+    else
     if (draw_iterator             != frame.draw_instance_vec.end() &&
         draw_iterator->call_index == call_index)
     {
@@ -591,6 +604,24 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_rewritten_call(cons
     return result;
 }
 
+void Stereo::Replay::EngineDLL::StereoFrameExecutor::find_skipped_call_ranges(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame)
+{
+    m_skipped_call_range_vec.clear();
+
+    for (const auto& draw : in_frame.draw_instance_vec)
+    {
+        const uint64_t pass_key = in_frame.pass_key_vec.at(draw.pass_index);
+
+        if (draw.first_call_index < draw.call_index                               &&
+            m_recipe_applier_ptr->is_draw_skipped(pass_key,
+                                                  draw.structure_key) )
+        {
+            m_skipped_call_range_vec.push_back({draw.first_call_index,
+                                                draw.call_index - 1});
+        }
+    }
+}
+
 bool Stereo::Replay::EngineDLL::StereoFrameExecutor::get_eye_history_need(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
                                                                           bool*                                            out_needs_history_ptr,
                                                                           std::string*                                     out_error_ptr) const
@@ -645,6 +676,31 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::get_eye_history_need(const 
 float Stereo::Replay::EngineDLL::StereoFrameExecutor::get_eye_separation() const
 {
     return m_eye_separation;
+}
+
+bool Stereo::Replay::EngineDLL::StereoFrameExecutor::is_call_skipped(const uint64_t& in_call_index) const
+{
+    /* The ranges do not overlap, and are in the order of the calls. */
+    const auto is_before_range_func = [](const uint64_t&                          in_index,
+                                         const std::pair<uint64_t, uint64_t>&     in_range)
+    {
+        return (in_index < in_range.first);
+    };
+
+    const auto range_iterator = std::upper_bound(m_skipped_call_range_vec.begin(),
+                                                 m_skipped_call_range_vec.end  (),
+                                                 in_call_index,
+                                                 is_before_range_func);
+    bool       result         = false;
+
+    if (range_iterator != m_skipped_call_range_vec.begin() )
+    {
+        const auto& range = *(range_iterator - 1);
+
+        result = (in_call_index <= range.second);
+    }
+
+    return result;
 }
 
 bool Stereo::Replay::EngineDLL::StereoFrameExecutor::is_per_eye_texture(const Capture::APIDumpLoader::APIGroup& in_group,

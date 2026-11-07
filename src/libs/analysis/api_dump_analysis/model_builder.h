@@ -43,6 +43,9 @@ namespace Analysis
             void begin_call(const uint64_t& in_call_index,
                             const uint64_t& in_timestamp_qpc);
 
+            /* The number of the call that the events now told are of (the one that begin_call() was given last). */
+            uint64_t get_call_index() const;
+
             /* The frame completed by the last on_frame_presented(); empty before the first. */
             const CompletedFrame& get_completed_frame() const;
 
@@ -122,6 +125,7 @@ namespace Analysis
             struct DrawMatrices
             {
                 bool                  has_projection   = false;
+                bool                  is_orthographic  = false; /* what is far is not smaller in the projection */
                 std::array<float, 16> model_f32mat     = {1.0f, 0.0f, 0.0f, 0.0f,
                                                           0.0f, 1.0f, 0.0f, 0.0f,
                                                           0.0f, 0.0f, 1.0f, 0.0f,
@@ -146,6 +150,7 @@ namespace Analysis
                 uint64_t                     last_draw_call_index = 0;     /* last draw, or the clear if there is none */
                 uint64_t                     n_draws              = 0;
                 uint64_t                     n_vertices           = 0;
+                std::set<uint64_t>           orthographic_draw_key_set;    /* keys of the draw structures drawn with an orthographic projection */
                 DepthHistogram               surface_depth_histogram;
                 Viewport                     viewport;
             };

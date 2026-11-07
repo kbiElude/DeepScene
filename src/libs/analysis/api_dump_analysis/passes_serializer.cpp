@@ -5,8 +5,9 @@
 #include "analysis/api_dump_analysis/passes_serializer.h"
 #include "analysis/api_dump_analysis/key_builder.h"
 
-bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_covering(const std::vector<uint8_t>& in_byte_vec,
-                                                                       Model*                      out_model_ptr)
+bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_draw_keys(const std::vector<uint8_t>& in_byte_vec,
+                                                                        const DrawKeyMapMember&     in_member_ptr,
+                                                                        Model*                      out_model_ptr)
 {
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
                                        in_byte_vec.size());
@@ -32,7 +33,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_covering(const std
                       n_key < n_keys && reader.has_failed() == false;
                     ++n_key)
         {
-            out_model_ptr->covering_draw_key_map[pass_id].insert(reader.read_u64() );
+            (out_model_ptr->*in_member_ptr)[pass_id].insert(reader.read_u64() );
         }
     }
 
@@ -846,13 +847,14 @@ Analysis::APIDumpAnalysis::Viewport Analysis::APIDumpAnalysis::PassesSerializer:
     return result;
 }
 
-std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_covering(const Model& in_model)
+std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_draw_keys(const Model&            in_model,
+                                                                                      const DrawKeyMapMember& in_member_ptr)
 {
     Utils::BinaryIO::ByteWriter writer;
 
-    writer.write_u32(static_cast<uint32_t>(in_model.covering_draw_key_map.size() ));
+    writer.write_u32(static_cast<uint32_t>( (in_model.*in_member_ptr).size() ));
 
-    for (const auto& pass_pair : in_model.covering_draw_key_map)
+    for (const auto& pass_pair : in_model.*in_member_ptr)
     {
         writer.write_u32(pass_pair.first);
         writer.write_u32(static_cast<uint32_t>(pass_pair.second.size() ));
