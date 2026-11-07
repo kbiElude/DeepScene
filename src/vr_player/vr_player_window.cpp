@@ -765,9 +765,20 @@ void VRPlayer::VrPlayerWindow::select_defaults()
                 n_app < m_content.catalog.app_vec.size();
               ++n_app)
     {
+        const auto& candidate_app           = m_content.catalog.app_vec.at(n_app);
+        const bool  is_candidate_available  = candidate_app.unavailable_reason.empty();
+        bool        is_selected_unavailable = false;
+
+        if (m_selected_app >= 0)
+        {
+            const auto& selected_app = m_content.catalog.app_vec.at(static_cast<size_t>(m_selected_app) );
+
+            is_selected_unavailable = (selected_app.unavailable_reason.empty() == false);
+        }
+
         if (m_selected_app < 0 ||
-            (m_content.catalog.app_vec.at(static_cast<size_t>(m_selected_app) ).unavailable_reason.empty() == false &&
-             m_content.catalog.app_vec.at(n_app).unavailable_reason.empty() ) )
+            (is_selected_unavailable &&
+             is_candidate_available) )
         {
             m_selected_app = static_cast<int>(n_app);
         }
@@ -777,8 +788,11 @@ void VRPlayer::VrPlayerWindow::select_defaults()
                 n_device < m_content.device_vec.size();
               ++n_device)
     {
+        const auto& device              = m_content.device_vec.at(n_device);
+        const bool  is_device_available = device.unavailable_reason.empty();
+
         if (m_device_index < 0 &&
-            m_content.device_vec.at(n_device).unavailable_reason.empty() )
+            is_device_available)
         {
             m_device_index = static_cast<int>(n_device);
         }

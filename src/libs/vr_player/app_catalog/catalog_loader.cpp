@@ -76,8 +76,20 @@ std::string VRPlayer::AppCatalog::CatalogLoader::get_directory(const std::string
 bool VRPlayer::AppCatalog::CatalogLoader::is_absolute_path(const std::string& in_path)
 {
     /* A drive, or a network share; a path which starts with a separator only is of the current drive. */
-    return ((in_path.size() >= 2 && in_path.at(1) == ':')                          ||
-            (in_path.size() >= 2 && in_path.at(0) == '\\' && in_path.at(1) == '\\'));
+    const size_t n_characters = in_path.size();
+    bool         result       = false;
+
+    if (n_characters >= 2)
+    {
+        const char first_character  = in_path.at(0);
+        const char second_character = in_path.at(1);
+
+        result = (second_character == ':'  ||
+                  (first_character  == '\\' &&
+                   second_character == '\\') );
+    }
+
+    return result;
 }
 
 bool VRPlayer::AppCatalog::CatalogLoader::load(const std::string& in_filename,
@@ -156,12 +168,16 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse(const std::string& in_text,
         }
     }
 
-    if (root.at("catalog_version").type         != Utils::Json::JsonValueType::NUMBER ||
-        root.at("catalog_version").number_value != SUPPORTED_CATALOG_VERSION)
     {
-        *out_error_ptr = "catalog_version: must be 0";
+        const auto& version_value = root.at("catalog_version");
 
-        goto end;
+        if (version_value.type         != Utils::Json::JsonValueType::NUMBER ||
+            version_value.number_value != SUPPORTED_CATALOG_VERSION)
+        {
+            *out_error_ptr = "catalog_version: must be 0";
+
+            goto end;
+        }
     }
 
     if (root.at("apps").type != Utils::Json::JsonValueType::ARRAY)
@@ -414,11 +430,19 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_download(const Utils::Json::Json
     out_spec_ptr->install_directory = in_install_directory;
 
     {
-        const auto* urls_ptr = in_download.find_ptr("urls");
+        bool        are_urls_valid = false;
+        const auto* urls_ptr       = in_download.find_ptr("urls");
 
-        if (urls_ptr                   == nullptr                           ||
-            urls_ptr->type             != Utils::Json::JsonValueType::ARRAY ||
-            urls_ptr->item_vec.empty() )
+        if (urls_ptr != nullptr)
+        {
+            const bool is_empty = urls_ptr->item_vec.empty();
+            const bool is_list  = (urls_ptr->type == Utils::Json::JsonValueType::ARRAY);
+
+            are_urls_valid = (is_list &&
+                              is_empty == false);
+        }
+
+        if (are_urls_valid == false)
         {
             *out_error_ptr = in_path + ".urls: expected a list of addresses, with one at least";
 
@@ -473,12 +497,17 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_download(const Utils::Json::Json
                    out_spec_ptr->sha256_hex.begin(),
                    ::tolower);
 
-    if (out_spec_ptr->sha256_hex.size()                                != 64                 ||
-        out_spec_ptr->sha256_hex.find_first_not_of("0123456789abcdef") != std::string::npos)
     {
-        *out_error_ptr = in_path + ".sha256: expected 64 digits of hex";
+        const size_t first_non_hex_position = out_spec_ptr->sha256_hex.find_first_not_of("0123456789abcdef");
+        const size_t n_digits               = out_spec_ptr->sha256_hex.size();
 
-        goto end;
+        if (n_digits               != 64                 ||
+            first_non_hex_position != std::string::npos)
+        {
+            *out_error_ptr = in_path + ".sha256: expected 64 digits of hex";
+
+            goto end;
+        }
     }
 
     if (parse_number(in_download,
@@ -574,18 +603,22 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_string(const Utils::Json::JsonVa
         goto end;
     }
 
-    if (value_ptr->type                  != Utils::Json::JsonValueType::STRING ||
-        (in_is_required                                                        &&
-         value_ptr->string_value.empty() ) )
     {
-        *out_error_ptr = in_path                                         +
-                         "."                                             +
-                         in_key                                          +
-                         ": expected "                                   +
-                         ((in_is_required) ? "a text which is not empty"
-                                           : "a text");
+        const bool is_text_empty = value_ptr->string_value.empty();
 
-        goto end;
+        if (value_ptr->type != Utils::Json::JsonValueType::STRING ||
+            (in_is_required                                       &&
+             is_text_empty) )
+        {
+            *out_error_ptr = in_path                                         +
+                             "."                                             +
+                             in_key                                          +
+                             ": expected "                                   +
+                             ((in_is_required) ? "a text which is not empty"
+                                               : "a text");
+
+            goto end;
+        }
     }
 
     *out_string_ptr = value_ptr->string_value;
@@ -623,15 +656,29 @@ std::string VRPlayer::AppCatalog::CatalogLoader::resolve_path(const std::string&
         const std::string part = joined.substr(start,
                                                stop - start);
 
+        bool can_remove_previous = false;
+
+        /* A ".." removes the part before it, unless that is a ".." or a drive. */
+        if (part == "..")
+        {
+            const bool has_previous = (part_vec.empty() == false);
+
+            if (has_previous)
+            {
+                const std::string& previous_part  = part_vec.back();
+                const size_t       drive_position = previous_part.find(':');
+
+                can_remove_previous = (previous_part  != ".." &&
+                                       drive_position == std::string::npos);
+            }
+        }
+
         if (part == ".")
         {
             /* Nothing to add. */
         }
         else
-        if (part                       == ".."              &&
-            part_vec.empty()           == false             &&
-            part_vec.back ()           != ".."              &&
-            part_vec.back ().find(':') == std::string::npos)
+        if (can_remove_previous)
         {
             part_vec.pop_back();
         }

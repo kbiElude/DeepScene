@@ -65,8 +65,19 @@ bool VRPlayer::AppInstaller::AppInstaller::is_busy() const
 
 bool VRPlayer::AppInstaller::AppInstaller::is_sha256_hex(const std::string& in_text)
 {
-    return (in_text.size             ()                   == 64                 &&
-            in_text.find_first_not_of("0123456789abcdef") == std::string::npos);
+    constexpr size_t N_DIGITS = 64; /* of a SHA-256 */
+
+    const size_t n_characters = in_text.size();
+    bool         result       = false;
+
+    if (n_characters == N_DIGITS)
+    {
+        const size_t first_non_hex_position = in_text.find_first_not_of("0123456789abcdef");
+
+        result = (first_non_hex_position == std::string::npos);
+    }
+
+    return result;
 }
 
 void VRPlayer::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spec)
@@ -309,9 +320,11 @@ void VRPlayer::AppInstaller::AppInstaller::set_progress(const InstallPhase& in_p
 bool VRPlayer::AppInstaller::AppInstaller::start(const InstallSpec& in_spec,
                                                  std::string*       out_error_ptr)
 {
-    bool        is_hash_valid    = false;
+    const bool  has_install_directory = (in_spec.install_directory.empty() == false);
+    const bool  has_urls              = (in_spec.url_vec.empty          () == false);
+    bool        is_hash_valid         = false;
     std::string parent_directory;
-    bool        result           = false;
+    bool        result                = false;
 
     if (m_is_busy.load() )
     {
@@ -322,10 +335,10 @@ bool VRPlayer::AppInstaller::AppInstaller::start(const InstallSpec& in_spec,
 
     is_hash_valid = is_sha256_hex(in_spec.sha256_hex);
 
-    if (in_spec.install_directory.empty()          ||
-        in_spec.url_vec.empty          ()          ||
-        is_hash_valid                     == false ||
-        in_spec.n_unpacked_bytes_max      == 0)
+    if (has_install_directory        == false ||
+        has_urls                     == false ||
+        is_hash_valid                == false ||
+        in_spec.n_unpacked_bytes_max == 0)
     {
         *out_error_ptr = "The application does not say where it comes from, or how to check it.";
 
