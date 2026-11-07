@@ -78,6 +78,9 @@ namespace Utils
             void    resize               (const UINT&   in_width,
                                           const UINT&   in_height);
 
+            /* The font of the system, as the system tells where its fonts are: empty if it is not there. */
+            static std::string get_system_font_path();
+
             static LRESULT CALLBACK window_proc(HWND   in_window,
                                                 UINT   in_message,
                                                 WPARAM in_wparam,

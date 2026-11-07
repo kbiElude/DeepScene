@@ -10,10 +10,11 @@
 #include <cmath>
 #include <d3d11.h>
 #include <dwmapi.h>
+#include <KnownFolders.h>
+#include <ShlObj.h>
 
-/* The font of the windows which ask for the one of the system: Segoe UI, which every supported Windows has. */
-static constexpr const char* SYSTEM_FONT_PATH = "C:/Windows/Fonts/segoeui.ttf";
-static constexpr float       SYSTEM_FONT_SIZE = 18.0f;
+/* The size of the font of the windows which ask for the one of the system (Segoe UI, found in the fonts folder of the system). */
+static constexpr float SYSTEM_FONT_SIZE = 18.0f;
 
 static const BOOL IS_DARK_TITLE_BAR = TRUE;
 
@@ -45,7 +46,7 @@ Utils::UIHost::IImGuiWindowHost::~IImGuiWindowHost()
 {
     if (m_is_imgui_ready)
     {
-        ImGui_ImplDX11_Shutdown();
+        ImGui_ImplDX11_Shutdown ();
         ImGui_ImplWin32_Shutdown();
 
         ImGui::DestroyContext();
@@ -89,7 +90,7 @@ bool Utils::UIHost::IImGuiWindowHost::create(std::string* out_error_ptr)
     const HMODULE module_handle = ::GetModuleHandleW(nullptr);
     bool          result        = false;
     float         scale         = ImGui_ImplWin32_GetDpiScaleForMonitor(::MonitorFromPoint(ORIGIN,
-                                                                                         MONITOR_DEFAULTTOPRIMARY) );
+                                                                                           MONITOR_DEFAULTTOPRIMARY) );
     WNDCLASSEXW   window_class  = {};
     DWORD         window_style  = WS_CAPTION | WS_SYSMENU;
 
@@ -166,8 +167,14 @@ bool Utils::UIHost::IImGuiWindowHost::create(std::string* out_error_ptr)
 
     if (m_options.uses_system_font)
     {
-        ImGui::GetIO().Fonts->AddFontFromFileTTF(SYSTEM_FONT_PATH,
-                                                 SYSTEM_FONT_SIZE);
+        /* Without the font file, the window keeps the font of ImGui. */
+        const std::string font_path = get_system_font_path();
+
+        if (font_path.empty() == false)
+        {
+            ImGui::GetIO().Fonts->AddFontFromFileTTF(font_path.c_str(),
+                                                     SYSTEM_FONT_SIZE);
+        }
     }
 
     /* The sizes and the text follow the DPI of the monitor. */
@@ -204,8 +211,8 @@ bool Utils::UIHost::IImGuiWindowHost::create_device()
 
     D3D_FEATURE_LEVEL       feature_level         = D3D_FEATURE_LEVEL_10_0;
     const D3D_FEATURE_LEVEL feature_level_array[] = {D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0};
-    bool                 result          = false;
-    DXGI_SWAP_CHAIN_DESC swap_chain_desc = {};
+    bool                    result                = false;
+    DXGI_SWAP_CHAIN_DESC    swap_chain_desc       = {};
 
     swap_chain_desc.BufferCount       = N_BUFFERS;
     swap_chain_desc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -319,6 +326,55 @@ ID3D11Device* Utils::UIHost::IImGuiWindowHost::get_device_ptr() const
     return m_device_ptr;
 }
 
+std::string Utils::UIHost::IImGuiWindowHost::get_system_font_path()
+{
+    constexpr wchar_t FONT_FILE_NAME[] = L"\\segoeui.ttf";
+
+    PWSTR       fonts_folder_ptr = nullptr;
+    std::string result;
+
+    /* The fonts folder is where the system says it is: not every Windows is on C:\Windows. */
+    if (SUCCEEDED(::SHGetKnownFolderPath(FOLDERID_Fonts,
+                                         0, /* dwFlags */
+                                         nullptr,
+                                        &fonts_folder_ptr) ) )
+    {
+        const std::wstring font_path = std::wstring(fonts_folder_ptr) + FONT_FILE_NAME;
+
+        if (::GetFileAttributesW(font_path.c_str() ) != INVALID_FILE_ATTRIBUTES)
+        {
+            /* ImGui wants UTF-8. */
+            const int n_bytes = ::WideCharToMultiByte(CP_UTF8,
+                                                      0,
+                                                      font_path.c_str(),
+                                                      -1,
+                                                      nullptr,
+                                                      0,
+                                                      nullptr,
+                                                      nullptr);
+
+            if (n_bytes > 1)
+            {
+                result.resize(static_cast<size_t>(n_bytes) - 1);
+
+                ::WideCharToMultiByte(CP_UTF8,
+                                      0,
+                                      font_path.c_str(),
+                                      -1,
+                                     &result[0],
+                                      n_bytes,
+                                      nullptr,
+                                      nullptr);
+            }
+        }
+    }
+
+    /* Frees nothing if the folder was not found. */
+    ::CoTaskMemFree(fonts_folder_ptr);
+
+    return result;
+}
+
 HWND Utils::UIHost::IImGuiWindowHost::get_window() const
 {
     return m_hwnd;
@@ -345,9 +401,9 @@ void Utils::UIHost::IImGuiWindowHost::on_resized_to_content()
 }
 
 LRESULT Utils::UIHost::IImGuiWindowHost::process_message(const HWND&   in_window,
-                                                        const UINT&   in_message,
-                                                        const WPARAM& in_wparam,
-                                                        const LPARAM& in_lparam)
+                                                         const UINT&   in_message,
+                                                         const WPARAM& in_wparam,
+                                                         const LPARAM& in_lparam)
 {
     LRESULT result = 0;
 
@@ -538,9 +594,9 @@ void Utils::UIHost::IImGuiWindowHost::run()
 }
 
 LRESULT CALLBACK Utils::UIHost::IImGuiWindowHost::window_proc(HWND   in_window,
-                                                             UINT   in_message,
-                                                             WPARAM in_wparam,
-                                                             LPARAM in_lparam)
+                                                              UINT   in_message,
+                                                              WPARAM in_wparam,
+                                                              LPARAM in_lparam)
 {
     IImGuiWindowHost* window_ptr = nullptr;
 
@@ -562,8 +618,8 @@ LRESULT CALLBACK Utils::UIHost::IImGuiWindowHost::window_proc(HWND   in_window,
                                                                  in_message,
                                                                  in_wparam,
                                                                  in_lparam)
-                                   : ::DefWindowProcW(in_window,
-                                                      in_message,
-                                                      in_wparam,
-                                                      in_lparam);
+                                   : ::DefWindowProcW           (in_window,
+                                                                 in_message,
+                                                                 in_wparam,
+                                                                 in_lparam);
 }
