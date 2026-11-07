@@ -12,7 +12,7 @@ uint64_t Analysis::APIDumpAnalysis::Frontends::GlPipelineState::compute_state_ke
     /* The sets and the maps are in order, so the same state is the same digest whichever way it was reached. */
     for (const auto& capability : m_enabled_capability_set)
     {
-        hasher.add_u32(capability);
+        hasher.add_u64(capability);
     }
 
     for (const auto& value_pair : m_value_map)
@@ -155,6 +155,13 @@ uint32_t Analysis::APIDumpAnalysis::Frontends::GlPipelineState::get_capability_g
     return result;
 }
 
+uint64_t Analysis::APIDumpAnalysis::Frontends::GlPipelineState::get_unit_key(const uint32_t& in_unit,
+                                                                             const uint32_t& in_capability)
+{
+    /* The unit is in the upper half, from 1 on, so that no key of a unit is a key of a capability that has none. */
+    return (static_cast<uint64_t>(in_unit) + 1) << 32 | in_capability;
+}
+
 uint32_t Analysis::APIDumpAnalysis::Frontends::GlPipelineState::get_value_groups(const GlStateValue& in_value)
 {
     constexpr uint32_t COLOR_BUFFER_BIT = 0x00004000;
@@ -209,10 +216,48 @@ uint32_t Analysis::APIDumpAnalysis::Frontends::GlPipelineState::get_value_groups
     return result;
 }
 
+bool Analysis::APIDumpAnalysis::Frontends::GlPipelineState::is_unit_capability(const uint32_t& in_capability)
+{
+    bool result = false;
+
+    switch (in_capability)
+    {
+        case 0x0C60: /* GL_TEXTURE_GEN_S    */
+        case 0x0C61: /* GL_TEXTURE_GEN_T    */
+        case 0x0C62: /* GL_TEXTURE_GEN_R    */
+        case 0x0C63: /* GL_TEXTURE_GEN_Q    */
+        case 0x0DE0: /* GL_TEXTURE_1D       */
+        case 0x0DE1: /* GL_TEXTURE_2D       */
+        case 0x806F: /* GL_TEXTURE_3D       */
+        case 0x8513: /* GL_TEXTURE_CUBE_MAP */
+        {
+            result = true;
+
+            break;
+        }
+
+        default:
+        {
+            break;
+        }
+    }
+
+    return result;
+}
+
+bool Analysis::APIDumpAnalysis::Frontends::GlPipelineState::is_unit_capability_enabled(const uint32_t& in_unit,
+                                                                                       const uint32_t& in_capability) const
+{
+    const uint64_t key = get_unit_key(in_unit,
+                                      in_capability);
+
+    return (m_enabled_capability_set.count(key) != 0);
+}
+
 void Analysis::APIDumpAnalysis::Frontends::GlPipelineState::restore(const GlPipelineState& in_saved,
                                                                     const uint32_t&        in_mask)
 {
-    std::set<uint32_t>               capability_set = m_enabled_capability_set;
+    std::set<uint64_t>               capability_set = m_enabled_capability_set;
     std::map<GlStateValue, uint32_t> value_map      = m_value_map;
 
     /* What is enabled now, and what was when the state was saved: the capability of a group of the mask is as it was. */
@@ -221,10 +266,12 @@ void Analysis::APIDumpAnalysis::Frontends::GlPipelineState::restore(const GlPipe
 
     for (const auto& capability : capability_set)
     {
-        if ( (get_capability_groups(capability) & in_mask) != 0)
+        const uint32_t groups = get_capability_groups(static_cast<uint32_t>(capability) );
+
+        if ( (groups & in_mask) != 0)
         {
-            set_capability(capability,
-                           (in_saved.m_enabled_capability_set.count(capability) != 0) );
+            set_key(capability,
+                    (in_saved.m_enabled_capability_set.count(capability) != 0) );
         }
     }
 
@@ -255,14 +302,32 @@ void Analysis::APIDumpAnalysis::Frontends::GlPipelineState::restore(const GlPipe
 void Analysis::APIDumpAnalysis::Frontends::GlPipelineState::set_capability(const uint32_t& in_capability,
                                                                            const bool&     in_is_enabled)
 {
+    set_key(in_capability,
+            in_is_enabled);
+}
+
+void Analysis::APIDumpAnalysis::Frontends::GlPipelineState::set_key(const uint64_t& in_key,
+                                                                    const bool&     in_is_enabled)
+{
     if (in_is_enabled)
     {
-        m_enabled_capability_set.insert(in_capability);
+        m_enabled_capability_set.insert(in_key);
     }
     else
     {
-        m_enabled_capability_set.erase(in_capability);
+        m_enabled_capability_set.erase(in_key);
     }
+}
+
+void Analysis::APIDumpAnalysis::Frontends::GlPipelineState::set_unit_capability(const uint32_t& in_unit,
+                                                                                const uint32_t& in_capability,
+                                                                                const bool&     in_is_enabled)
+{
+    const uint64_t key = get_unit_key(in_unit,
+                                      in_capability);
+
+    set_key(key,
+            in_is_enabled);
 }
 
 void Analysis::APIDumpAnalysis::Frontends::GlPipelineState::set_value(const GlStateValue& in_value,

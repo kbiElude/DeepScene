@@ -11,6 +11,7 @@
 #include "capture/api_dump_loader/api_dump_loader.h"
 #include "common/api_function_argument.h"
 #include <array>
+#include <map>
 #include <memory>
 #include <stdint.h>
 #include <vector>
@@ -119,6 +120,15 @@ namespace Analysis
                 uint32_t                       list_number  = 0;
             };
 
+            /* A texture of the program: its resource, once the size is known (the first glTexImage2D). */
+            struct GlTexture
+            {
+                uint32_t                              height          = 0;
+                uint32_t                              internal_format = 0;
+                Analysis::APIDumpAnalysis::ResourceId resource_id     = Analysis::APIDumpAnalysis::ResourceId::NONE;
+                uint32_t                              width           = 0;
+            };
+
             /* A rectangle of the framebuffer, in pixels from its lower left corner, as glViewport and glScissor say it. */
             struct GlBox
             {
@@ -133,13 +143,15 @@ namespace Analysis
              */
             struct GlAttributes
             {
-                std::array<float, 4> clear_color_fp32vec4 = {};
-                double               clear_depth          = 1.0;
-                uint32_t             clear_stencil        = 0;
-                bool                 is_scissor_enabled   = false;
-                uint32_t             matrix_mode          = 0x1700; /* GL_MODELVIEW */
-                GlBox                scissor_box;
-                GlBox                viewport;
+                uint32_t                     active_texture_unit  = 0;        /* from 0; GL_TEXTURE0 is the first */
+                std::array<float, 4>         clear_color_fp32vec4 = {};
+                double                       clear_depth          = 1.0;
+                uint32_t                     clear_stencil        = 0;
+                bool                         is_scissor_enabled   = false;
+                uint32_t                     matrix_mode          = 0x1700;   /* GL_MODELVIEW */
+                GlBox                        scissor_box;
+                std::map<uint32_t, uint32_t> texture_binding_map;             /* the GL_TEXTURE_2D bound to each texture unit, by the number of the unit */
+                GlBox                        viewport;
             };
 
             /* A piece of data that draws read from the memory of the application. The bytes are there while the piece is worth keeping (see

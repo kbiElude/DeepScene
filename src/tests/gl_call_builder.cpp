@@ -25,6 +25,14 @@ Tests::GlCallBuilder::GlCallBuilder()
     m_workload.qpc_frequency   = QPC_FREQUENCY;
 }
 
+void Tests::GlCallBuilder::active_texture(const uint32_t& in_unit)
+{
+    constexpr uint32_t TEXTURE0 = 0x84C0;
+
+    add_call(APIInterceptor::APIFUNCTION_GL_GLACTIVETEXTURE,
+             {APIInterceptor::APIFunctionArgument::create_u32_glenum(TEXTURE0 + in_unit)});
+}
+
 void Tests::GlCallBuilder::add_call(const APIInterceptor::APIFunction&         in_function,
                                     const ArgumentVector&                      in_arguments,
                                     const APIInterceptor::APIFunctionArgument& in_returned_value)
@@ -80,6 +88,14 @@ void Tests::GlCallBuilder::begin(const uint32_t& in_mode)
              {APIInterceptor::APIFunctionArgument::create_u32_glenum(in_mode)});
 }
 
+void Tests::GlCallBuilder::bind_texture(const uint32_t& in_target,
+                                        const uint32_t& in_name)
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLBINDTEXTURE,
+             {APIInterceptor::APIFunctionArgument::create_u32_glenum(in_target),
+              APIInterceptor::APIFunctionArgument::create_u32       (in_name)});
+}
+
 void Tests::GlCallBuilder::blend_func(const uint32_t& in_source,
                                        const uint32_t& in_destination)
 {
@@ -130,6 +146,16 @@ void Tests::GlCallBuilder::delete_lists(const int32_t& in_first_list,
     add_call(APIInterceptor::APIFUNCTION_GL_GLDELETELISTS,
              {APIInterceptor::APIFunctionArgument::create_i32(in_first_list),
               APIInterceptor::APIFunctionArgument::create_i32(in_range)});
+}
+
+void Tests::GlCallBuilder::delete_textures(const std::vector<uint32_t>& in_name_u32vec)
+{
+    const auto names_arg = add_chunk(in_name_u32vec.data(),
+                                     in_name_u32vec.size() * sizeof(uint32_t) );
+
+    add_call(APIInterceptor::APIFUNCTION_GL_GLDELETETEXTURES,
+             {APIInterceptor::APIFunctionArgument::create_i32(static_cast<int32_t>(in_name_u32vec.size() ) ),
+              names_arg});
 }
 
 void Tests::GlCallBuilder::depth_func(const uint32_t& in_function)
@@ -429,6 +455,36 @@ void Tests::GlCallBuilder::swap_buffers(const uint64_t& in_device_context_addres
     add_call(APIInterceptor::APIFUNCTION_GDI32_SWAPBUFFERS,
              {make_pointer_argument(in_device_context_address)},
              APIInterceptor::APIFunctionArgument::create_i32(1) );
+}
+
+void Tests::GlCallBuilder::tex_image_2d(const uint32_t&             in_level,
+                                        const int32_t&              in_width,
+                                        const int32_t&              in_height,
+                                        const std::vector<uint8_t>& in_pixel_u8vec)
+{
+    constexpr uint32_t GL_RGBA             = 0x1908;
+    constexpr uint32_t GL_TEXTURE_2D       = 0x0DE1;
+    constexpr uint32_t GL_UNSIGNED_BYTE    = 0x1401;
+    constexpr int32_t  INTERNAL_FORMAT_RGBA = 4;
+
+    APIInterceptor::APIFunctionArgument pixels_arg = make_pointer_argument(0);
+
+    if (in_pixel_u8vec.empty() == false)
+    {
+        pixels_arg = add_chunk(in_pixel_u8vec.data(),
+                               in_pixel_u8vec.size() );
+    }
+
+    add_call(APIInterceptor::APIFUNCTION_GL_GLTEXIMAGE2D,
+             {APIInterceptor::APIFunctionArgument::create_u32_glenum(GL_TEXTURE_2D),
+              APIInterceptor::APIFunctionArgument::create_i32       (static_cast<int32_t>(in_level) ),
+              APIInterceptor::APIFunctionArgument::create_i32       (INTERNAL_FORMAT_RGBA),
+              APIInterceptor::APIFunctionArgument::create_i32       (in_width),
+              APIInterceptor::APIFunctionArgument::create_i32       (in_height),
+              APIInterceptor::APIFunctionArgument::create_i32       (0),
+              APIInterceptor::APIFunctionArgument::create_u32_glenum(GL_RGBA),
+              APIInterceptor::APIFunctionArgument::create_u32_glenum(GL_UNSIGNED_BYTE),
+              pixels_arg});
 }
 
 void Tests::GlCallBuilder::translate(const double& in_x,

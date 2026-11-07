@@ -38,12 +38,17 @@ namespace Tests
 
         GlCallBuilder();
 
+        /* The unit is counted from 0. */
+        void active_texture(const uint32_t& in_unit);
+
         /* The calls are those of the thread that the builder is told to be (1 at first). */
         void add_call(const APIInterceptor::APIFunction&         in_function,
                       const ArgumentVector&                      in_arguments,
                       const APIInterceptor::APIFunctionArgument& in_returned_value = APIInterceptor::APIFunctionArgument::create_i32(0) );
 
         void begin        (const uint32_t& in_mode);
+        void bind_texture (const uint32_t& in_target,
+                           const uint32_t& in_name);
         void blend_func   (const uint32_t& in_source,
                            const uint32_t& in_destination);
         void call_list    (const uint32_t& in_list);
@@ -56,6 +61,7 @@ namespace Tests
         void clear_stencil(const int32_t&  in_stencil);
         void delete_lists (const int32_t&  in_first_list,
                            const int32_t&  in_range);
+        void delete_textures(const std::vector<uint32_t>& in_name_u32vec);
         void depth_func   (const uint32_t& in_function);
         void depth_mask   (const bool&     in_is_writing);
         void disable      (const uint32_t& in_capability);
@@ -131,6 +137,12 @@ namespace Tests
         void set_thread_id(const uint32_t& in_thread_id);
 
         void swap_buffers(const uint64_t& in_device_context_address);
+
+        /* A glTexImage2D of RGBA bytes: with the pixels in the call, or with none (a null pointer) if the vector is empty. */
+        void tex_image_2d(const uint32_t&             in_level,
+                          const int32_t&              in_width,
+                          const int32_t&              in_height,
+                          const std::vector<uint8_t>& in_pixel_u8vec);
 
         void translate(const double& in_x,
                        const double& in_y,

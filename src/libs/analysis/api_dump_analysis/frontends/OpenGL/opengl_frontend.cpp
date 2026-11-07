@@ -24,6 +24,33 @@ Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::OpenGLFrontend(Analysis::A
     /* Stub */
 }
 
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::add_texture_bindings(const GlContextState&                       in_state,
+                                                                                Analysis::APIDumpAnalysis::DrawDescription* out_description_ptr) const
+{
+    constexpr uint32_t TEXTURE_2D = 0x0DE1;
+
+    /* A texture is sampled by a unit that has its target enabled and a texture of the program bound (one that has been given a size). */
+    for (const auto& binding_pair : in_state.attributes.texture_binding_map)
+    {
+        const uint32_t unit             = binding_pair.first;
+        const bool     is_enabled       = in_state.pipeline_state.is_unit_capability_enabled(unit,
+                                                                                             TEXTURE_2D);
+        const auto     texture_iterator = m_texture_map.find(binding_pair.second);
+        const bool     is_known         = (texture_iterator != m_texture_map.end() );
+
+        if (is_enabled &&
+            is_known)
+        {
+            Analysis::APIDumpAnalysis::TextureBinding binding;
+
+            binding.binding_point.index = unit;
+            binding.view.resource_id    = texture_iterator->second.resource_id;
+
+            out_description_ptr->texture_binding_vec.push_back(binding);
+        }
+    }
+}
+
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::ensure_default_framebuffer(const GlContextState& in_state)
 {
     if (m_has_default_framebuffer == false)
@@ -105,6 +132,21 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::find_resource_view(co
 const Analysis::APIDumpAnalysis::Frontends::GlBlobStore& Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_blob_store() const
 {
     return m_array_draw_describer.get_blob_store();
+}
+
+uint32_t Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_bound_texture_name(const GlContextState& in_state)
+{
+    const uint32_t unit             = in_state.attributes.active_texture_unit;
+    const auto     binding_iterator = in_state.attributes.texture_binding_map.find(unit);
+    uint32_t       result           = 0;
+
+    /* A unit that nothing has been bound to has the default texture, which is named 0. */
+    if (binding_iterator != in_state.attributes.texture_binding_map.end() )
+    {
+        result = binding_iterator->second;
+    }
+
+    return result;
 }
 
 Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_call_eye_dependence(const APIInterceptor::APIFunction&                      in_function,
@@ -306,6 +348,24 @@ Analysis::APIDumpAnalysis::PrimitiveTopology Analysis::APIDumpAnalysis::Frontend
     return result;
 }
 
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_active_texture(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                                 GlContextState*                              inout_state_ptr)
+{
+    constexpr uint32_t TEXTURE0 = 0x84C0;
+
+    std::array<uint32_t, 1> unit_array = {};
+
+    if (read_arguments(in_call,
+                       &unit_array) )
+    {
+        inout_state_ptr->attributes.active_texture_unit = unit_array.at(0) - TEXTURE0;
+    }
+    else
+    {
+        m_n_unfollowed_calls++;
+    }
+}
+
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_array_draw(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                              const Capture::APIDumpLoader::Workload&      in_workload,
                                                                              const bool&                                  in_is_indexed,
@@ -343,6 +403,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_array_draw(con
             case GlArrayDrawResult::DRAW:
             {
                 ensure_default_framebuffer(*inout_state_ptr);
+
+                add_texture_bindings(*inout_state_ptr,
+                                     &description);
 
                 m_builder_ptr->on_draw(description);
 
@@ -385,6 +448,33 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_begin(const Ca
     else
     {
         m_n_unfollowed_calls++;
+    }
+}
+
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_bind_texture(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                               GlContextState*                              inout_state_ptr)
+{
+    constexpr uint32_t TEXTURE_2D = 0x0DE1;
+
+    std::array<uint32_t, 2> bind_array = {};
+
+    if (read_arguments(in_call,
+                       &bind_array) == false)
+    {
+        m_n_unfollowed_calls++;
+    }
+    else
+    if (bind_array.at(0) == TEXTURE_2D)
+    {
+        const uint32_t unit = inout_state_ptr->attributes.active_texture_unit;
+
+        inout_state_ptr->attributes.texture_binding_map[unit] = bind_array.at(1);
+    }
+    else
+    if (bind_array.at(1) != 0)
+    {
+        /* A texture of another target (one and three dimensions, cube maps) is not followed; the default texture of one is not sampled. */
+        m_n_unsupported_calls++;
     }
 }
 
@@ -547,6 +637,59 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_delete_lists(c
     }
 }
 
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_delete_textures(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                                  const Capture::APIDumpLoader::Workload&      in_workload)
+{
+    constexpr size_t COUNT_ARGUMENT = 0;
+    constexpr size_t NAMES_ARGUMENT = 1;
+
+    const CallView                           view(in_call,
+                                                  in_workload,
+                                                  in_call.arg_in_vec.size() );
+    const Capture::APIDumpLoader::DataChunk* chunk_ptr = view.get_chunk_ptr(NAMES_ARGUMENT);
+    int32_t                                  count     = 0;
+    bool                                     is_read   = (in_call.arg_in_vec.size() > COUNT_ARGUMENT &&
+                                                          chunk_ptr                 != nullptr);
+
+    if (is_read)
+    {
+        is_read = APIInterceptor::read_number(in_call.arg_in_vec.at(COUNT_ARGUMENT),
+                                              &count);
+    }
+
+    if (is_read)
+    {
+        is_read = (count            >= 0                                           &&
+                   chunk_ptr->size() >= static_cast<size_t>(count) * sizeof(uint32_t) );
+    }
+
+    if (is_read == false)
+    {
+        m_n_unfollowed_calls++;
+    }
+
+    for (int32_t n_name = 0;
+                 is_read    &&
+                 n_name < count;
+               ++n_name)
+    {
+        uint32_t name = 0;
+
+        ::memcpy(&name,
+                 chunk_ptr->data() + static_cast<size_t>(n_name) * sizeof(name),
+                 sizeof(name) );
+
+        const auto texture_iterator = m_texture_map.find(name);
+
+        if (texture_iterator != m_texture_map.end() )
+        {
+            m_builder_ptr->on_destroy_resource(texture_iterator->second.resource_id);
+
+            m_texture_map.erase(texture_iterator);
+        }
+    }
+}
+
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_enable(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                          const bool&                                  in_is_enabled,
                                                                          GlContextState*                              inout_state_ptr)
@@ -564,6 +707,13 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_enable(const C
     if (capability_array.at(0) == SCISSOR_TEST)
     {
         inout_state_ptr->attributes.is_scissor_enabled = in_is_enabled;
+    }
+    else
+    if (GlPipelineState::is_unit_capability(capability_array.at(0) ) )
+    {
+        inout_state_ptr->pipeline_state.set_unit_capability(inout_state_ptr->attributes.active_texture_unit,
+                                                            capability_array.at(0),
+                                                            in_is_enabled);
     }
     else
     {
@@ -586,6 +736,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_end(GlContextS
 
         auto description = inout_state_ptr->pipeline_state.describe_draw(topology,
                                                                          block.n_vertices);
+
+        add_texture_bindings(*inout_state_ptr,
+                             &description);
 
         if (block.wants_positions)
         {
@@ -671,10 +824,26 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
                     break;
                 }
 
+                case APIInterceptor::APIFUNCTION_GL_GLACTIVETEXTURE:
+                {
+                    handle_active_texture(in_call,
+                                          state_ptr);
+
+                    break;
+                }
+
                 case APIInterceptor::APIFUNCTION_GL_GLBEGIN:
                 {
                     handle_begin(in_call,
                                  state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLBINDTEXTURE:
+                {
+                    handle_bind_texture(in_call,
+                                        state_ptr);
 
                     break;
                 }
@@ -739,6 +908,14 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
                 case APIInterceptor::APIFUNCTION_GL_GLDELETELISTS:
                 {
                     handle_delete_lists(in_call);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLDELETETEXTURES:
+                {
+                    handle_delete_textures(in_call,
+                                           in_workload);
 
                     break;
                 }
@@ -827,6 +1004,15 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
                 {
                     handle_scissor(in_call,
                                    state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLTEXIMAGE2D:
+                {
+                    handle_tex_image(in_call,
+                                     in_workload,
+                                     state_ptr);
 
                     break;
                 }
@@ -1245,6 +1431,45 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_state_value(co
     }
 }
 
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_tex_image(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                            const Capture::APIDumpLoader::Workload&      in_workload,
+                                                                            GlContextState*                              inout_state_ptr)
+{
+    /* glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels). */
+    constexpr uint32_t TEXTURE_2D = 0x0DE1;
+
+    std::array<uint32_t, 5> image_array = {};
+
+    if (read_arguments(in_call,
+                       &image_array) == false)
+    {
+        m_n_unfollowed_calls++;
+    }
+    else
+    if (image_array.at(0) != TEXTURE_2D)
+    {
+        /* Proxies, one and three dimensions and the faces of cube maps are not followed. */
+        m_n_unsupported_calls++;
+    }
+    else
+    {
+        const uint32_t level = image_array.at(1);
+
+        if (level == 0)
+        {
+            specify_texture(*inout_state_ptr,
+                            image_array.at(2),
+                            image_array.at(3),
+                            image_array.at(4) );
+        }
+
+        upload_texture_level(in_call,
+                             in_workload,
+                             *inout_state_ptr,
+                             level);
+    }
+}
+
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_vertex(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                          const Capture::APIDumpLoader::Workload&      in_workload,
                                                                          GlContextState*                              inout_state_ptr)
@@ -1313,11 +1538,18 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::is_unsupported_functi
     {
         case APIInterceptor::APIFUNCTION_GL_GLBITMAP:
         case APIInterceptor::APIFUNCTION_GL_GLCALLLISTS:
+        case APIInterceptor::APIFUNCTION_GL_GLCOMPRESSEDTEXIMAGE2D:
+        case APIInterceptor::APIFUNCTION_GL_GLCOMPRESSEDTEXSUBIMAGE2D:
         case APIInterceptor::APIFUNCTION_GL_GLCOPYPIXELS:
         case APIInterceptor::APIFUNCTION_GL_GLCOPYTEXIMAGE2D:
         case APIInterceptor::APIFUNCTION_GL_GLCOPYTEXSUBIMAGE2D:
         case APIInterceptor::APIFUNCTION_GL_GLDRAWPIXELS:
         case APIInterceptor::APIFUNCTION_GL_GLREADPIXELS:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXIMAGE1D:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXIMAGE3D:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXSUBIMAGE1D:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXSUBIMAGE2D:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXSUBIMAGE3D:
         {
             result = true;
 
@@ -1640,6 +1872,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::restore_attributes(co
     constexpr uint32_t ENABLE_BIT         = 0x00002000;
     constexpr uint32_t SCISSOR_BIT        = 0x00080000;
     constexpr uint32_t STENCIL_BUFFER_BIT = 0x00000400;
+    constexpr uint32_t TEXTURE_BIT        = 0x00040000;
     constexpr uint32_t TRANSFORM_BIT      = 0x00001000;
     constexpr uint32_t VIEWPORT_BIT       = 0x00000800;
 
@@ -1671,6 +1904,13 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::restore_attributes(co
         inout_attributes_ptr->scissor_box = saved.scissor_box;
     }
 
+    /* The textures that are bound, and the unit that is active. */
+    if ( (in_frame.mask & TEXTURE_BIT) != 0)
+    {
+        inout_attributes_ptr->active_texture_unit = saved.active_texture_unit;
+        inout_attributes_ptr->texture_binding_map = saved.texture_binding_map;
+    }
+
     if ( (in_frame.mask & TRANSFORM_BIT) != 0)
     {
         inout_attributes_ptr->matrix_mode = saved.matrix_mode;
@@ -1679,5 +1919,101 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::restore_attributes(co
     if ( (in_frame.mask & VIEWPORT_BIT) != 0)
     {
         inout_attributes_ptr->viewport = saved.viewport;
+    }
+}
+
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::specify_texture(const GlContextState& in_state,
+                                                                           const uint32_t&       in_internal_format,
+                                                                           const uint32_t&       in_width,
+                                                                           const uint32_t&       in_height)
+{
+    constexpr uint32_t DEPTH_COMPONENT   = 0x1902;
+    constexpr uint32_t DEPTH_STENCIL     = 0x84F9;
+    constexpr uint32_t FIRST_DEPTH_SIZED = 0x81A5; /* GL_DEPTH_COMPONENT16 to GL_DEPTH_COMPONENT32 */
+    constexpr uint32_t LAST_DEPTH_SIZED  = 0x81A7;
+
+    const uint32_t name             = get_bound_texture_name(in_state);
+    const auto     texture_iterator = m_texture_map.find(name);
+    const bool     is_known         = (texture_iterator != m_texture_map.end() );
+    bool           is_same          = false;
+
+    if (is_known)
+    {
+        is_same = (texture_iterator->second.height          == in_height          &&
+                   texture_iterator->second.internal_format == in_internal_format &&
+                   texture_iterator->second.width           == in_width);
+    }
+
+    /* The size of the first level is the size of the texture: a texture that is given another one is another resource. */
+    if (is_same == false)
+    {
+        Analysis::APIDumpAnalysis::ResourceDescription description;
+        GlTexture                                      texture;
+
+        if (is_known)
+        {
+            m_builder_ptr->on_destroy_resource(texture_iterator->second.resource_id);
+        }
+
+        description.format.format_class = Analysis::APIDumpAnalysis::FormatClass::COLOR;
+        description.format.raw_value    = in_internal_format;
+        description.height              = in_height;
+        description.kind                = Analysis::APIDumpAnalysis::ResourceKind::TEXTURE_2D;
+        description.width               = in_width;
+
+        if (in_internal_format == DEPTH_COMPONENT                                                       ||
+            (in_internal_format >= FIRST_DEPTH_SIZED && in_internal_format <= LAST_DEPTH_SIZED) )
+        {
+            description.format.format_class = Analysis::APIDumpAnalysis::FormatClass::DEPTH;
+        }
+        else
+        if (in_internal_format == DEPTH_STENCIL)
+        {
+            description.format.format_class = Analysis::APIDumpAnalysis::FormatClass::DEPTH_STENCIL;
+        }
+
+        texture.height          = in_height;
+        texture.internal_format = in_internal_format;
+        texture.resource_id     = m_builder_ptr->on_create_resource(description,
+                                                                    "texture");
+        texture.width           = in_width;
+
+        m_texture_map[name] = texture;
+    }
+}
+
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::upload_texture_level(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                                const Capture::APIDumpLoader::Workload&      in_workload,
+                                                                                const GlContextState&                        in_state,
+                                                                                const uint32_t&                              in_level)
+{
+    constexpr size_t PIXELS_ARGUMENT = 8;
+
+    const uint32_t name             = get_bound_texture_name(in_state);
+    const auto     texture_iterator = m_texture_map.find(name);
+
+    if (texture_iterator == m_texture_map.end() )
+    {
+        /* A level of a texture whose first level has not been given. */
+        m_n_unfollowed_calls++;
+    }
+    else
+    {
+        const CallView                           view(in_call,
+                                                      in_workload,
+                                                      in_call.arg_in_vec.size() );
+        Analysis::APIDumpAnalysis::DataReference data;
+        Analysis::APIDumpAnalysis::ResourceView  destination;
+
+        destination.mip_level   = in_level;
+        destination.resource_id = texture_iterator->second.resource_id;
+
+        /* The pixels are in the call, or a null pointer: the level is given a size and no data. */
+        if (view.get_data_reference(PIXELS_ARGUMENT,
+                                    &data) )
+        {
+            m_builder_ptr->on_upload(destination,
+                                     data);
+        }
     }
 }

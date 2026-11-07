@@ -75,6 +75,10 @@ namespace Analysis
                              const Capture::APIDumpLoader::Workload&      in_workload) override;
 
             private:
+                /* The texture of the program that the draw samples with each unit, as bindings. */
+                void add_texture_bindings(const GlContextState&                       in_state,
+                                          Analysis::APIDumpAnalysis::DrawDescription* out_description_ptr) const;
+
                 /* Makes the resources of the window, and tells the builder what is rendered to and where, if that has not been done. */
                 void ensure_default_framebuffer(const GlContextState& in_state);
 
@@ -85,6 +89,9 @@ namespace Analysis
                 GlListEyeDependence get_call_eye_dependence(const APIInterceptor::APIFunction&                      in_function,
                                                             const std::vector<APIInterceptor::APIFunctionArgument>& in_argument_vec) const;
 
+                /* A call of glActiveTexture: the unit that the calls of textures are for from now on. */
+                void handle_active_texture  (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                             GlContextState*                              inout_state_ptr);
                 /* A call of glDrawArrays or glDrawElements: a draw from the arrays that the dumper copied into it. */
                 void handle_array_draw      (const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                              const Capture::APIDumpLoader::Workload&      in_workload,
@@ -94,6 +101,9 @@ namespace Analysis
                                              GlContextState*                              inout_state_ptr);
                 /* A call of glCallList: the calls of the list are made, as the list has them. */
                 void handle_call_list       (const Capture::APIDumpLoader::DumpedAPICall& in_call);
+                /* A call of glBindTexture: of a two dimensional texture, the one that the active unit has from now on. */
+                void handle_bind_texture    (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                             GlContextState*                              inout_state_ptr);
                 void handle_clear           (const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                              GlContextState*                              inout_state_ptr);
                 void handle_clear_color     (const Capture::APIDumpLoader::DumpedAPICall& in_call,
@@ -102,6 +112,9 @@ namespace Analysis
                                              GlContextState*                              inout_state_ptr);
                 void handle_clear_stencil   (const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                              GlContextState*                              inout_state_ptr);
+                /* The textures of glDeleteTextures are gone, and their resources. */
+                void handle_delete_textures (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                             const Capture::APIDumpLoader::Workload&      in_workload);
                 /* The lists of glDeleteLists are gone. */
                 void handle_delete_lists    (const Capture::APIDumpLoader::DumpedAPICall& in_call);
                 void handle_enable          (const Capture::APIDumpLoader::DumpedAPICall& in_call,
@@ -133,6 +146,10 @@ namespace Analysis
                 /* A call which sets a value of the pipeline that a draw is told apart by (a function, a mode, a mask). */
                 void handle_state_value     (const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                              GlContextState*                              inout_state_ptr);
+                /* A call of glTexImage2D: the first level gives the texture its size (and resource), a level has pixels or not. */
+                void handle_tex_image       (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                             const Capture::APIDumpLoader::Workload&      in_workload,
+                                             GlContextState*                              inout_state_ptr);
                 /* A glVertex of the block that is open: it is counted, and its position kept if the builder wants the geometry. */
                 void handle_vertex          (const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                              const Capture::APIDumpLoader::Workload&      in_workload,
@@ -153,8 +170,23 @@ namespace Analysis
                                    const uint64_t&                                   in_byte_offset,
                                    GlReportedMatrix*                                 inout_reported_ptr);
 
+                /* The resource of the texture that is bound to the active unit: made, or made again if the size is not what it was. */
+                void specify_texture(const GlContextState& in_state,
+                                     const uint32_t&       in_internal_format,
+                                     const uint32_t&       in_width,
+                                     const uint32_t&       in_height);
+
+                /* The pixels of a call that gives a level of the texture of the active unit, as the resource gets them. */
+                void upload_texture_level(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                          const Capture::APIDumpLoader::Workload&      in_workload,
+                                          const GlContextState&                        in_state,
+                                          const uint32_t&                              in_level);
+
                 /* The stack of the matrices that glMatrixMode has chosen. */
                 static std::vector<GlMatrix>* get_current_stack_ptr(GlContextState* inout_state_ptr);
+
+                /* The name of the texture that the active unit has bound (0 if it has none). */
+                static uint32_t get_bound_texture_name(const GlContextState& in_state);
 
                 /* A context as it starts: what the specification says, and a stack of the identity for each kind of matrix. */
                 static GlContextState get_initial_context_state();
@@ -226,6 +258,7 @@ namespace Analysis
                 uint64_t                                                        m_n_unsupported_calls;
                 GlReportedMatrix                                                m_reported_modelview;
                 GlReportedMatrix                                                m_reported_projection;
+                std::map<uint32_t, GlTexture>                                   m_texture_map;                   /* by the name of the texture; the contexts share them */
             };
         }
     }
