@@ -37,8 +37,11 @@ namespace Analysis
                                            const GlPipelineState&                              in_pipeline_state,
                                            Analysis::APIDumpAnalysis::DrawDescription*         out_description_ptr);
 
-                /* The number of different pieces of data that the draws have read from the memory of the application. */
-                uint64_t get_n_blobs() const;
+                /* The data that draws have read from the memory of the application, as resources. */
+                const GlBlobStore& get_blob_store() const;
+
+                /* The frame is over: the data that was read in it only is let go of. */
+                void on_frame_ended();
 
             private:
                 /* The sample of the geometry of the draw, from the array of the positions; null if none of the vertices could be read. */

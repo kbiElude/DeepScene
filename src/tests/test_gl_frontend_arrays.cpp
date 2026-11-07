@@ -36,6 +36,24 @@ namespace
             return result;
         }
 
+        /* The first resource of vertices of the model that is not the given one. */
+        Analysis::APIDumpAnalysis::ResourceId get_first_vertex_resource(const Analysis::APIDumpAnalysis::ResourceId& in_other_than = Analysis::APIDumpAnalysis::ResourceId::NONE) const
+        {
+            Analysis::APIDumpAnalysis::ResourceId result = Analysis::APIDumpAnalysis::ResourceId::NONE;
+
+            for (const auto& resource : m_harness.get_model().resource_vec)
+            {
+                if (result                    == Analysis::APIDumpAnalysis::ResourceId::NONE            &&
+                    resource.description.kind == Analysis::APIDumpAnalysis::ResourceKind::BUFFER_VERTEX &&
+                    resource.id               != in_other_than)
+                {
+                    result = resource.id;
+                }
+            }
+
+            return result;
+        }
+
         /* A triangle whose positions are the given ones moved along x. */
         static ClientArray make_triangle(const float& in_x)
         {
@@ -106,6 +124,68 @@ TEST_F(GlFrontendArrays, TheSameDataIsTheSameBufferInAnyDrawOrFrame)
               1u);
     EXPECT_EQ(m_harness.get_model().draw_structure_map.size(),
               1u);
+}
+
+TEST_F(GlFrontendArrays, TheBytesOfAFrameAreThereUntilItEnds)
+{
+    start(640,
+          480);
+
+    m_builder.clear      (COLOR_BUFFER_BIT);
+    m_builder.draw_arrays(GL_TRIANGLES,
+                          0,
+                          3,
+                          {make_triangle(0.0f)});
+
+    feed();
+
+    const auto& blob_store = m_harness.get_frontend().get_blob_store();
+    const auto  resource   = get_first_vertex_resource();
+    const auto  data_ptr   = blob_store.get_data_ptr(resource);
+
+    /* The frame is not over: each eye can still draw it. */
+    ASSERT_NE(data_ptr,
+              nullptr);
+    EXPECT_EQ(data_ptr->size(),
+              3u * sizeof(float) * 3u);
+}
+
+TEST_F(GlFrontendArrays, DataOfOneFrameIsLetGoOfAndDataOfTwoFramesIsKept)
+{
+    start(640,
+          480);
+
+    m_builder.clear       (COLOR_BUFFER_BIT);
+    m_builder.draw_arrays (GL_TRIANGLES,
+                           0,
+                           3,
+                           {make_triangle(0.0f)});
+    m_builder.draw_arrays (GL_TRIANGLES,
+                           0,
+                           3,
+                           {make_triangle(5.0f)});
+    m_builder.swap_buffers(DEVICE_CONTEXT_ADDRESS);
+    m_builder.clear       (COLOR_BUFFER_BIT);
+    m_builder.draw_arrays (GL_TRIANGLES,
+                           0,
+                           3,
+                           {make_triangle(0.0f)});
+    m_builder.swap_buffers(DEVICE_CONTEXT_ADDRESS);
+
+    feed();
+
+    const auto& blob_store = m_harness.get_frontend().get_blob_store();
+    const auto  repeated   = get_first_vertex_resource();
+    const auto  once       = get_first_vertex_resource(repeated);
+
+    EXPECT_EQ(blob_store.get_reuse(repeated),
+              Analysis::APIDumpAnalysis::Frontends::GlBlobReuse::ACROSS_FRAMES);
+    EXPECT_NE(blob_store.get_data_ptr(repeated),
+              nullptr);
+    EXPECT_EQ(blob_store.get_reuse(once),
+              Analysis::APIDumpAnalysis::Frontends::GlBlobReuse::ONE_FRAME);
+    EXPECT_EQ(blob_store.get_data_ptr(once),
+              nullptr);
 }
 
 TEST_F(GlFrontendArrays, OtherDataIsAnotherBuffer)

@@ -7,7 +7,9 @@
 #ifndef APIDUMPANALYSIS_FRONTENDS_OPENGL_TYPES_H
 #define APIDUMPANALYSIS_FRONTENDS_OPENGL_TYPES_H
 
+#include "analysis/api_dump_analysis/types.h"
 #include <array>
+#include <memory>
 #include <stdint.h>
 #include <vector>
 
@@ -23,6 +25,16 @@ namespace Analysis
                 DRAW,      /* a draw to tell the model builder of                       */
                 EMPTY,     /* a call that draws nothing (a count of 0)                  */
                 UNREADABLE /* arguments or data that are not what the call has to have */
+            };
+
+            /* How a piece of data that draws read from the memory of the application is seen to be used again, which says how long it is worth keeping:
+             * the bytes of a piece that is seen in one frame only are kept for that frame (the eyes of a stereo frame draw it each), and those of a
+             * piece that is seen in more than one frame are kept on.
+             */
+            enum class GlBlobReuse
+            {
+                ACROSS_FRAMES,
+                ONE_FRAME
             };
 
             /* What an array of vertex data is for; the values are those which the dumper stores (ClientArrayKind of the interception). */
@@ -88,6 +100,17 @@ namespace Analysis
                 uint32_t             matrix_mode          = 0x1700; /* GL_MODELVIEW */
                 GlBox                scissor_box;
                 GlBox                viewport;
+            };
+
+            /* A piece of data that draws read from the memory of the application. The bytes are there while the piece is worth keeping (see
+             * GlBlobReuse).
+             */
+            struct GlBlob
+            {
+                std::shared_ptr<const std::vector<uint8_t> > data_ptr;                                                       /* null: the bytes are not kept  */
+                uint64_t                                     last_frame  = 0;                                                /* the last frame it was seen in */
+                uint32_t                                     n_frames    = 0;                                                /* the frames it was seen in     */
+                Analysis::APIDumpAnalysis::ResourceId        resource_id = Analysis::APIDumpAnalysis::ResourceId::NONE;
             };
 
             /* An array of vertex data that a draw reads from the memory of the application, as the dumper copied it: the part of it that the draw

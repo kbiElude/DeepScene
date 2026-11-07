@@ -175,9 +175,9 @@ Analysis::APIDumpAnalysis::Frontends::GlArrayDrawResult Analysis::APIDumpAnalysi
     return result;
 }
 
-uint64_t Analysis::APIDumpAnalysis::Frontends::GlArrayDrawDescriber::get_n_blobs() const
+const Analysis::APIDumpAnalysis::Frontends::GlBlobStore& Analysis::APIDumpAnalysis::Frontends::GlArrayDrawDescriber::get_blob_store() const
 {
-    return m_blob_store.get_n_blobs();
+    return m_blob_store;
 }
 
 std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDumpAnalysis::Frontends::GlArrayDrawDescriber::make_geometry_sample(const std::vector<GlClientArray>&        in_array_vec,
@@ -240,6 +240,11 @@ std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDu
     }
 
     return result_ptr;
+}
+
+void Analysis::APIDumpAnalysis::Frontends::GlArrayDrawDescriber::on_frame_ended()
+{
+    m_blob_store.on_frame_ended();
 }
 
 uint32_t Analysis::APIDumpAnalysis::Frontends::GlArrayDrawDescriber::read_index(const Capture::APIDumpLoader::DataChunk& in_indices_chunk,
