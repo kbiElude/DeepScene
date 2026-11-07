@@ -4,6 +4,7 @@
  */
 #include "analysis/api_dump_analysis/frontends/OpenGL/opengl_frontend.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_matrix_math.h"
+#include "analysis/api_dump_analysis/frontends/OpenGL/gl_vertex_reader.h"
 #include "analysis/api_dump_analysis/frontends/shared/call_view.h"
 #include "capture/api_dump_loader/api_info.h"
 #include <string.h>
@@ -181,6 +182,102 @@ uint64_t Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_n_unsupported
     return m_n_unsupported_calls;
 }
 
+Analysis::APIDumpAnalysis::PrimitiveTopology Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_primitive_topology(const uint32_t& in_mode)
+{
+    constexpr uint32_t LINES          = 0x0001;
+    constexpr uint32_t LINE_LOOP      = 0x0002;
+    constexpr uint32_t LINE_STRIP     = 0x0003;
+    constexpr uint32_t POINTS         = 0x0000;
+    constexpr uint32_t POLYGON        = 0x0009;
+    constexpr uint32_t QUADS          = 0x0007;
+    constexpr uint32_t QUAD_STRIP     = 0x0008;
+    constexpr uint32_t TRIANGLES      = 0x0004;
+    constexpr uint32_t TRIANGLE_FAN   = 0x0006;
+    constexpr uint32_t TRIANGLE_STRIP = 0x0005;
+
+    Analysis::APIDumpAnalysis::PrimitiveTopology result = Analysis::APIDumpAnalysis::PrimitiveTopology::UNKNOWN;
+
+    switch (in_mode)
+    {
+        case LINES:
+        {
+            result = Analysis::APIDumpAnalysis::PrimitiveTopology::LINE_LIST;
+
+            break;
+        }
+
+        case LINE_LOOP:
+        case LINE_STRIP:
+        {
+            result = Analysis::APIDumpAnalysis::PrimitiveTopology::LINE_STRIP;
+
+            break;
+        }
+
+        case POINTS:
+        {
+            result = Analysis::APIDumpAnalysis::PrimitiveTopology::POINT_LIST;
+
+            break;
+        }
+
+        case POLYGON:
+        case TRIANGLE_FAN:
+        {
+            result = Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_FAN;
+
+            break;
+        }
+
+        case QUADS:
+        case TRIANGLES:
+        {
+            result = Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST;
+
+            break;
+        }
+
+        case QUAD_STRIP:
+        case TRIANGLE_STRIP:
+        {
+            result = Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_STRIP;
+
+            break;
+        }
+
+        default:
+        {
+            break;
+        }
+    }
+
+    return result;
+}
+
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_begin(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                        GlContextState*                              inout_state_ptr)
+{
+    std::array<uint32_t, 1> mode_array = {};
+
+    if (read_arguments(in_call,
+                      &mode_array) )
+    {
+        GlImmediateBlock& block = inout_state_ptr->immediate_block;
+
+        /* A glBegin that comes while a block is open starts it again. */
+        block.is_open         = true;
+        block.mode            = mode_array.at(0);
+        block.n_vertices      = 0;
+        block.wants_positions = m_builder_ptr->wants_geometry();
+
+        block.position_vec.clear();
+    }
+    else
+    {
+        m_n_unfollowed_calls++;
+    }
+}
+
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_clear(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                         GlContextState*                              inout_state_ptr)
 {
@@ -289,6 +386,42 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_enable(const C
     {
         inout_state_ptr->attributes.is_scissor_enabled = in_is_enabled;
     }
+    else
+    {
+        inout_state_ptr->pipeline_state.set_capability(capability_array.at(0),
+                                                       in_is_enabled);
+    }
+}
+
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_end(GlContextState* inout_state_ptr)
+{
+    GlImmediateBlock& block = inout_state_ptr->immediate_block;
+
+    /* The vertices of a block are one draw; a glEnd with no glBegin, or a block with no vertices, is none. */
+    if (block.is_open &&
+        block.n_vertices > 0)
+    {
+        ensure_default_framebuffer(*inout_state_ptr);
+
+        const auto topology = get_primitive_topology(block.mode);
+
+        auto description = inout_state_ptr->pipeline_state.describe_draw(topology,
+                                                                         block.n_vertices);
+
+        if (block.wants_positions)
+        {
+            description.geometry_ptr = sample_positions(block.position_vec);
+        }
+
+        m_builder_ptr->on_draw(description);
+    }
+
+    block.is_open = false;
+}
+
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_end_list(GlContextState* inout_state_ptr)
+{
+    inout_state_ptr->is_compiling_list = false;
 }
 
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_make_current(const Capture::APIDumpLoader::DumpedAPICall& in_call)
@@ -390,6 +523,25 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_matrix_mode(co
     }
 }
 
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_new_list(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                           GlContextState*                              inout_state_ptr)
+{
+    constexpr uint32_t COMPILE = 0x1300;
+
+    std::array<uint32_t, 2> list_array = {};
+
+    if (read_arguments(in_call,
+                      &list_array) )
+    {
+        /* The calls made while a list is made are kept in it and not made, unless the mode says that they are made too (GL_COMPILE_AND_EXECUTE). */
+        inout_state_ptr->is_compiling_list = (list_array.at(1) == COMPILE);
+    }
+    else
+    {
+        m_n_unfollowed_calls++;
+    }
+}
+
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_pop_attributes(GlContextState* inout_state_ptr)
 {
     if (inout_state_ptr->attribute_frame_vec.empty() )
@@ -405,6 +557,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_pop_attributes
 
         restore_attributes(frame,
                           &inout_state_ptr->attributes);
+
+        inout_state_ptr->pipeline_state.restore(frame.pipeline_state,
+                                                frame.mask);
 
         const bool is_viewport_same = is_same_box(old_viewport,
                                                   inout_state_ptr->attributes.viewport);
@@ -445,8 +600,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_push_attribute
     {
         GlAttributeFrame frame;
 
-        frame.attributes = inout_state_ptr->attributes;
-        frame.mask       = mask_array.at(0);
+        frame.attributes     = inout_state_ptr->attributes;
+        frame.mask           = mask_array.at(0);
+        frame.pipeline_state = inout_state_ptr->pipeline_state;
 
         inout_state_ptr->attribute_frame_vec.push_back(frame);
     }
@@ -477,6 +633,189 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_scissor(const 
     else
     {
         m_n_unfollowed_calls++;
+    }
+}
+
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_state_value(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                              GlContextState*                              inout_state_ptr)
+{
+    constexpr uint32_t BACK           = 0x0405;
+    constexpr uint32_t FRONT          = 0x0404;
+    constexpr uint32_t FRONT_AND_BACK = 0x0408;
+
+    std::array<uint32_t, 4> argument_array = {};
+    GlPipelineState*        pipeline_ptr   = &inout_state_ptr->pipeline_state;
+    size_t                  n_arguments    = 1;
+
+    /* The functions that have more than one argument. */
+    switch (in_call.func)
+    {
+        case APIInterceptor::APIFUNCTION_GL_GLALPHAFUNC:
+        case APIInterceptor::APIFUNCTION_GL_GLBLENDFUNC:
+        case APIInterceptor::APIFUNCTION_GL_GLPOLYGONMODE:
+        {
+            n_arguments = 2;
+
+            break;
+        }
+
+        case APIInterceptor::APIFUNCTION_GL_GLCOLORMASK:
+        {
+            n_arguments = 4;
+
+            break;
+        }
+
+        default:
+        {
+            break;
+        }
+    }
+
+    bool are_read = (in_call.arg_in_vec.size() >= n_arguments);
+
+    for (size_t n_argument = 0;
+                are_read &&
+                n_argument < n_arguments;
+              ++n_argument)
+    {
+        are_read = APIInterceptor::read_number(in_call.arg_in_vec.at(n_argument),
+                                               &argument_array.at(n_argument) );
+    }
+
+    if (are_read == false)
+    {
+        m_n_unfollowed_calls++;
+    }
+    else
+    {
+        switch (in_call.func)
+        {
+            case APIInterceptor::APIFUNCTION_GL_GLALPHAFUNC:
+            {
+                pipeline_ptr->set_value(GlStateValue::ALPHA_FUNC,
+                                        argument_array.at(0) );
+
+                break;
+            }
+
+            case APIInterceptor::APIFUNCTION_GL_GLBLENDFUNC:
+            {
+                pipeline_ptr->set_value(GlStateValue::BLEND_SOURCE,
+                                        argument_array.at(0) );
+                pipeline_ptr->set_value(GlStateValue::BLEND_DESTINATION,
+                                        argument_array.at(1) );
+
+                break;
+            }
+
+            case APIInterceptor::APIFUNCTION_GL_GLCOLORMASK:
+            {
+                constexpr uint32_t ALPHA_BIT = 8;
+                constexpr uint32_t BLUE_BIT  = 4;
+                constexpr uint32_t GREEN_BIT = 2;
+                constexpr uint32_t RED_BIT   = 1;
+
+                /* The four flags in one number. */
+                const uint32_t mask = ( (argument_array.at(0) != 0) ? RED_BIT   : 0) |
+                                      ( (argument_array.at(1) != 0) ? GREEN_BIT : 0) |
+                                      ( (argument_array.at(2) != 0) ? BLUE_BIT  : 0) |
+                                      ( (argument_array.at(3) != 0) ? ALPHA_BIT : 0);
+
+                pipeline_ptr->set_value(GlStateValue::COLOR_MASK,
+                                        mask);
+
+                break;
+            }
+
+            case APIInterceptor::APIFUNCTION_GL_GLCULLFACE:
+            {
+                pipeline_ptr->set_value(GlStateValue::CULL_FACE,
+                                        argument_array.at(0) );
+
+                break;
+            }
+
+            case APIInterceptor::APIFUNCTION_GL_GLDEPTHFUNC:
+            {
+                pipeline_ptr->set_value(GlStateValue::DEPTH_FUNC,
+                                        argument_array.at(0) );
+
+                break;
+            }
+
+            case APIInterceptor::APIFUNCTION_GL_GLDEPTHMASK:
+            {
+                pipeline_ptr->set_value(GlStateValue::DEPTH_MASK,
+                                        argument_array.at(0) );
+
+                break;
+            }
+
+            case APIInterceptor::APIFUNCTION_GL_GLPOLYGONMODE:
+            {
+                const bool is_back  = (argument_array.at(0) == BACK  ||
+                                       argument_array.at(0) == FRONT_AND_BACK);
+                const bool is_front = (argument_array.at(0) == FRONT ||
+                                       argument_array.at(0) == FRONT_AND_BACK);
+
+                if (is_back)
+                {
+                    pipeline_ptr->set_value(GlStateValue::POLYGON_MODE_BACK,
+                                            argument_array.at(1) );
+                }
+
+                if (is_front)
+                {
+                    pipeline_ptr->set_value(GlStateValue::POLYGON_MODE_FRONT,
+                                            argument_array.at(1) );
+                }
+
+                break;
+            }
+
+            case APIInterceptor::APIFUNCTION_GL_GLSHADEMODEL:
+            {
+                pipeline_ptr->set_value(GlStateValue::SHADE_MODEL,
+                                        argument_array.at(0) );
+
+                break;
+            }
+
+            default:
+            {
+                break;
+            }
+        }
+    }
+}
+
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_vertex(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                         const Capture::APIDumpLoader::Workload&      in_workload,
+                                                                         GlContextState*                              inout_state_ptr)
+{
+    GlImmediateBlock& block = inout_state_ptr->immediate_block;
+
+    /* A vertex that comes with no block open is one that OpenGL does not use. */
+    if (block.is_open)
+    {
+        block.n_vertices++;
+
+        if (block.wants_positions)
+        {
+            std::array<float, 3> position = {};
+
+            if (GlVertexReader::read_position(in_call,
+                                              in_workload,
+                                              &position) )
+            {
+                block.position_vec.push_back(position);
+            }
+            else
+            {
+                m_n_unfollowed_calls++;
+            }
+        }
     }
 }
 
@@ -517,7 +856,6 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::is_unsupported_functi
 
     switch (in_function)
     {
-        case APIInterceptor::APIFUNCTION_GL_GLBEGIN:
         case APIInterceptor::APIFUNCTION_GL_GLBITMAP:
         case APIInterceptor::APIFUNCTION_GL_GLCALLLIST:
         case APIInterceptor::APIFUNCTION_GL_GLCOPYPIXELS:
@@ -549,7 +887,10 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::on_call(const Capture
 
     if (group == Capture::APIDumpLoader::APIGroup::GL)
     {
-        GlContextState* state_ptr = find_current_context_ptr(in_call.thread_id);
+        GlContextState* state_ptr        = find_current_context_ptr(in_call.thread_id);
+        const bool      is_recorded_only = (state_ptr != nullptr                                       &&
+                                            state_ptr->is_compiling_list                               &&
+                                            in_call.func != APIInterceptor::APIFUNCTION_GL_GLENDLIST);
 
         /* A call made by a thread which has no context current does nothing. */
         if (state_ptr == nullptr)
@@ -557,9 +898,37 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::on_call(const Capture
             m_n_unfollowed_calls++;
         }
         else
+        if (is_recorded_only)
+        {
+            /* A call made while a list is made is kept in the list, and made when the list is called. */
+        }
+        else
         {
             switch (in_call.func)
             {
+                case APIInterceptor::APIFUNCTION_GL_GLALPHAFUNC:
+                case APIInterceptor::APIFUNCTION_GL_GLBLENDFUNC:
+                case APIInterceptor::APIFUNCTION_GL_GLCOLORMASK:
+                case APIInterceptor::APIFUNCTION_GL_GLCULLFACE:
+                case APIInterceptor::APIFUNCTION_GL_GLDEPTHFUNC:
+                case APIInterceptor::APIFUNCTION_GL_GLDEPTHMASK:
+                case APIInterceptor::APIFUNCTION_GL_GLPOLYGONMODE:
+                case APIInterceptor::APIFUNCTION_GL_GLSHADEMODEL:
+                {
+                    handle_state_value(in_call,
+                                       state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLBEGIN:
+                {
+                    handle_begin(in_call,
+                                 state_ptr);
+
+                    break;
+                }
+
                 case APIInterceptor::APIFUNCTION_GL_GLCLEAR:
                 {
                     handle_clear(in_call,
@@ -610,6 +979,20 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::on_call(const Capture
                     break;
                 }
 
+                case APIInterceptor::APIFUNCTION_GL_GLEND:
+                {
+                    handle_end(state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLENDLIST:
+                {
+                    handle_end_list(state_ptr);
+
+                    break;
+                }
+
                 case APIInterceptor::APIFUNCTION_GL_GLFRUSTUM:
                 case APIInterceptor::APIFUNCTION_GL_GLLOADIDENTITY:
                 case APIInterceptor::APIFUNCTION_GL_GLLOADMATRIXD:
@@ -635,6 +1018,14 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::on_call(const Capture
                 {
                     handle_matrix_mode(in_call,
                                        state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLNEWLIST:
+                {
+                    handle_new_list(in_call,
+                                    state_ptr);
 
                     break;
                 }
@@ -686,6 +1077,18 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::on_call(const Capture
 
                 default:
                 {
+                    GlVertexLayout vertex_layout;
+
+                    const bool is_vertex = GlVertexReader::find_layout(in_call.func,
+                                                                       &vertex_layout);
+
+                    if (is_vertex)
+                    {
+                        handle_vertex(in_call,
+                                      in_workload,
+                                      state_ptr);
+                    }
+                    else
                     if (is_unsupported_function(in_call.func) )
                     {
                         m_n_unsupported_calls++;
@@ -988,4 +1391,29 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::restore_attributes(co
     {
         inout_attributes_ptr->viewport = saved.viewport;
     }
+}
+
+std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::sample_positions(const std::vector<std::array<float, 3> >& in_position_vec)
+{
+    constexpr size_t MAX_N_POINTS = 64;
+
+    const size_t n_positions = in_position_vec.size();
+    auto         result_ptr  = std::make_shared<Analysis::APIDumpAnalysis::GeometrySample>();
+
+    if (n_positions <= MAX_N_POINTS)
+    {
+        result_ptr->position_vec = in_position_vec;
+    }
+    else
+    {
+        /* Spread over the whole of the draw, so that a sample says what the draw does from the first vertex to the last. */
+        for (size_t n_point = 0;
+                    n_point < MAX_N_POINTS;
+                  ++n_point)
+        {
+            result_ptr->position_vec.push_back(in_position_vec.at(n_point * n_positions / MAX_N_POINTS) );
+        }
+    }
+
+    return result_ptr;
 }

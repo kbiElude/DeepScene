@@ -17,6 +17,31 @@ namespace Analysis
     {
         namespace Frontends
         {
+            /* What a vertex of a vertex call is made of. */
+            enum class GlVertexComponent
+            {
+                DOUBLE,
+                FLOAT,
+                INT,
+                SHORT
+            };
+
+            /* The values of the fixed-function pipeline that a draw is told apart by, besides what is enabled (the setting is what the call said:
+             * a function, a mode, the mask of the colors). */
+            enum class GlStateValue
+            {
+                ALPHA_FUNC,
+                BLEND_DESTINATION,
+                BLEND_SOURCE,
+                COLOR_MASK,
+                CULL_FACE,
+                DEPTH_FUNC,
+                DEPTH_MASK,
+                POLYGON_MODE_BACK,
+                POLYGON_MODE_FRONT,
+                SHADE_MODEL
+            };
+
             /* A 4x4 matrix as OpenGL keeps it: the columns one after the other (element 12 to 14 are the translation). */
             typedef std::array<float, 16> GlMatrix;
 
@@ -29,8 +54,8 @@ namespace Analysis
                 int32_t y      = 0;
             };
 
-            /* The state that glPushAttrib saves and glPopAttrib puts back, as far as the front end follows it (the matrices are not a part of it:
-             * they have stacks of their own). Follows GlBox.
+            /* The state that glPushAttrib saves and glPopAttrib puts back, as far as the front end follows it besides the pipeline state (the
+             * matrices are not a part of it: they have stacks of their own). Follows GlBox.
              */
             struct GlAttributes
             {
@@ -43,25 +68,26 @@ namespace Analysis
                 GlBox                viewport;
             };
 
-            /* What a glPushAttrib saved: the state, and which parts of it the mask asked for. Follows GlAttributes. */
-            struct GlAttributeFrame
+            /* The vertices between a glBegin and its glEnd, which are one draw. The positions are kept only if the model builder asked for the
+             * geometry of the draws (see ModelBuilder::wants_geometry).
+             */
+            struct GlImmediateBlock
             {
-                GlAttributes attributes;
-                uint32_t     mask = 0;
+                bool                                 is_open         = false;
+                uint32_t                             mode            = 0;
+                uint32_t                             n_vertices      = 0;
+                std::vector<std::array<float, 3> >   position_vec;
+                bool                                 wants_positions = false;
             };
 
-            /* The state of one OpenGL context, from the calls that set it (the values a context starts with are those of the specification).
-             * The matrices of the three kinds each have a stack, which is never empty (the current matrix is its last element): the model-view
-             * and the projection, which the front end tells the model builder of, and the others (texture and color), which it only keeps right.
-             * Follows GlAttributeFrame, GlAttributes and GlMatrix.
+            /* How the vertices of a call are given: the number of their components, what a component is, and whether the call has a pointer to
+             * them (the data of the call is then a chunk) or the components as its arguments. Follows GlVertexComponent.
              */
-            struct GlContextState
+            struct GlVertexLayout
             {
-                std::vector<GlAttributeFrame> attribute_frame_vec;
-                GlAttributes                  attributes;
-                std::vector<GlMatrix>         modelview_f32mat_vec;
-                std::vector<GlMatrix>         other_f32mat_vec;
-                std::vector<GlMatrix>         projection_f32mat_vec;
+                GlVertexComponent component    = GlVertexComponent::FLOAT;
+                bool              is_vector    = false;
+                uint32_t          n_components = 0;
             };
 
             /* A matrix as the model builder was last told it, to tell it again only when it differs. Follows GlMatrix. */

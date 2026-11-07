@@ -180,7 +180,8 @@ void Tests::ModelTestHelper::draw_reading_attachments()
 }
 
 void Tests::ModelTestHelper::draw_with_geometry(const std::vector<std::array<float, 3> >& in_position_vec,
-                                                const uint32_t&                           in_vertex_count)
+                                                const uint32_t&                           in_vertex_count,
+                                                const bool&                               in_is_camera_right_handed)
 {
     auto geometry_ptr = std::make_shared<Analysis::APIDumpAnalysis::GeometrySample>();
 
@@ -188,9 +189,10 @@ void Tests::ModelTestHelper::draw_with_geometry(const std::vector<std::array<flo
 
     Analysis::APIDumpAnalysis::DrawDescription draw_description;
 
-    draw_description.geometry_ptr       = geometry_ptr;
-    draw_description.primitive_topology = Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST;
-    draw_description.vertex_count       = in_vertex_count;
+    draw_description.geometry_ptr           = geometry_ptr;
+    draw_description.is_camera_right_handed = in_is_camera_right_handed;
+    draw_description.primitive_topology     = Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST;
+    draw_description.vertex_count           = in_vertex_count;
 
     begin_call();
 

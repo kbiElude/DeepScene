@@ -48,7 +48,8 @@ namespace Tests
 
         /* A draw whose vertices are known: the positions of a few of them, in the space of its object. */
         void draw_with_geometry(const std::vector<std::array<float, 3> >& in_position_vec,
-                                const uint32_t&                           in_vertex_count);
+                                const uint32_t&                           in_vertex_count,
+                                const bool&                               in_is_camera_right_handed = false);
 
         /* The same, for vertices that are already in the space of the picture: the x and y of a few of them, in pixels, and the reciprocal of the
          * depth. */

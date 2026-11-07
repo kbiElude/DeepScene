@@ -6,8 +6,10 @@
  *
  * What it follows: the contexts and which one each thread has current; of each, the viewport, the scissor box and test, the values that a
  * clear uses, the stack of attributes (glPushAttrib puts back what the program set after it) and the stacks of matrices (a model-view, a
- * projection, and the others, which are only kept right); the clears; and the end of the frames. What it does not follow yet (draws,
- * copies and reads of the framebuffer) is counted as unsupported, so that a model made of it says that its passes are not right.
+ * projection, and the others, which are only kept right); the clears; the draws of immediate mode (a glBegin and its glEnd, with
+ * the state of the pipeline that was set); and the end of the frames. Calls made while a display list is made are not followed (they are
+ * the list's, and made when it is called). What it does not follow yet (draws from arrays, called lists, copies and reads of the
+ * framebuffer) is counted as unsupported, so that a model made of it says that its passes are not right.
  *
  * The matrices: OpenGL has one matrix for the model and the view together, and a projection of its own. The front end tells the model builder
  * the two as they are, each when it changes (MODEL_VIEW_MATRIX and PROJECTION_MATRIX, in the state of the fixed-function pipeline, at
@@ -20,12 +22,13 @@
 #ifndef APIDUMPANALYSIS_FRONTENDS_OPENGL_FRONTEND_H
 #define APIDUMPANALYSIS_FRONTENDS_OPENGL_FRONTEND_H
 
-#include "analysis/api_dump_analysis/frontends/OpenGL/types.h"
+#include "analysis/api_dump_analysis/frontends/OpenGL/gl_context_state.h"
 #include "analysis/api_dump_analysis/frontends/shared/i_api_frontend.h"
 #include "analysis/api_dump_analysis/model_builder.h"
 #include "common/argument_reader.h"
 #include <array>
 #include <map>
+#include <memory>
 #include <stddef.h>
 #include <stdint.h>
 #include <vector>
@@ -68,6 +71,8 @@ namespace Analysis
                 /* The state of the context that the thread has current; nullptr if it has none. */
                 GlContextState* find_current_context_ptr(const uint32_t& in_thread_id);
 
+                void handle_begin           (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                             GlContextState*                              inout_state_ptr);
                 void handle_clear           (const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                              GlContextState*                              inout_state_ptr);
                 void handle_clear_color     (const Capture::APIDumpLoader::DumpedAPICall& in_call,
@@ -79,6 +84,10 @@ namespace Analysis
                 void handle_enable          (const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                              const bool&                                  in_is_enabled,
                                              GlContextState*                              inout_state_ptr);
+                /* The vertices since the glBegin are a draw. */
+                void handle_end             (GlContextState* inout_state_ptr);
+                /* A list which was being made is made, and its calls are made when it is called. */
+                void handle_end_list        (GlContextState* inout_state_ptr);
                 void handle_make_current    (const Capture::APIDumpLoader::DumpedAPICall& in_call);
                 /* A call that loads or multiplies the current matrix: the matrix is what its arguments (or its data) say. */
                 void handle_matrix          (const Capture::APIDumpLoader::DumpedAPICall& in_call,
@@ -86,12 +95,21 @@ namespace Analysis
                                              GlContextState*                              inout_state_ptr);
                 void handle_matrix_mode     (const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                              GlContextState*                              inout_state_ptr);
+                void handle_new_list        (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                             GlContextState*                              inout_state_ptr);
                 void handle_pop_attributes  (GlContextState* inout_state_ptr);
                 void handle_pop_matrix      (GlContextState* inout_state_ptr);
                 void handle_push_attributes (const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                              GlContextState*                              inout_state_ptr);
                 void handle_push_matrix     (GlContextState* inout_state_ptr);
                 void handle_scissor         (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                             GlContextState*                              inout_state_ptr);
+                /* A call which sets a value of the pipeline that a draw is told apart by (a function, a mode, a mask). */
+                void handle_state_value     (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                             GlContextState*                              inout_state_ptr);
+                /* A glVertex of the block that is open: it is counted, and its position kept if the builder wants the geometry. */
+                void handle_vertex          (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                             const Capture::APIDumpLoader::Workload&      in_workload,
                                              GlContextState*                              inout_state_ptr);
                 void handle_viewport        (const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                              GlContextState*                              inout_state_ptr);
@@ -112,6 +130,9 @@ namespace Analysis
 
                 /* The viewport of the model, from the box of the context. */
                 static Analysis::APIDumpAnalysis::Viewport get_model_viewport(const GlContextState& in_state);
+
+                /* What the mode of a glBegin makes of the vertices; quads are two triangles and a loop of lines is a strip of them. */
+                static Analysis::APIDumpAnalysis::PrimitiveTopology get_primitive_topology(const uint32_t& in_mode);
 
                 /* True for the calls whose effects the front end does not follow yet. */
                 static bool is_unsupported_function(const APIInterceptor::APIFunction& in_function);
@@ -157,6 +178,9 @@ namespace Analysis
                 /* Puts back what the mask of a glPushAttrib asked to be saved. */
                 static void restore_attributes(const GlAttributeFrame& in_frame,
                                                GlAttributes*           inout_attributes_ptr);
+
+                /* A few of the positions of a draw, spread evenly over it (all of them if they are not many). */
+                static std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> sample_positions(const std::vector<std::array<float, 3> >& in_position_vec);
 
                 Analysis::APIDumpAnalysis::ModelBuilder*                        m_builder_ptr;
                 Analysis::APIDumpAnalysis::ResourceView                         m_color_view;

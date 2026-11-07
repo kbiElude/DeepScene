@@ -71,6 +71,14 @@ void Tests::GlCallBuilder::begin(const uint32_t& in_mode)
              {APIInterceptor::APIFunctionArgument::create_u32_glenum(in_mode)});
 }
 
+void Tests::GlCallBuilder::blend_func(const uint32_t& in_source,
+                                       const uint32_t& in_destination)
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLBLENDFUNC,
+             {APIInterceptor::APIFunctionArgument::create_u32_glenum(in_source),
+              APIInterceptor::APIFunctionArgument::create_u32_glenum(in_destination)});
+}
+
 void Tests::GlCallBuilder::clear(const uint32_t& in_mask)
 {
     add_call(APIInterceptor::APIFUNCTION_GL_GLCLEAR,
@@ -101,6 +109,19 @@ void Tests::GlCallBuilder::clear_stencil(const int32_t& in_stencil)
              {APIInterceptor::APIFunctionArgument::create_i32(in_stencil)});
 }
 
+void Tests::GlCallBuilder::depth_func(const uint32_t& in_function)
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLDEPTHFUNC,
+             {APIInterceptor::APIFunctionArgument::create_u32_glenum(in_function)});
+}
+
+void Tests::GlCallBuilder::depth_mask(const bool& in_is_writing)
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLDEPTHMASK,
+             {APIInterceptor::APIFunctionArgument::create_u32((in_is_writing) ? 1
+                                                                              : 0)});
+}
+
 void Tests::GlCallBuilder::disable(const uint32_t& in_capability)
 {
     add_call(APIInterceptor::APIFUNCTION_GL_GLDISABLE,
@@ -111,6 +132,18 @@ void Tests::GlCallBuilder::enable(const uint32_t& in_capability)
 {
     add_call(APIInterceptor::APIFUNCTION_GL_GLENABLE,
              {APIInterceptor::APIFunctionArgument::create_u32_glenum(in_capability)});
+}
+
+void Tests::GlCallBuilder::end()
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLEND,
+             {});
+}
+
+void Tests::GlCallBuilder::end_list()
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLENDLIST,
+             {});
 }
 
 void Tests::GlCallBuilder::frustum(const double& in_left,
@@ -181,6 +214,14 @@ void Tests::GlCallBuilder::mult_matrix(const std::array<float, 16>& in_matrix_f3
     add_chunk_call(APIInterceptor::APIFUNCTION_GL_GLMULTMATRIXF,
                    in_matrix_f32mat.data(),
                    sizeof(in_matrix_f32mat) );
+}
+
+void Tests::GlCallBuilder::new_list(const uint32_t& in_list,
+                                     const uint32_t& in_mode)
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLNEWLIST,
+             {APIInterceptor::APIFunctionArgument::create_u32(in_list),
+              APIInterceptor::APIFunctionArgument::create_u32_glenum(in_mode)});
 }
 
 void Tests::GlCallBuilder::ortho(const double& in_left,
@@ -277,6 +318,31 @@ void Tests::GlCallBuilder::translate(const double& in_x,
              {APIInterceptor::APIFunctionArgument::create_fp64(in_x),
               APIInterceptor::APIFunctionArgument::create_fp64(in_y),
               APIInterceptor::APIFunctionArgument::create_fp64(in_z)});
+}
+
+void Tests::GlCallBuilder::vertex2f(const float& in_x,
+                                    const float& in_y)
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLVERTEX2F,
+             {APIInterceptor::APIFunctionArgument::create_fp32(in_x),
+              APIInterceptor::APIFunctionArgument::create_fp32(in_y)});
+}
+
+void Tests::GlCallBuilder::vertex3f(const float& in_x,
+                                    const float& in_y,
+                                    const float& in_z)
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLVERTEX3F,
+             {APIInterceptor::APIFunctionArgument::create_fp32(in_x),
+              APIInterceptor::APIFunctionArgument::create_fp32(in_y),
+              APIInterceptor::APIFunctionArgument::create_fp32(in_z)});
+}
+
+void Tests::GlCallBuilder::vertex3fv(const std::array<float, 3>& in_position)
+{
+    add_chunk_call(APIInterceptor::APIFUNCTION_GL_GLVERTEX3FV,
+                   in_position.data(),
+                   sizeof(in_position) );
 }
 
 void Tests::GlCallBuilder::viewport(const int32_t& in_x,

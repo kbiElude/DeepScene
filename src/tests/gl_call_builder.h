@@ -30,6 +30,8 @@ namespace Tests
                       const APIInterceptor::APIFunctionArgument& in_returned_value = APIInterceptor::APIFunctionArgument::create_i32(0) );
 
         void begin        (const uint32_t& in_mode);
+        void blend_func   (const uint32_t& in_source,
+                           const uint32_t& in_destination);
         void clear        (const uint32_t& in_mask);
         void clear_color  (const float&    in_red,
                            const float&    in_green,
@@ -37,8 +39,12 @@ namespace Tests
                            const float&    in_alpha);
         void clear_depth  (const double&   in_depth);
         void clear_stencil(const int32_t&  in_stencil);
+        void depth_func   (const uint32_t& in_function);
+        void depth_mask   (const bool&     in_is_writing);
         void disable      (const uint32_t& in_capability);
         void enable       (const uint32_t& in_capability);
+        void end          ();
+        void end_list     ();
 
         void frustum(const double& in_left,
                      const double& in_right,
@@ -63,6 +69,10 @@ namespace Tests
         void matrix_mode(const uint32_t& in_mode);
 
         void mult_matrix(const std::array<float, 16>& in_matrix_f32mat);
+
+        /* GL_COMPILE is the mode that records the calls and does not make them. */
+        void new_list(const uint32_t& in_list,
+                      const uint32_t& in_mode);
 
         void ortho(const double& in_left,
                    const double& in_right,
@@ -98,6 +108,14 @@ namespace Tests
         void translate(const double& in_x,
                        const double& in_y,
                        const double& in_z);
+
+        /* A vertex of two or three floats as arguments, and one of three as the data of a pointer. */
+        void vertex2f (const float& in_x,
+                       const float& in_y);
+        void vertex3f (const float& in_x,
+                       const float& in_y,
+                       const float& in_z);
+        void vertex3fv(const std::array<float, 3>& in_position);
 
         void viewport(const int32_t& in_x,
                       const int32_t& in_y,

@@ -280,13 +280,16 @@ TEST_F(GlFrontendPasses, AClearWithTheScissorTestOnReachesPartOfTheWindow)
               Analysis::APIDumpAnalysis::AccessCoverage::FULL);
 }
 
-TEST_F(GlFrontendPasses, DrawsAreNotFollowedYetAndAreCounted)
+TEST_F(GlFrontendPasses, DrawsFromArraysAreNotFollowedYetAndAreCounted)
 {
     start(640,
           480);
 
-    m_builder.clear(COLOR_BUFFER_BIT);
-    m_builder.begin(QUADS);
+    m_builder.clear   (COLOR_BUFFER_BIT);
+    m_builder.add_call(APIInterceptor::APIFUNCTION_GL_GLDRAWARRAYS,
+                       {APIInterceptor::APIFunctionArgument::create_u32_glenum(QUADS),
+                        APIInterceptor::APIFunctionArgument::create_i32(0),
+                        APIInterceptor::APIFunctionArgument::create_i32(4)});
 
     feed();
 

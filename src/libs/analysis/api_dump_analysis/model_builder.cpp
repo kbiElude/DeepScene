@@ -395,6 +395,10 @@ bool Analysis::APIDumpAnalysis::ModelBuilder::find_draw_matrices(DrawMatrices* o
                     break;
                 }
 
+                /* A matrix for the model and the view together (OpenGL has no other) is the whole way to the camera: with the model matrix
+                 * of the identity it is what the view matrix is for the rest.
+                 */
+                case ConstantSemantic::MODEL_VIEW_MATRIX:
                 case ConstantSemantic::VIEW_MATRIX:
                 {
                     ::memcpy(out_matrices_ptr->view_f32mat.data(),
@@ -1089,10 +1093,14 @@ void Analysis::APIDumpAnalysis::ModelBuilder::record_draw_depth(const DrawDescri
         const auto& view_f32mat  = matrices.view_f32mat;
 
         /* The origin of the object, in the space of the camera: the translation of the model matrix, through the view matrix. */
-        const float depth = model_f32mat.at(ORIGIN_ROW * N_COLUMNS + 0) * view_f32mat.at(0 * N_COLUMNS + DEPTH_COLUMN) +
-                            model_f32mat.at(ORIGIN_ROW * N_COLUMNS + 1) * view_f32mat.at(1 * N_COLUMNS + DEPTH_COLUMN) +
-                            model_f32mat.at(ORIGIN_ROW * N_COLUMNS + 2) * view_f32mat.at(2 * N_COLUMNS + DEPTH_COLUMN) +
-                            view_f32mat.at (ORIGIN_ROW * N_COLUMNS                                                     + DEPTH_COLUMN);
+        const float view_z = model_f32mat.at(ORIGIN_ROW * N_COLUMNS + 0) * view_f32mat.at(0 * N_COLUMNS + DEPTH_COLUMN) +
+                             model_f32mat.at(ORIGIN_ROW * N_COLUMNS + 1) * view_f32mat.at(1 * N_COLUMNS + DEPTH_COLUMN) +
+                             model_f32mat.at(ORIGIN_ROW * N_COLUMNS + 2) * view_f32mat.at(2 * N_COLUMNS + DEPTH_COLUMN) +
+                             view_f32mat.at (ORIGIN_ROW * N_COLUMNS                                                     + DEPTH_COLUMN);
+
+        /* A camera that looks down minus z has what it sees at a negative z. */
+        const float depth = (in_draw.is_camera_right_handed) ? -view_z
+                                                             : view_z;
 
         m_open_pass.depth_histogram.add(depth,
                                         in_draw.vertex_count);
@@ -1128,9 +1136,26 @@ Analysis::APIDumpAnalysis::ViewCoverage Analysis::APIDumpAnalysis::ModelBuilder:
                 const uint64_t weight       = std::max<uint64_t>(1,
                                                                  in_draw.vertex_count / position_vec.size() );
 
-                /* The nearest depth that is drawn, from the projection: D3D has the near plane at minus the shift over the scale. */
-                const float near_depth = (matrices.has_projection && projection[PROJECTION_Z_SCALE] != 0.0f) ? -projection[PROJECTION_Z_SHIFT] / projection[PROJECTION_Z_SCALE]
-                                                                                                             : 0.0f;
+                /* The nearest depth that is drawn, from the projection: D3D has the near plane at minus the shift over the scale, and OpenGL at the
+                 * shift over the scale less one (its scale is (f + n) / (n - f) and its shift 2fn / (n - f)).
+                 */
+                float near_depth = 0.0f;
+
+                if (matrices.has_projection)
+                {
+                    if (in_draw.is_camera_right_handed)
+                    {
+                        const float scale_less_one = projection[PROJECTION_Z_SCALE] - 1.0f;
+
+                        near_depth = (scale_less_one != 0.0f) ? projection[PROJECTION_Z_SHIFT] / scale_less_one
+                                                              : 0.0f;
+                    }
+                    else
+                    if (projection[PROJECTION_Z_SCALE] != 0.0f)
+                    {
+                        near_depth = -projection[PROJECTION_Z_SHIFT] / projection[PROJECTION_Z_SCALE];
+                    }
+                }
 
                 /* The model matrix then the view matrix: the first three columns of their product, which is what a vertex needs to be given its
                  * place in the space of the camera.
@@ -1177,7 +1202,9 @@ Analysis::APIDumpAnalysis::ViewCoverage Analysis::APIDumpAnalysis::ModelBuilder:
                                                                 model_view_f32mat.at(3 * N_VIEW_COLUMNS + n_column);
                     }
 
-                    const float depth = view_position[2];
+                    /* A camera that looks down minus z has what it sees at a negative z. */
+                    const float depth = (in_draw.is_camera_right_handed) ? -view_position[2]
+                                                                         : view_position[2];
 
                     /* Where the vertex is in the picture, whether it is in view or not: a draw that reaches past the edges covers them. */
                     if (depth > 0.0f && matrices.has_projection)

@@ -397,6 +397,7 @@ namespace Analysis
             std::shared_ptr<const GeometrySample> geometry_ptr;                                        /* null: the front end does not know the vertices */
             ResourceId                            index_buffer_id         = ResourceId::NONE;
             uint32_t                              instance_count          = 1;
+            bool                                  is_camera_right_handed  = false;                     /* the camera looks down minus z (OpenGL): the depth of a vertex is minus its z in the space of the camera, and the projection is the one of OpenGL */
             bool                                  is_indexed              = false;
             PrimitiveTopology                     primitive_topology      = PrimitiveTopology::UNKNOWN;
             bool                                  reads_color_attachments = false;                     /* blending: the existing color is an input      */

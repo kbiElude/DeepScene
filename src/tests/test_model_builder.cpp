@@ -1757,3 +1757,163 @@ TEST(ModelBuilder, TheDrawsOfOneSignatureAreToldApartBySizeAndAKeyThatHasCovered
     EXPECT_EQ(helper.get_model().covering_draw_key_map.begin()->second,
               std::set<uint64_t>({covering_key}) );
 }
+
+TEST(ModelBuilder, AMatrixOfTheModelAndTheViewTogetherIsTheWholeWayToTheCamera)
+{
+    constexpr size_t N_FLOATS_PER_MATRIX = 16;
+
+    Tests::ModelTestHelper                 helper;
+    const auto                             swapchain_image = helper.create_swapchain_image();
+    std::array<float, N_FLOATS_PER_MATRIX> modelview_f32mat = {1, 0,  0, 0,
+                                                               0, 1,  0, 0,
+                                                               0, 0,  1, 0,
+                                                               0, 0, -4, 1};
+
+    /* A camera of OpenGL looks down minus z: the origin is 4 in front of it, and the vertices are 2 and 10 further. */
+    helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::MODEL_VIEW_MATRIX,
+                      0,
+                      modelview_f32mat);
+    helper.bind(swapchain_image);
+    helper.draw_with_geometry({{0.0f, 0.0f, -2.0f},
+                               {0.0f, 0.0f, -10.0f}},
+                              30,
+                              true); /* in_is_camera_right_handed */
+    helper.end_frame();
+
+    const auto& model = helper.get_model();
+
+    ASSERT_EQ(model.surface_depth_histogram_map.size(),
+              1u);
+
+    const auto& histogram = model.surface_depth_histogram_map.begin()->second;
+
+    EXPECT_EQ(histogram.get_total_weight(),
+              30u);
+    EXPECT_NEAR(histogram.get_depth_at_fraction(0.25),
+                6.0f,
+                0.6f);
+    EXPECT_NEAR(histogram.get_depth_at_fraction(0.75),
+                14.0f,
+                1.4f);
+
+    /* The depth of the origin of the object is the one of the camera's: 4 in front of it. */
+    ASSERT_EQ(model.depth_histogram_map.size(),
+              1u);
+    EXPECT_NEAR(model.depth_histogram_map.begin()->second.get_depth_at_fraction(0.5),
+                4.0f,
+                0.5f);
+}
+
+TEST(ModelBuilder, AVertexBehindACameraOfOpenGLIsNotCounted)
+{
+    constexpr size_t N_FLOATS_PER_MATRIX = 16;
+
+    Tests::ModelTestHelper                 helper;
+    const auto                             swapchain_image = helper.create_swapchain_image();
+    std::array<float, N_FLOATS_PER_MATRIX> modelview_f32mat = {1, 0, 0, 0,
+                                                               0, 1, 0, 0,
+                                                               0, 0, 1, 0,
+                                                               0, 0, 0, 1};
+
+    helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::MODEL_VIEW_MATRIX,
+                      0,
+                      modelview_f32mat);
+    helper.bind(swapchain_image);
+
+    /* One vertex 5 in front of the camera (at minus 5), one 5 behind it: only the first is what the eyes look at. */
+    helper.draw_with_geometry({{0.0f, 0.0f, -5.0f},
+                               {0.0f, 0.0f,  5.0f}},
+                              20,
+                              true); /* in_is_camera_right_handed */
+    helper.end_frame();
+
+    const auto& model = helper.get_model();
+
+    ASSERT_EQ(model.surface_depth_histogram_map.size(),
+              1u);
+
+    const auto& histogram = model.surface_depth_histogram_map.begin()->second;
+
+    EXPECT_EQ(histogram.get_total_weight(),
+              10u);
+    EXPECT_NEAR(histogram.get_depth_at_fraction(0.5),
+                5.0f,
+                0.5f);
+}
+
+TEST(ModelBuilder, TheNearPlaneOfAProjectionOfOpenGLIsAtTheShiftOverTheScaleLessOne)
+{
+    constexpr size_t N_FLOATS_PER_MATRIX = 16;
+
+    Tests::ModelTestHelper                 helper;
+    const auto                             swapchain_image = helper.create_swapchain_image();
+    std::array<float, N_FLOATS_PER_MATRIX> modelview_f32mat = {1, 0, 0, 0,
+                                                               0, 1, 0, 0,
+                                                               0, 0, 1, 0,
+                                                               0, 0, 0, 1};
+
+    /* glFrustum(-1, 1, -0.75, 0.75, 1, 100). */
+    std::array<float, N_FLOATS_PER_MATRIX> projection_f32mat = {};
+
+    projection_f32mat.at(0)  = 1.0f;
+    projection_f32mat.at(5)  = 1.0f / 0.75f;
+    projection_f32mat.at(10) = -101.0f / 99.0f;
+    projection_f32mat.at(11) = -1.0f;
+    projection_f32mat.at(14) = -200.0f / 99.0f;
+
+    helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::MODEL_VIEW_MATRIX,
+                      0,
+                      modelview_f32mat);
+    helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::PROJECTION_MATRIX,
+                      64,
+                      projection_f32mat);
+    helper.bind(swapchain_image);
+
+    /* One vertex in front of the near plane (0.5, the plane is at 1), one in view at 5. */
+    helper.draw_with_geometry({{0.0f, 0.0f, -0.5f},
+                               {0.0f, 0.0f, -5.0f}},
+                              20,
+                              true); /* in_is_camera_right_handed */
+    helper.end_frame();
+
+    const auto& model = helper.get_model();
+
+    ASSERT_EQ(model.surface_depth_histogram_map.size(),
+              1u);
+
+    const auto& histogram = model.surface_depth_histogram_map.begin()->second;
+
+    EXPECT_EQ(histogram.get_total_weight(),
+              10u);
+    EXPECT_NEAR(histogram.get_depth_at_fraction(0.5),
+                5.0f,
+                0.5f);
+}
+
+TEST(ModelBuilder, AnOrthographicProjectionOfOpenGLHasNoDepth)
+{
+    constexpr size_t N_FLOATS_PER_MATRIX = 16;
+
+    Tests::ModelTestHelper                 helper;
+    const auto                             swapchain_image = helper.create_swapchain_image();
+    std::array<float, N_FLOATS_PER_MATRIX> identity_f32mat  = {1, 0, 0, 0,
+                                                               0, 1, 0, 0,
+                                                               0, 0, 1, 0,
+                                                               0, 0, 0, 1};
+
+    /* The last element of an orthographic projection is 1, as it is in Direct3D. */
+    helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::MODEL_VIEW_MATRIX,
+                      0,
+                      identity_f32mat);
+    helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::PROJECTION_MATRIX,
+                      64,
+                      identity_f32mat);
+    helper.bind(swapchain_image);
+    helper.draw_with_geometry({{0.0f, 0.0f, -5.0f}},
+                              3,
+                              true); /* in_is_camera_right_handed */
+    helper.end_frame();
+
+    EXPECT_TRUE(helper.get_model().depth_histogram_map.empty() );
+    EXPECT_TRUE(helper.get_model().surface_depth_histogram_map.empty() );
+}
