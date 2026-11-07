@@ -598,11 +598,15 @@ end:
 std::string VRPlayer::AppCatalog::CatalogLoader::resolve_path(const std::string& in_base_directory,
                                                               const std::string& in_path)
 {
-    std::string              joined   = (is_absolute_path(in_path) || in_base_directory.empty() ) ? in_path
-                                                                                                  : in_base_directory + "\\" + in_path;
+    const bool               has_base_directory = (in_base_directory.empty() == false);
+    const bool               is_absolute        = is_absolute_path(in_path);
+    std::string              joined             = (is_absolute || has_base_directory == false) ? in_path
+                                                                                               : in_base_directory +
+                                                                                                 "\\"              +
+                                                                                                 in_path;
     std::vector<std::string> part_vec;
     std::string              result;
-    size_t                   start    = 0;
+    size_t                   start              = 0;
 
     std::replace(joined.begin(),
                  joined.end  (),
