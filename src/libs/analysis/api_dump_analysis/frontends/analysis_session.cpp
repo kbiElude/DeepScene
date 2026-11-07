@@ -14,6 +14,7 @@ Analysis::APIDumpAnalysis::Frontends::AnalysisSession::AnalysisSession(const boo
      m_n_calls_by_group_array(),
      m_n_calls_since_frame   (0),
      m_n_reader_threads      (0),
+     m_opengl_frontend       (&m_builder),
      m_skip_data_chunks_above_n_bytes(0)
 {
     /* Stub */
@@ -39,6 +40,15 @@ bool Analysis::APIDumpAnalysis::Frontends::AnalysisSession::find_resource_view(c
         {
             result = m_d3d8_frontend.find_resource_view(in_address,
                                                         out_view_ptr);
+
+            break;
+        }
+
+        case Capture::APIDumpLoader::APIGroup::GL:
+        case Capture::APIDumpLoader::APIGroup::WGL:
+        {
+            result = m_opengl_frontend.find_resource_view(in_address,
+                                                          out_view_ptr);
 
             break;
         }
@@ -73,6 +83,14 @@ Analysis::APIDumpAnalysis::Frontends::IAPIFrontend* Analysis::APIDumpAnalysis::F
         case Capture::APIDumpLoader::APIGroup::D3D8:
         {
             result_ptr = &m_d3d8_frontend;
+
+            break;
+        }
+
+        case Capture::APIDumpLoader::APIGroup::GL:
+        case Capture::APIDumpLoader::APIGroup::WGL:
+        {
+            result_ptr = &m_opengl_frontend;
 
             break;
         }
@@ -135,7 +153,7 @@ Analysis::APIDumpAnalysis::WorkloadSummary Analysis::APIDumpAnalysis::Frontends:
         }
     }
 
-    for (const IAPIFrontend* frontend_ptr : std::array<const IAPIFrontend*, 2>{&m_d3d7_frontend, &m_d3d8_frontend})
+    for (const IAPIFrontend* frontend_ptr : std::array<const IAPIFrontend*, 3>{&m_d3d7_frontend, &m_d3d8_frontend, &m_opengl_frontend})
     {
         for (const auto& hazard_pair : frontend_ptr->get_n_resolution_hazards() )
         {
@@ -188,6 +206,15 @@ bool Analysis::APIDumpAnalysis::Frontends::AnalysisSession::process_call(const C
 
     m_builder.begin_call(m_summary.n_calls,
                          in_call.timestamp_qpc);
+
+    /* SwapBuffers is a function of GDI32, and what ends a frame of OpenGL. */
+    if (frontend_ptr == nullptr)
+    {
+        if (in_call.func == APIInterceptor::APIFUNCTION_GDI32_SWAPBUFFERS)
+        {
+            frontend_ptr = &m_opengl_frontend;
+        }
+    }
 
     if (frontend_ptr != nullptr)
     {

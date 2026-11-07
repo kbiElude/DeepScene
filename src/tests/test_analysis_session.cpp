@@ -153,14 +153,15 @@ TEST(AnalysisSession, TheCallsOfAnAPIWithoutAFrontEndAreCountedAndSkipped)
 
     const auto diagnostics = session.get_summary();
 
+    /* The two SwapBuffers calls end the frames of OpenGL (and are not skipped); the other six calls of GDI32 are. */
     EXPECT_EQ(diagnostics.n_calls,
               8u);
     EXPECT_EQ(diagnostics.n_calls_ignored,
-              8u);
+              6u);
     EXPECT_EQ(diagnostics.n_calls_by_group_map.at(Capture::APIDumpLoader::APIGroup::GDI32),
               8u);
     EXPECT_EQ(session.get_model().frame_record_vec.size(),
-              0u);
+              2u);
 
     ::remove(Tests::WorkloadFileBuilder::get_filename_ptr() );
 }

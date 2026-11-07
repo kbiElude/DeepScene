@@ -10,6 +10,7 @@
 
 #include "analysis/api_dump_analysis/frontends/D3D7/d3d7_frontend.h"
 #include "analysis/api_dump_analysis/frontends/D3D8/d3d8_frontend.h"
+#include "analysis/api_dump_analysis/frontends/OpenGL/opengl_frontend.h"
 #include "analysis/api_dump_analysis/frontends/shared/types.h"
 #include "analysis/api_dump_analysis/model_builder.h"
 #include "analysis/api_dump_analysis/types.h"
@@ -109,6 +110,7 @@ namespace Analysis
                 std::array<uint64_t, N_API_GROUPS>      m_n_calls_by_group_array; /* counted here, and put in the summary when it is asked for */
                 uint64_t                                m_n_calls_since_frame;
                 uint32_t                                m_n_reader_threads;
+                OpenGLFrontend                          m_opengl_frontend;
                 uint32_t                                m_skip_data_chunks_above_n_bytes;
                 WorkloadSummary                         m_summary;
                 WorkloadReference                       m_workload_reference;
