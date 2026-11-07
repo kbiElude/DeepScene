@@ -341,7 +341,8 @@ void Stereo::ConverterDLL::D3D7SurfaceTwins::on_post(const APIInterceptor::APIFu
     constexpr uint32_t N_ARGUMENTS_RELEASE      = 1;
 
     /* A call that failed made nothing; a release which does not is told by what it returns. */
-    const bool is_to_handle = (has_succeeded(in_returned_value_ptr) ||
+    const bool did_succeed  = has_succeeded(in_returned_value_ptr);
+    const bool is_to_handle = (did_succeed ||
                                in_function == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_RELEASE);
 
     switch ((is_to_handle) ? in_function

@@ -146,10 +146,11 @@ bool Stereo::ConverterDLL::CallFeeder::get_last_call_chunk(const uint32_t& in_ch
                                                            const void**    out_data_ptr_ptr,
                                                            uint32_t*       out_n_bytes_ptr) const
 {
-    const bool is_in_range = (m_workload.data_chunk_ptr_vec.empty() == false                                     &&
-                              in_chunk_id                             >= m_workload.first_data_chunk_id            &&
-                              in_chunk_id - m_workload.first_data_chunk_id < m_workload.data_chunk_ptr_vec.size() );
-    bool       result      = false;
+    const size_t n_chunks    = m_workload.data_chunk_ptr_vec.size();
+    const bool   is_in_range = (n_chunks                                     >  0                              &&
+                                in_chunk_id                                  >= m_workload.first_data_chunk_id &&
+                                in_chunk_id - m_workload.first_data_chunk_id <  n_chunks);
+    bool         result      = false;
 
     if (is_in_range)
     {

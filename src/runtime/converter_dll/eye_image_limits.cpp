@@ -9,8 +9,11 @@
 bool Stereo::ConverterDLL::EyeImageLimits::fits(const uint32_t& in_width,
                                                 const uint32_t& in_height)
 {
-    return (in_width  <= get_max_width() &&
-            in_height <= get_max_height() );
+    const uint32_t max_height = get_max_height();
+    const uint32_t max_width  = get_max_width();
+
+    return (in_width  <= max_width &&
+            in_height <= max_height);
 }
 
 float Stereo::ConverterDLL::EyeImageLimits::get_largest_scale(const uint32_t& in_width,
