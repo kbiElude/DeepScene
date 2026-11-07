@@ -16,6 +16,7 @@ Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::OpenGLFrontend(Analysis::A
      m_framebuffer_height     (0),
      m_framebuffer_width      (0),
      m_has_default_framebuffer(false),
+     m_list_depth             (0),
      m_n_unfollowed_calls     (0),
      m_n_unsupported_calls    (0)
 {
@@ -343,6 +344,52 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_begin(const Ca
     }
 }
 
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_call_list(const Capture::APIDumpLoader::DumpedAPICall& in_call)
+{
+    /* A list that calls itself, or lists that call each other, are not made for ever. */
+    constexpr uint32_t MAX_LIST_DEPTH = 64;
+
+    std::array<uint32_t, 1> list_array = {};
+
+    if (read_arguments(in_call,
+                       &list_array) == false)
+    {
+        m_n_unfollowed_calls++;
+    }
+    else
+    {
+        const auto list_iterator = m_display_list_map.find(list_array.at(0) );
+
+        if (list_iterator == m_display_list_map.end() ||
+            m_list_depth  >= MAX_LIST_DEPTH)
+        {
+            m_n_unfollowed_calls++;
+        }
+        else
+        {
+            /* The list is held on to, as a call of it may delete it. */
+            const std::shared_ptr<GlDisplayList> list_ptr = list_iterator->second;
+
+            ++m_list_depth;
+
+            for (const auto& recorded_call : list_ptr->call_vec)
+            {
+                Capture::APIDumpLoader::DumpedAPICall call;
+
+                call.arg_in_vec    = recorded_call.arg_in_vec;
+                call.func          = recorded_call.func;
+                call.thread_id     = in_call.thread_id;
+                call.timestamp_qpc = in_call.timestamp_qpc;
+
+                handle_gl_call(call,
+                               list_ptr->workload);
+            }
+
+            --m_list_depth;
+        }
+    }
+}
+
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_clear(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                         GlContextState*                              inout_state_ptr)
 {
@@ -433,6 +480,29 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_clear_stencil(
     }
 }
 
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_delete_lists(const Capture::APIDumpLoader::DumpedAPICall& in_call)
+{
+    std::array<int32_t, 2> list_array = {};
+
+    if (read_arguments(in_call,
+                       &list_array) )
+    {
+        const int32_t first_list = list_array.at(0);
+        const int32_t n_lists    = list_array.at(1);
+
+        for (int32_t n_list = 0;
+                     n_list < n_lists;
+                   ++n_list)
+        {
+            m_display_list_map.erase(static_cast<uint32_t>(first_list + n_list) );
+        }
+    }
+    else
+    {
+        m_n_unfollowed_calls++;
+    }
+}
+
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_enable(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                          const bool&                                  in_is_enabled,
                                                                          GlContextState*                              inout_state_ptr)
@@ -486,7 +556,269 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_end(GlContextS
 
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_end_list(GlContextState* inout_state_ptr)
 {
-    inout_state_ptr->is_compiling_list = false;
+    GlListRecording& recording = inout_state_ptr->list_recording;
+
+    if (recording.list_ptr != nullptr)
+    {
+        m_display_list_map[recording.list_number] = recording.list_ptr;
+
+        recording = GlListRecording();
+    }
+    else
+    {
+        m_n_unfollowed_calls++;
+    }
+}
+
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                          const Capture::APIDumpLoader::Workload&      in_workload)
+{
+    GlContextState* state_ptr = find_current_context_ptr(in_call.thread_id);
+
+    /* A call made by a thread which has no context current does nothing. */
+    if (state_ptr == nullptr)
+    {
+        m_n_unfollowed_calls++;
+    }
+    else
+    {
+        /* A call made while a list is made is kept in it, and is made when the list is called (and now, too, for GL_COMPILE_AND_EXECUTE). */
+        const bool is_recording = (state_ptr->list_recording.list_ptr != nullptr                  &&
+                                   in_call.func                       != APIInterceptor::APIFUNCTION_GL_GLENDLIST);
+        const bool is_made      = (is_recording                       == false                    ||
+                                   state_ptr->list_recording.is_executing);
+
+        if (is_recording)
+        {
+            record_call(in_call,
+                        in_workload,
+                        state_ptr);
+        }
+
+        if (is_made)
+        {
+            switch (in_call.func)
+            {
+                case APIInterceptor::APIFUNCTION_GL_GLALPHAFUNC:
+                case APIInterceptor::APIFUNCTION_GL_GLBLENDFUNC:
+                case APIInterceptor::APIFUNCTION_GL_GLCOLORMASK:
+                case APIInterceptor::APIFUNCTION_GL_GLCULLFACE:
+                case APIInterceptor::APIFUNCTION_GL_GLDEPTHFUNC:
+                case APIInterceptor::APIFUNCTION_GL_GLDEPTHMASK:
+                case APIInterceptor::APIFUNCTION_GL_GLPOLYGONMODE:
+                case APIInterceptor::APIFUNCTION_GL_GLSHADEMODEL:
+                {
+                    handle_state_value(in_call,
+                                       state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLDRAWARRAYS:
+                case APIInterceptor::APIFUNCTION_GL_GLDRAWELEMENTS:
+                {
+                    const bool is_indexed = (in_call.func == APIInterceptor::APIFUNCTION_GL_GLDRAWELEMENTS);
+
+                    handle_array_draw(in_call,
+                                      in_workload,
+                                      is_indexed,
+                                      state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLBEGIN:
+                {
+                    handle_begin(in_call,
+                                 state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLCALLLIST:
+                {
+                    handle_call_list(in_call);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLCLEAR:
+                {
+                    handle_clear(in_call,
+                                 state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLCLEARCOLOR:
+                {
+                    handle_clear_color(in_call,
+                                       state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLCLEARDEPTH:
+                {
+                    handle_clear_depth(in_call,
+                                       state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLCLEARSTENCIL:
+                {
+                    handle_clear_stencil(in_call,
+                                         state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLDISABLE:
+                {
+                    handle_enable(in_call,
+                                  false, /* in_is_enabled */
+                                  state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLENABLE:
+                {
+                    handle_enable(in_call,
+                                  true, /* in_is_enabled */
+                                  state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLDELETELISTS:
+                {
+                    handle_delete_lists(in_call);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLEND:
+                {
+                    handle_end(state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLENDLIST:
+                {
+                    handle_end_list(state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLFRUSTUM:
+                case APIInterceptor::APIFUNCTION_GL_GLLOADIDENTITY:
+                case APIInterceptor::APIFUNCTION_GL_GLLOADMATRIXD:
+                case APIInterceptor::APIFUNCTION_GL_GLLOADMATRIXF:
+                case APIInterceptor::APIFUNCTION_GL_GLMULTMATRIXD:
+                case APIInterceptor::APIFUNCTION_GL_GLMULTMATRIXF:
+                case APIInterceptor::APIFUNCTION_GL_GLORTHO:
+                case APIInterceptor::APIFUNCTION_GL_GLROTATED:
+                case APIInterceptor::APIFUNCTION_GL_GLROTATEF:
+                case APIInterceptor::APIFUNCTION_GL_GLSCALED:
+                case APIInterceptor::APIFUNCTION_GL_GLSCALEF:
+                case APIInterceptor::APIFUNCTION_GL_GLTRANSLATED:
+                case APIInterceptor::APIFUNCTION_GL_GLTRANSLATEF:
+                {
+                    handle_matrix(in_call,
+                                  in_workload,
+                                  state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLMATRIXMODE:
+                {
+                    handle_matrix_mode(in_call,
+                                       state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLNEWLIST:
+                {
+                    handle_new_list(in_call,
+                                    state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLPOPATTRIB:
+                {
+                    handle_pop_attributes(state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLPOPMATRIX:
+                {
+                    handle_pop_matrix(state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLPUSHATTRIB:
+                {
+                    handle_push_attributes(in_call,
+                                           state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLPUSHMATRIX:
+                {
+                    handle_push_matrix(state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLSCISSOR:
+                {
+                    handle_scissor(in_call,
+                                   state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLVIEWPORT:
+                {
+                    handle_viewport(in_call,
+                                    state_ptr);
+
+                    break;
+                }
+
+                default:
+                {
+                    GlVertexLayout vertex_layout;
+
+                    const bool is_vertex = GlVertexReader::find_layout(in_call.func,
+                                                                       &vertex_layout);
+
+                    if (is_vertex)
+                    {
+                        handle_vertex(in_call,
+                                      in_workload,
+                                      state_ptr);
+                    }
+                    else
+                    if (is_unsupported_function(in_call.func) )
+                    {
+                        m_n_unsupported_calls++;
+                    }
+
+                    break;
+                }
+            }
+        }
+    }
 }
 
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_make_current(const Capture::APIDumpLoader::DumpedAPICall& in_call)
@@ -591,17 +923,31 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_matrix_mode(co
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_new_list(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                            GlContextState*                              inout_state_ptr)
 {
-    constexpr uint32_t COMPILE = 0x1300;
+    constexpr uint32_t COMPILE             = 0x1300;
+    constexpr uint32_t COMPILE_AND_EXECUTE = 0x1301;
 
-    std::array<uint32_t, 2> list_array = {};
+    std::array<uint32_t, 2> list_array  = {};
+    bool                    is_followed = false;
 
     if (read_arguments(in_call,
-                      &list_array) )
+                       &list_array) )
     {
-        /* The calls made while a list is made are kept in it and not made, unless the mode says that they are made too (GL_COMPILE_AND_EXECUTE). */
-        inout_state_ptr->is_compiling_list = (list_array.at(1) == COMPILE);
+        const uint32_t mode = list_array.at(1);
+
+        /* The calls made while a list is made are kept in it, and are not made, unless the mode says that they are made too. */
+        if (mode == COMPILE ||
+            mode == COMPILE_AND_EXECUTE)
+        {
+            GlListRecording& recording = inout_state_ptr->list_recording;
+
+            recording.is_executing = (mode == COMPILE_AND_EXECUTE);
+            recording.list_number  = list_array.at(0);
+            recording.list_ptr     = std::make_shared<GlDisplayList>();
+            is_followed            = true;
+        }
     }
-    else
+
+    if (is_followed == false)
     {
         m_n_unfollowed_calls++;
     }
@@ -922,7 +1268,7 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::is_unsupported_functi
     switch (in_function)
     {
         case APIInterceptor::APIFUNCTION_GL_GLBITMAP:
-        case APIInterceptor::APIFUNCTION_GL_GLCALLLIST:
+        case APIInterceptor::APIFUNCTION_GL_GLCALLLISTS:
         case APIInterceptor::APIFUNCTION_GL_GLCOPYPIXELS:
         case APIInterceptor::APIFUNCTION_GL_GLCOPYTEXIMAGE2D:
         case APIInterceptor::APIFUNCTION_GL_GLCOPYTEXSUBIMAGE2D:
@@ -950,230 +1296,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::on_call(const Capture
 
     if (group == Capture::APIDumpLoader::APIGroup::GL)
     {
-        GlContextState* state_ptr        = find_current_context_ptr(in_call.thread_id);
-        const bool      is_recorded_only = (state_ptr != nullptr                                       &&
-                                            state_ptr->is_compiling_list                               &&
-                                            in_call.func != APIInterceptor::APIFUNCTION_GL_GLENDLIST);
-
-        /* A call made by a thread which has no context current does nothing. */
-        if (state_ptr == nullptr)
-        {
-            m_n_unfollowed_calls++;
-        }
-        else
-        if (is_recorded_only)
-        {
-            /* A call made while a list is made is kept in the list, and made when the list is called. */
-        }
-        else
-        {
-            switch (in_call.func)
-            {
-                case APIInterceptor::APIFUNCTION_GL_GLALPHAFUNC:
-                case APIInterceptor::APIFUNCTION_GL_GLBLENDFUNC:
-                case APIInterceptor::APIFUNCTION_GL_GLCOLORMASK:
-                case APIInterceptor::APIFUNCTION_GL_GLCULLFACE:
-                case APIInterceptor::APIFUNCTION_GL_GLDEPTHFUNC:
-                case APIInterceptor::APIFUNCTION_GL_GLDEPTHMASK:
-                case APIInterceptor::APIFUNCTION_GL_GLPOLYGONMODE:
-                case APIInterceptor::APIFUNCTION_GL_GLSHADEMODEL:
-                {
-                    handle_state_value(in_call,
-                                       state_ptr);
-
-                    break;
-                }
-
-                case APIInterceptor::APIFUNCTION_GL_GLDRAWARRAYS:
-                case APIInterceptor::APIFUNCTION_GL_GLDRAWELEMENTS:
-                {
-                    const bool is_indexed = (in_call.func == APIInterceptor::APIFUNCTION_GL_GLDRAWELEMENTS);
-
-                    handle_array_draw(in_call,
-                                      in_workload,
-                                      is_indexed,
-                                      state_ptr);
-
-                    break;
-                }
-
-                case APIInterceptor::APIFUNCTION_GL_GLBEGIN:
-                {
-                    handle_begin(in_call,
-                                 state_ptr);
-
-                    break;
-                }
-
-                case APIInterceptor::APIFUNCTION_GL_GLCLEAR:
-                {
-                    handle_clear(in_call,
-                                 state_ptr);
-
-                    break;
-                }
-
-                case APIInterceptor::APIFUNCTION_GL_GLCLEARCOLOR:
-                {
-                    handle_clear_color(in_call,
-                                       state_ptr);
-
-                    break;
-                }
-
-                case APIInterceptor::APIFUNCTION_GL_GLCLEARDEPTH:
-                {
-                    handle_clear_depth(in_call,
-                                       state_ptr);
-
-                    break;
-                }
-
-                case APIInterceptor::APIFUNCTION_GL_GLCLEARSTENCIL:
-                {
-                    handle_clear_stencil(in_call,
-                                         state_ptr);
-
-                    break;
-                }
-
-                case APIInterceptor::APIFUNCTION_GL_GLDISABLE:
-                {
-                    handle_enable(in_call,
-                                  false, /* in_is_enabled */
-                                  state_ptr);
-
-                    break;
-                }
-
-                case APIInterceptor::APIFUNCTION_GL_GLENABLE:
-                {
-                    handle_enable(in_call,
-                                  true, /* in_is_enabled */
-                                  state_ptr);
-
-                    break;
-                }
-
-                case APIInterceptor::APIFUNCTION_GL_GLEND:
-                {
-                    handle_end(state_ptr);
-
-                    break;
-                }
-
-                case APIInterceptor::APIFUNCTION_GL_GLENDLIST:
-                {
-                    handle_end_list(state_ptr);
-
-                    break;
-                }
-
-                case APIInterceptor::APIFUNCTION_GL_GLFRUSTUM:
-                case APIInterceptor::APIFUNCTION_GL_GLLOADIDENTITY:
-                case APIInterceptor::APIFUNCTION_GL_GLLOADMATRIXD:
-                case APIInterceptor::APIFUNCTION_GL_GLLOADMATRIXF:
-                case APIInterceptor::APIFUNCTION_GL_GLMULTMATRIXD:
-                case APIInterceptor::APIFUNCTION_GL_GLMULTMATRIXF:
-                case APIInterceptor::APIFUNCTION_GL_GLORTHO:
-                case APIInterceptor::APIFUNCTION_GL_GLROTATED:
-                case APIInterceptor::APIFUNCTION_GL_GLROTATEF:
-                case APIInterceptor::APIFUNCTION_GL_GLSCALED:
-                case APIInterceptor::APIFUNCTION_GL_GLSCALEF:
-                case APIInterceptor::APIFUNCTION_GL_GLTRANSLATED:
-                case APIInterceptor::APIFUNCTION_GL_GLTRANSLATEF:
-                {
-                    handle_matrix(in_call,
-                                  in_workload,
-                                  state_ptr);
-
-                    break;
-                }
-
-                case APIInterceptor::APIFUNCTION_GL_GLMATRIXMODE:
-                {
-                    handle_matrix_mode(in_call,
-                                       state_ptr);
-
-                    break;
-                }
-
-                case APIInterceptor::APIFUNCTION_GL_GLNEWLIST:
-                {
-                    handle_new_list(in_call,
-                                    state_ptr);
-
-                    break;
-                }
-
-                case APIInterceptor::APIFUNCTION_GL_GLPOPATTRIB:
-                {
-                    handle_pop_attributes(state_ptr);
-
-                    break;
-                }
-
-                case APIInterceptor::APIFUNCTION_GL_GLPOPMATRIX:
-                {
-                    handle_pop_matrix(state_ptr);
-
-                    break;
-                }
-
-                case APIInterceptor::APIFUNCTION_GL_GLPUSHATTRIB:
-                {
-                    handle_push_attributes(in_call,
-                                           state_ptr);
-
-                    break;
-                }
-
-                case APIInterceptor::APIFUNCTION_GL_GLPUSHMATRIX:
-                {
-                    handle_push_matrix(state_ptr);
-
-                    break;
-                }
-
-                case APIInterceptor::APIFUNCTION_GL_GLSCISSOR:
-                {
-                    handle_scissor(in_call,
-                                   state_ptr);
-
-                    break;
-                }
-
-                case APIInterceptor::APIFUNCTION_GL_GLVIEWPORT:
-                {
-                    handle_viewport(in_call,
-                                    state_ptr);
-
-                    break;
-                }
-
-                default:
-                {
-                    GlVertexLayout vertex_layout;
-
-                    const bool is_vertex = GlVertexReader::find_layout(in_call.func,
-                                                                       &vertex_layout);
-
-                    if (is_vertex)
-                    {
-                        handle_vertex(in_call,
-                                      in_workload,
-                                      state_ptr);
-                    }
-                    else
-                    if (is_unsupported_function(in_call.func) )
-                    {
-                        m_n_unsupported_calls++;
-                    }
-
-                    break;
-                }
-            }
-        }
+        handle_gl_call(in_call,
+                       in_workload);
     }
     else
     if (in_call.func == APIInterceptor::APIFUNCTION_WGL_WGLMAKECURRENT)
@@ -1372,6 +1496,43 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::read_matrix_operand(c
     }
 
     return result;
+}
+
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::record_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                       const Capture::APIDumpLoader::Workload&      in_workload,
+                                                                       GlContextState*                              inout_state_ptr)
+{
+    GlDisplayList* list_ptr = inout_state_ptr->list_recording.list_ptr.get();
+    GlRecordedCall recorded_call;
+
+    recorded_call.arg_in_vec = in_call.arg_in_vec;
+    recorded_call.func       = in_call.func;
+
+    /* The workload that the call is in is let go of before the list is called, so that the list keeps the data of the call itself. */
+    for (auto& argument : recorded_call.arg_in_vec)
+    {
+        if (argument.type == APIInterceptor::ARGTYPE_DATA_CHUNK_ID)
+        {
+            const auto chunk_ptr = Capture::APIDumpLoader::get_data_chunk_ptr(in_workload,
+                                                                              argument.get_data_chunk_id() );
+
+            if (chunk_ptr != nullptr)
+            {
+                const uint32_t chunk_id = static_cast<uint32_t>(list_ptr->workload.data_chunk_ptr_vec.size() );
+
+                list_ptr->workload.data_chunk_ptr_vec.emplace_back(new Capture::APIDumpLoader::DataChunk(*chunk_ptr) );
+
+                argument = APIInterceptor::APIFunctionArgument::create_data_chunk_id(chunk_id);
+            }
+            else
+            {
+                /* The data is not there: an argument which is not a chunk, so that it is not taken for another one of the list. */
+                argument = APIInterceptor::APIFunctionArgument::create_void_ptr(nullptr);
+            }
+        }
+    }
+
+    list_ptr->call_vec.push_back(std::move(recorded_call) );
 }
 
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_matrices(const GlContextState& in_state)

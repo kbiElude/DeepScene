@@ -8,9 +8,10 @@
  * clear uses, the stack of attributes (glPushAttrib puts back what the program set after it) and the stacks of matrices (a model-view, a
  * projection, and the others, which are only kept right); the clears; the draws of immediate mode (a glBegin and its glEnd) and of
  * arrays (glDrawArrays and glDrawElements, from the copy of the arrays that the dumper made), each with the state of the pipeline that
- * was set; and the end of the frames. Calls made while a display list is made are not followed (they are the list's, and made when it
- * is called). What it does not follow yet (called lists, copies and reads of the framebuffer) is counted as unsupported, so that a model
- * made of it says that its passes are not right.
+ * was set; and the end of the frames. A display list is followed: the calls made while it is made are kept in it (with the data that they refer
+ * to), and made when it is called (glCallList; the lists of the contexts are shared), and at once too for GL_COMPILE_AND_EXECUTE. What it does
+ * not follow yet (glCallLists, copies and reads of the framebuffer) is counted as unsupported, so that a model made of it says that its
+ * passes are not right.
  *
  * The matrices: OpenGL has one matrix for the model and the view together, and a projection of its own. The front end tells the model builder
  * the two as they are, each when it changes (MODEL_VIEW_MATRIX and PROJECTION_MATRIX, in the state of the fixed-function pipeline, at
@@ -83,6 +84,8 @@ namespace Analysis
                                              GlContextState*                              inout_state_ptr);
                 void handle_begin           (const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                              GlContextState*                              inout_state_ptr);
+                /* A call of glCallList: the calls of the list are made, as the list has them. */
+                void handle_call_list       (const Capture::APIDumpLoader::DumpedAPICall& in_call);
                 void handle_clear           (const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                              GlContextState*                              inout_state_ptr);
                 void handle_clear_color     (const Capture::APIDumpLoader::DumpedAPICall& in_call,
@@ -91,6 +94,8 @@ namespace Analysis
                                              GlContextState*                              inout_state_ptr);
                 void handle_clear_stencil   (const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                              GlContextState*                              inout_state_ptr);
+                /* The lists of glDeleteLists are gone. */
+                void handle_delete_lists    (const Capture::APIDumpLoader::DumpedAPICall& in_call);
                 void handle_enable          (const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                              const bool&                                  in_is_enabled,
                                              GlContextState*                              inout_state_ptr);
@@ -98,6 +103,9 @@ namespace Analysis
                 void handle_end             (GlContextState* inout_state_ptr);
                 /* A list which was being made is made, and its calls are made when it is called. */
                 void handle_end_list        (GlContextState* inout_state_ptr);
+                /* A call of GL: kept in the list that its context is making, or made, or both. It is also how the calls of a called list are made. */
+                void handle_gl_call         (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                             const Capture::APIDumpLoader::Workload&      in_workload);
                 void handle_make_current    (const Capture::APIDumpLoader::DumpedAPICall& in_call);
                 /* A call that loads or multiplies the current matrix: the matrix is what its arguments (or its data) say. */
                 void handle_matrix          (const Capture::APIDumpLoader::DumpedAPICall& in_call,
@@ -123,6 +131,11 @@ namespace Analysis
                                              GlContextState*                              inout_state_ptr);
                 void handle_viewport        (const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                              GlContextState*                              inout_state_ptr);
+
+                /* Keeps the call in the list that the context is making, with the data that it refers to. */
+                void record_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                 const Capture::APIDumpLoader::Workload&      in_workload,
+                                 GlContextState*                              inout_state_ptr);
 
                 /* Tells the model builder the model-view and the projection matrix of the context, those of them which are not what it was told last. */
                 void report_matrices(const GlContextState& in_state);
@@ -195,9 +208,11 @@ namespace Analysis
                 std::map<uint64_t, GlContextState>                              m_context_map;                   /* by the address of the context */
                 std::map<uint32_t, uint64_t>                                    m_current_context_by_thread_map; /* the address, by the thread    */
                 Analysis::APIDumpAnalysis::ResourceView                         m_depth_stencil_view;
+                std::map<uint32_t, std::shared_ptr<GlDisplayList> >             m_display_list_map;              /* by the number of the list; the contexts share them */
                 uint32_t                                                        m_framebuffer_height;
                 uint32_t                                                        m_framebuffer_width;
                 bool                                                            m_has_default_framebuffer;
+                uint32_t                                                        m_list_depth;                    /* of the lists that are being called */
                 std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t> m_n_resolution_hazard_map;
                 uint64_t                                                        m_n_unfollowed_calls;
                 uint64_t                                                        m_n_unsupported_calls;

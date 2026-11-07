@@ -88,6 +88,12 @@ void Tests::GlCallBuilder::blend_func(const uint32_t& in_source,
               APIInterceptor::APIFunctionArgument::create_u32_glenum(in_destination)});
 }
 
+void Tests::GlCallBuilder::call_list(const uint32_t& in_list)
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLCALLLIST,
+             {APIInterceptor::APIFunctionArgument::create_u32(in_list)});
+}
+
 void Tests::GlCallBuilder::clear(const uint32_t& in_mask)
 {
     add_call(APIInterceptor::APIFUNCTION_GL_GLCLEAR,
@@ -116,6 +122,14 @@ void Tests::GlCallBuilder::clear_stencil(const int32_t& in_stencil)
 {
     add_call(APIInterceptor::APIFUNCTION_GL_GLCLEARSTENCIL,
              {APIInterceptor::APIFunctionArgument::create_i32(in_stencil)});
+}
+
+void Tests::GlCallBuilder::delete_lists(const int32_t& in_first_list,
+                                        const int32_t& in_range)
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLDELETELISTS,
+             {APIInterceptor::APIFunctionArgument::create_i32(in_first_list),
+              APIInterceptor::APIFunctionArgument::create_i32(in_range)});
 }
 
 void Tests::GlCallBuilder::depth_func(const uint32_t& in_function)

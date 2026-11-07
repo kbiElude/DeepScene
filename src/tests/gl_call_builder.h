@@ -46,6 +46,7 @@ namespace Tests
         void begin        (const uint32_t& in_mode);
         void blend_func   (const uint32_t& in_source,
                            const uint32_t& in_destination);
+        void call_list    (const uint32_t& in_list);
         void clear        (const uint32_t& in_mask);
         void clear_color  (const float&    in_red,
                            const float&    in_green,
@@ -53,6 +54,8 @@ namespace Tests
                            const float&    in_alpha);
         void clear_depth  (const double&   in_depth);
         void clear_stencil(const int32_t&  in_stencil);
+        void delete_lists (const int32_t&  in_first_list,
+                           const int32_t&  in_range);
         void depth_func   (const uint32_t& in_function);
         void depth_mask   (const bool&     in_is_writing);
         void disable      (const uint32_t& in_capability);

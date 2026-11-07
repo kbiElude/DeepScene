@@ -29,14 +29,14 @@ namespace Analysis
             /* The state of one OpenGL context, from the calls that set it (the values a context starts with are those of the specification).
              * The matrices of the three kinds each have a stack, which is never empty (the current matrix is its last element): the model-view
              * and the projection, which the front end tells the model builder of, and the others (texture and color), which it only keeps right.
-             * Follows GlAttributeFrame, GlAttributes, GlImmediateBlock, GlMatrix and GlPipelineState.
+             * Follows GlAttributeFrame, GlAttributes, GlImmediateBlock, GlListRecording, GlMatrix and GlPipelineState.
              */
             struct GlContextState
             {
                 std::vector<GlAttributeFrame> attribute_frame_vec;
                 GlAttributes                  attributes;
                 GlImmediateBlock              immediate_block;
-                bool                          is_compiling_list = false; /* the calls are recorded in a list, and not made */
+                GlListRecording               list_recording;
                 std::vector<GlMatrix>         modelview_f32mat_vec;
                 std::vector<GlMatrix>         other_f32mat_vec;
                 GlPipelineState               pipeline_state;

@@ -8,6 +8,8 @@
 #define APIDUMPANALYSIS_FRONTENDS_OPENGL_TYPES_H
 
 #include "analysis/api_dump_analysis/types.h"
+#include "capture/api_dump_loader/api_dump_loader.h"
+#include "common/api_function_argument.h"
 #include <array>
 #include <memory>
 #include <stdint.h>
@@ -78,6 +80,30 @@ namespace Analysis
 
             /* A 4x4 matrix as OpenGL keeps it: the columns one after the other (element 12 to 14 are the translation). */
             typedef std::array<float, 16> GlMatrix;
+
+            /* A call that a display list has kept: what it was called with. The chunks of data which its arguments refer to are in the list. */
+            struct GlRecordedCall
+            {
+                std::vector<APIInterceptor::APIFunctionArgument> arg_in_vec;
+                APIInterceptor::APIFunction                      func = APIInterceptor::APIFunction::APIFUNCTION_UNKNOWN;
+            };
+
+            /* A display list: the calls made between its glNewList and glEndList, and the data of the calls (which are not a part of the workload
+             * that they were made in: it is let go of before the list is called). Follows GlRecordedCall.
+             */
+            struct GlDisplayList
+            {
+                std::vector<GlRecordedCall>      call_vec;
+                Capture::APIDumpLoader::Workload workload; /* the data that the calls refer to, by the numbers that the calls of the list have */
+            };
+
+            /* The display list that a context is making: the calls are kept in it, and are made too if the mode says so. Follows GlDisplayList. */
+            struct GlListRecording
+            {
+                bool                           is_executing = false; /* GL_COMPILE_AND_EXECUTE */
+                std::shared_ptr<GlDisplayList> list_ptr;             /* null: no list is being made */
+                uint32_t                       list_number  = 0;
+            };
 
             /* A rectangle of the framebuffer, in pixels from its lower left corner, as glViewport and glScissor say it. */
             struct GlBox
