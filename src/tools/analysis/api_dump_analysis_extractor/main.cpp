@@ -184,7 +184,7 @@ void Analysis::APIDumpAnalysisExtractor::print_stats(const Analysis::APIDumpAnal
 {
     const auto access_count_map = Analysis::APIDumpAnalysis::ResourceAccessTracker::count_by_class(in_analysis.model.resource_access_vec);
     uint64_t   n_draws          = 0;
-    const auto timeline         = Analysis::APIDumpAnalysis::TimelineBuilder::build(in_analysis);
+    const auto timeline         = Analysis::APIDumpAnalysis::TimelineBuilder::build               (in_analysis);
 
     for (const auto& frame : in_analysis.model.frame_record_vec)
     {
@@ -220,17 +220,17 @@ void Analysis::APIDumpAnalysisExtractor::print_stats(const Analysis::APIDumpAnal
             static_cast<unsigned long long>(in_analysis.summary.n_segments),
             static_cast<unsigned long long>(in_analysis.model.frame_record_vec.size() ),
             static_cast<unsigned long long>(n_draws),
-            static_cast<unsigned long long>(in_analysis.model.frame_shape_interner.get_n_structures() ),
+            static_cast<unsigned long long>(in_analysis.model.frame_shape_interner.get_n_structures   () ),
             static_cast<unsigned long long>(in_analysis.model.pass_structure_interner.get_n_structures() ),
-            static_cast<unsigned long long>(in_analysis.model.draw_structure_map.size() ),
-            static_cast<unsigned long long>(in_analysis.model.resource_vec.size() ),
-            static_cast<unsigned long long>(access_count_map.at(Analysis::APIDumpAnalysis::ResourceAccessClass::FRAME_LOCAL) ),
-            static_cast<unsigned long long>(access_count_map.at(Analysis::APIDumpAnalysis::ResourceAccessClass::LOOP_CARRIED) ),
-            static_cast<unsigned long long>(access_count_map.at(Analysis::APIDumpAnalysis::ResourceAccessClass::STATIC) ),
-            static_cast<unsigned long long>(access_count_map.at(Analysis::APIDumpAnalysis::ResourceAccessClass::UNREAD) ),
-            static_cast<unsigned long long>(access_count_map.at(Analysis::APIDumpAnalysis::ResourceAccessClass::UNUSED) ),
-            static_cast<unsigned long long>(timeline.run_vec.size() ),
-            static_cast<unsigned long long>(timeline.setup_frame_index_vec.size() ),
+            static_cast<unsigned long long>(in_analysis.model.draw_structure_map.size                 () ),
+            static_cast<unsigned long long>(in_analysis.model.resource_vec.size                       () ),
+            static_cast<unsigned long long>(access_count_map.at                                       (Analysis::APIDumpAnalysis::ResourceAccessClass::FRAME_LOCAL) ),
+            static_cast<unsigned long long>(access_count_map.at                                       (Analysis::APIDumpAnalysis::ResourceAccessClass::LOOP_CARRIED) ),
+            static_cast<unsigned long long>(access_count_map.at                                       (Analysis::APIDumpAnalysis::ResourceAccessClass::STATIC) ),
+            static_cast<unsigned long long>(access_count_map.at                                       (Analysis::APIDumpAnalysis::ResourceAccessClass::UNREAD) ),
+            static_cast<unsigned long long>(access_count_map.at                                       (Analysis::APIDumpAnalysis::ResourceAccessClass::UNUSED) ),
+            static_cast<unsigned long long>(timeline.run_vec.size                                     () ),
+            static_cast<unsigned long long>(timeline.setup_frame_index_vec.size                       () ),
             static_cast<unsigned long long>(in_analysis.model.n_key_collisions) );
 }
 

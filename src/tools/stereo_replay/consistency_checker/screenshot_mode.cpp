@@ -34,15 +34,21 @@ bool Stereo::Replay::ConsistencyChecker::take_contact_sheet(const Stereo::Replay
     Stereo::Replay::ConsistencyChecker::FrameHashSink sink(true); /* in_keeps_images */
 
     /* The end of the workload: the range of the options may go beyond it. */
-    if (Capture::APIDumpLoader::WorkloadIndex::load_or_build(in_options.workload_filename.c_str(),
-                                                             N_INDEX_READER_THREADS,
-                                                            &index,
-                                                            &is_index_built,
-                                                            &index_error) &&
-        index.get_n_frames() != 0)
+    const bool is_index_loaded = Capture::APIDumpLoader::WorkloadIndex::load_or_build(in_options.workload_filename.c_str(),
+                                                                                      N_INDEX_READER_THREADS,
+                                                                                     &index,
+                                                                                     &is_index_built,
+                                                                                     &index_error);
+
+    if (is_index_loaded)
     {
-        options.last_frame = static_cast<uint32_t>(std::min<uint64_t>(options.last_frame,
-                                                                      index.get_n_frames() - 1) );
+        const uint64_t n_index_frames = index.get_n_frames();
+
+        if (n_index_frames != 0)
+        {
+            options.last_frame = static_cast<uint32_t>(std::min<uint64_t>(options.last_frame,
+                                                                          n_index_frames - 1) );
+        }
     }
 
     frame_vec = Stereo::Replay::ConsistencyChecker::FrameSampler::sample(options.first_frame,

@@ -180,6 +180,7 @@ int Stereo::Replay::Player::run(int   in_argc,
     std::string                               deps_filename;
     std::string                               error;
     int                                       exit_code          = EXIT_FAILURE;
+    bool                                      has_deps_file      = false;
     Capture::APIDumpLoader::WorkloadIndex     index;
     bool                                      is_index_built     = false;
     bool                                      is_recipe_loaded   = true;
@@ -282,8 +283,14 @@ int Stereo::Replay::Player::run(int   in_argc,
     deps_filename = (options.deps_filename.empty() ) ? get_default_deps_filename(options.workload_path)
                                                     : options.deps_filename;
 
-    if (deps_filename.empty() == false &&
-        ::GetFileAttributesA(deps_filename.c_str() ) != INVALID_FILE_ATTRIBUTES)
+    if (deps_filename.empty() == false)
+    {
+        const DWORD deps_attributes = ::GetFileAttributesA(deps_filename.c_str() );
+
+        has_deps_file = (deps_attributes != INVALID_FILE_ATTRIBUTES);
+    }
+
+    if (has_deps_file)
     {
         std::string deps_error;
 

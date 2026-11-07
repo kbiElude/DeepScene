@@ -34,16 +34,25 @@ std::string Stereo::Session::SessionEnvironment::get_log_path(const std::string&
 bool Stereo::Session::SessionEnvironment::read(SessionInfo* out_info_ptr)
 {
     std::string log_value;
+    bool        result = false;
 
     /* Whether to log is not needed: a process that is not told to does not. */
-    out_info_ptr->is_logging = (read_variable(LOG_VARIABLE_NAME,
-                                              &log_value) &&
+    const bool has_log = read_variable(LOG_VARIABLE_NAME,
+                                       &log_value);
+
+    out_info_ptr->is_logging = (has_log &&
                                 log_value == "1");
 
-    return (read_variable(RECIPE_VARIABLE_NAME,
-                          &out_info_ptr->recipe_path) &&
-            read_variable(SESSION_ID_VARIABLE_NAME,
-                          &out_info_ptr->session_id) );
+    const bool has_recipe = read_variable(RECIPE_VARIABLE_NAME,
+                                          &out_info_ptr->recipe_path);
+
+    if (has_recipe)
+    {
+        result = read_variable(SESSION_ID_VARIABLE_NAME,
+                               &out_info_ptr->session_id);
+    }
+
+    return result;
 }
 
 bool Stereo::Session::SessionEnvironment::read_variable(const char*  in_name_ptr,
@@ -71,13 +80,25 @@ bool Stereo::Session::SessionEnvironment::read_variable(const char*  in_name_ptr
 
 bool Stereo::Session::SessionEnvironment::write(const SessionInfo& in_info)
 {
+    const char* const recipe_path_ptr = in_info.recipe_path.c_str();
+    bool              result          = false;
+    const char* const session_id_ptr  = in_info.session_id.c_str();
+
     /* No variable is a process that does not log, so a value from an earlier session of this process is taken away. */
     ::SetEnvironmentVariableA(LOG_VARIABLE_NAME,
                               (in_info.is_logging) ? "1"
                                                    : nullptr);
 
-    return (::SetEnvironmentVariableA(RECIPE_VARIABLE_NAME,
-                                      in_info.recipe_path.c_str() ) != FALSE &&
-            ::SetEnvironmentVariableA(SESSION_ID_VARIABLE_NAME,
-                                      in_info.session_id.c_str() ) != FALSE);
+    const BOOL is_recipe_set = ::SetEnvironmentVariableA(RECIPE_VARIABLE_NAME,
+                                                         recipe_path_ptr);
+
+    if (is_recipe_set != FALSE)
+    {
+        const BOOL is_session_set = ::SetEnvironmentVariableA(SESSION_ID_VARIABLE_NAME,
+                                                              session_id_ptr);
+
+        result = (is_session_set != FALSE);
+    }
+
+    return result;
 }

@@ -80,11 +80,16 @@ bool Analysis::Recipe::RecipeApplier::apply_overlay_shift(const Analysis::Recipe
 {
     constexpr size_t SHEAR_INDEX = 8; /* row 2, column 0: what the depth adds to x */
 
-    bool result = false;
+    bool is_perspective = false;
+    bool result         = false;
 
-    if (in_rule.action_kind                                          == Analysis::Recipe::ActionKind::EYE_CONVERGENCE &&
-        is_matrix_of_kind(*inout_matrix_ptr,
-                          Analysis::Recipe::MatrixKind::PERSPECTIVE) )
+    if (in_rule.action_kind == Analysis::Recipe::ActionKind::EYE_CONVERGENCE)
+    {
+        is_perspective = is_matrix_of_kind(*inout_matrix_ptr,
+                                           Analysis::Recipe::MatrixKind::PERSPECTIVE);
+    }
+
+    if (is_perspective)
     {
         /* The shear is a shift of the picture in the units of the picture, which is two wide: the eyes are a part of the width apart
          * when each is moved by that part of two (the same way that a near thing is moved, the left picture toward the right).
@@ -213,21 +218,38 @@ std::vector<const Analysis::Recipe::Rule*> Analysis::Recipe::RecipeApplier::get_
 
         for (const auto& condition : rule.argument_condition_vec)
         {
-            const bool has_argument = (condition.argument_index < in_call.arg_in_vec.size() );
+            const bool has_argument      = (condition.argument_index < in_call.arg_in_vec.size() );
+            bool       is_argument_match = false;
 
-            is_match = (is_match                                                                                 &&
-                        has_argument                                                                             &&
-                        in_call.arg_in_vec.at(condition.argument_index).type      == APIInterceptor::ARGTYPE_U32 &&
-                        in_call.arg_in_vec.at(condition.argument_index).get_u32() == condition.value);
+            if (has_argument)
+            {
+                const auto& argument = in_call.arg_in_vec.at(condition.argument_index);
+
+                if (argument.type == APIInterceptor::ARGTYPE_U32)
+                {
+                    const uint32_t argument_value = argument.get_u32();
+
+                    is_argument_match = (argument_value == condition.value);
+                }
+            }
+
+            is_match = (is_match &&
+                        is_argument_match);
         }
 
         if (is_match                          &&
             rule.pass_key_vec.empty() == false)
         {
-            is_match = (in_place.has_pass &&
-                        std::find(rule.pass_key_vec.begin(),
-                                  rule.pass_key_vec.end  (),
-                                  in_place.pass_key)        != rule.pass_key_vec.end() );
+            is_match = false;
+
+            if (in_place.has_pass)
+            {
+                const auto pass_iterator = std::find(rule.pass_key_vec.begin(),
+                                                     rule.pass_key_vec.end  (),
+                                                     in_place.pass_key);
+
+                is_match = (pass_iterator != rule.pass_key_vec.end() );
+            }
         }
 
         if (is_match                            &&
@@ -332,18 +354,26 @@ bool Analysis::Recipe::RecipeApplier::is_draw_covering(const uint64_t& in_cover_
 bool Analysis::Recipe::RecipeApplier::is_draw_skipped(const uint64_t& in_pass_key,
                                                       const uint64_t& in_draw_key) const
 {
-    return (m_skipped_pass_draw_set.count(PassDrawKey(in_pass_key,
-                                                      in_draw_key) ) != 0 ||
-            m_skipped_draw_key_set.count(in_draw_key)              != 0 ||
-            m_skipped_pass_key_set.count(in_pass_key)              != 0);
+    const PassDrawKey pass_draw_key(in_pass_key,
+                                    in_draw_key);
+
+    const size_t n_draw_skips      = m_skipped_draw_key_set.count(in_draw_key);
+    const size_t n_pass_draw_skips = m_skipped_pass_draw_set.count(pass_draw_key);
+    const size_t n_pass_skips      = m_skipped_pass_key_set.count(in_pass_key);
+
+    return (n_pass_draw_skips != 0 ||
+            n_draw_skips      != 0 ||
+            n_pass_skips      != 0);
 }
 
 bool Analysis::Recipe::RecipeApplier::is_frame_known(const uint64_t& in_shape_key) const
 {
-    return (m_recipe.known_shape_key_vec.empty          ()                                       ||
-            std::find(m_recipe.known_shape_key_vec.begin(),
-                      m_recipe.known_shape_key_vec.end  (),
-                      in_shape_key)                        != m_recipe.known_shape_key_vec.end() );
+    const auto known_iterator = std::find(m_recipe.known_shape_key_vec.begin(),
+                                          m_recipe.known_shape_key_vec.end  (),
+                                          in_shape_key);
+
+    return (m_recipe.known_shape_key_vec.empty() ||
+            known_iterator != m_recipe.known_shape_key_vec.end() );
 }
 
 bool Analysis::Recipe::RecipeApplier::is_matrix_of_kind(const std::array<float, 16>&        in_matrix,
@@ -355,10 +385,15 @@ bool Analysis::Recipe::RecipeApplier::is_matrix_of_kind(const std::array<float, 
     const auto is_column_func = [&](const float& in_z,
                                     const float& in_w)
     {
-        return (::fabsf(in_matrix.at(3) )        <= TOLERANCE   &&
-                ::fabsf(in_matrix.at(7) )        <= TOLERANCE   &&
-                ::fabsf(in_matrix.at(11) - in_z) <= TOLERANCE   &&
-                ::fabsf(in_matrix.at(15) - in_w) <= TOLERANCE);
+        const float x_residual = ::fabsf(in_matrix.at(3) );
+        const float y_residual = ::fabsf(in_matrix.at(7) );
+        const float z_residual = ::fabsf(in_matrix.at(11) - in_z);
+        const float w_residual = ::fabsf(in_matrix.at(15) - in_w);
+
+        return (x_residual <= TOLERANCE &&
+                y_residual <= TOLERANCE &&
+                z_residual <= TOLERANCE &&
+                w_residual <= TOLERANCE);
     };
 
     bool result = true;
@@ -398,8 +433,10 @@ bool Analysis::Recipe::RecipeApplier::is_per_eye_texture(const Analysis::APIDump
 
 bool Analysis::Recipe::RecipeApplier::is_signature_known(const uint64_t& in_signature_key) const
 {
-    return (m_known_signature_key_set.empty()                       ||
-            m_known_signature_key_set.count(in_signature_key) != 0);
+    const size_t n_matching_keys = m_known_signature_key_set.count(in_signature_key);
+
+    return (m_known_signature_key_set.empty() ||
+            n_matching_keys != 0);
 }
 
 std::array<float, 16> Analysis::Recipe::RecipeApplier::make_eye_offset_matrix(const Analysis::Recipe::Axis& in_axis,

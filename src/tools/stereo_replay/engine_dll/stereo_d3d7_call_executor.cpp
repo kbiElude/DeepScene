@@ -24,9 +24,18 @@ bool Stereo::Replay::EngineDLL::StereoD3D7CallExecutor::after_call(const Capture
      */
     if (m_is_building_twin == false)
     {
-        is_setup     = (m_needs_twin                                                                                        ||
-                        (get_execution_class(in_call) == ::Replay::ReplayEngineDLL::ExecutionClass::FIRST_TIME_ONLY &&
-                         involves_per_eye_object() ) );
+        is_setup = m_needs_twin;
+
+        if (is_setup == false)
+        {
+            const auto execution_class = get_execution_class(in_call);
+
+            if (execution_class == ::Replay::ReplayEngineDLL::ExecutionClass::FIRST_TIME_ONLY)
+            {
+                is_setup = involves_per_eye_object();
+            }
+        }
+
         m_needs_twin = false;
     }
 
@@ -69,13 +78,22 @@ bool Stereo::Replay::EngineDLL::StereoD3D7CallExecutor::involves_per_eye_object(
             const auto& argument   = call.arg_in_vec.at(n_argument);
             uint64_t    live_value = 0;
 
-            if (argument.type                 == APIInterceptor::ARGTYPE_VOID_PTR &&
-                argument.get_ptr_as_u64()     != 0                                &&
-                get_call_context().get_remapper_ptr()->get(::Replay::ReplayEngineDLL::ObjectKind::D3D7_OBJECT,
-                                                           argument.get_ptr_as_u64(),
-                                                          &live_value) )
+            if (argument.type == APIInterceptor::ARGTYPE_VOID_PTR)
             {
-                result = (find_right_twin(reinterpret_cast<void*>(live_value) ) != nullptr);
+                const uint64_t dumped_value = argument.get_ptr_as_u64();
+
+                if (dumped_value != 0)
+                {
+                    const auto remapper_ptr = get_call_context().get_remapper_ptr();
+                    const bool has_live     = remapper_ptr->get(::Replay::ReplayEngineDLL::ObjectKind::D3D7_OBJECT,
+                                                                dumped_value,
+                                                               &live_value);
+
+                    if (has_live)
+                    {
+                        result = (find_right_twin(reinterpret_cast<void*>(live_value) ) != nullptr);
+                    }
+                }
             }
         }
     }
@@ -94,10 +112,14 @@ void Stereo::Replay::EngineDLL::StereoD3D7CallExecutor::on_object_registered(con
     (void) in_live_object_ptr;
 
     /* Asked when the object is made, which is when the copy is: it is made by the call being made again, for the right eye. */
-    if (m_per_eye_predicate                    &&
-        m_per_eye_predicate(in_dumped_value) )
+    if (m_per_eye_predicate)
     {
-        m_needs_twin = true;
+        const bool is_per_eye = m_per_eye_predicate(in_dumped_value);
+
+        if (is_per_eye)
+        {
+            m_needs_twin = true;
+        }
     }
 }
 
@@ -134,10 +156,18 @@ void Stereo::Replay::EngineDLL::StereoD3D7CallExecutor::set_eye(const Analysis::
      */
     const bool is_changing = (m_eye != in_eye);
 
+    bool has_device = false;
+
     m_eye = in_eye;
 
-    if (is_changing                &&
-        get_device_ptr() != nullptr)
+    if (is_changing)
+    {
+        const auto device_ptr = get_device_ptr();
+
+        has_device = (device_ptr != nullptr);
+    }
+
+    if (has_device)
     {
         void* const render_target_ptr = get_render_target_ptr();
 

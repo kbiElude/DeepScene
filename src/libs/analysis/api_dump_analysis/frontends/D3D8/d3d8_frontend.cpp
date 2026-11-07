@@ -362,8 +362,10 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_device(co
 
     if (has_succeeded)
     {
-        if (in_view.get_out_pointer(DEVICE_ARGUMENT) != 0 &&
-            chunk_ptr                                != nullptr)
+        const uint64_t device_pointer = in_view.get_out_pointer(DEVICE_ARGUMENT);
+
+        if (device_pointer != 0       &&
+            chunk_ptr      != nullptr)
         {
             is_ok = Interception::Core::D3D8Utils::parse_present_parameters(chunk_ptr->data(),
                                                                             chunk_ptr->size(),

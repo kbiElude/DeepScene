@@ -222,10 +222,13 @@ bool Headset::XR::HeadsetSession::Impl::create_instance(std::string* out_error_p
 
     for (const auto& extension : extension_vec)
     {
-        has_d3d12             = has_d3d12             || (::strcmp(extension.extensionName,
-                                                                   XR_KHR_D3D12_ENABLE_EXTENSION_NAME)               == 0);
-        is_cylinder_supported = is_cylinder_supported || (::strcmp(extension.extensionName,
-                                                                   XR_KHR_COMPOSITION_LAYER_CYLINDER_EXTENSION_NAME) == 0);
+        const int cylinder_difference = ::strcmp(extension.extensionName,
+                                                 XR_KHR_COMPOSITION_LAYER_CYLINDER_EXTENSION_NAME);
+        const int d3d12_difference    = ::strcmp(extension.extensionName,
+                                                 XR_KHR_D3D12_ENABLE_EXTENSION_NAME);
+
+        has_d3d12             = (has_d3d12             || d3d12_difference    == 0);
+        is_cylinder_supported = (is_cylinder_supported || cylinder_difference == 0);
     }
 
     if (has_d3d12 == false)
@@ -450,12 +453,14 @@ bool Headset::XR::HeadsetSession::Impl::read_recommended_eye_size(uint32_t* out_
     bool                    result        = false;
     XrViewConfigurationView view_array[2] = {{XR_TYPE_VIEW_CONFIGURATION_VIEW}, {XR_TYPE_VIEW_CONFIGURATION_VIEW}};
 
-    if (XR_SUCCEEDED(::xrEnumerateViewConfigurationViews(instance,
-                                                         system_id,
-                                                         XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
-                                                         2,
-                                                        &n_views,
-                                                         view_array) ) &&
+    const XrResult enumerate_result = ::xrEnumerateViewConfigurationViews(instance,
+                                                                          system_id,
+                                                                          XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
+                                                                          2,
+                                                                         &n_views,
+                                                                          view_array);
+
+    if (XR_SUCCEEDED(enumerate_result) &&
         n_views > 0)
     {
         *out_height_ptr = view_array[0].recommendedImageRectHeight;

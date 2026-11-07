@@ -87,13 +87,17 @@ bool Analysis::RecipeBake::RecipeBaker::bake(const std::string&                 
     }
 
     /* What the dependencies say must be of the workload that the analysis is of. */
-    if (in_dependencies_ptr != nullptr                                                                                        &&
-        Analysis::APIDumpAnalysis::WorkloadIdentity::is_same_workload(in_analysis.workload_reference,
-                                                                      in_dependencies_ptr->workload_reference) == false)
+    if (in_dependencies_ptr != nullptr)
     {
-        *out_error_ptr = "The dependencies (the .deps file) are not of the workload that the analysis (the .passes file) is of";
+        const bool is_of_workload = Analysis::APIDumpAnalysis::WorkloadIdentity::is_same_workload(in_analysis.workload_reference,
+                                                                                                  in_dependencies_ptr->workload_reference);
 
-        goto end;
+        if (is_of_workload == false)
+        {
+            *out_error_ptr = "The dependencies (the .deps file) are not of the workload that the analysis (the .passes file) is of";
+
+            goto end;
+        }
     }
 
     if (compute_draw_rules(recipe,
@@ -364,9 +368,16 @@ void Analysis::RecipeBake::RecipeBaker::compute_convergence(const Analysis::Reci
     for (const auto& signature_pair : group_of_signature_map)
     {
         const auto histogram_iterator = group_histogram_map.find(signature_pair.second);
+        bool       has_depth          = false;
 
-        if (histogram_iterator != group_histogram_map.end() &&
-            histogram_iterator->second.is_empty() == false)
+        if (histogram_iterator != group_histogram_map.end() )
+        {
+            const bool is_histogram_empty = histogram_iterator->second.is_empty();
+
+            has_depth = (is_histogram_empty == false);
+        }
+
+        if (has_depth)
         {
             Analysis::Recipe::DrawConvergence convergence;
 
@@ -510,9 +521,14 @@ void Analysis::RecipeBake::RecipeBaker::compute_scene_convergence(const Analysis
 
             for (const auto& draw_signature : structure.draw_signature_vec)
             {
-                is_affected = is_affected || (get_draw_class(applier,
-                                                             structure.key,
-                                                             draw_signature.structure_key) == Analysis::Recipe::DrawClass::AFFECTED);
+                if (is_affected == false)
+                {
+                    const auto draw_class = get_draw_class(applier,
+                                                           structure.key,
+                                                           draw_signature.structure_key);
+
+                    is_affected = (draw_class == Analysis::Recipe::DrawClass::AFFECTED);
+                }
             }
 
             if (is_affected                                                  &&

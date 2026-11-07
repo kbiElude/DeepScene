@@ -275,12 +275,22 @@ bool Utils::Files::ZipExtractor::is_name_safe(const std::string& in_name)
                  '\\',
                  '/');
 
-    if (name_with_forward_slashes.empty()                          ||
-        name_with_forward_slashes.at   (0)    == '/'               ||
-        name_with_forward_slashes.find (':')  != std::string::npos ||
-        name_with_forward_slashes.find ('\0') != std::string::npos)
+    if (name_with_forward_slashes.empty() )
     {
         goto end;
+    }
+
+    {
+        const char   first_character = name_with_forward_slashes.at(0);
+        const size_t colon_position  = name_with_forward_slashes.find(':');
+        const size_t null_position   = name_with_forward_slashes.find('\0');
+
+        if (first_character == '/'               ||
+            colon_position  != std::string::npos ||
+            null_position   != std::string::npos)
+        {
+            goto end;
+        }
     }
 
     /* Each part of the name: not empty (but for the end of a directory), not "." or "..", not a device, and not ending with a dot or a space,
@@ -357,11 +367,12 @@ size_t Utils::Files::ZipExtractor::write(void*       in_context_ptr,
                                          size_t      in_n_bytes)
 {
     WriteContext* context_ptr             = static_cast<WriteContext*>(in_context_ptr);
+    const bool    is_cancelled            = context_ptr->is_cancelled_ptr->load();
     DWORD         n_bytes_written_by_call = 0;
     size_t        result                  = 0;
 
     /* An entry is not written beyond its size, and not at all once it is cancelled; the caller sees the difference. */
-    if (context_ptr->is_cancelled_ptr->load()                                      ||
+    if (is_cancelled                                                               ||
         context_ptr->n_bytes_written + in_n_bytes >  context_ptr->n_bytes_declared ||
         in_offset                                 != context_ptr->n_bytes_written)
     {

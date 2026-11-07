@@ -27,9 +27,18 @@ Capture::APIDumpLoader::ChunkWantedFunc Stereo::Replay::EngineDLL::SliceSkipper:
         result = [slice_ptr](const Capture::APIDumpLoader::DumpedAPICall& in_call,
                              const uint64_t&                              in_frame_index)
                  {
-                     return (Analysis::APIDumpDependencies::FrameSlicePlanner::is_live(*slice_ptr,
-                                                                                       in_frame_index) ||
-                             is_content_call(in_call.func)                                              == false);
+                     const bool is_slice_live = Analysis::APIDumpDependencies::FrameSlicePlanner::is_live(*slice_ptr,
+                                                                                                          in_frame_index);
+                     bool       is_wanted     = true;
+
+                     if (is_slice_live == false)
+                     {
+                         const bool is_content = is_content_call(in_call.func);
+
+                         is_wanted = (is_content == false);
+                     }
+
+                     return is_wanted;
                  };
     }
 
@@ -89,9 +98,17 @@ bool Stereo::Replay::EngineDLL::SliceSkipper::is_dead_frame(const uint32_t& in_n
 {
     const Analysis::APIDumpDependencies::FrameSlice* const slice_ptr = m_slice_ptr;
 
-    return (slice_ptr != nullptr &&
-            Analysis::APIDumpDependencies::FrameSlicePlanner::is_live(*slice_ptr,
-                                                                      in_n_frame) == false);
+    bool result = false;
+
+    if (slice_ptr != nullptr)
+    {
+        const bool is_slice_live = Analysis::APIDumpDependencies::FrameSlicePlanner::is_live(*slice_ptr,
+                                                                                             in_n_frame);
+
+        result = (is_slice_live == false);
+    }
+
+    return result;
 }
 
 void Stereo::Replay::EngineDLL::SliceSkipper::on_call_replayed(const Capture::APIDumpLoader::DumpedAPICall& in_call,
@@ -117,8 +134,20 @@ bool Stereo::Replay::EngineDLL::SliceSkipper::should_execute_call(const Capture:
 {
     const Analysis::APIDumpDependencies::FrameSlice* const slice_ptr = m_slice_ptr;
 
-    return (slice_ptr == nullptr                                                                 ||
-            Analysis::APIDumpDependencies::FrameSlicePlanner::is_live(*slice_ptr,
-                                                                      in_n_frame)                ||
-            is_content_call(in_call.func)                                                        == false);
+    bool result = true;
+
+    if (slice_ptr != nullptr)
+    {
+        const bool is_slice_live = Analysis::APIDumpDependencies::FrameSlicePlanner::is_live(*slice_ptr,
+                                                                                             in_n_frame);
+
+        if (is_slice_live == false)
+        {
+            const bool is_content = is_content_call(in_call.func);
+
+            result = (is_content == false);
+        }
+    }
+
+    return result;
 }

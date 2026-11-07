@@ -26,15 +26,17 @@ bool Utils::Images::ImageComposer::make_anaglyph(const Image& in_left_image,
 {
     constexpr size_t RED_CHANNEL = 2; /* the channels are B, G, R, A */
 
-    size_t n_pixels = 0;
-    bool   result   = false;
+    const bool is_left_usable  = is_usable(in_left_image);
+    const bool is_right_usable = is_usable(in_right_image);
+    size_t     n_pixels        = 0;
+    bool       result          = false;
 
     *out_image_ptr = Image();
 
-    if (is_usable(in_left_image)  == false                ||
-        is_usable(in_right_image) == false                ||
-        in_left_image.width       != in_right_image.width ||
-        in_left_image.height      != in_right_image.height)
+    if (is_left_usable       == false                ||
+        is_right_usable      == false                ||
+        in_left_image.width  != in_right_image.width ||
+        in_left_image.height != in_right_image.height)
     {
         goto end;
     }

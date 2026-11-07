@@ -70,13 +70,17 @@ bool Analysis::APIDumpAnalysis::WorkloadIdentity::is_same_workload(const Workloa
                 in_hash_a == in_hash_b);
     };
 
-    return (in_a.n_bytes                         == in_b.n_bytes &&
-            is_hash_alike_func(in_a.header_hash,
-                               in_b.header_hash)                 &&
-            is_hash_alike_func(in_a.middle_hash,
-                               in_b.middle_hash)                 &&
-            is_hash_alike_func(in_a.tail_hash,
-                               in_b.tail_hash) );
+    const bool is_header_alike = is_hash_alike_func(in_a.header_hash,
+                                                    in_b.header_hash);
+    const bool is_middle_alike = is_hash_alike_func(in_a.middle_hash,
+                                                    in_b.middle_hash);
+    const bool is_tail_alike   = is_hash_alike_func(in_a.tail_hash,
+                                                    in_b.tail_hash);
+
+    return (in_a.n_bytes == in_b.n_bytes &&
+            is_header_alike              &&
+            is_middle_alike              &&
+            is_tail_alike);
 }
 
 bool Analysis::APIDumpAnalysis::WorkloadIdentity::read(const std::string& in_filename,

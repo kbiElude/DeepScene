@@ -727,11 +727,23 @@ Utils::UIHost::WindowOptions VRPlayer::VrPlayerWindow::get_window_options()
 
 bool VRPlayer::VrPlayerWindow::is_launch_possible() const
 {
+    bool result = false;
+
     /* A device is not needed: with none, the picture is shown in the window. */
-    return (m_selected_app >= 0                                                                                          &&
-            m_installing_app < 0                                                                                         &&
-            m_session.get_state() != SessionState::RUNNING                                                               &&
-            m_content.catalog.app_vec.at(static_cast<size_t>(m_selected_app) ).unavailable_reason.empty() );
+    if (m_selected_app   >= 0 &&
+        m_installing_app <  0)
+    {
+        const SessionState state = m_session.get_state();
+
+        if (state != SessionState::RUNNING)
+        {
+            const auto& selected_app = m_content.catalog.app_vec.at(static_cast<size_t>(m_selected_app) );
+
+            result = selected_app.unavailable_reason.empty();
+        }
+    }
+
+    return result;
 }
 
 void VRPlayer::VrPlayerWindow::launch()
@@ -940,11 +952,15 @@ void VRPlayer::VrPlayerWindow::update_session()
     m_session.set_depth_strength(m_depth_strength);
     m_session.set_is_overlay_pushed(m_push_overlay && m_overlay_app >= 0 && m_overlay_app == m_selected_app);
 
-    if (previous_state == SessionState::RUNNING &&
-        m_session.get_state() != previous_state)
+    if (previous_state == SessionState::RUNNING)
     {
-        m_is_status_error = (m_session.get_state() == SessionState::FAILED);
-        m_status          = (m_is_status_error) ? m_session.get_message()
-                                                : m_running_app_name + " has ended.";
+        const SessionState current_state = m_session.get_state();
+
+        if (current_state != previous_state)
+        {
+            m_is_status_error = (current_state == SessionState::FAILED);
+            m_status          = (m_is_status_error) ? m_session.get_message()
+                                                    : m_running_app_name + " has ended.";
+        }
     }
 }

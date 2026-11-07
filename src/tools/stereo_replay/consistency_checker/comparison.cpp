@@ -298,16 +298,24 @@ void Stereo::Replay::ConsistencyChecker::write_difference(const std::string&    
             difference.bounding_box_max_y,
             static_cast<uint32_t>(difference.max_channel_difference) );
 
-    if (Utils::Images::ImageComparer::make_difference_image(in_image_as_it_is,
-                                                            in_image_of_execution,
-                                                            &difference_image) &&
-        Utils::Images::PngWriter::write_file(in_path,
-                                             difference_image) )
     {
-        fprintf(stdout,
-                "  %s: the pixels that differ are red in %s\n",
-                in_label.c_str(),
-                in_path.c_str() );
+        const bool is_difference_made = Utils::Images::ImageComparer::make_difference_image(in_image_as_it_is,
+                                                                                            in_image_of_execution,
+                                                                                           &difference_image);
+
+        if (is_difference_made)
+        {
+            const bool is_written = Utils::Images::PngWriter::write_file(in_path,
+                                                                         difference_image);
+
+            if (is_written)
+            {
+                fprintf(stdout,
+                        "  %s: the pixels that differ are red in %s\n",
+                        in_label.c_str(),
+                        in_path.c_str() );
+            }
+        }
     }
 
 end:

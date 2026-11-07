@@ -474,8 +474,13 @@ bool Analysis::Recipe::RecipeLoader::parse_hex_key(const Utils::Json::JsonValue&
     {
         const std::string& text = in_value.string_value;
 
-        if (text.size   ()           != 2 + N_HEX_DIGITS ||
-            text.compare(0, 2, "0x") != 0)
+        const size_t n_text_characters = text.size();
+        const int    prefix_difference = text.compare(0,
+                                                      2,
+                                                      "0x");
+
+        if (n_text_characters != 2 + N_HEX_DIGITS ||
+            prefix_difference != 0)
         {
             *out_error_ptr = in_path                                                   +
                              ": expected a key such as \"0x0123456789abcdef\", not \"" +

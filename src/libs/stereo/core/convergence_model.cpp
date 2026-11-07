@@ -122,8 +122,9 @@ float Stereo::Core::ConvergenceModel::get_ipd_scale() const
 
 bool Stereo::Core::ConvergenceModel::set_convergence_distance(const float& in_convergence_distance)
 {
-    const bool result = (::isfinite(in_convergence_distance)         &&
-                         in_convergence_distance             >= 0.0f);
+    const bool is_finite = ::isfinite(in_convergence_distance);
+    const bool result    = (is_finite                         &&
+                            in_convergence_distance >= 0.0f);
 
     if (result)
     {
@@ -135,8 +136,9 @@ bool Stereo::Core::ConvergenceModel::set_convergence_distance(const float& in_co
 
 bool Stereo::Core::ConvergenceModel::set_depth_strength(const float& in_depth_strength)
 {
-    const bool result = (::isfinite(in_depth_strength)          &&
-                         in_depth_strength             >= 0.0f);
+    const bool is_finite = ::isfinite(in_depth_strength);
+    const bool result    = (is_finite                  &&
+                            in_depth_strength >= 0.0f);
 
     if (result)
     {
@@ -153,8 +155,9 @@ void Stereo::Core::ConvergenceModel::set_draw_convergence_distance(const float& 
 
 bool Stereo::Core::ConvergenceModel::set_eye_separation(const float& in_eye_separation)
 {
-    const bool result = (::isfinite(in_eye_separation)          &&
-                         in_eye_separation             >= 0.0f);
+    const bool is_finite = ::isfinite(in_eye_separation);
+    const bool result    = (is_finite                  &&
+                            in_eye_separation >= 0.0f);
 
     if (result)
     {
@@ -166,8 +169,9 @@ bool Stereo::Core::ConvergenceModel::set_eye_separation(const float& in_eye_sepa
 
 bool Stereo::Core::ConvergenceModel::set_ipd_scale(const float& in_ipd_scale)
 {
-    const bool result = (::isfinite(in_ipd_scale)          &&
-                         in_ipd_scale             >  0.0f);
+    const bool is_finite = ::isfinite(in_ipd_scale);
+    const bool result    = (is_finite          &&
+                            in_ipd_scale > 0.0f);
 
     if (result)
     {

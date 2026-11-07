@@ -90,8 +90,13 @@ bool Utils::Images::PngWriter::write_file(const std::string& in_path,
                            file_u8_vec.size(),
                            1,
                            file_handle) == 1);
-    result     = (::fclose(file_handle) == 0 &&
+
+    {
+        const int close_result = ::fclose(file_handle);
+
+        result = (close_result == 0 &&
                   is_written);
+    }
 
 end:
     return result;

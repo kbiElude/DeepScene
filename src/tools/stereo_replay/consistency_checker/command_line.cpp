@@ -269,15 +269,27 @@ bool Stereo::Replay::ConsistencyChecker::CommandLine::parse(const std::vector<st
             const std::string& count_text = in_argument_vec.at(n_argument + 2);
             const std::string& index_text = in_argument_vec.at(n_argument + 1);
 
-            if (parse_unsigned(index_text,
-                               0,
-                               MAXIMUM_WAIT_OBJECTS,
-                               &out_options_ptr->overlay_probe_shard_index) == false ||
-                parse_unsigned(count_text,
-                               0,
-                               MAXIMUM_WAIT_OBJECTS,
-                               &out_options_ptr->overlay_probe_shard_count) == false ||
-                out_options_ptr->overlay_probe_shard_index >= out_options_ptr->overlay_probe_shard_count)
+            bool is_shard_valid = false;
+
+            const bool has_index = parse_unsigned(index_text,
+                                                  0,
+                                                  MAXIMUM_WAIT_OBJECTS,
+                                                  &out_options_ptr->overlay_probe_shard_index);
+
+            if (has_index)
+            {
+                const bool has_count = parse_unsigned(count_text,
+                                                      0,
+                                                      MAXIMUM_WAIT_OBJECTS,
+                                                      &out_options_ptr->overlay_probe_shard_count);
+
+                if (has_count)
+                {
+                    is_shard_valid = (out_options_ptr->overlay_probe_shard_index < out_options_ptr->overlay_probe_shard_count);
+                }
+            }
+
+            if (is_shard_valid == false)
             {
                 *out_error_ptr = argument + " needs the number of the part, and the number of the parts (which is higher)";
 

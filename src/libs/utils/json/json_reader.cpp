@@ -214,8 +214,17 @@ bool Utils::Json::JsonReader::parse_number(JsonValue* out_value_ptr)
 
     const auto is_digit_func = [&]()
     {
-        return (m_position < m_text.size() &&
-                ::isdigit(static_cast<unsigned char>(m_text.at(m_position) )) != 0);
+        bool result = false;
+
+        if (m_position < m_text.size() )
+        {
+            const unsigned char character = static_cast<unsigned char>(m_text.at(m_position) );
+            const int           is_digit  = ::isdigit(character);
+
+            result = (is_digit != 0);
+        }
+
+        return result;
     };
 
     const size_t start  = m_position;

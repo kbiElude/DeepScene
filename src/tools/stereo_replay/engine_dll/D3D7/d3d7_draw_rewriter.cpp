@@ -33,13 +33,24 @@ bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::find_extent(const Capture::API
         goto end;
     }
 
-    if (in_call.arg_in_vec.size() <= N_INDICES_ARGUMENT                            ||
-        read_number(in_call.arg_in_vec.at(FVF_ARGUMENT),
-                   &fvf)                                                == false   ||
-        read_number(in_call.arg_in_vec.at(N_VERTICES_ARGUMENT),
-                   &n_vertices)                                         == false)
+    if (in_call.arg_in_vec.size() <= N_INDICES_ARGUMENT)
     {
         goto end;
+    }
+
+    {
+        const auto& fvf_argument        = in_call.arg_in_vec.at(FVF_ARGUMENT);
+        const auto& n_vertices_argument = in_call.arg_in_vec.at(N_VERTICES_ARGUMENT);
+        const bool  has_fvf             = read_number(fvf_argument,
+                                                     &fvf);
+        const bool  has_n_vertices      = read_number(n_vertices_argument,
+                                                     &n_vertices);
+
+        if (has_fvf        == false ||
+            has_n_vertices == false)
+        {
+            goto end;
+        }
     }
 
     if ((fvf & Interception::Core::D3D7Utils::D3DFVF_POSITION_MASK) != Interception::Core::D3D7Utils::D3DFVF_XYZRHW)
@@ -198,13 +209,24 @@ bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::rewrite_vertices(const Capture
         goto end;
     }
 
-    if (in_call.arg_in_vec.size() <= N_VERTICES_ARGUMENT                           ||
-        read_number(in_call.arg_in_vec.at(FVF_ARGUMENT),
-                   &fvf)                                                == false   ||
-        read_number(in_call.arg_in_vec.at(N_VERTICES_ARGUMENT),
-                   &value)                                              == false)
+    if (in_call.arg_in_vec.size() <= N_VERTICES_ARGUMENT)
     {
         goto end;
+    }
+
+    {
+        const auto& fvf_argument        = in_call.arg_in_vec.at(FVF_ARGUMENT);
+        const auto& n_vertices_argument = in_call.arg_in_vec.at(N_VERTICES_ARGUMENT);
+        const bool  has_fvf             = read_number(fvf_argument,
+                                                     &fvf);
+        const bool  has_n_vertices      = read_number(n_vertices_argument,
+                                                     &value);
+
+        if (has_fvf        == false ||
+            has_n_vertices == false)
+        {
+            goto end;
+        }
     }
 
     /* Vertices which a matrix moves are the matrix's. */

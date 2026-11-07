@@ -85,7 +85,7 @@ std::unique_ptr<Stereo::Presenter::HeadsetSink> Stereo::Presenter::HeadsetSink::
     }
 
     uploader_ptr.reset(new Headset::D3D12::D3D12FrameUploader(session_ptr->get_device_ptr(),
-                                                             session_ptr->get_queue_ptr() ));
+                                                              session_ptr->get_queue_ptr () ));
 
     if (uploader_ptr->is_ok(out_error_ptr) == false)
     {
@@ -213,7 +213,8 @@ void Stereo::Presenter::HeadsetSink::run_uploads()
 
         if (m_importer_ptr->acquire(&frame) )
         {
-            is_new = (m_has_frame == false || frame.info.frame_index != m_last_frame_index);
+            is_new = (m_has_frame            == false               ||
+                      frame.info.frame_index != m_last_frame_index);
 
             if (is_new)
             {
@@ -235,16 +236,16 @@ void Stereo::Presenter::HeadsetSink::run_uploads()
 void Stereo::Presenter::HeadsetSink::tune_pace(const double& in_released_n_milliseconds)
 {
     /* How much of the way to the aim is gone in a frame: the images of one frame are what the next is judged by, so not all. */
-    constexpr double GAIN       = 0.1;
-    constexpr double TARGET     = 0.3; /* of a frame: the images are ready this far into it, which leaves the rest for a copy that is late */
+    constexpr double GAIN                         = 0.1;
+    constexpr double TARGET                       = 0.3; /* of a frame: the images are ready this far into it, which leaves the rest for a copy that is late */
     constexpr double MICROSECONDS_PER_MILLISECOND = 1000.0;
 
     const double period = m_frame_period;
     const double start  = m_frame_start;
 
-    if (m_is_pacing &&
-        period > 0.0 &&
-        start  > 0.0)
+    if (m_is_pacing       &&
+        period      > 0.0 &&
+        start       > 0.0)
     {
         const double phase = ::fmod(in_released_n_milliseconds - start,
                                     period);
@@ -306,8 +307,11 @@ void Stereo::Presenter::HeadsetSink::upload_frame(const Stereo::Transport::Impor
                                            &error) == false)
     {
         /* Not running yet is not worth saying; what the headset cannot show is. */
-        if (error.find("not running")   == std::string::npos &&
-            error.find("has not given") == std::string::npos)
+        const size_t has_not_given_position = error.find("has not given");
+        const size_t not_running_position   = error.find("not running");
+
+        if (has_not_given_position == std::string::npos &&
+            not_running_position   == std::string::npos)
         {
             log_once(error);
         }
@@ -345,18 +349,18 @@ void Stereo::Presenter::HeadsetSink::upload_frame(const Stereo::Transport::Impor
                                                     start_ms,
                                                     REPORT_PERIOD_N_MILLISECONDS) )
     {
-        m_log_func("Frames to the headset (ms): "                          +
-                   m_timing.arrival.take_text     ("arrivals")             +
-                   "; "                                                    +
+        m_log_func("Frames to the headset (ms): "                                 +
+                   m_timing.arrival.take_text     ("arrivals")                    +
+                   "; "                                                           +
                    m_timing.phase.take_text       ("images ready into the frame") +
-                   ", pace delay "                                         +
-                   std::to_string(m_pace_delay)                            +
-                   ", the eyes of the person are "                         +
-                   std::to_string(m_session_ptr->get_ipd() * 1000.0f)      +
-                   " mm apart"                                              +
-                   "; "                                                    +
-                   m_timing.acquire_cost.take_text("taking the images")    +
-                   "; "                                                    +
+                   ", pace delay "                                                +
+                   std::to_string(m_pace_delay)                                   +
+                   ", the eyes of the person are "                                +
+                   std::to_string(m_session_ptr->get_ipd() * 1000.0f)             +
+                   " mm apart"                                                    +
+                   "; "                                                           +
+                   m_timing.acquire_cost.take_text("taking the images")           +
+                   "; "                                                           +
                    m_timing.upload_cost.take_text ("copy to the images") );
     }
 

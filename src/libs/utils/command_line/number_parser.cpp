@@ -9,14 +9,15 @@
 bool Utils::CommandLine::NumberParser::parse_double(const std::string& in_text,
                                                     double*            out_value_ptr)
 {
-    char*  end_ptr   = nullptr;
-    bool   is_finite = false;
-    bool   result    = false;
-    double value     = 0.0;
+    char*        end_ptr          = nullptr;
+    const size_t invalid_position = in_text.find_first_not_of("0123456789.");
+    bool         is_finite        = false;
+    bool         result           = false;
+    double       value            = 0.0;
 
     /* strtod skips space and takes a sign, a hexadecimal number, "inf" and "nan": none of them is a plain number. */
-    if (in_text.empty            ()                                    ||
-        in_text.find_first_not_of("0123456789.") != std::string::npos)
+    if (in_text.empty() ||
+        invalid_position != std::string::npos)
     {
         goto end;
     }

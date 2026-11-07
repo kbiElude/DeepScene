@@ -148,9 +148,12 @@ bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_dependencies(con
         inout_analysis_ptr->result.resource_vec.push_back(dependencies);
     }
 
-    return (is_ok                        &&
-            reader.has_failed() == false &&
-            reader.is_at_end () );
+    const bool has_failed = reader.has_failed();
+    const bool is_at_end  = reader.is_at_end();
+
+    return (is_ok               &&
+            has_failed == false &&
+            is_at_end);
 }
 
 bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_frames(const std::vector<uint8_t>& in_byte_vec,
@@ -185,9 +188,12 @@ bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_frames(const std
         inout_analysis_ptr->frame_call_range_vec.push_back(range);
     }
 
-    return (is_ok                        &&
-            reader.has_failed() == false &&
-            reader.is_at_end () );
+    const bool has_failed = reader.has_failed();
+    const bool is_at_end  = reader.is_at_end();
+
+    return (is_ok               &&
+            has_failed == false &&
+            is_at_end);
 }
 
 bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_meta(const std::vector<uint8_t>& in_byte_vec,
@@ -222,8 +228,11 @@ bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_meta(const std::
         out_analysis_ptr->n_calls_by_api_map[name] = reader.read_u64();
     }
 
-    return (reader.has_failed() == false &&
-            reader.is_at_end() );
+    const bool has_failed = reader.has_failed();
+    const bool is_at_end  = reader.is_at_end();
+
+    return (has_failed == false &&
+            is_at_end);
 }
 
 bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_resources(const std::vector<uint8_t>& in_byte_vec,

@@ -78,19 +78,26 @@ bool Analysis::Recipe::RecipeLoader::parse_action(const Utils::Json::JsonValue& 
                                     : (type_ptr->string_value == "multiply")        ? ActionKind::MULTIPLY
                                                                                     : ActionKind::REPLACE;
 
-        if (inout_rule_ptr->action_kind != ActionKind::EYE_OFFSET &&
-            in_action.find_ptr("axis")  != nullptr)
+        if (inout_rule_ptr->action_kind != ActionKind::EYE_OFFSET)
         {
-            *out_error_ptr = in_path + ".axis: only eye_offset has an axis";
+            const auto* stray_axis_ptr = in_action.find_ptr("axis");
 
-            goto end;
+            if (stray_axis_ptr != nullptr)
+            {
+                *out_error_ptr = in_path + ".axis: only eye_offset has an axis";
+
+                goto end;
+            }
         }
 
         if (inout_rule_ptr->action_kind == ActionKind::EYE_CONVERGENCE)
         {
-            if (order_ptr                   != nullptr ||
-                in_action.find_ptr("left")  != nullptr ||
-                in_action.find_ptr("right") != nullptr)
+            const auto* left_ptr  = in_action.find_ptr("left");
+            const auto* right_ptr = in_action.find_ptr("right");
+
+            if (order_ptr != nullptr ||
+                left_ptr  != nullptr ||
+                right_ptr != nullptr)
             {
                 *out_error_ptr = in_path + ": eye_convergence takes no order or matrices (order, left, right)";
 
@@ -156,8 +163,11 @@ bool Analysis::Recipe::RecipeLoader::parse_action(const Utils::Json::JsonValue& 
                                         : (axis_ptr->string_value == "y") ? Axis::Y
                                                                           : Axis::Z;
 
-            if (in_action.find_ptr("left")  != nullptr ||
-                in_action.find_ptr("right") != nullptr)
+            const auto* left_ptr  = in_action.find_ptr("left");
+            const auto* right_ptr = in_action.find_ptr("right");
+
+            if (left_ptr  != nullptr ||
+                right_ptr != nullptr)
             {
                 *out_error_ptr = in_path + ": eye_offset takes no matrices (left, right)";
 

@@ -68,10 +68,15 @@ namespace Stereo
 
                 bool read_next_call(const Capture::APIDumpLoader::DumpedAPICall** out_call_ptr_ptr) override
                 {
-                    const bool result = m_host_ptr->read_next_call(out_call_ptr_ptr);
+                    const bool result      = m_host_ptr->read_next_call(out_call_ptr_ptr);
+                    bool       is_boundary = false;
 
-                    if (result                                                          &&
-                        Capture::APIDumpLoader::is_frame_boundary(**out_call_ptr_ptr) )
+                    if (result)
+                    {
+                        is_boundary = Capture::APIDumpLoader::is_frame_boundary(**out_call_ptr_ptr);
+                    }
+
+                    if (is_boundary)
                     {
                         if (m_hurry_ptr->is_hurrying(m_host_ptr->get_n_frames_presented() ) )
                         {

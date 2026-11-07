@@ -3,9 +3,9 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_analysis/frontends/D3D7/d3d7_geometry_tracker.h"
+#include "analysis/api_dump_analysis/frontends/shared/position_checker.h"
 #include <algorithm>
 #include <array>
-#include <math.h>
 #include <string.h>
 
 void Analysis::APIDumpAnalysis::Frontends::D3D7GeometryTracker::forget(const Analysis::APIDumpAnalysis::ResourceId& in_id)
@@ -125,9 +125,9 @@ std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDu
                     position[2] = read_floats[RECIPROCAL_DEPTH_FLOAT];
                 }
 
-                if (::isfinite(position[0]) &&
-                    ::isfinite(position[1]) &&
-                    ::isfinite(position[2]) )
+                const bool is_position_finite = PositionChecker::is_finite(position);
+
+                if (is_position_finite)
                 {
                     sample_ptr->position_vec.push_back(position);
                 }

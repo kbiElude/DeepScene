@@ -195,17 +195,28 @@ bool Analysis::APIDumpSlicing::HeadSlicer::slice(const std::string&  in_workload
         goto end;
     }
 
-    if (::fread(&header,
-                sizeof(header),
-                1,
-                input_handle)                  != 1    ||
-        ::memcmp(header.magic_i8vec8,
-                 APIInterceptor::WorkloadFormat::MAGIC,
-                 sizeof(header.magic_i8vec8) ) != 0)
     {
-        *out_error_ptr = "The file " + in_workload_filename + " is not a workload of a version that can be sliced.";
+        const size_t n_headers_read  = ::fread(&header,
+                                               sizeof(header),
+                                               1,
+                                               input_handle);
+        bool         is_header_valid = (n_headers_read == 1);
 
-        goto end;
+        if (is_header_valid)
+        {
+            const int magic_difference = ::memcmp(header.magic_i8vec8,
+                                                  APIInterceptor::WorkloadFormat::MAGIC,
+                                                  sizeof(header.magic_i8vec8) );
+
+            is_header_valid = (magic_difference == 0);
+        }
+
+        if (is_header_valid == false)
+        {
+            *out_error_ptr = "The file " + in_workload_filename + " is not a workload of a version that can be sliced.";
+
+            goto end;
+        }
     }
 
     writer_ptr = WorkloadWriter::create(in_slice_filename.c_str(),
@@ -232,15 +243,30 @@ bool Analysis::APIDumpSlicing::HeadSlicer::slice(const std::string&  in_workload
             const auto&          entry = index.get_segment_vec().at(n_segment);
             std::vector<uint8_t> segment_u8_vec(static_cast<size_t>(entry.n_compressed_bytes));
 
-            if (::_fseeki64(input_handle,
-                            static_cast<long long>(entry.file_offset_n_bytes),
-                            SEEK_SET) != 0                                              ||
-                ::fread    (segment_u8_vec.data(),
-                            segment_u8_vec.size(),
-                            1,
-                            input_handle) != 1                                          ||
-                writer_ptr->write_compressed_segment(segment_u8_vec.data(),
-                                                     segment_u8_vec.size() ) == false)
+            const size_t   n_segment_bytes = segment_u8_vec.size();
+            uint8_t* const segment_ptr     = segment_u8_vec.data();
+            const int      seek_result     = ::_fseeki64(input_handle,
+                                                         static_cast<long long>(entry.file_offset_n_bytes),
+                                                         SEEK_SET);
+            bool           is_copied       = (seek_result == 0);
+
+            if (is_copied)
+            {
+                const size_t n_segments_read = ::fread(segment_ptr,
+                                                       n_segment_bytes,
+                                                       1,
+                                                       input_handle);
+
+                is_copied = (n_segments_read == 1);
+            }
+
+            if (is_copied)
+            {
+                is_copied = writer_ptr->write_compressed_segment(segment_ptr,
+                                                                 n_segment_bytes);
+            }
+
+            if (is_copied == false)
             {
                 *out_error_ptr = "Segment " + std::to_string(n_segment) + " cannot be copied.";
 

@@ -140,8 +140,11 @@ std::vector<Analysis::APIDumpDependencies::RotationGroup> Analysis::APIDumpDepen
     {
         const auto& resource = in_analysis.resource_vec.at(n_resource);
 
-        if (is_rendered_to_by_frames(resource)                                                              &&
-            in_analysis.result.resource_vec.at(n_resource).summary.n_frames_written >= N_MIN_WRITING_FRAMES)
+        const bool is_rendered_to   = is_rendered_to_by_frames(resource);
+        const auto n_frames_written = in_analysis.result.resource_vec.at(n_resource).summary.n_frames_written;
+
+        if (is_rendered_to                          &&
+            n_frames_written >= N_MIN_WRITING_FRAMES)
         {
             member_vec_by_key_map[resource.match_key].push_back(n_resource);
         }

@@ -193,10 +193,17 @@ void Analysis::APIDumpDependencies::DependencyAnalyzer::analyze_resource(const A
                 use.is_written = true;
                 call_has_write = true;
 
-                if (event.mode                                     == Analysis::APIDumpAnalysis::AccessMode::WRITE    &&
-                    event.coverage                                 == Analysis::APIDumpAnalysis::AccessCoverage::FULL &&
-                    covers_whole_resource(event.subresource_range,
-                                          in_description) )
+                const bool is_full_write             = (event.mode     == Analysis::APIDumpAnalysis::AccessMode::WRITE &&
+                                                        event.coverage == Analysis::APIDumpAnalysis::AccessCoverage::FULL);
+                bool       is_whole_resource_written = false;
+
+                if (is_full_write)
+                {
+                    is_whole_resource_written = covers_whole_resource(event.subresource_range,
+                                                                      in_description);
+                }
+
+                if (is_whole_resource_written)
                 {
                     is_replaced          = true;
                     use.is_fully_written = true;

@@ -6,11 +6,18 @@
 #include <math.h>
 
 Stereo::Core::ResolutionPolicy::ResolutionPolicy(const float& in_scale)
-    :m_scale((::isfinite(in_scale) == false          || in_scale < get_min_scale() ) ? get_min_scale()
-            : (in_scale            > get_max_scale() )                               ? get_max_scale()
-                                                                                     : in_scale)
+    :m_scale(get_min_scale() )
 {
-    /* Stub */
+    const bool  is_finite = ::isfinite(in_scale);
+    const float max_scale = get_max_scale();
+    const float min_scale = get_min_scale();
+
+    if (is_finite           &&
+        in_scale >= min_scale)
+    {
+        m_scale = (in_scale > max_scale) ? max_scale
+                                         : in_scale;
+    }
 }
 
 float Stereo::Core::ResolutionPolicy::get_fit_scale(const uint32_t& in_target_width,

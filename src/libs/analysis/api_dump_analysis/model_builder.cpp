@@ -1196,8 +1196,11 @@ Analysis::APIDumpAnalysis::ViewCoverage Analysis::APIDumpAnalysis::ModelBuilder:
 
                     if (is_seen && matrices.has_projection)
                     {
-                        is_seen = (::fabsf(view_position[0] * projection[PROJECTION_SCALE_X]) <= depth &&
-                                   ::fabsf(view_position[1] * projection[PROJECTION_SCALE_Y]) <= depth);
+                        const float x_extent = ::fabsf(view_position[0] * projection[PROJECTION_SCALE_X]);
+                        const float y_extent = ::fabsf(view_position[1] * projection[PROJECTION_SCALE_Y]);
+
+                        is_seen = (x_extent <= depth &&
+                                   y_extent <= depth);
                     }
 
                     if (is_seen)

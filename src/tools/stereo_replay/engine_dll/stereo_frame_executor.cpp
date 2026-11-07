@@ -97,16 +97,25 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::capture_execution(const uin
                                                                        const bool&     in_uses_history)
 {
     FrameImage            image;
-    const bool            is_hurried  = (m_hurry_ptr != nullptr && m_hurry_ptr->is_hurrying(in_n_frame) );
+    bool                  is_hurried  = false;
     bool                  is_ok       = true;
     std::vector<uint8_t>* pixel_ptr   = (in_uses_history) ? &m_eye_history.snapshot_array.at(in_n_execution).pixel_u8_vec
                                                           : nullptr;
-    const bool            wants_image = (m_image_sink_ptr                                    != nullptr                       &&
-                                         is_hurried                                         == false                         &&
-                                         in_n_frame                                          >= m_frame_execution.first_frame &&
-                                         in_n_frame                                          <= m_frame_execution.last_frame  &&
-                                         m_image_sink_ptr->wants_frame_image(in_n_frame,
-                                                                             in_n_execution) );
+    bool                  wants_image = false;
+
+    if (m_hurry_ptr != nullptr)
+    {
+        is_hurried = m_hurry_ptr->is_hurrying(in_n_frame);
+    }
+
+    if (m_image_sink_ptr != nullptr                       &&
+        is_hurried       == false                         &&
+        in_n_frame       >= m_frame_execution.first_frame &&
+        in_n_frame       <= m_frame_execution.last_frame)
+    {
+        wants_image = m_image_sink_ptr->wants_frame_image(in_n_frame,
+                                                          in_n_execution);
+    }
 
     /* A read waits for the device: it is done once for the image and the history together, and only if one is needed. */
     if (wants_image     ||
@@ -249,8 +258,16 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_buffered_frame(cons
         m_matrix_binder_ptr->forget();
     }
 
-    if (result                                 &&
-        buffer.get_call_vec().empty() == false)
+    bool has_buffered_calls = false;
+
+    if (result)
+    {
+        const auto& buffered_call_vec = buffer.get_call_vec();
+
+        has_buffered_calls = (buffered_call_vec.empty() == false);
+    }
+
+    if (has_buffered_calls)
     {
         const auto begin_execution_func = [this, uses_history](const uint32_t& in_n_execution)
         {
@@ -433,15 +450,21 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_draw_call(const Cap
 bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_frame(::Replay::ReplayEngineDLL::IFrameHost* in_host_ptr,
                                                                    bool*                                  out_has_workload_ended_ptr)
 {
-    const uint32_t n_frame      = in_host_ptr->get_n_frames_presented();
+    bool           is_buffered = false;
+    bool           is_dead     = false;
+    const uint32_t n_frame     = in_host_ptr->get_n_frames_presented();
+    bool           result      = false;
+
     /* A frame which a slice leaves out has no content which anything reads: it is played as it is, with only the calls that set state, which is quicker */
-    const bool is_dead     = (m_slice_skipper_ptr != nullptr &&
-                              m_slice_skipper_ptr->is_dead_frame(n_frame) );
-    const bool is_buffered = (m_frame_execution.mode != FrameExecution::DIRECT        &&
-                              is_dead                == false                         &&
-                              n_frame                >= m_frame_execution.first_frame &&
-                              n_frame                <= m_frame_execution.last_frame);
-    bool       result      = false;
+    if (m_slice_skipper_ptr != nullptr)
+    {
+        is_dead = m_slice_skipper_ptr->is_dead_frame(n_frame);
+    }
+
+    is_buffered = (m_frame_execution.mode != FrameExecution::DIRECT        &&
+                   is_dead                == false                         &&
+                   n_frame                >= m_frame_execution.first_frame &&
+                   n_frame                <= m_frame_execution.last_frame);
 
     m_host_ptr = in_host_ptr;
 

@@ -163,8 +163,10 @@ Analysis::APIDumpAnalysis::WorkloadReference Analysis::APIDumpAnalysis::Frontend
 
 bool Analysis::APIDumpAnalysis::Frontends::AnalysisSession::has_reached_frame_limit() const
 {
-    return (m_max_frames             != 0             &&
-            m_builder.get_n_frames() >= m_max_frames);
+    const auto n_frames = m_builder.get_n_frames();
+
+    return (m_max_frames != 0             &&
+            n_frames     >= m_max_frames);
 }
 
 bool Analysis::APIDumpAnalysis::Frontends::AnalysisSession::process_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,

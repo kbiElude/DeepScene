@@ -340,10 +340,23 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_app(const Utils::Json::JsonValue
             }
 
             /* The executable is in what is downloaded; a catalog which says otherwise has a mistake in it. */
-            if (out_app_ptr->executable_path.size           () <= install_directory.size() + 1 ||
-                _strnicmp(out_app_ptr->executable_path.c_str(),
-                          (install_directory + "\\").c_str  (),
-                          install_directory.size() + 1)        != 0)
+            const size_t n_directory_characters  = install_directory.size() + 1;
+            const size_t n_executable_characters = out_app_ptr->executable_path.size();
+            bool         is_outside_directory    = true;
+
+            if (n_executable_characters > n_directory_characters)
+            {
+                const std::string directory_with_separator = install_directory + "\\";
+                const char* const directory_ptr            = directory_with_separator.c_str();
+                const char* const executable_path_ptr      = out_app_ptr->executable_path.c_str();
+                const int         path_difference          = _strnicmp(executable_path_ptr,
+                                                                       directory_ptr,
+                                                                       n_directory_characters);
+
+                is_outside_directory = (path_difference != 0);
+            }
+
+            if (is_outside_directory)
             {
                 *out_error_ptr = in_path                                   +
                                  ".executable: has to be in "              +
@@ -418,10 +431,18 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_download(const Utils::Json::Json
         {
             const Utils::Json::JsonValue& url_value = urls_ptr->item_vec.at(n_url);
 
-            if (url_value.type                             != Utils::Json::JsonValueType::STRING ||
-                url_value.string_value.compare(0,
-                                               8,
-                                               "https://") != 0)
+            bool is_https_address = false;
+
+            if (url_value.type == Utils::Json::JsonValueType::STRING)
+            {
+                const int scheme_difference = url_value.string_value.compare(0,
+                                                                             8,
+                                                                             "https://");
+
+                is_https_address = (scheme_difference == 0);
+            }
+
+            if (is_https_address == false)
             {
                 *out_error_ptr = in_path                           +
                                  ".urls["                          +

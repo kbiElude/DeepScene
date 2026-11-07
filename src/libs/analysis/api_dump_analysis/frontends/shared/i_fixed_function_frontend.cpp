@@ -16,11 +16,12 @@ Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::IFixedFunctionFron
 
 const Analysis::APIDumpAnalysis::ResourceDescription* Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::find_resource_description_ptr(const Analysis::APIDumpAnalysis::ResourceId& in_id) const
 {
-    const uint32_t                                        index      = Analysis::APIDumpAnalysis::get_resource_id_value(in_id);
-    const Analysis::APIDumpAnalysis::ResourceDescription* result_ptr = nullptr;
+    const uint32_t                                        index       = Analysis::APIDumpAnalysis::get_resource_id_value(in_id);
+    const size_t                                          n_resources = m_builder_ptr->get_model().resource_vec.size();
+    const Analysis::APIDumpAnalysis::ResourceDescription* result_ptr  = nullptr;
 
-    if (index >= 1                                              &&
-        index <= m_builder_ptr->get_model().resource_vec.size() )
+    if (index >= 1 &&
+        index <= n_resources)
     {
         result_ptr = &m_builder_ptr->get_model().resource_vec.at(index - 1).description;
     }
@@ -102,17 +103,21 @@ void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_releas
     const ObjectTracker::TrackedObject* object_ptr = m_tracker.get_object_ptr(address);
 
     /* The last reference is gone. */
-    if (object_ptr                 != nullptr &&
-        in_view.get_returned_u32() == 0)
+    if (object_ptr != nullptr)
     {
-        if (object_ptr->owns_resource)
+        const uint32_t returned_reference_count = in_view.get_returned_u32();
+
+        if (returned_reference_count == 0)
         {
-            m_builder_ptr->on_destroy_resource(object_ptr->view.resource_id);
+            if (object_ptr->owns_resource)
+            {
+                m_builder_ptr->on_destroy_resource(object_ptr->view.resource_id);
 
-            forget_resource(object_ptr->view.resource_id);
+                forget_resource(object_ptr->view.resource_id);
+            }
+
+            m_tracker.forget(address);
         }
-
-        m_tracker.forget(address);
     }
 
     /* The address may be given to another object: it has no name until it is registered again. */

@@ -111,8 +111,14 @@ void Stereo::Replay::EngineDLL::StereoReplayEngine::play_to_frame(const uint32_t
         /* The reader decodes segments ahead of the replay with the chunks of the dead frames left out, for the slice that was set when it was started. A
          * new slice while the replay has not reached the last target needs the chunks that the old one left out, so the replay starts over.
          */
-        const bool is_last_seek_unfinished = (m_has_seek_target                                        &&
-                                              m_engine.get_status().n_frames_presented <= m_seek_target_frame);
+        bool is_last_seek_unfinished = false;
+
+        if (m_has_seek_target)
+        {
+            const auto status = m_engine.get_status();
+
+            is_last_seek_unfinished = (status.n_frames_presented <= m_seek_target_frame);
+        }
 
         m_slice_skipper.set_slice(Analysis::APIDumpDependencies::FrameSlicePlanner::plan(m_dependencies,
                                                                                          in_n_frame) );
@@ -170,14 +176,20 @@ bool Stereo::Replay::EngineDLL::StereoReplayEngine::set_dependencies_file(const 
         goto end;
     }
 
-    if (m_workload_filename.empty() == false                                                                                                                      &&
-        Analysis::APIDumpAnalysis::WorkloadIdentity::verify(m_workload_filename,
-                                                            dependencies.workload_reference,
-                                                           &reason) == Analysis::APIDumpAnalysis::WorkloadMatch::MISMATCH)
+    if (m_workload_filename.empty() == false)
     {
-        *out_error_ptr = std::string(in_filename_ptr) + " is not of the workload which was loaded: " + reason;
+        const auto workload_match = Analysis::APIDumpAnalysis::WorkloadIdentity::verify(m_workload_filename,
+                                                                                        dependencies.workload_reference,
+                                                                                       &reason);
 
-        goto end;
+        if (workload_match == Analysis::APIDumpAnalysis::WorkloadMatch::MISMATCH)
+        {
+            *out_error_ptr = std::string(in_filename_ptr) +
+                             " is not of the workload which was loaded: " +
+                             reason;
+
+            goto end;
+        }
     }
 
     m_dependencies     = std::move(dependencies);

@@ -21,11 +21,15 @@ bool Analysis::APIDumpAnalysis::Frontends::D3D8ResolutionHazards::classify(const
     {
         case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_CLEAR:
         {
-            if (in_n_arguments                                           >  CLEAR_N_RECTS_ARGUMENT_INDEX &&
-                in_arguments_ptr[CLEAR_N_RECTS_ARGUMENT_INDEX].get_u32() != 0)
+            if (in_n_arguments > CLEAR_N_RECTS_ARGUMENT_INDEX)
             {
-                *out_hazard_ptr = ResolutionHazard::CLEARS_WITH_RECTANGLES;
-                result          = true;
+                const uint32_t n_rects = in_arguments_ptr[CLEAR_N_RECTS_ARGUMENT_INDEX].get_u32();
+
+                if (n_rects != 0)
+                {
+                    *out_hazard_ptr = ResolutionHazard::CLEARS_WITH_RECTANGLES;
+                    result          = true;
+                }
             }
 
             break;

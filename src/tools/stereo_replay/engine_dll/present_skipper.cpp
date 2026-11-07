@@ -23,6 +23,15 @@ void Stereo::Replay::EngineDLL::PresentSkipper::on_call_replayed(const Capture::
 bool Stereo::Replay::EngineDLL::PresentSkipper::should_execute_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                     const uint32_t&                              in_n_frame)
 {
-    return (m_hurry_ptr->is_hurrying(in_n_frame)                  == false ||
-            Capture::APIDumpLoader::is_frame_boundary(in_call) == false);
+    const bool is_hurrying = m_hurry_ptr->is_hurrying(in_n_frame);
+    bool       result      = true;
+
+    if (is_hurrying)
+    {
+        const bool is_boundary = Capture::APIDumpLoader::is_frame_boundary(in_call);
+
+        result = (is_boundary == false);
+    }
+
+    return result;
 }

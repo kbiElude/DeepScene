@@ -111,8 +111,11 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::count_resolution_hazard
 
         case APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_LOAD:
         {
-            if (has_data_func(LOAD_DESTINATION_POINT_ARGUMENT) ||
-                has_data_func(LOAD_SOURCE_RECT_ARGUMENT) )
+            const bool has_destination_point = has_data_func(LOAD_DESTINATION_POINT_ARGUMENT);
+            const bool has_source_rect       = has_data_func(LOAD_SOURCE_RECT_ARGUMENT);
+
+            if (has_destination_point ||
+                has_source_rect)
             {
                 m_n_resolution_hazard_map[Analysis::APIDumpAnalysis::ResolutionHazard::COPIES_WITH_RECTANGLES]++;
             }
@@ -122,8 +125,11 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::count_resolution_hazard
 
         case APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_BLT:
         {
-            if (has_data_func(BLT_DESTINATION_RECT_ARGUMENT) ||
-                has_data_func(BLT_SOURCE_RECT_ARGUMENT) )
+            const bool has_destination_rect = has_data_func(BLT_DESTINATION_RECT_ARGUMENT);
+            const bool has_source_rect      = has_data_func(BLT_SOURCE_RECT_ARGUMENT);
+
+            if (has_destination_rect ||
+                has_source_rect)
             {
                 m_n_resolution_hazard_map[Analysis::APIDumpAnalysis::ResolutionHazard::COPIES_WITH_RECTANGLES]++;
             }
@@ -349,8 +355,10 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_create_device(co
 
     const ObjectTracker::TrackedObject* target_ptr = m_tracker.get_object_ptr(in_view.get_pointer(SURFACE_ARGUMENT) );
 
-    if (in_view.get_out_pointer(DEVICE_ARGUMENT) == 0 ||
-        target_ptr                               == nullptr)
+    const uint64_t device_pointer = in_view.get_out_pointer(DEVICE_ARGUMENT);
+
+    if (device_pointer == 0       ||
+        target_ptr     == nullptr)
     {
         m_n_unfollowed_calls++;
     }

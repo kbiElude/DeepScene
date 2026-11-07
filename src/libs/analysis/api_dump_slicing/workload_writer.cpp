@@ -161,11 +161,17 @@ uint64_t Analysis::APIDumpSlicing::WorkloadWriter::get_n_bytes_written() const
 bool Analysis::APIDumpSlicing::WorkloadWriter::write_compressed_segment(const uint8_t* in_data_ptr,
                                                                         const size_t&  in_n_bytes)
 {
-    const bool result = (m_file_handle != nullptr &&
-                         ::fwrite(in_data_ptr,
-                                  in_n_bytes,
-                                  1,
-                                  m_file_handle) == 1);
+    bool result = false;
+
+    if (m_file_handle != nullptr)
+    {
+        const size_t n_chunks_written = ::fwrite(in_data_ptr,
+                                                 in_n_bytes,
+                                                 1,
+                                                 m_file_handle);
+
+        result = (n_chunks_written == 1);
+    }
 
     if (result)
     {

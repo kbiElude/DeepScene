@@ -128,7 +128,9 @@ bool Utils::Files::FileSystem::remove_tree(const std::string& in_path)
 
                     if ((find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
                     {
-                        result = remove_tree(child_path) && result;
+                        const bool is_child_removed = remove_tree(child_path);
+
+                        result = (is_child_removed && result);
                     }
                     else
                     {
@@ -137,7 +139,10 @@ bool Utils::Files::FileSystem::remove_tree(const std::string& in_path)
                         ::SetFileAttributesW(wide_child_path.c_str(),
                                              FILE_ATTRIBUTE_NORMAL);
 
-                        result = (::DeleteFileW(wide_child_path.c_str() ) != FALSE) && result;
+                        const BOOL is_file_deleted = ::DeleteFileW(wide_child_path.c_str() );
+
+                        result = (is_file_deleted != FALSE &&
+                                  result);
                     }
                 }
             }
@@ -147,7 +152,10 @@ bool Utils::Files::FileSystem::remove_tree(const std::string& in_path)
             ::FindClose(find_handle);
         }
 
-        result = (::RemoveDirectoryW(wide_path.c_str() ) != FALSE) && result;
+        const BOOL is_directory_removed = ::RemoveDirectoryW(wide_path.c_str() );
+
+        result = (is_directory_removed != FALSE &&
+                  result);
     }
 
     return result;

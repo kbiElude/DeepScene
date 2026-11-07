@@ -149,19 +149,23 @@ int main(int   in_argc,
         goto end;
     }
 
-    if (options.deps_filename.empty() == false                                &&
-        Analysis::APIDumpDependencies::DepsFile::read(options.deps_filename,
-                                                     &dependencies,
-                                                     &error) == false)
+    if (options.deps_filename.empty() == false)
     {
-        ::fprintf(stderr,
-                  "Error: %s: %s\n",
-                  options.deps_filename.c_str(),
-                  error.c_str() );
+        const bool is_deps_read = Analysis::APIDumpDependencies::DepsFile::read(options.deps_filename,
+                                                                               &dependencies,
+                                                                               &error);
 
-        result = EXIT_BAD_INPUT;
+        if (is_deps_read == false)
+        {
+            ::fprintf(stderr,
+                      "Error: %s: %s\n",
+                      options.deps_filename.c_str(),
+                      error.c_str() );
 
-        goto end;
+            result = EXIT_BAD_INPUT;
+
+            goto end;
+        }
     }
 
     if (Analysis::RecipeBake::RecipeBaker::bake(recipe_text,

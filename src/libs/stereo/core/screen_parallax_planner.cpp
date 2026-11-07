@@ -9,15 +9,16 @@ Stereo::Core::ScreenShiftPlan Stereo::Core::ScreenParallaxPlanner::plan(const An
 {
     constexpr float HALF = 0.5f;
 
-    const auto&     screen_parallax  = in_applier.get_screen_parallax();
+    const bool      is_covering      = in_applier.is_draw_covering(in_input.cover_key);
     const float     overlay_parallax = in_applier.get_overlay_parallax();
     ScreenShiftPlan result;
+    const auto&     screen_parallax  = in_applier.get_screen_parallax();
 
     result.eye = in_input.eye;
 
-    if (in_input.picture_width <= 0.0f                                                                               ||
-        (in_applier.is_draw_covering(in_input.cover_key)                                                  &&
-         (in_input.has_extent         == false                                                           ||
+    if (in_input.picture_width <= 0.0f                    ||
+        (is_covering                                      &&
+         (in_input.has_extent         == false            ||
           in_input.reaches_both_sides == true) ) )
     {
         goto end;

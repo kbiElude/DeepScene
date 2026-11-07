@@ -51,12 +51,16 @@ void Stereo::Presenter::StereoPresenterWindow::draw_contents(Utils::UIHost::Cont
     }
 
     /* The headset reads the frames, if there is one: the channel has room for one reader. */
-    if (m_headset_sink_ptr == nullptr &&
-        m_importer_ptr->acquire(&frame) )
+    if (m_headset_sink_ptr == nullptr)
     {
-        m_sink_ptr->on_frame(frame);
+        const bool is_acquired = m_importer_ptr->acquire(&frame);
 
-        m_importer_ptr->release();
+        if (is_acquired)
+        {
+            m_sink_ptr->on_frame(frame);
+
+            m_importer_ptr->release();
+        }
     }
 
     if (m_sink_ptr->get_view_ptr() == nullptr)
@@ -86,21 +90,21 @@ void Stereo::Presenter::StereoPresenterWindow::draw_contents(Utils::UIHost::Cont
 
         const ImVec2 text_size = ImGui::CalcTextSize(text);
 
-        ImGui::SetCursorPos(ImVec2((available.x - text_size.x) / 2.0f,
-                                   (available.y - text_size.y) / 2.0f) );
+        ImGui::SetCursorPos   (ImVec2((available.x - text_size.x) / 2.0f,
+                                      (available.y - text_size.y) / 2.0f) );
         ImGui::TextUnformatted(text);
     }
     else
     {
         const float  scale = std::min<float>(available.x / static_cast<float>(m_sink_ptr->get_width() ),
                                              available.y / static_cast<float>(m_sink_ptr->get_height() ) );
-        const ImVec2 size  = ImVec2(static_cast<float>(m_sink_ptr->get_width() )  * scale,
-                                    static_cast<float>(m_sink_ptr->get_height() ) * scale);
+        const ImVec2 size  = ImVec2         (static_cast<float>(m_sink_ptr->get_width () )  * scale,
+                                             static_cast<float>(m_sink_ptr->get_height() ) * scale);
 
-        ImGui::SetCursorPos(ImVec2((available.x - size.x) / 2.0f,
-                                   (available.y - size.y) / 2.0f) );
-        ImGui::Image(ImTextureRef(static_cast<ImTextureID>(reinterpret_cast<uintptr_t>(m_sink_ptr->get_view_ptr() ) )),
-                     size);
+        ImGui::SetCursorPos(ImVec2      ((available.x - size.x) / 2.0f,
+                                         (available.y - size.y) / 2.0f) );
+        ImGui::Image       (ImTextureRef(static_cast<ImTextureID>(reinterpret_cast<uintptr_t>(m_sink_ptr->get_view_ptr() ) )),
+                            size);
     }
 }
 

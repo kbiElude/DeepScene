@@ -122,11 +122,15 @@ bool Stereo::Replay::ConsistencyChecker::run_variant(const Stereo::Replay::Consi
             goto end;
         }
 
-        if (in_options.deps_filename.empty() == false                                                  &&
-            engine_ptr->set_dependencies_file(in_options.deps_filename.c_str(),
-                                              out_error_ptr) == false)
+        if (in_options.deps_filename.empty() == false)
         {
-            goto end;
+            const bool is_deps_set = engine_ptr->set_dependencies_file(in_options.deps_filename.c_str(),
+                                                                       out_error_ptr);
+
+            if (is_deps_set == false)
+            {
+                goto end;
+            }
         }
 
         controller_ptr->set_speed(0.0);

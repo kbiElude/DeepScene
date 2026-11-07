@@ -177,8 +177,11 @@ std::vector<uint32_t> Analysis::APIDumpAnalysis::QueryCommands::get_static_camer
                  signature.semantic == ConstantSemantic::VIEW_PROJECTION_MATRIX) &&
                  series_iter        != model_ref.constant_series_map.end() )
             {
+                const size_t n_samples = series_iter->second.get_sample_vec().size();
+
                 has_camera        = true;
-                is_camera_changed = is_camera_changed || (series_iter->second.get_sample_vec().size() > 1);
+                is_camera_changed = (is_camera_changed ||
+                                     n_samples > 1);
             }
         }
 

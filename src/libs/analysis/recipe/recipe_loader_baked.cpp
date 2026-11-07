@@ -689,8 +689,11 @@ bool Analysis::Recipe::RecipeLoader::parse_pass_draw_array(const Utils::Json::Js
             goto end;
         }
 
-        if (item.find_ptr("draw_key") == nullptr ||
-            item.find_ptr("pass_key") == nullptr)
+        const auto* draw_key_ptr = item.find_ptr("draw_key");
+        const auto* pass_key_ptr = item.find_ptr("pass_key");
+
+        if (draw_key_ptr == nullptr ||
+            pass_key_ptr == nullptr)
         {
             *out_error_ptr = path + ": a draw in a pass needs both a pass_key and a draw_key";
 
@@ -842,9 +845,17 @@ bool Analysis::Recipe::RecipeLoader::parse_screen_parallax(const Utils::Json::Js
             goto end;
         }
 
-        if (distance_ptr->type                     != Utils::Json::JsonValueType::NUMBER ||
-            ::isfinite(distance_ptr->number_value) == 0                                  ||
-            distance_ptr->number_value             <= 0.0)
+        bool is_distance_valid = false;
+
+        if (distance_ptr->type == Utils::Json::JsonValueType::NUMBER)
+        {
+            const bool is_distance_finite = (::isfinite(distance_ptr->number_value) != 0);
+
+            is_distance_valid = (is_distance_finite &&
+                                 distance_ptr->number_value > 0.0);
+        }
+
+        if (is_distance_valid == false)
         {
             *out_error_ptr = in_path + ".convergence_distance: expected a number above zero (the distance at which the eyes converge, in the "
                                        "units of the camera of the application)";
@@ -856,10 +867,18 @@ bool Analysis::Recipe::RecipeLoader::parse_screen_parallax(const Utils::Json::Js
 
         if (fov_ptr != nullptr)
         {
-            if (fov_ptr->type                     != Utils::Json::JsonValueType::NUMBER ||
-                ::isfinite(fov_ptr->number_value) == 0                                  ||
-                fov_ptr->number_value             <= 0.0                                ||
-                fov_ptr->number_value             >= MAX_FIELD_OF_VIEW_DEGREES)
+            bool is_fov_valid = false;
+
+            if (fov_ptr->type == Utils::Json::JsonValueType::NUMBER)
+            {
+                const bool is_fov_finite = (::isfinite(fov_ptr->number_value) != 0);
+
+                is_fov_valid = (is_fov_finite                                         &&
+                                fov_ptr->number_value > 0.0                           &&
+                                fov_ptr->number_value < MAX_FIELD_OF_VIEW_DEGREES);
+            }
+
+            if (is_fov_valid == false)
             {
                 *out_error_ptr = in_path + ".field_of_view_degrees: expected a number above zero and below 180 (the angle of view of the width of the picture)";
 
