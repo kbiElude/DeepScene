@@ -32,6 +32,7 @@ namespace Utils
             bool update(const void*   in_bytes_ptr,
                         const size_t& in_n_bytes);
 
+
             /* The hash of bytes which are in memory. */
             static bool hash_bytes(const void*   in_bytes_ptr,
                                    const size_t& in_n_bytes,

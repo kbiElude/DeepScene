@@ -43,8 +43,9 @@ void Utils::Images::GifWriter::compress_lzw(const std::vector<uint8_t>& in_index
     uint32_t             n_bits      = 0;
     uint32_t             next_code   = FIRST_FREE_CODE;
     int32_t              prefix_code = -1; /* none yet */
-  std::vector<int16_t> table(static_cast<size_t>(MAX_N_CODES) * N_SYMBOLS,
-                             -1);
+
+    std::vector<int16_t> table(static_cast<size_t>(MAX_N_CODES) * N_SYMBOLS,
+                               -1);
 
     const auto emit_func = [&](const uint32_t& in_code)
     {
@@ -137,9 +138,9 @@ void Utils::Images::GifWriter::compress_lzw(const std::vector<uint8_t>& in_index
                                                       data_u8_vec.size() - n_byte);
 
         inout_file_u8_vec_ptr->push_back(static_cast<uint8_t>(n_block_bytes) );
-        inout_file_u8_vec_ptr->insert(inout_file_u8_vec_ptr->end(),
-                                      data_u8_vec.begin() + n_byte,
-                                      data_u8_vec.begin() + n_byte + n_block_bytes);
+        inout_file_u8_vec_ptr->insert   (inout_file_u8_vec_ptr->end(),
+                                         data_u8_vec.begin() + n_byte,
+                                         data_u8_vec.begin() + n_byte + n_block_bytes);
     }
 
     inout_file_u8_vec_ptr->push_back(0); /* the end of the blocks */
@@ -168,13 +169,13 @@ bool Utils::Images::GifWriter::encode(const std::vector<Image>& in_frame_vec,
 
     for (const auto& frame : in_frame_vec)
     {
-        if (frame.width                != in_frame_vec.front().width  ||
-            frame.height               != in_frame_vec.front().height ||
-            frame.width                == 0                           ||
-            frame.height               == 0                           ||
-            frame.width                >  MAX_EXTENT                  ||
-            frame.height               >  MAX_EXTENT                  ||
-            frame.pixel_u8_vec.size()  <  static_cast<size_t>(frame.width) * frame.height * N_BYTES_PER_PIXEL)
+        if (frame.width               != in_frame_vec.front().width                                          ||
+            frame.height              != in_frame_vec.front().height                                         ||
+            frame.width               == 0                                                                   ||
+            frame.height              == 0                                                                   ||
+            frame.width               >  MAX_EXTENT                                                          ||
+            frame.height              >  MAX_EXTENT                                                          ||
+            frame.pixel_u8_vec.size() <  static_cast<size_t>(frame.width) * frame.height * N_BYTES_PER_PIXEL)
         {
             goto end;
         }
@@ -184,8 +185,8 @@ bool Utils::Images::GifWriter::encode(const std::vector<Image>& in_frame_vec,
         const std::string header_text = "GIF89a";
 
         out_file_u8_vec_ptr->insert(out_file_u8_vec_ptr->end(),
-                                    header_text.begin(),
-                                    header_text.end  () );
+                                    header_text.begin       (),
+                                    header_text.end         () );
 
         append_u16(in_frame_vec.front().width,
                    out_file_u8_vec_ptr);
@@ -197,7 +198,18 @@ bool Utils::Images::GifWriter::encode(const std::vector<Image>& in_frame_vec,
         out_file_u8_vec_ptr->push_back(0); /* the aspect ratio: not given   */
 
         /* The extension that makes it play for ever. */
-        const uint8_t loop_u8vec19[] = {0x21, 0xFF, 0x0B, 'N', 'E', 'T', 'S', 'C', 'A', 'P', 'E', '2', '.', '0', 0x03, 0x01, 0x00, 0x00, 0x00};
+        const uint8_t loop_u8vec19[] =
+        {
+            0x21,
+            0xFF,
+            0x0B,
+            'N', 'E', 'T', 'S', 'C', 'A', 'P', 'E', '2', '.', '0',
+            0x03,
+            0x01,
+            0x00,
+            0x00,
+            0x00
+        };
 
         out_file_u8_vec_ptr->insert(out_file_u8_vec_ptr->end(),
                                     loop_u8vec19,
@@ -299,6 +311,7 @@ void Utils::Images::GifWriter::quantize(const Image&              in_image,
         if (count_u32_vec.at(n_bin) != 0)
         {
             box_vec.front().color_vec.push_back(static_cast<uint16_t>(n_bin) );
+
             box_vec.front().n_pixels += count_u32_vec.at(n_bin);
         }
     }
@@ -312,8 +325,9 @@ void Utils::Images::GifWriter::quantize(const Image&              in_image,
                     n_box < box_vec.size();
                   ++n_box)
         {
-            if (box_vec.at(n_box).color_vec.size() > 1                                                                  &&
-                (n_best_box == box_vec.size() || box_vec.at(n_box).n_pixels > box_vec.at(n_best_box).n_pixels) )
+            if (box_vec.at(n_box).color_vec.size() >  1                                     &&
+                (n_best_box                        == box_vec.size()                     ||
+                 box_vec.at(n_box).n_pixels        >  box_vec.at  (n_best_box).n_pixels) )
             {
                 n_best_box = n_box;
             }
@@ -324,12 +338,12 @@ void Utils::Images::GifWriter::quantize(const Image&              in_image,
             break;
         }
 
-        ColorBox      new_box;
-        uint32_t      max_channel_vec[3] = {0, 0, 0};
-        uint32_t      min_channel_vec[3] = {CHANNEL_MASK, CHANNEL_MASK, CHANNEL_MASK};
-        size_t   n_axis         = 0;
-        uint64_t n_pixels_below = 0;
-        size_t   n_split        = 0;
+        ColorBox new_box;
+        uint32_t max_channel_vec[3] = {0, 0, 0};
+        uint32_t min_channel_vec[3] = {CHANNEL_MASK, CHANNEL_MASK, CHANNEL_MASK};
+        size_t   n_axis             = 0;
+        uint64_t n_pixels_below     = 0;
+        size_t   n_split            = 0;
 
         {
             ColorBox& box = box_vec.at(n_best_box);
@@ -375,16 +389,17 @@ void Utils::Images::GifWriter::quantize(const Image&              in_image,
                       box.color_vec.end  (),
                       is_channel_less_func);
 
-            while (n_split + 1 < box.color_vec.size() &&
+            while (n_split + 1        < box.color_vec.size() &&
                    n_pixels_below * 2 < box.n_pixels)
             {
                 n_pixels_below += count_u32_vec.at(box.color_vec.at(n_split) );
+
                 n_split++;
             }
 
             new_box.color_vec.assign(box.color_vec.begin() + n_split,
                                      box.color_vec.end  () );
-            box.color_vec.resize(n_split);
+            box.color_vec.resize    (n_split);
 
             new_box.n_pixels = box.n_pixels - n_pixels_below;
             box.n_pixels     = n_pixels_below;

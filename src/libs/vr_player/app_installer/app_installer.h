@@ -68,8 +68,8 @@ namespace VRPlayer
             Utils::Files::IDownloader* m_downloader_ptr;
             std::atomic<bool>          m_is_busy;      /* not guarded: set by start() and by the thread, read by the window */
             std::atomic<bool>          m_is_cancelled; /* not guarded: set by the window, read by the thread                */
-            mutable SharedState m_shared_state;
-            std::thread         m_thread;
+            mutable SharedState        m_shared_state;
+            std::thread                m_thread;
         };
     }
 }

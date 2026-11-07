@@ -20,7 +20,8 @@ void Utils::Parallel::ParallelFor::run(const uint64_t&  in_n_items,
                                                                             in_n_items) );
     const uint64_t n_items_in_range = std::max<uint64_t>(1,
                                                          in_n_items / (n_threads * N_RANGES_PER_THREAD) );
-    std::atomic<uint64_t> next_item(0);
+
+    std::atomic<uint64_t>    next_item(0);
     std::vector<std::thread> thread_vec;
 
     const auto work_func = [&]()

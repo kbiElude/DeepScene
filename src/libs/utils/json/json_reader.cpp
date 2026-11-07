@@ -191,7 +191,7 @@ bool Utils::Json::JsonReader::parse_array(const size_t& in_depth,
 
 bool Utils::Json::JsonReader::parse_literal(const char* in_literal_ptr)
 {
-    const size_t n_characters = ::strlen(in_literal_ptr);
+    const size_t n_characters = ::strlen       (in_literal_ptr);
     const bool   result       = (m_text.compare(m_position,
                                                 n_characters,
                                                 in_literal_ptr) == 0);

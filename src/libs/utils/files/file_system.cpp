@@ -28,7 +28,8 @@ bool Utils::Files::FileSystem::create_directories(const std::string& in_path,
 
         const std::wstring directory_path_so_far = wide_path.substr(0,
                                                                     n_segment_stop_character);
-        const bool         is_drive_root         = (directory_path_so_far.size() >= 2 && directory_path_so_far.at(directory_path_so_far.size() - 1) == L':');
+        const bool         is_drive_root         = (directory_path_so_far.size()                                 >= 2    &&
+                                                    directory_path_so_far.at  (directory_path_so_far.size() - 1) == L':');
 
         if (is_drive_root == false &&
             directory_path_so_far.size() > n_segment_start_character)
@@ -60,7 +61,7 @@ bool Utils::Files::FileSystem::is_directory(const std::string& in_path)
 {
     const DWORD file_attributes = ::GetFileAttributesW(to_wide(in_path).c_str() );
 
-    return (file_attributes != INVALID_FILE_ATTRIBUTES &&
+    return (file_attributes                              != INVALID_FILE_ATTRIBUTES &&
             (file_attributes & FILE_ATTRIBUTE_DIRECTORY) != 0);
 }
 

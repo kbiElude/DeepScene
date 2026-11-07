@@ -18,14 +18,16 @@ void VRPlayer::AppCatalog::CatalogLoader::check_availability(AppEntry*          
 
     if (Utils::Files::FileSystem::is_file(inout_app_ptr->recipe_path) == false)
     {
-        inout_app_ptr->unavailable_reason = "The recipe cannot be found: " + inout_app_ptr->recipe_path;
+        inout_app_ptr->unavailable_reason = "The recipe cannot be found: " +
+                                            inout_app_ptr->recipe_path;
     }
     else
     if (Analysis::Recipe::RecipeLoader::load(inout_app_ptr->recipe_path,
                                              &recipe,
                                              &error) == false)
     {
-        inout_app_ptr->unavailable_reason = "The recipe is not valid: " + error;
+        inout_app_ptr->unavailable_reason = "The recipe is not valid: " +
+                                            error;
     }
     else
     {
@@ -46,7 +48,8 @@ void VRPlayer::AppCatalog::CatalogLoader::check_availability(AppEntry*          
         {
             if (inout_app_ptr->install_spec.url_vec.empty() )
             {
-                inout_app_ptr->unavailable_reason = "The application cannot be found: " + inout_app_ptr->executable_path;
+                inout_app_ptr->unavailable_reason = "The application cannot be found: " +
+                                                    inout_app_ptr->executable_path;
             }
             else
             {
@@ -127,7 +130,8 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse(const std::string& in_text,
                                        &root,
                                        &json_error) == false)
     {
-        *out_error_ptr = "Not valid JSON: " + json_error;
+        *out_error_ptr = "Not valid JSON: " +
+                         json_error;
 
         goto end;
     }
@@ -144,13 +148,15 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse(const std::string& in_text,
 
         if (unknown_key_ptr != nullptr)
         {
-            *out_error_ptr = "unknown field \"" + *unknown_key_ptr + "\"";
+            *out_error_ptr = "unknown field \"" +
+                             *unknown_key_ptr   +
+                             "\"";
 
             goto end;
         }
     }
 
-    if (root.at("catalog_version").type != Utils::Json::JsonValueType::NUMBER ||
+    if (root.at("catalog_version").type         != Utils::Json::JsonValueType::NUMBER ||
         root.at("catalog_version").number_value != SUPPORTED_CATALOG_VERSION)
     {
         *out_error_ptr = "catalog_version: must be 0";
@@ -185,7 +191,10 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse(const std::string& in_text,
 
         if (id_set.insert(app.id).second == false)
         {
-            *out_error_ptr = path + ".id: \"" + app.id + "\" is used by another application";
+            *out_error_ptr = path                                +
+                             ".id: \""                           +
+                             app.id                              +
+                             "\" is used by another application";
 
             goto end;
         }
@@ -216,13 +225,20 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_app(const Utils::Json::JsonValue
 
     if (in_app.type != Utils::Json::JsonValueType::OBJECT)
     {
-        *out_error_ptr = in_path + ": expected an object";
+        *out_error_ptr = in_path                +
+                         ": expected an object";
 
         goto end;
     }
 
     {
-        const std::string* unknown_key_ptr = in_app.find_unknown_key_ptr({"arguments", "download", "executable", "id", "recipe", "title", "working_directory"});
+        const std::string* unknown_key_ptr = in_app.find_unknown_key_ptr({"arguments",
+                                                                          "download",
+                                                                          "executable",
+                                                                          "id",
+                                                                          "recipe",
+                                                                          "title",
+                                                                          "working_directory"});
 
         if (unknown_key_ptr != nullptr)
         {
@@ -324,12 +340,15 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_app(const Utils::Json::JsonValue
             }
 
             /* The executable is in what is downloaded; a catalog which says otherwise has a mistake in it. */
-            if (out_app_ptr->executable_path.size() <= install_directory.size() + 1                                     ||
+            if (out_app_ptr->executable_path.size           () <= install_directory.size() + 1 ||
                 _strnicmp(out_app_ptr->executable_path.c_str(),
-                          (install_directory + "\\").c_str(),
-                          install_directory.size() + 1) != 0)
+                          (install_directory + "\\").c_str  (),
+                          install_directory.size() + 1)        != 0)
             {
-                *out_error_ptr = in_path + ".executable: has to be in " + install_directory + " for an application which is downloaded";
+                *out_error_ptr = in_path                                   +
+                                 ".executable: has to be in "              +
+                                 install_directory                         +
+                                 " for an application which is downloaded";
 
                 goto end;
             }
@@ -338,8 +357,8 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_app(const Utils::Json::JsonValue
     out_app_ptr->recipe_path       = resolve_path(in_base_directory,
                                                   recipe);
     out_app_ptr->working_directory = (working_directory.empty() ) ? get_directory(out_app_ptr->executable_path)
-                                                                  : resolve_path(in_base_directory,
-                                                                                 working_directory);
+                                                                  : resolve_path (in_base_directory,
+                                                                                  working_directory);
 
     result = true;
 
@@ -358,13 +377,18 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_download(const Utils::Json::Json
 
     if (in_download.type != Utils::Json::JsonValueType::OBJECT)
     {
-        *out_error_ptr = in_path + ": expected an object";
+        *out_error_ptr = in_path                +
+                         ": expected an object";
 
         goto end;
     }
 
     {
-        const std::string* unknown_key_ptr = in_download.find_unknown_key_ptr({"page", "sha256", "size", "unpacked_size", "urls"});
+        const std::string* unknown_key_ptr = in_download.find_unknown_key_ptr({"page",
+                                                                               "sha256",
+                                                                               "size",
+                                                                               "unpacked_size",
+                                                                               "urls"});
 
         if (unknown_key_ptr != nullptr)
         {
@@ -379,8 +403,8 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_download(const Utils::Json::Json
     {
         const auto* urls_ptr = in_download.find_ptr("urls");
 
-        if (urls_ptr == nullptr                                                            ||
-            urls_ptr->type != Utils::Json::JsonValueType::ARRAY            ||
+        if (urls_ptr                   == nullptr                           ||
+            urls_ptr->type             != Utils::Json::JsonValueType::ARRAY ||
             urls_ptr->item_vec.empty() )
         {
             *out_error_ptr = in_path + ".urls: expected a list of addresses, with one at least";
@@ -394,12 +418,15 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_download(const Utils::Json::Json
         {
             const Utils::Json::JsonValue& url_value = urls_ptr->item_vec.at(n_url);
 
-            if (url_value.type != Utils::Json::JsonValueType::STRING ||
+            if (url_value.type                             != Utils::Json::JsonValueType::STRING ||
                 url_value.string_value.compare(0,
                                                8,
                                                "https://") != 0)
             {
-                *out_error_ptr = in_path + ".urls[" + std::to_string(n_url) + "]: expected an address of https";
+                *out_error_ptr = in_path                           +
+                                 ".urls["                          +
+                                 std::to_string(n_url)             +
+                                 "]: expected an address of https";
 
                 goto end;
             }
@@ -425,7 +452,7 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_download(const Utils::Json::Json
                    out_spec_ptr->sha256_hex.begin(),
                    ::tolower);
 
-    if (out_spec_ptr->sha256_hex.size() != 64                                                       ||
+    if (out_spec_ptr->sha256_hex.size()                                != 64                 ||
         out_spec_ptr->sha256_hex.find_first_not_of("0123456789abcdef") != std::string::npos)
     {
         *out_error_ptr = in_path + ".sha256: expected 64 digits of hex";
@@ -478,13 +505,16 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_number(const Utils::Json::JsonVa
     const auto* value_ptr = in_object.find_ptr(in_key);
     bool        result    = false;
 
-    if (value_ptr == nullptr                                                  ||
-        value_ptr->type != Utils::Json::JsonValueType::NUMBER ||
-        value_ptr->number_value < 1.0                                         ||
-        value_ptr->number_value > N_BYTES_MAX                                 ||
+    if (value_ptr               == nullptr                                                            ||
+        value_ptr->type         != Utils::Json::JsonValueType::NUMBER                                 ||
+        value_ptr->number_value <  1.0                                                                ||
+        value_ptr->number_value >  N_BYTES_MAX                                                        ||
         value_ptr->number_value != static_cast<double>(static_cast<uint64_t>(value_ptr->number_value) ) )
     {
-        *out_error_ptr = in_path + "." + in_key + ": expected a whole number of bytes, from 1 to 4294967296";
+        *out_error_ptr = in_path                                                    +
+                         "."                                                        +
+                         in_key                                                     +
+                         ": expected a whole number of bytes, from 1 to 4294967296";
 
         goto end;
     }
@@ -510,7 +540,10 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_string(const Utils::Json::JsonVa
     {
         if (in_is_required)
         {
-            *out_error_ptr = in_path + "." + in_key + ": is missing";
+            *out_error_ptr = in_path        +
+                             "."            +
+                             in_key         +
+                             ": is missing";
 
             goto end;
         }
@@ -520,12 +553,16 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_string(const Utils::Json::JsonVa
         goto end;
     }
 
-    if (value_ptr->type != Utils::Json::JsonValueType::STRING ||
-        (in_is_required                                                       &&
+    if (value_ptr->type                  != Utils::Json::JsonValueType::STRING ||
+        (in_is_required                                                        &&
          value_ptr->string_value.empty() ) )
     {
-        *out_error_ptr = in_path + "." + in_key + ": expected " + ((in_is_required) ? "a text which is not empty"
-                                                                                    : "a text");
+        *out_error_ptr = in_path                                         +
+                         "."                                             +
+                         in_key                                          +
+                         ": expected "                                   +
+                         ((in_is_required) ? "a text which is not empty"
+                                           : "a text");
 
         goto end;
     }
@@ -541,7 +578,7 @@ std::string VRPlayer::AppCatalog::CatalogLoader::resolve_path(const std::string&
                                                               const std::string& in_path)
 {
     std::string              joined   = (is_absolute_path(in_path) || in_base_directory.empty() ) ? in_path
-                                                                                               : in_base_directory + "\\" + in_path;
+                                                                                                  : in_base_directory + "\\" + in_path;
     std::vector<std::string> part_vec;
     std::string              result;
     size_t                   start    = 0;
@@ -566,10 +603,10 @@ std::string VRPlayer::AppCatalog::CatalogLoader::resolve_path(const std::string&
             /* Nothing to add. */
         }
         else
-        if (part == ".."                                                  &&
-            part_vec.empty() == false                                     &&
-            part_vec.back() != ".."                                       &&
-            part_vec.back().find(':') == std::string::npos)
+        if (part                       == ".."              &&
+            part_vec.empty()           == false             &&
+            part_vec.back ()           != ".."              &&
+            part_vec.back ().find(':') == std::string::npos)
         {
             part_vec.pop_back();
         }
@@ -586,7 +623,7 @@ std::string VRPlayer::AppCatalog::CatalogLoader::resolve_path(const std::string&
               ++n_part)
     {
         result += (n_part > 0) ? "\\" + part_vec.at(n_part)
-                               : part_vec.at(n_part);
+                               :        part_vec.at(n_part);
     }
 
     return result;

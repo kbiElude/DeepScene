@@ -132,7 +132,11 @@ bool Utils::Files::Sha256::hash_file(const std::string&       in_path,
 
     if (file_handle == INVALID_HANDLE_VALUE)
     {
-        *out_error_ptr = "Cannot open " + in_path + " (error " + std::to_string(::GetLastError() ) + ")";
+        *out_error_ptr = "Cannot open "                    +
+                         in_path                           +
+                         " (error "                        +
+                         std::to_string(::GetLastError() ) +
+                         ")";
 
         goto end;
     }
@@ -147,7 +151,11 @@ bool Utils::Files::Sha256::hash_file(const std::string&       in_path,
 
         if (is_read == FALSE)
         {
-            *out_error_ptr = "Cannot read " + in_path + " (error " + std::to_string(::GetLastError() ) + ")";
+            *out_error_ptr = "Cannot read "                    +
+                             in_path                           +
+                             " (error "                        +
+                             std::to_string(::GetLastError() ) +
+                             ")";
 
             goto end;
         }
@@ -199,8 +207,8 @@ bool Utils::Files::Sha256::update(const void*   in_bytes_ptr,
     }
 
     result = (::BCryptHashData(static_cast<BCRYPT_HASH_HANDLE>(m_hash_handle_ptr),
-                               reinterpret_cast<PUCHAR>(const_cast<void*>(in_bytes_ptr) ),
-                               static_cast<ULONG>(in_n_bytes),
+                               reinterpret_cast<PUCHAR>       (const_cast<void*>(in_bytes_ptr) ),
+                               static_cast<ULONG>             (in_n_bytes),
                                0) == 0);
 
 end:

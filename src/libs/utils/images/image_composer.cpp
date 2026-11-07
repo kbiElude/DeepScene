@@ -14,8 +14,8 @@ namespace
     /* True if the image has the pixels its size says, and some. */
     bool is_usable(const Utils::Images::Image& in_image)
     {
-        return (in_image.width  != 0                                                                                      &&
-                in_image.height != 0                                                                                      &&
+        return (in_image.width               != 0                                                                          &&
+                in_image.height              != 0                                                                          &&
                 in_image.pixel_u8_vec.size() >= static_cast<size_t>(in_image.width) * in_image.height * N_BYTES_PER_PIXEL);
     }
 }
@@ -31,10 +31,10 @@ bool Utils::Images::ImageComposer::make_anaglyph(const Image& in_left_image,
 
     *out_image_ptr = Image();
 
-    if (is_usable(in_left_image)                    == false ||
-        is_usable(in_right_image)                   == false ||
-        in_left_image.width                         != in_right_image.width ||
-        in_left_image.height                        != in_right_image.height)
+    if (is_usable(in_left_image)  == false                ||
+        is_usable(in_right_image) == false                ||
+        in_left_image.width       != in_right_image.width ||
+        in_left_image.height      != in_right_image.height)
     {
         goto end;
     }

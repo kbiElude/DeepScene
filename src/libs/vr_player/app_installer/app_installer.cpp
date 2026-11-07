@@ -35,12 +35,10 @@ void VRPlayer::AppInstaller::AppInstaller::cancel()
 std::string VRPlayer::AppInstaller::AppInstaller::get_host(const std::string& in_url)
 {
     const size_t n_scheme_separator_character = in_url.find("://");
-
-    const size_t n_host_start_character = (n_scheme_separator_character == std::string::npos) ? 0
-                                                                                              : n_scheme_separator_character + 3;
-
-    const size_t n_host_end_character = in_url.find_first_of("/:?",
-                                                             n_host_start_character);
+    const size_t n_host_start_character       = (n_scheme_separator_character == std::string::npos) ? 0
+                                                                                                    : n_scheme_separator_character + 3;
+    const size_t n_host_end_character         = in_url.find_first_of("/:?",
+                                                                     n_host_start_character);
 
     return in_url.substr(n_host_start_character,
                          (n_host_end_character == std::string::npos) ? std::string::npos
@@ -67,7 +65,7 @@ bool VRPlayer::AppInstaller::AppInstaller::is_busy() const
 
 bool VRPlayer::AppInstaller::AppInstaller::is_sha256_hex(const std::string& in_text)
 {
-    return (in_text.size() == 64                                                 &&
+    return (in_text.size             ()                   == 64                 &&
             in_text.find_first_not_of("0123456789abcdef") == std::string::npos);
 }
 
@@ -86,7 +84,7 @@ void VRPlayer::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spe
     std::string                    lock_name;
     std::string                    mirror_error_text;
     std::string                    staging_directory   = in_spec.install_directory + ".download";
-    std::string                    unpacked_directory  = staging_directory + "\\unpacked";
+    std::string                    unpacked_directory  = staging_directory         + "\\unpacked";
 
     /* One installation of a directory at a time, whichever DeepScene it is started by. */
     {
@@ -171,16 +169,21 @@ void VRPlayer::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spe
             goto end;
         }
 
-        mirror_error_text += "\n" + get_host(in_spec.url_vec.at(n_url) ) + ": " + url_error;
+        mirror_error_text += "\n"                                 +
+                             get_host(in_spec.url_vec.at(n_url) ) +
+                             ": "                                 +
+                             url_error;
     }
 
     if (is_downloaded == false)
     {
-        error = "The application could not be downloaded." + mirror_error_text;
+        error = "The application could not be downloaded." +
+                mirror_error_text;
 
         if (in_spec.page_url.empty() == false)
         {
-            error += "\n\nIt can be downloaded by hand from " + in_spec.page_url;
+            error += "\n\nIt can be downloaded by hand from " +
+                     in_spec.page_url;
         }
 
         goto end;
@@ -193,8 +196,8 @@ void VRPlayer::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spe
 
     if (Utils::Files::Sha256::hash_file(archive_path,
                                         m_is_cancelled,
-                                        &archive_hash_hex,
-                                        &error) == false)
+                                       &archive_hash_hex,
+                                       &error) == false)
     {
         goto end;
     }
@@ -225,7 +228,7 @@ void VRPlayer::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spe
                                             in_spec.n_unpacked_bytes_max,
                                             m_is_cancelled,
                                             extract_func,
-                                            &error) == false)
+                                           &error) == false)
     {
         goto end;
     }
@@ -241,10 +244,14 @@ void VRPlayer::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spe
         const std::wstring wide_unpacked_directory = Utils::Files::FileSystem::to_wide(unpacked_directory);
 
         if (::MoveFileExW(wide_unpacked_directory.c_str(),
-                          wide_install_directory.c_str(),
+                          wide_install_directory.c_str (),
                           0) == FALSE)
         {
-            error = "Cannot put the application in " + in_spec.install_directory + " (error " + std::to_string(::GetLastError() ) + ")";
+            error = "Cannot put the application in "  +
+                    in_spec.install_directory         +
+                    " (error "                        +
+                    std::to_string(::GetLastError() ) +
+                    ")";
 
             goto end;
         }
@@ -315,10 +322,10 @@ bool VRPlayer::AppInstaller::AppInstaller::start(const InstallSpec& in_spec,
 
     is_hash_valid = is_sha256_hex(in_spec.sha256_hex);
 
-    if (in_spec.install_directory.empty()     ||
-        in_spec.url_vec.empty()               ||
-        is_hash_valid == false                ||
-        in_spec.n_unpacked_bytes_max == 0)
+    if (in_spec.install_directory.empty()          ||
+        in_spec.url_vec.empty          ()          ||
+        is_hash_valid                     == false ||
+        in_spec.n_unpacked_bytes_max      == 0)
     {
         *out_error_ptr = "The application does not say where it comes from, or how to check it.";
 
@@ -329,7 +336,9 @@ bool VRPlayer::AppInstaller::AppInstaller::start(const InstallSpec& in_spec,
     {
         if (Utils::Files::FileSystem::is_directory_empty(in_spec.install_directory) == false)
         {
-            *out_error_ptr = "The folder " + in_spec.install_directory + " is there, but the application is not in it. Remove the folder, "
+            *out_error_ptr = "The folder "                                                      +
+                             in_spec.install_directory                                          +
+                             " is there, but the application is not in it. Remove the folder, "
                              "and launch the application again.";
 
             goto end;
@@ -349,7 +358,9 @@ bool VRPlayer::AppInstaller::AppInstaller::start(const InstallSpec& in_spec,
     if (Utils::Files::FileSystem::create_directories(parent_directory,
                                                      out_error_ptr) == false)
     {
-        *out_error_ptr = "DeepScene cannot write to " + parent_directory + ", so the application cannot be downloaded there.\n\nMove the folder "
+        *out_error_ptr = "DeepScene cannot write to "                                          +
+                         parent_directory                                                      +
+                         ", so the application cannot be downloaded there.\n\nMove the folder "
                          "of DeepScene to a place which you can write to, and start it again.";
 
         goto end;
@@ -358,7 +369,9 @@ bool VRPlayer::AppInstaller::AppInstaller::start(const InstallSpec& in_spec,
     if (Utils::Files::FileSystem::test_write(parent_directory,
                                              out_error_ptr) == false)
     {
-        *out_error_ptr = "DeepScene cannot write to " + parent_directory + ", so the application cannot be downloaded there.\n\nMove the folder "
+        *out_error_ptr = "DeepScene cannot write to "                                           +
+                         parent_directory                                                       +
+                         ", so the application cannot be downloaded there.\n\nMove the folder "
                          "of DeepScene to a place which you can write to, and start it again.";
 
         goto end;

@@ -21,8 +21,8 @@ bool Utils::Images::PngWriter::encode(const Image&          in_image,
 
     out_file_u8_vec_ptr->clear();
 
-    if (n_pixels == 0 ||
-        in_image.pixel_u8_vec.size() < n_pixels * N_BYTES_PER_PIXEL_IN)
+    if (n_pixels                     == 0                               ||
+        in_image.pixel_u8_vec.size() <  n_pixels * N_BYTES_PER_PIXEL_IN)
     {
         goto end;
     }
@@ -41,7 +41,7 @@ bool Utils::Images::PngWriter::encode(const Image&          in_image,
         out_ptr[2] = pixel_ptr[0];
     }
 
-    file_ptr = ::tdefl_write_image_to_png_file_in_memory_ex(rgb_u8_vec.data(),
+    file_ptr = ::tdefl_write_image_to_png_file_in_memory_ex(rgb_u8_vec.data (),
                                                             static_cast<int>(in_image.width),
                                                             static_cast<int>(in_image.height),
                                                             N_CHANNELS_OUT,
@@ -56,6 +56,7 @@ bool Utils::Images::PngWriter::encode(const Image&          in_image,
 
     out_file_u8_vec_ptr->assign(static_cast<const uint8_t*>(file_ptr),
                                 static_cast<const uint8_t*>(file_ptr) + n_file_bytes);
+
     ::mz_free(file_ptr);
 
     result = true;

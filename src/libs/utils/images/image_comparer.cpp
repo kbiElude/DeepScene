@@ -15,9 +15,9 @@ namespace
     {
         const size_t n_bytes = static_cast<size_t>(in_first_image.width) * in_first_image.height * N_BYTES_PER_PIXEL;
 
-        return (in_first_image.width  == in_second_image.width        &&
-                in_first_image.height == in_second_image.height       &&
-                in_first_image.pixel_u8_vec.size()  >= n_bytes        &&
+        return (in_first_image.width                == in_second_image.width  &&
+                in_first_image.height               == in_second_image.height &&
+                in_first_image.pixel_u8_vec.size () >= n_bytes                &&
                 in_second_image.pixel_u8_vec.size() >= n_bytes);
     }
 }

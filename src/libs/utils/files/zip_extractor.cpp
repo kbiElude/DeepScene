@@ -48,7 +48,8 @@ bool Utils::Files::ZipExtractor::extract(const std::string&       in_archive_pat
                                  0, /* archive_size: from the file */
                                  0) == MZ_FALSE)
     {
-        *out_error_ptr = std::string("Not a zip file: ") + mz_zip_get_error_string(mz_zip_get_last_error(&zip_archive) );
+        *out_error_ptr = std::string            ("Not a zip file: ") +
+                         mz_zip_get_error_string(mz_zip_get_last_error(&zip_archive) );
 
         goto end;
     }
@@ -65,8 +66,8 @@ bool Utils::Files::ZipExtractor::extract(const std::string&       in_archive_pat
         std::string              lower_case_entry_name;
 
         if (mz_zip_reader_file_stat(&zip_archive,
-                                    n_entry,
-                                   &entry_stat) == MZ_FALSE)
+                                     n_entry,
+                                    &entry_stat) == MZ_FALSE)
         {
             *out_error_ptr = "The zip file is damaged";
 
@@ -75,7 +76,8 @@ bool Utils::Files::ZipExtractor::extract(const std::string&       in_archive_pat
 
         if (is_name_safe(entry_stat.m_filename) == false)
         {
-            *out_error_ptr = std::string("The zip file has a name which is not allowed: ") + entry_stat.m_filename;
+            *out_error_ptr = std::string("The zip file has a name which is not allowed: ") +
+                             entry_stat.m_filename;
 
             goto end;
         }
@@ -83,7 +85,8 @@ bool Utils::Files::ZipExtractor::extract(const std::string&       in_archive_pat
         if (entry_stat.m_is_encrypted != 0 ||
             entry_stat.m_is_supported == 0)
         {
-            *out_error_ptr = std::string("The zip file has an entry which cannot be unpacked: ") + entry_stat.m_filename;
+            *out_error_ptr = std::string("The zip file has an entry which cannot be unpacked: ") +
+                             entry_stat.m_filename;
 
             goto end;
         }
@@ -92,7 +95,8 @@ bool Utils::Files::ZipExtractor::extract(const std::string&       in_archive_pat
 
         if (lower_case_entry_name_set.insert(lower_case_entry_name).second == false)
         {
-            *out_error_ptr = std::string("The zip file has a name twice: ") + entry_stat.m_filename;
+            *out_error_ptr = std::string("The zip file has a name twice: ") +
+                             entry_stat.m_filename;
 
             goto end;
         }
@@ -171,7 +175,11 @@ bool Utils::Files::ZipExtractor::extract(const std::string&       in_archive_pat
 
             if (file_handle == INVALID_HANDLE_VALUE)
             {
-                *out_error_ptr = "Cannot write " + entry_path + " (error " + std::to_string(::GetLastError() ) + ")";
+                *out_error_ptr = "Cannot write "                   +
+                                 entry_path                        +
+                                 " (error "                        +
+                                 std::to_string(::GetLastError() ) +
+                                 ")";
 
                 goto end;
             }
@@ -186,8 +194,8 @@ bool Utils::Files::ZipExtractor::extract(const std::string&       in_archive_pat
 
             is_entry_extracted = mz_zip_reader_extract_to_callback(&zip_archive,
                                                                    n_entry,
-                                                                   &write,
-                                                                   &write_context,
+                                                                  &write,
+                                                                  &write_context,
                                                                    0); /* flags */
 
             ::CloseHandle(file_handle);
@@ -199,10 +207,12 @@ bool Utils::Files::ZipExtractor::extract(const std::string&       in_archive_pat
                 goto end;
             }
 
-            if (is_entry_extracted == MZ_FALSE ||
+            if (is_entry_extracted            == MZ_FALSE                       ||
                 write_context.n_bytes_written != write_context.n_bytes_declared)
             {
-                *out_error_ptr = std::string("Cannot unpack ") + entry_stat.m_filename + ": " +
+                *out_error_ptr = std::string("Cannot unpack ")                               +
+                                 entry_stat.m_filename                                       +
+                                 ": "                                                        +
                                  mz_zip_get_error_string(mz_zip_get_last_error(&zip_archive) );
 
                 goto end;
@@ -230,8 +240,31 @@ end:
 
 bool Utils::Files::ZipExtractor::is_name_safe(const std::string& in_name)
 {
-    static const std::string DEVICE_NAME_ARRAY[] = {"con", "prn", "aux", "nul", "com1", "com2", "com3", "com4", "com5", "com6", "com7", "com8",
-                                                    "com9", "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8", "lpt9"};
+    static const std::string DEVICE_NAME_ARRAY[] =
+    {
+        "con",
+        "prn",
+        "aux",
+        "nul",
+        "com1",
+        "com2",
+        "com3",
+        "com4",
+        "com5",
+        "com6",
+        "com7",
+        "com8",
+        "com9",
+        "lpt1",
+        "lpt2",
+        "lpt3",
+        "lpt4",
+        "lpt5",
+        "lpt6",
+        "lpt7",
+        "lpt8",
+        "lpt9"
+    };
 
     size_t      n_part_start_character    = 0;
     std::string name_with_forward_slashes = in_name;
@@ -242,10 +275,10 @@ bool Utils::Files::ZipExtractor::is_name_safe(const std::string& in_name)
                  '\\',
                  '/');
 
-    if (name_with_forward_slashes.empty()                         ||
-        name_with_forward_slashes.at(0) == '/'                    ||
-        name_with_forward_slashes.find(':')  != std::string::npos ||
-        name_with_forward_slashes.find('\0') != std::string::npos)
+    if (name_with_forward_slashes.empty()                          ||
+        name_with_forward_slashes.at   (0)    == '/'               ||
+        name_with_forward_slashes.find (':')  != std::string::npos ||
+        name_with_forward_slashes.find ('\0') != std::string::npos)
     {
         goto end;
     }
@@ -268,14 +301,16 @@ bool Utils::Files::ZipExtractor::is_name_safe(const std::string& in_name)
                                                                                           : name_part.substr(0,
                                                                                                              n_first_dot_character);
 
-        if (name_part.empty() && n_separator_character != std::string::npos)
+        if (name_part.empty()                          &&
+            n_separator_character != std::string::npos)
         {
             goto end;
         }
 
-        if (name_part == "."  ||
-            name_part == ".." ||
-            (name_part.empty() == false && (name_part.back() == '.' || name_part.back() == ' ') ) )
+        if (name_part          == "."                                   ||
+            name_part          == ".."                                  ||
+            (name_part.empty() == false && (name_part.back() == '.'  ||
+                                            name_part.back() == ' ') ) )
         {
             goto end;
         }
@@ -326,9 +361,9 @@ size_t Utils::Files::ZipExtractor::write(void*       in_context_ptr,
     size_t        result                  = 0;
 
     /* An entry is not written beyond its size, and not at all once it is cancelled; the caller sees the difference. */
-    if (context_ptr->is_cancelled_ptr->load()                                                      ||
-        context_ptr->n_bytes_written + in_n_bytes > context_ptr->n_bytes_declared                  ||
-        in_offset != context_ptr->n_bytes_written)
+    if (context_ptr->is_cancelled_ptr->load()                                      ||
+        context_ptr->n_bytes_written + in_n_bytes >  context_ptr->n_bytes_declared ||
+        in_offset                                 != context_ptr->n_bytes_written)
     {
         goto end;
     }

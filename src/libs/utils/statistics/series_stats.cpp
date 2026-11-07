@@ -28,7 +28,7 @@ void Utils::Statistics::SeriesStats::add(const double& in_value)
         m_worst = in_value;
     }
 
-    if (m_late_threshold > 0.0 &&
+    if (m_late_threshold > 0.0              &&
         in_value         > m_late_threshold)
     {
         ++m_n_late;

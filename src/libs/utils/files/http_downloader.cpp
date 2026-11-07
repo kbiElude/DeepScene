@@ -30,31 +30,32 @@ bool Utils::Files::HttpDownloader::download(const std::string&       in_url,
     constexpr int   RESOLVE_TIMEOUT_MS = 10000;
     constexpr int   SEND_TIMEOUT_MS    = 15000;
 
-    HINTERNET    connection_handle      = nullptr;
-    HANDLE       file_handle            = INVALID_HANDLE_VALUE;
-    std::wstring host_name;
-    DWORD        http_status_code       = 0;
-    DWORD        n_available_bytes      = 0;
-    uint64_t     n_bytes_done           = 0;
-    uint64_t     n_bytes_total          = 0;
-    DWORD        n_content_length_bytes = 0;
-    DWORD        n_header_value_bytes   = sizeof(DWORD);
-    DWORD        n_read_bytes           = 0;
     std::vector<uint8_t> read_buffer_vec(CHUNK_N_BYTES);
-    HINTERNET          request_handle          = nullptr;
-    std::wstring       resource_path_and_query;
-    bool               result                  = false;
-    HINTERNET          session_handle          = nullptr;
-    URL_COMPONENTSW    url_components;
-    const std::wstring wide_url                = FileSystem::to_wide_text(in_url);
+
+    HINTERNET            connection_handle       = nullptr;
+    HANDLE               file_handle             = INVALID_HANDLE_VALUE;
+    std::wstring         host_name;
+    DWORD                http_status_code        = 0;
+    DWORD                n_available_bytes       = 0;
+    uint64_t             n_bytes_done            = 0;
+    uint64_t             n_bytes_total           = 0;
+    DWORD                n_content_length_bytes  = 0;
+    DWORD                n_header_value_bytes    = sizeof(DWORD);
+    DWORD                n_read_bytes            = 0;
+    HINTERNET            request_handle          = nullptr;
+    std::wstring         resource_path_and_query;
+    bool                 result                  = false;
+    HINTERNET            session_handle          = nullptr;
+    URL_COMPONENTSW      url_components;
+    const std::wstring   wide_url                = FileSystem::to_wide_text(in_url);
 
     ::ZeroMemory(&url_components,
                  sizeof(url_components) );
 
-    url_components.dwStructSize     = sizeof(url_components);
-    url_components.dwHostNameLength = static_cast<DWORD>(-1);
-    url_components.dwSchemeLength   = static_cast<DWORD>(-1);
-    url_components.dwUrlPathLength  = static_cast<DWORD>(-1);
+    url_components.dwStructSize      = sizeof(url_components);
+    url_components.dwHostNameLength  = static_cast<DWORD>(-1);
+    url_components.dwSchemeLength    = static_cast<DWORD>(-1);
+    url_components.dwUrlPathLength   = static_cast<DWORD>(-1);
     url_components.dwExtraInfoLength = static_cast<DWORD>(-1);
 
     if (::WinHttpCrackUrl(wide_url.c_str(),
@@ -62,15 +63,17 @@ bool Utils::Files::HttpDownloader::download(const std::string&       in_url,
                           0, /* flags */
                          &url_components) == FALSE)
     {
-        *out_error_ptr = "Not an address: " + in_url;
+        *out_error_ptr = "Not an address: " +
+                         in_url;
 
         goto end;
     }
 
-    if (url_components.nScheme != INTERNET_SCHEME_HTTPS &&
+    if (url_components.nScheme  != INTERNET_SCHEME_HTTPS                               &&
         (url_components.nScheme != INTERNET_SCHEME_HTTP || m_is_http_allowed == false) )
     {
-        *out_error_ptr = "Only addresses of https are used: " + in_url;
+        *out_error_ptr = "Only addresses of https are used: " +
+                         in_url;
 
         goto end;
     }
@@ -88,7 +91,9 @@ bool Utils::Files::HttpDownloader::download(const std::string&       in_url,
 
     if (session_handle == nullptr)
     {
-        *out_error_ptr = "The network of the system cannot be used (error " + std::to_string(::GetLastError() ) + ")";
+        *out_error_ptr = "The network of the system cannot be used (error " +
+                         std::to_string(::GetLastError() )                  +
+                         ")";
 
         goto end;
     }
@@ -115,7 +120,11 @@ bool Utils::Files::HttpDownloader::download(const std::string&       in_url,
 
     if (connection_handle == nullptr)
     {
-        *out_error_ptr = "Cannot reach " + FileSystem::to_utf8(host_name) + " (error " + std::to_string(::GetLastError() ) + ")";
+        *out_error_ptr = "Cannot reach "                   +
+                         FileSystem::to_utf8(host_name)    +
+                         " (error "                        +
+                         std::to_string(::GetLastError() ) +
+                         ")";
 
         goto end;
     }
@@ -131,7 +140,11 @@ bool Utils::Files::HttpDownloader::download(const std::string&       in_url,
 
     if (request_handle == nullptr)
     {
-        *out_error_ptr = "Cannot ask " + FileSystem::to_utf8(host_name) + " (error " + std::to_string(::GetLastError() ) + ")";
+        *out_error_ptr = "Cannot ask "                     +
+                         FileSystem::to_utf8(host_name)    +
+                         " (error "                        +
+                         std::to_string(::GetLastError() ) +
+                         ")";
 
         goto end;
     }
@@ -144,7 +157,11 @@ bool Utils::Files::HttpDownloader::download(const std::string&       in_url,
                              0,
                              0) == FALSE)
     {
-        *out_error_ptr = "Cannot ask " + FileSystem::to_utf8(host_name) + " (error " + std::to_string(::GetLastError() ) + ")";
+        *out_error_ptr = "Cannot ask "                     +
+                         FileSystem::to_utf8(host_name)    +
+                         " (error "                        +
+                         std::to_string(::GetLastError() ) +
+                         ")";
 
         goto end;
     }
@@ -152,7 +169,11 @@ bool Utils::Files::HttpDownloader::download(const std::string&       in_url,
     if (::WinHttpReceiveResponse(request_handle,
                                  nullptr) == FALSE)
     {
-        *out_error_ptr = "No answer from " + FileSystem::to_utf8(host_name) + " (error " + std::to_string(::GetLastError() ) + ")";
+        *out_error_ptr = "No answer from "                 +
+                         FileSystem::to_utf8(host_name)    +
+                         " (error "                        +
+                         std::to_string(::GetLastError() ) +
+                         ")";
 
         goto end;
     }
@@ -166,7 +187,9 @@ bool Utils::Files::HttpDownloader::download(const std::string&       in_url,
 
     if (http_status_code != 200)
     {
-        *out_error_ptr = FileSystem::to_utf8(host_name) + " answered " + std::to_string(http_status_code);
+        *out_error_ptr = FileSystem::to_utf8(host_name) +
+                         " answered "                   +
+                         std::to_string(http_status_code);
 
         goto end;
     }
@@ -197,7 +220,11 @@ bool Utils::Files::HttpDownloader::download(const std::string&       in_url,
 
     if (file_handle == INVALID_HANDLE_VALUE)
     {
-        *out_error_ptr = "Cannot write " + in_file_path + " (error " + std::to_string(::GetLastError() ) + ")";
+        *out_error_ptr = "Cannot write "                   +
+                         in_file_path                      +
+                         " (error "                        +
+                         std::to_string(::GetLastError() ) +
+                         ")";
 
         goto end;
     }
@@ -235,7 +262,9 @@ bool Utils::Files::HttpDownloader::download(const std::string&       in_url,
                                               CHUNK_N_BYTES),
                              &n_read_bytes) == FALSE)
         {
-            *out_error_ptr = "The download stopped (error " + std::to_string(::GetLastError() ) + ")";
+            *out_error_ptr = "The download stopped (error "    +
+                             std::to_string(::GetLastError() ) +
+                             ")";
 
             goto end;
         }
@@ -246,10 +275,14 @@ bool Utils::Files::HttpDownloader::download(const std::string&       in_url,
                                            &n_written_bytes,
                                             nullptr);
 
-        if (is_written == FALSE              ||
+        if (is_written      == FALSE         ||
             n_written_bytes != n_read_bytes)
         {
-            *out_error_ptr = "Cannot write " + in_file_path + " (error " + std::to_string(::GetLastError() ) + ")";
+            *out_error_ptr = "Cannot write "                   +
+                             in_file_path                      +
+                             " (error "                        +
+                             std::to_string(::GetLastError() ) +
+                             ")";
 
             goto end;
         }
@@ -264,7 +297,7 @@ bool Utils::Files::HttpDownloader::download(const std::string&       in_url,
     }
     while (true);
 
-    if (n_bytes_total != 0       &&
+    if (n_bytes_total != 0             &&
         n_bytes_done  != n_bytes_total)
     {
         *out_error_ptr = "The download ended before the end of the file";
