@@ -24,6 +24,15 @@ uint64_t Analysis::APIDumpAnalysis::KeyBuilder::compute_description_key(const Re
 {
     Utils::Hashing::Hasher hasher;
 
+    /* What the application keeps in its memory is told apart by what it is for; its bytes and its size are those of the moment. */
+    if (in_description.is_application_memory)
+    {
+        hasher.add_bool(true);
+        hasher.add_u32 (static_cast<uint32_t>(in_description.kind) );
+
+        return hasher.get_digest();
+    }
+
     hasher.add_u64 (in_description.api_flags);
     hasher.add_u64 (in_description.content_hash);
     hasher.add_u32 (in_description.depth_or_layer_count);

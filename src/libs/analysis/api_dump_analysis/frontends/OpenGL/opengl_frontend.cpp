@@ -4,13 +4,15 @@
  */
 #include "analysis/api_dump_analysis/frontends/OpenGL/opengl_frontend.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_matrix_math.h"
+#include "analysis/api_dump_analysis/frontends/OpenGL/gl_geometry_sampler.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_vertex_reader.h"
 #include "analysis/api_dump_analysis/frontends/shared/call_view.h"
 #include "capture/api_dump_loader/api_info.h"
 #include <string.h>
 
 Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::OpenGLFrontend(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr)
-    :m_builder_ptr            (in_builder_ptr),
+    :m_array_draw_describer   (in_builder_ptr),
+     m_builder_ptr            (in_builder_ptr),
      m_framebuffer_height     (0),
      m_framebuffer_width      (0),
      m_has_default_framebuffer(false),
@@ -254,6 +256,64 @@ Analysis::APIDumpAnalysis::PrimitiveTopology Analysis::APIDumpAnalysis::Frontend
     return result;
 }
 
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_array_draw(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                             const Capture::APIDumpLoader::Workload&      in_workload,
+                                                                             const bool&                                  in_is_indexed,
+                                                                             GlContextState*                              inout_state_ptr)
+{
+    constexpr size_t MODE_ARGUMENT = 0;
+
+    uint32_t mode         = 0;
+    bool     is_mode_read = false;
+
+    if (in_call.arg_in_vec.size() > MODE_ARGUMENT)
+    {
+        is_mode_read = APIInterceptor::read_number(in_call.arg_in_vec.at(MODE_ARGUMENT),
+                                                   &mode);
+    }
+
+    if (is_mode_read == false)
+    {
+        m_n_unfollowed_calls++;
+    }
+    else
+    {
+        const auto                                 topology = get_primitive_topology(mode);
+        Analysis::APIDumpAnalysis::DrawDescription description;
+
+        const auto result = m_array_draw_describer.describe(in_call,
+                                                            in_workload,
+                                                            in_is_indexed,
+                                                            topology,
+                                                            inout_state_ptr->pipeline_state,
+                                                            &description);
+
+        switch (result)
+        {
+            case GlArrayDrawResult::DRAW:
+            {
+                ensure_default_framebuffer(*inout_state_ptr);
+
+                m_builder_ptr->on_draw(description);
+
+                break;
+            }
+
+            case GlArrayDrawResult::EMPTY:
+            {
+                break;
+            }
+
+            default:
+            {
+                m_n_unfollowed_calls++;
+
+                break;
+            }
+        }
+    }
+}
+
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_begin(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                         GlContextState*                              inout_state_ptr)
 {
@@ -410,7 +470,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_end(GlContextS
 
         if (block.wants_positions)
         {
-            description.geometry_ptr = sample_positions(block.position_vec);
+            description.geometry_ptr = GlGeometrySampler::make_sample(block.position_vec);
         }
 
         m_builder_ptr->on_draw(description);
@@ -861,8 +921,6 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::is_unsupported_functi
         case APIInterceptor::APIFUNCTION_GL_GLCOPYPIXELS:
         case APIInterceptor::APIFUNCTION_GL_GLCOPYTEXIMAGE2D:
         case APIInterceptor::APIFUNCTION_GL_GLCOPYTEXSUBIMAGE2D:
-        case APIInterceptor::APIFUNCTION_GL_GLDRAWARRAYS:
-        case APIInterceptor::APIFUNCTION_GL_GLDRAWELEMENTS:
         case APIInterceptor::APIFUNCTION_GL_GLDRAWPIXELS:
         case APIInterceptor::APIFUNCTION_GL_GLREADPIXELS:
         {
@@ -917,6 +975,19 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::on_call(const Capture
                 {
                     handle_state_value(in_call,
                                        state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLDRAWARRAYS:
+                case APIInterceptor::APIFUNCTION_GL_GLDRAWELEMENTS:
+                {
+                    const bool is_indexed = (in_call.func == APIInterceptor::APIFUNCTION_GL_GLDRAWELEMENTS);
+
+                    handle_array_draw(in_call,
+                                      in_workload,
+                                      is_indexed,
+                                      state_ptr);
 
                     break;
                 }
@@ -1391,29 +1462,4 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::restore_attributes(co
     {
         inout_attributes_ptr->viewport = saved.viewport;
     }
-}
-
-std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::sample_positions(const std::vector<std::array<float, 3> >& in_position_vec)
-{
-    constexpr size_t MAX_N_POINTS = 64;
-
-    const size_t n_positions = in_position_vec.size();
-    auto         result_ptr  = std::make_shared<Analysis::APIDumpAnalysis::GeometrySample>();
-
-    if (n_positions <= MAX_N_POINTS)
-    {
-        result_ptr->position_vec = in_position_vec;
-    }
-    else
-    {
-        /* Spread over the whole of the draw, so that a sample says what the draw does from the first vertex to the last. */
-        for (size_t n_point = 0;
-                    n_point < MAX_N_POINTS;
-                  ++n_point)
-        {
-            result_ptr->position_vec.push_back(in_position_vec.at(n_point * n_positions / MAX_N_POINTS) );
-        }
-    }
-
-    return result_ptr;
 }

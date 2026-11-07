@@ -335,21 +335,22 @@ namespace Analysis
         /* Follows Format, ResourceKind and ShaderStage, which it depends on. */
         struct ResourceDescription
         {
-            uint64_t     api_flags            = 0; /* what the front end finds worth telling resources apart by (pool, creation flags) */
-            uint64_t     content_hash         = 0; /* of the shader code, or of the data which an immutable resource starts with        */
-            uint32_t     depth_or_layer_count = 1;
+            uint64_t     api_flags             = 0; /* what the front end finds worth telling resources apart by (pool, creation flags) */
+            uint64_t     content_hash          = 0; /* of the shader code, or of the data which an immutable resource starts with        */
+            uint32_t     depth_or_layer_count  = 1;
             Format       format;
-            bool         has_content_hash     = false;
-            uint32_t     height               = 0;
-            bool         is_depth_stencil     = false;
-            bool         is_dynamic           = false;
-            bool         is_render_target     = false;
-            ResourceKind kind                 = ResourceKind::UNKNOWN;
-            uint32_t     mip_level_count      = 1;
-            uint32_t     sample_count         = 1;
-            ShaderStage  shader_stage         = ShaderStage::UNKNOWN;
-            uint64_t     size_in_bytes        = 0; /* of a buffer */
-            uint32_t     width                = 0;
+            bool         has_content_hash      = false;
+            uint32_t     height                = 0;
+            bool         is_application_memory = false; /* a copy of the application's memory (a client array): told apart by its kind, not by its bytes or size */
+            bool         is_depth_stencil      = false;
+            bool         is_dynamic            = false;
+            bool         is_render_target      = false;
+            ResourceKind kind                  = ResourceKind::UNKNOWN;
+            uint32_t     mip_level_count       = 1;
+            uint32_t     sample_count          = 1;
+            ShaderStage  shader_stage          = ShaderStage::UNKNOWN;
+            uint64_t     size_in_bytes         = 0; /* of a buffer */
+            uint32_t     width                 = 0;
         };
 
         /* A resource as the model builder knows it. Follows ResourceDescription and ResourceView. */

@@ -201,21 +201,22 @@ bool Analysis::APIDumpAnalysis::operator==(const PassStructure& in_a,
 bool Analysis::APIDumpAnalysis::operator==(const ResourceDescription& in_a,
                                            const ResourceDescription& in_b)
 {
-    return (in_a.api_flags            == in_b.api_flags            &&
-            in_a.content_hash         == in_b.content_hash         &&
-            in_a.depth_or_layer_count == in_b.depth_or_layer_count &&
-            in_a.format               == in_b.format               &&
-            in_a.has_content_hash     == in_b.has_content_hash     &&
-            in_a.height               == in_b.height               &&
-            in_a.is_depth_stencil     == in_b.is_depth_stencil     &&
-            in_a.is_dynamic           == in_b.is_dynamic           &&
-            in_a.is_render_target     == in_b.is_render_target     &&
-            in_a.kind                 == in_b.kind                 &&
-            in_a.mip_level_count      == in_b.mip_level_count      &&
-            in_a.sample_count         == in_b.sample_count         &&
-            in_a.shader_stage         == in_b.shader_stage         &&
-            in_a.size_in_bytes        == in_b.size_in_bytes        &&
-            in_a.width                == in_b.width);
+    return (in_a.api_flags             == in_b.api_flags             &&
+            in_a.content_hash          == in_b.content_hash          &&
+            in_a.depth_or_layer_count  == in_b.depth_or_layer_count  &&
+            in_a.format                == in_b.format                &&
+            in_a.has_content_hash      == in_b.has_content_hash      &&
+            in_a.height                == in_b.height                &&
+            in_a.is_application_memory == in_b.is_application_memory &&
+            in_a.is_depth_stencil      == in_b.is_depth_stencil      &&
+            in_a.is_dynamic            == in_b.is_dynamic            &&
+            in_a.is_render_target      == in_b.is_render_target      &&
+            in_a.kind                  == in_b.kind                  &&
+            in_a.mip_level_count       == in_b.mip_level_count       &&
+            in_a.sample_count          == in_b.sample_count          &&
+            in_a.shader_stage          == in_b.shader_stage          &&
+            in_a.size_in_bytes         == in_b.size_in_bytes         &&
+            in_a.width                 == in_b.width);
 }
 
 bool Analysis::APIDumpAnalysis::operator==(const ResourceView& in_a,

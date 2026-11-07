@@ -783,25 +783,26 @@ Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Passes
 {
     ResourceDescription result;
 
-    result.api_flags            = inout_reader_ptr->read_u64 ();
-    result.content_hash         = inout_reader_ptr->read_u64 ();
-    result.depth_or_layer_count = inout_reader_ptr->read_u32 ();
-    result.format.format_class  = read_enum                  (inout_reader_ptr,
+    result.api_flags             = inout_reader_ptr->read_u64 ();
+    result.content_hash          = inout_reader_ptr->read_u64 ();
+    result.depth_or_layer_count  = inout_reader_ptr->read_u32 ();
+    result.format.format_class   = read_enum                  (inout_reader_ptr,
                                                               FormatClass::UNKNOWN);
-    result.format.raw_value     = inout_reader_ptr->read_u32 ();
-    result.has_content_hash     = inout_reader_ptr->read_bool();
-    result.height               = inout_reader_ptr->read_u32 ();
-    result.is_depth_stencil     = inout_reader_ptr->read_bool();
-    result.is_dynamic           = inout_reader_ptr->read_bool();
-    result.is_render_target     = inout_reader_ptr->read_bool();
-    result.kind                 = read_enum                  (inout_reader_ptr,
+    result.format.raw_value      = inout_reader_ptr->read_u32 ();
+    result.has_content_hash      = inout_reader_ptr->read_bool();
+    result.height                = inout_reader_ptr->read_u32 ();
+    result.is_application_memory = inout_reader_ptr->read_bool();
+    result.is_depth_stencil      = inout_reader_ptr->read_bool();
+    result.is_dynamic            = inout_reader_ptr->read_bool();
+    result.is_render_target      = inout_reader_ptr->read_bool();
+    result.kind                  = read_enum                  (inout_reader_ptr,
                                                               ResourceKind::UNKNOWN);
-    result.mip_level_count      = inout_reader_ptr->read_u32 ();
-    result.sample_count         = inout_reader_ptr->read_u32 ();
-    result.shader_stage         = read_enum                  (inout_reader_ptr,
+    result.mip_level_count       = inout_reader_ptr->read_u32 ();
+    result.sample_count          = inout_reader_ptr->read_u32 ();
+    result.shader_stage          = read_enum                  (inout_reader_ptr,
                                                               ShaderStage::UNKNOWN);
-    result.size_in_bytes        = inout_reader_ptr->read_u64 ();
-    result.width                = inout_reader_ptr->read_u32 ();
+    result.size_in_bytes         = inout_reader_ptr->read_u64 ();
+    result.width                 = inout_reader_ptr->read_u32 ();
 
     return result;
 }
@@ -1249,6 +1250,7 @@ void Analysis::APIDumpAnalysis::PassesSerializer::write_resource_description(con
     inout_writer_ptr->write_u32 (in_description.format.raw_value);
     inout_writer_ptr->write_bool(in_description.has_content_hash);
     inout_writer_ptr->write_u32 (in_description.height);
+    inout_writer_ptr->write_bool(in_description.is_application_memory);
     inout_writer_ptr->write_bool(in_description.is_depth_stencil);
     inout_writer_ptr->write_bool(in_description.is_dynamic);
     inout_writer_ptr->write_bool(in_description.is_render_target);

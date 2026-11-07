@@ -91,6 +91,10 @@ TEST(KeyBuilder, EveryFieldOfADescriptionChangesItsKey)
         },
         [](Analysis::APIDumpAnalysis::ResourceDescription* description_ptr)
         {
+            description_ptr->is_application_memory = true;
+        },
+        [](Analysis::APIDumpAnalysis::ResourceDescription* description_ptr)
+        {
             description_ptr->width = 7;
         }
     };
@@ -122,6 +126,31 @@ TEST(KeyBuilder, EveryFieldOfADescriptionChangesItsKey)
     EXPECT_EQ(std::adjacent_find(key_vec.begin(),
                                  key_vec.end() ),
               key_vec.end() );
+}
+
+TEST(KeyBuilder, ADataBufferOfTheApplicationsMemoryIsToldApartByItsKindOnly)
+{
+    Analysis::APIDumpAnalysis::ResourceDescription first;
+    Analysis::APIDumpAnalysis::ResourceDescription second;
+    Analysis::APIDumpAnalysis::ResourceDescription index;
+
+    first.content_hash          = 1;
+    first.has_content_hash      = true;
+    first.is_application_memory = true;
+    first.kind                  = Analysis::APIDumpAnalysis::ResourceKind::BUFFER_VERTEX;
+    first.size_in_bytes         = 36;
+
+    second               = first;
+    second.content_hash  = 2;
+    second.size_in_bytes = 72;
+
+    index      = first;
+    index.kind = Analysis::APIDumpAnalysis::ResourceKind::BUFFER_INDEX;
+
+    EXPECT_EQ(Analysis::APIDumpAnalysis::KeyBuilder::compute_description_key(first),
+              Analysis::APIDumpAnalysis::KeyBuilder::compute_description_key(second) );
+    EXPECT_NE(Analysis::APIDumpAnalysis::KeyBuilder::compute_description_key(first),
+              Analysis::APIDumpAnalysis::KeyBuilder::compute_description_key(index) );
 }
 
 TEST(KeyBuilder, KeySetsHaveNoOrder)

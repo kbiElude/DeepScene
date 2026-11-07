@@ -47,9 +47,8 @@ void Tests::GlCallBuilder::add_call(const APIInterceptor::APIFunction&         i
     m_workload.dumped_api_call_vec_ptr->emplace_back(std::move(call) );
 }
 
-void Tests::GlCallBuilder::add_chunk_call(const APIInterceptor::APIFunction& in_function,
-                                          const void*                        in_data_ptr,
-                                          const size_t&                      in_n_bytes)
+APIInterceptor::APIFunctionArgument Tests::GlCallBuilder::add_chunk(const void*   in_data_ptr,
+                                                                   const size_t& in_n_bytes)
 {
     const uint32_t chunk_id = m_workload.first_data_chunk_id + static_cast<uint32_t>(m_workload.data_chunk_ptr_vec.size() );
 
@@ -61,8 +60,18 @@ void Tests::GlCallBuilder::add_chunk_call(const APIInterceptor::APIFunction& in_
 
     m_workload.data_chunk_ptr_vec.push_back(std::move(chunk_ptr) );
 
+    return APIInterceptor::APIFunctionArgument::create_data_chunk_id(chunk_id);
+}
+
+void Tests::GlCallBuilder::add_chunk_call(const APIInterceptor::APIFunction& in_function,
+                                          const void*                        in_data_ptr,
+                                          const size_t&                      in_n_bytes)
+{
+    const auto chunk_argument = add_chunk(in_data_ptr,
+                                          in_n_bytes);
+
     add_call(in_function,
-             {APIInterceptor::APIFunctionArgument::create_data_chunk_id(chunk_id)});
+             {chunk_argument});
 }
 
 void Tests::GlCallBuilder::begin(const uint32_t& in_mode)
@@ -128,6 +137,42 @@ void Tests::GlCallBuilder::disable(const uint32_t& in_capability)
              {APIInterceptor::APIFunctionArgument::create_u32_glenum(in_capability)});
 }
 
+void Tests::GlCallBuilder::draw_arrays(const uint32_t&                 in_mode,
+                                       const int32_t&                  in_first,
+                                       const int32_t&                  in_count,
+                                       const std::vector<ClientArray>& in_array_vec)
+{
+    const auto snapshot_u8vec = make_snapshot(in_array_vec);
+    const auto snapshot_arg   = add_chunk(snapshot_u8vec.data(),
+                                          snapshot_u8vec.size() );
+
+    add_call(APIInterceptor::APIFUNCTION_GL_GLDRAWARRAYS,
+             {APIInterceptor::APIFunctionArgument::create_u32_glenum(in_mode),
+              APIInterceptor::APIFunctionArgument::create_i32       (in_first),
+              APIInterceptor::APIFunctionArgument::create_i32       (in_count),
+              snapshot_arg});
+}
+
+void Tests::GlCallBuilder::draw_elements(const uint32_t&                 in_mode,
+                                         const std::vector<uint16_t>&    in_index_u16vec,
+                                         const std::vector<ClientArray>& in_array_vec)
+{
+    constexpr uint32_t GL_UNSIGNED_SHORT = 0x1403;
+
+    const auto snapshot_u8vec = make_snapshot(in_array_vec);
+    const auto indices_arg    = add_chunk(in_index_u16vec.data(),
+                                          in_index_u16vec.size() * sizeof(uint16_t) );
+    const auto snapshot_arg   = add_chunk(snapshot_u8vec.data(),
+                                          snapshot_u8vec.size() );
+
+    add_call(APIInterceptor::APIFUNCTION_GL_GLDRAWELEMENTS,
+             {APIInterceptor::APIFunctionArgument::create_u32_glenum(in_mode),
+              APIInterceptor::APIFunctionArgument::create_i32       (static_cast<int32_t>(in_index_u16vec.size() ) ),
+              APIInterceptor::APIFunctionArgument::create_u32_glenum(GL_UNSIGNED_SHORT),
+              indices_arg,
+              snapshot_arg});
+}
+
 void Tests::GlCallBuilder::enable(const uint32_t& in_capability)
 {
     add_call(APIInterceptor::APIFUNCTION_GL_GLENABLE,
@@ -187,11 +232,6 @@ void Tests::GlCallBuilder::load_matrix_double(const std::array<double, 16>& in_m
                    sizeof(in_matrix_d64mat) );
 }
 
-APIInterceptor::APIFunctionArgument Tests::GlCallBuilder::make_pointer_argument(const uint64_t& in_address)
-{
-    return APIInterceptor::APIFunctionArgument::create_void_ptr(reinterpret_cast<void*>(static_cast<uintptr_t>(in_address) ));
-}
-
 void Tests::GlCallBuilder::make_current(const uint64_t& in_device_context_address,
                                         const uint64_t& in_context_address,
                                         const bool&     in_succeeds)
@@ -201,6 +241,73 @@ void Tests::GlCallBuilder::make_current(const uint64_t& in_device_context_addres
               make_pointer_argument(in_context_address)},
              APIInterceptor::APIFunctionArgument::create_i32((in_succeeds) ? 1
                                                                            : 0) );
+}
+
+APIInterceptor::APIFunctionArgument Tests::GlCallBuilder::make_pointer_argument(const uint64_t& in_address)
+{
+    return APIInterceptor::APIFunctionArgument::create_void_ptr(reinterpret_cast<void*>(static_cast<uintptr_t>(in_address) ));
+}
+
+std::vector<uint8_t> Tests::GlCallBuilder::make_snapshot(const std::vector<ClientArray>& in_array_vec)
+{
+    std::vector<uint8_t> result_u8vec;
+
+    /* The fields of an array, in the order in which the dumper writes them (see ClientArrayManager). */
+    const auto add_u32_func = [&result_u8vec](const uint32_t& in_value)
+    {
+        const uint8_t* value_ptr = reinterpret_cast<const uint8_t*>(&in_value);
+
+        result_u8vec.insert(result_u8vec.end(),
+                            value_ptr,
+                            value_ptr + sizeof(in_value) );
+    };
+
+    add_u32_func(static_cast<uint32_t>(in_array_vec.size() ) );
+
+    for (const auto& array : in_array_vec)
+    {
+        const uint64_t pointer = 0x1000;
+
+        add_u32_func(array.kind);
+        add_u32_func(0);
+        add_u32_func(static_cast<uint32_t>(array.size) );
+        add_u32_func(array.type);
+        add_u32_func(array.stride);
+        add_u32_func(0);
+        add_u32_func(0);
+
+        result_u8vec.insert(result_u8vec.end(),
+                            reinterpret_cast<const uint8_t*>(&pointer),
+                            reinterpret_cast<const uint8_t*>(&pointer) + sizeof(pointer) );
+
+        add_u32_func(array.first_element);
+        add_u32_func(array.n_elements);
+        add_u32_func(static_cast<uint32_t>(array.data_u8vec.size() ) );
+
+        result_u8vec.insert(result_u8vec.end(),
+                            array.data_u8vec.begin(),
+                            array.data_u8vec.end() );
+    }
+
+    return result_u8vec;
+}
+
+Tests::GlCallBuilder::ClientArray Tests::GlCallBuilder::make_vertex_array(const std::vector<std::array<float, 3> >& in_position_vec)
+{
+    ClientArray result;
+
+    result.n_elements = static_cast<uint32_t>(in_position_vec.size() );
+
+    result.data_u8vec.resize(in_position_vec.size() * sizeof(std::array<float, 3>) );
+
+    if (in_position_vec.empty() == false)
+    {
+        ::memcpy(result.data_u8vec.data(),
+                 in_position_vec.data(),
+                 result.data_u8vec.size() );
+    }
+
+    return result;
 }
 
 void Tests::GlCallBuilder::matrix_mode(const uint32_t& in_mode)

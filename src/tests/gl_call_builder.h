@@ -22,6 +22,20 @@ namespace Tests
     public:
         typedef std::vector<APIInterceptor::APIFunctionArgument> ArgumentVector;
 
+        /* An array that a draw reads from the memory of the application, as the snapshot of the dumper has it. The data starts at the element
+         * first_element; a stride of 0 means that the elements follow each other.
+         */
+        struct ClientArray
+        {
+            std::vector<uint8_t> data_u8vec;
+            uint32_t             first_element = 0;
+            uint32_t             kind          = 8;      /* the vertices      */
+            uint32_t             n_elements    = 0;
+            int32_t              size          = 3;
+            uint32_t             stride        = 0;
+            uint32_t             type          = 0x1406; /* GL_FLOAT          */
+        };
+
         GlCallBuilder();
 
         /* The calls are those of the thread that the builder is told to be (1 at first). */
@@ -42,6 +56,16 @@ namespace Tests
         void depth_func   (const uint32_t& in_function);
         void depth_mask   (const bool&     in_is_writing);
         void disable      (const uint32_t& in_capability);
+
+        /* The arrays are what the draw reads, and are stored in the call. */
+        void draw_arrays  (const uint32_t&                 in_mode,
+                           const int32_t&                  in_first,
+                           const int32_t&                  in_count,
+                           const std::vector<ClientArray>& in_array_vec);
+        void draw_elements(const uint32_t&                 in_mode,
+                           const std::vector<uint16_t>&    in_index_u16vec,
+                           const std::vector<ClientArray>& in_array_vec);
+
         void enable       (const uint32_t& in_capability);
         void end          ();
         void end_list     ();
@@ -122,7 +146,17 @@ namespace Tests
                       const int32_t& in_width,
                       const int32_t& in_height);
 
+        /* An array of vertices of three floats each. */
+        /* The snapshot of the arrays, as the dumper stores it. */
+        static std::vector<uint8_t> make_snapshot(const std::vector<ClientArray>& in_array_vec);
+
+        static ClientArray make_vertex_array(const std::vector<std::array<float, 3> >& in_position_vec);
+
     private:
+        /* The data as a chunk of the workload; the argument that stands for it. */
+        APIInterceptor::APIFunctionArgument add_chunk(const void*   in_data_ptr,
+                                                      const size_t& in_n_bytes);
+
         /* A call whose only argument is the data chunk made of the bytes. */
         void add_chunk_call(const APIInterceptor::APIFunction& in_function,
                             const void*                        in_data_ptr,

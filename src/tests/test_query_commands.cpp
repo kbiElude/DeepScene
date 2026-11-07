@@ -9,6 +9,7 @@
 #include "analysis/api_dump_analysis/depth_histogram.h"
 #include "analysis/api_dump_analysis/frontends/analysis_session.h"
 #include "analysis/api_dump_analysis/key_builder.h"
+#include "analysis/api_dump_analysis/passes_format.h"
 #include "analysis/api_dump_analysis/query_commands.h"
 #include "analysis/api_dump_analysis/resource_access_tracker.h"
 #include "data_fixtures.h"
@@ -272,7 +273,7 @@ TEST_F(QueryCommandsTest, InfoSaysWhatTheAnalysisIsOf)
     EXPECT_EQ(value.at("workload").at("header_hash").string_value.substr(0, 2),
               "0x");
     EXPECT_EQ(value.at("versions").at("file_version").number_value,
-              1.0);
+              static_cast<double>(Analysis::APIDumpAnalysis::PassesFormat::FILE_VERSION) );
     EXPECT_EQ(value.at("summary").at("n_calls").number_value,
               16836.0);
     EXPECT_EQ(value.at("summary").at("n_calls_by_api").at("d3d8").number_value,

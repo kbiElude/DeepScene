@@ -41,7 +41,7 @@ namespace Analysis
     {
         namespace PassesFormat
         {
-            constexpr uint32_t FILE_VERSION       = 1;
+            constexpr uint32_t FILE_VERSION       = 2;
             constexpr uint32_t KEY_SCHEME_VERSION = 1;
 
             /* Version of the draw signature (see KeyBuilder::compute_draw_signature_key), which a recipe made for a converter that runs

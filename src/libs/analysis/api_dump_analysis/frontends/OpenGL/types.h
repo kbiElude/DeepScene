@@ -17,13 +17,26 @@ namespace Analysis
     {
         namespace Frontends
         {
-            /* What a vertex of a vertex call is made of. */
-            enum class GlVertexComponent
+            /* What a draw from the memory of the application made of the call. */
+            enum class GlArrayDrawResult
             {
-                DOUBLE,
-                FLOAT,
-                INT,
-                SHORT
+                DRAW,      /* a draw to tell the model builder of                       */
+                EMPTY,     /* a call that draws nothing (a count of 0)                  */
+                UNREADABLE /* arguments or data that are not what the call has to have */
+            };
+
+            /* What an array of vertex data is for; the values are those which the dumper stores (ClientArrayKind of the interception). */
+            enum class GlClientArrayKind : uint32_t
+            {
+                COLOR           = 0,
+                EDGE_FLAG       = 1,
+                FOG_COORD       = 2,
+                GENERIC         = 3,
+                INDEX           = 4,
+                NORMAL          = 5,
+                SECONDARY_COLOR = 6,
+                TEX_COORD       = 7,
+                VERTEX          = 8
             };
 
             /* The values of the fixed-function pipeline that a draw is told apart by, besides what is enabled (the setting is what the call said:
@@ -40,6 +53,15 @@ namespace Analysis
                 POLYGON_MODE_BACK,
                 POLYGON_MODE_FRONT,
                 SHADE_MODEL
+            };
+
+            /* What a vertex of a vertex call is made of. */
+            enum class GlVertexComponent
+            {
+                DOUBLE,
+                FLOAT,
+                INT,
+                SHORT
             };
 
             /* A 4x4 matrix as OpenGL keeps it: the columns one after the other (element 12 to 14 are the translation). */
@@ -66,6 +88,25 @@ namespace Analysis
                 uint32_t             matrix_mode          = 0x1700; /* GL_MODELVIEW */
                 GlBox                scissor_box;
                 GlBox                viewport;
+            };
+
+            /* An array of vertex data that a draw reads from the memory of the application, as the dumper copied it: the part of it that the draw
+             * touches, from the element first_element on. Follows GlClientArrayKind.
+             */
+            struct GlClientArray
+            {
+                const uint8_t*    data_ptr      = nullptr; /* in the data of the call, n_bytes of it */
+                uint32_t          divisor       = 0;
+                uint32_t          first_element = 0;
+                uint32_t          flags         = 0;
+                uint32_t          index         = 0;
+                GlClientArrayKind kind          = GlClientArrayKind::VERTEX;
+                uint32_t          n_bytes       = 0;
+                uint32_t          n_elements    = 0;
+                uint64_t          pointer       = 0;
+                int32_t           size          = 0;
+                uint32_t          stride        = 0;       /* 0: the elements follow each other */
+                uint32_t          type          = 0;       /* a GL type                          */
             };
 
             /* The vertices between a glBegin and its glEnd, which are one draw. The positions are kept only if the model builder asked for the

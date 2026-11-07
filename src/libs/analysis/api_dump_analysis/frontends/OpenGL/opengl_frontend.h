@@ -6,10 +6,11 @@
  *
  * What it follows: the contexts and which one each thread has current; of each, the viewport, the scissor box and test, the values that a
  * clear uses, the stack of attributes (glPushAttrib puts back what the program set after it) and the stacks of matrices (a model-view, a
- * projection, and the others, which are only kept right); the clears; the draws of immediate mode (a glBegin and its glEnd, with
- * the state of the pipeline that was set); and the end of the frames. Calls made while a display list is made are not followed (they are
- * the list's, and made when it is called). What it does not follow yet (draws from arrays, called lists, copies and reads of the
- * framebuffer) is counted as unsupported, so that a model made of it says that its passes are not right.
+ * projection, and the others, which are only kept right); the clears; the draws of immediate mode (a glBegin and its glEnd) and of
+ * arrays (glDrawArrays and glDrawElements, from the copy of the arrays that the dumper made), each with the state of the pipeline that
+ * was set; and the end of the frames. Calls made while a display list is made are not followed (they are the list's, and made when it
+ * is called). What it does not follow yet (called lists, copies and reads of the framebuffer) is counted as unsupported, so that a model
+ * made of it says that its passes are not right.
  *
  * The matrices: OpenGL has one matrix for the model and the view together, and a projection of its own. The front end tells the model builder
  * the two as they are, each when it changes (MODEL_VIEW_MATRIX and PROJECTION_MATRIX, in the state of the fixed-function pipeline, at
@@ -22,6 +23,7 @@
 #ifndef APIDUMPANALYSIS_FRONTENDS_OPENGL_FRONTEND_H
 #define APIDUMPANALYSIS_FRONTENDS_OPENGL_FRONTEND_H
 
+#include "analysis/api_dump_analysis/frontends/OpenGL/gl_array_draw_describer.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_context_state.h"
 #include "analysis/api_dump_analysis/frontends/shared/i_api_frontend.h"
 #include "analysis/api_dump_analysis/model_builder.h"
@@ -71,6 +73,11 @@ namespace Analysis
                 /* The state of the context that the thread has current; nullptr if it has none. */
                 GlContextState* find_current_context_ptr(const uint32_t& in_thread_id);
 
+                /* A call of glDrawArrays or glDrawElements: a draw from the arrays that the dumper copied into it. */
+                void handle_array_draw      (const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                             const Capture::APIDumpLoader::Workload&      in_workload,
+                                             const bool&                                  in_is_indexed,
+                                             GlContextState*                              inout_state_ptr);
                 void handle_begin           (const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                              GlContextState*                              inout_state_ptr);
                 void handle_clear           (const Capture::APIDumpLoader::DumpedAPICall& in_call,
@@ -179,9 +186,7 @@ namespace Analysis
                 static void restore_attributes(const GlAttributeFrame& in_frame,
                                                GlAttributes*           inout_attributes_ptr);
 
-                /* A few of the positions of a draw, spread evenly over it (all of them if they are not many). */
-                static std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> sample_positions(const std::vector<std::array<float, 3> >& in_position_vec);
-
+                GlArrayDrawDescriber                                            m_array_draw_describer;
                 Analysis::APIDumpAnalysis::ModelBuilder*                        m_builder_ptr;
                 Analysis::APIDumpAnalysis::ResourceView                         m_color_view;
                 std::map<uint64_t, GlContextState>                              m_context_map;                   /* by the address of the context */
