@@ -39,6 +39,17 @@ namespace
             m_builder.end_list();
         }
 
+        /* What the list does to what an eye has of its own. */
+        Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence get_eye_dependence(const uint32_t& in_list)
+        {
+            Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence result = Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::INDEPENDENT;
+
+            EXPECT_TRUE(m_harness.get_frontend().find_list_eye_dependence(in_list,
+                                                                          &result) ) << "list " << in_list;
+
+            return result;
+        }
+
         uint64_t get_n_draws() const
         {
             return m_harness.get_model().frame_record_vec.at(0).n_draws;
@@ -329,4 +340,173 @@ TEST_F(GlFrontendLists, AListMadeInOneContextIsCalledInAnother)
 
     EXPECT_EQ(get_n_draws(),
               1u);
+}
+
+TEST_F(GlFrontendLists, AListWhichOnlyDrawsAndSetsStateIsEyeIndependent)
+{
+    start(640,
+          480);
+
+    m_builder.new_list (1,
+                        COMPILE);
+    m_builder.enable   (0x0B71); /* GL_DEPTH_TEST */
+    add_triangle       ();
+    m_builder.end_list ();
+
+    feed();
+
+    EXPECT_EQ(get_eye_dependence(1),
+              Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::INDEPENDENT);
+}
+
+TEST_F(GlFrontendLists, AListWhichMovesTheMatricesRelativeToTheCurrentOnesIsToldSo)
+{
+    start(640,
+          480);
+
+    m_builder.new_list (1,
+                        COMPILE);
+    m_builder.translate(1.0,
+                        0.0,
+                        0.0);
+    m_builder.rotate   (90.0f,
+                        0.0f,
+                        1.0f,
+                        0.0f);
+    m_builder.push_matrix();
+    m_builder.pop_matrix ();
+    add_triangle       ();
+    m_builder.end_list ();
+
+    feed();
+
+    EXPECT_EQ(get_eye_dependence(1),
+              Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::RELATIVE_MATRIX_ONLY);
+}
+
+TEST_F(GlFrontendLists, AListWhichSetsAValueOfItsOwnIsEyeDependent)
+{
+    start(640,
+          480);
+
+    m_builder.new_list     (1,
+                            COMPILE);
+    m_builder.load_identity();
+    m_builder.end_list     ();
+    m_builder.new_list     (2,
+                            COMPILE);
+    m_builder.frustum      (-1.0, 1.0, -1.0, 1.0, 1.0, 100.0);
+    m_builder.end_list     ();
+    m_builder.new_list     (3,
+                            COMPILE);
+    m_builder.ortho        (0.0, 640.0, 0.0, 480.0, -1.0, 1.0);
+    m_builder.end_list     ();
+    m_builder.new_list     (4,
+                            COMPILE);
+    m_builder.viewport     (0,
+                            0,
+                            320,
+                            480);
+    m_builder.end_list     ();
+    m_builder.new_list     (5,
+                            COMPILE);
+    m_builder.scissor      (0,
+                            0,
+                            320,
+                            480);
+    m_builder.end_list     ();
+    m_builder.new_list     (6,
+                            COMPILE);
+    m_builder.load_matrix  ({1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1});
+    m_builder.end_list     ();
+
+    feed();
+
+    for (uint32_t list = 1;
+                  list <= 6;
+                ++list)
+    {
+        EXPECT_EQ(get_eye_dependence(list),
+                  Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::EYE_DEPENDENT) << "list " << list;
+    }
+}
+
+TEST_F(GlFrontendLists, TheStrongestCallOfAListTellsWhatItIs)
+{
+    start(640,
+          480);
+
+    m_builder.new_list     (1,
+                            COMPILE);
+    m_builder.translate    (1.0,
+                            0.0,
+                            0.0);
+    m_builder.load_identity();
+    m_builder.translate    (1.0,
+                            0.0,
+                            0.0);
+    m_builder.end_list     ();
+
+    feed();
+
+    EXPECT_EQ(get_eye_dependence(1),
+              Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::EYE_DEPENDENT);
+}
+
+TEST_F(GlFrontendLists, AListWhichCallsAnotherIsWhatTheOtherIs)
+{
+    start(640,
+          480);
+
+    make_triangle_list (1);
+    m_builder.new_list (2,
+                        COMPILE);
+    m_builder.translate(1.0,
+                        0.0,
+                        0.0);
+    m_builder.end_list ();
+    m_builder.new_list     (3,
+                            COMPILE);
+    m_builder.load_identity();
+    m_builder.end_list     ();
+    m_builder.new_list (4,
+                        COMPILE);
+    m_builder.call_list(1);
+    m_builder.end_list ();
+    m_builder.new_list (5,
+                        COMPILE);
+    m_builder.call_list(2);
+    m_builder.end_list ();
+    m_builder.new_list (6,
+                        COMPILE);
+    m_builder.call_list(3);
+    m_builder.end_list ();
+    m_builder.new_list (7,
+                        COMPILE);
+    m_builder.call_list(99); /* not made (yet): it is taken for the worst */
+    m_builder.end_list ();
+
+    feed();
+
+    EXPECT_EQ(get_eye_dependence(4),
+              Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::INDEPENDENT);
+    EXPECT_EQ(get_eye_dependence(5),
+              Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::RELATIVE_MATRIX_ONLY);
+    EXPECT_EQ(get_eye_dependence(6),
+              Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::EYE_DEPENDENT);
+    EXPECT_EQ(get_eye_dependence(7),
+              Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::EYE_DEPENDENT);
+}
+
+TEST_F(GlFrontendLists, AListWhichWasNeverMadeHasNoDependence)
+{
+    start(640,
+          480);
+
+    feed();
+
+    Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence dependence = Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::INDEPENDENT;
+
+    EXPECT_FALSE(m_harness.get_frontend().find_list_eye_dependence(42,
+                                                                   &dependence) );
 }

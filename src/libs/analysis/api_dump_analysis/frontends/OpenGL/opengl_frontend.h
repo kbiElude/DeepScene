@@ -48,6 +48,10 @@ namespace Analysis
                 /* The builder must outlive the front end. */
                 explicit OpenGLFrontend(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr);
 
+                /* What the list does to what an eye has of its own; false if there is no such list. */
+                bool find_list_eye_dependence(const uint32_t&      in_list,
+                                              GlListEyeDependence* out_dependence_ptr) const;
+
                 bool find_resource_view(const uint64_t&                          in_address,
                                         Analysis::APIDumpAnalysis::ResourceView* out_view_ptr) const override;
 
@@ -76,6 +80,10 @@ namespace Analysis
 
                 /* The state of the context that the thread has current; nullptr if it has none. */
                 GlContextState* find_current_context_ptr(const uint32_t& in_thread_id);
+
+                /* What a call that a list keeps does to what an eye has of its own: that of the list, for the call of one. */
+                GlListEyeDependence get_call_eye_dependence(const APIInterceptor::APIFunction&                      in_function,
+                                                            const std::vector<APIInterceptor::APIFunctionArgument>& in_argument_vec) const;
 
                 /* A call of glDrawArrays or glDrawElements: a draw from the arrays that the dumper copied into it. */
                 void handle_array_draw      (const Capture::APIDumpLoader::DumpedAPICall& in_call,

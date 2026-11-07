@@ -53,6 +53,19 @@ namespace Analysis
                 VERTEX          = 8
             };
 
+            /* What a display list does to what an eye has of its own (the matrices, and the pixels that the viewport and the scissor box are in), which
+             * says whether a list that the driver has made once can be called for both eyes of a stereo frame. A list that only draws and sets state
+             * is the same for both. A list that changes a matrix relative to the current one (a translation, a rotation, a scale, a product) is too,
+             * since what the eye has put in the matrix goes through it. A list that loads a matrix, sets a projection, a viewport or a scissor box
+             * puts in values of its own, and is made once for each eye, or made again inline with those calls changed.
+             */
+            enum class GlListEyeDependence
+            {
+                EYE_DEPENDENT,
+                INDEPENDENT,
+                RELATIVE_MATRIX_ONLY
+            };
+
             /* The values of the fixed-function pipeline that a draw is told apart by, besides what is enabled (the setting is what the call said:
              * a function, a mode, the mask of the colors). */
             enum class GlStateValue
@@ -89,11 +102,12 @@ namespace Analysis
             };
 
             /* A display list: the calls made between its glNewList and glEndList, and the data of the calls (which are not a part of the workload
-             * that they were made in: it is let go of before the list is called). Follows GlRecordedCall.
+             * that they were made in: it is let go of before the list is called). Follows GlListEyeDependence and GlRecordedCall.
              */
             struct GlDisplayList
             {
                 std::vector<GlRecordedCall>      call_vec;
+                GlListEyeDependence              eye_dependence = GlListEyeDependence::INDEPENDENT;
                 Capture::APIDumpLoader::Workload workload; /* the data that the calls refer to, by the numbers that the calls of the list have */
             };
 

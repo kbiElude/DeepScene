@@ -5,6 +5,7 @@
 #include "analysis/api_dump_analysis/frontends/OpenGL/opengl_frontend.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_matrix_math.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_geometry_sampler.h"
+#include "analysis/api_dump_analysis/frontends/OpenGL/gl_list_classifier.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_vertex_reader.h"
 #include "analysis/api_dump_analysis/frontends/shared/call_view.h"
 #include "capture/api_dump_loader/api_info.h"
@@ -77,6 +78,20 @@ Analysis::APIDumpAnalysis::Frontends::GlContextState* Analysis::APIDumpAnalysis:
     return result_ptr;
 }
 
+bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::find_list_eye_dependence(const uint32_t&      in_list,
+                                                                                    GlListEyeDependence* out_dependence_ptr) const
+{
+    const auto list_iterator = m_display_list_map.find(in_list);
+    const bool result        = (list_iterator != m_display_list_map.end() );
+
+    if (result)
+    {
+        *out_dependence_ptr = list_iterator->second->eye_dependence;
+    }
+
+    return result;
+}
+
 bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::find_resource_view(const uint64_t&                          in_address,
                                                                               Analysis::APIDumpAnalysis::ResourceView* out_view_ptr) const
 {
@@ -90,6 +105,35 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::find_resource_view(co
 const Analysis::APIDumpAnalysis::Frontends::GlBlobStore& Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_blob_store() const
 {
     return m_array_draw_describer.get_blob_store();
+}
+
+Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_call_eye_dependence(const APIInterceptor::APIFunction&                      in_function,
+                                                                                                                                         const std::vector<APIInterceptor::APIFunctionArgument>& in_argument_vec) const
+{
+    GlListEyeDependence result = GlListClassifier::classify_call(in_function);
+
+    if (in_function == APIInterceptor::APIFUNCTION_GL_GLCALLLIST)
+    {
+        uint32_t list     = 0;
+        bool     is_found = false;
+
+        if (in_argument_vec.empty() == false)
+        {
+            is_found = APIInterceptor::read_number(in_argument_vec.at(0),
+                                                   &list);
+        }
+
+        /* A list that is not there yet when the call is kept may be anything when it is made: it is taken for the worst. */
+        result = GlListEyeDependence::EYE_DEPENDENT;
+
+        if (is_found)
+        {
+            find_list_eye_dependence(list,
+                                     &result);
+        }
+    }
+
+    return result;
 }
 
 bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_current_matrices(const uint32_t& in_thread_id,
@@ -1531,6 +1575,12 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::record_call(const Cap
             }
         }
     }
+
+    const GlListEyeDependence call_dependence = get_call_eye_dependence(recorded_call.func,
+                                                                        recorded_call.arg_in_vec);
+
+    list_ptr->eye_dependence = GlListClassifier::combine(list_ptr->eye_dependence,
+                                                         call_dependence);
 
     list_ptr->call_vec.push_back(std::move(recorded_call) );
 }
