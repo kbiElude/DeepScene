@@ -19,6 +19,39 @@ Analysis::APIDumpAnalysis::Frontends::AnalysisSession::AnalysisSession(const boo
     /* Stub */
 }
 
+bool Analysis::APIDumpAnalysis::Frontends::AnalysisSession::find_resource_view(const Capture::APIDumpLoader::APIGroup&  in_group,
+                                                                               const uint64_t&                          in_address,
+                                                                               Analysis::APIDumpAnalysis::ResourceView* out_view_ptr) const
+{
+    bool result = false;
+
+    switch (in_group)
+    {
+        case Capture::APIDumpLoader::APIGroup::D3D7:
+        {
+            result = m_d3d7_frontend.find_resource_view(in_address,
+                                                        out_view_ptr);
+
+            break;
+        }
+
+        case Capture::APIDumpLoader::APIGroup::D3D8:
+        {
+            result = m_d3d8_frontend.find_resource_view(in_address,
+                                                        out_view_ptr);
+
+            break;
+        }
+
+        default:
+        {
+            break;
+        }
+    }
+
+    return result;
+}
+
 const Analysis::APIDumpAnalysis::CompletedFrame& Analysis::APIDumpAnalysis::Frontends::AnalysisSession::get_completed_frame() const
 {
     return m_builder.get_completed_frame();
@@ -51,39 +84,6 @@ Analysis::APIDumpAnalysis::Frontends::IAPIFrontend* Analysis::APIDumpAnalysis::F
     }
 
     return result_ptr;
-}
-
-bool Analysis::APIDumpAnalysis::Frontends::AnalysisSession::find_resource_view(const Capture::APIDumpLoader::APIGroup&  in_group,
-                                                                               const uint64_t&                          in_address,
-                                                                               Analysis::APIDumpAnalysis::ResourceView* out_view_ptr) const
-{
-    bool result = false;
-
-    switch (in_group)
-    {
-        case Capture::APIDumpLoader::APIGroup::D3D7:
-        {
-            result = m_d3d7_frontend.find_resource_view(in_address,
-                                                        out_view_ptr);
-
-            break;
-        }
-
-        case Capture::APIDumpLoader::APIGroup::D3D8:
-        {
-            result = m_d3d8_frontend.find_resource_view(in_address,
-                                                        out_view_ptr);
-
-            break;
-        }
-
-        default:
-        {
-            break;
-        }
-    }
-
-    return result;
 }
 
 uint64_t Analysis::APIDumpAnalysis::Frontends::AnalysisSession::get_last_draw_cover_key() const

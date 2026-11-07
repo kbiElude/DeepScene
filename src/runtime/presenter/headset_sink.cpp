@@ -135,90 +135,6 @@ void Stereo::Presenter::HeadsetSink::log_once(const std::string& in_text)
     }
 }
 
-void Stereo::Presenter::HeadsetSink::upload_frame(const Stereo::Transport::ImportedFrame& in_frame)
-{
-    constexpr double REPORT_PERIOD_N_MILLISECONDS = 1000.0;
-
-    std::string     error;
-    ID3D12Resource* left_texture_ptr  = nullptr;
-    ID3D12Resource* right_texture_ptr = nullptr;
-    const double    start_ms          = Utils::Statistics::SeriesStats::get_now();
-
-    /* The same frame again is what the screen already shows. */
-    if (m_has_frame                                      &&
-        in_frame.info.frame_index == m_last_frame_index)
-    {
-        goto end;
-    }
-
-    m_timing.arrival.add_interval(start_ms);
-
-    if (m_session_ptr->acquire_eye_textures((in_frame.info.n_eyes > 1) ? in_frame.info.width / in_frame.info.n_eyes
-                                                                       : in_frame.info.width,
-                                            in_frame.info.height,
-                                           &left_texture_ptr,
-                                           &right_texture_ptr,
-                                           &error) == false)
-    {
-        /* Not running yet is not worth saying; what the headset cannot show is. */
-        if (error.find("not running")   == std::string::npos &&
-            error.find("has not given") == std::string::npos)
-        {
-            log_once(error);
-        }
-
-        goto end;
-    }
-
-    const double acquired_ms = Utils::Statistics::SeriesStats::get_now();
-
-    m_timing.acquire_cost.add(acquired_ms - start_ms);
-
-    if (m_uploader_ptr->upload(in_frame,
-                               left_texture_ptr,
-                               right_texture_ptr,
-                               Headset::XR::HeadsetSession::get_texture_state(),
-                              &error) == false)
-    {
-        log_once(error);
-    }
-
-    m_timing.upload_cost.add(Utils::Statistics::SeriesStats::get_now() - acquired_ms);
-
-    m_session_ptr->release_eye_textures();
-
-    tune_pace(Utils::Statistics::SeriesStats::get_now() );
-
-    m_has_frame        = true;
-    m_last_frame_index = in_frame.info.frame_index;
-
-    m_shown_frame_index = in_frame.info.frame_index;
-    m_shown_timestamp   = in_frame.info.timestamp_seconds;
-    m_has_shown_frame   = true;
-
-    if (Utils::Statistics::SeriesStats::take_period(&m_timing.last_report,
-                                                    start_ms,
-                                                    REPORT_PERIOD_N_MILLISECONDS) )
-    {
-        m_log_func("Frames to the headset (ms): "                          +
-                   m_timing.arrival.take_text     ("arrivals")             +
-                   "; "                                                    +
-                   m_timing.phase.take_text       ("images ready into the frame") +
-                   ", pace delay "                                         +
-                   std::to_string(m_pace_delay)                            +
-                   ", the eyes of the person are "                         +
-                   std::to_string(m_session_ptr->get_ipd() * 1000.0f)      +
-                   " mm apart"                                              +
-                   "; "                                                    +
-                   m_timing.acquire_cost.take_text("taking the images")    +
-                   "; "                                                    +
-                   m_timing.upload_cost.take_text ("copy to the images") );
-    }
-
-end:
-    return;
-}
-
 void Stereo::Presenter::HeadsetSink::on_compositor_frame(const double& in_period_n_milliseconds)
 {
     /* The natural separation is made for eyes this far apart (a typical distance); the scale is what the person's are, to it, within what a
@@ -362,4 +278,88 @@ void Stereo::Presenter::HeadsetSink::tune_pace(const double& in_released_n_milli
 
         m_timing.phase.add(phase);
     }
+}
+
+void Stereo::Presenter::HeadsetSink::upload_frame(const Stereo::Transport::ImportedFrame& in_frame)
+{
+    constexpr double REPORT_PERIOD_N_MILLISECONDS = 1000.0;
+
+    std::string     error;
+    ID3D12Resource* left_texture_ptr  = nullptr;
+    ID3D12Resource* right_texture_ptr = nullptr;
+    const double    start_ms          = Utils::Statistics::SeriesStats::get_now();
+
+    /* The same frame again is what the screen already shows. */
+    if (m_has_frame                                      &&
+        in_frame.info.frame_index == m_last_frame_index)
+    {
+        goto end;
+    }
+
+    m_timing.arrival.add_interval(start_ms);
+
+    if (m_session_ptr->acquire_eye_textures((in_frame.info.n_eyes > 1) ? in_frame.info.width / in_frame.info.n_eyes
+                                                                       : in_frame.info.width,
+                                            in_frame.info.height,
+                                           &left_texture_ptr,
+                                           &right_texture_ptr,
+                                           &error) == false)
+    {
+        /* Not running yet is not worth saying; what the headset cannot show is. */
+        if (error.find("not running")   == std::string::npos &&
+            error.find("has not given") == std::string::npos)
+        {
+            log_once(error);
+        }
+
+        goto end;
+    }
+
+    const double acquired_ms = Utils::Statistics::SeriesStats::get_now();
+
+    m_timing.acquire_cost.add(acquired_ms - start_ms);
+
+    if (m_uploader_ptr->upload(in_frame,
+                               left_texture_ptr,
+                               right_texture_ptr,
+                               Headset::XR::HeadsetSession::get_texture_state(),
+                              &error) == false)
+    {
+        log_once(error);
+    }
+
+    m_timing.upload_cost.add(Utils::Statistics::SeriesStats::get_now() - acquired_ms);
+
+    m_session_ptr->release_eye_textures();
+
+    tune_pace(Utils::Statistics::SeriesStats::get_now() );
+
+    m_has_frame        = true;
+    m_last_frame_index = in_frame.info.frame_index;
+
+    m_shown_frame_index = in_frame.info.frame_index;
+    m_shown_timestamp   = in_frame.info.timestamp_seconds;
+    m_has_shown_frame   = true;
+
+    if (Utils::Statistics::SeriesStats::take_period(&m_timing.last_report,
+                                                    start_ms,
+                                                    REPORT_PERIOD_N_MILLISECONDS) )
+    {
+        m_log_func("Frames to the headset (ms): "                          +
+                   m_timing.arrival.take_text     ("arrivals")             +
+                   "; "                                                    +
+                   m_timing.phase.take_text       ("images ready into the frame") +
+                   ", pace delay "                                         +
+                   std::to_string(m_pace_delay)                            +
+                   ", the eyes of the person are "                         +
+                   std::to_string(m_session_ptr->get_ipd() * 1000.0f)      +
+                   " mm apart"                                              +
+                   "; "                                                    +
+                   m_timing.acquire_cost.take_text("taking the images")    +
+                   "; "                                                    +
+                   m_timing.upload_cost.take_text ("copy to the images") );
+    }
+
+end:
+    return;
 }

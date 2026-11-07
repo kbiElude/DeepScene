@@ -27,6 +27,38 @@ bool Analysis::Recipe::RecipeLoader::check_keys(const Utils::Json::JsonValue&   
     return (unknown_key_ptr == nullptr);
 }
 
+std::vector<std::string> Analysis::Recipe::RecipeLoader::describe_pass_selectors_live_ignores(const Recipe& in_recipe)
+{
+    struct Named
+    {
+        const DrawSelector* selector_ptr;
+        const char*         name;
+    };
+
+    const Named              named_array[] =
+    {
+        {&in_recipe.affected,   "affected"  },
+        {&in_recipe.skipped,    "skipped"   },
+        {&in_recipe.unaffected, "unaffected"}
+    };
+    std::vector<std::string> result;
+
+    for (const auto& named : named_array)
+    {
+        if (named.selector_ptr->pass_key_vec.empty() == false)
+        {
+            result.push_back(std::string("\"") + named.name + ".pass_keys\" names " + std::to_string(named.selector_ptr->pass_key_vec.size() ) + " passes: a converter that plays the application as it runs does not know passes, and leaves them out");
+        }
+
+        if (named.selector_ptr->pass_draw_vec.empty() == false)
+        {
+            result.push_back(std::string("\"") + named.name + ".pass_draws\" names " + std::to_string(named.selector_ptr->pass_draw_vec.size() ) + " draws in a pass: a converter that plays the application as it runs does not know passes, and leaves them out");
+        }
+    }
+
+    return result;
+}
+
 bool Analysis::Recipe::RecipeLoader::has_common_key(const std::vector<uint64_t>& in_a,
                                                     const std::vector<uint64_t>& in_b)
 {
@@ -56,38 +88,6 @@ bool Analysis::Recipe::RecipeLoader::has_common_pass_draw(const std::vector<Pass
         {
             result = (result || (pass_draw.draw_key == other.draw_key &&
                                  pass_draw.pass_key == other.pass_key) );
-        }
-    }
-
-    return result;
-}
-
-std::vector<std::string> Analysis::Recipe::RecipeLoader::describe_pass_selectors_live_ignores(const Recipe& in_recipe)
-{
-    struct Named
-    {
-        const DrawSelector* selector_ptr;
-        const char*         name;
-    };
-
-    const Named              named_array[] =
-    {
-        {&in_recipe.affected,   "affected"  },
-        {&in_recipe.skipped,    "skipped"   },
-        {&in_recipe.unaffected, "unaffected"}
-    };
-    std::vector<std::string> result;
-
-    for (const auto& named : named_array)
-    {
-        if (named.selector_ptr->pass_key_vec.empty() == false)
-        {
-            result.push_back(std::string("\"") + named.name + ".pass_keys\" names " + std::to_string(named.selector_ptr->pass_key_vec.size() ) + " passes: a converter that plays the application as it runs does not know passes, and leaves them out");
-        }
-
-        if (named.selector_ptr->pass_draw_vec.empty() == false)
-        {
-            result.push_back(std::string("\"") + named.name + ".pass_draws\" names " + std::to_string(named.selector_ptr->pass_draw_vec.size() ) + " draws in a pass: a converter that plays the application as it runs does not know passes, and leaves them out");
         }
     }
 

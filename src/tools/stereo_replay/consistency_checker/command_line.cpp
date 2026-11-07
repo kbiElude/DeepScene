@@ -7,6 +7,35 @@
 #include <stdlib.h>
 #include <windows.h>
 
+bool Stereo::Replay::ConsistencyChecker::CommandLine::are_image_options_valid(const Options& in_options)
+{
+    const bool is_contact_sheet = (in_options.contact_sheet_n_frames != 0);
+    const bool is_screenshot    = (in_options.screenshot_frame       != UINT32_MAX);
+    bool       result           = false;
+
+    if (is_contact_sheet &&
+        is_screenshot)
+    {
+        goto end;
+    }
+
+    if (is_contact_sheet ||
+        is_screenshot)
+    {
+        result = (in_options.image_filename.empty() == false &&
+                  (in_options.has_eye_view == false          ||
+                   in_options.recipe_filename.empty() == false) );
+    }
+    else
+    {
+        result = (in_options.image_filename.empty() &&
+                  in_options.has_eye_view == false);
+    }
+
+end:
+    return result;
+}
+
 const char* Stereo::Replay::ConsistencyChecker::CommandLine::get_usage_ptr()
 {
     return "Usage:\n"
@@ -304,35 +333,6 @@ bool Stereo::Replay::ConsistencyChecker::CommandLine::parse(const std::vector<st
     }
 
     result = true;
-
-end:
-    return result;
-}
-
-bool Stereo::Replay::ConsistencyChecker::CommandLine::are_image_options_valid(const Options& in_options)
-{
-    const bool is_contact_sheet = (in_options.contact_sheet_n_frames != 0);
-    const bool is_screenshot    = (in_options.screenshot_frame       != UINT32_MAX);
-    bool       result           = false;
-
-    if (is_contact_sheet &&
-        is_screenshot)
-    {
-        goto end;
-    }
-
-    if (is_contact_sheet ||
-        is_screenshot)
-    {
-        result = (in_options.image_filename.empty() == false &&
-                  (in_options.has_eye_view == false          ||
-                   in_options.recipe_filename.empty() == false) );
-    }
-    else
-    {
-        result = (in_options.image_filename.empty() &&
-                  in_options.has_eye_view == false);
-    }
 
 end:
     return result;

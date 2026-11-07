@@ -246,6 +246,20 @@ uint64_t Analysis::APIDumpAnalysis::ModelBuilder::compute_draw_signature_key(con
                                                   depth_stencil_view_key);
 }
 
+uint64_t Analysis::APIDumpAnalysis::ModelBuilder::compute_shape_key(const Model&    in_model,
+                                                                    const uint32_t& in_shape_id)
+{
+    std::vector<uint64_t> pass_key_vec;
+    const auto&           shape        = in_model.frame_shape_interner.get_structure(in_shape_id);
+
+    for (const auto& pass_id : shape.pass_structure_id_vec)
+    {
+        pass_key_vec.push_back(in_model.pass_structure_interner.get_structure(pass_id).key);
+    }
+
+    return KeyBuilder::compute_key_set_key(pass_key_vec);
+}
+
 void Analysis::APIDumpAnalysis::ModelBuilder::emit_access(const ResourceId&       in_resource_id,
                                                           const AccessRole&       in_role,
                                                           const AccessMode&       in_mode,
@@ -333,43 +347,6 @@ void Analysis::APIDumpAnalysis::ModelBuilder::fill_draw_structure(const DrawDesc
               is_binding_less_func);
 }
 
-uint64_t Analysis::APIDumpAnalysis::ModelBuilder::compute_shape_key(const Model&    in_model,
-                                                                    const uint32_t& in_shape_id)
-{
-    std::vector<uint64_t> pass_key_vec;
-    const auto&           shape        = in_model.frame_shape_interner.get_structure(in_shape_id);
-
-    for (const auto& pass_id : shape.pass_structure_id_vec)
-    {
-        pass_key_vec.push_back(in_model.pass_structure_interner.get_structure(pass_id).key);
-    }
-
-    return KeyBuilder::compute_key_set_key(pass_key_vec);
-}
-
-bool Analysis::APIDumpAnalysis::ModelBuilder::find_pass_index(const CompletedFrame& in_frame,
-                                                              const uint64_t&       in_call_index,
-                                                              uint32_t*             out_pass_index_ptr)
-{
-    const auto is_pass_before_call_func = [&in_call_index](const PassInstance& in_pass)
-    {
-        return (in_pass.last_draw_call_index < in_call_index);
-    };
-
-    /* The last draws of the passes only grow, so the first pass at or after the call is found by halving. */
-    const auto pass_iterator = std::partition_point(in_frame.pass_instance_vec.begin(),
-                                                    in_frame.pass_instance_vec.end  (),
-                                                    is_pass_before_call_func);
-    const bool result         = (pass_iterator != in_frame.pass_instance_vec.end() );
-
-    if (result)
-    {
-        *out_pass_index_ptr = static_cast<uint32_t>(pass_iterator - in_frame.pass_instance_vec.begin() );
-    }
-
-    return result;
-}
-
 bool Analysis::APIDumpAnalysis::ModelBuilder::find_draw_matrices(DrawMatrices* out_matrices_ptr) const
 {
     constexpr size_t N_MATRIX_ELEMENTS = 16;
@@ -441,14 +418,27 @@ bool Analysis::APIDumpAnalysis::ModelBuilder::find_draw_matrices(DrawMatrices* o
             is_orthographic == false);
 }
 
-uint64_t Analysis::APIDumpAnalysis::ModelBuilder::get_last_draw_cover_key() const
+bool Analysis::APIDumpAnalysis::ModelBuilder::find_pass_index(const CompletedFrame& in_frame,
+                                                              const uint64_t&       in_call_index,
+                                                              uint32_t*             out_pass_index_ptr)
 {
-    return m_last_draw_cover_key;
-}
+    const auto is_pass_before_call_func = [&in_call_index](const PassInstance& in_pass)
+    {
+        return (in_pass.last_draw_call_index < in_call_index);
+    };
 
-uint64_t Analysis::APIDumpAnalysis::ModelBuilder::get_last_draw_signature_key() const
-{
-    return m_last_draw_signature_key;
+    /* The last draws of the passes only grow, so the first pass at or after the call is found by halving. */
+    const auto pass_iterator = std::partition_point(in_frame.pass_instance_vec.begin(),
+                                                    in_frame.pass_instance_vec.end  (),
+                                                    is_pass_before_call_func);
+    const bool result         = (pass_iterator != in_frame.pass_instance_vec.end() );
+
+    if (result)
+    {
+        *out_pass_index_ptr = static_cast<uint32_t>(pass_iterator - in_frame.pass_instance_vec.begin() );
+    }
+
+    return result;
 }
 
 Analysis::APIDumpAnalysis::AccessCoverage Analysis::APIDumpAnalysis::ModelBuilder::get_clear_coverage(const ClearOperation& in_clear,
@@ -499,6 +489,16 @@ const Analysis::APIDumpAnalysis::CompletedFrame& Analysis::APIDumpAnalysis::Mode
     return m_completed_frame;
 }
 
+uint64_t Analysis::APIDumpAnalysis::ModelBuilder::get_last_draw_cover_key() const
+{
+    return m_last_draw_cover_key;
+}
+
+uint64_t Analysis::APIDumpAnalysis::ModelBuilder::get_last_draw_signature_key() const
+{
+    return m_last_draw_signature_key;
+}
+
 const Analysis::APIDumpAnalysis::Model& Analysis::APIDumpAnalysis::ModelBuilder::get_model() const
 {
     return m_model;
@@ -507,11 +507,6 @@ const Analysis::APIDumpAnalysis::Model& Analysis::APIDumpAnalysis::ModelBuilder:
 uint64_t Analysis::APIDumpAnalysis::ModelBuilder::get_n_frames() const
 {
     return m_n_frames;
-}
-
-const Analysis::APIDumpAnalysis::Viewport& Analysis::APIDumpAnalysis::ModelBuilder::get_viewport() const
-{
-    return m_viewport;
 }
 
 Analysis::APIDumpAnalysis::SubresourceRange Analysis::APIDumpAnalysis::ModelBuilder::get_subresource_range(const ResourceView& in_view)
@@ -524,6 +519,11 @@ Analysis::APIDumpAnalysis::SubresourceRange Analysis::APIDumpAnalysis::ModelBuil
     result.n_mip_levels    = 1;
 
     return result;
+}
+
+const Analysis::APIDumpAnalysis::Viewport& Analysis::APIDumpAnalysis::ModelBuilder::get_viewport() const
+{
+    return m_viewport;
 }
 
 bool Analysis::APIDumpAnalysis::ModelBuilder::is_camera_semantic(const ConstantSemantic& in_semantic)
@@ -960,11 +960,6 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_upload(const ResourceView&  in_
     }
 }
 
-void Analysis::APIDumpAnalysis::ModelBuilder::set_access_sink(IAccessSink* in_sink_ptr)
-{
-    m_access_sink_ptr = in_sink_ptr;
-}
-
 void Analysis::APIDumpAnalysis::ModelBuilder::open_pass_if_needed()
 {
     if (m_has_open_pass == false)
@@ -1314,6 +1309,16 @@ Analysis::APIDumpAnalysis::ViewCoverage Analysis::APIDumpAnalysis::ModelBuilder:
     return result;
 }
 
+void Analysis::APIDumpAnalysis::ModelBuilder::set_access_sink(IAccessSink* in_sink_ptr)
+{
+    m_access_sink_ptr = in_sink_ptr;
+}
+
+Analysis::APIDumpAnalysis::Model Analysis::APIDumpAnalysis::ModelBuilder::take_model()
+{
+    return std::move(m_model);
+}
+
 bool Analysis::APIDumpAnalysis::ModelBuilder::wants_geometry() const
 {
     /* Each frame, today: a sample is at most a few dozen vertices, and the front end keeps the ones it has made. */
@@ -1321,9 +1326,4 @@ bool Analysis::APIDumpAnalysis::ModelBuilder::wants_geometry() const
 
     return (m_keeps_history &&
             m_n_frames % FRAME_STRIDE == 0);
-}
-
-Analysis::APIDumpAnalysis::Model Analysis::APIDumpAnalysis::ModelBuilder::take_model()
-{
-    return std::move(m_model);
 }

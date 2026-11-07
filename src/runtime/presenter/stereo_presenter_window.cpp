@@ -104,11 +104,6 @@ void Stereo::Presenter::StereoPresenterWindow::draw_contents(Utils::UIHost::Cont
     }
 }
 
-Stereo::Transport::IFrameImporter* Stereo::Presenter::StereoPresenterWindow::get_importer_ptr() const
-{
-    return m_importer_ptr.get();
-}
-
 void Stereo::Presenter::StereoPresenterWindow::fit_window_to_image(const uint32_t& in_width,
                                                                    const uint32_t& in_height)
 {
@@ -152,9 +147,9 @@ void Stereo::Presenter::StereoPresenterWindow::fit_window_to_image(const uint32_
     }
 }
 
-void Stereo::Presenter::StereoPresenterWindow::set_headset_sink(std::unique_ptr<HeadsetSink> in_sink_ptr)
+Stereo::Transport::IFrameImporter* Stereo::Presenter::StereoPresenterWindow::get_importer_ptr() const
 {
-    m_headset_sink_ptr = std::move(in_sink_ptr);
+    return m_importer_ptr.get();
 }
 
 Utils::UIHost::WindowOptions Stereo::Presenter::StereoPresenterWindow::get_window_options(const std::string& in_title)
@@ -171,4 +166,9 @@ Utils::UIHost::WindowOptions Stereo::Presenter::StereoPresenterWindow::get_windo
     result.title         = (in_title.empty() ) ? "DeepScene" : in_title;
 
     return result;
+}
+
+void Stereo::Presenter::StereoPresenterWindow::set_headset_sink(std::unique_ptr<HeadsetSink> in_sink_ptr)
+{
+    m_headset_sink_ptr = std::move(in_sink_ptr);
 }

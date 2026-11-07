@@ -14,14 +14,14 @@ const std::vector<Analysis::APIDumpAnalysis::AccessEvent>& Analysis::APIDumpDepe
     return m_event_vec;
 }
 
-const std::vector<uint64_t>& Analysis::APIDumpDependencies::AccessLog::get_frame_end_event_count_vec() const
-{
-    return m_frame_end_event_count_vec;
-}
-
 const std::vector<Analysis::APIDumpDependencies::FrameCallRange>& Analysis::APIDumpDependencies::AccessLog::get_frame_call_range_vec() const
 {
     return m_frame_call_range_vec;
+}
+
+const std::vector<uint64_t>& Analysis::APIDumpDependencies::AccessLog::get_frame_end_event_count_vec() const
+{
+    return m_frame_end_event_count_vec;
 }
 
 void Analysis::APIDumpDependencies::AccessLog::on_access(const Analysis::APIDumpAnalysis::AccessEvent& in_event)

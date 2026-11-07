@@ -19,6 +19,53 @@ Utils::Json::JsonReader::JsonReader(const std::string& in_text)
     /* Stub */
 }
 
+void Utils::Json::JsonReader::append_utf8(const uint32_t& in_code_point,
+                                          std::string*    inout_string_ptr)
+{
+    constexpr uint32_t CONTINUATION_MARKER  = 0x80; /* marker bits of a continuation byte */
+    constexpr uint32_t CONTINUATION_PAYLOAD = 0x3f; /* its payload bits                   */
+    constexpr uint32_t N_PAYLOAD_BITS       = 6;
+
+    struct Encoding
+    {
+        uint32_t limit;       /* code points below this take n_bytes bytes */
+        uint32_t lead_marker; /* marker bits of the first byte             */
+        uint32_t n_bytes;
+    };
+
+    constexpr Encoding ENCODING_ARRAY[] =
+    {
+        {0x80,     0x00, 1},
+        {0x800,    0xc0, 2},
+        {0x10000,  0xe0, 3},
+        {0x110000, 0xf0, 4}
+    };
+
+    for (const auto& encoding : ENCODING_ARRAY)
+    {
+        if (in_code_point < encoding.limit)
+        {
+            for (uint32_t n_byte = 0;
+                          n_byte < encoding.n_bytes;
+                        ++n_byte)
+            {
+                const uint32_t n_shift_bits = (encoding.n_bytes - 1 - n_byte) * N_PAYLOAD_BITS;
+
+                if (n_byte == 0)
+                {
+                    inout_string_ptr->push_back(static_cast<char>(encoding.lead_marker | (in_code_point >> n_shift_bits) ));
+                }
+                else
+                {
+                    inout_string_ptr->push_back(static_cast<char>(CONTINUATION_MARKER | ((in_code_point >> n_shift_bits) & CONTINUATION_PAYLOAD) ));
+                }
+            }
+
+            break;
+        }
+    }
+}
+
 bool Utils::Json::JsonReader::fail(const std::string& in_message)
 {
     size_t column = 1;
@@ -736,16 +783,6 @@ bool Utils::Json::JsonReader::read_hex_digits(uint32_t* out_value_ptr)
     return result;
 }
 
-std::string Utils::Json::JsonReader::strip_byte_order_mark(const std::string& in_text)
-{
-    const std::string byte_order_mark("\xEF\xBB\xBF");
-
-    return (in_text.compare(0,
-                            byte_order_mark.size(),
-                            byte_order_mark) == 0) ? in_text.substr(byte_order_mark.size() )
-                                                   : in_text;
-}
-
 void Utils::Json::JsonReader::skip_white_space()
 {
     while (m_position             <  m_text.size() &&
@@ -758,49 +795,12 @@ void Utils::Json::JsonReader::skip_white_space()
     }
 }
 
-void Utils::Json::JsonReader::append_utf8(const uint32_t& in_code_point,
-                                          std::string*    inout_string_ptr)
+std::string Utils::Json::JsonReader::strip_byte_order_mark(const std::string& in_text)
 {
-    constexpr uint32_t CONTINUATION_MARKER  = 0x80; /* marker bits of a continuation byte */
-    constexpr uint32_t CONTINUATION_PAYLOAD = 0x3f; /* its payload bits                   */
-    constexpr uint32_t N_PAYLOAD_BITS       = 6;
+    const std::string byte_order_mark("\xEF\xBB\xBF");
 
-    struct Encoding
-    {
-        uint32_t limit;       /* code points below this take n_bytes bytes */
-        uint32_t lead_marker; /* marker bits of the first byte             */
-        uint32_t n_bytes;
-    };
-
-    constexpr Encoding ENCODING_ARRAY[] =
-    {
-        {0x80,     0x00, 1},
-        {0x800,    0xc0, 2},
-        {0x10000,  0xe0, 3},
-        {0x110000, 0xf0, 4}
-    };
-
-    for (const auto& encoding : ENCODING_ARRAY)
-    {
-        if (in_code_point < encoding.limit)
-        {
-            for (uint32_t n_byte = 0;
-                          n_byte < encoding.n_bytes;
-                        ++n_byte)
-            {
-                const uint32_t n_shift_bits = (encoding.n_bytes - 1 - n_byte) * N_PAYLOAD_BITS;
-
-                if (n_byte == 0)
-                {
-                    inout_string_ptr->push_back(static_cast<char>(encoding.lead_marker | (in_code_point >> n_shift_bits) ));
-                }
-                else
-                {
-                    inout_string_ptr->push_back(static_cast<char>(CONTINUATION_MARKER | ((in_code_point >> n_shift_bits) & CONTINUATION_PAYLOAD) ));
-                }
-            }
-
-            break;
-        }
-    }
+    return (in_text.compare(0,
+                            byte_order_mark.size(),
+                            byte_order_mark) == 0) ? in_text.substr(byte_order_mark.size() )
+                                                   : in_text;
 }

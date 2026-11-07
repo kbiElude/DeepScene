@@ -430,6 +430,18 @@ void Stereo::ConverterDLL::D3D8HostMemoryExporter::wait_for_job()
     m_job_wait.add(Utils::Statistics::SeriesStats::get_now() - wait_start_ms);
 }
 
+void Stereo::ConverterDLL::D3D8HostMemoryExporter::wait_for_pace()
+{
+    const double start_ms = Utils::Statistics::SeriesStats::get_now();
+
+    if (wait_for_screen() )
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+
+        m_pace_wait.add(Utils::Statistics::SeriesStats::get_now() - start_ms);
+    }
+}
+
 bool Stereo::ConverterDLL::D3D8HostMemoryExporter::write_eye(const uint32_t& in_eye,
                                                              uint8_t*        out_destination_ptr,
                                                              const uint32_t& in_pitch)
@@ -505,17 +517,5 @@ void Stereo::ConverterDLL::D3D8HostMemoryExporter::write_job()
         std::lock_guard<std::mutex> lock(m_mutex);
 
         m_write_cost.add(Utils::Statistics::SeriesStats::get_now() - start_ms);
-    }
-}
-
-void Stereo::ConverterDLL::D3D8HostMemoryExporter::wait_for_pace()
-{
-    const double start_ms = Utils::Statistics::SeriesStats::get_now();
-
-    if (wait_for_screen() )
-    {
-        std::lock_guard<std::mutex> lock(m_mutex);
-
-        m_pace_wait.add(Utils::Statistics::SeriesStats::get_now() - start_ms);
     }
 }

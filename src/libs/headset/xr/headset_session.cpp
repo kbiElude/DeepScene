@@ -78,9 +78,9 @@ ID3D12Device* Headset::XR::HeadsetSession::get_device_ptr() const
     return m_impl_ptr->device_ptr.Get();
 }
 
-ID3D12CommandQueue* Headset::XR::HeadsetSession::get_queue_ptr() const
+float Headset::XR::HeadsetSession::get_ipd() const
 {
-    return m_impl_ptr->queue_ptr.Get();
+    return m_impl_ptr->ipd;
 }
 
 std::string Headset::XR::HeadsetSession::Impl::get_result_text(const XrResult& in_result) const
@@ -118,9 +118,9 @@ const char* Headset::XR::HeadsetSession::Impl::get_state_name(const XrSessionSta
     return result_ptr;
 }
 
-float Headset::XR::HeadsetSession::get_ipd() const
+ID3D12CommandQueue* Headset::XR::HeadsetSession::get_queue_ptr() const
 {
-    return m_impl_ptr->ipd;
+    return m_impl_ptr->queue_ptr.Get();
 }
 
 std::string Headset::XR::HeadsetSession::get_system_name() const
@@ -169,6 +169,11 @@ void Headset::XR::HeadsetSession::request_exit()
     ::xrRequestExitSession(m_impl_ptr->session);
 }
 
+void Headset::XR::HeadsetSession::set_frame_func(const FrameFunc& in_frame_func)
+{
+    m_impl_ptr->frame_func = in_frame_func;
+}
+
 std::vector<std::string> Headset::XR::HeadsetSession::take_log_lines()
 {
     std::lock_guard<std::mutex> lock(m_impl_ptr->log_mutex);
@@ -178,9 +183,4 @@ std::vector<std::string> Headset::XR::HeadsetSession::take_log_lines()
     result_vec.swap(m_impl_ptr->log_line_vec);
 
     return result_vec;
-}
-
-void Headset::XR::HeadsetSession::set_frame_func(const FrameFunc& in_frame_func)
-{
-    m_impl_ptr->frame_func = in_frame_func;
 }

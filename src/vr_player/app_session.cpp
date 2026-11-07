@@ -88,11 +88,6 @@ const std::string& VRPlayer::AppSession::get_message() const
     return m_message;
 }
 
-VRPlayer::SessionState VRPlayer::AppSession::get_state() const
-{
-    return m_state;
-}
-
 std::string VRPlayer::AppSession::get_presenter_command_line(const SessionRequest& in_request)
 {
     return quote_argument(in_request.presenter_path) + " --session " + quote_argument(in_request.session_id) +
@@ -107,36 +102,9 @@ std::string VRPlayer::AppSession::get_presenter_command_line(const SessionReques
                                         : std::string() );
 }
 
-void VRPlayer::AppSession::set_is_overlay_pushed(const bool& in_is_pushed)
+VRPlayer::SessionState VRPlayer::AppSession::get_state() const
 {
-    /* Said when it changes, like the strength. */
-    if (m_channel_ptr != nullptr)
-    {
-        if (m_has_is_overlay_pushed == false ||
-            m_is_overlay_pushed     != in_is_pushed)
-        {
-            m_channel_ptr->set_is_overlay_pushed(in_is_pushed);
-
-            m_is_overlay_pushed     = in_is_pushed;
-            m_has_is_overlay_pushed = true;
-        }
-    }
-}
-
-void VRPlayer::AppSession::set_depth_strength(const float& in_depth_strength)
-{
-    /* Said when it changes, so that what else sets it through the channel is not overridden at every frame. */
-    if (m_channel_ptr != nullptr)
-    {
-        if (m_has_depth_strength == false ||
-            m_depth_strength     != in_depth_strength)
-        {
-            m_channel_ptr->set_depth_strength(in_depth_strength);
-
-            m_depth_strength     = in_depth_strength;
-            m_has_depth_strength = true;
-        }
-    }
+    return m_state;
 }
 
 std::string VRPlayer::AppSession::quote_argument(const std::string& in_argument)
@@ -203,6 +171,38 @@ std::string VRPlayer::AppSession::read_output(const HANDLE& in_pipe)
     }
 
     return result;
+}
+
+void VRPlayer::AppSession::set_depth_strength(const float& in_depth_strength)
+{
+    /* Said when it changes, so that what else sets it through the channel is not overridden at every frame. */
+    if (m_channel_ptr != nullptr)
+    {
+        if (m_has_depth_strength == false ||
+            m_depth_strength     != in_depth_strength)
+        {
+            m_channel_ptr->set_depth_strength(in_depth_strength);
+
+            m_depth_strength     = in_depth_strength;
+            m_has_depth_strength = true;
+        }
+    }
+}
+
+void VRPlayer::AppSession::set_is_overlay_pushed(const bool& in_is_pushed)
+{
+    /* Said when it changes, like the strength. */
+    if (m_channel_ptr != nullptr)
+    {
+        if (m_has_is_overlay_pushed == false ||
+            m_is_overlay_pushed     != in_is_pushed)
+        {
+            m_channel_ptr->set_is_overlay_pushed(in_is_pushed);
+
+            m_is_overlay_pushed     = in_is_pushed;
+            m_has_is_overlay_pushed = true;
+        }
+    }
 }
 
 bool VRPlayer::AppSession::start(const VRPlayer::AppCatalog::AppEntry& in_app,

@@ -88,53 +88,6 @@ Stereo::Transport::FrameChannel::~FrameChannel()
     ::CloseHandle(m_mapping);
 }
 
-uint8_t* Stereo::Transport::FrameChannel::begin_write_ptr(const FrameInfo& in_info)
-{
-    const LONG     latest_slot  = m_header_ptr->latest_slot_plus_one  - 1;
-    const uint32_t pitch        = get_pitch(in_info.width);
-    const LONG     reading_slot = m_header_ptr->reading_slot_plus_one - 1;
-    uint8_t*       result_ptr   = nullptr;
-
-    if (in_info.width                                 > 0           &&
-        in_info.width                                 <= MAX_WIDTH  &&
-        in_info.height                                > 0           &&
-        in_info.height                                <= MAX_HEIGHT &&
-        in_info.n_eyes                                >= 1          &&
-        in_info.n_eyes                                <= 2          &&
-        in_info.width  % in_info.n_eyes               == 0          &&
-        static_cast<uint64_t>(pitch) * in_info.height <= SLOT_N_BYTES)
-    {
-        /* Of three slots, one is the newest and one may be read: the third is free. */
-        for (uint32_t n_slot = 0;
-                      n_slot < N_SLOTS;
-                    ++n_slot)
-        {
-            if (result_ptr                == nullptr       &&
-                static_cast<LONG>(n_slot) != latest_slot   &&
-                static_cast<LONG>(n_slot) != reading_slot)
-            {
-                m_n_write_slot = n_slot;
-                result_ptr     = get_slot_pixel_ptr(n_slot);
-            }
-        }
-
-        if (result_ptr != nullptr)
-        {
-            /* What is passed is in the memory of the channel, whatever the producer says. */
-            m_header_ptr->slot_array[m_n_write_slot].frame_index       = in_info.frame_index;
-            m_header_ptr->slot_array[m_n_write_slot].height            = in_info.height;
-            m_header_ptr->slot_array[m_n_write_slot].kind              = static_cast<uint32_t>(TransportKind::HOST_MEMORY);
-            m_header_ptr->slot_array[m_n_write_slot].n_eyes            = in_info.n_eyes;
-            m_header_ptr->slot_array[m_n_write_slot].pitch             = pitch;
-            m_header_ptr->slot_array[m_n_write_slot].pixel_format      = static_cast<uint32_t>(PixelFormat::B8G8R8A8);
-            m_header_ptr->slot_array[m_n_write_slot].timestamp_seconds = in_info.timestamp_seconds;
-            m_header_ptr->slot_array[m_n_write_slot].width             = in_info.width;
-        }
-    }
-
-    return result_ptr;
-}
-
 bool Stereo::Transport::FrameChannel::begin_read(FrameInfo*      out_info_ptr,
                                                  const uint8_t** out_pixel_ptr_ptr)
 {
@@ -182,6 +135,53 @@ bool Stereo::Transport::FrameChannel::begin_read(FrameInfo*      out_info_ptr,
     }
 
     return result;
+}
+
+uint8_t* Stereo::Transport::FrameChannel::begin_write_ptr(const FrameInfo& in_info)
+{
+    const LONG     latest_slot  = m_header_ptr->latest_slot_plus_one  - 1;
+    const uint32_t pitch        = get_pitch(in_info.width);
+    const LONG     reading_slot = m_header_ptr->reading_slot_plus_one - 1;
+    uint8_t*       result_ptr   = nullptr;
+
+    if (in_info.width                                 > 0           &&
+        in_info.width                                 <= MAX_WIDTH  &&
+        in_info.height                                > 0           &&
+        in_info.height                                <= MAX_HEIGHT &&
+        in_info.n_eyes                                >= 1          &&
+        in_info.n_eyes                                <= 2          &&
+        in_info.width  % in_info.n_eyes               == 0          &&
+        static_cast<uint64_t>(pitch) * in_info.height <= SLOT_N_BYTES)
+    {
+        /* Of three slots, one is the newest and one may be read: the third is free. */
+        for (uint32_t n_slot = 0;
+                      n_slot < N_SLOTS;
+                    ++n_slot)
+        {
+            if (result_ptr                == nullptr       &&
+                static_cast<LONG>(n_slot) != latest_slot   &&
+                static_cast<LONG>(n_slot) != reading_slot)
+            {
+                m_n_write_slot = n_slot;
+                result_ptr     = get_slot_pixel_ptr(n_slot);
+            }
+        }
+
+        if (result_ptr != nullptr)
+        {
+            /* What is passed is in the memory of the channel, whatever the producer says. */
+            m_header_ptr->slot_array[m_n_write_slot].frame_index       = in_info.frame_index;
+            m_header_ptr->slot_array[m_n_write_slot].height            = in_info.height;
+            m_header_ptr->slot_array[m_n_write_slot].kind              = static_cast<uint32_t>(TransportKind::HOST_MEMORY);
+            m_header_ptr->slot_array[m_n_write_slot].n_eyes            = in_info.n_eyes;
+            m_header_ptr->slot_array[m_n_write_slot].pitch             = pitch;
+            m_header_ptr->slot_array[m_n_write_slot].pixel_format      = static_cast<uint32_t>(PixelFormat::B8G8R8A8);
+            m_header_ptr->slot_array[m_n_write_slot].timestamp_seconds = in_info.timestamp_seconds;
+            m_header_ptr->slot_array[m_n_write_slot].width             = in_info.width;
+        }
+    }
+
+    return result_ptr;
 }
 
 void Stereo::Transport::FrameChannel::end_read()
@@ -250,16 +250,6 @@ bool Stereo::Transport::FrameChannel::get_eye_separation(float* out_eye_separati
     return result;
 }
 
-uint32_t Stereo::Transport::FrameChannel::get_max_height()
-{
-    return MAX_HEIGHT;
-}
-
-uint32_t Stereo::Transport::FrameChannel::get_max_width()
-{
-    return MAX_WIDTH;
-}
-
 bool Stereo::Transport::FrameChannel::get_ipd_scale(float* out_ipd_scale_ptr) const
 {
     const bool result = (m_header_ptr->has_ipd_scale != 0);
@@ -279,6 +269,16 @@ bool Stereo::Transport::FrameChannel::get_ipd_scale(float* out_ipd_scale_ptr) co
 bool Stereo::Transport::FrameChannel::get_is_overlay_pushed() const
 {
     return (m_header_ptr->overlay_is_pushed != 0);
+}
+
+uint32_t Stereo::Transport::FrameChannel::get_max_height()
+{
+    return MAX_HEIGHT;
+}
+
+uint32_t Stereo::Transport::FrameChannel::get_max_width()
+{
+    return MAX_WIDTH;
 }
 
 uint64_t Stereo::Transport::FrameChannel::get_n_frames_published() const
@@ -307,20 +307,6 @@ Stereo::Transport::TransportKind Stereo::Transport::FrameChannel::get_negotiated
     return result;
 }
 
-bool Stereo::Transport::FrameChannel::get_target_eye_size(uint32_t* out_width_ptr,
-                                                          uint32_t* out_height_ptr) const
-{
-    const bool result = (m_header_ptr->has_target_eye_size != 0);
-
-    if (result)
-    {
-        *out_height_ptr = static_cast<uint32_t>(m_header_ptr->target_eye_height);
-        *out_width_ptr  = static_cast<uint32_t>(m_header_ptr->target_eye_width);
-    }
-
-    return result;
-}
-
 Stereo::Transport::TransportKindMask Stereo::Transport::FrameChannel::get_offered_kinds() const
 {
     return static_cast<TransportKindMask>(m_header_ptr->producer_offered_kinds);
@@ -334,6 +320,20 @@ uint32_t Stereo::Transport::FrameChannel::get_pitch(const uint32_t& in_width)
 uint8_t* Stereo::Transport::FrameChannel::get_slot_pixel_ptr(const uint32_t& in_n_slot) const
 {
     return reinterpret_cast<uint8_t*>(m_header_ptr) + HEADER_N_BYTES + in_n_slot * SLOT_N_BYTES;
+}
+
+bool Stereo::Transport::FrameChannel::get_target_eye_size(uint32_t* out_width_ptr,
+                                                          uint32_t* out_height_ptr) const
+{
+    const bool result = (m_header_ptr->has_target_eye_size != 0);
+
+    if (result)
+    {
+        *out_height_ptr = static_cast<uint32_t>(m_header_ptr->target_eye_height);
+        *out_width_ptr  = static_cast<uint32_t>(m_header_ptr->target_eye_width);
+    }
+
+    return result;
 }
 
 std::unique_ptr<Stereo::Transport::FrameChannel> Stereo::Transport::FrameChannel::open_ptr(const std::string& in_session_id,
@@ -471,24 +471,6 @@ void Stereo::Transport::FrameChannel::set_eye_separation(const float& in_eye_sep
                           1);
 }
 
-void Stereo::Transport::FrameChannel::set_pace_delay_us(const uint32_t& in_delay_us)
-{
-    ::InterlockedExchange(&m_header_ptr->pace_delay_us,
-                          static_cast<LONG>(in_delay_us) );
-}
-
-void Stereo::Transport::FrameChannel::set_target_eye_size(const uint32_t& in_width,
-                                                          const uint32_t& in_height)
-{
-    /* The values first, then the flag that says that there are some. */
-    ::InterlockedExchange(&m_header_ptr->target_eye_height,
-                          static_cast<LONG>(in_height) );
-    ::InterlockedExchange(&m_header_ptr->target_eye_width,
-                          static_cast<LONG>(in_width) );
-    ::InterlockedExchange(&m_header_ptr->has_target_eye_size,
-                          1);
-}
-
 void Stereo::Transport::FrameChannel::set_ipd_scale(const float& in_ipd_scale)
 {
     LONG bits = 0;
@@ -515,6 +497,24 @@ void Stereo::Transport::FrameChannel::set_offered_kinds(const TransportKindMask&
 {
     ::InterlockedExchange(&m_header_ptr->producer_offered_kinds,
                           static_cast<LONG>(in_kinds) );
+}
+
+void Stereo::Transport::FrameChannel::set_pace_delay_us(const uint32_t& in_delay_us)
+{
+    ::InterlockedExchange(&m_header_ptr->pace_delay_us,
+                          static_cast<LONG>(in_delay_us) );
+}
+
+void Stereo::Transport::FrameChannel::set_target_eye_size(const uint32_t& in_width,
+                                                          const uint32_t& in_height)
+{
+    /* The values first, then the flag that says that there are some. */
+    ::InterlockedExchange(&m_header_ptr->target_eye_height,
+                          static_cast<LONG>(in_height) );
+    ::InterlockedExchange(&m_header_ptr->target_eye_width,
+                          static_cast<LONG>(in_width) );
+    ::InterlockedExchange(&m_header_ptr->has_target_eye_size,
+                          1);
 }
 
 void Stereo::Transport::FrameChannel::signal_pace()

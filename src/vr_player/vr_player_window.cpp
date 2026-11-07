@@ -473,6 +473,40 @@ void VRPlayer::VrPlayerWindow::draw_header()
     }
 }
 
+void VRPlayer::VrPlayerWindow::draw_install_error()
+{
+    constexpr float WIDTH = 460.0f;
+
+    const ImGuiStyle& style = ImGui::GetStyle();
+
+    if (m_should_open_install_error)
+    {
+        ImGui::OpenPopup("Cannot install the application");
+
+        m_should_open_install_error = false;
+    }
+
+    if (ImGui::BeginPopupModal("Cannot install the application",
+                               nullptr,
+                               ImGuiWindowFlags_AlwaysAutoResize) )
+    {
+        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + WIDTH * style.FontScaleDpi);
+        ImGui::TextUnformatted(m_install_error.c_str() );
+        ImGui::PopTextWrapPos();
+
+        ImGui::Spacing();
+
+        if (ImGui::Button("OK",
+                          ImVec2(120.0f * style.FontScaleDpi,
+                                 0.0f) ))
+        {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
 void VRPlayer::VrPlayerWindow::draw_launch_area()
 {
     const ImGuiStyle& style         = ImGui::GetStyle();
@@ -553,40 +587,6 @@ void VRPlayer::VrPlayerWindow::draw_launch_area()
         }
 
         ImGui::EndDisabled();
-    }
-}
-
-void VRPlayer::VrPlayerWindow::draw_install_error()
-{
-    constexpr float WIDTH = 460.0f;
-
-    const ImGuiStyle& style = ImGui::GetStyle();
-
-    if (m_should_open_install_error)
-    {
-        ImGui::OpenPopup("Cannot install the application");
-
-        m_should_open_install_error = false;
-    }
-
-    if (ImGui::BeginPopupModal("Cannot install the application",
-                               nullptr,
-                               ImGuiWindowFlags_AlwaysAutoResize) )
-    {
-        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + WIDTH * style.FontScaleDpi);
-        ImGui::TextUnformatted(m_install_error.c_str() );
-        ImGui::PopTextWrapPos();
-
-        ImGui::Spacing();
-
-        if (ImGui::Button("OK",
-                          ImVec2(120.0f * style.FontScaleDpi,
-                                 0.0f) ))
-        {
-            ImGui::CloseCurrentPopup();
-        }
-
-        ImGui::EndPopup();
     }
 }
 
@@ -746,6 +746,67 @@ void VRPlayer::VrPlayerWindow::launch()
     }
 }
 
+void VRPlayer::VrPlayerWindow::select_defaults()
+{
+    /* The first application which can be played, or else the first one: its reason is what is shown. */
+    for (size_t n_app = 0;
+                n_app < m_content.catalog.app_vec.size();
+              ++n_app)
+    {
+        if (m_selected_app < 0 ||
+            (m_content.catalog.app_vec.at(static_cast<size_t>(m_selected_app) ).unavailable_reason.empty() == false &&
+             m_content.catalog.app_vec.at(n_app).unavailable_reason.empty() ) )
+        {
+            m_selected_app = static_cast<int>(n_app);
+        }
+    }
+
+    for (size_t n_device = 0;
+                n_device < m_content.device_vec.size();
+              ++n_device)
+    {
+        if (m_device_index < 0 &&
+            m_content.device_vec.at(n_device).unavailable_reason.empty() )
+        {
+            m_device_index = static_cast<int>(n_device);
+        }
+    }
+}
+
+void VRPlayer::VrPlayerWindow::set_up_style()
+{
+    constexpr float FRAME_ROUNDING   = 6.0f;
+    constexpr float PANEL_ROUNDING   = 10.0f;
+    constexpr float WINDOW_PADDING   = 16.0f;
+
+    ImGuiStyle& style = ImGui::GetStyle();
+    const float scale = style.FontScaleDpi;
+
+    style.ChildRounding  = PANEL_ROUNDING * scale;
+    style.FrameRounding  = FRAME_ROUNDING * scale;
+    style.GrabRounding   = FRAME_ROUNDING * scale;
+    style.PopupRounding  = FRAME_ROUNDING * scale;
+    style.WindowPadding  = ImVec2(WINDOW_PADDING * scale,
+                                  WINDOW_PADDING * scale);
+
+    style.Colors[ImGuiCol_Border]         = BORDER_COLOR;
+    style.Colors[ImGuiCol_Button]         = ACCENT_COLOR;
+    style.Colors[ImGuiCol_ButtonActive]   = ACCENT_ACTIVE_COLOR;
+    style.Colors[ImGuiCol_ButtonHovered]  = ACCENT_HOVERED_COLOR;
+    style.Colors[ImGuiCol_ChildBg]        = PANEL_COLOR;
+    style.Colors[ImGuiCol_FrameBg]        = FRAME_COLOR;
+    style.Colors[ImGuiCol_FrameBgActive]  = FRAME_HOVERED_COLOR;
+    style.Colors[ImGuiCol_FrameBgHovered] = FRAME_HOVERED_COLOR;
+    style.Colors[ImGuiCol_Header]         = SELECTED_COLOR;
+    style.Colors[ImGuiCol_HeaderActive]   = SELECTED_HOVERED_COLOR;
+    style.Colors[ImGuiCol_HeaderHovered]  = SELECTED_HOVERED_COLOR;
+    style.Colors[ImGuiCol_PopupBg]        = PANEL_COLOR;
+    style.Colors[ImGuiCol_SliderGrab]     = ACCENT_HOVERED_COLOR;
+    style.Colors[ImGuiCol_SliderGrabActive] = ACCENT_COLOR;
+    style.Colors[ImGuiCol_Text]           = TEXT_COLOR;
+    style.Colors[ImGuiCol_WindowBg]       = WINDOW_COLOR;
+}
+
 void VRPlayer::VrPlayerWindow::start_app(const size_t& in_n_app)
 {
     const VRPlayer::AppCatalog::AppEntry& app           = m_content.catalog.app_vec.at(in_n_app);
@@ -782,33 +843,6 @@ void VRPlayer::VrPlayerWindow::start_app(const size_t& in_n_app)
 
         m_running_app_name = app.name;
         m_status           = app.name + " is running.";
-    }
-}
-
-void VRPlayer::VrPlayerWindow::select_defaults()
-{
-    /* The first application which can be played, or else the first one: its reason is what is shown. */
-    for (size_t n_app = 0;
-                n_app < m_content.catalog.app_vec.size();
-              ++n_app)
-    {
-        if (m_selected_app < 0 ||
-            (m_content.catalog.app_vec.at(static_cast<size_t>(m_selected_app) ).unavailable_reason.empty() == false &&
-             m_content.catalog.app_vec.at(n_app).unavailable_reason.empty() ) )
-        {
-            m_selected_app = static_cast<int>(n_app);
-        }
-    }
-
-    for (size_t n_device = 0;
-                n_device < m_content.device_vec.size();
-              ++n_device)
-    {
-        if (m_device_index < 0 &&
-            m_content.device_vec.at(n_device).unavailable_reason.empty() )
-        {
-            m_device_index = static_cast<int>(n_device);
-        }
     }
 }
 
@@ -913,38 +947,4 @@ void VRPlayer::VrPlayerWindow::update_session()
         m_status          = (m_is_status_error) ? m_session.get_message()
                                                 : m_running_app_name + " has ended.";
     }
-}
-
-void VRPlayer::VrPlayerWindow::set_up_style()
-{
-    constexpr float FRAME_ROUNDING   = 6.0f;
-    constexpr float PANEL_ROUNDING   = 10.0f;
-    constexpr float WINDOW_PADDING   = 16.0f;
-
-    ImGuiStyle& style = ImGui::GetStyle();
-    const float scale = style.FontScaleDpi;
-
-    style.ChildRounding  = PANEL_ROUNDING * scale;
-    style.FrameRounding  = FRAME_ROUNDING * scale;
-    style.GrabRounding   = FRAME_ROUNDING * scale;
-    style.PopupRounding  = FRAME_ROUNDING * scale;
-    style.WindowPadding  = ImVec2(WINDOW_PADDING * scale,
-                                  WINDOW_PADDING * scale);
-
-    style.Colors[ImGuiCol_Border]         = BORDER_COLOR;
-    style.Colors[ImGuiCol_Button]         = ACCENT_COLOR;
-    style.Colors[ImGuiCol_ButtonActive]   = ACCENT_ACTIVE_COLOR;
-    style.Colors[ImGuiCol_ButtonHovered]  = ACCENT_HOVERED_COLOR;
-    style.Colors[ImGuiCol_ChildBg]        = PANEL_COLOR;
-    style.Colors[ImGuiCol_FrameBg]        = FRAME_COLOR;
-    style.Colors[ImGuiCol_FrameBgActive]  = FRAME_HOVERED_COLOR;
-    style.Colors[ImGuiCol_FrameBgHovered] = FRAME_HOVERED_COLOR;
-    style.Colors[ImGuiCol_Header]         = SELECTED_COLOR;
-    style.Colors[ImGuiCol_HeaderActive]   = SELECTED_HOVERED_COLOR;
-    style.Colors[ImGuiCol_HeaderHovered]  = SELECTED_HOVERED_COLOR;
-    style.Colors[ImGuiCol_PopupBg]        = PANEL_COLOR;
-    style.Colors[ImGuiCol_SliderGrab]     = ACCENT_HOVERED_COLOR;
-    style.Colors[ImGuiCol_SliderGrabActive] = ACCENT_COLOR;
-    style.Colors[ImGuiCol_Text]           = TEXT_COLOR;
-    style.Colors[ImGuiCol_WindowBg]       = WINDOW_COLOR;
 }

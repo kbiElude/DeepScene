@@ -32,6 +32,21 @@ void VRPlayer::AppInstaller::AppInstaller::cancel()
     m_is_cancelled = true;
 }
 
+std::string VRPlayer::AppInstaller::AppInstaller::get_host(const std::string& in_url)
+{
+    const size_t n_scheme_separator_character = in_url.find("://");
+
+    const size_t n_host_start_character = (n_scheme_separator_character == std::string::npos) ? 0
+                                                                                              : n_scheme_separator_character + 3;
+
+    const size_t n_host_end_character = in_url.find_first_of("/:?",
+                                                             n_host_start_character);
+
+    return in_url.substr(n_host_start_character,
+                         (n_host_end_character == std::string::npos) ? std::string::npos
+                                                                     : n_host_end_character - n_host_start_character);
+}
+
 VRPlayer::AppInstaller::InstallProgress VRPlayer::AppInstaller::AppInstaller::get_progress() const
 {
     InstallProgress result;
@@ -48,6 +63,12 @@ VRPlayer::AppInstaller::InstallProgress VRPlayer::AppInstaller::AppInstaller::ge
 bool VRPlayer::AppInstaller::AppInstaller::is_busy() const
 {
     return m_is_busy.load();
+}
+
+bool VRPlayer::AppInstaller::AppInstaller::is_sha256_hex(const std::string& in_text)
+{
+    return (in_text.size() == 64                                                 &&
+            in_text.find_first_not_of("0123456789abcdef") == std::string::npos);
 }
 
 void VRPlayer::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spec)
@@ -371,25 +392,4 @@ bool VRPlayer::AppInstaller::AppInstaller::start(const InstallSpec& in_spec,
 
 end:
     return result;
-}
-
-std::string VRPlayer::AppInstaller::AppInstaller::get_host(const std::string& in_url)
-{
-    const size_t n_scheme_separator_character = in_url.find("://");
-
-    const size_t n_host_start_character = (n_scheme_separator_character == std::string::npos) ? 0
-                                                                                              : n_scheme_separator_character + 3;
-
-    const size_t n_host_end_character = in_url.find_first_of("/:?",
-                                                             n_host_start_character);
-
-    return in_url.substr(n_host_start_character,
-                         (n_host_end_character == std::string::npos) ? std::string::npos
-                                                                     : n_host_end_character - n_host_start_character);
-}
-
-bool VRPlayer::AppInstaller::AppInstaller::is_sha256_hex(const std::string& in_text)
-{
-    return (in_text.size() == 64                                                 &&
-            in_text.find_first_not_of("0123456789abcdef") == std::string::npos);
 }

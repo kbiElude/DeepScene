@@ -11,15 +11,15 @@ Analysis::APIDumpAnalysis::StructureInterner<Structure>::StructureInterner()
 }
 
 template<typename Structure>
-const Structure& Analysis::APIDumpAnalysis::StructureInterner<Structure>::get_structure(const uint32_t& in_id) const
-{
-    return m_structure_vec.at(in_id);
-}
-
-template<typename Structure>
 size_t Analysis::APIDumpAnalysis::StructureInterner<Structure>::get_n_structures() const
 {
     return m_structure_vec.size();
+}
+
+template<typename Structure>
+const Structure& Analysis::APIDumpAnalysis::StructureInterner<Structure>::get_structure(const uint32_t& in_id) const
+{
+    return m_structure_vec.at(in_id);
 }
 
 template<typename Structure>

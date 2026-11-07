@@ -142,31 +142,6 @@ void Stereo::ConverterDLL::CallFeeder::fill_call(const APIInterceptor::APIFuncti
     }
 }
 
-Stereo::ConverterDLL::CallFeeder::PendingCalls* Stereo::ConverterDLL::CallFeeder::get_pending_calls_ptr()
-{
-    const uint32_t thread_id = static_cast<uint32_t>(::GetCurrentThreadId() );
-
-    /* One thread makes almost all the calls: the map is asked only when another one makes one. */
-    if (m_last_thread_pending_calls_ptr == nullptr   ||
-        m_last_thread_id                != thread_id)
-    {
-        m_last_thread_id                = thread_id;
-        m_last_thread_pending_calls_ptr = &m_pending_calls_by_thread_map[thread_id];
-    }
-
-    return m_last_thread_pending_calls_ptr;
-}
-
-uint64_t Stereo::ConverterDLL::CallFeeder::get_last_draw_cover_key() const
-{
-    return m_session.get_last_draw_cover_key();
-}
-
-uint64_t Stereo::ConverterDLL::CallFeeder::get_last_draw_signature_key() const
-{
-    return m_session.get_last_draw_signature_key();
-}
-
 bool Stereo::ConverterDLL::CallFeeder::get_last_call_chunk(const uint32_t& in_chunk_id,
                                                            const void**    out_data_ptr_ptr,
                                                            uint32_t*       out_n_bytes_ptr) const
@@ -189,6 +164,31 @@ bool Stereo::ConverterDLL::CallFeeder::get_last_call_chunk(const uint32_t& in_ch
     }
 
     return result;
+}
+
+uint64_t Stereo::ConverterDLL::CallFeeder::get_last_draw_cover_key() const
+{
+    return m_session.get_last_draw_cover_key();
+}
+
+uint64_t Stereo::ConverterDLL::CallFeeder::get_last_draw_signature_key() const
+{
+    return m_session.get_last_draw_signature_key();
+}
+
+Stereo::ConverterDLL::CallFeeder::PendingCalls* Stereo::ConverterDLL::CallFeeder::get_pending_calls_ptr()
+{
+    const uint32_t thread_id = static_cast<uint32_t>(::GetCurrentThreadId() );
+
+    /* One thread makes almost all the calls: the map is asked only when another one makes one. */
+    if (m_last_thread_pending_calls_ptr == nullptr   ||
+        m_last_thread_id                != thread_id)
+    {
+        m_last_thread_id                = thread_id;
+        m_last_thread_pending_calls_ptr = &m_pending_calls_by_thread_map[thread_id];
+    }
+
+    return m_last_thread_pending_calls_ptr;
 }
 
 const Analysis::APIDumpAnalysis::Viewport& Stereo::ConverterDLL::CallFeeder::get_viewport() const

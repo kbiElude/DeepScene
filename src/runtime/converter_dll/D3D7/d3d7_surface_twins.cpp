@@ -77,12 +77,6 @@ uint64_t Stereo::ConverterDLL::D3D7SurfaceTwins::get_n_twins() const
     return m_twin_map.size();
 }
 
-bool Stereo::ConverterDLL::D3D7SurfaceTwins::is_back_buffer(void* in_surface_ptr) const
-{
-    return (in_surface_ptr != nullptr &&
-            in_surface_ptr == m_back_buffer_ptr);
-}
-
 void* Stereo::ConverterDLL::D3D7SurfaceTwins::get_twin_ptr(void* in_surface_ptr) const
 {
     const auto twin_iterator = m_twin_map.find(in_surface_ptr);
@@ -240,6 +234,12 @@ void Stereo::ConverterDLL::D3D7SurfaceTwins::handle_release(const APIInterceptor
             }
         }
     }
+}
+
+bool Stereo::ConverterDLL::D3D7SurfaceTwins::is_back_buffer(void* in_surface_ptr) const
+{
+    return (in_surface_ptr != nullptr &&
+            in_surface_ptr == m_back_buffer_ptr);
 }
 
 void* Stereo::ConverterDLL::D3D7SurfaceTwins::make_twin_ptr(void*       in_surface_ptr,

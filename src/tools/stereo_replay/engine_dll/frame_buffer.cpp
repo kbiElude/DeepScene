@@ -45,6 +45,12 @@ void Stereo::Replay::EngineDLL::FrameBuffer::add_call(const Capture::APIDumpLoad
     m_call_vec.push_back(std::move(copy) );
 }
 
+void Stereo::Replay::EngineDLL::FrameBuffer::clear()
+{
+    m_call_vec.clear ();
+    m_chunk_map.clear();
+}
+
 Capture::APIDumpLoader::DumpedAPICall Stereo::Replay::EngineDLL::FrameBuffer::copy_call(const Capture::APIDumpLoader::DumpedAPICall& in_call)
 {
     Capture::APIDumpLoader::DumpedAPICall result;
@@ -61,12 +67,6 @@ Capture::APIDumpLoader::DumpedAPICall Stereo::Replay::EngineDLL::FrameBuffer::co
     }
 
     return result;
-}
-
-void Stereo::Replay::EngineDLL::FrameBuffer::clear()
-{
-    m_call_vec.clear ();
-    m_chunk_map.clear();
 }
 
 const std::vector<Capture::APIDumpLoader::DumpedAPICall>& Stereo::Replay::EngineDLL::FrameBuffer::get_call_vec() const

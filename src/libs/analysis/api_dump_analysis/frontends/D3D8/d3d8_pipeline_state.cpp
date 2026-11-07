@@ -76,6 +76,11 @@ Analysis::APIDumpAnalysis::DrawDescription Analysis::APIDumpAnalysis::Frontends:
     return result;
 }
 
+Analysis::APIDumpAnalysis::Frontends::FixedFunctionState& Analysis::APIDumpAnalysis::Frontends::D3D8PipelineState::get_fixed_function_state()
+{
+    return m_fixed_function_state;
+}
+
 uint32_t Analysis::APIDumpAnalysis::Frontends::D3D8PipelineState::get_fvf() const
 {
     return (m_vertex_shader_id == Analysis::APIDumpAnalysis::ResourceId::NONE) ? static_cast<uint32_t>(m_vertex_layout_value)
@@ -217,11 +222,6 @@ bool Analysis::APIDumpAnalysis::Frontends::D3D8PipelineState::is_value_irrelevan
     }
 
     return result;
-}
-
-Analysis::APIDumpAnalysis::Frontends::FixedFunctionState& Analysis::APIDumpAnalysis::Frontends::D3D8PipelineState::get_fixed_function_state()
-{
-    return m_fixed_function_state;
 }
 
 void Analysis::APIDumpAnalysis::Frontends::D3D8PipelineState::reset()

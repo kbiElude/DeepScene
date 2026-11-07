@@ -65,6 +65,11 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::create_swap_chain_resou
     m_builder_ptr->on_set_viewport(get_full_viewport(m_color_view) );
 }
 
+void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::forget_resource(const Analysis::APIDumpAnalysis::ResourceId& in_id)
+{
+    m_geometry_tracker.forget(in_id);
+}
+
 Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::DescribeFuncPtr Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::get_describe_func_ptr(const APIInterceptor::APIFunction& in_function)
 {
     DescribeFuncPtr result_ptr = nullptr;
@@ -136,6 +141,11 @@ Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::DescribeFuncPtr Analysis::AP
     return result_ptr;
 }
 
+Analysis::APIDumpAnalysis::Frontends::FixedFunctionState& Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::get_fixed_function_state()
+{
+    return m_pipeline_state.get_fixed_function_state();
+}
+
 Analysis::APIDumpAnalysis::PrimitiveTopology Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::get_primitive_topology(const Interception::Hooks::D3D8::D3DPRIMITIVETYPE& in_type)
 {
     Analysis::APIDumpAnalysis::PrimitiveTopology result = Analysis::APIDumpAnalysis::PrimitiveTopology::UNKNOWN;
@@ -191,16 +201,6 @@ Analysis::APIDumpAnalysis::PrimitiveTopology Analysis::APIDumpAnalysis::Frontend
     }
 
     return result;
-}
-
-void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::forget_resource(const Analysis::APIDumpAnalysis::ResourceId& in_id)
-{
-    m_geometry_tracker.forget(in_id);
-}
-
-Analysis::APIDumpAnalysis::Frontends::FixedFunctionState& Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::get_fixed_function_state()
-{
-    return m_pipeline_state.get_fixed_function_state();
 }
 
 Analysis::APIDumpAnalysis::ConstantSemantic Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::get_transform_semantic(const uint32_t& in_state) const
@@ -1503,42 +1503,6 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::on_call(const Capture::
     }
 }
 
-std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::sample_geometry(const CallView& in_view,
-                                                                                                                                     const bool&     in_is_indexed,
-                                                                                                                                     const uint32_t& in_vertex_count)
-{
-    /* DrawIndexedPrimitive has the start index as its fifth argument, DrawPrimitive the first vertex as its third; the vertices are those of the
-     * first stream.
-     */
-    constexpr size_t   INDEXED_START_INDEX_ARGUMENT  = 4;
-    constexpr uint32_t MAIN_STREAM                   = 0;
-    constexpr size_t   UNINDEXED_START_VERTEX_ARGUMENT = 2;
-
-    std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> result_ptr;
-    D3D8GeometryTracker::DrawRange                                   range;
-
-    range.base_vertex_index = (in_is_indexed) ? m_base_vertex_index
-                                              : 0;
-    range.first             = in_view.get_u32((in_is_indexed) ? INDEXED_START_INDEX_ARGUMENT
-                                                              : UNINDEXED_START_VERTEX_ARGUMENT);
-    range.fvf               = m_pipeline_state.get_fvf();
-    range.index_buffer_id   = (in_is_indexed) ? m_pipeline_state.get_index_buffer_id()
-                                              : Analysis::APIDumpAnalysis::ResourceId::NONE;
-    range.is_indexed        = in_is_indexed;
-    range.vertex_count      = in_vertex_count;
-
-    const bool has_stream = m_pipeline_state.get_stream_source(MAIN_STREAM,
-                                                              &range.vertex_buffer_id,
-                                                              &range.stride);
-
-    if (has_stream)
-    {
-        result_ptr = m_geometry_tracker.sample(range);
-    }
-
-    return result_ptr;
-}
-
 void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::register_buffer(const CallView&                              in_view,
                                                                          const Analysis::APIDumpAnalysis::ResourceId& in_id)
 {
@@ -1628,4 +1592,40 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::register_names(const Ca
             }
         }
     }
+}
+
+std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::sample_geometry(const CallView& in_view,
+                                                                                                                                     const bool&     in_is_indexed,
+                                                                                                                                     const uint32_t& in_vertex_count)
+{
+    /* DrawIndexedPrimitive has the start index as its fifth argument, DrawPrimitive the first vertex as its third; the vertices are those of the
+     * first stream.
+     */
+    constexpr size_t   INDEXED_START_INDEX_ARGUMENT  = 4;
+    constexpr uint32_t MAIN_STREAM                   = 0;
+    constexpr size_t   UNINDEXED_START_VERTEX_ARGUMENT = 2;
+
+    std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> result_ptr;
+    D3D8GeometryTracker::DrawRange                                   range;
+
+    range.base_vertex_index = (in_is_indexed) ? m_base_vertex_index
+                                              : 0;
+    range.first             = in_view.get_u32((in_is_indexed) ? INDEXED_START_INDEX_ARGUMENT
+                                                              : UNINDEXED_START_VERTEX_ARGUMENT);
+    range.fvf               = m_pipeline_state.get_fvf();
+    range.index_buffer_id   = (in_is_indexed) ? m_pipeline_state.get_index_buffer_id()
+                                              : Analysis::APIDumpAnalysis::ResourceId::NONE;
+    range.is_indexed        = in_is_indexed;
+    range.vertex_count      = in_vertex_count;
+
+    const bool has_stream = m_pipeline_state.get_stream_source(MAIN_STREAM,
+                                                              &range.vertex_buffer_id,
+                                                              &range.stride);
+
+    if (has_stream)
+    {
+        result_ptr = m_geometry_tracker.sample(range);
+    }
+
+    return result_ptr;
 }

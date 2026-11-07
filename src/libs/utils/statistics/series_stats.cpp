@@ -63,6 +63,20 @@ void Utils::Statistics::SeriesStats::set_late_threshold(const double& in_late_th
     m_late_threshold = in_late_threshold;
 }
 
+bool Utils::Statistics::SeriesStats::take_period(double*       inout_since_ptr,
+                                                 const double& in_now,
+                                                 const double& in_period)
+{
+    const bool result = (in_now - *inout_since_ptr >= in_period);
+
+    if (result)
+    {
+        *inout_since_ptr = in_now;
+    }
+
+    return result;
+}
+
 std::string Utils::Statistics::SeriesStats::take_text(const std::string& in_name)
 {
     char text_i8vec128[128];
@@ -83,18 +97,4 @@ std::string Utils::Statistics::SeriesStats::take_text(const std::string& in_name
     m_worst    = 0.0;
 
     return text_i8vec128;
-}
-
-bool Utils::Statistics::SeriesStats::take_period(double*       inout_since_ptr,
-                                                 const double& in_now,
-                                                 const double& in_period)
-{
-    const bool result = (in_now - *inout_since_ptr >= in_period);
-
-    if (result)
-    {
-        *inout_since_ptr = in_now;
-    }
-
-    return result;
 }

@@ -314,79 +314,6 @@ end:
     return result;
 }
 
-bool Analysis::Recipe::RecipeLoader::parse_screen_parallax(const Utils::Json::JsonValue& in_value,
-                                                           const std::string&            in_path,
-                                                           ScreenParallax*               out_screen_parallax_ptr,
-                                                           std::string*                  out_error_ptr)
-{
-    /* An angle of view of a half circle or more is no picture. */
-    constexpr double MAX_FIELD_OF_VIEW_DEGREES = 180.0;
-
-    bool result = false;
-
-    if (in_value.type != Utils::Json::JsonValueType::OBJECT)
-    {
-        *out_error_ptr = in_path + ": expected an object";
-
-        goto end;
-    }
-
-    if (check_keys(in_value,
-                   {"convergence_distance", "field_of_view_degrees"},
-                   in_path,
-                   out_error_ptr) == false)
-    {
-        goto end;
-    }
-
-    {
-        const auto* distance_ptr = in_value.find_ptr("convergence_distance");
-        const auto* fov_ptr      = in_value.find_ptr("field_of_view_degrees");
-
-        /* The distance is what there is no way to find out. */
-        if (distance_ptr == nullptr)
-        {
-            *out_error_ptr = in_path + ".convergence_distance is missing";
-
-            goto end;
-        }
-
-        if (distance_ptr->type                     != Utils::Json::JsonValueType::NUMBER ||
-            ::isfinite(distance_ptr->number_value) == 0                                  ||
-            distance_ptr->number_value             <= 0.0)
-        {
-            *out_error_ptr = in_path + ".convergence_distance: expected a number above zero (the distance at which the eyes converge, in the "
-                                       "units of the camera of the application)";
-
-            goto end;
-        }
-
-        out_screen_parallax_ptr->convergence_distance = static_cast<float>(distance_ptr->number_value);
-
-        if (fov_ptr != nullptr)
-        {
-            if (fov_ptr->type                     != Utils::Json::JsonValueType::NUMBER ||
-                ::isfinite(fov_ptr->number_value) == 0                                  ||
-                fov_ptr->number_value             <= 0.0                                ||
-                fov_ptr->number_value             >= MAX_FIELD_OF_VIEW_DEGREES)
-            {
-                *out_error_ptr = in_path + ".field_of_view_degrees: expected a number above zero and below 180 (the angle of view of the width of the picture)";
-
-                goto end;
-            }
-
-            out_screen_parallax_ptr->field_of_view_degrees = static_cast<float>(fov_ptr->number_value);
-        }
-
-        out_screen_parallax_ptr->is_enabled = true;
-    }
-
-    result = true;
-
-end:
-    return result;
-}
-
 bool Analysis::Recipe::RecipeLoader::parse_draw_rule(const Utils::Json::JsonValue& in_rule,
                                                      const std::string&            in_path,
                                                      DrawRule*                     out_rule_ptr,
@@ -870,6 +797,79 @@ bool Analysis::Recipe::RecipeLoader::parse_per_eye_textures(const Utils::Json::J
         }
 
         out_texture_vec_ptr->push_back(texture);
+    }
+
+    result = true;
+
+end:
+    return result;
+}
+
+bool Analysis::Recipe::RecipeLoader::parse_screen_parallax(const Utils::Json::JsonValue& in_value,
+                                                           const std::string&            in_path,
+                                                           ScreenParallax*               out_screen_parallax_ptr,
+                                                           std::string*                  out_error_ptr)
+{
+    /* An angle of view of a half circle or more is no picture. */
+    constexpr double MAX_FIELD_OF_VIEW_DEGREES = 180.0;
+
+    bool result = false;
+
+    if (in_value.type != Utils::Json::JsonValueType::OBJECT)
+    {
+        *out_error_ptr = in_path + ": expected an object";
+
+        goto end;
+    }
+
+    if (check_keys(in_value,
+                   {"convergence_distance", "field_of_view_degrees"},
+                   in_path,
+                   out_error_ptr) == false)
+    {
+        goto end;
+    }
+
+    {
+        const auto* distance_ptr = in_value.find_ptr("convergence_distance");
+        const auto* fov_ptr      = in_value.find_ptr("field_of_view_degrees");
+
+        /* The distance is what there is no way to find out. */
+        if (distance_ptr == nullptr)
+        {
+            *out_error_ptr = in_path + ".convergence_distance is missing";
+
+            goto end;
+        }
+
+        if (distance_ptr->type                     != Utils::Json::JsonValueType::NUMBER ||
+            ::isfinite(distance_ptr->number_value) == 0                                  ||
+            distance_ptr->number_value             <= 0.0)
+        {
+            *out_error_ptr = in_path + ".convergence_distance: expected a number above zero (the distance at which the eyes converge, in the "
+                                       "units of the camera of the application)";
+
+            goto end;
+        }
+
+        out_screen_parallax_ptr->convergence_distance = static_cast<float>(distance_ptr->number_value);
+
+        if (fov_ptr != nullptr)
+        {
+            if (fov_ptr->type                     != Utils::Json::JsonValueType::NUMBER ||
+                ::isfinite(fov_ptr->number_value) == 0                                  ||
+                fov_ptr->number_value             <= 0.0                                ||
+                fov_ptr->number_value             >= MAX_FIELD_OF_VIEW_DEGREES)
+            {
+                *out_error_ptr = in_path + ".field_of_view_degrees: expected a number above zero and below 180 (the angle of view of the width of the picture)";
+
+                goto end;
+            }
+
+            out_screen_parallax_ptr->field_of_view_degrees = static_cast<float>(fov_ptr->number_value);
+        }
+
+        out_screen_parallax_ptr->is_enabled = true;
     }
 
     result = true;

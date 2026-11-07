@@ -24,148 +24,6 @@ namespace
     }
 }
 
-bool Utils::Images::GifWriter::encode(const std::vector<Image>& in_frame_vec,
-                                      const uint32_t&           in_frame_delay_n_milliseconds,
-                                      std::vector<uint8_t>*     out_file_u8_vec_ptr)
-{
-    constexpr size_t   N_BYTES_PER_PIXEL       = 4;     /* B, G, R, A                                         */
-    constexpr uint32_t MAX_EXTENT              = 65535;
-    constexpr uint32_t N_MILLISECONDS_PER_UNIT = 10;    /* a delay is in hundredths of a second               */
-    constexpr size_t   N_PALETTE_BYTES         = 768;
-    constexpr uint8_t  PACKED_LOGICAL_SCREEN   = 0x70;  /* no global palette; 8 bits of colour                */
-    constexpr uint8_t  PACKED_FRAME            = 0x87;  /* a local palette of 256 colours                     */
-    constexpr uint8_t  PACKED_FRAME_CONTROL    = 0x04;  /* the frame is left as it is when the next is drawn  */
-
-    bool result = false;
-
-    out_file_u8_vec_ptr->clear();
-
-    if (in_frame_vec.empty() )
-    {
-        goto end;
-    }
-
-    for (const auto& frame : in_frame_vec)
-    {
-        if (frame.width                != in_frame_vec.front().width  ||
-            frame.height               != in_frame_vec.front().height ||
-            frame.width                == 0                           ||
-            frame.height               == 0                           ||
-            frame.width                >  MAX_EXTENT                  ||
-            frame.height               >  MAX_EXTENT                  ||
-            frame.pixel_u8_vec.size()  <  static_cast<size_t>(frame.width) * frame.height * N_BYTES_PER_PIXEL)
-        {
-            goto end;
-        }
-    }
-
-    {
-        const std::string header_text = "GIF89a";
-
-        out_file_u8_vec_ptr->insert(out_file_u8_vec_ptr->end(),
-                                    header_text.begin(),
-                                    header_text.end  () );
-
-        append_u16(in_frame_vec.front().width,
-                   out_file_u8_vec_ptr);
-        append_u16(in_frame_vec.front().height,
-                   out_file_u8_vec_ptr);
-
-        out_file_u8_vec_ptr->push_back(PACKED_LOGICAL_SCREEN);
-        out_file_u8_vec_ptr->push_back(0); /* the colour of the background  */
-        out_file_u8_vec_ptr->push_back(0); /* the aspect ratio: not given   */
-
-        /* The extension that makes it play for ever. */
-        const uint8_t loop_u8vec19[] = {0x21, 0xFF, 0x0B, 'N', 'E', 'T', 'S', 'C', 'A', 'P', 'E', '2', '.', '0', 0x03, 0x01, 0x00, 0x00, 0x00};
-
-        out_file_u8_vec_ptr->insert(out_file_u8_vec_ptr->end(),
-                                    loop_u8vec19,
-                                    loop_u8vec19 + sizeof(loop_u8vec19) );
-    }
-
-    for (const auto& frame : in_frame_vec)
-    {
-        std::vector<uint8_t>     index_u8_vec;
-        std::array<uint8_t, 768> palette_u8vec768;
-
-        quantize(frame,
-                &palette_u8vec768,
-                &index_u8_vec);
-
-        out_file_u8_vec_ptr->push_back(0x21); /* a graphic control extension: the delay */
-        out_file_u8_vec_ptr->push_back(0xF9);
-        out_file_u8_vec_ptr->push_back(0x04);
-        out_file_u8_vec_ptr->push_back(PACKED_FRAME_CONTROL);
-
-        append_u16(std::max<uint32_t>(1,
-                                      in_frame_delay_n_milliseconds / N_MILLISECONDS_PER_UNIT),
-                   out_file_u8_vec_ptr);
-
-        out_file_u8_vec_ptr->push_back(0); /* the colour that is see-through: none */
-        out_file_u8_vec_ptr->push_back(0);
-
-        out_file_u8_vec_ptr->push_back(0x2C); /* the frame, from the top left corner */
-
-        append_u16(0,
-                   out_file_u8_vec_ptr);
-        append_u16(0,
-                   out_file_u8_vec_ptr);
-        append_u16(frame.width,
-                   out_file_u8_vec_ptr);
-        append_u16(frame.height,
-                   out_file_u8_vec_ptr);
-
-        out_file_u8_vec_ptr->push_back(PACKED_FRAME);
-        out_file_u8_vec_ptr->insert(out_file_u8_vec_ptr->end(),
-                                    palette_u8vec768.begin(),
-                                    palette_u8vec768.begin() + N_PALETTE_BYTES);
-
-        compress_lzw(index_u8_vec,
-                     out_file_u8_vec_ptr);
-    }
-
-    out_file_u8_vec_ptr->push_back(0x3B);
-
-    result = true;
-end:
-    return result;
-}
-
-bool Utils::Images::GifWriter::write_file(const std::string&        in_path,
-                                          const std::vector<Image>& in_frame_vec,
-                                          const uint32_t&           in_frame_delay_n_milliseconds)
-{
-    std::vector<uint8_t> file_u8_vec;
-    FILE*                file_handle = nullptr;
-    bool                 is_written  = false;
-    bool                 result      = false;
-
-    if (encode(in_frame_vec,
-               in_frame_delay_n_milliseconds,
-              &file_u8_vec) == false)
-    {
-        goto end;
-    }
-
-    file_handle = ::fopen(in_path.c_str(),
-                          "wb");
-
-    if (file_handle == nullptr)
-    {
-        goto end;
-    }
-
-    is_written = (::fwrite(file_u8_vec.data(),
-                           file_u8_vec.size(),
-                           1,
-                           file_handle) == 1);
-    result     = (::fclose(file_handle) == 0 &&
-                  is_written);
-
-end:
-    return result;
-}
-
 void Utils::Images::GifWriter::compress_lzw(const std::vector<uint8_t>& in_index_u8_vec,
                                             std::vector<uint8_t>*       inout_file_u8_vec_ptr)
 {
@@ -285,6 +143,113 @@ void Utils::Images::GifWriter::compress_lzw(const std::vector<uint8_t>& in_index
     }
 
     inout_file_u8_vec_ptr->push_back(0); /* the end of the blocks */
+}
+
+bool Utils::Images::GifWriter::encode(const std::vector<Image>& in_frame_vec,
+                                      const uint32_t&           in_frame_delay_n_milliseconds,
+                                      std::vector<uint8_t>*     out_file_u8_vec_ptr)
+{
+    constexpr size_t   N_BYTES_PER_PIXEL       = 4;     /* B, G, R, A                                         */
+    constexpr uint32_t MAX_EXTENT              = 65535;
+    constexpr uint32_t N_MILLISECONDS_PER_UNIT = 10;    /* a delay is in hundredths of a second               */
+    constexpr size_t   N_PALETTE_BYTES         = 768;
+    constexpr uint8_t  PACKED_LOGICAL_SCREEN   = 0x70;  /* no global palette; 8 bits of colour                */
+    constexpr uint8_t  PACKED_FRAME            = 0x87;  /* a local palette of 256 colours                     */
+    constexpr uint8_t  PACKED_FRAME_CONTROL    = 0x04;  /* the frame is left as it is when the next is drawn  */
+
+    bool result = false;
+
+    out_file_u8_vec_ptr->clear();
+
+    if (in_frame_vec.empty() )
+    {
+        goto end;
+    }
+
+    for (const auto& frame : in_frame_vec)
+    {
+        if (frame.width                != in_frame_vec.front().width  ||
+            frame.height               != in_frame_vec.front().height ||
+            frame.width                == 0                           ||
+            frame.height               == 0                           ||
+            frame.width                >  MAX_EXTENT                  ||
+            frame.height               >  MAX_EXTENT                  ||
+            frame.pixel_u8_vec.size()  <  static_cast<size_t>(frame.width) * frame.height * N_BYTES_PER_PIXEL)
+        {
+            goto end;
+        }
+    }
+
+    {
+        const std::string header_text = "GIF89a";
+
+        out_file_u8_vec_ptr->insert(out_file_u8_vec_ptr->end(),
+                                    header_text.begin(),
+                                    header_text.end  () );
+
+        append_u16(in_frame_vec.front().width,
+                   out_file_u8_vec_ptr);
+        append_u16(in_frame_vec.front().height,
+                   out_file_u8_vec_ptr);
+
+        out_file_u8_vec_ptr->push_back(PACKED_LOGICAL_SCREEN);
+        out_file_u8_vec_ptr->push_back(0); /* the colour of the background  */
+        out_file_u8_vec_ptr->push_back(0); /* the aspect ratio: not given   */
+
+        /* The extension that makes it play for ever. */
+        const uint8_t loop_u8vec19[] = {0x21, 0xFF, 0x0B, 'N', 'E', 'T', 'S', 'C', 'A', 'P', 'E', '2', '.', '0', 0x03, 0x01, 0x00, 0x00, 0x00};
+
+        out_file_u8_vec_ptr->insert(out_file_u8_vec_ptr->end(),
+                                    loop_u8vec19,
+                                    loop_u8vec19 + sizeof(loop_u8vec19) );
+    }
+
+    for (const auto& frame : in_frame_vec)
+    {
+        std::vector<uint8_t>     index_u8_vec;
+        std::array<uint8_t, 768> palette_u8vec768;
+
+        quantize(frame,
+                &palette_u8vec768,
+                &index_u8_vec);
+
+        out_file_u8_vec_ptr->push_back(0x21); /* a graphic control extension: the delay */
+        out_file_u8_vec_ptr->push_back(0xF9);
+        out_file_u8_vec_ptr->push_back(0x04);
+        out_file_u8_vec_ptr->push_back(PACKED_FRAME_CONTROL);
+
+        append_u16(std::max<uint32_t>(1,
+                                      in_frame_delay_n_milliseconds / N_MILLISECONDS_PER_UNIT),
+                   out_file_u8_vec_ptr);
+
+        out_file_u8_vec_ptr->push_back(0); /* the colour that is see-through: none */
+        out_file_u8_vec_ptr->push_back(0);
+
+        out_file_u8_vec_ptr->push_back(0x2C); /* the frame, from the top left corner */
+
+        append_u16(0,
+                   out_file_u8_vec_ptr);
+        append_u16(0,
+                   out_file_u8_vec_ptr);
+        append_u16(frame.width,
+                   out_file_u8_vec_ptr);
+        append_u16(frame.height,
+                   out_file_u8_vec_ptr);
+
+        out_file_u8_vec_ptr->push_back(PACKED_FRAME);
+        out_file_u8_vec_ptr->insert(out_file_u8_vec_ptr->end(),
+                                    palette_u8vec768.begin(),
+                                    palette_u8vec768.begin() + N_PALETTE_BYTES);
+
+        compress_lzw(index_u8_vec,
+                     out_file_u8_vec_ptr);
+    }
+
+    out_file_u8_vec_ptr->push_back(0x3B);
+
+    result = true;
+end:
+    return result;
 }
 
 void Utils::Images::GifWriter::quantize(const Image&              in_image,
@@ -467,4 +432,39 @@ void Utils::Images::GifWriter::quantize(const Image&              in_image,
 
         out_index_u8_vec_ptr->at(n_pixel) = box_of_bin_u8_vec.at(bin);
     }
+}
+
+bool Utils::Images::GifWriter::write_file(const std::string&        in_path,
+                                          const std::vector<Image>& in_frame_vec,
+                                          const uint32_t&           in_frame_delay_n_milliseconds)
+{
+    std::vector<uint8_t> file_u8_vec;
+    FILE*                file_handle = nullptr;
+    bool                 is_written  = false;
+    bool                 result      = false;
+
+    if (encode(in_frame_vec,
+               in_frame_delay_n_milliseconds,
+              &file_u8_vec) == false)
+    {
+        goto end;
+    }
+
+    file_handle = ::fopen(in_path.c_str(),
+                          "wb");
+
+    if (file_handle == nullptr)
+    {
+        goto end;
+    }
+
+    is_written = (::fwrite(file_u8_vec.data(),
+                           file_u8_vec.size(),
+                           1,
+                           file_handle) == 1);
+    result     = (::fclose(file_handle) == 0 &&
+                  is_written);
+
+end:
+    return result;
 }

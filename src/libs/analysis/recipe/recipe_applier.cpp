@@ -324,6 +324,11 @@ bool Analysis::Recipe::RecipeApplier::is_draw_affected(const uint64_t& in_pass_k
     return result;
 }
 
+bool Analysis::Recipe::RecipeApplier::is_draw_covering(const uint64_t& in_cover_key) const
+{
+    return (m_covering_draw_key_set.count(in_cover_key) != 0);
+}
+
 bool Analysis::Recipe::RecipeApplier::is_draw_skipped(const uint64_t& in_pass_key,
                                                       const uint64_t& in_draw_key) const
 {
@@ -331,11 +336,6 @@ bool Analysis::Recipe::RecipeApplier::is_draw_skipped(const uint64_t& in_pass_ke
                                                       in_draw_key) ) != 0 ||
             m_skipped_draw_key_set.count(in_draw_key)              != 0 ||
             m_skipped_pass_key_set.count(in_pass_key)              != 0);
-}
-
-bool Analysis::Recipe::RecipeApplier::is_draw_covering(const uint64_t& in_cover_key) const
-{
-    return (m_covering_draw_key_set.count(in_cover_key) != 0);
 }
 
 bool Analysis::Recipe::RecipeApplier::is_frame_known(const uint64_t& in_shape_key) const

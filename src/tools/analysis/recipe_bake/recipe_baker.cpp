@@ -395,6 +395,86 @@ void Analysis::RecipeBake::RecipeBaker::compute_convergence(const Analysis::Reci
     out_report_ptr->n_convergence_distances = static_cast<uint32_t>(out_convergence_vec_ptr->size() );
 }
 
+bool Analysis::RecipeBake::RecipeBaker::compute_draw_rules(const Analysis::Recipe::Recipe&                  in_recipe,
+                                                           const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis,
+                                                           std::vector<uint64_t>*                           out_known_signature_key_vec_ptr,
+                                                           RuleVector*                                      out_rule_vec_ptr,
+                                                           BakeReport*                                      out_report_ptr,
+                                                           std::string*                                     out_error_ptr)
+{
+    typedef std::map<uint64_t, ClassMap> SignatureMap;
+
+    const Analysis::Recipe::RecipeApplier applier(in_recipe);
+    const auto&  model_ref     = in_analysis.model;
+    bool         result        = false;
+    SignatureMap signature_map;
+
+    out_rule_vec_ptr->clear();
+
+    for (uint32_t n_pass = 0;
+                  n_pass < model_ref.pass_structure_interner.get_n_structures();
+                ++n_pass)
+    {
+        const auto& structure = model_ref.pass_structure_interner.get_structure(n_pass);
+
+        for (const auto& draw_signature : structure.draw_signature_vec)
+        {
+            signature_map[draw_signature.signature_key][get_draw_class(applier,
+                                                                       structure.key,
+                                                                       draw_signature.structure_key)].insert(n_pass);
+        }
+    }
+
+    out_report_ptr->n_signatures = static_cast<uint32_t>(signature_map.size() );
+
+    out_known_signature_key_vec_ptr->clear();
+
+    for (const auto& signature_pair : signature_map)
+    {
+        out_known_signature_key_vec_ptr->push_back(signature_pair.first);
+    }
+
+    for (const auto& signature_pair : signature_map)
+    {
+        const size_t n_rules_before = out_rule_vec_ptr->size();
+
+        if (signature_pair.second.size() == 1)
+        {
+            /* Every pass draws it the same way: the rule needs no condition. */
+            if (signature_pair.second.begin()->first != Analysis::Recipe::DrawClass::AFFECTED)
+            {
+                Analysis::Recipe::DrawRule rule;
+
+                rule.draw_class    = signature_pair.second.begin()->first;
+                rule.signature_key = signature_pair.first;
+
+                out_rule_vec_ptr->push_back(rule);
+            }
+        }
+        else
+        {
+            out_report_ptr->n_ambiguous_signatures++;
+
+            if (compute_conditional_rules(in_analysis,
+                                          signature_pair.first,
+                                          signature_pair.second,
+                                          out_rule_vec_ptr,
+                                          out_error_ptr) == false)
+            {
+                goto end;
+            }
+
+            out_report_ptr->n_conditional_rules += static_cast<uint32_t>(out_rule_vec_ptr->size() - n_rules_before);
+        }
+    }
+
+    out_report_ptr->n_rules = static_cast<uint32_t>(out_rule_vec_ptr->size() );
+    result                  = true;
+
+end:
+    return result;
+}
+
 void Analysis::RecipeBake::RecipeBaker::compute_scene_convergence(const Analysis::Recipe::Recipe&                  in_recipe,
                                                                   const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis,
                                                                   SceneConvergenceVector*                          out_scene_convergence_vec_ptr,
@@ -507,84 +587,95 @@ void Analysis::RecipeBake::RecipeBaker::compute_scene_convergence(const Analysis
     out_report_ptr->n_scene_limits    = static_cast<uint32_t>(out_scene_separation_vec_ptr->size() );
 }
 
-bool Analysis::RecipeBake::RecipeBaker::compute_draw_rules(const Analysis::Recipe::Recipe&                  in_recipe,
-                                                           const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis,
-                                                           std::vector<uint64_t>*                           out_known_signature_key_vec_ptr,
-                                                           RuleVector*                                      out_rule_vec_ptr,
-                                                           BakeReport*                                      out_report_ptr,
-                                                           std::string*                                     out_error_ptr)
+const char* Analysis::RecipeBake::RecipeBaker::get_class_name(const Analysis::Recipe::DrawClass& in_class)
 {
-    typedef std::map<uint64_t, ClassMap> SignatureMap;
+    const char* result_ptr = "affected";
 
-    const Analysis::Recipe::RecipeApplier applier(in_recipe);
-    const auto&  model_ref     = in_analysis.model;
-    bool         result        = false;
-    SignatureMap signature_map;
-
-    out_rule_vec_ptr->clear();
-
-    for (uint32_t n_pass = 0;
-                  n_pass < model_ref.pass_structure_interner.get_n_structures();
-                ++n_pass)
+    switch (in_class)
     {
-        const auto& structure = model_ref.pass_structure_interner.get_structure(n_pass);
-
-        for (const auto& draw_signature : structure.draw_signature_vec)
+        case Analysis::Recipe::DrawClass::SKIPPED:
         {
-            signature_map[draw_signature.signature_key][get_draw_class(applier,
-                                                                       structure.key,
-                                                                       draw_signature.structure_key)].insert(n_pass);
+            result_ptr = "skipped";
+
+            break;
+        }
+
+        case Analysis::Recipe::DrawClass::UNAFFECTED:
+        {
+            result_ptr = "unaffected";
+
+            break;
+        }
+
+        case Analysis::Recipe::DrawClass::AFFECTED:
+        default:
+        {
+            break;
         }
     }
 
-    out_report_ptr->n_signatures = static_cast<uint32_t>(signature_map.size() );
+    return result_ptr;
+}
 
-    out_known_signature_key_vec_ptr->clear();
+std::vector<uint64_t> Analysis::RecipeBake::RecipeBaker::get_covering_draw_key_vec(const Analysis::Recipe::Recipe&                  in_recipe,
+                                                                                   const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
+{
+    const std::set<uint64_t> unaffected_pass_key_set(in_recipe.unaffected.pass_key_vec.begin(),
+                                                     in_recipe.unaffected.pass_key_vec.end  ());
+    std::set<uint64_t>       key_set;
 
-    for (const auto& signature_pair : signature_map)
+    for (const auto& pass_pair : in_analysis.model.covering_draw_key_map)
     {
-        out_known_signature_key_vec_ptr->push_back(signature_pair.first);
-    }
+        const uint64_t pass_key = in_analysis.model.pass_structure_interner.get_structure(pass_pair.first).key;
 
-    for (const auto& signature_pair : signature_map)
-    {
-        const size_t n_rules_before = out_rule_vec_ptr->size();
-
-        if (signature_pair.second.size() == 1)
+        /* Those of the passes that the recipe leaves alone are not moved by the overlay; and where the vertices are moved sideways (a recipe that
+         * has screen parallax), a draw that covers the view is not, in any pass, for it would leave a strip bare.
+         */
+        if (unaffected_pass_key_set.count(pass_key) != 0 ||
+            in_recipe.screen_parallax.is_enabled)
         {
-            /* Every pass draws it the same way: the rule needs no condition. */
-            if (signature_pair.second.begin()->first != Analysis::Recipe::DrawClass::AFFECTED)
-            {
-                Analysis::Recipe::DrawRule rule;
-
-                rule.draw_class    = signature_pair.second.begin()->first;
-                rule.signature_key = signature_pair.first;
-
-                out_rule_vec_ptr->push_back(rule);
-            }
-        }
-        else
-        {
-            out_report_ptr->n_ambiguous_signatures++;
-
-            if (compute_conditional_rules(in_analysis,
-                                          signature_pair.first,
-                                          signature_pair.second,
-                                          out_rule_vec_ptr,
-                                          out_error_ptr) == false)
-            {
-                goto end;
-            }
-
-            out_report_ptr->n_conditional_rules += static_cast<uint32_t>(out_rule_vec_ptr->size() - n_rules_before);
+            key_set.insert(pass_pair.second.begin(),
+                           pass_pair.second.end  () );
         }
     }
 
-    out_report_ptr->n_rules = static_cast<uint32_t>(out_rule_vec_ptr->size() );
-    result                  = true;
+    return std::vector<uint64_t>(key_set.begin(),
+                                 key_set.end  () );
+}
 
-end:
+Analysis::Recipe::DrawClass Analysis::RecipeBake::RecipeBaker::get_draw_class(const Analysis::Recipe::RecipeApplier& in_applier,
+                                                                              const uint64_t&                        in_pass_key,
+                                                                              const uint64_t&                        in_structure_key)
+{
+    Analysis::Recipe::DrawClass result = Analysis::Recipe::DrawClass::UNAFFECTED;
+
+    if (in_applier.is_draw_skipped(in_pass_key,
+                                   in_structure_key) )
+    {
+        result = Analysis::Recipe::DrawClass::SKIPPED;
+    }
+    else
+    if (in_applier.is_draw_affected(in_pass_key,
+                                    in_structure_key) )
+    {
+        result = Analysis::Recipe::DrawClass::AFFECTED;
+    }
+
     return result;
+}
+
+std::string Analysis::RecipeBake::RecipeBaker::get_key_text(const uint64_t& in_key)
+{
+    constexpr size_t N_BUFFER_BYTES = 32;
+
+    char buffer_i8vec32[N_BUFFER_BYTES];
+
+    ::snprintf(buffer_i8vec32,
+               sizeof(buffer_i8vec32),
+               "0x%016llx",
+               static_cast<unsigned long long>(in_key) );
+
+    return buffer_i8vec32;
 }
 
 Analysis::RecipeBake::RecipeBaker::PerEyeTextureVector Analysis::RecipeBake::RecipeBaker::get_per_eye_texture_vec(const Analysis::APIDumpAnalysis::AnalysisResult&         in_analysis,
@@ -648,97 +739,6 @@ Analysis::RecipeBake::RecipeBaker::PerEyeTextureVector Analysis::RecipeBake::Rec
     }
 
     return result_vec;
-}
-
-std::vector<uint64_t> Analysis::RecipeBake::RecipeBaker::get_covering_draw_key_vec(const Analysis::Recipe::Recipe&                  in_recipe,
-                                                                                   const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
-{
-    const std::set<uint64_t> unaffected_pass_key_set(in_recipe.unaffected.pass_key_vec.begin(),
-                                                     in_recipe.unaffected.pass_key_vec.end  ());
-    std::set<uint64_t>       key_set;
-
-    for (const auto& pass_pair : in_analysis.model.covering_draw_key_map)
-    {
-        const uint64_t pass_key = in_analysis.model.pass_structure_interner.get_structure(pass_pair.first).key;
-
-        /* Those of the passes that the recipe leaves alone are not moved by the overlay; and where the vertices are moved sideways (a recipe that
-         * has screen parallax), a draw that covers the view is not, in any pass, for it would leave a strip bare.
-         */
-        if (unaffected_pass_key_set.count(pass_key) != 0 ||
-            in_recipe.screen_parallax.is_enabled)
-        {
-            key_set.insert(pass_pair.second.begin(),
-                           pass_pair.second.end  () );
-        }
-    }
-
-    return std::vector<uint64_t>(key_set.begin(),
-                                 key_set.end  () );
-}
-
-const char* Analysis::RecipeBake::RecipeBaker::get_class_name(const Analysis::Recipe::DrawClass& in_class)
-{
-    const char* result_ptr = "affected";
-
-    switch (in_class)
-    {
-        case Analysis::Recipe::DrawClass::SKIPPED:
-        {
-            result_ptr = "skipped";
-
-            break;
-        }
-
-        case Analysis::Recipe::DrawClass::UNAFFECTED:
-        {
-            result_ptr = "unaffected";
-
-            break;
-        }
-
-        case Analysis::Recipe::DrawClass::AFFECTED:
-        default:
-        {
-            break;
-        }
-    }
-
-    return result_ptr;
-}
-
-Analysis::Recipe::DrawClass Analysis::RecipeBake::RecipeBaker::get_draw_class(const Analysis::Recipe::RecipeApplier& in_applier,
-                                                                              const uint64_t&                        in_pass_key,
-                                                                              const uint64_t&                        in_structure_key)
-{
-    Analysis::Recipe::DrawClass result = Analysis::Recipe::DrawClass::UNAFFECTED;
-
-    if (in_applier.is_draw_skipped(in_pass_key,
-                                   in_structure_key) )
-    {
-        result = Analysis::Recipe::DrawClass::SKIPPED;
-    }
-    else
-    if (in_applier.is_draw_affected(in_pass_key,
-                                    in_structure_key) )
-    {
-        result = Analysis::Recipe::DrawClass::AFFECTED;
-    }
-
-    return result;
-}
-
-std::string Analysis::RecipeBake::RecipeBaker::get_key_text(const uint64_t& in_key)
-{
-    constexpr size_t N_BUFFER_BYTES = 32;
-
-    char buffer_i8vec32[N_BUFFER_BYTES];
-
-    ::snprintf(buffer_i8vec32,
-               sizeof(buffer_i8vec32),
-               "0x%016llx",
-               static_cast<unsigned long long>(in_key) );
-
-    return buffer_i8vec32;
 }
 
 float Analysis::RecipeBake::RecipeBaker::get_projection_scale(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis,

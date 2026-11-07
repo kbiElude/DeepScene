@@ -176,6 +176,11 @@ const Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::DrawLayout* Analysis::
     return result_ptr;
 }
 
+void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::forget_resource(const Analysis::APIDumpAnalysis::ResourceId& in_id)
+{
+    m_geometry_tracker.forget(in_id);
+}
+
 const char* Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::get_created_object_type_name_ptr(const CallView&                                in_view,
                                                                                                  const Interception::Hooks::D3D7::ArgumentInfo& in_info)
 {
@@ -199,6 +204,11 @@ const char* Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::get_created_obje
 
     return (result_ptr != nullptr) ? result_ptr
                                    : "Object";
+}
+
+Analysis::APIDumpAnalysis::Frontends::FixedFunctionState& Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::get_fixed_function_state()
+{
+    return m_pipeline_state.get_fixed_function_state();
 }
 
 Analysis::APIDumpAnalysis::PrimitiveTopology Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::get_primitive_topology(const uint32_t& in_type)
@@ -233,16 +243,6 @@ Analysis::APIDumpAnalysis::PrimitiveTopology Analysis::APIDumpAnalysis::Frontend
     }
 
     return result;
-}
-
-void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::forget_resource(const Analysis::APIDumpAnalysis::ResourceId& in_id)
-{
-    m_geometry_tracker.forget(in_id);
-}
-
-Analysis::APIDumpAnalysis::Frontends::FixedFunctionState& Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::get_fixed_function_state()
-{
-    return m_pipeline_state.get_fixed_function_state();
 }
 
 Analysis::APIDumpAnalysis::ConstantSemantic Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::get_transform_semantic(const uint32_t& in_state) const

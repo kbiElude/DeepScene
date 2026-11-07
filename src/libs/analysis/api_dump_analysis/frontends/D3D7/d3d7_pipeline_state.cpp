@@ -42,6 +42,11 @@ Analysis::APIDumpAnalysis::DrawDescription Analysis::APIDumpAnalysis::Frontends:
     return result;
 }
 
+Analysis::APIDumpAnalysis::Frontends::FixedFunctionState& Analysis::APIDumpAnalysis::Frontends::D3D7PipelineState::get_fixed_function_state()
+{
+    return m_fixed_function_state;
+}
+
 Analysis::APIDumpAnalysis::Frontends::FixedFunctionState::Rules Analysis::APIDumpAnalysis::Frontends::D3D7PipelineState::get_rules()
 {
     constexpr uint32_t BLEND_DEFAULT   = 0; /* off */
@@ -131,11 +136,6 @@ bool Analysis::APIDumpAnalysis::Frontends::D3D7PipelineState::is_value_irrelevan
     }
 
     return result;
-}
-
-Analysis::APIDumpAnalysis::Frontends::FixedFunctionState& Analysis::APIDumpAnalysis::Frontends::D3D7PipelineState::get_fixed_function_state()
-{
-    return m_fixed_function_state;
 }
 
 void Analysis::APIDumpAnalysis::Frontends::D3D7PipelineState::reset()

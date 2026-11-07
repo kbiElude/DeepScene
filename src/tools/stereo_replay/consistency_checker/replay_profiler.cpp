@@ -21,6 +21,11 @@ Stereo::Replay::ConsistencyChecker::ReplayProfiler::ReplayProfiler(const ClockFu
     }
 }
 
+uint64_t Stereo::Replay::ConsistencyChecker::ReplayProfiler::get_n_calls() const
+{
+    return m_n_calls;
+}
+
 std::vector<Stereo::Replay::ConsistencyChecker::ReplayProfiler::FrameEntry> Stereo::Replay::ConsistencyChecker::ReplayProfiler::get_slowest_frames(const size_t& in_n_frames) const
 {
     std::vector<FrameEntry> result_vec;
@@ -75,11 +80,6 @@ std::vector<Stereo::Replay::ConsistencyChecker::ReplayProfiler::FunctionEntry> S
     }
 
     return result_vec;
-}
-
-uint64_t Stereo::Replay::ConsistencyChecker::ReplayProfiler::get_n_calls() const
-{
-    return m_n_calls;
 }
 
 uint64_t Stereo::Replay::ConsistencyChecker::ReplayProfiler::get_total_n_nanoseconds() const

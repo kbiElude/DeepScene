@@ -14,6 +14,20 @@ Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::IFixedFunctionFron
     /* Stub */
 }
 
+const Analysis::APIDumpAnalysis::ResourceDescription* Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::find_resource_description_ptr(const Analysis::APIDumpAnalysis::ResourceId& in_id) const
+{
+    const uint32_t                                        index      = Analysis::APIDumpAnalysis::get_resource_id_value(in_id);
+    const Analysis::APIDumpAnalysis::ResourceDescription* result_ptr = nullptr;
+
+    if (index >= 1                                              &&
+        index <= m_builder_ptr->get_model().resource_vec.size() )
+    {
+        result_ptr = &m_builder_ptr->get_model().resource_vec.at(index - 1).description;
+    }
+
+    return result_ptr;
+}
+
 bool Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::find_resource_view(const uint64_t&                          in_address,
                                                                                       Analysis::APIDumpAnalysis::ResourceView* out_view_ptr) const
 {
@@ -23,6 +37,23 @@ bool Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::find_resource
     if (result)
     {
         *out_view_ptr = object_ptr->view;
+    }
+
+    return result;
+}
+
+Analysis::APIDumpAnalysis::Viewport Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::get_full_viewport(const Analysis::APIDumpAnalysis::ResourceView& in_view) const
+{
+    const Analysis::APIDumpAnalysis::ResourceDescription* description_ptr = find_resource_description_ptr(in_view.resource_id);
+    Analysis::APIDumpAnalysis::Viewport                   result;
+
+    if (description_ptr != nullptr)
+    {
+        /* Each mip level is half the size of the one before, down to one pixel. */
+        result.height = static_cast<float>(std::max<uint32_t>(description_ptr->height >> in_view.mip_level,
+                                                              1) );
+        result.width  = static_cast<float>(std::max<uint32_t>(description_ptr->width  >> in_view.mip_level,
+                                                              1) );
     }
 
     return result;
@@ -46,37 +77,6 @@ uint64_t Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::get_n_uns
 const Analysis::APIDumpAnalysis::Frontends::ObjectTracker& Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::get_tracker() const
 {
     return m_tracker;
-}
-
-const Analysis::APIDumpAnalysis::ResourceDescription* Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::find_resource_description_ptr(const Analysis::APIDumpAnalysis::ResourceId& in_id) const
-{
-    const uint32_t                                        index      = Analysis::APIDumpAnalysis::get_resource_id_value(in_id);
-    const Analysis::APIDumpAnalysis::ResourceDescription* result_ptr = nullptr;
-
-    if (index >= 1                                              &&
-        index <= m_builder_ptr->get_model().resource_vec.size() )
-    {
-        result_ptr = &m_builder_ptr->get_model().resource_vec.at(index - 1).description;
-    }
-
-    return result_ptr;
-}
-
-Analysis::APIDumpAnalysis::Viewport Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::get_full_viewport(const Analysis::APIDumpAnalysis::ResourceView& in_view) const
-{
-    const Analysis::APIDumpAnalysis::ResourceDescription* description_ptr = find_resource_description_ptr(in_view.resource_id);
-    Analysis::APIDumpAnalysis::Viewport                   result;
-
-    if (description_ptr != nullptr)
-    {
-        /* Each mip level is half the size of the one before, down to one pixel. */
-        result.height = static_cast<float>(std::max<uint32_t>(description_ptr->height >> in_view.mip_level,
-                                                              1) );
-        result.width  = static_cast<float>(std::max<uint32_t>(description_ptr->width  >> in_view.mip_level,
-                                                              1) );
-    }
-
-    return result;
 }
 
 void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_light_enable(const CallView& in_view)

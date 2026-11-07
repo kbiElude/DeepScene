@@ -729,11 +729,6 @@ void Stereo::Replay::EngineDLL::StereoFrameExecutor::set_hurry(const FrameHurry*
     m_hurry_ptr = in_hurry_ptr;
 }
 
-void Stereo::Replay::EngineDLL::StereoFrameExecutor::set_slice_skipper(const SliceSkipper* in_slice_skipper_ptr)
-{
-    m_slice_skipper_ptr = in_slice_skipper_ptr;
-}
-
 void Stereo::Replay::EngineDLL::StereoFrameExecutor::set_image_sink(IFrameImageSink* in_sink_ptr)
 {
     m_image_sink_ptr = in_sink_ptr;
@@ -754,6 +749,11 @@ void Stereo::Replay::EngineDLL::StereoFrameExecutor::set_recipe(const Analysis::
     m_matrix_binder_ptr.reset (new EyeMatrixBinder(*m_rewriter_ptr,
                                                    execute_call_func) );
     m_session_ptr.reset       (new Analysis::APIDumpAnalysis::Frontends::AnalysisSession(false) ); /* in_keeps_history */
+}
+
+void Stereo::Replay::EngineDLL::StereoFrameExecutor::set_slice_skipper(const SliceSkipper* in_slice_skipper_ptr)
+{
+    m_slice_skipper_ptr = in_slice_skipper_ptr;
 }
 
 bool Stereo::Replay::EngineDLL::StereoFrameExecutor::write_back_buffer(const std::vector<uint8_t>& in_pixel_u8_vec)
