@@ -20,13 +20,15 @@ Analysis::APIDumpDependencies::DependencyResult Analysis::APIDumpDependencies::D
                                                                                                            const std::vector<Analysis::APIDumpAnalysis::Resource>& in_resource_vec,
                                                                                                            const uint32_t&                                         in_n_threads)
 {
-    const auto& event_vec           = in_log.get_event_vec();
+    const auto& event_vec           = in_log.get_event_vec                ();
     const auto& frame_end_count_vec = in_log.get_frame_end_event_count_vec();
+
     std::vector<uint32_t> event_index_vec(event_vec.size());
     std::vector<uint32_t> frame_index_vec(event_vec.size());
     std::vector<size_t>   first_event_vec(in_resource_vec.size() + 1,
                                           0);
-    DependencyResult                   result;
+
+    DependencyResult result;
 
     /* The frame of each access: the accesses up to the end of frame N are of frames up to N. */
     {
@@ -68,7 +70,7 @@ Analysis::APIDumpDependencies::DependencyResult Analysis::APIDumpDependencies::D
     {
         const uint32_t id_value = Analysis::APIDumpAnalysis::get_resource_id_value(event.resource_id);
 
-        if (id_value >= 1 &&
+        if (id_value >= 1                      &&
             id_value <= in_resource_vec.size() )
         {
             first_event_vec.at(id_value)++;
@@ -92,7 +94,7 @@ Analysis::APIDumpDependencies::DependencyResult Analysis::APIDumpDependencies::D
         {
             const uint32_t id_value = Analysis::APIDumpAnalysis::get_resource_id_value(event_vec.at(n_event).resource_id);
 
-            if (id_value >= 1 &&
+            if (id_value >= 1                      &&
                 id_value <= in_resource_vec.size() )
             {
                 event_index_vec.at(next_event_vec.at(id_value - 1)++) = static_cast<uint32_t>(n_event);
@@ -110,6 +112,7 @@ Analysis::APIDumpDependencies::DependencyResult Analysis::APIDumpDependencies::D
                     ++n_resource)
         {
             ResourceAccesses accesses;
+
             /* The range is of the indices of a vector, so it fits size_t on a 32-bit build too. */
             const size_t    resource_index = static_cast<size_t>(n_resource);
 
@@ -153,7 +156,7 @@ void Analysis::APIDumpDependencies::DependencyAnalyzer::analyze_resource(const A
         bool           call_has_write    = false;
 
         /* The accesses of the resource in this frame. */
-        while (end_access < in_accesses.n_events &&
+        while (end_access                                                     <  in_accesses.n_events &&
                in_frame_index_vec.at(in_accesses.event_index_ptr[end_access]) == frame_index)
         {
             const Analysis::APIDumpAnalysis::AccessEvent& event    = event_vec.at(in_accesses.event_index_ptr[end_access]);
@@ -190,8 +193,8 @@ void Analysis::APIDumpDependencies::DependencyAnalyzer::analyze_resource(const A
                 use.is_written = true;
                 call_has_write = true;
 
-                if (event.mode     == Analysis::APIDumpAnalysis::AccessMode::WRITE         &&
-                    event.coverage == Analysis::APIDumpAnalysis::AccessCoverage::FULL      &&
+                if (event.mode                                     == Analysis::APIDumpAnalysis::AccessMode::WRITE    &&
+                    event.coverage                                 == Analysis::APIDumpAnalysis::AccessCoverage::FULL &&
                     covers_whole_resource(event.subresource_range,
                                           in_description) )
                 {
@@ -225,8 +228,8 @@ void Analysis::APIDumpDependencies::DependencyAnalyzer::analyze_resource(const A
 
             ResourceVersion& version = out_dependencies_ptr->version_vec.back();
 
-            if (version.consumer_range_vec.empty()                                          == false &&
-                version.consumer_range_vec.back().last_frame_index + 1                      == frame_index)
+            if (version.consumer_range_vec.empty()                     == false       &&
+                version.consumer_range_vec.back().last_frame_index + 1 == frame_index)
             {
                 version.consumer_range_vec.back().last_frame_index = frame_index;
             }
@@ -264,8 +267,8 @@ void Analysis::APIDumpDependencies::DependencyAnalyzer::analyze_resource(const A
             out_dependencies_ptr->version_vec.push_back(version);
         }
 
-        if (out_dependencies_ptr->use_run_vec.empty() == false                                              &&
-            out_dependencies_ptr->use_run_vec.back().last_frame_index + 1 == frame_index                    &&
+        if (out_dependencies_ptr->use_run_vec.empty()                     == false       &&
+            out_dependencies_ptr->use_run_vec.back().last_frame_index + 1 == frame_index &&
             out_dependencies_ptr->use_run_vec.back().use                  == use)
         {
             out_dependencies_ptr->use_run_vec.back().last_frame_index = frame_index;
@@ -363,8 +366,10 @@ bool Analysis::APIDumpDependencies::DependencyAnalyzer::covers_whole_resource(co
                                                      1);
 
     /* A count of 0 is all of them from the first on. */
-    const uint32_t last_layer     = (in_range.n_layers     == 0) ? n_layers     : in_range.first_layer     + in_range.n_layers;
-    const uint32_t last_mip_level = (in_range.n_mip_levels == 0) ? n_mip_levels : in_range.first_mip_level + in_range.n_mip_levels;
+    const uint32_t last_layer     = (in_range.n_layers     == 0) ? n_layers
+                                                                 : in_range.first_layer     + in_range.n_layers;
+    const uint32_t last_mip_level = (in_range.n_mip_levels == 0) ? n_mip_levels
+                                                                 : in_range.first_mip_level + in_range.n_mip_levels;
 
     return (in_range.first_layer     == 0            &&
             in_range.first_mip_level == 0            &&

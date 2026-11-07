@@ -277,7 +277,9 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_frame(const Depend
 
     if (in_arguments.frame_index >= in_analysis.result.n_frames)
     {
-        *out_error_ptr = "There is no frame " + std::to_string(in_arguments.frame_index) + "; there are " +
+        *out_error_ptr = "There is no frame "                        +
+                         std::to_string(in_arguments.frame_index)    +
+                         "; there are "                              +
                          std::to_string(in_analysis.result.n_frames);
         result         = QueryStatus::NOT_FOUND;
 
@@ -291,8 +293,8 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_frame(const Depend
         const UseRun* run_ptr = find_use_run_ptr(in_analysis.result.resource_vec.at(n_resource),
                                                  in_arguments.frame_index);
 
-        if (run_ptr != nullptr                                        &&
-            (in_is_carries_only == false                              ||
+        if (run_ptr             != nullptr          &&
+            (in_is_carries_only == false            ||
              run_ptr->use.carry != CarryKind::NONE) )
         {
             n_resource_vec.push_back(n_resource);
@@ -314,7 +316,9 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_frame(const Depend
         inout_writer_ptr->write_key   ("last_call_index");
         inout_writer_ptr->write_u64   (call_range.last_call_index);
         inout_writer_ptr->write_key   ("printer_command");
-        inout_writer_ptr->write_string("APIDumpPrinter \"" + in_analysis.workload_reference.filename + "\" --frame " +
+        inout_writer_ptr->write_string("APIDumpPrinter \""                      +
+                                       in_analysis.workload_reference.filename  +
+                                       "\" --frame "                            +
                                        std::to_string(in_arguments.frame_index) );
         inout_writer_ptr->end_object();
     }
@@ -334,10 +338,10 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_frame(const Depend
                                                                                   paging );
                 ++n_item)
     {
-        const size_t                n_resource   = n_resource_vec.at(static_cast<size_t>(n_item) );
+        const size_t                n_resource   = n_resource_vec.at                 (static_cast<size_t>(n_item) );
         const ResourceDependencies& dependencies = in_analysis.result.resource_vec.at(n_resource);
-        const UseRun*               run_ptr      = find_use_run_ptr(dependencies,
-                                                                    in_arguments.frame_index);
+        const UseRun*               run_ptr      = find_use_run_ptr                  (dependencies,
+                                                                                      in_arguments.frame_index);
         const ResourceVersion*      version_ptr  = (run_ptr->use.carry != CarryKind::NONE) ? find_consumed_version_ptr(dependencies,
                                                                                                                        in_arguments.frame_index)
                                                                                            : nullptr;
@@ -701,7 +705,7 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_resources(const De
                 n_resource < in_analysis.result.resource_vec.size();
               ++n_resource)
     {
-        if (in_arguments.has_class == false                                                                      ||
+        if (in_arguments.has_class                                                  == false                         ||
             in_analysis.result.resource_vec.at(n_resource).summary.dependency_class == in_arguments.dependency_class)
         {
             n_resource_vec.push_back(n_resource);
@@ -761,7 +765,9 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_slice(const Depend
 
     if (in_arguments.frame_index >= in_analysis.result.n_frames)
     {
-        *out_error_ptr = "There is no frame " + std::to_string(in_arguments.frame_index) + "; there are " +
+        *out_error_ptr = "There is no frame "                       +
+                         std::to_string(in_arguments.frame_index)   +
+                         "; there are "                             +
                          std::to_string(in_analysis.result.n_frames);
         result         = QueryStatus::NOT_FOUND;
 
@@ -815,8 +821,8 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_slice(const Depend
             if (FrameSlicePlanner::is_live(slice,
                                            n_frame) == false)
             {
-                if (dead_run_vec.empty()                                         == false &&
-                    dead_run_vec.back().last_frame_index + 1                     == n_frame)
+                if (dead_run_vec.empty()                      == false &&
+                    dead_run_vec.back ().last_frame_index + 1 == n_frame)
                 {
                     dead_run_vec.back().last_frame_index = n_frame;
                 }
@@ -844,8 +850,8 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_slice(const Depend
                     ++n_run)
         {
             inout_writer_ptr->begin_inline_array();
-            inout_writer_ptr->write_u64(dead_run_vec.at(static_cast<size_t>(n_run) ).first_frame_index);
-            inout_writer_ptr->write_u64(dead_run_vec.at(static_cast<size_t>(n_run) ).last_frame_index);
+            inout_writer_ptr->write_u64         (dead_run_vec.at(static_cast<size_t>(n_run) ).first_frame_index);
+            inout_writer_ptr->write_u64         (dead_run_vec.at(static_cast<size_t>(n_run) ).last_frame_index);
             inout_writer_ptr->end_array();
         }
 

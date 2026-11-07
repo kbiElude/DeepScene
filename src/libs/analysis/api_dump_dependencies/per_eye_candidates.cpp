@@ -69,7 +69,7 @@ std::vector<Analysis::APIDumpDependencies::PerEyeCandidate> Analysis::APIDumpDep
         {
             const auto iterator = group_by_resource_map.find(in_candidate.n_resource);
 
-            return (iterator != group_by_resource_map.end() &&
+            return (iterator         != group_by_resource_map.end() &&
                     iterator->second == n_group);
         };
 
@@ -182,8 +182,8 @@ std::vector<Analysis::APIDumpDependencies::RotationGroup> Analysis::APIDumpDepen
             has_repeat = (turn_vec.at(n_turn).second == turn_vec.at(n_turn - 1).second);
         }
 
-        if (has_repeat           == false &&
-            turn_vec.empty()     == false)
+        if (has_repeat       == false &&
+            turn_vec.empty() == false)
         {
             RotationGroup group;
 

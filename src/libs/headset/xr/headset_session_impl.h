@@ -47,18 +47,18 @@ struct Headset::XR::HeadsetSession::Impl
      */
     struct Timing
     {
-        Utils::Statistics::SeriesStats end_cost       = Utils::Statistics::SeriesStats(2.0); /* of xrEndFrame, ms                         */
-        Utils::Statistics::SeriesStats frame_interval = Utils::Statistics::SeriesStats(0.0); /* between the frames the runtime asks for  */
-        Utils::Statistics::SeriesStats image_wait     = Utils::Statistics::SeriesStats(0.0); /* for images that are not there yet, ms     */
+        Utils::Statistics::SeriesStats end_cost       = Utils::Statistics::SeriesStats(2.0); /* of xrEndFrame, ms                       */
+        Utils::Statistics::SeriesStats frame_interval = Utils::Statistics::SeriesStats(0.0); /* between the frames the runtime asks for */
+        Utils::Statistics::SeriesStats image_wait     = Utils::Statistics::SeriesStats(0.0); /* for images that are not there yet, ms   */
         double                         last_report    = 0.0;
-        uint64_t                       last_serial    = 0;   /* of the images in the last frame that had them */
-        Utils::Statistics::SeriesStats lock_wait      = Utils::Statistics::SeriesStats(2.0); /* for the lock that the layers need, ms     */
-        uint64_t                       n_empty        = 0;   /* frames with no layers                         */
-        uint64_t                       n_new          = 0;   /* frames with images that were not shown       */
-        uint64_t                       n_repeated     = 0;   /* frames with the images of the frame before   */
-        uint64_t                       n_skipped      = 0;   /* frames the runtime said not to render        */
+        uint64_t                       last_serial    = 0;                                   /* of the images in the last frame that had them */
+        Utils::Statistics::SeriesStats lock_wait      = Utils::Statistics::SeriesStats(2.0); /* for the lock that the layers need, ms         */
+        uint64_t                       n_empty        = 0;                                   /* frames with no layers                         */
+        uint64_t                       n_new          = 0;                                   /* frames with images that were not shown        */
+        uint64_t                       n_repeated     = 0;                                   /* frames with the images of the frame before    */
+        uint64_t                       n_skipped      = 0;                                   /* frames the runtime said not to render         */
         float                          period_ms      = 0.0f;
-        Utils::Statistics::SeriesStats wait_cost      = Utils::Statistics::SeriesStats(0.0); /* of xrWaitFrame, ms                        */
+        Utils::Statistics::SeriesStats wait_cost      = Utils::Statistics::SeriesStats(0.0); /* of xrWaitFrame, ms */
     };
 
     ~Impl();
@@ -134,37 +134,37 @@ struct Headset::XR::HeadsetSession::Impl
 
     static const char* get_state_name(const XrSessionState& in_state);
 
-    XrAction                                   action                      = XR_NULL_HANDLE;
-    XrActionSet                                action_set                  = XR_NULL_HANDLE;
-    XrCompositionLayerCylinderKHR              cylinder_layer_array[2]     = {};
-    Microsoft::WRL::ComPtr<ID3D12Device>       device_ptr;
-    std::array<EyeSwapchain, 2>                eye_array;
-    HeadsetSession::FrameFunc                  frame_func;
-    Headset::XR::FieldOfView                   field_of_view;
-    int64_t                                    format                      = 0;
-    bool                                       has_field_of_view           = false;
-    bool                                       has_logged_screen           = false;
-    XrInstance                                 instance                    = XR_NULL_HANDLE;
-    bool                                       is_cylinder_supported       = false;
-    std::atomic<bool>                          is_exit_requested           = {false};
-    bool                                       is_placed                   = false;
-    bool                                       is_running                  = false;
-    XrSpace                                    local_space                 = XR_NULL_HANDLE;
-    std::condition_variable                    image_condition;                      /* told when the images of the eyes are given back */
-    std::vector<std::string>                   log_line_vec;
-    std::mutex                                 log_mutex;
-    std::set<int>                              logged_result_set;
-    std::atomic<float>                         ipd                         = {0.0f}; /* between the eyes of the person, in metres, smoothed; 0: not known */
-    uint64_t                                   image_serial                = 0;      /* how many times the images of the eyes were given back; the lock guards it */
-    uint32_t                                   max_height                  = 0;
-    uint32_t                                   max_width                   = 0;
-    std::mutex                                 mutex;                                /* guards is_running, the swap chains and the layers */
-    XrCompositionLayerQuad                     quad_layer_array[2]         = {};
-    Microsoft::WRL::ComPtr<ID3D12CommandQueue> queue_ptr;
-    std::string                                runtime_name;
-    float                                      screen_position_fp32vec3[3] = {};
-    float                                      screen_yaw                  = 0.0f;
-    ::XrSession                                session               = XR_NULL_HANDLE;
+    XrAction                                           action                      = XR_NULL_HANDLE;
+    XrActionSet                                        action_set                  = XR_NULL_HANDLE;
+    XrCompositionLayerCylinderKHR                      cylinder_layer_array[2]     = {};
+    Microsoft::WRL::ComPtr<ID3D12Device>               device_ptr;
+    std::array<EyeSwapchain, 2>                        eye_array;
+    HeadsetSession::FrameFunc                          frame_func;
+    Headset::XR::FieldOfView                           field_of_view;
+    int64_t                                            format                      = 0;
+    bool                                               has_field_of_view           = false;
+    bool                                               has_logged_screen           = false;
+    XrInstance                                         instance                    = XR_NULL_HANDLE;
+    bool                                               is_cylinder_supported       = false;
+    std::atomic<bool>                                  is_exit_requested           = {false};
+    bool                                               is_placed                   = false;
+    bool                                               is_running                  = false;
+    XrSpace                                            local_space                 = XR_NULL_HANDLE;
+    std::condition_variable                            image_condition;                      /* told when the images of the eyes are given back */
+    std::vector<std::string>                           log_line_vec;
+    std::mutex                                         log_mutex;
+    std::set<int>                                      logged_result_set;
+    std::atomic<float>                                 ipd                         = {0.0f}; /* between the eyes of the person, in metres, smoothed; 0: not known */
+    uint64_t                                           image_serial                = 0;      /* how many times the images of the eyes were given back; the lock guards it */
+    uint32_t                                           max_height                  = 0;
+    uint32_t                                           max_width                   = 0;
+    std::mutex                                         mutex;                                /* guards is_running, the swap chains and the layers */
+    XrCompositionLayerQuad                             quad_layer_array[2]         = {};
+    Microsoft::WRL::ComPtr<ID3D12CommandQueue>         queue_ptr;
+    std::string                                        runtime_name;
+    float                                              screen_position_fp32vec3[3] = {};
+    float                                              screen_yaw                  = 0.0f;
+    ::XrSession                                        session               = XR_NULL_HANDLE;
     uint32_t                                           swapchain_height      = 0;
     uint32_t                                           swapchain_width       = 0;
     std::unique_ptr<Utils::D3D12::D3D12TextureClearer> texture_clearer_ptr; /* made with the first swap chain */

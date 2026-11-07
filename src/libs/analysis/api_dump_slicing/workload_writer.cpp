@@ -177,17 +177,18 @@ bool Analysis::APIDumpSlicing::WorkloadWriter::write_compressed_segment(const ui
 
 bool Analysis::APIDumpSlicing::WorkloadWriter::write_segment(const Capture::APIDumpLoader::Workload& in_segment)
 {
-    const uint32_t                                          counts_u32vec3[N_SEGMENT_COUNTS] =
+    const uint32_t counts_u32vec3[N_SEGMENT_COUNTS] =
     {
         static_cast<uint32_t>(in_segment.dumped_api_call_vec_ptr->size() ),
         static_cast<uint32_t>(in_segment.data_chunk_ptr_vec.size() ),
         static_cast<uint32_t>(in_segment.dumped_surface_vec_ptr->size() )
     };
-    const long long                                         n_file_bytes_before              = (m_file_handle != nullptr) ? ::_ftelli64(m_file_handle)
-                                                                                                                          : -1;
-    std::vector<uint8_t>                                    helper_u8_vec;
-    bool                                                    result                           = false;
-    Capture::APIDumperDLL::ZstdFileWriterUniquePtr          writer_ptr;
+
+    const long long                                n_file_bytes_before = (m_file_handle != nullptr) ? ::_ftelli64(m_file_handle)
+                                                                                                    : -1;
+    std::vector<uint8_t>                           helper_u8_vec;
+    bool                                           result              = false;
+    Capture::APIDumperDLL::ZstdFileWriterUniquePtr writer_ptr;
 
     /* Items are written out as they are put together, so that a big segment need not exist in memory twice. */
     const auto flush_func = [&]()

@@ -475,9 +475,9 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_series(const std::
                                                                                       std::move(sample_vec) );
     }
 
-    return (is_ok                      &&
+    return (is_ok                        &&
             reader.has_failed() == false &&
-            reader.is_at_end() );
+            reader.is_at_end () );
 }
 
 bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_shapes(const std::vector<uint8_t>& in_byte_vec,
@@ -516,7 +516,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_shapes(const std::
 
         if (is_ok)
         {
-            const uint64_t pass_key_set_key  = KeyBuilder::compute_key_set_key(pass_key_vec);
+            const uint64_t pass_key_set_key  = KeyBuilder::compute_key_set_key           (pass_key_vec);
             const auto     interned_shape_id = out_model_ptr->frame_shape_interner.intern(shape,
                                                                                           pass_key_set_key);
 

@@ -171,12 +171,6 @@ namespace Analysis
             /* The matrices of the draw, if its camera has depth to converge at (a view, and a perspective projection). */
             bool find_draw_matrices(DrawMatrices* out_matrices_ptr) const;
 
-            /* Adds what the histograms of a frame hold to those of the model, for the shape of the frame. */
-            static void merge_depth_histograms(const uint32_t&                              in_shape_id,
-                                               const std::vector<DepthHistogram>&           in_histogram_vec,
-                                               const std::vector<PassInstance>&             in_pass_instance_vec,
-                                               std::map<DepthHistogramKey, DepthHistogram>* inout_map_ptr);
-
             /* How much of the view a clear reaches: all of it, or what the viewport and the rectangles of the clear leave of it. */
             AccessCoverage get_clear_coverage(const ClearOperation& in_clear,
                                               const ResourceView&   in_view) const;
@@ -207,6 +201,12 @@ namespace Analysis
 
             /* True for the constants that describe the camera, which is the same for all the draws of a pass. */
             static bool is_camera_semantic(const ConstantSemantic& in_semantic);
+
+            /* Adds what the histograms of a frame hold to those of the model, for the shape of the frame. */
+            static void merge_depth_histograms(const uint32_t&                              in_shape_id,
+                                               const std::vector<DepthHistogram>&           in_histogram_vec,
+                                               const std::vector<PassInstance>&             in_pass_instance_vec,
+                                               std::map<DepthHistogramKey, DepthHistogram>* inout_map_ptr);
 
 
             IAccessSink*                              m_access_sink_ptr;

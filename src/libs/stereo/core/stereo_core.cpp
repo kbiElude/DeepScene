@@ -60,8 +60,8 @@ Analysis::Recipe::DrawClass Stereo::Core::StereoCore::classify_draw(const uint64
     m_convergence_model.set_draw_convergence_distance(m_applier.get_convergence_distance(in_signature_key) );
 
     m_is_last_draw_covering = m_applier.is_draw_covering(in_cover_key);
-    m_last_draw_class       = m_applier.classify_draw(in_signature_key,
-                                                      m_view_matrix_fp32vec16);
+    m_last_draw_class       = m_applier.classify_draw    (in_signature_key,
+                                                          m_view_matrix_fp32vec16);
     m_last_draw_cover_key   = in_cover_key;
 
     return m_last_draw_class;

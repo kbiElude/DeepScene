@@ -332,10 +332,10 @@ bool Headset::XR::HeadsetSession::Impl::read_recenter()
 
 bool Headset::XR::HeadsetSession::run_frame(std::string* out_error_ptr)
 {
-    constexpr DWORD  IDLE_N_MILLISECONDS          = 10;
-    constexpr int    IMAGE_WAIT_N_MICROSECONDS    = 6000; /* the frame has this much room before the compositor wants it */
-    constexpr double LATE_PERIODS                 = 1.5;
-    constexpr double REPORT_PERIOD_N_MILLISECONDS = 1000.0;
+    constexpr DWORD  IDLE_N_MILLISECONDS           = 10;
+    constexpr int    IMAGE_WAIT_N_MICROSECONDS     = 6000; /* the frame has this much room before the compositor wants it */
+    constexpr double LATE_PERIODS                  = 1.5;
+    constexpr double REPORT_PERIOD_N_MILLISECONDS  = 1000.0;
     constexpr double N_NANOSECONDS_PER_MILLISECOND = 1000000.0;
 
     XrFrameState frame_state = {XR_TYPE_FRAME_STATE};
@@ -372,9 +372,9 @@ bool Headset::XR::HeadsetSession::run_frame(std::string* out_error_ptr)
 
     {
         const double   wait_start_ms = Utils::Statistics::SeriesStats::get_now();
-        const XrResult wait_result   = ::xrWaitFrame(m_impl_ptr->session,
-                                                     nullptr,
-                                                    &frame_state);
+        const XrResult wait_result   = ::xrWaitFrame                          (m_impl_ptr->session,
+                                                                               nullptr,
+                                                                              &frame_state);
         const double   wait_end_ms   = Utils::Statistics::SeriesStats::get_now();
 
         if (XR_SUCCEEDED(wait_result) )
@@ -539,19 +539,19 @@ bool Headset::XR::HeadsetSession::run_frame(std::string* out_error_ptr)
             timing.n_repeated = 0;
             timing.n_skipped  = 0;
 
-            m_impl_ptr->add_log("Frames of the compositor (ms, the period is "                       +
-                                std::to_string(timing.period_ms)                                   +
-                                "): "                                                              +
-                                timing.frame_interval.take_text("frames")                          +
-                                "; "                                                               +
-                                timing.wait_cost.take_text    ("wait for frame")                  +
-                                "; "                                                               +
-                                timing.lock_wait.take_text    ("wait for the lock")               +
-                                "; "                                                               +
-                                timing.image_wait.take_text   ("wait for new images")             +
-                                "; "                                                               +
-                                timing.end_cost.take_text     ("end of frame")                    +
-                                "; "                                                               +
+            m_impl_ptr->add_log("Frames of the compositor (ms, the period is "        +
+                                std::to_string(timing.period_ms)                      +
+                                "): "                                                 +
+                                timing.frame_interval.take_text("frames")             +
+                                "; "                                                  +
+                                timing.wait_cost.take_text    ("wait for frame")      +
+                                "; "                                                  +
+                                timing.lock_wait.take_text    ("wait for the lock")   +
+                                "; "                                                  +
+                                timing.image_wait.take_text   ("wait for new images") +
+                                "; "                                                  +
+                                timing.end_cost.take_text     ("end of frame")        +
+                                "; "                                                  +
                                 counts_i8vec96);
         }
     }

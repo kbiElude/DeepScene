@@ -42,6 +42,12 @@ namespace Analysis
                 size_t          n_events        = 0;
             };
 
+            static void analyze_resource(const AccessLog&                                      in_log,
+                                         const std::vector<uint32_t>&                          in_frame_index_vec,
+                                         const ResourceAccesses&                               in_accesses,
+                                         const Analysis::APIDumpAnalysis::ResourceDescription& in_description,
+                                         ResourceDependencies*                                 out_dependencies_ptr);
+
             /* True if the part of a resource which an access reaches is all of it. */
             static bool covers_whole_resource(const Analysis::APIDumpAnalysis::SubresourceRange&    in_range,
                                               const Analysis::APIDumpAnalysis::ResourceDescription& in_description);
@@ -49,12 +55,6 @@ namespace Analysis
             /* The stronger of two ways of using what was left: CERTAIN, then POSSIBLE, then NONE. */
             static CarryKind merge_carry(const CarryKind& in_a,
                                          const CarryKind& in_b);
-
-            static void analyze_resource(const AccessLog&                                      in_log,
-                                         const std::vector<uint32_t>&                          in_frame_index_vec,
-                                         const ResourceAccesses&                               in_accesses,
-                                         const Analysis::APIDumpAnalysis::ResourceDescription& in_description,
-                                         ResourceDependencies*                                 out_dependencies_ptr);
         };
     }
 }

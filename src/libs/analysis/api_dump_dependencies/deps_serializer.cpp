@@ -32,6 +32,7 @@ bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_dependencies(con
 {
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
                                        in_byte_vec.size());
+
     const uint64_t n_frames    = reader.read_u64();
     const uint32_t n_resources = reader.read_count(MIN_RESOURCE_N_BYTES);
     bool           is_ok       = (n_resources == inout_analysis_ptr->resource_vec.size() );
@@ -47,8 +48,8 @@ bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_dependencies(con
         ResourceDependencies dependencies;
         ResourceSummary&     summary      = dependencies.summary;
 
-        summary.dependency_class                        = read_enum(&reader,
-                                                                    DependencyClass::UNUSED);
+        summary.dependency_class                        = read_enum      (&reader,
+                                                                          DependencyClass::UNUSED);
         summary.first_frame_index                       = reader.read_u64();
         summary.last_frame_index                        = reader.read_u64();
         summary.longest_carry_n_frames                  = reader.read_u64();
@@ -72,8 +73,8 @@ bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_dependencies(con
 
             run.first_frame_index = reader.read_u64();
             run.last_frame_index  = reader.read_u64();
-            run.use.carry         = read_enum(&reader,
-                                              CarryKind::POSSIBLE);
+            run.use.carry         = read_enum      (&reader,
+                                                    CarryKind::POSSIBLE);
 
             const uint8_t flags = reader.read_u8();
 
@@ -82,10 +83,10 @@ bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_dependencies(con
             run.use.is_self_sampled  = ((flags & USE_FLAG_SELF_SAMPLED)  != 0);
             run.use.is_written       = ((flags & USE_FLAG_WRITTEN)       != 0);
 
-            if ((flags & ~USE_FLAG_ALL)         != 0 ||
-                run.first_frame_index           <  n_next_frame ||
-                run.last_frame_index            <  run.first_frame_index ||
-                run.last_frame_index            >= n_frames)
+            if ((flags & ~USE_FLAG_ALL) != 0                     ||
+                run.first_frame_index   <  n_next_frame          ||
+                run.last_frame_index    <  run.first_frame_index ||
+                run.last_frame_index    >= n_frames)
             {
                 is_ok = false;
             }
@@ -122,8 +123,8 @@ bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_dependencies(con
                 range.first_frame_index = reader.read_u64();
                 range.last_frame_index  = reader.read_u64();
 
-                if (range.first_frame_index < n_next_consumer_frame          ||
-                    range.last_frame_index  < range.first_frame_index ||
+                if (range.first_frame_index <  n_next_consumer_frame   ||
+                    range.last_frame_index  <  range.first_frame_index ||
                     range.last_frame_index  >= n_frames)
                 {
                     is_ok = false;
@@ -134,9 +135,9 @@ bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_dependencies(con
                 version.consumer_range_vec.push_back(range);
             }
 
-            if ((flags & ~VERSION_FLAG_ALL) != 0                ||
-                (version.has_writer         && version.writer_frame_index >= n_frames) ||
-                version.n_possible_consumer_frames > version.n_consumer_frames)
+            if ((flags & ~VERSION_FLAG_ALL)                               != 0                         ||
+                (version.has_writer         && version.writer_frame_index >= n_frames)                 ||
+                version.n_possible_consumer_frames                        >  version.n_consumer_frames)
             {
                 is_ok = false;
             }
@@ -149,7 +150,7 @@ bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_dependencies(con
 
     return (is_ok                        &&
             reader.has_failed() == false &&
-            reader.is_at_end() );
+            reader.is_at_end () );
 }
 
 bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_frames(const std::vector<uint8_t>& in_byte_vec,
@@ -186,7 +187,7 @@ bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_frames(const std
 
     return (is_ok                        &&
             reader.has_failed() == false &&
-            reader.is_at_end() );
+            reader.is_at_end () );
 }
 
 bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_meta(const std::vector<uint8_t>& in_byte_vec,

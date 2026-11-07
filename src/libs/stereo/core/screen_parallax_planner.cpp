@@ -27,8 +27,8 @@ Stereo::Core::ScreenShiftPlan Stereo::Core::ScreenParallaxPlanner::plan(const An
     {
         if (screen_parallax.is_enabled)
         {
-            result.convergence_distance  = (in_input.convergence_distance > 0.0f) ? in_input.convergence_distance
-                                                                                  : screen_parallax.convergence_distance;
+            result.convergence_distance  = (in_input.convergence_distance > 0.0f)                    ? in_input.convergence_distance
+                                                                                                     : screen_parallax.convergence_distance;
             result.eye_separation        = (in_input.separation_limit     > 0.0f  &&
                                             in_input.separation_limit     < in_input.eye_separation) ? in_input.separation_limit
                                                                                                      : in_input.eye_separation;
@@ -38,15 +38,15 @@ Stereo::Core::ScreenShiftPlan Stereo::Core::ScreenParallaxPlanner::plan(const An
         }
     }
     else
-    if (in_input.is_overlay_pushed &&
-        in_input.is_presented      &&
-        overlay_parallax > 0.0f)
+    if (in_input.is_overlay_pushed        &&
+        in_input.is_presented             &&
+        overlay_parallax           > 0.0f)
     {
         const float half_shift = overlay_parallax * in_input.picture_width * HALF;
 
         result.kind                 = ScreenShiftKind::UNIFORM;
-        result.uniform_shift_pixels = (in_input.eye == Analysis::Recipe::Eye::LEFT) ? half_shift
-                                                                                          : -half_shift;
+        result.uniform_shift_pixels = (in_input.eye == Analysis::Recipe::Eye::LEFT) ?  half_shift
+                                                                                    : -half_shift;
     }
 
 end:

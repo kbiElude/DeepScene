@@ -186,8 +186,10 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
 
         if (out_recipe_ptr->version != SUPPORTED_RECIPE_VERSION)
         {
-            *out_error_ptr = "recipe_version: this version reads recipes of version " + std::to_string(SUPPORTED_RECIPE_VERSION) +
-                             ", not " + std::to_string(out_recipe_ptr->version);
+            *out_error_ptr = "recipe_version: this version reads recipes of version " +
+                             std::to_string(SUPPORTED_RECIPE_VERSION)                 +
+                             ", not "                                                 +
+                             std::to_string(out_recipe_ptr->version);
 
             goto end;
         }
@@ -209,9 +211,11 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
 
         if (out_recipe_ptr->key_scheme_version != Analysis::APIDumpAnalysis::PassesFormat::KEY_SCHEME_VERSION)
         {
-            *out_error_ptr = "key_scheme_version: the keys of version " + std::to_string(out_recipe_ptr->key_scheme_version) +
-                             " are not the keys of this build (version " +
-                             std::to_string(Analysis::APIDumpAnalysis::PassesFormat::KEY_SCHEME_VERSION) + ")";
+            *out_error_ptr = "key_scheme_version: the keys of version "                                  +
+                             std::to_string(out_recipe_ptr->key_scheme_version)                          +
+                             " are not the keys of this build (version "                                 +
+                             std::to_string(Analysis::APIDumpAnalysis::PassesFormat::KEY_SCHEME_VERSION) +
+                             ")";
 
             goto end;
         }
@@ -386,7 +390,8 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
             else
             {
                 *out_error_ptr = "on_unknown_frame: expected \"mono\", \"skip\" or \"fail\", not \"" +
-                                 on_unknown_frame_ptr->string_value + "\"";
+                                 on_unknown_frame_ptr->string_value                                  +
+                                 "\"";
 
                 goto end;
             }
@@ -424,9 +429,13 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
             for (const auto& other_rule : out_recipe_ptr->rule_vec)
             {
                 if (rule.name.empty() == false &&
-                    rule.name        == other_rule.name)
+                    rule.name         == other_rule.name)
                 {
-                    *out_error_ptr = "rules[" + std::to_string(n_rule) + "].name: \"" + rule.name + "\" is used by another rule";
+                    *out_error_ptr = "rules["                    +
+                                     std::to_string(n_rule)      +
+                                     "].name: \""                +
+                                     rule.name                   +
+                                     "\" is used by another rule";
 
                     goto end;
                 }
@@ -456,7 +465,8 @@ bool Analysis::Recipe::RecipeLoader::parse_hex_key(const Utils::Json::JsonValue&
 
     if (in_value.type != Utils::Json::JsonValueType::STRING)
     {
-        *out_error_ptr = in_path + ": expected a key such as \"0x0123456789abcdef\"";
+        *out_error_ptr = in_path                                           +
+                         ": expected a key such as \"0x0123456789abcdef\"";
 
         goto end;
     }
@@ -464,10 +474,13 @@ bool Analysis::Recipe::RecipeLoader::parse_hex_key(const Utils::Json::JsonValue&
     {
         const std::string& text = in_value.string_value;
 
-        if (text.size()           != 2 + N_HEX_DIGITS ||
+        if (text.size   ()           != 2 + N_HEX_DIGITS ||
             text.compare(0, 2, "0x") != 0)
         {
-            *out_error_ptr = in_path + ": expected a key such as \"0x0123456789abcdef\", not \"" + text + "\"";
+            *out_error_ptr = in_path                                                   +
+                             ": expected a key such as \"0x0123456789abcdef\", not \"" +
+                             text                                                      +
+                             "\"";
 
             goto end;
         }
@@ -478,7 +491,10 @@ bool Analysis::Recipe::RecipeLoader::parse_hex_key(const Utils::Json::JsonValue&
         {
             if (::isxdigit(static_cast<unsigned char>(text.at(n_digit) )) == 0)
             {
-                *out_error_ptr = in_path + ": expected a key such as \"0x0123456789abcdef\", not \"" + text + "\"";
+                *out_error_ptr = in_path                                                   +
+                                 ": expected a key such as \"0x0123456789abcdef\", not \"" +
+                                 text                                                      +
+                                 "\"";
 
                 goto end;
             }
@@ -506,7 +522,8 @@ bool Analysis::Recipe::RecipeLoader::parse_hex_key_array(const Utils::Json::Json
 
     if (in_array.type != Utils::Json::JsonValueType::ARRAY)
     {
-        *out_error_ptr = in_path + ": expected an array of keys";
+        *out_error_ptr = in_path                       +
+                         ": expected an array of keys";
 
         goto end;
     }
@@ -516,7 +533,9 @@ bool Analysis::Recipe::RecipeLoader::parse_hex_key_array(const Utils::Json::Json
               ++n_key)
     {
         uint64_t          key      = 0;
-        const std::string key_path = in_path + "[" + std::to_string(n_key) + "]";
+        const std::string key_path = in_path                     +
+                                     "[" + std::to_string(n_key) +
+                                     "]";
 
         if (parse_hex_key(in_array.item_vec.at(n_key),
                           key_path,
@@ -542,10 +561,11 @@ bool Analysis::Recipe::RecipeLoader::parse_matrix(const Utils::Json::JsonValue& 
 {
     bool result = false;
 
-    if (in_array.type          != Utils::Json::JsonValueType::ARRAY ||
+    if (in_array.type            != Utils::Json::JsonValueType::ARRAY ||
         in_array.item_vec.size() != out_matrix_ptr->size() )
     {
-        *out_error_ptr = in_path + ": expected 16 numbers";
+        *out_error_ptr = in_path                 +
+                         ": expected 16 numbers";
 
         goto end;
     }
@@ -560,7 +580,10 @@ bool Analysis::Recipe::RecipeLoader::parse_matrix(const Utils::Json::JsonValue& 
         if (element.type    != Utils::Json::JsonValueType::NUMBER ||
             absolute_value  >  static_cast<double>(FLT_MAX) )
         {
-            *out_error_ptr = in_path + "[" + std::to_string(n_element) + "]: expected a number that fits a float";
+            *out_error_ptr = in_path                                  +
+                             "["                                      +
+                             std::to_string(n_element)                +
+                             "]: expected a number that fits a float";
 
             goto end;
         }
@@ -583,8 +606,8 @@ bool Analysis::Recipe::RecipeLoader::parse_unsigned(const Utils::Json::JsonValue
     bool         result      = false;
 
     if (in_value.type         != Utils::Json::JsonValueType::NUMBER ||
-        in_value.number_value <  0.0                                                ||
-        in_value.number_value >  static_cast<double>(UINT32_MAX)                    ||
+        in_value.number_value <  0.0                                ||
+        in_value.number_value >  static_cast<double>(UINT32_MAX)    ||
         in_value.number_value != floor_value)
     {
         *out_error_ptr = in_path + ": expected a whole number";

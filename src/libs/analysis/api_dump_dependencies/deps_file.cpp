@@ -28,8 +28,8 @@ bool Analysis::APIDumpDependencies::DepsFile::read(const std::string&  in_filena
                                                    std::string*        out_error_ptr)
 {
     std::vector<uint8_t> byte_vec;
-    std::ifstream file(in_filename,
-                       std::ios::binary | std::ios::ate);
+    std::ifstream        file(in_filename,
+                              std::ios::binary | std::ios::ate);
     bool                 result = false;
 
     if (file.is_open() == false)
@@ -93,15 +93,19 @@ bool Analysis::APIDumpDependencies::DepsFile::read_bytes(const std::vector<uint8
 
         if (header.version != DepsFormat::FILE_VERSION)
         {
-            *out_error_ptr = "Unsupported .deps file version " + std::to_string(header.version);
+            *out_error_ptr = "Unsupported .deps file version " +
+                             std::to_string(header.version);
 
             goto end;
         }
 
         if (header.analysis_version != DepsFormat::ANALYSIS_VERSION)
         {
-            *out_error_ptr = "The .deps file was made by another version of the analysis (" + std::to_string(header.analysis_version) +
-                             ", this is " + std::to_string(DepsFormat::ANALYSIS_VERSION) + "): make it again";
+            *out_error_ptr = "The .deps file was made by another version of the analysis (" +
+                             std::to_string(header.analysis_version)                        +
+                             ", this is "                                                   +
+                             std::to_string(DepsFormat::ANALYSIS_VERSION)                   +
+                             "): make it again";
 
             goto end;
         }
@@ -187,8 +191,8 @@ bool Analysis::APIDumpDependencies::DepsFile::write(const std::string&        in
         std::ofstream file(in_filename,
                            std::ios::binary | std::ios::trunc);
 
-        file.write(reinterpret_cast<const char*>      (byte_vec.data() ),
-                   static_cast<std::streamsize>       (byte_vec.size() ));
+        file.write(reinterpret_cast<const char*>(byte_vec.data() ),
+                   static_cast<std::streamsize> (byte_vec.size() ));
         file.close();
 
         if (file.fail() )

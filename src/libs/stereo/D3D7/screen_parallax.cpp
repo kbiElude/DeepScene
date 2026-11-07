@@ -100,9 +100,9 @@ bool Stereo::D3D7::ScreenParallax::reaches_both_sides(const uint8_t*  in_vertex_
         }
     }
 
-    return (has_used                                                  &&
-            x_min <= EDGE_REACH * in_picture_width                    &&
-            x_max >= (1.0f - EDGE_REACH) * in_picture_width);
+    return (has_used                                            &&
+            x_min    <= EDGE_REACH          * in_picture_width  &&
+            x_max    >= (1.0f - EDGE_REACH) * in_picture_width);
 }
 
 void Stereo::D3D7::ScreenParallax::scale_vertices(const float&    in_scale,
@@ -155,8 +155,8 @@ void Stereo::D3D7::ScreenParallax::shift_vertices(const Parameters& in_parameter
               ++n_vertex)
     {
         uint8_t* const vertex_ptr = inout_vertex_ptr + n_vertex * in_vertex_n_bytes;
-        float reciprocal = 0.0f;
-        float x          = 0.0f;
+        float          reciprocal = 0.0f;
+        float          x          = 0.0f;
 
         ::memcpy(&x,
                  vertex_ptr + X_OFFSET,

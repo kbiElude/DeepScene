@@ -70,11 +70,11 @@ bool Analysis::APIDumpAnalysis::WorkloadIdentity::is_same_workload(const Workloa
                 in_hash_a == in_hash_b);
     };
 
-    return (in_a.n_bytes == in_b.n_bytes                                     &&
+    return (in_a.n_bytes                         == in_b.n_bytes &&
             is_hash_alike_func(in_a.header_hash,
-                               in_b.header_hash)                             &&
+                               in_b.header_hash)                 &&
             is_hash_alike_func(in_a.middle_hash,
-                               in_b.middle_hash)                             &&
+                               in_b.middle_hash)                 &&
             is_hash_alike_func(in_a.tail_hash,
                                in_b.tail_hash) );
 }
@@ -85,6 +85,7 @@ bool Analysis::APIDumpAnalysis::WorkloadIdentity::read(const std::string& in_fil
 {
     std::ifstream file(in_filename,
                        std::ios::binary | std::ios::ate);
+
     uint64_t          header_offset = 0;
     uint64_t          middle_offset = 0;
     WorkloadReference reference;
@@ -164,8 +165,11 @@ Analysis::APIDumpAnalysis::WorkloadMatch Analysis::APIDumpAnalysis::WorkloadIden
 
     if (file_reference.n_bytes != in_reference.n_bytes)
     {
-        *out_reason_ptr = "The workload is " + std::to_string(file_reference.n_bytes) + " bytes, the analysis is of one of " +
-                          std::to_string(in_reference.n_bytes) + ".";
+        *out_reason_ptr = "The workload is "                     +
+                          std::to_string(file_reference.n_bytes) +
+                          " bytes, the analysis is of one of "   +
+                          std::to_string(in_reference.n_bytes)   +
+                          ".";
 
         goto end;
     }

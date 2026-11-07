@@ -31,8 +31,8 @@ bool Stereo::Core::ConvergenceModel::follow_scene_convergence_distance(const flo
         if (m_scene_convergence_distance > 0.0f)
         {
             /* Along the logarithm, as a depth is felt in proportion to itself. */
-            const float eased = ::expf(::logf(m_scene_convergence_distance) +
-                                       (::logf(in_target) - ::logf(m_scene_convergence_distance)) * SMOOTHING_PER_FRAME);
+            const float eased = ::expf(::logf(m_scene_convergence_distance)                                      +
+                               (::logf(in_target) - ::logf(m_scene_convergence_distance)) * SMOOTHING_PER_FRAME);
 
             m_scene_convergence_distance = (::fabsf(eased - in_target) < in_target * SNAP_FRACTION) ? in_target
                                                                                                     : eased;
@@ -166,7 +166,7 @@ bool Stereo::Core::ConvergenceModel::set_eye_separation(const float& in_eye_sepa
 
 bool Stereo::Core::ConvergenceModel::set_ipd_scale(const float& in_ipd_scale)
 {
-    const bool result = (::isfinite(in_ipd_scale) &&
+    const bool result = (::isfinite(in_ipd_scale)          &&
                          in_ipd_scale             >  0.0f);
 
     if (result)

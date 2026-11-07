@@ -79,6 +79,11 @@ namespace Analysis
             bool is_draw_affected(const uint64_t& in_pass_key,
                                   const uint64_t& in_draw_key) const;
 
+            /* Whether a draw of the key (its signature and size; see KeyBuilder::compute_draw_cover_key()) covers the whole of the view, as a
+             * flash does; see Recipe::covering_draw_key_vec.
+             */
+            bool is_draw_covering(const uint64_t& in_cover_key) const;
+
             /* Whether the draw is not to be played (see Recipe::skipped): the draw in its pass, its key, or the key of its pass is named. */
             bool is_draw_skipped(const uint64_t& in_pass_key,
                                  const uint64_t& in_draw_key) const;
@@ -92,11 +97,6 @@ namespace Analysis
             /* True if the recipe knows the signature of a draw: the analysis it was baked from saw it, or the recipe lists none. A draw of
              * an unknown signature is affected, like any draw which no rule applies to, but the recipe was not made for it.
              */
-            /* Whether a draw of the key (its signature and size; see KeyBuilder::compute_draw_cover_key()) covers the whole of the view, as a
-             * flash does; see Recipe::covering_draw_key_vec.
-             */
-            bool is_draw_covering(const uint64_t& in_cover_key) const;
-
             bool is_signature_known(const uint64_t& in_signature_key) const;
 
 

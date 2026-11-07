@@ -62,10 +62,10 @@ bool Analysis::Recipe::RecipeLoader::parse_action(const Utils::Json::JsonValue& 
             goto end;
         }
 
-        if (type_ptr->type         != Utils::Json::JsonValueType::STRING ||
-            (type_ptr->string_value != "eye_convergence"                                 &&
-             type_ptr->string_value != "eye_offset"                                      &&
-             type_ptr->string_value != "multiply"                                        &&
+        if (type_ptr->type          != Utils::Json::JsonValueType::STRING ||
+            (type_ptr->string_value != "eye_convergence"                  &&
+             type_ptr->string_value != "eye_offset"                       &&
+             type_ptr->string_value != "multiply"                         &&
              type_ptr->string_value != "replace"))
         {
             *out_error_ptr = in_path + ".type: expected \"eye_convergence\", \"eye_offset\", \"multiply\" or \"replace\"";
@@ -88,7 +88,7 @@ bool Analysis::Recipe::RecipeLoader::parse_action(const Utils::Json::JsonValue& 
 
         if (inout_rule_ptr->action_kind == ActionKind::EYE_CONVERGENCE)
         {
-            if (order_ptr                  != nullptr ||
+            if (order_ptr                   != nullptr ||
                 in_action.find_ptr("left")  != nullptr ||
                 in_action.find_ptr("right") != nullptr)
             {
@@ -111,8 +111,8 @@ bool Analysis::Recipe::RecipeLoader::parse_action(const Utils::Json::JsonValue& 
                 goto end;
             }
 
-            if (order_ptr->type         != Utils::Json::JsonValueType::STRING ||
-                (order_ptr->string_value != "post"                                            &&
+            if (order_ptr->type          != Utils::Json::JsonValueType::STRING ||
+                (order_ptr->string_value != "post"                             &&
                  order_ptr->string_value != "pre"))
             {
                 *out_error_ptr = in_path + ".order: expected \"post\" or \"pre\"";
@@ -142,9 +142,9 @@ bool Analysis::Recipe::RecipeLoader::parse_action(const Utils::Json::JsonValue& 
                 goto end;
             }
 
-            if (axis_ptr->type         != Utils::Json::JsonValueType::STRING ||
-                (axis_ptr->string_value != "x"                                               &&
-                 axis_ptr->string_value != "y"                                               &&
+            if (axis_ptr->type          != Utils::Json::JsonValueType::STRING ||
+                (axis_ptr->string_value != "x"                                &&
+                 axis_ptr->string_value != "y"                                &&
                  axis_ptr->string_value != "z"))
             {
                 *out_error_ptr = in_path + ".axis: expected \"x\", \"y\" or \"z\"";
@@ -431,9 +431,9 @@ bool Analysis::Recipe::RecipeLoader::parse_when(const Utils::Json::JsonValue& in
     {
         const auto& matrix = in_when.at("matrix");
 
-        if (matrix.type         != Utils::Json::JsonValueType::STRING ||
-            (matrix.string_value != "any"                                             &&
-             matrix.string_value != "orthographic"                                    &&
+        if (matrix.type          != Utils::Json::JsonValueType::STRING ||
+            (matrix.string_value != "any"                              &&
+             matrix.string_value != "orthographic"                     &&
              matrix.string_value != "perspective"))
         {
             *out_error_ptr = in_path + ".matrix: expected \"any\", \"orthographic\" or \"perspective\"";

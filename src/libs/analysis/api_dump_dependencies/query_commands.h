@@ -59,12 +59,6 @@ namespace Analysis
                                                               std::string*              out_error_ptr);
 
         private:
-            static const char* get_carry_kind_name      (const CarryKind&       in_kind);
-            static const char* get_dependency_class_name(const DependencyClass& in_class);
-
-            /* The paging of a list: the arguments of the other files of the analysis. */
-            static Analysis::APIDumpAnalysis::QueryArguments get_paging(const QueryArguments& in_arguments);
-
             /* The version of a resource whose content a frame uses from the frames before: nullptr if there is none. */
             static const ResourceVersion* find_consumed_version_ptr(const ResourceDependencies& in_dependencies,
                                                                     const uint64_t&             in_frame_index);
@@ -72,6 +66,12 @@ namespace Analysis
             /* What a frame does with a resource: nullptr if it does not touch it. */
             static const UseRun* find_use_run_ptr(const ResourceDependencies& in_dependencies,
                                                   const uint64_t&             in_frame_index);
+
+            static const char* get_carry_kind_name      (const CarryKind&       in_kind);
+            static const char* get_dependency_class_name(const DependencyClass& in_class);
+
+            /* The paging of a list: the arguments of the other files of the analysis. */
+            static Analysis::APIDumpAnalysis::QueryArguments get_paging(const QueryArguments& in_arguments);
 
             static Analysis::APIDumpAnalysis::QueryStatus run_carries  (const DependencyAnalysis& in_analysis,
                                                                         const QueryArguments&     in_arguments,

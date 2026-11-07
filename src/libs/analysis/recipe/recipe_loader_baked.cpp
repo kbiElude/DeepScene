@@ -57,9 +57,12 @@ bool Analysis::Recipe::RecipeLoader::parse_baked(const Utils::Json::JsonValue& i
 
     if (signature_scheme_version != Analysis::APIDumpAnalysis::PassesFormat::SIGNATURE_SCHEME_VERSION)
     {
-        *out_error_ptr = in_path + ".signature_scheme_version: the signatures of version " + std::to_string(signature_scheme_version) +
-                         " are not the signatures of this build (version " +
-                         std::to_string(Analysis::APIDumpAnalysis::PassesFormat::SIGNATURE_SCHEME_VERSION) + "); bake the recipe again";
+        *out_error_ptr = in_path                                                                           +
+                         ".signature_scheme_version: the signatures of version "                           +
+                         std::to_string(signature_scheme_version)                                          +
+                         " are not the signatures of this build (version "                                 +
+                         std::to_string(Analysis::APIDumpAnalysis::PassesFormat::SIGNATURE_SCHEME_VERSION) +
+                         "); bake the recipe again";
 
         goto end;
     }
@@ -96,10 +99,11 @@ bool Analysis::Recipe::RecipeLoader::parse_baked(const Utils::Json::JsonValue& i
         /* A rule which has no condition applies whatever follows it, so what follows would never be tried. */
         for (const auto& other_rule : inout_recipe_ptr->draw_rule_vec)
         {
-            if (other_rule.signature_key == rule.signature_key &&
-                other_rule.view_matrix_vec.empty()             )
+            if (other_rule.signature_key           == rule.signature_key &&
+                other_rule.view_matrix_vec.empty()                       )
             {
-                *out_error_ptr = rule_path + ": an earlier rule for the same signature has no condition, so this one is never reached";
+                *out_error_ptr = rule_path                                                                                 +
+                                 ": an earlier rule for the same signature has no condition, so this one is never reached";
 
                 goto end;
             }
@@ -253,8 +257,8 @@ bool Analysis::Recipe::RecipeLoader::parse_comfort(const Utils::Json::JsonValue&
             const bool is_finite = (::isfinite(parallax_ptr->number_value) != 0);
 
             if (parallax_ptr->type         != Utils::Json::JsonValueType::NUMBER ||
-                is_finite                  == false                                              ||
-                parallax_ptr->number_value <= 0.0                                                ||
+                is_finite                  == false                              ||
+                parallax_ptr->number_value <= 0.0                                ||
                 parallax_ptr->number_value >  1.0)
             {
                 *out_error_ptr = in_path + ".max_near_parallax: expected a number above zero, and up to one (a part of the width of the picture)";
@@ -272,8 +276,8 @@ bool Analysis::Recipe::RecipeLoader::parse_comfort(const Utils::Json::JsonValue&
             const bool is_finite = (::isfinite(fraction_ptr->number_value) != 0);
 
             if (fraction_ptr->type         != Utils::Json::JsonValueType::NUMBER ||
-                is_finite                  == false                                              ||
-                fraction_ptr->number_value <= 0.0                                                ||
+                is_finite                  == false                              ||
+                fraction_ptr->number_value <= 0.0                                ||
                 fraction_ptr->number_value >= 1.0)
             {
                 *out_error_ptr = in_path + ".near_fraction: expected a number above zero and below one";
@@ -291,8 +295,8 @@ bool Analysis::Recipe::RecipeLoader::parse_comfort(const Utils::Json::JsonValue&
             const bool is_finite = (::isfinite(overlay_ptr->number_value) != 0);
 
             if (overlay_ptr->type         != Utils::Json::JsonValueType::NUMBER ||
-                is_finite                 == false                                              ||
-                overlay_ptr->number_value <  0.0                                                ||
+                is_finite                 == false                              ||
+                overlay_ptr->number_value <  0.0                                ||
                 overlay_ptr->number_value >  0.5)
             {
                 *out_error_ptr = in_path + ".overlay_parallax: expected a number from zero (not pushed) to a half (a part of the width of the picture)";
@@ -347,9 +351,9 @@ bool Analysis::Recipe::RecipeLoader::parse_screen_parallax(const Utils::Json::Js
             goto end;
         }
 
-        if (distance_ptr->type         != Utils::Json::JsonValueType::NUMBER ||
-            ::isfinite(distance_ptr->number_value) == 0                                      ||
-            distance_ptr->number_value <= 0.0)
+        if (distance_ptr->type                     != Utils::Json::JsonValueType::NUMBER ||
+            ::isfinite(distance_ptr->number_value) == 0                                  ||
+            distance_ptr->number_value             <= 0.0)
         {
             *out_error_ptr = in_path + ".convergence_distance: expected a number above zero (the distance at which the eyes converge, in the "
                                        "units of the camera of the application)";
@@ -361,10 +365,10 @@ bool Analysis::Recipe::RecipeLoader::parse_screen_parallax(const Utils::Json::Js
 
         if (fov_ptr != nullptr)
         {
-            if (fov_ptr->type         != Utils::Json::JsonValueType::NUMBER ||
-                ::isfinite(fov_ptr->number_value) == 0                                      ||
-                fov_ptr->number_value <= 0.0                                                ||
-                fov_ptr->number_value >= MAX_FIELD_OF_VIEW_DEGREES)
+            if (fov_ptr->type                     != Utils::Json::JsonValueType::NUMBER ||
+                ::isfinite(fov_ptr->number_value) == 0                                  ||
+                fov_ptr->number_value             <= 0.0                                ||
+                fov_ptr->number_value             >= MAX_FIELD_OF_VIEW_DEGREES)
             {
                 *out_error_ptr = in_path + ".field_of_view_degrees: expected a number above zero and below 180 (the angle of view of the width of the picture)";
 
@@ -477,7 +481,7 @@ bool Analysis::Recipe::RecipeLoader::parse_draw_rule(const Utils::Json::JsonValu
             goto end;
         }
 
-        if (constant_ptr               == nullptr                                            ||
+        if (constant_ptr               == nullptr                            ||
             constant_ptr->type         != Utils::Json::JsonValueType::STRING ||
             constant_ptr->string_value != "view_matrix")
         {
@@ -486,8 +490,8 @@ bool Analysis::Recipe::RecipeLoader::parse_draw_rule(const Utils::Json::JsonValu
             goto end;
         }
 
-        if (equals_any_ptr       == nullptr                                ||
-            equals_any_ptr->type != Utils::Json::JsonValueType::ARRAY ||
+        if (equals_any_ptr                   == nullptr                           ||
+            equals_any_ptr->type             != Utils::Json::JsonValueType::ARRAY ||
             equals_any_ptr->item_vec.empty() )
         {
             *out_error_ptr = when_path + ".equals_any: expected a list of matrices, one at least";
@@ -602,9 +606,9 @@ bool Analysis::Recipe::RecipeLoader::parse_draw_selector(const Utils::Json::Json
         }
     }
 
-    if (out_selector_ptr->draw_key_vec.empty()  &&
+    if (out_selector_ptr->draw_key_vec.empty () &&
         out_selector_ptr->pass_draw_vec.empty() &&
-        out_selector_ptr->pass_key_vec.empty() )
+        out_selector_ptr->pass_key_vec.empty () )
     {
         *out_error_ptr = in_path + ": names no draw and no pass";
 
@@ -683,8 +687,8 @@ bool Analysis::Recipe::RecipeLoader::parse_key_distance_array(const Utils::Json:
         const bool is_finite = (::isfinite(distance_ptr->number_value) != 0);
 
         if (distance_ptr->type         != Utils::Json::JsonValueType::NUMBER ||
-            is_finite                  == false                                              ||
-            distance_ptr->number_value <= 0.0                                                ||
+            is_finite                  == false                              ||
+            distance_ptr->number_value <= 0.0                                ||
             distance_ptr->number_value >  static_cast<double>(FLT_MAX) )
         {
             *out_error_ptr = entry_path + "." + in_distance_name + ": expected a number above zero that fits a float";
@@ -696,7 +700,14 @@ bool Analysis::Recipe::RecipeLoader::parse_key_distance_array(const Utils::Json:
         {
             if (other.first == key)
             {
-                *out_error_ptr = entry_path + "." + in_key_name + ": the " + in_key_name + " has a " + in_distance_name + " already";
+                *out_error_ptr = entry_path       +
+                                 "."              +
+                                 in_key_name      +
+                                 ": the "         +
+                                 in_key_name      +
+                                 " has a "        +
+                                 in_distance_name +
+                                 " already";
 
                 goto end;
             }

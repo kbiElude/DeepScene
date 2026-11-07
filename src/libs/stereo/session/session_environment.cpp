@@ -53,10 +53,11 @@ bool Stereo::Session::SessionEnvironment::read_variable(const char*  in_name_ptr
 
     std::string buffer(N_MAX_CHARACTERS,
                        '\0');
+
     const DWORD n_characters = ::GetEnvironmentVariableA(in_name_ptr,
                                                          &buffer[0],
                                                          N_MAX_CHARACTERS);
-    const bool  result       = (n_characters > 0 &&
+    const bool  result       = (n_characters > 0                &&
                                 n_characters < N_MAX_CHARACTERS);
 
     if (result)

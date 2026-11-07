@@ -45,12 +45,6 @@ namespace Analysis
             static uint64_t    get_page_end          (const uint64_t&       in_total,
                                                       const QueryArguments& in_arguments);
             static const char* get_resource_kind_name(const ResourceKind&   in_kind);
-            /* Writes the "depth" member of an object: how deep the vertices of a pass are, or that nobody knows. */
-            static void write_depth_spread(const PassDepthSpread&   in_spread,
-                                           Utils::Json::JsonWriter* inout_writer_ptr);
-            static void write_page        (const uint64_t&          in_total,
-                                           const QueryArguments&    in_arguments,
-                                           Utils::Json::JsonWriter* inout_writer_ptr);
 
             /* What the overlays command says, for the tools that look into it further: the first frame that has the pass structure (false if no frame has
              * it), how deep the vertices of a pass are, and the passes whose camera never changes (in the order of their ids).
@@ -72,6 +66,13 @@ namespace Analysis
                                    const QueryArguments&    in_arguments,
                                    Utils::Json::JsonWriter* inout_writer_ptr,
                                    std::string*             out_error_ptr);
+
+            /* Writes the "depth" member of an object: how deep the vertices of a pass are, or that nobody knows. */
+            static void write_depth_spread(const PassDepthSpread&   in_spread,
+                                           Utils::Json::JsonWriter* inout_writer_ptr);
+            static void write_page        (const uint64_t&          in_total,
+                                           const QueryArguments&    in_arguments,
+                                           Utils::Json::JsonWriter* inout_writer_ptr);
 
         private:
             static const char* get_constant_block_kind_name  (const ConstantBlockKind&    in_kind);

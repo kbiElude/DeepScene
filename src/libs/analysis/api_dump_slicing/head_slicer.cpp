@@ -23,46 +23,6 @@ namespace
         size_t   n_segment          = 0;
     };
 
-    /* False if the workload has no such frame. */
-    bool find_slice_end(const Capture::APIDumpLoader::WorkloadIndex& in_index,
-                        const uint64_t&                              in_last_frame,
-                        SliceEnd*                                    out_end_ptr)
-    {
-        const auto& segment_vec = in_index.get_segment_vec();
-        bool        result      = false;
-
-        *out_end_ptr = SliceEnd();
-
-        if (in_last_frame >= in_index.get_n_frames() )
-        {
-            goto end;
-        }
-
-        for (size_t n_segment = 0;
-                    n_segment < segment_vec.size();
-                  ++n_segment)
-        {
-            const auto& entry = segment_vec.at(n_segment);
-
-            /* The end of the frame is the call of a segment that ends the (last - first + 1)th of the frames which end in it. */
-            if (in_last_frame < entry.first_frame_index + entry.n_frames_ended)
-            {
-                out_end_ptr->n_segment = n_segment;
-
-                result = true;
-
-                goto end;
-            }
-        }
-
-        /* The last frame has not ended: the workload goes on to its end in it. */
-        out_end_ptr->n_segment = segment_vec.size() - 1;
-
-        result = true;
-end:
-        return result;
-    }
-
     /* Leaves the calls up to the one that ends the frame (inclusive) in the segment, and the data chunks which they refer to; returns how many calls are
      * left. The segment starts the frames at in_first_frame_index; a frame which ends nowhere in it (the last of the workload, still going on) keeps
      * all of its calls.
@@ -142,6 +102,46 @@ end:
 
         return result;
     }
+
+    /* False if the workload has no such frame. */
+    bool find_slice_end(const Capture::APIDumpLoader::WorkloadIndex& in_index,
+                        const uint64_t&                              in_last_frame,
+                        SliceEnd*                                    out_end_ptr)
+    {
+        const auto& segment_vec = in_index.get_segment_vec();
+        bool        result      = false;
+
+        *out_end_ptr = SliceEnd();
+
+        if (in_last_frame >= in_index.get_n_frames() )
+        {
+            goto end;
+        }
+
+        for (size_t n_segment = 0;
+                    n_segment < segment_vec.size();
+                  ++n_segment)
+        {
+            const auto& entry = segment_vec.at(n_segment);
+
+            /* The end of the frame is the call of a segment that ends the (last - first + 1)th of the frames which end in it. */
+            if (in_last_frame < entry.first_frame_index + entry.n_frames_ended)
+            {
+                out_end_ptr->n_segment = n_segment;
+
+                result = true;
+
+                goto end;
+            }
+        }
+
+        /* The last frame has not ended: the workload goes on to its end in it. */
+        out_end_ptr->n_segment = segment_vec.size() - 1;
+
+        result = true;
+end:
+        return result;
+    }
 }
 
 bool Analysis::APIDumpSlicing::HeadSlicer::slice(const std::string&  in_workload_filename,
@@ -176,7 +176,11 @@ bool Analysis::APIDumpSlicing::HeadSlicer::slice(const std::string&  in_workload
                        in_options.last_frame,
                       &slice_end) == false)
     {
-        *out_error_ptr = "The workload has " + std::to_string(index.get_n_frames() ) + " frames: there is no frame " + std::to_string(in_options.last_frame) + ".";
+        *out_error_ptr = "The workload has "                   +
+                         std::to_string(index.get_n_frames() ) +
+                         " frames: there is no frame "         +
+                         std::to_string(in_options.last_frame) +
+                         ".";
 
         goto end;
     }
@@ -194,7 +198,7 @@ bool Analysis::APIDumpSlicing::HeadSlicer::slice(const std::string&  in_workload
     if (::fread(&header,
                 sizeof(header),
                 1,
-                input_handle) != 1                                                       ||
+                input_handle)                  != 1    ||
         ::memcmp(header.magic_i8vec8,
                  APIInterceptor::WorkloadFormat::MAGIC,
                  sizeof(header.magic_i8vec8) ) != 0)
@@ -230,11 +234,11 @@ bool Analysis::APIDumpSlicing::HeadSlicer::slice(const std::string&  in_workload
 
             if (::_fseeki64(input_handle,
                             static_cast<long long>(entry.file_offset_n_bytes),
-                            SEEK_SET) != 0                                                  ||
-                ::fread(segment_u8_vec.data(),
-                        segment_u8_vec.size(),
-                        1,
-                        input_handle) != 1                                                   ||
+                            SEEK_SET) != 0                                              ||
+                ::fread    (segment_u8_vec.data(),
+                            segment_u8_vec.size(),
+                            1,
+                            input_handle) != 1                                          ||
                 writer_ptr->write_compressed_segment(segment_u8_vec.data(),
                                                      segment_u8_vec.size() ) == false)
             {

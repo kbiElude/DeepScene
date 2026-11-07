@@ -290,13 +290,13 @@ void Analysis::APIDumpAnalysis::ModelBuilder::fill_draw_structure(const DrawDesc
     out_structure_ptr->texture_binding_key_vec.clear();
     out_structure_ptr->vertex_buffer_key_vec.clear();
 
-    out_structure_ptr->index_buffer_key       = (in_draw.index_buffer_id != ResourceId::NONE) ? get_key_func(in_draw.index_buffer_id)
-                                                                                              : 0;
-    out_structure_ptr->is_indexed             = in_draw.is_indexed;
-    out_structure_ptr->is_instanced           = (in_draw.instance_count > SINGLE_INSTANCE);
-    out_structure_ptr->primitive_topology     = in_draw.primitive_topology;
-    out_structure_ptr->state_key              = in_draw.state_key;
-    out_structure_ptr->vertex_layout_key      = in_draw.vertex_layout_key;
+    out_structure_ptr->index_buffer_key   = (in_draw.index_buffer_id != ResourceId::NONE) ? get_key_func(in_draw.index_buffer_id)
+                                                                                          : 0;
+    out_structure_ptr->is_indexed         = in_draw.is_indexed;
+    out_structure_ptr->is_instanced       = (in_draw.instance_count > SINGLE_INSTANCE);
+    out_structure_ptr->primitive_topology = in_draw.primitive_topology;
+    out_structure_ptr->state_key          = in_draw.state_key;
+    out_structure_ptr->vertex_layout_key  = in_draw.vertex_layout_key;
 
     for (const auto& shader_id : in_draw.shader_id_vec)
     {
@@ -573,8 +573,8 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_clear(const ClearOperation& in_
     {
         for (const auto& color_view : m_attachments.color_view_vec)
         {
-            const AccessCoverage   coverage = get_clear_coverage(in_clear,
-                                                                 color_view);
+            const AccessCoverage   coverage = get_clear_coverage   (in_clear,
+                                                                    color_view);
             const SubresourceRange range    = get_subresource_range(color_view);
 
             m_access_tracker.on_write(color_view.resource_id);
@@ -590,8 +590,8 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_clear(const ClearOperation& in_
     if (in_clear.clears_depth    ||
         in_clear.clears_stencil)
     {
-        const AccessCoverage   coverage = get_clear_coverage(in_clear,
-                                                             m_attachments.depth_stencil_view);
+        const AccessCoverage   coverage = get_clear_coverage   (in_clear,
+                                                                m_attachments.depth_stencil_view);
         const SubresourceRange range    = get_subresource_range(m_attachments.depth_stencil_view);
 
         m_access_tracker.on_write(m_attachments.depth_stencil_view.resource_id);
@@ -1258,10 +1258,10 @@ Analysis::APIDumpAnalysis::ViewCoverage Analysis::APIDumpAnalysis::ModelBuilder:
         if (reciprocal_depth > 0.0f)
         {
             const float depth      = 1.0f / reciprocal_depth;
-            const bool  is_in_view = (has_viewport == false                                                          ||
-                                      (position[0] >= m_viewport.x                                                  &&
-                                       position[0] <= m_viewport.x + m_viewport.width                               &&
-                                       position[1] >= m_viewport.y                                                  &&
+            const bool  is_in_view = (has_viewport == false                             ||
+                                      (position[0] >= m_viewport.x                      &&
+                                       position[0] <= m_viewport.x + m_viewport.width   &&
+                                       position[1] >= m_viewport.y                      &&
                                        position[1] <= m_viewport.y + m_viewport.height) );
 
             x_max = (position[0] > x_max) ? position[0] : x_max;
@@ -1295,8 +1295,8 @@ Analysis::APIDumpAnalysis::ViewCoverage Analysis::APIDumpAnalysis::ModelBuilder:
     if (x_min <= x_max &&
         has_viewport)
     {
-        const bool reaches_sides = (x_min <= m_viewport.x                    + EDGE_REACH * m_viewport.width &&
-                                    x_max >= m_viewport.x + m_viewport.width - EDGE_REACH * m_viewport.width);
+        const bool reaches_sides = (x_min <= m_viewport.x                     + EDGE_REACH * m_viewport.width &&
+                                    x_max >= m_viewport.x + m_viewport.width  - EDGE_REACH * m_viewport.width);
         const bool reaches_ends  = (y_min <= m_viewport.y                     + EDGE_REACH * m_viewport.height &&
                                     y_max >= m_viewport.y + m_viewport.height - EDGE_REACH * m_viewport.height);
 
@@ -1306,7 +1306,7 @@ Analysis::APIDumpAnalysis::ViewCoverage Analysis::APIDumpAnalysis::ModelBuilder:
          */
         const bool is_flat        = (reciprocal_depth_max - reciprocal_depth_min <= FLAT_DEPTH_SPREAD * reciprocal_depth_max);
 
-        result = (reaches_sides                       &&
+        result = (reaches_sides               &&
                   (reaches_ends || is_flat) ) ? ViewCoverage::COVERING
                                               : ViewCoverage::PARTIAL;
     }

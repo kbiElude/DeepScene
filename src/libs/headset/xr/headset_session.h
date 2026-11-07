@@ -79,11 +79,11 @@ namespace Headset
             /* Ends the session: the next run_frame() returns false. Can be called from any thread. */
             void request_exit();
 
-            void set_frame_func(const FrameFunc& in_frame_func);
-
             /* A frame of the compositor: waits for it, and gives it the screen. Returns false when the session has ended, because the user
              * ended it, the runtime did, or request_exit() was called; the reason, if there is one, is the error. */
             bool run_frame(std::string* out_error_ptr);
+
+            void set_frame_func(const FrameFunc& in_frame_func);
 
             /* What the session has to tell since it was last asked: the states it went through, the size and the place of the screen, what
              * went wrong. Any thread.

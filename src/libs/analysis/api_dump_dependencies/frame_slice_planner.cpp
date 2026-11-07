@@ -23,11 +23,13 @@ Analysis::APIDumpDependencies::FrameSlice Analysis::APIDumpDependencies::FrameSl
     const uint64_t                     n_frames     = in_analysis.result.n_frames;
     std::deque<uint64_t>               frame_queue;
     FrameSlice                         result;
-    std::vector<std::vector<bool> > is_needed_vec_vec(resource_vec.size());
-    std::vector<std::vector<VersionRef> > consumed_vec_vec(static_cast<size_t>(n_frames) ); /* by frame: what it uses of the frames before it */
+
+    std::vector<std::vector<VersionRef> > consumed_vec_vec (static_cast<size_t>(n_frames) ); /* by frame: what it uses of the frames before it */
+    std::vector<std::vector<bool> >       is_needed_vec_vec(resource_vec.size  ());
 
     result.is_live_vec.assign(static_cast<size_t>(n_frames),
                               false);
+
     result.target_frame_index = in_target_frame_index;
 
     /* What each frame uses of earlier content: the version a frame consumes is the one which was the latest when the frame began. */
@@ -59,7 +61,7 @@ Analysis::APIDumpDependencies::FrameSlice Analysis::APIDumpDependencies::FrameSl
 
     const auto make_live_func = [&](const uint64_t& in_frame_index)
     {
-        if (in_frame_index < n_frames &&
+        if (in_frame_index                                              <  n_frames &&
             result.is_live_vec.at(static_cast<size_t>(in_frame_index) ) == false)
         {
             result.is_live_vec.at(static_cast<size_t>(in_frame_index) ) = true;

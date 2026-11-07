@@ -59,8 +59,8 @@ Analysis::Recipe::RecipeApplier::RecipeApplier(const Analysis::Recipe::Recipe& i
                                                       pass_draw.draw_key) );
     }
 
-    m_covering_draw_key_set.insert(m_recipe.covering_draw_key_vec.begin(),
-                                        m_recipe.covering_draw_key_vec.end  () );
+    m_covering_draw_key_set.insert  (m_recipe.covering_draw_key_vec.begin  (),
+                                     m_recipe.covering_draw_key_vec.end    () );
     m_known_signature_key_set.insert(m_recipe.known_signature_key_vec.begin(),
                                      m_recipe.known_signature_key_vec.end  () );
     m_skipped_draw_key_set.insert   (m_recipe.skipped.draw_key_vec.begin   (),
@@ -82,7 +82,7 @@ bool Analysis::Recipe::RecipeApplier::apply_overlay_shift(const Analysis::Recipe
 
     bool result = false;
 
-    if (in_rule.action_kind == Analysis::Recipe::ActionKind::EYE_CONVERGENCE &&
+    if (in_rule.action_kind                                          == Analysis::Recipe::ActionKind::EYE_CONVERGENCE &&
         is_matrix_of_kind(*inout_matrix_ptr,
                           Analysis::Recipe::MatrixKind::PERSPECTIVE) )
     {
@@ -111,9 +111,9 @@ bool Analysis::Recipe::RecipeApplier::apply_rule(const Analysis::Recipe::Rule& i
     const std::array<float, 16> offset_matrix = make_eye_offset_matrix(in_rule.offset_axis,
                                                                        in_eye,
                                                                        in_eye_separation);
-    const auto&                 recipe_matrix = (is_offset)                                          ? offset_matrix
+    const auto&                 recipe_matrix = (is_offset)                             ? offset_matrix
                                               : (in_eye == Analysis::Recipe::Eye::LEFT) ? in_rule.left_matrix_fp32vec16
-                                                                                                     : in_rule.right_matrix_fp32vec16;
+                                                                                        : in_rule.right_matrix_fp32vec16;
     bool                        result        = false;
 
     if (is_matrix_of_kind(*inout_matrix_ptr,
@@ -131,7 +131,7 @@ bool Analysis::Recipe::RecipeApplier::apply_rule(const Analysis::Recipe::Rule& i
                 if (in_convergence_distance > 0.0f)
                 {
                     const float half_separation = ((in_eye == Analysis::Recipe::Eye::LEFT) ?  0.5f
-                                                                                                        : -0.5f) * in_eye_separation;
+                                                                                           : -0.5f) * in_eye_separation;
 
                     inout_matrix_ptr->at(SHEAR_INDEX) -= half_separation * inout_matrix_ptr->at(SCALE_INDEX) / in_convergence_distance;
                 }
@@ -338,36 +338,12 @@ bool Analysis::Recipe::RecipeApplier::is_draw_covering(const uint64_t& in_cover_
     return (m_covering_draw_key_set.count(in_cover_key) != 0);
 }
 
-bool Analysis::Recipe::RecipeApplier::is_signature_known(const uint64_t& in_signature_key) const
-{
-    return (m_known_signature_key_set.empty()                       ||
-            m_known_signature_key_set.count(in_signature_key) != 0);
-}
-
 bool Analysis::Recipe::RecipeApplier::is_frame_known(const uint64_t& in_shape_key) const
 {
     return (m_recipe.known_shape_key_vec.empty          ()                                       ||
             std::find(m_recipe.known_shape_key_vec.begin(),
                       m_recipe.known_shape_key_vec.end  (),
                       in_shape_key)                        != m_recipe.known_shape_key_vec.end() );
-}
-
-bool Analysis::Recipe::RecipeApplier::is_per_eye_texture(const Analysis::APIDumpAnalysis::ResourceIdentity& in_identity) const
-{
-    bool result = false;
-
-    for (const auto& texture : m_recipe.per_eye_texture_vec)
-    {
-        if (texture.description_key == in_identity.description_key &&
-            texture.ordinal         == in_identity.ordinal)
-        {
-            result = true;
-
-            break;
-        }
-    }
-
-    return result;
 }
 
 bool Analysis::Recipe::RecipeApplier::is_matrix_of_kind(const std::array<float, 16>&        in_matrix,
@@ -400,6 +376,30 @@ bool Analysis::Recipe::RecipeApplier::is_matrix_of_kind(const std::array<float, 
     }
 
     return result;
+}
+
+bool Analysis::Recipe::RecipeApplier::is_per_eye_texture(const Analysis::APIDumpAnalysis::ResourceIdentity& in_identity) const
+{
+    bool result = false;
+
+    for (const auto& texture : m_recipe.per_eye_texture_vec)
+    {
+        if (texture.description_key == in_identity.description_key &&
+            texture.ordinal         == in_identity.ordinal)
+        {
+            result = true;
+
+            break;
+        }
+    }
+
+    return result;
+}
+
+bool Analysis::Recipe::RecipeApplier::is_signature_known(const uint64_t& in_signature_key) const
+{
+    return (m_known_signature_key_set.empty()                       ||
+            m_known_signature_key_set.count(in_signature_key) != 0);
 }
 
 std::array<float, 16> Analysis::Recipe::RecipeApplier::make_eye_offset_matrix(const Analysis::Recipe::Axis& in_axis,
