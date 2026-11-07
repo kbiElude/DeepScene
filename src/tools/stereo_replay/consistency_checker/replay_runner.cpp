@@ -3,6 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "replay_runner.h"
+#include "crash_breadcrumb.h"
 #include "stop_observer.h"
 #include "tools/stereo_replay/engine_dll/entrypoints.h"
 #include <chrono>
@@ -100,8 +101,15 @@ bool Stereo::Replay::ConsistencyChecker::run_variant(const Stereo::Replay::Consi
         auto* const                                      controller_ptr = engine_ptr->get_playback_controller_ptr();
         Stereo::Replay::ConsistencyChecker::StopObserver observer       (controller_ptr,
                                                                          in_options.last_frame);
+        Stereo::Replay::ConsistencyChecker::CrashBreadcrumb breadcrumb(in_options.breadcrumb_filename);
 
         engine_ptr->add_replay_observer (&observer);
+
+        /* The call that is made is written to a file that a crash leaves, if the options ask. */
+        if (breadcrumb.is_open() )
+        {
+            engine_ptr->add_call_interceptor(&breadcrumb);
+        }
 
         if (in_interceptor_ptr != nullptr)
         {
@@ -174,6 +182,11 @@ bool Stereo::Replay::ConsistencyChecker::run_variant(const Stereo::Replay::Consi
         if (in_interceptor_ptr != nullptr)
         {
             engine_ptr->remove_call_interceptor(in_interceptor_ptr);
+        }
+
+        if (breadcrumb.is_open() )
+        {
+            engine_ptr->remove_call_interceptor(&breadcrumb);
         }
 
         engine_ptr->remove_replay_observer(&observer);

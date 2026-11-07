@@ -31,6 +31,7 @@ namespace Stereo
 
             struct Options
             {
+                std::string              breadcrumb_filename;                         /* the call that the replay is making is written here, for a crash to leave it (see CrashBreadcrumb) */
                 uint32_t                 contact_sheet_n_frames         = 0;          /* the frames to show in the contact sheet; 0: no sheet */
                 std::string              dump_directory;
                 uint32_t                 dump_frame                     = UINT32_MAX; /* the images of this frame are written whether or not it differs */

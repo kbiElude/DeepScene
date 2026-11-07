@@ -54,6 +54,8 @@ const char* Stereo::Replay::ConsistencyChecker::CommandLine::get_usage_ptr()
            "see how much a replay differs from itself), executed twice, and executed twice with the state of the device put\n"
            "back before the second execution. The back buffer after each execution is compared with that of the first replay.\n"
            "\n"
+           "  --breadcrumb FILE  Write the call that the replay is making to FILE, as one line, for each call: if the replay crashes, the file says which call\n"
+           "                   it was (begun: the crash is in it; finished: it is the last one that was made). It stays in the file when the program dies.\n"
            "  --deps FILE      The dependencies of the workload (a .deps file of it, see APIDumpDependencyExtractor): each way goes to the last\n"
            "                   frame as a seek does, leaving out the draws and uploads of the frames which nothing after it reads. For checking\n"
            "                   that it comes out as the replay of every frame does (take two screenshots, with and without, and compare them).\n"
@@ -129,6 +131,7 @@ bool Stereo::Replay::ConsistencyChecker::CommandLine::parse(const std::vector<st
 
     static const TextOption TEXT_OPTION_ARRAY[] =
     {
+        {"--breadcrumb",           &Options::breadcrumb_filename},
         {"--deps",                 &Options::deps_filename},
         {"--dump-dir",             &Options::dump_directory},
         {"--out",                  &Options::image_filename},

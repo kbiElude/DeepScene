@@ -25,6 +25,7 @@ if (DEMOVRPLAYER_BUILD_TESTS)
                                      "${DemoVRPlayer_SOURCE_DIR}/src/runtime/launcher/log_summary.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/runtime/presenter/command_line.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/tools/stereo_replay/consistency_checker/command_line.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/tools/stereo_replay/consistency_checker/crash_breadcrumb.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/tools/stereo_replay/consistency_checker/frame_sampler.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/tools/stereo_replay/consistency_checker/overlay_probe.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/tools/stereo_replay/consistency_checker/replay_profiler.cpp"
@@ -70,7 +71,7 @@ if (DEMOVRPLAYER_BUILD_TESTS)
     target_compile_definitions(DemoVRPlayerTests PRIVATE DEMOVRPLAYER_APPS_DIR="${DemoVRPlayer_SOURCE_DIR}/apps"
                                                          DEMOVRPLAYER_REPOSITORY_ROOT="${DemoVRPlayer_SOURCE_DIR}"
                                                          DEMOVRPLAYER_TESTS_DATA_DIR="${DemoVRPlayer_SOURCE_DIR}/src/tests/data")
-    target_link_libraries(DemoVRPlayerTests gtest_main APIInterceptorTestSupport APIDumpLoader Analysis D3D7Utils D3D8Utils Headset InjectionLauncher ReplayEngineCore Stereo StereoReplayEngineDLL Utils VRPlayerBackend ws2_32)
+    target_link_libraries(DemoVRPlayerTests gtest_main APIInterceptorTestSupport APIDumpLoader APIDumpNames Analysis D3D7Utils D3D8Utils Headset InjectionLauncher ReplayEngineCore Stereo StereoReplayEngineDLL Utils VRPlayerBackend ws2_32)
 
     enable_testing()
     add_test(NAME DemoVRPlayerTests COMMAND DemoVRPlayerTests)
