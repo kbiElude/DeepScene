@@ -5,7 +5,40 @@
 #include "analysis/api_dump_analysis/workload_identity.h"
 #include "utils/hashing/hasher.h"
 #include <fstream>
+#include <stdio.h>
 #include <vector>
+
+Analysis::APIDumpAnalysis::WorkloadMatch Analysis::APIDumpAnalysis::WorkloadIdentity::check_for_query(const std::string&       in_filename_override,
+                                                                                                     const WorkloadReference& in_reference,
+                                                                                                     const char*              in_file_noun_ptr)
+{
+    std::string       error;
+    const std::string workload_filename = (in_filename_override.empty() ) ? in_reference.filename
+                                                                           : in_filename_override;
+
+    const WorkloadMatch result = verify(workload_filename,
+                                        in_reference,
+                                       &error);
+
+    if (result == WorkloadMatch::MISMATCH)
+    {
+        fprintf(stderr,
+                "Error: %s is not the workload this %s is of: %s\n",
+                workload_filename.c_str(),
+                in_file_noun_ptr,
+                error.c_str() );
+    }
+    else
+    if (result == WorkloadMatch::UNREADABLE)
+    {
+        fprintf(stderr,
+                "Warning: the workload could not be checked against the %s: %s\n",
+                in_file_noun_ptr,
+                error.c_str() );
+    }
+
+    return result;
+}
 
 void Analysis::APIDumpAnalysis::WorkloadIdentity::get_piece_offsets(const uint64_t& in_n_bytes,
                                                                     uint64_t*       out_header_offset_ptr,

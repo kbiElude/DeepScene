@@ -21,6 +21,7 @@ tools\analysis\              Studies a capture and makes the recipe of an applic
     APIDumpDependencyQuery_x64.exe      asks questions of a .deps file
     APIDumpSlicer_x64.exe               cuts a part of a .workload out into a smaller one
     APIDumpTextureExtractor_x64.exe     .workload -> .textures (what happens to its textures: uploads, copies, generated levels)
+    APIDumpTextureQuery_x64.exe         asks questions of a .textures file
     RecipeBake_x64.exe                  writes into a recipe what the analysis knows (and checks a recipe with --check)
 
 tools\stereo_replay\         Plays a capture again, without the application.

@@ -40,6 +40,34 @@ end:
     return result;
 }
 
+bool Utils::CommandLine::NumberParser::parse_option_unsigned(const std::string& in_option,
+                                                             const bool&        in_has_next,
+                                                             const std::string& in_next_argument,
+                                                             const uint64_t&    in_max_value,
+                                                             uint64_t*          out_value_ptr,
+                                                             std::string*       out_error_ptr)
+{
+    bool result = false;
+
+    if (in_has_next == false)
+    {
+        *out_error_ptr = in_option + " needs a number";
+    }
+    else
+    if (parse_unsigned(in_next_argument,
+                       in_max_value,
+                       out_value_ptr) == false)
+    {
+        *out_error_ptr = in_option + " needs a number, not " + in_next_argument;
+    }
+    else
+    {
+        result = true;
+    }
+
+    return result;
+}
+
 bool Utils::CommandLine::NumberParser::parse_unsigned(const std::string& in_text,
                                                       const uint64_t&    in_max_value,
                                                       uint64_t*          out_value_ptr)

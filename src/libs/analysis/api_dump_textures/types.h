@@ -112,6 +112,44 @@ namespace Analysis
             uint32_t                                y                    = 0;
         };
 
+        /* No limit: for the last frame or call that a question counts events up to. */
+        constexpr uint64_t NO_LIMIT = UINT64_MAX;
+
+        /* Up to which point the events of a timeline are counted: those of the frames up to the frame, and of the calls up to the call, both included. */
+        struct LevelCut
+        {
+            uint64_t last_call_index  = NO_LIMIT;
+            uint64_t last_frame_index = NO_LIMIT;
+        };
+
+        /* A rectangle, in texels, of a run of layers of a level, that one event gave the content of and that no later event has written over. */
+        struct LevelPiece
+        {
+            uint32_t event_index = 0; /* in TextureTimeline::event_vec */
+            uint32_t first_layer = 0;
+            uint32_t height      = 0;
+            uint32_t layer_count = 1;
+            uint32_t width       = 0;
+            uint32_t x           = 0;
+            uint32_t y           = 0;
+        };
+
+        /* What one level of a texture holds at a point, as far as the events tell: which event made each part of it. A part that no piece covers has had no event
+         * write it (the level was given a size and no pixels, or the level is not there yet). The pieces that rendering made (RENDER_WRITE) have no bytes in the
+         * timeline: they are the places where a snapshot is to be read.
+         */
+        struct LevelContent
+        {
+            bool                    has_level                  = false; /* an event gave the level a size, at or before the cut */
+            bool                    has_snapshot               = false;
+            uint32_t                level_depth_or_layer_count = 1;
+            Utils::Graphics::TextureFormat level_format        = Utils::Graphics::TextureFormat::UNKNOWN;
+            uint32_t                level_height               = 0;
+            uint32_t                level_width                = 0;
+            std::vector<LevelPiece> piece_vec;
+            uint32_t                snapshot_event_index       = 0;     /* the last SNAPSHOT of the level, at or before the cut */
+        };
+
         /* Everything of a .textures file but the bytes of the blobs. */
         struct TextureTimeline
         {

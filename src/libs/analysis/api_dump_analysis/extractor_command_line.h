@@ -10,6 +10,7 @@
 #define APIDUMPANALYSIS_EXTRACTOR_COMMAND_LINE_H
 
 #include "analysis/api_dump_analysis/extractor_options.h"
+#include "utils/command_line/program_option_func.h"
 #include <functional>
 #include <stdint.h>
 #include <string>
@@ -28,15 +29,8 @@ namespace Analysis
         class ExtractorCommandLine
         {
         public:
-            /* What a program with options of its own says of an argument: whether it is one of them, whether it takes the argument after it as its value, and, if it is
-             * one and what it was given is not right, why (the function returns false then).
-             */
-            typedef std::function<bool(const std::string& in_argument,
-                                       const bool&        in_has_next,
-                                       const std::string& in_next_argument,
-                                       bool*              out_is_known_ptr,
-                                       bool*              out_uses_next_ptr,
-                                       std::string*       out_error_ptr)> ProgramOptionFunc;
+            /* What a program with options of its own says of an argument. */
+            typedef Utils::CommandLine::ProgramOptionFunc ProgramOptionFunc;
 
             /* The name of the workload with the extension (a dot and what follows it, if that is in the last part of the name) taken off, and the one that is given put on. */
             static std::string get_default_output_filename(const std::string& in_input_filename,

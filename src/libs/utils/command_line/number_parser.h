@@ -21,6 +21,16 @@ namespace Utils
             static bool parse_double(const std::string& in_text,
                                      double*            out_value_ptr);
 
+            /* The value of an option that takes a number: the argument after it. False, and the reason ("--limit needs a number", or "... not x"), if there is
+             * no argument after it or it is not a number that is not above the maximum.
+             */
+            static bool parse_option_unsigned(const std::string& in_option,
+                                              const bool&        in_has_next,
+                                              const std::string& in_next_argument,
+                                              const uint64_t&    in_max_value,
+                                              uint64_t*          out_value_ptr,
+                                              std::string*       out_error_ptr);
+
             /* Decimal digits and nothing else: no sign, no space, no empty text. */
             static bool parse_unsigned(const std::string& in_text,
                                        const uint64_t&    in_max_value,

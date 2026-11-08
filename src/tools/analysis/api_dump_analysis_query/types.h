@@ -7,6 +7,7 @@
 #ifndef APIDUMPANALYSISQUERY_TYPES_H
 #define APIDUMPANALYSISQUERY_TYPES_H
 
+#include "analysis/api_dump_analysis/query_options.h"
 #include "analysis/api_dump_analysis/types.h"
 #include <string>
 
@@ -28,10 +29,8 @@ namespace Analysis
         {
             Analysis::APIDumpAnalysis::QueryArguments arguments;
             std::string                               command;
-            bool                                      is_compact       = false;
-            bool                                      is_verify_off    = false;
+            Analysis::APIDumpAnalysis::QueryOptions   common;
             std::string                               passes_filename;
-            std::string                               workload_filename; /* where the workload is, if not where the analysis says */
         };
     }
 }

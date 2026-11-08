@@ -2,6 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
+#include "analysis/api_dump_analysis/query_command_line.h"
 #include "analysis/api_dump_analysis/workload_identity.h"
 #include "analysis/api_dump_dependencies/deps_file.h"
 #include "query.h"
@@ -15,156 +16,114 @@ bool Analysis::APIDumpDependencyQuery::parse_arguments(const int&   in_argc,
                                                        Options*     out_options_ptr,
                                                        std::string* out_error_ptr)
 {
-    int  n_positionals = 0;
-    bool result        = false;
+    typedef Analysis::APIDumpAnalysis::QueryCommandLine QueryCommandLine;
 
-    for (int n_argument = 1;
-             n_argument < in_argc;
-           ++n_argument)
+    bool result = false;
+
+    /* What the tool has besides the options that every query tool has: --class. */
+    const QueryCommandLine::ProgramOptionFunc program_option_func = [&](const std::string& in_argument,
+                                                                        const bool&        in_has_next,
+                                                                        const std::string& in_next_argument,
+                                                                        bool*              out_is_known_ptr,
+                                                                        bool*              out_uses_next_ptr,
+                                                                        std::string*       out_error_ptr_inner)
     {
-        const std::string argument      = in_argv[n_argument];
-        const bool        has_next      = (n_argument + 1 < in_argc);
-        const std::string next_argument = (has_next) ? in_argv[n_argument + 1]
-                                                     : "";
+        bool is_set = true;
 
-        if (argument == "--compact")
+        *out_is_known_ptr  = (in_argument == "--class");
+        *out_uses_next_ptr = *out_is_known_ptr;
+
+        if (*out_is_known_ptr == false)
         {
-            out_options_ptr->is_compact = true;
+            /* Not ours. */
         }
         else
-        if (argument == "--no-verify")
+        if (in_has_next == false)
         {
-            out_options_ptr->is_verify_off = true;
+            *out_error_ptr_inner = "--class needs carried, carried_possibly, frame_local, static or unused";
+            is_set               = false;
         }
         else
-        if (argument == "--workload")
+        if (Analysis::APIDumpDependencies::QueryCommands::parse_dependency_class(in_next_argument,
+                                                                                &out_options_ptr->arguments.dependency_class) == false)
         {
-            if (has_next == false)
-            {
-                *out_error_ptr = "--workload needs the path of the workload";
-
-                goto end;
-            }
-
-            out_options_ptr->workload_filename = next_argument;
-
-            ++n_argument;
+            *out_error_ptr_inner = "--class needs carried, carried_possibly, frame_local, static or unused, not " + in_next_argument;
+            is_set               = false;
         }
         else
-        if (argument == "--limit" ||
-            argument == "--offset")
         {
-            uint64_t value = 0;
-
-            if (has_next == false)
-            {
-                *out_error_ptr = argument + " needs a number";
-
-                goto end;
-            }
-
-            if (Utils::CommandLine::NumberParser::parse_unsigned(next_argument,
-                                                                 UINT64_MAX,
-                                                                &value) == false)
-            {
-                *out_error_ptr = argument + " needs a number, not " + next_argument;
-
-                goto end;
-            }
-
-            if (argument == "--limit")
-            {
-                out_options_ptr->arguments.limit = value;
-            }
-            else
-            {
-                out_options_ptr->arguments.offset = value;
-            }
-
-            ++n_argument;
-        }
-        else
-        if (argument == "--class")
-        {
-            if (has_next == false)
-            {
-                *out_error_ptr = "--class needs carried, carried_possibly, frame_local, static or unused";
-
-                goto end;
-            }
-
-            if (Analysis::APIDumpDependencies::QueryCommands::parse_dependency_class(next_argument,
-                                                                                    &out_options_ptr->arguments.dependency_class) == false)
-            {
-                *out_error_ptr = "--class needs carried, carried_possibly, frame_local, static or unused, not " + next_argument;
-
-                goto end;
-            }
-
             out_options_ptr->arguments.has_class = true;
+        }
 
-            ++n_argument;
+        return is_set;
+    };
+
+    /* The file, the command, and then the id of a resource or the index of a frame. */
+    const QueryCommandLine::PositionalFunc positional_func = [&](const std::string& in_argument,
+                                                                 const size_t&      in_n_positional,
+                                                                 std::string*       out_error_ptr_inner)
+    {
+        uint64_t value  = 0;
+        bool     is_set = true;
+
+        if (in_n_positional == 0)
+        {
+            out_options_ptr->deps_filename = in_argument;
         }
         else
-        if (argument.empty()  == false &&
-            argument.at   (0) == '-')
+        if (in_n_positional == 1)
         {
-            *out_error_ptr = "Unknown option " + argument;
-
-            goto end;
+            out_options_ptr->command = in_argument;
         }
         else
-        if (n_positionals == 0)
+        if (in_n_positional > 2)
         {
-            out_options_ptr->deps_filename = argument;
-
-            ++n_positionals;
+            *out_error_ptr_inner = "Too many arguments";
+            is_set               = false;
         }
         else
-        if (n_positionals == 1)
+        if (Utils::CommandLine::NumberParser::parse_unsigned(in_argument,
+                                                             UINT64_MAX,
+                                                            &value) == false)
         {
-            out_options_ptr->command = argument;
-
-            ++n_positionals;
+            *out_error_ptr_inner = "An id must be a number, not " + in_argument;
+            is_set               = false;
         }
         else
-        if (n_positionals == 2)
         {
-            /* The id of a resource, or the index of a frame. */
-            uint64_t value = 0;
-
-            if (Utils::CommandLine::NumberParser::parse_unsigned(argument,
-                                                                 UINT64_MAX,
-                                                                &value) == false)
-            {
-                *out_error_ptr = "An id must be a number, not " + argument;
-
-                goto end;
-            }
-
             out_options_ptr->arguments.frame_index     = value;
             out_options_ptr->arguments.has_frame_index = (out_options_ptr->command == "frame"   ||
                                                           out_options_ptr->command == "carries" ||
                                                           out_options_ptr->command == "slice");
             out_options_ptr->arguments.has_resource_id = (out_options_ptr->command == "resource");
             out_options_ptr->arguments.resource_id     = value;
-
-            ++n_positionals;
         }
-        else
-        {
-            *out_error_ptr = "Too many arguments";
 
-            goto end;
-        }
+        return is_set;
+    };
+
+    if (QueryCommandLine::parse(in_argc,
+                                in_argv,
+                                std::vector<Analysis::APIDumpAnalysis::QueryNumberOption>(),
+                                program_option_func,
+                                positional_func,
+                                &out_options_ptr->common,
+                                out_error_ptr) == false)
+    {
+        goto end;
     }
 
-    if (n_positionals < 2)
+    if (out_options_ptr->deps_filename.empty() ||
+        out_options_ptr->command.empty()       )
     {
         *out_error_ptr = "A .deps file and a command are needed";
 
         goto end;
     }
+
+    /* The paging of the lists is read with the other options that every query tool has. */
+    out_options_ptr->arguments.limit  = out_options_ptr->common.limit;
+    out_options_ptr->arguments.offset = out_options_ptr->common.offset;
 
     result = true;
 
@@ -242,37 +201,22 @@ int Analysis::APIDumpDependencyQuery::run(int   in_argc,
         goto end;
     }
 
-    if (options.is_verify_off == false)
+    if (options.common.is_verify_off == false)
     {
-        const std::string workload_filename = (options.workload_filename.empty() ) ? analysis.workload_reference.filename
-                                                                                   : options.workload_filename;
-
-        const auto match = Analysis::APIDumpAnalysis::WorkloadIdentity::verify(workload_filename,
-                                                                               analysis.workload_reference,
-                                                                              &error);
+        const auto match = Analysis::APIDumpAnalysis::WorkloadIdentity::check_for_query(options.common.workload_filename,
+                                                                                         analysis.workload_reference,
+                                                                                         "file");
 
         if (match == Analysis::APIDumpAnalysis::WorkloadMatch::MISMATCH)
         {
-            fprintf(stderr,
-                    "Error: %s is not the workload this file is of: %s\n",
-                    workload_filename.c_str(),
-                    error.c_str() );
-
             exit_code = ExitCode::WORKLOAD_MISMATCH;
 
             goto end;
         }
-
-        if (match == Analysis::APIDumpAnalysis::WorkloadMatch::UNREADABLE)
-        {
-            fprintf(stderr,
-                    "Warning: the workload could not be checked against the file: %s\n",
-                    error.c_str() );
-        }
     }
 
     {
-        Utils::Json::JsonWriter writer(options.is_compact == false);
+        Utils::Json::JsonWriter writer(options.common.is_compact == false);
 
         const auto status = Analysis::APIDumpDependencies::QueryCommands::run(options.command,
                                                                               analysis,

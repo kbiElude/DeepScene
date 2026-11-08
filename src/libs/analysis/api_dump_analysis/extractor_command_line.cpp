@@ -3,6 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_analysis/extractor_command_line.h"
+#include "utils/command_line/argument_walker.h"
 #include "utils/command_line/number_parser.h"
 #include <algorithm>
 #include <thread>
@@ -38,88 +39,82 @@ bool Analysis::APIDumpAnalysis::ExtractorCommandLine::parse(const int&          
 
     out_options_ptr->skip_data_chunks_above_n_bytes = in_profile.default_skip_data_chunks_above_n_bytes;
 
-    for (int n_argument = 1;
-             n_argument < in_argc;
-           ++n_argument)
+    const auto parse_argument_func = [&](const Utils::CommandLine::ArgumentCursor& in_cursor,
+                                         bool*                                     out_uses_next_ptr,
+                                         std::string*                              out_error_ptr_inner)
     {
-        const std::string argument      = in_argv[n_argument];
-        const bool        has_next      = (n_argument + 1 < in_argc);
-        const std::string next_argument = (has_next) ? in_argv[n_argument + 1]
-                                                     : "";
-        bool              is_known      = false;
-        bool              uses_next     = false;
+        const std::string& argument      = in_cursor.get_argument();
+        const bool         has_next      = in_cursor.has_next();
+        const std::string& next_argument = in_cursor.get_next_argument();
+        bool               is_known      = false;
+        bool               uses_next     = false;
 
-        if (in_program_option_func)
+        if (in_cursor.ask(in_program_option_func,
+                         &is_known,
+                         &uses_next,
+                          out_error_ptr_inner) == false)
         {
-            if (in_program_option_func(argument,
-                                       has_next,
-                                       next_argument,
-                                      &is_known,
-                                      &uses_next,
-                                       out_error_ptr) == false)
-            {
-                goto end;
-            }
+            return false;
         }
 
         if (is_known)
         {
-            n_argument += (uses_next) ? 1 : 0;
+            *out_uses_next_ptr = uses_next;
         }
         else
         if (argument == "-o")
         {
             if (has_next == false)
             {
-                *out_error_ptr = "-o needs a file name";
+                *out_error_ptr_inner = "-o needs a file name";
 
-                goto end;
+                return false;
             }
 
             out_options_ptr->output_filename = next_argument;
 
-            ++n_argument;
+            *out_uses_next_ptr = true;
         }
         else
         if (argument == "--max-frames")
         {
             if (has_next == false)
             {
-                *out_error_ptr = "--max-frames needs a number";
+                *out_error_ptr_inner = "--max-frames needs a number";
 
-                goto end;
+                return false;
             }
 
             if (Utils::CommandLine::NumberParser::parse_unsigned(next_argument,
                                                                  UINT64_MAX,
                                                                  &out_options_ptr->max_frames) == false)
             {
-                *out_error_ptr = "--max-frames needs a number, not " + next_argument;
+                *out_error_ptr_inner = "--max-frames needs a number, not " + next_argument;
 
-                goto end;
+                return false;
             }
 
-            ++n_argument;
+            *out_uses_next_ptr = true;
         }
         else
         if (argument == "--progress-interval")
         {
             if (has_next == false)
             {
-                *out_error_ptr = "--progress-interval needs a number of seconds";
+                *out_error_ptr_inner = "--progress-interval needs a number of seconds";
 
-                goto end;
+                return false;
             }
 
             if (Utils::CommandLine::NumberParser::parse_double(next_argument,
                                                                &out_options_ptr->progress_interval_seconds) == false)
             {
-                *out_error_ptr = "--progress-interval needs a number of seconds, not " + next_argument;
+                *out_error_ptr_inner = "--progress-interval needs a number of seconds, not " + next_argument;
 
-                goto end;
+                return false;
             }
 
-            ++n_argument;
+            *out_uses_next_ptr = true;
         }
         else
         if (argument == "--skip-chunks-above")
@@ -128,23 +123,23 @@ bool Analysis::APIDumpAnalysis::ExtractorCommandLine::parse(const int&          
 
             if (has_next == false)
             {
-                *out_error_ptr = "--skip-chunks-above needs a number of bytes";
+                *out_error_ptr_inner = "--skip-chunks-above needs a number of bytes";
 
-                goto end;
+                return false;
             }
 
             if (Utils::CommandLine::NumberParser::parse_unsigned(next_argument,
                                                                  UINT32_MAX,
                                                                  &n_bytes) == false)
             {
-                *out_error_ptr = "--skip-chunks-above needs a number of bytes, not " + next_argument;
+                *out_error_ptr_inner = "--skip-chunks-above needs a number of bytes, not " + next_argument;
 
-                goto end;
+                return false;
             }
 
             out_options_ptr->skip_data_chunks_above_n_bytes = static_cast<uint32_t>(n_bytes);
 
-            ++n_argument;
+            *out_uses_next_ptr = true;
         }
         else
         if (argument == "--stats")
@@ -158,32 +153,32 @@ bool Analysis::APIDumpAnalysis::ExtractorCommandLine::parse(const int&          
 
             if (has_next == false)
             {
-                *out_error_ptr = "--threads needs a number";
+                *out_error_ptr_inner = "--threads needs a number";
 
-                goto end;
+                return false;
             }
 
             if (Utils::CommandLine::NumberParser::parse_unsigned(next_argument,
                                                                  MAX_N_THREADS,
                                                                  &n_threads) == false)
             {
-                *out_error_ptr = "--threads needs a number up to " + std::to_string(MAX_N_THREADS) + ", not " + next_argument;
+                *out_error_ptr_inner = "--threads needs a number up to " + std::to_string(MAX_N_THREADS) + ", not " + next_argument;
 
-                goto end;
+                return false;
             }
 
             out_options_ptr->n_threads = static_cast<uint32_t>(n_threads);
             is_n_threads_given         = true;
 
-            ++n_argument;
+            *out_uses_next_ptr = true;
         }
         else
         if (argument.empty() == false &&
             argument.at(0)   == '-')
         {
-            *out_error_ptr = "Unknown option " + argument;
+            *out_error_ptr_inner = "Unknown option " + argument;
 
-            goto end;
+            return false;
         }
         else
         if (out_options_ptr->input_filename.empty() )
@@ -192,10 +187,20 @@ bool Analysis::APIDumpAnalysis::ExtractorCommandLine::parse(const int&          
         }
         else
         {
-            *out_error_ptr = "More than one workload given";
+            *out_error_ptr_inner = "More than one workload given";
 
-            goto end;
+            return false;
         }
+
+        return true;
+    };
+
+    if (Utils::CommandLine::ArgumentWalker::walk(in_argc,
+                                                 in_argv,
+                                                 parse_argument_func,
+                                                 out_error_ptr) == false)
+    {
+        goto end;
     }
 
     if (out_options_ptr->input_filename.empty() )

@@ -23,6 +23,14 @@ namespace Analysis
             /* The bytes that are hashed from each piece. */
             static constexpr uint64_t N_PIECE_BYTES = 4096;
 
+            /* For the tools that ask questions of a file of the analysis: checks the workload (the one that the caller names, or the one that the reference names if it
+             * names none) against the reference, and says what it finds on the error output. One that is not the one the file is of is an error (MISMATCH, which the
+             * tool ends on); one that cannot be read is a warning (UNREADABLE), since the questions do not need it. The noun is what the file is called in the message.
+             */
+            static WorkloadMatch check_for_query(const std::string&       in_filename_override,
+                                                 const WorkloadReference& in_reference,
+                                                 const char*              in_file_noun_ptr);
+
             /* True if two analyses are of the same workload: the size is the same, and so is each hash that both of them hold (a file of the
              * analysis may hold fewer than another). The names do not matter.
              */

@@ -224,6 +224,7 @@
 <tr><td><code>APIDumpDependencyExtractor</code>, <code>APIDumpDependencyQuery</code></td><td>Workload to <code>.deps</code>, and questions about it.</td></tr>
 <tr><td><code>APIDumpSlicer</code></td><td>The first frames of a workload as a workload of their own.</td></tr>
 <tr><td><code>APIDumpTextureExtractor</code></td><td>Workload to <code>.textures</code> and the file of blobs beside it (see <a href="#textures">What happens to the textures</a>).</td></tr>
+<tr><td><code>APIDumpTextureQuery</code></td><td>Asks questions of a <code>.textures</code> file as JSON: <code>info</code>, <code>resources</code>, <code>resource &lt;id&gt;</code>, and <code>at &lt;frame&gt; &lt;resource&gt; &lt;level&gt;</code> (what a level holds at the end of a frame, which event made each part of it, and where the bytes are).</td></tr>
 <tr><td><code>RecipeBake</code></td><td>Hand-written rules plus <code>.passes</code> (and <code>.deps</code>) to a baked recipe (<a href="recipes.html">Recipes</a>).</td></tr>
 </table>
 

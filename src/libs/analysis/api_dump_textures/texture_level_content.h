@@ -1,0 +1,54 @@
+/* API Interceptor (c) 2025 Dominik Witczak
+ *
+ * This code is licensed under MIT license (see LICENSE.txt for details)
+ *
+ * What one level of a texture holds at a point of a workload, from the events of a .textures file: the events that write it are laid over each other in the order
+ * of the calls, and what is left visible of each is a piece. A write that gives the level another size or format than it had starts the level again, as a
+ * glTexImage2D does.
+ */
+#ifndef APIDUMPTEXTURES_TEXTURE_LEVEL_CONTENT_H
+#define APIDUMPTEXTURES_TEXTURE_LEVEL_CONTENT_H
+
+#include "analysis/api_dump_textures/types.h"
+#include <map>
+#include <vector>
+
+namespace Analysis
+{
+    namespace APIDumpTextures
+    {
+        class TextureLevelContent
+        {
+        public:
+            /* The content of a level of a resource, as the events up to the cut leave it. */
+            static LevelContent find(const TextureTimeline&                       in_timeline,
+                                     const Analysis::APIDumpAnalysis::ResourceId& in_resource_id,
+                                     const uint32_t&                              in_mip_level,
+                                     const LevelCut&                              in_cut);
+
+        private:
+            /* A rectangle of one layer that an event wrote, kept in texels. */
+            struct Rectangle
+            {
+                uint32_t event_index = 0;
+                uint32_t height      = 0;
+                uint32_t width       = 0;
+                uint32_t x           = 0;
+                uint32_t y           = 0;
+            };
+
+            /* The rectangles of each layer, by the number of the layer. */
+            typedef std::map<uint32_t, std::vector<Rectangle> > LayerMap;
+
+            /* The pieces of the layers, with the layers that hold the same rectangles of the same events as one run. */
+            static void make_pieces(const LayerMap&          in_layer_map,
+                                    std::vector<LevelPiece>* out_piece_vec_ptr);
+
+            /* What is left of the rectangles of a layer when an event writes a rectangle over them, and the rectangle itself. */
+            static void paint(const Rectangle&        in_rectangle,
+                              std::vector<Rectangle>* inout_rectangle_vec_ptr);
+        };
+    }
+}
+
+#endif /* APIDUMPTEXTURES_TEXTURE_LEVEL_CONTENT_H */
