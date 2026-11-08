@@ -37,6 +37,7 @@ if (DEMOVRPLAYER_BUILD_TESTS)
                                      "${DemoVRPlayer_SOURCE_DIR}/src/tools/stereo_replay/engine_dll/frame_pacer.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/tools/stereo_replay/engine_dll/frame_rewriter.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/tools/stereo_replay/engine_dll/frame_runner.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/tools/stereo_replay/engine_dll/gl_display_list_tracker.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/tools/stereo_replay/engine_dll/overlay_chunk_source.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/tools/stereo_replay/engine_dll/present_skipper.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/tools/stereo_replay/engine_dll/slice_skipper.cpp"

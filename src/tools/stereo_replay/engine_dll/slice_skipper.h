@@ -6,6 +6,7 @@
 #define STEREO_REPLAY_ENGINEDLL_SLICE_SKIPPER_H
 
 #include "analysis/api_dump_dependencies/types.h"
+#include "gl_display_list_tracker.h"
 #include "replay/replay_engine_dll/i_call_interceptor.h"
 #include <atomic>
 #include <deque>
@@ -52,11 +53,17 @@ namespace Stereo
                                          const uint32_t&                              in_n_frame) override;
 
             private:
+                /* Whether a call of a display list in a dead frame is left out: it is if the list does draws and sets state only. A list that is related to the
+                 * location of the eye ends the process (AI_ASSERT_ALWAYS), as what it does to the matrices and the viewport is not done for a call that is left out.
+                 */
+                bool is_list_call_skippable(const Capture::APIDumpLoader::DumpedAPICall& in_call) const;
+
                 /* The replay thread looks at the slice at every call, so it is not locked for that: a slice which is replaced is kept, since the replay may be
                  * looking at it still. A slice is a bit for each frame of the workload, and a person seeks a few times.
                  */
-                std::atomic<const Analysis::APIDumpDependencies::FrameSlice*>           m_slice_ptr;
+                GlDisplayListTracker                                                    m_list_tracker; /* the replay thread only */
                 std::mutex                                                              m_slice_mutex;
+                std::atomic<const Analysis::APIDumpDependencies::FrameSlice*>           m_slice_ptr;
                 std::deque<std::unique_ptr<Analysis::APIDumpDependencies::FrameSlice> > m_slice_ptr_deque;
             };
         }
