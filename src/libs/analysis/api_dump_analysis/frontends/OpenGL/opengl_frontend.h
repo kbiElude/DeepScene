@@ -92,6 +92,15 @@ namespace Analysis
                 /* Makes the resources of the window, and tells the builder what is rendered to and where, if that has not been done. */
                 void ensure_default_framebuffer(const GlContextState& in_state);
 
+                /* Makes the levels of the bound texture below the first (down to a size of one by one, or to its GL_TEXTURE_MAX_LEVEL), as the driver does for
+                 * glGenerateMipmap: each is told as an event, as a copy of the level above for the dependencies, and as content that the workload does not have.
+                 */
+                void generate_mipmap_levels(const GlContextState& in_state);
+
+                /* A level of the bound texture has been changed: if the texture has GL_GENERATE_MIPMAP and it is the first level, the levels below it are made. */
+                void generate_mipmaps_if_automatic(const GlContextState& in_state,
+                                                   const uint32_t&       in_level);
+
                 /* The state of the context that the thread has current; nullptr if it has none. */
                 GlContextState* find_current_context_ptr(const uint32_t& in_thread_id);
 
@@ -113,6 +122,9 @@ namespace Analysis
                                   GlContextState*                              inout_state_ptr);
 
                 /* A call of glBindTexture: of a two dimensional texture, the one that the active unit has from now on. */
+                /* glBindBuffer: a buffer that pixels are unpacked from is not followed (the pixels of an upload are then in the buffer, not in the call). */
+                void handle_bind_buffer(const Capture::APIDumpLoader::DumpedAPICall& in_call);
+
                 void handle_bind_texture(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                          GlContextState*                              inout_state_ptr);
 
@@ -153,6 +165,10 @@ namespace Analysis
                 /* A list which was being made is made, and its calls are made when it is called. */
                 void handle_end_list(GlContextState* inout_state_ptr);
 
+                /* glGenerateMipmap of the target that is followed. */
+                void handle_generate_mipmap(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                            const GlContextState&                        in_state);
+
                 /* A call of GL: kept in the list that its context is making, or made, or both. It is also how the calls of a called list are made. */
                 void handle_gl_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                     const Capture::APIDumpLoader::Workload&      in_workload);
@@ -188,6 +204,12 @@ namespace Analysis
                 void handle_tex_image(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                       const Capture::APIDumpLoader::Workload&      in_workload,
                                       GlContextState*                              inout_state_ptr);
+
+                /* glTexParameteri and glTexParameterf (and the forms that take an array, of which the three values that change what the texture holds are the only
+                 * ones looked at): GL_GENERATE_MIPMAP and GL_TEXTURE_MAX_LEVEL are kept, and a first level other than the first is not followed.
+                 */
+                void handle_tex_parameter(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                          const GlContextState&                        in_state);
 
                 /* A call of glTexSubImage2D: a region of a level that the texture has, with pixels or not. */
                 void handle_tex_sub_image(const Capture::APIDumpLoader::DumpedAPICall& in_call,
@@ -243,6 +265,13 @@ namespace Analysis
                  */
                 void report_snapshots(const GlContextState& in_state);
 
+                /* What the program does with a texture is not followed (a target, a kind of texture, a call): the file of the textures would be wrong without it, and
+                 * so the process is ended, saying what it was (AI_ASSERT_ALWAYS). Nothing about textures is left out without being said.
+                 */
+                static void report_unsupported_texture_use(const APIInterceptor::APIFunction& in_function,
+                                                           const char*                        in_reason_ptr,
+                                                           const uint64_t&                    in_value);
+
                 /* A region of a level of the bound texture is given the pixels of the call (the ninth argument), or none: told to the builder for the sink of the
                  * textures, with the bytes, the way they are laid out (the pixel store of the context), and the format and the type that they are of.
                  */
@@ -293,6 +322,9 @@ namespace Analysis
 
                 /* True for the calls whose effects the front end does not follow yet. */
                 static bool is_unsupported_function(const APIInterceptor::APIFunction& in_function);
+
+                /* A call that makes or changes a texture of a kind that is not followed (see report_unsupported_texture_use()). */
+                static bool is_unsupported_texture_function(const APIInterceptor::APIFunction& in_function);
 
                 /* A box from the four arguments of glViewport or glScissor. */
                 static bool read_box(const Capture::APIDumpLoader::DumpedAPICall& in_call,
@@ -349,6 +381,7 @@ namespace Analysis
                 GlReportedMatrix                                                m_reported_modelview;
                 GlReportedMatrix                                                m_reported_projection;
                 std::map<uint32_t, GlTexture>                                   m_texture_map;                   /* by the name of the texture; the contexts share them */
+                std::map<uint32_t, GlTextureParameters>                         m_texture_parameter_map;         /* by the name of the texture, which need not have a size yet */
             };
         }
     }

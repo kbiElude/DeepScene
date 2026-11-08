@@ -10,6 +10,9 @@
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_vertex_reader.h"
 #include "analysis/api_dump_analysis/frontends/shared/call_view.h"
 #include "capture/api_dump_loader/api_info.h"
+#include "capture/api_dump_names/function_names.h"
+#include "common/macros.h"
+#include <stdio.h>
 #include <string.h>
 
 Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::OpenGLFrontend(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr)
@@ -86,6 +89,9 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::copy_to_bound_texture
                             in_y_offset,
                             in_width,
                             in_height);
+
+        generate_mipmaps_if_automatic(in_state,
+                                      in_level);
 
         count_hazard(Analysis::APIDumpAnalysis::ResolutionHazard::COPIES_WITH_RECTANGLES);
     }
@@ -179,6 +185,89 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::find_resource_view(co
 const Analysis::APIDumpAnalysis::Frontends::GlBlobStore& Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_blob_store() const
 {
     return m_array_draw_describer.get_blob_store();
+}
+
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::generate_mipmap_levels(const GlContextState& in_state)
+{
+    const uint32_t name             = get_bound_texture_name(in_state);
+    const auto     texture_iterator = m_texture_map.find(name);
+
+    if (texture_iterator == m_texture_map.end()                ||
+        texture_iterator->second.level_map.count(0) == 0)
+    {
+        /* A texture whose first level has not been given has nothing to make the levels of. */
+        m_n_unfollowed_calls++;
+    }
+    else
+    {
+        GlTexture&           texture       = texture_iterator->second;
+        GlTextureLevel       texture_level = texture.level_map.at(0);
+        const auto           parameters_it = m_texture_parameter_map.find(name);
+        const uint32_t       max_level     = (parameters_it != m_texture_parameter_map.end() ) ? parameters_it->second.max_level
+                                                                                               : GlTextureParameters().max_level;
+        const bool           wants_events  = m_builder_ptr->wants_texture_events();
+        uint32_t             level         = 1;
+
+        /* The levels go down to one texel by one: each is half of the one above, and no less than one. */
+        while ((texture_level.width > 1 || texture_level.height > 1) &&
+               level <= max_level)
+        {
+            Analysis::APIDumpAnalysis::ResourceView destination;
+            Analysis::APIDumpAnalysis::ResourceView source;
+
+            texture_level.height = (texture_level.height > 1) ? texture_level.height / 2 : 1;
+            texture_level.width  = (texture_level.width  > 1) ? texture_level.width  / 2 : 1;
+
+            texture.level_map[level] = texture_level;
+
+            /* What the driver makes is not in the workload: the level is content that is read back, once something reads it. */
+            texture.dirty_level_set.insert (level);
+            texture.render_level_set.insert(level);
+
+            destination.mip_level   = level;
+            destination.resource_id = texture.resource_id;
+            source.mip_level        = level - 1;
+            source.resource_id      = texture.resource_id;
+
+            m_builder_ptr->on_copy(source,
+                                   destination);
+
+            if (wants_events)
+            {
+                Analysis::APIDumpTextures::TextureEvent event = make_texture_event(texture,
+                                                                                   level,
+                                                                                   0,
+                                                                                   0,
+                                                                                   texture_level.width,
+                                                                                   texture_level.height);
+
+                event.generated_from_level = level - 1;
+                event.kind                 = Analysis::APIDumpTextures::TextureEventKind::GENERATE_MIPS;
+
+                m_builder_ptr->on_texture_event(event,
+                                                nullptr,
+                                                0,
+                                                0);
+            }
+
+            ++level;
+        }
+    }
+}
+
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::generate_mipmaps_if_automatic(const GlContextState& in_state,
+                                                                                         const uint32_t&       in_level)
+{
+    const uint32_t name          = get_bound_texture_name(in_state);
+    const auto     parameters_it = m_texture_parameter_map.find(name);
+
+    /* GL_GENERATE_MIPMAP makes the levels below the first whenever the first changes. */
+    if (in_level == 0                                           &&
+        parameters_it != m_texture_parameter_map.end()          &&
+        parameters_it->second.generates_mipmaps)
+    {
+        generate_mipmap_levels(in_state);
+    }
 }
 
 uint32_t Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_bound_texture_name(const GlContextState& in_state)
@@ -523,6 +612,28 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_begin(const Ca
     }
 }
 
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_bind_buffer(const Capture::APIDumpLoader::DumpedAPICall& in_call)
+{
+    constexpr uint32_t PIXEL_UNPACK_BUFFER = 0x88EC;
+
+    std::array<uint32_t, 2> bind_array = {};
+
+    if (read_arguments(in_call,
+                       &bind_array) == false)
+    {
+        m_n_unfollowed_calls++;
+    }
+    else
+    if (bind_array.at(0) == PIXEL_UNPACK_BUFFER &&
+        bind_array.at(1) != 0)
+    {
+        /* The pixels of what is uploaded from now on are in the buffer, and not in the call: the bytes of an upload would be left out. */
+        report_unsupported_texture_use(in_call.func,
+                                       "pixels are unpacked from a buffer, so that the pixels of an upload are not in the call (the target)",
+                                       bind_array.at(0) );
+    }
+}
+
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_bind_texture(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                                GlContextState*                              inout_state_ptr)
 {
@@ -545,8 +656,10 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_bind_texture(c
     else
     if (bind_array.at(1) != 0)
     {
-        /* A texture of another target (one and three dimensions, cube maps) is not followed; the default texture of one is not sampled. */
-        m_n_unsupported_calls++;
+        /* A texture of another target (one and three dimensions, cube maps, arrays, multisampled ones) is not followed; the default texture of one is not sampled. */
+        report_unsupported_texture_use(in_call.func,
+                                       "a texture of a target other than GL_TEXTURE_2D is bound (the target)",
+                                       bind_array.at(0) );
     }
 }
 
@@ -707,7 +820,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_copy_tex_image
     else
     if (static_cast<uint32_t>(image_array.at(0) ) != TEXTURE_2D)
     {
-        m_n_unsupported_calls++;
+        report_unsupported_texture_use(in_call.func,
+                                       "pixels of the window are copied to a level of a texture of a target other than GL_TEXTURE_2D (the target)",
+                                       static_cast<uint32_t>(image_array.at(0) ) );
     }
     else
     {
@@ -760,7 +875,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_copy_tex_sub_i
     else
     if (image_array.at(0) != TEXTURE_2D)
     {
-        m_n_unsupported_calls++;
+        report_unsupported_texture_use(in_call.func,
+                                       "pixels of the window are copied to a part of a level of a texture of a target other than GL_TEXTURE_2D (the target)",
+                                       image_array.at(0) );
     }
     else
     if (copy_to_bound_texture(*inout_state_ptr,
@@ -848,6 +965,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_delete_texture
 
             m_texture_map.erase(texture_iterator);
         }
+
+        m_texture_parameter_map.erase(name);
     }
 }
 
@@ -929,6 +1048,31 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_end_list(GlCon
     else
     {
         m_n_unfollowed_calls++;
+    }
+}
+
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_generate_mipmap(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                                  const GlContextState&                        in_state)
+{
+    constexpr uint32_t TEXTURE_2D = 0x0DE1;
+
+    std::array<uint32_t, 1> target_array = {};
+
+    if (read_arguments(in_call,
+                       &target_array) == false)
+    {
+        m_n_unfollowed_calls++;
+    }
+    else
+    if (target_array.at(0) == TEXTURE_2D)
+    {
+        generate_mipmap_levels(in_state);
+    }
+    else
+    {
+        report_unsupported_texture_use(in_call.func,
+                                       "the levels of a texture of a target other than GL_TEXTURE_2D are made (the target)",
+                                       target_array.at(0) );
     }
 }
 
@@ -1231,11 +1375,37 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
                     break;
                 }
 
+                case APIInterceptor::APIFUNCTION_GL_GLTEXPARAMETERF:
+                case APIInterceptor::APIFUNCTION_GL_GLTEXPARAMETERFV:
+                case APIInterceptor::APIFUNCTION_GL_GLTEXPARAMETERI:
+                case APIInterceptor::APIFUNCTION_GL_GLTEXPARAMETERIV:
+                {
+                    handle_tex_parameter(in_call,
+                                         *state_ptr);
+
+                    break;
+                }
+
                 case APIInterceptor::APIFUNCTION_GL_GLTEXSUBIMAGE2D:
                 {
                     handle_tex_sub_image(in_call,
                                          in_workload,
                                          state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLBINDBUFFER:
+                {
+                    handle_bind_buffer(in_call);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLGENERATEMIPMAP:
+                {
+                    handle_generate_mipmap(in_call,
+                                           *state_ptr);
 
                     break;
                 }
@@ -1260,6 +1430,13 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
                         handle_vertex(in_call,
                                       in_workload,
                                       state_ptr);
+                    }
+                    else
+                    if (is_unsupported_texture_function(in_call.func) )
+                    {
+                        report_unsupported_texture_use(in_call.func,
+                                                       "a texture is made or changed in a way that is not followed (the function)",
+                                                       static_cast<uint64_t>(in_call.func) );
                     }
                     else
                     if (is_unsupported_function(in_call.func) )
@@ -1701,7 +1878,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_tex_image(cons
                                                                             GlContextState*                              inout_state_ptr)
 {
     /* glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels). */
-    constexpr uint32_t TEXTURE_2D = 0x0DE1;
+    constexpr uint32_t PROXY_TEXTURE_2D = 0x8064;
+    constexpr uint32_t TEXTURE_2D       = 0x0DE1;
 
     std::array<uint32_t, 8> image_array = {};
 
@@ -1711,10 +1889,17 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_tex_image(cons
         m_n_unfollowed_calls++;
     }
     else
+    if (image_array.at(0) == PROXY_TEXTURE_2D)
+    {
+        /* A question of what the driver can make: nothing is changed. */
+    }
+    else
     if (image_array.at(0) != TEXTURE_2D)
     {
-        /* Proxies, one and three dimensions and the faces of cube maps are not followed. */
-        m_n_unsupported_calls++;
+        /* The faces of cube maps, one and three dimensions and the like are not followed. */
+        report_unsupported_texture_use(in_call.func,
+                                       "a level of a texture of a target other than GL_TEXTURE_2D is given (the target)",
+                                       image_array.at(0) );
     }
     else
     {
@@ -1752,6 +1937,86 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_tex_image(cons
                       texture_level.height,
                       image_array.at(6),
                       image_array.at(7) );
+
+        generate_mipmaps_if_automatic(*inout_state_ptr,
+                                      level);
+    }
+}
+
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_tex_parameter(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                                const GlContextState&                        in_state)
+{
+    /* glTexParameter(target, pname, param): of all the parameters, three change what the levels of a texture hold or which of them there are. */
+    constexpr uint32_t BASE_LEVEL      = 0x813C;
+    constexpr uint32_t GENERATE_MIPMAP = 0x8191;
+    constexpr uint32_t MAX_LEVEL       = 0x813D;
+    constexpr uint32_t TEXTURE_2D      = 0x0DE1;
+
+    std::array<uint32_t, 2> parameter_array = {};
+
+    if (read_arguments(in_call,
+                       &parameter_array) == false)
+    {
+        m_n_unfollowed_calls++;
+    }
+    else
+    {
+        const uint32_t target               = parameter_array.at(0);
+        const uint32_t parameter_name                 = parameter_array.at(1);
+        const bool     is_level_parameter   = (parameter_name == BASE_LEVEL      ||
+                                               parameter_name == GENERATE_MIPMAP ||
+                                               parameter_name == MAX_LEVEL);
+        const bool     is_array_form        = (in_call.func == APIInterceptor::APIFUNCTION_GL_GLTEXPARAMETERFV ||
+                                               in_call.func == APIInterceptor::APIFUNCTION_GL_GLTEXPARAMETERIV);
+        double         value                = 0.0;
+
+        if (is_level_parameter == false)
+        {
+            /* A filter, a wrap, a border: it does not change what the levels hold. */
+        }
+        else
+        if (target != TEXTURE_2D)
+        {
+            report_unsupported_texture_use(in_call.func,
+                                           "a parameter that decides the levels of a texture is set for a target other than GL_TEXTURE_2D (the target)",
+                                           target);
+        }
+        else
+        if (is_array_form)
+        {
+            report_unsupported_texture_use(in_call.func,
+                                           "a parameter that decides the levels of a texture is set with an array, which is not followed (the parameter)",
+                                           parameter_name);
+        }
+        else
+        if (in_call.arg_in_vec.size() < 3 ||
+            APIInterceptor::read_number(in_call.arg_in_vec.at(2),
+                                        &value) == false)
+        {
+            m_n_unfollowed_calls++;
+        }
+        else
+        {
+            const uint32_t texture_name = get_bound_texture_name(in_state);
+
+            if (parameter_name == BASE_LEVEL &&
+                value != 0.0)
+            {
+                report_unsupported_texture_use(in_call.func,
+                                               "a first level other than the first is chosen (GL_TEXTURE_BASE_LEVEL)",
+                                               static_cast<uint64_t>(value) );
+            }
+            else
+            if (parameter_name == GENERATE_MIPMAP)
+            {
+                m_texture_parameter_map[texture_name].generates_mipmaps = (value != 0.0);
+            }
+            else
+            if (parameter_name == MAX_LEVEL)
+            {
+                m_texture_parameter_map[texture_name].max_level = static_cast<uint32_t>(value);
+            }
+        }
     }
 }
 
@@ -1759,14 +2024,11 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_tex_sub_image(
                                                                                 const Capture::APIDumpLoader::Workload&      in_workload,
                                                                                 GlContextState*                              inout_state_ptr)
 {
-    /* glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels). The dependency analysis does not follow it as a write (it is counted
-     * as a call that is not supported); what the textures hold is told all the same.
-     */
-    constexpr uint32_t TEXTURE_2D = 0x0DE1;
+    /* glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels): a write to a part of the level, to the dependencies and to the textures. */
+    constexpr uint32_t PROXY_TEXTURE_2D = 0x8064;
+    constexpr uint32_t TEXTURE_2D       = 0x0DE1;
 
     std::array<uint32_t, 8> image_array = {};
-
-    m_n_unsupported_calls++;
 
     if (read_arguments(in_call,
                        &image_array) == false)
@@ -1774,7 +2036,18 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_tex_sub_image(
         m_n_unfollowed_calls++;
     }
     else
-    if (image_array.at(0) == TEXTURE_2D)
+    if (image_array.at(0) == PROXY_TEXTURE_2D)
+    {
+        /* A question of what the driver can make: nothing is changed. */
+    }
+    else
+    if (image_array.at(0) != TEXTURE_2D)
+    {
+        report_unsupported_texture_use(in_call.func,
+                                       "a part of a level of a texture of a target other than GL_TEXTURE_2D is given pixels (the target)",
+                                       image_array.at(0) );
+    }
+    else
     {
         const uint32_t level            = image_array.at(1);
         const uint32_t name             = get_bound_texture_name(*inout_state_ptr);
@@ -1785,6 +2058,17 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_tex_sub_image(
         /* A part of a level that the texture has not been given. */
         if (is_level_known)
         {
+            /* What the pixels are laid over is changed: a level whose content rendering made is no longer what a snapshot of it was, and is read again. */
+            if (texture_iterator->second.render_level_set.count(level) != 0)
+            {
+                texture_iterator->second.dirty_level_set.insert(level);
+            }
+
+            upload_texture_level(in_call,
+                                 in_workload,
+                                 *inout_state_ptr,
+                                 level);
+
             report_upload(in_call,
                           in_workload,
                           *inout_state_ptr,
@@ -1795,6 +2079,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_tex_sub_image(
                           image_array.at(5),
                           image_array.at(6),
                           image_array.at(7) );
+
+            generate_mipmaps_if_automatic(*inout_state_ptr,
+                                          level);
         }
         else
         {
@@ -1871,14 +2158,92 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::is_unsupported_functi
     {
         case APIInterceptor::APIFUNCTION_GL_GLBITMAP:
         case APIInterceptor::APIFUNCTION_GL_GLCALLLISTS:
-        case APIInterceptor::APIFUNCTION_GL_GLCOMPRESSEDTEXIMAGE2D:
-        case APIInterceptor::APIFUNCTION_GL_GLCOMPRESSEDTEXSUBIMAGE2D:
         case APIInterceptor::APIFUNCTION_GL_GLCOPYPIXELS:
         case APIInterceptor::APIFUNCTION_GL_GLDRAWPIXELS:
+        {
+            result = true;
+
+            break;
+        }
+
+        default:
+        {
+            break;
+        }
+    }
+
+    return result;
+}
+
+bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::is_unsupported_texture_function(const APIInterceptor::APIFunction& in_function)
+{
+    bool result = false;
+
+    /* What makes or changes a texture that is not a GL_TEXTURE_2D, or in a way that is not followed: compressed images, storage that is fixed, multisampled and
+     * three dimensional textures, one dimension, buffer textures, views, images, a texture that is a part of a framebuffer, the calls that name a texture
+     * directly, and what clears, copies or invalidates the content of one.
+     */
+    switch (in_function)
+    {
+        case APIInterceptor::APIFUNCTION_GL_GLBINDIMAGETEXTURE:
+        case APIInterceptor::APIFUNCTION_GL_GLBINDIMAGETEXTURES:
+        case APIInterceptor::APIFUNCTION_GL_GLBINDTEXTUREUNIT:
+        case APIInterceptor::APIFUNCTION_GL_GLBINDTEXTURES:
+        case APIInterceptor::APIFUNCTION_GL_GLCLEARTEXIMAGE:
+        case APIInterceptor::APIFUNCTION_GL_GLCLEARTEXSUBIMAGE:
+        case APIInterceptor::APIFUNCTION_GL_GLCOMPRESSEDTEXIMAGE1D:
+        case APIInterceptor::APIFUNCTION_GL_GLCOMPRESSEDTEXIMAGE2D:
+        case APIInterceptor::APIFUNCTION_GL_GLCOMPRESSEDTEXIMAGE3D:
+        case APIInterceptor::APIFUNCTION_GL_GLCOMPRESSEDTEXSUBIMAGE1D:
+        case APIInterceptor::APIFUNCTION_GL_GLCOMPRESSEDTEXSUBIMAGE2D:
+        case APIInterceptor::APIFUNCTION_GL_GLCOMPRESSEDTEXSUBIMAGE3D:
+        case APIInterceptor::APIFUNCTION_GL_GLCOMPRESSEDTEXTURESUBIMAGE1D:
+        case APIInterceptor::APIFUNCTION_GL_GLCOMPRESSEDTEXTURESUBIMAGE2D:
+        case APIInterceptor::APIFUNCTION_GL_GLCOMPRESSEDTEXTURESUBIMAGE3D:
+        case APIInterceptor::APIFUNCTION_GL_GLCOPYIMAGESUBDATA:
+        case APIInterceptor::APIFUNCTION_GL_GLCOPYTEXIMAGE1D:
+        case APIInterceptor::APIFUNCTION_GL_GLCOPYTEXSUBIMAGE1D:
+        case APIInterceptor::APIFUNCTION_GL_GLCOPYTEXSUBIMAGE3D:
+        case APIInterceptor::APIFUNCTION_GL_GLCOPYTEXTURESUBIMAGE1D:
+        case APIInterceptor::APIFUNCTION_GL_GLCOPYTEXTURESUBIMAGE2D:
+        case APIInterceptor::APIFUNCTION_GL_GLCOPYTEXTURESUBIMAGE3D:
+        case APIInterceptor::APIFUNCTION_GL_GLCREATETEXTURES:
+        case APIInterceptor::APIFUNCTION_GL_GLFRAMEBUFFERTEXTURE:
+        case APIInterceptor::APIFUNCTION_GL_GLFRAMEBUFFERTEXTURE1D:
+        case APIInterceptor::APIFUNCTION_GL_GLFRAMEBUFFERTEXTURE2D:
+        case APIInterceptor::APIFUNCTION_GL_GLFRAMEBUFFERTEXTURE3D:
+        case APIInterceptor::APIFUNCTION_GL_GLFRAMEBUFFERTEXTURELAYER:
+        case APIInterceptor::APIFUNCTION_GL_GLGENERATETEXTUREMIPMAP:
+        case APIInterceptor::APIFUNCTION_GL_GLINVALIDATETEXIMAGEPROC:
+        case APIInterceptor::APIFUNCTION_GL_GLINVALIDATETEXSUBIMAGE:
+        case APIInterceptor::APIFUNCTION_GL_GLNAMEDFRAMEBUFFERTEXTURE:
+        case APIInterceptor::APIFUNCTION_GL_GLNAMEDFRAMEBUFFERTEXTURELAYER:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXBUFFER:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXBUFFERRANGE:
         case APIInterceptor::APIFUNCTION_GL_GLTEXIMAGE1D:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXIMAGE2DMULTISAMPLE:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXIMAGE2DMULTISMAPLE:
         case APIInterceptor::APIFUNCTION_GL_GLTEXIMAGE3D:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXIMAGE3DMULTISAMPLE:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXIMAGE3DMULTISMAPLE:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXSTORAGE1D:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXSTORAGE2D:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXSTORAGE2DMULTISAMPLE:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXSTORAGE3D:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXSTORAGE3DMULTISAMPLE:
         case APIInterceptor::APIFUNCTION_GL_GLTEXSUBIMAGE1D:
         case APIInterceptor::APIFUNCTION_GL_GLTEXSUBIMAGE3D:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXTUREBUFFER:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXTUREBUFFERRANGE:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXTURESTORAGE1D:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXTURESTORAGE2D:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXTURESTORAGE2DMULTISAMPLE:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXTURESTORAGE3D:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXTURESTORAGE3DMULTISAMPLE:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXTURESUBIMAGE1D:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXTURESUBIMAGE2D:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXTURESUBIMAGE3D:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXTUREVIEW:
         {
             result = true;
 
@@ -2183,7 +2548,8 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::record_texture_level(
         texture_iterator->second.level_map[in_level] = in_texture_level;
 
         /* The call gives the whole level, so what rendering made of it is gone (a copy that follows makes it again). */
-        texture_iterator->second.dirty_level_set.erase(in_level);
+        texture_iterator->second.dirty_level_set.erase (in_level);
+        texture_iterator->second.render_level_set.erase(in_level);
     }
 
     return result;
@@ -2252,7 +2618,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_render_write(c
     /* What rendering made of the level is not in the workload, so it is a content to be read when something first reads it. */
     if (is_level_known)
     {
-        texture_iterator->second.dirty_level_set.insert(in_level);
+        texture_iterator->second.dirty_level_set.insert (in_level);
+        texture_iterator->second.render_level_set.insert(in_level);
     }
 
     if (wants_events &&
@@ -2323,6 +2690,25 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_snapshots(cons
             texture.dirty_level_set.clear();
         }
     }
+}
+
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_unsupported_texture_use(const APIInterceptor::APIFunction& in_function,
+                                                                                         const char*                        in_reason_ptr,
+                                                                                         const uint64_t&                    in_value)
+{
+    constexpr size_t N_MESSAGE_CHARACTERS = 512;
+
+    char message_i8vec512[N_MESSAGE_CHARACTERS] = {};
+
+    ::snprintf(message_i8vec512,
+               sizeof(message_i8vec512),
+               "%s: %s, 0x%llX. A workload that does this is not supported yet, and what the textures hold of it would be wrong or left out.",
+               Capture::APIDumpNames::get_function_name(in_function),
+               in_reason_ptr,
+               static_cast<unsigned long long>(in_value) );
+
+    AI_ASSERT_ALWAYS(false,
+                     message_i8vec512);
 }
 
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_upload(const Capture::APIDumpLoader::DumpedAPICall& in_call,

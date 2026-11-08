@@ -11,6 +11,6 @@ add_library(Analysis STATIC ${Sources}
 # zstd_file_writer.cpp includes its header by its name.
 target_include_directories(Analysis PRIVATE "${APIInterceptor_SOURCE_DIR}/include/capture/api_dumper_dll")
 target_include_directories(Analysis PUBLIC  "${DemoVRPlayer_SOURCE_DIR}/src/libs")
-target_link_libraries     (Analysis PUBLIC  APIDumpLoader D3D7Utils D3D8Utils Utils)
+target_link_libraries     (Analysis PUBLIC  APIDumpLoader APIDumpNames D3D7Utils D3D8Utils Utils)
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${Sources})

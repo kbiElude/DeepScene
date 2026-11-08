@@ -10,8 +10,10 @@
 #include "analysis/api_dump_textures/texture_blob_codec.h"
 #include "analysis/api_dump_textures/texture_blob_writer.h"
 #include "analysis/api_dump_textures/texture_collector.h"
+#include "common/macros.h"
 #include "gl_frontend_fixture.h"
 #include "temp_directory.h"
+#include <stdlib.h>
 
 namespace
 {
@@ -689,4 +691,430 @@ TEST_F(GlFrontendTextureSnapshots, EachLevelThatRenderingChangedIsSnapshotOnce)
               1u);
     EXPECT_EQ(m_sink.event_vec.at(3).level_width,
               4u);
+}
+
+namespace
+{
+    class GlFrontendTextureLevels : public GlFrontendTextureEvents
+    {
+    protected:
+        enum : uint32_t
+        {
+            GL_GENERATE_MIPMAP     = 0x00008191,
+            GL_PIXEL_UNPACK_BUFFER = 0x000088EC,
+            GL_TEXTURE_1D          = 0x00000DE0,
+            GL_TEXTURE_BASE_LEVEL  = 0x0000813C,
+            GL_TEXTURE_CUBE_MAP    = 0x00008513,
+            GL_TEXTURE_MAX_LEVEL   = 0x0000813D,
+            GL_TRIANGLES           = 0x00000004
+        };
+
+        void add_draw()
+        {
+            m_builder.begin    (GL_TRIANGLES);
+            m_builder.vertex3fv({0.0f, 0.0f, -1.0f});
+            m_builder.vertex3fv({1.0f, 0.0f, -1.0f});
+            m_builder.vertex3fv({0.0f, 1.0f, -1.0f});
+            m_builder.end      ();
+        }
+
+        size_t count_events(const TextureEventKind& in_kind) const
+        {
+            size_t result = 0;
+
+            for (const auto& event : m_sink.event_vec)
+            {
+                result += (event.kind == in_kind) ? 1 : 0;
+            }
+
+            return result;
+        }
+
+        /* The calls that were added end the process, and say what they did that is not followed. */
+        void expect_unsupported(const char* in_pattern_ptr)
+        {
+            /* The process has no console when the tests run from a tool, and would wait for somebody to close the box. */
+            ::_putenv_s("APIINTERCEPTOR_NO_ERROR_DIALOG",
+                        "1");
+
+            EXPECT_EXIT(feed(),
+                        ::testing::ExitedWithCode(APIInterceptor::FatalError::get_exit_code() ),
+                        in_pattern_ptr);
+        }
+
+        /* A glTexImage2D of the target, with no pixels. */
+        void add_tex_image_of_target(const uint32_t& in_target)
+        {
+            m_builder.add_call(APIInterceptor::APIFUNCTION_GL_GLTEXIMAGE2D,
+                               {APIInterceptor::APIFunctionArgument::create_u32_glenum(in_target),
+                                APIInterceptor::APIFunctionArgument::create_i32       (0),
+                                APIInterceptor::APIFunctionArgument::create_i32       (4),
+                                APIInterceptor::APIFunctionArgument::create_i32       (4),
+                                APIInterceptor::APIFunctionArgument::create_i32       (4),
+                                APIInterceptor::APIFunctionArgument::create_i32       (0),
+                                APIInterceptor::APIFunctionArgument::create_u32_glenum(GL_RGBA),
+                                APIInterceptor::APIFunctionArgument::create_u32_glenum(GL_UNSIGNED_BYTE),
+                                APIInterceptor::APIFunctionArgument::create_i32       (0)});
+        }
+
+        /* A call of the function with an argument that is of no matter: the process is ended before the arguments are looked at. */
+        void add_call_of(const APIInterceptor::APIFunction& in_function)
+        {
+            m_builder.add_call(in_function,
+                               {APIInterceptor::APIFunctionArgument::create_i32(0)});
+        }
+    };
+}
+
+TEST_F(GlFrontendTextureLevels, GlGenerateMipmapMakesEachLevelBelowTheFirstDownToOneTexel)
+{
+    m_builder.bind_texture(GL_TEXTURE_2D,
+                           5);
+    m_builder.tex_image_2d(0,
+                           8,
+                           4,
+                           {});
+    m_builder.generate_mipmap(GL_TEXTURE_2D);
+
+    feed();
+
+    /* The upload, and the levels of four by two, two by one and one by one. */
+    ASSERT_EQ(m_sink.event_vec.size(),
+              4u);
+
+    const uint32_t expected_width_array [3] = {4, 2, 1};
+    const uint32_t expected_height_array[3] = {2, 1, 1};
+
+    for (uint32_t n_level = 1; n_level <= 3; ++n_level)
+    {
+        const TextureEvent& event = m_sink.event_vec.at(n_level);
+
+        EXPECT_EQ(event.kind,
+                  TextureEventKind::GENERATE_MIPS);
+        EXPECT_EQ(event.destination.mip_level,
+                  n_level);
+        EXPECT_EQ(event.generated_from_level,
+                  n_level - 1);
+        EXPECT_EQ(event.level_width,
+                  expected_width_array[n_level - 1]);
+        EXPECT_EQ(event.level_height,
+                  expected_height_array[n_level - 1]);
+        EXPECT_EQ(event.width,
+                  event.level_width);
+        EXPECT_EQ(event.level_format,
+                  Utils::Graphics::TextureFormat::R8G8B8A8_UNORM);
+        EXPECT_FALSE(m_sink.has_data_vec.at(n_level) );
+    }
+}
+
+TEST_F(GlFrontendTextureLevels, TheLevelsThatAreMadeAreCopiesOfTheLevelAboveToTheDependenciesAndAreSnapshotWhenRead)
+{
+    Tests::RecordingAccessSink access_sink;
+
+    m_harness.get_builder().set_access_sink(&access_sink);
+
+    m_builder.bind_texture(GL_TEXTURE_2D,
+                           5);
+    m_builder.enable      (GL_TEXTURE_2D);
+    m_builder.tex_image_2d(0,
+                           4,
+                           4,
+                           make_pixels(64,
+                                       1) );
+    m_builder.generate_mipmap(GL_TEXTURE_2D);
+
+    add_draw();
+
+    feed();
+
+    size_t n_destinations = 0;
+
+    for (const auto& event : access_sink.event_vec)
+    {
+        n_destinations += (event.role == Analysis::APIDumpAnalysis::AccessRole::TRANSFER_DESTINATION) ? 1 : 0;
+    }
+
+    /* Levels of two by two and one by one: a write each. */
+    EXPECT_EQ(n_destinations,
+              2u);
+
+    /* What the driver made is not in the workload, so each level that it made is read back when something first reads it; the first level, which was uploaded,
+     * is in the workload and is not.
+     */
+    ASSERT_EQ(count_events(TextureEventKind::SNAPSHOT),
+              2u);
+    EXPECT_EQ(m_sink.event_vec.at(m_sink.event_vec.size() - 2).destination.mip_level,
+              1u);
+    EXPECT_EQ(m_sink.event_vec.at(m_sink.event_vec.size() - 1).destination.mip_level,
+              2u);
+}
+
+TEST_F(GlFrontendTextureLevels, WithGenerateMipmapSetTheLevelsAreMadeWheneverTheFirstOneChanges)
+{
+    /* The parameter is set before the texture is given a size, as programs do. */
+    m_builder.bind_texture(GL_TEXTURE_2D,
+                           5);
+    m_builder.tex_parameter(GL_GENERATE_MIPMAP,
+                            1);
+    m_builder.tex_image_2d(0,
+                           8,
+                           8,
+                           {});
+    m_builder.tex_sub_image_2d(0,
+                               0,
+                               0,
+                               2,
+                               2,
+                               make_pixels(16,
+                                           1) );
+    m_builder.copy_tex_sub_image_2d(0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    2,
+                                    2);
+
+    /* A level that is not the first does not make them. */
+    m_builder.tex_image_2d(1,
+                           4,
+                           4,
+                           {});
+
+    feed();
+
+    /* Three levels (four by four, two by two, one by one) for each of the three changes of the first level. */
+    EXPECT_EQ(count_events(TextureEventKind::GENERATE_MIPS),
+              9u);
+}
+
+TEST_F(GlFrontendTextureLevels, TheMaxLevelOfTheTextureLimitsTheLevelsThatAreMade)
+{
+    m_builder.bind_texture(GL_TEXTURE_2D,
+                           5);
+    m_builder.tex_parameter(GL_TEXTURE_MAX_LEVEL,
+                            1);
+    m_builder.tex_image_2d(0,
+                           16,
+                           16,
+                           {});
+    m_builder.generate_mipmap(GL_TEXTURE_2D);
+
+    feed();
+
+    EXPECT_EQ(count_events(TextureEventKind::GENERATE_MIPS),
+              1u);
+}
+
+TEST_F(GlFrontendTextureLevels, ATextureThatIsDeletedHasNoParametersLeft)
+{
+    m_builder.bind_texture(GL_TEXTURE_2D,
+                           5);
+    m_builder.tex_parameter(GL_GENERATE_MIPMAP,
+                            1);
+    m_builder.delete_textures({5});
+
+    /* Another texture with the same name. */
+    m_builder.bind_texture(GL_TEXTURE_2D,
+                           5);
+    m_builder.tex_image_2d(0,
+                           4,
+                           4,
+                           {});
+
+    feed();
+
+    EXPECT_EQ(count_events(TextureEventKind::GENERATE_MIPS),
+              0u);
+}
+
+TEST_F(GlFrontendTextureLevels, APartOfALevelIsAWriteToTheDependencies)
+{
+    Tests::RecordingAccessSink access_sink;
+
+    m_harness.get_builder().set_access_sink(&access_sink);
+
+    m_builder.bind_texture(GL_TEXTURE_2D,
+                           5);
+    m_builder.tex_image_2d(0,
+                           4,
+                           4,
+                           make_pixels(64,
+                                       1) );
+    m_builder.tex_sub_image_2d(0,
+                               0,
+                               0,
+                               2,
+                               2,
+                               make_pixels(16,
+                                           7) );
+
+    feed();
+
+    size_t n_uploads = 0;
+
+    for (const auto& event : access_sink.event_vec)
+    {
+        n_uploads += (event.role == Analysis::APIDumpAnalysis::AccessRole::UPLOAD_DESTINATION) ? 1 : 0;
+    }
+
+    EXPECT_EQ(n_uploads,
+              2u);
+}
+
+TEST_F(GlFrontendTextureLevels, APartThatIsLaidOverALevelThatRenderingMadeIsReadAgainAndOverOneThatWasUploadedIsNot)
+{
+    /* Two textures: the first is made by a copy, the second by an upload. Each has a part laid over it after a draw has read it. */
+    m_builder.enable           (GL_TEXTURE_2D);
+    m_builder.bind_texture     (GL_TEXTURE_2D,
+                                5);
+    m_builder.copy_tex_image_2d(0,
+                                GL_RGBA,
+                                0,
+                                0,
+                                8,
+                                8);
+    m_builder.bind_texture     (GL_TEXTURE_2D,
+                                6);
+    m_builder.tex_image_2d     (0,
+                                8,
+                                8,
+                                make_pixels(256,
+                                            1) );
+
+    m_builder.bind_texture(GL_TEXTURE_2D,
+                           5);
+
+    add_draw();
+
+    m_builder.tex_sub_image_2d(0,
+                               0,
+                               0,
+                               2,
+                               2,
+                               make_pixels(16,
+                                           7) );
+
+    add_draw();
+
+    m_builder.bind_texture(GL_TEXTURE_2D,
+                           6);
+
+    add_draw();
+
+    m_builder.tex_sub_image_2d(0,
+                               0,
+                               0,
+                               2,
+                               2,
+                               make_pixels(16,
+                                           9) );
+
+    add_draw();
+
+    feed();
+
+    /* The copy that was read once, and again after the part that was laid over it: two. The uploaded texture has none: its content is in the workload. */
+    EXPECT_EQ(count_events(TextureEventKind::SNAPSHOT),
+              2u);
+}
+
+TEST_F(GlFrontendTextureLevels, ATargetThatIsNotFollowedIsToldWhateverTheCall)
+{
+    m_builder.bind_texture(GL_TEXTURE_2D,
+                           5);
+
+    /* The face of a cube map. */
+    add_tex_image_of_target(0x8515);
+
+    expect_unsupported("glTexImage2D.*GL_TEXTURE_2D.*0x8515");
+}
+
+TEST_F(GlFrontendTextureLevels, ACallThatMakesATextureOfAKindThatIsNotFollowedIsToldByItsName)
+{
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLTEXIMAGE3D);
+
+    expect_unsupported("glTexImage3D");
+}
+
+TEST_F(GlFrontendTextureLevels, CompressedImagesAreToldAndNotLeftOut)
+{
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLCOMPRESSEDTEXIMAGE2D);
+
+    expect_unsupported("glCompressedTexImage2D");
+}
+
+TEST_F(GlFrontendTextureLevels, StorageThatIsFixedIsToldAndNotLeftOut)
+{
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLTEXSTORAGE2D);
+
+    expect_unsupported("glTexStorage2D");
+}
+
+TEST_F(GlFrontendTextureLevels, ATextureThatIsRenderedToThroughAFramebufferIsToldAndNotLeftOut)
+{
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLFRAMEBUFFERTEXTURE2D);
+
+    expect_unsupported("glFramebufferTexture2D");
+}
+
+TEST_F(GlFrontendTextureLevels, MultisampledTexturesAreToldAndNotLeftOut)
+{
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLTEXIMAGE2DMULTISAMPLE);
+
+    expect_unsupported("glTexImage2DMultisample");
+}
+
+TEST_F(GlFrontendTextureLevels, PixelsThatAreUnpackedFromABufferAreToldAndNotLeftOut)
+{
+    m_builder.bind_buffer(GL_PIXEL_UNPACK_BUFFER,
+                          3);
+
+    expect_unsupported("glBindBuffer.*unpacked from a buffer");
+}
+
+TEST_F(GlFrontendTextureLevels, GenerateMipmapOfATargetThatIsNotFollowedIsToldAndNotLeftOut)
+{
+    m_builder.generate_mipmap(GL_TEXTURE_CUBE_MAP);
+
+    expect_unsupported("glGenerateMipmap.*0x8513");
+}
+
+TEST_F(GlFrontendTextureLevels, AParameterThatDecidesTheLevelsOfATargetThatIsNotFollowedIsToldAndNotLeftOut)
+{
+    m_builder.tex_parameter(GL_GENERATE_MIPMAP,
+                            1,
+                            GL_TEXTURE_1D);
+
+    expect_unsupported("glTexParameteri.*0xDE0");
+}
+
+TEST_F(GlFrontendTextureLevels, AFirstLevelThatIsNotTheFirstIsToldAndNotLeftOut)
+{
+    m_builder.bind_texture(GL_TEXTURE_2D,
+                           5);
+    m_builder.tex_parameter(GL_TEXTURE_BASE_LEVEL,
+                            2);
+
+    expect_unsupported("glTexParameteri.*GL_TEXTURE_BASE_LEVEL");
+}
+
+TEST_F(GlFrontendTextureLevels, WhatDoesNotChangeWhatATextureHoldsIsLeftAlone)
+{
+    m_builder.bind_texture(GL_TEXTURE_2D,
+                           5);
+    m_builder.tex_parameter(0x2801, /* GL_TEXTURE_MIN_FILTER */
+                            0x2601);
+    m_builder.tex_parameter(GL_TEXTURE_BASE_LEVEL,
+                            0);
+
+    /* A question of what the driver can make, and a buffer that is not one of pixels. */
+    add_tex_image_of_target(0x8064);
+
+    m_builder.bind_buffer(0x8892, /* GL_ARRAY_BUFFER */
+                          3);
+
+    feed();
+
+    EXPECT_TRUE(m_sink.event_vec.empty() );
 }

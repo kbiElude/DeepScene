@@ -141,12 +141,22 @@ namespace Analysis
             /* A texture of the program: its resource, once the size is known (the first glTexImage2D), and the levels that it has been given. */
             struct GlTexture
             {
-                std::set<uint32_t>                    dirty_level_set; /* the levels that rendering has changed since something read them (or since they were given) */
-                uint32_t                              height          = 0;
-                uint32_t                              internal_format = 0;
+                std::set<uint32_t>                    dirty_level_set;           /* the levels of the render level set that have changed since something read them (or since they were given) */
+                uint32_t                              height            = 0;
+                uint32_t                              internal_format   = 0;
                 std::map<uint32_t, GlTextureLevel>    level_map;
-                Analysis::APIDumpAnalysis::ResourceId resource_id     = Analysis::APIDumpAnalysis::ResourceId::NONE;
-                uint32_t                              width           = 0;
+                std::set<uint32_t>                    render_level_set;          /* the levels whose content is not in the workload (rendering made it, or the driver generated it)     */
+                Analysis::APIDumpAnalysis::ResourceId resource_id       = Analysis::APIDumpAnalysis::ResourceId::NONE;
+                uint32_t                              width             = 0;
+            };
+
+            /* What the program has said of how the levels of a texture are made (glTexParameter), kept by the name of the texture: it is said before the texture is
+             * given a size, and stays when it is given another.
+             */
+            struct GlTextureParameters
+            {
+                bool     generates_mipmaps = false; /* GL_GENERATE_MIPMAP: a change of the first level makes the levels below it                              */
+                uint32_t max_level         = 1000;  /* GL_TEXTURE_MAX_LEVEL, as OpenGL has it at first: the last level that generating makes                 */
             };
 
             /* A rectangle of the framebuffer, in pixels from its lower left corner, as glViewport and glScissor say it. */

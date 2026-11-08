@@ -47,6 +47,8 @@ namespace Tests
                       const APIInterceptor::APIFunctionArgument& in_returned_value = APIInterceptor::APIFunctionArgument::create_i32(0) );
 
         void begin        (const uint32_t& in_mode);
+        void bind_buffer  (const uint32_t& in_target,
+                           const uint32_t& in_buffer);
         void bind_texture (const uint32_t& in_target,
                            const uint32_t& in_name);
         void blend_func   (const uint32_t& in_source,
@@ -100,6 +102,9 @@ namespace Tests
                      const double& in_top,
                      const double& in_near,
                      const double& in_far);
+
+        /* glGenerateMipmap. */
+        void generate_mipmap(const uint32_t& in_target);
 
         const Capture::APIDumpLoader::Workload& get_workload() const;
 
@@ -171,6 +176,11 @@ namespace Tests
                           const int32_t&              in_width,
                           const int32_t&              in_height,
                           const std::vector<uint8_t>& in_pixel_u8vec);
+
+        /* glTexParameteri of the target GL_TEXTURE_2D, or of the target that is given. */
+        void tex_parameter(const uint32_t& in_parameter,
+                           const int32_t&  in_value,
+                           const uint32_t& in_target = 0x0DE1);
 
         /* A glTexSubImage2D of RGBA bytes: with the pixels in the call, or with none if the vector is empty. */
         void tex_sub_image_2d(const uint32_t&             in_level,

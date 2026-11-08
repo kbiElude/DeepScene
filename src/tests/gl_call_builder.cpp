@@ -88,6 +88,14 @@ void Tests::GlCallBuilder::begin(const uint32_t& in_mode)
              {APIInterceptor::APIFunctionArgument::create_u32_glenum(in_mode)});
 }
 
+void Tests::GlCallBuilder::bind_buffer(const uint32_t& in_target,
+                                       const uint32_t& in_buffer)
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLBINDBUFFER,
+             {APIInterceptor::APIFunctionArgument::create_u32_glenum(in_target),
+              APIInterceptor::APIFunctionArgument::create_u32       (in_buffer)});
+}
+
 void Tests::GlCallBuilder::bind_texture(const uint32_t& in_target,
                                         const uint32_t& in_name)
 {
@@ -286,6 +294,12 @@ void Tests::GlCallBuilder::frustum(const double& in_left,
               APIInterceptor::APIFunctionArgument::create_fp64(in_top),
               APIInterceptor::APIFunctionArgument::create_fp64(in_near),
               APIInterceptor::APIFunctionArgument::create_fp64(in_far)});
+}
+
+void Tests::GlCallBuilder::generate_mipmap(const uint32_t& in_target)
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLGENERATEMIPMAP,
+             {APIInterceptor::APIFunctionArgument::create_u32_glenum(in_target)});
 }
 
 const Capture::APIDumpLoader::Workload& Tests::GlCallBuilder::get_workload() const
@@ -564,6 +578,16 @@ void Tests::GlCallBuilder::tex_image_2d(const uint32_t&             in_level,
               APIInterceptor::APIFunctionArgument::create_u32_glenum(GL_RGBA),
               APIInterceptor::APIFunctionArgument::create_u32_glenum(GL_UNSIGNED_BYTE),
               pixels_arg});
+}
+
+void Tests::GlCallBuilder::tex_parameter(const uint32_t& in_parameter,
+                                         const int32_t&  in_value,
+                                         const uint32_t& in_target)
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLTEXPARAMETERI,
+             {APIInterceptor::APIFunctionArgument::create_u32_glenum(in_target),
+              APIInterceptor::APIFunctionArgument::create_u32_glenum(in_parameter),
+              APIInterceptor::APIFunctionArgument::create_i32       (in_value)});
 }
 
 void Tests::GlCallBuilder::tex_sub_image_2d(const uint32_t&             in_level,

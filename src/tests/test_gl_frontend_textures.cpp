@@ -6,7 +6,9 @@
  * the textures of the units that have the target enabled, and what a unit has bound is a part of the attributes that glPushAttrib saves.
  */
 #include <gtest/gtest.h>
+#include "common/macros.h"
 #include "gl_frontend_fixture.h"
+#include <stdlib.h>
 
 namespace
 {
@@ -362,7 +364,7 @@ TEST_F(GlFrontendTextures, TheDefaultTextureOfATargetThatIsNotFollowedIsNotCount
               0u);
 }
 
-TEST_F(GlFrontendTextures, ATargetThatIsNotFollowedIsCounted)
+TEST_F(GlFrontendTextures, ATargetThatIsNotFollowedEndsTheProcess)
 {
     start(640,
           480);
@@ -370,8 +372,11 @@ TEST_F(GlFrontendTextures, ATargetThatIsNotFollowedIsCounted)
     m_builder.bind_texture(GL_TEXTURE_1D,
                            1);
 
-    feed();
+    /* The process has no console when the tests run from a tool, and would wait for somebody to close the box. */
+    ::_putenv_s("APIINTERCEPTOR_NO_ERROR_DIALOG",
+                "1");
 
-    EXPECT_EQ(m_harness.get_frontend().get_n_unsupported_calls(),
-              1u);
+    EXPECT_EXIT(feed(),
+                ::testing::ExitedWithCode(APIInterceptor::FatalError::get_exit_code() ),
+                "glBindTexture.*GL_TEXTURE_2D");
 }
