@@ -33,6 +33,8 @@ void Analysis::APIDumpAnalysis::ModelBuilder::begin_call(const uint64_t& in_call
     m_call_index    = in_call_index;
     m_timestamp_qpc = in_timestamp_qpc;
 
+    m_call_draw_key_vec.clear();
+
     if (m_has_frame_calls == false)
     {
         m_frame_begin_timestamp_qpc = in_timestamp_qpc;
@@ -474,6 +476,11 @@ bool Analysis::APIDumpAnalysis::ModelBuilder::find_pass_index(const CompletedFra
     return result;
 }
 
+const std::vector<Analysis::APIDumpAnalysis::DrawKeys>& Analysis::APIDumpAnalysis::ModelBuilder::get_call_draw_key_vec() const
+{
+    return m_call_draw_key_vec;
+}
+
 uint64_t Analysis::APIDumpAnalysis::ModelBuilder::get_call_index() const
 {
     return m_call_index;
@@ -796,6 +803,9 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_draw(const DrawDescription& in_
         {
             m_open_pass.covering_draw_key_set.insert(m_last_draw_cover_key);
         }
+
+        m_call_draw_key_vec.push_back({m_last_draw_cover_key,
+                                       m_last_draw_signature_key});
 
         /* The same draw is recognized by one signature in a pass: its targets are the pass's. */
         if (signature_pair.second        == false         &&

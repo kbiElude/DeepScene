@@ -62,6 +62,11 @@ bool Analysis::APIDumpAnalysis::Frontends::AnalysisSession::find_resource_view(c
     return result;
 }
 
+const std::vector<Analysis::APIDumpAnalysis::DrawKeys>& Analysis::APIDumpAnalysis::Frontends::AnalysisSession::get_call_draw_key_vec() const
+{
+    return m_builder.get_call_draw_key_vec();
+}
+
 const Analysis::APIDumpAnalysis::CompletedFrame& Analysis::APIDumpAnalysis::Frontends::AnalysisSession::get_completed_frame() const
 {
     return m_builder.get_completed_frame();

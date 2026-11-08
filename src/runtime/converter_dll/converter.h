@@ -53,6 +53,9 @@ namespace Stereo
             /* Counts the draw by what the recipe made of it. */
             void count_draw(const Analysis::Recipe::DrawClass& in_draw_class);
 
+            /* A frame of the application ends: it is counted, the log gets the statistics now and then, and what the program which shows the images says is taken. */
+            void count_frame(std::vector<std::string>* out_log_line_vec_ptr);
+
             /* What the log gets every so many frames. */
             std::string make_statistics_line() const;
 
@@ -62,6 +65,11 @@ namespace Stereo
             void on_d3d7_frame_ending(const APIInterceptor::APIFunction&         in_api_func,
                                       const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
                                       std::vector<std::string>*                  out_log_line_vec_ptr);
+
+            /* The call that is analysed has made draws of OpenGL (none, one, or those of a display list): each is told what the recipe makes of it, and counted. Nothing is
+             * changed yet; the draws are only followed.
+             */
+            void on_gl_draws(std::vector<std::string>* out_log_line_vec_ptr);
 
             /* A call is about to be made: the work of the callback, for a call that is the application's. */
             void on_pre(const APIInterceptor::APIFunction&         in_api_func,
@@ -119,6 +127,7 @@ namespace Stereo
                 uint64_t                                  n_affected_draws   = 0;
                 uint64_t                                  n_frames           = 0;
                 uint64_t                                  n_kept_matrices    = 0;
+                uint64_t                                  n_mixed_class_calls = 0; /* calls of display lists that made draws of different classes */
                 uint64_t                                  n_skipped_draws    = 0;
                 uint64_t                                  n_unaffected_draws = 0;
                 std::unique_ptr<D3D8EyeRenderer>          renderer_ptr;

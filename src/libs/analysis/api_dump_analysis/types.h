@@ -514,6 +514,13 @@ namespace Analysis
             uint32_t shape_id            = 0; /* of a FrameShape */
         };
 
+        /* What tells a draw apart for a player that classifies it when it is issued: its signature, and the key of the signature with the size of the draw. */
+        struct DrawKeys
+        {
+            uint64_t cover_key     = 0;
+            uint64_t signature_key = 0;
+        };
+
         /* One draw of a frame: where it is, and the key of its structure (see DrawStructure), which is the same in every run. */
         struct DrawInstance
         {

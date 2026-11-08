@@ -44,6 +44,11 @@ namespace Analysis
             void begin_call(const uint64_t& in_call_index,
                             const uint64_t& in_timestamp_qpc);
 
+            /* The keys of each draw that the call now told made, in order: a call of a display list can make several, or none (a list that sets state). Empty until the call makes
+             * one; begin_call() empties it.
+             */
+            const std::vector<DrawKeys>& get_call_draw_key_vec() const;
+
             /* The number of the call that the events now told are of (the one that begin_call() was given last). */
             uint64_t get_call_index() const;
 
@@ -229,6 +234,7 @@ namespace Analysis
             IAccessSink*                              m_access_sink_ptr;
             ResourceAccessTracker                     m_access_tracker;
             AttachmentSet                             m_attachments;
+            std::vector<DrawKeys>                     m_call_draw_key_vec;
             uint64_t                                  m_call_index;
             CompletedFrame                            m_completed_frame;
             std::map<ConstantStateKey, ConstantState> m_constant_state_map;

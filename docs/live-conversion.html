@@ -197,6 +197,10 @@
   <li><strong>The images.</strong> The back buffer is read before a flip, or before the blit of the surface the program rendered to onto the primary surface (how a program in a window shows a frame), converted to B, G, R of 8 bits, into the channel, the two eyes side by side. With no program that shows the images, the converter itself holds the program to 60 frames a second, since there is no flip to wait for.</li>
 </ul>
 
+<h2 id="opengl">OpenGL</h2>
+<p>A program of OpenGL is followed and classified, and drawn once, for one eye. <code>CallFeeder</code> follows the OpenGL and WGL calls and both <code>SwapBuffers</code> (the one of GDI32 ends a frame like the one of WGL), and takes <code>glCallList</code>, <code>glDrawArrays</code>, <code>glDrawElements</code> and <code>glEnd</code> as the calls that draw. A call can make several draws (a list), so the model builder keeps the cover key and the signature key of each draw that the last call made (<code>get_call_draw_key_vec</code>), and the converter asks <code>StereoCore</code> about each one. The log counts the draws that are affected and those that are not, the draws of a signature the recipe does not know, and the calls whose draws are of more than one class (a list that mixes interface and scene), which a converter that draws will have to split.</p>
+<p>A converter that draws for both eyes needs: the right eye (a second framebuffer and the draws made again), the textures that rendering fills (a copy for each eye while the eyes interleave), the view anchor matrix at the time of the draw, which needs the matrices of the program tracked live, and the images and the pacing, which Direct3D 8 already has. The catalog says why Gerbera cannot be started from the player.</p>
+
 <h2 id="channel">The frame channel</h2>
 <p>Shared memory between the 32-bit program and the 64-bit presenter, named from the session (<code>Local\APIStereo_&lt;session&gt;</code>). Three image slots: the producer writes one that is neither the newest nor the one being read, so nobody waits. Images start at multiples of 64 KB and rows at multiples of 256 bytes, so the GPU can import the memory as a heap.</p>
 <figure>

@@ -12,6 +12,7 @@
 #include "environment.h"
 #include "own_call_scope.h"
 #include <array>
+#include <set>
 #include <stdlib.h>
 #include <string.h>
 #include <Windows.h>
@@ -267,6 +268,26 @@ std::unique_ptr<Stereo::ConverterDLL::Converter> Stereo::ConverterDLL::Converter
     return result_ptr;
 }
 
+void Stereo::ConverterDLL::Converter::count_frame(std::vector<std::string>* out_log_line_vec_ptr)
+{
+    constexpr uint64_t N_FRAMES_BETWEEN_STATISTICS = 600;
+
+    m_live_state.n_frames++;
+
+    /* The first frame says that the calls of the application reach the converter, and how far the application has come. */
+    if (m_live_state.n_frames == 1)
+    {
+        out_log_line_vec_ptr->push_back("The first frame ends, after " + std::to_string(m_live_state.n_affected_draws + m_live_state.n_unaffected_draws + m_live_state.n_skipped_draws) + " draws");
+    }
+
+    if (m_live_state.n_frames % N_FRAMES_BETWEEN_STATISTICS == 0)
+    {
+        out_log_line_vec_ptr->push_back(make_statistics_line() );
+    }
+
+    read_channel_settings(out_log_line_vec_ptr);
+}
+
 std::string Stereo::ConverterDLL::Converter::make_statistics_line() const
 {
     const uint64_t n_failed_twins = m_live_state.d3d7_renderer_ptr->get_n_failed_twins();
@@ -316,8 +337,6 @@ void Stereo::ConverterDLL::Converter::on_d3d7_frame_ending(const APIInterceptor:
                                                            const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
                                                            std::vector<std::string>*                  out_log_line_vec_ptr)
 {
-    constexpr uint64_t N_FRAMES_BETWEEN_STATISTICS = 600;
-
     /* The frame which a flip is about to show is in the back buffer of the surface it is called for. */
     if (in_api_func == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_FLIP)
     {
@@ -345,14 +364,35 @@ void Stereo::ConverterDLL::Converter::on_d3d7_frame_ending(const APIInterceptor:
         out_log_line_vec_ptr->push_back(note);
     }
 
-    m_live_state.n_frames++;
+    count_frame(out_log_line_vec_ptr);
+}
 
-    if (m_live_state.n_frames % N_FRAMES_BETWEEN_STATISTICS == 0)
+void Stereo::ConverterDLL::Converter::on_gl_draws(std::vector<std::string>* out_log_line_vec_ptr)
+{
+    std::set<Analysis::Recipe::DrawClass> class_set;
+
+    for (const auto& draw_keys : m_live_state.feeder.get_last_call_draw_key_vec() )
     {
-        out_log_line_vec_ptr->push_back(make_statistics_line() );
+        const auto draw_class = m_live_state.core_ptr->classify_draw(draw_keys.signature_key,
+                                                                     draw_keys.cover_key);
+
+        class_set.insert(draw_class);
+
+        count_draw(draw_class);
     }
 
-    read_channel_settings(out_log_line_vec_ptr);
+    /* The draws of a display list are made by the driver, in one call: they cannot be made for an eye one at a time, so a list whose draws are not all of one class is
+     * told (the first one), and counted.
+     */
+    if (class_set.size() > 1)
+    {
+        if (m_live_state.n_mixed_class_calls == 0)
+        {
+            out_log_line_vec_ptr->push_back("A call of a display list made draws that the recipe makes different things of: it cannot be made for an eye one draw at a time.");
+        }
+
+        m_live_state.n_mixed_class_calls++;
+    }
 }
 
 void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFunction                in_api_func,
@@ -380,14 +420,17 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
             this_ptr->m_live_state.core_ptr->on_frame_completed(shape_key);
         }
 
-        /* The eye renderer is for Direct3D 8; the calls of Direct3D 7 are only followed. */
-        if (Capture::APIDumpLoader::get_api_group(in_api_func) == Capture::APIDumpLoader::APIGroup::D3D8)
+        /* The eye renderer is for Direct3D 8; the calls of Direct3D 7 and of OpenGL are only followed. */
+        const auto api_group = Capture::APIDumpLoader::get_api_group(in_api_func);
+
+        if (api_group == Capture::APIDumpLoader::APIGroup::D3D8)
         {
             this_ptr->m_live_state.renderer_ptr->on_post(in_api_func,
                                                          in_n_arguments_out,
                                                          in_arguments_out_ptr);
         }
         else
+        if (api_group == Capture::APIDumpLoader::APIGroup::D3D7)
         {
             this_ptr->m_live_state.d3d7_renderer_ptr->on_post(in_api_func,
                                                               in_n_arguments_out,
@@ -441,10 +484,15 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
     {
         std::lock_guard<std::mutex> lock(m_live_state.mutex);
 
-        const bool is_d3d8 = (Capture::APIDumpLoader::get_api_group(in_api_func) == Capture::APIDumpLoader::APIGroup::D3D8);
-        const bool is_draw = m_live_state.feeder.on_pre(in_api_func,
-                                                        in_n_arguments,
-                                                        in_arguments_ptr);
+        const auto api_group = Capture::APIDumpLoader::get_api_group(in_api_func);
+        const bool is_d3d8   = (api_group == Capture::APIDumpLoader::APIGroup::D3D8);
+
+        /* What is followed and is neither of Direct3D is OpenGL (and the SwapBuffers of GDI32 that ends its frames). */
+        const bool is_gl     = (is_d3d8 == false                                      &&
+                                api_group != Capture::APIDumpLoader::APIGroup::D3D7);
+        const bool is_draw   = m_live_state.feeder.on_pre(in_api_func,
+                                                          in_n_arguments,
+                                                          in_arguments_ptr);
 
         if (in_api_func == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_SETTRANSFORM)
         {
@@ -467,6 +515,15 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
                 m_live_state.renderer_ptr->on_pre(in_api_func,
                                                   in_n_arguments,
                                                   in_arguments_ptr);
+            }
+            else
+            if (is_gl)
+            {
+                /* Only the frames of OpenGL are followed so far: SwapBuffers ends one. */
+                if (in_api_func == APIInterceptor::APIFUNCTION_GDI32_SWAPBUFFERS)
+                {
+                    count_frame(&log_line_vec);
+                }
             }
             else
             {
@@ -495,6 +552,12 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
                                         &log_line_vec);
                 }
             }
+        }
+        else
+        if (is_gl)
+        {
+            /* The draws of a call of OpenGL are those that the front end made of it (a display list makes several, or none), and none is changed yet. */
+            on_gl_draws(&log_line_vec);
         }
         else
         {
@@ -586,21 +649,12 @@ void Stereo::ConverterDLL::Converter::on_present_starting(const APIInterceptor::
                                                           void**                                     out_right_surface_ptr_ptr,
                                                           std::vector<std::string>*                  out_log_line_vec_ptr)
 {
-    constexpr uint64_t N_FRAMES_BETWEEN_STATISTICS = 600;
-
     *out_right_surface_ptr_ptr = m_live_state.renderer_ptr->get_back_buffer_twin_ptr(const_cast<void*>(in_arguments_ptr[0].get_ptr() ));
 
     /* The application renders to a window that cannot be seen; it may change its style. */
     m_windowed_mode.keep_windows_invisible();
 
-    m_live_state.n_frames++;
-
-    if (m_live_state.n_frames % N_FRAMES_BETWEEN_STATISTICS == 0)
-    {
-        out_log_line_vec_ptr->push_back(make_statistics_line() );
-    }
-
-    read_channel_settings(out_log_line_vec_ptr);
+    count_frame(out_log_line_vec_ptr);
 }
 
 bool Stereo::ConverterDLL::Converter::on_set_transform(const uint32_t&                            in_n_arguments,

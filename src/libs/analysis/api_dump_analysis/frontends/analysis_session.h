@@ -33,6 +33,9 @@ namespace Analysis
 
 
                 /* The frame completed by the last call; valid if process_call returned true. */
+                /* The keys of each draw that the last call made (see ModelBuilder::get_call_draw_key_vec). */
+                const std::vector<Analysis::APIDumpAnalysis::DrawKeys>& get_call_draw_key_vec() const;
+
                 const Analysis::APIDumpAnalysis::CompletedFrame& get_completed_frame() const;
 
                 /* The resource that an object of the application stands for, by its address (see IAPIFrontend::find_resource_view). */

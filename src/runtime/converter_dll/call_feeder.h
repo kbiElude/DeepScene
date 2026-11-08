@@ -44,6 +44,11 @@ namespace Stereo
                                      const void**    out_data_ptr_ptr,
                                      uint32_t*       out_n_bytes_ptr) const;
 
+            /* The keys of each draw that the call analysed last made (see ModelBuilder::get_call_draw_key_vec): a call of a display list can make several, or none. Valid until
+             * the next call is analysed.
+             */
+            const std::vector<Analysis::APIDumpAnalysis::DrawKeys>& get_last_call_draw_key_vec() const;
+
             /* The key of the draw that on_pre() last analysed by its signature and size. */
             uint64_t get_last_draw_cover_key() const;
 
@@ -56,7 +61,7 @@ namespace Stereo
             /* True for the calls that on_pre() analyses at once. */
             static bool is_draw(const APIInterceptor::APIFunction& in_function);
 
-            /* True for the calls of Direct3D 7 and 8, which the front ends follow. */
+            /* True for the calls of Direct3D 7 and 8 and of OpenGL (and of what ends a frame of it, the SwapBuffers of GDI32), which the front ends follow. */
             static bool is_followed(const APIInterceptor::APIFunction& in_function);
 
             /* The call is done: analyses it, if it was not a draw, with its results. */

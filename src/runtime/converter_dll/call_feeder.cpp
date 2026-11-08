@@ -167,6 +167,11 @@ bool Stereo::ConverterDLL::CallFeeder::get_last_call_chunk(const uint32_t& in_ch
     return result;
 }
 
+const std::vector<Analysis::APIDumpAnalysis::DrawKeys>& Stereo::ConverterDLL::CallFeeder::get_last_call_draw_key_vec() const
+{
+    return m_session.get_call_draw_key_vec();
+}
+
 uint64_t Stereo::ConverterDLL::CallFeeder::get_last_draw_cover_key() const
 {
     return m_session.get_last_draw_cover_key();
@@ -208,15 +213,23 @@ bool Stereo::ConverterDLL::CallFeeder::is_draw(const APIInterceptor::APIFunction
             in_function == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_DRAWINDEXEDPRIMITIVE        ||
             in_function == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_DRAWINDEXEDPRIMITIVEUP      ||
             in_function == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_DRAWPRIMITIVE               ||
-            in_function == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_DRAWPRIMITIVEUP);
+            in_function == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_DRAWPRIMITIVEUP            ||
+            in_function == APIInterceptor::APIFUNCTION_GL_GLCALLLIST                                     ||
+            in_function == APIInterceptor::APIFUNCTION_GL_GLDRAWARRAYS                                   ||
+            in_function == APIInterceptor::APIFUNCTION_GL_GLDRAWELEMENTS                                 ||
+            in_function == APIInterceptor::APIFUNCTION_GL_GLEND);
 }
 
 bool Stereo::ConverterDLL::CallFeeder::is_followed(const APIInterceptor::APIFunction& in_function)
 {
     const auto api_group = Capture::APIDumpLoader::get_api_group(in_function);
 
+    /* SwapBuffers is a function of GDI32, and what ends a frame of OpenGL; the rest of GDI32 is not followed. */
     return (api_group == Capture::APIDumpLoader::APIGroup::D3D7 ||
-            api_group == Capture::APIDumpLoader::APIGroup::D3D8);
+            api_group == Capture::APIDumpLoader::APIGroup::D3D8 ||
+            api_group == Capture::APIDumpLoader::APIGroup::GL   ||
+            api_group == Capture::APIDumpLoader::APIGroup::WGL  ||
+            in_function == APIInterceptor::APIFUNCTION_GDI32_SWAPBUFFERS);
 }
 
 void Stereo::ConverterDLL::CallFeeder::on_post(const APIInterceptor::APIFunction&         in_function,

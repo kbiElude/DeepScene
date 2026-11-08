@@ -557,3 +557,36 @@ TEST_F(GlFrontendLists, AListWhichWasNeverMadeHasNoDependence)
     EXPECT_FALSE(m_harness.get_frontend().find_list_eye_dependence(42,
                                                                    &dependence) );
 }
+
+TEST_F(GlFrontendLists, ACallOfAListGivesTheKeysOfEachDrawItMakes)
+{
+    start(640,
+          480);
+
+    make_triangle_list(1);
+    m_builder.call_list(1);
+    feed();
+
+    EXPECT_EQ(m_harness.get_builder().get_call_draw_key_vec().size(),
+              1u);
+
+    m_builder.call_list(1);
+    m_builder.call_list(1);
+    feed();
+
+    EXPECT_EQ(m_harness.get_builder().get_call_draw_key_vec().size(),
+              1u);
+}
+
+TEST_F(GlFrontendLists, ACallThatDrawsNothingGivesNoKeys)
+{
+    start(640,
+          480);
+
+    make_triangle_list(1);
+    m_builder.call_list(1);
+    m_builder.clear    (COLOR_BUFFER_BIT);
+    feed();
+
+    EXPECT_TRUE(m_harness.get_builder().get_call_draw_key_vec().empty() );
+}
