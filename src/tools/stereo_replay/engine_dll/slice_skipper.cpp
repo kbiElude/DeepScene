@@ -19,6 +19,75 @@ void Stereo::Replay::EngineDLL::SliceSkipper::clear_slice()
     m_slice_ptr = nullptr;
 }
 
+Capture::APIDumpLoader::CallKeptFuncFactory Stereo::Replay::EngineDLL::SliceSkipper::get_call_kept_func_factory() const
+{
+    Capture::APIDumpLoader::CallKeptFuncFactory      result;
+    const Analysis::APIDumpDependencies::FrameSlice* const slice_ptr = m_slice_ptr;
+
+    /* A slice is never freed (see get_chunk_wanted_func()). The function that the factory makes follows the lists of its segment alone, as the threads that read
+     * segments do not meet.
+     */
+    if (slice_ptr != nullptr)
+    {
+        result = [slice_ptr]()
+                 {
+                     bool is_recording = false;
+
+                     return Capture::APIDumpLoader::CallKeptFunc([slice_ptr,
+                                                                  is_recording](const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                                const uint64_t&                              in_frame_index) mutable
+                                                                 {
+                                                                     bool is_kept = true;
+
+                                                                     switch (in_call.func)
+                                                                     {
+                                                                         case APIInterceptor::APIFUNCTION_GL_GLENDLIST:
+                                                                         {
+                                                                             /* A list that began in the segment before has its first calls there, and what is left out of it is left out of the list. */
+                                                                             AI_ASSERT_ALWAYS(is_recording,
+                                                                                              "A display list is made across two segments of the workload, so that the calls of its first part are not known when its last part is read. Seeking over it is not implemented.");
+
+                                                                             is_recording = false;
+
+                                                                             break;
+                                                                         }
+
+                                                                         case APIInterceptor::APIFUNCTION_GL_GLNEWLIST:
+                                                                         {
+                                                                             is_recording = true;
+
+                                                                             break;
+                                                                         }
+
+                                                                         default:
+                                                                         {
+                                                                             const auto group = Capture::APIDumpLoader::get_api_group(in_call.func);
+
+                                                                             /* The calls of a list that is being made are kept in it; a call of a list is left to should_execute_call(), which knows the list. */
+                                                                             if (is_recording == false                                  &&
+                                                                                 group        == Capture::APIDumpLoader::APIGroup::GL   &&
+                                                                                 in_call.func != APIInterceptor::APIFUNCTION_GL_GLCALLLIST)
+                                                                             {
+                                                                                 const bool is_content = is_content_call(in_call.func);
+                                                                                 const bool is_live    = Analysis::APIDumpDependencies::FrameSlicePlanner::is_live(*slice_ptr,
+                                                                                                                                                                   in_frame_index);
+
+                                                                                 is_kept = (is_content == false ||
+                                                                                            is_live);
+                                                                             }
+
+                                                                             break;
+                                                                         }
+                                                                     }
+
+                                                                     return is_kept;
+                                                                 });
+                 };
+    }
+
+    return result;
+}
+
 Capture::APIDumpLoader::ChunkWantedFunc Stereo::Replay::EngineDLL::SliceSkipper::get_chunk_wanted_func() const
 {
     Capture::APIDumpLoader::ChunkWantedFunc                result;

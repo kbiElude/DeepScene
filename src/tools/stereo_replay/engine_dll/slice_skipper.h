@@ -31,6 +31,13 @@ namespace Stereo
                 /* No frame is left out. Any thread. */
                 void clear_slice();
 
+                /* Tells the reader of the workload which calls of the dead frames of the slice are not made into calls at all (the content calls of OpenGL: its
+                 * workloads are mostly vertices, which a replay that leaves them out should not have to build); empty if there is no slice. The calls of a
+                 * display list that is being made are kept, and a list that is made across two segments ends the process (AI_ASSERT_ALWAYS), as what is left
+                 * out of its first part is left out of the list. It holds the slice as it is now, so it is asked again after a new slice.
+                 */
+                Capture::APIDumpLoader::CallKeptFuncFactory get_call_kept_func_factory() const;
+
                 /* Tells the reader of the workload which data chunks the slice leaves unread (those of the content calls of its dead frames); empty if there is no
                  * slice. It holds the slice as it is now, so it is asked again after a new slice.
                  */

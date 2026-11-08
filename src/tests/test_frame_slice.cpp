@@ -457,3 +457,67 @@ TEST(SliceSkipper, ACallOfAListThatIsNotDefinedInADeadFrameEndsTheProcess)
                 ::testing::ExitedWithCode(APIInterceptor::FatalError::get_exit_code() ),
                 "related to the location of the eye");
 }
+
+TEST(SliceSkipper, TheReaderIsToldToDropTheGLContentOfDeadFramesAndNothingElse)
+{
+    Stereo::Replay::EngineDLL::SliceSkipper skipper;
+
+    /* With no slice there is nothing to drop. */
+    EXPECT_FALSE(skipper.get_call_kept_func_factory() );
+
+    set_dead_until_frame_5(&skipper);
+
+    const auto factory = skipper.get_call_kept_func_factory();
+
+    ASSERT_TRUE(factory);
+
+    const auto kept_func = factory();
+    const auto vertex    = make_gl_call(APIInterceptor::APIFUNCTION_GL_GLVERTEX3FV);
+    const auto enable    = make_gl_call(APIInterceptor::APIFUNCTION_GL_GLENABLE);
+    const auto call_list = make_gl_call(APIInterceptor::APIFUNCTION_GL_GLCALLLIST,
+                                        LIST);
+    const auto draw_7    = make_gl_call(APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWPRIMITIVE);
+
+    EXPECT_FALSE(kept_func(vertex,    DEAD_FRAME) );
+    EXPECT_TRUE (kept_func(vertex,    LIVE_FRAME) );
+    EXPECT_TRUE (kept_func(enable,    DEAD_FRAME) );
+
+    /* A call of a list is for should_execute_call() to judge, which knows the list; Direct3D has its chunks left out and its calls made. */
+    EXPECT_TRUE (kept_func(call_list, DEAD_FRAME) );
+    EXPECT_TRUE (kept_func(draw_7,    DEAD_FRAME) );
+}
+
+TEST(SliceSkipper, TheCallsOfAListThatIsBeingMadeAreKeptByTheReaderToo)
+{
+    Stereo::Replay::EngineDLL::SliceSkipper skipper;
+
+    set_dead_until_frame_5(&skipper);
+
+    const auto kept_func = skipper.get_call_kept_func_factory()();
+    const auto new_list  = make_gl_call(APIInterceptor::APIFUNCTION_GL_GLNEWLIST,
+                                        LIST);
+    const auto vertex    = make_gl_call(APIInterceptor::APIFUNCTION_GL_GLVERTEX3FV);
+    const auto end_list  = make_gl_call(APIInterceptor::APIFUNCTION_GL_GLENDLIST);
+
+    EXPECT_TRUE (kept_func(new_list, DEAD_FRAME) );
+    EXPECT_TRUE (kept_func(vertex,   DEAD_FRAME) );
+    EXPECT_TRUE (kept_func(end_list, DEAD_FRAME) );
+    EXPECT_FALSE(kept_func(vertex,   DEAD_FRAME) );
+}
+
+TEST(SliceSkipper, AListThatIsMadeAcrossTwoSegmentsEndsTheProcess)
+{
+    set_no_error_dialog();
+
+    EXPECT_EXIT({
+                    Stereo::Replay::EngineDLL::SliceSkipper skipper;
+
+                    set_dead_until_frame_5(&skipper);
+
+                    /* The segment is the one in which the list ends: its beginning was in the one before. */
+                    skipper.get_call_kept_func_factory()()(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLENDLIST),
+                                                           DEAD_FRAME);
+                },
+                ::testing::ExitedWithCode(APIInterceptor::FatalError::get_exit_code() ),
+                "across two segments");
+}
