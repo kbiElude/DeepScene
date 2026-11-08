@@ -1314,3 +1314,51 @@ TEST_F(GlFrontendTextureLevels, WhatOnlyChangesHowADrawLooksGoesThroughAndSoDoTh
 
     SUCCEED();
 }
+
+TEST_F(GlFrontendTextureEvents, APointerToPixelsWithAChunkOfNoBytesIsToldAsContentThatWasNotCapturedAndNotAsNoData)
+{
+    m_builder.bind_texture(GL_TEXTURE_2D,
+                           5);
+
+    /* The program gave pixels; the dumper stored none of them. */
+    m_builder.tex_image_2d(0,
+                           8,
+                           8,
+                           {},
+                           true /* in_has_empty_chunk */);
+
+    /* A null pointer gives a level a size and no content: that is not the same. */
+    m_builder.tex_image_2d(1,
+                           4,
+                           4,
+                           {});
+
+    feed();
+
+    ASSERT_EQ(m_sink.event_vec.size(),
+              2u);
+
+    EXPECT_TRUE (m_sink.event_vec.at(0).is_content_not_captured);
+    EXPECT_FALSE(m_sink.has_data_vec.at(0) );
+
+    EXPECT_FALSE(m_sink.event_vec.at(1).is_content_not_captured);
+    EXPECT_FALSE(m_sink.has_data_vec.at(1) );
+}
+
+TEST_F(GlFrontendTextureEvents, ALevelWithNoTexelsThatHasAChunkOfNoBytesIsNotContentThatWasNotCaptured)
+{
+    m_builder.bind_texture(GL_TEXTURE_2D,
+                           5);
+    m_builder.tex_image_2d(0,
+                           0,
+                           8,
+                           {},
+                           true /* in_has_empty_chunk */);
+
+    feed();
+
+    ASSERT_EQ(m_sink.event_vec.size(),
+              1u);
+
+    EXPECT_FALSE(m_sink.event_vec.at(0).is_content_not_captured);
+}

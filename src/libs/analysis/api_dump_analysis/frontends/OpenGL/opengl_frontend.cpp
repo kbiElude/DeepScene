@@ -2811,9 +2811,22 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_upload(const C
         /* The pixels are in the call, or a null pointer: the level is given a size and no data. */
         if (chunk_ptr != nullptr)
         {
-            data_chunk_id = in_call.arg_in_vec.at(PIXELS_ARGUMENT).get_data_chunk_id();
-            data_ptr      = chunk_ptr->data();
-            n_data_bytes  = chunk_ptr->size();
+            /* A pointer to pixels that there are, and a chunk that has no bytes: the program gave data, and the workload does not have it (the dumper did not store it).
+             * That is told as it is: it is not an upload with no data (a null pointer), which gives the level a size and no content. A program that reads the workload
+             * with its data chunks left out (--skip-chunks-above) would see the same, so one that needs the pixels does not leave them out.
+             */
+            const bool is_content_missing = (chunk_ptr->empty() &&
+                                             in_width           != 0 &&
+                                             in_height          != 0);
+
+            event.is_content_not_captured = is_content_missing;
+
+            if (is_content_missing == false)
+            {
+                data_chunk_id = in_call.arg_in_vec.at(PIXELS_ARGUMENT).get_data_chunk_id();
+                data_ptr      = chunk_ptr->data();
+                n_data_bytes  = chunk_ptr->size();
+            }
         }
 
         m_builder_ptr->on_texture_event(event,

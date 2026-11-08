@@ -11,7 +11,7 @@ namespace
 {
     /* The bytes of an entry of the table of blobs, and of an event: what is the least that a count of them can take. */
     constexpr size_t BLOB_ENTRY_N_BYTES = sizeof(uint64_t) * 5 + sizeof(uint8_t) * 2 + sizeof(uint32_t);
-    constexpr size_t EVENT_N_BYTES      = sizeof(uint8_t) + sizeof(uint64_t) * 2 + sizeof(uint32_t) * 22;
+    constexpr size_t EVENT_N_BYTES      = sizeof(uint8_t) * 2 + sizeof(uint64_t) * 2 + sizeof(uint32_t) * 22;
 
     /* Whether the values of an entry, as they were read, say what can be: values of an enumeration that there are, and for a content that is left in the workload no
      * stored bytes and no filter (it has nothing of the file of blobs).
@@ -88,7 +88,13 @@ namespace
 
         const bool is_region_ok = is_region_on_blocks(in_event);
 
+        /* Content that was not captured is a thing of an upload, which has no blob then (there is no content to point at). */
+        const bool is_capture_ok = (in_event.is_content_not_captured == false ||
+                                    (in_kind                         == static_cast<uint8_t>(Analysis::APIDumpTextures::TextureEventKind::UPLOAD) &&
+                                     in_event.blob_index             == Analysis::APIDumpTextures::NO_BLOB) );
+
         return (are_enums_ok               &&
+                is_capture_ok              &&
                 are_layers_ok              &&
                 are_resources_ok           &&
                 is_blob_ok                 &&
@@ -214,6 +220,8 @@ bool Analysis::APIDumpTextures::TexturesSerializer::deserialize_events(const std
         event.layer_count                = reader.read_u32();
         event.level_depth_or_layer_count = reader.read_u32();
         event.sample_index               = reader.read_u32();
+
+        event.is_content_not_captured = reader.read_bool();
 
         /* A value that is not a format is left as the UNKNOWN, and the event is not valid. */
         if (Utils::Graphics::TextureFormats::is_format_value(level_format_value) )
@@ -341,6 +349,8 @@ std::vector<uint8_t> Analysis::APIDumpTextures::TexturesSerializer::serialize_ev
         writer.write_u32(event.layer_count);
         writer.write_u32(event.level_depth_or_layer_count);
         writer.write_u32(event.sample_index);
+
+        writer.write_bool(event.is_content_not_captured);
     }
 
     return writer.take_bytes();

@@ -88,6 +88,7 @@ namespace Analysis
             uint64_t                                frame_index          = 0;
             uint32_t                                generated_from_level = 0;     /* GENERATE_MIPS only: it makes the levels below it, in every layer */
             uint32_t                                height               = 0;
+            bool                                    is_content_not_captured = false; /* UPLOAD only: the call gave pixels (a pointer to data), and the workload has no bytes for them: the dumper did not store them. Not the same as no data (a null pointer), which gives the level a size and no content. */
             TextureEventKind                        kind                 = TextureEventKind::UPLOAD;
             uint32_t                                layer_count          = 1;     /* from destination.layer; at least 1 */
             SourceLayout                            layout;

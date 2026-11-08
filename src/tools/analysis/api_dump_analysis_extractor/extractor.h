@@ -15,14 +15,6 @@ namespace Analysis
 {
     namespace APIDumpAnalysisExtractor
     {
-        std::string get_default_output_filename(const std::string& in_input_filename);
-
-        /* Returns false, and says why, if the arguments are not right. */
-        bool parse_arguments(const int&   in_argc,
-                             char*        in_argv[],
-                             Options*     out_options_ptr,
-                             std::string* out_error_ptr);
-
         void print_stats(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis);
         void print_usage();
 

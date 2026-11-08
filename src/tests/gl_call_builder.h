@@ -171,11 +171,14 @@ namespace Tests
 
         void swap_buffers(const uint64_t& in_device_context_address);
 
-        /* A glTexImage2D of RGBA bytes: with the pixels in the call, or with none (a null pointer) if the vector is empty. */
+        /* A glTexImage2D of RGBA bytes: with the pixels in the call, or with none (a null pointer) if the vector is empty, or, if it is empty and the last argument is
+         * true, with a pointer to pixels and a chunk of no bytes for them (what the dumper made when it did not store them).
+         */
         void tex_image_2d(const uint32_t&             in_level,
                           const int32_t&              in_width,
                           const int32_t&              in_height,
-                          const std::vector<uint8_t>& in_pixel_u8vec);
+                          const std::vector<uint8_t>& in_pixel_u8vec,
+                          const bool&                 in_has_empty_chunk = false);
 
         /* glTexParameteri of the target GL_TEXTURE_2D, or of the target that is given. */
         void tex_parameter(const uint32_t& in_parameter,

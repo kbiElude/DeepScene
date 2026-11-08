@@ -553,7 +553,8 @@ void Tests::GlCallBuilder::swap_buffers(const uint64_t& in_device_context_addres
 void Tests::GlCallBuilder::tex_image_2d(const uint32_t&             in_level,
                                         const int32_t&              in_width,
                                         const int32_t&              in_height,
-                                        const std::vector<uint8_t>& in_pixel_u8vec)
+                                        const std::vector<uint8_t>& in_pixel_u8vec,
+                                        const bool&                 in_has_empty_chunk)
 {
     constexpr uint32_t GL_RGBA             = 0x1908;
     constexpr uint32_t GL_TEXTURE_2D       = 0x0DE1;
@@ -566,6 +567,12 @@ void Tests::GlCallBuilder::tex_image_2d(const uint32_t&             in_level,
     {
         pixels_arg = add_chunk(in_pixel_u8vec.data(),
                                in_pixel_u8vec.size() );
+    }
+    else
+    if (in_has_empty_chunk)
+    {
+        pixels_arg = add_chunk(&in_level,
+                               0);
     }
 
     add_call(APIInterceptor::APIFUNCTION_GL_GLTEXIMAGE2D,
