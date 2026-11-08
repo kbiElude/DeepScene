@@ -36,6 +36,27 @@ bool Analysis::APIDumpAnalysis::QueryCommands::get_first_frame_index(const Analy
     return result;
 }
 
+std::vector<uint64_t> Analysis::APIDumpAnalysis::QueryCommands::get_frame_index_vec(const AnalysisResult& in_analysis,
+                                                                                    const uint32_t&       in_pass_id)
+{
+    const auto&           model_ref = in_analysis.model;
+    std::vector<uint64_t> result_vec;
+
+    for (const auto& frame_record : model_ref.frame_record_vec)
+    {
+        const auto& shape = model_ref.frame_shape_interner.get_structure(frame_record.shape_id);
+
+        if (std::binary_search(shape.pass_structure_id_vec.begin(),
+                               shape.pass_structure_id_vec.end  (),
+                               in_pass_id) )
+        {
+            result_vec.push_back(frame_record.frame_index);
+        }
+    }
+
+    return result_vec;
+}
+
 Analysis::APIDumpAnalysis::PassDepthSpread Analysis::APIDumpAnalysis::QueryCommands::get_pass_depth_spread(const AnalysisResult& in_analysis,
                                                                                                            const uint32_t&       in_pass_id)
 {

@@ -74,6 +74,7 @@ const char* Stereo::Replay::ConsistencyChecker::CommandLine::get_usage_ptr()
            "  --jobs N         With --overlay-probe: share the work between N processes of this program (1 by default: none). Each replay decodes the workload from\n"
            "                   its start with threads of its own, and that is bound by the bandwidth of the memory: one process saturates 8 cores, and two or more\n"
            "                   were no faster (0.9 to 1.0 times). A process takes about 1.5 GB. It may pay on a machine with more memory bandwidth to the cores.\n"
+           "  --overlay-probe-last-frame N  With --overlay-probe: look at the frames of the candidates up to the Nth only (all of them by default)\n"
            "  --parallel       Replay the ways at the same time, each with an engine of its own: faster, and needs the memory of all.\n"
            "\n"
            "  --screenshot N   Instead of the check: replay once, up to frame N, and write the image of that frame to the PNG file of --out. With a\n"
@@ -125,6 +126,7 @@ bool Stereo::Replay::ConsistencyChecker::CommandLine::parse(const std::vector<st
         {"--contact-sheet", &Options::contact_sheet_n_frames, 0, UINT32_MAX},
         {"--from",          &Options::first_frame,            0, UINT32_MAX},
         {"--jobs",          &Options::n_jobs,                 1, MAXIMUM_WAIT_OBJECTS - 1},
+        {"--overlay-probe-last-frame", &Options::overlay_probe_last_frame, 0, UINT32_MAX},
         {"--screenshot",    &Options::screenshot_frame,       0, UINT32_MAX - 1},
         {"--to",            &Options::last_frame,             0, UINT32_MAX}
     };

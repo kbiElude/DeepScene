@@ -49,9 +49,12 @@ namespace Analysis
             /* What the overlays command says, for the tools that look into it further: the first frame that has the pass structure (false if no frame has
              * it), how deep the vertices of a pass are, and the passes whose camera never changes (in the order of their ids).
              */
-            static bool                  get_first_frame_index        (const AnalysisResult& in_analysis,
-                                                                       const uint32_t&       in_pass_id,
-                                                                       uint64_t*             out_frame_index_ptr);
+            static bool get_first_frame_index(const AnalysisResult& in_analysis,
+                                              const uint32_t&       in_pass_id,
+                                              uint64_t*             out_frame_index_ptr);
+            /* The frames that have the pass structure, in the order of time. */
+            static std::vector<uint64_t> get_frame_index_vec          (const AnalysisResult& in_analysis,
+                                                                       const uint32_t&       in_pass_id);
             static PassDepthSpread       get_pass_depth_spread        (const AnalysisResult& in_analysis,
                                                                        const uint32_t&       in_pass_id);
             static std::vector<uint32_t> get_static_camera_pass_id_vec(const AnalysisResult& in_analysis);

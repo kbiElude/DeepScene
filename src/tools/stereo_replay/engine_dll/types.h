@@ -46,6 +46,10 @@ namespace Stereo
                 uint32_t              last_frame     = UINT32_MAX;
                 FrameExecution        mode           = FrameExecution::DIRECT;
                 bool                  restores_state = false;                       /* TWICE: the state of the device is restored before the second execution */
+                uint64_t              truncate_draw_key = 0;                        /* truncates_after_draw: the key of the structure of the draw */
+                uint64_t              truncate_pass_key = 0;                        /* truncates_after_draw: the key of the pass that it is in */
+                bool                  truncates_after_draw = false;                 /* the last frame (last_frame) is cut after the last call of the draws of the structure in the pass: what is
+                                                                                      * drawn up to them is the image, for seeing whether they draw anything and whether what comes after covers it */
             };
         }
     }

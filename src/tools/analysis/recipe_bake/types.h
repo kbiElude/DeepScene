@@ -62,6 +62,7 @@ namespace Analysis
             uint32_t                                   pass_id              = 0;
             uint64_t                                   pass_key             = 0;
             std::vector<std::string>                   reason_vec;
+            std::vector<uint64_t>                      sample_frame_index_vec; /* the frames to look at it in: spread over the frames that its pass is in */
             uint64_t                                   signature_key        = 0;
             uint64_t                                   structure_key        = 0;
         };

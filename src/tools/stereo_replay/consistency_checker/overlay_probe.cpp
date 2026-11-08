@@ -3,6 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "overlay_probe.h"
+#include "overlay_report.h"
 #include "analysis/api_dump_analysis/query_commands.h"
 #include "utils/images/gif_writer.h"
 #include "utils/images/image_comparer.h"
@@ -16,88 +17,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-namespace
-{
-    std::string escape_html(const std::string& in_text)
-    {
-        std::string result;
-
-        for (const char character : in_text)
-        {
-            switch (character)
-            {
-                case '&':
-                {
-                    result += "&amp;";
-
-                    break;
-                }
-
-                case '<':
-                {
-                    result += "&lt;";
-
-                    break;
-                }
-
-                case '>':
-                {
-                    result += "&gt;";
-
-                    break;
-                }
-
-                case '"':
-                {
-                    result += "&quot;";
-
-                    break;
-                }
-
-                default:
-                {
-                    result += character;
-
-                    break;
-                }
-            }
-        }
-
-        return result;
-    }
-
-    std::string get_hex_text(const uint64_t& in_key)
-    {
-        char text[19];
-
-        ::snprintf(text,
-                   sizeof(text),
-                   "0x%016llx",
-                   static_cast<unsigned long long>(in_key) );
-
-        return text;
-    }
-
-    bool write_text_file(const std::string& in_path,
-                         const std::string& in_text)
-    {
-        FILE*      file_ptr = ::fopen(in_path.c_str(),
-                                      "wb");
-        const bool result   = (file_ptr != nullptr);
-
-        if (result)
-        {
-            ::fwrite(in_text.data(),
-                     1,
-                     in_text.size(),
-                     file_ptr);
-            ::fclose(file_ptr);
-        }
-
-        return result;
-    }
-}
 
 void Stereo::Replay::ConsistencyChecker::OverlayProbe::add_warnings(OverlayProbeEntry* inout_entry_ptr)
 {
@@ -122,6 +41,56 @@ void Stereo::Replay::ConsistencyChecker::OverlayProbe::add_warnings(OverlayProbe
             inout_entry_ptr->warning_vec.push_back("covers_much_of_picture");
         }
     }
+}
+
+bool Stereo::Replay::ConsistencyChecker::OverlayProbe::find_zero_cause(const Options&           in_options,
+                                                                       const Options&           in_probe_options,
+                                                                       const RenderFunc&        in_render_func,
+                                                                       const OverlayProbeEntry& in_entry,
+                                                                       std::string*             out_cause_ptr,
+                                                                       std::string*             out_error_ptr)
+{
+    Options              cut_options       = in_options;
+    Options              cut_probe_options = in_probe_options;
+    Utils::Images::Image with_image;
+    Utils::Images::Image without_image;
+    bool                 result            = false;
+
+    /* The frame is cut after the last call of the draw, so that what it made can be seen before what comes after covers it. */
+    cut_options.has_truncation          = true;
+    cut_options.truncate_draw_key       = in_entry.structure_key;
+    cut_options.truncate_pass_key       = in_entry.pass_key;
+    cut_probe_options.has_truncation    = true;
+    cut_probe_options.truncate_draw_key = in_entry.structure_key;
+    cut_probe_options.truncate_pass_key = in_entry.pass_key;
+
+    if (in_render_func(cut_options,
+                       in_entry.frame_index,
+                      &with_image,
+                       out_error_ptr) == false)
+    {
+        goto end;
+    }
+
+    if (in_render_func(cut_probe_options,
+                       in_entry.frame_index,
+                      &without_image,
+                       out_error_ptr) == false)
+    {
+        goto end;
+    }
+
+    {
+        const auto difference = Utils::Images::ImageComparer::compare(with_image,
+                                                                      without_image);
+
+        *out_cause_ptr = (difference.n_differing_pixels != 0) ? "overdrawn_later"
+                                                              : "not_rasterized";
+    }
+
+    result = true;
+end:
+    return result;
 }
 
 uint32_t Stereo::Replay::ConsistencyChecker::OverlayProbe::get_n_shards(const Options&                        in_options,
@@ -348,8 +317,6 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::parse_candidates(const Op
         }
 
         entry.agreement    = candidate.at         ("agreement").string_value;
-        entry.frame_index  = static_cast<uint32_t>(candidate.at("first_frame_index").number_value);
-        entry.index        = static_cast<uint32_t>(out_entry_vec_ptr->size() );
         entry.live_class   = candidate.at         ("live_class").string_value;
         entry.n_frames     = static_cast<uint64_t>(candidate.at("n_frames").number_value);
         entry.pass_id      = static_cast<uint64_t>(candidate.at("pass_id").number_value);
@@ -369,7 +336,32 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::parse_candidates(const Op
             entry.reason_vec.push_back(reason.string_value);
         }
 
-        out_entry_vec_ptr->push_back(entry);
+        /* The frames to look at: the ones the list says, spread over the frames that the draw is in, or the first of them. */
+        std::vector<uint32_t> frame_index_vec;
+        const auto*           sample_ptr = candidate.find_ptr("sample_frame_indices");
+
+        if (sample_ptr != nullptr)
+        {
+            for (const auto& sample : sample_ptr->item_vec)
+            {
+                frame_index_vec.push_back(static_cast<uint32_t>(sample.number_value) );
+            }
+        }
+        else
+        {
+            frame_index_vec.push_back(static_cast<uint32_t>(candidate.at("first_frame_index").number_value) );
+        }
+
+        for (const auto frame_index : frame_index_vec)
+        {
+            if (frame_index <= in_options.overlay_probe_last_frame)
+            {
+                entry.frame_index = frame_index;
+                entry.index       = static_cast<uint32_t>(out_entry_vec_ptr->size() );
+
+                out_entry_vec_ptr->push_back(entry);
+            }
+        }
     }
 
     result = true;
@@ -465,6 +457,13 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::parse_result_entries(cons
         entry.n_picture_pixels   = static_cast<uint64_t>(item.at("n_picture_pixels").number_value);
         entry.pass_id            = static_cast<uint64_t>(item.at("pass_id").number_value);
         entry.replay_class       = item.at              ("replay_class").string_value;
+
+        const auto* cause_ptr = item.find_ptr("zero_cause");
+
+        if (cause_ptr != nullptr)
+        {
+            entry.zero_cause = cause_ptr->string_value;
+        }
 
         read_depth_spread(item.at("depth"),
                          &entry.depth_spread);
@@ -573,11 +572,13 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::probe_entries(const Optio
             {
                 add_warnings(&entry);
 
+                entry.zero_cause = "pass_makes_no_pixels";
+
                 fprintf(stdout,
                         "%u of %zu: draws %s of the frame %u: the pass makes no pixels, and so neither do they\n",
                         entry.index + 1,
                         inout_entry_vec_ptr->size(),
-                        get_hex_text(entry.structure_key).c_str(),
+                        OverlayReport::get_hex_text(entry.structure_key).c_str(),
                         entry.frame_index);
 
                 continue;
@@ -608,6 +609,19 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::probe_entries(const Optio
 
             add_warnings(&entry);
 
+            if (difference.n_differing_pixels == 0)
+            {
+                if (find_zero_cause(in_options,
+                                    probe_options,
+                                    in_render_func,
+                                    entry,
+                                   &entry.zero_cause,
+                                    out_error_ptr) == false)
+                {
+                    goto end;
+                }
+            }
+
             if (difference.n_differing_pixels != 0)
             {
                 entry.animation_filename = make_image_filename(entry.index,
@@ -631,12 +645,14 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::probe_entries(const Optio
         }
 
         fprintf(stdout,
-                "%u of %zu: draws %s of the frame %u: %llu pixels change without them\n",
+                "%u of %zu: draws %s of the frame %u: %llu pixels change without them%s%s\n",
                 entry.index + 1,
                 inout_entry_vec_ptr->size(),
-                get_hex_text(entry.structure_key).c_str(),
+                OverlayReport::get_hex_text(entry.structure_key).c_str(),
                 entry.frame_index,
-                static_cast<unsigned long long>(entry.n_changed_pixels) );
+                static_cast<unsigned long long>(entry.n_changed_pixels),
+                (entry.zero_cause.empty() ) ? "" : " (",
+                (entry.zero_cause.empty() ) ? "" : (entry.zero_cause + ")").c_str() );
     }
 
     result = true;
@@ -762,7 +778,7 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::run(const Options&       
             goto end;
         }
 
-        if (write_page(in_options.dump_directory,
+        if (OverlayReport::write_page(in_options.dump_directory,
                        entry_vec,
                        out_error_ptr) == false)
         {
@@ -858,6 +874,8 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::write_list(const std::str
         writer.write_string (entry.replay_class);
         writer.write_key    ("live_class");
         writer.write_string (entry.live_class);
+        writer.write_key    ("zero_cause");
+        writer.write_string (entry.zero_cause);
 
         Analysis::APIDumpAnalysis::QueryCommands::write_depth_spread(entry.depth_spread,
                                                                       &writer);
@@ -894,113 +912,13 @@ bool Stereo::Replay::ConsistencyChecker::OverlayProbe::write_list(const std::str
     {
         const std::string& text = writer.get_text();
 
-        is_written = write_text_file(in_filename,
+        is_written = OverlayReport::write_text_file(in_filename,
                                      text);
     }
 
     if (is_written == false)
     {
         *out_error_ptr = "The file " + in_filename + " cannot be written.";
-
-        goto end;
-    }
-
-    result = true;
-end:
-    return result;
-}
-
-bool Stereo::Replay::ConsistencyChecker::OverlayProbe::write_page(const std::string&                    in_directory,
-                                                                  const std::vector<OverlayProbeEntry>& in_entry_vec,
-                                                                  std::string*                          out_error_ptr)
-{
-    std::string page;
-    bool        result = false;
-
-    page = "<!doctype html>\n<html><head><meta charset=\"utf-8\"><title>Overlay candidates</title>\n"
-           "<style>body{font:14px sans-serif;margin:16px;background:#222;color:#ddd}"
-           ".grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}"
-           ".card{background:#333;padding:8px;border-radius:6px}.card img{width:100%;image-rendering:pixelated}"
-           ".card.none{opacity:.55}.card.suspect{outline:2px solid #e55}code{color:#9cf}button{margin-left:6px}"
-           ".badge{display:inline-block;margin:2px 4px 2px 0;padding:1px 6px;border-radius:4px;background:#a33;color:#fff;font-size:12px}</style></head><body>\n"
-           "<h1>Draws that may be 2D overlays</h1>\n"
-           "<p>For each candidate the frame it is first drawn in was replayed (left eye) with it and without it. Each image alternates between the frame as it is and the same frame with what the draws make in magenta (click it for its size; the link below it is a still with the rest dimmed). "
-           "A candidate that changes no pixel is not drawn in that frame (or draws what is hidden). An overlay is flat: its vertices are at one depth, and it makes a part of the "
-           "picture. A red outline is a draw that the recipe leaves alone and that is not like that: <em>deep_depth</em> (the vertices of its pass are at many depths: a 3D scene) "
-           "or <em>covers_much_of_picture</em> (it makes more than two fifths of the picture). Look at the image: if it is the scene, the recipe is wrong.</p>\n"
-           "<p><label>Show: <select id=\"filter\"><option value=\"all\">all</option><option value=\"visible\">changes the picture</option>"
-           "<option value=\"suspect\">to look at twice</option><option value=\"disagree\">the opinions disagree</option></select></label></p>\n<div class=\"grid\">\n";
-
-    for (const auto& entry : in_entry_vec)
-    {
-        const bool is_agreed = (entry.agreement == "both");
-
-        const bool is_suspect = (entry.warning_vec.empty() == false);
-
-        page += "<div class=\"card" + std::string((entry.n_changed_pixels == 0) ? " none" : "") + std::string((is_suspect) ? " suspect" : "") + "\" data-visible=\"" +
-                ((entry.n_changed_pixels != 0) ? "1" : "0") + "\" data-disagree=\"" + ((is_agreed) ? "0" : "1") + "\" data-suspect=\"" + ((is_suspect) ? "1" : "0") + "\">";
-
-        if (entry.animation_filename.empty() == false)
-        {
-            /* The animation shows the frame and the frame with the draws in magenta, by turns; the still dims the rest of the frame. */
-            page += "<a href=\"" + escape_html(entry.animation_filename) + "\"><img src=\"" + escape_html(entry.animation_filename) + "\" loading=\"lazy\"></a>"
-                    "<div><a href=\"" + escape_html(entry.image_filename) + "\">still</a></div>";
-        }
-
-        page += "<div>draw <code>" + get_hex_text(entry.structure_key) + "</code><button onclick=\"navigator.clipboard.writeText('" + get_hex_text(entry.structure_key) +
-                "')\">copy key</button></div>"
-                "<div>frame " + std::to_string(entry.frame_index) + ", in " + std::to_string(entry.n_frames) + " frames, pass " + std::to_string(entry.pass_id) + "</div>"
-                "<div>" + std::to_string(entry.n_changed_pixels) + " pixels change; opinions: " + escape_html(entry.agreement) + " (replay " + escape_html(entry.replay_class) +
-                ", live " + escape_html(entry.live_class) + ")</div>";
-
-        if (entry.n_picture_pixels != 0)
-        {
-            char fraction_text[32];
-
-            ::snprintf(fraction_text,
-                       sizeof(fraction_text),
-                       "%.1f",
-                       100.0 * static_cast<double>(entry.n_changed_pixels) / static_cast<double>(entry.n_picture_pixels) );
-
-            page += "<div>makes " + std::string(fraction_text) + "% of the picture</div>";
-        }
-
-        if (entry.depth_spread.has_depth)
-        {
-            char depth_text[96];
-
-            ::snprintf(depth_text,
-                       sizeof(depth_text),
-                       "vertices of its pass: depth %.1f to %.1f, %.2f times (%s)",
-                       entry.depth_spread.depth_near,
-                       entry.depth_spread.depth_far,
-                       entry.depth_spread.far_to_near_ratio,
-                       (entry.depth_spread.is_flat) ? "flat" : "deep");
-
-            page += "<div>" + std::string(depth_text) + "</div>";
-        }
-
-        for (const auto& warning : entry.warning_vec)
-        {
-            page += "<span class=\"badge\">" + escape_html(warning) + "</span>";
-        }
-
-        for (const auto& reason : entry.reason_vec)
-        {
-            page += "<div>- " + escape_html(reason) + "</div>";
-        }
-
-        page += "</div>\n";
-    }
-
-    page += "</div>\n<script>document.getElementById('filter').onchange=function(){var v=this.value;"
-            "document.querySelectorAll('.card').forEach(function(c){c.style.display=(v=='all'||(v=='visible'&&c.dataset.visible=='1')||(v=='suspect'&&c.dataset.suspect=='1')||(v=='disagree'&&c.dataset.disagree=='1'))?'':'none';});};"
-            "</script></body></html>\n";
-
-    if (write_text_file(in_directory + "/index.html",
-                        page) == false)
-    {
-        *out_error_ptr = "The file index.html cannot be written to " + in_directory + ".";
 
         goto end;
     }

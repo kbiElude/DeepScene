@@ -273,3 +273,16 @@ TEST(CheckerCommandLineTest, TheUsageSaysWhatTheToolIs)
     EXPECT_NE(usage.find("--jobs"),
               std::string::npos);
 }
+
+TEST(CheckerCommandLineTest, TheLastFrameThatTheOverlayProbeLooksAtIsRead)
+{
+    std::string                                 error;
+    Stereo::Replay::ConsistencyChecker::Options options;
+
+    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::CommandLine::parse({"a.workload", "--overlay-probe", "c.json", "--recipe", "r.json", "--dump-dir", "out", "--overlay-probe-last-frame", "6200"},
+                                                                       &options,
+                                                                       &error) ) << error;
+
+    EXPECT_EQ(options.overlay_probe_last_frame,
+              6200u);
+}

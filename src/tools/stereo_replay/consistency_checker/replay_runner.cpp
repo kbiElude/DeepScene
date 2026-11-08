@@ -97,6 +97,10 @@ bool Stereo::Replay::ConsistencyChecker::run_variant(const Stereo::Replay::Consi
     execution_options.mode           = in_variant.mode;
     execution_options.restores_state = in_variant.restores_state;
 
+    execution_options.truncate_draw_key    = in_options.truncate_draw_key;
+    execution_options.truncate_pass_key    = in_options.truncate_pass_key;
+    execution_options.truncates_after_draw = in_options.has_truncation;
+
     {
         auto* const                                      controller_ptr = engine_ptr->get_playback_controller_ptr();
         Stereo::Replay::ConsistencyChecker::StopObserver observer       (controller_ptr,

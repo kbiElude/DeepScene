@@ -36,6 +36,9 @@ namespace Analysis
                                    const Analysis::Recipe::Recipe&      in_recipe,
                                    Utils::Json::JsonWriter*             inout_writer_ptr);
 
+            /* The frames of a draw to look at it in, from all the frames it is in: the first, the middle one and the last (one frame, or two, if that is all there are). */
+            static std::vector<uint64_t> get_sample_frame_index_vec(const std::vector<uint64_t>& in_frame_index_vec);
+
         private:
             /* What the converter does with the draws of the signature, for each of the cameras of the pass; a pass with no camera has one with no numbers in it. */
             static LiveClass get_live_class(const Analysis::Recipe::RecipeApplier&           in_applier,

@@ -41,10 +41,12 @@ namespace Stereo
                 uint64_t                                   signature_key    = 0;
                 uint64_t                                   structure_key    = 0;
                 std::vector<std::string>                   warning_vec;                 /* what makes a person look twice at a draw that the recipe leaves alone */
+                std::string                                zero_cause;                  /* a draw that changes no pixel: overdrawn_later (it makes pixels when it is drawn, which what comes after covers), not_rasterized
+                                                                                         * (it makes none then), or pass_makes_no_pixels; empty if it changes pixels, or the cause was not looked for */
             };
 
-            /* Finds out which of the draws that may be 2D overlays (the list of RecipeBake --overlays) are drawn in the picture: the frame in which a candidate is
-             * first seen is replayed twice for the left eye, with the draw and with the draw left out (the recipe skips it in its pass only), and the images are compared. The result
+            /* Finds out which of the draws that may be 2D overlays (the list of RecipeBake --overlays) are drawn in the picture: some of the frames of a candidate (the
+             * list says which, or its first frame is the one) are each replayed twice for the left eye, with the draw and with the draw left out (the recipe skips it in its pass only), and the images are compared. The result
              * is a directory with an image for each candidate that changes the picture (the frame as it is, the pixels that the draw makes in magenta), a list
              * of them as JSON and a page that shows them.
              */
@@ -73,6 +75,15 @@ namespace Stereo
             private:
                 /* Says what to look at twice in a candidate that the recipe leaves alone: vertices at many depths, and a picture that is mostly its own. */
                 static void add_warnings(OverlayProbeEntry* inout_entry_ptr);
+
+                /* Why a draw that left out changes no pixel: the frame is cut after its last call, with the draw and without it. If the two images differ the draw makes pixels
+                 * when it is drawn and what comes after covers them (overdrawn_later); if they do not, it makes none then (not_rasterized). */
+                static bool find_zero_cause(const Options&           in_options,
+                                            const Options&           in_probe_options,
+                                            const RenderFunc&        in_render_func,
+                                            const OverlayProbeEntry& in_entry,
+                                            std::string*             out_cause_ptr,
+                                            std::string*             out_error_ptr);
 
                 /* How many parts the work has: the jobs, but no more than there are groups of draws (a pass in a frame) to look at. */
                 static uint32_t get_n_shards(const Options&                        in_options,
@@ -127,9 +138,6 @@ namespace Stereo
                                        const std::vector<OverlayProbeEntry>& in_entry_vec,
                                        std::string*                          out_error_ptr);
 
-                static bool write_page(const std::string&                    in_directory,
-                                       const std::vector<OverlayProbeEntry>& in_entry_vec,
-                                       std::string*                          out_error_ptr);
             };
         }
     }

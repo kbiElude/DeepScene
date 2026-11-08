@@ -451,9 +451,11 @@ TEST(OverlayProbe, APassWhichMakesNoDifferenceLeftOutWholeIsLeftOutOnceForAllIts
                                                                       NO_SHARDS,
                                                                      &error) ) << error;
 
-    /* The frame as it is, the pass, and each of the two draws. */
+    /* The frame as it is, the pass, and each of the two draws, and for the draw that changes nothing the two replays that say why (the frame cut after it, with it and
+     * without it).
+     */
     EXPECT_EQ(visible_record.shard_frame_vec.size(),
-              4u);
+              6u);
     EXPECT_FALSE(read_text_file(options.dump_directory + "\\candidate_000_frame_7.png").empty() );
     EXPECT_TRUE (read_text_file(options.dump_directory + "\\candidate_001_frame_7.png").empty() );
 }
@@ -532,7 +534,211 @@ TEST(OverlayProbe, ThePassesOfOneFrameAreSharedBetweenThePartsTooAndTheDrawsOfOn
     EXPECT_EQ(list.find("candidate_004"), std::string::npos) << list;
     EXPECT_EQ(list.find("candidate_005"), std::string::npos) << list;
 
-    /* The replays add up: a draw each of the four passes (four), the pass of two draws (one), and the frame as it is, once in each of the two parts. */
+    /* The replays add up: a draw each of the four passes (four, and two more for each of them that says why it changes nothing), the pass of two draws (one), and the
+     * frame as it is, once in each of the two parts.
+     */
     EXPECT_EQ(record.shard_frame_vec.size(),
-              7u);
+              15u);
+}
+
+namespace
+{
+    constexpr uint64_t    BLANK_KEY  = 0x4444;
+    constexpr const char* BLANK_TEXT = "0x0000000000004444";
+
+    /* A picture in which the hidden draw makes a pixel when the frame is cut after it, and the scene covers that pixel when the frame is whole; and the blank draw makes
+     * nothing in either. The HUD makes its pixel in both.
+     */
+    bool render_with_causes(const Stereo::Replay::ConsistencyChecker::Options& in_options,
+                            const uint32_t&                                    in_frame_index,
+                            Utils::Images::Image*                              out_image_ptr,
+                            std::string*                                       out_error_ptr)
+    {
+        bool is_hidden_skipped = false;
+
+        for (const auto& pass_draw : in_options.recipe.skipped.pass_draw_vec)
+        {
+            is_hidden_skipped = (is_hidden_skipped || pass_draw.draw_key == 0x2222);
+        }
+
+        out_image_ptr->height       = 2;
+        out_image_ptr->width        = 4;
+        out_image_ptr->pixel_u8_vec = std::vector<uint8_t>(4 * 2 * 4,
+                                                           100);
+
+        /* Drawn, and then covered when the frame goes on: only the cut frame has it. */
+        if (in_options.has_truncation   &&
+            in_options.truncate_draw_key == 0x2222 &&
+            is_hidden_skipped            == false)
+        {
+            out_image_ptr->pixel_u8_vec.at(7 * 4) = 250;
+        }
+
+        (void) in_frame_index;
+        (void) out_error_ptr;
+
+        return true;
+    }
+
+    /* A candidate that says which frames to look at. */
+    std::string make_sampled_candidate(const char*        in_structure_key_ptr,
+                                       const std::string& in_frames_text,
+                                       const char*        in_pass_key_ptr = MAIN_PASS_TEXT)
+    {
+        return std::string("{\"signature_key\":\"0x00000000000000aa\",\"structure_key\":\"") + in_structure_key_ptr + "\",\"pass_id\":1,\"pass_key\":\"" + in_pass_key_ptr +
+               "\",\"n_frames\":3,\"first_frame_index\":" + in_frames_text.substr(0,
+                                                                                   in_frames_text.find(',') ) + ",\"sample_frame_indices\":[" + in_frames_text +
+               "],\"agreement\":\"heuristic_only\",\"replay_class\":\"affected\",\"live_class\":\"affected\",\"reasons\":[\"orthographic_projection\"]}";
+    }
+}
+
+TEST(OverlayProbe, ADrawThatChangesNothingSaysWhetherItMakesPixelsAtAllOrWhatComesAfterCoversThem)
+{
+    Tests::TempDirectory                        directory;
+    Stereo::Replay::ConsistencyChecker::Options options;
+    std::string                                 error;
+
+    write_text_file(directory.get_path() + "\\candidates_in.json",
+                    "{\"candidates\":[" + make_candidate("0x0000000000002222", true, std::string(), "0x0000000000000011") + "," +
+                                         make_candidate(BLANK_TEXT,            true, std::string(), "0x0000000000000012") + "," +
+                                         make_candidate(HUD_TEXT,              true, std::string(), "0x0000000000000013") + "]}");
+
+    options.dump_directory         = directory.get_path() + "\\out";
+    options.overlay_probe_filename = directory.get_path() + "\\candidates_in.json";
+
+    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayProbe::run(options,
+                                                                      render_with_causes,
+                                                                      NO_SHARDS,
+                                                                     &error) ) << error;
+
+    const std::string list = read_text_file(options.dump_directory + "\\candidates.json");
+    const std::string page = read_text_file(options.dump_directory + "\\index.html");
+
+    EXPECT_NE(list.find("\"zero_cause\": \"overdrawn_later\""), std::string::npos) << list;
+    EXPECT_NE(list.find("\"zero_cause\": \"not_rasterized\""), std::string::npos) << list;
+    EXPECT_NE(page.find("what is drawn after it covers them"),  std::string::npos);
+    EXPECT_NE(page.find("It makes no pixels when it is drawn"), std::string::npos);
+    EXPECT_NE(page.find("data-status=\"overdrawn_later\""),     std::string::npos);
+    EXPECT_NE(page.find("data-status=\"not_rasterized\""),      std::string::npos);
+}
+
+TEST(OverlayProbe, ADrawThatMakesPixelsHasNoCauseOfNone)
+{
+    Tests::TempDirectory                        directory;
+    Stereo::Replay::ConsistencyChecker::Options options;
+    std::string                                 error;
+
+    write_text_file(directory.get_path() + "\\candidates_in.json",
+                    "{\"candidates\":[" + make_candidate(HUD_TEXT, true) + "]}");
+
+    options.dump_directory         = directory.get_path() + "\\out";
+    options.overlay_probe_filename = directory.get_path() + "\\candidates_in.json";
+
+    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayProbe::run(options,
+                                                                      render,
+                                                                      NO_SHARDS,
+                                                                     &error) ) << error;
+
+    EXPECT_NE(read_text_file(options.dump_directory + "\\candidates.json").find("\"zero_cause\": \"\""),
+              std::string::npos);
+}
+
+TEST(OverlayProbe, ACandidateIsLookedAtInEachOfTheFramesThatTheListSays)
+{
+    Tests::TempDirectory                        directory;
+    Stereo::Replay::ConsistencyChecker::Options options;
+    ReplayRecord                                record;
+    std::string                                 error;
+
+    write_text_file(directory.get_path() + "\\candidates_in.json",
+                    "{\"candidates\":[" + make_sampled_candidate(HUD_TEXT, "7,9,12") + "]}");
+
+    options.dump_directory         = directory.get_path() + "\\out";
+    options.overlay_probe_filename = directory.get_path() + "\\candidates_in.json";
+
+    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayProbe::run(options,
+                                                                      make_recording_render_func(&record),
+                                                                      NO_SHARDS,
+                                                                     &error) ) << error;
+
+    const std::string list = read_text_file(options.dump_directory + "\\candidates.json");
+
+    /* Three entries of the one draw, in three frames. */
+    EXPECT_NE(list.find("\"probed_frame_index\": 7"),  std::string::npos) << list;
+    EXPECT_NE(list.find("\"probed_frame_index\": 9"),  std::string::npos) << list;
+    EXPECT_NE(list.find("\"probed_frame_index\": 12"), std::string::npos) << list;
+    EXPECT_NE(list.find("candidate_002_frame_12.png"), std::string::npos) << list;
+}
+
+TEST(OverlayProbe, TheFramesAfterTheLastOneThatTheOptionsSayAreNotLookedAt)
+{
+    Tests::TempDirectory                        directory;
+    Stereo::Replay::ConsistencyChecker::Options options;
+    std::string                                 error;
+
+    write_text_file(directory.get_path() + "\\candidates_in.json",
+                    "{\"candidates\":[" + make_sampled_candidate(HUD_TEXT, "7,9,12") + "]}");
+
+    options.dump_directory           = directory.get_path() + "\\out";
+    options.overlay_probe_filename   = directory.get_path() + "\\candidates_in.json";
+    options.overlay_probe_last_frame = 9;
+
+    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayProbe::run(options,
+                                                                      render,
+                                                                      NO_SHARDS,
+                                                                     &error) ) << error;
+
+    const std::string list = read_text_file(options.dump_directory + "\\candidates.json");
+
+    EXPECT_NE(list.find("\"probed_frame_index\": 9"),  std::string::npos) << list;
+    EXPECT_EQ(list.find("\"probed_frame_index\": 12"), std::string::npos) << list;
+}
+
+TEST(OverlayProbe, ThePageHasAListOfTheDrawsAndASectionForEachWithItsFramesOneAfterTheOther)
+{
+    Tests::TempDirectory                        directory;
+    Stereo::Replay::ConsistencyChecker::Options options;
+    std::string                                 error;
+
+    /* The scene is first seen after the HUD; each is looked at in three frames. */
+    write_text_file(directory.get_path() + "\\candidates_in.json",
+                    "{\"candidates\":[" + make_sampled_candidate(SCENE_TEXT, "20,30,40") + "," +
+                                         make_sampled_candidate(HUD_TEXT,   "7,9,12")   + "]}");
+
+    options.dump_directory         = directory.get_path() + "\\out";
+    options.overlay_probe_filename = directory.get_path() + "\\candidates_in.json";
+
+    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayProbe::run(options,
+                                                                      render,
+                                                                      NO_SHARDS,
+                                                                     &error) ) << error;
+
+    const std::string page = read_text_file(options.dump_directory + "\\index.html");
+
+    /* A link to each draw on the left, and the section it goes to. */
+    EXPECT_NE(page.find(std::string("href=\"#d-") + HUD_TEXT   + "\""), std::string::npos);
+    EXPECT_NE(page.find(std::string("href=\"#d-") + SCENE_TEXT + "\""), std::string::npos);
+    EXPECT_NE(page.find(std::string("<section class=\"group\" id=\"d-") + HUD_TEXT   + "\""), std::string::npos);
+    EXPECT_NE(page.find(std::string("<section class=\"group\" id=\"d-") + SCENE_TEXT + "\""), std::string::npos);
+
+    /* The draws are in the order they are first seen in: the HUD (frame 7) before the scene (frame 20), in the list and in the report. */
+    EXPECT_LT(page.find(std::string("href=\"#d-") + HUD_TEXT + "\""),
+              page.find(std::string("href=\"#d-") + SCENE_TEXT + "\""));
+    EXPECT_LT(page.find(std::string("<section class=\"group\" id=\"d-") + HUD_TEXT + "\""),
+              page.find(std::string("<section class=\"group\" id=\"d-") + SCENE_TEXT + "\""));
+
+    /* The frames of a draw come one after the other in the order of time. */
+    const size_t section_start = page.find(std::string("<section class=\"group\" id=\"d-") + SCENE_TEXT + "\"");
+    const size_t frame_20      = page.find("frame 20,", section_start);
+    const size_t frame_30      = page.find("frame 30,", section_start);
+    const size_t frame_40      = page.find("frame 40,", section_start);
+
+    ASSERT_NE(frame_20, std::string::npos);
+    ASSERT_NE(frame_30, std::string::npos);
+    ASSERT_NE(frame_40, std::string::npos);
+
+    EXPECT_LT(frame_20,
+              frame_30);
+    EXPECT_LT(frame_30,
+              frame_40);
 }

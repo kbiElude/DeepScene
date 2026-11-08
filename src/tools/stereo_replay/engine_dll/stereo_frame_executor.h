@@ -110,6 +110,8 @@ namespace Stereo
                 /* The calls of the draws that the recipe leaves out and which come before the call of the draw (the glBegin and the vertices of a block that a
                  * glEnd makes a draw of) are left out with it: a primitive is drawn as its vertices are given, and a draw that only loses its glEnd is still seen.
                  */
+                /* The call after which the frame is cut (see FrameExecutionOptions::truncates_after_draw): the last call of the draws of the structure in the pass. */
+                void find_truncation_call    (const Analysis::APIDumpAnalysis::CompletedFrame& in_frame);
                 void find_skipped_call_ranges(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame);
                 bool get_eye_history_need    (const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
                                               bool*                                            out_needs_history_ptr,
@@ -134,6 +136,7 @@ namespace Stereo
                 std::unique_ptr<Analysis::Recipe::RecipeApplier>                       m_recipe_applier_ptr;
                 std::unique_ptr<FrameRewriter>                                         m_rewriter_ptr;
                 std::unique_ptr<Analysis::APIDumpAnalysis::Frontends::AnalysisSession> m_session_ptr;
+                uint64_t                                                               m_truncate_after_call; /* of the frame being played: the calls after it are left out; UINT64_MAX: none */
                 std::vector<std::pair<uint64_t, uint64_t> >                            m_skipped_call_range_vec; /* of the frame being played: from the first call to the last, in order */
             };
         }

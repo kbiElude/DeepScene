@@ -226,3 +226,56 @@ TEST(OverlayCandidateFinderCommandLine, OverlaysNeedsARecipeAndAPassesFileAndIsN
                                                          &options,
                                                          &error) );
 }
+
+TEST(OverlayCandidateFinder, TheFramesToLookAtAreTheFirstTheMiddleAndTheLastOfTheFramesTheDrawIsIn)
+{
+    using Analysis::RecipeBake::OverlayCandidateFinder;
+
+    EXPECT_TRUE(OverlayCandidateFinder::get_sample_frame_index_vec({}).empty() );
+    EXPECT_EQ  (OverlayCandidateFinder::get_sample_frame_index_vec({5}),
+                (std::vector<uint64_t>{5}) );
+    EXPECT_EQ  (OverlayCandidateFinder::get_sample_frame_index_vec({5, 9}),
+                (std::vector<uint64_t>{5, 9}) );
+    EXPECT_EQ  (OverlayCandidateFinder::get_sample_frame_index_vec({5, 9, 12}),
+                (std::vector<uint64_t>{5, 9, 12}) );
+    EXPECT_EQ  (OverlayCandidateFinder::get_sample_frame_index_vec({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}),
+                (std::vector<uint64_t>{1, 6, 11}) );
+}
+
+TEST(OverlayCandidateFinder, TheCandidatesSayWhichFramesToLookAtThemIn)
+{
+    Analysis::APIDumpAnalysis::AnalysisResult analysis;
+    Tests::ModelTestHelper                    helper;
+    const auto                                swapchain_image = helper.create_swapchain_image();
+    Analysis::Recipe::Recipe                  recipe;
+
+    /* Five frames of the same pass, with a camera that never changes: the draw is a candidate by the hint of the analysis. */
+    for (uint32_t n_frame = 0;
+                  n_frame < 5;
+                ++n_frame)
+    {
+        helper.bind     (swapchain_image);
+        helper.set_view_matrix(1);
+        helper.draw     (1);
+        helper.end_frame();
+    }
+
+    analysis.model = helper.get_model();
+
+    const auto candidate_vec = Analysis::RecipeBake::OverlayCandidateFinder::find(recipe,
+                                                                                  analysis);
+
+    ASSERT_FALSE(candidate_vec.empty() );
+
+    EXPECT_EQ(candidate_vec.at(0).sample_frame_index_vec,
+              (std::vector<uint64_t>{0, 2, 4}) );
+
+    Utils::Json::JsonWriter writer(true);
+
+    Analysis::RecipeBake::OverlayCandidateFinder::write_json(candidate_vec,
+                                                             recipe,
+                                                            &writer);
+
+    EXPECT_NE(writer.get_text().find("\"sample_frame_indices\": [0, 2, 4]"),
+              std::string::npos) << writer.get_text();
+}

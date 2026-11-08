@@ -18,7 +18,8 @@ Stereo::Replay::EngineDLL::StereoFrameExecutor::StereoFrameExecutor()
      m_host_ptr            (nullptr),
      m_hurry_ptr           (nullptr),
      m_image_sink_ptr      (nullptr),
-     m_slice_skipper_ptr   (nullptr)
+     m_slice_skipper_ptr   (nullptr),
+     m_truncate_after_call (UINT64_MAX)
 {
     /* Stub */
 }
@@ -253,9 +254,17 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_buffered_frame(cons
 
     m_skipped_call_range_vec.clear();
 
+    m_truncate_after_call = UINT64_MAX;
+
     if (is_rewritten)
     {
         find_skipped_call_ranges(m_session_ptr->get_completed_frame() );
+
+        if (m_frame_execution.truncates_after_draw &&
+            in_n_frame == m_frame_execution.last_frame)
+        {
+            find_truncation_call(m_session_ptr->get_completed_frame() );
+        }
     }
 
     /* The device is as the calls of a frame played as they are leave it, not as the binder believes. */
@@ -622,6 +631,21 @@ void Stereo::Replay::EngineDLL::StereoFrameExecutor::find_skipped_call_ranges(co
     }
 }
 
+void Stereo::Replay::EngineDLL::StereoFrameExecutor::find_truncation_call(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame)
+{
+    for (const auto& draw : in_frame.draw_instance_vec)
+    {
+        const uint64_t pass_key = in_frame.pass_key_vec.at(draw.pass_index);
+
+        if (pass_key             == m_frame_execution.truncate_pass_key &&
+            draw.structure_key   == m_frame_execution.truncate_draw_key)
+        {
+            /* The last of them: the draws are in the order of the calls. */
+            m_truncate_after_call = draw.call_index;
+        }
+    }
+}
+
 bool Stereo::Replay::EngineDLL::StereoFrameExecutor::get_eye_history_need(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
                                                                           bool*                                            out_needs_history_ptr,
                                                                           std::string*                                     out_error_ptr) const
@@ -698,6 +722,13 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::is_call_skipped(const uint6
         const auto& range = *(range_iterator - 1);
 
         result = (in_call_index <= range.second);
+    }
+
+    /* What comes after the call that the frame is cut at. */
+    if (m_truncate_after_call != UINT64_MAX &&
+        in_call_index          > m_truncate_after_call)
+    {
+        result = true;
     }
 
     return result;

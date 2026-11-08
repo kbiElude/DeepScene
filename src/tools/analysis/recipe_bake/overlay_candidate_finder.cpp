@@ -39,6 +39,10 @@ std::vector<Analysis::RecipeBake::OverlayCandidate> Analysis::RecipeBake::Overla
                                                                                                        &first_frame_index);
         const auto& structure         = model_ref.pass_structure_interner.get_structure                (n_pass);
 
+        const auto frame_index_vec        = Analysis::APIDumpAnalysis::QueryCommands::get_frame_index_vec(in_analysis,
+                                                                                                          n_pass);
+        const auto sample_frame_index_vec = get_sample_frame_index_vec(frame_index_vec);
+
         const auto depth_spread      = Analysis::APIDumpAnalysis::QueryCommands::get_pass_depth_spread(in_analysis,
                                                                                                        n_pass);
         const bool is_static_camera  = (static_pass_id_set.count(n_pass) != 0);
@@ -54,6 +58,7 @@ std::vector<Analysis::RecipeBake::OverlayCandidate> Analysis::RecipeBake::Overla
 
             candidate.depth_spread         = depth_spread;
             candidate.first_frame_index    = first_frame_index;
+            candidate.sample_frame_index_vec = sample_frame_index_vec;
             candidate.has_first_frame      = has_first_frame;
             candidate.is_replay_skipped    = is_skipped;
             candidate.is_replay_unaffected = (is_replay_affected == false &&
@@ -333,6 +338,31 @@ const char* Analysis::RecipeBake::OverlayCandidateFinder::get_live_class_name(co
     return result_ptr;
 }
 
+std::vector<uint64_t> Analysis::RecipeBake::OverlayCandidateFinder::get_sample_frame_index_vec(const std::vector<uint64_t>& in_frame_index_vec)
+{
+    std::vector<uint64_t> result_vec;
+
+    if (in_frame_index_vec.empty() == false)
+    {
+        result_vec.push_back(in_frame_index_vec.front() );
+
+        const uint64_t middle_frame = in_frame_index_vec.at(in_frame_index_vec.size() / 2);
+        const uint64_t last_frame   = in_frame_index_vec.back();
+
+        if (middle_frame != result_vec.back() )
+        {
+            result_vec.push_back(middle_frame);
+        }
+
+        if (last_frame != result_vec.back() )
+        {
+            result_vec.push_back(last_frame);
+        }
+    }
+
+    return result_vec;
+}
+
 void Analysis::RecipeBake::OverlayCandidateFinder::write_json(const std::vector<OverlayCandidate>& in_candidate_vec,
                                                               const Analysis::Recipe::Recipe&      in_recipe,
                                                               Utils::Json::JsonWriter*             inout_writer_ptr)
@@ -369,6 +399,16 @@ void Analysis::RecipeBake::OverlayCandidateFinder::write_json(const std::vector<
             inout_writer_ptr->write_key("first_frame_index");
             inout_writer_ptr->write_u64(candidate.first_frame_index);
         }
+
+        inout_writer_ptr->write_key("sample_frame_indices");
+        inout_writer_ptr->begin_inline_array();
+
+        for (const auto frame_index : candidate.sample_frame_index_vec)
+        {
+            inout_writer_ptr->write_u64(frame_index);
+        }
+
+        inout_writer_ptr->end_array();
 
         inout_writer_ptr->write_key   ("agreement");
         inout_writer_ptr->write_string(get_agreement_name(candidate.agreement) );
