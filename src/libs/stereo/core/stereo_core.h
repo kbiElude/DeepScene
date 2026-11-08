@@ -20,6 +20,7 @@
 #include "analysis/recipe/recipe_applier.h"
 #include "common/api_function_argument.h"
 #include "stereo/core/convergence_model.h"
+#include "stereo/core/depth_buffer_statistics.h"
 #include "stereo/core/matrix_slots.h"
 #include "stereo/core/screen_parallax_planner.h"
 #include "stereo/core/types.h"
@@ -63,6 +64,8 @@ namespace Stereo
             /* What was set (see set_convergence_distance()); 0 if the recipe's distances are in use. */
             float                        get_convergence_distance() const;
             float                        get_depth_strength      () const;
+            float                        get_effective_convergence_distance() const;
+            float                        get_effective_eye_separation      () const;
             float                        get_eye_separation      () const;
             float                        get_ipd_scale           () const;
             bool                         get_is_overlay_pushed   () const;
@@ -76,6 +79,23 @@ namespace Stereo
              * distance the matrix is the translation alone.
              */
             std::array<float, 16> make_eye_shift_matrix(const Analysis::Recipe::Eye& in_eye) const;
+
+            /* How near the camera a draw is to be taken for attached to it, as a part of the distance at which the eyes converge (see Comfort::camera_attached_depth); 0: none. */
+            float get_camera_attached_depth() const;
+
+            /* Which part of the surfaces of a scene counts as its nearest (see Comfort::near_fraction). */
+            float get_near_fraction() const;
+
+            /* Whether the recipe has the converter measure how deep each frame is (see Comfort::measures_depth). */
+            bool get_measures_depth() const;
+
+            /* How deep the frame that the application has just presented was, from its depth buffer (see DepthBufferStatistics), and the x scale of its projection: the eyes follow
+             * where the comfort of the recipe (see RecipeApplier::get_comfort_limits()) has them converge and how far apart they may be for that, what the recipe says of the shape
+             * of the frame winning, in place of what is baked for the shape (see on_frame_completed()). Returns false, and does nothing, if there is no depth in the range.
+             */
+            bool on_frame_depth(const uint64_t&   in_shape_key,
+                                const DepthRange& in_depth_range,
+                                const float&      in_projection_scale);
 
             /* The frame that the application has just presented was of this shape (see CompletedFrame::shape_key). If the recipe has a
              * distance at which the eyes converge for it (see Recipe::scene_convergence_vec), the draws from now on converge there, by

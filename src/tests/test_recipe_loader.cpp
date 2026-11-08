@@ -1172,6 +1172,79 @@ TEST_F(RecipeLoaderTest, TheComfortOfARecipeIsReadAndWhatIsWrongInItIsRefused)
                    "comfort: expected an object");
 }
 
+TEST_F(RecipeLoaderTest, TheComfortOfTheRecipeHasAFarLimitTheBalanceOfTheConvergenceAndWhatIsSaidOfSingleScenes)
+{
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"comfort\": {\"balance_convergence\": true, \"max_far_parallax\": 0.01, \"max_near_parallax\": 0.015,"
+                                                                       " \"scene_overrides\": ["
+                                                                       "{\"shape\": \"0x00000000000000a1\", \"convergence_distance\": 300, \"max_separation\": 4},"
+                                                                       "{\"shape\": \"0x00000000000000a2\", \"max_far_parallax\": 0.02, \"max_near_parallax\": 0.03}]},",
+                                                                       ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_TRUE    (recipe.comfort.balances_convergence);
+    EXPECT_FLOAT_EQ(recipe.comfort.max_far_parallax,
+                    0.01f);
+    EXPECT_FLOAT_EQ(recipe.comfort.max_near_parallax,
+                    0.015f);
+    ASSERT_EQ      (recipe.comfort.scene_override_vec.size(),
+                    2u);
+    EXPECT_EQ      (recipe.comfort.scene_override_vec.at(0).shape_key,
+                    0xA1u);
+    EXPECT_FLOAT_EQ(recipe.comfort.scene_override_vec.at(0).convergence_distance,
+                    300.0f);
+    EXPECT_FLOAT_EQ(recipe.comfort.scene_override_vec.at(0).max_separation,
+                    4.0f);
+    EXPECT_FLOAT_EQ(recipe.comfort.scene_override_vec.at(0).max_far_parallax,
+                    0.0f);
+    EXPECT_FLOAT_EQ(recipe.comfort.scene_override_vec.at(1).max_far_parallax,
+                    0.02f);
+    EXPECT_FLOAT_EQ(recipe.comfort.scene_override_vec.at(1).max_near_parallax,
+                    0.03f);
+
+    /* Without them nothing is balanced, limited at the far side, or said of a scene. */
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"comfort\": {\"max_near_parallax\": 0.03},",
+                                                                       ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_FALSE   (recipe.comfort.balances_convergence);
+    EXPECT_FLOAT_EQ(recipe.comfort.max_far_parallax,
+                    0.0f);
+    EXPECT_TRUE    (recipe.comfort.scene_override_vec.empty() );
+
+    expect_refused(get_recipe_text("\"comfort\": {\"balance_convergence\": 1},",
+                                   ""),
+                   "comfort.balance_convergence");
+    expect_refused(get_recipe_text("\"comfort\": {\"max_far_parallax\": 0},",
+                                   ""),
+                   "comfort.max_far_parallax");
+    expect_refused(get_recipe_text("\"comfort\": {\"max_far_parallax\": 2},",
+                                   ""),
+                   "comfort.max_far_parallax");
+    expect_refused(get_recipe_text("\"comfort\": {\"scene_overrides\": 3},",
+                                   ""),
+                   "comfort.scene_overrides: expected an array");
+    expect_refused(get_recipe_text("\"comfort\": {\"scene_overrides\": [{\"max_separation\": 1}]},",
+                                   ""),
+                   "comfort.scene_overrides[0].shape is missing");
+    expect_refused(get_recipe_text("\"comfort\": {\"scene_overrides\": [{\"shape\": \"0x0000000000000001\", \"max_separation\": -1}]},",
+                                   ""),
+                   "comfort.scene_overrides[0].max_separation");
+    expect_refused(get_recipe_text("\"comfort\": {\"scene_overrides\": [{\"shape\": \"0x0000000000000001\", \"max_near_parallax\": 3}]},",
+                                   ""),
+                   "comfort.scene_overrides[0].max_near_parallax");
+    expect_refused(get_recipe_text("\"comfort\": {\"scene_overrides\": [{\"shape\": \"0x0000000000000001\"}, {\"shape\": \"0x0000000000000001\"}]},",
+                                   ""),
+                   "the scene is said twice");
+    expect_refused(get_recipe_text("\"comfort\": {\"scene_overrides\": [{\"shape\": \"0x0000000000000001\", \"strength\": 1}]},",
+                                   ""),
+                   "unknown field \"strength\"");
+}
+
 TEST_F(RecipeLoaderTest, BakedSceneSeparationLimitsAreReadAndWhatIsWrongInThemIsRefused)
 {
     std::string              error;

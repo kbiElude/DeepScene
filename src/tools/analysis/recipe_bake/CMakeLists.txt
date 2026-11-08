@@ -4,7 +4,7 @@ file(GLOB Sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
 
 add_executable(RecipeBake ${Sources})
 
-target_link_libraries(RecipeBake Analysis)
+target_link_libraries(RecipeBake Analysis Stereo)
 
 set_architecture_name(RecipeBake)
 

@@ -9,6 +9,7 @@ const char* Analysis::RecipeBake::CommandLine::get_usage_ptr()
     return "Usage: RecipeBake drive:\\path\\to\\recipe.json drive:\\path\\to\\file.passes [--deps file.deps] [-o baked.json]\n"
            "       RecipeBake --check drive:\\path\\to\\recipe.json drive:\\path\\to\\file.passes\n"
            "       RecipeBake --overlays drive:\\path\\to\\recipe.json drive:\\path\\to\\file.passes\n"
+           "       RecipeBake --scenes drive:\\path\\to\\recipe.json drive:\\path\\to\\file.passes [--screen-degrees 90]\n"
            "Bakes a recipe: writes into it what a converter which plays the application as it runs can know of each draw when the draw\n"
            "is issued, worked out from the analysis of the application (see APIDumpAnalysisExtractor). The recipe is written again in\n"
            "the formatting of this program; -o writes another file instead of replacing the recipe.\n"
@@ -26,6 +27,9 @@ const char* Analysis::RecipeBake::CommandLine::get_usage_ptr()
            "keys of the draw and of its pass, and as a converter which plays the application as it runs asks it, by the signature of the draw over the cameras of its pass)\n"
            "or if the camera of its pass never changes (the hint of APIDumpAnalysisQuery overlays); \"agreement\" says which of the two think so. \"depth\" says how deep the\n"
            "vertices of its pass are: a flat one is an overlay, and one of many depths is a 3D scene seen from one place.\n"
+           "--scenes writes nothing: it prints, as JSON, each scene (kind of frame) that has depth: where its frames are (the runs of frames that follow one another, the cuts), where the eyes converge\n"
+           "and how far apart they may be with the recipe as it is (its comfort, and what it says of the scene), and what that makes of the parallax of the nearest and of the farthest surfaces as a part of\n"
+           "the width of the picture and as an angle on a screen that is --screen-degrees wide (the log of the headset says it), at the strength 1 that the player starts with.\n"
            "\n"
            "Exit codes: 0 done, 1 bad arguments, 2 a file cannot be read, 3 the recipe cannot be baked, 4 the file cannot be written, 5 (--check) the recipe\n"
            "does not know all of the workload, 6 (--check) it knows it but leaves alone what looks like a 3D scene, or what a replay and the converter treat differently.\n";
@@ -55,6 +59,31 @@ bool Analysis::RecipeBake::CommandLine::parse(const std::vector<std::string>& in
         if (argument == "--overlays")
         {
             out_options_ptr->lists_overlays = true;
+        }
+        else
+        if (argument == "--scenes")
+        {
+            out_options_ptr->shows_scenes = true;
+        }
+        else
+        if (argument == "--screen-degrees")
+        {
+            if (n_argument + 1 >= in_argument_vec.size() )
+            {
+                *out_error_ptr = "--screen-degrees needs a number";
+
+                goto end;
+            }
+
+            out_options_ptr->screen_degrees = static_cast<float>(::atof(in_argument_vec.at(++n_argument).c_str() ) );
+
+            if (out_options_ptr->screen_degrees <= 0.0f ||
+                out_options_ptr->screen_degrees >  360.0f)
+            {
+                *out_error_ptr = "--screen-degrees needs a number above 0 and up to 360";
+
+                goto end;
+            }
         }
         else
         if (argument == "-o")
@@ -121,6 +150,14 @@ bool Analysis::RecipeBake::CommandLine::parse(const std::vector<std::string>& in
         out_options_ptr->lists_overlays)
     {
         *out_error_ptr = "--check and --overlays cannot be given together";
+
+        goto end;
+    }
+
+    if (out_options_ptr->shows_scenes                                      &&
+        (out_options_ptr->checks_only || out_options_ptr->lists_overlays))
+    {
+        *out_error_ptr = "--scenes cannot be given with --check or --overlays";
 
         goto end;
     }

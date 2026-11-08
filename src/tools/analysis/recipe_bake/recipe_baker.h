@@ -59,6 +59,18 @@ namespace Analysis
                              std::string*                                             out_error_ptr,
                              const Analysis::APIDumpDependencies::DependencyAnalysis* in_dependencies_ptr = nullptr);
 
+            /* How deep each scene (kind of frame) of the analysis is, in the order of the shapes; a scene that has no affected pass with something in front of the camera
+             * has has_depth false. What the recipe says of what is near and what is far (see Comfort) says which surfaces count.
+             */
+            static std::vector<SceneMeasure> measure_scenes(const Analysis::Recipe::Recipe&                  in_recipe,
+                                                            const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis);
+
+            /* Where the eyes converge in the scene, and how far apart they may be: the distance that was measured and the limits of the nearest and of the farthest surfaces
+             * (see Comfort) from the recipe, or what the recipe says of the scene (see SceneComfort), which wins.
+             */
+            static SceneLimits resolve_scene_limits(const Analysis::Recipe::Recipe& in_recipe,
+                                                    const SceneMeasure&             in_measure);
+
         private:
             typedef std::map<Analysis::Recipe::DrawClass, std::set<uint32_t> > ClassMap;
             typedef std::vector<Analysis::Recipe::DrawConvergence>             ConvergenceVector;

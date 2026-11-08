@@ -31,6 +31,27 @@ namespace Analysis
             bool     uses_dependencies          = false; /* the textures of each eye are told by the dependencies, not by the totals of the analysis */
         };
 
+        /* What the analysis says of a kind of frame (a scene), before the comfort of the recipe is held against it: how deep what its affected passes draw is. */
+        struct SceneMeasure
+        {
+            float    distance         = 0.0f; /* the median depth of all the vertices                                              */
+            float    far_depth        = 0.0f; /* the depth of the farthest surfaces (the last near_fraction of them)                */
+            bool     has_depth        = false;
+            float    near_depth       = 0.0f; /* the depth of the nearest surfaces (the first near_fraction of them, see Comfort)   */
+            float    projection_scale = 0.0f; /* 1 / tan(half the angle of view of the width of the picture); 0: not known           */
+            uint32_t shape_id         = 0;
+            uint64_t shape_key        = 0;
+        };
+
+        /* What the recipe makes of a SceneMeasure: where the eyes converge, and how far apart they may be (0: no limit), and which of the two limits it is. */
+        struct SceneLimits
+        {
+            float distance           = 0.0f;
+            bool  is_far_limit       = false; /* the limit is the one of the farthest surfaces */
+            bool  is_overridden      = false; /* the recipe says something of this scene       */
+            float max_separation     = 0.0f;
+        };
+
         /* What the live converter does with the draws of a signature, over the cameras that its pass has (see RecipeApplier::classify_draw). */
         enum class LiveClass
         {
@@ -120,6 +141,8 @@ namespace Analysis
             std::string output_filename; /* the recipe itself if empty */
             std::string passes_filename;
             std::string recipe_filename;
+            float       screen_degrees  = 90.0f; /* how wide the screen of the headset is, for the angles of --scenes */
+            bool        shows_scenes    = false; /* the scenes are listed (JSON) with what the recipe makes of them, and nothing is written */
         };
     }
 }

@@ -48,6 +48,9 @@ namespace Analysis
              */
             std::map<DepthHistogramKey, DepthHistogram> surface_depth_histogram_map;
 
+            /* How wide the picture is for each pass of each kind of frame (see ProjectionScale), for the draws with a perspective projection. */
+            std::map<DepthHistogramKey, ProjectionScale> projection_scale_map;
+
             /* By the pass structure that the draws were made in: a scene can have a mesh that covers the view with the key of an overlay's quad,
              * and what the recipe leaves alone is told by the pass.
              *

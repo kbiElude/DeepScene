@@ -316,7 +316,7 @@ bool Analysis::Recipe::RecipeLoader::parse_comfort(const Utils::Json::JsonValue&
     }
 
     if (check_keys(in_value,
-                   {"max_near_parallax", "near_fraction", "overlay_parallax"},
+                   {"balance_convergence", "camera_attached_depth", "max_far_parallax", "max_near_parallax", "measure_depth", "near_fraction", "overlay_parallax", "scene_overrides"},
                    in_path,
                    out_error_ptr) == false)
     {
@@ -341,6 +341,85 @@ bool Analysis::Recipe::RecipeLoader::parse_comfort(const Utils::Json::JsonValue&
             }
 
             out_comfort_ptr->max_near_parallax = static_cast<float>(parallax_ptr->number_value);
+        }
+
+        const auto* balance_ptr = in_value.find_ptr("balance_convergence");
+
+        if (balance_ptr != nullptr)
+        {
+            if (balance_ptr->type != Utils::Json::JsonValueType::BOOL)
+            {
+                *out_error_ptr = in_path + ".balance_convergence: expected true or false";
+
+                goto end;
+            }
+
+            out_comfort_ptr->balances_convergence = balance_ptr->bool_value;
+        }
+
+        const auto* attached_ptr = in_value.find_ptr("camera_attached_depth");
+
+        if (attached_ptr != nullptr)
+        {
+            const bool is_finite = (::isfinite(attached_ptr->number_value) != 0);
+
+            if (attached_ptr->type         != Utils::Json::JsonValueType::NUMBER ||
+                is_finite                  == false                              ||
+                attached_ptr->number_value <= 0.0                                ||
+                attached_ptr->number_value >= 1.0)
+            {
+                *out_error_ptr = in_path + ".camera_attached_depth: expected a number above zero and below one (a part of the distance at which the eyes converge)";
+
+                goto end;
+            }
+
+            out_comfort_ptr->camera_attached_depth = static_cast<float>(attached_ptr->number_value);
+        }
+
+        const auto* measure_ptr = in_value.find_ptr("measure_depth");
+
+        if (measure_ptr != nullptr)
+        {
+            if (measure_ptr->type != Utils::Json::JsonValueType::BOOL)
+            {
+                *out_error_ptr = in_path + ".measure_depth: expected true or false";
+
+                goto end;
+            }
+
+            out_comfort_ptr->measures_depth = measure_ptr->bool_value;
+        }
+
+        const auto* far_ptr = in_value.find_ptr("max_far_parallax");
+
+        if (far_ptr != nullptr)
+        {
+            const bool is_finite = (::isfinite(far_ptr->number_value) != 0);
+
+            if (far_ptr->type         != Utils::Json::JsonValueType::NUMBER ||
+                is_finite             == false                              ||
+                far_ptr->number_value <= 0.0                                ||
+                far_ptr->number_value >  1.0)
+            {
+                *out_error_ptr = in_path + ".max_far_parallax: expected a number above zero, and up to one (a part of the width of the picture)";
+
+                goto end;
+            }
+
+            out_comfort_ptr->max_far_parallax = static_cast<float>(far_ptr->number_value);
+        }
+
+        const auto* overrides_ptr = in_value.find_ptr("scene_overrides");
+
+        if (overrides_ptr != nullptr)
+        {
+            if (parse_scene_overrides(*overrides_ptr,
+                                      in_path + ".scene_overrides",
+                                      &out_comfort_ptr->scene_override_vec,
+                                      out_error_ptr) == false)
+            {
+                goto end;
+            }
         }
 
         const auto* fraction_ptr = in_value.find_ptr("near_fraction");
@@ -874,6 +953,118 @@ bool Analysis::Recipe::RecipeLoader::parse_per_eye_textures(const Utils::Json::J
         }
 
         out_texture_vec_ptr->push_back(texture);
+    }
+
+    result = true;
+
+end:
+    return result;
+}
+
+bool Analysis::Recipe::RecipeLoader::parse_scene_overrides(const Utils::Json::JsonValue& in_array,
+                                                           const std::string&            in_path,
+                                                           std::vector<SceneComfort>*    out_override_vec_ptr,
+                                                           std::string*                  out_error_ptr)
+{
+    bool result = false;
+
+    if (in_array.type != Utils::Json::JsonValueType::ARRAY)
+    {
+        *out_error_ptr = in_path + ": expected an array";
+
+        goto end;
+    }
+
+    for (size_t n_entry = 0;
+                n_entry < in_array.item_vec.size();
+              ++n_entry)
+    {
+        const auto&       entry      = in_array.item_vec.at(n_entry);
+        const std::string entry_path = in_path + "[" + std::to_string(n_entry) + "]";
+        SceneComfort      scene_comfort;
+        const auto*       shape_ptr  = entry.find_ptr("shape");
+
+        if (entry.type != Utils::Json::JsonValueType::OBJECT)
+        {
+            *out_error_ptr = entry_path + ": expected an object";
+
+            goto end;
+        }
+
+        if (check_keys(entry,
+                       {"convergence_distance", "max_far_parallax", "max_near_parallax", "max_separation", "shape"},
+                       entry_path,
+                       out_error_ptr) == false)
+        {
+            goto end;
+        }
+
+        if (shape_ptr == nullptr)
+        {
+            *out_error_ptr = entry_path + ".shape is missing";
+
+            goto end;
+        }
+
+        if (parse_hex_key(*shape_ptr,
+                          entry_path + ".shape",
+                         &scene_comfort.shape_key,
+                          out_error_ptr) == false)
+        {
+            goto end;
+        }
+
+        for (const auto& other : *out_override_vec_ptr)
+        {
+            if (other.shape_key == scene_comfort.shape_key)
+            {
+                *out_error_ptr = entry_path + ".shape: the scene is said twice";
+
+                goto end;
+            }
+        }
+
+        {
+            /* The name of the number, where it goes, and the most it can be (a part of the width of the picture is up to one). */
+            struct NumberField
+            {
+                float*      destination_ptr;
+                double      max_value;
+                const char* name_ptr;
+            };
+
+            const NumberField field_array[] =
+            {
+                {&scene_comfort.convergence_distance, static_cast<double>(FLT_MAX), "convergence_distance"},
+                {&scene_comfort.max_far_parallax,     1.0,                          "max_far_parallax"},
+                {&scene_comfort.max_near_parallax,    1.0,                          "max_near_parallax"},
+                {&scene_comfort.max_separation,       static_cast<double>(FLT_MAX), "max_separation"}
+            };
+
+            for (const auto& field : field_array)
+            {
+                const auto* number_ptr = entry.find_ptr(field.name_ptr);
+
+                if (number_ptr != nullptr)
+                {
+                    const bool is_finite = (::isfinite(number_ptr->number_value) != 0);
+
+                    if (number_ptr->type         != Utils::Json::JsonValueType::NUMBER ||
+                        is_finite                == false                              ||
+                        number_ptr->number_value <= 0.0                                ||
+                        number_ptr->number_value >  field.max_value)
+                    {
+                        *out_error_ptr = entry_path + "." + field.name_ptr + ": expected a number above zero (and up to " + std::to_string(field.max_value) + ")";
+
+                        goto end;
+                    }
+
+                    *field.destination_ptr = static_cast<float>(number_ptr->number_value);
+                }
+            }
+        }
+
+        out_override_vec_ptr->push_back(scene_comfort);
     }
 
     result = true;

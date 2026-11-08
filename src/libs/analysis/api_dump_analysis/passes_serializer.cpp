@@ -286,6 +286,47 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_passes(const std::
             is_at_end);
 }
 
+bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_projection_scales(const std::vector<uint8_t>& in_byte_vec,
+                                                                                Model*                      out_model_ptr)
+{
+    /* The frame shape and the pass structure, the mean and the weight. */
+    constexpr size_t MIN_ENTRY_N_BYTES = 2 * sizeof(uint32_t) + sizeof(float) + sizeof(uint64_t);
+
+    Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
+                                       in_byte_vec.size());
+    const auto n_entries = reader.read_count(MIN_ENTRY_N_BYTES);
+    bool       is_ok     = true;
+
+    for (uint32_t n_entry = 0;
+                  n_entry < n_entries && reader.has_failed() == false;
+                ++n_entry)
+    {
+        const uint32_t  shape_id = reader.read_u32();
+        const uint32_t  pass_id  = reader.read_u32();
+        ProjectionScale scale;
+
+        scale.mean   = reader.read_f32();
+        scale.weight = reader.read_u64();
+
+        /* The frame shape and the pass structure must exist. */
+        if (pass_id  >= out_model_ptr->pass_structure_interner.get_n_structures() ||
+            shape_id >= out_model_ptr->frame_shape_interner.get_n_structures() )
+        {
+            is_ok = false;
+        }
+
+        out_model_ptr->projection_scale_map[DepthHistogramKey(shape_id,
+                                                              pass_id)] = scale;
+    }
+
+    const bool has_failed = reader.has_failed();
+    const bool is_at_end  = reader.is_at_end();
+
+    return (is_ok               &&
+            has_failed == false &&
+            is_at_end);
+}
+
 bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_representatives(const std::vector<uint8_t>& in_byte_vec,
                                                                               Model*                      out_model_ptr)
 {
@@ -1003,6 +1044,23 @@ std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_pass
 
         write_pass_structure(pass_structure,
                             &writer);
+    }
+
+    return writer.take_bytes();
+}
+
+std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_projection_scales(const Model& in_model)
+{
+    Utils::BinaryIO::ByteWriter writer;
+
+    writer.write_u32(static_cast<uint32_t>(in_model.projection_scale_map.size() ));
+
+    for (const auto& scale_pair : in_model.projection_scale_map)
+    {
+        writer.write_u32(scale_pair.first.first);
+        writer.write_u32(scale_pair.first.second);
+        writer.write_f32(scale_pair.second.mean);
+        writer.write_u64(scale_pair.second.weight);
     }
 
     return writer.take_bytes();

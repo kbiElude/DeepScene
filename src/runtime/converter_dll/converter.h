@@ -26,6 +26,7 @@
 #include <atomic>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <stdint.h>
 #include <string>
 #include <vector>
@@ -128,15 +129,23 @@ namespace Stereo
                 uint64_t                                  dump_every         = 0; /* a frame is written to a file every so many frames; 0: none */
                 uint64_t                                  dump_first_frame   = 0; /* the frames before it are not written (see dump_every)     */
                 uint64_t                                  dump_frame         = 0; /* of the frame to write to a file; 0: none */
+                bool                                      is_scene_dump_enabled = false; /* the first frame of each kind of frame (scene) is written to a file */
+                uint64_t                                  scene_run_length   = 0;   /* how many frames in a row were of the scene of scene_run_key */
+                uint64_t                                  scene_run_key      = 0;
                 bool                                      is_overlay_push_forced = false; /* from the environment, not the program which shows the images */
                 CallFeeder                                feeder;
                 std::mutex                                mutex;
+                Stereo::Core::DepthRange                  last_depth_range;              /* what was last measured of how deep a frame was */
+                float                                     last_projection_scale = 0.0f;
+                GlFrameImages                             last_gl_images;                 /* of the last frame of OpenGL that was read; valid until the next one */
+                bool                                      has_last_gl_images    = false;
                 uint64_t                                  n_affected_draws   = 0;
                 uint64_t                                  n_frames           = 0;
                 uint64_t                                  n_kept_matrices    = 0;
                 uint64_t                                  n_mixed_class_calls = 0; /* calls of display lists that made draws of different classes */
                 uint64_t                                  n_skipped_draws    = 0;
                 uint64_t                                  n_unaffected_draws = 0;
+                std::set<uint64_t>                        scene_seen_set;                 /* the shape keys of the scenes that were written, see is_scene_dump_enabled */
                 std::unique_ptr<D3D8EyeRenderer>          renderer_ptr;
                 std::unique_ptr<D3D8ResolutionScaler>     scaler_ptr;
             };

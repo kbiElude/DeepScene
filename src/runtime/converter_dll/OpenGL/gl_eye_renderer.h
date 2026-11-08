@@ -44,6 +44,7 @@ namespace Stereo
             struct Statistics
             {
                 uint64_t n_array_draws       = 0; /* glDrawArrays and glDrawElements, made for both eyes */
+                uint64_t n_camera_attached_draws = 0; /* affected draws that were made as they are, as being attached to the camera */
                 uint64_t n_block_draws       = 0; /* the blocks of glBegin to glEnd                      */
                 uint64_t n_clears            = 0;
                 uint64_t n_list_draws        = 0; /* glCallList                                          */
@@ -60,6 +61,11 @@ namespace Stereo
             const Statistics& get_statistics() const;
 
             bool is_ready() const;
+
+            /* How deep the passes of the frame that ended were (the depth buffer was read before each of them was cleared, and at the end of the frame), and the x scale of the
+             * projection of the last of them; false if the recipe does not have the depth measured (see Comfort::measures_depth), or nothing in the frame says it. Starts again. */
+            bool take_frame_depth(Stereo::Core::DepthRange* out_depth_range_ptr,
+                                  float*                    out_projection_scale_ptr);
 
             /* The frame is about to be presented: the images of both eyes are read. False if there are none. The images are kept until the next call. */
             bool on_frame_ending(GlFrameImages* out_images_ptr);
@@ -111,6 +117,9 @@ namespace Stereo
             void note_once(const std::string& in_key,
                            const std::string& in_note);
 
+            /* The depth buffer of the left eye is read, and what it says of how deep the pass that is ending is goes to the frame. */
+            void measure_pass_depth();
+
             /* The data that an argument stands for (a chunk, or a pointer); nullptr if it is not there. */
             const void* resolve_pointer(const APIInterceptor::APIFunctionArgument& in_argument) const;
 
@@ -127,6 +136,11 @@ namespace Stereo
             void try_to_prepare();
 
             std::array<uint32_t, N_TEXTURE_UNITS> m_bound_texture_array;
+            std::vector<float>                    m_depth_f32_vec;
+            Stereo::Core::DepthRange              m_frame_depth;
+            float                                 m_frame_projection_scale;
+            std::vector<float>                    m_frame_median_vec;
+            bool                                  m_has_frame_depth;
             uint32_t                              m_active_unit;
             Analysis::Recipe::DrawClass           m_block_class;
             bool                                  m_block_has_draws;
@@ -138,11 +152,14 @@ namespace Stereo
             bool                                  m_is_in_app_list;
             bool                                  m_is_in_block;
             bool                                  m_is_shown_elsewhere;
+            bool                                  m_measures_depth;
             uint32_t                              m_n_failed_attempts;
             std::vector<uint8_t>                  m_left_rgba_u8_vec;
             std::vector<std::string>              m_note_vec;
             std::vector<std::string>              m_noted_key_vec;
             std::vector<uint8_t>                  m_right_rgba_u8_vec;
+            std::array<float, 16>                 m_pass_projection_f32mat; /* of the first draw of the pass that is affected */
+            bool                                  m_pass_has_affected_draws;
             Statistics                            m_statistics;
             GlEyeTargets                          m_targets;
             std::map<uint32_t, uint32_t>          m_twin_map;

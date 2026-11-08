@@ -95,15 +95,61 @@ namespace Analysis
             uint32_t value          = 0;
         };
 
+        /* What the person who writes a recipe says of one scene (a kind of frame, by its shape key, as in SceneConvergence), where the limits of the whole recipe
+         * (see Comfort) or the distance that was measured do not suit it: a cut that is all near, say, or one with a long view. A number that is 0 is not said, and
+         * what is said wins over what is measured or what the recipe says for every scene.
+         */
+        struct SceneComfort
+        {
+            float    convergence_distance = 0.0f; /* in the units of the camera of the application                                    */
+            float    max_far_parallax     = 0.0f; /* as Comfort::max_far_parallax                                                     */
+            float    max_near_parallax    = 0.0f; /* as Comfort::max_near_parallax                                                    */
+            float    max_separation       = 0.0f; /* the limit of how far apart the eyes may be, in the units of the camera; wins over the two above */
+            uint64_t shape_key            = 0;
+        };
+
+        /* What the comfort of a recipe makes of the depth of a scene: where the eyes converge, and how far apart they may be (0: no limit). */
+        struct ComfortLimits
+        {
+            float distance       = 0.0f;
+            bool  is_far_limit   = false; /* the limit is the one of the farthest surfaces */
+            float max_separation = 0.0f;
+        };
+
         /* What the person who writes a recipe says about how much the eyes can be asked to do. The nearest surfaces of a scene (see
          * SceneSeparation) are the ones that need them to turn most, and what the eyes can bear of that does not depend on the scene.
          */
         struct Comfort
         {
+            /* Whether the distance at which the eyes converge in a scene is chosen to fit its depth into the two limits below, and not the median depth of its vertices:
+             * with both limits (max_near_parallax and max_far_parallax) the eyes are made to converge where the nearest surfaces have all of the near limit and the
+             * farthest all of the far one, which is where the eyes may be furthest apart. A scene with a sky behind a near object (the median is the sky) is
+             * then not made flat. What a scene says of its own distance (see SceneComfort) is kept.
+             */
+            bool balances_convergence = false;
+
+            /* A draw whose origin is nearer the camera than this part of the distance at which the eyes converge is attached to the camera (an interface drawn with a perspective projection, a
+             * weapon, a sky that is centred on the viewer) and is made as it is for both eyes: the eyes are given parallax by how far a draw is, and one this near would be given nearly the
+             * whole of the separation, which is more than the surfaces of the scene are allowed. 0: no draw is taken for one.
+             */
+            float camera_attached_depth = 0.0f;
+
+            /* How far apart the pictures of the eyes may be at the farthest surface of a scene, as a part of the width of the picture: what is beyond the
+             * distance at which the eyes converge is seen with eyes that turn toward each other less than at the screen, and at the width that is the distance
+             * between the eyes of a person on the screen they would have to turn away from each other, which no eyes do. 0: no limit.
+             */
+            float max_far_parallax = 0.0f;
+
             /* How far apart the pictures of the eyes may be at the nearest surface of a scene, as a part of the width of the picture (0.03 is
              * three in a hundred): the eyes are kept from being further apart than that allows. 0: no limit.
              */
             float max_near_parallax = 0.0f;
+
+            /* Whether a converter that can (see StereoCore::on_frame_depth) measures how deep the surfaces of each frame are as the application renders them, and holds that against the
+             * limits, instead of what was baked for the scene (see SceneSeparation, which is for the scenes that the analysis can see the depth of: not what a program draws with display
+             * lists, nor a camera that flies past a near surface). What a recipe says of a scene (see SceneComfort) is kept.
+             */
+            bool measures_depth = false;
 
             /* Which part of the surfaces of a scene (by vertices) counts as its nearest: 0.001 is the nearest thousandth. A scene is rarely near
              * everywhere, and what is very near is often a few large polygons, so this is small.
@@ -116,6 +162,9 @@ namespace Analysis
              * ones that are made to a texture are left as they are, for what they make is used elsewhere. 0: not pushed.
              */
             float overlay_parallax = 0.0f;
+
+            /* What is said of single scenes, by their shape keys. */
+            std::vector<SceneComfort> scene_override_vec;
         };
 
         /* How the eyes are given parallax in an application whose vertices are already in the space of the picture (pre-transformed, as Direct3D

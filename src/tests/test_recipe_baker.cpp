@@ -628,6 +628,155 @@ TEST_F(RecipeBakerTest, ASceneGetsALimitOfTheSeparationFromItsNearestSurfacesAnd
                     0.03f);
 }
 
+namespace
+{
+    /* A scene whose object is 10 away, with vertices 2 and 50 away: the nearest surfaces and the farthest. */
+    Analysis::APIDumpAnalysis::AnalysisResult make_near_and_far_analysis(Tests::ModelTestHelper* inout_helper_ptr)
+    {
+        constexpr size_t N_FLOATS_PER_MATRIX = 16;
+
+        Analysis::APIDumpAnalysis::AnalysisResult analysis;
+        const auto                                swapchain_image   = inout_helper_ptr->create_swapchain_image();
+        std::array<float, N_FLOATS_PER_MATRIX>    model_f32mat      = {1, 0, 0, 0,
+                                                                       0, 1, 0, 0,
+                                                                       0, 0, 1, 0,
+                                                                       0, 0, 10, 1};
+        std::array<float, N_FLOATS_PER_MATRIX>    projection_f32mat = {2, 0, 0,     0,
+                                                                       0, 1, 0,     0,
+                                                                       0, 0, 1,     1,
+                                                                       0, 0, -0.1f, 0};
+        std::array<float, N_FLOATS_PER_MATRIX>    view_f32mat       = {1, 0, 0, 0,
+                                                                       0, 1, 0, 0,
+                                                                       0, 0, 1, 0,
+                                                                       0, 0, 0, 1};
+
+        inout_helper_ptr->set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::PROJECTION_MATRIX,
+                                     192,
+                                     projection_f32mat);
+        inout_helper_ptr->set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::VIEW_MATRIX,
+                                     128,
+                                     view_f32mat);
+        inout_helper_ptr->set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::MODEL_MATRIX,
+                                     16384,
+                                     model_f32mat);
+        inout_helper_ptr->bind(swapchain_image);
+        inout_helper_ptr->draw_with_geometry({{0.0f, 0.0f, -8.0f}, {0.0f, 0.0f, 40.0f}},
+                                             30);
+        inout_helper_ptr->end_frame();
+
+        analysis.model = inout_helper_ptr->get_model();
+
+        return analysis;
+    }
+
+    std::string make_comfort_recipe_text(const std::string& in_comfort)
+    {
+        return "{\"recipe_version\": 0, \"key_scheme_version\": 1, \"target\": {\"name\": \"test\", \"description\": \"a test\"},"
+               "\"comfort\": " + in_comfort + ","
+               "\"unaffected\": {\"pass_keys\": [\"0x0000000000000001\"]}, \"rules\": []}";
+    }
+}
+
+TEST_F(RecipeBakerTest, TheFarSurfacesOfASceneLimitTheSeparationToo)
+{
+    Tests::ModelTestHelper                    helper;
+    const auto                                analysis = make_near_and_far_analysis(&helper);
+    Analysis::RecipeBake::BakeReport          report;
+    Analysis::Recipe::Recipe                  recipe;
+    std::string                               error;
+    std::string                               text;
+
+    /* Beyond d (10) the picture of the eyes is s * scale * (1 / 10 - 1 / 50) / 2 of the width apart, with the scale of the projection (2): the limit is s = 2 * 0.02 / (2 * 0.08). */
+    ASSERT_TRUE(Analysis::RecipeBake::RecipeBaker::bake(make_comfort_recipe_text("{\"max_far_parallax\": 0.02, \"near_fraction\": 0.25}"),
+                                                        analysis,
+                                                       &text,
+                                                       &report,
+                                                       &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(text,
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    ASSERT_EQ(recipe.scene_separation_vec.size(),
+              1u);
+    EXPECT_GT(recipe.scene_separation_vec.at(0).max_separation,
+              0.15f);
+    EXPECT_LT(recipe.scene_separation_vec.at(0).max_separation,
+              0.35f);
+    EXPECT_FLOAT_EQ(recipe.comfort.max_far_parallax,
+                    0.02f);
+}
+
+TEST_F(RecipeBakerTest, WhatTheRecipeSaysOfASceneWinsOverWhatWasMeasured)
+{
+    Tests::ModelTestHelper           helper;
+    const auto                       analysis = make_near_and_far_analysis(&helper);
+    Analysis::RecipeBake::BakeReport report;
+    Analysis::Recipe::Recipe         recipe;
+    std::string                      error;
+    std::string                      text;
+    char                             key_i8vec19[19] = {};
+
+    ::snprintf(key_i8vec19,
+               sizeof(key_i8vec19),
+               "0x%016llx",
+               static_cast<unsigned long long>(helper.get_shape_key(0) ) );
+
+    ASSERT_TRUE(Analysis::RecipeBake::RecipeBaker::bake(make_comfort_recipe_text(std::string("{\"max_far_parallax\": 0.02, \"max_near_parallax\": 0.03, \"near_fraction\": 0.25, ") +
+                                                                                  "\"scene_overrides\": [{\"shape\": \"" + key_i8vec19 + "\", \"convergence_distance\": 7, \"max_separation\": 0.1}]}"),
+                                                        analysis,
+                                                       &text,
+                                                       &report,
+                                                       &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(text,
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    ASSERT_EQ(recipe.scene_convergence_vec.size(),
+              1u);
+    EXPECT_FLOAT_EQ(recipe.scene_convergence_vec.at(0).distance,
+                    7.0f);
+    ASSERT_EQ(recipe.scene_separation_vec.size(),
+              1u);
+    EXPECT_FLOAT_EQ(recipe.scene_separation_vec.at(0).max_separation,
+                    0.1f);
+}
+
+TEST_F(RecipeBakerTest, ASceneCanConvergeWhereItsDepthFitsTheTwoLimitsBest)
+{
+    Tests::ModelTestHelper           helper;
+    const auto                       analysis = make_near_and_far_analysis(&helper);
+    Analysis::RecipeBake::BakeReport report;
+    Analysis::Recipe::Recipe         recipe;
+    std::string                      error;
+    std::string                      text;
+
+    /* The nearest surface is 2 away and the farthest 50, so 1 / d = 1 / 2 - (1 / 2 - 1 / 50) * 0.03 / (0.03 + 0.02): about 4.7, and the median depth (10) is not used. */
+    ASSERT_TRUE(Analysis::RecipeBake::RecipeBaker::bake(make_comfort_recipe_text("{\"balance_convergence\": true, \"max_far_parallax\": 0.02, \"max_near_parallax\": 0.03, \"near_fraction\": 0.25}"),
+                                                        analysis,
+                                                       &text,
+                                                       &report,
+                                                       &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(text,
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    ASSERT_EQ(recipe.scene_convergence_vec.size(),
+              1u);
+    EXPECT_GT(recipe.scene_convergence_vec.at(0).distance,
+              3.0f);
+    EXPECT_LT(recipe.scene_convergence_vec.at(0).distance,
+              7.0f);
+
+    /* With the eyes there, the nearest surfaces have all of the near limit and the farthest all of the far one: s = 2 * (0.03 + 0.02) / (2 * (1 / 2 - 1 / 50)). */
+    ASSERT_EQ(recipe.scene_separation_vec.size(),
+              1u);
+    EXPECT_GT(recipe.scene_separation_vec.at(0).max_separation,
+              0.07f);
+    EXPECT_LT(recipe.scene_separation_vec.at(0).max_separation,
+              0.15f);
+    EXPECT_TRUE(recipe.comfort.balances_convergence);
+}
+
 TEST_F(RecipeBakerTest, WithoutComfortNoSceneHasALimit)
 {
     constexpr size_t N_FLOATS_PER_MATRIX = 16;

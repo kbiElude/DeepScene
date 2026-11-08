@@ -54,8 +54,27 @@ namespace Analysis
             std::vector<const Analysis::Recipe::Rule*> get_matching_rule_ptr_vec(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                                  const CallPlace&                             in_place) const;
 
+            /* What the person who writes the recipe says about how much the eyes can be asked to do. */
+            const Comfort& get_comfort() const;
+
+            /* What the comfort of the recipe makes of a scene that is this deep (the depth of the surfaces that are nearest and farthest, and the median of all of them, in the units
+             * of the camera of the application, and the x scale of its projection, which is 1 over the tangent of half the angle of view of the width of the picture): where the eyes
+             * converge and how far apart they may be so that no surface is further apart in the pictures than Comfort says; what the recipe says of the scene (a SceneComfort, or
+             * none) wins. With both limits and Comfort::balances_convergence the eyes converge where the whole depth fits them best: 1 / d = 1 / near - (1 / near - 1 / far) * near limit /
+             * (near limit + far limit).
+             */
+            static ComfortLimits get_comfort_limits(const Comfort&      in_comfort,
+                                                    const SceneComfort* in_scene_ptr,
+                                                    const float&        in_median_depth,
+                                                    const float&        in_near_depth,
+                                                    const float&        in_far_depth,
+                                                    const float&        in_projection_scale);
+
             /* How far toward the viewer the draws that the rules leave alone are pushed (see Comfort::overlay_parallax); 0: not. */
             float get_overlay_parallax() const;
+
+            /* What the recipe says of the scene (see Comfort::scene_override_vec); nullptr if it says nothing. */
+            const SceneComfort* find_scene_comfort_ptr(const uint64_t& in_shape_key) const;
 
             /* The distance at which the eyes converge in the frames of the shape (see Recipe::scene_convergence_vec); 0 if the recipe says
              * none.

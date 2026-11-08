@@ -84,6 +84,11 @@ void Stereo::Core::StereoCore::forget_matrices()
     m_matrix_slots.forget();
 }
 
+float Stereo::Core::StereoCore::get_camera_attached_depth() const
+{
+    return m_applier.get_comfort().camera_attached_depth;
+}
+
 float Stereo::Core::StereoCore::get_convergence_distance() const
 {
     return m_convergence_model.get_convergence_distance();
@@ -92,6 +97,16 @@ float Stereo::Core::StereoCore::get_convergence_distance() const
 float Stereo::Core::StereoCore::get_depth_strength() const
 {
     return m_convergence_model.get_depth_strength();
+}
+
+float Stereo::Core::StereoCore::get_effective_convergence_distance() const
+{
+    return m_convergence_model.get_effective_convergence_distance();
+}
+
+float Stereo::Core::StereoCore::get_effective_eye_separation() const
+{
+    return m_convergence_model.get_effective_eye_separation();
 }
 
 float Stereo::Core::StereoCore::get_eye_separation() const
@@ -117,6 +132,16 @@ uint64_t Stereo::Core::StereoCore::get_n_unknown_draws() const
 uint64_t Stereo::Core::StereoCore::get_n_unknown_frames() const
 {
     return m_n_unknown_frames;
+}
+
+bool Stereo::Core::StereoCore::get_measures_depth() const
+{
+    return m_applier.get_comfort().measures_depth;
+}
+
+float Stereo::Core::StereoCore::get_near_fraction() const
+{
+    return m_applier.get_comfort().near_fraction;
 }
 
 const std::array<float, 16>& Stereo::Core::StereoCore::get_view_matrix() const
@@ -148,6 +173,28 @@ std::array<float, 16> Stereo::Core::StereoCore::make_eye_shift_matrix(const Anal
     if (distance > 0.0f)
     {
         result.at(8) = half_shift / distance;
+    }
+
+    return result;
+}
+
+bool Stereo::Core::StereoCore::on_frame_depth(const uint64_t&   in_shape_key,
+                                              const DepthRange& in_depth_range,
+                                              const float&      in_projection_scale)
+{
+    const bool result = in_depth_range.has_depth;
+
+    if (result)
+    {
+        const auto limits = Analysis::Recipe::RecipeApplier::get_comfort_limits(m_applier.get_comfort(),
+                                                                                m_applier.find_scene_comfort_ptr(in_shape_key),
+                                                                                in_depth_range.median_depth,
+                                                                                in_depth_range.near_depth,
+                                                                                in_depth_range.far_depth,
+                                                                                in_projection_scale);
+
+        m_convergence_model.follow_scene_convergence_distance(limits.distance);
+        m_convergence_model.follow_scene_max_separation      (limits.max_separation);
     }
 
     return result;

@@ -1,243 +1,251 @@
 {
-  "recipe_version": 0,
+  "comfort": {
+    "balance_convergence": true,
+    "camera_attached_depth": 0.05,
+    "max_far_parallax": 0.0105263158,
+    "max_near_parallax": 0.0157894737,
+    "measure_depth": true,
+    "near_fraction": 0.002
+  },
   "key_scheme_version": 1,
+  "recipe_version": 0,
+  "rules": [],
   "target": {
-    "name": "Gerbera",
-    "description": "Assembly 2001, by Moppi Productions: OpenGL"
+    "description": "Assembly 2001, by Moppi Productions: OpenGL",
+    "name": "Gerbera"
   },
   "unaffected": {
     "pass_draws": [
       {
-        "pass_key": "0x07d12151d4413f4b",
-        "draw_key": "0xff2e9c4a0555ada7"
+        "draw_key": "0xff2e9c4a0555ada7",
+        "pass_key": "0x07d12151d4413f4b"
       },
       {
-        "pass_key": "0x09924e27b12dbb6f",
-        "draw_key": "0x6e65d07bab9e0a54"
+        "draw_key": "0x6e65d07bab9e0a54",
+        "pass_key": "0x09924e27b12dbb6f"
       },
       {
-        "pass_key": "0x09924e27b12dbb6f",
-        "draw_key": "0x9845509af4b52aef"
+        "draw_key": "0x9845509af4b52aef",
+        "pass_key": "0x09924e27b12dbb6f"
       },
       {
-        "pass_key": "0x0a675a661144ca84",
-        "draw_key": "0x99a52fdd1e430818"
+        "draw_key": "0x99a52fdd1e430818",
+        "pass_key": "0x0a675a661144ca84"
       },
       {
-        "pass_key": "0x0a675a661144ca84",
-        "draw_key": "0xa0d2f9224ff8574d"
+        "draw_key": "0xa0d2f9224ff8574d",
+        "pass_key": "0x0a675a661144ca84"
       },
       {
-        "pass_key": "0x11d3ab5d068dc9ed",
-        "draw_key": "0x3078fe9fbdedda88"
+        "draw_key": "0x3078fe9fbdedda88",
+        "pass_key": "0x11d3ab5d068dc9ed"
       },
       {
-        "pass_key": "0x11d3ab5d068dc9ed",
-        "draw_key": "0x633d0c28024d8ef8"
+        "draw_key": "0x633d0c28024d8ef8",
+        "pass_key": "0x11d3ab5d068dc9ed"
       },
       {
-        "pass_key": "0x1ce79a2fe9800463",
-        "draw_key": "0x30b5f3406516392a"
+        "draw_key": "0x30b5f3406516392a",
+        "pass_key": "0x1ce79a2fe9800463"
       },
       {
-        "pass_key": "0x32398ca211dba66e",
-        "draw_key": "0x012a68792b570391"
+        "draw_key": "0x012a68792b570391",
+        "pass_key": "0x32398ca211dba66e"
       },
       {
-        "pass_key": "0x32398ca211dba66e",
-        "draw_key": "0x06cdda7c1acf3d44"
+        "draw_key": "0x06cdda7c1acf3d44",
+        "pass_key": "0x32398ca211dba66e"
       },
       {
-        "pass_key": "0x389033b71808f856",
-        "draw_key": "0x05d802974bfa4074"
+        "draw_key": "0x05d802974bfa4074",
+        "pass_key": "0x389033b71808f856"
       },
       {
-        "pass_key": "0x389033b71808f856",
-        "draw_key": "0x1b014d192f3ea325"
+        "draw_key": "0x1b014d192f3ea325",
+        "pass_key": "0x389033b71808f856"
       },
       {
-        "pass_key": "0x3c9d5f33df4aaeec",
-        "draw_key": "0x21272b9bdef119a5"
+        "draw_key": "0x21272b9bdef119a5",
+        "pass_key": "0x3c9d5f33df4aaeec"
       },
       {
-        "pass_key": "0x3c9d5f33df4aaeec",
-        "draw_key": "0xff011a6d62fefda5"
+        "draw_key": "0xff011a6d62fefda5",
+        "pass_key": "0x3c9d5f33df4aaeec"
       },
       {
-        "pass_key": "0x4a548e9322483764",
-        "draw_key": "0x020a1f079576a7d3"
+        "draw_key": "0x020a1f079576a7d3",
+        "pass_key": "0x4a548e9322483764"
       },
       {
-        "pass_key": "0x4a548e9322483764",
-        "draw_key": "0xe176d862ad05ebee"
+        "draw_key": "0xe176d862ad05ebee",
+        "pass_key": "0x4a548e9322483764"
       },
       {
-        "pass_key": "0x4a56e610f156077e",
-        "draw_key": "0x3450b6735e25d068"
+        "draw_key": "0x3450b6735e25d068",
+        "pass_key": "0x4a56e610f156077e"
       },
       {
-        "pass_key": "0x4a56e610f156077e",
-        "draw_key": "0x8719c7ec6be684cd"
+        "draw_key": "0x8719c7ec6be684cd",
+        "pass_key": "0x4a56e610f156077e"
       },
       {
-        "pass_key": "0x6c1ee0ef5bd12a51",
-        "draw_key": "0x1ae8f3e87501d0a7"
+        "draw_key": "0x1ae8f3e87501d0a7",
+        "pass_key": "0x6c1ee0ef5bd12a51"
       },
       {
-        "pass_key": "0x6c1ee0ef5bd12a51",
-        "draw_key": "0x30b5f3406516392a"
+        "draw_key": "0x30b5f3406516392a",
+        "pass_key": "0x6c1ee0ef5bd12a51"
       },
       {
-        "pass_key": "0x6c1ee0ef5bd12a51",
-        "draw_key": "0x8c0837a0048e2368"
+        "draw_key": "0x8c0837a0048e2368",
+        "pass_key": "0x6c1ee0ef5bd12a51"
       },
       {
-        "pass_key": "0x72bd3e09ef5ff7f6",
-        "draw_key": "0x811f70f4645d064e"
+        "draw_key": "0x811f70f4645d064e",
+        "pass_key": "0x72bd3e09ef5ff7f6"
       },
       {
-        "pass_key": "0x72bd3e09ef5ff7f6",
-        "draw_key": "0xcaad8b99429da3f3"
+        "draw_key": "0xcaad8b99429da3f3",
+        "pass_key": "0x72bd3e09ef5ff7f6"
       },
       {
-        "pass_key": "0x81dfd6127d0ecd22",
-        "draw_key": "0xd4f620fae403698e"
+        "draw_key": "0xd4f620fae403698e",
+        "pass_key": "0x81dfd6127d0ecd22"
       },
       {
-        "pass_key": "0x8c3f86c9e249419c",
-        "draw_key": "0x9158de81c914425d"
+        "draw_key": "0x9158de81c914425d",
+        "pass_key": "0x8c3f86c9e249419c"
       },
       {
-        "pass_key": "0x8c3f86c9e249419c",
-        "draw_key": "0xd74b4bac28886e05"
+        "draw_key": "0xd74b4bac28886e05",
+        "pass_key": "0x8c3f86c9e249419c"
       },
       {
-        "pass_key": "0x91415ead6c1a8472",
-        "draw_key": "0x0e3ba6c76c194cd5"
+        "draw_key": "0x0e3ba6c76c194cd5",
+        "pass_key": "0x91415ead6c1a8472"
       },
       {
-        "pass_key": "0x91415ead6c1a8472",
-        "draw_key": "0x480712bd87031a8a"
+        "draw_key": "0x480712bd87031a8a",
+        "pass_key": "0x91415ead6c1a8472"
       },
       {
-        "pass_key": "0x91455fcd14e26c1a",
-        "draw_key": "0x75c8eaf89acd408a"
+        "draw_key": "0x75c8eaf89acd408a",
+        "pass_key": "0x91455fcd14e26c1a"
       },
       {
-        "pass_key": "0x927198804a38a8dd",
-        "draw_key": "0x7dfb78f34fa00898"
+        "draw_key": "0x7dfb78f34fa00898",
+        "pass_key": "0x927198804a38a8dd"
       },
       {
-        "pass_key": "0xb5b63ae7d9e3a60e",
-        "draw_key": "0x0594b12c6d879c02"
+        "draw_key": "0x0594b12c6d879c02",
+        "pass_key": "0xb5b63ae7d9e3a60e"
       },
       {
-        "pass_key": "0xb5b63ae7d9e3a60e",
-        "draw_key": "0x4a2c5b6dd5381094"
+        "draw_key": "0x4a2c5b6dd5381094",
+        "pass_key": "0xb5b63ae7d9e3a60e"
       },
       {
-        "pass_key": "0xbac8e806db86e6ad",
-        "draw_key": "0x708c135473bc1874"
+        "draw_key": "0x708c135473bc1874",
+        "pass_key": "0xbac8e806db86e6ad"
       },
       {
-        "pass_key": "0xbac8e806db86e6ad",
-        "draw_key": "0xccabf9184fdfd861"
+        "draw_key": "0xccabf9184fdfd861",
+        "pass_key": "0xbac8e806db86e6ad"
       },
       {
-        "pass_key": "0xbac8e806db86e6ad",
-        "draw_key": "0xff2e9c4a0555ada7"
+        "draw_key": "0xff2e9c4a0555ada7",
+        "pass_key": "0xbac8e806db86e6ad"
       },
       {
-        "pass_key": "0xc008a7988c5ac1c2",
-        "draw_key": "0x22a3e4f595476d8b"
+        "draw_key": "0x22a3e4f595476d8b",
+        "pass_key": "0xc008a7988c5ac1c2"
       },
       {
-        "pass_key": "0xc008a7988c5ac1c2",
-        "draw_key": "0x7dfb78f34fa00898"
+        "draw_key": "0x7dfb78f34fa00898",
+        "pass_key": "0xc008a7988c5ac1c2"
       },
       {
-        "pass_key": "0xc4d7ea6c17f7ec87",
-        "draw_key": "0x1ae8f3e87501d0a7"
+        "draw_key": "0x1ae8f3e87501d0a7",
+        "pass_key": "0xc4d7ea6c17f7ec87"
       },
       {
-        "pass_key": "0xc4d7ea6c17f7ec87",
-        "draw_key": "0x30b5f3406516392a"
+        "draw_key": "0x30b5f3406516392a",
+        "pass_key": "0xc4d7ea6c17f7ec87"
       },
       {
-        "pass_key": "0xc4d7ea6c17f7ec87",
-        "draw_key": "0x9490dc954deca6da"
+        "draw_key": "0x9490dc954deca6da",
+        "pass_key": "0xc4d7ea6c17f7ec87"
       },
       {
-        "pass_key": "0xc5a3926e37a5de23",
-        "draw_key": "0xb1252b7fe87f58f0"
+        "draw_key": "0xb1252b7fe87f58f0",
+        "pass_key": "0xc5a3926e37a5de23"
       },
       {
-        "pass_key": "0xd178a895c0b0098f",
-        "draw_key": "0x6e65d07bab9e0a54"
+        "draw_key": "0x6e65d07bab9e0a54",
+        "pass_key": "0xd178a895c0b0098f"
       },
       {
-        "pass_key": "0xd178a895c0b0098f",
-        "draw_key": "0xbc03a4a449ee1b6e"
+        "draw_key": "0xbc03a4a449ee1b6e",
+        "pass_key": "0xd178a895c0b0098f"
       },
       {
-        "pass_key": "0xd1b8024da717aec1",
-        "draw_key": "0x0cd83ef00daae398"
+        "draw_key": "0x0cd83ef00daae398",
+        "pass_key": "0xd1b8024da717aec1"
       },
       {
-        "pass_key": "0xd1b8024da717aec1",
-        "draw_key": "0x9671bf8d2dc45de9"
+        "draw_key": "0x9671bf8d2dc45de9",
+        "pass_key": "0xd1b8024da717aec1"
       },
       {
-        "pass_key": "0xd1b8024da717aec1",
-        "draw_key": "0xb675e2af4f0f09ee"
+        "draw_key": "0xb675e2af4f0f09ee",
+        "pass_key": "0xd1b8024da717aec1"
       },
       {
-        "pass_key": "0xd9226af7e31a2519",
-        "draw_key": "0x69001b3e45dc9413"
+        "draw_key": "0x69001b3e45dc9413",
+        "pass_key": "0xd9226af7e31a2519"
       },
       {
-        "pass_key": "0xd9226af7e31a2519",
-        "draw_key": "0x867e2d23d1b42d61"
+        "draw_key": "0x867e2d23d1b42d61",
+        "pass_key": "0xd9226af7e31a2519"
       },
       {
-        "pass_key": "0xdc63d1cc937fd332",
-        "draw_key": "0xdbd82497e3bb7844"
+        "draw_key": "0xdbd82497e3bb7844",
+        "pass_key": "0xdc63d1cc937fd332"
       },
       {
-        "pass_key": "0xe006e56c9e202206",
-        "draw_key": "0x5d7bf96c04e94d6f"
+        "draw_key": "0x5d7bf96c04e94d6f",
+        "pass_key": "0xe006e56c9e202206"
       },
       {
-        "pass_key": "0xe006e56c9e202206",
-        "draw_key": "0xb1f0a55e661ba5b0"
+        "draw_key": "0xb1f0a55e661ba5b0",
+        "pass_key": "0xe006e56c9e202206"
       },
       {
-        "pass_key": "0xee60d2be7008aefa",
-        "draw_key": "0xb1f0a55e661ba5b0"
+        "draw_key": "0xb1f0a55e661ba5b0",
+        "pass_key": "0xee60d2be7008aefa"
       },
       {
-        "pass_key": "0xf5b9765bc8642459",
-        "draw_key": "0x65526365c7e0b565"
+        "draw_key": "0x65526365c7e0b565",
+        "pass_key": "0xf5b9765bc8642459"
       },
       {
-        "pass_key": "0xf5b9765bc8642459",
-        "draw_key": "0x6e65d07bab9e0a54"
+        "draw_key": "0x6e65d07bab9e0a54",
+        "pass_key": "0xf5b9765bc8642459"
       },
       {
-        "pass_key": "0xf5b9765bc8642459",
-        "draw_key": "0x6f8ebf3a8151e3ce"
+        "draw_key": "0x6f8ebf3a8151e3ce",
+        "pass_key": "0xf5b9765bc8642459"
       },
       {
-        "pass_key": "0xf5b9765bc8642459",
-        "draw_key": "0x9845509af4b52aef"
+        "draw_key": "0x9845509af4b52aef",
+        "pass_key": "0xf5b9765bc8642459"
       },
       {
-        "pass_key": "0xf5b9765bc8642459",
-        "draw_key": "0xed7fa8a8e1b12d39"
+        "draw_key": "0xed7fa8a8e1b12d39",
+        "pass_key": "0xf5b9765bc8642459"
       }
     ]
   },
-  "rules": [],
   "view_anchor_shift": {
     "convergence_distance": 600
   },
@@ -943,414 +951,823 @@
     "scene_convergence": [
       {
         "shape": "0x42594b9bc00ab1fc",
-        "distance": 490.292877
+        "distance": 598.84137
       },
       {
         "shape": "0x98cc4d5ae749221c",
-        "distance": 583.059753
+        "distance": 718.575806
       },
       {
         "shape": "0xc32826c3be6d1394",
-        "distance": 693.378845
+        "distance": 879.494995
       },
       {
         "shape": "0x4940d1fd4fdf7777",
-        "distance": 756.13501
+        "distance": 825.776184
       },
       {
         "shape": "0x49ccdf65076eeeeb",
-        "distance": 756.13501
+        "distance": 890.336243
       },
       {
         "shape": "0xb644efab15ddc053",
-        "distance": 756.13501
+        "distance": 890.336243
       },
       {
         "shape": "0x0638e140c74b24cb",
-        "distance": 756.13501
+        "distance": 890.336243
       },
       {
         "shape": "0x3b5b8c26b3105201",
-        "distance": 756.13501
+        "distance": 708.634155
       },
       {
         "shape": "0x9471ea12fc9ee90f",
-        "distance": 449.600555
+        "distance": 499.585602
       },
       {
         "shape": "0x547cfa164f8b68b7",
-        "distance": 449.600555
+        "distance": 329.468445
       },
       {
         "shape": "0xc98deaca5ddab9b3",
-        "distance": 449.600555
+        "distance": 216.992386
       },
       {
         "shape": "0x0e114e1e2522d128",
-        "distance": 583.059753
+        "distance": 456.043488
       },
       {
         "shape": "0x9295b64d4c2581c0",
-        "distance": 583.059753
+        "distance": 456.043488
       },
       {
         "shape": "0x0b7bdd7618a925ac",
-        "distance": 412.285522
+        "distance": 317.957092
       },
       {
         "shape": "0xa5de795bcc803c99",
-        "distance": 412.285522
+        "distance": 317.957092
       },
       {
         "shape": "0x6c349966c24879f4",
-        "distance": 980.585754
+        "distance": 1039.85779
       },
       {
         "shape": "0x379b3d5f73d1a0dd",
-        "distance": 980.585754
+        "distance": 1039.85779
       },
       {
         "shape": "0x47655aad125896cc",
-        "distance": 980.585754
+        "distance": 492.991516
       },
       {
         "shape": "0x153c21d962f95787",
-        "distance": 980.585754
+        "distance": 492.991516
       },
       {
         "shape": "0x7ebc08808b3420cf",
-        "distance": 1166.11951
+        "distance": 1139.59705
       },
       {
         "shape": "0xbfe966f08d63d3fa",
-        "distance": 635.831177
+        "distance": 566.36377
       },
       {
         "shape": "0x10c7e3bf40dab646",
-        "distance": 635.831177
+        "distance": 566.36377
       },
       {
         "shape": "0x9aa749ff3336d017",
-        "distance": 980.585754
+        "distance": 749.610046
       },
       {
         "shape": "0xbcc4b00e71dae5e2",
-        "distance": 412.285522
+        "distance": 317.957092
       },
       {
         "shape": "0x59763bd79e639f5a",
-        "distance": 635.831177
+        "distance": 566.36377
       },
       {
         "shape": "0x7c8f4bdb7be69454",
-        "distance": 635.831177
+        "distance": 566.36377
       },
       {
         "shape": "0x44d543e372b8a4be",
-        "distance": 635.831177
+        "distance": 566.36377
       },
       {
         "shape": "0x209347f4fd486bcf",
-        "distance": 635.831177
+        "distance": 566.36377
       },
       {
         "shape": "0x187ef1a90ef4e494",
-        "distance": 635.831177
+        "distance": 566.36377
       },
       {
         "shape": "0xf2a7017ca619843b",
-        "distance": 635.831177
+        "distance": 566.36377
       },
       {
         "shape": "0x8ffe8a6d27c087f7",
-        "distance": 635.831177
+        "distance": 566.36377
       },
       {
         "shape": "0x123319121fe41758",
-        "distance": 635.831177
+        "distance": 566.36377
       },
       {
         "shape": "0xdc82c2b0699e6d91",
-        "distance": 635.831177
+        "distance": 566.36377
       },
       {
         "shape": "0x47949e5a4b7b31b7",
-        "distance": 245.146439
+        "distance": 270.048187
       },
       {
         "shape": "0x9e4f6b045e591a88",
-        "distance": 245.146439
+        "distance": 283.493225
       },
       {
         "shape": "0x7fcf892e70fed9e6",
-        "distance": 245.146439
+        "distance": 182.888123
       },
       {
         "shape": "0xb12a055e31677829",
-        "distance": 245.146439
+        "distance": 251.781784
       },
       {
         "shape": "0x28de6a47000ae526",
-        "distance": 245.146439
+        "distance": 256.768463
       },
       {
         "shape": "0x61bcfc65f233aed6",
-        "distance": 4664.47803
+        "distance": 1155.4906
       },
       {
         "shape": "0x7b8dc82c56e45551",
-        "distance": 4664.47803
+        "distance": 1359.3783
       },
       {
         "shape": "0x7bcbec286de4052b",
-        "distance": 48392.6406
+        "distance": 32228.0684
       },
       {
         "shape": "0x899820316cae69d0",
-        "distance": 44376.2461
+        "distance": 787.671265
       },
       {
         "shape": "0xd88eb833ad3771ad",
-        "distance": 6049.08008
+        "distance": 4795.30811
       },
       {
         "shape": "0x570d6dab62eb88b3",
-        "distance": 824.571045
+        "distance": 757.240051
       },
       {
         "shape": "0x819c44135f1f12c8",
-        "distance": 1961.17151
+        "distance": 1108.19531
       },
       {
         "shape": "0x98b82bdc58f2debe",
-        "distance": 1961.17151
+        "distance": 1108.19531
       },
       {
         "shape": "0xbfaf581ba4e778f6",
-        "distance": 1798.40222
+        "distance": 968.831848
       },
       {
         "shape": "0x11bbe477d1d9ec5e",
-        "distance": 1512.27002
+        "distance": 784.717285
       },
       {
         "shape": "0x0913f41b71842b40",
-        "distance": 824.571045
+        "distance": 1007.12714
       },
       {
         "shape": "0xabb9c24b2663b74c",
-        "distance": 635.831177
+        "distance": 749.610046
       },
       {
         "shape": "0x5289f5a77c1724fa",
-        "distance": 980.585754
+        "distance": 135.172089
       },
       {
         "shape": "0x4b69991e5134bd22",
-        "distance": 980.585754
+        "distance": 159.602432
       },
       {
         "shape": "0xf6c828febafe6d8d",
-        "distance": 980.585754
+        "distance": 159.602432
       },
       {
         "shape": "0x9fef2f148041128b",
-        "distance": 980.585754
+        "distance": 205.23996
       },
       {
         "shape": "0xcf0835090b8318e2",
-        "distance": 980.585754
+        "distance": 223.815765
       },
       {
         "shape": "0xd7696f698ac45fa6",
-        "distance": 980.585754
+        "distance": 285.774109
       },
       {
         "shape": "0x0b485097e71457f6",
-        "distance": 824.571045
+        "distance": 285.774109
       },
       {
         "shape": "0x07240d61d3411af1",
-        "distance": 824.571045
+        "distance": 309.74881
       },
       {
         "shape": "0xcb88411fecb0416a",
-        "distance": 824.571045
+        "distance": 309.74881
       },
       {
         "shape": "0x6fb8a4ee8276c836",
-        "distance": 824.571045
+        "distance": 309.74881
       },
       {
         "shape": "0xae8ab50dfcfcf83e",
-        "distance": 824.571045
+        "distance": 135.992615
       },
       {
         "shape": "0xb61c32b0e6ff01ee",
-        "distance": 1386.75769
+        "distance": 1801.03064
       },
       {
         "shape": "0x069bb4347f355711",
-        "distance": 1271.66235
+        "distance": 1651.55237
       },
       {
         "shape": "0xd73117c9a68b1c77",
-        "distance": 1166.11951
+        "distance": 2064.39111
       },
       {
         "shape": "0xee7a0bb30722e92d",
-        "distance": 1166.11951
+        "distance": 1035.02148
       },
       {
         "shape": "0xea7a736c501f4a7f",
-        "distance": 1166.11951
+        "distance": 881.447876
       },
       {
         "shape": "0x9c6bddb51bf4b19d",
-        "distance": 1069.3363
+        "distance": 1182.83032
       },
       {
         "shape": "0xe9c739c4159f1b27",
-        "distance": 899.201111
+        "distance": 1156.05664
       },
       {
         "shape": "0xbc4dda0a1ad845ec",
-        "distance": 693.378845
+        "distance": 357.533661
       },
       {
         "shape": "0x3405f54d59ad25c4",
-        "distance": 756.13501
+        "distance": 221.601898
       },
       {
         "shape": "0x69941d711d21ae91",
-        "distance": 899.201111
+        "distance": 1271.82837
       },
       {
         "shape": "0xfc6db441fcb07d10",
-        "distance": 824.571045
+        "distance": 114.355698
       },
       {
         "shape": "0x8c7dee35f1755aa4",
-        "distance": 635.831177
+        "distance": 374.34024
       },
       {
         "shape": "0xf23cff732642e32c",
-        "distance": 534.668152
+        "distance": 347.196075
       },
       {
         "shape": "0x6c7000c9f70f5d50",
-        "distance": 490.292877
+        "distance": 403.250214
       },
       {
         "shape": "0x363581700fa3667b",
-        "distance": 412.285522
+        "distance": 412.888092
       },
       {
         "shape": "0x8d7f3196d9e9ca37",
-        "distance": 346.689423
+        "distance": 516.097778
       },
       {
         "shape": "0x5cc45136e9fdd7f3",
-        "distance": 412.285522
+        "distance": 630.035706
       },
       {
         "shape": "0x32312c88731dbf5a",
-        "distance": 824.571045
+        "distance": 881.447876
       },
       {
         "shape": "0x7ff60ef0545837c4",
-        "distance": 3024.54004
+        "distance": 2834.80054
       },
       {
         "shape": "0x31d0e852fa946dc1",
-        "distance": 189.033752
+        "distance": 178.036606
       },
       {
         "shape": "0xde5ccb1f984ebaa4",
-        "distance": 189.033752
+        "distance": 172.321777
       },
       {
         "shape": "0x97328af75ea7c718",
-        "distance": 189.033752
+        "distance": 178.036606
       },
       {
         "shape": "0x40f86c47d28ab645",
-        "distance": 189.033752
+        "distance": 172.321777
       },
       {
         "shape": "0x80cb37869b59a232",
-        "distance": 189.033752
+        "distance": 153.789948
       },
       {
         "shape": "0x17b151ac056b1c0d",
-        "distance": 189.033752
+        "distance": 149.853378
       },
       {
         "shape": "0xcc3e4cd73ade8b89",
-        "distance": 189.033752
+        "distance": 149.853378
       },
       {
         "shape": "0xd7672a48f94bd290",
-        "distance": 189.033752
+        "distance": 153.789948
       },
       {
         "shape": "0x7fdd9c12aa6b6142",
-        "distance": 2773.51538
+        "distance": 2712.73291
       },
       {
         "shape": "0xc444f0ba0f3b8dfc",
-        "distance": 189.033752
+        "distance": 114.8731
       },
       {
         "shape": "0xab8def168a884850",
-        "distance": 449.600555
+        "distance": 162.455078
       },
       {
         "shape": "0x95201fb58210f2ae",
-        "distance": 449.600555
+        "distance": 408.727753
       },
       {
         "shape": "0xc03e599ceac7264e",
-        "distance": 449.600555
+        "distance": 359.287903
       },
       {
         "shape": "0x697073f60b074fc3",
-        "distance": 534.668152
+        "distance": 302.123871
       },
       {
         "shape": "0x1727a735b3e61076",
-        "distance": 245.146439
+        "distance": 334.647949
       },
       {
         "shape": "0xdc5ba53ba016c48b",
-        "distance": 449.600555
+        "distance": 417.262604
       },
       {
         "shape": "0x31ce967f48e88059",
-        "distance": 490.292877
+        "distance": 605.099731
       },
       {
         "shape": "0x6258ddfb6f1225a1",
-        "distance": 534.668152
+        "distance": 697.195251
       },
       {
         "shape": "0xfd3718604641a763",
-        "distance": 534.668152
+        "distance": 649.88092
       },
       {
         "shape": "0x851838905ff2c304",
-        "distance": 490.292877
+        "distance": 605.099731
       },
       {
         "shape": "0xaca9ba69190707bf",
-        "distance": 1961.17151
+        "distance": 605.099731
       },
       {
         "shape": "0x6f867e82ead51fa4",
-        "distance": 1961.17151
+        "distance": 605.099731
       }
     ],
-    "scene_max_separation": [],
+    "scene_max_separation": [
+      {
+        "shape": "0x42594b9bc00ab1fc",
+        "separation": 11.6398363
+      },
+      {
+        "shape": "0x98cc4d5ae749221c",
+        "separation": 9.05581665
+      },
+      {
+        "shape": "0xc32826c3be6d1394",
+        "separation": 8.80913544
+      },
+      {
+        "shape": "0x4940d1fd4fdf7777",
+        "separation": 7.91497612
+      },
+      {
+        "shape": "0x49ccdf65076eeeeb",
+        "separation": 8.71548653
+      },
+      {
+        "shape": "0xb644efab15ddc053",
+        "separation": 8.71548653
+      },
+      {
+        "shape": "0x0638e140c74b24cb",
+        "separation": 8.77749062
+      },
+      {
+        "shape": "0x3b5b8c26b3105201",
+        "separation": 6.59379482
+      },
+      {
+        "shape": "0x9471ea12fc9ee90f",
+        "separation": 34.097683
+      },
+      {
+        "shape": "0x547cfa164f8b68b7",
+        "separation": 8.02494812
+      },
+      {
+        "shape": "0xc98deaca5ddab9b3",
+        "separation": 4.30690765
+      },
+      {
+        "shape": "0x0e114e1e2522d128",
+        "separation": 6.93358278
+      },
+      {
+        "shape": "0x9295b64d4c2581c0",
+        "separation": 6.92317629
+      },
+      {
+        "shape": "0x0b7bdd7618a925ac",
+        "separation": 6.08863926
+      },
+      {
+        "shape": "0xa5de795bcc803c99",
+        "separation": 6.08863926
+      },
+      {
+        "shape": "0x6c349966c24879f4",
+        "separation": 36.1928673
+      },
+      {
+        "shape": "0x379b3d5f73d1a0dd",
+        "separation": 36.1928673
+      },
+      {
+        "shape": "0x47655aad125896cc",
+        "separation": 9.88393021
+      },
+      {
+        "shape": "0x153c21d962f95787",
+        "separation": 9.88393021
+      },
+      {
+        "shape": "0x7ebc08808b3420cf",
+        "separation": 86.4024506
+      },
+      {
+        "shape": "0xbfe966f08d63d3fa",
+        "separation": 11.6734867
+      },
+      {
+        "shape": "0x10c7e3bf40dab646",
+        "separation": 11.6734867
+      },
+      {
+        "shape": "0x9aa749ff3336d017",
+        "separation": 11.3325443
+      },
+      {
+        "shape": "0xbcc4b00e71dae5e2",
+        "separation": 6.08863926
+      },
+      {
+        "shape": "0x59763bd79e639f5a",
+        "separation": 11.6734867
+      },
+      {
+        "shape": "0x7c8f4bdb7be69454",
+        "separation": 11.6734867
+      },
+      {
+        "shape": "0x44d543e372b8a4be",
+        "separation": 11.6734867
+      },
+      {
+        "shape": "0x209347f4fd486bcf",
+        "separation": 11.6734867
+      },
+      {
+        "shape": "0x187ef1a90ef4e494",
+        "separation": 11.6734867
+      },
+      {
+        "shape": "0xf2a7017ca619843b",
+        "separation": 11.6734867
+      },
+      {
+        "shape": "0x8ffe8a6d27c087f7",
+        "separation": 11.6734867
+      },
+      {
+        "shape": "0x123319121fe41758",
+        "separation": 11.6734867
+      },
+      {
+        "shape": "0xdc82c2b0699e6d91",
+        "separation": 11.6734867
+      },
+      {
+        "shape": "0x47949e5a4b7b31b7",
+        "separation": 8.1998682
+      },
+      {
+        "shape": "0x9e4f6b045e591a88",
+        "separation": 17.9259052
+      },
+      {
+        "shape": "0x7fcf892e70fed9e6",
+        "separation": 7.45486403
+      },
+      {
+        "shape": "0xb12a055e31677829",
+        "separation": 20.2086353
+      },
+      {
+        "shape": "0x28de6a47000ae526",
+        "separation": 11.4542723
+      },
+      {
+        "shape": "0x61bcfc65f233aed6",
+        "separation": 20.1395607
+      },
+      {
+        "shape": "0x7b8dc82c56e45551",
+        "separation": 24.1430511
+      },
+      {
+        "shape": "0x7bcbec286de4052b",
+        "separation": 1118.66687
+      },
+      {
+        "shape": "0x899820316cae69d0",
+        "separation": 10.8051233
+      },
+      {
+        "shape": "0xd88eb833ad3771ad",
+        "separation": 155.55687
+      },
+      {
+        "shape": "0x570d6dab62eb88b3",
+        "separation": 12.9614124
+      },
+      {
+        "shape": "0x819c44135f1f12c8",
+        "separation": 29.0962257
+      },
+      {
+        "shape": "0x98b82bdc58f2debe",
+        "separation": 29.0962257
+      },
+      {
+        "shape": "0xbfaf581ba4e778f6",
+        "separation": 23.4728298
+      },
+      {
+        "shape": "0x11bbe477d1d9ec5e",
+        "separation": 17.2520466
+      },
+      {
+        "shape": "0x0913f41b71842b40",
+        "separation": 19.5757885
+      },
+      {
+        "shape": "0xabb9c24b2663b74c",
+        "separation": 10.3991785
+      },
+      {
+        "shape": "0x5289f5a77c1724fa",
+        "separation": 1.09185266
+      },
+      {
+        "shape": "0x4b69991e5134bd22",
+        "separation": 1.30510306
+      },
+      {
+        "shape": "0xf6c828febafe6d8d",
+        "separation": 1.30510306
+      },
+      {
+        "shape": "0x9fef2f148041128b",
+        "separation": 1.70290279
+      },
+      {
+        "shape": "0xcf0835090b8318e2",
+        "separation": 1.85702896
+      },
+      {
+        "shape": "0xd7696f698ac45fa6",
+        "separation": 2.43618011
+      },
+      {
+        "shape": "0x0b485097e71457f6",
+        "separation": 2.43618011
+      },
+      {
+        "shape": "0x07240d61d3411af1",
+        "separation": 2.66890407
+      },
+      {
+        "shape": "0xcb88411fecb0416a",
+        "separation": 2.66890407
+      },
+      {
+        "shape": "0x6fb8a4ee8276c836",
+        "separation": 2.66890407
+      },
+      {
+        "shape": "0xae8ab50dfcfcf83e",
+        "separation": 1.08718467
+      },
+      {
+        "shape": "0xb61c32b0e6ff01ee",
+        "separation": 35.9644737
+      },
+      {
+        "shape": "0x069bb4347f355711",
+        "separation": 32.9795647
+      },
+      {
+        "shape": "0xd73117c9a68b1c77",
+        "separation": 44.1677284
+      },
+      {
+        "shape": "0xee7a0bb30722e92d",
+        "separation": 18.7969227
+      },
+      {
+        "shape": "0xea7a736c501f4a7f",
+        "separation": 15.6548328
+      },
+      {
+        "shape": "0x9c6bddb51bf4b19d",
+        "separation": 15.6059799
+      },
+      {
+        "shape": "0xe9c739c4159f1b27",
+        "separation": 16.0377235
+      },
+      {
+        "shape": "0xbc4dda0a1ad845ec",
+        "separation": 3.24852109
+      },
+      {
+        "shape": "0x3405f54d59ad25c4",
+        "separation": 1.87069011
+      },
+      {
+        "shape": "0x69941d711d21ae91",
+        "separation": 21.1665325
+      },
+      {
+        "shape": "0xfc6db441fcb07d10",
+        "separation": 0.914209604
+      },
+      {
+        "shape": "0x8c7dee35f1755aa4",
+        "separation": 3.66441011
+      },
+      {
+        "shape": "0xf23cff732642e32c",
+        "separation": 3.32783747
+      },
+      {
+        "shape": "0x6c7000c9f70f5d50",
+        "separation": 4.03900623
+      },
+      {
+        "shape": "0x363581700fa3667b",
+        "separation": 3.95748806
+      },
+      {
+        "shape": "0x8d7f3196d9e9ca37",
+        "separation": 5.3000474
+      },
+      {
+        "shape": "0x5cc45136e9fdd7f3",
+        "separation": 5.27088308
+      },
+      {
+        "shape": "0x32312c88731dbf5a",
+        "separation": 12.3051395
+      },
+      {
+        "shape": "0x7ff60ef0545837c4",
+        "separation": 64.1978378
+      },
+      {
+        "shape": "0x31d0e852fa946dc1",
+        "separation": 3.57593942
+      },
+      {
+        "shape": "0xde5ccb1f984ebaa4",
+        "separation": 3.79125094
+      },
+      {
+        "shape": "0x97328af75ea7c718",
+        "separation": 3.57593942
+      },
+      {
+        "shape": "0x40f86c47d28ab645",
+        "separation": 5.52044487
+      },
+      {
+        "shape": "0x80cb37869b59a232",
+        "separation": 3.76673269
+      },
+      {
+        "shape": "0x17b151ac056b1c0d",
+        "separation": 3.89899898
+      },
+      {
+        "shape": "0xcc3e4cd73ade8b89",
+        "separation": 3.80505538
+      },
+      {
+        "shape": "0xd7672a48f94bd290",
+        "separation": 3.67597628
+      },
+      {
+        "shape": "0x7fdd9c12aa6b6142",
+        "separation": 35.4541054
+      },
+      {
+        "shape": "0xc444f0ba0f3b8dfc",
+        "separation": 1.47830772
+      },
+      {
+        "shape": "0xab8def168a884850",
+        "separation": 2.03819561
+      },
+      {
+        "shape": "0x95201fb58210f2ae",
+        "separation": 7.90101767
+      },
+      {
+        "shape": "0xc03e599ceac7264e",
+        "separation": 6.30932522
+      },
+      {
+        "shape": "0x697073f60b074fc3",
+        "separation": 3.80750132
+      },
+      {
+        "shape": "0x1727a735b3e61076",
+        "separation": 3.43665504
+      },
+      {
+        "shape": "0xdc5ba53ba016c48b",
+        "separation": 3.92275929
+      },
+      {
+        "shape": "0x31ce967f48e88059",
+        "separation": 6.38541365
+      },
+      {
+        "shape": "0x6258ddfb6f1225a1",
+        "separation": 7.82732058
+      },
+      {
+        "shape": "0xfd3718604641a763",
+        "separation": 7.06425333
+      },
+      {
+        "shape": "0x851838905ff2c304",
+        "separation": 6.38541365
+      },
+      {
+        "shape": "0xaca9ba69190707bf",
+        "separation": 6.38541365
+      },
+      {
+        "shape": "0x6f867e82ead51fa4",
+        "separation": 6.38541365
+      }
+    ],
     "draw_rules": [
       {
         "signature": "0x0aa025d711b2fb46",

@@ -44,6 +44,9 @@ namespace Stereo
 
             bool is_ready() const;
 
+            /* Reads the depth buffer of the left eye (0 at the near plane, 1 at the far one), rows from the bottom up; false if there are no framebuffers. */
+            bool read_depth(std::vector<float>* out_depth_f32_vec_ptr);
+
             /* Reads the image of the eye, rows from the bottom up, as R, G, B, A of 8 bits; the left eye is current afterward. */
             bool read_eye(const Analysis::Recipe::Eye& in_eye,
                           std::vector<uint8_t>*        out_rgba_u8_vec_ptr);

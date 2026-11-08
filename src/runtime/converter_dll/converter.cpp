@@ -111,6 +111,8 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
         {
             m_live_state.dump_frame = static_cast<uint64_t>(value);
         }
+
+        m_live_state.is_scene_dump_enabled = Environment::is_set("APISTEREO_DUMP_SCENES");
     }
 
     m_live_state.d3d7_renderer_ptr.reset(new D3D7EyeRenderer(m_live_state.core_ptr.get(),
@@ -345,6 +347,8 @@ std::string Stereo::ConverterDLL::Converter::make_statistics_line() const
                                                                                     " list calls, "                                     +
                                                                                     std::to_string(gl_stats.n_skipped_draws)           +
                                                                                     " skipped, "                                        +
+                                                                                    std::to_string(gl_stats.n_camera_attached_draws)   +
+                                                                                    " attached to the camera, "                         +
                                                                                     std::to_string(gl_stats.n_clears)                  +
                                                                                     " clears, "                                         +
                                                                                     std::to_string(gl_stats.n_texture_copies)          +
@@ -477,7 +481,66 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
         /* What the frame that ended was made of tells which scene it is; the draws that follow are converged for it. */
         if (this_ptr->m_live_state.feeder.take_completed_frame_shape_key(&shape_key) )
         {
-            this_ptr->m_live_state.core_ptr->on_frame_completed(shape_key);
+            /* How deep the frame was, as the application drew it, if the recipe has it measured (see Comfort::measures_depth); else what was baked for the kind of frame. */
+            Stereo::Core::DepthRange depth_range;
+            float                    projection_scale = 0.0f;
+
+            const bool is_measured = (this_ptr->m_live_state.gl_renderer_ptr->take_frame_depth(&depth_range,
+                                                                                                &projection_scale) &&
+                                      this_ptr->m_live_state.core_ptr->on_frame_depth      (shape_key,
+                                                                                            depth_range,
+                                                                                            projection_scale) );
+
+            if (is_measured == false)
+            {
+                this_ptr->m_live_state.core_ptr->on_frame_completed(shape_key);
+            }
+            else
+            {
+                this_ptr->m_live_state.last_depth_range       = depth_range;
+                this_ptr->m_live_state.last_projection_scale  = projection_scale;
+            }
+
+            /* A debugging aid for tuning a recipe: a frame of each scene, to look at, with the key that the recipe knows it by. It is the one that ends a run of frames of the scene, so
+             * that the eyes have had the time to come to what the scene says (they follow it over some frames) and the cuts of a frame or two are left out.
+             */
+            constexpr uint64_t N_FRAMES_IN_A_SCENE_TO_SETTLE = 80;
+
+            if (shape_key == this_ptr->m_live_state.scene_run_key)
+            {
+                this_ptr->m_live_state.scene_run_length++;
+            }
+            else
+            {
+                this_ptr->m_live_state.scene_run_key    = shape_key;
+                this_ptr->m_live_state.scene_run_length = 1;
+            }
+
+            if (this_ptr->m_live_state.is_scene_dump_enabled                                                  &&
+                this_ptr->m_live_state.has_last_gl_images                                                     &&
+                this_ptr->m_live_state.scene_run_length == N_FRAMES_IN_A_SCENE_TO_SETTLE                      &&
+                this_ptr->m_live_state.scene_seen_set.insert(shape_key).second)
+            {
+                char temp_i8vec260[MAX_PATH] = {};
+
+                if (::GetTempPathA(MAX_PATH,
+                                   temp_i8vec260) != 0)
+                {
+                    char key_i8vec19[19] = {};
+
+                    ::snprintf(key_i8vec19,
+                               sizeof(key_i8vec19),
+                               "0x%016llx",
+                               static_cast<unsigned long long>(shape_key) );
+
+                    const std::string filename = std::string(temp_i8vec260) + "apistereo_scene_" + key_i8vec19 + ".bmp";
+
+                    GlHostMemoryExporter::write_debug_image(this_ptr->m_live_state.last_gl_images,
+                                                            filename);
+
+                    this_ptr->m_log.write(std::string("A scene has settled: ") + key_i8vec19 + ", frame " + std::to_string(this_ptr->m_live_state.n_frames) + ", the eyes converge at " + std::to_string(this_ptr->m_live_state.core_ptr->get_effective_convergence_distance() ) + " and are " + std::to_string(this_ptr->m_live_state.core_ptr->get_effective_eye_separation() ) + " apart; measured near " + std::to_string(this_ptr->m_live_state.last_depth_range.near_depth) + ", median " + std::to_string(this_ptr->m_live_state.last_depth_range.median_depth) + ", far " + std::to_string(this_ptr->m_live_state.last_depth_range.far_depth) + ", scale " + std::to_string(this_ptr->m_live_state.last_projection_scale) );
+                }
+            }
         }
 
         /* The eye renderer is for Direct3D 8; the calls of Direct3D 7 and of OpenGL are only followed. */
@@ -597,6 +660,9 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
                 count_frame(&log_line_vec);
 
                 has_gl_images = m_live_state.gl_renderer_ptr->on_frame_ending(&gl_images);
+
+                m_live_state.has_last_gl_images = has_gl_images;
+                m_live_state.last_gl_images     = gl_images;
             }
 
             /* What the application renders is made for both eyes: a draw or a clear is made here, and the call of the application is not. */

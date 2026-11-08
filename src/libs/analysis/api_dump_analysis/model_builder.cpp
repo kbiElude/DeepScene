@@ -216,6 +216,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::complete_pass()
 
             m_frame_depth_histogram_vec.push_back        (m_open_pass.depth_histogram);
             m_frame_surface_depth_histogram_vec.push_back(m_open_pass.surface_depth_histogram);
+            m_frame_projection_scale_vec.push_back        (m_open_pass.projection_scale);
         }
     }
 
@@ -875,6 +876,23 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_frame_presented()
                            m_frame_pass_instance_vec,
                           &m_model.surface_depth_histogram_map);
 
+    for (size_t n_pass = 0;
+                n_pass < m_frame_projection_scale_vec.size();
+              ++n_pass)
+    {
+        const auto& scale = m_frame_projection_scale_vec.at(n_pass);
+
+        if (scale.weight != 0)
+        {
+            auto& total = m_model.projection_scale_map[DepthHistogramKey(frame_record.shape_id,
+                                                                         m_frame_pass_instance_vec.at(n_pass).structure_id)];
+            const double weight_sum = static_cast<double>(total.weight) + static_cast<double>(scale.weight);
+
+            total.mean   = static_cast<float>( (static_cast<double>(total.mean) * static_cast<double>(total.weight) + static_cast<double>(scale.mean) * static_cast<double>(scale.weight) ) / weight_sum);
+            total.weight += scale.weight;
+        }
+    }
+
     m_completed_frame.first_call_index  = frame_record.first_call_index;
     m_completed_frame.frame_index       = frame_record.frame_index;
     m_completed_frame.last_call_index   = frame_record.last_call_index;
@@ -926,6 +944,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_frame_presented()
     m_frame_pass_instance_vec.clear          ();
     m_frame_pass_is_presented_vec.clear      ();
     m_frame_surface_depth_histogram_vec.clear();
+    m_frame_projection_scale_vec.clear();
     m_frame_transfer_record_vec.clear();
     m_pending_forget_vec.clear       ();
 
@@ -1174,6 +1193,22 @@ void Analysis::APIDumpAnalysis::ModelBuilder::record_draw_depth(const DrawDescri
 
         m_open_pass.depth_histogram.add(depth,
                                         in_draw.vertex_count);
+
+        /* A perspective projection says how wide the picture is: its x scale (an orthographic one has 1 in the last element, and no depth to be wide at). */
+        constexpr size_t PROJECTION_SCALE_X = 0;
+        constexpr size_t PROJECTION_WW      = 15;
+
+        if (matrices.has_projection                                          &&
+            matrices.projection_f32mat.at(PROJECTION_WW)      == 0.0f       &&
+            matrices.projection_f32mat.at(PROJECTION_SCALE_X) >  0.0f       &&
+            in_draw.vertex_count                              >  0)
+        {
+            auto&        total      = m_open_pass.projection_scale;
+            const double weight_sum = static_cast<double>(total.weight) + static_cast<double>(in_draw.vertex_count);
+
+            total.mean    = static_cast<float>( (static_cast<double>(total.mean) * static_cast<double>(total.weight) + static_cast<double>(matrices.projection_f32mat.at(PROJECTION_SCALE_X) ) * static_cast<double>(in_draw.vertex_count) ) / weight_sum);
+            total.weight += in_draw.vertex_count;
+        }
     }
 }
 

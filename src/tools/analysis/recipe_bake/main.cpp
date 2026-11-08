@@ -13,6 +13,7 @@
 #include "overlay_candidate_finder.h"
 #include "recipe_baker.h"
 #include "recipe_checker.h"
+#include "scene_reporter.h"
 #include "analysis/recipe/recipe_loader.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -88,8 +89,9 @@ int main(int   in_argc,
         goto end;
     }
 
-    if (options.checks_only ||
-        options.lists_overlays)
+    if (options.checks_only    ||
+        options.lists_overlays ||
+        options.shows_scenes)
     {
         Analysis::Recipe::Recipe recipe;
 
@@ -103,6 +105,21 @@ int main(int   in_argc,
                       error.c_str() );
 
             result = EXIT_BAD_INPUT;
+
+            goto end;
+        }
+
+        if (options.shows_scenes)
+        {
+            Utils::Json::JsonWriter writer(true); /* in_is_pretty */
+
+            Analysis::RecipeBake::SceneReporter::write_json(Analysis::RecipeBake::SceneReporter::find(recipe,
+                                                                                                      analysis),
+                                                            options.screen_degrees,
+                                                           &writer);
+
+            ::printf("%s\n",
+                     writer.get_text().c_str() );
 
             goto end;
         }

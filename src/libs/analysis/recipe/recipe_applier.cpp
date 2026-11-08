@@ -269,6 +269,105 @@ std::vector<const Analysis::Recipe::Rule*> Analysis::Recipe::RecipeApplier::get_
     return result_vec;
 }
 
+const Analysis::Recipe::Comfort& Analysis::Recipe::RecipeApplier::get_comfort() const
+{
+    return m_recipe.comfort;
+}
+
+Analysis::Recipe::ComfortLimits Analysis::Recipe::RecipeApplier::get_comfort_limits(const Comfort&      in_comfort,
+                                                                                    const SceneComfort* in_scene_ptr,
+                                                                                    const float&        in_median_depth,
+                                                                                    const float&        in_near_depth,
+                                                                                    const float&        in_far_depth,
+                                                                                    const float&        in_projection_scale)
+{
+    ComfortLimits result;
+
+    const float scale = (in_projection_scale > 0.0f) ? in_projection_scale
+                                                     : 1.0f;
+
+    result.distance = (in_scene_ptr != nullptr                   &&
+                       in_scene_ptr->convergence_distance > 0.0f) ? in_scene_ptr->convergence_distance
+                                                                  : in_median_depth;
+
+    const float max_far_parallax  = (in_scene_ptr                      != nullptr &&
+                                     in_scene_ptr->max_far_parallax     > 0.0f)   ? in_scene_ptr->max_far_parallax
+                                                                                  : in_comfort.max_far_parallax;
+    const float max_near_parallax = (in_scene_ptr                      != nullptr &&
+                                     in_scene_ptr->max_near_parallax    > 0.0f)   ? in_scene_ptr->max_near_parallax
+                                                                                  : in_comfort.max_near_parallax;
+
+    /* With both limits the eyes converge where the whole of the depth of the scene fits them best: s * scale * (1 / zn - 1 / zf) / 2 is the width of all the parallax
+     * of the scene, at most the two limits together, and it is split so that the nearest surfaces have the near limit: 1 / d = 1 / zn - (1 / zn - 1 / zf) * near / (near + far).
+     */
+    if (in_comfort.balances_convergence                                                  &&
+        (in_scene_ptr == nullptr || in_scene_ptr->convergence_distance <= 0.0f)           &&
+        max_near_parallax > 0.0f                                                          &&
+        max_far_parallax  > 0.0f                                                          &&
+        in_near_depth     > 0.0f                                                          &&
+        in_far_depth      > in_near_depth)
+    {
+        const float depth_term    = 1.0f / in_near_depth - 1.0f / in_far_depth;
+        const float inverse_depth = 1.0f / in_near_depth - depth_term * max_near_parallax / (max_near_parallax + max_far_parallax);
+
+        result.distance = 1.0f / inverse_depth;
+    }
+
+    /* The eyes may be no further apart than lets the nearest surface of the scene be at most max_near_parallax of the width of the picture
+     * from where the eyes see it at the screen, which is where the scene converges. A surface at depth z, with the eyes a separation s apart
+     * (each half of it from the middle), is at the screen when it is at the distance d, and else s * scale * (1 / z - 1 / d) / 2 of the
+     * width of the picture from it; the limit is the s at which that is max_near_parallax for the nearest z. For the farthest surface it is
+     * the same with (1 / d - 1 / z), which is at most 1 / d however far it is.
+     */
+    if (max_near_parallax > 0.0f           &&
+        in_near_depth     > 0.0f           &&
+        in_near_depth     < result.distance)
+    {
+        result.max_separation = 2.0f * max_near_parallax / (scale * (1.0f / in_near_depth - 1.0f / result.distance));
+    }
+
+    if (max_far_parallax > 0.0f &&
+        result.distance  > 0.0f)
+    {
+        const float far_term  = (in_far_depth > result.distance) ? (1.0f / result.distance - 1.0f / in_far_depth)
+                                                                 : 0.0f;
+        const float far_limit = (far_term > 0.0f)                ? 2.0f * max_far_parallax / (scale * far_term)
+                                                                 : 0.0f;
+
+        if (far_limit > 0.0f                           &&
+            (result.max_separation <= 0.0f             ||
+             far_limit             <  result.max_separation) )
+        {
+            result.is_far_limit   = true;
+            result.max_separation = far_limit;
+        }
+    }
+
+    if (in_scene_ptr                 != nullptr &&
+        in_scene_ptr->max_separation >  0.0f)
+    {
+        result.is_far_limit   = false;
+        result.max_separation = in_scene_ptr->max_separation;
+    }
+
+    return result;
+}
+
+const Analysis::Recipe::SceneComfort* Analysis::Recipe::RecipeApplier::find_scene_comfort_ptr(const uint64_t& in_shape_key) const
+{
+    const SceneComfort* result_ptr = nullptr;
+
+    for (const auto& scene_comfort : m_recipe.comfort.scene_override_vec)
+    {
+        if (scene_comfort.shape_key == in_shape_key)
+        {
+            result_ptr = &scene_comfort;
+        }
+    }
+
+    return result_ptr;
+}
+
 float Analysis::Recipe::RecipeApplier::get_overlay_parallax() const
 {
     return m_recipe.comfort.overlay_parallax;

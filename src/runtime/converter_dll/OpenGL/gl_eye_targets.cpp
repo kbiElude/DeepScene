@@ -187,6 +187,40 @@ bool Stereo::ConverterDLL::GlEyeTargets::make_target(EyeTarget* out_target_ptr)
     return (m_functions.check_framebuffer_status_func_ptr(FRAMEBUFFER) == FRAMEBUFFER_COMPLETE);
 }
 
+bool Stereo::ConverterDLL::GlEyeTargets::read_depth(std::vector<float>* out_depth_f32_vec_ptr)
+{
+    constexpr GLenum PACK_ALIGNMENT = 0x0D05;
+
+    const OwnCallScope own_call_scope;
+    GLint              saved_alignment = 4;
+    const bool         result          = m_is_ready;
+
+    if (m_is_ready)
+    {
+        out_depth_f32_vec_ptr->resize(static_cast<size_t>(m_width) * m_height);
+
+        GlDriverFunctions::get().get_integerv_func_ptr(PACK_ALIGNMENT,
+                                                       &saved_alignment);
+        GlDriverFunctions::get().pixel_storei_func_ptr(PACK_ALIGNMENT,
+                                                       1);
+
+        bind_eye(Analysis::Recipe::Eye::LEFT);
+
+        GlDriverFunctions::get().read_pixels_func_ptr(0,
+                                                      0,
+                                                      static_cast<GLsizei>(m_width),
+                                                      static_cast<GLsizei>(m_height),
+                                                      GL_DEPTH_COMPONENT,
+                                                      GL_FLOAT,
+                                                      out_depth_f32_vec_ptr->data() );
+
+        GlDriverFunctions::get().pixel_storei_func_ptr(PACK_ALIGNMENT,
+                                                       saved_alignment);
+    }
+
+    return result;
+}
+
 bool Stereo::ConverterDLL::GlEyeTargets::read_eye(const Analysis::Recipe::Eye& in_eye,
                                                   std::vector<uint8_t>*        out_rgba_u8_vec_ptr)
 {

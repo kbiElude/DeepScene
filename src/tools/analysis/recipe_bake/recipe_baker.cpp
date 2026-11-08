@@ -492,22 +492,63 @@ void Analysis::RecipeBake::RecipeBaker::compute_scene_convergence(const Analysis
                                                                   SceneSeparationVector*                           out_scene_separation_vec_ptr,
                                                                   BakeReport*                                      out_report_ptr)
 {
+    out_scene_convergence_vec_ptr->clear();
+    out_scene_separation_vec_ptr->clear  ();
+
+    for (const auto& measure : measure_scenes(in_recipe,
+                                              in_analysis) )
+    {
+        if (measure.has_depth == false)
+        {
+            out_report_ptr->n_scenes_without_depth++;
+
+            continue;
+        }
+
+        const auto limits = resolve_scene_limits(in_recipe,
+                                                 measure);
+
+        Analysis::Recipe::SceneConvergence convergence;
+
+        convergence.distance  = limits.distance;
+        convergence.shape_key = measure.shape_key;
+
+        out_scene_convergence_vec_ptr->push_back(convergence);
+
+        if (limits.max_separation > 0.0f)
+        {
+            Analysis::Recipe::SceneSeparation separation;
+
+            separation.max_separation = limits.max_separation;
+            separation.shape_key      = measure.shape_key;
+
+            out_scene_separation_vec_ptr->push_back(separation);
+        }
+    }
+
+    out_report_ptr->n_scene_distances = static_cast<uint32_t>(out_scene_convergence_vec_ptr->size() );
+    out_report_ptr->n_scene_limits    = static_cast<uint32_t>(out_scene_separation_vec_ptr->size() );
+}
+
+std::vector<Analysis::RecipeBake::SceneMeasure> Analysis::RecipeBake::RecipeBaker::measure_scenes(const Analysis::Recipe::Recipe&                  in_recipe,
+                                                                                                    const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
+{
     constexpr double FRACTION_MEDIAN = 0.5;
 
     const Analysis::Recipe::RecipeApplier applier(in_recipe);
-    const auto& model_ref = in_analysis.model;
-    const auto  n_shapes  = model_ref.frame_shape_interner.get_n_structures();
-
-    out_scene_convergence_vec_ptr->clear();
-    out_scene_separation_vec_ptr->clear  ();
+    const auto&                           model_ref = in_analysis.model;
+    const auto                            n_shapes  = model_ref.frame_shape_interner.get_n_structures();
+    std::vector<SceneMeasure>             result_vec;
 
     for (uint32_t n_shape = 0;
                   n_shape < n_shapes;
                 ++n_shape)
     {
         Analysis::APIDumpAnalysis::DepthHistogram histogram;
-        float                                     projection_scale  = 0.0f;
-        const auto&                               shape             = model_ref.frame_shape_interner.get_structure(n_shape);
+        SceneMeasure                              measure;
+        double                                    scale_weight      = 0.0;
+        double                                    scale_weighted_sum = 0.0;
+        const auto&                               shape            = model_ref.frame_shape_interner.get_structure(n_shape);
         Analysis::APIDumpAnalysis::DepthHistogram surface_histogram;
 
         /* A pass of a frame counts if the recipe affects any draw of it, and counts once however often a frame has it. */
@@ -544,63 +585,91 @@ void Analysis::RecipeBake::RecipeBaker::compute_scene_convergence(const Analysis
                     surface_histogram.merge(surface_iterator->second);
                 }
 
-                if (projection_scale <= 0.0f)
                 {
-                    projection_scale = get_projection_scale(in_analysis,
-                                                            pass_id);
+                    const auto scale_iterator = model_ref.projection_scale_map.find(Analysis::APIDumpAnalysis::DepthHistogramKey(n_shape,
+                                                                                                                                  pass_id) );
+
+                    if (scale_iterator != model_ref.projection_scale_map.end() )
+                    {
+                        scale_weight       += static_cast<double>(scale_iterator->second.weight);
+                        scale_weighted_sum += static_cast<double>(scale_iterator->second.mean) * static_cast<double>(scale_iterator->second.weight);
+                    }
+                }
+
+                /* An analysis that did not say it (an older file) has the first projection that the pass is seen with. */
+                if (measure.projection_scale <= 0.0f)
+                {
+                    measure.projection_scale = get_projection_scale(in_analysis,
+                                                                    pass_id);
                 }
 
                 /* A pass whose vertices no matrix moves has no projection to read the angle of view from: the recipe says it. */
-                if (projection_scale                     <= 0.0f &&
+                if (measure.projection_scale             <= 0.0f &&
                     in_recipe.screen_parallax.is_enabled)
                 {
                     constexpr float DEGREES_TO_RADIANS = 3.14159265358979323846f / 180.0f;
                     constexpr float HALF               = 0.5f;
 
-                    projection_scale = 1.0f / ::tanf(in_recipe.screen_parallax.field_of_view_degrees * HALF * DEGREES_TO_RADIANS);
+                    measure.projection_scale = 1.0f / ::tanf(in_recipe.screen_parallax.field_of_view_degrees * HALF * DEGREES_TO_RADIANS);
                 }
             }
         }
 
+        /* What the draws were seen through, where the analysis says it, is more than the first projection of a pass. */
+        if (scale_weight > 0.0)
+        {
+            measure.projection_scale = static_cast<float>(scale_weighted_sum / scale_weight);
+        }
+
+        measure.shape_id = n_shape;
+
         if (histogram.is_empty() == false)
         {
-            Analysis::Recipe::SceneConvergence convergence;
-
-            convergence.distance  = histogram.get_depth_at_fraction                           (FRACTION_MEDIAN);
-            convergence.shape_key = Analysis::APIDumpAnalysis::ModelBuilder::compute_shape_key(model_ref,
-                                                                                               n_shape);
-
-            out_scene_convergence_vec_ptr->push_back(convergence);
-
-            /* The eyes may be no further apart than lets the nearest surface of the scene be at most max_near_parallax of the width of the picture
-             * from where the eyes see it at the screen, which is where the scene converges. A surface at depth z, with the eyes a separation s apart
-             * (each half of it from the middle), is at the screen when it is at the distance d, and else s * scale * (1 / z - 1 / d) / 2 of the
-             * width of the picture from it; the limit is the s at which that is max_near_parallax for the nearest z.
+            measure.distance   = histogram.get_depth_at_fraction                           (FRACTION_MEDIAN);
+            /* What the vertices of the draws say, and what the origins of the draws say (every draw has one, and a draw whose vertices are not read, a display list, has no
+             * vertices): a surface is as near as the nearer of the two says, and as far as the farther.
              */
-            const float near_depth = surface_histogram.get_depth_at_fraction(static_cast<double>(in_recipe.comfort.near_fraction));
+            const double near_fraction  = static_cast<double>(in_recipe.comfort.near_fraction);
+            const float  origin_far     = histogram.get_depth_at_fraction        (1.0 - near_fraction);
+            const float  origin_near    = histogram.get_depth_at_fraction        (near_fraction);
+            const float  surface_far    = surface_histogram.get_depth_at_fraction(1.0 - near_fraction);
+            const float  surface_near   = surface_histogram.get_depth_at_fraction(near_fraction);
 
-            if (in_recipe.comfort.max_near_parallax > 0.0f                 &&
-                near_depth                          > 0.0f                 &&
-                near_depth                          < convergence.distance)
-            {
-                Analysis::Recipe::SceneSeparation separation;
-                const float                       scale      = (projection_scale > 0.0f) ? projection_scale
-                                                                                         : 1.0f;
-
-                separation.max_separation = 2.0f * in_recipe.comfort.max_near_parallax / (scale * (1.0f / near_depth - 1.0f / convergence.distance));
-                separation.shape_key      = convergence.shape_key;
-
-                out_scene_separation_vec_ptr->push_back(separation);
-            }
+            measure.far_depth  = std::max(origin_far,
+                                          surface_far);
+            measure.has_depth  = true;
+            measure.near_depth = (surface_near > 0.0f) ? std::min(origin_near,
+                                                                  surface_near)
+                                                       : origin_near;
+            measure.shape_key  = Analysis::APIDumpAnalysis::ModelBuilder::compute_shape_key(model_ref,
+                                                                                            n_shape);
         }
-        else
-        {
-            out_report_ptr->n_scenes_without_depth++;
-        }
+
+        result_vec.push_back(measure);
     }
 
-    out_report_ptr->n_scene_distances = static_cast<uint32_t>(out_scene_convergence_vec_ptr->size() );
-    out_report_ptr->n_scene_limits    = static_cast<uint32_t>(out_scene_separation_vec_ptr->size() );
+    return result_vec;
+}
+
+Analysis::RecipeBake::SceneLimits Analysis::RecipeBake::RecipeBaker::resolve_scene_limits(const Analysis::Recipe::Recipe& in_recipe,
+                                                                                          const SceneMeasure&             in_measure)
+{
+    const Analysis::Recipe::RecipeApplier applier(in_recipe);
+    const auto*                           scene_ptr = applier.find_scene_comfort_ptr(in_measure.shape_key);
+    const auto                            limits    = Analysis::Recipe::RecipeApplier::get_comfort_limits(in_recipe.comfort,
+                                                                                                          scene_ptr,
+                                                                                                          in_measure.distance,
+                                                                                                          in_measure.near_depth,
+                                                                                                          in_measure.far_depth,
+                                                                                                          in_measure.projection_scale);
+    SceneLimits                           result;
+
+    result.distance       = limits.distance;
+    result.is_far_limit   = limits.is_far_limit;
+    result.is_overridden  = (scene_ptr != nullptr);
+    result.max_separation = limits.max_separation;
+
+    return result;
 }
 
 const char* Analysis::RecipeBake::RecipeBaker::get_class_name(const Analysis::Recipe::DrawClass& in_class)

@@ -74,6 +74,10 @@ namespace Analysis
              * without it was made when the analysis did not read vertices. */
             constexpr uint32_t TAG_SURF = make_tag('S', 'U', 'R', 'F');
 
+            /* How wide the picture is: for each pass of each kind of frame, the mean x scale of the perspective projection of its draws, weighted by their vertices (see
+             * ProjectionScale). A file without it was made before the analysis told it. */
+            constexpr uint32_t TAG_PROJ = make_tag('P', 'R', 'O', 'J');
+
             /* The keys of the draws that cover the whole of the view (see Model::covering_draw_key_set). A file without it was made
              * before the analysis told them. */
             constexpr uint32_t TAG_COVR = make_tag('C', 'O', 'V', 'R');

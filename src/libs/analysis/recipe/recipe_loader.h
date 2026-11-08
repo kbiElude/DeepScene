@@ -115,6 +115,10 @@ namespace Analysis
                                                  const std::string&            in_path,
                                                  Rule*                         out_rule_ptr,
                                                  std::string*                  out_error_ptr);
+            static bool parse_scene_overrides   (const Utils::Json::JsonValue& in_array,
+                                                 const std::string&            in_path,
+                                                 std::vector<SceneComfort>*    out_override_vec_ptr,
+                                                 std::string*                  out_error_ptr);
             static bool parse_screen_parallax   (const Utils::Json::JsonValue& in_value,
                                                  const std::string&            in_path,
                                                  ScreenParallax*               out_screen_parallax_ptr,

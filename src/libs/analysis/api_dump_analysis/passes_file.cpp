@@ -25,6 +25,7 @@ const Analysis::APIDumpAnalysis::SectionInfo Analysis::APIDumpAnalysis::PassesFi
     {PassesFormat::TAG_SERI, 1},
     {PassesFormat::TAG_DEPT, 2},
     {PassesFormat::TAG_SURF, 1},
+    {PassesFormat::TAG_PROJ, 1},
     {PassesFormat::TAG_COVR, 1}
 };
 
@@ -167,6 +168,14 @@ bool Analysis::APIDumpAnalysis::PassesFile::read_section_bytes(const uint32_t&  
             break;
         }
 
+        case PassesFormat::TAG_PROJ:
+        {
+            result = PassesSerializer::deserialize_projection_scales(in_raw_byte_vec,
+                                                                     &inout_analysis_ptr->model);
+
+            break;
+        }
+
         case PassesFormat::TAG_COVR:
         {
             result = PassesSerializer::deserialize_draw_keys(in_raw_byte_vec,
@@ -276,6 +285,13 @@ std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesFile::serialize_section(co
         {
             result_vec = PassesSerializer::serialize_depths(in_analysis.model,
                                                             &Model::surface_depth_histogram_map);
+
+            break;
+        }
+
+        case PassesFormat::TAG_PROJ:
+        {
+            result_vec = PassesSerializer::serialize_projection_scales(in_analysis.model);
 
             break;
         }

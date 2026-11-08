@@ -44,6 +44,8 @@ namespace Analysis
                                                                     AnalysisResult*                out_analysis_ptr);
             static bool                 deserialize_passes         (const std::vector<uint8_t>&    in_byte_vec,
                                                                     Model*                         out_model_ptr);
+            static bool                 deserialize_projection_scales(const std::vector<uint8_t>&  in_byte_vec,
+                                                                      Model*                       out_model_ptr);
             static bool                 deserialize_representatives(const std::vector<uint8_t>&    in_byte_vec,
                                                                     Model*                         out_model_ptr);
             static bool                 deserialize_resource_access(const std::vector<uint8_t>&    in_byte_vec,
@@ -62,6 +64,7 @@ namespace Analysis
             static std::vector<uint8_t> serialize_frames           (const Model&                   in_model);
             static std::vector<uint8_t> serialize_meta             (const AnalysisResult&          in_analysis);
             static std::vector<uint8_t> serialize_passes           (const Model&                   in_model);
+            static std::vector<uint8_t> serialize_projection_scales  (const Model&                 in_model);
             static std::vector<uint8_t> serialize_representatives  (const Model&                   in_model);
             static std::vector<uint8_t> serialize_resource_access  (const Model&                   in_model);
             static std::vector<uint8_t> serialize_resources        (const Model&                   in_model);

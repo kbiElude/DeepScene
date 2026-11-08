@@ -239,6 +239,16 @@ namespace Analysis
         typedef std::pair<uint32_t, uint32_t> ConstantSeriesKey;
 
         /* Which depth histogram is of which pass in which kind of frame: the number of the frame shape, and that of the pass structure. */
+        /* How wide the picture is for a camera: the x scale of the perspective projection of the draws (1 over the tangent of half the angle of view of the
+         * width of the picture), as a mean of those of the draws of a pass in a kind of frame, weighted by their vertices. The projection that a pass is seen
+         * through can change from frame to frame (a zoom), and the first one it is seen with is no more than that.
+         */
+        struct ProjectionScale
+        {
+            float    mean   = 0.0f;
+            uint64_t weight = 0;
+        };
+
         typedef std::pair<uint32_t, uint32_t> DepthHistogramKey;
 
         /* A constant as the passes are told apart by it: where it is, and what it is, not the value. The block is a key, not an
