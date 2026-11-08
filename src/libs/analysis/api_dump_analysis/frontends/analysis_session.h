@@ -92,6 +92,9 @@ namespace Analysis
                  */
                 void set_skip_data_chunks_above_n_bytes(const uint32_t& in_n_bytes);
 
+                /* Where what happens to the textures is told (see ITextureSink and ModelBuilder::set_texture_sink); nullptr, the default, is nowhere. */
+                void set_texture_sink(Analysis::APIDumpTextures::ITextureSink* in_sink_ptr);
+
                 /* The model itself, not a copy: for when the analysis is done. The progress is not to be asked for after it. */
                 Analysis::APIDumpAnalysis::Model take_model();
 

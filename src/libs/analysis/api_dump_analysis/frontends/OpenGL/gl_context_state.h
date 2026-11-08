@@ -40,6 +40,7 @@ namespace Analysis
                 std::vector<GlMatrix>         modelview_f32mat_vec;
                 std::vector<GlMatrix>         other_f32mat_vec;
                 GlPipelineState               pipeline_state;
+                GlPixelStore                  pixel_store;
                 std::vector<GlMatrix>         projection_f32mat_vec;
             };
         }

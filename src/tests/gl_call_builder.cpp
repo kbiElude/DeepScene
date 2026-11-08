@@ -434,6 +434,14 @@ void Tests::GlCallBuilder::ortho(const double& in_left,
               APIInterceptor::APIFunctionArgument::create_fp64(in_far)});
 }
 
+void Tests::GlCallBuilder::pixel_store(const uint32_t& in_parameter,
+                                       const int32_t&  in_value)
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLPIXELSTOREI,
+             {APIInterceptor::APIFunctionArgument::create_u32_glenum(in_parameter),
+              APIInterceptor::APIFunctionArgument::create_i32       (in_value)});
+}
+
 void Tests::GlCallBuilder::point_size(const float& in_size)
 {
     add_call(APIInterceptor::APIFUNCTION_GL_GLPOINTSIZE,
@@ -553,6 +561,37 @@ void Tests::GlCallBuilder::tex_image_2d(const uint32_t&             in_level,
               APIInterceptor::APIFunctionArgument::create_i32       (in_width),
               APIInterceptor::APIFunctionArgument::create_i32       (in_height),
               APIInterceptor::APIFunctionArgument::create_i32       (0),
+              APIInterceptor::APIFunctionArgument::create_u32_glenum(GL_RGBA),
+              APIInterceptor::APIFunctionArgument::create_u32_glenum(GL_UNSIGNED_BYTE),
+              pixels_arg});
+}
+
+void Tests::GlCallBuilder::tex_sub_image_2d(const uint32_t&             in_level,
+                                            const int32_t&              in_x_offset,
+                                            const int32_t&              in_y_offset,
+                                            const int32_t&              in_width,
+                                            const int32_t&              in_height,
+                                            const std::vector<uint8_t>& in_pixel_u8vec)
+{
+    constexpr uint32_t GL_RGBA          = 0x1908;
+    constexpr uint32_t GL_TEXTURE_2D    = 0x0DE1;
+    constexpr uint32_t GL_UNSIGNED_BYTE = 0x1401;
+
+    APIInterceptor::APIFunctionArgument pixels_arg = make_pointer_argument(0);
+
+    if (in_pixel_u8vec.empty() == false)
+    {
+        pixels_arg = add_chunk(in_pixel_u8vec.data(),
+                               in_pixel_u8vec.size() );
+    }
+
+    add_call(APIInterceptor::APIFUNCTION_GL_GLTEXSUBIMAGE2D,
+             {APIInterceptor::APIFunctionArgument::create_u32_glenum(GL_TEXTURE_2D),
+              APIInterceptor::APIFunctionArgument::create_i32       (static_cast<int32_t>(in_level) ),
+              APIInterceptor::APIFunctionArgument::create_i32       (in_x_offset),
+              APIInterceptor::APIFunctionArgument::create_i32       (in_y_offset),
+              APIInterceptor::APIFunctionArgument::create_i32       (in_width),
+              APIInterceptor::APIFunctionArgument::create_i32       (in_height),
               APIInterceptor::APIFunctionArgument::create_u32_glenum(GL_RGBA),
               APIInterceptor::APIFunctionArgument::create_u32_glenum(GL_UNSIGNED_BYTE),
               pixels_arg});

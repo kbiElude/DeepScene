@@ -13,6 +13,7 @@
 #include <array>
 #include <map>
 #include <memory>
+#include <set>
 #include <stdint.h>
 #include <vector>
 
@@ -120,11 +121,30 @@ namespace Analysis
                 uint32_t                       list_number  = 0;
             };
 
-            /* A texture of the program: its resource, once the size is known (the first glTexImage2D). */
+            /* How the program has the bytes of an upload laid out (glPixelStorei): the rows are as long as the length says (the width, if it is 0), and each starts at
+             * a multiple of the alignment. Client state: a push of the attributes does not keep it.
+             */
+            struct GlPixelStore
+            {
+                uint32_t unpack_alignment  = 4;
+                uint32_t unpack_row_length = 0;
+            };
+
+            /* A level of a texture as the last glTexImage2D (or copy) that made it said. */
+            struct GlTextureLevel
+            {
+                uint32_t height          = 0;
+                uint32_t internal_format = 0;
+                uint32_t width           = 0;
+            };
+
+            /* A texture of the program: its resource, once the size is known (the first glTexImage2D), and the levels that it has been given. */
             struct GlTexture
             {
+                std::set<uint32_t>                    dirty_level_set; /* the levels that rendering has changed since something read them (or since they were given) */
                 uint32_t                              height          = 0;
                 uint32_t                              internal_format = 0;
+                std::map<uint32_t, GlTextureLevel>    level_map;
                 Analysis::APIDumpAnalysis::ResourceId resource_id     = Analysis::APIDumpAnalysis::ResourceId::NONE;
                 uint32_t                              width           = 0;
             };

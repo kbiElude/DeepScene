@@ -21,6 +21,7 @@ Analysis::APIDumpAnalysis::ModelBuilder::ModelBuilder(const bool& in_keeps_histo
      m_last_draw_cover_key      (0),
      m_last_draw_signature_key  (0),
      m_n_frames                 (0),
+     m_texture_sink_ptr         (nullptr),
      m_timestamp_qpc            (0)
 {
     /* Stub */
@@ -953,6 +954,25 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_set_viewport(const Viewport& in
     }
 }
 
+void Analysis::APIDumpAnalysis::ModelBuilder::on_texture_event(const Analysis::APIDumpTextures::TextureEvent& in_event,
+                                                               const uint8_t*                                 in_data_ptr,
+                                                               const size_t&                                  in_n_data_bytes,
+                                                               const uint32_t&                                in_data_chunk_id)
+{
+    if (m_texture_sink_ptr != nullptr)
+    {
+        Analysis::APIDumpTextures::TextureEvent event = in_event;
+
+        event.call_index  = m_call_index;
+        event.frame_index = m_n_frames;
+
+        m_texture_sink_ptr->on_texture_event(event,
+                                             in_data_ptr,
+                                             in_n_data_bytes,
+                                             in_data_chunk_id);
+    }
+}
+
 void Analysis::APIDumpAnalysis::ModelBuilder::on_update_constant(const ConstantUpdate& in_update)
 {
     if (in_update.semantic != ConstantSemantic::UNKNOWN)
@@ -1383,6 +1403,11 @@ void Analysis::APIDumpAnalysis::ModelBuilder::set_access_sink(IAccessSink* in_si
     m_access_sink_ptr = in_sink_ptr;
 }
 
+void Analysis::APIDumpAnalysis::ModelBuilder::set_texture_sink(Analysis::APIDumpTextures::ITextureSink* in_sink_ptr)
+{
+    m_texture_sink_ptr = in_sink_ptr;
+}
+
 Analysis::APIDumpAnalysis::Model Analysis::APIDumpAnalysis::ModelBuilder::take_model()
 {
     return std::move(m_model);
@@ -1395,4 +1420,9 @@ bool Analysis::APIDumpAnalysis::ModelBuilder::wants_geometry() const
 
     return (m_keeps_history &&
             m_n_frames % FRAME_STRIDE == 0);
+}
+
+bool Analysis::APIDumpAnalysis::ModelBuilder::wants_texture_events() const
+{
+    return (m_texture_sink_ptr != nullptr);
 }

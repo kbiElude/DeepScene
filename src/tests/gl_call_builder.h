@@ -131,6 +131,10 @@ namespace Tests
                    const double& in_near,
                    const double& in_far);
 
+        /* glPixelStorei. */
+        void pixel_store(const uint32_t& in_parameter,
+                         const int32_t&  in_value);
+
         void point_size(const float& in_size);
 
         void pop_attrib ();
@@ -167,6 +171,14 @@ namespace Tests
                           const int32_t&              in_width,
                           const int32_t&              in_height,
                           const std::vector<uint8_t>& in_pixel_u8vec);
+
+        /* A glTexSubImage2D of RGBA bytes: with the pixels in the call, or with none if the vector is empty. */
+        void tex_sub_image_2d(const uint32_t&             in_level,
+                              const int32_t&              in_x_offset,
+                              const int32_t&              in_y_offset,
+                              const int32_t&              in_width,
+                              const int32_t&              in_height,
+                              const std::vector<uint8_t>& in_pixel_u8vec);
 
         void translate(const double& in_x,
                        const double& in_y,

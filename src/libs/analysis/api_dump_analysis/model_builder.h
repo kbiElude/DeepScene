@@ -20,6 +20,7 @@
 #include "analysis/api_dump_analysis/resource_key_table.h"
 #include "analysis/api_dump_analysis/depth_histogram.h"
 #include "analysis/api_dump_analysis/types.h"
+#include "analysis/api_dump_textures/i_texture_sink.h"
 #include <array>
 #include <map>
 #include <set>
@@ -80,6 +81,12 @@ namespace Analysis
 
             void on_set_viewport(const Viewport& in_viewport);
 
+            /* What happens to a texture (see ITextureSink); the call and the frame are filled in here. Nothing, with no sink. */
+            void on_texture_event(const Analysis::APIDumpTextures::TextureEvent& in_event,
+                                  const uint8_t*                                 in_data_ptr,
+                                  const size_t&                                  in_n_data_bytes,
+                                  const uint32_t&                                in_data_chunk_id);
+
             /* Constants with no meaning known are of no interest, and are ignored. */
             void on_update_constant(const ConstantUpdate& in_update);
 
@@ -91,6 +98,9 @@ namespace Analysis
              */
             void set_access_sink(IAccessSink* in_sink_ptr);
 
+            /* Where what happens to the textures is told (see ITextureSink); nullptr, the default, is nowhere. The sink is not the builder's: it must outlive it. */
+            void set_texture_sink(Analysis::APIDumpTextures::ITextureSink* in_sink_ptr);
+
             /* Hands the model over, instead of a copy of it: for when the analysis is done. The builder is to be left alone after it. */
             Model take_model();
 
@@ -98,6 +108,9 @@ namespace Analysis
              * tell the vertices asks first.
              */
             bool wants_geometry() const;
+
+            /* True if there is a sink for what happens to the textures: a front end that has to work to tell it (the bytes of an upload) asks first. */
+            bool wants_texture_events() const;
 
 
             /* The match key of a frame shape of the model: made of the keys of its passes, as the shape key of a completed frame is. */
@@ -239,6 +252,7 @@ namespace Analysis
             uint64_t                                  m_n_frames;
             OpenPass                                  m_open_pass;
             std::vector<ResourceId>                   m_pending_forget_vec;
+            Analysis::APIDumpTextures::ITextureSink*  m_texture_sink_ptr;
             uint64_t                                  m_timestamp_qpc;
             Viewport                                  m_viewport;
         };

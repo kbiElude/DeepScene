@@ -326,6 +326,11 @@ void Analysis::APIDumpAnalysis::Frontends::AnalysisSession::set_skip_data_chunks
     m_skip_data_chunks_above_n_bytes = in_n_bytes;
 }
 
+void Analysis::APIDumpAnalysis::Frontends::AnalysisSession::set_texture_sink(Analysis::APIDumpTextures::ITextureSink* in_sink_ptr)
+{
+    m_builder.set_texture_sink(in_sink_ptr);
+}
+
 Analysis::APIDumpAnalysis::Model Analysis::APIDumpAnalysis::Frontends::AnalysisSession::take_model()
 {
     return m_builder.take_model();

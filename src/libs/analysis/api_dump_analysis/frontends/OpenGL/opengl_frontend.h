@@ -76,11 +76,15 @@ namespace Analysis
                 void add_texture_bindings(const GlContextState&                       in_state,
                                           Analysis::APIDumpAnalysis::DrawDescription* out_description_ptr) const;
 
-                /* The pixels of the window are copied to a level of the texture that the active unit has bound (the depth of the window, for a texture of depth);
-                 * false if the program has not given the texture a size.
+                /* The pixels of the window are copied to a region of a level of the texture that the active unit has bound (the depth of the window, for a texture of
+                 * depth); false if the program has not given the texture a size, or the level.
                  */
                 bool copy_to_bound_texture(const GlContextState& in_state,
-                                           const uint32_t&       in_level);
+                                           const uint32_t&       in_level,
+                                           const uint32_t&       in_x_offset,
+                                           const uint32_t&       in_y_offset,
+                                           const uint32_t&       in_width,
+                                           const uint32_t&       in_height);
 
                 /* A call that depends on the size of what is rendered to in pixels. */
                 void count_hazard(const Analysis::APIDumpAnalysis::ResolutionHazard& in_hazard);
@@ -164,6 +168,10 @@ namespace Analysis
                                             GlContextState*                              inout_state_ptr);
                 void handle_new_list       (const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                             GlContextState*                              inout_state_ptr);
+                /* glPixelStorei: the alignment and the length of the rows of what is uploaded are kept; the other values are not followed. */
+                void handle_pixel_store(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                        GlContextState*                              inout_state_ptr);
+
                 void handle_pop_attributes (GlContextState*                              inout_state_ptr);
                 void handle_pop_matrix     (GlContextState*                              inout_state_ptr);
                 void handle_push_attributes(const Capture::APIDumpLoader::DumpedAPICall& in_call,
@@ -181,6 +189,11 @@ namespace Analysis
                                       const Capture::APIDumpLoader::Workload&      in_workload,
                                       GlContextState*                              inout_state_ptr);
 
+                /* A call of glTexSubImage2D: a region of a level that the texture has, with pixels or not. */
+                void handle_tex_sub_image(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                          const Capture::APIDumpLoader::Workload&      in_workload,
+                                          GlContextState*                              inout_state_ptr);
+
                 /* A glVertex of the block that is open: it is counted, and its position kept if the builder wants the geometry. */
                 void handle_vertex(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                    const Capture::APIDumpLoader::Workload&      in_workload,
@@ -188,6 +201,21 @@ namespace Analysis
 
                 void handle_viewport(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                      GlContextState*                              inout_state_ptr);
+
+                /* The event of a texture that the call makes, but for what is of the kind of it: the destination, the region, and the level as it is after the call, in
+                 * the words of the project (the format is the named one, and the API's value is kept beside it). The level is one that the texture has.
+                 */
+                Analysis::APIDumpTextures::TextureEvent make_texture_event(const GlTexture& in_texture,
+                                                                           const uint32_t&  in_level,
+                                                                           const uint32_t&  in_x_offset,
+                                                                           const uint32_t&  in_y_offset,
+                                                                           const uint32_t&  in_width,
+                                                                           const uint32_t&  in_height) const;
+
+                /* The level of the texture that the active unit has bound, as the call that made it said; false if the texture has no size yet. */
+                bool record_texture_level(const GlContextState& in_state,
+                                          const uint32_t&       in_level,
+                                          const GlTextureLevel& in_texture_level);
 
                 /* Keeps the call in the list that the context is making, with the data that it refers to. */
                 void record_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
@@ -201,6 +229,33 @@ namespace Analysis
                                    const Analysis::APIDumpAnalysis::ConstantSemantic& in_semantic,
                                    const uint64_t&                                    in_byte_offset,
                                    GlReportedMatrix*                                  inout_reported_ptr);
+
+                /* A region of a level of the bound texture is the content that rendering made (a copy from the window): told to the builder for the sink of the textures. */
+                void report_render_write(const GlContextState& in_state,
+                                         const uint32_t&       in_level,
+                                         const uint32_t&       in_x_offset,
+                                         const uint32_t&       in_y_offset,
+                                         const uint32_t&       in_width,
+                                         const uint32_t&       in_height);
+
+                /* A draw is about to read the textures it samples: the levels that rendering has changed since they were last read are told as snapshots (see
+                 * TextureEventKind::SNAPSHOT), and are no longer changed.
+                 */
+                void report_snapshots(const GlContextState& in_state);
+
+                /* A region of a level of the bound texture is given the pixels of the call (the ninth argument), or none: told to the builder for the sink of the
+                 * textures, with the bytes, the way they are laid out (the pixel store of the context), and the format and the type that they are of.
+                 */
+                void report_upload(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                   const Capture::APIDumpLoader::Workload&      in_workload,
+                                   const GlContextState&                        in_state,
+                                   const uint32_t&                              in_level,
+                                   const uint32_t&                              in_x_offset,
+                                   const uint32_t&                              in_y_offset,
+                                   const uint32_t&                              in_width,
+                                   const uint32_t&                              in_height,
+                                   const uint32_t&                              in_format,
+                                   const uint32_t&                              in_type);
 
                 /* The resource of the texture that is bound to the active unit: made, or made again if the size is not what it was. */
                 void specify_texture(const GlContextState& in_state,
