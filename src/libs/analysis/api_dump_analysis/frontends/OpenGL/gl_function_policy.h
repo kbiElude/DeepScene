@@ -20,6 +20,13 @@ namespace Analysis
             class GlFunctionPolicy
             {
             public:
+                /* True for the functions that the front end does not follow, that are not of no matter, and that it lets through: what they do is made relative to the
+                 * model-view matrix of the moment of the call (a position or a direction of a light, a clip plane, the planes of the generation of texture
+                 * coordinates, the raster position). A replay of a frame for the other eye makes them again with the matrix of that eye, and a list that has one is
+                 * relative to the matrix (see GlListClassifier). Not in is_left_out_by_design().
+                 */
+                static bool bakes_current_matrix(const APIInterceptor::APIFunction& in_function);
+
                 /* True for the functions that the front end does not follow and may leave out: the values for the vertices that follow, the state of the arrays that a draw
                  * reads, names, the state of the rendering that the model does not tell draws apart by, and the queries. False for every other: they are followed (by the
                  * front end, which does not ask this of them) or end the process.

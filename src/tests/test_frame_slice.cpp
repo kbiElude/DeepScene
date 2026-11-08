@@ -371,7 +371,7 @@ TEST(SliceSkipper, TheCallsOfAListThatIsBeingMadeInADeadFrameAreMadeSoThatTheLis
     EXPECT_FALSE(skipper.should_execute_call(vertex,   DEAD_FRAME) );
 }
 
-TEST(SliceSkipper, ACallOfAListThatDoesDrawsAndStateOnlyIsLeftOutOfADeadFrameAndMadeInALiveOne)
+TEST(SliceSkipper, ACallOfAListThatOnlyDrawsIsLeftOutOfADeadFrameAndMadeInALiveOne)
 {
     Stereo::Replay::EngineDLL::SliceSkipper skipper;
 
@@ -379,19 +379,81 @@ TEST(SliceSkipper, ACallOfAListThatDoesDrawsAndStateOnlyIsLeftOutOfADeadFrameAnd
 
     const auto new_list  = make_gl_call(APIInterceptor::APIFUNCTION_GL_GLNEWLIST,
                                         LIST);
+    const auto begin     = make_gl_call(APIInterceptor::APIFUNCTION_GL_GLBEGIN);
     const auto vertex    = make_gl_call(APIInterceptor::APIFUNCTION_GL_GLVERTEX3FV);
-    const auto enable    = make_gl_call(APIInterceptor::APIFUNCTION_GL_GLENABLE);
+    const auto end       = make_gl_call(APIInterceptor::APIFUNCTION_GL_GLEND);
     const auto end_list  = make_gl_call(APIInterceptor::APIFUNCTION_GL_GLENDLIST);
     const auto call_list = make_gl_call(APIInterceptor::APIFUNCTION_GL_GLCALLLIST,
                                         LIST);
 
     skipper.should_execute_call(new_list, DEAD_FRAME);
+    skipper.should_execute_call(begin,    DEAD_FRAME);
     skipper.should_execute_call(vertex,   DEAD_FRAME);
-    skipper.should_execute_call(enable,   DEAD_FRAME);
+    skipper.should_execute_call(end,      DEAD_FRAME);
     skipper.should_execute_call(end_list, DEAD_FRAME);
 
     EXPECT_FALSE(skipper.should_execute_call(call_list, DEAD_FRAME) );
     EXPECT_TRUE (skipper.should_execute_call(call_list, LIVE_FRAME) );
+}
+
+TEST(SliceSkipper, ACallOfAListThatSetsAnythingButContentIsMadeInADeadFrameToo)
+{
+    /* A state, a value for the vertices that follow, an object: what the frames after it go on from, and so what it leaves is not to be taken away. */
+    for (const auto function : {APIInterceptor::APIFUNCTION_GL_GLENABLE,
+                                APIInterceptor::APIFUNCTION_GL_GLTEXCOORD2F,
+                                APIInterceptor::APIFUNCTION_GL_GLMATERIALFV,
+                                APIInterceptor::APIFUNCTION_GL_GLBINDTEXTURE})
+    {
+        Stereo::Replay::EngineDLL::SliceSkipper skipper;
+
+        set_dead_until_frame_5(&skipper);
+
+        const auto new_list  = make_gl_call(APIInterceptor::APIFUNCTION_GL_GLNEWLIST,
+                                            LIST);
+        const auto vertex    = make_gl_call(APIInterceptor::APIFUNCTION_GL_GLVERTEX3FV);
+        const auto sets      = make_gl_call(function);
+        const auto end_list  = make_gl_call(APIInterceptor::APIFUNCTION_GL_GLENDLIST);
+        const auto call_list = make_gl_call(APIInterceptor::APIFUNCTION_GL_GLCALLLIST,
+                                            LIST);
+
+        skipper.should_execute_call(new_list, DEAD_FRAME);
+        skipper.should_execute_call(vertex,   DEAD_FRAME);
+        skipper.should_execute_call(sets,     DEAD_FRAME);
+        skipper.should_execute_call(end_list, DEAD_FRAME);
+
+        EXPECT_TRUE(skipper.should_execute_call(call_list, DEAD_FRAME) );
+        EXPECT_TRUE(skipper.should_execute_call(call_list, LIVE_FRAME) );
+    }
+}
+
+TEST(SliceSkipper, ACallOfAListThatCallsOneThatSetsStateIsMadeInADeadFrameToo)
+{
+    constexpr int OUTER_LIST = 8;
+
+    Stereo::Replay::EngineDLL::SliceSkipper skipper;
+
+    set_dead_until_frame_5(&skipper);
+
+    /* The inner list sets a state; the outer one only draws and calls it. */
+    skipper.should_execute_call(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLNEWLIST,
+                                             LIST),
+                                DEAD_FRAME);
+    skipper.should_execute_call(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLENABLE),
+                                DEAD_FRAME);
+    skipper.should_execute_call(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLENDLIST),
+                                DEAD_FRAME);
+    skipper.should_execute_call(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLNEWLIST,
+                                             OUTER_LIST),
+                                DEAD_FRAME);
+    skipper.should_execute_call(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLCALLLIST,
+                                             LIST),
+                                DEAD_FRAME);
+    skipper.should_execute_call(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLENDLIST),
+                                DEAD_FRAME);
+
+    EXPECT_TRUE(skipper.should_execute_call(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLCALLLIST,
+                                                         OUTER_LIST),
+                                            DEAD_FRAME) );
 }
 
 namespace
@@ -520,4 +582,13 @@ TEST(SliceSkipper, AListThatIsMadeAcrossTwoSegmentsEndsTheProcess)
                 },
                 ::testing::ExitedWithCode(APIInterceptor::FatalError::get_exit_code() ),
                 "across two segments");
+}
+
+TEST(SliceSkipper, ACallOfAListThatMakesALightRelativeToTheMatrixInADeadFrameEndsTheProcess)
+{
+    set_no_error_dialog();
+
+    EXPECT_EXIT(call_list_in_dead_frame(APIInterceptor::APIFUNCTION_GL_GLLIGHTFV),
+                ::testing::ExitedWithCode(APIInterceptor::FatalError::get_exit_code() ),
+                "related to the location of the eye");
 }

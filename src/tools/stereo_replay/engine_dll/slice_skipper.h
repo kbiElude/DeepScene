@@ -60,8 +60,9 @@ namespace Stereo
                                          const uint32_t&                              in_n_frame) override;
 
             private:
-                /* Whether a call of a display list in a dead frame is left out: it is if the list does draws and sets state only. A list that is related to the
-                 * location of the eye ends the process (AI_ASSERT_ALWAYS), as what it does to the matrices and the viewport is not done for a call that is left out.
+                /* Whether a call of a display list in a dead frame is left out: it is if the list only draws (what it does that is not content is state that the frames
+                 * after it go on from, so a list that has any is made all the same). A list that is related to the location of the eye ends the process
+                 * (AI_ASSERT_ALWAYS), as what it does to the matrices and the viewport is not done for a call that is left out.
                  */
                 bool is_list_call_skippable(const Capture::APIDumpLoader::DumpedAPICall& in_call) const;
 

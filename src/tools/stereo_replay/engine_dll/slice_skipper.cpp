@@ -261,9 +261,18 @@ bool Stereo::Replay::EngineDLL::SliceSkipper::is_list_call_skippable(const Captu
      * it yet, so that is told, and not left to give a picture that is wrong.
      */
     AI_ASSERT_ALWAYS(is_found && is_independent,
-                     "A display list that is related to the location of the eye (it loads or moves a matrix, sets a projection, a viewport or a scissor box, calls such a list, or is not defined) is called in a frame that the slice leaves out. Seeking over it is not implemented.");
+                     "A display list that is related to the location of the eye (it loads or moves a matrix, makes something relative to it, sets a projection, a viewport or a scissor box, calls such a list, or is not defined) is called in a frame that the slice leaves out. Seeking over it is not implemented.");
 
-    return is_independent;
+    /* A list that does anything but draw (it sets a state, or the color or the texture coordinate that the vertices that follow have) is made: the frames that are
+     * not left out go on from what it leaves, and leaving it out would take that away.
+     */
+    bool sets_state = true;
+
+    m_list_tracker.find_sets_state(list,
+                                   &sets_state);
+
+    return (is_independent &&
+            sets_state == false);
 }
 
 void Stereo::Replay::EngineDLL::SliceSkipper::on_call_replayed(const Capture::APIDumpLoader::DumpedAPICall& in_call,

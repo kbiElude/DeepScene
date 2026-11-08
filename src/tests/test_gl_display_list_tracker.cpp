@@ -148,3 +148,97 @@ TEST(GlDisplayListTracker, ItIsRecordingBetweenTheNewListAndTheEndList)
 
     EXPECT_FALSE(tracker.is_recording() );
 }
+
+TEST(GlDisplayListTracker, AListThatOnlyDrawsDoesNotSetState)
+{
+    Stereo::Replay::EngineDLL::GlDisplayListTracker tracker;
+    bool                                            sets_state = true;
+
+    make_list(&tracker,
+              1,
+              {APIInterceptor::APIFUNCTION_GL_GLBEGIN,
+               APIInterceptor::APIFUNCTION_GL_GLVERTEX3F,
+               APIInterceptor::APIFUNCTION_GL_GLVERTEX3FV,
+               APIInterceptor::APIFUNCTION_GL_GLEND});
+
+    ASSERT_TRUE(tracker.find_sets_state(1,
+                                        &sets_state) );
+    EXPECT_FALSE(sets_state);
+}
+
+namespace
+{
+    /* A list of the one call, which has to be told to set state. */
+    void expect_list_of_call_sets_state(const APIInterceptor::APIFunction& in_function)
+    {
+        Stereo::Replay::EngineDLL::GlDisplayListTracker tracker;
+        bool                                            sets_state = false;
+
+        make_list(&tracker,
+                  1,
+                  {in_function});
+
+        ASSERT_TRUE(tracker.find_sets_state(1,
+                                            &sets_state) );
+        EXPECT_TRUE(sets_state);
+    }
+}
+
+TEST(GlDisplayListTracker, AListThatDoesAnythingButDrawSetsState)
+{
+    /* A capability, a texture coordinate for the vertices that follow, a material, an object that is bound, a light. */
+    expect_list_of_call_sets_state(APIInterceptor::APIFUNCTION_GL_GLENABLE);
+    expect_list_of_call_sets_state(APIInterceptor::APIFUNCTION_GL_GLTEXCOORD2F);
+    expect_list_of_call_sets_state(APIInterceptor::APIFUNCTION_GL_GLMATERIALFV);
+    expect_list_of_call_sets_state(APIInterceptor::APIFUNCTION_GL_GLBINDTEXTURE);
+    expect_list_of_call_sets_state(APIInterceptor::APIFUNCTION_GL_GLLIGHTFV);
+}
+
+TEST(GlDisplayListTracker, AListThatCallsOneThatSetsStateOrOneThatIsNotDefinedSetsState)
+{
+    Stereo::Replay::EngineDLL::GlDisplayListTracker tracker;
+    bool                                            sets_state = false;
+
+    make_list(&tracker,
+              1,
+              {APIInterceptor::APIFUNCTION_GL_GLENABLE});
+
+    tracker.on_call(make_call(APIInterceptor::APIFUNCTION_GL_GLNEWLIST,
+                              2) );
+    tracker.on_call(make_call(APIInterceptor::APIFUNCTION_GL_GLCALLLIST,
+                              1) );
+    tracker.on_call(make_call(APIInterceptor::APIFUNCTION_GL_GLENDLIST) );
+
+    tracker.on_call(make_call(APIInterceptor::APIFUNCTION_GL_GLNEWLIST,
+                              3) );
+    tracker.on_call(make_call(APIInterceptor::APIFUNCTION_GL_GLCALLLIST,
+                              99) );
+    tracker.on_call(make_call(APIInterceptor::APIFUNCTION_GL_GLENDLIST) );
+
+    ASSERT_TRUE(tracker.find_sets_state(2,
+                                        &sets_state) );
+    EXPECT_TRUE(sets_state);
+
+    sets_state = false;
+
+    ASSERT_TRUE(tracker.find_sets_state(3,
+                                        &sets_state) );
+    EXPECT_TRUE(sets_state);
+}
+
+TEST(GlDisplayListTracker, AListThatIsDeletedHasNothingToTellOf)
+{
+    Stereo::Replay::EngineDLL::GlDisplayListTracker tracker;
+    bool                                            sets_state = false;
+
+    make_list(&tracker,
+              1,
+              {APIInterceptor::APIFUNCTION_GL_GLENABLE});
+
+    tracker.on_call(make_call(APIInterceptor::APIFUNCTION_GL_GLDELETELISTS,
+                              1,
+                              1) );
+
+    EXPECT_FALSE(tracker.find_sets_state(1,
+                                         &sets_state) );
+}

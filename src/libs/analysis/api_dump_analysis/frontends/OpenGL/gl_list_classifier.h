@@ -21,8 +21,8 @@ namespace Analysis
             {
             public:
                 /* What a call does: the matrices that it loads, the projections, viewports and scissor boxes that it sets are the eye's own to change;
-                 * those which it moves relative to the current ones are not; anything else does not touch them. A call of a list is not told here: it
-                 * is what the called list is.
+                 * those which it moves relative to the current ones are not, nor are those that are made relative to the current model-view matrix (a light, a
+                 * clip plane); anything else does not touch them. A call of a list is not told here: it is what the called list is.
                  */
                 static GlListEyeDependence classify_call(const APIInterceptor::APIFunction& in_function);
 

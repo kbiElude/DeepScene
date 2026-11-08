@@ -1474,7 +1474,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
                                                static_cast<uint64_t>(in_call.func) );
                     }
                     else
-                    if (GlFunctionPolicy::is_left_out_by_design(in_call.func) == false)
+                    if (GlFunctionPolicy::is_left_out_by_design(in_call.func) == false &&
+                        GlFunctionPolicy::bakes_current_matrix (in_call.func) == false)
                     {
                         /* Not followed, and not known to be of no matter: a call that the front end has never been told about is not passed over without saying so (a
                          * shader, a buffer, an evaluator, the selection, an accumulation buffer, a rectangle, what changes how pixels are converted, and so on).

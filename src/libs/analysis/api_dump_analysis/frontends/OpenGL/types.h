@@ -58,7 +58,9 @@ namespace Analysis
             /* What a display list does to what an eye has of its own (the matrices, and the pixels that the viewport and the scissor box are in), which
              * says whether a list that the driver has made once can be called for both eyes of a stereo frame. A list that only draws and sets state
              * is the same for both. A list that changes a matrix relative to the current one (a translation, a rotation, a scale, a product) is too,
-             * since what the eye has put in the matrix goes through it. A list that loads a matrix, sets a projection, a viewport or a scissor box
+             * since what the eye has put in the matrix goes through it. So is a list that makes something relative to the matrix of the moment (a position
+             * of a light, a clip plane, the planes of texture coordinates, the raster position: see GlFunctionPolicy::bakes_current_matrix()), which gives
+             * for each eye what that eye's matrix makes of it, if it is called for each. A list that loads a matrix, sets a projection, a viewport or a scissor box
              * puts in values of its own, and is made once for each eye, or made again inline with those calls changed.
              */
             enum class GlListEyeDependence

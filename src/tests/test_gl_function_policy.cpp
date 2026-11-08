@@ -38,7 +38,6 @@ TEST(GlFunctionPolicy, TheFunctionsThatGerberaMakesAndTheFrontEndDoesNotFollowMa
         APIInterceptor::APIFUNCTION_GL_GLGETFLOATV,
         APIInterceptor::APIFUNCTION_GL_GLGETSTRING,
         APIInterceptor::APIFUNCTION_GL_GLLIGHTF,
-        APIInterceptor::APIFUNCTION_GL_GLLIGHTFV,
         APIInterceptor::APIFUNCTION_GL_GLLIGHTMODELI,
         APIInterceptor::APIFUNCTION_GL_GLMATERIALFV,
         APIInterceptor::APIFUNCTION_GL_GLMATERIALI,
@@ -56,6 +55,44 @@ TEST(GlFunctionPolicy, TheFunctionsThatGerberaMakesAndTheFrontEndDoesNotFollowMa
     for (const auto function : function_array)
     {
         EXPECT_TRUE(GlFunctionPolicy::is_left_out_by_design(function) ) << Capture::APIDumpNames::get_function_name(function);
+    }
+}
+
+TEST(GlFunctionPolicy, WhatIsMadeRelativeToTheMatrixOfTheMomentIsNotLeftOutAndIsToldAsSuch)
+{
+    const APIInterceptor::APIFunction function_array[] =
+    {
+        APIInterceptor::APIFUNCTION_GL_GLCLIPPLANE,
+        APIInterceptor::APIFUNCTION_GL_GLLIGHTFV,       /* the position and the direction of a light, which Gerbera gives */
+        APIInterceptor::APIFUNCTION_GL_GLLIGHTIV,
+        APIInterceptor::APIFUNCTION_GL_GLRASTERPOS3F,
+        APIInterceptor::APIFUNCTION_GL_GLRASTERPOS4SV,
+        APIInterceptor::APIFUNCTION_GL_GLTEXGENDV,      /* the planes: the forms that take an array */
+        APIInterceptor::APIFUNCTION_GL_GLTEXGENIV
+    };
+
+    for (const auto function : function_array)
+    {
+        EXPECT_TRUE (GlFunctionPolicy::bakes_current_matrix(function) )    << Capture::APIDumpNames::get_function_name(function);
+        EXPECT_FALSE(GlFunctionPolicy::is_left_out_by_design(function) )   << Capture::APIDumpNames::get_function_name(function);
+    }
+}
+
+TEST(GlFunctionPolicy, WhatDoesNotDependOnTheMatrixIsNotToldAsSuch)
+{
+    const APIInterceptor::APIFunction function_array[] =
+    {
+        APIInterceptor::APIFUNCTION_GL_GLLIGHTF,        /* a scalar of a light: an attenuation, an angle */
+        APIInterceptor::APIFUNCTION_GL_GLMATERIALFV,
+        APIInterceptor::APIFUNCTION_GL_GLTEXGENI,       /* a mode, not a plane */
+        APIInterceptor::APIFUNCTION_GL_GLTEXENVF,
+        APIInterceptor::APIFUNCTION_GL_GLFOGFV,
+        APIInterceptor::APIFUNCTION_GL_GLWINDOWPOS3F    /* in the window, not through the matrix */
+    };
+
+    for (const auto function : function_array)
+    {
+        EXPECT_FALSE(GlFunctionPolicy::bakes_current_matrix(function) ) << Capture::APIDumpNames::get_function_name(function);
     }
 }
 

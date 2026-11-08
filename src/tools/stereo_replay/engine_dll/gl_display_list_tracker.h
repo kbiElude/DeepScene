@@ -28,6 +28,13 @@ namespace Stereo
                 bool find_eye_dependence(const uint32_t&                                            in_list,
                                          Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence* out_dependence_ptr) const;
 
+                /* Whether the list does anything that is not content (see SliceSkipper::is_content_call()): sets state, including the values that the next vertices
+                 * have, or calls a list that does, or one that is not defined. A call of such a list cannot be left out of a dead frame, since the frames after it go
+                 * on from the state it leaves. Not found: the list was never made, or was deleted.
+                 */
+                bool find_sets_state(const uint32_t& in_list,
+                                     bool*           out_sets_state_ptr) const;
+
                 /* Whether a list is being made: its calls are kept and not made, so they are not the calls of a frame to leave out. */
                 bool is_recording() const;
 
@@ -35,10 +42,17 @@ namespace Stereo
                 void on_call(const Capture::APIDumpLoader::DumpedAPICall& in_call);
 
             private:
-                std::map<uint32_t, Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence> m_dependence_map;
-                Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence                     m_recording_dependence;
-                bool                                                                          m_is_recording;
-                uint32_t                                                                      m_recording_list;
+                /* What a list that is defined does. */
+                struct ListEffects
+                {
+                    Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence dependence = Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::INDEPENDENT;
+                    bool                                                      sets_state = false;
+                };
+
+                std::map<uint32_t, ListEffects> m_effects_map;
+                bool                            m_is_recording;
+                ListEffects                     m_recording_effects;
+                uint32_t                        m_recording_list;
             };
         }
     }

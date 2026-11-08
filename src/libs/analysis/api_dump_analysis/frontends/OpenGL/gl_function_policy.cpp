@@ -8,13 +8,66 @@
 #include "capture/api_dump_names/function_names.h"
 #include <string.h>
 
+bool Analysis::APIDumpAnalysis::Frontends::GlFunctionPolicy::bakes_current_matrix(const APIInterceptor::APIFunction& in_function)
+{
+    bool result = false;
+
+    /* A position or a direction of a light, a clip plane, the planes of the generation of texture coordinates (the forms that take an array: the others choose a mode) and the
+     * raster position are given in the coordinates of the program, and OpenGL turns them into those of the eye with the model-view matrix of the moment of the call.
+     */
+    switch (in_function)
+    {
+        case APIInterceptor::APIFUNCTION_GL_GLCLIPPLANE:
+        case APIInterceptor::APIFUNCTION_GL_GLLIGHTFV:
+        case APIInterceptor::APIFUNCTION_GL_GLLIGHTIV:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXGENDV:
+        case APIInterceptor::APIFUNCTION_GL_GLTEXGENIV:
+        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS2D:
+        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS2DV:
+        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS2F:
+        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS2FV:
+        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS2I:
+        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS2IV:
+        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS2S:
+        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS2SV:
+        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS3D:
+        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS3DV:
+        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS3F:
+        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS3FV:
+        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS3I:
+        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS3IV:
+        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS3S:
+        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS3SV:
+        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS4D:
+        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS4DV:
+        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS4F:
+        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS4FV:
+        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS4I:
+        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS4IV:
+        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS4S:
+        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS4SV:
+        {
+            result = true;
+
+            break;
+        }
+
+        default:
+        {
+            break;
+        }
+    }
+
+    return result;
+}
+
 bool Analysis::APIDumpAnalysis::Frontends::GlFunctionPolicy::is_left_out_by_design(const APIInterceptor::APIFunction& in_function)
 {
     bool result = false;
 
     switch (in_function)
     {
-        /* Values for the vertices that follow: The model builds the geometry of a draw from the positions of its vertices alone, so what else a vertex has (a color, a normal, a texture coordinate, the raster position) is not a part of its structure; the replay makes the calls. */
+        /* Values for the vertices that follow: The model builds the geometry of a draw from the positions of its vertices alone, so what else a vertex has (a color, a normal, a texture coordinate) is not a part of its structure; the replay makes the calls. */
         case APIInterceptor::APIFUNCTION_GL_GLCOLOR3B:
         case APIInterceptor::APIFUNCTION_GL_GLCOLOR3BV:
         case APIInterceptor::APIFUNCTION_GL_GLCOLOR3D:
@@ -105,30 +158,6 @@ bool Analysis::APIDumpAnalysis::Frontends::GlFunctionPolicy::is_left_out_by_desi
         case APIInterceptor::APIFUNCTION_GL_GLNORMAL3IV:
         case APIInterceptor::APIFUNCTION_GL_GLNORMAL3S:
         case APIInterceptor::APIFUNCTION_GL_GLNORMAL3SV:
-        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS2D:
-        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS2DV:
-        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS2F:
-        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS2FV:
-        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS2I:
-        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS2IV:
-        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS2S:
-        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS2SV:
-        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS3D:
-        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS3DV:
-        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS3F:
-        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS3FV:
-        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS3I:
-        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS3IV:
-        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS3S:
-        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS3SV:
-        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS4D:
-        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS4DV:
-        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS4F:
-        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS4FV:
-        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS4I:
-        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS4IV:
-        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS4S:
-        case APIInterceptor::APIFUNCTION_GL_GLRASTERPOS4SV:
         case APIInterceptor::APIFUNCTION_GL_GLSECONDARYCOLOR3B:
         case APIInterceptor::APIFUNCTION_GL_GLSECONDARYCOLOR3BV:
         case APIInterceptor::APIFUNCTION_GL_GLSECONDARYCOLOR3D:
@@ -238,7 +267,6 @@ bool Analysis::APIDumpAnalysis::Frontends::GlFunctionPolicy::is_left_out_by_desi
         case APIInterceptor::APIFUNCTION_GL_GLBLENDFUNCSEPARATE:
         case APIInterceptor::APIFUNCTION_GL_GLCLAMPCOLOR:
         case APIInterceptor::APIFUNCTION_GL_GLCLEARINDEX:
-        case APIInterceptor::APIFUNCTION_GL_GLCLIPPLANE:
         case APIInterceptor::APIFUNCTION_GL_GLCOLORMATERIAL:
         case APIInterceptor::APIFUNCTION_GL_GLDEPTHRANGE:
         case APIInterceptor::APIFUNCTION_GL_GLFOGF:
@@ -249,9 +277,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GlFunctionPolicy::is_left_out_by_desi
         case APIInterceptor::APIFUNCTION_GL_GLHINT:
         case APIInterceptor::APIFUNCTION_GL_GLINDEXMASK:
         case APIInterceptor::APIFUNCTION_GL_GLLIGHTF:
-        case APIInterceptor::APIFUNCTION_GL_GLLIGHTFV:
         case APIInterceptor::APIFUNCTION_GL_GLLIGHTI:
-        case APIInterceptor::APIFUNCTION_GL_GLLIGHTIV:
         case APIInterceptor::APIFUNCTION_GL_GLLIGHTMODELF:
         case APIInterceptor::APIFUNCTION_GL_GLLIGHTMODELFV:
         case APIInterceptor::APIFUNCTION_GL_GLLIGHTMODELI:
@@ -277,9 +303,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GlFunctionPolicy::is_left_out_by_desi
         case APIInterceptor::APIFUNCTION_GL_GLTEXENVI:
         case APIInterceptor::APIFUNCTION_GL_GLTEXENVIV:
         case APIInterceptor::APIFUNCTION_GL_GLTEXGEND:
-        case APIInterceptor::APIFUNCTION_GL_GLTEXGENDV:
         case APIInterceptor::APIFUNCTION_GL_GLTEXGENI:
-        case APIInterceptor::APIFUNCTION_GL_GLTEXGENIV:
         {
             result = true;
 

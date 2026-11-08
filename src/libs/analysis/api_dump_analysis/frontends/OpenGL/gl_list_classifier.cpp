@@ -2,6 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
+#include "analysis/api_dump_analysis/frontends/OpenGL/gl_function_policy.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_list_classifier.h"
 
 Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence Analysis::APIDumpAnalysis::Frontends::GlListClassifier::classify_call(const APIInterceptor::APIFunction& in_function)
@@ -39,6 +40,12 @@ Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence Analysis::APIDumpAnaly
 
         default:
         {
+            /* What is made relative to the matrix of the moment of the call (a light, a clip plane) is the eye's own, as far as the matrix is. */
+            if (GlFunctionPolicy::bakes_current_matrix(in_function) )
+            {
+                result = GlListEyeDependence::RELATIVE_MATRIX_ONLY;
+            }
+
             break;
         }
     }

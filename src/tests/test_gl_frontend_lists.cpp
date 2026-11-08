@@ -384,6 +384,53 @@ TEST_F(GlFrontendLists, AListWhichMovesTheMatricesRelativeToTheCurrentOnesIsTold
               Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::RELATIVE_MATRIX_ONLY);
 }
 
+TEST_F(GlFrontendLists, AListThatMakesSomethingRelativeToTheMatrixOfTheMomentIsRelativeToTheMatrix)
+{
+    start(640,
+          480);
+
+    /* The position of a light, and a clip plane: each is turned into the coordinates of the eye by the matrix that is there when the list is called. */
+    m_builder.new_list(1,
+                       COMPILE);
+    m_builder.add_call(APIInterceptor::APIFUNCTION_GL_GLLIGHTFV,
+                       {APIInterceptor::APIFunctionArgument::create_u32_glenum(0x4000),
+                        APIInterceptor::APIFunctionArgument::create_u32_glenum(0x1203),
+                        APIInterceptor::APIFunctionArgument::create_i32       (0)});
+    m_builder.end_list();
+    m_builder.new_list(2,
+                       COMPILE);
+    m_builder.add_call(APIInterceptor::APIFUNCTION_GL_GLCLIPPLANE,
+                       {APIInterceptor::APIFunctionArgument::create_u32_glenum(0x3000),
+                        APIInterceptor::APIFunctionArgument::create_i32       (0)});
+    m_builder.end_list();
+
+    /* A list that calls such a list is too. */
+    m_builder.new_list (3,
+                        COMPILE);
+    m_builder.call_list(1);
+    m_builder.end_list ();
+
+    /* A material is not. */
+    m_builder.new_list(4,
+                       COMPILE);
+    m_builder.add_call(APIInterceptor::APIFUNCTION_GL_GLMATERIALFV,
+                       {APIInterceptor::APIFunctionArgument::create_u32_glenum(0x0408),
+                        APIInterceptor::APIFunctionArgument::create_u32_glenum(0x1200),
+                        APIInterceptor::APIFunctionArgument::create_i32       (0)});
+    m_builder.end_list();
+
+    feed();
+
+    EXPECT_EQ(get_eye_dependence(1),
+              Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::RELATIVE_MATRIX_ONLY);
+    EXPECT_EQ(get_eye_dependence(2),
+              Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::RELATIVE_MATRIX_ONLY);
+    EXPECT_EQ(get_eye_dependence(3),
+              Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::RELATIVE_MATRIX_ONLY);
+    EXPECT_EQ(get_eye_dependence(4),
+              Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::INDEPENDENT);
+}
+
 TEST_F(GlFrontendLists, AListWhichSetsAValueOfItsOwnIsEyeDependent)
 {
     start(640,
