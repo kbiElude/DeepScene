@@ -195,3 +195,20 @@ TEST(KeyBuilder, ADrawSignatureIsToldApartByItsStructureAndItsTargets)
                                                                                 one_color,
                                                                                 21) );
 }
+
+TEST(KeyBuilder, ADrawStructureThatIsOrthographicHasAnotherKeyAndOthersKeepTheirs)
+{
+    Analysis::APIDumpAnalysis::DrawStructure structure;
+    Analysis::APIDumpAnalysis::DrawStructure orthographic = structure;
+    Analysis::APIDumpAnalysis::DrawStructure not_orthographic = structure;
+
+    orthographic.is_orthographic     = true;
+    not_orthographic.is_orthographic = false;
+
+    EXPECT_NE(Analysis::APIDumpAnalysis::KeyBuilder::compute_draw_structure_key(structure),
+              Analysis::APIDumpAnalysis::KeyBuilder::compute_draw_structure_key(orthographic) );
+
+    /* A structure that is not orthographic has nothing added to its key, so that the recipes that were baked keep the keys they know. */
+    EXPECT_EQ(Analysis::APIDumpAnalysis::KeyBuilder::compute_draw_structure_key(structure),
+              Analysis::APIDumpAnalysis::KeyBuilder::compute_draw_structure_key(not_orthographic) );
+}

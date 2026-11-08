@@ -627,6 +627,7 @@ Analysis::APIDumpAnalysis::DrawStructure Analysis::APIDumpAnalysis::PassesSerial
     result.index_buffer_key   = inout_reader_ptr->read_u64 ();
     result.is_indexed         = inout_reader_ptr->read_bool();
     result.is_instanced       = inout_reader_ptr->read_bool();
+    result.is_orthographic    = inout_reader_ptr->read_bool();
     result.primitive_topology = read_enum                  (inout_reader_ptr,
                                                             PrimitiveTopology::UNKNOWN);
 
@@ -1152,6 +1153,7 @@ void Analysis::APIDumpAnalysis::PassesSerializer::write_draw_structure(const Dra
     inout_writer_ptr->write_u64 (in_structure.index_buffer_key);
     inout_writer_ptr->write_bool(in_structure.is_indexed);
     inout_writer_ptr->write_bool(in_structure.is_instanced);
+    inout_writer_ptr->write_bool(in_structure.is_orthographic);
     inout_writer_ptr->write_u32 (static_cast<uint32_t>(in_structure.primitive_topology) );
 
     inout_writer_ptr->write_u32(static_cast<uint32_t>(in_structure.shader_key_vec.size() ));

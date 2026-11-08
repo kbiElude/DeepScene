@@ -41,7 +41,7 @@ namespace Analysis
     {
         namespace PassesFormat
         {
-            constexpr uint32_t FILE_VERSION       = 3;
+            constexpr uint32_t FILE_VERSION       = 4;
             constexpr uint32_t KEY_SCHEME_VERSION = 1;
 
             /* Version of the draw signature (see KeyBuilder::compute_draw_signature_key), which a recipe made for a converter that runs
@@ -77,10 +77,6 @@ namespace Analysis
             /* The keys of the draws that cover the whole of the view (see Model::covering_draw_key_set). A file without it was made
              * before the analysis told them. */
             constexpr uint32_t TAG_COVR = make_tag('C', 'O', 'V', 'R');
-
-            /* The keys of the draw structures that were drawn with an orthographic projection (see Model::orthographic_draw_key_map), for each pass. A file
-             * without it was made before the analysis told them. */
-            constexpr uint32_t TAG_ORTH = make_tag('O', 'R', 'T', 'H');
 
             /* The draw structures: what each kind of draw is (its shaders, vertex layout and buffers, textures, state, and the views
              * it renders to), by the key that tells the draws apart. */

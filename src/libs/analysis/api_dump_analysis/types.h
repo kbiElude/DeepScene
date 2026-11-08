@@ -433,6 +433,7 @@ namespace Analysis
             uint64_t                       index_buffer_key        = 0;
             bool                           is_indexed              = false;
             bool                           is_instanced            = false;
+            bool                           is_orthographic         = false; /* drawn with a projection that does not make what is far smaller: a good sign of a 2D overlay, and not a sure one */
             PrimitiveTopology              primitive_topology      = PrimitiveTopology::UNKNOWN;
             std::vector<uint64_t>          shader_key_vec;
             uint64_t                       state_key               = 0;

@@ -16,7 +16,7 @@ const Analysis::APIDumpAnalysis::SectionInfo Analysis::APIDumpAnalysis::PassesFi
 {
     {PassesFormat::TAG_META, 2},
     {PassesFormat::TAG_RSRC, 1},
-    {PassesFormat::TAG_DRAW, 1},
+    {PassesFormat::TAG_DRAW, 2},
     {PassesFormat::TAG_PASS, 2},
     {PassesFormat::TAG_SHPE, 1},
     {PassesFormat::TAG_FRAM, 1},
@@ -25,8 +25,7 @@ const Analysis::APIDumpAnalysis::SectionInfo Analysis::APIDumpAnalysis::PassesFi
     {PassesFormat::TAG_SERI, 1},
     {PassesFormat::TAG_DEPT, 2},
     {PassesFormat::TAG_SURF, 1},
-    {PassesFormat::TAG_COVR, 1},
-    {PassesFormat::TAG_ORTH, 1}
+    {PassesFormat::TAG_COVR, 1}
 };
 
 const size_t Analysis::APIDumpAnalysis::PassesFile::N_SECTIONS = sizeof(SECTION_INFO_ARRAY) / sizeof(SECTION_INFO_ARRAY[0]);
@@ -192,15 +191,6 @@ bool Analysis::APIDumpAnalysis::PassesFile::read_section_bytes(const uint32_t&  
             break;
         }
 
-        case PassesFormat::TAG_ORTH:
-        {
-            result = PassesSerializer::deserialize_draw_keys(in_raw_byte_vec,
-                                                             &Model::orthographic_draw_key_map,
-                                                             &inout_analysis_ptr->model);
-
-            break;
-        }
-
         case PassesFormat::TAG_DRAW:
         {
             result = PassesSerializer::deserialize_draws(in_raw_byte_vec,
@@ -309,14 +299,6 @@ std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesFile::serialize_section(co
         {
             result_vec = PassesSerializer::serialize_draw_keys(in_analysis.model,
                                                                &Model::covering_draw_key_map);
-
-            break;
-        }
-
-        case PassesFormat::TAG_ORTH:
-        {
-            result_vec = PassesSerializer::serialize_draw_keys(in_analysis.model,
-                                                               &Model::orthographic_draw_key_map);
 
             break;
         }

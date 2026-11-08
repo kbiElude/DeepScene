@@ -150,7 +150,6 @@ namespace Analysis
                 uint64_t                     last_draw_call_index = 0;     /* last draw, or the clear if there is none */
                 uint64_t                     n_draws              = 0;
                 uint64_t                     n_vertices           = 0;
-                std::set<uint64_t>           orthographic_draw_key_set;    /* keys of the draw structures drawn with an orthographic projection */
                 DepthHistogram               surface_depth_histogram;
                 Viewport                     viewport;
             };

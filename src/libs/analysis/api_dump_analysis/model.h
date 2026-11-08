@@ -56,12 +56,6 @@ namespace Analysis
              * (a quad that wipes in is the whole picture only for a time). What is moved sideways leaves a strip of the picture bare, so a draw like it is not to be moved.
              */
             std::map<uint32_t, std::set<uint64_t> > covering_draw_key_map; /* by the pass structure the draws were in */
-
-            /* The keys of the draw structures that were drawn with an orthographic projection (what is far is not smaller), by the pass structure the draws
-             * were in: a good candidate for a 2D overlay, though not a sure one. A pass of a 3D scene can have the panels of a screen in it, which only the
-             * draws can tell from the scene: the camera of the pass changes as the draws go from one to the other.
-             */
-            std::map<uint32_t, std::set<uint64_t> > orthographic_draw_key_map;
         };
 
         /* A model and what it was made from: the contents of a .passes file. */

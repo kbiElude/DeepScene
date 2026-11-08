@@ -43,9 +43,6 @@ std::vector<Analysis::RecipeBake::OverlayCandidate> Analysis::RecipeBake::Overla
                                                                                                        n_pass);
         const bool is_static_camera  = (static_pass_id_set.count(n_pass) != 0);
 
-        /* The draws of the pass that were drawn with an orthographic projection: the camera of the pass changes where a 3D scene has its panels in it. */
-        const auto orthographic_iterator = model_ref.orthographic_draw_key_map.find(n_pass);
-        const bool has_orthographic      = (orthographic_iterator != model_ref.orthographic_draw_key_map.end() );
 
         for (const auto& draw_signature : structure.draw_signature_vec)
         {
@@ -76,8 +73,9 @@ std::vector<Analysis::RecipeBake::OverlayCandidate> Analysis::RecipeBake::Overla
             const bool is_recipe_overlay = (candidate.is_replay_unaffected                          ||
                                             candidate.live_class           == LiveClass::UNAFFECTED ||
                                             candidate.live_class           == LiveClass::MIXED);
-            const bool is_orthographic   = (has_orthographic                                                                         &&
-                                            orthographic_iterator->second.count(draw_signature.structure_key) != 0);
+            const auto structure_iterator = model_ref.draw_structure_map.find(draw_signature.structure_key);
+            const bool is_orthographic   = (structure_iterator != model_ref.draw_structure_map.end() &&
+                                            structure_iterator->second.is_orthographic);
 
             /* A camera that never changes, and a projection that is orthographic, are the hint that the analysis has: a good sign, and no more. */
             const bool is_hinted         = (is_static_camera ||

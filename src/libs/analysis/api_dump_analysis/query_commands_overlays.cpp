@@ -392,31 +392,34 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
     inout_writer_ptr->write_key("orthographic_draws");
     inout_writer_ptr->begin_array();
 
-    for (const auto& pass_pair : model_ref.orthographic_draw_key_map)
+    for (uint32_t n_pass = 0;
+                  n_pass < model_ref.pass_structure_interner.get_n_structures();
+                ++n_pass)
     {
-        const auto& structure         = model_ref.pass_structure_interner.get_structure(pass_pair.first);
+        const auto& structure         = model_ref.pass_structure_interner.get_structure(n_pass);
         uint64_t    first_frame_index = 0;
         const bool  has_first_frame   = get_first_frame_index(in_analysis,
-                                                              pass_pair.first,
+                                                              n_pass,
                                                              &first_frame_index);
 
         for (const auto& draw_signature : structure.draw_signature_vec)
         {
-            if (pass_pair.second.count(draw_signature.structure_key) != 0)
-            {
-                const auto draw_iterator = model_ref.draw_structure_map.find(draw_signature.structure_key);
+            const auto draw_iterator = model_ref.draw_structure_map.find(draw_signature.structure_key);
 
+            if (draw_iterator != model_ref.draw_structure_map.end() &&
+                draw_iterator->second.is_orthographic)
+            {
                 inout_writer_ptr->begin_object();
                 inout_writer_ptr->write_key    ("signature_key");
                 inout_writer_ptr->write_hex_u64(draw_signature.signature_key);
                 inout_writer_ptr->write_key    ("structure_key");
                 inout_writer_ptr->write_hex_u64(draw_signature.structure_key);
                 inout_writer_ptr->write_key    ("pass_id");
-                inout_writer_ptr->write_u64    (pass_pair.first);
+                inout_writer_ptr->write_u64    (n_pass);
                 inout_writer_ptr->write_key    ("pass_key");
                 inout_writer_ptr->write_hex_u64(structure.key);
                 inout_writer_ptr->write_key    ("n_frames");
-                inout_writer_ptr->write_u64    (timeline.pass_usage_vec.at(pass_pair.first).n_frames);
+                inout_writer_ptr->write_u64    (timeline.pass_usage_vec.at(n_pass).n_frames);
 
                 if (has_first_frame)
                 {
@@ -424,13 +427,9 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
                     inout_writer_ptr->write_u64(first_frame_index);
                 }
 
-                if (draw_iterator != model_ref.draw_structure_map.end() )
-                {
-                    inout_writer_ptr->write_key   ("topology");
-                    inout_writer_ptr->write_string(get_primitive_topology_name(draw_iterator->second.primitive_topology) );
-                }
-
-                inout_writer_ptr->write_key("reasons");
+                inout_writer_ptr->write_key   ("topology");
+                inout_writer_ptr->write_string(get_primitive_topology_name(draw_iterator->second.primitive_topology) );
+                inout_writer_ptr->write_key   ("reasons");
                 inout_writer_ptr->begin_inline_array();
                 inout_writer_ptr->write_string("orthographic_projection");
                 inout_writer_ptr->end_array();

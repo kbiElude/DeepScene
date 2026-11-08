@@ -102,7 +102,7 @@ TEST(OverlayCandidateFinder, ADrawWithAnOrthographicProjectionIsACandidateEvenIn
     helper.draw      (1);
     helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::PROJECTION_MATRIX,
                       64,
-                      {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1});
+                      {0.003125f, 0, 0, 0, 0, 0.0041667f, 0, 0, 0, 0, -1, 0, -1, -1, 0, 1});
     helper.draw      (2);
     helper.end_frame ();
 

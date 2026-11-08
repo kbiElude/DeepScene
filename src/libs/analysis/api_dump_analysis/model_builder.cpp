@@ -211,12 +211,6 @@ void Analysis::APIDumpAnalysis::ModelBuilder::complete_pass()
                                                               m_open_pass.covering_draw_key_set.end  () );
             }
 
-            if (m_open_pass.orthographic_draw_key_set.empty() == false)
-            {
-                m_model.orthographic_draw_key_map[pass_id].insert(m_open_pass.orthographic_draw_key_set.begin(),
-                                                                  m_open_pass.orthographic_draw_key_set.end  () );
-            }
-
             m_frame_depth_histogram_vec.push_back        (m_open_pass.depth_histogram);
             m_frame_surface_depth_histogram_vec.push_back(m_open_pass.surface_depth_histogram);
         }
@@ -294,6 +288,15 @@ void Analysis::APIDumpAnalysis::ModelBuilder::fill_draw_structure(const DrawDesc
 {
     constexpr uint32_t SINGLE_INSTANCE = 1;
 
+    /* A draw made with a projection that does not make what is far smaller is another kind of draw than one made with a perspective: the same state is
+     * used by the panels of a screen and by the scene.
+     */
+    DrawMatrices matrices;
+
+    find_draw_matrices(&matrices);
+
+    const bool is_orthographic = matrices.is_orthographic;
+
     const auto get_key_func      = [this, in_uses_unwritten_keys](const ResourceId& in_id)
                                    {
                                        return (in_uses_unwritten_keys) ? m_key_table.get_unwritten_key(in_id)
@@ -314,6 +317,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::fill_draw_structure(const DrawDesc
                                                                                           : 0;
     out_structure_ptr->is_indexed         = in_draw.is_indexed;
     out_structure_ptr->is_instanced       = (in_draw.instance_count > SINGLE_INSTANCE);
+    out_structure_ptr->is_orthographic    = is_orthographic;
     out_structure_ptr->primitive_topology = in_draw.primitive_topology;
     out_structure_ptr->state_key          = in_draw.state_key;
     out_structure_ptr->vertex_layout_key  = in_draw.vertex_layout_key;
@@ -424,8 +428,23 @@ bool Analysis::APIDumpAnalysis::ModelBuilder::find_draw_matrices(DrawMatrices* o
         }
     }
 
+    /* The identity is what a program that sets no projection has (or one that draws in the space of the picture): it says nothing, and is not told apart. */
+    const std::array<float, N_MATRIX_ELEMENTS> identity_f32mat = {1.0f, 0.0f, 0.0f, 0.0f,
+                                                                  0.0f, 1.0f, 0.0f, 0.0f,
+                                                                  0.0f, 0.0f, 1.0f, 0.0f,
+                                                                  0.0f, 0.0f, 0.0f, 1.0f};
+
+    /* An orthographic projection does not make w of the depth: the last column of the matrix is (0, 0, 0, 1), as the elements 3, 7, 11 and 15 are
+     * (what the depth is for is the test above, which a projection that has the last element and still divides by the depth passes too).
+     */
+    const auto& projection_f32mat = out_matrices_ptr->projection_f32mat;
+
     out_matrices_ptr->is_orthographic = (out_matrices_ptr->has_projection &&
-                                         is_orthographic);
+                                         projection_f32mat.at(3)  == 0.0f &&
+                                         projection_f32mat.at(7)  == 0.0f &&
+                                         projection_f32mat.at(11) == 0.0f &&
+                                         projection_f32mat.at(15) != 0.0f &&
+                                         projection_f32mat       != identity_f32mat);
 
     return (has_view        &&
             is_orthographic == false);
@@ -750,19 +769,6 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_draw(const DrawDescription& in_
         const uint64_t signature_key  = compute_draw_signature_key            (in_draw);
         const auto     signature_pair = m_open_pass.draw_signature_map.emplace(key,
                                                                                signature_key);
-
-        if (m_keeps_history)
-        {
-            DrawMatrices matrices;
-
-            find_draw_matrices(&matrices);
-
-            /* An orthographic projection is what a 2D overlay is drawn with: the draw is told by its structure, for the pass. */
-            if (matrices.is_orthographic)
-            {
-                m_open_pass.orthographic_draw_key_set.insert(key);
-            }
-        }
 
         if (known_entry == m_model.draw_structure_map.end() )
         {

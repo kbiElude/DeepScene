@@ -1921,12 +1921,13 @@ TEST(ModelBuilder, AnOrthographicProjectionOfOpenGLHasNoDepth)
 namespace
 {
     /* The projection of the first and the second draw of a pass: orthographic (the last element is 1) or perspective (it is 0, and the one before it is 1). */
+    /* What glOrtho(0, 640, 0, 480, -1, 1) makes. */
     std::array<float, 16> make_orthographic_f32mat()
     {
-        return {1, 0, 0, 0,
-                0, 1, 0, 0,
-                0, 0, 1, 0,
-                0, 0, 0, 1};
+        return {2.0f / 640.0f, 0.0f,          0.0f, 0.0f,
+                0.0f,          2.0f / 480.0f, 0.0f, 0.0f,
+                0.0f,          0.0f,         -1.0f, 0.0f,
+               -1.0f,         -1.0f,          0.0f, 1.0f};
     }
 
     std::array<float, 16> make_perspective_f32mat()
@@ -1938,14 +1939,33 @@ namespace
     }
 }
 
-TEST(ModelBuilder, ADrawWithAnOrthographicProjectionIsToldApartInItsPass)
+namespace
+{
+    /* How many of the draw structures of the model are orthographic. */
+    size_t count_orthographic_structures(const Analysis::APIDumpAnalysis::Model& in_model)
+    {
+        size_t result = 0;
+
+        for (const auto& structure_pair : in_model.draw_structure_map)
+        {
+            if (structure_pair.second.is_orthographic)
+            {
+                ++result;
+            }
+        }
+
+        return result;
+    }
+}
+
+TEST(ModelBuilder, ADrawWithAnOrthographicProjectionIsAnotherStructureThanOneWithAPerspective)
 {
     Tests::ModelTestHelper helper;
     const auto             swapchain_image = helper.create_swapchain_image();
 
     helper.bind(swapchain_image);
 
-    /* A scene and a panel of a screen, in the one pass. */
+    /* The same state: a scene and a panel of a screen, in the one pass. */
     helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::PROJECTION_MATRIX,
                       64,
                       make_perspective_f32mat() );
@@ -1953,17 +1973,31 @@ TEST(ModelBuilder, ADrawWithAnOrthographicProjectionIsToldApartInItsPass)
     helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::PROJECTION_MATRIX,
                       64,
                       make_orthographic_f32mat() );
-    helper.draw      (2);
+    helper.draw      (1);
     helper.end_frame ();
 
     const auto& model = helper.get_model();
 
     EXPECT_EQ(model.draw_structure_map.size(),
               2u);
-    ASSERT_EQ(model.orthographic_draw_key_map.size(),
+    EXPECT_EQ(count_orthographic_structures(model),
               1u);
-    EXPECT_EQ(model.orthographic_draw_key_map.begin()->second.size(),
-              1u);
+}
+
+TEST(ModelBuilder, TheIdentityIsNoProjectionAndIsNotToldApart)
+{
+    Tests::ModelTestHelper helper;
+    const auto             swapchain_image = helper.create_swapchain_image();
+
+    helper.bind      (swapchain_image);
+    helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::PROJECTION_MATRIX,
+                      64,
+                      {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1});
+    helper.draw      (1);
+    helper.end_frame ();
+
+    EXPECT_EQ(count_orthographic_structures(helper.get_model() ),
+              0u);
 }
 
 TEST(ModelBuilder, NoDrawWithAPerspectiveProjectionOrNoProjectionIsOrthographic)
@@ -1979,30 +2013,8 @@ TEST(ModelBuilder, NoDrawWithAPerspectiveProjectionOrNoProjectionIsOrthographic)
     helper.draw      (2);
     helper.end_frame ();
 
-    EXPECT_TRUE(helper.get_model().orthographic_draw_key_map.empty() );
-}
-
-TEST(ModelBuilder, AnOrthographicDrawIsToldByItsKeyWhateverTheFrame)
-{
-    Tests::ModelTestHelper helper;
-    const auto             swapchain_image = helper.create_swapchain_image();
-
-    for (uint32_t n_frame = 0;
-                  n_frame < 3;
-                ++n_frame)
-    {
-        helper.bind      (swapchain_image);
-        helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::PROJECTION_MATRIX,
-                          64,
-                          make_orthographic_f32mat() );
-        helper.draw      (5);
-        helper.end_frame ();
-    }
-
-    ASSERT_EQ(helper.get_model().orthographic_draw_key_map.size(),
-              1u);
-    EXPECT_EQ(helper.get_model().orthographic_draw_key_map.begin()->second.size(),
-              1u);
+    EXPECT_EQ(count_orthographic_structures(helper.get_model() ),
+              0u);
 }
 
 TEST(ModelBuilder, TheCallsOfADrawBeginWithItsOwnUnlessTheFrontEndSaysTheyBeginEarlier)

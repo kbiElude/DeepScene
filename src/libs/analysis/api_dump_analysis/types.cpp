@@ -183,6 +183,7 @@ bool Analysis::APIDumpAnalysis::operator==(const DrawStructure& in_a,
     return (in_a.index_buffer_key        == in_b.index_buffer_key        &&
             in_a.is_indexed              == in_b.is_indexed              &&
             in_a.is_instanced            == in_b.is_instanced            &&
+            in_a.is_orthographic         == in_b.is_orthographic         &&
             in_a.primitive_topology      == in_b.primitive_topology      &&
             in_a.shader_key_vec          == in_b.shader_key_vec          &&
             in_a.state_key               == in_b.state_key               &&
