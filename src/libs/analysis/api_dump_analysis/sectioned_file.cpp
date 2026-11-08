@@ -4,6 +4,8 @@
  */
 #include "analysis/api_dump_analysis/sectioned_file.h"
 #include "utils/hashing/hasher.h"
+#include <fstream>
+#include <stdio.h>
 #include <string.h>
 #include <zstd.h>
 
@@ -75,6 +77,40 @@ std::vector<uint8_t> Analysis::APIDumpAnalysis::SectionedFile::pack_section(cons
     }
 
     return result_vec;
+}
+
+bool Analysis::APIDumpAnalysis::SectionedFile::read_file(const std::string&    in_filename,
+                                                       std::vector<uint8_t>* out_byte_vec_ptr,
+                                                       std::string*          out_error_ptr)
+{
+    std::ifstream file(in_filename,
+                       std::ios::binary | std::ios::ate);
+    bool          result = false;
+
+    if (file.is_open() == false)
+    {
+        *out_error_ptr = "Cannot open " + in_filename;
+
+        goto end;
+    }
+
+    out_byte_vec_ptr->resize(static_cast<size_t>(file.tellg() ));
+
+    file.seekg(0);
+    file.read (reinterpret_cast<char*>     (out_byte_vec_ptr->data() ),
+               static_cast<std::streamsize>(out_byte_vec_ptr->size() ));
+
+    if (file.good() == false)
+    {
+        *out_error_ptr = "Cannot read " + in_filename;
+
+        goto end;
+    }
+
+    result = true;
+
+end:
+    return result;
 }
 
 bool Analysis::APIDumpAnalysis::SectionedFile::read_sections(const std::vector<uint8_t>& in_byte_vec,
@@ -212,6 +248,53 @@ bool Analysis::APIDumpAnalysis::SectionedFile::read_sections(const std::vector<u
     if (n_next_section != in_n_known_sections)
     {
         *out_error_ptr = "Section " + get_tag_name(in_known_section_ptr[n_next_section].tag) + " is missing";
+
+        goto end;
+    }
+
+    result = true;
+
+end:
+    return result;
+}
+
+bool Analysis::APIDumpAnalysis::SectionedFile::write_file(const std::string&          in_filename,
+                                                          const std::vector<uint8_t>& in_byte_vec,
+                                                          std::string*                out_error_ptr)
+{
+    /* A file is written beside the real one, and takes its place when it is complete: a failure leaves the old file as it was. */
+    const std::string temporary_filename = in_filename + ".tmp";
+    bool              result             = false;
+
+    std::ofstream file(temporary_filename,
+                       std::ios::binary | std::ios::trunc);
+
+    if (file.is_open() == false)
+    {
+        *out_error_ptr = "Cannot create " + temporary_filename;
+
+        goto end;
+    }
+
+    file.write(reinterpret_cast<const char*>(in_byte_vec.data() ),
+               static_cast<std::streamsize> (in_byte_vec.size() ));
+    file.close();
+
+    if (file.fail() )
+    {
+        *out_error_ptr = "Cannot write " + temporary_filename;
+
+        ::remove(temporary_filename.c_str() );
+
+        goto end;
+    }
+
+    ::remove(in_filename.c_str() );
+
+    if (::rename(temporary_filename.c_str(),
+                 in_filename.c_str() ) != 0)
+    {
+        *out_error_ptr = "Cannot replace " + in_filename;
 
         goto end;
     }

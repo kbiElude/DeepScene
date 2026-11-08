@@ -69,6 +69,11 @@ namespace Analysis
             static std::vector<uint8_t> pack_section(const SectionInfo&          in_section_info,
                                                      const std::vector<uint8_t>& in_raw_byte_vec);
 
+            /* The bytes of a file; false, and the reason, if it cannot be opened or read. */
+            static bool read_file(const std::string&    in_filename,
+                                  std::vector<uint8_t>* out_byte_vec_ptr,
+                                  std::string*          out_error_ptr);
+
             /* Goes through the sections which follow the first in_position bytes of the file (those of its own header). False, and the error, if a
              * section is missing, repeated, out of order, damaged, of a version which is not the one that is known, or is not valid.
              */
@@ -78,6 +83,11 @@ namespace Analysis
                                       const size_t&               in_n_known_sections,
                                       const SectionFunc&          in_section_func,
                                       std::string*                out_error_ptr);
+
+            /* Writes the bytes beside the file, and the file is replaced by them when they are all written: a failure leaves the old file as it was. */
+            static bool write_file(const std::string&          in_filename,
+                                   const std::vector<uint8_t>& in_byte_vec,
+                                   std::string*                out_error_ptr);
         };
     }
 }

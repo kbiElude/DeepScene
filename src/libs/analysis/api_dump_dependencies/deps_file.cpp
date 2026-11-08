@@ -28,27 +28,12 @@ bool Analysis::APIDumpDependencies::DepsFile::read(const std::string&  in_filena
                                                    std::string*        out_error_ptr)
 {
     std::vector<uint8_t> byte_vec;
-    std::ifstream        file(in_filename,
-                              std::ios::binary | std::ios::ate);
     bool                 result = false;
 
-    if (file.is_open() == false)
+    if (Analysis::APIDumpAnalysis::SectionedFile::read_file(in_filename,
+                                                           &byte_vec,
+                                                            out_error_ptr) == false)
     {
-        *out_error_ptr = "Cannot open " + in_filename;
-
-        goto end;
-    }
-
-    byte_vec.resize(static_cast<size_t>(file.tellg() ));
-
-    file.seekg(0);
-    file.read (reinterpret_cast<char*>     (byte_vec.data() ),
-               static_cast<std::streamsize>(byte_vec.size() ));
-
-    if (file.good() == false)
-    {
-        *out_error_ptr = "Cannot read " + in_filename;
-
         goto end;
     }
 
@@ -187,23 +172,9 @@ bool Analysis::APIDumpDependencies::DepsFile::write(const std::string&        in
         goto end;
     }
 
-    {
-        std::ofstream file(in_filename,
-                           std::ios::binary | std::ios::trunc);
-
-        file.write(reinterpret_cast<const char*>(byte_vec.data() ),
-                   static_cast<std::streamsize> (byte_vec.size() ));
-        file.close();
-
-        if (file.fail() )
-        {
-            *out_error_ptr = "Cannot write " + in_filename;
-
-            goto end;
-        }
-    }
-
-    result = true;
+    result = Analysis::APIDumpAnalysis::SectionedFile::write_file(in_filename,
+                                                                  byte_vec,
+                                                                  out_error_ptr);
 
 end:
     return result;

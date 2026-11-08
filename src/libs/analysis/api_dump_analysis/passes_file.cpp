@@ -57,27 +57,12 @@ bool Analysis::APIDumpAnalysis::PassesFile::read(const std::string& in_filename,
                                                  std::string*       out_error_ptr)
 {
     std::vector<uint8_t> byte_vec;
-    std::ifstream file(in_filename,
-                       std::ios::binary | std::ios::ate);
     bool                 result = false;
 
-    if (file.is_open() == false)
+    if (SectionedFile::read_file(in_filename,
+                                &byte_vec,
+                                 out_error_ptr) == false)
     {
-        *out_error_ptr = "Cannot open " + in_filename;
-
-        goto end;
-    }
-
-    byte_vec.resize(static_cast<size_t>(file.tellg() ));
-
-    file.seekg(0);
-    file.read (reinterpret_cast<char*>     (byte_vec.data() ),
-               static_cast<std::streamsize>(byte_vec.size() ));
-
-    if (file.good() == false)
-    {
-        *out_error_ptr = "Cannot read " + in_filename;
-
         goto end;
     }
 
@@ -379,13 +364,8 @@ bool Analysis::APIDumpAnalysis::PassesFile::write(const std::string&    in_filen
                                                   const AnalysisResult& in_analysis,
                                                   std::string*          out_error_ptr)
 {
-    /* A file is written beside the real one, and takes its place when it is complete: a failure leaves the old file as it was. */
-    const std::string          temporary_filename = in_filename + ".tmp";
-    const std::vector<uint8_t> byte_vec           = write_bytes(in_analysis);
-    bool                       result             = false;
-
-    std::ofstream file(temporary_filename,
-                       std::ios::binary | std::ios::trunc);
+    const std::vector<uint8_t> byte_vec = write_bytes(in_analysis);
+    bool                       result   = false;
 
     if (byte_vec.empty() )
     {
@@ -394,37 +374,9 @@ bool Analysis::APIDumpAnalysis::PassesFile::write(const std::string&    in_filen
         goto end;
     }
 
-    if (file.is_open() == false)
-    {
-        *out_error_ptr = "Cannot create " + temporary_filename;
-
-        goto end;
-    }
-
-    file.write(reinterpret_cast<const char*>(byte_vec.data() ),
-               static_cast<std::streamsize> (byte_vec.size() ));
-    file.close();
-
-    if (file.fail() )
-    {
-        *out_error_ptr = "Cannot write " + temporary_filename;
-
-        ::remove(temporary_filename.c_str() );
-
-        goto end;
-    }
-
-    ::remove(in_filename.c_str() );
-
-    if (::rename(temporary_filename.c_str(),
-                 in_filename.c_str() ) != 0)
-    {
-        *out_error_ptr = "Cannot replace " + in_filename;
-
-        goto end;
-    }
-
-    result = true;
+    result = SectionedFile::write_file(in_filename,
+                                       byte_vec,
+                                       out_error_ptr);
 
 end:
     return result;
