@@ -5,8 +5,10 @@
  * Checks of the D3D8 front end following shaders, draws from the application's memory, resets, and what it does not follow.
  */
 #include <gtest/gtest.h>
+#include "common/fatal_error.h"
 #include "d3d8_scene.h"
 #include <set>
+#include <stdlib.h>
 
 TEST(D3D8FrontendDraws, AVertexShaderIsAShaderResource)
 {
@@ -204,20 +206,21 @@ TEST(D3D8FrontendDraws, ResettingTheDeviceMakesANewBackBuffer)
               resource_vec.at(0).match_key);
 }
 
-TEST(D3D8FrontendDraws, WhatTheFrontEndDoesNotFollowIsCounted)
+TEST(D3D8FrontendDraws, WhatTheFrontEndDoesNotFollowEndsTheProcess)
 {
     Tests::D3D8CallBuilder     builder;
     Tests::D3D8FrontendHarness harness;
 
     builder.create_device();
     builder.begin_state_block();
-    builder.begin_state_block();
-    harness.feed(builder);
 
-    EXPECT_EQ(harness.get_frontend().get_n_unsupported_calls(),
-              2u);
-    EXPECT_EQ(harness.get_frontend().get_n_unfollowed_calls(),
-              0u);
+    /* The process has no console when the tests run from a tool, and would wait for somebody to close the box. */
+    ::_putenv_s("APIINTERCEPTOR_NO_ERROR_DIALOG",
+                "1");
+
+    EXPECT_EXIT(harness.feed(builder),
+                ::testing::ExitedWithCode(APIInterceptor::FatalError::get_exit_code() ),
+                "BeginStateBlock.*state blocks");
 }
 
 constexpr uint32_t FVF_XYZ_NORMAL_DIFFUSE_TEX1 = 0x152;

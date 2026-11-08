@@ -70,6 +70,9 @@ namespace Analysis
 
                 uint32_t get_u32(const size_t& in_n_argument) const;
 
+                /* True if the method returned a HRESULT which is a failure. False for a method that returns nothing, or no HRESULT: succeeded() is false for those too. */
+                bool has_failed() const;
+
                 /* True if the method returned a HRESULT which is not a failure. */
                 bool succeeded() const;
 

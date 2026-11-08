@@ -178,6 +178,19 @@ uint32_t Analysis::APIDumpAnalysis::Frontends::CallView::get_u32(const size_t& i
     return result;
 }
 
+bool Analysis::APIDumpAnalysis::Frontends::CallView::has_failed() const
+{
+    bool result = false;
+
+    if (m_call.returned_value_ptr       != nullptr                     &&
+        m_call.returned_value_ptr->type == APIInterceptor::ARGTYPE_I32)
+    {
+        result = (m_call.returned_value_ptr->get_i32() < 0);
+    }
+
+    return result;
+}
+
 bool Analysis::APIDumpAnalysis::Frontends::CallView::succeeded() const
 {
     bool result = false;

@@ -108,9 +108,6 @@ namespace Analysis
 
                 static Analysis::APIDumpAnalysis::PrimitiveTopology get_primitive_topology(const uint32_t& in_type);
 
-                /* True for the methods whose effects the front end does not follow. */
-                static bool is_unsupported_function(const APIInterceptor::APIFunction& in_function);
-
 
                 std::map<uint32_t, Analysis::APIDumpAnalysis::ResourceView>     m_attached_depth_map; /* by the resource of the surface they are attached to */
                 D3D7GeometryTracker                                             m_geometry_tracker;

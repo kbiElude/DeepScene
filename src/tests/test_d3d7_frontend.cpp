@@ -6,8 +6,10 @@
  */
 #include <gtest/gtest.h>
 #include "analysis/api_dump_analysis/resource_identity.h"
+#include "common/fatal_error.h"
 #include "interception/core/D3D7Utils/constants.h"
 #include "d3d7_scene.h"
+#include <stdlib.h>
 
 TEST(D3D7Frontend, SurfacesAreResourcesNamedLikeThePrinterNamesThem)
 {
@@ -378,15 +380,19 @@ TEST(D3D7Frontend, ASurfaceThatWasNeverMadeIsCountedAsUnfollowed)
               1u);
 }
 
-TEST(D3D7Frontend, StateBlocksAreCountedAsUnsupported)
+TEST(D3D7Frontend, StateBlocksEndTheProcess)
 {
     Tests::D3D7Scene scene;
 
     scene.get_builder().begin_state_block();
-    scene.feed();
 
-    EXPECT_EQ(scene.get_harness().get_frontend().get_n_unsupported_calls(),
-              1u);
+    /* The process has no console when the tests run from a tool, and would wait for somebody to close the box. */
+    ::_putenv_s("APIINTERCEPTOR_NO_ERROR_DIALOG",
+                "1");
+
+    EXPECT_EXIT(scene.feed(),
+                ::testing::ExitedWithCode(APIInterceptor::FatalError::get_exit_code() ),
+                "BeginStateBlock.*state blocks");
 }
 
 TEST(D3D7Frontend, VerticesInScreenSpaceAreAResolutionHazard)

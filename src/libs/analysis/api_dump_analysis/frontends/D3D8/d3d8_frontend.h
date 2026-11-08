@@ -120,9 +120,6 @@ namespace Analysis
                 /* True for the methods which set the state of the device. */
                 static bool is_state_function(const APIInterceptor::APIFunction& in_function);
 
-                /* True for the methods whose effects the front end does not follow. */
-                static bool is_unsupported_function(const APIInterceptor::APIFunction& in_function);
-
 
                 Analysis::APIDumpAnalysis::ResourceId                           m_auto_depth_stencil_id; /* the one the device made; NONE if none */
                 Analysis::APIDumpAnalysis::ResourceView                         m_back_buffer_view;

@@ -4,7 +4,9 @@
  */
 #include "analysis/api_dump_analysis/frontends/D3D7/d3d7_frontend.h"
 #include "analysis/api_dump_analysis/frontends/shared/clear_operation_factory.h"
+#include "analysis/api_dump_analysis/frontends/D3D7/d3d7_function_policy.h"
 #include "analysis/api_dump_analysis/frontends/D3D7/d3d7_resource_describer.h"
+#include "analysis/api_dump_analysis/frontends/shared/unsupported_use.h"
 #include "capture/api_dump_loader/api_info.h"
 #include "interception/core/D3D7Utils/argument_info.h"
 #include "interception/core/D3D7Utils/constants.h"
@@ -752,48 +754,6 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_write_to_surface
     }
 }
 
-bool Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::is_unsupported_function(const APIInterceptor::APIFunction& in_function)
-{
-    /* State blocks record calls and play them later, which the front end does not do; the rest change what is on a surface or in a
-     * buffer without data that the workload holds.
-     */
-    static const char* const unsupported_method_name_ptr_array[] =
-    {
-        "ApplyStateBlock",
-        "BeginStateBlock",
-        "BltBatch",
-        "CaptureStateBlock",
-        "CreateStateBlock",
-        "DeleteStateBlock",
-        "EndStateBlock",
-        "GetDC",
-        "MultiplyTransform",
-        "ProcessVertices",
-        "ProcessVerticesStrided",
-        "ReleaseDC",
-        "SetSurfaceDesc"
-    };
-
-    const Interception::Hooks::D3D7::MethodInfo* method_info_ptr = Interception::Core::D3D7Utils::get_method_info_ptr(in_function);
-    bool                                         result          = false;
-
-    if (method_info_ptr != nullptr)
-    {
-        for (const char* method_name_ptr : unsupported_method_name_ptr_array)
-        {
-            if (::strcmp(method_info_ptr->method_name_ptr,
-                         method_name_ptr) == 0)
-            {
-                result = true;
-
-                break;
-            }
-        }
-    }
-
-    return result;
-}
-
 void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::on_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                  const Capture::APIDumpLoader::Workload&      in_workload)
 {
@@ -813,7 +773,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::on_call(const Capture::
         handle_release(view);
     }
     else
-    if (view.succeeded() == false)
+    if (view.has_failed() )
     {
         /* Nothing to do. */
     }
@@ -976,6 +936,13 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::on_call(const Capture::
                 break;
             }
 
+            case APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_FLIP:
+            {
+                /* The frame that it ends is told to the builder below, for every call that is a frame boundary. */
+
+                break;
+            }
+
             case APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_GETATTACHEDSURFACE:
             {
                 handle_get_attached_surface(view);
@@ -985,9 +952,19 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::on_call(const Capture::
 
             default:
             {
-                if (is_unsupported_function(in_call.func) )
+                /* What is not followed is left out only if the policy says it may be: any other ends the process. */
+                const char* unsupported_reason_ptr = D3D7FunctionPolicy::get_unsupported_reason_ptr(in_call.func);
+
+                if (unsupported_reason_ptr != nullptr)
                 {
-                    m_n_unsupported_calls++;
+                    UnsupportedUse::report(in_call.func,
+                                           unsupported_reason_ptr);
+                }
+                else
+                if (D3D7FunctionPolicy::is_left_out_by_design(in_call.func) == false)
+                {
+                    UnsupportedUse::report(in_call.func,
+                                           "the front end does not know what the call does, and the policy does not say that it may be left out");
                 }
 
                 break;

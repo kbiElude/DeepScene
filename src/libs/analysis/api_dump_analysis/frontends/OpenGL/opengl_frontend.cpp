@@ -10,6 +10,7 @@
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_texture_format_mapper.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_vertex_reader.h"
 #include "analysis/api_dump_analysis/frontends/shared/call_view.h"
+#include "analysis/api_dump_analysis/frontends/shared/unsupported_use.h"
 #include "capture/api_dump_loader/api_info.h"
 #include "capture/api_dump_names/function_names.h"
 #include "common/macros.h"
@@ -2797,19 +2798,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_unsupported_us
                                                                                  const char*                        in_reason_ptr,
                                                                                  const uint64_t&                    in_value)
 {
-    constexpr size_t N_MESSAGE_CHARACTERS = 512;
-
-    char message_i8vec512[N_MESSAGE_CHARACTERS] = {};
-
-    ::snprintf(message_i8vec512,
-               sizeof(message_i8vec512),
-               "%s: %s, 0x%llX. A workload that does this is not supported yet, and what the analysis finds of it would be wrong or left out.",
-               Capture::APIDumpNames::get_function_name(in_function),
-               in_reason_ptr,
-               static_cast<unsigned long long>(in_value) );
-
-    AI_ASSERT_ALWAYS(false,
-                     message_i8vec512);
+    UnsupportedUse::report_with_value(in_function,
+                                      in_reason_ptr,
+                                      in_value);
 }
 
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_upload(const Capture::APIDumpLoader::DumpedAPICall& in_call,

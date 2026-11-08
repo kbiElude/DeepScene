@@ -4,8 +4,10 @@
  */
 #include "analysis/api_dump_analysis/frontends/D3D8/d3d8_frontend.h"
 #include "analysis/api_dump_analysis/frontends/shared/clear_operation_factory.h"
+#include "analysis/api_dump_analysis/frontends/D3D8/d3d8_function_policy.h"
 #include "analysis/api_dump_analysis/frontends/D3D8/d3d8_resolution_hazards.h"
 #include "analysis/api_dump_analysis/frontends/D3D8/d3d8_resource_describer.h"
+#include "analysis/api_dump_analysis/frontends/shared/unsupported_use.h"
 #include "utils/hashing/hasher.h"
 #include "interception/hooks/D3D8/types.h"
 #include "interception/core/D3D8Utils/argument_info.h"
@@ -1120,41 +1122,6 @@ bool Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::is_state_function(const
     return result;
 }
 
-bool Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::is_unsupported_function(const APIInterceptor::APIFunction& in_function)
-{
-    bool result = false;
-
-    switch (in_function)
-    {
-        case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_APPLYSTATEBLOCK:
-        case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_BEGINSTATEBLOCK:
-        case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_CAPTURESTATEBLOCK:
-        case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_CREATEADDITIONALSWAPCHAIN:
-        case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_CREATESTATEBLOCK:
-        case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_DELETEPATCH:
-        case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_DELETESTATEBLOCK:
-        case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_DRAWRECTPATCH:
-        case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_DRAWTRIPATCH:
-        case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_ENDSTATEBLOCK:
-        case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_MULTIPLYTRANSFORM:
-        case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DSWAPCHAIN8_PRESENT:
-        case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DVOLUME8_UNLOCKBOX:
-        case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DVOLUMETEXTURE8_UNLOCKBOX:
-        {
-            result = true;
-
-            break;
-        }
-
-        default:
-        {
-            break;
-        }
-    }
-
-    return result;
-}
-
 void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::on_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                  const Capture::APIDumpLoader::Workload&      in_workload)
 {
@@ -1494,9 +1461,26 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::on_call(const Capture::
                     handle_release(view);
                 }
                 else
-                if (is_unsupported_function(in_call.func) )
+                if (view.has_failed() )
                 {
-                    m_n_unsupported_calls++;
+                    /* A call which failed changed nothing. */
+                }
+                else
+                {
+                    /* What is not followed is left out only if the policy says it may be: any other ends the process. */
+                    const char* unsupported_reason_ptr = D3D8FunctionPolicy::get_unsupported_reason_ptr(in_call.func);
+
+                    if (unsupported_reason_ptr != nullptr)
+                    {
+                        UnsupportedUse::report(in_call.func,
+                                               unsupported_reason_ptr);
+                    }
+                    else
+                    if (D3D8FunctionPolicy::is_left_out_by_design(in_call.func) == false)
+                    {
+                        UnsupportedUse::report(in_call.func,
+                                               "the front end does not know what the call does, and the policy does not say that it may be left out");
+                    }
                 }
 
                 break;
