@@ -10,6 +10,7 @@
 #define APIDUMPTEXTURES_TYPES_H
 
 #include "analysis/api_dump_analysis/types.h"
+#include "utils/graphics/texture_format.h"
 #include <stdint.h>
 #include <vector>
 
@@ -55,7 +56,9 @@ namespace Analysis
             uint64_t     n_stored_bytes      = 0; /* STORED only */
         };
 
-        /* How the bytes of an upload are laid out, as the front end that wrote it says: the values mean something to it alone (as Format::raw_value does). */
+        /* How the bytes of an upload are laid out, as the front end that wrote it says: the values mean something to it alone (as Format::raw_value does), but for
+         * the pitch, which is the distance in bytes from a row of pieces to the next: of texels for what is not compressed, of blocks for what is (see TextureFormatInfo).
+         */
         struct SourceLayout
         {
             uint32_t api_format         = 0;
@@ -63,26 +66,46 @@ namespace Analysis
             uint32_t row_pitch_n_bytes  = 0; /* 0: the rows follow each other */
         };
 
-        constexpr uint32_t NO_BLOB = UINT32_MAX;
+        /* A sample of a multisampled texture is told by its number; this is all of them (a content with this is made of the samples one after the other, the
+         * first sample first: each as large as the region, with the layers in it). A texture that is not multisampled has the sample 0.
+         */
+        constexpr uint32_t ALL_SAMPLES = UINT32_MAX;
+        constexpr uint32_t NO_BLOB     = UINT32_MAX;
 
+        /* What happens to a part of a texture. The vocabulary of the layers is the analysis's: a layer is a slice of an array of textures, a slice of a volume (3D),
+         * or a face of a cube (the faces come in the order +X, -X, +Y, -Y, +Z, -Z, and a cube array has six layers for each of its cubes). The event covers the
+         * layers from destination.layer on, layer_count of them, each over the region x, y, width, height; the content of the blob is layer after layer, row after
+         * row, as the layout says. All the extents of the event (the region, and the size of the level) are in texels, whatever the format: what turns them into
+         * bytes is the block of the format (see Utils::Graphics::TextureFormats::get_n_bytes: a level smaller than a block, as the last levels of a compressed
+         * texture are, takes the one block). Where the format is compressed the region starts on a block (x and y are multiples of its size) and ends on one, or at
+         * the edge of the level.
+         */
         struct TextureEvent
         {
             uint32_t                                blob_index           = NO_BLOB;
             uint64_t                                call_index           = 0;
             Analysis::APIDumpAnalysis::ResourceView destination;
             uint64_t                                frame_index          = 0;
-            uint32_t                                generated_from_level = 0;     /* GENERATE_MIPS only */
+            uint32_t                                generated_from_level = 0;     /* GENERATE_MIPS only: it makes the levels below it, in every layer */
             uint32_t                                height               = 0;
             TextureEventKind                        kind                 = TextureEventKind::UPLOAD;
+            uint32_t                                layer_count          = 1;     /* from destination.layer; at least 1 */
             SourceLayout                            layout;
 
             /* The level as it is after the event, so that the size and the format of a level at any time are those of the last event that names it: an upload of the
-             * whole level may give it another size or format than it had (a texture that is specified again), and the level is then what the event says.
+             * whole level may give it another size or format than it had (a texture that is specified again), and the level is then what the event says. For a
+             * volume the depth is what the level has (it is halved with each level, and is not for an array, which has the same number of layers in each level).
              */
-            Analysis::APIDumpAnalysis::Format       level_format;
+            uint32_t                                level_api_format     = 0;     /* what the API called it: meaningful to its front end alone, kept to say what an UNKNOWN was */
+            uint32_t                                level_depth_or_layer_count = 1;
+            Utils::Graphics::TextureFormat          level_format         = Utils::Graphics::TextureFormat::UNKNOWN;
             uint32_t                                level_height         = 0;
             uint32_t                                level_width          = 0;
 
+            /* RENDER_WRITE and SNAPSHOT of a multisampled texture: the sample the event is of, or ALL_SAMPLES. A texture which cannot be uploaded to (a multisampled
+             * one) has its content only from rendering.
+             */
+            uint32_t                                sample_index         = 0;
             Analysis::APIDumpAnalysis::ResourceView source;                       /* RENDER_WRITE only; no resource: the window (the swapchain), which is never stored */
             uint32_t                                width                = 0;
             uint32_t                                x                    = 0;

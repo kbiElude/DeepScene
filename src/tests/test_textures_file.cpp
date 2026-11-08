@@ -38,6 +38,8 @@ namespace
         {
             Analysis::APIDumpAnalysis::Resource resource;
 
+            /* The first is an array of six layers. */
+            resource.description.depth_or_layer_count = (n_resource == 1) ? 6 : 1;
             resource.description.height          = 64;
             resource.description.kind            = Analysis::APIDumpAnalysis::ResourceKind::TEXTURE_2D;
             resource.description.mip_level_count = 3;
@@ -45,6 +47,20 @@ namespace
             resource.id                          = static_cast<Analysis::APIDumpAnalysis::ResourceId>(n_resource);
 
             result.resource_vec.push_back(resource);
+        }
+
+        /* A multisampled texture, which has its content from rendering alone. */
+        {
+            Analysis::APIDumpAnalysis::Resource multisampled;
+
+            multisampled.description.height          = 64;
+            multisampled.description.kind            = Analysis::APIDumpAnalysis::ResourceKind::TEXTURE_2D;
+            multisampled.description.mip_level_count = 1;
+            multisampled.description.sample_count    = 4;
+            multisampled.description.width           = 128;
+            multisampled.id                          = static_cast<Analysis::APIDumpAnalysis::ResourceId>(3);
+
+            result.resource_vec.push_back(multisampled);
         }
 
         for (uint64_t n_blob = 0; n_blob < 2; ++n_blob)
@@ -79,8 +95,8 @@ namespace
         TextureEvent snapshot;
 
         upload.blob_index               = 2;
-        upload.level_format.format_class = Analysis::APIDumpAnalysis::FormatClass::COLOR;
-        upload.level_format.raw_value    = 0x8058;
+        upload.level_api_format          = 0x8058;
+        upload.level_format              = Utils::Graphics::TextureFormat::R8G8B8A8_UNORM;
         upload.level_height              = 64;
         upload.level_width               = 128;
         upload.call_index               = 10;
@@ -119,7 +135,34 @@ namespace
         snapshot.x           = 4;
         snapshot.y           = 8;
 
-        result.event_vec = {upload, render_write, generate, snapshot};
+        /* Three layers of the array in one upload, and every sample of the multisampled texture as it was when it was read. */
+        TextureEvent layered_upload;
+        TextureEvent multisampled_snapshot;
+
+        layered_upload.blob_index                 = 2;
+        layered_upload.call_index                 = 60;
+        layered_upload.destination                = make_view(1, 0, 2);
+        layered_upload.frame_index                = 2;
+        layered_upload.height                     = 64;
+        layered_upload.kind                       = TextureEventKind::UPLOAD;
+        layered_upload.layer_count                = 3;
+        layered_upload.level_depth_or_layer_count = 6;
+        layered_upload.level_height               = 64;
+        layered_upload.level_width                = 128;
+        layered_upload.width                      = 128;
+
+        multisampled_snapshot.blob_index                 = 1;
+        multisampled_snapshot.call_index                 = 70;
+        multisampled_snapshot.destination                = make_view(3, 0, 0);
+        multisampled_snapshot.frame_index                = 2;
+        multisampled_snapshot.height                     = 64;
+        multisampled_snapshot.kind                       = TextureEventKind::SNAPSHOT;
+        multisampled_snapshot.level_height               = 64;
+        multisampled_snapshot.level_width                = 128;
+        multisampled_snapshot.sample_index               = Analysis::APIDumpTextures::ALL_SAMPLES;
+        multisampled_snapshot.width                      = 128;
+
+        result.event_vec = {upload, render_write, generate, snapshot, layered_upload, multisampled_snapshot};
 
         result.blob_file_n_bytes       = 216;
         result.includes_render_content = true;
@@ -148,19 +191,31 @@ TEST(TexturesFile, ATimelineComesBackAsItWasWritten)
               TexturesFile::write_bytes(timeline) );
 
     ASSERT_EQ(loaded.event_vec.size(),
-              4u);
+              6u);
     ASSERT_EQ(loaded.blob_vec.size(),
               3u);
+
+    /* The layers of the upload, the level that has them, and the samples of the snapshot. */
+    EXPECT_EQ(loaded.event_vec.at(4).destination.layer,
+              2u);
+    EXPECT_EQ(loaded.event_vec.at(4).layer_count,
+              3u);
+    EXPECT_EQ(loaded.event_vec.at(4).level_depth_or_layer_count,
+              6u);
+    EXPECT_EQ(loaded.event_vec.at(5).sample_index,
+              Analysis::APIDumpTextures::ALL_SAMPLES);
+    EXPECT_EQ(loaded.event_vec.at(0).layer_count,
+              1u);
 
     /* The level as the event leaves it. */
     EXPECT_EQ(loaded.event_vec.at(0).level_width,
               128u);
     EXPECT_EQ(loaded.event_vec.at(0).level_height,
               64u);
-    EXPECT_EQ(loaded.event_vec.at(0).level_format.raw_value,
+    EXPECT_EQ(loaded.event_vec.at(0).level_api_format,
               0x8058u);
-    EXPECT_EQ(loaded.event_vec.at(0).level_format.format_class,
-              Analysis::APIDumpAnalysis::FormatClass::COLOR);
+    EXPECT_EQ(loaded.event_vec.at(0).level_format,
+              Utils::Graphics::TextureFormat::R8G8B8A8_UNORM);
 
     EXPECT_EQ(loaded.event_vec.at(0).layout.row_pitch_n_bytes,
               512u);
@@ -345,13 +400,13 @@ TEST(TexturesFile, ALevelThatIsSpecifiedAgainKeepsTheSizeAndFormatOfEachTimeInIt
 
     /* The level of the first event is made again, smaller and of another format. */
     again.blob_index                = Analysis::APIDumpTextures::NO_BLOB;
-    again.call_index                = 50;
+    again.call_index                = 100;
     again.destination               = make_view(1, 0, 0);
     again.frame_index               = 2;
     again.height                    = 32;
     again.kind                      = TextureEventKind::UPLOAD;
-    again.level_format.format_class = Analysis::APIDumpAnalysis::FormatClass::COMPRESSED;
-    again.level_format.raw_value    = 0x83F1;
+    again.level_api_format          = 0x83F1;
+    again.level_format              = Utils::Graphics::TextureFormat::BC1_UNORM;
     again.level_height              = 32;
     again.level_width               = 64;
     again.width                     = 64;
@@ -363,15 +418,145 @@ TEST(TexturesFile, ALevelThatIsSpecifiedAgainKeepsTheSizeAndFormatOfEachTimeInIt
                                         &error) ) << error;
 
     ASSERT_EQ(loaded.event_vec.size(),
-              5u);
+              7u);
 
     /* What the first event said of the level is not what the last says: both are kept, in the order of the calls. */
     EXPECT_EQ(loaded.event_vec.at(0).level_width,
               128u);
-    EXPECT_EQ(loaded.event_vec.at(4).level_width,
+    EXPECT_EQ(loaded.event_vec.at(6).level_width,
               64u);
-    EXPECT_EQ(loaded.event_vec.at(4).level_format.format_class,
-              Analysis::APIDumpAnalysis::FormatClass::COMPRESSED);
-    EXPECT_EQ(loaded.event_vec.at(4).blob_index,
+    EXPECT_EQ(loaded.event_vec.at(6).level_format,
+              Utils::Graphics::TextureFormat::BC1_UNORM);
+    EXPECT_EQ(loaded.event_vec.at(6).blob_index,
               Analysis::APIDumpTextures::NO_BLOB);
+}
+namespace
+{
+    /* An upload to the array texture that comes after every event of the sample timeline, of the format and the region that the test says. */
+    TextureEvent make_extra_event(const Utils::Graphics::TextureFormat& in_format,
+                                  const uint32_t&                       in_level_width,
+                                  const uint32_t&                       in_level_height,
+                                  const uint32_t&                       in_x,
+                                  const uint32_t&                       in_y,
+                                  const uint32_t&                       in_width,
+                                  const uint32_t&                       in_height)
+    {
+        TextureEvent result;
+
+        result.call_index   = 200;
+        result.destination  = make_view(1, 0, 0);
+        result.frame_index  = 3;
+        result.height       = in_height;
+        result.kind         = TextureEventKind::UPLOAD;
+        result.level_format = in_format;
+        result.level_height = in_level_height;
+        result.level_width  = in_level_width;
+        result.width        = in_width;
+        result.x            = in_x;
+        result.y            = in_y;
+
+        return result;
+    }
+
+    bool is_read_back(const TextureEvent& in_event)
+    {
+        auto            timeline = make_timeline();
+        TextureTimeline loaded;
+        std::string     error;
+
+        timeline.event_vec.push_back(in_event);
+
+        return TexturesFile::read_bytes(TexturesFile::write_bytes(timeline),
+                                       &loaded,
+                                       &error);
+    }
+}
+
+TEST(TexturesFile, TheRegionOfACompressedTextureIsInTexelsAndOnItsBlocks)
+{
+    const auto bc1 = Utils::Graphics::TextureFormat::BC1_UNORM;
+
+    /* A region of whole blocks inside the level. */
+    EXPECT_TRUE(is_read_back(make_extra_event(bc1, 128, 64, 4, 8, 64, 32) ) );
+
+    /* A level that is smaller than a block, and one that is not a multiple of it: the region that runs to the edge of the level is on the blocks. */
+    EXPECT_TRUE(is_read_back(make_extra_event(bc1, 2, 2, 0, 0, 2, 2) ) );
+    EXPECT_TRUE(is_read_back(make_extra_event(bc1, 6, 6, 0, 0, 6, 6) ) );
+    EXPECT_TRUE(is_read_back(make_extra_event(bc1, 6, 6, 4, 4, 2, 2) ) );
+
+    /* A format of one texel for a block has every region on its blocks. */
+    EXPECT_TRUE(is_read_back(make_extra_event(Utils::Graphics::TextureFormat::R8G8B8A8_UNORM, 128, 64, 3, 5, 7, 9) ) );
+}
+
+TEST(TexturesFile, ARegionThatIsNotOnTheBlocksOfACompressedTextureIsRefused)
+{
+    const auto bc3 = Utils::Graphics::TextureFormat::BC3_UNORM;
+
+    /* It starts inside a block. */
+    EXPECT_FALSE(is_read_back(make_extra_event(bc3, 128, 64, 2, 0, 8, 8) ) );
+    EXPECT_FALSE(is_read_back(make_extra_event(bc3, 128, 64, 0, 2, 8, 8) ) );
+
+    /* It ends inside a block that is not the last of the level. */
+    EXPECT_FALSE(is_read_back(make_extra_event(bc3, 128, 64, 0, 0, 6, 8) ) );
+    EXPECT_FALSE(is_read_back(make_extra_event(bc3, 128, 64, 0, 0, 8, 6) ) );
+}
+
+TEST(TexturesFile, AValueThatIsNotAFormatIsRefused)
+{
+    auto event = make_extra_event(Utils::Graphics::TextureFormat::R8G8B8A8_UNORM, 128, 64, 0, 0, 128, 64);
+
+    EXPECT_TRUE(is_read_back(event) );
+
+    event.level_format = static_cast<Utils::Graphics::TextureFormat>(Utils::Graphics::LAST_TEXTURE_FORMAT_VALUE + 1);
+
+    EXPECT_FALSE(is_read_back(event) );
+}
+
+TEST(TexturesFile, TheLayersAndTheSamplesOfAnEventAreThoseThatTheTextureCanHave)
+{
+    /* The layers: one at least, and not so many that they run past the number there is to count. */
+    {
+        auto event = make_extra_event(Utils::Graphics::TextureFormat::R8G8B8A8_UNORM, 128, 64, 0, 0, 128, 64);
+
+        EXPECT_TRUE(is_read_back(event) );
+
+        event.layer_count = 0;
+
+        EXPECT_FALSE(is_read_back(event) );
+
+        event.destination = make_view(1, 0, 5);
+        event.layer_count = UINT32_MAX;
+
+        EXPECT_FALSE(is_read_back(event) );
+
+        event.layer_count                = 3;
+        event.level_depth_or_layer_count = 0;
+
+        EXPECT_FALSE(is_read_back(event) );
+    }
+
+    /* The samples: those of the texture (the multisampled one has four), or all of them; the one that has no more than the one sample has the sample 0. */
+    {
+        auto event = make_extra_event(Utils::Graphics::TextureFormat::R8G8B8A8_UNORM, 128, 64, 0, 0, 128, 64);
+
+        event.destination = make_view(3, 0, 0);
+        event.kind        = TextureEventKind::SNAPSHOT;
+
+        event.sample_index = 3;
+
+        EXPECT_TRUE(is_read_back(event) );
+
+        event.sample_index = Analysis::APIDumpTextures::ALL_SAMPLES;
+
+        EXPECT_TRUE(is_read_back(event) );
+
+        event.sample_index = 4;
+
+        EXPECT_FALSE(is_read_back(event) );
+
+        event.destination  = make_view(2, 0, 0);
+        event.sample_index = 1;
+
+        EXPECT_FALSE(is_read_back(event) );
+    }
 }
