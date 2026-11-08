@@ -6,6 +6,7 @@
 #include "analysis/api_dump_dependencies/deps_file.h"
 #include "analysis/api_dump_dependencies/frame_slice_planner.h"
 #include "stereo_d3d7_call_executor.h"
+#include "stereo_gl_call_executor.h"
 #include "stereo_replay_engine.h"
 
 Stereo::Replay::EngineDLL::StereoReplayEngine::StereoReplayEngine()
@@ -34,6 +35,20 @@ Stereo::Replay::EngineDLL::StereoReplayEngine::StereoReplayEngine()
 
     m_engine.add_call_executor(Capture::APIDumpLoader::APIGroup::D3D7,
                                d3d7_executor_ptr);
+
+    const auto gl_executor_ptr = std::make_shared<StereoGlCallExecutor>(m_engine.get_remapper_ptr() );
+
+    const auto is_per_eye_texture_func = [this](const uint64_t& in_dumped_name)
+    {
+        return m_stereo_executor.is_per_eye_texture(Capture::APIDumpLoader::APIGroup::GL,
+                                                    in_dumped_name);
+    };
+
+    /* Asked when a texture is changed, whether each eye has a copy of it: its name is that of the program. */
+    gl_executor_ptr->set_per_eye_predicate(is_per_eye_texture_func);
+
+    m_engine.add_call_executor(Capture::APIDumpLoader::APIGroup::GL,
+                               gl_executor_ptr);
     m_engine.set_frame_executor(&m_paced_executor);
 }
 

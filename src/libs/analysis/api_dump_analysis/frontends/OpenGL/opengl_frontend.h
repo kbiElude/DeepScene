@@ -76,6 +76,10 @@ namespace Analysis
                 void add_texture_bindings(const GlContextState&                       in_state,
                                           Analysis::APIDumpAnalysis::DrawDescription* out_description_ptr) const;
 
+                /* The call that begins the camera of the draw (see DrawDescription::view_anchor_call_index), from the model-view stack. */
+                void add_view_anchor(const GlContextState&                       in_state,
+                                     Analysis::APIDumpAnalysis::DrawDescription* out_description_ptr) const;
+
                 /* The pixels of the window are copied to a region of a level of the texture that the active unit has bound (the depth of the window, for a texture of
                  * depth); false if the program has not given the texture a size, or the level.
                  */

@@ -31,6 +31,15 @@ namespace Stereo
                  */
                 virtual void set_eye(const Analysis::Recipe::Eye& in_eye) = 0;
 
+                /* How many times the frame that is about to be played is executed (1 or 2): an executor that keeps a copy of an object for each eye brings the copy of the eye that is
+                 * not executed up to date by itself in a frame that is executed once, and leaves it to the other execution in one that is executed twice. Nothing is done
+                 * by default.
+                 */
+                virtual void set_n_executions(const uint32_t& in_n_executions)
+                {
+                    (void) in_n_executions;
+                }
+
                 /* What tells which objects have a copy for each eye; none, if it is not set. */
                 virtual void set_per_eye_predicate(const PerEyePredicate& in_predicate) = 0;
             };

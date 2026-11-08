@@ -9,6 +9,80 @@
 #include <stdint.h>
 #include <utility>
 
+bool Analysis::Recipe::RecipeLoader::parse_anchor_shift(const Utils::Json::JsonValue& in_value,
+                                                        const std::string&            in_path,
+                                                        ViewAnchorShift*              out_shift_ptr,
+                                                        std::string*                  out_error_ptr)
+{
+    bool result = false;
+
+    if (in_value.type != Utils::Json::JsonValueType::OBJECT)
+    {
+        *out_error_ptr = in_path + ": expected an object";
+
+        goto end;
+    }
+
+    if (check_keys(in_value,
+                   {"convergence_distance", "draws_without_anchor"},
+                   in_path,
+                   out_error_ptr) == false)
+    {
+        goto end;
+    }
+
+    {
+        const auto* distance_ptr = in_value.find_ptr("convergence_distance");
+        const auto* draws_ptr    = in_value.find_ptr("draws_without_anchor");
+
+        /* The distance is not needed: a scene (see SceneConvergence) says its own, and without either the eyes are moved apart and no more. */
+        if (distance_ptr != nullptr)
+        {
+            bool is_distance_valid = false;
+
+            if (distance_ptr->type == Utils::Json::JsonValueType::NUMBER)
+            {
+                const bool is_distance_finite = (::isfinite(distance_ptr->number_value) != 0);
+
+                is_distance_valid = (is_distance_finite &&
+                                     distance_ptr->number_value > 0.0);
+            }
+
+            if (is_distance_valid == false)
+            {
+                *out_error_ptr = in_path + ".convergence_distance: expected a number above zero (the distance at which the eyes converge, in the units of the camera "
+                                           "of the application)";
+
+                goto end;
+            }
+
+            out_shift_ptr->convergence_distance = static_cast<float>(distance_ptr->number_value);
+        }
+
+        if (draws_ptr != nullptr)
+        {
+            const bool is_valid = (draws_ptr->type == Utils::Json::JsonValueType::STRING                 &&
+                                   (draws_ptr->string_value == "fail" || draws_ptr->string_value == "leave") );
+
+            if (is_valid == false)
+            {
+                *out_error_ptr = in_path + ".draws_without_anchor: expected \"fail\" (a draw that the recipe affects and that has no camera to move stops the replay, and is told) or \"leave\" (it is played as it is)";
+
+                goto end;
+            }
+
+            out_shift_ptr->leaves_draws_without_anchor = (draws_ptr->string_value == "leave");
+        }
+
+        out_shift_ptr->is_enabled = true;
+    }
+
+    result = true;
+
+end:
+    return result;
+}
+
 bool Analysis::Recipe::RecipeLoader::parse_baked(const Utils::Json::JsonValue& in_baked,
                                                  const std::string&            in_path,
                                                  Recipe*                       inout_recipe_ptr,

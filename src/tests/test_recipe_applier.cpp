@@ -912,3 +912,101 @@ TEST_F(RecipeApplierTest, ADrawInOnePassBeatsTheKeyOfTheDrawAndTheKeyOfThePassAn
     EXPECT_FALSE(applier.is_draw_skipped(11,
                                          31) );
 }
+
+TEST_F(RecipeApplierTest, TheViewAnchorMatrixMovesTheSceneTowardTheRightForTheLeftEyeAndConvergesAtTheDistance)
+{
+    Analysis::Recipe::Recipe recipe;
+
+    recipe.view_anchor_shift.convergence_distance = 4.0f;
+    recipe.view_anchor_shift.is_enabled           = true;
+
+    const Analysis::Recipe::RecipeApplier applier(recipe);
+
+    const auto left  = applier.make_view_anchor_matrix(Analysis::Recipe::Eye::LEFT,
+                                                       0.2f,
+                                                       0);
+    const auto right = applier.make_view_anchor_matrix(Analysis::Recipe::Eye::RIGHT,
+                                                       0.2f,
+                                                       0);
+
+    /* The columns one after the other: x' = x + (h / d) * z + h, with h half of the separation. */
+    EXPECT_FLOAT_EQ(left.at(12),
+                    0.1f);
+    EXPECT_FLOAT_EQ(left.at(8),
+                    0.1f / 4.0f);
+    EXPECT_FLOAT_EQ(right.at(12),
+                    -0.1f);
+    EXPECT_FLOAT_EQ(right.at(8),
+                    -0.1f / 4.0f);
+
+    /* A point straight ahead at the distance of convergence (z is minus the distance) is where it was: the pictures of the eyes are not apart there. */
+    EXPECT_NEAR(left.at(12) + left.at(8) * -4.0f,
+                0.0f,
+                1e-6f);
+    EXPECT_NEAR(right.at(12) + right.at(8) * -4.0f,
+                0.0f,
+                1e-6f);
+
+    /* The rest is the identity. */
+    EXPECT_FLOAT_EQ(left.at(0),
+                    1.0f);
+    EXPECT_FLOAT_EQ(left.at(5),
+                    1.0f);
+    EXPECT_FLOAT_EQ(left.at(10),
+                    1.0f);
+    EXPECT_FLOAT_EQ(left.at(15),
+                    1.0f);
+    EXPECT_FLOAT_EQ(left.at(9),
+                    0.0f);
+}
+
+TEST_F(RecipeApplierTest, TheViewAnchorMatrixTakesTheDistanceAndTheLimitOfTheScene)
+{
+    Analysis::Recipe::Recipe recipe;
+
+    recipe.scene_convergence_vec.push_back({2.0f, 11});
+    recipe.scene_separation_vec.push_back ({0.05f, 11});
+    recipe.view_anchor_shift.convergence_distance = 4.0f;
+    recipe.view_anchor_shift.is_enabled           = true;
+
+    const Analysis::Recipe::RecipeApplier applier(recipe);
+
+    /* The scene of the shape has its own distance and a limit that is less than the separation asked for. */
+    const auto in_scene = applier.make_view_anchor_matrix(Analysis::Recipe::Eye::LEFT,
+                                                          0.2f,
+                                                          11);
+
+    EXPECT_FLOAT_EQ(in_scene.at(12),
+                    0.025f);
+    EXPECT_FLOAT_EQ(in_scene.at(8),
+                    0.025f / 2.0f);
+
+    /* A shape that the recipe does not know has the recipe's distance, and no limit. */
+    const auto elsewhere = applier.make_view_anchor_matrix(Analysis::Recipe::Eye::LEFT,
+                                                           0.2f,
+                                                           99);
+
+    EXPECT_FLOAT_EQ(elsewhere.at(12),
+                    0.1f);
+    EXPECT_FLOAT_EQ(elsewhere.at(8),
+                    0.1f / 4.0f);
+}
+
+TEST_F(RecipeApplierTest, WithNoDistanceTheViewAnchorMatrixIsTheTranslationAlone)
+{
+    Analysis::Recipe::Recipe recipe;
+
+    recipe.view_anchor_shift.is_enabled = true;
+
+    const Analysis::Recipe::RecipeApplier applier(recipe);
+
+    const auto left = applier.make_view_anchor_matrix(Analysis::Recipe::Eye::LEFT,
+                                                      0.2f,
+                                                      0);
+
+    EXPECT_FLOAT_EQ(left.at(12),
+                    0.1f);
+    EXPECT_FLOAT_EQ(left.at(8),
+                    0.0f);
+    EXPECT_TRUE(applier.has_view_anchor_shift() );
+}

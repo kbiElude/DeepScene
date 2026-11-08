@@ -37,6 +37,7 @@ namespace Analysis
                 GlAttributes                  attributes;
                 GlImmediateBlock              immediate_block;
                 GlListRecording               list_recording;
+                std::vector<uint64_t>         modelview_anchor_call_index_vec; /* of each matrix of the stack below: the call that begins its camera (the last load of that matrix, a glLoadIdentity or a glLoadMatrix), or UINT64_MAX */
                 std::vector<GlMatrix>         modelview_f32mat_vec;
                 std::vector<GlMatrix>         other_f32mat_vec;
                 GlPipelineState               pipeline_state;

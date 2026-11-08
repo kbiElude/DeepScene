@@ -300,9 +300,19 @@ Analysis::Recipe::UnknownFramePolicy Analysis::Recipe::RecipeApplier::get_unknow
     return m_recipe.unknown_frame_policy;
 }
 
+const Analysis::Recipe::ViewAnchorShift& Analysis::Recipe::RecipeApplier::get_view_anchor_shift() const
+{
+    return m_recipe.view_anchor_shift;
+}
+
 bool Analysis::Recipe::RecipeApplier::has_rule_for(const APIInterceptor::APIFunction& in_function) const
 {
     return (m_rule_function_set.find(in_function) != m_rule_function_set.end() );
+}
+
+bool Analysis::Recipe::RecipeApplier::has_view_anchor_shift() const
+{
+    return m_recipe.view_anchor_shift.is_enabled;
 }
 
 bool Analysis::Recipe::RecipeApplier::is_draw_affected(const uint64_t& in_pass_key,
@@ -455,6 +465,44 @@ std::array<float, 16> Analysis::Recipe::RecipeApplier::make_eye_offset_matrix(co
                                              0, 0, 0, 1};
 
     result.at(TRANSLATION_ROW * N_COLUMNS + static_cast<size_t>(in_axis) ) = half_separation;
+
+    return result;
+}
+
+std::array<float, 16> Analysis::Recipe::RecipeApplier::make_view_anchor_matrix(const Analysis::Recipe::Eye& in_eye,
+                                                                                 const float&                 in_eye_separation,
+                                                                                 const uint64_t&              in_shape_key) const
+{
+    constexpr float HALF = 0.5f;
+
+    const float scene_limit    = get_scene_max_separation(in_shape_key);
+    const float scene_distance = get_scene_convergence_distance(in_shape_key);
+
+    const float separation = (scene_limit > 0.0f                &&
+                              scene_limit < in_eye_separation) ? scene_limit
+                                                               : in_eye_separation;
+    const float distance   = (scene_distance > 0.0f)            ? scene_distance
+                                                               : m_recipe.view_anchor_shift.convergence_distance;
+
+    /* The scene moves toward the right for the left eye: the camera is to the left. */
+    const float half_shift = (in_eye == Analysis::Recipe::Eye::LEFT) ? separation * HALF
+                                                                    : -separation * HALF;
+
+    std::array<float, 16> result =
+    {
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    };
+
+    /* x + h + (h / d) * z: the translation is the fourth column, and the shear is what the depth adds to x. */
+    result.at(12) = half_shift;
+
+    if (distance > 0.0f)
+    {
+        result.at(8) = half_shift / distance;
+    }
 
     return result;
 }

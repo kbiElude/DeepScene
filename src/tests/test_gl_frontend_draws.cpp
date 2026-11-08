@@ -316,3 +316,100 @@ TEST_F(GlFrontendDraws, ADrawOfArraysBeginsWithItsOwnCall)
     EXPECT_EQ(draw_vec.at(0).first_call_index,
               draw_vec.at(0).call_index);
 }
+
+TEST_F(GlFrontendDraws, TheCameraOfADrawBeginsAtTheLastLoadOfTheModelViewMatrix)
+{
+    start(640,
+          480);
+
+    m_builder.load_identity(); /* the call 2 */
+    m_builder.translate    (1.0,
+                            2.0,
+                            3.0);
+    add_triangle           (TRIANGLES);
+    m_builder.swap_buffers (DEVICE_CONTEXT_ADDRESS);
+
+    feed();
+
+    const auto& draw_vec = m_harness.get_builder().get_completed_frame().draw_instance_vec;
+
+    ASSERT_EQ(draw_vec.size(),
+              1u);
+
+    /* What the program does to the matrix after it is on top of that: the camera still begins there. */
+    EXPECT_EQ(draw_vec.at(0).view_anchor_call_index,
+              2u);
+}
+
+TEST_F(GlFrontendDraws, ALoadInsideAPushBeginsItsOwnCameraAndAPopGivesBackTheOneOfTheMatrixBelow)
+{
+    start(640,
+          480);
+
+    m_builder.load_identity(); /* the call 2 */
+    m_builder.push_matrix  (); /* the call 3 */
+    m_builder.load_identity(); /* the call 4: the camera of what is drawn in the push */
+    add_triangle           (TRIANGLES);
+    m_builder.pop_matrix   ();
+    add_triangle           (TRIANGLES);
+    m_builder.swap_buffers (DEVICE_CONTEXT_ADDRESS);
+
+    feed();
+
+    const auto& draw_vec = m_harness.get_builder().get_completed_frame().draw_instance_vec;
+
+    ASSERT_EQ(draw_vec.size(),
+              2u);
+
+    EXPECT_EQ(draw_vec.at(0).view_anchor_call_index,
+              4u);
+    EXPECT_EQ(draw_vec.at(1).view_anchor_call_index,
+              2u);
+}
+
+TEST_F(GlFrontendDraws, AMatrixThatIsLoadedBeginsTheCameraToo)
+{
+    start(640,
+          480);
+
+    m_builder.load_identity();
+    m_builder.load_matrix   ({1.0f, 0.0f, 0.0f, 0.0f,
+                              0.0f, 1.0f, 0.0f, 0.0f,
+                              0.0f, 0.0f, 1.0f, 0.0f,
+                              5.0f, 0.0f, 0.0f, 1.0f});
+    add_triangle            (TRIANGLES);
+    m_builder.swap_buffers  (DEVICE_CONTEXT_ADDRESS);
+
+    feed();
+
+    const auto& draw_vec = m_harness.get_builder().get_completed_frame().draw_instance_vec;
+
+    ASSERT_EQ(draw_vec.size(),
+              1u);
+
+    EXPECT_EQ(draw_vec.at(0).view_anchor_call_index,
+              3u);
+}
+
+TEST_F(GlFrontendDraws, TheProjectionHasNoPartInTheCamera)
+{
+    start(640,
+          480);
+
+    m_builder.load_identity();            /* the call 2: of the model-view matrix */
+    m_builder.matrix_mode  (PROJECTION);
+    m_builder.load_identity();
+    m_builder.matrix_mode  (MODELVIEW);
+    add_triangle           (TRIANGLES);
+    m_builder.swap_buffers (DEVICE_CONTEXT_ADDRESS);
+
+    feed();
+
+    const auto& draw_vec = m_harness.get_builder().get_completed_frame().draw_instance_vec;
+
+    ASSERT_EQ(draw_vec.size(),
+              1u);
+
+    EXPECT_EQ(draw_vec.at(0).view_anchor_call_index,
+              2u);
+}

@@ -70,8 +70,14 @@ namespace Analysis
 
             Analysis::Recipe::UnknownFramePolicy get_unknown_frame_policy() const;
 
+            /* The view anchor shift of the recipe (see ViewAnchorShift); not enabled if the recipe does not say. */
+            const Analysis::Recipe::ViewAnchorShift& get_view_anchor_shift() const;
+
             /* False if no rule is about the function, whatever the arguments: a quick check before the call is looked at. */
             bool has_rule_for(const APIInterceptor::APIFunction& in_function) const;
+
+            /* Whether the recipe has a view anchor shift (see ViewAnchorShift): the camera of a draw is moved by the call that begins it. */
+            bool has_view_anchor_shift() const;
 
             /* Whether the rules apply to a draw (see Recipe::affected): the draw in its pass counts for more than the key of the draw, which counts for more
              * than the key of its pass, and a draw which none of them names is affected.
@@ -98,6 +104,14 @@ namespace Analysis
              * an unknown signature is affected, like any draw which no rule applies to, but the recipe was not made for it.
              */
             bool is_signature_known(const uint64_t& in_signature_key) const;
+
+            /* The matrix that the camera of a draw begins with for the eye (see ViewAnchorShift), as OpenGL has matrices: the columns one after the other. The eyes are
+             * apart by the separation, but no more than the scene of the shape allows (see SceneSeparation); they converge at the distance of the scene (see
+             * SceneConvergence), or else at the one of the recipe, and with neither the matrix is the translation alone.
+             */
+            std::array<float, 16> make_view_anchor_matrix(const Analysis::Recipe::Eye& in_eye,
+                                                          const float&                 in_eye_separation,
+                                                          const uint64_t&              in_shape_key) const;
 
 
             /* The rule for the eye, for a draw that is pushed toward the viewer (see Comfort::overlay_parallax): if the rule is the one

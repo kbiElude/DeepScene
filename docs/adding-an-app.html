@@ -187,6 +187,7 @@ tools\stereo_replay\StereoReplayConsistencyChecker_x86.exe result_dump.workload 
       "arguments": "-fullscreen=0",             (optional) the command line of the application
       "working_directory": "myapp",            (optional) relative to the catalog; the directory of the executable by default
       "title": "My app",                       (optional) the title in the list: otherwise, the name of the recipe's target
+      "unavailable_reason": "...",             (optional) why the player cannot start it although the recipe is there (an OpenGL program, whose recipe is for the replay tools: the converter inside the program does not convert OpenGL yet); the entry is listed with the reason
       "download": {                             (optional) where the program comes from, if it is not there
         "urls": ["https://mirror.example/myapp.zip"],   https only; one after the other until one works
         "sha256": "...",                       of the zip file, in hex: what is not that is not used

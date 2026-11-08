@@ -814,7 +814,8 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_draw(const DrawDescription& in_
                                              m_last_draw_cover_key,
                                              first_call,
                                              static_cast<uint32_t>(m_frame_pass_instance_vec.size() ),
-                                             key});
+                                             key,
+                                             in_draw.view_anchor_call_index});
     }
 
     m_open_pass.has_draws            = true;

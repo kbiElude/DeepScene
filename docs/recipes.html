@@ -104,6 +104,16 @@
       "field_of_view_degrees": 90.0                the angle of view of the width of the picture (above 0, below 180; default 90): there is no
                                                    projection to read it from
     },
+    "view_anchor_shift": {                         for OpenGL, whose camera is not set by a call of one matrix but built by calls on the model-view matrix (loads, multiplies, pushes
+                                                   and pops): the call that loads the matrix a draw comes from (a glLoadIdentity or a glLoadMatrix) loads the shift of the eye
+                                                   on top of what it loads, so that everything the program does next is on top of it (x + h + (h / d) * z in the space of the camera,
+                                                   with h half of the eye separation): a camera moved to the side, with what is at d not apart
+      "convergence_distance": 600.0,               where the eyes converge for a scene that has no distance of its own (scene_convergence), in the units of the camera of the
+                                                   application; left out: the eyes are moved apart and do not converge
+      "draws_without_anchor": "fail"               what a draw that the recipe affects and whose camera no call begins is (an interface drawn with an identity
+                                                   projection): "fail" stops the replay, and says the keys of the draws, so that the recipe can leave them alone
+                                                   (default); "leave" plays them as they are
+    },
     "unaffected": {                                draws which the rules leave alone (a 2D overlay): all others are affected
       "pass_keys": [ "0x..." ],                    every draw of these passes
       "draw_keys": [ "0x..." ],                    these draws, wherever they are

@@ -3,7 +3,9 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_analysis/frontends/analysis_session.h"
+#include "analysis/api_dump_analysis/frontends/OpenGL/gl_matrix_math.h"
 #include "capture/api_dump_loader/api_info.h"
+#include "capture/api_dump_names/function_names.h"
 #include "common/macros.h"
 #include "stereo/core/screen_parallax_planner.h"
 #include "D3D7/d3d7_draw_rewriter.h"
@@ -256,6 +258,8 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_buffered_frame(cons
 
     m_truncate_after_call = UINT64_MAX;
 
+    m_view_anchor_call_index_set.clear();
+
     if (is_rewritten)
     {
         find_skipped_call_ranges(m_session_ptr->get_completed_frame() );
@@ -264,6 +268,20 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_buffered_frame(cons
             in_n_frame == m_frame_execution.last_frame)
         {
             find_truncation_call(m_session_ptr->get_completed_frame() );
+        }
+
+        /* A frame that a recipe with a view anchor shift cannot give an eye is not played for one: it would be mono, and nobody would have said so. */
+        if (m_recipe_applier_ptr->has_view_anchor_shift() )
+        {
+            std::string error;
+
+            if (find_view_anchor_calls(m_session_ptr->get_completed_frame(),
+                                      &error) == false)
+            {
+                m_host_ptr->fail(error);
+
+                result = false;
+            }
         }
     }
 
@@ -285,6 +303,12 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_buffered_frame(cons
 
     if (has_buffered_calls)
     {
+        /* The frame is played twice only if it is complete and nothing leaves it out, as the runner has it. */
+        set_executors_n_executions( (has_boundary                                  &&
+                                     skips == false                                &&
+                                     m_frame_execution.mode == FrameExecution::TWICE) ? 2
+                                                                                      : 1);
+
         const auto begin_execution_func = [this, uses_history](const uint32_t& in_n_execution)
         {
             return begin_frame_execution(uses_history,
@@ -345,6 +369,8 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_direct_frame(const 
 {
     bool has_boundary = false;
     bool result       = true;
+
+    set_executors_n_executions(1);
 
     *out_has_workload_ended_ptr = false;
 
@@ -543,6 +569,14 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_rewritten_call(cons
         result = true;
     }
     else
+    if (m_view_anchor_call_index_set.count(call_index) != 0)
+    {
+        /* The call that begins the camera of draws that are affected: it loads the shift of the eye. */
+        result = execute_view_anchor_call(in_call,
+                                          in_chunk_source,
+                                          eye);
+    }
+    else
     if (draw_iterator             != frame.draw_instance_vec.end() &&
         draw_iterator->call_index == call_index)
     {
@@ -613,6 +647,120 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_rewritten_call(cons
     return result;
 }
 
+bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_view_anchor_call(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
+                                                                              const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
+                                                                              const Analysis::Recipe::Eye&                   in_eye)
+{
+    constexpr size_t   MATRIX_N_ELEMENTS = 16;
+    constexpr uint32_t SHIFT_CHUNK_ID    = 0xfffffff1; /* no chunk of a workload has an ID this big */
+
+    const auto                                        shift = m_recipe_applier_ptr->make_view_anchor_matrix(in_eye,
+                                                                                                           m_frame_eye_separation,
+                                                                                                           m_session_ptr->get_completed_frame().shape_key);
+    Analysis::APIDumpAnalysis::Frontends::GlMatrix    loaded = shift;
+    Capture::APIDumpLoader::DumpedAPICall             rewritten;
+    bool                                              result = false;
+
+    OverlayChunkSource overlay(in_chunk_source);
+
+    /* What the call loads is what the camera of the program is made on, and the shift of the eye goes on top of it (first, as the left factor): a glLoadIdentity loads
+     * nothing, so that the shift is all that is loaded; a matrix that the program loaded has the shift put before it. The call that loads is a glLoadMatrixf then.
+     */
+    switch (in_call.func)
+    {
+        case APIInterceptor::APIFUNCTION_GL_GLLOADIDENTITY:
+        {
+            result = true;
+
+            break;
+        }
+
+        case APIInterceptor::APIFUNCTION_GL_GLLOADMATRIXD:
+        case APIInterceptor::APIFUNCTION_GL_GLLOADMATRIXF:
+        {
+            const bool                               is_double = (in_call.func == APIInterceptor::APIFUNCTION_GL_GLLOADMATRIXD);
+            const Capture::APIDumpLoader::DataChunk* chunk_ptr = nullptr;
+
+            if (in_call.arg_in_vec.empty()                                                  == false &&
+                in_call.arg_in_vec.at(0).type                                               == APIInterceptor::ARGTYPE_DATA_CHUNK_ID)
+            {
+                chunk_ptr = in_chunk_source.get_data_chunk_ptr(in_call.arg_in_vec.at(0).get_data_chunk_id() );
+            }
+
+            if (chunk_ptr != nullptr                                                                           &&
+                chunk_ptr->size() == MATRIX_N_ELEMENTS * ((is_double) ? sizeof(double)
+                                                                      : sizeof(float) ) )
+            {
+                Analysis::APIDumpAnalysis::Frontends::GlMatrix program_matrix = {};
+
+                for (size_t n_element = 0;
+                            n_element < MATRIX_N_ELEMENTS;
+                          ++n_element)
+                {
+                    if (is_double)
+                    {
+                        double element = 0.0;
+
+                        ::memcpy(&element,
+                                 chunk_ptr->data() + n_element * sizeof(double),
+                                 sizeof(double) );
+
+                        program_matrix.at(n_element) = static_cast<float>(element);
+                    }
+                    else
+                    {
+                        ::memcpy(&program_matrix.at(n_element),
+                                 chunk_ptr->data() + n_element * sizeof(float),
+                                 sizeof(float) );
+                    }
+                }
+
+                loaded = Analysis::APIDumpAnalysis::Frontends::GlMatrixMath::multiply(shift,
+                                                                                      program_matrix);
+                result = true;
+            }
+            else
+            {
+                m_host_ptr->fail("The matrix that begins the camera of a draw that the recipe affects cannot be read from the call.");
+            }
+
+            break;
+        }
+
+        default:
+        {
+            m_host_ptr->fail(std::string("The camera of a draw that the recipe affects begins with ")        +
+                             Capture::APIDumpNames::get_function_name(in_call.func)                          +
+                             ", which cannot take the shift of an eye: only a glLoadIdentity, a glLoadMatrixf or a glLoadMatrixd can.");
+
+            break;
+        }
+    }
+
+    if (result)
+    {
+        Capture::APIDumpLoader::DataChunk shift_chunk(sizeof(loaded) );
+
+        ::memcpy(shift_chunk.data(),
+                 loaded.data(),
+                 sizeof(loaded) );
+
+        overlay.set_chunk(SHIFT_CHUNK_ID,
+                          shift_chunk);
+
+        rewritten      = FrameBuffer::copy_call(in_call);
+        rewritten.func = APIInterceptor::APIFUNCTION_GL_GLLOADMATRIXF;
+
+        rewritten.arg_in_vec.assign(1,
+                                    APIInterceptor::APIFunctionArgument::create_data_chunk_id(SHIFT_CHUNK_ID) );
+
+        result = m_host_ptr->execute_call(rewritten,
+                                          overlay);
+    }
+
+    return result;
+}
+
 void Stereo::Replay::EngineDLL::StereoFrameExecutor::find_skipped_call_ranges(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame)
 {
     m_skipped_call_range_vec.clear();
@@ -645,6 +793,101 @@ void Stereo::Replay::EngineDLL::StereoFrameExecutor::find_truncation_call(const 
         }
     }
 }
+
+bool Stereo::Replay::EngineDLL::StereoFrameExecutor::find_view_anchor_calls(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
+                                                                            std::string*                                     out_error_ptr)
+{
+    std::set<uint64_t>                          affected_anchor_set;
+    std::set<std::pair<uint64_t, uint64_t> >    anchorless_draw_set; /* the pass and the draw, by their keys */
+    std::set<uint64_t>                          unaffected_anchor_set;
+    bool                                        result = true;
+
+    m_view_anchor_call_index_set.clear();
+
+    for (const auto& draw : in_frame.draw_instance_vec)
+    {
+        const uint64_t pass_key = in_frame.pass_key_vec.at(draw.pass_index);
+
+        /* A draw that is left out needs no camera. */
+        if (m_recipe_applier_ptr->is_draw_skipped(pass_key,
+                                                  draw.structure_key) )
+        {
+            continue;
+        }
+
+        const bool is_affected = m_recipe_applier_ptr->is_draw_affected(pass_key,
+                                                                        draw.structure_key);
+
+        if (draw.view_anchor_call_index != UINT64_MAX)
+        {
+            if (is_affected)
+            {
+                affected_anchor_set.insert(draw.view_anchor_call_index);
+            }
+            else
+            {
+                unaffected_anchor_set.insert(draw.view_anchor_call_index);
+            }
+        }
+        else
+        if (is_affected                                                                      &&
+            m_recipe_applier_ptr->get_view_anchor_shift().leaves_draws_without_anchor == false)
+        {
+            anchorless_draw_set.insert({pass_key,
+                                        draw.structure_key});
+        }
+    }
+
+    /* All the kinds of draw are told, so that a recipe can be made to leave them alone in one go. */
+    if (anchorless_draw_set.empty() == false)
+    {
+        char key_i8vec64[64];
+
+        *out_error_ptr = "Frame "                                                                                                            +
+                         std::to_string(in_frame.frame_index)                                                                                +
+                         ": draws that the recipe affects have a camera that does not begin at a glLoadIdentity at the bottom of the "       +
+                         "model-view stack, so that nothing can give them the shift of an eye; the recipe has to leave them alone (unaffected):";
+
+        for (const auto& anchorless_draw : anchorless_draw_set)
+        {
+            ::snprintf(key_i8vec64,
+                       sizeof(key_i8vec64),
+                       " pass 0x%016llx draw 0x%016llx;",
+                       static_cast<unsigned long long>(anchorless_draw.first),
+                       static_cast<unsigned long long>(anchorless_draw.second) );
+
+            *out_error_ptr += key_i8vec64;
+        }
+
+        result = false;
+    }
+
+    for (const uint64_t anchor : affected_anchor_set)
+    {
+        if (result == false)
+        {
+            break;
+        }
+
+        if (unaffected_anchor_set.count(anchor) != 0)
+        {
+            *out_error_ptr = "Frame "                                                                                                +
+                             std::to_string(in_frame.frame_index)                                                                    +
+                             ": the camera of draws that are affected by the recipe, and of draws that are not, begins with the same " +
+                             "call (" + std::to_string(anchor) + "), which can give it the shift of an eye or not, and not both.";
+
+            result = false;
+        }
+    }
+
+    if (result)
+    {
+        m_view_anchor_call_index_set = affected_anchor_set;
+    }
+
+    return result;
+}
+
 
 bool Stereo::Replay::EngineDLL::StereoFrameExecutor::get_eye_history_need(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
                                                                           bool*                                            out_needs_history_ptr,
@@ -822,6 +1065,19 @@ void Stereo::Replay::EngineDLL::StereoFrameExecutor::set_executors_eye(const Ana
         if (eye_executor_ptr != nullptr)
         {
             eye_executor_ptr->set_eye(in_eye);
+        }
+    }
+}
+
+void Stereo::Replay::EngineDLL::StereoFrameExecutor::set_executors_n_executions(const uint32_t& in_n_executions)
+{
+    for (const auto executor_ptr : m_host_ptr->get_call_executor_ptr_vec() )
+    {
+        IEyeExecutor* const eye_executor_ptr = dynamic_cast<IEyeExecutor*>(executor_ptr);
+
+        if (eye_executor_ptr != nullptr)
+        {
+            eye_executor_ptr->set_n_executions(in_n_executions);
         }
     }
 }

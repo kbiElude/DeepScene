@@ -380,3 +380,34 @@ TEST_F(GlFrontendTextures, ATargetThatIsNotFollowedEndsTheProcess)
                 ::testing::ExitedWithCode(APIInterceptor::FatalError::get_exit_code() ),
                 "glBindTexture.*GL_TEXTURE_2D");
 }
+
+TEST_F(GlFrontendTextures, ATextureIsFoundByItsNameOnceItHasASize)
+{
+    start(640,
+          480);
+
+    /* A name that the program has made and not given a size has no resource yet. */
+    m_builder.bind_texture(GL_TEXTURE_2D,
+                           7);
+
+    feed();
+
+    Analysis::APIDumpAnalysis::ResourceView view;
+
+    EXPECT_FALSE(m_harness.get_frontend().find_resource_view(7,
+                                                            &view) );
+
+    make_texture(7,
+                 64);
+
+    feed();
+
+    ASSERT_TRUE(m_harness.get_frontend().find_resource_view(7,
+                                                           &view) );
+    EXPECT_NE   (view.resource_id,
+                 Analysis::APIDumpAnalysis::ResourceId::NONE);
+    EXPECT_EQ   (view.mip_level,
+                 0u);
+    EXPECT_FALSE(m_harness.get_frontend().find_resource_view(8,
+                                                            &view) );
+}

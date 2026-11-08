@@ -16,6 +16,7 @@
 #include <array>
 #include <atomic>
 #include <memory>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -107,11 +108,23 @@ namespace Stereo
                                             const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
                                             const size_t&                                  in_n_call,
                                             const uint32_t&                                in_n_execution);
+
+                /* The call that begins the camera of the draws that the recipe affects (see ViewAnchorShift), played with the shift of the eye in place of what it loads. */
+                bool execute_view_anchor_call(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
+                                              const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
+                                              const Analysis::Recipe::Eye&                   in_eye);
                 /* The calls of the draws that the recipe leaves out and which come before the call of the draw (the glBegin and the vertices of a block that a
                  * glEnd makes a draw of) are left out with it: a primitive is drawn as its vertices are given, and a draw that only loses its glEnd is still seen.
                  */
                 /* The call after which the frame is cut (see FrameExecutionOptions::truncates_after_draw): the last call of the draws of the structure in the pass. */
                 void find_truncation_call    (const Analysis::APIDumpAnalysis::CompletedFrame& in_frame);
+
+                /* The calls that begin the camera of the draws of the frame that the recipe affects (see m_view_anchor_call_index_set). False, and the reason, if a draw that is
+                 * affected has no camera that a call begins, or one call begins the camera of draws of which some are affected and some are not: the eye of such a draw
+                 * cannot be made, and it is not played for one that is not what it is.
+                 */
+                bool find_view_anchor_calls(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
+                                            std::string*                                     out_error_ptr);
                 void find_skipped_call_ranges(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame);
                 bool get_eye_history_need    (const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
                                               bool*                                            out_needs_history_ptr,
@@ -121,7 +134,11 @@ namespace Stereo
                                               FrameImage*                                      out_image_ptr);
                 bool read_next_call          (const Capture::APIDumpLoader::DumpedAPICall**    out_call_ptr_ptr);
                 void set_executors_eye       (const Analysis::Recipe::Eye&                     in_eye);
-                bool write_back_buffer       (const std::vector<uint8_t>&                      in_pixel_u8_vec);
+
+                /* How many times the frame is executed, for the executors that keep a copy of an object for each eye (see IEyeExecutor::set_n_executions). */
+                void set_executors_n_executions(const uint32_t& in_n_executions);
+
+                bool write_back_buffer(const std::vector<uint8_t>& in_pixel_u8_vec);
 
                 EyeHistory                                                             m_eye_history;
                 std::atomic<float>                                                     m_eye_separation; /* set by any thread; read once for each frame */
@@ -138,6 +155,7 @@ namespace Stereo
                 std::unique_ptr<Analysis::APIDumpAnalysis::Frontends::AnalysisSession> m_session_ptr;
                 uint64_t                                                               m_truncate_after_call; /* of the frame being played: the calls after it are left out; UINT64_MAX: none */
                 std::vector<std::pair<uint64_t, uint64_t> >                            m_skipped_call_range_vec; /* of the frame being played: from the first call to the last, in order */
+                std::set<uint64_t>                                                     m_view_anchor_call_index_set; /* of the frame being played: the calls that begin the camera of the draws that are affected */
             };
         }
     }

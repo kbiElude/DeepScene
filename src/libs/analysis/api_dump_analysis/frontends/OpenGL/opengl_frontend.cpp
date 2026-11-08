@@ -17,6 +17,11 @@
 #include <stdio.h>
 #include <string.h>
 
+namespace
+{
+    constexpr uint32_t MODELVIEW_MODE = 0x1700; /* GL_MODELVIEW, the matrix mode */
+}
+
 Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::OpenGLFrontend(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr)
     :m_array_draw_describer   (in_builder_ptr),
      m_builder_ptr            (in_builder_ptr),
@@ -55,6 +60,12 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::add_texture_bindings(
             out_description_ptr->texture_binding_vec.push_back(binding);
         }
     }
+}
+
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::add_view_anchor(const GlContextState&                       in_state,
+                                                                          Analysis::APIDumpAnalysis::DrawDescription* out_description_ptr) const
+{
+    out_description_ptr->view_anchor_call_index = in_state.modelview_anchor_call_index_vec.back();
 }
 
 bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::copy_to_bound_texture(const GlContextState& in_state,
@@ -177,11 +188,21 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::find_list_eye_depende
 bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::find_resource_view(const uint64_t&                          in_address,
                                                                               Analysis::APIDumpAnalysis::ResourceView* out_view_ptr) const
 {
-    /* The objects of OpenGL are numbers, not addresses of the application: there is nothing to find by an address. */
-    (void) in_address;
-    (void) out_view_ptr;
+    /* The objects of OpenGL are numbers, not addresses of the application: the address is the name of a texture, as the program has it. A texture has a resource
+     * once it is given a size, and until then there is none to find.
+     */
+    const auto texture_iterator = m_texture_map.find(static_cast<uint32_t>(in_address) );
+    bool       result           = false;
 
-    return false;
+    if (texture_iterator != m_texture_map.end()                                         &&
+        texture_iterator->second.resource_id != Analysis::APIDumpAnalysis::ResourceId::NONE)
+    {
+        out_view_ptr->resource_id = texture_iterator->second.resource_id;
+
+        result = true;
+    }
+
+    return result;
 }
 
 const Analysis::APIDumpAnalysis::Frontends::GlBlobStore& Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_blob_store() const
@@ -408,6 +429,8 @@ Analysis::APIDumpAnalysis::Frontends::GlContextState Analysis::APIDumpAnalysis::
     const GlMatrix identity = GlMatrixMath::get_identity();
     GlContextState result;
 
+    result.modelview_anchor_call_index_vec.assign(1,
+                                                  UINT64_MAX);
     result.modelview_f32mat_vec.assign (1,
                                         identity);
     result.other_f32mat_vec.assign     (1,
@@ -574,6 +597,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_array_draw(con
                 ensure_default_framebuffer(*inout_state_ptr);
 
                 add_texture_bindings(*inout_state_ptr,
+                                     &description);
+                add_view_anchor     (*inout_state_ptr,
                                      &description);
                 report_snapshots    (*inout_state_ptr);
 
@@ -1053,6 +1078,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_end(GlContextS
         description.first_call_index = block.first_call_index;
 
         add_texture_bindings(*inout_state_ptr,
+                             &description);
+        add_view_anchor     (*inout_state_ptr,
                              &description);
         report_snapshots    (*inout_state_ptr);
 
@@ -1590,6 +1617,15 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_matrix(const C
                                                        operand);
         }
 
+        /* A load replaces what the matrix was, so the camera of everything that is done to it next begins with the load: it is where a player puts the shift of an eye.
+         * A push copies the matrix with its camera, a pop gives back the one of the matrix below, and what is multiplied in leaves it as it is.
+         */
+        if (is_load                                                  &&
+            inout_state_ptr->attributes.matrix_mode == MODELVIEW_MODE)
+        {
+            inout_state_ptr->modelview_anchor_call_index_vec.back() = m_builder_ptr->get_call_index();
+        }
+
         report_matrices(*inout_state_ptr);
     }
 }
@@ -1727,6 +1763,11 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_pop_matrix(GlC
     {
         stack_ptr->pop_back();
 
+        if (inout_state_ptr->attributes.matrix_mode == MODELVIEW_MODE)
+        {
+            inout_state_ptr->modelview_anchor_call_index_vec.pop_back();
+        }
+
         report_matrices(*inout_state_ptr);
     }
 }
@@ -1759,6 +1800,11 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_push_matrix(Gl
     const GlMatrix         current   = stack_ptr->back();
 
     stack_ptr->push_back(current);
+
+    if (inout_state_ptr->attributes.matrix_mode == MODELVIEW_MODE)
+    {
+        inout_state_ptr->modelview_anchor_call_index_vec.push_back(inout_state_ptr->modelview_anchor_call_index_vec.back() );
+    }
 }
 
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_scissor(const Capture::APIDumpLoader::DumpedAPICall& in_call,

@@ -64,6 +64,10 @@ namespace Analysis
                                                const std::string&            in_path,
                                                Rule*                         inout_rule_ptr,
                                                std::string*                  out_error_ptr);
+            static bool parse_anchor_shift    (const Utils::Json::JsonValue& in_value,
+                                               const std::string&            in_path,
+                                               ViewAnchorShift*              out_shift_ptr,
+                                               std::string*                  out_error_ptr);
             static bool parse_pass_draw_array (const Utils::Json::JsonValue& in_array,
                                                const std::string&            in_path,
                                                std::vector<PassDraw>*        out_pass_draw_vec_ptr,

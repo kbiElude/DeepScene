@@ -1034,6 +1034,85 @@ TEST_F(RecipeLoaderTest, TheScreenParallaxOfARecipeIsReadAndWhatIsWrongInItIsRef
                    "screen_parallax");
 }
 
+TEST_F(RecipeLoaderTest, TheViewAnchorShiftOfARecipeIsReadAndWhatIsWrongInItIsRefused)
+{
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
+
+    /* Without it, no camera is moved by the call that begins it. */
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("",
+                                                                       ""),
+                                                           &recipe,
+                                                           &error) ) << error;
+
+    EXPECT_FALSE(recipe.view_anchor_shift.is_enabled);
+
+    /* The distance is not needed: a scene says its own. */
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"view_anchor_shift\": {},",
+                                                                       ""),
+                                                           &recipe,
+                                                           &error) ) << error;
+
+    EXPECT_TRUE    (recipe.view_anchor_shift.is_enabled);
+    EXPECT_FLOAT_EQ(recipe.view_anchor_shift.convergence_distance,
+                    0.0f);
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"view_anchor_shift\": {\"convergence_distance\": 7.5},",
+                                                                       ""),
+                                                           &recipe,
+                                                           &error) ) << error;
+
+    EXPECT_FLOAT_EQ(recipe.view_anchor_shift.convergence_distance,
+                    7.5f);
+
+    expect_refused(get_recipe_text("\"view_anchor_shift\": {\"convergence_distance\": 0},",
+                                   ""),
+                   "view_anchor_shift.convergence_distance");
+    expect_refused(get_recipe_text("\"view_anchor_shift\": {\"convergence_distance\": \"far\"},",
+                                   ""),
+                   "view_anchor_shift.convergence_distance");
+    expect_refused(get_recipe_text("\"view_anchor_shift\": {\"strength\": 1},",
+                                   ""),
+                   "strength");
+    expect_refused(get_recipe_text("\"view_anchor_shift\": 5,",
+                                   ""),
+                   "view_anchor_shift");
+}
+
+TEST_F(RecipeLoaderTest, ADrawWithoutACameraToMoveIsRefusedUnlessTheRecipeSaysItIsLeftAlone)
+{
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"view_anchor_shift\": {},",
+                                                                       ""),
+                                                           &recipe,
+                                                           &error) ) << error;
+
+    EXPECT_FALSE(recipe.view_anchor_shift.leaves_draws_without_anchor);
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"view_anchor_shift\": {\"draws_without_anchor\": \"leave\"},",
+                                                                       ""),
+                                                           &recipe,
+                                                           &error) ) << error;
+
+    EXPECT_TRUE(recipe.view_anchor_shift.leaves_draws_without_anchor);
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"view_anchor_shift\": {\"draws_without_anchor\": \"fail\"},",
+                                                                       ""),
+                                                           &recipe,
+                                                           &error) ) << error;
+
+    EXPECT_FALSE(recipe.view_anchor_shift.leaves_draws_without_anchor);
+
+    expect_refused(get_recipe_text("\"view_anchor_shift\": {\"draws_without_anchor\": \"ignore\"},",
+                                   ""),
+                   "view_anchor_shift.draws_without_anchor");
+    expect_refused(get_recipe_text("\"view_anchor_shift\": {\"draws_without_anchor\": true},",
+                                   ""),
+                   "view_anchor_shift.draws_without_anchor");
+}
+
 TEST_F(RecipeLoaderTest, TheComfortOfARecipeIsReadAndWhatIsWrongInItIsRefused)
 {
     std::string              error;

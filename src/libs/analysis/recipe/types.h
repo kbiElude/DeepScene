@@ -221,6 +221,19 @@ namespace Analysis
             uint64_t shape_key      = 0;
         };
 
+        /* How the eyes are given parallax where the camera of a draw is built by many calls on one matrix and not set by a call of its own (OpenGL, whose model-view
+         * matrix is a stack that the program loads, multiplies, pushes and pops): the call that begins the camera (DrawInstance::view_anchor_call_index: the last glLoadIdentity or glLoadMatrix
+         * of the matrix) loads the shift of the eye on top of what it loads, so that everything the program does next is on top of it. The shift, in the space of the
+         * camera, which looks down minus z, is x + h + (h / d) * z for the left eye, with h half the eye separation and d the distance at which the eyes converge (and -h for
+         * the right eye): a camera moved to the side, and the picture shifted so that what is at d is not apart. Without a distance (0) it is the translation only.
+         */
+        struct ViewAnchorShift
+        {
+            float convergence_distance        = 0.0f;  /* where the eyes converge when the scene says no distance; in the units of the camera of the application; 0: none */
+            bool  is_enabled                  = false; /* whether the recipe has the section                                                                              */
+            bool  leaves_draws_without_anchor = false; /* whether a draw that the recipe affects and whose camera no call begins (an interface drawn with an identity projection) is played as it is, and not refused */
+        };
+
         /* A draw is affected by the rules unless it is named by `unaffected`. Of the lists, a draw key counts for more than a pass key
          * (so a draw can be named `affected` inside an `unaffected` pass), and a key in a list of the same kind in both is refused.
          * A draw named by `skipped`, or in a pass it names, is not played at all, in either eye; the calls which set its state are.
@@ -247,6 +260,7 @@ namespace Analysis
             DrawSelector                  unaffected;
             UnknownFramePolicy            unknown_frame_policy    = UnknownFramePolicy::MONO;
             uint32_t                      version                 = 0;
+            ViewAnchorShift               view_anchor_shift;               /* see ViewAnchorShift; not enabled unless the recipe has it */
         };
     }
 }

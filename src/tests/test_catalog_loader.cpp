@@ -103,6 +103,23 @@ TEST_F(CatalogLoaderTest, TheCatalogCanSayTheTitleTheArgumentsAndTheWorkingDirec
     EXPECT_TRUE(app.unavailable_reason.empty() ) << app.unavailable_reason;
 }
 
+TEST_F(CatalogLoaderTest, TheCatalogCanSayWhyAnApplicationWhoseRecipeIsThereCannotBeStarted)
+{
+    ASSERT_TRUE(parse(get_text(", \"unavailable_reason\": \"Not converted yet.\"") ) ) << m_error;
+
+    const auto& app = m_catalog.app_vec.at(0);
+
+    EXPECT_EQ(app.unavailable_reason,
+              "Not converted yet.");
+
+    /* The recipe is read all the same: the name and the description are its. */
+    EXPECT_FALSE(app.description.empty() );
+
+    EXPECT_FALSE(parse(get_text(", \"unavailable_reason\": 5") ) );
+    EXPECT_NE   (m_error.find("unavailable_reason"),
+                 std::string::npos);
+}
+
 TEST_F(CatalogLoaderTest, RelativePathsAreRelativeToTheCatalogAndTheOtherSeparatorIsAccepted)
 {
     ASSERT_TRUE(parse("{\"catalog_version\": 0, \"apps\": [{\"id\": \"a\", \"recipe\": \"x/y.json\", \"executable\": \"z/w.exe\"}]}") ) << m_error;
@@ -258,13 +275,16 @@ TEST_F(CatalogLoaderTest, TheCatalogWhichComesWithTheRepositoryListsTheAppsOfThe
     EXPECT_NE(m_catalog.app_vec.at(1).install_spec.install_directory.find("\\apps\\kasparov"),
               std::string::npos);
 
-    /* Gerbera (OpenGL): the archive is listed; there is no recipe yet, and the entry says so instead of being left out. */
+    /* Gerbera (OpenGL): the archive is listed and the recipe is there (for the replay tools), and the entry says why the player cannot start it. */
     EXPECT_EQ(m_catalog.app_vec.at(2).id,
               "gerbera");
     EXPECT_EQ(m_catalog.app_vec.at(2).name,
               "Gerbera");
-    EXPECT_NE(m_catalog.app_vec.at(2).unavailable_reason.find("recipe"),
+    EXPECT_NE(m_catalog.app_vec.at(2).unavailable_reason.find("OpenGL"),
               std::string::npos) << m_catalog.app_vec.at(2).unavailable_reason;
+    EXPECT_EQ(m_catalog.app_vec.at(2).unavailable_reason.find("recipe cannot"),
+              std::string::npos) << m_catalog.app_vec.at(2).unavailable_reason;
+    EXPECT_FALSE(m_catalog.app_vec.at(2).description.empty() );
     EXPECT_GE(m_catalog.app_vec.at(2).install_spec.url_vec.size(),
               2u);
     EXPECT_EQ(m_catalog.app_vec.at(2).install_spec.sha256_hex.size(),

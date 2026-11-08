@@ -148,7 +148,7 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
     }
 
     if (check_keys(root,
-                   {"affected", "baked", "comfort", "key_scheme_version", "known_shape_keys", "on_unknown_frame", "recipe_version", "rules", "screen_parallax", "skipped", "target", "unaffected"},
+                   {"affected", "baked", "comfort", "key_scheme_version", "known_shape_keys", "on_unknown_frame", "recipe_version", "rules", "screen_parallax", "skipped", "target", "unaffected", "view_anchor_shift"},
                    "",
                    out_error_ptr) == false)
     {
@@ -168,6 +168,7 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
         const auto* skipped_ptr            = root.find_ptr("skipped");
         const auto* target_ptr             = root.find_ptr("target");
         const auto* unaffected_ptr         = root.find_ptr("unaffected");
+        const auto* view_anchor_shift_ptr  = root.find_ptr("view_anchor_shift");
 
         if (recipe_version_ptr == nullptr)
         {
@@ -331,6 +332,17 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
                                       "screen_parallax",
                                      &out_recipe_ptr->screen_parallax,
                                       out_error_ptr) == false)
+            {
+                goto end;
+            }
+        }
+
+        if (view_anchor_shift_ptr != nullptr)
+        {
+            if (parse_anchor_shift(*view_anchor_shift_ptr,
+                                        "view_anchor_shift",
+                                       &out_recipe_ptr->view_anchor_shift,
+                                        out_error_ptr) == false)
             {
                 goto end;
             }

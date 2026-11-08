@@ -413,6 +413,7 @@ namespace Analysis
             std::vector<ResourceId>               vertex_buffer_id_vec;
             uint32_t                              vertex_count            = 0;                         /* indices, if the draw is indexed              */
             uint64_t                              vertex_layout_key       = 0;
+            uint64_t                              view_anchor_call_index  = UINT64_MAX;                /* the call that begins the camera of the draw, which a player can change to move the camera for an eye (OpenGL: the load of the model-view matrix that the matrix of the draw comes from, a glLoadIdentity or a glLoadMatrix); UINT64_MAX: there is none */
         };
 
         struct Viewport
@@ -521,6 +522,7 @@ namespace Analysis
             uint64_t first_call_index = 0; /* the call that begins the calls of the draw: call_index, unless they are a block (glBegin to glEnd), which a draw that is left out leaves out whole */
             uint32_t pass_index    = 0; /* a position in CompletedFrame::pass_instance_vec */
             uint64_t structure_key = 0;
+            uint64_t view_anchor_call_index = UINT64_MAX; /* of the draw: see DrawDescription::view_anchor_call_index */
         };
 
         /* A frame as the model builder saw it when it completed, with what a player needs. Call indices are those given to

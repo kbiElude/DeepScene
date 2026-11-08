@@ -254,6 +254,7 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_app(const Utils::Json::JsonValue
                                                                           "id",
                                                                           "recipe",
                                                                           "title",
+                                                                          "unavailable_reason",
                                                                           "working_directory"});
 
         if (unknown_key_ptr != nullptr)
@@ -319,6 +320,19 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_app(const Utils::Json::JsonValue
                                      false, /* in_is_required */
                                      in_path,
                                      out_title_ptr,
+                                     out_error_ptr);
+        }
+
+        /* What the catalog says of an application whose recipe is there: it cannot be started from the player (for a kind of application that the converter inside it does not
+         * convert yet, whose recipe is for the replay tools).
+         */
+        if (is_parsed)
+        {
+            is_parsed = parse_string(in_app,
+                                     "unavailable_reason",
+                                     false, /* in_is_required */
+                                     in_path,
+                                    &out_app_ptr->unavailable_reason,
                                      out_error_ptr);
         }
 
