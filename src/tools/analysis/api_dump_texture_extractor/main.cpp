@@ -18,10 +18,10 @@ void Analysis::APIDumpTextureExtractor::print_stats(const Analysis::APIDumpTextu
 {
     uint64_t n_generated_levels = 0;
     uint64_t n_render_writes    = 0;
+    uint64_t n_snapshot_bytes   = 0;
     uint64_t n_snapshots        = 0;
-    uint64_t n_uploads              = 0;
-    uint64_t n_uploads_no_data      = 0;
-    uint64_t n_uploads_not_captured = 0;
+    uint64_t n_uploads          = 0;
+    uint64_t n_uploads_no_data  = 0;
     uint64_t n_workload_chunks  = 0;
 
     for (const auto& event : in_timeline.event_vec)
@@ -46,6 +46,11 @@ void Analysis::APIDumpTextureExtractor::print_stats(const Analysis::APIDumpTextu
             {
                 ++n_snapshots;
 
+                /* What keeping all of them, as they are, would take before compression and before the same content is kept once. */
+                n_snapshot_bytes += Utils::Graphics::TextureFormats::get_n_bytes(event.level_format,
+                                                                                 event.width,
+                                                                                 event.height) * event.layer_count;
+
                 break;
             }
 
@@ -53,8 +58,7 @@ void Analysis::APIDumpTextureExtractor::print_stats(const Analysis::APIDumpTextu
             {
                 ++n_uploads;
 
-                n_uploads_no_data      += (event.blob_index == Analysis::APIDumpTextures::NO_BLOB && event.is_content_not_captured == false) ? 1 : 0;
-                n_uploads_not_captured += (event.is_content_not_captured) ? 1 : 0;
+                n_uploads_no_data += (event.blob_index == Analysis::APIDumpTextures::NO_BLOB) ? 1 : 0;
 
                 break;
             }
@@ -73,10 +77,10 @@ void Analysis::APIDumpTextureExtractor::print_stats(const Analysis::APIDumpTextu
 
     fprintf(stdout,
             "Events:                  %llu\n"
-            "  uploads:               %llu (%llu with no data: the level is given a size only; %llu whose pixels the workload does not have)\n"
+            "  uploads:               %llu (%llu with no data: the level is given a size only)\n"
             "  render writes:         %llu (copies from the window)\n"
             "  generated levels:      %llu (made by the driver)\n"
-            "  snapshot points:       %llu (where what rendering made is first read; no pixels are kept)\n"
+            "  snapshot points:       %llu (where what rendering made is first read; no pixels are kept; %.1f MiB if all were kept, before compression and deduplication)\n"
             "Contents:                %llu\n"
             "  left in the workload:  %llu\n"
             "  stored:                %llu\n"
@@ -84,10 +88,10 @@ void Analysis::APIDumpTextureExtractor::print_stats(const Analysis::APIDumpTextu
             static_cast<unsigned long long>(in_timeline.event_vec.size() ),
             static_cast<unsigned long long>(n_uploads),
             static_cast<unsigned long long>(n_uploads_no_data),
-            static_cast<unsigned long long>(n_uploads_not_captured),
             static_cast<unsigned long long>(n_render_writes),
             static_cast<unsigned long long>(n_generated_levels),
             static_cast<unsigned long long>(n_snapshots),
+            static_cast<double>(n_snapshot_bytes) / (1024.0 * 1024.0),
             static_cast<unsigned long long>(in_timeline.blob_vec.size() ),
             static_cast<unsigned long long>(n_workload_chunks),
             static_cast<unsigned long long>(in_timeline.blob_vec.size() - n_workload_chunks),
@@ -268,20 +272,6 @@ int Analysis::APIDumpTextureExtractor::run(int   in_argc,
                 static_cast<unsigned long long>(session.get_summary().n_calls),
                 progress.get_elapsed_seconds(),
                 static_cast<unsigned long long>(timeline.event_vec.size() ) );
-
-        /* Said where it is seen, and not only counted: the program gave pixels, and the workload has no bytes for them. */
-        for (const auto& event : timeline.event_vec)
-        {
-            if (event.is_content_not_captured)
-            {
-                fprintf(stdout,
-                        "Warning: the pixels of an upload to the level %u of the resource %u (frame %llu, call %llu) are not in the workload: the dumper did not store them.\n",
-                        event.destination.mip_level,
-                        static_cast<uint32_t>(event.destination.resource_id),
-                        static_cast<unsigned long long>(event.frame_index),
-                        static_cast<unsigned long long>(event.call_index) );
-            }
-        }
 
         if (collector.get_error().empty() == false)
         {

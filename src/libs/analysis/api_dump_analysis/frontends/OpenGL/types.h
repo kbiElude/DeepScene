@@ -140,6 +140,15 @@ namespace Analysis
                 uint32_t width           = 0;
             };
 
+            /* A rectangle of a level, in texels from its lower left corner. */
+            struct GlTextureRegion
+            {
+                uint32_t height = 0;
+                uint32_t width  = 0;
+                uint32_t x      = 0;
+                uint32_t y      = 0;
+            };
+
             /* A texture of the program: its resource, once the size is known (the first glTexImage2D), and the levels that it has been given. */
             struct GlTexture
             {
@@ -148,6 +157,7 @@ namespace Analysis
                 uint32_t                              internal_format   = 0;
                 std::map<uint32_t, GlTextureLevel>    level_map;
                 std::set<uint32_t>                    render_level_set;          /* the levels whose content is not in the workload (rendering made it, or the driver generated it)     */
+                std::map<uint32_t, GlTextureRegion>   render_region_map; /* by level: the smallest region that holds all that rendering has made of it since it was given (the rest of it is not what rendering made: it is storage that was given and not filled, or what was uploaded) */
                 Analysis::APIDumpAnalysis::ResourceId resource_id       = Analysis::APIDumpAnalysis::ResourceId::NONE;
                 uint32_t                              width             = 0;
             };

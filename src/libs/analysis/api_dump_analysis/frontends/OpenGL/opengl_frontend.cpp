@@ -225,6 +225,14 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::generate_mipmap_level
             texture.dirty_level_set.insert (level);
             texture.render_level_set.insert(level);
 
+            /* The driver makes the whole of the level. */
+            GlTextureRegion whole_level;
+
+            whole_level.height = texture_level.height;
+            whole_level.width  = texture_level.width;
+
+            texture.render_region_map[level] = whole_level;
+
             destination.mip_level   = level;
             destination.resource_id = texture.resource_id;
             source.mip_level        = level - 1;
@@ -2601,6 +2609,7 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::record_texture_level(
         /* The call gives the whole level, so what rendering made of it is gone (a copy that follows makes it again). */
         texture_iterator->second.dirty_level_set.erase (in_level);
         texture_iterator->second.render_level_set.erase(in_level);
+        texture_iterator->second.render_region_map.erase(in_level);
     }
 
     return result;
@@ -2669,8 +2678,38 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_render_write(c
     /* What rendering made of the level is not in the workload, so it is a content to be read when something first reads it. */
     if (is_level_known)
     {
-        texture_iterator->second.dirty_level_set.insert (in_level);
-        texture_iterator->second.render_level_set.insert(in_level);
+        GlTexture&       texture        = texture_iterator->second;
+        const auto       region_iterator = texture.render_region_map.find(in_level);
+        GlTextureRegion  region;
+
+        texture.dirty_level_set.insert (in_level);
+        texture.render_level_set.insert(in_level);
+
+        /* What rendering has made of the level is in the one rectangle that holds all the copies: the rest of it is storage that was given and not filled (its
+         * content is not defined), or pixels that were uploaded (in the workload), and a snapshot has no use for either.
+         */
+        region.height = in_height;
+        region.width  = in_width;
+        region.x      = in_x_offset;
+        region.y      = in_y_offset;
+
+        if (region_iterator != texture.render_region_map.end() )
+        {
+            const GlTextureRegion& known   = region_iterator->second;
+            const uint32_t         left    = (known.x < region.x) ? known.x : region.x;
+            const uint32_t         bottom  = (known.y < region.y) ? known.y : region.y;
+            const uint32_t         right   = (known.x + known.width  > region.x + region.width)  ? known.x + known.width
+                                                                                                 : region.x + region.width;
+            const uint32_t         top     = (known.y + known.height > region.y + region.height) ? known.y + known.height
+                                                                                                 : region.y + region.height;
+
+            region.height = top   - bottom;
+            region.width  = right - left;
+            region.x      = left;
+            region.y      = bottom;
+        }
+
+        texture.render_region_map[in_level] = region;
     }
 
     if (wants_events &&
@@ -2720,14 +2759,25 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_snapshots(cons
                 if (wants_events &&
                     texture.level_map.count(level) != 0)
                 {
-                    const GlTextureLevel& texture_level = texture.level_map.at(level);
+                    /* The region that rendering has made of the level; the whole of it if it is not known (a level that rendering made without a copy). */
+                    const GlTextureLevel& texture_level   = texture.level_map.at(level);
+                    const auto            region_iterator = texture.render_region_map.find(level);
+                    GlTextureRegion       region;
+
+                    region.height = texture_level.height;
+                    region.width  = texture_level.width;
+
+                    if (region_iterator != texture.render_region_map.end() )
+                    {
+                        region = region_iterator->second;
+                    }
 
                     Analysis::APIDumpTextures::TextureEvent event = make_texture_event(texture,
                                                                                        level,
-                                                                                       0,
-                                                                                       0,
-                                                                                       texture_level.width,
-                                                                                       texture_level.height);
+                                                                                       region.x,
+                                                                                       region.y,
+                                                                                       region.width,
+                                                                                       region.height);
 
                     event.kind = Analysis::APIDumpTextures::TextureEventKind::SNAPSHOT;
 
@@ -2808,25 +2858,16 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_upload(const C
                                                                                      in_state.pixel_store.unpack_row_length,
                                                                                      in_state.pixel_store.unpack_alignment);
 
-        /* The pixels are in the call, or a null pointer: the level is given a size and no data. */
-        if (chunk_ptr != nullptr)
+        /* The pixels are in the call, or there are none: the level is given a size and no data. The dumper makes a data chunk of every pointer to pixels that is not
+         * an offset into a buffer, and of a null pointer one that has no bytes (see MemoryChunk): a chunk with no bytes is a null pointer, that is, storage that is
+         * given and not filled (a texture that is to be copied to). Gerbera makes one, of 1024 by 512 texels, and the frame fills a part of it with a copy.
+         */
+        if (chunk_ptr != nullptr &&
+            chunk_ptr->empty() == false)
         {
-            /* A pointer to pixels that there are, and a chunk that has no bytes: the program gave data, and the workload does not have it (the dumper did not store it).
-             * That is told as it is: it is not an upload with no data (a null pointer), which gives the level a size and no content. A program that reads the workload
-             * with its data chunks left out (--skip-chunks-above) would see the same, so one that needs the pixels does not leave them out.
-             */
-            const bool is_content_missing = (chunk_ptr->empty() &&
-                                             in_width           != 0 &&
-                                             in_height          != 0);
-
-            event.is_content_not_captured = is_content_missing;
-
-            if (is_content_missing == false)
-            {
-                data_chunk_id = in_call.arg_in_vec.at(PIXELS_ARGUMENT).get_data_chunk_id();
-                data_ptr      = chunk_ptr->data();
-                n_data_bytes  = chunk_ptr->size();
-            }
+            data_chunk_id = in_call.arg_in_vec.at(PIXELS_ARGUMENT).get_data_chunk_id();
+            data_ptr      = chunk_ptr->data();
+            n_data_bytes  = chunk_ptr->size();
         }
 
         m_builder_ptr->on_texture_event(event,

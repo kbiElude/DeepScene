@@ -264,7 +264,8 @@ namespace Analysis
                                          const uint32_t&       in_height);
 
                 /* A draw is about to read the textures it samples: the levels that rendering has changed since they were last read are told as snapshots (see
-                 * TextureEventKind::SNAPSHOT), and are no longer changed.
+                 * TextureEventKind::SNAPSHOT), and are no longer changed. A snapshot is of the smallest region that holds what rendering made of the level (all of
+                 * it for the levels that the driver made), and not of storage that was given and not filled.
                  */
                 void report_snapshots(const GlContextState& in_state);
 

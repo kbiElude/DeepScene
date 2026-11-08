@@ -1315,50 +1315,227 @@ TEST_F(GlFrontendTextureLevels, WhatOnlyChangesHowADrawLooksGoesThroughAndSoDoTh
     SUCCEED();
 }
 
-TEST_F(GlFrontendTextureEvents, APointerToPixelsWithAChunkOfNoBytesIsToldAsContentThatWasNotCapturedAndNotAsNoData)
+TEST_F(GlFrontendTextureEvents, AChunkOfNoBytesIsTheNullPointerThatTheDumperMakesOfItAndIsAnUploadWithNoData)
 {
     m_builder.bind_texture(GL_TEXTURE_2D,
                            5);
 
-    /* The program gave pixels; the dumper stored none of them. */
+    /* What Gerbera does: storage of 1024 by 512 texels that is given and not filled, and of which the frame copies a part. The dumper has no pointer to tell, and
+     * makes a chunk that has no bytes (see MemoryChunk).
+     */
     m_builder.tex_image_2d(0,
-                           8,
-                           8,
+                           1024,
+                           512,
                            {},
                            true /* in_has_empty_chunk */);
-
-    /* A null pointer gives a level a size and no content: that is not the same. */
-    m_builder.tex_image_2d(1,
-                           4,
-                           4,
-                           {});
+    m_builder.copy_tex_sub_image_2d(0,
+                                    0,
+                                    0,
+                                    0,
+                                    33,
+                                    115,
+                                    414);
 
     feed();
 
     ASSERT_EQ(m_sink.event_vec.size(),
               2u);
 
-    EXPECT_TRUE (m_sink.event_vec.at(0).is_content_not_captured);
+    EXPECT_EQ(m_sink.event_vec.at(0).kind,
+              TextureEventKind::UPLOAD);
+    EXPECT_EQ(m_sink.event_vec.at(0).level_width,
+              1024u);
+    EXPECT_EQ(m_sink.event_vec.at(0).level_height,
+              512u);
     EXPECT_FALSE(m_sink.has_data_vec.at(0) );
+    EXPECT_EQ(m_sink.event_vec.at(0).blob_index,
+              Analysis::APIDumpTextures::NO_BLOB);
 
-    EXPECT_FALSE(m_sink.event_vec.at(1).is_content_not_captured);
-    EXPECT_FALSE(m_sink.has_data_vec.at(1) );
+    /* What fills a part of it. */
+    EXPECT_EQ(m_sink.event_vec.at(1).kind,
+              TextureEventKind::RENDER_WRITE);
+    EXPECT_EQ(m_sink.event_vec.at(1).width,
+              115u);
+    EXPECT_EQ(m_sink.event_vec.at(1).height,
+              414u);
 }
 
-TEST_F(GlFrontendTextureEvents, ALevelWithNoTexelsThatHasAChunkOfNoBytesIsNotContentThatWasNotCaptured)
+TEST_F(GlFrontendTextureSnapshots, ASnapshotIsOfTheRegionThatRenderingMadeAndNotOfStorageThatWasGivenAndNotFilled)
 {
     m_builder.bind_texture(GL_TEXTURE_2D,
                            5);
+    m_builder.enable      (GL_TEXTURE_2D);
+
+    /* What Gerbera does: 1024 by 512 texels that are given with no pixels, and a part of 115 by 414 that a copy from the window fills. */
     m_builder.tex_image_2d(0,
-                           0,
-                           8,
+                           1024,
+                           512,
                            {},
                            true /* in_has_empty_chunk */);
+    m_builder.copy_tex_sub_image_2d(0,
+                                    0,
+                                    0,
+                                    0,
+                                    33,
+                                    115,
+                                    414);
+
+    add_draw();
 
     feed();
 
-    ASSERT_EQ(m_sink.event_vec.size(),
+    ASSERT_EQ(count_events(TextureEventKind::SNAPSHOT),
               1u);
 
-    EXPECT_FALSE(m_sink.event_vec.at(0).is_content_not_captured);
+    const TextureEvent& snapshot = m_sink.event_vec.back();
+
+    EXPECT_EQ(snapshot.kind,
+              TextureEventKind::SNAPSHOT);
+    EXPECT_EQ(snapshot.x,
+              0u);
+    EXPECT_EQ(snapshot.y,
+              0u);
+    EXPECT_EQ(snapshot.width,
+              115u);
+    EXPECT_EQ(snapshot.height,
+              414u);
+
+    /* The level is still the size that it was given. */
+    EXPECT_EQ(snapshot.level_width,
+              1024u);
+    EXPECT_EQ(snapshot.level_height,
+              512u);
+}
+
+TEST_F(GlFrontendTextureSnapshots, ASnapshotHoldsAllTheCopiesThatWereMadeSinceTheLevelWasGiven)
+{
+    m_builder.bind_texture(GL_TEXTURE_2D,
+                           5);
+    m_builder.enable      (GL_TEXTURE_2D);
+    m_builder.tex_image_2d(0,
+                           64,
+                           64,
+                           {},
+                           true /* in_has_empty_chunk */);
+    m_builder.copy_tex_sub_image_2d(0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    10,
+                                    10);
+
+    add_draw();
+
+    m_builder.copy_tex_sub_image_2d(0,
+                                    20,
+                                    30,
+                                    0,
+                                    0,
+                                    10,
+                                    10);
+
+    add_draw();
+
+    feed();
+
+    ASSERT_EQ(count_events(TextureEventKind::SNAPSHOT),
+              2u);
+
+    const TextureEvent& first  = m_sink.event_vec.at(2);
+    const TextureEvent& second = m_sink.event_vec.back();
+
+    EXPECT_EQ(first.width,
+              10u);
+    EXPECT_EQ(first.height,
+              10u);
+
+    /* The rectangle that holds both: from (0, 0) to (30, 40). */
+    EXPECT_EQ(second.x,
+              0u);
+    EXPECT_EQ(second.y,
+              0u);
+    EXPECT_EQ(second.width,
+              30u);
+    EXPECT_EQ(second.height,
+              40u);
+}
+
+TEST_F(GlFrontendTextureSnapshots, ALevelThatIsGivenAgainStartsAgainWithNothingThatRenderingMade)
+{
+    m_builder.bind_texture(GL_TEXTURE_2D,
+                           5);
+    m_builder.enable      (GL_TEXTURE_2D);
+    m_builder.tex_image_2d(0,
+                           64,
+                           64,
+                           {},
+                           true /* in_has_empty_chunk */);
+    m_builder.copy_tex_sub_image_2d(0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    40,
+                                    40);
+    m_builder.tex_image_2d(0,
+                           64,
+                           64,
+                           {},
+                           true /* in_has_empty_chunk */);
+    m_builder.copy_tex_sub_image_2d(0,
+                                    5,
+                                    5,
+                                    0,
+                                    0,
+                                    8,
+                                    8);
+
+    add_draw();
+
+    feed();
+
+    ASSERT_EQ(count_events(TextureEventKind::SNAPSHOT),
+              1u);
+
+    /* The copies before the level was given again are not in it. */
+    EXPECT_EQ(m_sink.event_vec.back().x,
+              5u);
+    EXPECT_EQ(m_sink.event_vec.back().width,
+              8u);
+}
+
+TEST_F(GlFrontendTextureSnapshots, TheLevelsThatTheDriverMakesAreSnapshotWhole)
+{
+    m_builder.bind_texture(GL_TEXTURE_2D,
+                           5);
+    m_builder.enable      (GL_TEXTURE_2D);
+    m_builder.tex_image_2d(0,
+                           8,
+                           4,
+                           make_pixels(8 * 4 * 4,
+                                       1) );
+    m_builder.generate_mipmap(GL_TEXTURE_2D);
+
+    add_draw();
+
+    feed();
+
+    ASSERT_EQ(count_events(TextureEventKind::SNAPSHOT),
+              3u);
+
+    for (const auto& event : m_sink.event_vec)
+    {
+        if (event.kind == TextureEventKind::SNAPSHOT)
+        {
+            EXPECT_EQ(event.x,
+                      0u);
+            EXPECT_EQ(event.y,
+                      0u);
+            EXPECT_EQ(event.width,
+                      event.level_width);
+            EXPECT_EQ(event.height,
+                      event.level_height);
+        }
+    }
 }
