@@ -275,15 +275,12 @@ TEST_F(CatalogLoaderTest, TheCatalogWhichComesWithTheRepositoryListsTheAppsOfThe
     EXPECT_NE(m_catalog.app_vec.at(1).install_spec.install_directory.find("\\apps\\kasparov"),
               std::string::npos);
 
-    /* Gerbera (OpenGL): the archive is listed and the recipe is there (for the replay tools), and the entry says why the player cannot start it. */
+    /* Gerbera (OpenGL): the archive is listed and the recipe is there (for the replay tools),, and it is started like the others. */
     EXPECT_EQ(m_catalog.app_vec.at(2).id,
               "gerbera");
     EXPECT_EQ(m_catalog.app_vec.at(2).name,
               "Gerbera");
-    EXPECT_NE(m_catalog.app_vec.at(2).unavailable_reason.find("OpenGL"),
-              std::string::npos) << m_catalog.app_vec.at(2).unavailable_reason;
-    EXPECT_EQ(m_catalog.app_vec.at(2).unavailable_reason.find("recipe cannot"),
-              std::string::npos) << m_catalog.app_vec.at(2).unavailable_reason;
+    EXPECT_TRUE(m_catalog.app_vec.at(2).unavailable_reason.empty() ) << m_catalog.app_vec.at(2).unavailable_reason;
     EXPECT_FALSE(m_catalog.app_vec.at(2).description.empty() );
     EXPECT_GE(m_catalog.app_vec.at(2).install_spec.url_vec.size(),
               2u);

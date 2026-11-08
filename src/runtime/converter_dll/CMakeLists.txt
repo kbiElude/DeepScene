@@ -12,7 +12,7 @@ add_library(StereoConverterDLL SHARED ${Sources}
 target_include_directories(StereoConverterDLL PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}"
                                                       "${APIInterceptor_SOURCE_DIR}/src/replay/replay_engine_dll")
 
-target_link_libraries(StereoConverterDLL APIInterceptor D3D7Utils D3D8Utils Stereo winmm)
+target_link_libraries(StereoConverterDLL APIInterceptor D3D7Utils D3D8Utils Stereo opengl32 winmm)
 
 set_architecture_name(StereoConverterDLL)
 

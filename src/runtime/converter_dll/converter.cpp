@@ -169,6 +169,27 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
                                                             target_height);
         m_live_state.d3d7_windowed_mode.set_is_enabled     (is_shown_elsewhere);
 
+        m_live_state.gl_renderer_ptr.reset(new GlEyeRenderer(m_live_state.core_ptr.get(),
+                                                             is_shown_elsewhere) );
+
+        const auto get_gl_chunk_func = [this](const uint32_t& in_chunk_id,
+                                              const void**    out_data_ptr_ptr,
+                                              uint32_t*       out_n_bytes_ptr)
+        {
+            return m_live_state.feeder.get_last_call_chunk(in_chunk_id,
+                                                           out_data_ptr_ptr,
+                                                           out_n_bytes_ptr);
+        };
+
+        m_live_state.gl_renderer_ptr->set_get_chunk_func(get_gl_chunk_func);
+
+        {
+            std::unique_ptr<Stereo::Transport::IFrameExporter> gl_exporter_ptr(new GlHostMemoryExporter(m_channel_ptr.get() ));
+
+            m_gl_frame_passer_ptr.reset(new FramePasser(std::move(gl_exporter_ptr),
+                                                        m_log) );
+        }
+
         const auto get_render_target_func = [this]()
         {
             return m_live_state.renderer_ptr->get_render_target_ptr();
@@ -314,6 +335,26 @@ std::string Stereo::ConverterDLL::Converter::make_statistics_line() const
                                                                     " calls on the back buffer in pixels it no longer has"
                                                                   : std::string();
 
+    const auto&       gl_stats  = m_live_state.gl_renderer_ptr->get_statistics();
+    const std::string gl_text   = (m_live_state.gl_renderer_ptr->is_ready() ) ? ", OpenGL: "                                                  +
+                                                                                    std::to_string(gl_stats.n_block_draws)             +
+                                                                                    " blocks, "                                        +
+                                                                                    std::to_string(gl_stats.n_array_draws)             +
+                                                                                    " array draws, "                                    +
+                                                                                    std::to_string(gl_stats.n_list_draws)              +
+                                                                                    " list calls, "                                     +
+                                                                                    std::to_string(gl_stats.n_skipped_draws)           +
+                                                                                    " skipped, "                                        +
+                                                                                    std::to_string(gl_stats.n_clears)                  +
+                                                                                    " clears, "                                         +
+                                                                                    std::to_string(gl_stats.n_texture_copies)          +
+                                                                                    " texture copies, "                                 +
+                                                                                    std::to_string(gl_stats.n_twin_textures)           +
+                                                                                    " twin textures, "                                  +
+                                                                                    std::to_string(gl_stats.n_unmirrored_calls)        +
+                                                                                    " calls made for the left eye only"
+                                                                                  : std::string();
+
     return "After "                                                       +
            std::to_string(m_live_state.n_frames)                          +
            " frames: "                                                    +
@@ -330,6 +371,7 @@ std::string Stereo::ConverterDLL::Converter::make_statistics_line() const
            std::to_string(m_live_state.n_kept_matrices)                   +
            " matrices kept"                                               +
            twin_text                                                      +
+           gl_text                                                        +
            cost_text;
 }
 
@@ -367,7 +409,8 @@ void Stereo::ConverterDLL::Converter::on_d3d7_frame_ending(const APIInterceptor:
     count_frame(out_log_line_vec_ptr);
 }
 
-void Stereo::ConverterDLL::Converter::on_gl_draws(std::vector<std::string>* out_log_line_vec_ptr)
+bool Stereo::ConverterDLL::Converter::on_gl_draws(Analysis::Recipe::DrawClass* out_draw_class_ptr,
+                                                  std::vector<std::string>*    out_log_line_vec_ptr)
 {
     std::set<Analysis::Recipe::DrawClass> class_set;
 
@@ -393,6 +436,23 @@ void Stereo::ConverterDLL::Converter::on_gl_draws(std::vector<std::string>* out_
 
         m_live_state.n_mixed_class_calls++;
     }
+
+    /* The call is made as affected if any of its draws is: a list that has a draw of the scene is the scene's. */
+    if (class_set.find(Analysis::Recipe::DrawClass::AFFECTED) != class_set.end() )
+    {
+        *out_draw_class_ptr = Analysis::Recipe::DrawClass::AFFECTED;
+    }
+    else
+    if (class_set.find(Analysis::Recipe::DrawClass::UNAFFECTED) != class_set.end() )
+    {
+        *out_draw_class_ptr = Analysis::Recipe::DrawClass::UNAFFECTED;
+    }
+    else
+    {
+        *out_draw_class_ptr = Analysis::Recipe::DrawClass::SKIPPED;
+    }
+
+    return (class_set.empty() == false);
 }
 
 void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFunction                in_api_func,
@@ -437,6 +497,13 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
                                                               in_arguments_out_ptr,
                                                               in_returned_value_ptr);
         }
+        else
+        {
+            /* What is followed and is neither of Direct3D is OpenGL. */
+            this_ptr->m_live_state.gl_renderer_ptr->on_post(in_api_func,
+                                                            in_n_arguments_out,
+                                                            in_arguments_out_ptr);
+        }
     }
 
     /* The frame is presented: the application makes the next one when the screen wants it, which is what the program that shows the
@@ -454,6 +521,12 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
         in_api_func == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_FLIP)
     {
         this_ptr->m_d3d7_frame_passer_ptr->wait_for_pace();
+    }
+    else
+    if (is_own_call == false                                                    &&
+        in_api_func == APIInterceptor::APIFUNCTION_GDI32_SWAPBUFFERS)
+    {
+        this_ptr->m_gl_frame_passer_ptr->wait_for_pace();
     }
     else
     if (is_own_call == false)
@@ -478,6 +551,8 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
 {
     const bool               is_present        = (in_api_func    == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_PRESENT &&
                                                   in_n_arguments >  0);
+    GlFrameImages            gl_images;
+    bool                     has_gl_images     = false;
     std::vector<std::string> log_line_vec;
     void*                    right_surface_ptr = nullptr;
 
@@ -508,6 +583,38 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
                                             in_arguments_ptr);
         }
 
+        if (is_gl)
+        {
+            Analysis::Recipe::DrawClass draw_class = Analysis::Recipe::DrawClass::UNAFFECTED;
+
+            /* The draws of a call of OpenGL are those that the front end made of it (a display list makes several, or none). */
+            const bool has_draws = (is_draw) ? on_gl_draws(&draw_class,
+                                                           &log_line_vec)
+                                             : false;
+
+            if (in_api_func == APIInterceptor::APIFUNCTION_GDI32_SWAPBUFFERS)
+            {
+                count_frame(&log_line_vec);
+
+                has_gl_images = m_live_state.gl_renderer_ptr->on_frame_ending(&gl_images);
+            }
+
+            /* What the application renders is made for both eyes: a draw or a clear is made here, and the call of the application is not. */
+            if (m_live_state.gl_renderer_ptr->on_pre(in_api_func,
+                                                     in_n_arguments,
+                                                     in_arguments_ptr,
+                                                     has_draws,
+                                                     draw_class) == false)
+            {
+                *out_should_pass_through_ptr = false;
+            }
+
+            for (const auto& note : m_live_state.gl_renderer_ptr->take_notes() )
+            {
+                log_line_vec.push_back(note);
+            }
+        }
+        else
         if (is_draw == false)
         {
             if (is_d3d8)
@@ -515,15 +622,6 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
                 m_live_state.renderer_ptr->on_pre(in_api_func,
                                                   in_n_arguments,
                                                   in_arguments_ptr);
-            }
-            else
-            if (is_gl)
-            {
-                /* Only the frames of OpenGL are followed so far: SwapBuffers ends one. */
-                if (in_api_func == APIInterceptor::APIFUNCTION_GDI32_SWAPBUFFERS)
-                {
-                    count_frame(&log_line_vec);
-                }
             }
             else
             {
@@ -552,12 +650,6 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
                                         &log_line_vec);
                 }
             }
-        }
-        else
-        if (is_gl)
-        {
-            /* The draws of a call of OpenGL are those that the front end made of it (a display list makes several, or none), and none is changed yet. */
-            on_gl_draws(&log_line_vec);
         }
         else
         {
@@ -611,6 +703,11 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
     for (const auto& log_line : log_line_vec)
     {
         m_log.write(log_line);
+    }
+
+    if (has_gl_images)
+    {
+        pass_gl_frame(gl_images);
     }
 
     if (is_present)
@@ -774,6 +871,37 @@ void Stereo::ConverterDLL::Converter::pass_d3d7_frame(void* in_primary_surface_p
                                                                                                        Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_RELEASE)(back_buffer_ptr);
         }
     }
+}
+
+void Stereo::ConverterDLL::Converter::pass_gl_frame(const GlFrameImages& in_images)
+{
+    /* A debugging aid: the images of the eyes of one frame, to look at (the same switches as for Direct3D 7). */
+    if ( (m_live_state.dump_frame                           != 0                             &&
+          m_live_state.n_frames                             == m_live_state.dump_frame)      ||
+         (m_live_state.dump_every                           != 0                             &&
+          m_live_state.n_frames                             >= m_live_state.dump_first_frame &&
+          m_live_state.n_frames   % m_live_state.dump_every == 0) )
+    {
+        char temp_i8vec260[MAX_PATH] = {};
+
+        if (::GetTempPathA(MAX_PATH,
+                           temp_i8vec260) != 0)
+        {
+            const std::string filename   = std::string(temp_i8vec260)            +
+                                           "apistereo_frame_"                    +
+                                           std::to_string(m_live_state.n_frames) +
+                                           ".bmp";
+            const bool        is_written = GlHostMemoryExporter::write_debug_image(in_images,
+                                                                                   filename);
+
+            m_log.write((is_written) ? "A frame is written to a file"
+                                     : "A frame cannot be written to a file");
+        }
+    }
+
+    m_gl_frame_passer_ptr->on_present(nullptr,
+                                      const_cast<GlFrameImages*>(&in_images),
+                                      const_cast<GlFrameImages*>(&in_images) );
 }
 
 void Stereo::ConverterDLL::Converter::read_channel_settings(std::vector<std::string>* out_log_line_vec_ptr)

@@ -39,7 +39,6 @@
     {
       "id": "gerbera",
       "title": "Gerbera",
-      "unavailable_reason": "OpenGL is not converted while the program runs yet: the recipe is for the replay tools, which play a capture of it for both eyes.",
       "recipe": "recipes/gerbera.json",
       "executable": "gerbera/PajaPlayer.exe",
       "download": {

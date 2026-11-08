@@ -124,6 +124,35 @@ const std::array<float, 16>& Stereo::Core::StereoCore::get_view_matrix() const
     return m_view_matrix_fp32vec16;
 }
 
+std::array<float, 16> Stereo::Core::StereoCore::make_eye_shift_matrix(const Analysis::Recipe::Eye& in_eye) const
+{
+    constexpr float HALF = 0.5f;
+
+    const float distance   = m_convergence_model.get_effective_convergence_distance();
+    const float separation = m_convergence_model.get_effective_eye_separation      ();
+
+    /* The scene moves toward the right for the left eye: the camera is to the left. */
+    const float half_shift = (in_eye == Analysis::Recipe::Eye::LEFT) ? separation * HALF
+                                                                    : -separation * HALF;
+
+    std::array<float, 16> result =
+    {
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    };
+
+    result.at(12) = half_shift;
+
+    if (distance > 0.0f)
+    {
+        result.at(8) = half_shift / distance;
+    }
+
+    return result;
+}
+
 void Stereo::Core::StereoCore::on_frame_completed(const uint64_t& in_shape_key)
 {
     if (m_convergence_model.follow_scene_convergence_distance(m_applier.get_scene_convergence_distance(in_shape_key) ) == false)

@@ -20,6 +20,8 @@
 #include "D3D8/d3d8_resolution_scaler.h"
 #include "D3D8/d3d8_windowed_mode.h"
 #include "frame_passer.h"
+#include "OpenGL/gl_eye_renderer.h"
+#include "OpenGL/gl_host_memory_exporter.h"
 #include "session_log.h"
 #include <atomic>
 #include <memory>
@@ -66,10 +68,11 @@ namespace Stereo
                                       const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
                                       std::vector<std::string>*                  out_log_line_vec_ptr);
 
-            /* The call that is analysed has made draws of OpenGL (none, one, or those of a display list): each is told what the recipe makes of it, and counted. Nothing is
-             * changed yet; the draws are only followed.
+            /* The call that is analysed has made draws of OpenGL (none, one, or those of a display list): each is told what the recipe makes of it, and counted. Returns true
+             * if there are any, and says the class that the call is made as: affected if any draw is, the one of the draws otherwise.
              */
-            void on_gl_draws(std::vector<std::string>* out_log_line_vec_ptr);
+            bool on_gl_draws(Analysis::Recipe::DrawClass* out_draw_class_ptr,
+                             std::vector<std::string>*    out_log_line_vec_ptr);
 
             /* A call is about to be made: the work of the callback, for a call that is the application's. */
             void on_pre(const APIInterceptor::APIFunction&         in_api_func,
@@ -91,6 +94,9 @@ namespace Stereo
             /* The frame in the back buffer (of the window, or of the chain of the surface which a flip is called for) is passed on to the program which shows the images. */
             void pass_d3d7_frame(void* in_primary_surface_ptr,
                                  void* in_back_buffer_ptr);
+
+            /* The images of the eyes of a frame of an OpenGL application are passed on to the program which shows the images. */
+            void pass_gl_frame(const GlFrameImages& in_images);
 
             /* The program which shows the images says how far apart the eyes are, how strong the 3D is and where the eyes converge, and can
              * say it again while the application plays.
@@ -114,6 +120,7 @@ namespace Stereo
             struct LiveState
             {
                 std::unique_ptr<Stereo::Core::StereoCore> core_ptr;
+                std::unique_ptr<GlEyeRenderer>            gl_renderer_ptr;
                 std::unique_ptr<D3D7EyeRenderer>          d3d7_renderer_ptr;
                 std::atomic<int64_t>                      n_callback_ticks = {0}; /* spent in the callbacks, in the ticks of the performance counter */
                 std::atomic<int64_t>                      n_draw_ticks     = {0}; /* of those, in the draws of Direct3D 7                              */
@@ -136,6 +143,7 @@ namespace Stereo
 
             std::unique_ptr<Stereo::Transport::FrameChannel> m_channel_ptr;
             std::unique_ptr<FramePasser>                     m_d3d7_frame_passer_ptr;
+            std::unique_ptr<FramePasser>                     m_gl_frame_passer_ptr;
             std::unique_ptr<FramePasser>                     m_frame_passer_ptr;
             LiveState                                        m_live_state;
             SessionLog                                       m_log;

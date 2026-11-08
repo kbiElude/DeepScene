@@ -930,3 +930,56 @@ TEST_F(StereoCoreTest, ADrawThatCoversTheWholeOfTheViewIsNotPushedWhateverThePer
     EXPECT_FLOAT_EQ(left.at(0).matrix_fp32vec16.at(8),
                     0.04f);
 }
+
+TEST_F(StereoCoreTest, TheEyeShiftMatrixMovesTheCameraHalfTheSeparationToEachSide)
+{
+    Stereo::Core::StereoCore core(make_recipe(get_baked_text(""),
+                                              ""),
+                                  Stereo::Core::FailFunc() );
+
+    core.set_eye_separation(0.5f);
+
+    const auto left  = core.make_eye_shift_matrix(Analysis::Recipe::Eye::LEFT);
+    const auto right = core.make_eye_shift_matrix(Analysis::Recipe::Eye::RIGHT);
+
+    /* The scene goes toward the right for the left eye: the camera is to its left. */
+    EXPECT_FLOAT_EQ(left.at(12),
+                    0.25f);
+    EXPECT_FLOAT_EQ(right.at(12),
+                    -0.25f);
+
+    /* With no distance of convergence there is no shear, and nothing else is changed. */
+    EXPECT_FLOAT_EQ(left.at(8),
+                    0.0f);
+    EXPECT_FLOAT_EQ(left.at(0),
+                    1.0f);
+    EXPECT_FLOAT_EQ(left.at(5),
+                    1.0f);
+    EXPECT_FLOAT_EQ(left.at(10),
+                    1.0f);
+    EXPECT_FLOAT_EQ(left.at(15),
+                    1.0f);
+}
+
+TEST_F(StereoCoreTest, TheEyeShiftMatrixShearsTheSceneByTheDepthSoWhatIsAtTheDistanceStaysPut)
+{
+    Stereo::Core::StereoCore core(make_recipe(get_baked_text(""),
+                                              ""),
+                                  Stereo::Core::FailFunc() );
+
+    core.set_convergence_distance(10.0f);
+    core.set_eye_separation      (0.5f);
+
+    const auto left  = core.make_eye_shift_matrix(Analysis::Recipe::Eye::LEFT);
+    const auto right = core.make_eye_shift_matrix(Analysis::Recipe::Eye::RIGHT);
+
+    /* A point in front of the camera is at z = -d: x + h + (h / d) * z is x there, for both eyes. */
+    EXPECT_FLOAT_EQ(left.at(12) + left.at(8) * -10.0f,
+                    0.0f);
+    EXPECT_FLOAT_EQ(right.at(12) + right.at(8) * -10.0f,
+                    0.0f);
+    EXPECT_FLOAT_EQ(left.at(8),
+                    0.025f);
+    EXPECT_FLOAT_EQ(right.at(8),
+                    -0.025f);
+}

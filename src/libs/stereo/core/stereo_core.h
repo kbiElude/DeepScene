@@ -70,6 +70,13 @@ namespace Stereo
             uint64_t                     get_n_unknown_frames    () const;
             const std::array<float, 16>& get_view_matrix         () const;
 
+            /* The matrix that is put in front of the camera of a draw for the eye, as OpenGL has matrices (the columns one after the other): the
+             * camera is moved half the eye separation to the side (the left eye is to the left) and the scene shears by the depth, so that what is at
+             * the distance of convergence stays where it is. The separation and the distance are the effective ones (see ConvergenceModel); with no
+             * distance the matrix is the translation alone.
+             */
+            std::array<float, 16> make_eye_shift_matrix(const Analysis::Recipe::Eye& in_eye) const;
+
             /* The frame that the application has just presented was of this shape (see CompletedFrame::shape_key). If the recipe has a
              * distance at which the eyes converge for it (see Recipe::scene_convergence_vec), the draws from now on converge there, by
              * easing toward it over some frames, which keeps a scene that is made of frames of slightly different shapes from pulsing;
