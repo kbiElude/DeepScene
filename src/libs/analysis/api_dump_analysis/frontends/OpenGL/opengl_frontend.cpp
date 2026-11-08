@@ -614,6 +614,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_begin(const Ca
 
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_bind_buffer(const Capture::APIDumpLoader::DumpedAPICall& in_call)
 {
+    constexpr uint32_t PIXEL_PACK_BUFFER   = 0x88EB;
     constexpr uint32_t PIXEL_UNPACK_BUFFER = 0x88EC;
 
     std::array<uint32_t, 2> bind_array = {};
@@ -624,13 +625,24 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_bind_buffer(co
         m_n_unfollowed_calls++;
     }
     else
+    if (bind_array.at(0) == PIXEL_PACK_BUFFER &&
+        bind_array.at(1) != 0)
+    {
+        /* What glReadPixels reads goes to the buffer, and not to the memory of the program: the bytes are in no call of the workload, and the program may have
+         * them made into a texture from the buffer.
+         */
+        report_unsupported_use(in_call.func,
+                               "pixels are packed into a buffer, so that what is read back never reaches the memory of the program and is in no call (the target)",
+                               bind_array.at(0) );
+    }
+    else
     if (bind_array.at(0) == PIXEL_UNPACK_BUFFER &&
         bind_array.at(1) != 0)
     {
         /* The pixels of what is uploaded from now on are in the buffer, and not in the call: the bytes of an upload would be left out. */
-        report_unsupported_texture_use(in_call.func,
-                                       "pixels are unpacked from a buffer, so that the pixels of an upload are not in the call (the target)",
-                                       bind_array.at(0) );
+        report_unsupported_use(in_call.func,
+                               "pixels are unpacked from a buffer, so that the pixels of an upload are not in the call (the target)",
+                               bind_array.at(0) );
     }
 }
 
@@ -657,9 +669,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_bind_texture(c
     if (bind_array.at(1) != 0)
     {
         /* A texture of another target (one and three dimensions, cube maps, arrays, multisampled ones) is not followed; the default texture of one is not sampled. */
-        report_unsupported_texture_use(in_call.func,
-                                       "a texture of a target other than GL_TEXTURE_2D is bound (the target)",
-                                       bind_array.at(0) );
+        report_unsupported_use(in_call.func,
+                               "a texture of a target other than GL_TEXTURE_2D is bound (the target)",
+                               bind_array.at(0) );
     }
 }
 
@@ -820,9 +832,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_copy_tex_image
     else
     if (static_cast<uint32_t>(image_array.at(0) ) != TEXTURE_2D)
     {
-        report_unsupported_texture_use(in_call.func,
-                                       "pixels of the window are copied to a level of a texture of a target other than GL_TEXTURE_2D (the target)",
-                                       static_cast<uint32_t>(image_array.at(0) ) );
+        report_unsupported_use(in_call.func,
+                               "pixels of the window are copied to a level of a texture of a target other than GL_TEXTURE_2D (the target)",
+                               static_cast<uint32_t>(image_array.at(0) ) );
     }
     else
     {
@@ -875,9 +887,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_copy_tex_sub_i
     else
     if (image_array.at(0) != TEXTURE_2D)
     {
-        report_unsupported_texture_use(in_call.func,
-                                       "pixels of the window are copied to a part of a level of a texture of a target other than GL_TEXTURE_2D (the target)",
-                                       image_array.at(0) );
+        report_unsupported_use(in_call.func,
+                               "pixels of the window are copied to a part of a level of a texture of a target other than GL_TEXTURE_2D (the target)",
+                               image_array.at(0) );
     }
     else
     if (copy_to_bound_texture(*inout_state_ptr,
@@ -1070,9 +1082,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_generate_mipma
     }
     else
     {
-        report_unsupported_texture_use(in_call.func,
-                                       "the levels of a texture of a target other than GL_TEXTURE_2D are made (the target)",
-                                       target_array.at(0) );
+        report_unsupported_use(in_call.func,
+                               "the levels of a texture of a target other than GL_TEXTURE_2D are made (the target)",
+                               target_array.at(0) );
     }
 }
 
@@ -1350,7 +1362,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
 
                 case APIInterceptor::APIFUNCTION_GL_GLREADPIXELS:
                 {
-                    /* What a program reads back is used by the program, which the model does not follow. */
+                    /* What a program reads back is used by the program, which the model does not follow. What it makes of the pixels that it reads into its memory (a
+                     * texture, say) is in the call that gives it, as the bytes of an upload; reading to a buffer is not possible here, as binding one ends the process.
+                     */
                     count_hazard(Analysis::APIDumpAnalysis::ResolutionHazard::PIXEL_READBACKS);
 
                     m_n_unsupported_calls++;
@@ -1434,14 +1448,19 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
                     else
                     if (is_unsupported_texture_function(in_call.func) )
                     {
-                        report_unsupported_texture_use(in_call.func,
-                                                       "a texture is made or changed in a way that is not followed (the function)",
-                                                       static_cast<uint64_t>(in_call.func) );
+                        report_unsupported_use(in_call.func,
+                                               "a texture is made or changed in a way that is not followed (the function)",
+                                               static_cast<uint64_t>(in_call.func) );
                     }
                     else
                     if (is_unsupported_function(in_call.func) )
                     {
-                        m_n_unsupported_calls++;
+                        /* What it writes to the framebuffer, or the lists that it calls, is not in anything the model follows: what is found of the frames would be
+                         * wrong without it (and so would the textures that are made of the framebuffer).
+                         */
+                        report_unsupported_use(in_call.func,
+                                               "the framebuffer is written from somewhere other than a draw, or lists named by an array are called, which is not followed (the function)",
+                                               static_cast<uint64_t>(in_call.func) );
                     }
 
                     break;
@@ -1897,9 +1916,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_tex_image(cons
     if (image_array.at(0) != TEXTURE_2D)
     {
         /* The faces of cube maps, one and three dimensions and the like are not followed. */
-        report_unsupported_texture_use(in_call.func,
-                                       "a level of a texture of a target other than GL_TEXTURE_2D is given (the target)",
-                                       image_array.at(0) );
+        report_unsupported_use(in_call.func,
+                               "a level of a texture of a target other than GL_TEXTURE_2D is given (the target)",
+                               image_array.at(0) );
     }
     else
     {
@@ -1977,16 +1996,16 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_tex_parameter(
         else
         if (target != TEXTURE_2D)
         {
-            report_unsupported_texture_use(in_call.func,
-                                           "a parameter that decides the levels of a texture is set for a target other than GL_TEXTURE_2D (the target)",
-                                           target);
+            report_unsupported_use(in_call.func,
+                                   "a parameter that decides the levels of a texture is set for a target other than GL_TEXTURE_2D (the target)",
+                                   target);
         }
         else
         if (is_array_form)
         {
-            report_unsupported_texture_use(in_call.func,
-                                           "a parameter that decides the levels of a texture is set with an array, which is not followed (the parameter)",
-                                           parameter_name);
+            report_unsupported_use(in_call.func,
+                                   "a parameter that decides the levels of a texture is set with an array, which is not followed (the parameter)",
+                                   parameter_name);
         }
         else
         if (in_call.arg_in_vec.size() < 3 ||
@@ -2002,9 +2021,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_tex_parameter(
             if (parameter_name == BASE_LEVEL &&
                 value != 0.0)
             {
-                report_unsupported_texture_use(in_call.func,
-                                               "a first level other than the first is chosen (GL_TEXTURE_BASE_LEVEL)",
-                                               static_cast<uint64_t>(value) );
+                report_unsupported_use(in_call.func,
+                                       "a first level other than the first is chosen (GL_TEXTURE_BASE_LEVEL)",
+                                       static_cast<uint64_t>(value) );
             }
             else
             if (parameter_name == GENERATE_MIPMAP)
@@ -2043,9 +2062,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_tex_sub_image(
     else
     if (image_array.at(0) != TEXTURE_2D)
     {
-        report_unsupported_texture_use(in_call.func,
-                                       "a part of a level of a texture of a target other than GL_TEXTURE_2D is given pixels (the target)",
-                                       image_array.at(0) );
+        report_unsupported_use(in_call.func,
+                               "a part of a level of a texture of a target other than GL_TEXTURE_2D is given pixels (the target)",
+                               image_array.at(0) );
     }
     else
     {
@@ -2692,9 +2711,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_snapshots(cons
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_unsupported_texture_use(const APIInterceptor::APIFunction& in_function,
-                                                                                         const char*                        in_reason_ptr,
-                                                                                         const uint64_t&                    in_value)
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_unsupported_use(const APIInterceptor::APIFunction& in_function,
+                                                                                 const char*                        in_reason_ptr,
+                                                                                 const uint64_t&                    in_value)
 {
     constexpr size_t N_MESSAGE_CHARACTERS = 512;
 
@@ -2702,7 +2721,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_unsupported_te
 
     ::snprintf(message_i8vec512,
                sizeof(message_i8vec512),
-               "%s: %s, 0x%llX. A workload that does this is not supported yet, and what the textures hold of it would be wrong or left out.",
+               "%s: %s, 0x%llX. A workload that does this is not supported yet, and what the analysis finds of it would be wrong or left out.",
                Capture::APIDumpNames::get_function_name(in_function),
                in_reason_ptr,
                static_cast<unsigned long long>(in_value) );

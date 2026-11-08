@@ -701,6 +701,7 @@ namespace
         enum : uint32_t
         {
             GL_GENERATE_MIPMAP     = 0x00008191,
+            GL_PIXEL_PACK_BUFFER   = 0x000088EB,
             GL_PIXEL_UNPACK_BUFFER = 0x000088EC,
             GL_TEXTURE_1D          = 0x00000DE0,
             GL_TEXTURE_BASE_LEVEL  = 0x0000813C,
@@ -1117,4 +1118,64 @@ TEST_F(GlFrontendTextureLevels, WhatDoesNotChangeWhatATextureHoldsIsLeftAlone)
     feed();
 
     EXPECT_TRUE(m_sink.event_vec.empty() );
+}
+
+TEST_F(GlFrontendTextureLevels, PixelsThatArePackedIntoABufferAreToldAndNotLeftOut)
+{
+    /* What a read of pixels reads then goes to the buffer, which the program may make into a texture, and is in no call of the workload. */
+    m_builder.bind_buffer(GL_PIXEL_PACK_BUFFER,
+                          3);
+    m_builder.read_pixels(0,
+                          0,
+                          4,
+                          4);
+
+    expect_unsupported("glBindBuffer.*packed into a buffer");
+}
+
+TEST_F(GlFrontendTextureLevels, ThePixelBuffersThatAreUnboundAreLeftAloneAndSoIsAReadIntoTheMemoryOfTheProgram)
+{
+    m_builder.bind_buffer(GL_PIXEL_PACK_BUFFER,
+                          0);
+    m_builder.bind_buffer(GL_PIXEL_UNPACK_BUFFER,
+                          0);
+    m_builder.read_pixels(0,
+                          0,
+                          4,
+                          4);
+
+    feed();
+
+    /* The read is a hazard that is counted: what the program makes of the pixels is in the calls that follow, as the bytes of an upload. */
+    EXPECT_EQ(m_harness.get_frontend().get_n_unsupported_calls(),
+              1u);
+    EXPECT_TRUE(m_sink.event_vec.empty() );
+}
+
+TEST_F(GlFrontendTextureLevels, ACopyOfPixelsIsToldAndNotLeftOut)
+{
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLCOPYPIXELS);
+
+    expect_unsupported("glCopyPixels.*framebuffer is written");
+}
+
+TEST_F(GlFrontendTextureLevels, PixelsThatAreDrawnAreToldAndNotLeftOut)
+{
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLDRAWPIXELS);
+
+    expect_unsupported("glDrawPixels.*framebuffer is written");
+}
+
+TEST_F(GlFrontendTextureLevels, ABitmapIsToldAndNotLeftOut)
+{
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLBITMAP);
+
+    expect_unsupported("glBitmap.*framebuffer is written");
+}
+
+TEST_F(GlFrontendTextureLevels, ListsThatAreNamedByAnArrayAreToldAndNotLeftOut)
+{
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLCALLLISTS);
+
+    expect_unsupported("glCallLists.*lists named by an array");
 }

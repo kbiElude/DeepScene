@@ -122,7 +122,10 @@ namespace Analysis
                                   GlContextState*                              inout_state_ptr);
 
                 /* A call of glBindTexture: of a two dimensional texture, the one that the active unit has from now on. */
-                /* glBindBuffer: a buffer that pixels are unpacked from is not followed (the pixels of an upload are then in the buffer, not in the call). */
+                /* glBindBuffer: a buffer that pixels are packed into (glReadPixels then reads to the buffer, and what is read is in no call) or unpacked from (the
+                 * pixels of an upload are then in the buffer, not in the call) is not followed: the process is ended. Unbinding one (the buffer 0) is not that, and
+                 * the buffers of the other targets are not looked at.
+                 */
                 void handle_bind_buffer(const Capture::APIDumpLoader::DumpedAPICall& in_call);
 
                 void handle_bind_texture(const Capture::APIDumpLoader::DumpedAPICall& in_call,
@@ -265,12 +268,12 @@ namespace Analysis
                  */
                 void report_snapshots(const GlContextState& in_state);
 
-                /* What the program does with a texture is not followed (a target, a kind of texture, a call): the file of the textures would be wrong without it, and
-                 * so the process is ended, saying what it was (AI_ASSERT_ALWAYS). Nothing about textures is left out without being said.
+                /* What the program does is not followed (a target, a kind of texture, a buffer that pixels go to or come from, a call): what the analysis finds of it
+                 * would be wrong or left out, and so the process is ended, saying what it was (AI_ASSERT_ALWAYS). Nothing is left out without being said.
                  */
-                static void report_unsupported_texture_use(const APIInterceptor::APIFunction& in_function,
-                                                           const char*                        in_reason_ptr,
-                                                           const uint64_t&                    in_value);
+                static void report_unsupported_use(const APIInterceptor::APIFunction& in_function,
+                                                   const char*                        in_reason_ptr,
+                                                   const uint64_t&                    in_value);
 
                 /* A region of a level of the bound texture is given the pixels of the call (the ninth argument), or none: told to the builder for the sink of the
                  * textures, with the bytes, the way they are laid out (the pixel store of the context), and the format and the type that they are of.
@@ -320,10 +323,12 @@ namespace Analysis
                 static bool is_same_box(const GlBox& in_first,
                                         const GlBox& in_second);
 
-                /* True for the calls whose effects the front end does not follow yet. */
+                /* True for the calls whose effects the front end does not follow yet, and that are not about textures (they write the framebuffer from somewhere else, or
+                 * call lists that are named by an array): one of them ends the process (see report_unsupported_use()).
+                 */
                 static bool is_unsupported_function(const APIInterceptor::APIFunction& in_function);
 
-                /* A call that makes or changes a texture of a kind that is not followed (see report_unsupported_texture_use()). */
+                /* A call that makes or changes a texture of a kind that is not followed (see report_unsupported_use()). */
                 static bool is_unsupported_texture_function(const APIInterceptor::APIFunction& in_function);
 
                 /* A box from the four arguments of glViewport or glScissor. */
