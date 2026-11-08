@@ -6,6 +6,7 @@
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_matrix_math.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_geometry_sampler.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_list_classifier.h"
+#include "analysis/api_dump_analysis/frontends/OpenGL/gl_function_policy.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_texture_format_mapper.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_vertex_reader.h"
 #include "analysis/api_dump_analysis/frontends/shared/call_view.h"
@@ -642,6 +643,16 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_bind_buffer(co
         /* The pixels of what is uploaded from now on are in the buffer, and not in the call: the bytes of an upload would be left out. */
         report_unsupported_use(in_call.func,
                                "pixels are unpacked from a buffer, so that the pixels of an upload are not in the call (the target)",
+                               bind_array.at(0) );
+    }
+    else
+    if (bind_array.at(1) != 0)
+    {
+        /* The data of a buffer (vertices, indices, constants) is made by calls that the front end does not follow, and a draw that reads from one comes with no
+         * snapshot of what it reads: the geometry of the draw would be left out.
+         */
+        report_unsupported_use(in_call.func,
+                               "a buffer object is bound, and buffer objects are not followed, so that what a draw reads from one is in no snapshot (the target)",
                                bind_array.at(0) );
     }
 }
@@ -1460,6 +1471,16 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
                          */
                         report_unsupported_use(in_call.func,
                                                "the framebuffer is written from somewhere other than a draw, or lists named by an array are called, which is not followed (the function)",
+                                               static_cast<uint64_t>(in_call.func) );
+                    }
+                    else
+                    if (GlFunctionPolicy::is_left_out_by_design(in_call.func) == false)
+                    {
+                        /* Not followed, and not known to be of no matter: a call that the front end has never been told about is not passed over without saying so (a
+                         * shader, a buffer, an evaluator, the selection, an accumulation buffer, a rectangle, what changes how pixels are converted, and so on).
+                         */
+                        report_unsupported_use(in_call.func,
+                                               "the function is not followed, and is not one that is known to be of no matter to what is found of the frames (the function)",
                                                static_cast<uint64_t>(in_call.func) );
                     }
 

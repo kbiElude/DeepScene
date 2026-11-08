@@ -1109,11 +1109,8 @@ TEST_F(GlFrontendTextureLevels, WhatDoesNotChangeWhatATextureHoldsIsLeftAlone)
     m_builder.tex_parameter(GL_TEXTURE_BASE_LEVEL,
                             0);
 
-    /* A question of what the driver can make, and a buffer that is not one of pixels. */
+    /* A question of what the driver can make. */
     add_tex_image_of_target(0x8064);
-
-    m_builder.bind_buffer(0x8892, /* GL_ARRAY_BUFFER */
-                          3);
 
     feed();
 
@@ -1178,4 +1175,81 @@ TEST_F(GlFrontendTextureLevels, ListsThatAreNamedByAnArrayAreToldAndNotLeftOut)
     add_call_of(APIInterceptor::APIFUNCTION_GL_GLCALLLISTS);
 
     expect_unsupported("glCallLists.*lists named by an array");
+}
+
+TEST_F(GlFrontendTextureLevels, AFunctionThatTheFrontEndHasNeverBeenToldAboutEndsTheProcess)
+{
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLCREATESHADER);
+
+    expect_unsupported("glCreateShader.*not followed, and is not one that is known");
+}
+
+TEST_F(GlFrontendTextureLevels, AnEvaluatorThatMakesGeometryEndsTheProcess)
+{
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLRECTF);
+
+    expect_unsupported("glRectf");
+}
+
+TEST_F(GlFrontendTextureLevels, TheAccumulationBufferEndsTheProcess)
+{
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLACCUM);
+
+    expect_unsupported("glAccum");
+}
+
+TEST_F(GlFrontendTextureLevels, TheStateOfHowPixelsAreUnpackedThatIsSavedAndGivenBackEndsTheProcess)
+{
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLPUSHCLIENTATTRIB);
+
+    expect_unsupported("glPushClientAttrib");
+}
+
+TEST_F(GlFrontendTextureLevels, WhatChangesHowPixelsAreConvertedEndsTheProcess)
+{
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLPIXELTRANSFERF);
+
+    expect_unsupported("glPixelTransferf");
+}
+
+TEST_F(GlFrontendTextureLevels, ABufferOfVerticesEndsTheProcess)
+{
+    m_builder.bind_buffer(0x8892, /* GL_ARRAY_BUFFER */
+                          3);
+
+    expect_unsupported("glBindBuffer.*buffer object is bound.*0x8892");
+}
+
+TEST_F(GlFrontendTextureLevels, EveryFunctionThatGerberaMakesAndTheFrontEndDoesNotFollowGoesThroughWithoutBeingToldAbout)
+{
+    const APIInterceptor::APIFunction function_array[] =
+    {
+        APIInterceptor::APIFUNCTION_GL_GLCLIENTACTIVETEXTURE,
+        APIInterceptor::APIFUNCTION_GL_GLCOLOR4F,
+        APIInterceptor::APIFUNCTION_GL_GLDISABLECLIENTSTATE,
+        APIInterceptor::APIFUNCTION_GL_GLENABLECLIENTSTATE,
+        APIInterceptor::APIFUNCTION_GL_GLFLUSH,
+        APIInterceptor::APIFUNCTION_GL_GLFOGF,
+        APIInterceptor::APIFUNCTION_GL_GLGENLISTS,
+        APIInterceptor::APIFUNCTION_GL_GLGENTEXTURES,
+        APIInterceptor::APIFUNCTION_GL_GLGETERROR,
+        APIInterceptor::APIFUNCTION_GL_GLGETFLOATV,
+        APIInterceptor::APIFUNCTION_GL_GLLIGHTFV,
+        APIInterceptor::APIFUNCTION_GL_GLMATERIALFV,
+        APIInterceptor::APIFUNCTION_GL_GLNORMALPOINTER,
+        APIInterceptor::APIFUNCTION_GL_GLPOLYGONOFFSET,
+        APIInterceptor::APIFUNCTION_GL_GLTEXCOORD2F,
+        APIInterceptor::APIFUNCTION_GL_GLTEXENVF,
+        APIInterceptor::APIFUNCTION_GL_GLTEXGENI,
+        APIInterceptor::APIFUNCTION_GL_GLVERTEXPOINTER
+    };
+
+    for (const auto function : function_array)
+    {
+        add_call_of(function);
+    }
+
+    feed();
+
+    SUCCEED();
 }

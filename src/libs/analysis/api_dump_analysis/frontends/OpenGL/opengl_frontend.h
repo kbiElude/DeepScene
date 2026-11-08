@@ -123,8 +123,8 @@ namespace Analysis
 
                 /* A call of glBindTexture: of a two dimensional texture, the one that the active unit has from now on. */
                 /* glBindBuffer: a buffer that pixels are packed into (glReadPixels then reads to the buffer, and what is read is in no call) or unpacked from (the
-                 * pixels of an upload are then in the buffer, not in the call) is not followed: the process is ended. Unbinding one (the buffer 0) is not that, and
-                 * the buffers of the other targets are not looked at.
+                 * pixels of an upload are then in the buffer, not in the call) is not followed: the process is ended. So is any other buffer object (of vertices, of
+                 * indices, of constants): buffers are not followed. Unbinding one (the buffer 0) is not that.
                  */
                 void handle_bind_buffer(const Capture::APIDumpLoader::DumpedAPICall& in_call);
 
