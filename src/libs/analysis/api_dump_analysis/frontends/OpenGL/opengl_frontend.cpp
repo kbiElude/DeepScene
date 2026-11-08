@@ -1474,6 +1474,16 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
                                                static_cast<uint64_t>(in_call.func) );
                     }
                     else
+                    if (GlFunctionPolicy::changes_what_a_draw_writes(in_call.func) )
+                    {
+                        /* Not followed yet: a frame that has only a draw that this decides could be taken for one that writes nothing, and a seek would leave it out. It
+                         * is followed when a workload needs it (the stencil, first), and not before: until then it is said, and not passed over.
+                         */
+                        report_unsupported_use(in_call.func,
+                                               "state that decides what a draw writes, or how its pixels are combined with what is there (the stencil test, the logic op, the blend equation, the winding of faces), is not followed yet (the function)",
+                                               static_cast<uint64_t>(in_call.func) );
+                    }
+                    else
                     if (GlFunctionPolicy::is_left_out_by_design(in_call.func) == false &&
                         GlFunctionPolicy::bakes_current_matrix (in_call.func) == false)
                     {

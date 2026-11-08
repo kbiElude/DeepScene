@@ -27,6 +27,13 @@ namespace Analysis
                  */
                 static bool bakes_current_matrix(const APIInterceptor::APIFunction& in_function);
 
+                /* True for the functions of the state that decides what a draw writes, or how its pixels are combined with what is there, which the model does not
+                 * follow yet: the stencil test and what it does, the logic op, the equation, the separate factors and the constant color of blending, and which side of
+                 * a face is the front. A frame that has only such a draw could be taken for one that writes nothing, and be left out by a seek; the front end ends the
+                 * process on them (see report_unsupported_use()) until a workload needs them, and they are followed then. Not in is_left_out_by_design().
+                 */
+                static bool changes_what_a_draw_writes(const APIInterceptor::APIFunction& in_function);
+
                 /* True for the functions that the front end does not follow and may leave out: the values for the vertices that follow, the state of the arrays that a draw
                  * reads, names, the state of the rendering that the model does not tell draws apart by, and the queries. False for every other: they are followed (by the
                  * front end, which does not ask this of them) or end the process.

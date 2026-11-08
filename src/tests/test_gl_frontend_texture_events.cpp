@@ -1253,3 +1253,64 @@ TEST_F(GlFrontendTextureLevels, EveryFunctionThatGerberaMakesAndTheFrontEndDoesN
 
     SUCCEED();
 }
+
+TEST_F(GlFrontendTextureLevels, TheStencilTestAndWhatItDoesEndTheProcessUntilTheyAreFollowed)
+{
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLSTENCILFUNC);
+
+    expect_unsupported("glStencilFunc.*decides what a draw writes");
+}
+
+TEST_F(GlFrontendTextureLevels, TheStencilOperationsEndTheProcessUntilTheyAreFollowed)
+{
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLSTENCILOP);
+
+    expect_unsupported("glStencilOp.*decides what a draw writes");
+}
+
+TEST_F(GlFrontendTextureLevels, TheStencilMaskEndsTheProcessUntilItIsFollowed)
+{
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLSTENCILMASK);
+
+    expect_unsupported("glStencilMask.*decides what a draw writes");
+}
+
+TEST_F(GlFrontendTextureLevels, TheLogicOpEndsTheProcessUntilItIsFollowed)
+{
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLLOGICOP);
+
+    expect_unsupported("glLogicOp.*decides what a draw writes");
+}
+
+TEST_F(GlFrontendTextureLevels, TheBlendEquationEndsTheProcessUntilItIsFollowed)
+{
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLBLENDEQUATION);
+
+    expect_unsupported("glBlendEquation.*decides what a draw writes");
+}
+
+TEST_F(GlFrontendTextureLevels, TheSeparateFactorsAndTheConstantColorOfBlendingEndTheProcessUntilTheyAreFollowed)
+{
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLBLENDFUNCSEPARATE);
+
+    expect_unsupported("glBlendFuncSeparate.*decides what a draw writes");
+}
+
+TEST_F(GlFrontendTextureLevels, TheWindingOfFacesEndsTheProcessUntilItIsFollowed)
+{
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLFRONTFACE);
+
+    expect_unsupported("glFrontFace.*decides what a draw writes");
+}
+
+TEST_F(GlFrontendTextureLevels, WhatOnlyChangesHowADrawLooksGoesThroughAndSoDoThePolygonOffsetAndTheFog)
+{
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLPOLYGONOFFSET);
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLFOGF);
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLDEPTHRANGE);
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLLIGHTF);
+
+    feed();
+
+    SUCCEED();
+}

@@ -96,6 +96,48 @@ TEST(GlFunctionPolicy, WhatDoesNotDependOnTheMatrixIsNotToldAsSuch)
     }
 }
 
+TEST(GlFunctionPolicy, WhatDecidesWhatADrawWritesAndTheModelDoesNotFollowIsNotLeftOut)
+{
+    const APIInterceptor::APIFunction function_array[] =
+    {
+        APIInterceptor::APIFUNCTION_GL_GLBLENDCOLOR,
+        APIInterceptor::APIFUNCTION_GL_GLBLENDEQUATION,
+        APIInterceptor::APIFUNCTION_GL_GLBLENDEQUATIONSEPARATE,
+        APIInterceptor::APIFUNCTION_GL_GLBLENDFUNCSEPARATE,
+        APIInterceptor::APIFUNCTION_GL_GLFRONTFACE,
+        APIInterceptor::APIFUNCTION_GL_GLLOGICOP,
+        APIInterceptor::APIFUNCTION_GL_GLSTENCILFUNC,
+        APIInterceptor::APIFUNCTION_GL_GLSTENCILMASK,
+        APIInterceptor::APIFUNCTION_GL_GLSTENCILOP
+    };
+
+    for (const auto function : function_array)
+    {
+        EXPECT_TRUE (GlFunctionPolicy::changes_what_a_draw_writes(function) ) << Capture::APIDumpNames::get_function_name(function);
+        EXPECT_FALSE(GlFunctionPolicy::is_left_out_by_design(function) )      << Capture::APIDumpNames::get_function_name(function);
+        EXPECT_FALSE(GlFunctionPolicy::bakes_current_matrix(function) )       << Capture::APIDumpNames::get_function_name(function);
+    }
+}
+
+TEST(GlFunctionPolicy, WhatOnlyChangesHowADrawLooksIsStillLeftOut)
+{
+    const APIInterceptor::APIFunction function_array[] =
+    {
+        APIInterceptor::APIFUNCTION_GL_GLDEPTHRANGE,
+        APIInterceptor::APIFUNCTION_GL_GLFOGF,
+        APIInterceptor::APIFUNCTION_GL_GLLIGHTF,
+        APIInterceptor::APIFUNCTION_GL_GLMATERIALFV,
+        APIInterceptor::APIFUNCTION_GL_GLPOLYGONOFFSET,
+        APIInterceptor::APIFUNCTION_GL_GLTEXENVF
+    };
+
+    for (const auto function : function_array)
+    {
+        EXPECT_TRUE (GlFunctionPolicy::is_left_out_by_design(function) )      << Capture::APIDumpNames::get_function_name(function);
+        EXPECT_FALSE(GlFunctionPolicy::changes_what_a_draw_writes(function) ) << Capture::APIDumpNames::get_function_name(function);
+    }
+}
+
 TEST(GlFunctionPolicy, TheQueriesAreLeftOutWhateverTheyAre)
 {
     EXPECT_TRUE(GlFunctionPolicy::is_left_out_by_design(APIInterceptor::APIFUNCTION_GL_GLGETINTEGERV) );

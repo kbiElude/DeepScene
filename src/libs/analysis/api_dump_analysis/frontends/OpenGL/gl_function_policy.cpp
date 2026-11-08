@@ -61,6 +61,40 @@ bool Analysis::APIDumpAnalysis::Frontends::GlFunctionPolicy::bakes_current_matri
     return result;
 }
 
+bool Analysis::APIDumpAnalysis::Frontends::GlFunctionPolicy::changes_what_a_draw_writes(const APIInterceptor::APIFunction& in_function)
+{
+    bool result = false;
+
+    /* The stencil test and what it does, the logic op, what blending does with the values (the equation, the separate factors, the constant color), and which side
+     * of a face is the front (which decides which draws reach the framebuffer, as the culling that is followed does). The model follows the functions of blending
+     * and of culling that are the first of their kind, and the draws that are told apart by them; these are the rest of them.
+     */
+    switch (in_function)
+    {
+        case APIInterceptor::APIFUNCTION_GL_GLBLENDCOLOR:
+        case APIInterceptor::APIFUNCTION_GL_GLBLENDEQUATION:
+        case APIInterceptor::APIFUNCTION_GL_GLBLENDEQUATIONSEPARATE:
+        case APIInterceptor::APIFUNCTION_GL_GLBLENDFUNCSEPARATE:
+        case APIInterceptor::APIFUNCTION_GL_GLFRONTFACE:
+        case APIInterceptor::APIFUNCTION_GL_GLLOGICOP:
+        case APIInterceptor::APIFUNCTION_GL_GLSTENCILFUNC:
+        case APIInterceptor::APIFUNCTION_GL_GLSTENCILMASK:
+        case APIInterceptor::APIFUNCTION_GL_GLSTENCILOP:
+        {
+            result = true;
+
+            break;
+        }
+
+        default:
+        {
+            break;
+        }
+    }
+
+    return result;
+}
+
 bool Analysis::APIDumpAnalysis::Frontends::GlFunctionPolicy::is_left_out_by_design(const APIInterceptor::APIFunction& in_function)
 {
     bool result = false;
@@ -261,10 +295,6 @@ bool Analysis::APIDumpAnalysis::Frontends::GlFunctionPolicy::is_left_out_by_desi
         }
 
         /* State of the rendering that the model does not tell the draws apart by: It changes how a draw looks, not what its structure is (the geometry, the resources, the state that the model follows); the replay makes the calls, so what is shown is as it was. */
-        case APIInterceptor::APIFUNCTION_GL_GLBLENDCOLOR:
-        case APIInterceptor::APIFUNCTION_GL_GLBLENDEQUATION:
-        case APIInterceptor::APIFUNCTION_GL_GLBLENDEQUATIONSEPARATE:
-        case APIInterceptor::APIFUNCTION_GL_GLBLENDFUNCSEPARATE:
         case APIInterceptor::APIFUNCTION_GL_GLCLAMPCOLOR:
         case APIInterceptor::APIFUNCTION_GL_GLCLEARINDEX:
         case APIInterceptor::APIFUNCTION_GL_GLCOLORMATERIAL:
@@ -273,7 +303,6 @@ bool Analysis::APIDumpAnalysis::Frontends::GlFunctionPolicy::is_left_out_by_desi
         case APIInterceptor::APIFUNCTION_GL_GLFOGFV:
         case APIInterceptor::APIFUNCTION_GL_GLFOGI:
         case APIInterceptor::APIFUNCTION_GL_GLFOGIV:
-        case APIInterceptor::APIFUNCTION_GL_GLFRONTFACE:
         case APIInterceptor::APIFUNCTION_GL_GLHINT:
         case APIInterceptor::APIFUNCTION_GL_GLINDEXMASK:
         case APIInterceptor::APIFUNCTION_GL_GLLIGHTF:
@@ -283,7 +312,6 @@ bool Analysis::APIDumpAnalysis::Frontends::GlFunctionPolicy::is_left_out_by_desi
         case APIInterceptor::APIFUNCTION_GL_GLLIGHTMODELI:
         case APIInterceptor::APIFUNCTION_GL_GLLIGHTMODELIV:
         case APIInterceptor::APIFUNCTION_GL_GLLINESTIPPLE:
-        case APIInterceptor::APIFUNCTION_GL_GLLOGICOP:
         case APIInterceptor::APIFUNCTION_GL_GLMATERIALF:
         case APIInterceptor::APIFUNCTION_GL_GLMATERIALFV:
         case APIInterceptor::APIFUNCTION_GL_GLMATERIALI:
@@ -295,9 +323,6 @@ bool Analysis::APIDumpAnalysis::Frontends::GlFunctionPolicy::is_left_out_by_desi
         case APIInterceptor::APIFUNCTION_GL_GLPOLYGONOFFSET:
         case APIInterceptor::APIFUNCTION_GL_GLPOLYGONSTIPPLE:
         case APIInterceptor::APIFUNCTION_GL_GLSAMPLECOVERAGE:
-        case APIInterceptor::APIFUNCTION_GL_GLSTENCILFUNC:
-        case APIInterceptor::APIFUNCTION_GL_GLSTENCILMASK:
-        case APIInterceptor::APIFUNCTION_GL_GLSTENCILOP:
         case APIInterceptor::APIFUNCTION_GL_GLTEXENVF:
         case APIInterceptor::APIFUNCTION_GL_GLTEXENVFV:
         case APIInterceptor::APIFUNCTION_GL_GLTEXENVI:
