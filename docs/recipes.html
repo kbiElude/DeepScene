@@ -170,7 +170,7 @@
     "skipped": {                                   draws which are not played, in either eye (the calls which set their state are)
       "pass_keys": [ "0x..." ],                    every draw of these passes
       "draw_keys": [ "0x..." ],                    these draws, wherever they are
-      "pass_draws": [ { "pass_key": "0x...", "draw_key": "0x..." } ]   this draw in this pass only (what the overlay probe leaves out)
+      "pass_draws": [ { "pass_key": "0x...", "draw_key": "0x..." } ]   this draw in this pass only (what the overlay report leaves out)
     },
     (pass_keys and pass_draws are for the replay, which knows the pass of a draw. A converter that plays the application as it runs does
      not, and leaves them out: it writes a warning to its log for each such list.)

@@ -2,13 +2,13 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "overlay_probe_mode.h"
+#include "overlay_report_mode.h"
 #include "frame_hash_sink.h"
-#include "overlay_probe.h"
+#include "overlay_report.h"
 #include "replay_runner.h"
 #include <windows.h>
 
-bool Stereo::Replay::ConsistencyChecker::run_probe_shards(const Stereo::Replay::ConsistencyChecker::Options& in_options,
+bool Stereo::Replay::ConsistencyChecker::run_report_shards(const Stereo::Replay::ConsistencyChecker::Options& in_options,
                                                           const uint32_t&                                    in_n_shards,
                                                           const std::vector<std::string>&                    in_result_filename_vec,
                                                           std::string*                                       out_error_ptr)
@@ -21,7 +21,7 @@ bool Stereo::Replay::ConsistencyChecker::run_probe_shards(const Stereo::Replay::
                              exe_path_i8vec,
                              MAX_PATH) == 0)
     {
-        *out_error_ptr = "The path of this program cannot be found, to start the parts of the probe with.";
+        *out_error_ptr = "The path of this program cannot be found, to start the parts of the report with.";
         result         = false;
 
         goto end;
@@ -34,10 +34,10 @@ bool Stereo::Replay::ConsistencyChecker::run_probe_shards(const Stereo::Replay::
                   n_shard < in_n_shards;
                 ++n_shard)
     {
-        std::string         command_line        = "\"" + std::string(exe_path_i8vec) + "\" \"" + in_options.workload_filename + "\" --overlay-probe \"" +
-                                                  in_options.overlay_probe_filename + "\" --recipe \"" + in_options.recipe_filename + "\" --dump-dir \"" +
-                                                  in_options.dump_directory + "\" --jobs 1 --overlay-probe-shard " + std::to_string(n_shard) + " " + std::to_string(in_n_shards) +
-                                                  " --overlay-probe-result \"" + in_result_filename_vec.at(n_shard) + "\"";
+        std::string         command_line        = "\"" + std::string(exe_path_i8vec) + "\" \"" + in_options.workload_filename + "\" --overlay-report \"" +
+                                                  in_options.overlay_report_filename + "\" --recipe \"" + in_options.recipe_filename + "\" --dump-dir \"" +
+                                                  in_options.dump_directory + "\" --jobs 1 --overlay-report-shard " + std::to_string(n_shard) + " " + std::to_string(in_n_shards) +
+                                                  " --overlay-report-result \"" + in_result_filename_vec.at(n_shard) + "\"";
         PROCESS_INFORMATION process_information = {};
         STARTUPINFOA        startup_information = {};
 
@@ -75,7 +75,7 @@ bool Stereo::Replay::ConsistencyChecker::run_probe_shards(const Stereo::Replay::
                             &startup_information,
                             &process_information) == FALSE)
         {
-            *out_error_ptr = "A part of the probe cannot be started (error " + std::to_string(::GetLastError() ) + ").";
+            *out_error_ptr = "A part of the report cannot be started (error " + std::to_string(::GetLastError() ) + ").";
             result         = false;
 
             break;
@@ -99,7 +99,7 @@ bool Stereo::Replay::ConsistencyChecker::run_probe_shards(const Stereo::Replay::
 
         if (exit_code != 0)
         {
-            *out_error_ptr = "A part of the probe failed (exit code " + std::to_string(exit_code) + "); what it said is above.";
+            *out_error_ptr = "A part of the report failed (exit code " + std::to_string(exit_code) + "); what it said is above.";
             result         = false;
         }
     }
@@ -108,7 +108,7 @@ end:
     return result;
 }
 
-bool Stereo::Replay::ConsistencyChecker::take_overlay_probe(const Stereo::Replay::ConsistencyChecker::Options& in_options,
+bool Stereo::Replay::ConsistencyChecker::take_overlay_report(const Stereo::Replay::ConsistencyChecker::Options& in_options,
                                                             std::string*                                       out_error_ptr)
 {
     const auto render_frame_func = [](const Stereo::Replay::ConsistencyChecker::Options& in_probe_options,
@@ -135,13 +135,13 @@ bool Stereo::Replay::ConsistencyChecker::take_overlay_probe(const Stereo::Replay
                                                 const std::vector<std::string>& in_result_filename_vec,
                                                 std::string*                    out_part_error_ptr)
     {
-        return run_probe_shards(in_options,
+        return run_report_shards(in_options,
                                 in_n_shards,
                                 in_result_filename_vec,
                                 out_part_error_ptr);
     };
 
-    return Stereo::Replay::ConsistencyChecker::OverlayProbe::run(in_options,
+    return Stereo::Replay::ConsistencyChecker::OverlayReport::run(in_options,
                                                                  render_frame_func,
                                                                  merge_parts_func,
                                                                  out_error_ptr);

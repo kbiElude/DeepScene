@@ -6,7 +6,7 @@
 #include "command_line.h"
 #include "comparison.h"
 #include "frame_hash_sink.h"
-#include "overlay_probe_mode.h"
+#include "overlay_report_mode.h"
 #include "profile_mode.h"
 #include "replay_runner.h"
 #include "screenshot_mode.h"
@@ -133,7 +133,7 @@ int main(int   in_argc,
         goto end;
     }
 
-    if (options.overlay_probe_filename.empty() == false)
+    if (options.overlay_report_filename.empty() == false)
     {
         const bool has_dump_directory  = (options.dump_directory.empty()  == false);
         const bool has_recipe_filename = (options.recipe_filename.empty() == false);
@@ -143,14 +143,14 @@ int main(int   in_argc,
             has_dump_directory  == false)
         {
             fprintf(stdout,
-                    "--overlay-probe needs --recipe and --dump-dir.\n");
+                    "--overlay-report needs --recipe and --dump-dir.\n");
 
             exit_code = Stereo::Replay::ConsistencyChecker::ExitCode::BAD_ARGUMENTS;
 
             goto end;
         }
 
-        if (Stereo::Replay::ConsistencyChecker::take_overlay_probe(options,
+        if (Stereo::Replay::ConsistencyChecker::take_overlay_report(options,
                                                                   &error) == false)
         {
             fprintf(stdout,

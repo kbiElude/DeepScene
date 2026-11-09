@@ -47,7 +47,7 @@ const char* Stereo::Replay::ConsistencyChecker::CommandLine::get_usage_ptr()
            "StereoReplayConsistencyChecker_x86 file.workload --profile [--from A] [--to B] [--recipe FILE]\n"
            "StereoReplayConsistencyChecker_x86 file.workload --same-frames-as other.workload [--from A] [--to B]\n"
            "StereoReplayConsistencyChecker_x86 file.workload --screenshot N --out FILE.png [--recipe FILE [--eye left|right|both|anaglyph]]\n"
-           "StereoReplayConsistencyChecker_x86 file.workload --overlay-probe candidates.json --recipe FILE --dump-dir DIR [--deps FILE] [--eye-separation D]\n"
+           "StereoReplayConsistencyChecker_x86 file.workload --overlay-report candidates.json --recipe FILE --dump-dir DIR [--deps FILE] [--eye-separation D]\n"
            "StereoReplayConsistencyChecker_x86 file.workload --contact-sheet K --out FILE.png [--from A] [--to B] [--recipe FILE [--eye ...]]\n"
            "\n"
            "Replays frames A to B (default 0 to 999) of a Direct3D 8 workload in four ways: as they are, as they are again (to\n"
@@ -66,15 +66,15 @@ const char* Stereo::Replay::ConsistencyChecker::CommandLine::get_usage_ptr()
            "  --ways LIST      Only these ways, besides the frames as they are (which are always replayed, to compare with): again (as\n"
            "                   they are, again), twice, restore (twice, the state put back between) and recipe (needs --recipe). Each way\n"
            "                   is a replay of the workload from its start, so fewer ways are less to wait for.\n"
-           "  --overlay-probe FILE  Instead of the check: FILE is the list of draws that may be 2D overlays (RecipeBake --overlays). The frame in which each is first\n"
+           "  --overlay-report FILE  Instead of the check: FILE is the list of draws that may be 2D overlays (RecipeBake --overlays). The frame in which each is first\n"
            "                   drawn is replayed for the left eye with the draw and without it (the recipe skips it in its pass only); the images go to --dump-dir: an\n"
            "                   animation (GIF) that flips between the frame and the frame with the pixels the draw makes in magenta, and a still, for each candidate that\n"
            "                   makes any, candidates.json with the number of them, and index.html to look at them. A pass which makes no difference left out whole is\n"
            "                   left out for all its draws at once.\n"
-           "  --jobs N         With --overlay-probe: share the work between N processes of this program (1 by default: none). Each replay decodes the workload from\n"
+           "  --jobs N         With --overlay-report: share the work between N processes of this program (1 by default: none). Each replay decodes the workload from\n"
            "                   its start with threads of its own, and that is bound by the bandwidth of the memory: one process saturates 8 cores, and two or more\n"
            "                   were no faster (0.9 to 1.0 times). A process takes about 1.5 GB. It may pay on a machine with more memory bandwidth to the cores.\n"
-           "  --overlay-probe-last-frame N  With --overlay-probe: look at the frames of the candidates up to the Nth only (all of them by default)\n"
+           "  --overlay-report-last-frame N  With --overlay-report: look at the frames of the candidates up to the Nth only (all of them by default)\n"
            "  --parallel       Replay the ways at the same time, each with an engine of its own: faster, and needs the memory of all.\n"
            "\n"
            "  --screenshot N   Instead of the check: replay once, up to frame N, and write the image of that frame to the PNG file of --out. With a\n"
@@ -126,7 +126,7 @@ bool Stereo::Replay::ConsistencyChecker::CommandLine::parse(const std::vector<st
         {"--contact-sheet", &Options::contact_sheet_n_frames, 0, UINT32_MAX},
         {"--from",          &Options::first_frame,            0, UINT32_MAX},
         {"--jobs",          &Options::n_jobs,                 1, MAXIMUM_WAIT_OBJECTS - 1},
-        {"--overlay-probe-last-frame", &Options::overlay_probe_last_frame, 0, UINT32_MAX},
+        {"--overlay-report-last-frame", &Options::overlay_report_last_frame, 0, UINT32_MAX},
         {"--screenshot",    &Options::screenshot_frame,       0, UINT32_MAX - 1},
         {"--to",            &Options::last_frame,             0, UINT32_MAX}
     };
@@ -137,8 +137,8 @@ bool Stereo::Replay::ConsistencyChecker::CommandLine::parse(const std::vector<st
         {"--deps",                 &Options::deps_filename},
         {"--dump-dir",             &Options::dump_directory},
         {"--out",                  &Options::image_filename},
-        {"--overlay-probe",        &Options::overlay_probe_filename},
-        {"--overlay-probe-result", &Options::overlay_probe_result_filename},
+        {"--overlay-report",        &Options::overlay_report_filename},
+        {"--overlay-report-result", &Options::overlay_report_result_filename},
         {"--recipe",               &Options::recipe_filename},
         {"--same-frames-as",       &Options::same_frames_workload_filename}
     };
@@ -202,7 +202,7 @@ bool Stereo::Replay::ConsistencyChecker::CommandLine::parse(const std::vector<st
             }
         }
 
-        if (argument == "--overlay-probe-shard")
+        if (argument == "--overlay-report-shard")
         {
             const size_t n_arguments = in_argument_vec.size();
 
@@ -283,7 +283,7 @@ bool Stereo::Replay::ConsistencyChecker::CommandLine::parse(const std::vector<st
             out_options_ptr->eye_separation = static_cast<float>(separation);
         }
         else
-        if (argument == "--overlay-probe-shard")
+        if (argument == "--overlay-report-shard")
         {
             const std::string& count_text = in_argument_vec.at(n_argument + 2);
             const std::string& index_text = in_argument_vec.at(n_argument + 1);
@@ -293,18 +293,18 @@ bool Stereo::Replay::ConsistencyChecker::CommandLine::parse(const std::vector<st
             const bool has_index = parse_unsigned(index_text,
                                                   0,
                                                   MAXIMUM_WAIT_OBJECTS,
-                                                 &out_options_ptr->overlay_probe_shard_index);
+                                                 &out_options_ptr->overlay_report_shard_index);
 
             if (has_index)
             {
                 const bool has_count = parse_unsigned(count_text,
                                                       0,
                                                       MAXIMUM_WAIT_OBJECTS,
-                                                     &out_options_ptr->overlay_probe_shard_count);
+                                                     &out_options_ptr->overlay_report_shard_count);
 
                 if (has_count)
                 {
-                    is_shard_valid = (out_options_ptr->overlay_probe_shard_index < out_options_ptr->overlay_probe_shard_count);
+                    is_shard_valid = (out_options_ptr->overlay_report_shard_index < out_options_ptr->overlay_report_shard_count);
                 }
             }
 

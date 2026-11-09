@@ -1,5 +1,5 @@
 # Replays a workload and checks it: compares the replays with each other, takes screenshots and contact sheets, profiles, and makes the reports of
-# the overlay probe.
+# the overlay report.
 file(GLOB Sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
                                     "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 

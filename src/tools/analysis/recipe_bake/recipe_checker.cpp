@@ -261,7 +261,7 @@ void Analysis::RecipeBake::RecipeChecker::print_report(FILE*                    
     else
     {
         fprintf(in_file_handle,
-                "%zu things about what the recipe leaves alone (see the overlay probe, which shows what the draws make):\n",
+                "%zu things about what the recipe leaves alone (see the overlay report, which shows what the draws make):\n",
                 in_report.unaffected_warning_vec.size() );
 
         for (size_t n_warning = 0;

@@ -135,7 +135,7 @@ TEST(CheckerCommandLineTest, NumbersAreWholeAndInTheirRange)
 TEST(CheckerCommandLineTest, AnOptionWithoutItsValueIsRefused)
 {
     for (const char* option_ptr : {"--from", "--to", "--recipe", "--deps", "--dump-dir", "--dump-frame", "--eye", "--eye-separation", "--ways", "--out", "--screenshot",
-                                   "--contact-sheet", "--jobs", "--same-frames-as", "--overlay-probe", "--overlay-probe-result"})
+                                   "--contact-sheet", "--jobs", "--same-frames-as", "--overlay-report", "--overlay-report-result"})
     {
         std::string                                 error;
         Stereo::Replay::ConsistencyChecker::Options options;
@@ -236,28 +236,28 @@ TEST(CheckerCommandLineTest, TheViewOfTheEyesIsOneOfFourAndNeedsARecipe)
     }
 }
 
-TEST(CheckerCommandLineTest, APartOfTheOverlayProbeHasItsNumberBelowTheNumberOfTheParts)
+TEST(CheckerCommandLineTest, APartOfTheOverlayReportHasItsNumberBelowTheNumberOfTheParts)
 {
     std::string                                 error;
     Stereo::Replay::ConsistencyChecker::Options options;
 
-    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::CommandLine::parse({"a.workload", "--overlay-probe-shard", "1", "3", "--overlay-probe-result", "part.json"},
+    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::CommandLine::parse({"a.workload", "--overlay-report-shard", "1", "3", "--overlay-report-result", "part.json"},
                                                                        &options,
                                                                        &error) ) << error;
-    EXPECT_EQ(options.overlay_probe_shard_index,
+    EXPECT_EQ(options.overlay_report_shard_index,
               1u);
-    EXPECT_EQ(options.overlay_probe_shard_count,
+    EXPECT_EQ(options.overlay_report_shard_count,
               3u);
-    EXPECT_EQ(options.overlay_probe_result_filename,
+    EXPECT_EQ(options.overlay_report_result_filename,
               "part.json");
 
-    EXPECT_FALSE(Stereo::Replay::ConsistencyChecker::CommandLine::parse({"a.workload", "--overlay-probe-shard", "3", "3"},
+    EXPECT_FALSE(Stereo::Replay::ConsistencyChecker::CommandLine::parse({"a.workload", "--overlay-report-shard", "3", "3"},
                                                                         &options,
                                                                         &error) );
-    EXPECT_FALSE(Stereo::Replay::ConsistencyChecker::CommandLine::parse({"a.workload", "--overlay-probe-shard", "1"},
+    EXPECT_FALSE(Stereo::Replay::ConsistencyChecker::CommandLine::parse({"a.workload", "--overlay-report-shard", "1"},
                                                                         &options,
                                                                         &error) );
-    EXPECT_FALSE(Stereo::Replay::ConsistencyChecker::CommandLine::parse({"a.workload", "--overlay-probe-shard", "x", "3"},
+    EXPECT_FALSE(Stereo::Replay::ConsistencyChecker::CommandLine::parse({"a.workload", "--overlay-report-shard", "x", "3"},
                                                                         &options,
                                                                         &error) );
 }
@@ -274,15 +274,15 @@ TEST(CheckerCommandLineTest, TheUsageSaysWhatTheToolIs)
               std::string::npos);
 }
 
-TEST(CheckerCommandLineTest, TheLastFrameThatTheOverlayProbeLooksAtIsRead)
+TEST(CheckerCommandLineTest, TheLastFrameThatTheOverlayReportLooksAtIsRead)
 {
     std::string                                 error;
     Stereo::Replay::ConsistencyChecker::Options options;
 
-    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::CommandLine::parse({"a.workload", "--overlay-probe", "c.json", "--recipe", "r.json", "--dump-dir", "out", "--overlay-probe-last-frame", "6200"},
+    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::CommandLine::parse({"a.workload", "--overlay-report", "c.json", "--recipe", "r.json", "--dump-dir", "out", "--overlay-report-last-frame", "6200"},
                                                                        &options,
                                                                        &error) ) << error;
 
-    EXPECT_EQ(options.overlay_probe_last_frame,
+    EXPECT_EQ(options.overlay_report_last_frame,
               6200u);
 }

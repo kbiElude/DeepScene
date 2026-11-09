@@ -43,15 +43,15 @@ namespace Stereo
                 bool                     has_history                    = false;      /* a screenshot replays the frames before it with the recipe too, as a player does, so that what carries over from frame to frame is right (slow without deps) */
                 std::string              deps_filename;                               /* the dependencies of the workload: a replay goes to the last frame leaving out the frames which nothing after it reads */
                 std::string              image_filename;                              /* the PNG file of a screenshot or a contact sheet */
-                std::string              overlay_probe_filename;
-                uint32_t                 overlay_probe_last_frame       = UINT32_MAX; /* the probe looks at the frames of the candidates up to this one */                      /* the list of draws that may be overlays, whose frames are replayed with each draw left out */
-                std::string              overlay_probe_result_filename;               /* a part of an overlay probe writes what it found here, for the one that put the parts together */
-                uint32_t                 overlay_probe_shard_count      = 0;          /* the parts of the probe; 0: this is not one of them */
-                uint32_t                 overlay_probe_shard_index      = 0;          /* the one that this is */
+                std::string              overlay_report_filename;
+                uint32_t                 overlay_report_last_frame       = UINT32_MAX; /* the report looks at the frames of the candidates up to this one */                      /* the list of draws that may be overlays, whose frames are replayed with each draw left out */
+                std::string              overlay_report_result_filename;               /* a part of an overlay report writes what it found here, for the one that put the parts together */
+                uint32_t                 overlay_report_shard_count      = 0;          /* the parts of the report; 0: this is not one of them */
+                uint32_t                 overlay_report_shard_index      = 0;          /* the one that this is */
                 bool                     is_parallel                    = false;      /* the ways are replayed at the same time */
                 bool                     is_profiling                   = false;      /* the frames are replayed once, and where the time goes is said */
                 uint32_t                 last_frame                     = 999;
-                uint32_t                 n_jobs                         = 1;          /* the processes that an overlay probe is shared between */
+                uint32_t                 n_jobs                         = 1;          /* the processes that an overlay report is shared between */
                 Analysis::Recipe::Recipe recipe;
                 std::string              recipe_filename;
                 std::string              same_frames_workload_filename;               /* the frames are replayed from this workload too, and compared (a slice of the workload, for one) */
