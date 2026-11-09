@@ -17,11 +17,13 @@
 Stereo::Replay::EngineDLL::StereoFrameExecutor::StereoFrameExecutor()
     :m_eye_separation      (0.0f),
      m_frame_eye_separation(0.0f),
+     m_frame_mode          (FrameExecution::DIRECT),
      m_host_ptr            (nullptr),
      m_hurry_ptr           (nullptr),
      m_image_sink_ptr      (nullptr),
      m_slice_skipper_ptr   (nullptr),
-     m_truncate_after_call (UINT64_MAX)
+     m_truncate_after_call (UINT64_MAX),
+     m_variant_ptr         (nullptr)
 {
     /* Stub */
 }
@@ -41,11 +43,28 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::begin_frame_execution(const
 
     /* The eye of the execution, for the objects which each eye has a copy of. */
     {
-        const Analysis::Recipe::Eye eye = (m_frame_execution.mode == FrameExecution::TWICE) ? ((in_n_execution == N_LEFT_EXECUTION) ? Analysis::Recipe::Eye::LEFT
-                                                                                                                                    : Analysis::Recipe::Eye::RIGHT)
-                                                                                            : m_frame_execution.eye;
+        const Analysis::Recipe::Eye eye = (m_frame_mode == FrameExecution::TWICE) ? ((in_n_execution == N_LEFT_EXECUTION) ? Analysis::Recipe::Eye::LEFT
+                                                                                                                         : Analysis::Recipe::Eye::RIGHT)
+                                                                                  : m_frame_execution.eye;
 
         set_executors_eye(eye);
+    }
+
+    /* Each execution of the last frame in the mode VARIANTS leaves out what its variant says. */
+    if (m_frame_mode == FrameExecution::VARIANTS &&
+        m_session_ptr != nullptr                 &&
+        in_n_execution < m_frame_execution.variant_vec.size() )
+    {
+        std::string error;
+
+        if (prepare_variant(m_session_ptr->get_completed_frame(),
+                           &m_frame_execution.variant_vec.at(in_n_execution),
+                           &error) == false)
+        {
+            m_host_ptr->fail(error);
+
+            result = false;
+        }
     }
 
     if (in_uses_history == false)
@@ -165,6 +184,15 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_buffered_frame(cons
     /* The buffer of the frame before keeps what it allocated. */
     buffer.clear();
 
+    /* In the mode VARIANTS the frames before the last are played for the eyes, as TWICE says, so that what the eyes carry over is as it is. */
+    const bool is_variants_frame = (m_frame_execution.mode == FrameExecution::VARIANTS &&
+                                    in_n_frame             == m_frame_execution.last_frame);
+
+    m_frame_mode = (is_variants_frame) ? FrameExecution::VARIANTS
+                                       : ( (m_frame_execution.mode == FrameExecution::VARIANTS) ? FrameExecution::TWICE
+                                                                                                : m_frame_execution.mode);
+    m_variant_ptr = nullptr;
+
     /* A change of the separation is seen from the next frame, so that the two eyes of a frame are apart by the same distance. */
     m_frame_eye_separation = m_eye_separation;
 
@@ -197,7 +225,8 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_buffered_frame(cons
         {
             is_rewritten = true;
 
-            if (m_frame_execution.mode == FrameExecution::TWICE)
+            if (m_frame_mode == FrameExecution::TWICE ||
+                m_frame_mode == FrameExecution::VARIANTS)
             {
                 std::string error;
 
@@ -208,6 +237,15 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_buffered_frame(cons
                 if (result == false)
                 {
                     m_host_ptr->fail(error);
+                }
+                else
+                if (uses_history                           &&
+                    m_frame_mode == FrameExecution::VARIANTS)
+                {
+                    /* Each variant would have to begin with the back buffer that the frame before left, which is not kept for more than the two eyes. */
+                    m_host_ptr->fail("Frame " + std::to_string(in_n_frame) + " carries the back buffer over from the frame before, so that it cannot be played once for each of several variants.");
+
+                    result = false;
                 }
             }
         }
@@ -267,7 +305,9 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_buffered_frame(cons
         if (m_frame_execution.truncates_after_draw &&
             in_n_frame == m_frame_execution.last_frame)
         {
-            find_truncation_call(m_session_ptr->get_completed_frame() );
+            find_truncation_call(m_session_ptr->get_completed_frame(),
+                                 m_frame_execution.truncate_pass_key,
+                                 m_frame_execution.truncate_draw_key);
         }
 
         /* A frame that a recipe with a view anchor shift cannot give an eye is not played for one: it would be mono, and nobody would have said so. */
@@ -303,11 +343,29 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_buffered_frame(cons
 
     if (has_buffered_calls)
     {
-        /* The frame is played twice only if it is complete and nothing leaves it out, as the runner has it. */
-        set_executors_n_executions( (has_boundary                                  &&
-                                     skips == false                                &&
-                                     m_frame_execution.mode == FrameExecution::TWICE) ? 2
-                                                                                      : 1);
+        /* The frame is played more than once only if it is complete and nothing leaves it out, as the runner has it. */
+        FrameExecutionOptions run_options = m_frame_execution;
+
+        run_options.mode = m_frame_mode;
+
+        uint32_t n_executions = 1;
+
+        if (has_boundary &&
+            skips == false)
+        {
+            if (m_frame_mode == FrameExecution::TWICE)
+            {
+                n_executions = 2;
+            }
+            else
+            if (m_frame_mode == FrameExecution::VARIANTS)
+            {
+                n_executions = std::max<uint32_t>(1,
+                                                  static_cast<uint32_t>(run_options.variant_vec.size() ) );
+            }
+        }
+
+        set_executors_n_executions(n_executions);
 
         const auto begin_execution_func = [this, uses_history](const uint32_t& in_n_execution)
         {
@@ -353,7 +411,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_buffered_frame(cons
         result = FrameRunner::run(buffer,
                                   has_boundary,
                                   skips,
-                                  m_frame_execution,
+                                  run_options,
                                   m_host_ptr->get_call_executor_ptr_vec(),
                                   begin_execution_func,
                                   get_call_executor_func,
@@ -583,7 +641,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_rewritten_call(cons
         const uint64_t pass_key = frame.pass_key_vec.at(draw_iterator->pass_index);
 
         /* A draw which is skipped needs nothing on the device. */
-        if (m_recipe_applier_ptr->is_draw_skipped(pass_key,
+        if (is_draw_skipped_here(pass_key,
                                                   draw_iterator->structure_key) )
         {
             result = true;
@@ -770,7 +828,7 @@ void Stereo::Replay::EngineDLL::StereoFrameExecutor::find_skipped_call_ranges(co
         const uint64_t pass_key = in_frame.pass_key_vec.at(draw.pass_index);
 
         if (draw.first_call_index < draw.call_index                               &&
-            m_recipe_applier_ptr->is_draw_skipped(pass_key,
+            is_draw_skipped_here(pass_key,
                                                   draw.structure_key) )
         {
             m_skipped_call_range_vec.push_back({draw.first_call_index,
@@ -779,14 +837,16 @@ void Stereo::Replay::EngineDLL::StereoFrameExecutor::find_skipped_call_ranges(co
     }
 }
 
-void Stereo::Replay::EngineDLL::StereoFrameExecutor::find_truncation_call(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame)
+void Stereo::Replay::EngineDLL::StereoFrameExecutor::find_truncation_call(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
+                                                                          const uint64_t&                                  in_truncate_pass_key,
+                                                                          const uint64_t&                                  in_truncate_draw_key)
 {
     for (const auto& draw : in_frame.draw_instance_vec)
     {
         const uint64_t pass_key = in_frame.pass_key_vec.at(draw.pass_index);
 
-        if (pass_key             == m_frame_execution.truncate_pass_key &&
-            draw.structure_key   == m_frame_execution.truncate_draw_key)
+        if (pass_key             == in_truncate_pass_key &&
+            draw.structure_key   == in_truncate_draw_key)
         {
             /* The last of them: the draws are in the order of the calls. */
             m_truncate_after_call = draw.call_index;
@@ -809,7 +869,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::find_view_anchor_calls(cons
         const uint64_t pass_key = in_frame.pass_key_vec.at(draw.pass_index);
 
         /* A draw that is left out needs no camera. */
-        if (m_recipe_applier_ptr->is_draw_skipped(pass_key,
+        if (is_draw_skipped_here(pass_key,
                                                   draw.structure_key) )
         {
             continue;
@@ -945,6 +1005,34 @@ float Stereo::Replay::EngineDLL::StereoFrameExecutor::get_eye_separation() const
     return m_eye_separation;
 }
 
+bool Stereo::Replay::EngineDLL::StereoFrameExecutor::is_draw_skipped_here(const uint64_t& in_pass_key,
+                                                                          const uint64_t& in_draw_key) const
+{
+    bool result = m_recipe_applier_ptr->is_draw_skipped(in_pass_key,
+                                                        in_draw_key);
+
+    /* What the variant leaves out is left out as well. */
+    if (result         == false &&
+        m_variant_ptr  != nullptr)
+    {
+        result = (std::find(m_variant_ptr->skipped_pass_key_vec.begin(),
+                            m_variant_ptr->skipped_pass_key_vec.end  (),
+                            in_pass_key) != m_variant_ptr->skipped_pass_key_vec.end() );
+
+        for (size_t n_pass_draw = 0;
+                    n_pass_draw < m_variant_ptr->skipped_pass_draw_vec.size() && result == false;
+                  ++n_pass_draw)
+        {
+            const auto& pass_draw = m_variant_ptr->skipped_pass_draw_vec.at(n_pass_draw);
+
+            result = (pass_draw.pass_key == in_pass_key &&
+                      pass_draw.draw_key == in_draw_key);
+        }
+    }
+
+    return result;
+}
+
 bool Stereo::Replay::EngineDLL::StereoFrameExecutor::is_call_skipped(const uint64_t& in_call_index) const
 {
     /* The ranges do not overlap, and are in the order of the calls. */
@@ -1020,6 +1108,44 @@ void Stereo::Replay::EngineDLL::StereoFrameExecutor::on_rewind()
     }
 
     m_eye_history = EyeHistory();
+}
+
+bool Stereo::Replay::EngineDLL::StereoFrameExecutor::prepare_variant(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
+                                                                     const FrameVariant*                              in_variant_ptr,
+                                                                     std::string*                                     out_error_ptr)
+{
+    bool result = true;
+
+    m_variant_ptr = in_variant_ptr;
+
+    find_skipped_call_ranges(in_frame);
+
+    /* The frame is cut as the variant says, if it does; otherwise as the options of the frame say, if they do. */
+    m_truncate_after_call = UINT64_MAX;
+
+    if (in_variant_ptr != nullptr &&
+        in_variant_ptr->truncates_after_draw)
+    {
+        find_truncation_call(in_frame,
+                             in_variant_ptr->truncate_pass_key,
+                             in_variant_ptr->truncate_draw_key);
+    }
+    else
+    if (m_frame_execution.truncates_after_draw)
+    {
+        find_truncation_call(in_frame,
+                             m_frame_execution.truncate_pass_key,
+                             m_frame_execution.truncate_draw_key);
+    }
+
+    /* A draw that is left out needs no camera, so the calls that begin the cameras are those of the draws that are played. */
+    if (m_recipe_applier_ptr->has_view_anchor_shift() )
+    {
+        result = find_view_anchor_calls(in_frame,
+                                        out_error_ptr);
+    }
+
+    return result;
 }
 
 bool Stereo::Replay::EngineDLL::StereoFrameExecutor::read_back_buffer(std::vector<uint8_t>* out_pixel_u8_vec_ptr,

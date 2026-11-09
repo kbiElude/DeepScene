@@ -3,7 +3,9 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "overlay_report_mode.h"
+#include "analysis/api_dump_dependencies/deps_file.h"
 #include "frame_hash_sink.h"
+#include "frame_repeatability.h"
 #include "overlay_report.h"
 #include "replay_runner.h"
 #include <windows.h>
@@ -54,6 +56,16 @@ bool Stereo::Replay::ConsistencyChecker::run_report_shards(const Stereo::Replay:
         if (in_options.has_history)
         {
             command_line += " --history";
+        }
+
+        if (in_options.overlay_report_is_exact)
+        {
+            command_line += " --overlay-report-exact";
+        }
+
+        if (in_options.overlay_report_last_frame != UINT32_MAX)
+        {
+            command_line += " --overlay-report-last-frame " + std::to_string(in_options.overlay_report_last_frame);
         }
 
         startup_information.cb = sizeof(startup_information);
@@ -141,8 +153,42 @@ bool Stereo::Replay::ConsistencyChecker::take_overlay_report(const Stereo::Repla
                                 out_part_error_ptr);
     };
 
+    /* The quick path needs the dependencies (they say which frames can be played again from the state they leave); without them, or if they cannot be read,
+     * each candidate is replayed on its own.
+     */
+    Analysis::APIDumpDependencies::DependencyAnalysis analysis;
+    std::string                                       deps_error;
+    bool                                              has_deps = false;
+    Stereo::Replay::ConsistencyChecker::QuickPath     quick_path;
+
+    if (in_options.overlay_report_is_exact == false &&
+        in_options.deps_filename.empty()   == false)
+    {
+        has_deps = Analysis::APIDumpDependencies::DepsFile::read(in_options.deps_filename,
+                                                                &analysis,
+                                                                &deps_error);
+
+        if (has_deps == false)
+        {
+            fprintf(stdout,
+                    "The dependencies cannot be read for the quick path (%s); each candidate is replayed on its own.\n",
+                    deps_error.c_str() );
+        }
+    }
+
+    quick_path.is_repeatable_func   = [&analysis](const uint32_t& in_frame_index,
+                                                  std::string*    out_reason_ptr)
+    {
+        return Stereo::Replay::ConsistencyChecker::FrameRepeatability::is_repeatable(analysis,
+                                                                                     in_frame_index,
+                                                                                     out_reason_ptr);
+    };
+    quick_path.render_variants_func = replay_variants_to_frame;
+
     return Stereo::Replay::ConsistencyChecker::OverlayReport::run(in_options,
                                                                  render_frame_func,
                                                                  merge_parts_func,
-                                                                 out_error_ptr);
+                                                                 out_error_ptr,
+                                                                 (has_deps) ? &quick_path
+                                                                            : nullptr);
 }

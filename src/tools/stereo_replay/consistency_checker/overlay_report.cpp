@@ -486,12 +486,28 @@ end:
     return result;
 }
 
+void Stereo::Replay::ConsistencyChecker::OverlayReport::print_entry(const OverlayReportEntry& in_entry,
+                                                                    const size_t&             in_n_entries)
+{
+    fprintf(stdout,
+            "%u of %zu: draws %s of the frame %u: %llu pixels change without them%s%s\n",
+            in_entry.index + 1,
+            in_n_entries,
+            OverlayReportPage::get_hex_text(in_entry.structure_key).c_str(),
+            in_entry.frame_index,
+            static_cast<unsigned long long>(in_entry.n_changed_pixels),
+            (in_entry.zero_cause.empty() ) ? "" : " (",
+            (in_entry.zero_cause.empty() ) ? "" : (in_entry.zero_cause + ")").c_str() );
+}
+
 bool Stereo::Replay::ConsistencyChecker::OverlayReport::process_entries(const Options&                  in_options,
                                                                      const RenderFunc&               in_render_func,
+                                                                     const QuickPath*                in_quick_path_ptr,
                                                                      std::vector<OverlayReportEntry>* inout_entry_vec_ptr,
                                                                      std::string*                    out_error_ptr)
 {
     std::map<uint32_t, Utils::Images::Image>        baseline_image_map;
+    std::map<uint32_t, std::vector<size_t> >        entry_index_by_frame_map;
     std::map<std::pair<uint32_t, uint64_t>, bool>   is_pass_visible_map; /* by the frame and the key of the pass */
     std::map<std::pair<uint32_t, uint64_t>, size_t> n_draws_of_pass_map;
     bool                                            result              = false;
@@ -514,42 +530,115 @@ bool Stereo::Replay::ConsistencyChecker::OverlayReport::process_entries(const Op
         *inout_entry_vec_ptr = shard_entry_vec;
     }
 
-    for (const auto& entry : *inout_entry_vec_ptr)
-    {
-        n_draws_of_pass_map[std::make_pair(entry.frame_index,
-                                           entry.pass_key)]++;
-    }
-
     for (size_t n_entry = 0;
                 n_entry < inout_entry_vec_ptr->size();
               ++n_entry)
     {
-        auto&                entry         = inout_entry_vec_ptr->at(n_entry);
-        const auto           pass_pair     = std::make_pair         (entry.frame_index,
-                                                                     entry.pass_key);
-        Options              probe_options = in_options;
-        Utils::Images::Image probe_image;
+        const auto& entry = inout_entry_vec_ptr->at(n_entry);
 
-        /* The frame as it is: once for each frame, whichever candidates are seen in it. */
-        if (baseline_image_map.count(entry.frame_index) == 0)
+        n_draws_of_pass_map[std::make_pair(entry.frame_index,
+                                           entry.pass_key)]++;
+
+        entry_index_by_frame_map[entry.frame_index].push_back(n_entry);
+    }
+
+    const bool is_quick_possible = (in_quick_path_ptr                          != nullptr &&
+                                    in_quick_path_ptr->is_repeatable_func      != nullptr &&
+                                    in_quick_path_ptr->render_variants_func    != nullptr &&
+                                    in_options.overlay_report_is_exact         == false);
+
+    /* A frame at a time, so that what is the same for the candidates of a frame is done once for it. */
+    for (const auto& frame_pair : entry_index_by_frame_map)
+    {
+        bool is_played_quick = false;
+
+        if (is_quick_possible)
         {
-            if (in_render_func(in_options,
-                               entry.frame_index,
-                              &baseline_image_map[entry.frame_index],
-                               out_error_ptr) == false)
+            std::string reason;
+
+            if (in_quick_path_ptr->is_repeatable_func(frame_pair.first,
+                                                     &reason) )
             {
-                goto end;
+                is_played_quick = process_frame_quick(in_options,
+                                                      in_render_func,
+                                                     *in_quick_path_ptr,
+                                                      frame_pair.first,
+                                                      frame_pair.second,
+                                                      n_draws_of_pass_map,
+                                                      inout_entry_vec_ptr,
+                                                     &reason);
+            }
+
+            if (is_played_quick == false)
+            {
+                fprintf(stdout,
+                        "Frame %u: its candidates are replayed one at a time: %s.\n",
+                        frame_pair.first,
+                        reason.c_str() );
             }
         }
 
-        const auto& baseline_image = baseline_image_map.at(entry.frame_index);
+        if (is_played_quick == false)
+        {
+            for (const size_t n_entry : frame_pair.second)
+            {
+                if (process_entry(in_options,
+                                  in_render_func,
+                                  n_draws_of_pass_map,
+                                  inout_entry_vec_ptr->size(),
+                                 &inout_entry_vec_ptr->at(n_entry),
+                                 &baseline_image_map,
+                                 &is_pass_visible_map,
+                                  out_error_ptr) == false)
+                {
+                    goto end;
+                }
+            }
+        }
+    }
+
+    result = true;
+end:
+    return result;
+}
+
+bool Stereo::Replay::ConsistencyChecker::OverlayReport::process_entry(const Options&                                         in_options,
+                                                                      const RenderFunc&                                      in_render_func,
+                                                                      const std::map<std::pair<uint32_t, uint64_t>, size_t>& in_n_draws_of_pass_map,
+                                                                      const size_t&                                          in_n_entries,
+                                                                      OverlayReportEntry*                                    inout_entry_ptr,
+                                                                      std::map<uint32_t, Utils::Images::Image>*              inout_baseline_image_map_ptr,
+                                                                      std::map<std::pair<uint32_t, uint64_t>, bool>*         inout_is_pass_visible_map_ptr,
+                                                                      std::string*                                           out_error_ptr)
+{
+    OverlayReportEntry&  entry         = *inout_entry_ptr;
+    const auto           pass_pair     = std::make_pair(entry.frame_index,
+                                                        entry.pass_key);
+    Options              probe_options = in_options;
+    Utils::Images::Image probe_image;
+    bool                 result        = false;
+
+    /* The frame as it is: once for each frame, whichever candidates are seen in it. */
+    if (inout_baseline_image_map_ptr->count(entry.frame_index) == 0)
+    {
+        if (in_render_func(in_options,
+                           entry.frame_index,
+                          &(*inout_baseline_image_map_ptr)[entry.frame_index],
+                           out_error_ptr) == false)
+        {
+            goto end;
+        }
+    }
+
+    {
+        const auto& baseline_image = inout_baseline_image_map_ptr->at(entry.frame_index);
 
         entry.n_picture_pixels = static_cast<uint64_t>(baseline_image.width) * baseline_image.height;
 
         /* A pass that makes no difference left out whole makes none draw by draw: the first of its draws in the frame finds that out, for all of them. */
-        if (n_draws_of_pass_map.at(pass_pair) > 1)
+        if (in_n_draws_of_pass_map.at(pass_pair) > 1)
         {
-            if (is_pass_visible_map.count(pass_pair) == 0)
+            if (inout_is_pass_visible_map_ptr->count(pass_pair) == 0)
             {
                 Options              pass_options = in_options;
                 Utils::Images::Image pass_image;
@@ -564,11 +653,11 @@ bool Stereo::Replay::ConsistencyChecker::OverlayReport::process_entries(const Op
                     goto end;
                 }
 
-                is_pass_visible_map[pass_pair] = (Utils::Images::ImageComparer::compare(baseline_image,
-                                                                                        pass_image).n_differing_pixels != 0);
+                (*inout_is_pass_visible_map_ptr)[pass_pair] = (Utils::Images::ImageComparer::compare(baseline_image,
+                                                                                                     pass_image).n_differing_pixels != 0);
             }
 
-            if (is_pass_visible_map.at(pass_pair) == false)
+            if (inout_is_pass_visible_map_ptr->at(pass_pair) == false)
             {
                 add_warnings(&entry);
 
@@ -577,11 +666,13 @@ bool Stereo::Replay::ConsistencyChecker::OverlayReport::process_entries(const Op
                 fprintf(stdout,
                         "%u of %zu: draws %s of the frame %u: the pass makes no pixels, and so neither do they\n",
                         entry.index + 1,
-                        inout_entry_vec_ptr->size(),
+                        in_n_entries,
                         OverlayReportPage::get_hex_text(entry.structure_key).c_str(),
                         entry.frame_index);
 
-                continue;
+                result = true;
+
+                goto end;
             }
         }
 
@@ -622,43 +713,263 @@ bool Stereo::Replay::ConsistencyChecker::OverlayReport::process_entries(const Op
                 }
             }
 
-            if (difference.n_differing_pixels != 0)
+            if (write_entry_images(in_options,
+                                   &entry,
+                                   baseline_image,
+                                   probe_image,
+                                   out_error_ptr) == false)
             {
-                entry.animation_filename = make_image_filename(entry.index,
-                                                               entry.frame_index,
-                                                               "gif");
-                entry.image_filename     = make_image_filename(entry.index,
-                                                               entry.frame_index,
-                                                               "png");
+                goto end;
+            }
+        }
 
-                if (write_images(in_options.dump_directory,
-                                 entry.image_filename,
-                                 entry.animation_filename,
-                                 baseline_image,
-                                 probe_image) == false)
+        print_entry(entry,
+                    in_n_entries);
+
+        result = true;
+    }
+
+end:
+    return result;
+}
+
+bool Stereo::Replay::ConsistencyChecker::OverlayReport::process_frame_quick(const Options&                                         in_options,
+                                                                            const RenderFunc&                                      in_render_func,
+                                                                            const QuickPath&                                       in_quick_path,
+                                                                            const uint32_t&                                        in_frame_index,
+                                                                            const std::vector<size_t>&                             in_entry_index_vec,
+                                                                            const std::map<std::pair<uint32_t, uint64_t>, size_t>& in_n_draws_of_pass_map,
+                                                                            std::vector<OverlayReportEntry>*                       inout_entry_vec_ptr,
+                                                                            std::string*                                           out_error_ptr)
+{
+    std::vector<size_t>                                  cause_entry_vec;        /* by place in in_entry_index_vec: those that change no pixel */
+    std::vector<size_t>                                  entry_variant_vec;      /* by place in in_entry_index_vec: the variant that leaves the draw out */
+    std::vector<bool>                                    is_done_vec(in_entry_index_vec.size(),
+                                                                     false);     /* said already: the pass makes no pixels */
+    std::vector<Utils::Images::Image>                    image_vec;
+    std::map<uint64_t, size_t>                           pass_variant_map;       /* by the key of the pass: the variant that leaves it out */
+    bool                                                 result = false;
+    std::vector<Stereo::Replay::EngineDLL::FrameVariant> variant_vec;
+
+    /* The variants: the frame as it is, each pass that has more than one candidate left out, and each candidate left out. */
+    variant_vec.push_back(Stereo::Replay::EngineDLL::FrameVariant() );
+
+    for (const size_t n_entry : in_entry_index_vec)
+    {
+        const auto& entry     = inout_entry_vec_ptr->at(n_entry);
+        const auto  pass_pair = std::make_pair(entry.frame_index,
+                                               entry.pass_key);
+
+        if (in_n_draws_of_pass_map.at(pass_pair) > 1 &&
+            pass_variant_map.count(entry.pass_key)  == 0)
+        {
+            Stereo::Replay::EngineDLL::FrameVariant variant;
+
+            variant.skipped_pass_key_vec.push_back(entry.pass_key);
+
+            pass_variant_map[entry.pass_key] = variant_vec.size();
+
+            variant_vec.push_back(variant);
+        }
+    }
+
+    for (const size_t n_entry : in_entry_index_vec)
+    {
+        const auto&                             entry = inout_entry_vec_ptr->at(n_entry);
+        Stereo::Replay::EngineDLL::FrameVariant variant;
+        Analysis::Recipe::PassDraw              pass_draw;
+
+        pass_draw.draw_key = entry.structure_key;
+        pass_draw.pass_key = entry.pass_key;
+
+        variant.skipped_pass_draw_vec.push_back(pass_draw);
+
+        entry_variant_vec.push_back(variant_vec.size() );
+
+        variant_vec.push_back(variant);
+    }
+
+    if (in_quick_path.render_variants_func(in_options,
+                                           in_frame_index,
+                                           variant_vec,
+                                          &image_vec,
+                                           out_error_ptr) == false)
+    {
+        goto end;
+    }
+
+    if (image_vec.size() != variant_vec.size() )
+    {
+        *out_error_ptr = "the frame gave " + std::to_string(image_vec.size() ) + " images for " + std::to_string(variant_vec.size() ) + " variants";
+
+        goto end;
+    }
+
+    for (const auto& image : image_vec)
+    {
+        if (image.width  == 0 ||
+            image.height == 0)
+        {
+            *out_error_ptr = "an image of the frame is missing";
+
+            goto end;
+        }
+    }
+
+    {
+        const Utils::Images::Image& baseline_image = image_vec.at(0);
+
+        /* What each candidate does to the picture, and which of them change none of it. */
+        for (size_t n_place = 0;
+                    n_place < in_entry_index_vec.size();
+                  ++n_place)
+        {
+            auto&      entry     = inout_entry_vec_ptr->at(in_entry_index_vec.at(n_place) );
+            const auto pass_pair = std::make_pair(entry.frame_index,
+                                                  entry.pass_key);
+
+            entry.n_picture_pixels = static_cast<uint64_t>(baseline_image.width) * baseline_image.height;
+
+            /* A pass that makes no difference left out whole makes none draw by draw. */
+            if (in_n_draws_of_pass_map.at(pass_pair) > 1)
+            {
+                const auto& pass_image = image_vec.at(pass_variant_map.at(entry.pass_key) );
+
+                if (Utils::Images::ImageComparer::compare(baseline_image,
+                                                          pass_image).n_differing_pixels == 0)
                 {
-                    *out_error_ptr = "The image " + entry.image_filename + " cannot be written to " + in_options.dump_directory + ".";
+                    add_warnings(&entry);
 
-                    goto end;
+                    entry.zero_cause = "pass_makes_no_pixels";
+
+                    is_done_vec.at(n_place) = true;
+
+                    continue;
+                }
+            }
+
+            const auto& probe_image = image_vec.at(entry_variant_vec.at(n_place) );
+            const auto  difference  = Utils::Images::ImageComparer::compare(baseline_image,
+                                                                            probe_image);
+
+            entry.n_changed_pixels = difference.n_differing_pixels;
+
+            add_warnings(&entry);
+
+            if (difference.n_differing_pixels == 0)
+            {
+                cause_entry_vec.push_back(n_place);
+            }
+        }
+
+        /* Why the draws that change no pixel change none: the frame cut after the draw, with it and without it, for all of them in one more run of the frame. */
+        if (cause_entry_vec.empty() == false)
+        {
+            std::vector<Stereo::Replay::EngineDLL::FrameVariant> cut_variant_vec;
+            std::vector<Utils::Images::Image>                    cut_image_vec;
+            std::string                                          cut_error;
+
+            for (const size_t n_place : cause_entry_vec)
+            {
+                const auto&                             entry = inout_entry_vec_ptr->at(in_entry_index_vec.at(n_place) );
+                Stereo::Replay::EngineDLL::FrameVariant with_variant;
+
+                with_variant.truncate_draw_key    = entry.structure_key;
+                with_variant.truncate_pass_key    = entry.pass_key;
+                with_variant.truncates_after_draw = true;
+
+                Stereo::Replay::EngineDLL::FrameVariant without_variant = variant_vec.at(entry_variant_vec.at(n_place) );
+
+                without_variant.truncate_draw_key    = entry.structure_key;
+                without_variant.truncate_pass_key    = entry.pass_key;
+                without_variant.truncates_after_draw = true;
+
+                cut_variant_vec.push_back(with_variant);
+                cut_variant_vec.push_back(without_variant);
+            }
+
+            const bool is_cut_played = (in_quick_path.render_variants_func(in_options,
+                                                                           in_frame_index,
+                                                                           cut_variant_vec,
+                                                                          &cut_image_vec,
+                                                                          &cut_error)      &&
+                                        cut_image_vec.size() == cut_variant_vec.size() );
+
+            for (size_t n_cause = 0;
+                        n_cause < cause_entry_vec.size();
+                      ++n_cause)
+            {
+                auto& entry = inout_entry_vec_ptr->at(in_entry_index_vec.at(cause_entry_vec.at(n_cause) ) );
+
+                if (is_cut_played)
+                {
+                    const auto difference = Utils::Images::ImageComparer::compare(cut_image_vec.at(2 * n_cause),
+                                                                                  cut_image_vec.at(2 * n_cause + 1) );
+
+                    entry.zero_cause = (difference.n_differing_pixels != 0) ? "overdrawn_later"
+                                                                            : "not_rasterized";
+                }
+                else
+                {
+                    /* The cut frames could not be played together: the cause is looked for with a replay for each. */
+                    Options probe_options = in_options;
+
+                    probe_options.recipe.skipped.pass_draw_vec.push_back(variant_vec.at(entry_variant_vec.at(cause_entry_vec.at(n_cause) ) ).skipped_pass_draw_vec.at(0) );
+
+                    if (find_zero_cause(in_options,
+                                        probe_options,
+                                        in_render_func,
+                                        entry,
+                                       &entry.zero_cause,
+                                        out_error_ptr) == false)
+                    {
+                        goto end;
+                    }
                 }
             }
         }
 
-        fprintf(stdout,
-                "%u of %zu: draws %s of the frame %u: %llu pixels change without them%s%s\n",
-                entry.index + 1,
-                inout_entry_vec_ptr->size(),
-                OverlayReportPage::get_hex_text(entry.structure_key).c_str(),
-                entry.frame_index,
-                static_cast<unsigned long long>(entry.n_changed_pixels),
-                (entry.zero_cause.empty() ) ? "" : " (",
-                (entry.zero_cause.empty() ) ? "" : (entry.zero_cause + ")").c_str() );
+        /* The images and what is said of each, in the order of the candidates. */
+        for (size_t n_place = 0;
+                    n_place < in_entry_index_vec.size();
+                  ++n_place)
+        {
+            auto& entry = inout_entry_vec_ptr->at(in_entry_index_vec.at(n_place) );
+
+            if (is_done_vec.at(n_place) )
+            {
+                fprintf(stdout,
+                        "%u of %zu: draws %s of the frame %u: the pass makes no pixels, and so neither do they\n",
+                        entry.index + 1,
+                        inout_entry_vec_ptr->size(),
+                        OverlayReportPage::get_hex_text(entry.structure_key).c_str(),
+                        entry.frame_index);
+
+                continue;
+            }
+
+            if (write_entry_images(in_options,
+                                   &entry,
+                                   baseline_image,
+                                   image_vec.at(entry_variant_vec.at(n_place) ),
+                                   out_error_ptr) == false)
+            {
+                /* The images are what cannot be written; that is not for another way of playing the frame to mend. */
+                result = true;
+
+                goto end;
+            }
+
+            print_entry(entry,
+                        inout_entry_vec_ptr->size() );
+        }
     }
 
     result = true;
 end:
     return result;
 }
+
 
 void Stereo::Replay::ConsistencyChecker::OverlayReport::read_depth_spread(const Utils::Json::JsonValue&               in_depth,
                                                                          Analysis::APIDumpAnalysis::PassDepthSpread* out_spread_ptr)
@@ -678,7 +989,8 @@ void Stereo::Replay::ConsistencyChecker::OverlayReport::read_depth_spread(const 
 bool Stereo::Replay::ConsistencyChecker::OverlayReport::run(const Options&       in_options,
                                                            const RenderFunc&    in_render_func,
                                                            const RunShardsFunc& in_run_shards_func,
-                                                           std::string*         out_error_ptr)
+                                                           std::string*         out_error_ptr,
+                                                           const QuickPath*     in_quick_path_ptr)
 {
     std::vector<OverlayReportEntry> entry_vec;
     uint32_t                       n_shards  = 1;
@@ -753,6 +1065,7 @@ bool Stereo::Replay::ConsistencyChecker::OverlayReport::run(const Options&      
     else
     if (process_entries(in_options,
                       in_render_func,
+                      in_quick_path_ptr,
                      &entry_vec,
                       out_error_ptr) == false)
     {
@@ -788,6 +1101,38 @@ bool Stereo::Replay::ConsistencyChecker::OverlayReport::run(const Options&      
 
     result = true;
 end:
+    return result;
+}
+
+bool Stereo::Replay::ConsistencyChecker::OverlayReport::write_entry_images(const Options&              in_options,
+                                                                          OverlayReportEntry*         inout_entry_ptr,
+                                                                          const Utils::Images::Image& in_baseline_image,
+                                                                          const Utils::Images::Image& in_probe_image,
+                                                                          std::string*                out_error_ptr)
+{
+    bool result = true;
+
+    if (inout_entry_ptr->n_changed_pixels != 0)
+    {
+        inout_entry_ptr->animation_filename = make_image_filename(inout_entry_ptr->index,
+                                                                  inout_entry_ptr->frame_index,
+                                                                  "gif");
+        inout_entry_ptr->image_filename     = make_image_filename(inout_entry_ptr->index,
+                                                                  inout_entry_ptr->frame_index,
+                                                                  "png");
+
+        if (write_images(in_options.dump_directory,
+                         inout_entry_ptr->image_filename,
+                         inout_entry_ptr->animation_filename,
+                         in_baseline_image,
+                         in_probe_image) == false)
+        {
+            *out_error_ptr = "The image " + inout_entry_ptr->image_filename + " cannot be written to " + in_options.dump_directory + ".";
+
+            result = false;
+        }
+    }
+
     return result;
 }
 

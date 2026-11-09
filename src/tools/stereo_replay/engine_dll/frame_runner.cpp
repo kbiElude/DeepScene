@@ -4,6 +4,7 @@
  */
 #include "frame_runner.h"
 #include "common/macros.h"
+#include <algorithm>
 
 bool Stereo::Replay::EngineDLL::FrameRunner::run(const FrameBuffer&                                            in_buffer,
                                                  const bool&                                                   in_is_complete,
@@ -17,12 +18,16 @@ bool Stereo::Replay::EngineDLL::FrameRunner::run(const FrameBuffer&             
 {
     std::vector<::Replay::ReplayEngineDLL::ExecutionClass> class_vec;
 
-    const bool     is_twice     = (in_is_complete                                    &&
+    /* A frame that is executed more than once: twice, for the eyes, or once for each of the variants of the last frame. */
+    const bool     is_repeated  = (in_is_complete                                    &&
                                    in_skips_repeated_calls == false                  &&
-                                   in_options.mode         == FrameExecution::TWICE);
+                                   (in_options.mode        == FrameExecution::TWICE  ||
+                                    in_options.mode        == FrameExecution::VARIANTS) );
     const size_t   n_calls      = in_buffer.get_call_vec().size();
-    const uint32_t n_executions = (is_twice) ? 2
-                                             : 1;
+    const uint32_t n_executions = (is_repeated) ? ( (in_options.mode == FrameExecution::TWICE) ? 2
+                                                                                                : std::max<uint32_t>(1,
+                                                                                                                     static_cast<uint32_t>(in_options.variant_vec.size() ) ) )
+                                                : 1;
     bool           result       = false;
 
     /* Asked once, since the answer is the same in every execution. */
@@ -33,7 +38,7 @@ bool Stereo::Replay::EngineDLL::FrameRunner::run(const FrameBuffer&             
         class_vec.push_back(in_get_executor_func(call)->get_execution_class(call) );
     }
 
-    if (is_twice                   &&
+    if (is_repeated                &&
         in_options.restores_state)
     {
         for (const auto executor_ptr : in_executor_ptr_vec)

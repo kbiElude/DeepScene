@@ -9,6 +9,7 @@
 #include "replay/replay_engine_dll/types.h"
 #include <stdint.h>
 #include <string>
+#include <vector>
 
 namespace Stereo
 {
@@ -30,7 +31,18 @@ namespace Stereo
             {
                 BUFFERED_ONCE, /* the calls are read up to the present, then executed once  */
                 DIRECT,        /* each call is executed as it is read                       */
-                TWICE          /* the calls are read up to the present, then executed twice */
+                TWICE,         /* the calls are read up to the present, then executed twice */
+                VARIANTS       /* the frames before the last are played as TWICE says; the last is executed once for each of the variants, for the left eye */
+            };
+
+            /* One way of playing the last frame in the mode VARIANTS: draws that are left out besides those that the recipe leaves out, and where the frame is cut. */
+            struct FrameVariant
+            {
+                std::vector<Analysis::Recipe::PassDraw> skipped_pass_draw_vec;
+                std::vector<uint64_t>                   skipped_pass_key_vec;  /* the draws of these passes are all left out */
+                uint64_t                                truncate_draw_key    = 0;     /* truncates_after_draw: the key of the structure of the draw */
+                uint64_t                                truncate_pass_key    = 0;     /* truncates_after_draw: the key of the pass that it is in */
+                bool                                    truncates_after_draw = false; /* the frame is cut after the last call of the draws of the structure in the pass */
             };
 
             typedef ::Replay::ReplayEngineDLL::FrameImage      FrameImage;
@@ -50,6 +62,8 @@ namespace Stereo
                 uint64_t              truncate_pass_key = 0;                        /* truncates_after_draw: the key of the pass that it is in */
                 bool                  truncates_after_draw = false;                 /* the last frame (last_frame) is cut after the last call of the draws of the structure in the pass: what is
                                                                                       * drawn up to them is the image, for seeing whether they draw anything and whether what comes after covers it */
+                std::vector<FrameVariant> variant_vec;                              /* VARIANTS: the ways to play the last frame; the image of the Nth is the one of the Nth execution; the state of
+                                                                                      * the device is restored between them if restores_state is set */
             };
         }
     }

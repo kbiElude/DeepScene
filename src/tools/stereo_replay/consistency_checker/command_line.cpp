@@ -76,6 +76,9 @@ const char* Stereo::Replay::ConsistencyChecker::CommandLine::get_usage_ptr()
            "                   its start with threads of its own, and that is bound by the bandwidth of the memory: one process saturates 8 cores, and two or more\n"
            "                   were no faster (0.9 to 1.0 times). A process takes about 1.5 GB. It may pay on a machine with more memory bandwidth to the cores.\n"
            "  --overlay-report-last-frame N  With --overlay-report: look at the frames of the candidates up to the Nth only (all of them by default)\n"
+           "  --overlay-report-exact  With --overlay-report: replay each candidate on its own, from the start of the workload, as the report did before the candidates of\n"
+           "                   a frame were played in one run (which it does for a frame that can be played again from the state it leaves, when there is --deps).\n"
+           "                   Slower; each result then has one cause. Use it to check what the quick way says of a new application.\n"
            "  --parallel       Replay the ways at the same time, each with an engine of its own: faster, and needs the memory of all.\n"
            "\n"
            "  --screenshot N   Instead of the check: replay once, up to frame N, and write the image of that frame to the PNG file of --out. With a\n"
@@ -120,10 +123,11 @@ bool Stereo::Replay::ConsistencyChecker::CommandLine::parse(const std::vector<st
 
     static const FlagOption FLAG_OPTION_ARRAY[] =
     {
-        {"--history",      &Options::has_history},
-        {"--parallel",     &Options::is_parallel},
-        {"--profile",      &Options::is_profiling},
-        {"--state-census", &Options::is_state_census}
+        {"--history",              &Options::has_history},
+        {"--overlay-report-exact", &Options::overlay_report_is_exact},
+        {"--parallel",             &Options::is_parallel},
+        {"--profile",              &Options::is_profiling},
+        {"--state-census",         &Options::is_state_census}
     };
 
     static const NumberOption NUMBER_OPTION_ARRAY[] =

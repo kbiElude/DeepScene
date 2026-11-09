@@ -20,7 +20,7 @@ namespace Stereo
     {
         namespace ConsistencyChecker
         {
-            extern const Variant VARIANT_ARRAY[5];
+            extern const Variant VARIANT_ARRAY[6];
 
             /* The way of replaying that the name stands for (see print_usage), or nullptr. */
             const Variant* get_variant_ptr(const std::string& in_way_name);
@@ -32,6 +32,16 @@ namespace Stereo
                                  const uint32_t& in_frame_index,
                                  FrameHashSink*  out_sink_ptr,
                                  std::string*    out_error_ptr);
+
+            /* Replays the workload up to the frame as replay_to_frame() does, with the recipe and the dependencies of the options (which it needs), but plays the frame once
+             * for each of the variants, for the left eye, from the state that the frames before it leave, and gives the image of each in the order of the variants.
+             * False, and the reason, if the frame cannot be played that way (it carries the back buffer over, say): it is then replayed one variant at a time.
+             */
+            bool replay_variants_to_frame(const Options&                                            in_options,
+                                          const uint32_t&                                           in_frame_index,
+                                          const std::vector<Stereo::Replay::EngineDLL::FrameVariant>& in_variant_vec,
+                                          std::vector<Utils::Images::Image>*                        out_image_vec_ptr,
+                                          std::string*                                              out_error_ptr);
 
             /* Replays the frames of the options one way, and keeps what the sink is given. */
             bool run_variant(const Options&                               in_options,

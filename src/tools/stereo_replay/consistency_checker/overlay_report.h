@@ -70,7 +70,8 @@ namespace Stereo
                 static bool run(const Options&       in_options,
                                 const RenderFunc&    in_render_func,
                                 const RunShardsFunc& in_run_shards_func,
-                                std::string*         out_error_ptr);
+                                std::string*         out_error_ptr,
+                                const QuickPath*     in_quick_path_ptr = nullptr);
 
             private:
                 /* Says what to look at twice in a candidate that the recipe leaves alone: vertices at many depths, and a picture that is mostly its own. */
@@ -118,11 +119,44 @@ namespace Stereo
                                                  std::vector<OverlayReportEntry>* inout_entry_vec_ptr,
                                                  std::string*                    out_error_ptr);
 
-                /* Replays the frames of the candidates (of this part, if the options say one) with and without each, and says what they make of the picture. */
+                /* What is said of a candidate. */
+                static void print_entry(const OverlayReportEntry& in_entry,
+                                        const size_t&             in_n_entries);
+
+                /* Replays the frames of the candidates (of this part, if the options say one) with and without each, and says what they make of the picture. The candidates
+                 * of a frame are played in one run of the frame if the quick path says that the frame can be played again from the state it leaves (and the options do not ask
+                 * for each to be replayed on its own, --overlay-report-exact); a frame that cannot, or one that the quick path fails to play, is replayed a candidate at a time.
+                 */
                 static bool process_entries(const Options&                  in_options,
                                           const RenderFunc&               in_render_func,
+                                          const QuickPath*                in_quick_path_ptr,
                                           std::vector<OverlayReportEntry>* inout_entry_vec_ptr,
                                           std::string*                    out_error_ptr);
+
+                /* A candidate on its own: the frame is replayed as it is, once for each frame, then with the draw left out (and with the whole pass left out, to see whether
+                 * the pass makes pixels at all, once for each pass of a frame that has more than one candidate), and then cut after the draw, with and without it, if no pixel
+                 * differs. Each of those is a replay of the workload from its start. */
+                static bool process_entry(const Options&                                         in_options,
+                                          const RenderFunc&                                      in_render_func,
+                                          const std::map<std::pair<uint32_t, uint64_t>, size_t>& in_n_draws_of_pass_map,
+                                          const size_t&                                          in_n_entries,
+                                          OverlayReportEntry*                                    inout_entry_ptr,
+                                          std::map<uint32_t, Utils::Images::Image>*              inout_baseline_image_map_ptr,
+                                          std::map<std::pair<uint32_t, uint64_t>, bool>*         inout_is_pass_visible_map_ptr,
+                                          std::string*                                           out_error_ptr);
+
+                /* The candidates of a frame in one run of the frame, once for each: as it is, with each pass that has more than one candidate left out, with each
+                 * candidate left out, and then for those that change no pixel the frame cut after the draw with it and without it. False, before anything of the
+                 * candidates is said, if the frame cannot be played so (the reason is in the error).
+                 */
+                static bool process_frame_quick(const Options&                                         in_options,
+                                                const RenderFunc&                                      in_render_func,
+                                                const QuickPath&                                       in_quick_path,
+                                                const uint32_t&                                        in_frame_index,
+                                                const std::vector<size_t>&                             in_entry_index_vec,
+                                                const std::map<std::pair<uint32_t, uint64_t>, size_t>& in_n_draws_of_pass_map,
+                                                std::vector<OverlayReportEntry>*                       inout_entry_vec_ptr,
+                                                std::string*                                           out_error_ptr);
 
                 static void read_depth_spread(const Utils::Json::JsonValue&               in_depth,
                                               Analysis::APIDumpAnalysis::PassDepthSpread* out_spread_ptr);
@@ -133,6 +167,13 @@ namespace Stereo
                                          const std::string&          in_animation_filename,
                                          const Utils::Images::Image& in_baseline_image,
                                          const Utils::Images::Image& in_probe_image);
+
+                /* The still and the animation of a candidate that changes pixels, and their names in the entry. */
+                static bool write_entry_images(const Options&              in_options,
+                                               OverlayReportEntry*         inout_entry_ptr,
+                                               const Utils::Images::Image& in_baseline_image,
+                                               const Utils::Images::Image& in_probe_image,
+                                               std::string*                out_error_ptr);
 
                 static bool write_list(const std::string&                    in_filename,
                                        const std::vector<OverlayReportEntry>& in_entry_vec,

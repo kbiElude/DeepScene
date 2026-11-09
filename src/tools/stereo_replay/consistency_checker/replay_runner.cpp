@@ -16,7 +16,8 @@ const Stereo::Replay::ConsistencyChecker::Variant Stereo::Replay::ConsistencyChe
     {Stereo::Replay::EngineDLL::FrameExecution::DIRECT, "as they are, again",                false, false},
     {Stereo::Replay::EngineDLL::FrameExecution::TWICE,  "twice",                             false, false},
     {Stereo::Replay::EngineDLL::FrameExecution::TWICE,  "twice, the state put back between", true,  false},
-    {Stereo::Replay::EngineDLL::FrameExecution::TWICE,  "twice, for the eyes of the recipe", true,  true}
+    {Stereo::Replay::EngineDLL::FrameExecution::TWICE,  "twice, for the eyes of the recipe", true,  true},
+    {Stereo::Replay::EngineDLL::FrameExecution::VARIANTS, "the last frame once for each variant", true, true}
 };
 
 /* Says how the executions of a way of replaying differ from the frames as they are. Returns the first frame in which one of the
@@ -79,6 +80,46 @@ bool Stereo::Replay::ConsistencyChecker::replay_to_frame(const Stereo::Replay::C
                        out_error_ptr);
 }
 
+bool Stereo::Replay::ConsistencyChecker::replay_variants_to_frame(const Stereo::Replay::ConsistencyChecker::Options&              in_options,
+                                                                  const uint32_t&                                                in_frame_index,
+                                                                  const std::vector<Stereo::Replay::EngineDLL::FrameVariant>&    in_variant_vec,
+                                                                  std::vector<Utils::Images::Image>*                             out_image_vec_ptr,
+                                                                  std::string*                                                   out_error_ptr)
+{
+    Stereo::Replay::ConsistencyChecker::Options       options = in_options;
+    bool                                              result  = false;
+    Stereo::Replay::ConsistencyChecker::FrameHashSink sink(true); /* in_keeps_images */
+
+    /* The frames before the one asked for are replayed with the recipe, with the dependencies leaving out what nothing after the frame reads, as replay_to_frame()
+     * does when it has them; the variants are of the last frame alone.
+     */
+    options.first_frame       = 0;
+    options.frame_variant_vec = in_variant_vec;
+    options.last_frame        = in_frame_index;
+
+    sink.set_frames_to_keep({in_frame_index});
+
+    if (run_variant(options,
+                    VARIANT_ARRAY[5],
+                   &sink,
+                    out_error_ptr) )
+    {
+        out_image_vec_ptr->clear();
+
+        for (uint32_t n_variant = 0;
+                      n_variant < in_variant_vec.size();
+                    ++n_variant)
+        {
+            out_image_vec_ptr->push_back(sink.get_image({in_frame_index,
+                                                         n_variant}) );
+        }
+
+        result = true;
+    }
+
+    return result;
+}
+
 bool Stereo::Replay::ConsistencyChecker::run_variant(const Stereo::Replay::ConsistencyChecker::Options& in_options,
                                                      const Variant&                                     in_variant,
                                                      Stereo::Replay::ConsistencyChecker::FrameHashSink* out_sink_ptr,
@@ -100,6 +141,7 @@ bool Stereo::Replay::ConsistencyChecker::run_variant(const Stereo::Replay::Consi
     execution_options.truncate_draw_key    = in_options.truncate_draw_key;
     execution_options.truncate_pass_key    = in_options.truncate_pass_key;
     execution_options.truncates_after_draw = in_options.has_truncation;
+    execution_options.variant_vec          = in_options.frame_variant_vec;
 
     {
         auto* const                                      controller_ptr = engine_ptr->get_playback_controller_ptr();

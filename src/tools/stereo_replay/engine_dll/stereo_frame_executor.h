@@ -117,7 +117,9 @@ namespace Stereo
                  * glEnd makes a draw of) are left out with it: a primitive is drawn as its vertices are given, and a draw that only loses its glEnd is still seen.
                  */
                 /* The call after which the frame is cut (see FrameExecutionOptions::truncates_after_draw): the last call of the draws of the structure in the pass. */
-                void find_truncation_call    (const Analysis::APIDumpAnalysis::CompletedFrame& in_frame);
+                void find_truncation_call    (const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
+                                              const uint64_t&                                  in_truncate_pass_key,
+                                              const uint64_t&                                  in_truncate_draw_key);
 
                 /* The calls that begin the camera of the draws of the frame that the recipe affects (see m_view_anchor_call_index_set). False, and the reason, if a draw that is
                  * affected has no camera that a call begins, or one call begins the camera of draws of which some are affected and some are not: the eye of such a draw
@@ -129,7 +131,17 @@ namespace Stereo
                 bool get_eye_history_need    (const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
                                               bool*                                            out_needs_history_ptr,
                                               std::string*                                     out_error_ptr) const;
+                /* Whether a draw is left out: by the recipe, or by the variant that the frame is being executed as (see FrameVariant). */
+                bool is_draw_skipped_here    (const uint64_t&                                  in_pass_key,
+                                              const uint64_t&                                  in_draw_key) const;
                 bool is_call_skipped         (const uint64_t&                                  in_call_index) const;
+
+                /* Makes the frame ready to be executed as the variant (none: as the recipe says): the calls that are left out, where the frame is cut, and the calls that
+                 * begin the camera of the draws that are played. False, and the reason, as find_view_anchor_calls() says.
+                 */
+                bool prepare_variant         (const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
+                                              const FrameVariant*                              in_variant_ptr,
+                                              std::string*                                     out_error_ptr);
                 bool read_back_buffer        (std::vector<uint8_t>*                            out_pixel_u8_vec_ptr,
                                               FrameImage*                                      out_image_ptr);
                 bool read_next_call          (const Capture::APIDumpLoader::DumpedAPICall**    out_call_ptr_ptr);
@@ -145,6 +157,7 @@ namespace Stereo
                 FrameBuffer                                                            m_frame_buffer; /* the frame being played, in the replay thread */
                 FrameExecutionOptions                                                  m_frame_execution;
                 float                                                                  m_frame_eye_separation; /* the one the frame being played is made with */
+                FrameExecution                                                         m_frame_mode; /* of the frame being played: VARIANTS only for the last frame; TWICE for those before it */
                 ::Replay::ReplayEngineDLL::IFrameHost*                                 m_host_ptr; /* of the frame being played */
                 const FrameHurry*                                                      m_hurry_ptr;
                 IFrameImageSink*                                                       m_image_sink_ptr;
@@ -156,6 +169,7 @@ namespace Stereo
                 uint64_t                                                               m_truncate_after_call; /* of the frame being played: the calls after it are left out; UINT64_MAX: none */
                 std::vector<std::pair<uint64_t, uint64_t> >                            m_skipped_call_range_vec; /* of the frame being played: from the first call to the last, in order */
                 std::set<uint64_t>                                                     m_view_anchor_call_index_set; /* of the frame being played: the calls that begin the camera of the draws that are affected */
+                const FrameVariant*                                                    m_variant_ptr; /* of the execution that is being made, in the mode VARIANTS; none otherwise */
             };
         }
     }
