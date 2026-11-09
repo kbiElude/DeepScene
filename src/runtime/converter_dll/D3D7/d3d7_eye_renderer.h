@@ -151,6 +151,8 @@ namespace Stereo
                                  RightEyeScope* out_scope_ptr) const;
 
             /* How much larger the surface that the application renders to is than it knows: 1 unless it is the back buffer, which is made larger. */
+            Stereo::Core::ResolutionPolicy get_render_policy() const;
+
             float get_render_scale() const;
 
             /* What the application set is in the device again. */

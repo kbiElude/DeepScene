@@ -66,3 +66,37 @@ uint32_t Stereo::Core::ResolutionPolicy::scale_extent(const uint32_t& in_extent)
 {
     return static_cast<uint32_t>(::floor(static_cast<double>(in_extent) * static_cast<double>(m_scale) + 0.5) );
 }
+
+Stereo::Core::PixelRect Stereo::Core::ResolutionPolicy::scale_rect(const PixelRect& in_rect) const
+{
+    PixelRect result;
+
+    result.height = scale_extent(in_rect.height);
+    result.width  = scale_extent(in_rect.width);
+    result.x      = scale_extent(in_rect.x);
+    result.y      = scale_extent(in_rect.y);
+
+    return result;
+}
+
+Stereo::Core::PixelRect Stereo::Core::ResolutionPolicy::scale_rect(const PixelRect& in_rect,
+                                                                   const uint32_t&  in_bounds_width,
+                                                                   const uint32_t&  in_bounds_height) const
+{
+    PixelRect result = scale_rect(in_rect);
+
+    /* Rounding must not take the rectangle out of what it is for. */
+    if (result.x + result.width > in_bounds_width)
+    {
+        result.width = (result.x < in_bounds_width) ? in_bounds_width - result.x
+                                                    : 0;
+    }
+
+    if (result.y + result.height > in_bounds_height)
+    {
+        result.height = (result.y < in_bounds_height) ? in_bounds_height - result.y
+                                                      : 0;
+    }
+
+    return result;
+}

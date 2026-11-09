@@ -75,3 +75,78 @@ TEST(ResolutionPolicyTest, TheScaleThatFitsAnImageInATargetKeepsItsProportions)
     EXPECT_FLOAT_EQ(Stereo::Core::ResolutionPolicy::get_fit_scale(2064, 2208, 0, 600),
                     1.0f);
 }
+
+TEST(ResolutionPolicyTest, ARectangleHasEachOfItsFourNumbersMadeAsLargeAndRounded)
+{
+    const Stereo::Core::ResolutionPolicy policy(2.5f);
+    Stereo::Core::PixelRect              rect;
+
+    rect.height = 7;
+    rect.width  = 10;
+    rect.x      = 3;
+    rect.y      = 1;
+
+    const auto scaled = policy.scale_rect(rect);
+
+    EXPECT_EQ(scaled.height,
+              policy.scale_extent(7) );
+    EXPECT_EQ(scaled.width,
+              25u);
+    EXPECT_EQ(scaled.x,
+              policy.scale_extent(3) );
+    EXPECT_EQ(scaled.y,
+              policy.scale_extent(1) );
+}
+
+TEST(ResolutionPolicyTest, ARectangleWithBoundsIsKeptInsideThemWhereRoundingWouldTakeItOut)
+{
+    const Stereo::Core::ResolutionPolicy policy(2.5f);
+    Stereo::Core::PixelRect              rect;
+
+    /* 5 * 2.5 = 12.5 rounds up to 13, and 3 * 2.5 = 7.5 to 8: 21 of a target that is 20 wide. */
+    rect.height = 4;
+    rect.width  = 5;
+    rect.x      = 3;
+    rect.y      = 0;
+
+    const auto scaled = policy.scale_rect(rect,
+                                          20,
+                                          10);
+
+    EXPECT_EQ(scaled.x,
+              8u);
+    EXPECT_EQ(scaled.width,
+              12u);
+    EXPECT_EQ(scaled.height,
+              10u);
+
+    /* One that begins outside has nothing left. */
+    rect.x = 9;
+
+    EXPECT_EQ(policy.scale_rect(rect,
+                                20,
+                                10).width,
+              0u);
+}
+
+TEST(ResolutionPolicyTest, AnIdentityPolicyLeavesARectangleAsItIs)
+{
+    const Stereo::Core::ResolutionPolicy policy(1.0f);
+    Stereo::Core::PixelRect              rect;
+
+    rect.height = 480;
+    rect.width  = 640;
+    rect.x      = 0;
+    rect.y      = 50;
+
+    const auto scaled = policy.scale_rect(rect,
+                                          640,
+                                          480);
+
+    EXPECT_EQ(scaled.height,
+              430u); /* kept inside the 480 the target has: 50 + 480 is more */
+    EXPECT_EQ(scaled.width,
+              640u);
+    EXPECT_EQ(scaled.y,
+              50u);
+}

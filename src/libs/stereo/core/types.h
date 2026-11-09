@@ -9,6 +9,7 @@
 #include "common/types.h"
 #include <array>
 #include <functional>
+#include <stdint.h>
 #include <string>
 #include <vector>
 
@@ -46,6 +47,15 @@ namespace Stereo
         };
 
         /* How the x of the vertices are moved. */
+        /* A rectangle of pixels: where its top left corner is, and how large it is. */
+        struct PixelRect
+        {
+            uint32_t height = 0;
+            uint32_t width  = 0;
+            uint32_t x      = 0;
+            uint32_t y      = 0;
+        };
+
         enum class ScreenShiftKind
         {
             NONE,       /* as they are                                                              */

@@ -10,6 +10,7 @@
 #include "d3d7_windowed_mode.h"
 #include "eye_image_limits.h"
 #include "own_call_scope.h"
+#include "render_scale_planner.h"
 #include <Windows.h>
 
 Stereo::ConverterDLL::D3D7WindowedMode::D3D7WindowedMode()
@@ -35,6 +36,11 @@ void Stereo::ConverterDLL::D3D7WindowedMode::get_display_size(uint32_t* out_widt
 {
     *out_height_ptr = m_display_height;
     *out_width_ptr  = m_display_width;
+}
+
+const Stereo::Core::ResolutionPolicy& Stereo::ConverterDLL::D3D7WindowedMode::get_policy() const
+{
+    return m_policy;
 }
 
 float Stereo::ConverterDLL::D3D7WindowedMode::get_render_scale() const
@@ -276,21 +282,11 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_set_display_mode(const APIIn
             if (m_target_height != 0 &&
                 m_target_width  != 0)
             {
-                const float channel_scale = EyeImageLimits::get_largest_scale            (width,
-                                                                                          height);
-                const float fit_scale     = Stereo::Core::ResolutionPolicy::get_fit_scale(m_target_width,
-                                                                                          m_target_height,
-                                                                                          width,
-                                                                                          height);
-                const float surface_scale = Stereo::Core::ResolutionPolicy::get_fit_scale(MAX_RENDER_TARGET_EXTENT,
-                                                                                          MAX_RENDER_TARGET_EXTENT,
-                                                                                          width,
-                                                                                          height);
-                const float smaller_scale = (fit_scale < channel_scale) ? fit_scale
-                                                                        : channel_scale;
-
-                m_policy = Stereo::Core::ResolutionPolicy((surface_scale < smaller_scale) ? surface_scale
-                                                                                          : smaller_scale);
+                m_policy = Stereo::Core::ResolutionPolicy(RenderScalePlanner::choose_scale(m_target_width,
+                                                                                           m_target_height,
+                                                                                           width,
+                                                                                           height,
+                                                                                           MAX_RENDER_TARGET_EXTENT) );
             }
         }
     }

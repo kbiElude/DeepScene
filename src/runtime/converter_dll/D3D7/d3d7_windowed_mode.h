@@ -42,6 +42,11 @@ namespace Stereo
             void get_display_size(uint32_t* out_width_ptr,
                                   uint32_t* out_height_ptr) const;
 
+            /* How the back buffer is made larger than the application asks, to fit the images that are shown: the identity until the size of the display mode is known, and when
+             * nothing is made larger.
+             */
+            const Stereo::Core::ResolutionPolicy& get_policy() const;
+
             /* How much larger than the application asks the back buffer is made, to fit the images that are shown: 1 until the size of the display
              * mode is known, and when nothing is made larger.
              */

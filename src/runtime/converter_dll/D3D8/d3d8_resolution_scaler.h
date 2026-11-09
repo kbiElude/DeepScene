@@ -68,9 +68,6 @@ namespace Stereo
                                std::vector<uint8_t>*              inout_chunk_ptr) const;
 
         private:
-            /* What the application does, as it is told to the person it is stopped for. */
-            static const char* get_hazard_reason(const Analysis::APIDumpAnalysis::ResolutionHazard& in_hazard);
-
             uint32_t                                m_asked_height; /* of the back buffer, 0 until the device is made */
             uint32_t                                m_asked_width;
             Stereo::Core::StereoCore*               m_core_ptr;

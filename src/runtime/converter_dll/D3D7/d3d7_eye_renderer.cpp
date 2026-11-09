@@ -400,6 +400,12 @@ uint64_t Stereo::ConverterDLL::D3D7EyeRenderer::get_n_unmirrored_calls() const
     return m_n_unmirrored_calls;
 }
 
+Stereo::Core::ResolutionPolicy Stereo::ConverterDLL::D3D7EyeRenderer::get_render_policy() const
+{
+    return (m_surface_twins.is_back_buffer(m_mirror.render_target_ptr) ) ? m_windowed_mode_ptr->get_policy()
+                                                                         : Stereo::Core::ResolutionPolicy(Stereo::Core::ResolutionPolicy::get_min_scale() );
+}
+
 float Stereo::ConverterDLL::D3D7EyeRenderer::get_render_scale() const
 {
     return (m_surface_twins.is_back_buffer(m_mirror.render_target_ptr) ) ? m_windowed_mode_ptr->get_render_scale()
@@ -951,12 +957,14 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::play_clear(const uint32_t&          
             rect_vec.assign(rects_ptr,
                             rects_ptr + count);
 
+            const auto policy = get_render_policy();
+
             for (auto& rect : rect_vec)
             {
-                rect.x1 = static_cast<LONG>(static_cast<float>(rect.x1) * scale + 0.5f);
-                rect.x2 = static_cast<LONG>(static_cast<float>(rect.x2) * scale + 0.5f);
-                rect.y1 = static_cast<LONG>(static_cast<float>(rect.y1) * scale + 0.5f);
-                rect.y2 = static_cast<LONG>(static_cast<float>(rect.y2) * scale + 0.5f);
+                rect.x1 = static_cast<LONG>(policy.scale_extent(static_cast<uint32_t>(rect.x1) ) );
+                rect.x2 = static_cast<LONG>(policy.scale_extent(static_cast<uint32_t>(rect.x2) ) );
+                rect.y1 = static_cast<LONG>(policy.scale_extent(static_cast<uint32_t>(rect.y1) ) );
+                rect.y2 = static_cast<LONG>(policy.scale_extent(static_cast<uint32_t>(rect.y2) ) );
             }
 
             rects_ptr = rect_vec.data();
@@ -1310,10 +1318,19 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::set_effective_viewport(void* in_devi
 
     if (scale != 1.0f)
     {
-        viewport.dwHeight = static_cast<DWORD>(static_cast<float>(viewport.dwHeight) * scale + 0.5f);
-        viewport.dwWidth  = static_cast<DWORD>(static_cast<float>(viewport.dwWidth)  * scale + 0.5f);
-        viewport.dwX      = static_cast<DWORD>(static_cast<float>(viewport.dwX)      * scale + 0.5f);
-        viewport.dwY      = static_cast<DWORD>(static_cast<float>(viewport.dwY)      * scale + 0.5f);
+        Stereo::Core::PixelRect rect;
+
+        rect.height = viewport.dwHeight;
+        rect.width  = viewport.dwWidth;
+        rect.x      = viewport.dwX;
+        rect.y      = viewport.dwY;
+
+        rect = get_render_policy().scale_rect(rect);
+
+        viewport.dwHeight = rect.height;
+        viewport.dwWidth  = rect.width;
+        viewport.dwX      = rect.x;
+        viewport.dwY      = rect.y;
     }
 
     APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECT3DDEVICE7_SETVIEWPORT>(vtable,

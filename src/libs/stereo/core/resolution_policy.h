@@ -6,6 +6,7 @@
 #define STEREO_CORE_RESOLUTION_POLICY_H
 
 #include <stdint.h>
+#include "stereo/core/types.h"
 
 namespace Stereo
 {
@@ -28,6 +29,14 @@ namespace Stereo
 
             /* The size in pixels that an extent which the application asks for is made, to the nearest pixel. */
             uint32_t scale_extent(const uint32_t& in_extent) const;
+
+            /* The rectangle that a rectangle which the application asks for is made: each of its four numbers to the nearest pixel, as scale_extent() does; the one with bounds is kept within
+             * them (the size of what it is for), which the rounding of the numbers could take it out of.
+             */
+            PixelRect scale_rect(const PixelRect& in_rect) const;
+            PixelRect scale_rect(const PixelRect& in_rect,
+                                 const uint32_t&  in_bounds_width,
+                                 const uint32_t&  in_bounds_height) const;
 
 
             /* The scale that makes an image of the size the application asks for as large as it can be in a target, with its proportions: the
