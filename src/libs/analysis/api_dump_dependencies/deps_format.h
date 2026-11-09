@@ -11,7 +11,8 @@
  *   RSRC  the resources, as in a .passes file (see PassesSerializer::serialize_resources)
  *   FCAL  the calls of each frame: the first and the last
  *   RDEP  for each resource: its totals, the runs of frames which use it in the same way, and the versions of its content with the frames which
- *         use each
+ *         use each and the rectangles that the frame which wrote it wrote (when the resource is one that every write said where it landed in), and
+ *         then the rectangle that holds all of those, if there is one
  *
  * Workload data is not stored. analysis_version is the version of what the sections mean (see DependencyAnalyzer): bump it whenever a file made
  * from the same workload would come out different.
@@ -28,8 +29,8 @@ namespace Analysis
     {
         namespace DepsFormat
         {
-            constexpr uint32_t ANALYSIS_VERSION = 1;
-            constexpr uint32_t FILE_VERSION     = 1;
+            constexpr uint32_t ANALYSIS_VERSION = 2;
+            constexpr uint32_t FILE_VERSION     = 2;
             constexpr char     MAGIC[8]         = {'A', 'P', 'I', 'D', 'E', 'P', 'S', 'F'};
 
             constexpr uint32_t TAG_FCAL = Analysis::APIDumpAnalysis::make_section_tag('F', 'C', 'A', 'L');

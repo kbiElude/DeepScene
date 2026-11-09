@@ -83,15 +83,25 @@ namespace Analysis
 
         /* What a resource held from the frame which wrote it to the next one which does: the content that the frames in between use. A version
          * which has no writer is what the resource held when the application made it.
+         *
+         * input_resource_vec is the resources (by number, from 1) whose content before the writer's frame flows into this version through the calls of the
+         * frame, other than this resource itself: what the writer has to be given for this version to come out as it did, as against all that the frame uses.
+         * It is known (has_inputs) for a resource that has a written extent, when its own content before the frame does not flow into what the frame writes
+         * to it, other than by what a write that is only a part of it leaves; otherwise the writer is taken to need all that it uses.
          */
         struct ResourceVersion
         {
             std::vector<FrameRange> consumer_range_vec;                    /* the frames which use the content, in order                                 */
+            bool                    has_inputs                 = false;    /* input_resource_vec is known                                                */
             bool                    has_writer                 = false;
+            std::vector<uint32_t>   input_resource_vec;                    /* see the comment of the struct                                              */
             bool                    keeps_earlier_content      = false;    /* the writer did not replace all of it: the version before is still there in part */
             uint64_t                n_consumer_frames          = 0;
             uint64_t                n_possible_consumer_frames = 0;        /* of the above, those which may not use it at all (CarryKind::POSSIBLE)      */
             uint64_t                writer_frame_index         = 0;        /* valid if has_writer                                                        */
+
+            /* Where the writer wrote (see ResourceDependencies::written_extent), if the extent of everything that was written to the resource is known. */
+            std::vector<Analysis::APIDumpAnalysis::AccessRectangle> written_rectangle_vec;
         };
 
         /* A resource in numbers. A frame is counted for what it does, once. */
@@ -116,6 +126,12 @@ namespace Analysis
             ResourceSummary              summary;
             std::vector<UseRun>          use_run_vec;
             std::vector<ResourceVersion> version_vec;
+
+            /* The rectangle that holds every part of the resource that a write which does not replace all of it reached, in the first level of the first
+             * layer. Known if every such write said where it landed (the rest of the resource then holds what it was made with, or what a write that
+             * replaced all of it gave it, whichever frame is the last to be made); not known otherwise, and then the versions say nothing of where.
+             */
+            Analysis::APIDumpAnalysis::AccessRectangle written_extent;
         };
 
         /* What the frames of a workload do with every resource, by the number of the resource less 1. */

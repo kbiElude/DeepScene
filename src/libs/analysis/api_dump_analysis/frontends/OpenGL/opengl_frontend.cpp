@@ -88,13 +88,24 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::copy_to_bound_texture
         const auto source       = (format_class == Analysis::APIDumpAnalysis::FormatClass::COLOR) ? m_color_view
                                                                                                    : m_depth_stencil_view;
 
-        Analysis::APIDumpAnalysis::ResourceView destination;
+        Analysis::APIDumpAnalysis::AccessRectangle destination_rectangle;
+        Analysis::APIDumpAnalysis::ResourceView    destination;
 
         destination.mip_level   = in_level;
         destination.resource_id = texture_iterator->second.resource_id;
 
+        /* Where in the level the copy lands, for the frames that the dependencies say are not needed: a texture that the frames fill a strip at a time is
+         * whole again after a few of them.
+         */
+        destination_rectangle.height   = in_height;
+        destination_rectangle.is_known = true;
+        destination_rectangle.width    = in_width;
+        destination_rectangle.x        = in_x_offset;
+        destination_rectangle.y        = in_y_offset;
+
         m_builder_ptr->on_copy(source,
-                               destination);
+                               destination,
+                               destination_rectangle);
 
         report_render_write(in_state,
                             in_level,
@@ -2028,10 +2039,29 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_tex_image(cons
                              level,
                              texture_level);
 
+        /* The call gives the pixels of all of the level, which it makes the size it says: all of the texture, if the level is the only one that it has. A texture
+         * with other levels keeps them, so what is given to this one is told no more than it was.
+         */
+        const uint32_t                             bound_name       = get_bound_texture_name(*inout_state_ptr);
+        const auto                                 bound_iterator   = m_texture_map.find(bound_name);
+        const bool                                 has_only_level   = (bound_iterator != m_texture_map.end() &&
+                                                                       bound_iterator->second.level_map.size() <= 1);
+        Analysis::APIDumpAnalysis::AccessRectangle level_rectangle;
+
+        if (has_only_level)
+        {
+            level_rectangle.height   = texture_level.height;
+            level_rectangle.is_known = true;
+            level_rectangle.width    = texture_level.width;
+        }
+
         upload_texture_level(in_call,
                              in_workload,
                              *inout_state_ptr,
-                             level);
+                             level,
+                             (has_only_level) ? Analysis::APIDumpAnalysis::AccessCoverage::FULL
+                                              : Analysis::APIDumpAnalysis::AccessCoverage::UNKNOWN,
+                             level_rectangle);
 
         report_upload(in_call,
                       in_workload,
@@ -2170,10 +2200,21 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_tex_sub_image(
                 texture_iterator->second.dirty_level_set.insert(level);
             }
 
+            /* The call gives the pixels of a rectangle of the level. */
+            Analysis::APIDumpAnalysis::AccessRectangle sub_image_rectangle;
+
+            sub_image_rectangle.height   = image_array.at(5);
+            sub_image_rectangle.is_known = true;
+            sub_image_rectangle.width    = image_array.at(4);
+            sub_image_rectangle.x        = image_array.at(2);
+            sub_image_rectangle.y        = image_array.at(3);
+
             upload_texture_level(in_call,
                                  in_workload,
                                  *inout_state_ptr,
-                                 level);
+                                 level,
+                                 Analysis::APIDumpAnalysis::AccessCoverage::PARTIAL,
+                                 sub_image_rectangle);
 
             report_upload(in_call,
                           in_workload,
@@ -3016,10 +3057,12 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::specify_texture(const
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::upload_texture_level(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                const Capture::APIDumpLoader::Workload&      in_workload,
-                                                                                const GlContextState&                        in_state,
-                                                                                const uint32_t&                              in_level)
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::upload_texture_level(const Capture::APIDumpLoader::DumpedAPICall&      in_call,
+                                                                                const Capture::APIDumpLoader::Workload&           in_workload,
+                                                                                const GlContextState&                             in_state,
+                                                                                const uint32_t&                                   in_level,
+                                                                                const Analysis::APIDumpAnalysis::AccessCoverage&  in_coverage,
+                                                                                const Analysis::APIDumpAnalysis::AccessRectangle& in_rectangle)
 {
     constexpr size_t PIXELS_ARGUMENT = 8;
 
@@ -3047,7 +3090,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::upload_texture_level(
                                     &data) )
         {
             m_builder_ptr->on_upload(destination,
-                                     data);
+                                     data,
+                                     in_coverage,
+                                     in_rectangle);
         }
     }
 }

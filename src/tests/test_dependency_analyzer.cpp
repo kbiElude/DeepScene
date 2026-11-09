@@ -464,3 +464,243 @@ TEST(DependencyAnalyzer, ThreadsGiveTheResultOfOne)
                   b.version_vec.size() )       << "resource " << n_resource;
     }
 }
+
+TEST(DependencyAnalyzer, TheExtentOfWritesIsTheRectangleThatHoldsAllOfThemWhenEachSaysWhereItLanded)
+{
+    Scene scene;
+    const auto texture = scene.create_resource();
+
+    scene.copy_to(texture, 0, 0, 10, 10);
+    scene.sample (texture);
+    scene.end_frame();
+
+    scene.copy_to(texture, 20, 5, 10, 10);
+    scene.sample (texture);
+    scene.end_frame();
+
+    const auto  result       = scene.analyze();
+    const auto& dependencies = result.resource_vec.at(0);
+
+    ASSERT_TRUE(dependencies.written_extent.is_known);
+
+    EXPECT_EQ(dependencies.written_extent.x,
+              0u);
+    EXPECT_EQ(dependencies.written_extent.y,
+              0u);
+    EXPECT_EQ(dependencies.written_extent.width,
+              30u);
+    EXPECT_EQ(dependencies.written_extent.height,
+              15u);
+
+    /* What each frame wrote is kept with the version it made: the one before the first has no writer. */
+    ASSERT_EQ(dependencies.version_vec.size(),
+              3u);
+    ASSERT_EQ(dependencies.version_vec.at(2).written_rectangle_vec.size(),
+              1u);
+
+    EXPECT_EQ(dependencies.version_vec.at(1).written_rectangle_vec.at(0).x,
+              0u);
+    EXPECT_EQ(dependencies.version_vec.at(2).written_rectangle_vec.at(0).x,
+              20u);
+    EXPECT_EQ(dependencies.version_vec.at(2).written_rectangle_vec.at(0).y,
+              5u);
+}
+
+TEST(DependencyAnalyzer, AWriteThatDoesNotSayWhereItLandedMakesTheExtentNotKnown)
+{
+    Scene scene;
+    const auto texture = scene.create_resource(1,
+                                               ResourceKind::TEXTURE_2D,
+                                               true); /* in_is_render_target */
+
+    scene.copy_to(texture, 0, 0, 10, 10);
+    scene.end_frame();
+
+    scene.draw_to(texture);
+    scene.end_frame();
+
+    const auto result = scene.analyze();
+
+    EXPECT_FALSE(result.resource_vec.at(0).written_extent.is_known);
+    EXPECT_TRUE (result.resource_vec.at(0).version_vec.at(1).written_rectangle_vec.empty() );
+}
+
+TEST(DependencyAnalyzer, AWriteToAnotherMipLevelMakesTheExtentNotKnown)
+{
+    Scene scene;
+    const auto texture = scene.create_resource(2);
+
+    scene.copy_to(texture, 0, 0, 10, 10);
+    scene.copy_to(texture, 0, 0, 5, 5, 1 /* in_mip_level */);
+    scene.end_frame();
+
+    EXPECT_FALSE(scene.analyze().resource_vec.at(0).written_extent.is_known);
+}
+
+TEST(DependencyAnalyzer, AWriteThatReplacesAllOfTheResourceIsNotOneThatTheExtentIsOf)
+{
+    Scene scene;
+    const auto texture = scene.create_resource();
+
+    scene.access(texture,
+                 AccessRole::UPLOAD_DESTINATION,
+                 AccessMode::WRITE,
+                 AccessCoverage::FULL);
+    scene.next_call();
+    scene.end_frame();
+
+    scene.copy_to(texture, 4, 4, 8, 8);
+    scene.end_frame();
+
+    const auto  result       = scene.analyze();
+    const auto& dependencies = result.resource_vec.at(0);
+
+    ASSERT_TRUE(dependencies.written_extent.is_known);
+
+    EXPECT_EQ(dependencies.written_extent.x,
+              4u);
+    EXPECT_EQ(dependencies.written_extent.width,
+              8u);
+    /* Nothing reads the texture before the upload, so its version is the first. The frame that replaced all of the texture has nothing to say of where. */
+    ASSERT_EQ(dependencies.version_vec.size(),
+              2u);
+    EXPECT_TRUE(dependencies.version_vec.at(0).written_rectangle_vec.empty() );
+    EXPECT_EQ  (dependencies.version_vec.at(1).written_rectangle_vec.size(),
+                1u);
+}
+
+namespace
+{
+    /* A frame of the shape of the one that the inputs are about: the target is cleared, a draw reads a texture and renders to it, a copy takes it to the
+     * strip of another texture, and a draw samples that texture and renders to the target.
+     */
+    void make_strip_frame(Scene*            inout_scene_ptr,
+                          const ResourceId& in_source,
+                          const ResourceId& in_strip_texture,
+                          const ResourceId& in_target,
+                          const uint32_t&   in_strip_x,
+                          const bool&       in_samples_strip_first)
+    {
+        inout_scene_ptr->clear_fully(in_target);
+
+        if (in_samples_strip_first)
+        {
+            inout_scene_ptr->access(in_strip_texture,
+                                    AccessRole::SAMPLED,
+                                    AccessMode::READ);
+            inout_scene_ptr->access(in_target,
+                                    AccessRole::COLOR_ATTACHMENT,
+                                    AccessMode::WRITE);
+            inout_scene_ptr->next_call();
+        }
+
+        inout_scene_ptr->access(in_source,
+                                AccessRole::SAMPLED,
+                                AccessMode::READ);
+        inout_scene_ptr->access(in_target,
+                                AccessRole::COLOR_ATTACHMENT,
+                                AccessMode::WRITE);
+        inout_scene_ptr->next_call();
+
+        inout_scene_ptr->access(in_target,
+                                AccessRole::TRANSFER_SOURCE,
+                                AccessMode::READ);
+        inout_scene_ptr->copy_to(in_strip_texture,
+                                 in_strip_x,
+                                 0,
+                                 10,
+                                 10);
+
+        inout_scene_ptr->access(in_strip_texture,
+                                AccessRole::SAMPLED,
+                                AccessMode::READ);
+        inout_scene_ptr->access(in_target,
+                                AccessRole::COLOR_ATTACHMENT,
+                                AccessMode::WRITE);
+        inout_scene_ptr->next_call();
+        inout_scene_ptr->end_frame();
+    }
+}
+
+TEST(DependencyAnalyzer, WhatFlowsIntoAStripIsWhatTheCallsThatMadeItReadAndNotWhatIsReadAfterIt)
+{
+    Scene scene;
+    const auto source = scene.create_resource(); /* resource 1 */
+    const auto strips = scene.create_resource(); /* resource 2 */
+    const auto target = scene.create_resource(1,
+                                              ResourceKind::TEXTURE_2D,
+                                              true); /* resource 3; in_is_render_target */
+
+    for (uint32_t n_frame = 0;
+                  n_frame < 3;
+                ++n_frame)
+    {
+        make_strip_frame(&scene,
+                         source,
+                         strips,
+                         target,
+                         n_frame * 10,
+                         false /* in_samples_strip_first */);
+    }
+
+    const auto  result       = scene.analyze();
+    const auto& dependencies = result.resource_vec.at(1);
+
+    ASSERT_TRUE(dependencies.written_extent.is_known);
+    ASSERT_EQ(dependencies.version_vec.size(),
+              4u);
+
+    for (size_t n_version = 1;
+                n_version < dependencies.version_vec.size();
+              ++n_version)
+    {
+        const auto& version = dependencies.version_vec.at(n_version);
+
+        /* The strip is what the target was when it was copied, and that is what the draw before the copy made of the texture it read: resource 1, which is not
+         * the strip texture itself (the draw that samples it comes after the copy).
+         */
+        ASSERT_TRUE(version.has_inputs) << "version " << n_version;
+        EXPECT_EQ(version.input_resource_vec,
+                  (std::vector<uint32_t>{1}) ) << "version " << n_version;
+    }
+}
+
+TEST(DependencyAnalyzer, WhenTheContentOfAResourceFlowsIntoWhatIsWrittenToItItsVersionsDoNotSayWhatFlowsIntoThem)
+{
+    Scene scene;
+    const auto source = scene.create_resource();
+    const auto strips = scene.create_resource();
+    const auto target = scene.create_resource(1,
+                                              ResourceKind::TEXTURE_2D,
+                                              true); /* in_is_render_target */
+
+    /* A draw that samples the strips and renders to the target comes before the copy: what the strips had flows into what is copied to them. */
+    make_strip_frame(&scene,
+                     source,
+                     strips,
+                     target,
+                     0,
+                     true /* in_samples_strip_first */);
+
+    const auto result = scene.analyze();
+
+    ASSERT_TRUE(result.resource_vec.at(1).written_extent.is_known);
+    EXPECT_FALSE(result.resource_vec.at(1).version_vec.at(1).has_inputs);
+    EXPECT_TRUE (result.resource_vec.at(1).version_vec.at(1).input_resource_vec.empty() );
+}
+
+TEST(DependencyAnalyzer, ResourcesThatNoWrittenExtentIsKnownOfHaveNoInputs)
+{
+    Scene scene;
+    const auto texture = scene.create_resource(1,
+                                               ResourceKind::TEXTURE_2D,
+                                               true); /* in_is_render_target */
+
+    scene.draw_to(texture);
+    scene.end_frame();
+
+    for (const auto& version : scene.analyze().resource_vec.at(0).version_vec)
+    {
+        EXPECT_FALSE(version.has_inputs);
+    }
+}

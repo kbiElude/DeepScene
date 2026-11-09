@@ -312,10 +312,22 @@ namespace Analysis
             uint32_t n_mip_levels    = 0;
         };
 
+        /* Where in the first mip level of a layer of a resource a write lands, in texels (or pixels), when a front end can say: a rectangle with its corner
+         * at x and y. A write which is not told as one reaches any part of the level, as far as anyone can know.
+         */
+        struct AccessRectangle
+        {
+            uint32_t height   = 0;
+            bool     is_known = false;
+            uint32_t width    = 0;
+            uint32_t x        = 0;
+            uint32_t y        = 0;
+        };
+
         /* One use of a resource by the application, in the order they were made in (see IAccessSink): what the dependencies between the frames
          * of a workload are made of. Nothing here knows about any API: a front end tells a draw, a clear or a copy in these terms, and an API
          * which has more to say (the queue a command is made on, a barrier between two commands) has fields for it which the older ones leave alone.
-         * Follows AccessCoverage, AccessMode, AccessRole, ResourceId and SubresourceRange, which it depends on.
+         * Follows AccessCoverage, AccessMode, AccessRectangle, AccessRole, ResourceId and SubresourceRange, which it depends on.
          */
         struct AccessEvent
         {
@@ -323,6 +335,7 @@ namespace Analysis
             AccessCoverage   coverage          = AccessCoverage::UNKNOWN; /* of a write: READ_WRITE and WRITE         */
             AccessMode       mode              = AccessMode::READ;
             uint32_t         queue_id          = 0;                       /* 0 for an API which has one queue         */
+            AccessRectangle  rectangle;                                   /* of a write; not known unless the front end says */
             ResourceId       resource_id       = ResourceId::NONE;
             AccessRole       role              = AccessRole::SAMPLED;
             SubresourceRange subresource_range;

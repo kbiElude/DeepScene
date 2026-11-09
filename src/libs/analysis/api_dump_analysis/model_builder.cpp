@@ -268,7 +268,8 @@ void Analysis::APIDumpAnalysis::ModelBuilder::emit_access(const ResourceId&     
                                                           const AccessRole&       in_role,
                                                           const AccessMode&       in_mode,
                                                           const AccessCoverage&   in_coverage,
-                                                          const SubresourceRange& in_subresource_range)
+                                                          const SubresourceRange& in_subresource_range,
+                                                          const AccessRectangle&  in_rectangle)
 {
     if (m_access_sink_ptr != nullptr &&
         in_resource_id    != ResourceId::NONE)
@@ -278,6 +279,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::emit_access(const ResourceId&     
         event.call_index        = m_call_index;
         event.coverage          = in_coverage;
         event.mode              = in_mode;
+        event.rectangle         = in_rectangle;
         event.resource_id       = in_resource_id;
         event.role              = in_role;
         event.subresource_range = in_subresource_range;
@@ -664,8 +666,9 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_clear(const ClearOperation& in_
     m_open_pass.clears_stencil |= in_clear.clears_stencil;
 }
 
-void Analysis::APIDumpAnalysis::ModelBuilder::on_copy(const ResourceView& in_source,
-                                                      const ResourceView& in_destination)
+void Analysis::APIDumpAnalysis::ModelBuilder::on_copy(const ResourceView&    in_source,
+                                                      const ResourceView&    in_destination,
+                                                      const AccessRectangle& in_destination_rectangle)
 {
     Utils::Hashing::Hasher hasher;
     const SubresourceRange destination_range = get_subresource_range(in_destination);
@@ -682,8 +685,10 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_copy(const ResourceView& in_sou
     emit_access(in_destination.resource_id,
                 AccessRole::TRANSFER_DESTINATION,
                 AccessMode::WRITE,
-                AccessCoverage::UNKNOWN, /* which part of it is not told */
-                destination_range);
+                (in_destination_rectangle.is_known) ? AccessCoverage::PARTIAL
+                                                    : AccessCoverage::UNKNOWN, /* which part of it is not told, unless the front end says */
+                destination_range,
+                in_destination_rectangle);
 
     close_pass_if_rendered_to(in_source);
     close_pass_if_rendered_to(in_destination);
@@ -1019,8 +1024,10 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_update_constant(const ConstantU
     }
 }
 
-void Analysis::APIDumpAnalysis::ModelBuilder::on_upload(const ResourceView&  in_destination,
-                                                        const DataReference& in_data)
+void Analysis::APIDumpAnalysis::ModelBuilder::on_upload(const ResourceView&    in_destination,
+                                                        const DataReference&   in_data,
+                                                        const AccessCoverage&  in_coverage,
+                                                        const AccessRectangle& in_rectangle)
 {
     Utils::Hashing::Hasher hasher;
     const SubresourceRange destination_range = get_subresource_range(in_destination);
@@ -1030,8 +1037,9 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_upload(const ResourceView&  in_
     emit_access(in_destination.resource_id,
                 AccessRole::UPLOAD_DESTINATION,
                 AccessMode::WRITE,
-                AccessCoverage::UNKNOWN, /* which part of it is not told */
-                destination_range);
+                in_coverage, /* UNKNOWN unless the front end says how much of it is given the data */
+                destination_range,
+                in_rectangle);
 
     close_pass_if_rendered_to(in_destination);
 

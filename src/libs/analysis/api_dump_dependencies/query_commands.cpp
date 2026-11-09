@@ -593,6 +593,23 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_resource(const Dep
         write_summary      (dependencies.summary,
                             inout_writer_ptr);
 
+        /* The rectangle that holds all that the writes which did not replace all of the resource reached, as x, y, width and height. */
+        inout_writer_ptr->write_key("written_extent");
+
+        if (dependencies.written_extent.is_known)
+        {
+            inout_writer_ptr->begin_inline_array();
+            inout_writer_ptr->write_u64         (dependencies.written_extent.x);
+            inout_writer_ptr->write_u64         (dependencies.written_extent.y);
+            inout_writer_ptr->write_u64         (dependencies.written_extent.width);
+            inout_writer_ptr->write_u64         (dependencies.written_extent.height);
+            inout_writer_ptr->end_array         ();
+        }
+        else
+        {
+            inout_writer_ptr->write_null();
+        }
+
         inout_writer_ptr->write_key   ("runs");
         inout_writer_ptr->begin_object();
 
@@ -674,6 +691,22 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_resource(const Dep
                 inout_writer_ptr->begin_inline_array();
                 inout_writer_ptr->write_u64         (range.first_frame_index);
                 inout_writer_ptr->write_u64         (range.last_frame_index);
+                inout_writer_ptr->end_array         ();
+            }
+
+            inout_writer_ptr->end_array ();
+
+            /* Where the writer wrote, as x, y, width and height each. */
+            inout_writer_ptr->write_key ("written_rectangles");
+            inout_writer_ptr->begin_array();
+
+            for (const auto& rectangle : version.written_rectangle_vec)
+            {
+                inout_writer_ptr->begin_inline_array();
+                inout_writer_ptr->write_u64         (rectangle.x);
+                inout_writer_ptr->write_u64         (rectangle.y);
+                inout_writer_ptr->write_u64         (rectangle.width);
+                inout_writer_ptr->write_u64         (rectangle.height);
                 inout_writer_ptr->end_array         ();
             }
 

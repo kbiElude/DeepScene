@@ -70,8 +70,10 @@ namespace Analysis
             const Viewport& get_viewport() const;
 
             void       on_clear           (const ClearOperation&      in_clear);
+            /* The rectangle is where the copy lands in the destination, if the front end knows. */
             void       on_copy            (const ResourceView&        in_source,
-                                           const ResourceView&        in_destination);
+                                           const ResourceView&        in_destination,
+                                           const AccessRectangle&     in_destination_rectangle = AccessRectangle());
             ResourceId on_create_resource (const ResourceDescription& in_description,
                                            const std::string&         in_debug_name,
                                            const ResourceView&        in_parent_view = ResourceView());
@@ -95,8 +97,11 @@ namespace Analysis
             /* Constants with no meaning known are of no interest, and are ignored. */
             void on_update_constant(const ConstantUpdate& in_update);
 
-            void on_upload(const ResourceView&  in_destination,
-                           const DataReference& in_data);
+            /* The coverage and the rectangle say how much of the level the data is given to, if the front end knows (the whole level, or the rectangle of it). */
+            void on_upload(const ResourceView&     in_destination,
+                           const DataReference&    in_data,
+                           const AccessCoverage&   in_coverage  = AccessCoverage::UNKNOWN,
+                           const AccessRectangle&  in_rectangle = AccessRectangle());
 
             /* Where the uses of resources are told (see IAccessSink); nullptr, the default, is nowhere. The sink is not the builder's: it must
              * outlive it.
@@ -185,7 +190,8 @@ namespace Analysis
                              const AccessRole&       in_role,
                              const AccessMode&       in_mode,
                              const AccessCoverage&   in_coverage,
-                             const SubresourceRange& in_subresource_range);
+                             const SubresourceRange& in_subresource_range,
+                             const AccessRectangle&  in_rectangle = AccessRectangle());
 
             /* With the keys the resources have by the time of the draw, or with the ones they would have if no pass had written to them. */
             void fill_draw_structure(const DrawDescription& in_draw,

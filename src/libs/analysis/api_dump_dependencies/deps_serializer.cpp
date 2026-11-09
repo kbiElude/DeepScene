@@ -16,15 +16,17 @@ namespace
     constexpr uint8_t USE_FLAG_ALL           = USE_FLAG_FULLY_WRITTEN | USE_FLAG_READ | USE_FLAG_SELF_SAMPLED | USE_FLAG_WRITTEN;
 
     /* The bits of what a version is. */
+    constexpr uint8_t VERSION_FLAG_HAS_INPUTS            = 1 << 2;
     constexpr uint8_t VERSION_FLAG_HAS_WRITER            = 1 << 0;
     constexpr uint8_t VERSION_FLAG_KEEPS_EARLIER_CONTENT = 1 << 1;
-    constexpr uint8_t VERSION_FLAG_ALL                   = VERSION_FLAG_HAS_WRITER | VERSION_FLAG_KEEPS_EARLIER_CONTENT;
+    constexpr uint8_t VERSION_FLAG_ALL                   = VERSION_FLAG_HAS_INPUTS | VERSION_FLAG_HAS_WRITER | VERSION_FLAG_KEEPS_EARLIER_CONTENT;
 
     /* Fields of a resource's totals, a use run, a version and a range of frames, with nothing in the variable parts. */
-    constexpr size_t MIN_RANGE_N_BYTES    = 2 * sizeof(uint64_t);
-    constexpr size_t MIN_RESOURCE_N_BYTES = sizeof(uint8_t) + 10 * sizeof(uint64_t) + 2 * sizeof(uint32_t);
-    constexpr size_t MIN_RUN_N_BYTES      = 2 * sizeof(uint64_t) + 2 * sizeof(uint8_t);
-    constexpr size_t MIN_VERSION_N_BYTES  = sizeof(uint8_t) + 3 * sizeof(uint64_t) + sizeof(uint32_t);
+    constexpr size_t MIN_RANGE_N_BYTES     = 2 * sizeof(uint64_t);
+    constexpr size_t MIN_RECTANGLE_N_BYTES = 4 * sizeof(uint32_t);
+    constexpr size_t MIN_RESOURCE_N_BYTES  = 2 * sizeof(uint8_t) + 10 * sizeof(uint64_t) + 2 * sizeof(uint32_t);
+    constexpr size_t MIN_RUN_N_BYTES       = 2 * sizeof(uint64_t) + 2 * sizeof(uint8_t);
+    constexpr size_t MIN_VERSION_N_BYTES   = sizeof(uint8_t) + 3 * sizeof(uint64_t) + 3 * sizeof(uint32_t);
 }
 
 bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_dependencies(const std::vector<uint8_t>& in_byte_vec,
@@ -105,6 +107,7 @@ bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_dependencies(con
             ResourceVersion version;
             const uint8_t   flags   = reader.read_u8();
 
+            version.has_inputs                 = ((flags & VERSION_FLAG_HAS_INPUTS)            != 0);
             version.has_writer                 = ((flags & VERSION_FLAG_HAS_WRITER)            != 0);
             version.keeps_earlier_content      = ((flags & VERSION_FLAG_KEEPS_EARLIER_CONTENT) != 0);
             version.n_consumer_frames          = reader.read_u64();
@@ -135,6 +138,53 @@ bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_dependencies(con
                 version.consumer_range_vec.push_back(range);
             }
 
+            const uint32_t n_rectangles = reader.read_count(MIN_RECTANGLE_N_BYTES);
+
+            for (uint32_t n_rectangle = 0;
+                          n_rectangle < n_rectangles && reader.has_failed() == false;
+                        ++n_rectangle)
+            {
+                Analysis::APIDumpAnalysis::AccessRectangle rectangle;
+
+                rectangle.is_known = true;
+                rectangle.x        = reader.read_u32();
+                rectangle.y        = reader.read_u32();
+                rectangle.width    = reader.read_u32();
+                rectangle.height   = reader.read_u32();
+
+                if (rectangle.width  == 0 ||
+                    rectangle.height == 0)
+                {
+                    is_ok = false;
+                }
+
+                version.written_rectangle_vec.push_back(rectangle);
+            }
+
+            const uint32_t n_inputs = reader.read_count(sizeof(uint32_t) );
+
+            for (uint32_t n_input = 0;
+                          n_input < n_inputs && reader.has_failed() == false;
+                        ++n_input)
+            {
+                const uint32_t input_resource = reader.read_u32();
+
+                /* A resource is numbered from 1. */
+                if (input_resource == 0          ||
+                    input_resource > n_resources)
+                {
+                    is_ok = false;
+                }
+
+                version.input_resource_vec.push_back(input_resource);
+            }
+
+            if (version.has_inputs == false &&
+                n_inputs           != 0)
+            {
+                is_ok = false;
+            }
+
             if ((flags & ~VERSION_FLAG_ALL)                               != 0                         ||
                 (version.has_writer         && version.writer_frame_index >= n_frames)                 ||
                 version.n_possible_consumer_frames                        >  version.n_consumer_frames)
@@ -143,6 +193,21 @@ bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_dependencies(con
             }
 
             dependencies.version_vec.push_back(version);
+        }
+
+        if (reader.read_bool() )
+        {
+            dependencies.written_extent.is_known = true;
+            dependencies.written_extent.x        = reader.read_u32();
+            dependencies.written_extent.y        = reader.read_u32();
+            dependencies.written_extent.width    = reader.read_u32();
+            dependencies.written_extent.height   = reader.read_u32();
+
+            if (dependencies.written_extent.width  == 0 ||
+                dependencies.written_extent.height == 0)
+            {
+                is_ok = false;
+            }
         }
 
         inout_analysis_ptr->result.resource_vec.push_back(dependencies);
@@ -309,7 +374,8 @@ std::vector<uint8_t> Analysis::APIDumpDependencies::DepsSerializer::serialize_de
 
         for (const auto& version : dependencies.version_vec)
         {
-            const uint8_t flags = static_cast<uint8_t>((version.has_writer            ? VERSION_FLAG_HAS_WRITER            : 0) |
+            const uint8_t flags = static_cast<uint8_t>((version.has_inputs            ? VERSION_FLAG_HAS_INPUTS            : 0) |
+                                                       (version.has_writer            ? VERSION_FLAG_HAS_WRITER            : 0) |
                                                        (version.keeps_earlier_content ? VERSION_FLAG_KEEPS_EARLIER_CONTENT : 0) );
 
             writer.write_u8 (flags);
@@ -323,6 +389,33 @@ std::vector<uint8_t> Analysis::APIDumpDependencies::DepsSerializer::serialize_de
                 writer.write_u64(range.first_frame_index);
                 writer.write_u64(range.last_frame_index);
             }
+
+            writer.write_u32(static_cast<uint32_t>(version.written_rectangle_vec.size() ) );
+
+            for (const auto& rectangle : version.written_rectangle_vec)
+            {
+                writer.write_u32(rectangle.x);
+                writer.write_u32(rectangle.y);
+                writer.write_u32(rectangle.width);
+                writer.write_u32(rectangle.height);
+            }
+
+            writer.write_u32(static_cast<uint32_t>(version.input_resource_vec.size() ) );
+
+            for (const auto input_resource : version.input_resource_vec)
+            {
+                writer.write_u32(input_resource);
+            }
+        }
+
+        writer.write_bool(dependencies.written_extent.is_known);
+
+        if (dependencies.written_extent.is_known)
+        {
+            writer.write_u32(dependencies.written_extent.x);
+            writer.write_u32(dependencies.written_extent.y);
+            writer.write_u32(dependencies.written_extent.width);
+            writer.write_u32(dependencies.written_extent.height);
         }
     }
 

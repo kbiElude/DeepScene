@@ -300,11 +300,13 @@ namespace Analysis
                                      const uint32_t&       in_width,
                                      const uint32_t&       in_height);
 
-                /* The pixels of a call that gives a level of the texture of the active unit, as the resource gets them. */
-                void upload_texture_level(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                          const Capture::APIDumpLoader::Workload&      in_workload,
-                                          const GlContextState&                        in_state,
-                                          const uint32_t&                              in_level);
+                /* The pixels of a call that gives a level of the texture of the active unit, as the resource gets them: to all of the level, or to the rectangle of it. */
+                void upload_texture_level(const Capture::APIDumpLoader::DumpedAPICall&              in_call,
+                                          const Capture::APIDumpLoader::Workload&                   in_workload,
+                                          const GlContextState&                                     in_state,
+                                          const uint32_t&                                           in_level,
+                                          const Analysis::APIDumpAnalysis::AccessCoverage&          in_coverage,
+                                          const Analysis::APIDumpAnalysis::AccessRectangle&         in_rectangle);
 
                 /* The name of the texture that the active unit has bound (0 if it has none). */
                 static uint32_t get_bound_texture_name(const GlContextState& in_state);

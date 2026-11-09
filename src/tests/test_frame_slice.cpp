@@ -167,6 +167,187 @@ TEST(FrameSlicePlanner, AFrameThatTheAnalysisHasNotSeenIsLive)
                                             100) );
 }
 
+namespace
+{
+    /* A texture that the frames fill one of four strips of, a strip each (frame F writes strip (F - first_strip_frame) % 4 of an extent of 40 x 10), with
+     * the version that a frame writes used by the frame after it; the first version, which no frame wrote, is used by the first frame that writes. If the
+     * first writer replaces all of the texture (an upload), the strips begin with the frame after it.
+     */
+    ResourceDependencies make_strip_resource(const uint64_t& in_first_writer_frame,
+                                             const uint64_t& in_n_writer_frames,
+                                             const bool&     in_first_writer_replaces_all,
+                                             const bool&     in_extent_is_known,
+                                             const uint32_t& in_extent_width)
+    {
+        ResourceDependencies result;
+        const uint64_t       first_strip_frame = (in_first_writer_replaces_all) ? in_first_writer_frame + 1
+                                                                                : in_first_writer_frame;
+
+        result.version_vec.push_back(make_version(false,
+                                                  0,
+                                                  false,
+                                                  {make_range(in_first_writer_frame,
+                                                              in_first_writer_frame)}));
+
+        for (uint64_t n_writer = 0;
+                      n_writer < in_n_writer_frames;
+                    ++n_writer)
+        {
+            const uint64_t frame_index = in_first_writer_frame + n_writer;
+            const bool     is_upload   = (in_first_writer_replaces_all && n_writer == 0);
+            ResourceVersion version    = make_version(true,
+                                                      frame_index,
+                                                      (is_upload == false),
+                                                      {make_range(frame_index + 1,
+                                                                  frame_index + 1)});
+
+            version.has_inputs = true; /* what flows into a strip is not what the texture had */
+
+            if (is_upload == false)
+            {
+                Analysis::APIDumpAnalysis::AccessRectangle strip;
+
+                strip.height   = 10;
+                strip.is_known = true;
+                strip.width    = 10;
+                strip.x        = static_cast<uint32_t>((frame_index - first_strip_frame) % 4) * 10;
+                strip.y        = 0;
+
+                version.written_rectangle_vec.push_back(strip);
+            }
+
+            result.version_vec.push_back(version);
+        }
+
+        result.written_extent.height   = 10;
+        result.written_extent.is_known = in_extent_is_known;
+        result.written_extent.width    = in_extent_width;
+
+        return result;
+    }
+}
+
+TEST(FrameSlicePlanner, TheWayBackEndsWhenTheLastStripsHaveWrittenAllThatAnyWriteReaches)
+{
+    /* Frames 1 to 8 write a strip each, and the frame after uses it: a frame that needs frame 6's version needs the strips of frames 3 to 6, which are all
+     * four, and not those of frames 1 and 2.
+     */
+    const auto analysis = make_analysis(12,
+                                        {make_strip_resource(1, 8, false, true, 40)});
+
+    EXPECT_EQ(get_live_frames(FrameSlicePlanner::plan(analysis,
+                                                      7),
+                              12),
+              (std::vector<uint64_t>{3, 4, 5, 6, 7, 8, 9, 10, 11}) );
+}
+
+TEST(FrameSlicePlanner, TheFrameThatLastReplacedAllOfTheTextureIsStillNeededForWhatTheStripsDoNotReach)
+{
+    /* Frame 1 uploads the whole texture and frames 2 to 8 write strips: the strips of frames 4 to 7 are all four, but what is outside the extent is what
+     * frame 1 left.
+     */
+    const auto analysis = make_analysis(12,
+                                        {make_strip_resource(1, 8, true, true, 40)});
+
+    EXPECT_EQ(get_live_frames(FrameSlicePlanner::plan(analysis,
+                                                      8),
+                              12),
+              (std::vector<uint64_t>{1, 4, 5, 6, 7, 8, 9, 10, 11}) );
+}
+
+TEST(FrameSlicePlanner, StripsThatDoNotWriteAllOfTheExtentLeaveTheWayBackAsItWas)
+{
+    /* The extent is wider than the four strips are. */
+    const auto analysis = make_analysis(12,
+                                        {make_strip_resource(1, 8, false, true, 50)});
+
+    EXPECT_EQ(get_live_frames(FrameSlicePlanner::plan(analysis,
+                                                      7),
+                              12),
+              (std::vector<uint64_t>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}) );
+}
+
+TEST(FrameSlicePlanner, WithoutAnExtentTheWayBackIsAsItWas)
+{
+    const auto analysis = make_analysis(12,
+                                        {make_strip_resource(1, 8, false, false, 40)});
+
+    EXPECT_EQ(get_live_frames(FrameSlicePlanner::plan(analysis,
+                                                      7),
+                              12),
+              (std::vector<uint64_t>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}) );
+}
+
+TEST(FrameSlicePlanner, ATargetWithinTheFirstStripsNeedsThemAll)
+{
+    /* Frame 3 needs what frames 1 and 2 wrote, and they are not four strips yet. */
+    const auto analysis = make_analysis(12,
+                                        {make_strip_resource(1, 8, false, true, 40)});
+
+    EXPECT_EQ(get_live_frames(FrameSlicePlanner::plan(analysis,
+                                                      3),
+                              12),
+              (std::vector<uint64_t>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}) );
+}
+
+namespace
+{
+    /* Three resources and what frame 2 does with them: it uses what frame 0 wrote of resource 3 and what frame 1 wrote of resource 2, and writes resource 1
+     * (version 1), which frame 5 uses. What flows into version 1 is resource 2 only, if the version says so (has_inputs).
+     */
+    DependencyAnalysis make_inputs_analysis(const bool& in_has_inputs)
+    {
+        ResourceVersion written = make_version(true, 2, false, {make_range(5, 5)});
+
+        written.has_inputs = in_has_inputs;
+
+        if (in_has_inputs)
+        {
+            written.input_resource_vec.push_back(2);
+        }
+
+        return make_analysis(8,
+                             {make_resource({make_version(false, 0, false, {}),
+                                             written}),
+                              make_resource({make_version(false, 0, false, {}),
+                                             make_version(true,  1, false, {make_range(2, 2)})}),
+                              make_resource({make_version(false, 0, false, {}),
+                                             make_version(true,  0, false, {make_range(2, 2)})})});
+    }
+}
+
+TEST(FrameSlicePlanner, AFrameThatIsMadeForAVersionIsGivenWhatFlowsIntoItAndNotAllThatItUses)
+{
+    /* Resource 3 is not an input of what frame 2 wrote, so what frame 0 wrote of it is not needed; what frame 1 wrote of resource 2 is. */
+    EXPECT_EQ(get_live_frames(FrameSlicePlanner::plan(make_inputs_analysis(true),
+                                                      5),
+                              8),
+              (std::vector<uint64_t>{1, 2, 5, 6, 7}) );
+}
+
+TEST(FrameSlicePlanner, AFrameThatDoesNotSayWhatFlowsIntoAVersionIsGivenAllThatItUses)
+{
+    EXPECT_EQ(get_live_frames(FrameSlicePlanner::plan(make_inputs_analysis(false),
+                                                      5),
+                              8),
+              (std::vector<uint64_t>{0, 1, 2, 5, 6, 7}) );
+}
+
+TEST(FrameSlicePlanner, AFrameThatIsMadeInPartIsMadeInFullIfAnotherVersionOfItIsNeededInFull)
+{
+    /* Frame 2 also wrote version 1 of a fourth resource, which says nothing of what flows into it and which frame 6 uses. */
+    DependencyAnalysis analysis = make_inputs_analysis(true);
+
+    analysis.result.resource_vec.push_back(make_resource({make_version(false, 0, false, {}),
+                                                          make_version(true,  2, false, {make_range(6, 6)})}));
+
+    /* Target 6: it uses the version of the fourth resource, and that needs frame 2 in full, which needs what frames 0 and 1 wrote. */
+    EXPECT_EQ(get_live_frames(FrameSlicePlanner::plan(analysis,
+                                                      6),
+                              8),
+              (std::vector<uint64_t>{0, 1, 2, 6, 7}) );
+}
+
 TEST(SliceSkipper, TheContentOfADeadFrameIsLeftOutAndTheStateIsNot)
 {
     Stereo::Replay::EngineDLL::SliceSkipper skipper;

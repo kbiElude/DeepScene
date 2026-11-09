@@ -361,3 +361,108 @@ TEST(DepsFile, DependenciesWhichDoNotFitTheFramesOrTheResourcesAreInvalid)
                   std::string::npos);
     }
 }
+
+TEST(DepsFile, TheExtentTheRectanglesAndTheInputsOfWritesAreKept)
+{
+    Tests::DependencyScene scene;
+    const auto             source = scene.create_resource();
+    const auto             strips = scene.create_resource();
+    const auto             target = scene.create_resource(1,
+                                                          ResourceKind::TEXTURE_2D,
+                                                          true); /* in_is_render_target */
+
+    for (uint32_t n_frame = 0;
+                  n_frame < 3;
+                ++n_frame)
+    {
+        scene.clear_fully(target);
+
+        scene.access(source,
+                     AccessRole::SAMPLED,
+                     AccessMode::READ);
+        scene.access(target,
+                     AccessRole::COLOR_ATTACHMENT,
+                     AccessMode::WRITE);
+        scene.next_call();
+
+        scene.access(target,
+                     AccessRole::TRANSFER_SOURCE,
+                     AccessMode::READ);
+        scene.copy_to(strips,
+                      n_frame * 10,
+                      2,
+                      10,
+                      7);
+        scene.sample (strips);
+        scene.end_frame();
+    }
+
+    const DependencyAnalysis analysis = scene.make_analysis();
+    const std::string        filename = ::testing::TempDir() + "deps_rectangles_test.deps";
+    std::string              error;
+    DependencyAnalysis       loaded;
+
+    ASSERT_TRUE(analysis.result.resource_vec.at(1).written_extent.is_known);
+    ASSERT_TRUE(analysis.result.resource_vec.at(1).version_vec.at(1).has_inputs);
+
+    ASSERT_TRUE(DepsFile::write(filename,
+                                analysis,
+                               &error) ) << error;
+    ASSERT_TRUE(DepsFile::read (filename,
+                               &loaded,
+                               &error) ) << error;
+
+    ::remove(filename.c_str() );
+
+    ASSERT_EQ(loaded.result.resource_vec.size(),
+              analysis.result.resource_vec.size() );
+
+    for (size_t n_resource = 0;
+                n_resource < analysis.result.resource_vec.size();
+              ++n_resource)
+    {
+        const auto& a = analysis.result.resource_vec.at(n_resource);
+        const auto& b = loaded.result.resource_vec.at  (n_resource);
+
+        EXPECT_EQ(a.written_extent.is_known,
+                  b.written_extent.is_known) << "resource " << n_resource;
+        EXPECT_EQ(a.written_extent.x,
+                  b.written_extent.x)        << "resource " << n_resource;
+        EXPECT_EQ(a.written_extent.y,
+                  b.written_extent.y)        << "resource " << n_resource;
+        EXPECT_EQ(a.written_extent.width,
+                  b.written_extent.width)    << "resource " << n_resource;
+        EXPECT_EQ(a.written_extent.height,
+                  b.written_extent.height)   << "resource " << n_resource;
+
+        ASSERT_EQ(a.version_vec.size(),
+                  b.version_vec.size() ) << "resource " << n_resource;
+
+        for (size_t n_version = 0;
+                    n_version < a.version_vec.size();
+                  ++n_version)
+        {
+            const auto& version_a = a.version_vec.at(n_version);
+            const auto& version_b = b.version_vec.at(n_version);
+
+            EXPECT_EQ(version_a.has_inputs,
+                      version_b.has_inputs)         << "resource " << n_resource << " version " << n_version;
+            EXPECT_EQ(version_a.input_resource_vec,
+                      version_b.input_resource_vec) << "resource " << n_resource << " version " << n_version;
+            ASSERT_EQ(version_a.written_rectangle_vec.size(),
+                      version_b.written_rectangle_vec.size() ) << "resource " << n_resource << " version " << n_version;
+
+            for (size_t n_rectangle = 0;
+                        n_rectangle < version_a.written_rectangle_vec.size();
+                      ++n_rectangle)
+            {
+                EXPECT_EQ(version_a.written_rectangle_vec.at(n_rectangle).x,
+                          version_b.written_rectangle_vec.at(n_rectangle).x);
+                EXPECT_EQ(version_a.written_rectangle_vec.at(n_rectangle).width,
+                          version_b.written_rectangle_vec.at(n_rectangle).width);
+                EXPECT_EQ(version_a.written_rectangle_vec.at(n_rectangle).height,
+                          version_b.written_rectangle_vec.at(n_rectangle).height);
+            }
+        }
+    }
+}

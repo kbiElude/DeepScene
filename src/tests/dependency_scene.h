@@ -21,14 +21,16 @@ namespace Tests
         void access(const Analysis::APIDumpAnalysis::ResourceId&       in_id,
                     const Analysis::APIDumpAnalysis::AccessRole&       in_role,
                     const Analysis::APIDumpAnalysis::AccessMode&       in_mode,
-                    const Analysis::APIDumpAnalysis::AccessCoverage&   in_coverage = Analysis::APIDumpAnalysis::AccessCoverage::UNKNOWN,
-                    const Analysis::APIDumpAnalysis::SubresourceRange& in_range    = Analysis::APIDumpAnalysis::SubresourceRange() )
+                    const Analysis::APIDumpAnalysis::AccessCoverage&   in_coverage  = Analysis::APIDumpAnalysis::AccessCoverage::UNKNOWN,
+                    const Analysis::APIDumpAnalysis::SubresourceRange& in_range     = Analysis::APIDumpAnalysis::SubresourceRange(),
+                    const Analysis::APIDumpAnalysis::AccessRectangle&  in_rectangle = Analysis::APIDumpAnalysis::AccessRectangle() )
         {
             Analysis::APIDumpAnalysis::AccessEvent event;
 
             event.call_index        = m_call_index;
             event.coverage          = in_coverage;
             event.mode              = in_mode;
+            event.rectangle         = in_rectangle;
             event.resource_id       = in_id;
             event.role              = in_role;
             event.subresource_range = in_range;
@@ -72,6 +74,36 @@ namespace Tests
             m_resource_vec.push_back(resource);
 
             return resource.id;
+        }
+
+        /* A copy to a rectangle of a mip level of a texture (the first, unless it is told). */
+        void copy_to(const Analysis::APIDumpAnalysis::ResourceId& in_id,
+                     const uint32_t&                              in_x,
+                     const uint32_t&                              in_y,
+                     const uint32_t&                              in_width,
+                     const uint32_t&                              in_height,
+                     const uint32_t&                              in_mip_level = 0)
+        {
+            Analysis::APIDumpAnalysis::AccessRectangle rectangle;
+            Analysis::APIDumpAnalysis::SubresourceRange range;
+
+            rectangle.height   = in_height;
+            rectangle.is_known = true;
+            rectangle.width    = in_width;
+            rectangle.x        = in_x;
+            rectangle.y        = in_y;
+
+            range.first_mip_level = in_mip_level;
+            range.n_layers        = 1;
+            range.n_mip_levels    = 1;
+
+            access(in_id,
+                   Analysis::APIDumpAnalysis::AccessRole::TRANSFER_DESTINATION,
+                   Analysis::APIDumpAnalysis::AccessMode::WRITE,
+                   Analysis::APIDumpAnalysis::AccessCoverage::PARTIAL,
+                   range,
+                   rectangle);
+            next_call();
         }
 
         /* A draw which writes where it reaches, which is not known. */
