@@ -21,6 +21,7 @@ Stereo::Replay::EngineDLL::StereoReplayEngine::StereoReplayEngine()
 
     m_engine.add_call_interceptor(&m_present_skipper);
     m_engine.add_call_interceptor(&m_slice_skipper);
+    m_engine.add_call_interceptor(&m_texture_parameter_cache);
 
     const auto d3d7_executor_ptr = std::make_shared<StereoD3D7CallExecutor>(m_engine.get_remapper_ptr() );
 

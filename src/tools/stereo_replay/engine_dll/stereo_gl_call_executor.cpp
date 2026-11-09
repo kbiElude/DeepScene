@@ -4,6 +4,7 @@
  */
 #include "capture/api_dump_names/function_names.h"
 #include "common/api_function_argument.h"
+#include "gl_texture_parameter_cache.h"
 #include "object_remapper.h"
 #include "stereo_gl_call_executor.h"
 #include <algorithm>
@@ -30,21 +31,6 @@ namespace
 
     /* More units than this are not looked at: a program of the age of fixed-function GL does not use them. */
     constexpr int MAX_N_UNITS = 8;
-
-    /* What a texture has besides its pixels, that a copy takes: the filters, how the coordinates wrap, the levels that are used and the generation of levels. */
-    constexpr unsigned int PARAMETER_ARRAY[] =
-    {
-        0x2800, /* GL_TEXTURE_MAG_FILTER   */
-        0x2801, /* GL_TEXTURE_MIN_FILTER   */
-        0x2802, /* GL_TEXTURE_WRAP_S       */
-        0x2803, /* GL_TEXTURE_WRAP_T       */
-        0x8072, /* GL_TEXTURE_WRAP_R       */
-        0x8191, /* GL_GENERATE_MIPMAP      */
-        0x813C, /* GL_TEXTURE_BASE_LEVEL   */
-        0x813D, /* GL_TEXTURE_MAX_LEVEL    */
-        0x813A, /* GL_TEXTURE_MIN_LOD      */
-        0x813B  /* GL_TEXTURE_MAX_LOD      */
-    };
 }
 
 Stereo::Replay::EngineDLL::StereoGlCallExecutor::StereoGlCallExecutor(::Replay::ReplayEngineDLL::ObjectRemapper* in_remapper_ptr)
@@ -310,12 +296,15 @@ bool Stereo::Replay::EngineDLL::StereoGlCallExecutor::make_twin(const uint32_t& 
     const auto get_parameter_func_ptr= reinterpret_cast<PFNGETTEXPARAMETERIVPROC>(get_proc_ptr("glGetTexParameteriv") );
     const auto set_parameter_func_ptr= reinterpret_cast<PFNTEXPARAMETERIPROC>    (get_proc_ptr("glTexParameteri") );
 
-    constexpr size_t N_PARAMETERS = sizeof(PARAMETER_ARRAY) / sizeof(PARAMETER_ARRAY[0]);
-
-    int          value_array[N_PARAMETERS] = {};
-    unsigned int fresh_name                = 0;
-    bool         result                    = false;
-    TextureTwin  twin;
+    /* What a texture has besides its pixels, that a copy takes: the parameters that the cache of them looks at, so that a call it leaves out is one that the twin
+     * would not have changed either.
+     */
+    const auto&      parameter_vec = GlTextureParameterCache::get_cached_parameters();
+    const size_t     n_parameters  = parameter_vec.size();
+    std::vector<int> value_vec(n_parameters);
+    unsigned int     fresh_name    = 0;
+    bool             result        = false;
+    TextureTwin      twin;
 
     if (bind_func_ptr          == nullptr ||
         gen_func_ptr           == nullptr ||
@@ -335,24 +324,30 @@ bool Stereo::Replay::EngineDLL::StereoGlCallExecutor::make_twin(const uint32_t& 
 
     /* The parameters are read from the texture that is bound, and set on the copy. */
     for (size_t n_parameter = 0;
-                n_parameter < N_PARAMETERS;
+                n_parameter < n_parameters;
               ++n_parameter)
     {
+        const unsigned int parameter = parameter_vec.at(n_parameter);
+        int&               value     = value_vec.at    (n_parameter);
+
         get_parameter_func_ptr(TEXTURE_2D,
-                               PARAMETER_ARRAY[n_parameter],
-                              &value_array[n_parameter]);
+                               parameter,
+                              &value);
     }
 
     bind_func_ptr(TEXTURE_2D,
                   fresh_name);
 
     for (size_t n_parameter = 0;
-                n_parameter < N_PARAMETERS;
+                n_parameter < n_parameters;
               ++n_parameter)
     {
+        const unsigned int parameter = parameter_vec.at(n_parameter);
+        const int          value     = value_vec.at    (n_parameter);
+
         set_parameter_func_ptr(TEXTURE_2D,
-                               PARAMETER_ARRAY[n_parameter],
-                               value_array[n_parameter]);
+                               parameter,
+                               value);
     }
 
     bind_func_ptr(TEXTURE_2D,
