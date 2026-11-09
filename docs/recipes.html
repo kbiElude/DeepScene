@@ -69,6 +69,7 @@
 </svg>
 <figcaption>Rules by pass or by frame shape work only offline. A recipe that needs one for a live run is refused by the converter at once, with a message, rather than drawing wrong images.</figcaption>
 </figure>
+<p><code>RecipeBake --scenes recipe passes [--screen-degrees 95]</code> is for tuning comfort: for each scene (kind of frame) it prints where its frames are in the run (the cuts), how deep it is, where the eyes converge and how far apart they may be with the recipe as it is, and what that makes of the parallax of its nearest and farthest surfaces as a part of the width of the picture and as an angle on a screen of that width (the log of the headset says how wide the screen is). A person keeps the near limit at about 1.5 degrees and the far limit at about 1 degree, looks at the scenes that the numbers say are flattest, and says what a cut needs in <code>scene_overrides</code>. In the converter, <code>APISTEREO_DUMP_SCENES</code> writes a frame of each scene that has lasted 80 frames (the eyes have come to it by then) to <code>apistereo_scene_&lt;key&gt;.bmp</code> in the temporary directory and puts the key in the log with where the eyes converged and how far apart they were.</p>
 <p><code>RecipeBake</code> also checks a recipe without writing anything: <code>--check</code> lists the frame shapes and draw signatures of a capture that the recipe does not know (exit code 5), and a pass left alone whose vertices are at many depths, which is a 3D scene seen from one place and not an overlay (exit code 6). <code>--overlays</code> prints the draws that may be 2D overlays, by the recipe and by the hint of the analysis, and where the two disagree.</p>
 
 <h2 id="making">How one is made</h2>
@@ -85,6 +86,21 @@
     "comfort": {                                    how much the eyes can be asked to do; without it, no scene has a limit
       "max_near_parallax": 0.03,                   how far apart the pictures of the eyes may be at the nearest surface of a
                                                    scene, as a part of the width of the picture (above 0, up to 1)
+      "max_far_parallax": 0.01,                    the same at the farthest surface (above 0, up to 1): with a screen two metres away
+                                                   the pictures of what is at infinity may be no further apart than the eyes of a person
+                                                   (65 mm is 0.014 of a width of 4.7 m); the narrower the angle of view, the sooner it matters
+      "balance_convergence": true,                 with both limits, the eyes converge where the whole depth of a scene fits them best (the
+                                                   nearest surface has all of the near limit and the farthest all of the far one), and not at
+                                                   the median depth of its vertices
+      "camera_attached_depth": 0.05,               OpenGL: a draw whose origin is nearer the camera than this part of the distance of convergence
+                                                   (an interface or a sky drawn with a perspective projection) is made as it is for both eyes
+      "measure_depth": true,                       OpenGL: the converter reads the depth buffer before each pass is cleared and takes the
+                                                   nearest and farthest surfaces of the frame from it, in place of what was baked for the scene
+                                                   (which cannot see display lists, nor a camera that flies past a near surface)
+      "scene_overrides": [                         what is said of single scenes (cuts), by the shape key of their frames: any of
+        { "shape": "0x...",                        convergence_distance, max_far_parallax, max_near_parallax and max_separation (the
+          "max_separation": 4.0 }                  last two win over the limits of the recipe; the distance wins over the balance)
+      ],
       "near_fraction": 0.001,                      which part of the surfaces of a scene (by vertices) is its nearest: the
                                                    nearest thousandth (above 0, below 1; default 0.001)
       "overlay_parallax": 0.04                     how far toward the viewer the draws that are left alone (unaffected) can be pushed, if

@@ -1245,6 +1245,40 @@ TEST_F(RecipeLoaderTest, TheComfortOfTheRecipeHasAFarLimitTheBalanceOfTheConverg
                    "unknown field \"strength\"");
 }
 
+TEST_F(RecipeLoaderTest, TheComfortOfTheRecipeSaysWhatIsAttachedToTheCameraAndWhetherTheDepthIsMeasured)
+{
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"comfort\": {\"camera_attached_depth\": 0.05, \"measure_depth\": true},",
+                                                                       ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_FLOAT_EQ(recipe.comfort.camera_attached_depth,
+                    0.05f);
+    EXPECT_TRUE    (recipe.comfort.measures_depth);
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"comfort\": {\"max_near_parallax\": 0.03},",
+                                                                       ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_FLOAT_EQ(recipe.comfort.camera_attached_depth,
+                    0.0f);
+    EXPECT_FALSE   (recipe.comfort.measures_depth);
+
+    expect_refused(get_recipe_text("\"comfort\": {\"camera_attached_depth\": 0},",
+                                   ""),
+                   "comfort.camera_attached_depth");
+    expect_refused(get_recipe_text("\"comfort\": {\"camera_attached_depth\": 1},",
+                                   ""),
+                   "comfort.camera_attached_depth");
+    expect_refused(get_recipe_text("\"comfort\": {\"measure_depth\": \"yes\"},",
+                                   ""),
+                   "comfort.measure_depth");
+}
+
 TEST_F(RecipeLoaderTest, BakedSceneSeparationLimitsAreReadAndWhatIsWrongInThemIsRefused)
 {
     std::string              error;

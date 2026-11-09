@@ -163,7 +163,7 @@
 <p>The one that matters most is the <strong>draw signature key</strong>. The pass a draw belongs to is not known until the pass ends, so the signature uses the <em>unwritten</em> keys of the structure and the targets. It is what a live converter can match, and what a recipe's rules are about: the same code makes the keys offline and in the running program, so a rule baked from a capture matches a draw of the program as it runs. Two different structures with the same key are possible in principle; they are counted and compared when interned, so a collision does no harm beyond the count.</p>
 
 <h2 id="depth">The depth of a draw</h2>
-<p>When a draw is made, the builder also works out how deep it is and counts it into the <strong>depth histogram</strong> of the open pass, from which the recipe's <a href="stereo.html#convergence">convergence distances</a> come.</p>
+<p>When a draw is made, the builder also works out how deep it is and counts it into the <strong>depth histogram</strong> of the open pass (and the x scale of a perspective projection, weighted by vertices, into a mean for the pass: how wide the picture is, in the PROJ section of the file, which the comfort of a recipe needs), from which the recipe's <a href="stereo.html#convergence">convergence distances</a> come.</p>
 <figure>
 <svg viewBox="0 0 900 250" role="img" aria-label="How the depth of a draw is measured">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>

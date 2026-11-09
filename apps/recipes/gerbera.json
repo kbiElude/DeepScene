@@ -5,7 +5,29 @@
     "max_far_parallax": 0.0105263158,
     "max_near_parallax": 0.0157894737,
     "measure_depth": true,
-    "near_fraction": 0.002
+    "near_fraction": 0.002,
+    "scene_overrides": [
+      {
+        "max_far_parallax": 0.00736842105,
+        "max_near_parallax": 0.0105263158,
+        "shape": "0x0638e140c74b24cb"
+      },
+      {
+        "max_far_parallax": 0.00421052632,
+        "max_near_parallax": 0.00631578947,
+        "shape": "0x3b5b8c26b3105201"
+      },
+      {
+        "max_far_parallax": 0.0105263158,
+        "max_near_parallax": 0.00736842105,
+        "shape": "0x4940d1fd4fdf7777"
+      },
+      {
+        "max_far_parallax": 0.00631578947,
+        "max_near_parallax": 0.00947368421,
+        "shape": "0xc32826c3be6d1394"
+      }
+    ]
   },
   "key_scheme_version": 1,
   "recipe_version": 0,
@@ -959,11 +981,11 @@
       },
       {
         "shape": "0xc32826c3be6d1394",
-        "distance": 879.494995
+        "distance": 879.495117
       },
       {
         "shape": "0x4940d1fd4fdf7777",
-        "distance": 825.776184
+        "distance": 602.090637
       },
       {
         "shape": "0x49ccdf65076eeeeb",
@@ -975,11 +997,11 @@
       },
       {
         "shape": "0x0638e140c74b24cb",
-        "distance": 890.336243
+        "distance": 870.544006
       },
       {
         "shape": "0x3b5b8c26b3105201",
-        "distance": 708.634155
+        "distance": 708.634094
       },
       {
         "shape": "0x9471ea12fc9ee90f",
@@ -1369,11 +1391,11 @@
       },
       {
         "shape": "0xc32826c3be6d1394",
-        "separation": 8.80913544
+        "separation": 5.28548098
       },
       {
         "shape": "0x4940d1fd4fdf7777",
-        "separation": 7.91497612
+        "separation": 5.38218403
       },
       {
         "shape": "0x49ccdf65076eeeeb",
@@ -1385,11 +1407,11 @@
       },
       {
         "shape": "0x0638e140c74b24cb",
-        "separation": 8.77749062
+        "separation": 5.96869326
       },
       {
         "shape": "0x3b5b8c26b3105201",
-        "separation": 6.59379482
+        "separation": 2.63751769
       },
       {
         "shape": "0x9471ea12fc9ee90f",

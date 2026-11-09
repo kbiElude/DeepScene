@@ -983,3 +983,74 @@ TEST_F(StereoCoreTest, TheEyeShiftMatrixShearsTheSceneByTheDepthSoWhatIsAtTheDis
     EXPECT_FLOAT_EQ(right.at(8),
                     -0.025f);
 }
+
+TEST_F(StereoCoreTest, TheDepthThatWasMeasuredSetsWhereTheEyesConvergeAndHowFarApartTheyMayBe)
+{
+    Stereo::Core::StereoCore core(make_recipe("\"comfort\": {\"balance_convergence\": true, \"max_far_parallax\": 0.01, \"max_near_parallax\": 0.015, \"measure_depth\": true},"
+                                              + get_baked_text(""),
+                                              ""),
+                                  Stereo::Core::FailFunc() );
+    Stereo::Core::DepthRange range;
+
+    EXPECT_TRUE(core.get_measures_depth() );
+
+    core.set_depth_strength(1.0f);
+
+    /* Nothing in the range: nothing is taken from it. */
+    EXPECT_FALSE(core.on_frame_depth(1,
+                                     range,
+                                     1.0f) );
+    EXPECT_FLOAT_EQ(core.get_effective_convergence_distance(),
+                    0.0f);
+
+    range.far_depth    = 1000.0f;
+    range.has_depth    = true;
+    range.median_depth = 400.0f;
+    range.near_depth   = 100.0f;
+
+    ASSERT_TRUE(core.on_frame_depth(1,
+                                    range,
+                                    1.0f) );
+
+    /* Between the nearest surface and the farthest, and with the nearest the one that has the near limit: 1 / d = 1 / 100 - (1 / 100 - 1 / 1000) * 0.015 / 0.025. */
+    const float distance = core.get_effective_convergence_distance();
+
+    EXPECT_GT(distance,
+              100.0f);
+    EXPECT_LT(distance,
+              1000.0f);
+    EXPECT_NEAR(distance,
+                1.0f / (0.01f - 0.009f * 0.6f),
+                1.0f);
+
+    /* The separation is within the limits that the two ends of the depth give: the nearest surface has no more than 0.015 of the width of the picture. */
+    const float separation  = core.get_effective_eye_separation();
+    const float near_parallax = separation * (1.0f / range.near_depth - 1.0f / distance) * 0.5f;
+
+    EXPECT_GT(separation,
+              0.0f);
+    EXPECT_LE(near_parallax,
+              0.015f * 1.01f);
+}
+
+TEST_F(StereoCoreTest, WhatTheRecipeSaysOfAKindOfFrameWinsOverTheDepthThatWasMeasured)
+{
+    Stereo::Core::StereoCore core(make_recipe("\"comfort\": {\"max_near_parallax\": 0.015, \"measure_depth\": true, \"scene_overrides\": [{\"shape\": \"0x0000000000000007\", \"convergence_distance\": 250}]},"
+                                              + get_baked_text(""),
+                                              ""),
+                                  Stereo::Core::FailFunc() );
+    Stereo::Core::DepthRange range;
+
+    range.far_depth    = 1000.0f;
+    range.has_depth    = true;
+    range.median_depth = 400.0f;
+    range.near_depth   = 100.0f;
+
+    core.set_depth_strength(1.0f);
+
+    ASSERT_TRUE(core.on_frame_depth(7,
+                                    range,
+                                    1.0f) );
+    EXPECT_FLOAT_EQ(core.get_effective_convergence_distance(),
+                    250.0f);
+}
