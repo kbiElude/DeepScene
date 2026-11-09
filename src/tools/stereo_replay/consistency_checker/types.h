@@ -50,6 +50,7 @@ namespace Stereo
                 uint32_t                 overlay_report_shard_index      = 0;          /* the one that this is */
                 bool                     is_parallel                    = false;      /* the ways are replayed at the same time */
                 bool                     is_profiling                   = false;      /* the frames are replayed once, and where the time goes is said */
+                bool                     is_state_census                = false;      /* the frames are replayed once, and what the dead frames of the seek do to the state is said */
                 uint32_t                 last_frame                     = 999;
                 uint32_t                 n_jobs                         = 1;          /* the processes that an overlay report is shared between */
                 Analysis::Recipe::Recipe recipe;
@@ -60,6 +61,15 @@ namespace Stereo
                 uint64_t                 truncate_pass_key              = 0;
                 std::vector<std::string> way_name_vec;                                /* the ways to replay besides the frames as they are; none: the usual ones */
                 std::string              workload_filename;
+            };
+
+            /* What a call of OpenGL does to the state of the context, for the census of what the dead frames of a seek make (see StateCensus). */
+            enum class StateCallClass
+            {
+                BARRIER,  /* something looks at the state or may change it in a way that is not followed: a call of a list, a push or pop of attributes, a query, a context */
+                KEYED,    /* gives one piece of state a value, whatever it was before, and nothing else (a capability, a material, a texture parameter)               */
+                OTHER,    /* is not told apart                                                                                                                         */
+                SEQUENCE  /* depends on the calls before it (the matrices and their stack, a binding of a texture, the making of an object)                           */
             };
 
             /* One way of replaying the frames of the check. */

@@ -8,6 +8,7 @@
 #include "frame_hash_sink.h"
 #include "overlay_report_mode.h"
 #include "profile_mode.h"
+#include "state_census_mode.h"
 #include "replay_runner.h"
 #include "screenshot_mode.h"
 #include "types.h"
@@ -73,6 +74,23 @@ int main(int   in_argc,
 
         if (Stereo::Replay::ConsistencyChecker::take_profile(options,
                                                             &error) == false)
+        {
+            fprintf(stdout,
+                    "%s\n",
+                    error.c_str() );
+
+            exit_code = Stereo::Replay::ConsistencyChecker::ExitCode::REPLAY_FAILED;
+        }
+
+        goto end;
+    }
+
+    if (options.is_state_census)
+    {
+        std::string error;
+
+        if (Stereo::Replay::ConsistencyChecker::take_state_census(options,
+                                                                 &error) == false)
         {
             fprintf(stdout,
                     "%s\n",

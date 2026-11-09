@@ -32,6 +32,7 @@ if (DEMOVRPLAYER_BUILD_TESTS)
                                      "${DemoVRPlayer_SOURCE_DIR}/src/tools/stereo_replay/consistency_checker/overlay_report.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/tools/stereo_replay/consistency_checker/overlay_report_page.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/tools/stereo_replay/consistency_checker/replay_profiler.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/tools/stereo_replay/consistency_checker/state_census.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/tools/stereo_replay/engine_dll/D3D7/d3d7_draw_rewriter.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/tools/stereo_replay/engine_dll/eye_matrix_binder.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/tools/stereo_replay/engine_dll/frame_buffer.cpp"

@@ -45,6 +45,7 @@ const char* Stereo::Replay::ConsistencyChecker::CommandLine::get_usage_ptr()
            "StereoReplayConsistencyChecker_x86 file.workload [--from A] [--to B] [--dump-dir DIR] [--recipe FILE [--eye-separation D]]\n"
            "                                    [--ways again,twice,restore,recipe] [--parallel]\n"
            "StereoReplayConsistencyChecker_x86 file.workload --profile [--from A] [--to B] [--recipe FILE]\n"
+           "StereoReplayConsistencyChecker_x86 file.workload --state-census --deps FILE [--from A] [--to B] [--recipe FILE]\n"
            "StereoReplayConsistencyChecker_x86 file.workload --same-frames-as other.workload [--from A] [--to B]\n"
            "StereoReplayConsistencyChecker_x86 file.workload --screenshot N --out FILE.png [--recipe FILE [--eye left|right|both|anaglyph]]\n"
            "StereoReplayConsistencyChecker_x86 file.workload --overlay-report candidates.json --recipe FILE --dump-dir DIR [--deps FILE] [--eye-separation D]\n"
@@ -81,6 +82,9 @@ const char* Stereo::Replay::ConsistencyChecker::CommandLine::get_usage_ptr()
            "                   recipe it is both eyes side by side, or the one that --eye says (anaglyph: red-cyan); without one, the frame as it is.\n"
            "  --profile        Instead of the check: replay frames A to B once (as they are, or for the eyes of the recipe) and say where the time of the calls went:\n"
            "                   the functions whose calls took longest, and the frames that took longest.\n"
+           "  --state-census   Instead of the check: replay frames A to B once, the way a seek to B does it (--deps says which frames are not made), and say, of the\n"
+           "                   calls of OpenGL in the frames that are not made, how many give a piece of state the value it has, and how many are overwritten by another\n"
+           "                   call before a frame that is made looks at the state.\n"
            "  --same-frames-as FILE  Instead of the check: replay frames A to B of this workload and of FILE as they are, and say whether the images are the\n"
            "                   same (exit code 3 if not). For a slice of a workload (APIDumpSlicer): it has to replay to the images of the workload.\n"
            "  --contact-sheet K  Instead of the check: one PNG with K frames spread evenly from A to B (or the end of the workload), each as a screenshot\n"
@@ -116,9 +120,10 @@ bool Stereo::Replay::ConsistencyChecker::CommandLine::parse(const std::vector<st
 
     static const FlagOption FLAG_OPTION_ARRAY[] =
     {
-        {"--history",  &Options::has_history},
-        {"--parallel", &Options::is_parallel},
-        {"--profile",  &Options::is_profiling}
+        {"--history",      &Options::has_history},
+        {"--parallel",     &Options::is_parallel},
+        {"--profile",      &Options::is_profiling},
+        {"--state-census", &Options::is_state_census}
     };
 
     static const NumberOption NUMBER_OPTION_ARRAY[] =
