@@ -26,9 +26,13 @@ namespace
 }
 
 Stereo::ConverterDLL::GlEyeRenderer::GlEyeRenderer(Stereo::Core::StereoCore* in_core_ptr,
-                                                   const bool&               in_is_shown_elsewhere)
+                                                   const bool&               in_is_shown_elsewhere,
+                                                   const uint32_t&           in_target_width,
+                                                   const uint32_t&           in_target_height)
     :m_bound_texture_array(),
      m_active_unit        (0),
+     m_applied_height     (0),
+     m_applied_width      (0),
      m_block_class        (Analysis::Recipe::DrawClass::UNAFFECTED),
      m_block_has_draws    (false),
      m_block_list         (0),
@@ -43,7 +47,14 @@ Stereo::ConverterDLL::GlEyeRenderer::GlEyeRenderer(Stereo::Core::StereoCore* in_
      m_is_shown_elsewhere (in_is_shown_elsewhere),
      m_measures_depth     (in_core_ptr->get_measures_depth() ),
      m_n_failed_attempts  (0),
-     m_pass_has_affected_draws(false)
+     m_pass_has_affected_draws(false),
+     m_scaler             (in_target_width,
+                           in_target_height,
+                           in_core_ptr,
+                           [this](const std::string& in_message)
+                           {
+                               m_note_vec.push_back(in_message);
+                           })
 {
     /* Stub */
 }
@@ -148,7 +159,7 @@ end:
     return result;
 }
 
-void Stereo::ConverterDLL::GlEyeRenderer::mirror_copy(const APIInterceptor::APIFunction&         in_function,
+bool Stereo::ConverterDLL::GlEyeRenderer::mirror_copy(const APIInterceptor::APIFunction&         in_function,
                                                       const uint32_t&                            in_n_arguments,
                                                       const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
 {
@@ -158,8 +169,9 @@ void Stereo::ConverterDLL::GlEyeRenderer::mirror_copy(const APIInterceptor::APIF
     const bool     is_sub  = (in_function == APIInterceptor::APIFUNCTION_GL_GLCOPYTEXSUBIMAGE2D);
     const uint32_t texture = m_bound_texture_array.at(m_active_unit);
 
-    std::array<int32_t, 8> value_array = {};
-    uint32_t               target      = 0;
+    bool                   is_made_scaled = false;
+    std::array<int32_t, 8> value_array    = {};
+    uint32_t               target         = 0;
 
     if (texture != 0                                                              &&
         in_n_arguments == ( (is_sub) ? N_COPY_SUB_IMAGE_ARGUMENTS : N_COPY_IMAGE_ARGUMENTS) &&
@@ -181,6 +193,15 @@ void Stereo::ConverterDLL::GlEyeRenderer::mirror_copy(const APIInterceptor::APIF
             const OwnCallScope own_call_scope;
             const auto         twin_iterator = m_twin_map.find(texture);
             bool               has_twin      = (twin_iterator != m_twin_map.end() );
+            const bool         is_scaled     = (m_scaler.is_identity() == false);
+
+            /* The framebuffer is larger than the application knows: what it copies of it is as many times larger. */
+            if (is_scaled)
+            {
+                m_scaler.scale_copy(is_sub,
+                                    texture,
+                                   &value_array);
+            }
 
             if (has_twin == false)
             {
@@ -235,8 +256,39 @@ void Stereo::ConverterDLL::GlEyeRenderer::mirror_copy(const APIInterceptor::APIF
                 note_once("copy_no_twin",
                           "A copy of the framebuffer to a texture was not made for the right eye: the twin of the texture cannot be made");
             }
+
+            /* The copy of the left eye is the application's call with the numbers of the larger framebuffer, which it cannot make. */
+            if (is_scaled)
+            {
+                if (is_sub)
+                {
+                    GlDriverFunctions::get().copy_tex_sub_image_2d_func_ptr(target,
+                                                                            value_array.at(1),
+                                                                            value_array.at(2),
+                                                                            value_array.at(3),
+                                                                            value_array.at(4),
+                                                                            value_array.at(5),
+                                                                            value_array.at(6),
+                                                                            value_array.at(7) );
+                }
+                else
+                {
+                    GlDriverFunctions::get().copy_tex_image_2d_func_ptr(target,
+                                                                        value_array.at(1),
+                                                                        value_array.at(2),
+                                                                        value_array.at(3),
+                                                                        value_array.at(4),
+                                                                        value_array.at(5),
+                                                                        value_array.at(6),
+                                                                        value_array.at(7) );
+                }
+
+                is_made_scaled = true;
+            }
         }
     }
+
+    return is_made_scaled;
 }
 
 void Stereo::ConverterDLL::GlEyeRenderer::mirror_texture_parameter(const APIInterceptor::APIFunction&         in_function,
@@ -451,7 +503,19 @@ bool Stereo::ConverterDLL::GlEyeRenderer::on_pre(const APIInterceptor::APIFuncti
                                                  const bool&                                in_has_draws,
                                                  const Analysis::Recipe::DrawClass&         in_draw_class)
 {
-    bool result = true;
+    bool result            = true;
+    bool is_made_scaled    = false;
+
+    /* What the application states in pixels is made to match the framebuffers, in a list that it compiles as well as outside one (the call made here is in the list). */
+    if (m_targets.is_ready()          &&
+        m_scaler.is_identity() == false)
+    {
+        is_made_scaled = m_scaler.on_pre(in_function,
+                                         in_n_arguments,
+                                         in_arguments_ptr,
+                                         m_bound_texture_array.at(m_active_unit),
+                                         m_get_chunk_func);
+    }
 
     /* A list that the application compiles makes nothing now: what is in it is made when it is called. */
     if (m_is_in_app_list)
@@ -597,9 +661,12 @@ bool Stereo::ConverterDLL::GlEyeRenderer::on_pre(const APIInterceptor::APIFuncti
         {
             if (m_targets.is_ready() )
             {
-                mirror_copy(in_function,
-                            in_n_arguments,
-                            in_arguments_ptr);
+                if (mirror_copy(in_function,
+                                in_n_arguments,
+                                in_arguments_ptr) )
+                {
+                    is_made_scaled = true;
+                }
             }
 
             break;
@@ -628,6 +695,8 @@ bool Stereo::ConverterDLL::GlEyeRenderer::on_pre(const APIInterceptor::APIFuncti
                            ++n_name)
                 {
                     const auto twin_it = m_twin_map.find(name_ptr[n_name]);
+
+                    m_scaler.forget_texture(name_ptr[n_name]);
 
                     if (twin_it != m_twin_map.end() )
                     {
@@ -712,7 +781,7 @@ bool Stereo::ConverterDLL::GlEyeRenderer::on_pre(const APIInterceptor::APIFuncti
     }
 
 end:
-    return result;
+    return (result && is_made_scaled == false);
 }
 
 bool Stereo::ConverterDLL::GlEyeRenderer::on_pre_draw(const APIInterceptor::APIFunction&         in_function,
@@ -1027,10 +1096,52 @@ void Stereo::ConverterDLL::GlEyeRenderer::try_to_prepare()
                            &client);
         }
 
-        const bool was_ready = m_targets.is_ready();
-        const bool is_ready  = m_targets.ensure(context,
-                                                static_cast<uint32_t>(client.right  - client.left),
-                                                static_cast<uint32_t>(client.bottom - client.top) );
+        const bool     was_ready     = m_targets.is_ready();
+        const uint32_t asked_width   = static_cast<uint32_t>(client.right  - client.left);
+        const uint32_t asked_height  = static_cast<uint32_t>(client.bottom - client.top);
+        uint32_t       real_height   = asked_height;
+        uint32_t       real_width    = asked_width;
+
+        /* The framebuffers are as large as the eye of the headset has room for, with the proportions of the window. */
+        if (asked_width  > 0 &&
+            asked_height > 0)
+        {
+            constexpr GLenum MAX_RENDERBUFFER_SIZE = 0x84E8;
+
+            GLint max_extent = 0;
+
+            GlDriverFunctions::get().get_integerv_func_ptr(MAX_RENDERBUFFER_SIZE,
+                                                           &max_extent);
+
+            m_scaler.plan(asked_width,
+                          asked_height,
+                          static_cast<uint32_t>(max_extent),
+                         &real_width,
+                         &real_height);
+        }
+
+        const bool is_ready = m_targets.ensure(context,
+                                               real_width,
+                                               real_height);
+
+        /* Until the application says otherwise, the viewport and the scissor box are those of its window, which are the size of the framebuffers. */
+        if (is_ready                           &&
+            m_scaler.is_identity() == false    &&
+            (real_width  != m_applied_width    ||
+             real_height != m_applied_height) )
+        {
+            GlDriverFunctions::get().viewport_func_ptr(0,
+                                                       0,
+                                                       static_cast<GLsizei>(real_width),
+                                                       static_cast<GLsizei>(real_height) );
+            GlDriverFunctions::get().scissor_func_ptr (0,
+                                                       0,
+                                                       static_cast<GLsizei>(real_width),
+                                                       static_cast<GLsizei>(real_height) );
+
+            m_applied_height = real_height;
+            m_applied_width  = real_width;
+        }
 
         if (is_ready && was_ready == false)
         {

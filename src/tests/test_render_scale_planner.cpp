@@ -88,7 +88,8 @@ TEST(ResolutionHazardGateTest, EveryKindOfHazardHasAReasonOfItsOwn)
 
     for (const auto hazard : {ResolutionHazard::CLEARS_WITH_RECTANGLES, ResolutionHazard::COPIES_WITH_RECTANGLES, ResolutionHazard::LINE_WIDTH_STATES,
                               ResolutionHazard::PIXEL_READBACKS,        ResolutionHazard::POINT_SIZE_STATES,      ResolutionHazard::SCISSOR_BOXES,
-                              ResolutionHazard::SCREEN_SPACE_VERTICES,  ResolutionHazard::SHADER_CREATIONS,       ResolutionHazard::SIZE_QUERIES})
+                              ResolutionHazard::SCREEN_SPACE_VERTICES,  ResolutionHazard::SHADER_CREATIONS,       ResolutionHazard::SIZE_QUERIES,
+                              ResolutionHazard::RASTER_OPERATIONS,      ResolutionHazard::TEXTURE_UPLOADS_TO_RENDER_TARGETS})
     {
         reason_vec.push_back(Stereo::ConverterDLL::ResolutionHazardGate::get_reason(hazard) );
     }

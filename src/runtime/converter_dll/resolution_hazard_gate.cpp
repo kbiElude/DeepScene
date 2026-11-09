@@ -47,6 +47,13 @@ const char* Stereo::ConverterDLL::ResolutionHazardGate::get_reason(const Analysi
             break;
         }
 
+        case Analysis::APIDumpAnalysis::ResolutionHazard::RASTER_OPERATIONS:
+        {
+            result_ptr = "The application draws pixels or bitmaps at places in pixels, or zooms them";
+
+            break;
+        }
+
         case Analysis::APIDumpAnalysis::ResolutionHazard::SCISSOR_BOXES:
         {
             result_ptr = "The application sets a scissor box, which is in pixels";
@@ -71,6 +78,13 @@ const char* Stereo::ConverterDLL::ResolutionHazardGate::get_reason(const Analysi
         case Analysis::APIDumpAnalysis::ResolutionHazard::SIZE_QUERIES:
         {
             result_ptr = "The application reads the size of the viewport or of a surface, which is of a size it does not know of";
+
+            break;
+        }
+
+        case Analysis::APIDumpAnalysis::ResolutionHazard::TEXTURE_UPLOADS_TO_RENDER_TARGETS:
+        {
+            result_ptr = "The application gives pixels to a texture that it renders to, which is larger than it knows";
 
             break;
         }

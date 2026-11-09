@@ -74,6 +74,20 @@ const char* Analysis::APIDumpAnalysis::get_resolution_hazard_name(const Resoluti
             break;
         }
 
+        case ResolutionHazard::RASTER_OPERATIONS:
+        {
+            result_ptr = "raster_operations";
+
+            break;
+        }
+
+        case ResolutionHazard::TEXTURE_UPLOADS_TO_RENDER_TARGETS:
+        {
+            result_ptr = "texture_uploads_to_render_targets";
+
+            break;
+        }
+
         default:
         {
             AI_FAIL_UNSUPPORTED(in_hazard);

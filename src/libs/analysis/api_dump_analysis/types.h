@@ -134,7 +134,11 @@ namespace Analysis
             SCISSOR_BOXES,          /* a scissor box, which is in pixels                           */
             SCREEN_SPACE_VERTICES,  /* vertices which are positioned in pixels                     */
             SHADER_CREATIONS,       /* shaders, whose constants may hold the size of the screen    */
-            SIZE_QUERIES            /* the application asks how large the viewport or a surface is */
+            SIZE_QUERIES,           /* the application asks how large the viewport or a surface is */
+
+            /* The kinds below were added after the kinds above were stored in files (by number): they stay at the end. */
+            RASTER_OPERATIONS,                /* pixels or bitmaps that are drawn at places in pixels, or zoomed       */
+            TEXTURE_UPLOADS_TO_RENDER_TARGETS /* pixels given to a texture that is the size of what it renders to     */
         };
 
         enum class ResourceAccessClass

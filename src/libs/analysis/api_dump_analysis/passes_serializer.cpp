@@ -226,7 +226,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_meta(const std::ve
                 ++n_hazard)
     {
         const auto hazard = read_enum(&reader,
-                                      ResolutionHazard::SIZE_QUERIES);
+                                      ResolutionHazard::TEXTURE_UPLOADS_TO_RENDER_TARGETS);
 
         summary.n_resolution_hazards_map[hazard] = reader.read_u64();
     }

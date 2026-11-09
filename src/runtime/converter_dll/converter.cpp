@@ -172,7 +172,9 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
         m_live_state.d3d7_windowed_mode.set_is_enabled     (is_shown_elsewhere);
 
         m_live_state.gl_renderer_ptr.reset(new GlEyeRenderer(m_live_state.core_ptr.get(),
-                                                             is_shown_elsewhere) );
+                                                             is_shown_elsewhere,
+                                                             target_width,
+                                                             target_height) );
 
         const auto get_gl_chunk_func = [this](const uint32_t& in_chunk_id,
                                               const void**    out_data_ptr_ptr,

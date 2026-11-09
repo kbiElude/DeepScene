@@ -10,6 +10,7 @@
 #include "common/types.h"
 #include "stereo/core/stereo_core.h"
 #include "gl_eye_targets.h"
+#include "gl_resolution_scaler.h"
 #include "invisible_windows.h"
 #include "types.h"
 #include <array>
@@ -54,9 +55,13 @@ namespace Stereo
                 uint64_t n_unmirrored_calls  = 0; /* calls that change the right eye's pixels or twin textures, and are made for the left only */
             };
 
-            /* The core must outlive the renderer. If the images are shown elsewhere, the windows of the application are made invisible. */
+            /* The core must outlive the renderer. If the images are shown elsewhere, the windows of the application are made invisible, and the application is made to
+             * render as large as fits the target, an eye of the headset (see GlResolutionScaler); no target (0) leaves the size as it is.
+             */
             GlEyeRenderer(Stereo::Core::StereoCore* in_core_ptr,
-                          const bool&               in_is_shown_elsewhere);
+                          const bool&               in_is_shown_elsewhere,
+                          const uint32_t&           in_target_width,
+                          const uint32_t&           in_target_height);
 
             const Statistics& get_statistics() const;
 
@@ -104,8 +109,9 @@ namespace Stereo
                            const bool&     in_has_level_size,
                            const int32_t&  in_level);
 
-            /* The copy of the framebuffer to the bound texture, made for the right eye to the twin of the texture. */
-            void mirror_copy(const APIInterceptor::APIFunction&         in_function,
+            /* The copy of the framebuffer to the bound texture, made for the right eye to the twin of the texture; if the application is made to render larger, the copy for the
+             * left eye is made here too, with the numbers made larger, and the application's is not to be made (true). */
+            bool mirror_copy(const APIInterceptor::APIFunction&         in_function,
                              const uint32_t&                            in_n_arguments,
                              const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
 
@@ -142,6 +148,8 @@ namespace Stereo
             std::vector<float>                    m_frame_median_vec;
             bool                                  m_has_frame_depth;
             uint32_t                              m_active_unit;
+            uint32_t                              m_applied_height; /* of the viewport and the scissor box that were set for the size of the framebuffers */
+            uint32_t                              m_applied_width;
             Analysis::Recipe::DrawClass           m_block_class;
             bool                                  m_block_has_draws;
             uint32_t                              m_block_list;
@@ -160,6 +168,7 @@ namespace Stereo
             std::vector<uint8_t>                  m_right_rgba_u8_vec;
             std::array<float, 16>                 m_pass_projection_f32mat; /* of the first draw of the pass that is affected */
             bool                                  m_pass_has_affected_draws;
+            GlResolutionScaler                    m_scaler;
             Statistics                            m_statistics;
             GlEyeTargets                          m_targets;
             std::map<uint32_t, uint32_t>          m_twin_map;

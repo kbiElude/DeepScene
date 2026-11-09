@@ -31,15 +31,19 @@ namespace Stereo
             PFNGLGETINTEGERVPROC             get_integerv_func_ptr               = nullptr;
             PFNGLGETTEXLEVELPARAMETERIVPROC  get_tex_level_parameteriv_func_ptr  = nullptr;
             PFNGLGETTEXPARAMETERIVPROC       get_tex_parameteriv_func_ptr        = nullptr;
+            PFNGLLINEWIDTHPROC               line_width_func_ptr                 = nullptr;
             PFNGLLOADMATRIXFPROC             load_matrixf_func_ptr               = nullptr;
             PFNGLMATRIXMODEPROC              matrix_mode_func_ptr                = nullptr;
             PFNGLMULTMATRIXFPROC             mult_matrixf_func_ptr               = nullptr;
             PFNGLNEWLISTPROC                 new_list_func_ptr                   = nullptr;
             PFNGLPIXELSTOREIPROC             pixel_storei_func_ptr               = nullptr;
+            PFNGLPOINTSIZEPROC               point_size_func_ptr                 = nullptr;
             PFNGLREADPIXELSPROC              read_pixels_func_ptr                = nullptr;
+            PFNGLSCISSORPROC                 scissor_func_ptr                    = nullptr;
             PFNGLTEXIMAGE2DPROC              tex_image_2d_func_ptr               = nullptr;
             PFNGLTEXPARAMETERFPROC           tex_parameterf_func_ptr             = nullptr;
             PFNGLTEXPARAMETERIPROC           tex_parameteri_func_ptr             = nullptr;
+            PFNGLVIEWPORTPROC                viewport_func_ptr                   = nullptr;
 
             /* The functions, found once. */
             static const GlDriverFunctions& get();
