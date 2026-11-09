@@ -6,7 +6,9 @@
 #include "capture/api_dump_loader/api_info.h"
 #include "common/argument_reader.h"
 #include "common/macros.h"
+#include "gl_attribute_coverage.h"
 #include "slice_skipper.h"
+#include <vector>
 
 Stereo::Replay::EngineDLL::SliceSkipper::SliceSkipper()
     :m_slice_ptr(nullptr)
@@ -24,18 +26,22 @@ Capture::APIDumpLoader::CallKeptFuncFactory Stereo::Replay::EngineDLL::SliceSkip
     Capture::APIDumpLoader::CallKeptFuncFactory      result;
     const Analysis::APIDumpDependencies::FrameSlice* const slice_ptr = m_slice_ptr;
 
-    /* A slice is never freed (see get_chunk_wanted_func()). The function that the factory makes follows the lists of its segment alone, as the threads that read
-     * segments do not meet.
+    /* A slice is never freed (see get_chunk_wanted_func()). The function that the factory makes follows the lists, and the pushes of attributes, of its segment
+     * alone, as the threads that read segments do not meet.
      */
     if (slice_ptr != nullptr)
     {
         result = [slice_ptr]()
                  {
-                     bool is_recording = false;
+                     bool                  is_recording     = false;
+                     uint64_t              last_frame_index = UINT64_MAX;
+                     std::vector<uint32_t> push_mask_vec; /* of the pushes of attributes in the frame that has not been popped, the last one first */
 
                      return Capture::APIDumpLoader::CallKeptFunc([slice_ptr,
-                                                                  is_recording](const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                const uint64_t&                              in_frame_index) mutable
+                                                                  is_recording,
+                                                                  last_frame_index,
+                                                                  push_mask_vec](const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                                 const uint64_t&                              in_frame_index) mutable
                                                                  {
                                                                      bool is_kept = true;
 
@@ -74,6 +80,53 @@ Capture::APIDumpLoader::CallKeptFuncFactory Stereo::Replay::EngineDLL::SliceSkip
 
                                                                                  is_kept = (is_content == false ||
                                                                                             is_live);
+
+                                                                                 /* What a push of attributes that a pop undoes, in a frame that is left out, does not need to be made, since nothing that is made looks at
+                                                                                  * it before the pop does away with it (see GlAttributeCoverage). The calls that are made are the push and the pop themselves, and what a pop
+                                                                                  * does not undo. A frame is left out all of it, so it has to pop what it pushes: the state that its calls would have left is not made.
+                                                                                  */
+                                                                                 if (in_frame_index != last_frame_index)
+                                                                                 {
+                                                                                     AI_ASSERT_ALWAYS(push_mask_vec.empty(),
+                                                                                                      "A frame that a seek leaves out pushes attributes and ends before it pops them, so that the calls that set state in between, which are left out, would have left it as the frame left it. Seeking over it is not implemented.");
+
+                                                                                     last_frame_index = in_frame_index;
+                                                                                 }
+
+                                                                                 if (is_live == false)
+                                                                                 {
+                                                                                     if (in_call.func == APIInterceptor::APIFUNCTION_GL_GLPUSHATTRIB)
+                                                                                     {
+                                                                                         uint32_t mask = 0;
+
+                                                                                         if (in_call.arg_in_vec.empty() == false)
+                                                                                         {
+                                                                                             APIInterceptor::read_number(in_call.arg_in_vec.at(0),
+                                                                                                                        &mask);
+                                                                                         }
+
+                                                                                         push_mask_vec.push_back(mask);
+                                                                                     }
+                                                                                     else
+                                                                                     if (in_call.func == APIInterceptor::APIFUNCTION_GL_GLPOPATTRIB)
+                                                                                     {
+                                                                                         if (push_mask_vec.empty() == false)
+                                                                                         {
+                                                                                             push_mask_vec.pop_back();
+                                                                                         }
+                                                                                     }
+                                                                                     else
+                                                                                     if (push_mask_vec.empty() == false)
+                                                                                     {
+                                                                                         const bool is_undone = GlAttributeCoverage::is_undone_by_pop(push_mask_vec.back(),
+                                                                                                                                                       in_call.func);
+
+                                                                                         if (is_undone)
+                                                                                         {
+                                                                                             is_kept = false;
+                                                                                         }
+                                                                                     }
+                                                                                 }
                                                                              }
 
                                                                              break;

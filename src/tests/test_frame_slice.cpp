@@ -748,6 +748,120 @@ TEST(SliceSkipper, TheCallsOfAListThatIsBeingMadeAreKeptByTheReaderToo)
     EXPECT_FALSE(kept_func(vertex,   DEAD_FRAME) );
 }
 
+TEST(SliceSkipper, TheReaderLeavesOutWhatAPopUndoesBetweenThePushAndThePopOfAFrameThatIsLeftOut)
+{
+    constexpr int ALL_ATTRIBUTE_BITS = 0xFFFFF;
+
+    Stereo::Replay::EngineDLL::SliceSkipper skipper;
+
+    set_dead_until_frame_5(&skipper);
+
+    const auto kept_func = skipper.get_call_kept_func_factory()();
+
+    EXPECT_TRUE (kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLENABLE),                         DEAD_FRAME) ); /* before the push */
+    EXPECT_TRUE (kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLPUSHATTRIB, ALL_ATTRIBUTE_BITS), DEAD_FRAME) );
+
+    /* What the pop undoes. */
+    EXPECT_FALSE(kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLENABLE),                         DEAD_FRAME) );
+    EXPECT_FALSE(kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLDISABLE),                        DEAD_FRAME) );
+    EXPECT_FALSE(kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLMATERIALFV),                     DEAD_FRAME) );
+    EXPECT_FALSE(kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLCOLOR3FV),                       DEAD_FRAME) );
+    EXPECT_FALSE(kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLTEXENVF),                        DEAD_FRAME) );
+    EXPECT_FALSE(kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLBLENDFUNC),                      DEAD_FRAME) );
+    EXPECT_FALSE(kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLTEXCOORD2F),                     DEAD_FRAME) );
+
+    /* What the calls after them go by, what changes an object, and the state of the client, which a push of attributes does not save. */
+    EXPECT_TRUE (kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLACTIVETEXTURE),                  DEAD_FRAME) );
+    EXPECT_TRUE (kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLBINDTEXTURE),                    DEAD_FRAME) );
+    EXPECT_TRUE (kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLTEXPARAMETERI),                  DEAD_FRAME) );
+    EXPECT_TRUE (kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLMATRIXMODE),                     DEAD_FRAME) );
+    EXPECT_TRUE (kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLENABLECLIENTSTATE),              DEAD_FRAME) );
+    EXPECT_TRUE (kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLVERTEXPOINTER),                  DEAD_FRAME) );
+    EXPECT_TRUE (kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLCLIENTACTIVETEXTURE),            DEAD_FRAME) );
+
+    EXPECT_TRUE (kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLPOPATTRIB),                      DEAD_FRAME) );
+
+    /* After the pop what is set is what stays. */
+    EXPECT_TRUE (kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLENABLE),                         DEAD_FRAME) );
+}
+
+TEST(SliceSkipper, AMaskThatDoesNotSaveWhatACallSetsLeavesItInAndANestedPushIsUndoneByItsOwnPop)
+{
+    constexpr int ALL_ATTRIBUTE_BITS = 0xFFFFF;
+    constexpr int ENABLE_BIT         = 0x2000;
+
+    Stereo::Replay::EngineDLL::SliceSkipper skipper;
+
+    set_dead_until_frame_5(&skipper);
+
+    const auto kept_func = skipper.get_call_kept_func_factory()();
+
+    /* A push that saves only the capabilities does not undo a material. */
+    EXPECT_TRUE (kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLPUSHATTRIB, ENABLE_BIT), DEAD_FRAME) );
+    EXPECT_FALSE(kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLENABLE),                 DEAD_FRAME) );
+    EXPECT_TRUE (kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLMATERIALFV),             DEAD_FRAME) );
+
+    /* One inside it that saves all: what it undoes is left out; what the pop of the one that saves less undoes is left in, as it is not known to be undone. */
+    EXPECT_TRUE (kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLPUSHATTRIB, ALL_ATTRIBUTE_BITS), DEAD_FRAME) );
+    EXPECT_FALSE(kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLMATERIALFV),                     DEAD_FRAME) );
+    EXPECT_TRUE (kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLPOPATTRIB),                      DEAD_FRAME) );
+    EXPECT_TRUE (kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLMATERIALFV),                     DEAD_FRAME) );
+    EXPECT_FALSE(kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLENABLE),                         DEAD_FRAME) );
+    EXPECT_TRUE (kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLPOPATTRIB),                      DEAD_FRAME) );
+}
+
+TEST(SliceSkipper, NothingIsLeftOutOfAFrameThatIsMade)
+{
+    constexpr int ALL_ATTRIBUTE_BITS = 0xFFFFF;
+
+    Stereo::Replay::EngineDLL::SliceSkipper skipper;
+
+    set_dead_until_frame_5(&skipper);
+
+    const auto kept_func = skipper.get_call_kept_func_factory()();
+
+    EXPECT_TRUE(kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLPUSHATTRIB, ALL_ATTRIBUTE_BITS), LIVE_FRAME) );
+    EXPECT_TRUE(kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLENABLE),                         LIVE_FRAME) );
+    EXPECT_TRUE(kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLMATERIALFV),                     LIVE_FRAME) );
+}
+
+TEST(SliceSkipper, AFrameThatIsLeftOutAndEndsBeforeItPopsWhatItPushedEndsTheProcess)
+{
+    constexpr int ALL_ATTRIBUTE_BITS = 0xFFFFF;
+
+    set_no_error_dialog();
+
+    EXPECT_EXIT({
+                    Stereo::Replay::EngineDLL::SliceSkipper skipper;
+
+                    set_dead_until_frame_5(&skipper);
+
+                    const auto kept_func = skipper.get_call_kept_func_factory()();
+
+                    kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLPUSHATTRIB, ALL_ATTRIBUTE_BITS), 1);
+                    kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLENABLE),                         1);
+
+                    /* The next frame begins: the state that the calls of the one before would have left is not made. */
+                    kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLENABLE),                         DEAD_FRAME);
+                },
+                ::testing::ExitedWithCode(APIInterceptor::FatalError::get_exit_code() ),
+                "before it pops");
+}
+
+TEST(SliceSkipper, APopWhosePushWasInTheSegmentBeforeLeavesNothingOut)
+{
+    Stereo::Replay::EngineDLL::SliceSkipper skipper;
+
+    set_dead_until_frame_5(&skipper);
+
+    const auto kept_func = skipper.get_call_kept_func_factory()();
+
+    /* The segment begins in the middle of a pair: what comes before the pop is not known to be undone by it. */
+    EXPECT_TRUE(kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLENABLE),    DEAD_FRAME) );
+    EXPECT_TRUE(kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLPOPATTRIB), DEAD_FRAME) );
+    EXPECT_TRUE(kept_func(make_gl_call(APIInterceptor::APIFUNCTION_GL_GLENABLE),    DEAD_FRAME) );
+}
+
 TEST(SliceSkipper, AListThatIsMadeAcrossTwoSegmentsEndsTheProcess)
 {
     set_no_error_dialog();

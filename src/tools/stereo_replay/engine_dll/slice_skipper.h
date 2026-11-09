@@ -21,7 +21,8 @@ namespace Stereo
         {
             /* Leaves out what the dead frames of a slice make (see FrameSlicePlanner): the draws, the clears, the copies and the uploads. The calls
              * which set the state of the device or make and release objects are made, since the frames which are not dead go on from the state which
-             * the dead ones leave, and the objects they use must be there.
+             * the dead ones leave, and the objects they use must be there. Of OpenGL, the calls that only give a piece of state a value that the groups of a
+             * glPushAttrib save are left out between it and its glPopAttrib as well, in the reader (see GlAttributeCoverage), since the pop undoes them.
              */
             class SliceSkipper : public ::Replay::ReplayEngineDLL::ICallInterceptor
             {
