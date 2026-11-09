@@ -12,43 +12,53 @@ namespace
     constexpr uint32_t BYTES_PER_PIXEL = 4;
     constexpr uint32_t N_EYES          = 2;
 
-    /* Puts the rows of an image of an eye, from the bottom up as OpenGL gives them, into the image of both eyes with the top row first, as R, G, B, A turned
-     * into B, G, R, A. The destination is pitch bytes from a row to the next, the eye is the place of the image across.
+    /* Puts the rows of an image of an eye (B, G, R, A of 8 bits, from the bottom up as OpenGL gives them) into the image of both eyes, where the eye is the place of the
+     * image across; the top row of the destination is the last of the source if the rows are turned over, and the first if not.
      */
-    void write_eye_rows(const uint8_t*  in_rgba_ptr,
+    void write_eye_rows(const uint8_t*  in_bgra_ptr,
                         const uint32_t& in_width,
                         const uint32_t& in_height,
                         const uint32_t& in_eye,
-                        const bool&     in_is_top_first,
+                        const bool&     in_is_turned_over,
                         uint8_t*        out_destination_ptr,
                         const uint32_t& in_pitch)
     {
+        const size_t row_n_bytes = static_cast<size_t>(in_width) * BYTES_PER_PIXEL;
+
         for (uint32_t n_row = 0;
                       n_row < in_height;
                     ++n_row)
         {
-            const uint8_t* const source_ptr      = in_rgba_ptr + static_cast<size_t>(n_row) * in_width * BYTES_PER_PIXEL;
-            const uint32_t       destination_row = (in_is_top_first) ? (in_height - 1 - n_row)
-                                                                     : n_row;
-            uint8_t* const       destination_ptr = out_destination_ptr + static_cast<size_t>(destination_row) * in_pitch + static_cast<size_t>(in_eye) * in_width * BYTES_PER_PIXEL;
+            const uint32_t destination_row = (in_is_turned_over) ? (in_height - 1 - n_row)
+                                                                 : n_row;
 
-            for (uint32_t n_column = 0;
-                          n_column < in_width;
-                        ++n_column)
-            {
-                destination_ptr[n_column * BYTES_PER_PIXEL + 0] = source_ptr[n_column * BYTES_PER_PIXEL + 2];
-                destination_ptr[n_column * BYTES_PER_PIXEL + 1] = source_ptr[n_column * BYTES_PER_PIXEL + 1];
-                destination_ptr[n_column * BYTES_PER_PIXEL + 2] = source_ptr[n_column * BYTES_PER_PIXEL + 0];
-                destination_ptr[n_column * BYTES_PER_PIXEL + 3] = 0xFF;
-            }
+            ::memcpy(out_destination_ptr + static_cast<size_t>(destination_row) * in_pitch + static_cast<size_t>(in_eye) * row_n_bytes,
+                     in_bgra_ptr         + static_cast<size_t>(n_row)           * row_n_bytes,
+                     row_n_bytes);
         }
     }
 }
 
 Stereo::ConverterDLL::GlHostMemoryExporter::GlHostMemoryExporter(Stereo::Transport::FrameChannel* inout_channel_ptr)
-    :HostMemoryExporter(inout_channel_ptr)
+    :HostMemoryExporter(inout_channel_ptr),
+     m_has_job         (false),
+     m_is_stopping     (false)
 {
-    /* Stub */
+    m_thread = std::thread(&GlHostMemoryExporter::run_thread,
+                            this);
+}
+
+Stereo::ConverterDLL::GlHostMemoryExporter::~GlHostMemoryExporter()
+{
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+
+        m_is_stopping = true;
+    }
+
+    m_condition.notify_one();
+
+    m_thread.join();
 }
 
 Stereo::Transport::ExportStatus Stereo::ConverterDLL::GlHostMemoryExporter::export_frame(const uint64_t&                        in_frame_index,
@@ -64,53 +74,108 @@ Stereo::Transport::ExportStatus Stereo::ConverterDLL::GlHostMemoryExporter::expo
         goto end;
     }
 
-    if (images_ptr                             == nullptr ||
-        in_source.right_surface_ptr            == nullptr ||
-        images_ptr->left_rgba_ptr              == nullptr ||
-        images_ptr->right_rgba_ptr             == nullptr ||
-        images_ptr->width  * N_EYES            >  Stereo::Transport::FrameChannel::get_max_width () ||
-        images_ptr->height                     >  Stereo::Transport::FrameChannel::get_max_height() )
+    if (images_ptr                  == nullptr ||
+        in_source.right_surface_ptr == nullptr ||
+        images_ptr->left_bgra_ptr   == nullptr ||
+        images_ptr->right_bgra_ptr  == nullptr ||
+        images_ptr->width  * N_EYES >  Stereo::Transport::FrameChannel::get_max_width () ||
+        images_ptr->height          >  Stereo::Transport::FrameChannel::get_max_height() )
     {
         goto end;
     }
 
     {
-        Stereo::Transport::FrameInfo info;
+        std::lock_guard<std::mutex> lock(m_mutex);
 
-        info.frame_index       = in_frame_index;
-        info.height            = images_ptr->height;
-        info.n_eyes            = N_EYES;
-        info.timestamp_seconds = in_source.timestamp_seconds;
-        info.width             = images_ptr->width * N_EYES;
-
-        uint8_t* const destination_ptr = get_channel_ptr()->begin_write_ptr(info);
-        const uint32_t pitch           = Stereo::Transport::FrameChannel::get_pitch(info.width);
-
-        if (destination_ptr != nullptr)
+        /* The thread is at the frame before: this one is left out. */
+        if (m_has_job)
         {
-            write_eye_rows(images_ptr->left_rgba_ptr,
-                           images_ptr->width,
-                           images_ptr->height,
-                           0, /* in_eye */
-                           true,
-                           destination_ptr,
-                           pitch);
-            write_eye_rows(images_ptr->right_rgba_ptr,
-                           images_ptr->width,
-                           images_ptr->height,
-                           1, /* in_eye */
-                           true,
-                           destination_ptr,
-                           pitch);
-
-            get_channel_ptr()->end_write();
+            result = Stereo::Transport::ExportStatus::NOT_READY;
+        }
+        else
+        {
+            m_job.frame_index       = in_frame_index;
+            m_job.images            = *images_ptr;
+            m_job.timestamp_seconds = in_source.timestamp_seconds;
+            m_has_job               = true;
 
             result = Stereo::Transport::ExportStatus::EXPORTED;
         }
     }
 
+    if (result == Stereo::Transport::ExportStatus::EXPORTED)
+    {
+        m_condition.notify_one();
+    }
+
 end:
     return result;
+}
+
+void Stereo::ConverterDLL::GlHostMemoryExporter::run_thread()
+{
+    std::unique_lock<std::mutex> lock(m_mutex);
+
+    for (;;)
+    {
+        m_condition.wait(lock,
+                         [this]()
+                         {
+                             return (m_has_job || m_is_stopping);
+                         });
+
+        if (m_is_stopping)
+        {
+            break;
+        }
+
+        {
+            Job job = m_job;
+
+            lock.unlock();
+
+            {
+                Stereo::Transport::FrameInfo info;
+
+                info.frame_index       = job.frame_index;
+                info.height            = job.images.height;
+                info.n_eyes            = N_EYES;
+                info.timestamp_seconds = job.timestamp_seconds;
+                info.width             = job.images.width * N_EYES;
+
+                uint8_t* const destination_ptr = get_channel_ptr()->begin_write_ptr(info);
+                const uint32_t pitch           = Stereo::Transport::FrameChannel::get_pitch(info.width);
+
+                if (destination_ptr != nullptr)
+                {
+                    write_eye_rows(job.images.left_bgra_ptr,
+                                   job.images.width,
+                                   job.images.height,
+                                   0, /* in_eye */
+                                   true,
+                                   destination_ptr,
+                                   pitch);
+                    write_eye_rows(job.images.right_bgra_ptr,
+                                   job.images.width,
+                                   job.images.height,
+                                   1, /* in_eye */
+                                   true,
+                                   destination_ptr,
+                                   pitch);
+
+                    get_channel_ptr()->end_write();
+                }
+            }
+
+            /* The memory of the images is the reader's again when the copy of the token goes. */
+            job = Job();
+
+            lock.lock();
+
+            m_job     = Job();
+            m_has_job = false;
+        }
+    }
 }
 
 void Stereo::ConverterDLL::GlHostMemoryExporter::wait_for_pace()
@@ -132,19 +197,19 @@ bool Stereo::ConverterDLL::GlHostMemoryExporter::write_debug_image(const GlFrame
     std::vector<uint8_t> pixel_u8_vec(n_bytes);
     bool                 result  = false;
 
-    if (in_images.left_rgba_ptr  != nullptr &&
-        in_images.right_rgba_ptr != nullptr &&
+    if (in_images.left_bgra_ptr  != nullptr &&
+        in_images.right_bgra_ptr != nullptr &&
         n_bytes                  != 0)
     {
         /* A BMP has its bottom row first, as OpenGL does. */
-        write_eye_rows(in_images.left_rgba_ptr,
+        write_eye_rows(in_images.left_bgra_ptr,
                        in_images.width,
                        in_images.height,
                        0, /* in_eye */
                        false,
                        pixel_u8_vec.data(),
                        pitch);
-        write_eye_rows(in_images.right_rgba_ptr,
+        write_eye_rows(in_images.right_bgra_ptr,
                        in_images.width,
                        in_images.height,
                        1, /* in_eye */

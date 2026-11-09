@@ -60,5 +60,21 @@ bool Stereo::ConverterDLL::GlExtensionFunctions::load()
     find_function("glActiveTexture",   &active_texture_func_ptr);
     find_function("glBlitFramebuffer", &blit_framebuffer_func_ptr);
 
+    /* The buffers are of OpenGL 1.5: all or none of them are used. */
+    if (find_function("glBindBuffer",    &bind_buffer_func_ptr)    == false ||
+        find_function("glBufferData",    &buffer_data_func_ptr)    == false ||
+        find_function("glDeleteBuffers", &delete_buffers_func_ptr) == false ||
+        find_function("glGenBuffers",    &gen_buffers_func_ptr)    == false ||
+        find_function("glMapBuffer",     &map_buffer_func_ptr)     == false ||
+        find_function("glUnmapBuffer",   &unmap_buffer_func_ptr)   == false)
+    {
+        bind_buffer_func_ptr    = nullptr;
+        buffer_data_func_ptr    = nullptr;
+        delete_buffers_func_ptr = nullptr;
+        gen_buffers_func_ptr    = nullptr;
+        map_buffer_func_ptr     = nullptr;
+        unmap_buffer_func_ptr   = nullptr;
+    }
+
     return result;
 }

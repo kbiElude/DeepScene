@@ -665,6 +665,9 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
 
                 m_live_state.has_last_gl_images = has_gl_images;
                 m_live_state.last_gl_images     = gl_images;
+
+                /* The copy is for a look at the frame before the next is read, not a hold on its memory: the reader would wait for it. */
+                m_live_state.last_gl_images.consumer_token.reset();
             }
 
             /* What the application renders is made for both eyes: a draw or a clear is made here, and the call of the application is not. */

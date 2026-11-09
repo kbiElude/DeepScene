@@ -339,16 +339,24 @@ void Stereo::ConverterDLL::GlEyeRenderer::mirror_texture_parameter(const APIInte
 
 void Stereo::ConverterDLL::GlEyeRenderer::measure_pass_depth()
 {
+    /* A depth buffer that is read whole (the copy of it could not be made) is looked at every few pixels; the copy is small enough to be looked at whole. */
+    constexpr size_t N_DEPTHS_LOOKED_AT_WHOLE = 100000;
     constexpr size_t N_PIXELS_BETWEEN_SAMPLES = 4;
+
+    uint32_t depth_height = 0;
+    uint32_t depth_width  = 0;
 
     if (m_measures_depth           &&
         m_pass_has_affected_draws  &&
         m_targets.is_ready()       &&
-        m_targets.read_depth(&m_depth_f32_vec) )
+        m_targets.read_depth(&m_depth_f32_vec,
+                             &depth_width,
+                             &depth_height) )
     {
         const auto range = Stereo::Core::DepthBufferStatistics::measure(m_depth_f32_vec.data(),
                                                                         m_depth_f32_vec.size(),
-                                                                        N_PIXELS_BETWEEN_SAMPLES,
+                                                                        (m_depth_f32_vec.size() > N_DEPTHS_LOOKED_AT_WHOLE) ? N_PIXELS_BETWEEN_SAMPLES
+                                                                                                                            : 1,
                                                                         m_pass_projection_f32mat.at(10),
                                                                         m_pass_projection_f32mat.at(14),
                                                                         m_core_ptr->get_near_fraction() );
@@ -401,20 +409,9 @@ bool Stereo::ConverterDLL::GlEyeRenderer::on_frame_ending(GlFrameImages* out_ima
     measure_pass_depth();
 
     {
-        const bool is_left_read  = m_targets.read_eye(Analysis::Recipe::Eye::LEFT,
-                                                     &m_left_rgba_u8_vec);
-        const bool is_right_read = m_targets.read_eye(Analysis::Recipe::Eye::RIGHT,
-                                                     &m_right_rgba_u8_vec);
-
-        if (is_left_read && is_right_read)
-        {
-            out_images_ptr->height         = m_targets.get_height();
-            out_images_ptr->left_rgba_ptr  = m_left_rgba_u8_vec.data ();
-            out_images_ptr->right_rgba_ptr = m_right_rgba_u8_vec.data();
-            out_images_ptr->width          = m_targets.get_width ();
-
-            result = true;
-        }
+        /* The images that come are those of the frame before, which have been read while this one was made. */
+        result = m_frame_reader.read(&m_targets,
+                                     out_images_ptr);
 
         /* A program that shows the images elsewhere has no use for the window; otherwise the window shows the left eye. */
         if (m_is_shown_elsewhere == false)

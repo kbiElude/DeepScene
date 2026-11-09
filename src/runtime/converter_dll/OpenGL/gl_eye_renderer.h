@@ -10,6 +10,7 @@
 #include "common/types.h"
 #include "stereo/core/stereo_core.h"
 #include "gl_eye_targets.h"
+#include "gl_frame_reader.h"
 #include "gl_resolution_scaler.h"
 #include "invisible_windows.h"
 #include "types.h"
@@ -72,7 +73,8 @@ namespace Stereo
             bool take_frame_depth(Stereo::Core::DepthRange* out_depth_range_ptr,
                                   float*                    out_projection_scale_ptr);
 
-            /* The frame is about to be presented: the images of both eyes are read. False if there are none. The images are kept until the next call. */
+            /* The frame is about to be presented: the images of both eyes are read, and those of the frame before are given (false if there are none: the first frame, or a size
+             * that changed). They stay where they are while the token in them is held. */
             bool on_frame_ending(GlFrameImages* out_images_ptr);
 
             /* A call of the application has been made. */
@@ -154,6 +156,7 @@ namespace Stereo
             bool                                  m_block_has_draws;
             uint32_t                              m_block_list;
             Stereo::Core::StereoCore*             m_core_ptr;
+            GlFrameReader                         m_frame_reader;
             GetChunkFunc                          m_get_chunk_func;
             bool                                  m_has_failed;
             InvisibleWindows                      m_invisible_windows;
@@ -162,10 +165,8 @@ namespace Stereo
             bool                                  m_is_shown_elsewhere;
             bool                                  m_measures_depth;
             uint32_t                              m_n_failed_attempts;
-            std::vector<uint8_t>                  m_left_rgba_u8_vec;
             std::vector<std::string>              m_note_vec;
             std::vector<std::string>              m_noted_key_vec;
-            std::vector<uint8_t>                  m_right_rgba_u8_vec;
             std::array<float, 16>                 m_pass_projection_f32mat; /* of the first draw of the pass that is affected */
             bool                                  m_pass_has_affected_draws;
             GlResolutionScaler                    m_scaler;

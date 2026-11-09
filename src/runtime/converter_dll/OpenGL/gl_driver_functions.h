@@ -22,8 +22,10 @@ namespace Stereo
             PFNGLCOPYTEXIMAGE2DPROC          copy_tex_image_2d_func_ptr          = nullptr;
             PFNGLCOPYTEXSUBIMAGE2DPROC       copy_tex_sub_image_2d_func_ptr      = nullptr;
             PFNGLDELETETEXTURESPROC          delete_textures_func_ptr            = nullptr;
+            PFNGLDISABLEPROC                 disable_func_ptr                    = nullptr;
             PFNGLDRAWARRAYSPROC              draw_arrays_func_ptr                = nullptr;
             PFNGLDRAWELEMENTSPROC            draw_elements_func_ptr              = nullptr;
+            PFNGLENABLEPROC                  enable_func_ptr                     = nullptr;
             PFNGLENDLISTPROC                 end_list_func_ptr                   = nullptr;
             PFNGLGENLISTSPROC                gen_lists_func_ptr                  = nullptr;
             PFNGLGENTEXTURESPROC             gen_textures_func_ptr               = nullptr;
@@ -31,6 +33,7 @@ namespace Stereo
             PFNGLGETINTEGERVPROC             get_integerv_func_ptr               = nullptr;
             PFNGLGETTEXLEVELPARAMETERIVPROC  get_tex_level_parameteriv_func_ptr  = nullptr;
             PFNGLGETTEXPARAMETERIVPROC       get_tex_parameteriv_func_ptr        = nullptr;
+            PFNGLISENABLEDPROC               is_enabled_func_ptr                 = nullptr;
             PFNGLLINEWIDTHPROC               line_width_func_ptr                 = nullptr;
             PFNGLLOADMATRIXFPROC             load_matrixf_func_ptr               = nullptr;
             PFNGLMATRIXMODEPROC              matrix_mode_func_ptr                = nullptr;

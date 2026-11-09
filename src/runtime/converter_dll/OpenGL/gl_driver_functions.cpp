@@ -18,8 +18,10 @@ const Stereo::ConverterDLL::GlDriverFunctions& Stereo::ConverterDLL::GlDriverFun
         functions.copy_tex_image_2d_func_ptr         = reinterpret_cast<PFNGLCOPYTEXIMAGE2DPROC>         (Hooks::g_cached_gl_copy_tex_image_2d);
         functions.copy_tex_sub_image_2d_func_ptr     = reinterpret_cast<PFNGLCOPYTEXSUBIMAGE2DPROC>      (Hooks::g_cached_gl_copy_tex_sub_image_2d);
         functions.delete_textures_func_ptr           = reinterpret_cast<PFNGLDELETETEXTURESPROC>         (Hooks::g_cached_gl_delete_textures);
+        functions.disable_func_ptr                   = reinterpret_cast<PFNGLDISABLEPROC>                (Hooks::g_cached_gl_disable);
         functions.draw_arrays_func_ptr               = reinterpret_cast<PFNGLDRAWARRAYSPROC>             (Hooks::g_cached_gl_draw_arrays);
         functions.draw_elements_func_ptr             = reinterpret_cast<PFNGLDRAWELEMENTSPROC>           (Hooks::g_cached_gl_draw_elements);
+        functions.enable_func_ptr                    = reinterpret_cast<PFNGLENABLEPROC>                 (Hooks::g_cached_gl_enable);
         functions.end_list_func_ptr                  = reinterpret_cast<PFNGLENDLISTPROC>                (Hooks::g_cached_gl_end_list);
         functions.gen_lists_func_ptr                 = reinterpret_cast<PFNGLGENLISTSPROC>               (Hooks::g_cached_gl_gen_lists);
         functions.gen_textures_func_ptr              = reinterpret_cast<PFNGLGENTEXTURESPROC>            (Hooks::g_cached_gl_gen_textures);
@@ -27,6 +29,7 @@ const Stereo::ConverterDLL::GlDriverFunctions& Stereo::ConverterDLL::GlDriverFun
         functions.get_integerv_func_ptr              = reinterpret_cast<PFNGLGETINTEGERVPROC>            (Hooks::g_cached_gl_get_integerv);
         functions.get_tex_level_parameteriv_func_ptr = reinterpret_cast<PFNGLGETTEXLEVELPARAMETERIVPROC>(Hooks::g_cached_gl_get_tex_level_parameteriv);
         functions.get_tex_parameteriv_func_ptr       = reinterpret_cast<PFNGLGETTEXPARAMETERIVPROC>      (Hooks::g_cached_gl_get_tex_parameteriv);
+        functions.is_enabled_func_ptr                = reinterpret_cast<PFNGLISENABLEDPROC>              (Hooks::g_cached_gl_is_enabled);
         functions.line_width_func_ptr                = reinterpret_cast<PFNGLLINEWIDTHPROC>              (Hooks::g_cached_gl_line_width);
         functions.load_matrixf_func_ptr              = reinterpret_cast<PFNGLLOADMATRIXFPROC>            (Hooks::g_cached_gl_load_matrix_f);
         functions.matrix_mode_func_ptr               = reinterpret_cast<PFNGLMATRIXMODEPROC>             (Hooks::g_cached_gl_matrix_mode);
