@@ -19,6 +19,28 @@ bool Stereo::Replay::ConsistencyChecker::run_report_shards(const Stereo::Replay:
     std::vector<HANDLE> process_handle_vec;
     bool                result             = true;
 
+    /* One of the parts that run is waited for (the first to end), to make room for another (or at the end): its exit code says whether it did well. */
+    const auto wait_for_part_func = [&]()
+    {
+        DWORD exit_code = 0;
+        DWORD n_signaled = ::WaitForMultipleObjects(static_cast<DWORD>(process_handle_vec.size() ),
+                                                    process_handle_vec.data(),
+                                                    FALSE, /* in_wait_all */
+                                                    INFINITE) - WAIT_OBJECT_0;
+
+        ::GetExitCodeProcess(process_handle_vec.at(n_signaled),
+                            &exit_code);
+        ::CloseHandle       (process_handle_vec.at(n_signaled) );
+
+        process_handle_vec.erase(process_handle_vec.begin() + n_signaled);
+
+        if (exit_code != 0)
+        {
+            *out_error_ptr = "A part of the report failed (exit code " + std::to_string(exit_code) + "); what it said is above.";
+            result         = false;
+        }
+    };
+
     if (::GetModuleFileNameA(nullptr,
                              exe_path_i8vec,
                              MAX_PATH) == 0)
@@ -36,6 +58,17 @@ bool Stereo::Replay::ConsistencyChecker::run_report_shards(const Stereo::Replay:
                   n_shard < in_n_shards;
                 ++n_shard)
     {
+        /* No more parts run at a time than there are jobs; a part that failed ends the starting of the others. */
+        while (process_handle_vec.size() >= in_options.n_jobs)
+        {
+            wait_for_part_func();
+        }
+
+        if (result == false)
+        {
+            break;
+        }
+
         std::string         command_line        = "\"" + std::string(exe_path_i8vec) + "\" \"" + in_options.workload_filename + "\" --overlay-report \"" +
                                                   in_options.overlay_report_filename + "\" --recipe \"" + in_options.recipe_filename + "\" --dump-dir \"" +
                                                   in_options.dump_directory + "\" --jobs 1 --overlay-report-shard " + std::to_string(n_shard) + " " + std::to_string(in_n_shards) +
@@ -99,21 +132,9 @@ bool Stereo::Replay::ConsistencyChecker::run_report_shards(const Stereo::Replay:
     }
 
     /* Those that were started are waited for, whether or not the others could be. */
-    for (const auto process_handle : process_handle_vec)
+    while (process_handle_vec.empty() == false)
     {
-        DWORD exit_code = 0;
-
-        ::WaitForSingleObject(process_handle,
-                              INFINITE);
-        ::GetExitCodeProcess (process_handle,
-                             &exit_code);
-        ::CloseHandle        (process_handle);
-
-        if (exit_code != 0)
-        {
-            *out_error_ptr = "A part of the report failed (exit code " + std::to_string(exit_code) + "); what it said is above.";
-            result         = false;
-        }
+        wait_for_part_func();
     }
 
 end:

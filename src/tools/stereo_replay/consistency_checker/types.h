@@ -48,6 +48,7 @@ namespace Stereo
                 std::string              overlay_report_filename;
                 bool                     overlay_report_is_exact         = false;      /* each candidate is replayed on its own, from the start, and not with the others of its frame in one run */
                 uint32_t                 overlay_report_last_frame       = UINT32_MAX; /* the report looks at the frames of the candidates up to this one */                      /* the list of draws that may be overlays, whose frames are replayed with each draw left out */
+                uint32_t                 overlay_report_shard_entries    = 40;         /* an overlay report process looks at no more candidates than this, as the memory of a process (32 bits) is used up by the replays it makes; 0: no limit */
                 std::string              overlay_report_result_filename;               /* a part of an overlay report writes what it found here, for the one that put the parts together */
                 uint32_t                 overlay_report_shard_count      = 0;          /* the parts of the report; 0: this is not one of them */
                 uint32_t                 overlay_report_shard_index      = 0;          /* the one that this is */

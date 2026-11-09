@@ -76,6 +76,9 @@ const char* Stereo::Replay::ConsistencyChecker::CommandLine::get_usage_ptr()
            "                   its start with threads of its own, and that is bound by the bandwidth of the memory: one process saturates 8 cores, and two or more\n"
            "                   were no faster (0.9 to 1.0 times). A process takes about 1.5 GB. It may pay on a machine with more memory bandwidth to the cores.\n"
            "  --overlay-report-last-frame N  With --overlay-report: look at the frames of the candidates up to the Nth only (all of them by default)\n"
+           "  --overlay-report-shard-entries N  With --overlay-report: a process of this program looks at N candidates at most (40 by default; 0: no limit), and the work is\n"
+           "                   split into more parts than --jobs if it is bigger, that run no more than --jobs at a time. A replay leaves some memory behind (about 1 to\n"
+           "                   5 MB, more in the later frames), and a 32-bit process that makes about 250 of them runs out of address space.\n"
            "  --overlay-report-exact  With --overlay-report: replay each candidate on its own, from the start of the workload, as the report did before the candidates of\n"
            "                   a frame were played in one run (which it does for a frame that can be played again from the state it leaves, when there is --deps).\n"
            "                   Slower; each result then has one cause. Use it to check what the quick way says of a new application.\n"
@@ -136,6 +139,7 @@ bool Stereo::Replay::ConsistencyChecker::CommandLine::parse(const std::vector<st
         {"--from",          &Options::first_frame,            0, UINT32_MAX},
         {"--jobs",          &Options::n_jobs,                 1, MAXIMUM_WAIT_OBJECTS - 1},
         {"--overlay-report-last-frame", &Options::overlay_report_last_frame, 0, UINT32_MAX},
+        {"--overlay-report-shard-entries", &Options::overlay_report_shard_entries, 0, UINT32_MAX},
         {"--screenshot",    &Options::screenshot_frame,       0, UINT32_MAX - 1},
         {"--to",            &Options::last_frame,             0, UINT32_MAX}
     };

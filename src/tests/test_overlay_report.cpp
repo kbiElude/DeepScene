@@ -377,6 +377,73 @@ TEST(OverlayReport, TheFramesAreSharedBetweenThePartsAFrameAtATimeAndTheResultsA
               std::string::npos);
 }
 
+TEST(OverlayReport, AListLongerThanTheLimitOfAProcessIsSplitIntoMorePartsThanTheJobs)
+{
+    Tests::TempDirectory                        directory;
+    std::string                                 error;
+    uint32_t                                    n_shards_asked = 0;
+    Stereo::Replay::ConsistencyChecker::Options options;
+    ReplayRecord                                record;
+
+    /* Three frames of one draw each, one job, and no more than two candidates for a process: two parts. */
+    write_text_file(directory.get_path() + "\\candidates_in.json",
+                    "{\"candidates\":[" + make_candidate(HUD_TEXT, true, std::string(), MAIN_PASS_TEXT, 9) + "," +
+                                         make_candidate(HUD_TEXT, true, std::string(), MAIN_PASS_TEXT, 7) + "," +
+                                         make_candidate(HUD_TEXT, true, std::string(), MAIN_PASS_TEXT, 8) + "]}");
+
+    options.dump_directory               = directory.get_path() + "\\out";
+    options.n_jobs                       = 1;
+    options.overlay_report_filename      = directory.get_path() + "\\candidates_in.json";
+    options.overlay_report_shard_entries = 2;
+
+    const auto run_shards_func = [&](const uint32_t&                 in_n_shards,
+                                     const std::vector<std::string>& in_result_filename_vec,
+                                     std::string*                    out_part_error_ptr)
+    {
+        bool result = true;
+
+        n_shards_asked = in_n_shards;
+
+        for (uint32_t n_shard = 0;
+                      n_shard < in_n_shards;
+                    ++n_shard)
+        {
+            Stereo::Replay::ConsistencyChecker::Options part_options = options;
+
+            part_options.overlay_report_result_filename = in_result_filename_vec.at(n_shard);
+            part_options.overlay_report_shard_count     = in_n_shards;
+            part_options.overlay_report_shard_index     = n_shard;
+
+            result = (Stereo::Replay::ConsistencyChecker::OverlayReport::run(part_options,
+                                                                            make_recording_render_func(&record),
+                                                                            NO_SHARDS,
+                                                                            out_part_error_ptr) && result);
+        }
+
+        return result;
+    };
+
+    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayReport::run(options,
+                                                                      make_recording_render_func(&record),
+                                                                      run_shards_func,
+                                                                     &error) ) << error;
+
+    EXPECT_EQ(n_shards_asked,
+              2u);
+
+    /* Without a limit, the one job does it all where it is. */
+    n_shards_asked                       = 0;
+    options.overlay_report_shard_entries = 0;
+
+    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayReport::run(options,
+                                                                      make_recording_render_func(&record),
+                                                                      run_shards_func,
+                                                                     &error) ) << error;
+
+    EXPECT_EQ(n_shards_asked,
+              0u);
+}
+
 TEST(OverlayReport, ThereAreNoMorePartsThanFramesAndOneFrameIsDoneWhereItIs)
 {
     Tests::TempDirectory                        directory;

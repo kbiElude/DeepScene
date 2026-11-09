@@ -63,6 +63,15 @@ bool Stereo::Replay::EngineDLL::FrameRunner::run(const FrameBuffer&             
             {
                 executor_ptr->restore_state();
             }
+
+            /* A restore lets go of the state it puts back, so that the next execution (there is one if this is not the last) has it saved again: each starts where the first did. */
+            if (n_execution + 1 < n_executions)
+            {
+                for (const auto executor_ptr : in_executor_ptr_vec)
+                {
+                    executor_ptr->save_state();
+                }
+            }
         }
 
         for (size_t n_call = 0;

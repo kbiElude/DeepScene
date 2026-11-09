@@ -195,6 +195,28 @@ TEST_F(FrameRunnerTest, TheOptionToRestoreTheStateSavesItOnceAndRestoresItBefore
                                         "after"}) );
 }
 
+TEST_F(FrameRunnerTest, EachVariantStartsFromTheStateThatWasSavedAgainAfterTheRestoreBeforeIt)
+{
+    m_options.mode           = Stereo::Replay::EngineDLL::FrameExecution::VARIANTS;
+    m_options.restores_state = true;
+
+    m_options.variant_vec.resize(3);
+
+    add_typical_frame();
+
+    ASSERT_TRUE(run(true) );
+
+    /* A restore lets go of what it puts back: the state is saved again for each execution that follows, and not after the last. */
+    EXPECT_EQ(m_event_vec,
+              (std::vector<std::string>{"save",
+                                        "every", "first", "every", "capture0",
+                                        "restore", "save",
+                                        "every", "every", "capture1",
+                                        "restore",
+                                        "every", "every", "capture2",
+                                        "after"}) );
+}
+
 TEST_F(FrameRunnerTest, TheStateIsLeftAloneIfTheFrameIsExecutedOnce)
 {
     m_options.mode           = Stereo::Replay::EngineDLL::FrameExecution::BUFFERED_ONCE;

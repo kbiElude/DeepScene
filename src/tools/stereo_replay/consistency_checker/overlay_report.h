@@ -86,7 +86,8 @@ namespace Stereo
                                             std::string*             out_cause_ptr,
                                             std::string*             out_error_ptr);
 
-                /* How many parts the work has: the jobs, but no more than there are groups of draws (a pass in a frame) to look at. */
+                /* How many parts the work has: the jobs, or more if a part would have more candidates than Options::overlay_report_shard_entries (the parts are run no more than the jobs at a time),
+                 * but no more than there are groups of draws (a pass in a frame) to look at. */
                 static uint32_t get_n_shards(const Options&                        in_options,
                                              const std::vector<OverlayReportEntry>& in_entry_vec);
 

@@ -96,9 +96,22 @@ end:
 uint32_t Stereo::Replay::ConsistencyChecker::OverlayReport::get_n_shards(const Options&                        in_options,
                                                                         const std::vector<OverlayReportEntry>& in_entry_vec)
 {
+    const uint32_t n_groups = static_cast<uint32_t>(get_pass_group_map(in_entry_vec).size() );
+    uint32_t       n_shards = in_options.n_jobs;
+
+    /* A process that makes many replays runs out of address space (each leaves some memory behind): a part has no more candidates than the limit says. */
+    if (in_options.overlay_report_shard_entries != 0)
+    {
+        const uint32_t n_entries = static_cast<uint32_t>(in_entry_vec.size() );
+        const uint32_t n_by_size = (n_entries + in_options.overlay_report_shard_entries - 1) / in_options.overlay_report_shard_entries;
+
+        n_shards = std::max<uint32_t>(n_shards,
+                                      n_by_size);
+    }
+
     return std::max<uint32_t>(1,
-                              std::min<uint32_t>(in_options.n_jobs,
-                                                 static_cast<uint32_t>(get_pass_group_map(in_entry_vec).size() ) ) );
+                              std::min<uint32_t>(n_shards,
+                                                 n_groups) );
 }
 
 std::map<std::pair<uint32_t, uint64_t>, std::vector<size_t> > Stereo::Replay::ConsistencyChecker::OverlayReport::get_pass_group_map(const std::vector<OverlayReportEntry>& in_entry_vec)
