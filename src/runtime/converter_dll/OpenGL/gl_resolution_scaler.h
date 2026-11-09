@@ -29,9 +29,6 @@ namespace Stereo
         class GlResolutionScaler
         {
         public:
-            /* Where the data that an argument refers to is found (see GlEyeRenderer::GetChunkFunc). */
-            typedef std::function<bool(const uint32_t&, const void**, uint32_t*)> GetChunkFunc;
-
             /* The core must outlive the scaler. What the application renders is made as large as fits the target (the size of an eye of the headset) with its proportions,
              * once the application's window is known (see plan()); no target, or a target that is not larger than the window, makes the scaler do nothing.
              */
@@ -53,8 +50,7 @@ namespace Stereo
             bool on_pre(const APIInterceptor::APIFunction&         in_function,
                         const uint32_t&                            in_n_arguments,
                         const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
-                        const uint32_t&                            in_bound_texture,
-                        const GetChunkFunc&                        in_get_chunk_func);
+                        const uint32_t&                            in_bound_texture);
 
             /* The window of the application is this large, and the largest that a framebuffer or a texture can be is this (0: not known). Chooses the scale and says the size of
              * the framebuffers; the lines of the log say what was made larger. Ends the application if its images cannot be passed on, even at the least scale.
@@ -77,9 +73,10 @@ namespace Stereo
             void forget_texture(const uint32_t& in_texture);
 
         private:
-            /* Whether the argument is a pointer that is null (the data of an upload is none). */
-            static bool is_null_pointer(const APIInterceptor::APIFunctionArgument& in_argument,
-                                        const GetChunkFunc&                        in_get_chunk_func);
+            /* Whether the argument is a pointer that is null (the data of an upload is none). The call is not analysed yet when it is about to be made, and its data is still
+             * where the interceptor keeps it.
+             */
+            static bool is_null_pointer(const APIInterceptor::APIFunctionArgument& in_argument);
 
             uint32_t                       m_asked_height;
             uint32_t                       m_asked_width;

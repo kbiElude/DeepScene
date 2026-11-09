@@ -513,8 +513,7 @@ bool Stereo::ConverterDLL::GlEyeRenderer::on_pre(const APIInterceptor::APIFuncti
         is_made_scaled = m_scaler.on_pre(in_function,
                                          in_n_arguments,
                                          in_arguments_ptr,
-                                         m_bound_texture_array.at(m_active_unit),
-                                         m_get_chunk_func);
+                                         m_bound_texture_array.at(m_active_unit) );
     }
 
     /* A list that the application compiles makes nothing now: what is in it is made when it is called. */

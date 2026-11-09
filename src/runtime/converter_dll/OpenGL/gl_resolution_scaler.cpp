@@ -4,6 +4,7 @@
  */
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_resolution_hazards.h"
 #include "common/argument_reader.h"
+#include "common/callbacks.h"
 #include "gl_driver_functions.h"
 #include "gl_resolution_scaler.h"
 #include "own_call_scope.h"
@@ -44,8 +45,7 @@ bool Stereo::ConverterDLL::GlResolutionScaler::is_identity() const
     return m_policy.is_identity();
 }
 
-bool Stereo::ConverterDLL::GlResolutionScaler::is_null_pointer(const APIInterceptor::APIFunctionArgument& in_argument,
-                                                               const GetChunkFunc&                        in_get_chunk_func)
+bool Stereo::ConverterDLL::GlResolutionScaler::is_null_pointer(const APIInterceptor::APIFunctionArgument& in_argument)
 {
     bool result = false;
 
@@ -54,12 +54,13 @@ bool Stereo::ConverterDLL::GlResolutionScaler::is_null_pointer(const APIIntercep
         const void* data_ptr = nullptr;
         uint32_t    n_bytes  = 0;
 
-        /* The dumper writes a pointer that is null as a chunk of no bytes. */
-        result = (in_get_chunk_func                                          != nullptr &&
-                  in_get_chunk_func(in_argument.get_data_chunk_id(),
-                                   &data_ptr,
-                                   &n_bytes)                                 &&
-                  n_bytes                                                    == 0);
+        /* A pointer that is null has no chunk (or one of no bytes): the data of an upload is none. Data that is there is a chunk of its bytes. */
+        const bool has_chunk = APIInterceptor::get_data_chunk(in_argument.get_data_chunk_id(),
+                                                             &data_ptr,
+                                                             &n_bytes);
+
+        result = (has_chunk == false ||
+                  n_bytes   == 0);
     }
     else
     if (in_argument.type == APIInterceptor::ARGTYPE_VOID_PTR)
@@ -78,8 +79,7 @@ bool Stereo::ConverterDLL::GlResolutionScaler::is_scaled_texture(const uint32_t&
 bool Stereo::ConverterDLL::GlResolutionScaler::on_pre(const APIInterceptor::APIFunction&         in_function,
                                                       const uint32_t&                            in_n_arguments,
                                                       const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
-                                                      const uint32_t&                            in_bound_texture,
-                                                      const GetChunkFunc&                        in_get_chunk_func)
+                                                      const uint32_t&                            in_bound_texture)
 {
     constexpr GLenum TEXTURE_2D = 0x0DE1;
 
@@ -209,8 +209,7 @@ bool Stereo::ConverterDLL::GlResolutionScaler::on_pre(const APIInterceptor::APIF
                                                &target)              &&
                     target == TEXTURE_2D)
                 {
-                    const bool is_storage_only = is_null_pointer(in_arguments_ptr[PIXELS_ARGUMENT],
-                                                                 in_get_chunk_func);
+                    const bool is_storage_only = is_null_pointer(in_arguments_ptr[PIXELS_ARGUMENT]);
 
                     if (is_storage_only)
                     {
@@ -253,6 +252,11 @@ bool Stereo::ConverterDLL::GlResolutionScaler::on_pre(const APIInterceptor::APIF
                             if (in_bound_texture != 0)
                             {
                                 m_scaled_texture_set.insert(in_bound_texture);
+                            }
+
+                            if (m_scaled_texture_set.size() <= 12)
+                            {
+                                m_log_func("The texture " + std::to_string(in_bound_texture) + " (storage without pixels) is made " + std::to_string(width) + " x " + std::to_string(height) + " instead of " + std::to_string(value_array.at(3) ) + " x " + std::to_string(value_array.at(4) ) );
                             }
 
                             result = true;
@@ -337,7 +341,7 @@ void Stereo::ConverterDLL::GlResolutionScaler::scale_copy(const bool&           
     if (in_is_sub_image)
     {
         m_core_ptr->require_fast_path(is_scaled_texture(in_bound_texture),
-                                      "The application copies part of the framebuffer to a texture that it gave pixels, which is not larger than it knows of, while it is rendered larger than it asks");
+                                      "The application copies part of the framebuffer to a texture (the number " + std::to_string(in_bound_texture) + ") that it gave pixels, which is not larger than it knows of (" + std::to_string(m_scaled_texture_set.size() ) + " textures are), while it is rendered larger than it asks");
     }
     else
     if (in_bound_texture != 0)
