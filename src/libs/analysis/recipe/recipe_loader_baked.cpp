@@ -316,7 +316,7 @@ bool Analysis::Recipe::RecipeLoader::parse_comfort(const Utils::Json::JsonValue&
     }
 
     if (check_keys(in_value,
-                   {"balance_convergence", "camera_attached_depth", "max_far_parallax", "max_near_parallax", "measure_depth", "near_fraction", "overlay_parallax", "scene_overrides"},
+                   {"balance_convergence", "camera_attached_depth", "max_far_parallax", "max_near_parallax", "measure_depth", "near_fraction", "overlay_parallax", "part_parallax", "scene_overrides"},
                    in_path,
                    out_error_ptr) == false)
     {
@@ -459,6 +459,25 @@ bool Analysis::Recipe::RecipeLoader::parse_comfort(const Utils::Json::JsonValue&
 
             out_comfort_ptr->overlay_parallax = static_cast<float>(overlay_ptr->number_value);
         }
+
+        const auto* part_ptr = in_value.find_ptr("part_parallax");
+
+        if (part_ptr != nullptr)
+        {
+            const bool is_finite = (::isfinite(part_ptr->number_value) != 0);
+
+            if (part_ptr->type         != Utils::Json::JsonValueType::NUMBER ||
+                is_finite              == false                              ||
+                part_ptr->number_value <  0.0                                ||
+                part_ptr->number_value >  0.5)
+            {
+                *out_error_ptr = in_path + ".part_parallax: expected a number from zero (as much as the overlay parallax) to a half (a part of the width of the picture)";
+
+                goto end;
+            }
+
+            out_comfort_ptr->part_parallax = static_cast<float>(part_ptr->number_value);
+        }
     }
 
     result = true;
@@ -473,6 +492,7 @@ bool Analysis::Recipe::RecipeLoader::parse_draw_rule(const Utils::Json::JsonValu
                                                      std::string*                  out_error_ptr)
 {
     const auto* class_ptr     = in_rule.find_ptr("class");
+    const auto* pushed_ptr    = in_rule.find_ptr("pushed");
     bool        result        = false;
     const auto* signature_ptr = in_rule.find_ptr("signature");
     const auto* when_ptr      = in_rule.find_ptr("when");
@@ -487,11 +507,23 @@ bool Analysis::Recipe::RecipeLoader::parse_draw_rule(const Utils::Json::JsonValu
     }
 
     if (check_keys(in_rule,
-                   {"class", "signature", "when"},
+                   {"class", "pushed", "signature", "when"},
                    in_path,
                    out_error_ptr) == false)
     {
         goto end;
+    }
+
+    if (pushed_ptr != nullptr)
+    {
+        if (pushed_ptr->type != Utils::Json::JsonValueType::BOOL)
+        {
+            *out_error_ptr = in_path + ".pushed: expected true or false";
+
+            goto end;
+        }
+
+        out_rule_ptr->is_pushed = pushed_ptr->bool_value;
     }
 
     if (signature_ptr == nullptr)
@@ -615,13 +647,13 @@ bool Analysis::Recipe::RecipeLoader::parse_draw_selector(const Utils::Json::Json
 
     if (in_value.type != Utils::Json::JsonValueType::OBJECT)
     {
-        *out_error_ptr = in_path + ": expected an object with draw_keys, pass_keys and / or pass_draws";
+        *out_error_ptr = in_path + ": expected an object with cover_keys, draw_keys, part_cover_keys, pass_keys and / or pass_draws";
 
         goto end;
     }
 
     if (check_keys(in_value,
-                   {"draw_keys", "pass_draws", "pass_keys"},
+                   {"cover_keys", "draw_keys", "part_cover_keys", "pass_draws", "pass_keys"},
                    in_path,
                    out_error_ptr) == false)
     {
@@ -655,7 +687,9 @@ bool Analysis::Recipe::RecipeLoader::parse_draw_selector(const Utils::Json::Json
 
         const KeyList key_list_array[] =
         {
+            {"cover_keys", &out_selector_ptr->cover_key_vec},
             {"draw_keys", &out_selector_ptr->draw_key_vec},
+            {"part_cover_keys", &out_selector_ptr->part_cover_key_vec},
             {"pass_keys", &out_selector_ptr->pass_key_vec}
         };
 
@@ -686,8 +720,10 @@ bool Analysis::Recipe::RecipeLoader::parse_draw_selector(const Utils::Json::Json
         }
     }
 
-    if (out_selector_ptr->draw_key_vec.empty () &&
-        out_selector_ptr->pass_draw_vec.empty() &&
+    if (out_selector_ptr->cover_key_vec.empty()      &&
+        out_selector_ptr->draw_key_vec.empty ()       &&
+        out_selector_ptr->part_cover_key_vec.empty() &&
+        out_selector_ptr->pass_draw_vec.empty()      &&
         out_selector_ptr->pass_key_vec.empty () )
     {
         *out_error_ptr = in_path + ": names no draw and no pass";

@@ -7,6 +7,7 @@
 #include "capture/api_dump_loader/api_info.h"
 #include "capture/api_dump_names/function_names.h"
 #include "common/macros.h"
+#include "stereo/core/push_shift_planner.h"
 #include "stereo/core/screen_parallax_planner.h"
 #include "D3D7/d3d7_draw_rewriter.h"
 #include "frame_runner.h"
@@ -296,11 +297,14 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_buffered_frame(cons
 
     m_truncate_after_call = UINT64_MAX;
 
+    m_pushed_draw_by_first_call_map.clear();
+
     m_view_anchor_call_index_set.clear();
 
     if (is_rewritten)
     {
         find_skipped_call_ranges(m_session_ptr->get_completed_frame() );
+        find_pushed_draw_calls(m_session_ptr->get_completed_frame() );
 
         if (m_frame_execution.truncates_after_draw &&
             in_n_frame == m_frame_execution.last_frame)
@@ -621,6 +625,33 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_rewritten_call(cons
                                                 call_index,
                                                 is_draw_before_call_func);
 
+    /* The first call of a draw that the recipe pushes moves the viewport sideways, so that all of the calls of the draw (the glBegin and the vertices of a block
+     * that a glEnd makes a draw of) are made with it; the call of the draw puts it back.
+     */
+    bool       has_pushed_viewport = true;
+    const auto pushed_iterator     = m_pushed_draw_by_first_call_map.find(call_index);
+
+    if (pushed_iterator != m_pushed_draw_by_first_call_map.end() )
+    {
+        const Analysis::APIDumpAnalysis::Viewport* viewport_ptr = nullptr;
+        const float                                shift_pixels = get_push_shift_pixels(frame,
+                                                                                        frame.draw_instance_vec.at(pushed_iterator->second),
+                                                                                        eye,
+                                                                                       &viewport_ptr);
+
+        if (shift_pixels != 0.0f)
+        {
+            has_pushed_viewport = execute_viewport_call(in_call,
+                                                        *viewport_ptr,
+                                                        shift_pixels);
+        }
+    }
+
+    if (has_pushed_viewport == false)
+    {
+        result = false;
+    }
+    else
     if (is_call_skipped(call_index) )
     {
         /* A call of a draw that is left out, before the call of the draw. */
@@ -648,8 +679,8 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_rewritten_call(cons
         }
         else
         {
-            const bool is_affected = m_recipe_applier_ptr->is_draw_affected(pass_key,
-                                                                            draw_iterator->structure_key);
+            const bool is_affected = is_draw_affected_here(pass_key,
+                                                           *draw_iterator);
 
             /* What the draw is made with is put on the device first. */
             result = m_matrix_binder_ptr->before_draw(is_affected,
@@ -666,6 +697,23 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_rewritten_call(cons
                                            draw_iterator->cover_key,
                                            eye,
                                            frame.pass_instance_vec.at(draw_iterator->pass_index).structure_id);
+            }
+
+            /* The viewport that was moved for a draw that the recipe pushes (before its first call) is put back. */
+            if (result                                                                      &&
+                m_pushed_draw_by_first_call_map.empty() == false)
+            {
+                const Analysis::APIDumpAnalysis::Viewport* viewport_ptr = nullptr;
+
+                if (get_push_shift_pixels(frame,
+                                          *draw_iterator,
+                                          eye,
+                                         &viewport_ptr) != 0.0f)
+                {
+                    result = execute_viewport_call(in_call,
+                                                   *viewport_ptr,
+                                                   0.0f);
+                }
             }
         }
     }
@@ -819,6 +867,52 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_view_anchor_call(co
     return result;
 }
 
+bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_viewport_call(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
+                                                                            const Analysis::APIDumpAnalysis::Viewport&     in_viewport,
+                                                                            const float&                                   in_shift_pixels)
+{
+    Capture::APIDumpLoader::DumpedAPICall rewritten = FrameBuffer::copy_call(in_call);
+
+    rewritten.func = APIInterceptor::APIFUNCTION_GL_GLVIEWPORT;
+
+    rewritten.arg_in_vec.clear ();
+    rewritten.arg_out_vec.clear();
+    rewritten.returned_value_ptr.reset();
+
+    rewritten.arg_in_vec.push_back(APIInterceptor::APIFunctionArgument::create_i32(static_cast<int32_t>(::lroundf(in_viewport.x) + static_cast<int32_t>(::truncf(in_shift_pixels) ) ) ) );
+    rewritten.arg_in_vec.push_back(APIInterceptor::APIFunctionArgument::create_i32(static_cast<int32_t>(::lroundf(in_viewport.y) ) ) );
+    rewritten.arg_in_vec.push_back(APIInterceptor::APIFunctionArgument::create_i32(static_cast<int32_t>(::lroundf(in_viewport.width) ) ) );
+    rewritten.arg_in_vec.push_back(APIInterceptor::APIFunctionArgument::create_i32(static_cast<int32_t>(::lroundf(in_viewport.height) ) ) );
+
+    return m_host_ptr->execute_call(rewritten,
+                                    m_host_ptr->get_chunk_source() );
+}
+
+void Stereo::Replay::EngineDLL::StereoFrameExecutor::find_pushed_draw_calls(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame)
+{
+    m_pushed_draw_by_first_call_map.clear();
+
+    for (size_t n_draw = 0;
+                n_draw < in_frame.draw_instance_vec.size();
+              ++n_draw)
+    {
+        const auto&    draw     = in_frame.draw_instance_vec.at(n_draw);
+        const uint64_t pass_key = in_frame.pass_key_vec.at(draw.pass_index);
+
+        if (is_draw_pushed_here(pass_key,
+                                draw)                  &&
+            is_draw_skipped_here(pass_key,
+                                 draw.structure_key) == false)
+        {
+            /* The calls of a draw begin with its own, unless the front end says that they begin earlier. */
+            const uint64_t first_call = (draw.first_call_index < draw.call_index) ? draw.first_call_index
+                                                                                  : draw.call_index;
+
+            m_pushed_draw_by_first_call_map[first_call] = static_cast<uint32_t>(n_draw);
+        }
+    }
+}
+
 void Stereo::Replay::EngineDLL::StereoFrameExecutor::find_skipped_call_ranges(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame)
 {
     m_skipped_call_range_vec.clear();
@@ -862,7 +956,37 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::find_view_anchor_calls(cons
     std::set<uint64_t>                          unaffected_anchor_set;
     bool                                        result = true;
 
+    m_unflattened_draw_call_set.clear();
     m_view_anchor_call_index_set.clear();
+
+    /* The replay gives the shift of an eye to a camera at its beginning, and all the draws that share it get it: a draw that is flat and shares the camera of a draw that is not keeps the rules (the live converter does not have the limit). */
+    {
+        std::set<uint64_t> shared_anchor_set;
+
+        for (const auto& draw : in_frame.draw_instance_vec)
+        {
+            const uint64_t pass_key = in_frame.pass_key_vec.at(draw.pass_index);
+
+            if (draw.view_anchor_call_index           != UINT64_MAX                                                                  &&
+                is_draw_skipped_here(pass_key,
+                                     draw.structure_key)                                      == false                                       &&
+                m_recipe_applier_ptr->is_draw_affected(pass_key,
+                                                       draw.structure_key)                      &&
+                m_recipe_applier_ptr->is_cover_pushed (draw.cover_key)                         == false)
+            {
+                shared_anchor_set.insert(draw.view_anchor_call_index);
+            }
+        }
+
+        for (const auto& draw : in_frame.draw_instance_vec)
+        {
+            if (shared_anchor_set.count(draw.view_anchor_call_index) != 0 &&
+                m_recipe_applier_ptr->is_cover_pushed(draw.cover_key))
+            {
+                m_unflattened_draw_call_set.insert(draw.call_index);
+            }
+        }
+    }
 
     for (const auto& draw : in_frame.draw_instance_vec)
     {
@@ -875,8 +999,8 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::find_view_anchor_calls(cons
             continue;
         }
 
-        const bool is_affected = m_recipe_applier_ptr->is_draw_affected(pass_key,
-                                                                        draw.structure_key);
+        const bool is_affected = is_draw_affected_here(pass_key,
+                                                       draw);
 
         if (draw.view_anchor_call_index != UINT64_MAX)
         {
@@ -1005,6 +1129,56 @@ float Stereo::Replay::EngineDLL::StereoFrameExecutor::get_eye_separation() const
     return m_eye_separation;
 }
 
+float Stereo::Replay::EngineDLL::StereoFrameExecutor::get_push_shift_pixels(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
+                                                                          const Analysis::APIDumpAnalysis::DrawInstance&   in_draw,
+                                                                          const Analysis::Recipe::Eye&                     in_eye,
+                                                                          const Analysis::APIDumpAnalysis::Viewport**      out_viewport_ptr_ptr) const
+{
+    const uint64_t pass_key          = in_frame.pass_key_vec.at(in_draw.pass_index);
+    const uint32_t pass_structure_id = in_frame.pass_instance_vec.at(in_draw.pass_index).structure_id;
+    float          result            = 0.0f;
+
+    *out_viewport_ptr_ptr = &m_session_ptr->get_model().pass_structure_interner.get_structure(pass_structure_id).viewport;
+
+    if (is_draw_pushed_here(pass_key,
+                            in_draw) )
+    {
+        result = Stereo::Core::PushShiftPlanner::plan(*m_recipe_applier_ptr,
+                                                      in_eye,
+                                                      m_recipe_applier_ptr->get_cover_push_parallax(in_draw.cover_key),
+                                                      is_draw_affected_here(pass_key,
+                                                                            in_draw),
+                                                      (*out_viewport_ptr_ptr)->width,
+                                                      m_frame_eye_separation,
+                                                      m_recipe_applier_ptr->get_scene_max_separation(in_frame.shape_key) );
+    }
+
+    return result;
+}
+
+bool Stereo::Replay::EngineDLL::StereoFrameExecutor::is_draw_affected_here(const uint64_t&                                in_pass_key,
+                                                                           const Analysis::APIDumpAnalysis::DrawInstance& in_draw) const
+{
+    const bool is_affected_by_recipe = m_recipe_applier_ptr->is_draw_affected(in_pass_key,
+                                                                              in_draw.structure_key);
+
+    const bool is_flat = (m_recipe_applier_ptr->is_cover_pushed(in_draw.cover_key) &&
+                          m_unflattened_draw_call_set.count(in_draw.call_index) == 0);
+
+    return (is_affected_by_recipe &&
+            is_flat == false);
+}
+
+bool Stereo::Replay::EngineDLL::StereoFrameExecutor::is_draw_pushed_here(const uint64_t&                                in_pass_key,
+                                                                         const Analysis::APIDumpAnalysis::DrawInstance& in_draw) const
+{
+    const bool is_pushed_by_name = m_recipe_applier_ptr->is_draw_pushed(in_pass_key,
+                                                                        in_draw.structure_key);
+
+    return (is_pushed_by_name ||
+            m_recipe_applier_ptr->is_cover_pushed(in_draw.cover_key) );
+}
+
 bool Stereo::Replay::EngineDLL::StereoFrameExecutor::is_draw_skipped_here(const uint64_t& in_pass_key,
                                                                           const uint64_t& in_draw_key) const
 {
@@ -1119,6 +1293,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::prepare_variant(const Analy
     m_variant_ptr = in_variant_ptr;
 
     find_skipped_call_ranges(in_frame);
+    find_pushed_draw_calls  (in_frame);
 
     /* The frame is cut as the variant says, if it does; otherwise as the options of the frame say, if they do. */
     m_truncate_after_call = UINT64_MAX;

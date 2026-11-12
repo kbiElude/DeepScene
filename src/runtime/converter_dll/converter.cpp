@@ -416,8 +416,10 @@ void Stereo::ConverterDLL::Converter::on_d3d7_frame_ending(const APIInterceptor:
 }
 
 bool Stereo::ConverterDLL::Converter::on_gl_draws(Analysis::Recipe::DrawClass* out_draw_class_ptr,
+                                                  bool*                        out_is_pushed_ptr,
                                                   std::vector<std::string>*    out_log_line_vec_ptr)
 {
+    bool                                  is_every_draw_pushed = true;
     std::set<Analysis::Recipe::DrawClass> class_set;
 
     for (const auto& draw_keys : m_live_state.feeder.get_last_call_draw_key_vec() )
@@ -428,7 +430,13 @@ bool Stereo::ConverterDLL::Converter::on_gl_draws(Analysis::Recipe::DrawClass* o
         class_set.insert(draw_class);
 
         count_draw(draw_class);
+
+        is_every_draw_pushed = is_every_draw_pushed &&
+                               m_live_state.core_ptr->get_is_last_draw_pushed();
     }
+
+    *out_is_pushed_ptr = (class_set.empty() == false &&
+                          is_every_draw_pushed);
 
     /* The draws of a display list are made by the driver, in one call: they cannot be made for an eye one at a time, so a list whose draws are not all of one class is
      * told (the first one), and counted.
@@ -651,9 +659,11 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
         if (is_gl)
         {
             Analysis::Recipe::DrawClass draw_class = Analysis::Recipe::DrawClass::UNAFFECTED;
+            bool                        is_pushed  = false;
 
             /* The draws of a call of OpenGL are those that the front end made of it (a display list makes several, or none). */
             const bool has_draws = (is_draw) ? on_gl_draws(&draw_class,
+                                                           &is_pushed,
                                                            &log_line_vec)
                                              : false;
 
@@ -675,7 +685,8 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
                                                      in_n_arguments,
                                                      in_arguments_ptr,
                                                      has_draws,
-                                                     draw_class) == false)
+                                                     draw_class,
+                                                     is_pushed) == false)
             {
                 *out_should_pass_through_ptr = false;
             }

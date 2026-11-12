@@ -292,6 +292,77 @@ TEST_F(StereoCoreTest, ADrawIsToldByItsSignatureAndTheViewMatrixTheApplicationHa
               Analysis::Recipe::DrawClass::UNAFFECTED);
 }
 
+TEST_F(StereoCoreTest, ADrawThatIsNamedBySizeAsPushedIsFlatAndPushed)
+{
+    Stereo::Core::StereoCore core(make_recipe("\"pushed\": {\"cover_keys\": [\"0x0000000000000005\"]}, " + get_baked_text(""),
+                                              get_view_rule_text() ),
+                                  Stereo::Core::FailFunc() );
+
+    /* The same signature: the draw of that size is flat, the others are as the recipe says. */
+    EXPECT_EQ(core.classify_draw(1, 5),
+              Analysis::Recipe::DrawClass::UNAFFECTED);
+    EXPECT_TRUE(core.get_is_last_draw_pushed() );
+
+    EXPECT_EQ(core.classify_draw(1, 6),
+              Analysis::Recipe::DrawClass::AFFECTED);
+    EXPECT_FALSE(core.get_is_last_draw_pushed() );
+}
+
+TEST_F(StereoCoreTest, APartThatProtrudesFollowsTheDepthOfItsOriginAndOthersDoNot)
+{
+    Stereo::Core::StereoCore core(make_recipe("\"pushed\": {\"part_cover_keys\": [\"0x0000000000000005\"], \"cover_keys\": [\"0x0000000000000007\"]}, " + get_baked_text(""),
+                                              get_view_rule_text() ),
+                                  Stereo::Core::FailFunc() );
+
+    core.set_convergence_distance(100.0f);
+    core.set_eye_separation(8.0f);
+
+    core.classify_draw(1, 5);
+
+    EXPECT_TRUE(core.get_is_last_draw_part() );
+
+    /* At the distance of convergence a point has no parallax; nearer, the left eye moves it to the right (a perspective projection of scale 1: x / -z). */
+    const float distance      = core.get_effective_convergence_distance();
+    const float at_convergence = core.plan_follow_shift(Analysis::Recipe::Eye::LEFT, 640.0f, -distance, 1.0f, true);
+    const float nearer         = core.plan_follow_shift(Analysis::Recipe::Eye::LEFT, 640.0f, -distance * 0.5f, 1.0f, true);
+    const float right_eye      = core.plan_follow_shift(Analysis::Recipe::Eye::RIGHT, 640.0f, -distance * 0.5f, 1.0f, true);
+
+    EXPECT_FLOAT_EQ(at_convergence, 0.0f);
+    EXPECT_GT      (nearer,         0.0f);
+    EXPECT_FLOAT_EQ(right_eye,      -nearer);
+
+    /* A draw that is not a part, and a point behind the camera, are not moved. */
+    core.classify_draw(1, 7);
+
+    EXPECT_FALSE(core.get_is_last_draw_part() );
+    EXPECT_FLOAT_EQ(core.plan_follow_shift(Analysis::Recipe::Eye::LEFT, 640.0f, -distance * 0.5f, 1.0f, true), 0.0f);
+}
+
+TEST_F(StereoCoreTest, APartThatIsNearTheCameraIsHeldToTheNearestParallaxOfTheScene)
+{
+    Stereo::Core::StereoCore core(make_recipe(std::string("\"comfort\": {\"max_near_parallax\": 0.01, \"max_far_parallax\": 0.01, \"overlay_parallax\": 0.015, \"part_parallax\": 0.006}, ") +
+                                              "\"pushed\": {\"part_cover_keys\": [\"0x0000000000000005\"]}, " + get_baked_text(""),
+                                              get_view_rule_text() ),
+                                  Stereo::Core::FailFunc() );
+
+    core.set_convergence_distance(100.0f);
+    core.set_eye_separation(8.0f);
+    core.classify_draw(1, 5);
+
+    /* The origin is 100 times nearer than the distance of convergence: followed without a limit, the shift is far more than the scene allows. */
+    const float left  = core.plan_part_shift(Analysis::Recipe::Eye::LEFT,  640.0f, -1.0f, 1.0f, true);
+    const float right = core.plan_part_shift(Analysis::Recipe::Eye::RIGHT, 640.0f, -1.0f, 1.0f, true);
+
+    EXPECT_GT(core.plan_follow_shift(Analysis::Recipe::Eye::LEFT, 640.0f, -1.0f, 1.0f, true), 3.2f);
+    EXPECT_FLOAT_EQ(left,   3.2f); /* 0.01 of 640 pixels, half to each eye */
+    EXPECT_FLOAT_EQ(right, -3.2f);
+
+    /* At a depth the scene allows, the shift is the follow shift and the push. */
+    const float inside = core.plan_part_shift(Analysis::Recipe::Eye::LEFT, 640.0f, -100.0f, 1.0f, true);
+
+    EXPECT_FLOAT_EQ(inside, core.plan_push_shift(Analysis::Recipe::Eye::LEFT, 640.0f) );
+}
+
 TEST_F(StereoCoreTest, DrawsOfASignatureTheRecipeDoesNotKnowAreCounted)
 {
     Stereo::Core::StereoCore core(make_recipe(get_baked_text(""),

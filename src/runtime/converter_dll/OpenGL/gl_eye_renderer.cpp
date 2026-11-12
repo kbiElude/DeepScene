@@ -22,6 +22,7 @@ namespace
     constexpr GLenum  TEXTURE_HEIGHT      = 0x1001;
     constexpr GLenum  TEXTURE_INTERNAL_FORMAT = 0x1003;
     constexpr GLenum  TEXTURE_WIDTH       = 0x1000;
+    constexpr GLenum  VIEWPORT            = 0x0BA2;
 
 }
 
@@ -35,6 +36,7 @@ Stereo::ConverterDLL::GlEyeRenderer::GlEyeRenderer(Stereo::Core::StereoCore* in_
      m_applied_width      (0),
      m_block_class        (Analysis::Recipe::DrawClass::UNAFFECTED),
      m_block_has_draws    (false),
+     m_block_is_pushed    (false),
      m_block_list         (0),
      m_core_ptr           (in_core_ptr),
      m_frame_depth        (),
@@ -465,7 +467,9 @@ void Stereo::ConverterDLL::GlEyeRenderer::on_post(const APIInterceptor::APIFunct
 
                     play_eyes(call_list_func,
                               (m_block_has_draws) ? m_block_class
-                                                  : Analysis::Recipe::DrawClass::UNAFFECTED);
+                                                  : Analysis::Recipe::DrawClass::UNAFFECTED,
+                              (m_block_has_draws &&
+                               m_block_is_pushed) );
 
                     m_statistics.n_block_draws++;
                 }
@@ -498,7 +502,8 @@ bool Stereo::ConverterDLL::GlEyeRenderer::on_pre(const APIInterceptor::APIFuncti
                                                  const uint32_t&                            in_n_arguments,
                                                  const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
                                                  const bool&                                in_has_draws,
-                                                 const Analysis::Recipe::DrawClass&         in_draw_class)
+                                                 const Analysis::Recipe::DrawClass&         in_draw_class,
+                                                 const bool&                                in_is_pushed)
 {
     bool result            = true;
     bool is_made_scaled    = false;
@@ -615,7 +620,8 @@ bool Stereo::ConverterDLL::GlEyeRenderer::on_pre(const APIInterceptor::APIFuncti
                 result = on_pre_draw(in_function,
                                      in_n_arguments,
                                      in_arguments_ptr,
-                                     in_draw_class);
+                                     in_draw_class,
+                                     in_is_pushed);
             }
 
             break;
@@ -721,6 +727,7 @@ bool Stereo::ConverterDLL::GlEyeRenderer::on_pre(const APIInterceptor::APIFuncti
         {
             m_block_class     = in_draw_class;
             m_block_has_draws = in_has_draws;
+            m_block_is_pushed = in_is_pushed;
 
             break;
         }
@@ -783,7 +790,8 @@ end:
 bool Stereo::ConverterDLL::GlEyeRenderer::on_pre_draw(const APIInterceptor::APIFunction&         in_function,
                                                       const uint32_t&                            in_n_arguments,
                                                       const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
-                                                      const Analysis::Recipe::DrawClass&         in_draw_class)
+                                                      const Analysis::Recipe::DrawClass&         in_draw_class,
+                                                      const bool&                                in_is_pushed)
 {
     std::function<void()> draw_func;
 
@@ -878,7 +886,8 @@ bool Stereo::ConverterDLL::GlEyeRenderer::on_pre_draw(const APIInterceptor::APIF
         if (in_draw_class != Analysis::Recipe::DrawClass::SKIPPED)
         {
             play_eyes(draw_func,
-                      in_draw_class);
+                      in_draw_class,
+                      in_is_pushed);
         }
         else
         {
@@ -891,13 +900,39 @@ bool Stereo::ConverterDLL::GlEyeRenderer::on_pre_draw(const APIInterceptor::APIF
 }
 
 void Stereo::ConverterDLL::GlEyeRenderer::play_eyes(const std::function<void()>&       in_draw_func,
-                                                    const Analysis::Recipe::DrawClass& in_draw_class)
+                                                    const Analysis::Recipe::DrawClass& in_draw_class,
+                                                    const bool&                        in_is_pushed)
 {
     const OwnCallScope    own_call_scope;
     bool                  has_read_matrix = false;
     bool                  is_affected     = (in_draw_class == Analysis::Recipe::DrawClass::AFFECTED);
     GLint                 matrix_mode     = MODELVIEW;
+    bool                  is_part         = false;
+    std::array<float, 16> part_matrix;
+    std::array<float, 16> part_projection;
+    std::array<GLint, 4>  saved_viewport  = {};
     std::array<float, 16> saved_matrix;
+
+    /* The viewport is the one the draw is made with: a pushed draw is moved by moving its origin, which works for any projection. */
+    if (in_is_pushed)
+    {
+        GlDriverFunctions::get().get_integerv_func_ptr(VIEWPORT,
+                                                       saved_viewport.data() );
+    }
+
+    /* A part that protrudes from an object, drawn once for both eyes, goes where the eyes would have put its origin: the camera it is made with is read here. */
+    if (in_is_pushed                          &&
+        m_core_ptr->get_is_last_draw_part() )
+    {
+        constexpr GLenum PROJECTION_MATRIX_PART = 0x0BA7;
+
+        GlDriverFunctions::get().get_floatv_func_ptr(GL_MODELVIEW_MATRIX,
+                                                     part_matrix.data() );
+        GlDriverFunctions::get().get_floatv_func_ptr(PROJECTION_MATRIX_PART,
+                                                     part_projection.data() );
+
+        is_part = true;
+    }
 
     if (is_affected                         &&
         m_measures_depth                    &&
@@ -955,7 +990,38 @@ void Stereo::ConverterDLL::GlEyeRenderer::play_eyes(const std::function<void()>&
 
         select_textures(eye == Analysis::Recipe::Eye::RIGHT);
 
+        if (in_is_pushed)
+        {
+            const float picture_width_pixels = static_cast<float>(saved_viewport.at(2) );
+            float       shift_pixels         = m_core_ptr->plan_push_shift(eye,
+                                                                           picture_width_pixels);
+
+            if (is_part)
+            {
+                /* A projection with a -1 in its fourth row, third column is a perspective one. */
+                shift_pixels = m_core_ptr->plan_part_shift(eye,
+                                                           picture_width_pixels,
+                                                           part_matrix.at(14),
+                                                           part_projection.at(0),
+                                                           (part_projection.at(11) == -1.0f) );
+            }
+
+            /* Toward zero, so that the shift never goes past what the planner allowed. */
+            GlDriverFunctions::get().viewport_func_ptr(saved_viewport.at(0) + static_cast<GLint>(shift_pixels),
+                                                       saved_viewport.at(1),
+                                                       saved_viewport.at(2),
+                                                       saved_viewport.at(3) );
+        }
+
         in_draw_func();
+    }
+
+    if (in_is_pushed)
+    {
+        GlDriverFunctions::get().viewport_func_ptr(saved_viewport.at(0),
+                                                   saved_viewport.at(1),
+                                                   saved_viewport.at(2),
+                                                   saved_viewport.at(3) );
     }
 
     select_textures(false);

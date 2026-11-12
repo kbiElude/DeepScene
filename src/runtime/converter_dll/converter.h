@@ -70,9 +70,11 @@ namespace Stereo
                                       std::vector<std::string>*                  out_log_line_vec_ptr);
 
             /* The call that is analysed has made draws of OpenGL (none, one, or those of a display list): each is told what the recipe makes of it, and counted. Returns true
-             * if there are any, and says the class that the call is made as: affected if any draw is, the one of the draws otherwise.
+             * if there are any, and says the class that the call is made as: affected if any draw is, the one of the draws otherwise. The call is pushed toward the viewer if
+             * all of its draws are.
              */
             bool on_gl_draws(Analysis::Recipe::DrawClass* out_draw_class_ptr,
+                             bool*                        out_is_pushed_ptr,
                              std::vector<std::string>*    out_log_line_vec_ptr);
 
             /* A call is about to be made: the work of the callback, for a call that is the application's. */

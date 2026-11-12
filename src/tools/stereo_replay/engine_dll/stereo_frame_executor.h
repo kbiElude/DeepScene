@@ -15,6 +15,7 @@
 #include "slice_skipper.h"
 #include <array>
 #include <atomic>
+#include <map>
 #include <memory>
 #include <set>
 #include <string>
@@ -113,6 +114,13 @@ namespace Stereo
                 bool execute_view_anchor_call(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
                                               const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
                                               const Analysis::Recipe::Eye&                   in_eye);
+                /* Sets the viewport (OpenGL) to the one of the pass moved to the right by the pixels, with the call of a draw as the call to make a copy of; with 0 it is the viewport as it was. A draw that the
+                 * recipe pushes (see Recipe::pushed) is made between the two, so that its picture is moved sideways whatever its projection is.
+                 */
+                bool execute_viewport_call(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
+                                           const Analysis::APIDumpAnalysis::Viewport&     in_viewport,
+                                           const float&                                   in_shift_pixels);
+
                 /* The calls of the draws that the recipe leaves out and which come before the call of the draw (the glBegin and the vertices of a block that a
                  * glEnd makes a draw of) are left out with it: a primitive is drawn as its vertices are given, and a draw that only loses its glEnd is still seen.
                  */
@@ -127,10 +135,27 @@ namespace Stereo
                  */
                 bool find_view_anchor_calls(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
                                             std::string*                                     out_error_ptr);
+                /* The draws of the frame that the recipe pushes (see Recipe::pushed) and are played, by the first call of each: its place in the draws of the frame. */
+                void find_pushed_draw_calls  (const Analysis::APIDumpAnalysis::CompletedFrame& in_frame);
                 void find_skipped_call_ranges(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame);
                 bool get_eye_history_need    (const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
                                               bool*                                            out_needs_history_ptr,
                                               std::string*                                     out_error_ptr) const;
+
+                /* How far the viewport is moved sideways for the draw, in pixels (see PushShiftPlanner), and the viewport of its pass; 0 if the recipe does not push the draw. */
+                float get_push_shift_pixels  (const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
+                                              const Analysis::APIDumpAnalysis::DrawInstance&   in_draw,
+                                              const Analysis::Recipe::Eye&                     in_eye,
+                                              const Analysis::APIDumpAnalysis::Viewport**      out_viewport_ptr_ptr) const;
+
+                /* Whether the rules apply to the draw: the recipe says so, and the draw is not one that is named by its size as pushed (those are flat: see DrawSelector::cover_key_vec). */
+                bool is_draw_affected_here   (const uint64_t&                                  in_pass_key,
+                                              const Analysis::APIDumpAnalysis::DrawInstance&   in_draw) const;
+
+                /* Whether the recipe pushes the draw: by the draw in its pass, its key, the key of its pass, or the key of the draw with its size. */
+                bool is_draw_pushed_here     (const uint64_t&                                  in_pass_key,
+                                              const Analysis::APIDumpAnalysis::DrawInstance&   in_draw) const;
+
                 /* Whether a draw is left out: by the recipe, or by the variant that the frame is being executed as (see FrameVariant). */
                 bool is_draw_skipped_here    (const uint64_t&                                  in_pass_key,
                                               const uint64_t&                                  in_draw_key) const;
@@ -163,11 +188,13 @@ namespace Stereo
                 IFrameImageSink*                                                       m_image_sink_ptr;
                 const SliceSkipper*                                                    m_slice_skipper_ptr;
                 std::unique_ptr<EyeMatrixBinder>                                       m_matrix_binder_ptr;
+                std::map<uint64_t, uint32_t>                                           m_pushed_draw_by_first_call_map; /* of the frame being played: the first call of a draw that is pushed -> the draw */
                 std::unique_ptr<Analysis::Recipe::RecipeApplier>                       m_recipe_applier_ptr;
                 std::unique_ptr<FrameRewriter>                                         m_rewriter_ptr;
                 std::unique_ptr<Analysis::APIDumpAnalysis::Frontends::AnalysisSession> m_session_ptr;
                 uint64_t                                                               m_truncate_after_call; /* of the frame being played: the calls after it are left out; UINT64_MAX: none */
                 std::vector<std::pair<uint64_t, uint64_t> >                            m_skipped_call_range_vec; /* of the frame being played: from the first call to the last, in order */
+                std::set<uint64_t>                                                     m_unflattened_draw_call_set; /* of the frame being played: the calls of the draws that are named by their size as pushed, and keep the rules, as the camera that they are made with is the one of draws that the rules affect */
                 std::set<uint64_t>                                                     m_view_anchor_call_index_set; /* of the frame being played: the calls that begin the camera of the draws that are affected */
                 const FrameVariant*                                                    m_variant_ptr; /* of the execution that is being made, in the mode VARIANTS; none otherwise */
             };

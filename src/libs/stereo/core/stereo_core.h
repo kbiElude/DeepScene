@@ -68,6 +68,8 @@ namespace Stereo
             float                        get_effective_eye_separation      () const;
             float                        get_eye_separation      () const;
             float                        get_ipd_scale           () const;
+            bool                         get_is_last_draw_part   () const;
+            bool                         get_is_last_draw_pushed () const;
             bool                         get_is_overlay_pushed   () const;
             uint64_t                     get_n_unknown_draws     () const;
             uint64_t                     get_n_unknown_frames    () const;
@@ -116,6 +118,35 @@ namespace Stereo
 
             /* The application set the view matrix, which the rules of draws may be about. Besides on_matrix_call(), if that is a call. */
             void on_view_matrix_set(const std::array<float, 16>& in_matrix);
+
+            /* How far the draw that classify_draw() last classified, if it is a part that protrudes (get_is_last_draw_part()), is moved sideways for the eye, in
+             * pixels, to be where the eyes would have put it if it were drawn for each: the shift that the affected draws get, for the depth of its origin in the
+             * eye space (a negative number, the z of the translation of its model-view matrix) and the projection it is drawn with (its x scale, and whether it is a
+             * perspective one). A part drawn once for both eyes is moved by this and by the push, so that it stands where the object it is a part of does, and a
+             * little in front of it. Positive to the right, as plan_push_shift() is; 0 if the draw is not a part.
+             */
+            float plan_follow_shift(const Analysis::Recipe::Eye& in_eye,
+                                    const float&                 in_picture_width_pixels,
+                                    const float&                 in_origin_depth,
+                                    const float&                 in_projection_x_scale,
+                                    const bool&                  in_is_perspective) const;
+
+            /* The shift of a part that protrudes, drawn once for both eyes: the shift that plan_follow_shift() gives and the push (plan_push_shift()), held to what
+             * the scene allows (the nearest and the farthest parallax of the recipe, or of the scene if it says its own): a part whose origin is very near the camera
+             * would otherwise be moved without end. Positive to the right. The same as plan_push_shift() if the draw is not a part.
+             */
+            float plan_part_shift(const Analysis::Recipe::Eye& in_eye,
+                                  const float&                 in_picture_width_pixels,
+                                  const float&                 in_origin_depth,
+                                  const float&                 in_projection_x_scale,
+                                  const bool&                  in_is_perspective) const;
+
+            /* How far the draw that classify_draw() last classified is moved sideways for the eye, in pixels (see PushShiftPlanner), if the recipe
+             * pushes it (get_is_last_draw_pushed()); the picture width is that of the viewport the draw is made with. The effective separation is
+             * the one of the scene, so no limit is passed.
+             */
+            float plan_push_shift(const Analysis::Recipe::Eye& in_eye,
+                                  const float&                 in_picture_width_pixels) const;
 
             /* What is to be done to the vertices of the draw that classify_draw() last classified, for the eye, if they are in the space of the
              * picture (see ScreenParallaxPlanner): by the distances the core has now, which are the ones of the scene and the person. The
@@ -174,12 +205,15 @@ namespace Stereo
             ConvergenceModel                m_convergence_model;
             FailFunc                        m_fail_func;
             bool                            m_is_last_draw_covering; /* the draw that was classified last covers the whole of the view */
+            bool                            m_is_last_draw_part;     /* the draw that was classified last is a part that protrudes        */
+            bool                            m_is_last_draw_pushed;   /* the recipe pushes the draw that was classified last              */
             bool                            m_is_overlay_pushed;     /* the person asks for the overlay to be pushed                    */
             Analysis::Recipe::DrawClass     m_last_draw_class;       /* of the draw that was classified last                            */
             uint64_t                        m_last_draw_cover_key;   /* the same                                                         */
             MatrixSlots                     m_matrix_slots;
             uint64_t                        m_n_unknown_draws;
             uint64_t                        m_n_unknown_frames;
+            uint64_t                        m_scene_shape_key;       /* of the frame that was completed last: the scene the draws are in */
             std::array<float, 16>           m_view_matrix_fp32vec16;
         };
     }

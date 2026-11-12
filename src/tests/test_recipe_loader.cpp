@@ -739,6 +739,64 @@ TEST_F(RecipeLoaderTest, SkippedDrawsAndPassesAreRead)
                    "skipped: names no draw and no pass");
 }
 
+TEST_F(RecipeLoaderTest, PushedDrawsAndPassesAreReadAndMayAlsoBeNamedByTheOtherLists)
+{
+    Analysis::Recipe::Recipe recipe;
+    std::string              error;
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"pushed\": {\"pass_keys\": [\"0x0000000000000012\"], \"draw_keys\": [\"0x0000000000000034\"], \"pass_draws\": [{\"pass_key\": \"0x0000000000000056\", \"draw_key\": \"0x0000000000000078\"}]}, \"unaffected\": {\"draw_keys\": [\"0x0000000000000034\"]},", ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_EQ(recipe.pushed.pass_key_vec,
+              (std::vector<uint64_t>{0x12ull}) );
+    EXPECT_EQ(recipe.pushed.draw_key_vec,
+              (std::vector<uint64_t>{0x34ull}) );
+    ASSERT_EQ(recipe.pushed.pass_draw_vec.size(),
+              1u);
+    EXPECT_EQ(recipe.pushed.pass_draw_vec.at(0).draw_key,
+              0x78ull);
+
+    expect_refused(get_recipe_text("\"pushed\": {},", ""),
+                   "pushed: names no draw and no pass");
+}
+
+TEST_F(RecipeLoaderTest, PartsThatProtrudeAreNamedBySizeAndPushedByThePartParallax)
+{
+    Analysis::Recipe::Recipe recipe;
+    std::string              error;
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"comfort\": {\"overlay_parallax\": 0.015, \"part_parallax\": 0.004}, \"pushed\": {\"part_cover_keys\": [\"0x0000000000000012\"]},", ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_EQ(recipe.pushed.part_cover_key_vec,
+              (std::vector<uint64_t>{0x12ull}) );
+    EXPECT_FLOAT_EQ(recipe.comfort.part_parallax,
+                    0.004f);
+
+    expect_refused(get_recipe_text("\"unaffected\": {\"part_cover_keys\": [\"0x0000000000000012\"]},", ""),
+                   "unaffected.part_cover_keys: only \"pushed\" can name draws by their size");
+    expect_refused(get_recipe_text("\"comfort\": {\"part_parallax\": 0.9},", ""),
+                   "part_parallax");
+}
+
+TEST_F(RecipeLoaderTest, OnlyThePushedDrawsCanBeNamedByTheirSize)
+{
+    Analysis::Recipe::Recipe recipe;
+    std::string              error;
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"pushed\": {\"cover_keys\": [\"0x0000000000000012\"]},", ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_EQ(recipe.pushed.cover_key_vec,
+              (std::vector<uint64_t>{0x12ull}) );
+
+    expect_refused(get_recipe_text("\"skipped\": {\"cover_keys\": [\"0x0000000000000012\"]},", ""),
+                   "skipped.cover_keys: only \"pushed\" can name draws by their size");
+}
+
 TEST_F(RecipeLoaderTest, AKeyInBothListsOfTheSameKindIsRefusedButOneKeyOfEachKindIsNot)
 {
     expect_refused(get_recipe_text("\"unaffected\": {\"draw_keys\": [\"0x0000000000000012\"]}, \"affected\": {\"draw_keys\": [\"0x0000000000000012\"]},", ""),
@@ -790,6 +848,28 @@ TEST_F(RecipeLoaderTest, BakedDrawRulesAreRead)
 
     EXPECT_EQ  (recipe.draw_rule_vec.at(2).draw_class,
                 Analysis::Recipe::DrawClass::AFFECTED);
+}
+
+TEST_F(RecipeLoaderTest, ABakedDrawRuleCanSayThatTheDrawIsPushed)
+{
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": ["
+                                                                      "{\"signature\": \"0x0000000000000001\", \"class\": \"affected\", \"pushed\": true},"
+                                                                      "{\"signature\": \"0x0000000000000002\", \"class\": \"unaffected\"}]},",
+                                                                      ""),
+                                                           &recipe,
+                                                           &error) ) << error;
+
+    ASSERT_EQ(recipe.draw_rule_vec.size(),
+              2u);
+    EXPECT_TRUE (recipe.draw_rule_vec.at(0).is_pushed);
+    EXPECT_FALSE(recipe.draw_rule_vec.at(1).is_pushed);
+
+    expect_refused(get_recipe_text("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": [{\"signature\": \"0x0000000000000001\", \"class\": \"affected\", \"pushed\": 1}]},",
+                                   ""),
+                   "pushed: expected true or false");
 }
 
 TEST_F(RecipeLoaderTest, ARecipeWithoutABakedSectionIsNotBaked)
@@ -1458,4 +1538,17 @@ TEST_F(RecipeLoaderTest, PassSelectorsThatTheLiveConverterIgnoresAreDescribed)
               std::string::npos);
     EXPECT_NE(note_vec.at(1).find("unaffected.pass_keys\" names 2 passes"),
               std::string::npos);
+}
+
+TEST_F(RecipeLoaderTest, DrawsThatAreNamedPushedAreNotToldToBeLeftOutByTheLiveConverter)
+{
+    Analysis::Recipe::Recipe recipe;
+    std::string              error;
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"pushed\": {\"draw_keys\": [\"0x0000000000000001\"]},", ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    /* The live converter pushes them, by the signature that the baked rules say. */
+    EXPECT_TRUE(Analysis::Recipe::RecipeLoader::describe_pass_selectors_live_ignores(recipe).empty() );
 }

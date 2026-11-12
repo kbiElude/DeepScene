@@ -104,6 +104,8 @@
       "near_fraction": 0.001,                      which part of the surfaces of a scene (by vertices) is its nearest: the
                                                    nearest thousandth (above 0, below 1; default 0.001)
       "overlay_parallax": 0.04                     how far toward the viewer the draws that are left alone (unaffected) can be pushed, if
+                                                   "part_parallax": 0.006 (optional) the same for the parts of an object that protrude from it and are named in pushed.part_cover_keys (the
+                                                   eyes of a robot): they are nearer than the rest of the object by little, so less (0 or left out: as much as overlay_parallax).
                                                    they are made to what is presented: the two pictures of them are that far apart,
                                                    as a part of the width of the picture (0 to 0.5). What the application wants: VR Player
                                                    pushes by it unless the person turns it off; 0 or left out: the application wants none.
@@ -160,12 +162,27 @@
         {                                          draw which none applies to is affected
           "signature": "0x...",
           "class": "unaffected",                   affected, skipped or unaffected
-          "when": {                                                                                      (optional)
+          "pushed": true,                          the draw is moved toward the viewer (see "pushed" above)      (optional)
+          "when": {                                                                                    (optional)
             "constant": "view_matrix",             the only constant known so far
             "equals_any": [ [ 16 numbers ] ]       the rule applies while the constant has one of these values
           }
         }
       ]
+    },
+    "pushed": {                                    draws which are moved toward the viewer by comfort.overlay_parallax, whatever else they are (the draws that
+                                                   have content of their own: text, logos, sprites, as against a fade, a wipe or a filter that works on the
+                                                   picture below it, which stay as they are); named as the skipped ones are
+      "pass_keys": [ "0x..." ],                    every draw of these passes
+      "draw_keys": [ "0x..." ],                    these draws, wherever they are
+      "cover_keys": [ "0x..." ],                   draws of this key and size (the cover key of a draw: its structure and its vertex count; only here, not in the other lists): the parts of an
+                                                   object that are drawn alike, of which only some are to be moved. They are flat as well: drawn once for both eyes, as a draw that the
+                                                   rules leave alone is, and pushed by the whole of comfort.overlay_parallax (a part that is drawn for each eye and pushed has two depths
+                                                   that disagree, and the environment mapping of its shading differs between the eyes). The replay keeps the rules for such a draw whose
+                                                   camera it shares with a draw that the rules affect; the converter in the application does not
+      "part_cover_keys": [ "0x..." ],              like cover_keys, for the parts of an object that protrude from it: pushed by comfort.part_parallax
+                                                   and moved by the depth of their origin (as the eyes would move it), held to the nearest and the farthest parallax of the scene
+      "pass_draws": [ { "pass_key": "0x...", "draw_key": "0x..." } ]   this draw in this pass only
     },
     "skipped": {                                   draws which are not played, in either eye (the calls which set their state are)
       "pass_keys": [ "0x..." ],                    every draw of these passes

@@ -38,6 +38,7 @@ std::vector<std::string> Analysis::Recipe::RecipeLoader::describe_pass_selectors
     const Named              named_array[] =
     {
         {&in_recipe.affected,   "affected"  },
+        {&in_recipe.pushed,     "pushed"    },
         {&in_recipe.skipped,    "skipped"   },
         {&in_recipe.unaffected, "unaffected"}
     };
@@ -148,7 +149,7 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
     }
 
     if (check_keys(root,
-                   {"affected", "baked", "comfort", "key_scheme_version", "known_shape_keys", "on_unknown_frame", "recipe_version", "rules", "screen_parallax", "skipped", "target", "unaffected", "view_anchor_shift"},
+                   {"affected", "baked", "comfort", "key_scheme_version", "known_shape_keys", "on_unknown_frame", "pushed", "recipe_version", "rules", "screen_parallax", "skipped", "target", "unaffected", "view_anchor_shift"},
                    "",
                    out_error_ptr) == false)
     {
@@ -162,6 +163,7 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
         const auto* key_scheme_version_ptr = root.find_ptr("key_scheme_version");
         const auto* known_shape_keys_ptr   = root.find_ptr("known_shape_keys");
         const auto* on_unknown_frame_ptr   = root.find_ptr("on_unknown_frame");
+        const auto* pushed_ptr             = root.find_ptr("pushed");
         const auto* recipe_version_ptr     = root.find_ptr("recipe_version");
         const auto* rule_array_ptr         = root.find_ptr("rules");
         const auto* screen_parallax_ptr    = root.find_ptr("screen_parallax");
@@ -293,6 +295,17 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
             }
         }
 
+        if (pushed_ptr != nullptr)
+        {
+            if (parse_draw_selector(*pushed_ptr,
+                                    "pushed",
+                                   &out_recipe_ptr->pushed,
+                                    out_error_ptr) == false)
+            {
+                goto end;
+            }
+        }
+
         if (skipped_ptr != nullptr)
         {
             if (parse_draw_selector(*skipped_ptr,
@@ -312,6 +325,39 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
                                     out_error_ptr) == false)
             {
                 goto end;
+            }
+        }
+
+        /* The size of a draw is known to the replay and to the converter that plays the application as it runs; only the push makes use of it. */
+        {
+            struct Named
+            {
+                const DrawSelector* selector_ptr;
+                const char*         name_ptr;
+            };
+
+            const Named selector_array[] =
+            {
+                {&out_recipe_ptr->affected,   "affected"  },
+                {&out_recipe_ptr->skipped,    "skipped"   },
+                {&out_recipe_ptr->unaffected, "unaffected"}
+            };
+
+            for (const auto& named : selector_array)
+            {
+                if (named.selector_ptr->cover_key_vec.empty() == false)
+                {
+                    *out_error_ptr = std::string(named.name_ptr) + ".cover_keys: only \"pushed\" can name draws by their size";
+
+                    goto end;
+                }
+
+                if (named.selector_ptr->part_cover_key_vec.empty() == false)
+                {
+                    *out_error_ptr = std::string(named.name_ptr) + ".part_cover_keys: only \"pushed\" can name draws by their size";
+
+                    goto end;
+                }
             }
         }
 

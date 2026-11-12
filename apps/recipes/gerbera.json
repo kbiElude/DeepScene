@@ -6,6 +6,8 @@
     "max_near_parallax": 0.0157894737,
     "measure_depth": true,
     "near_fraction": 0.002,
+    "overlay_parallax": 0.015,
+    "part_parallax": 0.006,
     "scene_overrides": [
       {
         "max_far_parallax": 0.00736842105,
@@ -30,6 +32,58 @@
     ]
   },
   "key_scheme_version": 1,
+  "pushed": {
+    "cover_keys": [
+      "0x62f335887c4d7a18",
+      "0xe3e3c1c59e5894b9"
+    ],
+    "draw_keys": [
+      "0x012a68792b570391",
+      "0x068c77a7b633f717",
+      "0x1000c0c7c8b88fd0",
+      "0x1ae8f3e87501d0a7",
+      "0x201dff31eb55515f",
+      "0x241133e27dd17c7a",
+      "0x44bf0308d635814e",
+      "0x4566b03f5359e7b3",
+      "0x5581960e44dfe07d",
+      "0x5c397a57c1ff4f62",
+      "0x5d7bf96c04e94d6f",
+      "0x66c672b6747c2252",
+      "0x6f8ebf3a8151e3ce",
+      "0x7a3f4a2617d8e032",
+      "0x8c0837a0048e2368",
+      "0x9490dc954deca6da",
+      "0xa7e3c41a1a6021c7",
+      "0xaf74082bf6586178",
+      "0xb1f0a55e661ba5b0",
+      "0xb3e3feb6272b7933",
+      "0xb56375d719d3b180",
+      "0xb7a5ed9960011742",
+      "0xc8a8f61aad8c93b9",
+      "0xca008c79aa4e18f6",
+      "0xd7c7164e97d2d648",
+      "0xd92c2a42e9b9d810",
+      "0xdb76d2f16704593d",
+      "0xe3601a348f8b0a5f",
+      "0xe3953f1e882aea63",
+      "0xebb9574641d4a5a1",
+      "0xfa2a0b051df2f8fc"
+    ],
+    "part_cover_keys": [
+      "0x18c771ea87f405eb",
+      "0x1efda37f942baa18",
+      "0x38cb9f07c443863a",
+      "0x5177c8a9f7b18c9d",
+      "0x595e84e928d28e42",
+      "0x664623e6251222f5",
+      "0x7ca99b052d688ae8",
+      "0x91622216ed4d308d",
+      "0x965683bbb84ce3fc",
+      "0xa7df0ba0ae7aa221",
+      "0xef1b6929be84c938"
+    ]
+  },
   "recipe_version": 0,
   "rules": [],
   "target": {
@@ -1792,16 +1846,36 @@
     ],
     "draw_rules": [
       {
+        "signature": "0x06700dacbe76eafd",
+        "class": "affected",
+        "pushed": true
+      },
+      {
         "signature": "0x0aa025d711b2fb46",
         "class": "unaffected"
+      },
+      {
+        "signature": "0x0ae1b1188a519ca7",
+        "class": "affected",
+        "pushed": true
       },
       {
         "signature": "0x100efdb3faf6d3e8",
         "class": "unaffected"
       },
       {
+        "signature": "0x30b7475b91d2cdd9",
+        "class": "affected",
+        "pushed": true
+      },
+      {
         "signature": "0x328f7fc0a2352ca3",
         "class": "unaffected"
+      },
+      {
+        "signature": "0x3b882e6984f69085",
+        "class": "affected",
+        "pushed": true
       },
       {
         "signature": "0x445995faf23e653b",
@@ -1812,8 +1886,29 @@
         "class": "unaffected"
       },
       {
+        "signature": "0x4c299da94149a891",
+        "class": "affected",
+        "pushed": true
+      },
+      {
+        "signature": "0x4c80d2f5ccdf4523",
+        "class": "affected",
+        "pushed": true
+      },
+      {
         "signature": "0x4cd560f7afa83c11",
-        "class": "unaffected"
+        "class": "unaffected",
+        "pushed": true
+      },
+      {
+        "signature": "0x5104daa8fe675299",
+        "class": "affected",
+        "pushed": true
+      },
+      {
+        "signature": "0x5b8413dc9a56de88",
+        "class": "affected",
+        "pushed": true
       },
       {
         "signature": "0x5e313ee02de48719",
@@ -1821,19 +1916,45 @@
       },
       {
         "signature": "0x600cfcf2c20418af",
-        "class": "unaffected"
+        "class": "unaffected",
+        "pushed": true
       },
       {
         "signature": "0x639abb547528416e",
         "class": "unaffected"
       },
       {
+        "signature": "0x6712a2dca761fcb1",
+        "class": "affected",
+        "pushed": true
+      },
+      {
+        "signature": "0x6885da65555adf52",
+        "class": "affected",
+        "pushed": true
+      },
+      {
+        "signature": "0x697235e092c27533",
+        "class": "affected",
+        "pushed": true
+      },
+      {
         "signature": "0x6a0313230a5e75d2",
         "class": "unaffected"
       },
       {
+        "signature": "0x70ab929850271aca",
+        "class": "affected",
+        "pushed": true
+      },
+      {
         "signature": "0x76882fff99eba05b",
         "class": "unaffected"
+      },
+      {
+        "signature": "0x77bd0d07e0061aa8",
+        "class": "affected",
+        "pushed": true
       },
       {
         "signature": "0x7a76cf4a80416d57",
@@ -1844,8 +1965,24 @@
         "class": "unaffected"
       },
       {
+        "signature": "0x82f6a6a680c71946",
+        "class": "affected",
+        "pushed": true
+      },
+      {
+        "signature": "0x89d9b2650fdaeb30",
+        "class": "affected",
+        "pushed": true
+      },
+      {
+        "signature": "0x9969f22eb5a04b0c",
+        "class": "affected",
+        "pushed": true
+      },
+      {
         "signature": "0x9b8ea83c0395abb7",
-        "class": "unaffected"
+        "class": "unaffected",
+        "pushed": true
       },
       {
         "signature": "0x9f00e5defb93b005",
@@ -1865,7 +2002,13 @@
       },
       {
         "signature": "0xc4188e3541676bee",
-        "class": "unaffected"
+        "class": "unaffected",
+        "pushed": true
+      },
+      {
+        "signature": "0xcb438eb4461e4f4b",
+        "class": "affected",
+        "pushed": true
       },
       {
         "signature": "0xcb8fd6b20f9af3ba",
@@ -1873,7 +2016,8 @@
       },
       {
         "signature": "0xce99fecb5cdc3811",
-        "class": "unaffected"
+        "class": "unaffected",
+        "pushed": true
       },
       {
         "signature": "0xcee3fa30963f9909",
@@ -1884,6 +2028,11 @@
         "class": "unaffected"
       },
       {
+        "signature": "0xd1bf9ffb049860f8",
+        "class": "affected",
+        "pushed": true
+      },
+      {
         "signature": "0xd3b3a7679555bb55",
         "class": "unaffected"
       },
@@ -1892,8 +2041,23 @@
         "class": "unaffected"
       },
       {
+        "signature": "0xdc23f4cdb3ff1967",
+        "class": "affected",
+        "pushed": true
+      },
+      {
+        "signature": "0xdf24b8f93ec4112f",
+        "class": "affected",
+        "pushed": true
+      },
+      {
         "signature": "0xdfc8bed166826ded",
         "class": "unaffected"
+      },
+      {
+        "signature": "0xe46fa76b3bf75245",
+        "class": "affected",
+        "pushed": true
       },
       {
         "signature": "0xe93edac1403b4c62",
@@ -1904,16 +2068,32 @@
         "class": "unaffected"
       },
       {
+        "signature": "0xea6c2c89e3d17b70",
+        "class": "affected",
+        "pushed": true
+      },
+      {
         "signature": "0xeaf4c7bf75184daa",
         "class": "unaffected"
       },
       {
         "signature": "0xee788696b442d830",
-        "class": "unaffected"
+        "class": "unaffected",
+        "pushed": true
+      },
+      {
+        "signature": "0xef44b4b8a12ed5f5",
+        "class": "affected",
+        "pushed": true
       },
       {
         "signature": "0xf409c9bd96af76e8",
         "class": "unaffected"
+      },
+      {
+        "signature": "0xfd01ec9f5c5238b2",
+        "class": "affected",
+        "pushed": true
       }
     ]
   }

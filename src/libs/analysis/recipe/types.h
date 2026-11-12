@@ -163,6 +163,12 @@ namespace Analysis
              */
             float overlay_parallax = 0.0f;
 
+            /* How far toward the viewer the parts of an object that protrude from it (the eyes of a robot, its siren) are pushed, as a part of the width of the picture, when the recipe
+             * names them (DrawSelector::part_cover_key_vec): they are nearer than the rest of the object by little, so this is less than the overlay parallax. 0: as much as the
+             * overlay parallax.
+             */
+            float part_parallax = 0.0f;
+
             /* What is said of single scenes, by their shape keys. */
             std::vector<SceneComfort> scene_override_vec;
         };
@@ -200,6 +206,7 @@ namespace Analysis
         struct DrawRule
         {
             DrawClass                          draw_class    = DrawClass::AFFECTED;
+            bool                               is_pushed     = false;       /* the draw is moved toward the viewer (Recipe::pushed) */
             uint64_t                           signature_key = 0;
             std::vector<std::array<float, 16>> view_matrix_vec; /* if not empty, the rule applies only while the view matrix is one of these */
         };
@@ -216,7 +223,11 @@ namespace Analysis
         /* Names passes and draws by their match keys (see KeyBuilder), which are the same in every run. */
         struct DrawSelector
         {
+            std::vector<uint64_t> cover_key_vec; /* keys of draws by signature and size (KeyBuilder::compute_draw_cover_key); only "pushed" has them: they tell the draws of one structure apart
+                                                     (the parts of one object, which are drawn alike); they are flat as well:
+                                                     drawn once for both eyes, as a draw that the rules leave alone is */
             std::vector<uint64_t> draw_key_vec;  /* keys of draw structures                                   */
+            std::vector<uint64_t> part_cover_key_vec; /* like cover_key_vec, for the parts of an object that protrude from it: pushed by Comfort::part_parallax */
             std::vector<PassDraw> pass_draw_vec; /* a draw in one pass only: the most specific name there is  */
             std::vector<uint64_t> pass_key_vec;  /* keys of pass structures                                   */
         };
@@ -299,6 +310,7 @@ namespace Analysis
             std::vector<uint64_t>         known_signature_key_vec;         /* from "baked"; if empty, no draw is unknown */
             uint32_t                      key_scheme_version      = 0;
             std::vector<PerEyeTexture>    per_eye_texture_vec;             /* from "baked"; see PerEyeTexture             */
+            DrawSelector                  pushed;                          /* draws which are pushed toward the viewer by comfort.overlay_parallax, whatever else they are */
             std::vector<Rule>             rule_vec;
             std::vector<SceneConvergence> scene_convergence_vec;
             ScreenParallax                screen_parallax;                 /* see ScreenParallax; not enabled unless the recipe has it */

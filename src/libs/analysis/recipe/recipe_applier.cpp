@@ -47,6 +47,12 @@ Analysis::Recipe::RecipeApplier::RecipeApplier(const Analysis::Recipe::Recipe& i
                                                     pass_draw.draw_key) );
     }
 
+    for (const auto& pass_draw : m_recipe.pushed.pass_draw_vec)
+    {
+        m_pushed_pass_draw_set.insert(PassDrawKey(pass_draw.pass_key,
+                                                  pass_draw.draw_key) );
+    }
+
     for (const auto& pass_draw : m_recipe.skipped.pass_draw_vec)
     {
         m_skipped_pass_draw_set.insert(PassDrawKey(pass_draw.pass_key,
@@ -63,6 +69,14 @@ Analysis::Recipe::RecipeApplier::RecipeApplier(const Analysis::Recipe::Recipe& i
                                      m_recipe.covering_draw_key_vec.end    () );
     m_known_signature_key_set.insert(m_recipe.known_signature_key_vec.begin(),
                                      m_recipe.known_signature_key_vec.end  () );
+    m_pushed_cover_key_set.insert   (m_recipe.pushed.cover_key_vec.begin   (),
+                                     m_recipe.pushed.cover_key_vec.end     () );
+    m_pushed_part_cover_key_set.insert(m_recipe.pushed.part_cover_key_vec.begin(),
+                                       m_recipe.pushed.part_cover_key_vec.end  () );
+    m_pushed_draw_key_set.insert    (m_recipe.pushed.draw_key_vec.begin    (),
+                                     m_recipe.pushed.draw_key_vec.end      () );
+    m_pushed_pass_key_set.insert    (m_recipe.pushed.pass_key_vec.begin    (),
+                                     m_recipe.pushed.pass_key_vec.end      () );
     m_skipped_draw_key_set.insert   (m_recipe.skipped.draw_key_vec.begin   (),
                                      m_recipe.skipped.draw_key_vec.end     () );
     m_skipped_pass_key_set.insert   (m_recipe.skipped.pass_key_vec.begin   (),
@@ -172,8 +186,23 @@ bool Analysis::Recipe::RecipeApplier::apply_rule(const Analysis::Recipe::Rule& i
 Analysis::Recipe::DrawClass Analysis::Recipe::RecipeApplier::classify_draw(const uint64_t&              in_signature_key,
                                                                            const std::array<float, 16>& in_view_matrix) const
 {
-    const auto                  index_iterator = m_draw_rule_index_map.find(in_signature_key);
-    Analysis::Recipe::DrawClass result         = Analysis::Recipe::DrawClass::AFFECTED;
+    const auto*                 rule_ptr = find_draw_rule_ptr(in_signature_key,
+                                                              in_view_matrix);
+    Analysis::Recipe::DrawClass result   = Analysis::Recipe::DrawClass::AFFECTED;
+
+    if (rule_ptr != nullptr)
+    {
+        result = rule_ptr->draw_class;
+    }
+
+    return result;
+}
+
+const Analysis::Recipe::DrawRule* Analysis::Recipe::RecipeApplier::find_draw_rule_ptr(const uint64_t&              in_signature_key,
+                                                                                      const std::array<float, 16>& in_view_matrix) const
+{
+    const auto                        index_iterator = m_draw_rule_index_map.find(in_signature_key);
+    const Analysis::Recipe::DrawRule* result_ptr     = nullptr;
 
     if (index_iterator != m_draw_rule_index_map.end() )
     {
@@ -189,14 +218,14 @@ Analysis::Recipe::DrawClass Analysis::Recipe::RecipeApplier::classify_draw(const
 
             if (is_applied)
             {
-                result = rule.draw_class;
+                result_ptr = &rule;
 
                 break;
             }
         }
     }
 
-    return result;
+    return result_ptr;
 }
 
 float Analysis::Recipe::RecipeApplier::get_convergence_distance(const uint64_t& in_signature_key) const
@@ -368,6 +397,15 @@ const Analysis::Recipe::SceneComfort* Analysis::Recipe::RecipeApplier::find_scen
     return result_ptr;
 }
 
+float Analysis::Recipe::RecipeApplier::get_cover_push_parallax(const uint64_t& in_cover_key) const
+{
+    const bool is_part = (m_pushed_part_cover_key_set.count(in_cover_key) != 0 &&
+                          m_recipe.comfort.part_parallax                    >  0.0f);
+
+    return (is_part) ? m_recipe.comfort.part_parallax
+                     : m_recipe.comfort.overlay_parallax;
+}
+
 float Analysis::Recipe::RecipeApplier::get_overlay_parallax() const
 {
     return m_recipe.comfort.overlay_parallax;
@@ -455,9 +493,26 @@ bool Analysis::Recipe::RecipeApplier::is_draw_affected(const uint64_t& in_pass_k
     return result;
 }
 
+bool Analysis::Recipe::RecipeApplier::is_cover_pushed(const uint64_t& in_cover_key) const
+{
+    return (m_pushed_cover_key_set.count     (in_cover_key) != 0 ||
+            m_pushed_part_cover_key_set.count(in_cover_key) != 0);
+}
+
 bool Analysis::Recipe::RecipeApplier::is_draw_covering(const uint64_t& in_cover_key) const
 {
     return (m_covering_draw_key_set.count(in_cover_key) != 0);
+}
+
+bool Analysis::Recipe::RecipeApplier::is_draw_pushed(const uint64_t& in_pass_key,
+                                                      const uint64_t& in_draw_key) const
+{
+    const PassDrawKey pass_draw_key(in_pass_key,
+                                    in_draw_key);
+
+    return (m_pushed_pass_draw_set.count(pass_draw_key) != 0 ||
+            m_pushed_draw_key_set.count (in_draw_key)   != 0 ||
+            m_pushed_pass_key_set.count (in_pass_key)   != 0);
 }
 
 bool Analysis::Recipe::RecipeApplier::is_draw_skipped(const uint64_t& in_pass_key,
@@ -483,6 +538,11 @@ bool Analysis::Recipe::RecipeApplier::is_frame_known(const uint64_t& in_shape_ke
 
     return (m_recipe.known_shape_key_vec.empty() ||
             known_iterator != m_recipe.known_shape_key_vec.end() );
+}
+
+bool Analysis::Recipe::RecipeApplier::is_part_cover(const uint64_t& in_cover_key) const
+{
+    return (m_pushed_part_cover_key_set.count(in_cover_key) != 0);
 }
 
 bool Analysis::Recipe::RecipeApplier::is_matrix_of_kind(const std::array<float, 16>&        in_matrix,
@@ -546,6 +606,16 @@ bool Analysis::Recipe::RecipeApplier::is_signature_known(const uint64_t& in_sign
 
     return (m_known_signature_key_set.empty() ||
             n_matching_keys != 0);
+}
+
+bool Analysis::Recipe::RecipeApplier::is_signature_pushed(const uint64_t&              in_signature_key,
+                                                          const std::array<float, 16>& in_view_matrix) const
+{
+    const auto* rule_ptr = find_draw_rule_ptr(in_signature_key,
+                                              in_view_matrix);
+
+    return (rule_ptr != nullptr &&
+            rule_ptr->is_pushed);
 }
 
 std::array<float, 16> Analysis::Recipe::RecipeApplier::make_eye_offset_matrix(const Analysis::Recipe::Axis& in_axis,

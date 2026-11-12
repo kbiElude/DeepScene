@@ -84,13 +84,14 @@ namespace Stereo
 
             /* A call of the application is about to be made; true if it is to be (false: it was made for both eyes here, or is not to be made at
              * all). A call that draws says its class. A draw in a display list that the application compiles is not made now, so it is not
-             * a draw here.
+             * a draw here. A draw that is pushed is made with the origin of its viewport moved for each eye (see StereoCore::plan_push_shift()).
              */
             bool on_pre(const APIInterceptor::APIFunction&         in_function,
                         const uint32_t&                            in_n_arguments,
                         const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
                         const bool&                                in_has_draws,
-                        const Analysis::Recipe::DrawClass&         in_draw_class);
+                        const Analysis::Recipe::DrawClass&         in_draw_class,
+                        const bool&                                in_is_pushed);
 
             void set_get_chunk_func(const GetChunkFunc& in_get_chunk_func);
 
@@ -102,7 +103,8 @@ namespace Stereo
 
             /* Calls the function with the targets of both eyes bound in turn, the right one first; for an affected draw with the matrix of each eye. */
             void play_eyes(const std::function<void()>&      in_draw_func,
-                           const Analysis::Recipe::DrawClass& in_draw_class);
+                           const Analysis::Recipe::DrawClass& in_draw_class,
+                           const bool&                        in_is_pushed);
 
             /* Makes the twin of the texture that is bound, with the parameters of it and the size of the level (if it is not told by the call that
              * is to be mirrored); false if it cannot be made.
@@ -135,7 +137,8 @@ namespace Stereo
             bool on_pre_draw(const APIInterceptor::APIFunction&         in_function,
                              const uint32_t&                            in_n_arguments,
                              const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
-                             const Analysis::Recipe::DrawClass&         in_draw_class);
+                             const Analysis::Recipe::DrawClass&         in_draw_class,
+                             const bool&                                in_is_pushed);
 
             /* The textures bound to the units are the twins (or the textures themselves), for the draws of an eye. */
             void select_textures(const bool& in_are_twins);
@@ -154,6 +157,7 @@ namespace Stereo
             uint32_t                              m_applied_width;
             Analysis::Recipe::DrawClass           m_block_class;
             bool                                  m_block_has_draws;
+            bool                                  m_block_is_pushed;
             uint32_t                              m_block_list;
             Stereo::Core::StereoCore*             m_core_ptr;
             GlFrameReader                         m_frame_reader;

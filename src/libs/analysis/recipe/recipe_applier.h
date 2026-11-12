@@ -70,6 +70,11 @@ namespace Analysis
                                                     const float&        in_far_depth,
                                                     const float&        in_projection_scale);
 
+            /* How far toward the viewer a draw of the cover key is pushed, if it is pushed: the part parallax for a part of an object that protrudes (see
+             * DrawSelector::part_cover_key_vec) if the recipe has one, the overlay parallax otherwise.
+             */
+            float get_cover_push_parallax(const uint64_t& in_cover_key) const;
+
             /* How far toward the viewer the draws that the rules leave alone are pushed (see Comfort::overlay_parallax); 0: not. */
             float get_overlay_parallax() const;
 
@@ -104,10 +109,19 @@ namespace Analysis
             bool is_draw_affected(const uint64_t& in_pass_key,
                                   const uint64_t& in_draw_key) const;
 
+            /* Whether a draw of the key (its signature and size; see KeyBuilder::compute_draw_cover_key()) is pushed toward the viewer (see DrawSelector::cover_key_vec); a
+             * draw can be pushed by that and by the other names too.
+             */
+            bool is_cover_pushed(const uint64_t& in_cover_key) const;
+
             /* Whether a draw of the key (its signature and size; see KeyBuilder::compute_draw_cover_key()) covers the whole of the view, as a
              * flash does; see Recipe::covering_draw_key_vec.
              */
             bool is_draw_covering(const uint64_t& in_cover_key) const;
+
+            /* Whether the draw is pushed toward the viewer (see Recipe::pushed): the draw in its pass, its key, or the key of its pass is named. */
+            bool is_draw_pushed(const uint64_t& in_pass_key,
+                                const uint64_t& in_draw_key) const;
 
             /* Whether the draw is not to be played (see Recipe::skipped): the draw in its pass, its key, or the key of its pass is named. */
             bool is_draw_skipped(const uint64_t& in_pass_key,
@@ -116,6 +130,9 @@ namespace Analysis
             /* True if the frame is one the recipe was made for: its shape is listed, or no shape is. */
             bool is_frame_known(const uint64_t& in_shape_key) const;
 
+            /* Whether a draw of the key (see KeyBuilder::compute_draw_cover_key()) is a part of an object that protrudes from it (see DrawSelector::part_cover_key_vec). */
+            bool is_part_cover(const uint64_t& in_cover_key) const;
+
             /* True if the recipe says that each eye has a copy of the texture (see PerEyeTexture). */
             bool is_per_eye_texture(const Analysis::APIDumpAnalysis::ResourceIdentity& in_identity) const;
 
@@ -123,6 +140,12 @@ namespace Analysis
              * an unknown signature is affected, like any draw which no rule applies to, but the recipe was not made for it.
              */
             bool is_signature_known(const uint64_t& in_signature_key) const;
+
+            /* Whether the draw is pushed toward the viewer, by its signature and the view matrix (the rule that classify_draw() takes says so; see DrawRule::is_pushed). For a converter
+             * which plays an application as it runs.
+             */
+            bool is_signature_pushed(const uint64_t&              in_signature_key,
+                                     const std::array<float, 16>& in_view_matrix) const;
 
             /* The matrix that the camera of a draw begins with for the eye (see ViewAnchorShift), as OpenGL has matrices: the columns one after the other. The eyes are
              * apart by the separation, but no more than the scene of the shape allows (see SceneSeparation); they converge at the distance of the scene (see
@@ -161,6 +184,10 @@ namespace Analysis
             typedef std::pair<uint64_t, uint64_t> PassDrawKey;
 
 
+            /* The first rule of the signature that applies given the view matrix; nullptr if none does. */
+            const Analysis::Recipe::DrawRule* find_draw_rule_ptr(const uint64_t&              in_signature_key,
+                                                                 const std::array<float, 16>& in_view_matrix) const;
+
             static bool is_matrix_of_kind(const std::array<float, 16>&        in_matrix,
                                           const Analysis::Recipe::MatrixKind& in_kind);
 
@@ -182,6 +209,11 @@ namespace Analysis
             std::set<uint64_t>                    m_known_signature_key_set;
             Analysis::Recipe::Recipe              m_recipe;
             std::set<APIInterceptor::APIFunction> m_rule_function_set;
+            std::set<uint64_t>                    m_pushed_cover_key_set;
+            std::set<uint64_t>                    m_pushed_draw_key_set;
+            std::set<uint64_t>                    m_pushed_part_cover_key_set;
+            std::set<PassDrawKey>                 m_pushed_pass_draw_set;
+            std::set<uint64_t>                    m_pushed_pass_key_set;
             std::map<uint64_t, float>             m_scene_convergence_distance_map;
             std::map<uint64_t, float>             m_scene_max_separation_map;
             std::set<uint64_t>                    m_skipped_draw_key_set;

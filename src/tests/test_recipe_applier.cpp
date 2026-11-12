@@ -467,6 +467,78 @@ TEST_F(RecipeApplierTest, ADrawIsSkippedIfItOrItsPassIsNamed)
                                          1) );
 }
 
+TEST_F(RecipeApplierTest, ADrawIsPushedIfItsKeyItsPassOrItInItsPassIsNamed)
+{
+    Analysis::Recipe::Recipe recipe;
+
+    {
+        const Analysis::Recipe::RecipeApplier applier(recipe);
+
+        EXPECT_FALSE(applier.is_draw_pushed(1,
+                                            2) );
+    }
+
+    recipe.pushed.pass_key_vec = {10};
+    recipe.pushed.draw_key_vec = {20};
+    recipe.pushed.pass_draw_vec.push_back({30, 40});
+
+    const Analysis::Recipe::RecipeApplier applier(recipe);
+
+    EXPECT_TRUE (applier.is_draw_pushed(10,
+                                        1) );
+    EXPECT_TRUE (applier.is_draw_pushed(1,
+                                        20) );
+    EXPECT_TRUE (applier.is_draw_pushed(40,
+                                        30) );
+    EXPECT_FALSE(applier.is_draw_pushed(30,
+                                        40) );
+    EXPECT_FALSE(applier.is_draw_pushed(1,
+                                        1) );
+}
+
+TEST_F(RecipeApplierTest, ADrawIsPushedByItsSizeIfItsCoverKeyIsNamed)
+{
+    Analysis::Recipe::Recipe recipe;
+
+    recipe.pushed.cover_key_vec = {50};
+
+    const Analysis::Recipe::RecipeApplier applier(recipe);
+
+    EXPECT_TRUE (applier.is_cover_pushed(50) );
+    EXPECT_FALSE(applier.is_cover_pushed(51) );
+    EXPECT_FALSE(applier.is_draw_pushed(1,
+                                        50) );
+}
+
+TEST_F(RecipeApplierTest, APartThatProtrudesIsPushedByThePartParallaxAndTheOthersByTheOverlayParallax)
+{
+    Analysis::Recipe::Recipe recipe;
+
+    recipe.comfort.overlay_parallax    = 0.015f;
+    recipe.comfort.part_parallax       = 0.004f;
+    recipe.pushed.cover_key_vec        = {50};
+    recipe.pushed.part_cover_key_vec   = {60};
+
+    const Analysis::Recipe::RecipeApplier applier(recipe);
+
+    EXPECT_TRUE(applier.is_cover_pushed(50) );
+    EXPECT_TRUE(applier.is_cover_pushed(60) );
+    EXPECT_FLOAT_EQ(applier.get_cover_push_parallax(50),
+                    0.015f);
+    EXPECT_FLOAT_EQ(applier.get_cover_push_parallax(60),
+                    0.004f);
+    EXPECT_FLOAT_EQ(applier.get_cover_push_parallax(70),
+                    0.015f);
+
+    /* A recipe with no part parallax pushes the parts as it pushes the rest. */
+    recipe.comfort.part_parallax = 0.0f;
+
+    const Analysis::Recipe::RecipeApplier same_applier(recipe);
+
+    EXPECT_FLOAT_EQ(same_applier.get_cover_push_parallax(60),
+                    0.015f);
+}
+
 TEST_F(RecipeApplierTest, AnEyeOffsetMovesTheEyesApartByHalfTheSeparationEachAlongTheAxis)
 {
     struct AxisCase
@@ -645,6 +717,37 @@ TEST_F(RecipeApplierTest, ADrawRuleWithMatricesAppliesWhileTheViewMatrixIsOneOfT
     EXPECT_EQ(applier.classify_draw(7,
                                     make_identity() ),
               Analysis::Recipe::DrawClass::AFFECTED);
+}
+
+TEST_F(RecipeApplierTest, ASignatureIsPushedIfTheRuleThatAppliesSaysSo)
+{
+    Analysis::Recipe::DrawRule plain_rule;
+    Analysis::Recipe::DrawRule pushed_rule;
+    Analysis::Recipe::Recipe   recipe;
+
+    pushed_rule.draw_class    = Analysis::Recipe::DrawClass::AFFECTED;
+    pushed_rule.is_pushed     = true;
+    pushed_rule.signature_key = 7;
+    pushed_rule.view_matrix_vec.push_back(make_translation(2.5f) );
+
+    plain_rule.draw_class    = Analysis::Recipe::DrawClass::UNAFFECTED;
+    plain_rule.signature_key = 7;
+
+    recipe.draw_rule_vec.push_back(pushed_rule);
+    recipe.draw_rule_vec.push_back(plain_rule);
+
+    const Analysis::Recipe::RecipeApplier applier(recipe);
+
+    /* The first rule that applies decides: with the camera of the pushed rule it is pushed and affected, with any other it is the plain one's. */
+    EXPECT_TRUE (applier.is_signature_pushed(7,
+                                             make_translation(2.5f) ) );
+    EXPECT_EQ   (applier.classify_draw      (7,
+                                             make_translation(2.5f) ),
+                 Analysis::Recipe::DrawClass::AFFECTED);
+    EXPECT_FALSE(applier.is_signature_pushed(7,
+                                             make_identity() ) );
+    EXPECT_FALSE(applier.is_signature_pushed(8,
+                                             make_translation(2.5f) ) );
 }
 
 TEST_F(RecipeApplierTest, ASignatureIsKnownIfTheRecipeListsItOrListsNone)
