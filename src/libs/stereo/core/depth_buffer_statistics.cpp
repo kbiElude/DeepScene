@@ -7,6 +7,52 @@
 #include <math.h>
 #include <vector>
 
+/* A depth that is this close to the end of the buffer was not drawn to (the buffer is cleared to 1). */
+const float Stereo::Core::DepthBufferStatistics::NOT_DRAWN_DEPTH = 0.999999f;
+
+float Stereo::Core::DepthBufferStatistics::get_distance(const float& in_depth,
+                                                        const float& in_projection_z_scale,
+                                                        const float& in_projection_z_shift)
+{
+    /* z of the normalized device = 2 * depth - 1 = -scale - shift / z of the eye, and the camera looks down minus z: the distance is shift / (z of the device + scale). */
+    const float divisor = 2.0f * in_depth - 1.0f + in_projection_z_scale;
+    const float result  = (divisor != 0.0f) ? in_projection_z_shift / divisor
+                                            : 0.0f;
+
+    return (::isfinite(result) && result > 0.0f) ? result
+                                                 : 0.0f;
+}
+
+Stereo::Core::DepthSelection Stereo::Core::DepthBufferStatistics::get_selection(const size_t& in_n_drawn,
+                                                                                const size_t& in_n_looked_at,
+                                                                                const size_t& in_n_sky,
+                                                                                const float&  in_projection_z_scale,
+                                                                                const float&  in_projection_z_shift,
+                                                                                const float&  in_fraction)
+{
+    /* Less than this many pixels, or less than one of this many of those looked at, is hardly anything. */
+    constexpr size_t MIN_N_DRAWN           = 16;
+    constexpr size_t N_LOOKED_AT_PER_DRAWN = 100;
+
+    DepthSelection result;
+
+    /* A buffer with nothing drawn in it, or hardly anything, says nothing of how deep the scene is. */
+    if (in_n_drawn >= MIN_N_DRAWN                           &&
+        in_n_drawn >= in_n_looked_at / N_LOOKED_AT_PER_DRAWN)
+    {
+        result.far_plane = get_distance(1.0f,
+                                        in_projection_z_scale,
+                                        in_projection_z_shift);
+        result.has_sky   = (result.far_plane > 0.0f                                                                                                  &&
+                            static_cast<double>(in_n_sky) >= static_cast<double>(in_n_looked_at) * static_cast<double>(in_fraction) );
+        result.is_enough = true;
+        result.n_edge    = std::min(in_n_drawn - 1,
+                                    static_cast<size_t>(static_cast<double>(in_n_drawn) * static_cast<double>(in_fraction) ) );
+    }
+
+    return result;
+}
+
 Stereo::Core::DepthRange Stereo::Core::DepthBufferStatistics::measure(const float*  in_depth_ptr,
                                                                       const size_t& in_n_depths,
                                                                       const size_t& in_step,
@@ -14,9 +60,6 @@ Stereo::Core::DepthRange Stereo::Core::DepthBufferStatistics::measure(const floa
                                                                       const float&  in_projection_z_shift,
                                                                       const float&  in_fraction)
 {
-    /* A depth that is this close to the end of the buffer was not drawn to (the buffer is cleared to 1). */
-    constexpr float NOT_DRAWN = 0.999999f;
-
     std::vector<float> distance_vec;
     size_t             n_looked_at = 0;
     size_t             n_sky       = 0;
@@ -32,7 +75,7 @@ Stereo::Core::DepthRange Stereo::Core::DepthBufferStatistics::measure(const floa
     {
         n_looked_at++;
 
-        if (in_depth_ptr[n_depth] >= NOT_DRAWN)
+        if (in_depth_ptr[n_depth] >= NOT_DRAWN_DEPTH)
         {
             n_sky++;
         }
@@ -49,31 +92,28 @@ Stereo::Core::DepthRange Stereo::Core::DepthBufferStatistics::measure(const floa
         }
     }
 
-    /* A buffer with nothing drawn in it, or hardly anything, says nothing of how deep the scene is. */
-    if (distance_vec.size() >= 16                                   &&
-        distance_vec.size() >= n_looked_at / 100)
-    {
-        const size_t n_drawn        = distance_vec.size();
-        const size_t n_edge         = std::min(n_drawn - 1,
-                                               static_cast<size_t>(static_cast<double>(n_drawn) * static_cast<double>(in_fraction) ) );
-        const float  far_plane      = get_distance(1.0f,
+    const size_t         n_drawn   = distance_vec.size();
+    const DepthSelection selection = get_selection(n_drawn,
+                                                   n_looked_at,
+                                                   n_sky,
                                                    in_projection_z_scale,
-                                                   in_projection_z_shift);
-        const bool   has_sky        = (far_plane > 0.0f                                                                                                &&
-                                       static_cast<double>(n_sky) >= static_cast<double>(n_looked_at) * static_cast<double>(in_fraction) );
+                                                   in_projection_z_shift,
+                                                   in_fraction);
 
+    if (selection.is_enough)
+    {
         std::nth_element(distance_vec.begin(),
-                         distance_vec.begin() + static_cast<std::ptrdiff_t>(n_edge),
+                         distance_vec.begin() + static_cast<std::ptrdiff_t>(selection.n_edge),
                          distance_vec.end  () );
 
-        result.near_depth = distance_vec.at(n_edge);
+        result.near_depth = distance_vec.at(selection.n_edge);
 
         std::nth_element(distance_vec.begin(),
-                         distance_vec.begin() + static_cast<std::ptrdiff_t>(n_drawn - 1 - n_edge),
+                         distance_vec.begin() + static_cast<std::ptrdiff_t>(n_drawn - 1 - selection.n_edge),
                          distance_vec.end  () );
 
-        result.far_depth = (has_sky) ? far_plane
-                                     : distance_vec.at(n_drawn - 1 - n_edge);
+        result.far_depth = (selection.has_sky) ? selection.far_plane
+                                               : distance_vec.at(n_drawn - 1 - selection.n_edge);
 
         std::nth_element(distance_vec.begin(),
                          distance_vec.begin() + static_cast<std::ptrdiff_t>(n_drawn / 2),
@@ -84,17 +124,4 @@ Stereo::Core::DepthRange Stereo::Core::DepthBufferStatistics::measure(const floa
     }
 
     return result;
-}
-
-float Stereo::Core::DepthBufferStatistics::get_distance(const float& in_depth,
-                                                        const float& in_projection_z_scale,
-                                                        const float& in_projection_z_shift)
-{
-    /* z of the normalized device = 2 * depth - 1 = -scale - shift / z of the eye, and the camera looks down minus z: the distance is shift / (z of the device + scale). */
-    const float divisor = 2.0f * in_depth - 1.0f + in_projection_z_scale;
-    const float result  = (divisor != 0.0f) ? in_projection_z_shift / divisor
-                                            : 0.0f;
-
-    return (::isfinite(result) && result > 0.0f) ? result
-                                                 : 0.0f;
 }

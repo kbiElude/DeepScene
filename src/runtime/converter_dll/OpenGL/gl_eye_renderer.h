@@ -8,6 +8,7 @@
 #include "analysis/recipe/types.h"
 #include "common/api_function_argument.h"
 #include "common/types.h"
+#include "stereo/core/depth_measurer.h"
 #include "stereo/core/frame_depth_ledger.h"
 #include "stereo/core/picture_readback_cache.h"
 #include "stereo/core/stereo_core.h"
@@ -144,11 +145,11 @@ namespace Stereo
             /* The reads that were on their way to buffers of the graphics card that were made again since are forgotten: they are lost with the buffers. */
             void forget_lost_depth_reads();
 
-            /* The depths of a read of the depth buffer looked at: how deep the surfaces that were drawn are (see DepthBufferStatistics), for a projection with the z scale and shift. */
+            /* The depths of a read of the depth buffer looked at: how deep the surfaces that were drawn are (see DepthMeasurer), for a projection with the z scale and shift. */
             Stereo::Core::DepthRange measure_depths(const float&  in_z_scale,
                                                     const float&  in_z_shift,
                                                     const float*  in_depth_ptr,
-                                                    const size_t& in_n_depths) const;
+                                                    const size_t& in_n_depths);
 
             /* The depth buffer of the left eye is read, and what it says of how deep the pass that is ending is goes to the frame (when its result is in: see
              * start_depth_read()).
@@ -190,6 +191,7 @@ namespace Stereo
             uint32_t                              m_depth_generation;       /* of the targets that the reads that are on their way were begun with (see GlEyeTargets::get_generation()) */
             uint32_t                              m_depth_lag;              /* see get_depth_lag() */
             Stereo::Core::FrameDepthLedger        m_depth_ledger;
+            Stereo::Core::DepthMeasurer           m_depth_measurer;
             uint32_t                              m_active_unit;
             uint32_t                              m_applied_height; /* of the viewport and the scissor box that were set for the size of the framebuffers */
             uint32_t                              m_applied_width;

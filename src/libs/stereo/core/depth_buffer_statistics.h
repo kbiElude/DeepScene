@@ -5,6 +5,7 @@
 #ifndef STEREO_CORE_DEPTH_BUFFER_STATISTICS_H
 #define STEREO_CORE_DEPTH_BUFFER_STATISTICS_H
 
+#include "stereo/core/types.h"
 #include <stddef.h>
 
 namespace Stereo
@@ -24,6 +25,21 @@ namespace Stereo
         class DepthBufferStatistics
         {
         public:
+            /* The distance from the camera of a depth of the buffer, for the projection (as measure() takes it); 0 if the projection says no such distance. */
+            static float get_distance(const float& in_depth,
+                                      const float& in_projection_z_scale,
+                                      const float& in_projection_z_shift);
+
+            /* What is looked for in the distances of the pixels that were drawn to, when there are in_n_drawn of them among in_n_looked_at that were looked at (in_n_sky of them
+             * were not drawn to). The nearest and the farthest in_fraction of the pixels that were drawn are the edges of the scene.
+             */
+            static DepthSelection get_selection(const size_t& in_n_drawn,
+                                                const size_t& in_n_looked_at,
+                                                const size_t& in_n_sky,
+                                                const float&  in_projection_z_scale,
+                                                const float&  in_projection_z_shift,
+                                                const float&  in_fraction);
+
             /* The depths are what an OpenGL depth buffer holds (0 at the near plane and 1 at the far one) of a perspective projection whose elements are the ones that give the depth
              * its meaning (its z scale and z shift: the elements 10 and 14 of a matrix of OpenGL). A pixel that is as deep as the buffer goes was not drawn to: it is the sky, which is as far as the far plane, if there are as many of
              * them as the fraction. The nearest surfaces are the first fraction of the pixels that were drawn, and the farthest the last (0.001 is a thousandth); the
@@ -36,10 +52,8 @@ namespace Stereo
                                       const float&  in_projection_z_shift,
                                       const float&  in_fraction);
 
-            /* The distance from the camera of a depth of the buffer, for the projection (as measure() takes it); 0 if the projection says no such distance. */
-            static float get_distance(const float& in_depth,
-                                      const float& in_projection_z_scale,
-                                      const float& in_projection_z_shift);
+            /* A depth that is this close to the end of the buffer was not drawn to (the buffer is cleared to 1). */
+            static const float NOT_DRAWN_DEPTH;
         };
     }
 }

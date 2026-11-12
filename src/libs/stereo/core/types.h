@@ -17,6 +17,40 @@ namespace Stereo
 {
     namespace Core
     {
+        /* How the distances of a depth buffer are counted (see DepthMeasurer): the first bin that is for a distance (the ones before it are for what is not one, a bin for each of the 8 pixels of a step of the pass so that they do not wait for each other), the bits of a distance that are left out to make the number of its bin, how many bins a histogram has,
+         * and how many histograms there are (a power of 2).
+         */
+        struct DepthHistogramLayout
+        {
+            uint32_t first_distance_key = 0;
+            uint32_t key_shift        = 0;
+            uint32_t n_bins           = 0;
+            uint32_t n_sub_histograms = 0;
+        };
+
+        /* The bins of the histogram of the distances in a depth buffer that were used: the lowest and the highest (the lowest is above the highest if none was). */
+        struct DepthKeyRange
+        {
+            uint32_t max_key = 0;
+            uint32_t min_key = UINT32_MAX;
+        };
+
+        /* What the pass over the pixels of a depth buffer found out (see DepthMeasurer): the bins of the histogram that were used, and how many of the pixels were not drawn to. */
+        struct DepthPassResult
+        {
+            DepthKeyRange key_range;
+            size_t        n_sky = 0;
+        };
+
+        /* What is looked for in the distances of the pixels that were drawn to (see DepthBufferStatistics::get_selection). */
+        struct DepthSelection
+        {
+            float  far_plane = 0.0f; /* how far the sky is */
+            bool   has_sky   = false;
+            bool   is_enough = false; /* false if there is too little drawn for the buffer to say how deep the scene is */
+            size_t n_edge    = 0;     /* how many of the nearest (and of the farthest) pixels are the edge of the scene */
+        };
+
         /* Called when the converter finds that the application is one it cannot convert right. It is not expected to return: what it
          * does instead (log and end the process, say) is the caller's to decide.
          */

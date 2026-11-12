@@ -43,6 +43,7 @@ Stereo::ConverterDLL::GlEyeRenderer::GlEyeRenderer(Stereo::Core::StereoCore* in_
      m_core_ptr           (in_core_ptr),
      m_depth_generation   (0),
      m_depth_lag          (0),
+     m_depth_measurer     (true),
      m_get_chunk_func     (),
      m_has_failed         (false),
      m_is_in_app_list     (false),
@@ -225,7 +226,7 @@ end:
 Stereo::Core::DepthRange Stereo::ConverterDLL::GlEyeRenderer::measure_depths(const float&  in_z_scale,
                                                                              const float&  in_z_shift,
                                                                              const float*  in_depth_ptr,
-                                                                             const size_t& in_n_depths) const
+                                                                             const size_t& in_n_depths)
 {
     /* A depth buffer that is read whole (the copy of it could not be made) is looked at every few pixels; the copy is small enough to be looked at whole. */
     constexpr size_t N_DEPTHS_LOOKED_AT_WHOLE = 100000;
@@ -235,12 +236,12 @@ Stereo::Core::DepthRange Stereo::ConverterDLL::GlEyeRenderer::measure_depths(con
     const size_t step          = (in_n_depths > N_DEPTHS_LOOKED_AT_WHOLE) ? N_PIXELS_BETWEEN_SAMPLES
                                                                           : 1;
 
-    return Stereo::Core::DepthBufferStatistics::measure(in_depth_ptr,
-                                                        in_n_depths,
-                                                        step,
-                                                        in_z_scale,
-                                                        in_z_shift,
-                                                        near_fraction);
+    return m_depth_measurer.measure(in_depth_ptr,
+                                    in_n_depths,
+                                    step,
+                                    in_z_scale,
+                                    in_z_shift,
+                                    near_fraction);
 }
 
 void Stereo::ConverterDLL::GlEyeRenderer::measure_pass_depth()
