@@ -35,6 +35,16 @@ void Stereo::ConverterDLL::GlResolutionScaler::forget_texture(const uint32_t& in
     m_scaled_texture_set.erase(in_texture);
 }
 
+uint32_t Stereo::ConverterDLL::GlResolutionScaler::get_asked_height() const
+{
+    return m_asked_height;
+}
+
+uint32_t Stereo::ConverterDLL::GlResolutionScaler::get_asked_width() const
+{
+    return m_asked_width;
+}
+
 const Stereo::Core::ResolutionPolicy& Stereo::ConverterDLL::GlResolutionScaler::get_policy() const
 {
     return m_policy;
@@ -79,75 +89,27 @@ bool Stereo::ConverterDLL::GlResolutionScaler::is_scaled_texture(const uint32_t&
 bool Stereo::ConverterDLL::GlResolutionScaler::make_scaled_read(const uint32_t&                            in_n_arguments,
                                                                 const APIInterceptor::APIFunctionArgument* in_arguments_ptr) const
 {
-    constexpr size_t   ARGUMENT_FORMAT    = 4;
-    constexpr size_t   ARGUMENT_HEIGHT    = 3;
-    constexpr size_t   ARGUMENT_TYPE      = 5;
-    constexpr size_t   ARGUMENT_WIDTH     = 2;
-    constexpr size_t   ARGUMENT_X         = 0;
-    constexpr size_t   ARGUMENT_Y         = 1;
-    constexpr uint32_t FORMAT_RGB         = 0x1907;
-    constexpr size_t   N_NUMBER_ARGUMENTS = 6; /* x, y, width, height, format, type */
-    constexpr uint32_t N_READ_ARGUMENTS   = 7;
-    constexpr uint32_t PIXELS_ARGUMENT    = 6;
-    constexpr GLsizei  READ_EXTENT        = 1;
-    constexpr uint32_t TYPE_UNSIGNED_BYTE = 0x1401;
+    constexpr GLsizei READ_EXTENT = 1;
 
-    const bool                              is_identity = m_policy.is_identity();
-    bool                                    result      = false;
-    std::array<int64_t, N_NUMBER_ARGUMENTS> value_array = {};
+    SinglePixelRead read;
+    const bool      is_identity = m_policy.is_identity();
+    const bool      is_read     = parse_single_pixel_read(in_n_arguments,
+                                                          in_arguments_ptr,
+                                                         &read);
+    bool            result      = false;
 
-    if (in_n_arguments < N_READ_ARGUMENTS ||
-        is_identity                       ||
-        m_asked_height == 0               ||
-        m_asked_width  == 0               ||
-        m_real_height  == 0               ||
-        m_real_width   == 0)
+    if (is_read                  &&
+        is_identity    == false  &&
+        m_asked_height != 0      &&
+        m_asked_width  != 0      &&
+        m_real_height  != 0      &&
+        m_real_width   != 0)
     {
-        goto end;
-    }
-
-    /* The buffer of the application: a pointer (not an offset in a buffer of the driver, nor none). */
-    if (in_arguments_ptr[PIXELS_ARGUMENT].type != APIInterceptor::ARGTYPE_VOID_PTR)
-    {
-        goto end;
-    }
-
-    if (is_null_pointer(in_arguments_ptr[PIXELS_ARGUMENT]) )
-    {
-        goto end;
-    }
-
-    for (uint32_t n_argument = 0;
-                  n_argument < value_array.size();
-                ++n_argument)
-    {
-        if (APIInterceptor::read_number(in_arguments_ptr[n_argument],
-                                       &value_array.at(n_argument) ) == false)
-        {
-            goto end;
-        }
-    }
-
-    {
-        const uint32_t format = static_cast<uint32_t>(value_array.at(ARGUMENT_FORMAT) );
-        const int64_t  height = value_array.at(ARGUMENT_HEIGHT);
-        const uint32_t type   = static_cast<uint32_t>(value_array.at(ARGUMENT_TYPE) );
-        const int64_t  width  = value_array.at(ARGUMENT_WIDTH);
-
-        /* Only the read that is known to be made, of one pixel of bytes of the colors, is made here: any other cannot be made to match. */
-        if (width  != READ_EXTENT        ||
-            height != READ_EXTENT        ||
-            format != FORMAT_RGB         ||
-            type   != TYPE_UNSIGNED_BYTE)
-        {
-            goto end;
-        }
-
         /* The pixel under the centre of the one that the application names, which is the nearest one that it has if it names one that it does not. */
-        const uint32_t x_real = m_policy.scale_pixel_coordinate(value_array.at(ARGUMENT_X),
+        const uint32_t x_real = m_policy.scale_pixel_coordinate(read.x,
                                                                 m_asked_width,
                                                                 m_real_width);
-        const uint32_t y_real = m_policy.scale_pixel_coordinate(value_array.at(ARGUMENT_Y),
+        const uint32_t y_real = m_policy.scale_pixel_coordinate(read.y,
                                                                 m_asked_height,
                                                                 m_real_height);
 
@@ -158,14 +120,13 @@ bool Stereo::ConverterDLL::GlResolutionScaler::make_scaled_read(const uint32_t& 
                                                       static_cast<GLint>(y_real),
                                                       READ_EXTENT,
                                                       READ_EXTENT,
-                                                      static_cast<GLenum>(FORMAT_RGB),
-                                                      static_cast<GLenum>(TYPE_UNSIGNED_BYTE),
-                                                      const_cast<void*>(in_arguments_ptr[PIXELS_ARGUMENT].get_ptr() ) );
+                                                      static_cast<GLenum>(read.format),
+                                                      static_cast<GLenum>(read.type),
+                                                      read.pixels_ptr);
 
         result = true;
     }
 
-end:
     return result;
 }
 
@@ -386,6 +347,81 @@ bool Stereo::ConverterDLL::GlResolutionScaler::on_pre(const APIInterceptor::APIF
         }
     }
 
+    return result;
+}
+
+bool Stereo::ConverterDLL::GlResolutionScaler::parse_single_pixel_read(const uint32_t&                            in_n_arguments,
+                                                                       const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
+                                                                       SinglePixelRead*                           out_read_ptr)
+{
+    constexpr size_t   ARGUMENT_FORMAT    = 4;
+    constexpr size_t   ARGUMENT_HEIGHT    = 3;
+    constexpr size_t   ARGUMENT_TYPE      = 5;
+    constexpr size_t   ARGUMENT_WIDTH     = 2;
+    constexpr size_t   ARGUMENT_X         = 0;
+    constexpr size_t   ARGUMENT_Y         = 1;
+    constexpr uint32_t FORMAT_RGB         = 0x1907;
+    constexpr size_t   N_NUMBER_ARGUMENTS = 6; /* x, y, width, height, format, type */
+    constexpr uint32_t N_READ_ARGUMENTS   = 7;
+    constexpr uint32_t PIXELS_ARGUMENT    = 6;
+    constexpr int64_t  READ_EXTENT        = 1;
+    constexpr uint32_t TYPE_UNSIGNED_BYTE = 0x1401;
+
+    bool                                    result      = false;
+    std::array<int64_t, N_NUMBER_ARGUMENTS> value_array = {};
+
+    if (in_n_arguments < N_READ_ARGUMENTS)
+    {
+        goto end;
+    }
+
+    /* The buffer of the application: a pointer (not an offset in a buffer of the driver, nor none). */
+    if (in_arguments_ptr[PIXELS_ARGUMENT].type != APIInterceptor::ARGTYPE_VOID_PTR)
+    {
+        goto end;
+    }
+
+    if (is_null_pointer(in_arguments_ptr[PIXELS_ARGUMENT]) )
+    {
+        goto end;
+    }
+
+    for (uint32_t n_argument = 0;
+                  n_argument < value_array.size();
+                ++n_argument)
+    {
+        if (APIInterceptor::read_number(in_arguments_ptr[n_argument],
+                                       &value_array.at(n_argument) ) == false)
+        {
+            goto end;
+        }
+    }
+
+    {
+        const uint32_t format = static_cast<uint32_t>(value_array.at(ARGUMENT_FORMAT) );
+        const int64_t  height = value_array.at(ARGUMENT_HEIGHT);
+        const uint32_t type   = static_cast<uint32_t>(value_array.at(ARGUMENT_TYPE) );
+        const int64_t  width  = value_array.at(ARGUMENT_WIDTH);
+
+        /* Only the read that is known to be made, of one pixel of bytes of the colors: any other cannot be made to match. */
+        if (width  != READ_EXTENT        ||
+            height != READ_EXTENT        ||
+            format != FORMAT_RGB         ||
+            type   != TYPE_UNSIGNED_BYTE)
+        {
+            goto end;
+        }
+
+        out_read_ptr->format     = format;
+        out_read_ptr->pixels_ptr = const_cast<void*>(in_arguments_ptr[PIXELS_ARGUMENT].get_ptr() );
+        out_read_ptr->type       = type;
+        out_read_ptr->x          = value_array.at(ARGUMENT_X);
+        out_read_ptr->y          = value_array.at(ARGUMENT_Y);
+
+        result = true;
+    }
+
+end:
     return result;
 }
 

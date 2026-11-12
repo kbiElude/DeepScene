@@ -10,6 +10,7 @@
 #include "stereo/core/resolution_policy.h"
 #include "stereo/core/stereo_core.h"
 #include "stereo/core/types.h"
+#include "types.h"
 #include <array>
 #include <functional>
 #include <set>
@@ -37,6 +38,10 @@ namespace Stereo
                                const uint32_t&              in_target_height,
                                Stereo::Core::StereoCore*    in_core_ptr,
                                const Stereo::Core::LogFunc& in_log_func);
+
+            /* The size of the window of the application, as plan() was told (0 until it was). */
+            uint32_t get_asked_height() const;
+            uint32_t get_asked_width () const;
 
             const Stereo::Core::ResolutionPolicy& get_policy() const;
 
@@ -72,6 +77,13 @@ namespace Stereo
 
             /* The texture is gone. */
             void forget_texture(const uint32_t& in_texture);
+
+            /* Whether the call (the arguments of a glReadPixels) reads one pixel of the colors, in bytes, to memory of the application (not to a buffer of the driver), which is the
+             * only read that is made for the larger framebuffer or from a picture that was read (see PictureReadbackCache); what it reads is told by the read.
+             */
+            static bool parse_single_pixel_read(const uint32_t&                            in_n_arguments,
+                                                const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
+                                                SinglePixelRead*                           out_read_ptr);
 
         private:
             /* A glReadPixels of the application (its arguments), made here for the larger framebuffer: the one pixel that it names is read at the pixel under its centre (see

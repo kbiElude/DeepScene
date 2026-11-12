@@ -149,7 +149,7 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
     }
 
     if (check_keys(root,
-                   {"affected", "baked", "comfort", "key_scheme_version", "known_shape_keys", "on_unknown_frame", "pushed", "recipe_version", "rules", "screen_parallax", "skipped", "target", "unaffected", "view_anchor_shift"},
+                   {"affected", "baked", "cache_pixel_reads", "comfort", "key_scheme_version", "known_shape_keys", "on_unknown_frame", "pushed", "recipe_version", "rules", "screen_parallax", "skipped", "target", "unaffected", "view_anchor_shift"},
                    "",
                    out_error_ptr) == false)
     {
@@ -159,6 +159,7 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
     {
         const auto* affected_ptr           = root.find_ptr("affected");
         const auto* baked_ptr              = root.find_ptr("baked");
+        const auto* cache_pixel_reads_ptr  = root.find_ptr("cache_pixel_reads");
         const auto* comfort_ptr            = root.find_ptr("comfort");
         const auto* key_scheme_version_ptr = root.find_ptr("key_scheme_version");
         const auto* known_shape_keys_ptr   = root.find_ptr("known_shape_keys");
@@ -421,6 +422,18 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
             goto end;
         }
 
+
+        if (cache_pixel_reads_ptr != nullptr)
+        {
+            if (cache_pixel_reads_ptr->type != Utils::Json::JsonValueType::BOOL)
+            {
+                *out_error_ptr = "cache_pixel_reads: expected true or false";
+
+                goto end;
+            }
+
+            out_recipe_ptr->caches_pixel_reads = cache_pixel_reads_ptr->bool_value;
+        }
 
         if (on_unknown_frame_ptr != nullptr)
         {

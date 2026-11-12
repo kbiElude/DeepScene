@@ -54,6 +54,9 @@ namespace Analysis
             std::vector<const Analysis::Recipe::Rule*> get_matching_rule_ptr_vec(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                                  const CallPlace&                             in_place) const;
 
+            /* Whether the recipe has the reads of one pixel that the application makes in a run given from a picture that is read once (see Recipe::caches_pixel_reads). */
+            bool get_caches_pixel_reads() const;
+
             /* What the person who writes the recipe says about how much the eyes can be asked to do. */
             const Comfort& get_comfort() const;
 

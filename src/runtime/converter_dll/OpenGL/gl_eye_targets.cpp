@@ -6,17 +6,26 @@
 #include "gl_driver_functions.h"
 #include "own_call_scope.h"
 #include <algorithm>
+#include <array>
 
 namespace
 {
-    constexpr GLenum COLOR_ATTACHMENT0        = 0x8CE0;
-    constexpr GLenum DEPTH24_STENCIL8         = 0x88F0;
-    constexpr GLenum DEPTH_STENCIL_ATTACHMENT = 0x821A;
-    constexpr GLenum DRAW_FRAMEBUFFER         = 0x8CA9;
-    constexpr GLenum FRAMEBUFFER              = 0x8D40;
-    constexpr GLenum FRAMEBUFFER_COMPLETE     = 0x8CD5;
-    constexpr GLenum PACK_ALIGNMENT           = 0x0D05;
-    constexpr GLenum READ_FRAMEBUFFER         = 0x8CA8;
+    constexpr GLenum     COLOR_ATTACHMENT0           = 0x8CE0;
+    constexpr GLbitfield COLOR_BUFFER_BIT            = 0x00004000;
+    constexpr GLenum     DEPTH24_STENCIL8            = 0x88F0;
+    constexpr GLbitfield DEPTH_BUFFER_BIT            = 0x00000100;
+    constexpr GLenum     DEPTH_STENCIL_ATTACHMENT    = 0x821A;
+    constexpr GLenum     DRAW_FRAMEBUFFER            = 0x8CA9;
+    constexpr GLenum     FRAMEBUFFER                 = 0x8D40;
+    constexpr GLenum     FRAMEBUFFER_COMPLETE        = 0x8CD5;
+    constexpr GLenum     PACK_ALIGNMENT              = 0x0D05;
+    constexpr GLenum     PACK_LSB_FIRST              = 0x0D01;
+    constexpr GLenum     PACK_ROW_LENGTH             = 0x0D02;
+    constexpr GLenum     PACK_SKIP_PIXELS            = 0x0D04;
+    constexpr GLenum     PACK_SKIP_ROWS              = 0x0D03;
+    constexpr GLenum     PACK_SWAP_BYTES             = 0x0D00;
+    constexpr GLenum     PIXEL_PACK_BUFFER_BINDING   = 0x88ED;
+    constexpr GLenum     READ_FRAMEBUFFER            = 0x8CA8;
     constexpr GLenum RENDERBUFFER             = 0x8D41;
     constexpr GLenum SCISSOR_TEST             = 0x0C11;
 
@@ -25,16 +34,48 @@ namespace
 }
 
 Stereo::ConverterDLL::GlEyeTargets::GlEyeTargets()
-    :m_context_ptr    (nullptr),
-     m_has_functions  (false),
-     m_has_depth_probe(false),
-     m_height         (0),
-     m_is_ready       (false),
-     m_probe_height   (0),
-     m_probe_width    (0),
-     m_width          (0)
+    :m_context_ptr         (nullptr),
+     m_has_functions       (false),
+     m_has_depth_probe     (false),
+     m_has_readback_target (false),
+     m_height              (0),
+     m_is_ready            (false),
+     m_probe_height        (0),
+     m_probe_width         (0),
+     m_readback_height     (0),
+     m_readback_width      (0),
+     m_width               (0)
 {
     /* Stub */
+}
+
+bool Stereo::ConverterDLL::GlEyeTargets::are_pack_modes_default()
+{
+    constexpr std::array<GLenum, 5> MODE_ARRAY = {PACK_LSB_FIRST,
+                                                  PACK_ROW_LENGTH,
+                                                  PACK_SKIP_PIXELS,
+                                                  PACK_SKIP_ROWS,
+                                                  PACK_SWAP_BYTES};
+
+    GLint buffer = 0;
+    bool  result = false;
+
+    GlDriverFunctions::get().get_integerv_func_ptr(PIXEL_PACK_BUFFER_BINDING,
+                                                  &buffer);
+
+    result = (buffer == 0);
+
+    for (const GLenum mode : MODE_ARRAY)
+    {
+        GLint value = 0;
+
+        GlDriverFunctions::get().get_integerv_func_ptr(mode,
+                                                      &value);
+
+        result = (result && value == 0);
+    }
+
+    return result;
 }
 
 bool Stereo::ConverterDLL::GlEyeTargets::bind_eye(const Analysis::Recipe::Eye& in_eye)
@@ -51,6 +92,40 @@ bool Stereo::ConverterDLL::GlEyeTargets::bind_eye(const Analysis::Recipe::Eye& i
     return m_is_ready;
 }
 
+void Stereo::ConverterDLL::GlEyeTargets::blit_left_eye(const uint32_t&   in_destination_framebuffer,
+                                                       const uint32_t&   in_destination_width,
+                                                       const uint32_t&   in_destination_height,
+                                                       const GLbitfield& in_mask)
+{
+    /* A blit is cut to the scissor box if the test is on, which the application has made the box of something else. */
+    const bool is_scissor_on = (GlDriverFunctions::get().is_enabled_func_ptr(SCISSOR_TEST) != GL_FALSE);
+
+    if (is_scissor_on)
+    {
+        GlDriverFunctions::get().disable_func_ptr(SCISSOR_TEST);
+    }
+
+    m_functions.bind_framebuffer_func_ptr(READ_FRAMEBUFFER,
+                                          m_left.framebuffer);
+    m_functions.bind_framebuffer_func_ptr(DRAW_FRAMEBUFFER,
+                                          in_destination_framebuffer);
+    m_functions.blit_framebuffer_func_ptr(0,
+                                          0,
+                                          static_cast<GLint>(m_width),
+                                          static_cast<GLint>(m_height),
+                                          0,
+                                          0,
+                                          static_cast<GLint>(in_destination_width),
+                                          static_cast<GLint>(in_destination_height),
+                                          in_mask,
+                                          GL_NEAREST);
+
+    if (is_scissor_on)
+    {
+        GlDriverFunctions::get().enable_func_ptr(SCISSOR_TEST);
+    }
+}
+
 void Stereo::ConverterDLL::GlEyeTargets::blit_left_to_window()
 {
     const OwnCallScope own_call_scope;
@@ -58,37 +133,13 @@ void Stereo::ConverterDLL::GlEyeTargets::blit_left_to_window()
     if (m_is_ready                                         &&
         m_functions.blit_framebuffer_func_ptr != nullptr)
     {
-        constexpr GLbitfield COLOR_BUFFER_BIT = 0x00004000;
+        blit_left_eye(0,
+                      m_width,
+                      m_height,
+                      COLOR_BUFFER_BIT);
 
-        /* A blit is cut to the scissor box if the test is on, which the application has made the box of something else. */
-        const bool is_scissor_on = (GlDriverFunctions::get().is_enabled_func_ptr(SCISSOR_TEST) != GL_FALSE);
-
-        if (is_scissor_on)
-        {
-            GlDriverFunctions::get().disable_func_ptr(SCISSOR_TEST);
-        }
-
-        m_functions.bind_framebuffer_func_ptr(READ_FRAMEBUFFER,
-                                              m_left.framebuffer);
-        m_functions.bind_framebuffer_func_ptr(DRAW_FRAMEBUFFER,
-                                              0);
-        m_functions.blit_framebuffer_func_ptr(0,
-                                              0,
-                                              static_cast<GLint>(m_width),
-                                              static_cast<GLint>(m_height),
-                                              0,
-                                              0,
-                                              static_cast<GLint>(m_width),
-                                              static_cast<GLint>(m_height),
-                                              COLOR_BUFFER_BIT,
-                                              GL_NEAREST);
         m_functions.bind_framebuffer_func_ptr(FRAMEBUFFER,
                                               m_left.framebuffer);
-
-        if (is_scissor_on)
-        {
-            GlDriverFunctions::get().enable_func_ptr(SCISSOR_TEST);
-        }
     }
 }
 
@@ -258,35 +309,11 @@ bool Stereo::ConverterDLL::GlEyeTargets::read_depth(std::vector<float>* out_dept
 
         if (m_has_depth_probe)
         {
-            constexpr GLbitfield DEPTH_BUFFER_BIT = 0x00000100;
-
-            /* The depth of the whole buffer goes to the small one, by the graphics card; a blit is cut to the scissor box if the test is on. */
-            const bool is_scissor_on = (GlDriverFunctions::get().is_enabled_func_ptr(SCISSOR_TEST) != GL_FALSE);
-
-            if (is_scissor_on)
-            {
-                GlDriverFunctions::get().disable_func_ptr(SCISSOR_TEST);
-            }
-
-            m_functions.bind_framebuffer_func_ptr(READ_FRAMEBUFFER,
-                                                  m_left.framebuffer);
-            m_functions.bind_framebuffer_func_ptr(DRAW_FRAMEBUFFER,
-                                                  m_depth_probe.framebuffer);
-            m_functions.blit_framebuffer_func_ptr(0,
-                                                  0,
-                                                  static_cast<GLint>(m_width),
-                                                  static_cast<GLint>(m_height),
-                                                  0,
-                                                  0,
-                                                  static_cast<GLint>(m_probe_width),
-                                                  static_cast<GLint>(m_probe_height),
-                                                  DEPTH_BUFFER_BIT,
-                                                  GL_NEAREST);
-
-            if (is_scissor_on)
-            {
-                GlDriverFunctions::get().enable_func_ptr(SCISSOR_TEST);
-            }
+            /* The depth of the whole buffer goes to the small one, by the graphics card. */
+            blit_left_eye(m_depth_probe.framebuffer,
+                          m_probe_width,
+                          m_probe_height,
+                          DEPTH_BUFFER_BIT);
 
             m_functions.bind_framebuffer_func_ptr(FRAMEBUFFER,
                                                   m_depth_probe.framebuffer);
@@ -353,6 +380,83 @@ bool Stereo::ConverterDLL::GlEyeTargets::read_eye(const Analysis::Recipe::Eye& i
     return result;
 }
 
+bool Stereo::ConverterDLL::GlEyeTargets::read_picture(const uint32_t&       in_width,
+                                                      const uint32_t&       in_height,
+                                                      std::vector<uint8_t>* out_rgba_u8_vec_ptr)
+{
+    constexpr size_t N_CHANNELS = 4;
+
+    const OwnCallScope own_call_scope;
+    GLint              saved_alignment = 4;
+    bool               result          = false;
+
+    if (m_is_ready                                         &&
+        m_functions.blit_framebuffer_func_ptr != nullptr   &&
+        in_width                              != 0         &&
+        in_height                             != 0)
+    {
+        /* The target is made for a size once, and kept: the picture is read from it again and again. */
+        if (m_readback_width  != in_width ||
+            m_readback_height != in_height)
+        {
+            release_target(&m_readback_target);
+
+            m_has_readback_target = make_target(in_width,
+                                                in_height,
+                                               &m_readback_target);
+            m_readback_height     = in_height;
+            m_readback_width      = in_width;
+
+            if (m_has_readback_target == false)
+            {
+                release_target(&m_readback_target);
+            }
+
+            bind_eye(Analysis::Recipe::Eye::LEFT);
+        }
+
+        if (m_has_readback_target)
+        {
+            const bool are_modes_default = are_pack_modes_default();
+
+            if (are_modes_default)
+            {
+                out_rgba_u8_vec_ptr->resize(static_cast<size_t>(in_width) * in_height * N_CHANNELS);
+
+                blit_left_eye(m_readback_target.framebuffer,
+                              in_width,
+                              in_height,
+                              COLOR_BUFFER_BIT);
+
+                m_functions.bind_framebuffer_func_ptr(FRAMEBUFFER,
+                                                      m_readback_target.framebuffer);
+
+                GlDriverFunctions::get().get_integerv_func_ptr(PACK_ALIGNMENT,
+                                                              &saved_alignment);
+                GlDriverFunctions::get().pixel_storei_func_ptr(PACK_ALIGNMENT,
+                                                               1);
+
+                GlDriverFunctions::get().read_pixels_func_ptr(0,
+                                                              0,
+                                                              static_cast<GLsizei>(in_width),
+                                                              static_cast<GLsizei>(in_height),
+                                                              GL_RGBA,
+                                                              GL_UNSIGNED_BYTE,
+                                                              out_rgba_u8_vec_ptr->data() );
+
+                GlDriverFunctions::get().pixel_storei_func_ptr(PACK_ALIGNMENT,
+                                                               saved_alignment);
+
+                bind_eye(Analysis::Recipe::Eye::LEFT);
+
+                result = true;
+            }
+        }
+    }
+
+    return result;
+}
+
 void Stereo::ConverterDLL::GlEyeTargets::release_target(EyeTarget* inout_target_ptr)
 {
     if (inout_target_ptr->framebuffer != 0)
@@ -380,8 +484,12 @@ void Stereo::ConverterDLL::GlEyeTargets::release_targets()
 {
     release_target(&m_depth_probe);
     release_target(&m_left);
+    release_target(&m_readback_target);
     release_target(&m_right);
 
-    m_has_depth_probe = false;
-    m_is_ready        = false;
+    m_has_depth_probe     = false;
+    m_has_readback_target = false;
+    m_is_ready            = false;
+    m_readback_height     = 0;
+    m_readback_width      = 0;
 }

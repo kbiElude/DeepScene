@@ -301,6 +301,7 @@ namespace Analysis
         struct Recipe
         {
             DrawSelector                  affected;
+            bool                          caches_pixel_reads      = false; /* the reads of one pixel that an application makes in a run are given from a picture that is read once (see PictureReadbackCache); off unless the recipe asks, since it changes where what the application reads comes from */
             Comfort                       comfort;                         /* what the person says; see Comfort           */
             std::vector<DrawConvergence>  convergence_vec;                 /* from "baked"; see DrawConvergence          */
             std::vector<DrawRule>         draw_rule_vec;                   /* from "baked"; see DrawRule                 */

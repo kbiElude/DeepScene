@@ -1,4 +1,5 @@
 {
+  "cache_pixel_reads": true,
   "comfort": {
     "balance_convergence": true,
     "camera_attached_depth": 0.05,

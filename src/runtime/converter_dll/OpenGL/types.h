@@ -24,6 +24,16 @@ namespace Stereo
             const uint8_t*              right_bgra_ptr  = nullptr;
             uint32_t                    width           = 0;
         };
+
+        /* A glReadPixels of the application that reads one pixel of the colors, in bytes, to memory of its own: the only read that the converter makes itself (see GlResolutionScaler). */
+        struct SinglePixelRead
+        {
+            uint32_t format     = 0;
+            void*    pixels_ptr = nullptr;
+            uint32_t type       = 0;
+            int64_t  x          = 0;
+            int64_t  y          = 0;
+        };
     }
 }
 

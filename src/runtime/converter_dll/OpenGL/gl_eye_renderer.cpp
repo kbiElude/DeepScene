@@ -8,6 +8,7 @@
 #include "gl_driver_functions.h"
 #include "own_call_scope.h"
 #include <algorithm>
+#include <cstring>
 
 
 namespace
@@ -38,6 +39,7 @@ Stereo::ConverterDLL::GlEyeRenderer::GlEyeRenderer(Stereo::Core::StereoCore* in_
      m_block_has_draws    (false),
      m_block_is_pushed    (false),
      m_block_list         (0),
+     m_caches_pixel_reads (in_core_ptr->get_caches_pixel_reads() ),
      m_core_ptr           (in_core_ptr),
      m_frame_depth        (),
      m_frame_projection_scale(0.0f),
@@ -58,7 +60,10 @@ Stereo::ConverterDLL::GlEyeRenderer::GlEyeRenderer(Stereo::Core::StereoCore* in_
                                m_note_vec.push_back(in_message);
                            })
 {
-    /* Stub */
+    if (m_caches_pixel_reads)
+    {
+        m_note_vec.push_back("The recipe has the reads of one pixel that the application makes in a run given from a picture of the left eye that is read once (cache_pixel_reads)");
+    }
 }
 
 const Stereo::ConverterDLL::GlEyeRenderer::Statistics& Stereo::ConverterDLL::GlEyeRenderer::get_statistics() const
@@ -403,6 +408,9 @@ bool Stereo::ConverterDLL::GlEyeRenderer::on_frame_ending(GlFrameImages* out_ima
 {
     bool result = false;
 
+    /* A frame ends here: what was read of the picture is not the picture of the next one, whatever the calls in between were. */
+    m_readback_cache.invalidate();
+
     if (m_targets.is_ready() == false)
     {
         goto end;
@@ -507,10 +515,27 @@ bool Stereo::ConverterDLL::GlEyeRenderer::on_pre(const APIInterceptor::APIFuncti
 {
     bool result            = true;
     bool is_made_scaled    = false;
+    bool is_read_served    = false;
+
+    /* Anything that the application does but read a pixel may change the picture: what was read of it is not used again. Only if the recipe asks for the reads to be given from it. */
+    if (m_caches_pixel_reads)
+    {
+        if (in_function != APIInterceptor::APIFUNCTION_GL_GLREADPIXELS)
+        {
+            m_readback_cache.invalidate();
+        }
+        else
+        if (m_targets.is_ready() )
+        {
+            is_read_served = serve_pixel_read(in_n_arguments,
+                                              in_arguments_ptr);
+        }
+    }
 
     /* What the application states in pixels is made to match the framebuffers, in a list that it compiles as well as outside one (the call made here is in the list). */
-    if (m_targets.is_ready()          &&
-        m_scaler.is_identity() == false)
+    if (m_targets.is_ready()            &&
+        m_scaler.is_identity() == false &&
+        is_read_served         == false)
     {
         is_made_scaled = m_scaler.on_pre(in_function,
                                          in_n_arguments,
@@ -784,7 +809,9 @@ bool Stereo::ConverterDLL::GlEyeRenderer::on_pre(const APIInterceptor::APIFuncti
     }
 
 end:
-    return (result && is_made_scaled == false);
+    return (result                      &&
+            is_made_scaled == false     &&
+            is_read_served == false);
 }
 
 bool Stereo::ConverterDLL::GlEyeRenderer::on_pre_draw(const APIInterceptor::APIFunction&         in_function,
@@ -1106,6 +1133,53 @@ void Stereo::ConverterDLL::GlEyeRenderer::select_textures(const bool& in_are_twi
             }
         }
     }
+}
+
+bool Stereo::ConverterDLL::GlEyeRenderer::serve_pixel_read(const uint32_t&                            in_n_arguments,
+                                                           const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
+{
+    constexpr size_t N_PIXEL_BYTES = 3; /* R, G and B of a pixel that the application reads as GL_RGB */
+
+    SinglePixelRead read;
+    const bool      is_read        = GlResolutionScaler::parse_single_pixel_read(in_n_arguments,
+                                                                                 in_arguments_ptr,
+                                                                                &read);
+    const uint32_t  picture_height = m_scaler.get_asked_height();
+    const uint32_t  picture_width  = m_scaler.get_asked_width ();
+    bool            result         = false;
+
+    if (is_read                 &&
+        picture_height != 0     &&
+        picture_width  != 0)
+    {
+        std::array<uint8_t, 4> rgba = {};
+
+        /* The picture is the one that the application sees, brought down to the size of its window by the graphics card. */
+        const auto fill_func = [this, picture_height, picture_width](std::vector<uint8_t>* out_rgba_u8_vec_ptr)
+        {
+            return m_targets.read_picture(picture_width,
+                                          picture_height,
+                                          out_rgba_u8_vec_ptr);
+        };
+
+        const bool is_served = m_readback_cache.read_pixel(fill_func,
+                                                           picture_width,
+                                                           picture_height,
+                                                           read.x,
+                                                           read.y,
+                                                          &rgba);
+
+        if (is_served)
+        {
+            ::memcpy(read.pixels_ptr,
+                     rgba.data(),
+                     N_PIXEL_BYTES);
+
+            result = true;
+        }
+    }
+
+    return result;
 }
 
 void Stereo::ConverterDLL::GlEyeRenderer::set_get_chunk_func(const GetChunkFunc& in_get_chunk_func)

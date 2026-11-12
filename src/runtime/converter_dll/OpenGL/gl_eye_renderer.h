@@ -8,6 +8,7 @@
 #include "analysis/recipe/types.h"
 #include "common/api_function_argument.h"
 #include "common/types.h"
+#include "stereo/core/picture_readback_cache.h"
 #include "stereo/core/stereo_core.h"
 #include "gl_eye_targets.h"
 #include "gl_frame_reader.h"
@@ -143,6 +144,12 @@ namespace Stereo
             /* The textures bound to the units are the twins (or the textures themselves), for the draws of an eye. */
             void select_textures(const bool& in_are_twins);
 
+            /* A glReadPixels of the application, given from the picture of the left eye if it is of one pixel and comes in a run of such reads (see PictureReadbackCache): the pixel
+             * is written to the memory of the application, and the call is not to be made. False if the read is to be made as it is.
+             */
+            bool serve_pixel_read(const uint32_t&                            in_n_arguments,
+                                  const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
+
             /* Makes the framebuffers if the application has a context and a window, and they are not there. */
             void try_to_prepare();
 
@@ -159,6 +166,7 @@ namespace Stereo
             bool                                  m_block_has_draws;
             bool                                  m_block_is_pushed;
             uint32_t                              m_block_list;
+            bool                                  m_caches_pixel_reads; /* the recipe has the reads of one pixel in a run given from a picture that is read once */
             Stereo::Core::StereoCore*             m_core_ptr;
             GlFrameReader                         m_frame_reader;
             GetChunkFunc                          m_get_chunk_func;
@@ -173,6 +181,7 @@ namespace Stereo
             std::vector<std::string>              m_noted_key_vec;
             std::array<float, 16>                 m_pass_projection_f32mat; /* of the first draw of the pass that is affected */
             bool                                  m_pass_has_affected_draws;
+            Stereo::Core::PictureReadbackCache    m_readback_cache;
             GlResolutionScaler                    m_scaler;
             Statistics                            m_statistics;
             GlEyeTargets                          m_targets;

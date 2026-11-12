@@ -1359,6 +1359,42 @@ TEST_F(RecipeLoaderTest, TheComfortOfTheRecipeSaysWhatIsAttachedToTheCameraAndWh
                    "comfort.measure_depth");
 }
 
+TEST_F(RecipeLoaderTest, ThePixelReadsOfTheApplicationAreCachedOnlyIfTheRecipeAsksForIt)
+{
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
+
+    EXPECT_FALSE(recipe.caches_pixel_reads);
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("",
+                                                                       ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_FALSE(recipe.caches_pixel_reads);
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"cache_pixel_reads\": true,",
+                                                                       ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_TRUE(recipe.caches_pixel_reads);
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"cache_pixel_reads\": false,",
+                                                                       ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_FALSE(recipe.caches_pixel_reads);
+
+    expect_refused(get_recipe_text("\"cache_pixel_reads\": \"yes\",",
+                                   ""),
+                   "cache_pixel_reads");
+    expect_refused(get_recipe_text("\"cache_pixel_reads\": 1,",
+                                   ""),
+                   "cache_pixel_reads");
+}
+
 TEST_F(RecipeLoaderTest, BakedSceneSeparationLimitsAreReadAndWhatIsWrongInThemIsRefused)
 {
     std::string              error;

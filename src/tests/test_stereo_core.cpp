@@ -1055,6 +1055,19 @@ TEST_F(StereoCoreTest, TheEyeShiftMatrixShearsTheSceneByTheDepthSoWhatIsAtTheDis
                     -0.025f);
 }
 
+TEST_F(StereoCoreTest, TheCoreSaysWhetherTheRecipeHasThePixelReadsCached)
+{
+    Stereo::Core::StereoCore cached_core(make_recipe("\"cache_pixel_reads\": true," + get_baked_text(""),
+                                                     ""),
+                                         Stereo::Core::FailFunc() );
+    Stereo::Core::StereoCore plain_core (make_recipe(get_baked_text(""),
+                                                     ""),
+                                         Stereo::Core::FailFunc() );
+
+    EXPECT_TRUE (cached_core.get_caches_pixel_reads() );
+    EXPECT_FALSE(plain_core.get_caches_pixel_reads() );
+}
+
 TEST_F(StereoCoreTest, TheDepthThatWasMeasuredSetsWhereTheEyesConvergeAndHowFarApartTheyMayBe)
 {
     Stereo::Core::StereoCore core(make_recipe("\"comfort\": {\"balance_convergence\": true, \"max_far_parallax\": 0.01, \"max_near_parallax\": 0.015, \"measure_depth\": true},"

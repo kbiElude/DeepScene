@@ -243,6 +243,11 @@ const Analysis::Recipe::SceneComfort* Analysis::Recipe::RecipeApplier::find_scen
     return result_ptr;
 }
 
+bool Analysis::Recipe::RecipeApplier::get_caches_pixel_reads() const
+{
+    return m_recipe.caches_pixel_reads;
+}
+
 const Analysis::Recipe::Comfort& Analysis::Recipe::RecipeApplier::get_comfort() const
 {
     return m_recipe.comfort;

@@ -105,6 +105,11 @@ void Stereo::Core::StereoCore::forget_matrices()
     m_matrix_slots.forget();
 }
 
+bool Stereo::Core::StereoCore::get_caches_pixel_reads() const
+{
+    return m_applier.get_caches_pixel_reads();
+}
+
 float Stereo::Core::StereoCore::get_camera_attached_depth() const
 {
     return m_applier.get_comfort().camera_attached_depth;

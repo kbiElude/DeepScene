@@ -85,6 +85,9 @@ namespace Stereo
             /* How near the camera a draw is to be taken for attached to it, as a part of the distance at which the eyes converge (see Comfort::camera_attached_depth); 0: none. */
             float get_camera_attached_depth() const;
 
+            /* Whether the recipe has the reads of one pixel that the application makes in a run given from a picture that is read once (see Recipe::caches_pixel_reads). */
+            bool get_caches_pixel_reads() const;
+
             /* Which part of the surfaces of a scene counts as its nearest (see Comfort::near_fraction). */
             float get_near_fraction() const;
 

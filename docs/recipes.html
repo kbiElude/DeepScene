@@ -83,6 +83,8 @@
     "target": { "name": "fr08", "description": "text for people" },                                     (optional)
     "known_shape_keys": [ "0x0123456789abcdef" ],  the frame shapes the recipe was made for              (optional)
     "on_unknown_frame": "mono",                    for a frame not in known_shape_keys: mono (default), skip or fail
+    "cache_pixel_reads": true,                     OpenGL: the reads of one pixel that the program makes in a row (a grid of them, a thousand in a frame, each a wait
+                                                   for the graphics card) are given from a picture of the left eye that is read once (optional, off)
     "comfort": {                                    how much the eyes can be asked to do; without it, no scene has a limit
       "max_near_parallax": 0.03,                   how far apart the pictures of the eyes may be at the nearest surface of a
                                                    scene, as a part of the width of the picture (above 0, up to 1)

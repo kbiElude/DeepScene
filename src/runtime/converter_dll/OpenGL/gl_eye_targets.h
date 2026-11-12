@@ -61,6 +61,15 @@ namespace Stereo
             bool read_eye(const Analysis::Recipe::Eye& in_eye,
                           void*                        out_pixels_ptr);
 
+            /* Reads the picture of the left eye brought down to the size (the size of the window of the application, when the eyes are made larger), as R, G, B and A of 8 bits,
+             * rows from the bottom up: the graphics card brings it down, by taking for each pixel the one of the larger picture that is under its centre, to a target of that size
+             * that is made once and kept (it is made again when the size changes), and it is read from that, once. False if the blit is missing, the target cannot be made, or the
+             * application has set the way pixels are packed (or a buffer that they go to) so that what is read here would not be what its own read gives. The left eye is current afterward.
+             */
+            bool read_picture(const uint32_t&      in_width,
+                              const uint32_t&      in_height,
+                              std::vector<uint8_t>* out_rgba_u8_vec_ptr);
+
         private:
             struct EyeTarget
             {
@@ -68,6 +77,14 @@ namespace Stereo
                 uint32_t depth_renderbuffer = 0;
                 uint32_t framebuffer        = 0;
             };
+
+            /* Copies the left eye (the colors, or the depth) to the framebuffer, scaled to its size, with the scissor test off since it would cut the blit: the framebuffer is
+             * bound for drawing, and the left eye for reading.
+             */
+            void blit_left_eye(const uint32_t&   in_destination_framebuffer,
+                               const uint32_t&   in_destination_width,
+                               const uint32_t&   in_destination_height,
+                               const GLbitfield& in_mask);
 
             bool make_target(const uint32_t& in_width,
                              const uint32_t& in_height,
@@ -77,16 +94,23 @@ namespace Stereo
 
             void release_targets();
 
+            /* Whether the application packs pixels as it does when it has set nothing (no offset, no row length, no swap of bytes) and has no buffer bound for them. */
+            static bool are_pack_modes_default();
+
             const void*          m_context_ptr;
             EyeTarget            m_depth_probe;
             GlExtensionFunctions m_functions;
             bool                 m_has_functions;
             bool                 m_has_depth_probe;
+            bool                 m_has_readback_target;
             uint32_t             m_height;
             bool                 m_is_ready;
             EyeTarget            m_left;
             uint32_t             m_probe_height;
             uint32_t             m_probe_width;
+            uint32_t             m_readback_height;
+            EyeTarget            m_readback_target; /* the picture of the size of the window, which is read from; made once for a size, not for each read */
+            uint32_t             m_readback_width;
             EyeTarget            m_right;
             uint32_t             m_width;
         };
