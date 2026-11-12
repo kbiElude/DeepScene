@@ -10,6 +10,7 @@
 #include "stereo/session/types.h"
 #include "stereo/core/stereo_core.h"
 #include "stereo/transport/frame_channel.h"
+#include "utils/parallel/srw_mutex.h"
 #include "call_feeder.h"
 #include "common/api_function_argument.h"
 #include "D3D7/d3d7_eye_renderer.h"
@@ -137,7 +138,7 @@ namespace Stereo
                 uint64_t                                  scene_run_key      = 0;
                 bool                                      is_overlay_push_forced = false; /* from the environment, not the program which shows the images */
                 CallFeeder                                feeder;
-                std::mutex                                mutex;
+                Utils::Parallel::SrwMutex                 mutex;
                 Stereo::Core::DepthRange                  last_depth_range;              /* what was last measured of how deep a frame was */
                 float                                     last_projection_scale = 0.0f;
                 GlFrameImages                             last_gl_images;                 /* of the last frame of OpenGL that was read; valid until the next one */

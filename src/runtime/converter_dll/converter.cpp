@@ -480,7 +480,7 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
 
     if (OwnCallScope::is_active() == false)
     {
-        std::lock_guard<std::mutex> lock(this_ptr->m_live_state.mutex);
+        std::lock_guard<Utils::Parallel::SrwMutex> lock(this_ptr->m_live_state.mutex);
 
         uint64_t shape_key = 0;
 
@@ -641,7 +641,7 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
     void*                    right_surface_ptr = nullptr;
 
     {
-        std::lock_guard<std::mutex> lock(m_live_state.mutex);
+        std::lock_guard<Utils::Parallel::SrwMutex> lock(m_live_state.mutex);
 
         const auto api_group = Capture::APIDumpLoader::get_api_group(in_api_func);
         const bool is_d3d8   = (api_group == Capture::APIDumpLoader::APIGroup::D3D8);
