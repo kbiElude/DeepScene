@@ -899,10 +899,13 @@ void Stereo::Replay::EngineDLL::StereoFrameExecutor::find_pushed_draw_calls(cons
         const auto&    draw     = in_frame.draw_instance_vec.at(n_draw);
         const uint64_t pass_key = in_frame.pass_key_vec.at(draw.pass_index);
 
-        if (is_draw_pushed_here(pass_key,
-                                draw)                  &&
-            is_draw_skipped_here(pass_key,
-                                 draw.structure_key) == false)
+        const bool is_pushed  = is_draw_pushed_here (pass_key,
+                                                     draw);
+        const bool is_skipped = is_draw_skipped_here(pass_key,
+                                                     draw.structure_key);
+
+        if (is_pushed &&
+            is_skipped == false)
         {
             /* The calls of a draw begin with its own, unless the front end says that they begin earlier. */
             const uint64_t first_call = (draw.first_call_index < draw.call_index) ? draw.first_call_index
@@ -967,21 +970,30 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::find_view_anchor_calls(cons
         {
             const uint64_t pass_key = in_frame.pass_key_vec.at(draw.pass_index);
 
-            if (draw.view_anchor_call_index           != UINT64_MAX                                                                  &&
-                is_draw_skipped_here(pass_key,
-                                     draw.structure_key)                                      == false                                       &&
-                m_recipe_applier_ptr->is_draw_affected(pass_key,
-                                                       draw.structure_key)                      &&
-                m_recipe_applier_ptr->is_cover_pushed (draw.cover_key)                         == false)
+            if (draw.view_anchor_call_index != UINT64_MAX)
             {
-                shared_anchor_set.insert(draw.view_anchor_call_index);
+                const bool is_affected    = m_recipe_applier_ptr->is_draw_affected(pass_key,
+                                                                                   draw.structure_key);
+                const bool is_cover_pushed = m_recipe_applier_ptr->is_cover_pushed (draw.cover_key);
+                const bool is_skipped     = is_draw_skipped_here(pass_key,
+                                                                 draw.structure_key);
+
+                if (is_skipped == false &&
+                    is_affected         &&
+                    is_cover_pushed == false)
+                {
+                    shared_anchor_set.insert(draw.view_anchor_call_index);
+                }
             }
         }
 
         for (const auto& draw : in_frame.draw_instance_vec)
         {
-            if (shared_anchor_set.count(draw.view_anchor_call_index) != 0 &&
-                m_recipe_applier_ptr->is_cover_pushed(draw.cover_key))
+            const bool is_anchor_shared = (shared_anchor_set.count(draw.view_anchor_call_index) != 0);
+            const bool is_cover_pushed  = m_recipe_applier_ptr->is_cover_pushed(draw.cover_key);
+
+            if (is_anchor_shared &&
+                is_cover_pushed)
             {
                 m_unflattened_draw_call_set.insert(draw.call_index);
             }
@@ -1143,14 +1155,50 @@ float Stereo::Replay::EngineDLL::StereoFrameExecutor::get_push_shift_pixels(cons
     if (is_draw_pushed_here(pass_key,
                             in_draw) )
     {
+        const float cover_parallax = m_recipe_applier_ptr->get_cover_push_parallax(in_draw.cover_key);
+        const bool  is_affected    = is_draw_affected_here(pass_key,
+                                                           in_draw);
+        const float scene_limit    = m_recipe_applier_ptr->get_scene_max_separation(in_frame.shape_key);
+
         result = Stereo::Core::PushShiftPlanner::plan(*m_recipe_applier_ptr,
                                                       in_eye,
-                                                      m_recipe_applier_ptr->get_cover_push_parallax(in_draw.cover_key),
-                                                      is_draw_affected_here(pass_key,
-                                                                            in_draw),
+                                                      cover_parallax,
+                                                      is_affected,
                                                       (*out_viewport_ptr_ptr)->width,
                                                       m_frame_eye_separation,
-                                                      m_recipe_applier_ptr->get_scene_max_separation(in_frame.shape_key) );
+                                                      scene_limit);
+    }
+
+    return result;
+}
+
+bool Stereo::Replay::EngineDLL::StereoFrameExecutor::is_call_skipped(const uint64_t& in_call_index) const
+{
+    /* The ranges do not overlap, and are in the order of the calls. */
+    const auto is_before_range_func = [](const uint64_t&                          in_index,
+                                         const std::pair<uint64_t, uint64_t>&     in_range)
+    {
+        return (in_index < in_range.first);
+    };
+
+    const auto range_iterator = std::upper_bound(m_skipped_call_range_vec.begin(),
+                                                 m_skipped_call_range_vec.end  (),
+                                                 in_call_index,
+                                                 is_before_range_func);
+    bool       result         = false;
+
+    if (range_iterator != m_skipped_call_range_vec.begin() )
+    {
+        const auto& range = *(range_iterator - 1);
+
+        result = (in_call_index <= range.second);
+    }
+
+    /* What comes after the call that the frame is cut at. */
+    if (m_truncate_after_call != UINT64_MAX &&
+        in_call_index          > m_truncate_after_call)
+    {
+        result = true;
     }
 
     return result;
@@ -1202,38 +1250,6 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::is_draw_skipped_here(const 
             result = (pass_draw.pass_key == in_pass_key &&
                       pass_draw.draw_key == in_draw_key);
         }
-    }
-
-    return result;
-}
-
-bool Stereo::Replay::EngineDLL::StereoFrameExecutor::is_call_skipped(const uint64_t& in_call_index) const
-{
-    /* The ranges do not overlap, and are in the order of the calls. */
-    const auto is_before_range_func = [](const uint64_t&                          in_index,
-                                         const std::pair<uint64_t, uint64_t>&     in_range)
-    {
-        return (in_index < in_range.first);
-    };
-
-    const auto range_iterator = std::upper_bound(m_skipped_call_range_vec.begin(),
-                                                 m_skipped_call_range_vec.end  (),
-                                                 in_call_index,
-                                                 is_before_range_func);
-    bool       result         = false;
-
-    if (range_iterator != m_skipped_call_range_vec.begin() )
-    {
-        const auto& range = *(range_iterator - 1);
-
-        result = (in_call_index <= range.second);
-    }
-
-    /* What comes after the call that the frame is cut at. */
-    if (m_truncate_after_call != UINT64_MAX &&
-        in_call_index          > m_truncate_after_call)
-    {
-        result = true;
     }
 
     return result;

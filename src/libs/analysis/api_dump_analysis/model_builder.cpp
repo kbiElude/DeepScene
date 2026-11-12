@@ -848,9 +848,11 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_draw(const DrawDescription& in_
                                                                    in_draw.vertex_count,
                                                                    in_draw.primitive_topology);
 
+        const DrawFactsKey draw_facts_key(key,
+                                          m_last_draw_cover_key);
+
         record_draw_facts(in_draw,
-                          DrawFactsKey(key,
-                                       m_last_draw_cover_key) );
+                          draw_facts_key);
 
         if (coverage == ViewCoverage::COVERING)
         {
@@ -1387,9 +1389,22 @@ void Analysis::APIDumpAnalysis::ModelBuilder::record_draw_facts(const DrawDescri
 
     if (has_place)
     {
+        constexpr float PICTURE_EXTENT = 2.0f; /* the edges of the picture are at -1 and 1 */
+
         /* The part of the picture that the box covers: what is outside of the edges is not of the picture. */
-        const float box_width  = std::max(0.0f, std::min(x_max, 1.0f) - std::max(x_min, -1.0f) ) / 2.0f;
-        const float box_height = std::max(0.0f, std::min(y_max, 1.0f) - std::max(y_min, -1.0f) ) / 2.0f;
+        const float x_inside_max = std::min(x_max,
+                                            1.0f);
+        const float x_inside_min = std::max(x_min,
+                                            -1.0f);
+        const float y_inside_max = std::min(y_max,
+                                            1.0f);
+        const float y_inside_min = std::max(y_min,
+                                            -1.0f);
+
+        const float box_width  = std::max(0.0f,
+                                          x_inside_max - x_inside_min) / PICTURE_EXTENT;
+        const float box_height = std::max(0.0f,
+                                          y_inside_max - y_inside_min) / PICTURE_EXTENT;
         const float fraction   = box_width * box_height;
         const bool  is_first   = (facts.n_draws_with_footprint == 0);
 

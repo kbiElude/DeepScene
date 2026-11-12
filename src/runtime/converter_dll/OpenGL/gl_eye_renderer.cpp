@@ -161,6 +161,54 @@ end:
     return result;
 }
 
+void Stereo::ConverterDLL::GlEyeRenderer::measure_pass_depth()
+{
+    /* A depth buffer that is read whole (the copy of it could not be made) is looked at every few pixels; the copy is small enough to be looked at whole. */
+    constexpr size_t N_DEPTHS_LOOKED_AT_WHOLE = 100000;
+    constexpr size_t N_PIXELS_BETWEEN_SAMPLES = 4;
+
+    uint32_t depth_height = 0;
+    uint32_t depth_width  = 0;
+
+    if (m_measures_depth           &&
+        m_pass_has_affected_draws  &&
+        m_targets.is_ready()       &&
+        m_targets.read_depth(&m_depth_f32_vec,
+                             &depth_width,
+                             &depth_height) )
+    {
+        const auto range = Stereo::Core::DepthBufferStatistics::measure(m_depth_f32_vec.data(),
+                                                                        m_depth_f32_vec.size(),
+                                                                        (m_depth_f32_vec.size() > N_DEPTHS_LOOKED_AT_WHOLE) ? N_PIXELS_BETWEEN_SAMPLES
+                                                                                                                            : 1,
+                                                                        m_pass_projection_f32mat.at(10),
+                                                                        m_pass_projection_f32mat.at(14),
+                                                                        m_core_ptr->get_near_fraction() );
+
+        if (range.has_depth)
+        {
+            if (m_has_frame_depth == false)
+            {
+                m_frame_depth     = range;
+                m_has_frame_depth = true;
+            }
+            else
+            {
+                m_frame_depth.far_depth  = (std::max)(m_frame_depth.far_depth,
+                                                    range.far_depth);
+                m_frame_depth.near_depth = (std::min)(m_frame_depth.near_depth,
+                                                    range.near_depth);
+            }
+
+            m_frame_median_vec.push_back(range.median_depth);
+
+            m_frame_projection_scale = m_pass_projection_f32mat.at(0);
+        }
+    }
+
+    m_pass_has_affected_draws = false;
+}
+
 bool Stereo::ConverterDLL::GlEyeRenderer::mirror_copy(const APIInterceptor::APIFunction&         in_function,
                                                       const uint32_t&                            in_n_arguments,
                                                       const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
@@ -337,54 +385,6 @@ void Stereo::ConverterDLL::GlEyeRenderer::mirror_texture_parameter(const APIInte
         GlDriverFunctions::get().bind_texture_func_ptr(GL_TEXTURE_2D,
                                                        texture);
     }
-}
-
-void Stereo::ConverterDLL::GlEyeRenderer::measure_pass_depth()
-{
-    /* A depth buffer that is read whole (the copy of it could not be made) is looked at every few pixels; the copy is small enough to be looked at whole. */
-    constexpr size_t N_DEPTHS_LOOKED_AT_WHOLE = 100000;
-    constexpr size_t N_PIXELS_BETWEEN_SAMPLES = 4;
-
-    uint32_t depth_height = 0;
-    uint32_t depth_width  = 0;
-
-    if (m_measures_depth           &&
-        m_pass_has_affected_draws  &&
-        m_targets.is_ready()       &&
-        m_targets.read_depth(&m_depth_f32_vec,
-                             &depth_width,
-                             &depth_height) )
-    {
-        const auto range = Stereo::Core::DepthBufferStatistics::measure(m_depth_f32_vec.data(),
-                                                                        m_depth_f32_vec.size(),
-                                                                        (m_depth_f32_vec.size() > N_DEPTHS_LOOKED_AT_WHOLE) ? N_PIXELS_BETWEEN_SAMPLES
-                                                                                                                            : 1,
-                                                                        m_pass_projection_f32mat.at(10),
-                                                                        m_pass_projection_f32mat.at(14),
-                                                                        m_core_ptr->get_near_fraction() );
-
-        if (range.has_depth)
-        {
-            if (m_has_frame_depth == false)
-            {
-                m_frame_depth     = range;
-                m_has_frame_depth = true;
-            }
-            else
-            {
-                m_frame_depth.far_depth  = (std::max)(m_frame_depth.far_depth,
-                                                    range.far_depth);
-                m_frame_depth.near_depth = (std::min)(m_frame_depth.near_depth,
-                                                    range.near_depth);
-            }
-
-            m_frame_median_vec.push_back(range.median_depth);
-
-            m_frame_projection_scale = m_pass_projection_f32mat.at(0);
-        }
-    }
-
-    m_pass_has_affected_draws = false;
 }
 
 void Stereo::ConverterDLL::GlEyeRenderer::note_once(const std::string& in_key,
@@ -903,15 +903,28 @@ void Stereo::ConverterDLL::GlEyeRenderer::play_eyes(const std::function<void()>&
                                                     const Analysis::Recipe::DrawClass& in_draw_class,
                                                     const bool&                        in_is_pushed)
 {
+    /* Where the numbers that are looked for are in a matrix (the columns one after the other) and in a viewport. */
+    constexpr size_t MATRIX_PERSPECTIVE_W_FROM_Z = 11;
+    constexpr size_t MATRIX_W_TRANSLATION        = 15;
+    constexpr size_t MATRIX_X_SCALE              = 0;
+    constexpr size_t MATRIX_Z_TRANSLATION        = 14;
+    constexpr float  PERSPECTIVE_W_FROM_Z        = -1.0f; /* what a perspective projection has there: w is the distance in front of the camera */
+    constexpr GLenum PROJECTION_MATRIX           = 0x0BA7;
+    constexpr size_t VIEWPORT_HEIGHT             = 3;
+    constexpr size_t VIEWPORT_WIDTH              = 2;
+    constexpr size_t VIEWPORT_X                  = 0;
+    constexpr size_t VIEWPORT_Y                  = 1;
+
     const OwnCallScope    own_call_scope;
-    bool                  has_read_matrix = false;
-    bool                  is_affected     = (in_draw_class == Analysis::Recipe::DrawClass::AFFECTED);
-    GLint                 matrix_mode     = MODELVIEW;
-    bool                  is_part         = false;
+    bool                  has_read_matrix    = false;
+    bool                  is_affected        = (in_draw_class == Analysis::Recipe::DrawClass::AFFECTED);
+    const bool            is_last_draw_part  = m_core_ptr->get_is_last_draw_part();
+    bool                  is_part            = false;
+    GLint                 matrix_mode        = MODELVIEW;
     std::array<float, 16> part_matrix;
     std::array<float, 16> part_projection;
-    std::array<GLint, 4>  saved_viewport  = {};
     std::array<float, 16> saved_matrix;
+    std::array<GLint, 4>  saved_viewport     = {};
 
     /* The viewport is the one the draw is made with: a pushed draw is moved by moving its origin, which works for any projection. */
     if (in_is_pushed)
@@ -921,14 +934,12 @@ void Stereo::ConverterDLL::GlEyeRenderer::play_eyes(const std::function<void()>&
     }
 
     /* A part that protrudes from an object, drawn once for both eyes, goes where the eyes would have put its origin: the camera it is made with is read here. */
-    if (in_is_pushed                          &&
-        m_core_ptr->get_is_last_draw_part() )
+    if (in_is_pushed &&
+        is_last_draw_part)
     {
-        constexpr GLenum PROJECTION_MATRIX_PART = 0x0BA7;
-
         GlDriverFunctions::get().get_floatv_func_ptr(GL_MODELVIEW_MATRIX,
                                                      part_matrix.data() );
-        GlDriverFunctions::get().get_floatv_func_ptr(PROJECTION_MATRIX_PART,
+        GlDriverFunctions::get().get_floatv_func_ptr(PROJECTION_MATRIX,
                                                      part_projection.data() );
 
         is_part = true;
@@ -938,14 +949,12 @@ void Stereo::ConverterDLL::GlEyeRenderer::play_eyes(const std::function<void()>&
         m_measures_depth                    &&
         m_pass_has_affected_draws == false)
     {
-        constexpr GLenum PROJECTION_MATRIX = 0x0BA7;
-
         GlDriverFunctions::get().get_floatv_func_ptr(PROJECTION_MATRIX,
                                                      m_pass_projection_f32mat.data() );
 
         /* A projection that is not a perspective one (the last element is 0 in it, and the one before it is -1) says nothing of depth. */
-        m_pass_has_affected_draws = (m_pass_projection_f32mat.at(15) == 0.0f      &&
-                                     m_pass_projection_f32mat.at(11) == -1.0f);
+        m_pass_has_affected_draws = (m_pass_projection_f32mat.at(MATRIX_W_TRANSLATION)        == 0.0f &&
+                                     m_pass_projection_f32mat.at(MATRIX_PERSPECTIVE_W_FROM_Z) == PERSPECTIVE_W_FROM_Z);
     }
 
     if (is_affected)
@@ -965,7 +974,7 @@ void Stereo::ConverterDLL::GlEyeRenderer::play_eyes(const std::function<void()>&
 
         /* A draw that is attached to the camera is made as it is: its origin is in front of the camera, and nearer than the part of the distance of convergence that the recipe says. */
         const float attached_depth = m_core_ptr->get_camera_attached_depth() * m_core_ptr->get_effective_convergence_distance();
-        const float origin_depth   = -saved_matrix.at(14);
+        const float origin_depth   = -saved_matrix.at(MATRIX_Z_TRANSLATION);
 
         if (attached_depth > 0.0f         &&
             origin_depth   < attached_depth)
@@ -992,7 +1001,7 @@ void Stereo::ConverterDLL::GlEyeRenderer::play_eyes(const std::function<void()>&
 
         if (in_is_pushed)
         {
-            const float picture_width_pixels = static_cast<float>(saved_viewport.at(2) );
+            const float picture_width_pixels = static_cast<float>(saved_viewport.at(VIEWPORT_WIDTH) );
             float       shift_pixels         = m_core_ptr->plan_push_shift(eye,
                                                                            picture_width_pixels);
 
@@ -1001,16 +1010,16 @@ void Stereo::ConverterDLL::GlEyeRenderer::play_eyes(const std::function<void()>&
                 /* A projection with a -1 in its fourth row, third column is a perspective one. */
                 shift_pixels = m_core_ptr->plan_part_shift(eye,
                                                            picture_width_pixels,
-                                                           part_matrix.at(14),
-                                                           part_projection.at(0),
-                                                           (part_projection.at(11) == -1.0f) );
+                                                           part_matrix.at(MATRIX_Z_TRANSLATION),
+                                                           part_projection.at(MATRIX_X_SCALE),
+                                                           (part_projection.at(MATRIX_PERSPECTIVE_W_FROM_Z) == PERSPECTIVE_W_FROM_Z) );
             }
 
             /* Toward zero, so that the shift never goes past what the planner allowed. */
-            GlDriverFunctions::get().viewport_func_ptr(saved_viewport.at(0) + static_cast<GLint>(shift_pixels),
-                                                       saved_viewport.at(1),
-                                                       saved_viewport.at(2),
-                                                       saved_viewport.at(3) );
+            GlDriverFunctions::get().viewport_func_ptr(saved_viewport.at(VIEWPORT_X) + static_cast<GLint>(shift_pixels),
+                                                       saved_viewport.at(VIEWPORT_Y),
+                                                       saved_viewport.at(VIEWPORT_WIDTH),
+                                                       saved_viewport.at(VIEWPORT_HEIGHT) );
         }
 
         in_draw_func();
@@ -1018,10 +1027,10 @@ void Stereo::ConverterDLL::GlEyeRenderer::play_eyes(const std::function<void()>&
 
     if (in_is_pushed)
     {
-        GlDriverFunctions::get().viewport_func_ptr(saved_viewport.at(0),
-                                                   saved_viewport.at(1),
-                                                   saved_viewport.at(2),
-                                                   saved_viewport.at(3) );
+        GlDriverFunctions::get().viewport_func_ptr(saved_viewport.at(VIEWPORT_X),
+                                                   saved_viewport.at(VIEWPORT_Y),
+                                                   saved_viewport.at(VIEWPORT_WIDTH),
+                                                   saved_viewport.at(VIEWPORT_HEIGHT) );
     }
 
     select_textures(false);
@@ -1064,11 +1073,6 @@ const void* Stereo::ConverterDLL::GlEyeRenderer::resolve_pointer(const APIInterc
     return result;
 }
 
-void Stereo::ConverterDLL::GlEyeRenderer::set_get_chunk_func(const GetChunkFunc& in_get_chunk_func)
-{
-    m_get_chunk_func = in_get_chunk_func;
-}
-
 void Stereo::ConverterDLL::GlEyeRenderer::select_textures(const bool& in_are_twins)
 {
     if (m_twin_map.empty() == false)
@@ -1102,6 +1106,11 @@ void Stereo::ConverterDLL::GlEyeRenderer::select_textures(const bool& in_are_twi
             }
         }
     }
+}
+
+void Stereo::ConverterDLL::GlEyeRenderer::set_get_chunk_func(const GetChunkFunc& in_get_chunk_func)
+{
+    m_get_chunk_func = in_get_chunk_func;
 }
 
 bool Stereo::ConverterDLL::GlEyeRenderer::take_frame_depth(Stereo::Core::DepthRange* out_depth_range_ptr,

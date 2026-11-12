@@ -5,6 +5,63 @@
 #include "analysis/api_dump_analysis/passes_serializer.h"
 #include "analysis/api_dump_analysis/key_builder.h"
 
+bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_depths(const std::vector<uint8_t>&    in_byte_vec,
+                                                                     const DepthHistogramMapMember& in_member_ptr,
+                                                                     Model*                         out_model_ptr)
+{
+    /* The frame shape and the pass structure, and how many ranges have weight. */
+    constexpr size_t MIN_HISTOGRAM_N_BYTES = 3 * sizeof(uint32_t);
+
+    Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
+                                       in_byte_vec.size());
+    const auto n_histograms = reader.read_count(MIN_HISTOGRAM_N_BYTES);
+    bool       is_ok        = true;
+
+    for (uint32_t n_histogram = 0;
+                  n_histogram < n_histograms && reader.has_failed() == false;
+                ++n_histogram)
+    {
+        /* Read in the order they are stored. */
+        const uint32_t shape_id  = reader.read_u32  ();
+        const uint32_t pass_id   = reader.read_u32  ();
+        const auto     n_weights = reader.read_count(sizeof(uint32_t) + sizeof(uint64_t) );
+        DepthHistogram histogram;
+
+        for (uint32_t n_weight = 0;
+                      n_weight < n_weights && reader.has_failed() == false;
+                    ++n_weight)
+        {
+            const uint32_t bin    = reader.read_u32();
+            const uint64_t weight = reader.read_u64();
+
+            const bool is_restored = histogram.restore_weight(bin,
+                                                              weight);
+
+            is_ok = (is_restored && is_ok);
+        }
+
+        const auto n_pass_structures = out_model_ptr->pass_structure_interner.get_n_structures();
+        const auto n_frame_shapes    = out_model_ptr->frame_shape_interner.get_n_structures();
+
+        /* The frame shape and the pass structure must exist. */
+        if (pass_id  >= n_pass_structures ||
+            shape_id >= n_frame_shapes)
+        {
+            is_ok = false;
+        }
+
+        (out_model_ptr->*in_member_ptr)[DepthHistogramKey(shape_id,
+                                                          pass_id)] = histogram;
+    }
+
+    const bool has_failed = reader.has_failed();
+    const bool is_at_end  = reader.is_at_end();
+
+    return (is_ok               &&
+            has_failed == false &&
+            is_at_end);
+}
+
 bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_draw_facts(const std::vector<uint8_t>& in_byte_vec,
                                                                          Model*                      out_model_ptr)
 {
@@ -85,63 +142,6 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_draw_keys(const st
         {
             (out_model_ptr->*in_member_ptr)[pass_id].insert(reader.read_u64() );
         }
-    }
-
-    const bool has_failed = reader.has_failed();
-    const bool is_at_end  = reader.is_at_end();
-
-    return (is_ok               &&
-            has_failed == false &&
-            is_at_end);
-}
-
-bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_depths(const std::vector<uint8_t>&    in_byte_vec,
-                                                                     const DepthHistogramMapMember& in_member_ptr,
-                                                                     Model*                         out_model_ptr)
-{
-    /* The frame shape and the pass structure, and how many ranges have weight. */
-    constexpr size_t MIN_HISTOGRAM_N_BYTES = 3 * sizeof(uint32_t);
-
-    Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
-                                       in_byte_vec.size());
-    const auto n_histograms = reader.read_count(MIN_HISTOGRAM_N_BYTES);
-    bool       is_ok        = true;
-
-    for (uint32_t n_histogram = 0;
-                  n_histogram < n_histograms && reader.has_failed() == false;
-                ++n_histogram)
-    {
-        /* Read in the order they are stored. */
-        const uint32_t shape_id  = reader.read_u32  ();
-        const uint32_t pass_id   = reader.read_u32  ();
-        const auto     n_weights = reader.read_count(sizeof(uint32_t) + sizeof(uint64_t) );
-        DepthHistogram histogram;
-
-        for (uint32_t n_weight = 0;
-                      n_weight < n_weights && reader.has_failed() == false;
-                    ++n_weight)
-        {
-            const uint32_t bin    = reader.read_u32();
-            const uint64_t weight = reader.read_u64();
-
-            const bool is_restored = histogram.restore_weight(bin,
-                                                              weight);
-
-            is_ok = (is_restored && is_ok);
-        }
-
-        const auto n_pass_structures = out_model_ptr->pass_structure_interner.get_n_structures();
-        const auto n_frame_shapes    = out_model_ptr->frame_shape_interner.get_n_structures();
-
-        /* The frame shape and the pass structure must exist. */
-        if (pass_id  >= n_pass_structures ||
-            shape_id >= n_frame_shapes)
-        {
-            is_ok = false;
-        }
-
-        (out_model_ptr->*in_member_ptr)[DepthHistogramKey(shape_id,
-                                                          pass_id)] = histogram;
     }
 
     const bool has_failed = reader.has_failed();
@@ -939,6 +939,47 @@ Analysis::APIDumpAnalysis::Viewport Analysis::APIDumpAnalysis::PassesSerializer:
     return result;
 }
 
+std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_depths(const Model&                   in_model,
+                                                                                   const DepthHistogramMapMember& in_member_ptr)
+{
+    const auto&                 histogram_map = in_model.*in_member_ptr;
+    Utils::BinaryIO::ByteWriter writer;
+
+    writer.write_u32(static_cast<uint32_t>(histogram_map.size() ));
+
+    for (const auto& histogram_pair : histogram_map)
+    {
+        uint32_t n_weights = 0;
+
+        for (uint32_t n_bin = 0;
+                      n_bin < DepthHistogram::get_n_bins();
+                    ++n_bin)
+        {
+            if (histogram_pair.second.get_weight(n_bin) != 0)
+            {
+                n_weights++;
+            }
+        }
+
+        writer.write_u32(histogram_pair.first.first);
+        writer.write_u32(histogram_pair.first.second);
+        writer.write_u32(n_weights);
+
+        for (uint32_t n_bin = 0;
+                      n_bin < DepthHistogram::get_n_bins();
+                    ++n_bin)
+        {
+            if (histogram_pair.second.get_weight(n_bin) != 0)
+            {
+                writer.write_u32(n_bin);
+                writer.write_u64(histogram_pair.second.get_weight(n_bin) );
+            }
+        }
+    }
+
+    return writer.take_bytes();
+}
+
 std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_draw_facts(const Model& in_model)
 {
     Utils::BinaryIO::ByteWriter writer;
@@ -983,47 +1024,6 @@ std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_draw
         for (const auto& draw_key : pass_pair.second)
         {
             writer.write_u64(draw_key);
-        }
-    }
-
-    return writer.take_bytes();
-}
-
-std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_depths(const Model&                   in_model,
-                                                                                   const DepthHistogramMapMember& in_member_ptr)
-{
-    const auto&                 histogram_map = in_model.*in_member_ptr;
-    Utils::BinaryIO::ByteWriter writer;
-
-    writer.write_u32(static_cast<uint32_t>(histogram_map.size() ));
-
-    for (const auto& histogram_pair : histogram_map)
-    {
-        uint32_t n_weights = 0;
-
-        for (uint32_t n_bin = 0;
-                      n_bin < DepthHistogram::get_n_bins();
-                    ++n_bin)
-        {
-            if (histogram_pair.second.get_weight(n_bin) != 0)
-            {
-                n_weights++;
-            }
-        }
-
-        writer.write_u32(histogram_pair.first.first);
-        writer.write_u32(histogram_pair.first.second);
-        writer.write_u32(n_weights);
-
-        for (uint32_t n_bin = 0;
-                      n_bin < DepthHistogram::get_n_bins();
-                    ++n_bin)
-        {
-            if (histogram_pair.second.get_weight(n_bin) != 0)
-            {
-                writer.write_u32(n_bin);
-                writer.write_u64(histogram_pair.second.get_weight(n_bin) );
-            }
         }
     }
 

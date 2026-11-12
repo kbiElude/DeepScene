@@ -263,6 +263,26 @@ void Stereo::ConverterDLL::Converter::count_draw(const Analysis::Recipe::DrawCla
     }
 }
 
+void Stereo::ConverterDLL::Converter::count_frame(std::vector<std::string>* out_log_line_vec_ptr)
+{
+    constexpr uint64_t N_FRAMES_BETWEEN_STATISTICS = 600;
+
+    m_live_state.n_frames++;
+
+    /* The first frame says that the calls of the application reach the converter, and how far the application has come. */
+    if (m_live_state.n_frames == 1)
+    {
+        out_log_line_vec_ptr->push_back("The first frame ends, after " + std::to_string(m_live_state.n_affected_draws + m_live_state.n_unaffected_draws + m_live_state.n_skipped_draws) + " draws");
+    }
+
+    if (m_live_state.n_frames % N_FRAMES_BETWEEN_STATISTICS == 0)
+    {
+        out_log_line_vec_ptr->push_back(make_statistics_line() );
+    }
+
+    read_channel_settings(out_log_line_vec_ptr);
+}
+
 std::unique_ptr<Stereo::ConverterDLL::Converter> Stereo::ConverterDLL::Converter::create_ptr()
 {
     std::string                  error;
@@ -291,26 +311,6 @@ std::unique_ptr<Stereo::ConverterDLL::Converter> Stereo::ConverterDLL::Converter
     }
 
     return result_ptr;
-}
-
-void Stereo::ConverterDLL::Converter::count_frame(std::vector<std::string>* out_log_line_vec_ptr)
-{
-    constexpr uint64_t N_FRAMES_BETWEEN_STATISTICS = 600;
-
-    m_live_state.n_frames++;
-
-    /* The first frame says that the calls of the application reach the converter, and how far the application has come. */
-    if (m_live_state.n_frames == 1)
-    {
-        out_log_line_vec_ptr->push_back("The first frame ends, after " + std::to_string(m_live_state.n_affected_draws + m_live_state.n_unaffected_draws + m_live_state.n_skipped_draws) + " draws");
-    }
-
-    if (m_live_state.n_frames % N_FRAMES_BETWEEN_STATISTICS == 0)
-    {
-        out_log_line_vec_ptr->push_back(make_statistics_line() );
-    }
-
-    read_channel_settings(out_log_line_vec_ptr);
 }
 
 std::string Stereo::ConverterDLL::Converter::make_statistics_line() const
@@ -419,8 +419,8 @@ bool Stereo::ConverterDLL::Converter::on_gl_draws(Analysis::Recipe::DrawClass* o
                                                   bool*                        out_is_pushed_ptr,
                                                   std::vector<std::string>*    out_log_line_vec_ptr)
 {
-    bool                                  is_every_draw_pushed = true;
     std::set<Analysis::Recipe::DrawClass> class_set;
+    bool                                  is_every_draw_pushed = true;
 
     for (const auto& draw_keys : m_live_state.feeder.get_last_call_draw_key_vec() )
     {

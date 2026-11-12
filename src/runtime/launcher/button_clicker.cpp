@@ -17,6 +17,30 @@ namespace
     };
 }
 
+bool Stereo::Launcher::ButtonClicker::click_once(const DWORD&       in_process_id,
+                                                 const std::string& in_button_text)
+{
+    bool   result = false;
+    Search search;
+
+    search.button_text = get_normalized_text(in_button_text);
+    search.process_id  = in_process_id;
+
+    ::EnumWindows(on_top_level_window,
+                  reinterpret_cast<LPARAM>(&search) );
+
+    if (search.button != nullptr)
+    {
+        /* Posted, not sent: the application may run the demo from inside the handler of the click, and a send would wait for that. */
+        result = (::PostMessageA(search.button,
+                                 BM_CLICK,
+                                 0,
+                                 0) != FALSE);
+    }
+
+    return result;
+}
+
 bool Stereo::Launcher::ButtonClicker::click_when_shown(const HANDLE&      in_process,
                                                        const DWORD&       in_process_id,
                                                        const std::string& in_button_text,
@@ -65,30 +89,6 @@ std::string Stereo::Launcher::ButtonClicker::get_normalized_text(const std::stri
         {
             result.push_back(static_cast<char>(::tolower(static_cast<unsigned char>(character) ) ) );
         }
-    }
-
-    return result;
-}
-
-bool Stereo::Launcher::ButtonClicker::click_once(const DWORD&       in_process_id,
-                                                 const std::string& in_button_text)
-{
-    bool   result = false;
-    Search search;
-
-    search.button_text = get_normalized_text(in_button_text);
-    search.process_id  = in_process_id;
-
-    ::EnumWindows(on_top_level_window,
-                  reinterpret_cast<LPARAM>(&search) );
-
-    if (search.button != nullptr)
-    {
-        /* Posted, not sent: the application may run the demo from inside the handler of the click, and a send would wait for that. */
-        result = (::PostMessageA(search.button,
-                                 BM_CLICK,
-                                 0,
-                                 0) != FALSE);
     }
 
     return result;

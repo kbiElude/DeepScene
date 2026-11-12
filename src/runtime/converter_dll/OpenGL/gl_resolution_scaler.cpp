@@ -79,15 +79,22 @@ bool Stereo::ConverterDLL::GlResolutionScaler::is_scaled_texture(const uint32_t&
 bool Stereo::ConverterDLL::GlResolutionScaler::make_scaled_read(const uint32_t&                            in_n_arguments,
                                                                 const APIInterceptor::APIFunctionArgument* in_arguments_ptr) const
 {
+    constexpr size_t   ARGUMENT_FORMAT    = 4;
+    constexpr size_t   ARGUMENT_HEIGHT    = 3;
+    constexpr size_t   ARGUMENT_TYPE      = 5;
+    constexpr size_t   ARGUMENT_WIDTH     = 2;
+    constexpr size_t   ARGUMENT_X         = 0;
+    constexpr size_t   ARGUMENT_Y         = 1;
     constexpr uint32_t FORMAT_RGB         = 0x1907;
+    constexpr size_t   N_NUMBER_ARGUMENTS = 6; /* x, y, width, height, format, type */
     constexpr uint32_t N_READ_ARGUMENTS   = 7;
     constexpr uint32_t PIXELS_ARGUMENT    = 6;
     constexpr GLsizei  READ_EXTENT        = 1;
     constexpr uint32_t TYPE_UNSIGNED_BYTE = 0x1401;
 
-    const bool             is_identity = m_policy.is_identity();
-    bool                   result      = false;
-    std::array<int64_t, 6> value_array = {};
+    const bool                              is_identity = m_policy.is_identity();
+    bool                                    result      = false;
+    std::array<int64_t, N_NUMBER_ARGUMENTS> value_array = {};
 
     if (in_n_arguments < N_READ_ARGUMENTS ||
         is_identity                       ||
@@ -100,8 +107,12 @@ bool Stereo::ConverterDLL::GlResolutionScaler::make_scaled_read(const uint32_t& 
     }
 
     /* The buffer of the application: a pointer (not an offset in a buffer of the driver, nor none). */
-    if (in_arguments_ptr[PIXELS_ARGUMENT].type != APIInterceptor::ARGTYPE_VOID_PTR ||
-        in_arguments_ptr[PIXELS_ARGUMENT].get_ptr() == nullptr)
+    if (in_arguments_ptr[PIXELS_ARGUMENT].type != APIInterceptor::ARGTYPE_VOID_PTR)
+    {
+        goto end;
+    }
+
+    if (is_null_pointer(in_arguments_ptr[PIXELS_ARGUMENT]) )
     {
         goto end;
     }
@@ -117,21 +128,26 @@ bool Stereo::ConverterDLL::GlResolutionScaler::make_scaled_read(const uint32_t& 
         }
     }
 
-    /* Only the read that is known to be made, of one pixel of bytes of the colors, is made here: any other cannot be made to match. */
-    if (value_array.at(2) != READ_EXTENT                                    ||
-        value_array.at(3) != READ_EXTENT                                    ||
-        static_cast<uint32_t>(value_array.at(4) ) != FORMAT_RGB             ||
-        static_cast<uint32_t>(value_array.at(5) ) != TYPE_UNSIGNED_BYTE)
     {
-        goto end;
-    }
+        const uint32_t format = static_cast<uint32_t>(value_array.at(ARGUMENT_FORMAT) );
+        const int64_t  height = value_array.at(ARGUMENT_HEIGHT);
+        const uint32_t type   = static_cast<uint32_t>(value_array.at(ARGUMENT_TYPE) );
+        const int64_t  width  = value_array.at(ARGUMENT_WIDTH);
 
-    {
+        /* Only the read that is known to be made, of one pixel of bytes of the colors, is made here: any other cannot be made to match. */
+        if (width  != READ_EXTENT        ||
+            height != READ_EXTENT        ||
+            format != FORMAT_RGB         ||
+            type   != TYPE_UNSIGNED_BYTE)
+        {
+            goto end;
+        }
+
         /* The pixel under the centre of the one that the application names, which is the nearest one that it has if it names one that it does not. */
-        const uint32_t x_real = m_policy.scale_pixel_coordinate(value_array.at(0),
+        const uint32_t x_real = m_policy.scale_pixel_coordinate(value_array.at(ARGUMENT_X),
                                                                 m_asked_width,
                                                                 m_real_width);
-        const uint32_t y_real = m_policy.scale_pixel_coordinate(value_array.at(1),
+        const uint32_t y_real = m_policy.scale_pixel_coordinate(value_array.at(ARGUMENT_Y),
                                                                 m_asked_height,
                                                                 m_real_height);
 
@@ -171,15 +187,19 @@ bool Stereo::ConverterDLL::GlResolutionScaler::on_pre(const APIInterceptor::APIF
     }
 
     /* What cannot be made to match ends the application. */
-    if (result == false &&
-        Analysis::APIDumpAnalysis::Frontends::GlResolutionHazards::classify(in_function,
-                                                                            in_n_arguments,
-                                                                            in_arguments_ptr,
-                                                                           &hazard) )
+    if (result == false)
     {
-        ResolutionHazardGate::require_unaffected_by_scale(m_core_ptr,
-                                                          m_policy,
-                                                          hazard);
+        const bool is_hazard = Analysis::APIDumpAnalysis::Frontends::GlResolutionHazards::classify(in_function,
+                                                                                                   in_n_arguments,
+                                                                                                   in_arguments_ptr,
+                                                                                                  &hazard);
+
+        if (is_hazard)
+        {
+            ResolutionHazardGate::require_unaffected_by_scale(m_core_ptr,
+                                                              m_policy,
+                                                              hazard);
+        }
     }
 
     switch (in_function)

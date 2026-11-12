@@ -432,11 +432,14 @@ bool Analysis::RecipeBake::RecipeBaker::compute_draw_rules(const Analysis::Recip
 
         for (const auto& draw_signature : structure.draw_signature_vec)
         {
-            const ClassKey class_key(get_draw_class(applier,
-                                                    structure.key,
-                                                    draw_signature.structure_key),
-                                     applier.is_draw_pushed(structure.key,
-                                                            draw_signature.structure_key) );
+            const auto draw_class = get_draw_class(applier,
+                                                   structure.key,
+                                                   draw_signature.structure_key);
+            const bool is_pushed  = applier.is_draw_pushed(structure.key,
+                                                           draw_signature.structure_key);
+
+            const ClassKey class_key(draw_class,
+                                     is_pushed);
 
             signature_map[draw_signature.signature_key][class_key].insert(n_pass);
         }
@@ -538,148 +541,6 @@ void Analysis::RecipeBake::RecipeBaker::compute_scene_convergence(const Analysis
 
     out_report_ptr->n_scene_distances = static_cast<uint32_t>(out_scene_convergence_vec_ptr->size() );
     out_report_ptr->n_scene_limits    = static_cast<uint32_t>(out_scene_separation_vec_ptr->size() );
-}
-
-std::vector<Analysis::RecipeBake::SceneMeasure> Analysis::RecipeBake::RecipeBaker::measure_scenes(const Analysis::Recipe::Recipe&                  in_recipe,
-                                                                                                    const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
-{
-    constexpr double FRACTION_MEDIAN = 0.5;
-
-    const Analysis::Recipe::RecipeApplier applier(in_recipe);
-    const auto&                           model_ref = in_analysis.model;
-    const auto                            n_shapes  = model_ref.frame_shape_interner.get_n_structures();
-    std::vector<SceneMeasure>             result_vec;
-
-    for (uint32_t n_shape = 0;
-                  n_shape < n_shapes;
-                ++n_shape)
-    {
-        Analysis::APIDumpAnalysis::DepthHistogram histogram;
-        SceneMeasure                              measure;
-        double                                    scale_weight      = 0.0;
-        double                                    scale_weighted_sum = 0.0;
-        const auto&                               shape            = model_ref.frame_shape_interner.get_structure(n_shape);
-        Analysis::APIDumpAnalysis::DepthHistogram surface_histogram;
-
-        /* A pass of a frame counts if the recipe affects any draw of it, and counts once however often a frame has it. */
-        for (const auto& pass_id : std::set<uint32_t>(shape.pass_structure_id_vec.begin(),
-                                                      shape.pass_structure_id_vec.end() ))
-        {
-            const auto& structure          = model_ref.pass_structure_interner.get_structure(pass_id);
-            const auto  histogram_iterator = model_ref.depth_histogram_map.find             (Analysis::APIDumpAnalysis::DepthHistogramKey(n_shape,
-                                                                                                                                          pass_id) );
-            bool        is_affected        = false;
-
-            for (const auto& draw_signature : structure.draw_signature_vec)
-            {
-                if (is_affected == false)
-                {
-                    const auto draw_class = get_draw_class(applier,
-                                                           structure.key,
-                                                           draw_signature.structure_key);
-
-                    is_affected = (draw_class == Analysis::Recipe::DrawClass::AFFECTED);
-                }
-            }
-
-            if (is_affected                                                  &&
-                histogram_iterator != model_ref.depth_histogram_map.end() )
-            {
-                histogram.merge(histogram_iterator->second);
-
-                const auto surface_iterator = model_ref.surface_depth_histogram_map.find(Analysis::APIDumpAnalysis::DepthHistogramKey(n_shape,
-                                                                                                                                      pass_id) );
-
-                if (surface_iterator != model_ref.surface_depth_histogram_map.end() )
-                {
-                    surface_histogram.merge(surface_iterator->second);
-                }
-
-                {
-                    const auto scale_iterator = model_ref.projection_scale_map.find(Analysis::APIDumpAnalysis::DepthHistogramKey(n_shape,
-                                                                                                                                  pass_id) );
-
-                    if (scale_iterator != model_ref.projection_scale_map.end() )
-                    {
-                        scale_weight       += static_cast<double>(scale_iterator->second.weight);
-                        scale_weighted_sum += static_cast<double>(scale_iterator->second.mean) * static_cast<double>(scale_iterator->second.weight);
-                    }
-                }
-
-                /* An analysis that did not say it (an older file) has the first projection that the pass is seen with. */
-                if (measure.projection_scale <= 0.0f)
-                {
-                    measure.projection_scale = get_projection_scale(in_analysis,
-                                                                    pass_id);
-                }
-
-                /* A pass whose vertices no matrix moves has no projection to read the angle of view from: the recipe says it. */
-                if (measure.projection_scale             <= 0.0f &&
-                    in_recipe.screen_parallax.is_enabled)
-                {
-                    constexpr float DEGREES_TO_RADIANS = 3.14159265358979323846f / 180.0f;
-                    constexpr float HALF               = 0.5f;
-
-                    measure.projection_scale = 1.0f / ::tanf(in_recipe.screen_parallax.field_of_view_degrees * HALF * DEGREES_TO_RADIANS);
-                }
-            }
-        }
-
-        /* What the draws were seen through, where the analysis says it, is more than the first projection of a pass. */
-        if (scale_weight > 0.0)
-        {
-            measure.projection_scale = static_cast<float>(scale_weighted_sum / scale_weight);
-        }
-
-        measure.shape_id = n_shape;
-
-        if (histogram.is_empty() == false)
-        {
-            measure.distance   = histogram.get_depth_at_fraction                           (FRACTION_MEDIAN);
-            /* What the vertices of the draws say, and what the origins of the draws say (every draw has one, and a draw whose vertices are not read, a display list, has no
-             * vertices): a surface is as near as the nearer of the two says, and as far as the farther.
-             */
-            const double near_fraction  = static_cast<double>(in_recipe.comfort.near_fraction);
-            const float  origin_far     = histogram.get_depth_at_fraction        (1.0 - near_fraction);
-            const float  origin_near    = histogram.get_depth_at_fraction        (near_fraction);
-            const float  surface_far    = surface_histogram.get_depth_at_fraction(1.0 - near_fraction);
-            const float  surface_near   = surface_histogram.get_depth_at_fraction(near_fraction);
-
-            measure.far_depth  = std::max(origin_far,
-                                          surface_far);
-            measure.has_depth  = true;
-            measure.near_depth = (surface_near > 0.0f) ? std::min(origin_near,
-                                                                  surface_near)
-                                                       : origin_near;
-            measure.shape_key  = Analysis::APIDumpAnalysis::ModelBuilder::compute_shape_key(model_ref,
-                                                                                            n_shape);
-        }
-
-        result_vec.push_back(measure);
-    }
-
-    return result_vec;
-}
-
-Analysis::RecipeBake::SceneLimits Analysis::RecipeBake::RecipeBaker::resolve_scene_limits(const Analysis::Recipe::Recipe& in_recipe,
-                                                                                          const SceneMeasure&             in_measure)
-{
-    const Analysis::Recipe::RecipeApplier applier(in_recipe);
-    const auto*                           scene_ptr = applier.find_scene_comfort_ptr(in_measure.shape_key);
-    const auto                            limits    = Analysis::Recipe::RecipeApplier::get_comfort_limits(in_recipe.comfort,
-                                                                                                          scene_ptr,
-                                                                                                          in_measure.distance,
-                                                                                                          in_measure.near_depth,
-                                                                                                          in_measure.far_depth,
-                                                                                                          in_measure.projection_scale);
-    SceneLimits                           result;
-
-    result.distance       = limits.distance;
-    result.is_far_limit   = limits.is_far_limit;
-    result.is_overridden  = (scene_ptr != nullptr);
-    result.max_separation = limits.max_separation;
-
-    return result;
 }
 
 std::string Analysis::RecipeBake::RecipeBaker::get_class_key_text(const ClassKey& in_class_key)
@@ -958,6 +819,148 @@ end:
     return result;
 }
 
+std::vector<Analysis::RecipeBake::SceneMeasure> Analysis::RecipeBake::RecipeBaker::measure_scenes(const Analysis::Recipe::Recipe&                  in_recipe,
+                                                                                                    const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
+{
+    constexpr double FRACTION_MEDIAN = 0.5;
+
+    const Analysis::Recipe::RecipeApplier applier(in_recipe);
+    const auto&                           model_ref = in_analysis.model;
+    const auto                            n_shapes  = model_ref.frame_shape_interner.get_n_structures();
+    std::vector<SceneMeasure>             result_vec;
+
+    for (uint32_t n_shape = 0;
+                  n_shape < n_shapes;
+                ++n_shape)
+    {
+        Analysis::APIDumpAnalysis::DepthHistogram histogram;
+        SceneMeasure                              measure;
+        double                                    scale_weight      = 0.0;
+        double                                    scale_weighted_sum = 0.0;
+        const auto&                               shape            = model_ref.frame_shape_interner.get_structure(n_shape);
+        Analysis::APIDumpAnalysis::DepthHistogram surface_histogram;
+
+        /* A pass of a frame counts if the recipe affects any draw of it, and counts once however often a frame has it. */
+        for (const auto& pass_id : std::set<uint32_t>(shape.pass_structure_id_vec.begin(),
+                                                      shape.pass_structure_id_vec.end() ))
+        {
+            const auto& structure          = model_ref.pass_structure_interner.get_structure(pass_id);
+            const auto  histogram_iterator = model_ref.depth_histogram_map.find             (Analysis::APIDumpAnalysis::DepthHistogramKey(n_shape,
+                                                                                                                                          pass_id) );
+            bool        is_affected        = false;
+
+            for (const auto& draw_signature : structure.draw_signature_vec)
+            {
+                if (is_affected == false)
+                {
+                    const auto draw_class = get_draw_class(applier,
+                                                           structure.key,
+                                                           draw_signature.structure_key);
+
+                    is_affected = (draw_class == Analysis::Recipe::DrawClass::AFFECTED);
+                }
+            }
+
+            if (is_affected                                                  &&
+                histogram_iterator != model_ref.depth_histogram_map.end() )
+            {
+                histogram.merge(histogram_iterator->second);
+
+                const auto surface_iterator = model_ref.surface_depth_histogram_map.find(Analysis::APIDumpAnalysis::DepthHistogramKey(n_shape,
+                                                                                                                                      pass_id) );
+
+                if (surface_iterator != model_ref.surface_depth_histogram_map.end() )
+                {
+                    surface_histogram.merge(surface_iterator->second);
+                }
+
+                {
+                    const auto scale_iterator = model_ref.projection_scale_map.find(Analysis::APIDumpAnalysis::DepthHistogramKey(n_shape,
+                                                                                                                                  pass_id) );
+
+                    if (scale_iterator != model_ref.projection_scale_map.end() )
+                    {
+                        scale_weight       += static_cast<double>(scale_iterator->second.weight);
+                        scale_weighted_sum += static_cast<double>(scale_iterator->second.mean) * static_cast<double>(scale_iterator->second.weight);
+                    }
+                }
+
+                /* An analysis that did not say it (an older file) has the first projection that the pass is seen with. */
+                if (measure.projection_scale <= 0.0f)
+                {
+                    measure.projection_scale = get_projection_scale(in_analysis,
+                                                                    pass_id);
+                }
+
+                /* A pass whose vertices no matrix moves has no projection to read the angle of view from: the recipe says it. */
+                if (measure.projection_scale             <= 0.0f &&
+                    in_recipe.screen_parallax.is_enabled)
+                {
+                    constexpr float DEGREES_TO_RADIANS = 3.14159265358979323846f / 180.0f;
+                    constexpr float HALF               = 0.5f;
+
+                    measure.projection_scale = 1.0f / ::tanf(in_recipe.screen_parallax.field_of_view_degrees * HALF * DEGREES_TO_RADIANS);
+                }
+            }
+        }
+
+        /* What the draws were seen through, where the analysis says it, is more than the first projection of a pass. */
+        if (scale_weight > 0.0)
+        {
+            measure.projection_scale = static_cast<float>(scale_weighted_sum / scale_weight);
+        }
+
+        measure.shape_id = n_shape;
+
+        if (histogram.is_empty() == false)
+        {
+            measure.distance   = histogram.get_depth_at_fraction                           (FRACTION_MEDIAN);
+            /* What the vertices of the draws say, and what the origins of the draws say (every draw has one, and a draw whose vertices are not read, a display list, has no
+             * vertices): a surface is as near as the nearer of the two says, and as far as the farther.
+             */
+            const double near_fraction  = static_cast<double>(in_recipe.comfort.near_fraction);
+            const float  origin_far     = histogram.get_depth_at_fraction        (1.0 - near_fraction);
+            const float  origin_near    = histogram.get_depth_at_fraction        (near_fraction);
+            const float  surface_far    = surface_histogram.get_depth_at_fraction(1.0 - near_fraction);
+            const float  surface_near   = surface_histogram.get_depth_at_fraction(near_fraction);
+
+            measure.far_depth  = std::max(origin_far,
+                                          surface_far);
+            measure.has_depth  = true;
+            measure.near_depth = (surface_near > 0.0f) ? std::min(origin_near,
+                                                                  surface_near)
+                                                       : origin_near;
+            measure.shape_key  = Analysis::APIDumpAnalysis::ModelBuilder::compute_shape_key(model_ref,
+                                                                                            n_shape);
+        }
+
+        result_vec.push_back(measure);
+    }
+
+    return result_vec;
+}
+
+Analysis::RecipeBake::SceneLimits Analysis::RecipeBake::RecipeBaker::resolve_scene_limits(const Analysis::Recipe::Recipe& in_recipe,
+                                                                                          const SceneMeasure&             in_measure)
+{
+    const Analysis::Recipe::RecipeApplier applier(in_recipe);
+    const auto*                           scene_ptr = applier.find_scene_comfort_ptr(in_measure.shape_key);
+    const auto                            limits    = Analysis::Recipe::RecipeApplier::get_comfort_limits(in_recipe.comfort,
+                                                                                                          scene_ptr,
+                                                                                                          in_measure.distance,
+                                                                                                          in_measure.near_depth,
+                                                                                                          in_measure.far_depth,
+                                                                                                          in_measure.projection_scale);
+    SceneLimits                           result;
+
+    result.distance       = limits.distance;
+    result.is_far_limit   = limits.is_far_limit;
+    result.is_overridden  = (scene_ptr != nullptr);
+    result.max_separation = limits.max_separation;
+
+    return result;
+}
+
 void Analysis::RecipeBake::RecipeBaker::write_baked(const std::vector<uint64_t>&  in_covering_draw_key_vec,
                                                     const ConvergenceVector&      in_convergence_vec,
                                                     const std::vector<uint64_t>&  in_known_signature_key_vec,
@@ -1064,7 +1067,7 @@ void Analysis::RecipeBake::RecipeBaker::write_baked(const std::vector<uint64_t>&
         if (rule.is_pushed)
         {
             inout_writer_ptr->write_key ("pushed");
-            inout_writer_ptr->write_bool(true);
+            inout_writer_ptr->write_bool(true); /* in_value */
         }
 
         if (rule.view_matrix_vec.empty() == false)

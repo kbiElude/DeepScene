@@ -186,9 +186,9 @@ bool Analysis::Recipe::RecipeApplier::apply_rule(const Analysis::Recipe::Rule& i
 Analysis::Recipe::DrawClass Analysis::Recipe::RecipeApplier::classify_draw(const uint64_t&              in_signature_key,
                                                                            const std::array<float, 16>& in_view_matrix) const
 {
+    Analysis::Recipe::DrawClass result   = Analysis::Recipe::DrawClass::AFFECTED;
     const auto*                 rule_ptr = find_draw_rule_ptr(in_signature_key,
                                                               in_view_matrix);
-    Analysis::Recipe::DrawClass result   = Analysis::Recipe::DrawClass::AFFECTED;
 
     if (rule_ptr != nullptr)
     {
@@ -228,74 +228,19 @@ const Analysis::Recipe::DrawRule* Analysis::Recipe::RecipeApplier::find_draw_rul
     return result_ptr;
 }
 
-float Analysis::Recipe::RecipeApplier::get_convergence_distance(const uint64_t& in_signature_key) const
+const Analysis::Recipe::SceneComfort* Analysis::Recipe::RecipeApplier::find_scene_comfort_ptr(const uint64_t& in_shape_key) const
 {
-    const auto distance_iterator = m_convergence_distance_map.find(in_signature_key);
+    const SceneComfort* result_ptr = nullptr;
 
-    return (distance_iterator != m_convergence_distance_map.end() ) ? distance_iterator->second
-                                                                    : 0.0f;
-}
-
-std::vector<const Analysis::Recipe::Rule*> Analysis::Recipe::RecipeApplier::get_matching_rule_ptr_vec(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                                      const CallPlace&                             in_place) const
-{
-    std::vector<const Analysis::Recipe::Rule*> result_vec;
-
-    for (const auto& rule : m_recipe.rule_vec)
+    for (const auto& scene_comfort : m_recipe.comfort.scene_override_vec)
     {
-        bool is_match = (rule.function == in_call.func);
-
-        for (const auto& condition : rule.argument_condition_vec)
+        if (scene_comfort.shape_key == in_shape_key)
         {
-            const bool has_argument      = (condition.argument_index < in_call.arg_in_vec.size() );
-            bool       is_argument_match = false;
-
-            if (has_argument)
-            {
-                const auto& argument = in_call.arg_in_vec.at(condition.argument_index);
-
-                if (argument.type == APIInterceptor::ARGTYPE_U32)
-                {
-                    const uint32_t argument_value = argument.get_u32();
-
-                    is_argument_match = (argument_value == condition.value);
-                }
-            }
-
-            is_match = (is_match &&
-                        is_argument_match);
-        }
-
-        if (is_match                          &&
-            rule.pass_key_vec.empty() == false)
-        {
-            is_match = false;
-
-            if (in_place.has_pass)
-            {
-                const auto pass_iterator = std::find(rule.pass_key_vec.begin(),
-                                                     rule.pass_key_vec.end  (),
-                                                     in_place.pass_key);
-
-                is_match = (pass_iterator != rule.pass_key_vec.end() );
-            }
-        }
-
-        if (is_match                            &&
-            rule.shape_key_vec.empty() == false)
-        {
-            is_match = (std::find(rule.shape_key_vec.begin(),
-                                  rule.shape_key_vec.end  (),
-                                  in_place.shape_key)        != rule.shape_key_vec.end() );
-        }
-
-        if (is_match)
-        {
-            result_vec.push_back(&rule);
+            result_ptr = &scene_comfort;
         }
     }
 
-    return result_vec;
+    return result_ptr;
 }
 
 const Analysis::Recipe::Comfort& Analysis::Recipe::RecipeApplier::get_comfort() const
@@ -382,19 +327,12 @@ Analysis::Recipe::ComfortLimits Analysis::Recipe::RecipeApplier::get_comfort_lim
     return result;
 }
 
-const Analysis::Recipe::SceneComfort* Analysis::Recipe::RecipeApplier::find_scene_comfort_ptr(const uint64_t& in_shape_key) const
+float Analysis::Recipe::RecipeApplier::get_convergence_distance(const uint64_t& in_signature_key) const
 {
-    const SceneComfort* result_ptr = nullptr;
+    const auto distance_iterator = m_convergence_distance_map.find(in_signature_key);
 
-    for (const auto& scene_comfort : m_recipe.comfort.scene_override_vec)
-    {
-        if (scene_comfort.shape_key == in_shape_key)
-        {
-            result_ptr = &scene_comfort;
-        }
-    }
-
-    return result_ptr;
+    return (distance_iterator != m_convergence_distance_map.end() ) ? distance_iterator->second
+                                                                    : 0.0f;
 }
 
 float Analysis::Recipe::RecipeApplier::get_cover_push_parallax(const uint64_t& in_cover_key) const
@@ -404,6 +342,68 @@ float Analysis::Recipe::RecipeApplier::get_cover_push_parallax(const uint64_t& i
 
     return (is_part) ? m_recipe.comfort.part_parallax
                      : m_recipe.comfort.overlay_parallax;
+}
+
+std::vector<const Analysis::Recipe::Rule*> Analysis::Recipe::RecipeApplier::get_matching_rule_ptr_vec(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                                                      const CallPlace&                             in_place) const
+{
+    std::vector<const Analysis::Recipe::Rule*> result_vec;
+
+    for (const auto& rule : m_recipe.rule_vec)
+    {
+        bool is_match = (rule.function == in_call.func);
+
+        for (const auto& condition : rule.argument_condition_vec)
+        {
+            const bool has_argument      = (condition.argument_index < in_call.arg_in_vec.size() );
+            bool       is_argument_match = false;
+
+            if (has_argument)
+            {
+                const auto& argument = in_call.arg_in_vec.at(condition.argument_index);
+
+                if (argument.type == APIInterceptor::ARGTYPE_U32)
+                {
+                    const uint32_t argument_value = argument.get_u32();
+
+                    is_argument_match = (argument_value == condition.value);
+                }
+            }
+
+            is_match = (is_match &&
+                        is_argument_match);
+        }
+
+        if (is_match                          &&
+            rule.pass_key_vec.empty() == false)
+        {
+            is_match = false;
+
+            if (in_place.has_pass)
+            {
+                const auto pass_iterator = std::find(rule.pass_key_vec.begin(),
+                                                     rule.pass_key_vec.end  (),
+                                                     in_place.pass_key);
+
+                is_match = (pass_iterator != rule.pass_key_vec.end() );
+            }
+        }
+
+        if (is_match                            &&
+            rule.shape_key_vec.empty() == false)
+        {
+            is_match = (std::find(rule.shape_key_vec.begin(),
+                                  rule.shape_key_vec.end  (),
+                                  in_place.shape_key)        != rule.shape_key_vec.end() );
+        }
+
+        if (is_match)
+        {
+            result_vec.push_back(&rule);
+        }
+    }
+
+    return result_vec;
 }
 
 float Analysis::Recipe::RecipeApplier::get_overlay_parallax() const
@@ -452,6 +452,12 @@ bool Analysis::Recipe::RecipeApplier::has_view_anchor_shift() const
     return m_recipe.view_anchor_shift.is_enabled;
 }
 
+bool Analysis::Recipe::RecipeApplier::is_cover_pushed(const uint64_t& in_cover_key) const
+{
+    return (m_pushed_cover_key_set.count     (in_cover_key) != 0 ||
+            m_pushed_part_cover_key_set.count(in_cover_key) != 0);
+}
+
 bool Analysis::Recipe::RecipeApplier::is_draw_affected(const uint64_t& in_pass_key,
                                                        const uint64_t& in_draw_key) const
 {
@@ -491,12 +497,6 @@ bool Analysis::Recipe::RecipeApplier::is_draw_affected(const uint64_t& in_pass_k
     }
 
     return result;
-}
-
-bool Analysis::Recipe::RecipeApplier::is_cover_pushed(const uint64_t& in_cover_key) const
-{
-    return (m_pushed_cover_key_set.count     (in_cover_key) != 0 ||
-            m_pushed_part_cover_key_set.count(in_cover_key) != 0);
 }
 
 bool Analysis::Recipe::RecipeApplier::is_draw_covering(const uint64_t& in_cover_key) const
@@ -540,11 +540,6 @@ bool Analysis::Recipe::RecipeApplier::is_frame_known(const uint64_t& in_shape_ke
             known_iterator != m_recipe.known_shape_key_vec.end() );
 }
 
-bool Analysis::Recipe::RecipeApplier::is_part_cover(const uint64_t& in_cover_key) const
-{
-    return (m_pushed_part_cover_key_set.count(in_cover_key) != 0);
-}
-
 bool Analysis::Recipe::RecipeApplier::is_matrix_of_kind(const std::array<float, 16>&        in_matrix,
                                                         const Analysis::Recipe::MatrixKind& in_kind)
 {
@@ -580,6 +575,11 @@ bool Analysis::Recipe::RecipeApplier::is_matrix_of_kind(const std::array<float, 
     }
 
     return result;
+}
+
+bool Analysis::Recipe::RecipeApplier::is_part_cover(const uint64_t& in_cover_key) const
+{
+    return (m_pushed_part_cover_key_set.count(in_cover_key) != 0);
 }
 
 bool Analysis::Recipe::RecipeApplier::is_per_eye_texture(const Analysis::APIDumpAnalysis::ResourceIdentity& in_identity) const

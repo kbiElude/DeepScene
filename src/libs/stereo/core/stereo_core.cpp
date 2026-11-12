@@ -56,6 +56,8 @@ uint32_t Stereo::Core::StereoCore::bind_matrices(const Analysis::Recipe::DrawCla
 Analysis::Recipe::DrawClass Stereo::Core::StereoCore::classify_draw(const uint64_t& in_signature_key,
                                                                     const uint64_t& in_cover_key)
 {
+    const bool is_cover_pushed = m_applier.is_cover_pushed(in_cover_key);
+
     if (m_applier.is_signature_known(in_signature_key) == false)
     {
         m_n_unknown_draws++;
@@ -73,12 +75,12 @@ Analysis::Recipe::DrawClass Stereo::Core::StereoCore::classify_draw(const uint64
 
     if (m_is_last_draw_pushed == false)
     {
-        m_is_last_draw_pushed = m_applier.is_cover_pushed(in_cover_key);
+        m_is_last_draw_pushed = is_cover_pushed;
     }
 
     /* A draw that is named by its size as pushed is flat: the parts of an object that are drawn alike, one of them a protruding part, have no depth of their own to show. */
     if (m_last_draw_class == Analysis::Recipe::DrawClass::AFFECTED &&
-        m_applier.is_cover_pushed(in_cover_key) )
+        is_cover_pushed)
     {
         m_last_draw_class = Analysis::Recipe::DrawClass::UNAFFECTED;
     }
@@ -153,6 +155,11 @@ bool Stereo::Core::StereoCore::get_is_overlay_pushed() const
     return m_is_overlay_pushed;
 }
 
+bool Stereo::Core::StereoCore::get_measures_depth() const
+{
+    return m_applier.get_comfort().measures_depth;
+}
+
 uint64_t Stereo::Core::StereoCore::get_n_unknown_draws() const
 {
     return m_n_unknown_draws;
@@ -161,11 +168,6 @@ uint64_t Stereo::Core::StereoCore::get_n_unknown_draws() const
 uint64_t Stereo::Core::StereoCore::get_n_unknown_frames() const
 {
     return m_n_unknown_frames;
-}
-
-bool Stereo::Core::StereoCore::get_measures_depth() const
-{
-    return m_applier.get_comfort().measures_depth;
 }
 
 float Stereo::Core::StereoCore::get_near_fraction() const
@@ -207,6 +209,23 @@ std::array<float, 16> Stereo::Core::StereoCore::make_eye_shift_matrix(const Anal
     return result;
 }
 
+void Stereo::Core::StereoCore::on_frame_completed(const uint64_t& in_shape_key)
+{
+    m_scene_shape_key = in_shape_key;
+
+    if (m_convergence_model.follow_scene_convergence_distance(m_applier.get_scene_convergence_distance(in_shape_key) ) == false)
+    {
+        /* The scene is not known: the limit of the one before stays with its distance, for lifting it would give the eyes more room than
+         * the scene that is on the screen may allow.
+         */
+        m_n_unknown_frames++;
+    }
+    else
+    {
+        m_convergence_model.follow_scene_max_separation(m_applier.get_scene_max_separation(in_shape_key) );
+    }
+}
+
 bool Stereo::Core::StereoCore::on_frame_depth(const uint64_t&   in_shape_key,
                                               const DepthRange& in_depth_range,
                                               const float&      in_projection_scale)
@@ -227,23 +246,6 @@ bool Stereo::Core::StereoCore::on_frame_depth(const uint64_t&   in_shape_key,
     }
 
     return result;
-}
-
-void Stereo::Core::StereoCore::on_frame_completed(const uint64_t& in_shape_key)
-{
-    m_scene_shape_key = in_shape_key;
-
-    if (m_convergence_model.follow_scene_convergence_distance(m_applier.get_scene_convergence_distance(in_shape_key) ) == false)
-    {
-        /* The scene is not known: the limit of the one before stays with its distance, for lifting it would give the eyes more room than
-         * the scene that is on the screen may allow.
-         */
-        m_n_unknown_frames++;
-    }
-    else
-    {
-        m_convergence_model.follow_scene_max_separation(m_applier.get_scene_max_separation(in_shape_key) );
-    }
 }
 
 bool Stereo::Core::StereoCore::on_matrix_call(const APIInterceptor::APIFunction&                      in_function,
@@ -347,9 +349,11 @@ float Stereo::Core::StereoCore::plan_part_shift(const Analysis::Recipe::Eye& in_
 float Stereo::Core::StereoCore::plan_push_shift(const Analysis::Recipe::Eye& in_eye,
                                                 const float&                 in_picture_width_pixels) const
 {
+    const float in_parallax = m_applier.get_cover_push_parallax(m_last_draw_cover_key);
+
     return PushShiftPlanner::plan(m_applier,
                                   in_eye,
-                                  m_applier.get_cover_push_parallax(m_last_draw_cover_key),
+                                  in_parallax,
                                   (m_last_draw_class == Analysis::Recipe::DrawClass::AFFECTED),
                                   in_picture_width_pixels,
                                   m_convergence_model.get_effective_eye_separation(),
