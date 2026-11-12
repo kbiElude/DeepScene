@@ -182,8 +182,8 @@ bool Analysis::RecipeBake::RecipeBaker::compute_conditional_rules(const Analysis
                                       "of a pass back until it knows which pass it is, which the "
                                       "converter cannot do yet";
 
-    std::map<Analysis::Recipe::DrawClass, MatrixVector> matrix_vec_by_class;
-    bool                                                result              = false;
+    std::map<ClassKey, MatrixVector> matrix_vec_by_class;
+    bool                             result              = false;
 
     for (const auto& class_pair : in_class_map)
     {
@@ -238,9 +238,9 @@ bool Analysis::RecipeBake::RecipeBaker::compute_conditional_rules(const Analysis
                         *out_error_ptr = "The signature "                                +
                                          get_key_text(in_signature_key)                  +
                                          " is drawn as "                                 +
-                                         get_class_name(first_pair.first)                +
+                                         get_class_key_text(first_pair.first)            +
                                          " and as "                                      +
-                                         get_class_name(second_pair.first)               +
+                                         get_class_key_text(second_pair.first)           +
                                          " with the same view matrix, so nothing known "
                                          "when it is issued tells the two apart"         +
                                          deferred_text;
@@ -254,8 +254,9 @@ bool Analysis::RecipeBake::RecipeBaker::compute_conditional_rules(const Analysis
 
     for (const auto& matrix_pair : matrix_vec_by_class)
     {
-        /* What no rule applies to is affected. */
-        if (matrix_pair.first != Analysis::Recipe::DrawClass::AFFECTED)
+        /* What no rule applies to is affected, and not pushed. */
+        if (matrix_pair.first.first  != Analysis::Recipe::DrawClass::AFFECTED ||
+            matrix_pair.first.second)
         {
             Analysis::Recipe::DrawRule rule;
 
@@ -272,7 +273,8 @@ bool Analysis::RecipeBake::RecipeBaker::compute_conditional_rules(const Analysis
                 goto end;
             }
 
-            rule.draw_class    = matrix_pair.first;
+            rule.draw_class    = matrix_pair.first.first;
+            rule.is_pushed     = matrix_pair.first.second;
             rule.signature_key = in_signature_key;
 
             rule.view_matrix_vec.assign(matrix_pair.second.begin(),
@@ -430,9 +432,13 @@ bool Analysis::RecipeBake::RecipeBaker::compute_draw_rules(const Analysis::Recip
 
         for (const auto& draw_signature : structure.draw_signature_vec)
         {
-            signature_map[draw_signature.signature_key][get_draw_class(applier,
-                                                                       structure.key,
-                                                                       draw_signature.structure_key)].insert(n_pass);
+            const ClassKey class_key(get_draw_class(applier,
+                                                    structure.key,
+                                                    draw_signature.structure_key),
+                                     applier.is_draw_pushed(structure.key,
+                                                            draw_signature.structure_key) );
+
+            signature_map[draw_signature.signature_key][class_key].insert(n_pass);
         }
     }
 
@@ -452,11 +458,15 @@ bool Analysis::RecipeBake::RecipeBaker::compute_draw_rules(const Analysis::Recip
         if (signature_pair.second.size() == 1)
         {
             /* Every pass draws it the same way: the rule needs no condition. */
-            if (signature_pair.second.begin()->first != Analysis::Recipe::DrawClass::AFFECTED)
+            const ClassKey& class_key = signature_pair.second.begin()->first;
+
+            if (class_key.first != Analysis::Recipe::DrawClass::AFFECTED ||
+                class_key.second)
             {
                 Analysis::Recipe::DrawRule rule;
 
-                rule.draw_class    = signature_pair.second.begin()->first;
+                rule.draw_class    = class_key.first;
+                rule.is_pushed     = class_key.second;
                 rule.signature_key = signature_pair.first;
 
                 out_rule_vec_ptr->push_back(rule);
@@ -668,6 +678,18 @@ Analysis::RecipeBake::SceneLimits Analysis::RecipeBake::RecipeBaker::resolve_sce
     result.is_far_limit   = limits.is_far_limit;
     result.is_overridden  = (scene_ptr != nullptr);
     result.max_separation = limits.max_separation;
+
+    return result;
+}
+
+std::string Analysis::RecipeBake::RecipeBaker::get_class_key_text(const ClassKey& in_class_key)
+{
+    std::string result = get_class_name(in_class_key.first);
+
+    if (in_class_key.second)
+    {
+        result += ", pushed";
+    }
 
     return result;
 }
@@ -1038,6 +1060,12 @@ void Analysis::RecipeBake::RecipeBaker::write_baked(const std::vector<uint64_t>&
         inout_writer_ptr->write_hex_u64(rule.signature_key);
         inout_writer_ptr->write_key    ("class");
         inout_writer_ptr->write_string (get_class_name(rule.draw_class) );
+
+        if (rule.is_pushed)
+        {
+            inout_writer_ptr->write_key ("pushed");
+            inout_writer_ptr->write_bool(true);
+        }
 
         if (rule.view_matrix_vec.empty() == false)
         {

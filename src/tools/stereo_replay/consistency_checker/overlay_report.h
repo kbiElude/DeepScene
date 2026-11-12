@@ -27,7 +27,9 @@ namespace Stereo
                 std::string                                agreement;
                 std::string                                animation_filename;          /* the frame and the frame with the draws in magenta, by turns; empty if nothing differs */
                 Analysis::APIDumpAnalysis::PassDepthSpread depth_spread;                /* how deep the vertices of its pass are */
+                Analysis::APIDumpAnalysis::DrawFacts       draw_facts;                  /* what the draws of its structure did (blending, sampling a copy of the picture, where they draw) */
                 uint32_t                                   frame_index      = 0;
+                bool                                       has_draw_facts   = false;    /* false if the list was made before the analysis told them */
                 std::string                                image_filename;              /* relative to the output directory; empty if nothing differs */
                 uint32_t                                   index            = 0;         /* of the candidate in the list, which says its files */
                 std::string                                live_class;
@@ -161,6 +163,8 @@ namespace Stereo
 
                 static void read_depth_spread(const Utils::Json::JsonValue&               in_depth,
                                               Analysis::APIDumpAnalysis::PassDepthSpread* out_spread_ptr);
+                static void read_draw_facts  (const Utils::Json::JsonValue&               in_facts,
+                                              Analysis::APIDumpAnalysis::DrawFacts*       out_facts_ptr);
 
                 /* The still (the frame dimmed, with the pixels of the draws in magenta) and the animation (the frame as it is, and with them in magenta, by turns). */
                 static bool write_images(const std::string&          in_directory,

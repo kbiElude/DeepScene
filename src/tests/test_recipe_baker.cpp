@@ -110,6 +110,54 @@ TEST_F(RecipeBakerTest, SignaturesOfOneClassGetOneRuleEach)
     EXPECT_TRUE(recipe.draw_rule_vec.at(0).view_matrix_vec.empty() );
 }
 
+TEST_F(RecipeBakerTest, ADrawThatIsPushedGetsARuleWhateverItsClassIs)
+{
+    Analysis::RecipeBake::BakeReport report;
+    std::string                      error;
+    uint64_t                         second_pass_key = 0;
+    const auto                       analysis        = make_two_pass_analysis(1, 1,
+                                                                            1, 2,
+                                                                            false,
+                                                                           &second_pass_key);
+    std::string                      text;
+    Analysis::Recipe::Recipe         recipe;
+
+    /* The pass is pushed and not unaffected, so its draw is affected and pushed, which no rule would say if it were not pushed. */
+    ASSERT_TRUE(Analysis::RecipeBake::RecipeBaker::bake("{\"recipe_version\": 0, \"key_scheme_version\": 1, \"target\": {\"name\": \"test\", \"description\": \"a test\"},"
+                                                        "\"pushed\": {\"pass_keys\": [\"" + make_key_text(second_pass_key) + "\"]}, \"rules\": []}",
+                                                        analysis,
+                                                       &text,
+                                                       &report,
+                                                       &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(text,
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    ASSERT_EQ(recipe.draw_rule_vec.size(),
+              1u);
+    EXPECT_EQ  (recipe.draw_rule_vec.at(0).draw_class,
+                Analysis::Recipe::DrawClass::AFFECTED);
+    EXPECT_TRUE(recipe.draw_rule_vec.at(0).is_pushed);
+
+    /* Pushed and unaffected: the class is as it was, and the rule says it is pushed. */
+    ASSERT_TRUE(Analysis::RecipeBake::RecipeBaker::bake("{\"recipe_version\": 0, \"key_scheme_version\": 1, \"target\": {\"name\": \"test\", \"description\": \"a test\"},"
+                                                        "\"unaffected\": {\"pass_keys\": [\"" + make_key_text(second_pass_key) + "\"]},"
+                                                        "\"pushed\": {\"pass_keys\": [\"" + make_key_text(second_pass_key) + "\"]}, \"rules\": []}",
+                                                        analysis,
+                                                       &text,
+                                                       &report,
+                                                       &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(text,
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    ASSERT_EQ(recipe.draw_rule_vec.size(),
+              1u);
+    EXPECT_EQ  (recipe.draw_rule_vec.at(0).draw_class,
+                Analysis::Recipe::DrawClass::UNAFFECTED);
+    EXPECT_TRUE(recipe.draw_rule_vec.at(0).is_pushed);
+}
+
 TEST_F(RecipeBakerTest, ASignatureThatPassesOfDifferentClassesDrawIsToldApartByTheViewMatrix)
 {
     Analysis::RecipeBake::BakeReport report;

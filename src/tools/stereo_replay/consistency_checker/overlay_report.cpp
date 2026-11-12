@@ -344,6 +344,16 @@ bool Stereo::Replay::ConsistencyChecker::OverlayReport::parse_candidates(const O
                              &entry.depth_spread);
         }
 
+        const auto* facts_ptr = candidate.find_ptr("facts");
+
+        if (facts_ptr != nullptr)
+        {
+            read_draw_facts(*facts_ptr,
+                           &entry.draw_facts);
+
+            entry.has_draw_facts = true;
+        }
+
         for (const auto& reason : candidate.at("reasons").item_vec)
         {
             entry.reason_vec.push_back(reason.string_value);
@@ -480,6 +490,16 @@ bool Stereo::Replay::ConsistencyChecker::OverlayReport::parse_result_entries(con
 
         read_depth_spread(item.at("depth"),
                          &entry.depth_spread);
+
+        const auto* item_facts_ptr = item.find_ptr("facts");
+
+        if (item_facts_ptr != nullptr)
+        {
+            read_draw_facts(*item_facts_ptr,
+                           &entry.draw_facts);
+
+            entry.has_draw_facts = true;
+        }
 
         for (const auto& reason : item.at("reasons").item_vec)
         {
@@ -999,6 +1019,27 @@ void Stereo::Replay::ConsistencyChecker::OverlayReport::read_depth_spread(const 
     }
 }
 
+void Stereo::Replay::ConsistencyChecker::OverlayReport::read_draw_facts(const Utils::Json::JsonValue&         in_facts,
+                                                                        Analysis::APIDumpAnalysis::DrawFacts* out_facts_ptr)
+{
+    out_facts_ptr->n_blended_draws               = static_cast<uint64_t>(in_facts.at("n_blended_draws").number_value);
+    out_facts_ptr->n_draws                       = static_cast<uint64_t>(in_facts.at("n_draws").number_value);
+    out_facts_ptr->n_draws_sampling_copied_color = static_cast<uint64_t>(in_facts.at("n_draws_sampling_copied_color").number_value);
+    out_facts_ptr->n_draws_with_footprint        = static_cast<uint64_t>(in_facts.at("n_draws_with_footprint").number_value);
+
+    if (out_facts_ptr->n_draws_with_footprint != 0)
+    {
+        out_facts_ptr->area_fraction_max = static_cast<float>(in_facts.at("area_fraction_max").number_value);
+        out_facts_ptr->area_fraction_min = static_cast<float>(in_facts.at("area_fraction_min").number_value);
+        out_facts_ptr->view_depth_max    = static_cast<float>(in_facts.at("view_depth_max").number_value);
+        out_facts_ptr->view_depth_min    = static_cast<float>(in_facts.at("view_depth_min").number_value);
+        out_facts_ptr->x_max             = static_cast<float>(in_facts.at("x_max").number_value);
+        out_facts_ptr->x_min             = static_cast<float>(in_facts.at("x_min").number_value);
+        out_facts_ptr->y_max             = static_cast<float>(in_facts.at("y_max").number_value);
+        out_facts_ptr->y_min             = static_cast<float>(in_facts.at("y_min").number_value);
+    }
+}
+
 bool Stereo::Replay::ConsistencyChecker::OverlayReport::run(const Options&       in_options,
                                                            const RenderFunc&    in_render_func,
                                                            const RunShardsFunc& in_run_shards_func,
@@ -1237,6 +1278,12 @@ bool Stereo::Replay::ConsistencyChecker::OverlayReport::write_list(const std::st
 
         Analysis::APIDumpAnalysis::QueryCommands::write_depth_spread(entry.depth_spread,
                                                                       &writer);
+
+        if (entry.has_draw_facts)
+        {
+            Analysis::APIDumpAnalysis::QueryCommands::write_draw_facts(entry.draw_facts,
+                                                                        &writer);
+        }
 
         writer.write_key    ("n_picture_pixels");
         writer.write_u64    (entry.n_picture_pixels);

@@ -14,6 +14,11 @@
 std::vector<Analysis::RecipeBake::OverlayCandidate> Analysis::RecipeBake::OverlayCandidateFinder::find(const Analysis::Recipe::Recipe&                  in_recipe,
                                                                                                        const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
 {
+    /* The part of the picture that the box around a draw has to cover for the draw to be called one that covers the view: a full quad of a picture that has bars above
+     * and below it (as Gerbera's does) is 0.79 of the viewport.
+     */
+    constexpr float COVERS_VIEW_FRACTION = 0.75f;
+
     const Analysis::Recipe::RecipeApplier applier(in_recipe);
 
     const auto&                 model_ref          = in_analysis.model;
@@ -112,6 +117,51 @@ std::vector<Analysis::RecipeBake::OverlayCandidate> Analysis::RecipeBake::Overla
                 if (structure.clears_color == false)
                 {
                     candidate.reason_vec.push_back("draws_over_existing_color");
+                }
+
+                /* What the draws of the structure did, which says whether the overlay has content of its own or works on the picture below it. */
+                auto facts_iterator = model_ref.draw_facts_map.lower_bound(Analysis::APIDumpAnalysis::DrawFactsKey(draw_signature.structure_key,
+                                                                                                                   0) );
+
+                for (;
+                     facts_iterator != model_ref.draw_facts_map.end() &&
+                     facts_iterator->first.first == draw_signature.structure_key;
+                   ++facts_iterator)
+                {
+                    candidate.draw_facts     = (candidate.has_draw_facts) ? merge_draw_facts(candidate.draw_facts,
+                                                                                             facts_iterator->second)
+                                                                          : facts_iterator->second;
+                    candidate.has_draw_facts = true;
+
+                    candidate.draw_group_map[facts_iterator->first.second] = facts_iterator->second;
+                }
+
+                if (candidate.has_draw_facts)
+                {
+                    const auto& facts = candidate.draw_facts;
+
+                    if (facts.n_draws_sampling_copied_color != 0)
+                    {
+                        candidate.reason_vec.push_back("samples_copied_picture");
+                    }
+
+                    if (facts.n_draws != 0 &&
+                        facts.n_blended_draws == facts.n_draws)
+                    {
+                        candidate.reason_vec.push_back("blends_over_picture");
+                    }
+
+                    if (facts.n_draws_with_footprint != 0 &&
+                        facts.area_fraction_min      >= COVERS_VIEW_FRACTION)
+                    {
+                        candidate.reason_vec.push_back("covers_view");
+                    }
+                    else
+                    if (facts.n_draws_with_footprint != 0 &&
+                        facts.area_fraction_max      >= COVERS_VIEW_FRACTION)
+                    {
+                        candidate.reason_vec.push_back("covers_view_in_some_draws");
+                    }
                 }
 
                 if (unaffected_draw_key_set.count(draw_signature.structure_key) != 0)
@@ -363,6 +413,42 @@ std::vector<uint64_t> Analysis::RecipeBake::OverlayCandidateFinder::get_sample_f
     return result_vec;
 }
 
+Analysis::APIDumpAnalysis::DrawFacts Analysis::RecipeBake::OverlayCandidateFinder::merge_draw_facts(const Analysis::APIDumpAnalysis::DrawFacts& in_a,
+                                                                                                   const Analysis::APIDumpAnalysis::DrawFacts& in_b)
+{
+    Analysis::APIDumpAnalysis::DrawFacts result = in_a;
+
+    result.n_blended_draws               += in_b.n_blended_draws;
+    result.n_draws                       += in_b.n_draws;
+    result.n_draws_sampling_copied_color += in_b.n_draws_sampling_copied_color;
+
+    if (in_b.n_draws_with_footprint != 0)
+    {
+        const bool is_first = (in_a.n_draws_with_footprint == 0);
+
+        result.area_fraction_max = (is_first || in_b.area_fraction_max > in_a.area_fraction_max) ? in_b.area_fraction_max
+                                                                                                 : in_a.area_fraction_max;
+        result.area_fraction_min = (is_first || in_b.area_fraction_min < in_a.area_fraction_min) ? in_b.area_fraction_min
+                                                                                                 : in_a.area_fraction_min;
+        result.view_depth_max    = (is_first || in_b.view_depth_max    > in_a.view_depth_max)    ? in_b.view_depth_max
+                                                                                                 : in_a.view_depth_max;
+        result.view_depth_min    = (is_first || in_b.view_depth_min    < in_a.view_depth_min)    ? in_b.view_depth_min
+                                                                                                 : in_a.view_depth_min;
+        result.x_max             = (is_first || in_b.x_max             > in_a.x_max)             ? in_b.x_max
+                                                                                                 : in_a.x_max;
+        result.x_min             = (is_first || in_b.x_min             < in_a.x_min)             ? in_b.x_min
+                                                                                                 : in_a.x_min;
+        result.y_max             = (is_first || in_b.y_max             > in_a.y_max)             ? in_b.y_max
+                                                                                                 : in_a.y_max;
+        result.y_min             = (is_first || in_b.y_min             < in_a.y_min)             ? in_b.y_min
+                                                                                                 : in_a.y_min;
+    }
+
+    result.n_draws_with_footprint += in_b.n_draws_with_footprint;
+
+    return result;
+}
+
 void Analysis::RecipeBake::OverlayCandidateFinder::write_json(const std::vector<OverlayCandidate>& in_candidate_vec,
                                                               const Analysis::Recipe::Recipe&      in_recipe,
                                                               Utils::Json::JsonWriter*             inout_writer_ptr)
@@ -421,6 +507,30 @@ void Analysis::RecipeBake::OverlayCandidateFinder::write_json(const std::vector<
 
         Analysis::APIDumpAnalysis::QueryCommands::write_depth_spread(candidate.depth_spread,
                                                                       inout_writer_ptr);
+
+        if (candidate.has_draw_facts)
+        {
+            Analysis::APIDumpAnalysis::QueryCommands::write_draw_facts(candidate.draw_facts,
+                                                                        inout_writer_ptr);
+
+            /* A structure whose draws are not all alike says so by the size of its draws; the report does not carry this. */
+            inout_writer_ptr->write_key("draw_groups");
+            inout_writer_ptr->begin_array();
+
+            for (const auto& group_pair : candidate.draw_group_map)
+            {
+                inout_writer_ptr->begin_object();
+                inout_writer_ptr->write_key    ("cover_key");
+                inout_writer_ptr->write_hex_u64(group_pair.first);
+
+                Analysis::APIDumpAnalysis::QueryCommands::write_draw_facts(group_pair.second,
+                                                                            inout_writer_ptr);
+
+                inout_writer_ptr->end_object();
+            }
+
+            inout_writer_ptr->end_array();
+        }
 
         inout_writer_ptr->write_key("reasons");
         inout_writer_ptr->begin_inline_array();

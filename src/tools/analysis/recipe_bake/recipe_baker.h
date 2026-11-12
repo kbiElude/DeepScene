@@ -72,7 +72,9 @@ namespace Analysis
                                                     const SceneMeasure&             in_measure);
 
         private:
-            typedef std::map<Analysis::Recipe::DrawClass, std::set<uint32_t> > ClassMap;
+            /* What a draw is for a converter that plays an application as it runs: the class and whether it is pushed toward the viewer. */
+            typedef std::pair<Analysis::Recipe::DrawClass, bool>               ClassKey;
+            typedef std::map<ClassKey, std::set<uint32_t> >                    ClassMap;
             typedef std::vector<Analysis::Recipe::DrawConvergence>             ConvergenceVector;
             typedef std::vector<std::array<float, 16> >                        MatrixVector;
             typedef std::vector<Analysis::Recipe::PerEyeTexture>               PerEyeTextureVector;
@@ -80,7 +82,7 @@ namespace Analysis
             typedef std::vector<Analysis::Recipe::SceneConvergence>            SceneConvergenceVector;
             typedef std::vector<Analysis::Recipe::SceneSeparation>             SceneSeparationVector;
 
-            /* The rules of a signature which passes of different classes draw: each class that is not affected is told by the view
+            /* The rules of a signature which passes of different classes draw: each class that is not affected, or is pushed, is told by the view
              * matrices of its passes. Returns false, and says why, if the matrices do not tell the classes apart.
              */
             static bool compute_conditional_rules(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis,
@@ -115,6 +117,9 @@ namespace Analysis
              * its pictures apart for the eyes). */
             static PerEyeTextureVector get_per_eye_texture_vec(const Analysis::APIDumpAnalysis::AnalysisResult&         in_analysis,
                                                                const Analysis::APIDumpDependencies::DependencyAnalysis* in_dependencies_ptr);
+
+            /* The class as a message says it: "affected", or "unaffected, pushed". */
+            static std::string get_class_key_text(const ClassKey& in_class_key);
 
             static const char* get_class_name(const Analysis::Recipe::DrawClass& in_class);
 

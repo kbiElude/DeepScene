@@ -40,6 +40,10 @@ namespace Analysis
             static std::vector<uint64_t> get_sample_frame_index_vec(const std::vector<uint64_t>& in_frame_index_vec);
 
         private:
+            /* The facts of two groups of draws, as if they were one. */
+            static Analysis::APIDumpAnalysis::DrawFacts merge_draw_facts(const Analysis::APIDumpAnalysis::DrawFacts& in_a,
+                                                                         const Analysis::APIDumpAnalysis::DrawFacts& in_b);
+
             /* What the converter does with the draws of the signature, for each of the cameras of the pass; a pass with no camera has one with no numbers in it. */
             static LiveClass get_live_class(const Analysis::Recipe::RecipeApplier&           in_applier,
                                             const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis,
