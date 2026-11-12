@@ -8,6 +8,7 @@
 #include "utils/hashing/hasher.h"
 #include <limits>
 #include <string.h>
+#include <vector>
 
 TEST(Hasher, BytesAreHashedWithXXH64)
 {
@@ -188,4 +189,98 @@ hasher.add_bytes(block_u8_vec.data(),
     EXPECT_EQ(hasher.get_digest(),
               Utils::Hashing::Hasher::hash_bytes(expected_u8_vec.data(),
                                                  expected_u8_vec.size() ) );
+}
+
+namespace
+{
+    /* The bytes that the pinned digests below are of. */
+    std::vector<uint8_t> get_pattern(const size_t& in_n_bytes)
+    {
+        std::vector<uint8_t> result(in_n_bytes);
+
+        for (size_t n_byte = 0;
+                    n_byte < in_n_bytes;
+                  ++n_byte)
+        {
+            result.at(n_byte) = static_cast<uint8_t>(n_byte * 31 + 7);
+        }
+
+        return result;
+    }
+}
+
+TEST(Hasher, BytesOfEverySizeAreHashedAsXXH64HashesThem)
+{
+    /* Reference values of XXH64 with seed 0 of the pattern of bytes, around the sizes where the way it is done changes (4, 8, 32 bytes, and the 64 from which the stripes are done by AVX2). */
+    struct Pinned
+    {
+        size_t   n_bytes;
+        uint64_t digest;
+    };
+
+    const Pinned pinned_array[] =
+    {
+        {0, 0xEF46DB3751D8E999ull},
+        {1, 0xA96C7F0CE858BBB7ull},
+        {3, 0x56E6957632A487F9ull},
+        {4, 0xC60D15B1E3FF8F04ull},
+        {7, 0xAFBEFC3D6C6F9A8Eull},
+        {8, 0x3DA5C7AA269683E0ull},
+        {15, 0xAE2A37EB9357CAA7ull},
+        {31, 0x4A74F3A1A39AD4A1ull},
+        {32, 0x8D57D6A4671CC43Dull},
+        {33, 0x62C9FD21ED857664ull},
+        {63, 0x5C320A0D2707057Full},
+        {64, 0x7BBABBC45729D17Eull},
+        {65, 0xF3980C34BAE65DC1ull},
+        {95, 0x90F6CB6D1DB41380ull},
+        {96, 0x1A4B207385051B55ull},
+        {100, 0xEFA0AD2D3E70C151ull},
+        {127, 0x4822F4E67F60EA91ull},
+        {128, 0x725A5B9B3BEDFE94ull},
+        {255, 0x2C3DB4BB567F731Eull},
+        {256, 0x7C1FF7B1D57C10D5ull},
+        {257, 0x6FF15897658784E0ull},
+        {1000, 0x99594F4828043D35ull},
+        {1024, 0x149AA44972CDAE00ull},
+        {4096, 0xE21174BE82DC78D9ull},
+        {4097, 0xD42496BBBECACB1Dull},
+        {65536, 0xCE06607392C5113Full},
+        {100000, 0x3AC9CBC5A9B7F843ull},
+    };
+
+    const auto pattern_vec = get_pattern(100000);
+
+    for (const Pinned& pinned : pinned_array)
+    {
+        EXPECT_EQ(Utils::Hashing::Hasher::hash_bytes(pattern_vec.data(),
+                                                     pinned.n_bytes),
+                  pinned.digest) << pinned.n_bytes << " bytes";
+    }
+}
+
+TEST(Hasher, BytesAreHashedTheSameWhereverTheyStartInMemory)
+{
+    for (const size_t n_bytes : {63, 64, 65, 96, 100, 255, 1000, 4000})
+    {
+        const auto pattern_vec = get_pattern(n_bytes);
+
+        for (size_t n_offset = 0;
+                    n_offset < 8;
+                  ++n_offset)
+        {
+            /* The same bytes at an address that is n_offset more than the one of a vector of its own. */
+            std::vector<uint8_t> shifted_vec(n_offset + n_bytes,
+                                             0xA5);
+
+            ::memcpy(shifted_vec.data() + n_offset,
+                     pattern_vec.data(),
+                     n_bytes);
+
+            EXPECT_EQ(Utils::Hashing::Hasher::hash_bytes(shifted_vec.data() + n_offset,
+                                                         n_bytes),
+                      Utils::Hashing::Hasher::hash_bytes(pattern_vec.data(),
+                                                         n_bytes) ) << n_bytes << " bytes, offset " << n_offset;
+        }
+    }
 }

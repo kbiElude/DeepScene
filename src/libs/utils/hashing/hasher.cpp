@@ -3,12 +3,15 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "utils/hashing/hasher.h"
+#include "utils/cpu/cpu_features.h"
 #include <math.h>
 #include <string.h>
 
 /* The xxHash which Zstandard comes with, built into this file only. */
 #define XXH_INLINE_ALL
 #include "xxhash.h"
+
+const size_t Utils::Hashing::Hasher::N_MIN_AVX2_BYTES = 64;
 
 Utils::Hashing::Hasher::Hasher()
     :m_is_spilled    (false),
@@ -139,7 +142,69 @@ uint64_t Utils::Hashing::Hasher::hash_bytes(const void*   in_data_ptr,
 {
     constexpr uint64_t SEED = 0;
 
-    return XXH64(in_data_ptr,
-                 in_n_bytes,
-                 SEED);
+    const bool is_avx2_supported = Utils::Cpu::CpuFeatures::is_avx2_supported();
+    uint64_t   result            = 0;
+
+    if (is_avx2_supported            &&
+        in_n_bytes >= N_MIN_AVX2_BYTES)
+    {
+        result = hash_bytes_avx2(in_data_ptr,
+                                 in_n_bytes);
+    }
+    else
+    {
+        result = XXH64(in_data_ptr,
+                       in_n_bytes,
+                       SEED);
+    }
+
+    return result;
+}
+
+uint64_t Utils::Hashing::Hasher::hash_bytes_avx2(const void*   in_data_ptr,
+                                                 const size_t& in_n_bytes)
+{
+    constexpr size_t   N_BYTES_PER_STRIPE = 32;
+    constexpr int      N_ROTATE_BITS_1    = 1;
+    constexpr int      N_ROTATE_BITS_2    = 7;
+    constexpr int      N_ROTATE_BITS_3    = 12;
+    constexpr int      N_ROTATE_BITS_4    = 18;
+    constexpr uint64_t SEED               = 0;
+
+    /* What XXH64 does for 32 bytes or more, with its four accumulators (the first four of its state) as it starts them. */
+    uint64_t       accumulator_u64vec4[4] = {SEED + XXH_PRIME64_1 + XXH_PRIME64_2,
+                                             SEED + XXH_PRIME64_2,
+                                             SEED,
+                                             SEED - XXH_PRIME64_1};
+    const uint8_t* data_u8_ptr            = static_cast<const uint8_t*>(in_data_ptr);
+    const size_t   n_stripes              = in_n_bytes / N_BYTES_PER_STRIPE;
+
+    hash_stripes_avx2(data_u8_ptr,
+                      n_stripes,
+                      XXH_PRIME64_1,
+                      XXH_PRIME64_2,
+                      accumulator_u64vec4);
+
+    uint64_t result = XXH_rotl64(accumulator_u64vec4[0],
+                                 N_ROTATE_BITS_1) +
+                      XXH_rotl64(accumulator_u64vec4[1],
+                                 N_ROTATE_BITS_2) +
+                      XXH_rotl64(accumulator_u64vec4[2],
+                                 N_ROTATE_BITS_3) +
+                      XXH_rotl64(accumulator_u64vec4[3],
+                                 N_ROTATE_BITS_4);
+
+    for (const uint64_t accumulator : accumulator_u64vec4)
+    {
+        result = XXH64_mergeRound(result,
+                                  accumulator);
+    }
+
+    result += static_cast<uint64_t>(in_n_bytes);
+
+    /* The bytes that are left (fewer than a stripe) and the last mixing of the bits are the usual way. */
+    return XXH64_finalize(result,
+                          data_u8_ptr + n_stripes * N_BYTES_PER_STRIPE,
+                          in_n_bytes,
+                          XXH_unaligned);
 }

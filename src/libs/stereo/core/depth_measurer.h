@@ -36,9 +36,6 @@ namespace Stereo
                                const float&  in_projection_z_shift,
                                const float&  in_fraction);
 
-            /* True if the processor and the system have AVX2. */
-            static bool is_avx2_supported();
-
         private:
             void       clear_histogram(const DepthKeyRange&  in_key_range);
             uint32_t   locate_key     (const DepthKeyRange&  in_key_range,

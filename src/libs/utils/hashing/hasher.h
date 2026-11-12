@@ -51,6 +51,24 @@ namespace Utils
             void append(const void*   in_data_ptr,
                         const size_t& in_n_bytes);
 
+            /* The same hash as hash_bytes() gives, with the work on the stripes of 32 bytes done by hash_stripes_avx2(), which is faster than the usual way for more than a few dozen
+             * bytes on a processor that has AVX2. It is the same function: so is every digest.
+             */
+            static uint64_t hash_bytes_avx2(const void*   in_data_ptr,
+                                            const size_t& in_n_bytes);
+
+            /* The four accumulators of XXH64 (the arguments are its first and second prime) after the stripes of 32 bytes that in_n_stripes of them are; in its own file, since that is
+             * built for AVX2 (and so is not to be the home of anything that the rest of the program may call).
+             */
+            static void hash_stripes_avx2(const uint8_t*  in_data_ptr,
+                                          const size_t&   in_n_stripes,
+                                          const uint64_t& in_prime_1,
+                                          const uint64_t& in_prime_2,
+                                          uint64_t*       io_accumulator_u64vec4);
+
+            /* Fewer bytes than this are hashed the usual way: the stripes are not worth it. */
+            static const size_t N_MIN_AVX2_BYTES;
+
             bool                 m_is_spilled;
             uint8_t              m_inline_u8vec2048[N_INLINE_BYTES];
             size_t               m_n_inline_bytes;

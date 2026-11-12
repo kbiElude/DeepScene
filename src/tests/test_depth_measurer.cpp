@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 #include "stereo/core/depth_buffer_statistics.h"
 #include "stereo/core/depth_measurer.h"
+#include "utils/cpu/cpu_features.h"
 #include <cmath>
 #include <limits>
 #include <random>
@@ -116,7 +117,7 @@ TEST(DepthMeasurer, ItGivesWhatTheScalarMeasureGivesForScenesOfAllSizesAndSkies)
 TEST(DepthMeasurer, ItUsesAvx2WhenTheProcessorHasIt)
 {
     EXPECT_EQ(Stereo::Core::DepthMeasurer(true).is_using_avx2(),
-              Stereo::Core::DepthMeasurer::is_avx2_supported() );
+              Utils::Cpu::CpuFeatures::is_avx2_supported() );
 }
 
 TEST(DepthMeasurer, ItGivesWhatTheScalarMeasureGivesWithoutAvx2)
