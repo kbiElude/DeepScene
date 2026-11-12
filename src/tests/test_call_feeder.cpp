@@ -46,7 +46,8 @@ namespace
 
         inout_feeder_ptr->on_pre (CALL_FUNCTION,
                                   static_cast<uint32_t>(argument_vec.size() ),
-                                  argument_vec.data() );
+                                  argument_vec.data(),
+                                  0);
         inout_feeder_ptr->on_post(CALL_FUNCTION,
                                   0,
                                   nullptr,
@@ -214,7 +215,8 @@ TEST(CallFeederTest, AChunkThatIsNotInTheInterceptorIsNotGiven)
 
     feeder.on_pre (CALL_FUNCTION,
                    1,
-                  &argument);
+                  &argument,
+                   0);
     feeder.on_post(CALL_FUNCTION,
                    0,
                    nullptr,

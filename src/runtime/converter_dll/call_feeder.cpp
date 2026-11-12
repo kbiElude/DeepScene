@@ -152,19 +152,16 @@ void Stereo::ConverterDLL::CallFeeder::analyze(const Capture::APIDumpLoader::Dum
 void Stereo::ConverterDLL::CallFeeder::fill_call(const APIInterceptor::APIFunction&         in_function,
                                                  const uint32_t&                            in_n_arguments,
                                                  const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
+                                                 const uint64_t&                            in_timestamp_qpc,
                                                  Capture::APIDumpLoader::DumpedAPICall*     out_call_ptr)
 {
-    LARGE_INTEGER timestamp;
-
-    ::QueryPerformanceCounter(&timestamp);
-
     out_call_ptr->arg_in_vec.assign(in_arguments_ptr,
                                     in_arguments_ptr + in_n_arguments);
     out_call_ptr->arg_out_vec.clear();
 
     out_call_ptr->func          = in_function;
     out_call_ptr->thread_id     = static_cast<uint32_t>(::GetCurrentThreadId() );
-    out_call_ptr->timestamp_qpc = static_cast<uint64_t>(timestamp.QuadPart);
+    out_call_ptr->timestamp_qpc = in_timestamp_qpc;
 
     if (out_call_ptr->returned_value_ptr != nullptr)
     {
@@ -302,7 +299,8 @@ void Stereo::ConverterDLL::CallFeeder::on_post(const APIInterceptor::APIFunction
 
 bool Stereo::ConverterDLL::CallFeeder::on_pre(const APIInterceptor::APIFunction&         in_function,
                                               const uint32_t&                            in_n_arguments,
-                                              const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
+                                              const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
+                                              const uint64_t&                            in_timestamp_qpc)
 {
     auto*      pending_calls_ptr = get_pending_calls_ptr();
     const bool result            = is_draw              (in_function);
@@ -317,6 +315,7 @@ bool Stereo::ConverterDLL::CallFeeder::on_pre(const APIInterceptor::APIFunction&
     fill_call(in_function,
               in_n_arguments,
               in_arguments_ptr,
+              in_timestamp_qpc,
              &call);
 
     if (result)

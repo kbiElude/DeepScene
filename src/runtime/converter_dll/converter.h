@@ -77,10 +77,13 @@ namespace Stereo
                              bool*                        out_is_pushed_ptr,
                              std::vector<std::string>*    out_log_line_vec_ptr);
 
-            /* A call is about to be made: the work of the callback, for a call that is the application's. */
+            /* A call is about to be made: the work of the callback, for a call that is the application's. in_timestamp_qpc is the time (in the ticks of the performance counter) that the
+             * callback was entered at, which the call is stamped with.
+             */
             void on_pre(const APIInterceptor::APIFunction&         in_api_func,
                         const uint32_t&                            in_n_arguments,
                         const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
+                        const uint64_t&                            in_timestamp_qpc,
                         bool*                                      out_should_pass_through_ptr);
 
             /* A frame is about to be presented: what the program which shows the images says is taken, and the log lines for what changed
@@ -125,7 +128,7 @@ namespace Stereo
                 std::unique_ptr<Stereo::Core::StereoCore> core_ptr;
                 std::unique_ptr<GlEyeRenderer>            gl_renderer_ptr;
                 std::unique_ptr<D3D7EyeRenderer>          d3d7_renderer_ptr;
-                std::atomic<int64_t>                      n_callback_ticks = {0}; /* spent in the callbacks, in the ticks of the performance counter */
+                std::atomic<int64_t>                      n_callback_ticks = {0}; /* spent in the callbacks, in the ticks of the performance counter: of one call in so many that is timed, times that many */
                 std::atomic<int64_t>                      n_draw_ticks     = {0}; /* of those, in the draws of Direct3D 7                              */
                 D3D7WindowedMode                          d3d7_windowed_mode;
                 uint64_t                                  dump_every         = 0; /* a frame is written to a file every so many frames; 0: none */

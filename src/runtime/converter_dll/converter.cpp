@@ -631,6 +631,7 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
 void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction&         in_api_func,
                                              const uint32_t&                            in_n_arguments,
                                              const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
+                                             const uint64_t&                            in_timestamp_qpc,
                                              bool*                                      out_should_pass_through_ptr)
 {
     const bool               is_present        = (in_api_func    == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_PRESENT &&
@@ -651,7 +652,8 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
                                 api_group != Capture::APIDumpLoader::APIGroup::D3D7);
         const bool is_draw   = m_live_state.feeder.on_pre(in_api_func,
                                                           in_n_arguments,
-                                                          in_arguments_ptr);
+                                                          in_arguments_ptr,
+                                                          in_timestamp_qpc);
 
         if (in_api_func == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_SETTRANSFORM)
         {
@@ -817,6 +819,14 @@ void Stereo::ConverterDLL::Converter::on_pre_callback(APIInterceptor::APIFunctio
                                                       void*                                      in_user_arg_ptr,
                                                       bool*                                      out_should_pass_through_ptr)
 {
+    /* The time the callbacks take is told in the log. The clock costs about as much as a call that is only noted, so it is read once for every call (the call is stamped with
+     * it), and a second time, to say how long the callback took, for one call of this many of a thread only; what that one took is counted that many times. The number is a prime,
+     * so that it does not line up with a few calls that the application makes over and over (every one that is timed would be the same call).
+     */
+    constexpr uint32_t N_CALLS_PER_TIMING = 61;
+
+    static thread_local uint32_t n_calls_seen = 0;
+
     if (OwnCallScope::is_active() == false)
     {
         LARGE_INTEGER end_qpc;
@@ -824,14 +834,22 @@ void Stereo::ConverterDLL::Converter::on_pre_callback(APIInterceptor::APIFunctio
 
         ::QueryPerformanceCounter(&start_qpc);
 
+        const bool is_timed = (n_calls_seen % N_CALLS_PER_TIMING == 0);
+
+        n_calls_seen++;
+
         static_cast<Converter*>(in_user_arg_ptr)->on_pre(in_api_func,
                                                          in_n_arguments,
                                                          in_arguments_ptr,
+                                                         static_cast<uint64_t>(start_qpc.QuadPart),
                                                          out_should_pass_through_ptr);
 
-        ::QueryPerformanceCounter(&end_qpc);
+        if (is_timed)
+        {
+            ::QueryPerformanceCounter(&end_qpc);
 
-        static_cast<Converter*>(in_user_arg_ptr)->m_live_state.n_callback_ticks += end_qpc.QuadPart - start_qpc.QuadPart;
+            static_cast<Converter*>(in_user_arg_ptr)->m_live_state.n_callback_ticks += (end_qpc.QuadPart - start_qpc.QuadPart) * N_CALLS_PER_TIMING;
+        }
     }
 }
 
