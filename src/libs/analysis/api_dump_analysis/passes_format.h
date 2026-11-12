@@ -23,6 +23,7 @@
  *   DEPT  how deep the draws of each pass structure are (see DepthHistogram)
  *   SURF  how deep the surfaces that the draws of each pass structure draw are (the same, by vertices)
  *   COVR  the keys of the draws that cover the whole of the view (a signature and a size)
+ *   FACT  what the draws of each structure did: blending, sampling a copy of the picture, where their vertices are (see DrawFacts)
  *
  * Workload data (textures, vertices) is not stored; chunk IDs point into the workload.
  *
@@ -81,6 +82,9 @@ namespace Analysis
             /* The keys of the draws that cover the whole of the view (see Model::covering_draw_key_set). A file without it was made
              * before the analysis told them. */
             constexpr uint32_t TAG_COVR = make_tag('C', 'O', 'V', 'R');
+
+            /* What the draws of each structure did (see DrawFacts). A file without it was made before the analysis told it. */
+            constexpr uint32_t TAG_FACT = make_tag('F', 'A', 'C', 'T');
 
             /* The draw structures: what each kind of draw is (its shaders, vertex layout and buffers, textures, state, and the views
              * it renders to), by the key that tells the draws apart. */

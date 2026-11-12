@@ -73,6 +73,10 @@ namespace Analysis
             /* Writes the "depth" member of an object: how deep the vertices of a pass are, or that nobody knows. */
             static void write_depth_spread(const PassDepthSpread&   in_spread,
                                            Utils::Json::JsonWriter* inout_writer_ptr);
+
+            /* Writes the "facts" member of an object: what the draws of a structure did (see DrawFacts). */
+            static void write_draw_facts  (const DrawFacts&         in_facts,
+                                           Utils::Json::JsonWriter* inout_writer_ptr);
             static void write_page        (const uint64_t&          in_total,
                                            const QueryArguments&    in_arguments,
                                            Utils::Json::JsonWriter* inout_writer_ptr);

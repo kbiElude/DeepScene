@@ -148,6 +148,7 @@ namespace Analysis
             struct DrawMatrices
             {
                 bool                  has_projection   = false;
+                bool                  has_view         = false;
                 bool                  is_orthographic  = false; /* what is far is not smaller in the projection */
                 std::array<float, 16> model_f32mat     = {1.0f, 0.0f, 0.0f, 0.0f,
                                                           0.0f, 1.0f, 0.0f, 0.0f,
@@ -185,6 +186,11 @@ namespace Analysis
             /* Of the draw in the open pass, as KeyBuilder::compute_draw_signature_key() says. */
             uint64_t compute_draw_signature_key(const DrawDescription& in_draw);
 
+            /* The first three columns of the model matrix times the view matrix (rows of four, as the matrices are kept): what a vertex needs to be given its place
+             * in the space of the camera.
+             */
+            static std::array<float, 12> compute_model_view(const DrawMatrices& in_matrices);
+
             /* Tells the sink, if there is one, of a use of a resource at this call. A resource which is NONE is no use. */
             void emit_access(const ResourceId&       in_resource_id,
                              const AccessRole&       in_role,
@@ -212,6 +218,10 @@ namespace Analysis
 
             /* Counts the draw at the depth of the origin of its object, as the camera of the pass sees it. */
             void record_draw_depth(const DrawDescription& in_draw);
+
+            /* Adds the draw to the facts of its structure (see DrawFacts): how it blends, whether it samples a copy of the picture, and where its vertices are. */
+            void record_draw_facts(const DrawDescription& in_draw,
+                                   const DrawFactsKey&    in_key);
 
             /* Counts the draw by the depth of the vertices of its sample (see DrawDescription::geometry_ptr), those in front of the camera
              * and in view, each for its share of the vertices of the draw.
@@ -243,6 +253,7 @@ namespace Analysis
             AttachmentSet                             m_attachments;
             std::vector<DrawKeys>                     m_call_draw_key_vec;
             uint64_t                                  m_call_index;
+            std::set<ResourceId>                      m_color_copy_target_set; /* the resources that a copy of the color of the picture was made to */
             CompletedFrame                            m_completed_frame;
             std::map<ConstantStateKey, ConstantState> m_constant_state_map;
             DrawStructure                             m_draw_signature_scratch; /* for on_draw(), so that it need not allocate each time */

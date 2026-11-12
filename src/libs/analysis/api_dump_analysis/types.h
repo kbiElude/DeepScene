@@ -470,6 +470,31 @@ namespace Analysis
             uint64_t                       vertex_layout_key       = 0;
         };
 
+        /* What the draws of one structure did, in all the passes they were made in: what tells an overlay that has content of its own from one that
+         * works on the picture below it. The footprint is in the units of the picture (the edges are at -1 and 1) and is that of the vertices that
+         * were sampled; the view depth is the z of a vertex in the space of the camera (for an orthographic projection, which layer it is on).
+         */
+        /* The key of the structure of a draw, and the key that tells the draws of a signature apart by their size (KeyBuilder::compute_draw_cover_key): the quads of a
+         * text and of a backdrop have one structure and are not one kind of draw.
+         */
+        typedef std::pair<uint64_t, uint64_t> DrawFactsKey;
+
+        struct DrawFacts
+        {
+            float    area_fraction_max              = 0.0f; /* the most of the picture that the box around the vertices of one draw covers (1: all of it) */
+            float    area_fraction_min              = 0.0f; /* the least: a structure that is a sprite in some draws and a backdrop in others differs                   */
+            uint64_t n_blended_draws                = 0;    /* the draws that read the color that is there (blending)                                      */
+            uint64_t n_draws                        = 0;
+            uint64_t n_draws_sampling_copied_color  = 0;    /* the draws that sample a resource that a copy of the picture filled                          */
+            uint64_t n_draws_with_footprint         = 0;    /* the draws whose vertices were sampled and could be placed in the picture                    */
+            float    view_depth_max                 = 0.0f;
+            float    view_depth_min                 = 0.0f;
+            float    x_max                          = 0.0f;
+            float    x_min                          = 0.0f;
+            float    y_max                          = 0.0f;
+            float    y_min                          = 0.0f;
+        };
+
         /* A draw of a pass: the key of its structure, and the key it is recognized by at the moment it is issued (see
          * KeyBuilder::compute_draw_signature_key).
          */

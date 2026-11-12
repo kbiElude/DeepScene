@@ -851,6 +851,59 @@ TEST(PassesFile, TheSignaturesOfTheDrawsThatCoverTheViewAreReadBack)
               analysis.model.covering_draw_key_map);
 }
 
+TEST(PassesFile, TheFactsOfTheDrawsAreReadBack)
+{
+    Analysis::APIDumpAnalysis::AnalysisResult analysis = Tests::PassesFileHelpers::analyze_slice();
+    Analysis::APIDumpAnalysis::AnalysisResult read;
+    std::string                               error;
+    Analysis::APIDumpAnalysis::DrawFacts      facts;
+
+    ASSERT_FALSE(analysis.model.draw_structure_map.empty() );
+
+    facts.area_fraction_max             = 0.25f;
+    facts.area_fraction_min             = 0.125f;
+    facts.n_blended_draws               = 3;
+    facts.n_draws                       = 5;
+    facts.n_draws_sampling_copied_color = 2;
+    facts.n_draws_with_footprint        = 4;
+    facts.view_depth_max                = 9.0f;
+    facts.view_depth_min                = 1.5f;
+    facts.x_max                         = 0.5f;
+    facts.x_min                         = -0.5f;
+    facts.y_max                         = 0.75f;
+    facts.y_min                         = -0.25f;
+
+    const Analysis::APIDumpAnalysis::DrawFactsKey facts_key(analysis.model.draw_structure_map.begin()->first,
+                                                           0x1234u);
+
+    analysis.model.draw_facts_map[facts_key] = facts;
+
+    const std::vector<uint8_t> byte_vec = Analysis::APIDumpAnalysis::PassesFile::write_bytes(analysis);
+
+    ASSERT_TRUE(Analysis::APIDumpAnalysis::PassesFile::read_bytes(byte_vec,
+                                                                 &read,
+                                                                 &error) ) << error;
+
+    const auto read_iterator = read.model.draw_facts_map.find(facts_key);
+
+    ASSERT_NE(read_iterator,
+              read.model.draw_facts_map.end() );
+    EXPECT_EQ(read_iterator->second.n_draws,
+              facts.n_draws);
+    EXPECT_EQ(read_iterator->second.n_draws_sampling_copied_color,
+              facts.n_draws_sampling_copied_color);
+    EXPECT_EQ(read_iterator->second.n_draws_with_footprint,
+              facts.n_draws_with_footprint);
+    EXPECT_FLOAT_EQ(read_iterator->second.area_fraction_max,
+                    facts.area_fraction_max);
+    EXPECT_FLOAT_EQ(read_iterator->second.area_fraction_min,
+                    facts.area_fraction_min);
+    EXPECT_FLOAT_EQ(read_iterator->second.view_depth_max,
+                    facts.view_depth_max);
+    EXPECT_FLOAT_EQ(read_iterator->second.y_min,
+                    facts.y_min);
+}
+
 TEST(PassesFile, ADrawStructureThatIsOrthographicIsReadBackAsOne)
 {
     Analysis::APIDumpAnalysis::AnalysisResult analysis = Tests::PassesFileHelpers::analyze_slice();

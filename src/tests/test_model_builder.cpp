@@ -1600,6 +1600,102 @@ TEST(ModelBuilder, ADrawOfPreTransformedVerticesWhichReachTheEdgesOfTheViewportC
     }
 }
 
+TEST(ModelBuilder, TheFactsOfADrawSayWhereItDrawsAndHowMuchOfThePictureItCovers)
+{
+    Tests::ModelTestHelper helper;
+    const auto             swapchain_image = helper.create_swapchain_image();
+
+    helper.bind        (swapchain_image);
+    helper.set_viewport(0, 0, 640, 480);
+    helper.draw_with_screen_geometry({{100.0f, 100.0f, 0.2f},
+                                      {540.0f, 100.0f, 0.2f},
+                                      {100.0f, 380.0f, 0.2f},
+                                      {540.0f, 380.0f, 0.2f}},
+                                     4);
+    helper.end_frame();
+
+    ASSERT_EQ(helper.get_model().draw_facts_map.size(),
+              1u);
+
+    const auto& facts = helper.get_model().draw_facts_map.begin()->second;
+
+    EXPECT_EQ(facts.n_draws,
+              1u);
+    EXPECT_EQ(facts.n_draws_with_footprint,
+              1u);
+
+    /* 440 of 640 across and 280 of 480 down. */
+    EXPECT_NEAR(facts.area_fraction_max,
+                (440.0f / 640.0f) * (280.0f / 480.0f),
+                1.0e-4f);
+    EXPECT_FLOAT_EQ(facts.area_fraction_min,
+                    facts.area_fraction_max);
+    EXPECT_NEAR(facts.x_min,
+                2.0f * 100.0f / 640.0f - 1.0f,
+                1.0e-4f);
+    EXPECT_NEAR(facts.y_max,
+                2.0f * 380.0f / 480.0f - 1.0f,
+                1.0e-4f);
+    EXPECT_NEAR(facts.view_depth_min,
+                5.0f,
+                1.0e-4f);
+}
+
+TEST(ModelBuilder, TheFactsOfADrawSayWhetherItBlends)
+{
+    Tests::ModelTestHelper helper;
+
+    helper.bind(helper.create_swapchain_image() );
+    helper.draw_reading_attachments();
+    helper.draw_reading_attachments();
+    helper.draw(1,
+                3);
+    helper.end_frame();
+
+    uint64_t n_blended = 0;
+    uint64_t n_draws   = 0;
+
+    for (const auto& facts_pair : helper.get_model().draw_facts_map)
+    {
+        n_blended += facts_pair.second.n_blended_draws;
+        n_draws   += facts_pair.second.n_draws;
+    }
+
+    EXPECT_EQ(n_draws,
+              3u);
+    EXPECT_EQ(n_blended,
+              2u);
+}
+
+TEST(ModelBuilder, TheFactsOfADrawSayWhetherItSamplesACopyOfThePicture)
+{
+    Tests::ModelTestHelper helper;
+    const auto             copy_target     = helper.create_color_texture();
+    const auto             static_texture  = helper.create_static_texture();
+    const auto             swapchain_image = helper.create_swapchain_image();
+
+    helper.bind         (swapchain_image);
+    helper.draw_textured(copy_target,
+                         1); /* before the copy: it is not a copy of the picture yet */
+    helper.copy         (swapchain_image,
+                         copy_target);
+    helper.draw_textured(copy_target,
+                         2);
+    helper.draw_textured(static_texture,
+                         3);
+    helper.end_frame();
+
+    uint64_t n_sampling = 0;
+
+    for (const auto& facts_pair : helper.get_model().draw_facts_map)
+    {
+        n_sampling += facts_pair.second.n_draws_sampling_copied_color;
+    }
+
+    EXPECT_EQ(n_sampling,
+              1u);
+}
+
 TEST(ModelBuilder, ADrawWhoseVerticesAreNotKnownHasNoSurfaceDepth)
 {
     constexpr size_t N_FLOATS_PER_MATRIX = 16;

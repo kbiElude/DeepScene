@@ -26,7 +26,8 @@ const Analysis::APIDumpAnalysis::SectionInfo Analysis::APIDumpAnalysis::PassesFi
     {PassesFormat::TAG_DEPT, 2},
     {PassesFormat::TAG_SURF, 1},
     {PassesFormat::TAG_PROJ, 1},
-    {PassesFormat::TAG_COVR, 1}
+    {PassesFormat::TAG_COVR, 1},
+    {PassesFormat::TAG_FACT, 1}
 };
 
 const size_t Analysis::APIDumpAnalysis::PassesFile::N_SECTIONS = sizeof(SECTION_INFO_ARRAY) / sizeof(SECTION_INFO_ARRAY[0]);
@@ -193,6 +194,14 @@ bool Analysis::APIDumpAnalysis::PassesFile::read_section_bytes(const uint32_t&  
             break;
         }
 
+        case PassesFormat::TAG_FACT:
+        {
+            result = PassesSerializer::deserialize_draw_facts(in_raw_byte_vec,
+                                                              &inout_analysis_ptr->model);
+
+            break;
+        }
+
         case PassesFormat::TAG_FRAM:
         {
             result = PassesSerializer::deserialize_frames(in_raw_byte_vec,
@@ -307,6 +316,13 @@ std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesFile::serialize_section(co
         case PassesFormat::TAG_DRAW:
         {
             result_vec = PassesSerializer::serialize_draws(in_analysis.model);
+
+            break;
+        }
+
+        case PassesFormat::TAG_FACT:
+        {
+            result_vec = PassesSerializer::serialize_draw_facts(in_analysis.model);
 
             break;
         }

@@ -33,6 +33,8 @@ namespace Analysis
             static bool                 deserialize_depths         (const std::vector<uint8_t>&    in_byte_vec,
                                                                     const DepthHistogramMapMember& in_member_ptr,
                                                                     Model*                         out_model_ptr);
+            static bool                 deserialize_draw_facts     (const std::vector<uint8_t>&    in_byte_vec,
+                                                                    Model*                         out_model_ptr);
             static bool                 deserialize_draw_keys      (const std::vector<uint8_t>&    in_byte_vec,
                                                                     const DrawKeyMapMember&        in_member_ptr,
                                                                     Model*                         out_model_ptr);
@@ -58,6 +60,7 @@ namespace Analysis
                                                                     Model*                         out_model_ptr);
             static std::vector<uint8_t> serialize_depths           (const Model&                   in_model,
                                                                     const DepthHistogramMapMember& in_member_ptr);
+            static std::vector<uint8_t> serialize_draw_facts       (const Model&                   in_model);
             static std::vector<uint8_t> serialize_draw_keys        (const Model&                   in_model,
                                                                     const DrawKeyMapMember&        in_member_ptr);
             static std::vector<uint8_t> serialize_draws            (const Model&                   in_model);

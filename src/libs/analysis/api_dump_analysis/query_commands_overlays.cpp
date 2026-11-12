@@ -513,3 +513,40 @@ void Analysis::APIDumpAnalysis::QueryCommands::write_depth_spread(const PassDept
 
     inout_writer_ptr->end_object();
 }
+
+void Analysis::APIDumpAnalysis::QueryCommands::write_draw_facts(const DrawFacts&         in_facts,
+                                                                Utils::Json::JsonWriter* inout_writer_ptr)
+{
+    inout_writer_ptr->write_key("facts");
+    inout_writer_ptr->begin_object();
+    inout_writer_ptr->write_key("n_draws");
+    inout_writer_ptr->write_u64(in_facts.n_draws);
+    inout_writer_ptr->write_key("n_blended_draws");
+    inout_writer_ptr->write_u64(in_facts.n_blended_draws);
+    inout_writer_ptr->write_key("n_draws_sampling_copied_color");
+    inout_writer_ptr->write_u64(in_facts.n_draws_sampling_copied_color);
+    inout_writer_ptr->write_key("n_draws_with_footprint");
+    inout_writer_ptr->write_u64(in_facts.n_draws_with_footprint);
+
+    if (in_facts.n_draws_with_footprint != 0)
+    {
+        inout_writer_ptr->write_key  ("area_fraction_max");
+        inout_writer_ptr->write_float(in_facts.area_fraction_max);
+        inout_writer_ptr->write_key  ("area_fraction_min");
+        inout_writer_ptr->write_float(in_facts.area_fraction_min);
+        inout_writer_ptr->write_key  ("view_depth_min");
+        inout_writer_ptr->write_float(in_facts.view_depth_min);
+        inout_writer_ptr->write_key  ("view_depth_max");
+        inout_writer_ptr->write_float(in_facts.view_depth_max);
+        inout_writer_ptr->write_key  ("x_min");
+        inout_writer_ptr->write_float(in_facts.x_min);
+        inout_writer_ptr->write_key  ("x_max");
+        inout_writer_ptr->write_float(in_facts.x_max);
+        inout_writer_ptr->write_key  ("y_min");
+        inout_writer_ptr->write_float(in_facts.y_min);
+        inout_writer_ptr->write_key  ("y_max");
+        inout_writer_ptr->write_float(in_facts.y_max);
+    }
+
+    inout_writer_ptr->end_object();
+}

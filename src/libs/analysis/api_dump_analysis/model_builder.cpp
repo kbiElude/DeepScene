@@ -250,6 +250,37 @@ uint64_t Analysis::APIDumpAnalysis::ModelBuilder::compute_draw_signature_key(con
                                                   depth_stencil_view_key);
 }
 
+std::array<float, 12> Analysis::APIDumpAnalysis::ModelBuilder::compute_model_view(const DrawMatrices& in_matrices)
+{
+    constexpr size_t N_COLUMNS      = 4;
+    constexpr size_t N_VIEW_COLUMNS = 3; /* x, y and the depth */
+
+    std::array<float, N_COLUMNS * N_VIEW_COLUMNS> result_f32mat;
+
+    for (size_t n_row = 0;
+                n_row < N_COLUMNS;
+              ++n_row)
+    {
+        for (size_t n_column = 0;
+                    n_column < N_VIEW_COLUMNS;
+                  ++n_column)
+        {
+            float sum = 0.0f;
+
+            for (size_t n_term = 0;
+                        n_term < N_COLUMNS;
+                      ++n_term)
+            {
+                sum += in_matrices.model_f32mat.at(n_row * N_COLUMNS + n_term) * in_matrices.view_f32mat.at(n_term * N_COLUMNS + n_column);
+            }
+
+            result_f32mat.at(n_row * N_VIEW_COLUMNS + n_column) = sum;
+        }
+    }
+
+    return result_f32mat;
+}
+
 uint64_t Analysis::APIDumpAnalysis::ModelBuilder::compute_shape_key(const Model&    in_model,
                                                                     const uint32_t& in_shape_id)
 {
@@ -445,6 +476,7 @@ bool Analysis::APIDumpAnalysis::ModelBuilder::find_draw_matrices(DrawMatrices* o
      */
     const auto& projection_f32mat = out_matrices_ptr->projection_f32mat;
 
+    out_matrices_ptr->has_view        = has_view;
     out_matrices_ptr->is_orthographic = (out_matrices_ptr->has_projection &&
                                          projection_f32mat.at(3)  == 0.0f &&
                                          projection_f32mat.at(7)  == 0.0f &&
@@ -693,6 +725,17 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_copy(const ResourceView&    in_
     close_pass_if_rendered_to(in_source);
     close_pass_if_rendered_to(in_destination);
 
+    /* A draw that samples the destination of a copy of the picture works on what is below it, and the content of the destination is made for each eye. */
+    for (const auto& color_view : m_attachments.color_view_vec)
+    {
+        if (color_view.resource_id == in_source.resource_id)
+        {
+            m_color_copy_target_set.insert(in_destination.resource_id);
+
+            break;
+        }
+    }
+
     /* The destination is what the source was. */
     hasher.add_u32(static_cast<uint32_t>   (TransferKind::COPY) );
     hasher.add_u64(m_key_table.get_view_key(in_source) );
@@ -804,6 +847,10 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_draw(const DrawDescription& in_
         m_last_draw_cover_key = KeyBuilder::compute_draw_cover_key(signature_key,
                                                                    in_draw.vertex_count,
                                                                    in_draw.primitive_topology);
+
+        record_draw_facts(in_draw,
+                          DrawFactsKey(key,
+                                       m_last_draw_cover_key) );
 
         if (coverage == ViewCoverage::COVERING)
         {
@@ -1220,6 +1267,156 @@ void Analysis::APIDumpAnalysis::ModelBuilder::record_draw_depth(const DrawDescri
     }
 }
 
+void Analysis::APIDumpAnalysis::ModelBuilder::record_draw_facts(const DrawDescription& in_draw,
+                                                                const DrawFactsKey&    in_key)
+{
+    constexpr size_t N_VIEW_COLUMNS = 3; /* x, y and the depth */
+
+    DrawFacts&   facts       = m_model.draw_facts_map[in_key];
+    DrawMatrices matrices;
+    bool         has_place   = false;
+    float        view_depth  = 0.0f;
+    float        x_max       = -1.0e30f;
+    float        x_min       = 1.0e30f;
+    float        y_max       = -1.0e30f;
+    float        y_min       = 1.0e30f;
+    float        z_max       = -1.0e30f;
+    float        z_min       = 1.0e30f;
+
+    facts.n_draws += 1;
+
+    if (in_draw.reads_color_attachments)
+    {
+        facts.n_blended_draws += 1;
+    }
+
+    for (const auto& binding : in_draw.texture_binding_vec)
+    {
+        if (m_color_copy_target_set.count(binding.view.resource_id) != 0)
+        {
+            facts.n_draws_sampling_copied_color += 1;
+
+            break;
+        }
+    }
+
+    if (m_keeps_history                       == false   ||
+        in_draw.geometry_ptr                  == nullptr ||
+        in_draw.geometry_ptr->position_vec.empty() )
+    {
+        goto end;
+    }
+
+    if (in_draw.geometry_ptr->is_pre_transformed)
+    {
+        /* The positions are in pixels, and the third coordinate is the reciprocal of the depth. */
+        if (m_viewport.width  > 0.0f &&
+            m_viewport.height > 0.0f)
+        {
+            for (const auto& position : in_draw.geometry_ptr->position_vec)
+            {
+                const float x = 2.0f * (position[0] - m_viewport.x) / m_viewport.width  - 1.0f;
+                const float y = 2.0f * (position[1] - m_viewport.y) / m_viewport.height - 1.0f;
+
+                x_max = (x > x_max) ? x : x_max;
+                x_min = (x < x_min) ? x : x_min;
+                y_max = (y > y_max) ? y : y_max;
+                y_min = (y < y_min) ? y : y_min;
+
+                if (position[2] > 0.0f)
+                {
+                    view_depth = 1.0f / position[2];
+                    z_max      = (view_depth > z_max) ? view_depth : z_max;
+                    z_min      = (view_depth < z_min) ? view_depth : z_min;
+                }
+
+                has_place = true;
+            }
+        }
+    }
+    else
+    {
+        find_draw_matrices(&matrices);
+
+        if (matrices.has_projection &&
+            matrices.has_view)
+        {
+            const auto   model_view_f32mat = compute_model_view(matrices);
+            const float* projection        = matrices.projection_f32mat.data();
+
+            for (const auto& position : in_draw.geometry_ptr->position_vec)
+            {
+                float view_position[N_VIEW_COLUMNS];
+
+                for (size_t n_column = 0;
+                            n_column < N_VIEW_COLUMNS;
+                          ++n_column)
+                {
+                    view_position[n_column] = position[0] * model_view_f32mat.at(0 * N_VIEW_COLUMNS + n_column) +
+                                              position[1] * model_view_f32mat.at(1 * N_VIEW_COLUMNS + n_column) +
+                                              position[2] * model_view_f32mat.at(2 * N_VIEW_COLUMNS + n_column) +
+                                                            model_view_f32mat.at(3 * N_VIEW_COLUMNS + n_column);
+                }
+
+                /* The vertex through the projection, with the divide by w that makes a perspective one smaller with the distance (it is 1 for an orthographic one). */
+                const float w = view_position[0] * projection[3]  +
+                                view_position[1] * projection[7]  +
+                                view_position[2] * projection[11] +
+                                                   projection[15];
+
+                if (w > 0.0f)
+                {
+                    const float x = (view_position[0] * projection[0] + view_position[1] * projection[4] + view_position[2] * projection[8] + projection[12]) / w;
+                    const float y = (view_position[0] * projection[1] + view_position[1] * projection[5] + view_position[2] * projection[9] + projection[13]) / w;
+
+                    x_max = (x > x_max) ? x : x_max;
+                    x_min = (x < x_min) ? x : x_min;
+                    y_max = (y > y_max) ? y : y_max;
+                    y_min = (y < y_min) ? y : y_min;
+
+                    view_depth = (in_draw.is_camera_right_handed) ? -view_position[2]
+                                                                  :  view_position[2];
+                    z_max      = (view_depth > z_max) ? view_depth : z_max;
+                    z_min      = (view_depth < z_min) ? view_depth : z_min;
+
+                    has_place = true;
+                }
+            }
+        }
+    }
+
+    if (has_place)
+    {
+        /* The part of the picture that the box covers: what is outside of the edges is not of the picture. */
+        const float box_width  = std::max(0.0f, std::min(x_max, 1.0f) - std::max(x_min, -1.0f) ) / 2.0f;
+        const float box_height = std::max(0.0f, std::min(y_max, 1.0f) - std::max(y_min, -1.0f) ) / 2.0f;
+        const float fraction   = box_width * box_height;
+        const bool  is_first   = (facts.n_draws_with_footprint == 0);
+
+        facts.area_fraction_max = (is_first || fraction > facts.area_fraction_max) ? fraction
+                                                                                   : facts.area_fraction_max;
+        facts.area_fraction_min = (is_first || fraction < facts.area_fraction_min) ? fraction
+                                                                                   : facts.area_fraction_min;
+        facts.view_depth_max    = (is_first || z_max     > facts.view_depth_max)   ? z_max
+                                                                                   : facts.view_depth_max;
+        facts.view_depth_min    = (is_first || z_min     < facts.view_depth_min)   ? z_min
+                                                                                   : facts.view_depth_min;
+        facts.x_max             = (is_first || x_max     > facts.x_max)            ? x_max
+                                                                                   : facts.x_max;
+        facts.x_min             = (is_first || x_min     < facts.x_min)            ? x_min
+                                                                                   : facts.x_min;
+        facts.y_max             = (is_first || y_max     > facts.y_max)            ? y_max
+                                                                                   : facts.y_max;
+        facts.y_min             = (is_first || y_min     < facts.y_min)            ? y_min
+                                                                                   : facts.y_min;
+
+        facts.n_draws_with_footprint += 1;
+    }
+
+end:
+    return;
+}
+
 Analysis::APIDumpAnalysis::ViewCoverage Analysis::APIDumpAnalysis::ModelBuilder::record_draw_surface_depth(const DrawDescription& in_draw)
 {
     /* How near to an edge of the picture a vertex has to be for the draw to reach it, in the units of the picture (the edges are at 1 and -1). */
@@ -1227,7 +1424,6 @@ Analysis::APIDumpAnalysis::ViewCoverage Analysis::APIDumpAnalysis::ModelBuilder:
 
     ViewCoverage result = ViewCoverage::UNKNOWN;
 
-    constexpr size_t N_COLUMNS         = 4;
     constexpr size_t N_VIEW_COLUMNS    = 3; /* x, y and the depth */
     constexpr size_t PROJECTION_SCALE_X = 0;
     constexpr size_t PROJECTION_SCALE_Y = 5;
@@ -1270,31 +1466,7 @@ Analysis::APIDumpAnalysis::ViewCoverage Analysis::APIDumpAnalysis::ModelBuilder:
                     }
                 }
 
-                /* The model matrix then the view matrix: the first three columns of their product, which is what a vertex needs to be given its
-                 * place in the space of the camera.
-                 */
-                std::array<float, N_COLUMNS * N_VIEW_COLUMNS> model_view_f32mat;
-
-                for (size_t n_row = 0;
-                            n_row < N_COLUMNS;
-                          ++n_row)
-                {
-                    for (size_t n_column = 0;
-                                n_column < N_VIEW_COLUMNS;
-                              ++n_column)
-                    {
-                        float sum = 0.0f;
-
-                        for (size_t n_term = 0;
-                                    n_term < N_COLUMNS;
-                                  ++n_term)
-                        {
-                            sum += matrices.model_f32mat.at(n_row * N_COLUMNS + n_term) * matrices.view_f32mat.at(n_term * N_COLUMNS + n_column);
-                        }
-
-                        model_view_f32mat.at(n_row * N_VIEW_COLUMNS + n_column) = sum;
-                    }
-                }
+                const auto model_view_f32mat = compute_model_view(matrices);
 
                 float x_max = -1.0e30f;
                 float x_min = 1.0e30f;

@@ -5,6 +5,56 @@
 #include "analysis/api_dump_analysis/passes_serializer.h"
 #include "analysis/api_dump_analysis/key_builder.h"
 
+bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_draw_facts(const std::vector<uint8_t>& in_byte_vec,
+                                                                         Model*                      out_model_ptr)
+{
+    /* The keys of the structure and of the size, the areas, the four counts and the six extents. */
+    constexpr size_t MIN_ENTRY_N_BYTES = 2 * sizeof(uint64_t) + 2 * sizeof(float) + 4 * sizeof(uint64_t) + 6 * sizeof(float);
+
+    Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
+                                       in_byte_vec.size());
+    const auto n_entries = reader.read_count(MIN_ENTRY_N_BYTES);
+    bool       is_ok     = true;
+
+    for (uint32_t n_entry = 0;
+                  n_entry < n_entries && reader.has_failed() == false;
+                ++n_entry)
+    {
+        const uint64_t structure_key = reader.read_u64();
+        const uint64_t cover_key     = reader.read_u64();
+        DrawFacts      facts;
+
+        facts.area_fraction_max             = reader.read_f32();
+        facts.area_fraction_min             = reader.read_f32();
+        facts.n_blended_draws              = reader.read_u64();
+        facts.n_draws                       = reader.read_u64();
+        facts.n_draws_sampling_copied_color = reader.read_u64();
+        facts.n_draws_with_footprint        = reader.read_u64();
+        facts.view_depth_max                = reader.read_f32();
+        facts.view_depth_min                = reader.read_f32();
+        facts.x_max                         = reader.read_f32();
+        facts.x_min                         = reader.read_f32();
+        facts.y_max                         = reader.read_f32();
+        facts.y_min                         = reader.read_f32();
+
+        /* The draw structure must exist. */
+        if (out_model_ptr->draw_structure_map.find(structure_key) == out_model_ptr->draw_structure_map.end() )
+        {
+            is_ok = false;
+        }
+
+        out_model_ptr->draw_facts_map[DrawFactsKey(structure_key,
+                                                   cover_key)] = facts;
+    }
+
+    const bool has_failed = reader.has_failed();
+    const bool is_at_end  = reader.is_at_end();
+
+    return (is_ok               &&
+            has_failed == false &&
+            is_at_end);
+}
+
 bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_draw_keys(const std::vector<uint8_t>& in_byte_vec,
                                                                         const DrawKeyMapMember&     in_member_ptr,
                                                                         Model*                      out_model_ptr)
@@ -887,6 +937,35 @@ Analysis::APIDumpAnalysis::Viewport Analysis::APIDumpAnalysis::PassesSerializer:
     result.y         = inout_reader_ptr->read_f32();
 
     return result;
+}
+
+std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_draw_facts(const Model& in_model)
+{
+    Utils::BinaryIO::ByteWriter writer;
+
+    writer.write_u32(static_cast<uint32_t>(in_model.draw_facts_map.size() ));
+
+    for (const auto& facts_pair : in_model.draw_facts_map)
+    {
+        const auto& facts = facts_pair.second;
+
+        writer.write_u64(facts_pair.first.first);
+        writer.write_u64(facts_pair.first.second);
+        writer.write_f32(facts.area_fraction_max);
+        writer.write_f32(facts.area_fraction_min);
+        writer.write_u64(facts.n_blended_draws);
+        writer.write_u64(facts.n_draws);
+        writer.write_u64(facts.n_draws_sampling_copied_color);
+        writer.write_u64(facts.n_draws_with_footprint);
+        writer.write_f32(facts.view_depth_max);
+        writer.write_f32(facts.view_depth_min);
+        writer.write_f32(facts.x_max);
+        writer.write_f32(facts.x_min);
+        writer.write_f32(facts.y_max);
+        writer.write_f32(facts.y_min);
+    }
+
+    return writer.take_bytes();
 }
 
 std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_draw_keys(const Model&            in_model,
