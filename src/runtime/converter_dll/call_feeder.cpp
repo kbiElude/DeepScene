@@ -152,7 +152,6 @@ void Stereo::ConverterDLL::CallFeeder::analyze(const Capture::APIDumpLoader::Dum
 void Stereo::ConverterDLL::CallFeeder::fill_call(const APIInterceptor::APIFunction&         in_function,
                                                  const uint32_t&                            in_n_arguments,
                                                  const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
-                                                 const uint64_t&                            in_timestamp_qpc,
                                                  Capture::APIDumpLoader::DumpedAPICall*     out_call_ptr)
 {
     out_call_ptr->arg_in_vec.assign(in_arguments_ptr,
@@ -161,7 +160,8 @@ void Stereo::ConverterDLL::CallFeeder::fill_call(const APIInterceptor::APIFuncti
 
     out_call_ptr->func          = in_function;
     out_call_ptr->thread_id     = static_cast<uint32_t>(::GetCurrentThreadId() );
-    out_call_ptr->timestamp_qpc = in_timestamp_qpc;
+    /* A call is not timed: nothing that the converter does looks at when it was made. The time is for the tools that work on the file of a workload, whose calls the dumper stamps. */
+    out_call_ptr->timestamp_qpc = 0;
 
     if (out_call_ptr->returned_value_ptr != nullptr)
     {
@@ -299,8 +299,7 @@ void Stereo::ConverterDLL::CallFeeder::on_post(const APIInterceptor::APIFunction
 
 bool Stereo::ConverterDLL::CallFeeder::on_pre(const APIInterceptor::APIFunction&         in_function,
                                               const uint32_t&                            in_n_arguments,
-                                              const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
-                                              const uint64_t&                            in_timestamp_qpc)
+                                              const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
 {
     auto*      pending_calls_ptr = get_pending_calls_ptr();
     const bool result            = is_draw              (in_function);
@@ -315,7 +314,6 @@ bool Stereo::ConverterDLL::CallFeeder::on_pre(const APIInterceptor::APIFunction&
     fill_call(in_function,
               in_n_arguments,
               in_arguments_ptr,
-              in_timestamp_qpc,
              &call);
 
     if (result)

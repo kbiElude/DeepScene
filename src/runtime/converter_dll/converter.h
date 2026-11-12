@@ -77,13 +77,10 @@ namespace Stereo
                              bool*                        out_is_pushed_ptr,
                              std::vector<std::string>*    out_log_line_vec_ptr);
 
-            /* A call is about to be made: the work of the callback, for a call that is the application's. in_timestamp_qpc is the time (in the ticks of the performance counter) that the
-             * callback was entered at, which the call is stamped with.
-             */
+            /* A call is about to be made: the work of the callback, for a call that is the application's. */
             void on_pre(const APIInterceptor::APIFunction&         in_api_func,
                         const uint32_t&                            in_n_arguments,
                         const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
-                        const uint64_t&                            in_timestamp_qpc,
                         bool*                                      out_should_pass_through_ptr);
 
             /* A frame is about to be presented: what the program which shows the images says is taken, and the log lines for what changed

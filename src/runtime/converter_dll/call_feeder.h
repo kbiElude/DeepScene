@@ -72,13 +72,11 @@ namespace Stereo
                          const APIInterceptor::APIFunctionArgument* in_returned_value_ptr);
 
             /* The call is about to be made: analyses it if it is a draw (and returns true), otherwise keeps what it was made with until it
-             * is done. The call is stamped with the time the caller says (in the ticks of the performance counter), which the caller has
-             * already read, so that the clock is read once for a call.
+             * is done.
              */
             bool on_pre(const APIInterceptor::APIFunction&         in_function,
                         const uint32_t&                            in_n_arguments,
-                        const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
-                        const uint64_t&                            in_timestamp_qpc);
+                        const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
 
             /* What the analysis is to see of the data of the calls, if it is not what the device was given. */
             void set_chunk_func(const ChunkFunc& in_chunk_func);
@@ -109,7 +107,6 @@ namespace Stereo
             void          fill_call            (const APIInterceptor::APIFunction&         in_function,
                                                 const uint32_t&                            in_n_arguments,
                                                 const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
-                                                const uint64_t&                            in_timestamp_qpc,
                                                 Capture::APIDumpLoader::DumpedAPICall*     out_call_ptr);
             PendingCalls* get_pending_calls_ptr();
 
