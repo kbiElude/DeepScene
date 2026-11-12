@@ -67,6 +67,31 @@ uint32_t Stereo::Core::ResolutionPolicy::scale_extent(const uint32_t& in_extent)
     return static_cast<uint32_t>(::floor(static_cast<double>(in_extent) * static_cast<double>(m_scale) + 0.5) );
 }
 
+uint32_t Stereo::Core::ResolutionPolicy::scale_pixel_coordinate(const int64_t&  in_coordinate,
+                                                                const uint32_t& in_asked_extent,
+                                                                const uint32_t& in_real_extent) const
+{
+    uint32_t result = 0;
+
+    if (in_asked_extent != 0 &&
+        in_real_extent  != 0)
+    {
+        const int64_t last_asked_pixel = static_cast<int64_t>(in_asked_extent) - 1;
+        const double  last_real_pixel  = static_cast<double>(in_real_extent) - 1.0;
+
+        /* Brought inside the window first, so that the pixel that is found is the one that the nearest pixel of the window has. */
+        const int64_t asked_pixel = (in_coordinate < 0)                ? 0
+                                  : (in_coordinate > last_asked_pixel) ? last_asked_pixel
+                                                                       : in_coordinate;
+        const double  real_pixel  = ::floor( (static_cast<double>(asked_pixel) + 0.5) * static_cast<double>(m_scale) );
+
+        result = static_cast<uint32_t>( (real_pixel > last_real_pixel) ? last_real_pixel
+                                                                       : real_pixel);
+    }
+
+    return result;
+}
+
 Stereo::Core::PixelRect Stereo::Core::ResolutionPolicy::scale_rect(const PixelRect& in_rect) const
 {
     PixelRect result;

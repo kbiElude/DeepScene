@@ -22,8 +22,9 @@ namespace Stereo
         /* Has an OpenGL application render larger than it asks (see ResolutionPolicy), without its knowing. The framebuffers of the eyes (see GlEyeTargets) are made as
          * large as the policy says, and what the application states in pixels is made to match: the viewport, the scissor box, the width of lines and the size of points
          * are scaled, and so are the textures that it makes room in for what it copies from the framebuffer (a texture whose storage it gives without pixels), with
-         * the rectangles of the copies. A call of the application that is made here is not made by it (the converter says so, and the analysis still sees the call as the
-         * application made it). What the application does that cannot be made to match (reading pixels, drawing them, asking how large the viewport is, giving pixels to a
+         * the rectangles of the copies, and a glReadPixels of one pixel of the colors, in bytes, is made at the pixel of the larger framebuffer that is under the centre of the one the
+         * application names. A call of the application that is made here is not made by it (the converter says so, and the analysis still sees the call as the
+         * application made it). What the application does that cannot be made to match (any other read of pixels, drawing pixels, asking how large the viewport is, giving pixels to a
          * texture it renders to) ends the application, through the core, instead of showing it wrong; the calls that do that are the ones of GlResolutionHazards.
          */
         class GlResolutionScaler
@@ -73,6 +74,14 @@ namespace Stereo
             void forget_texture(const uint32_t& in_texture);
 
         private:
+            /* A glReadPixels of the application (its arguments), made here for the larger framebuffer: the one pixel that it names is read at the pixel under its centre (see
+             * ResolutionPolicy::scale_pixel_coordinate(), which also brings a pixel that is outside the window to the nearest one in it), into the buffer of the application. Returns false, and
+             * does nothing, for any other read (of more than a pixel, of the depth, of floats, of other colors, into a buffer of the driver), and when nothing is scaled: the application is ended
+             * for it if it is.
+             */
+            bool make_scaled_read(const uint32_t&                            in_n_arguments,
+                                  const APIInterceptor::APIFunctionArgument* in_arguments_ptr) const;
+
             /* Whether the argument is a pointer that is null (the data of an upload is none). The call is not analysed yet when it is about to be made, and its data is still
              * where the interceptor keeps it.
              */

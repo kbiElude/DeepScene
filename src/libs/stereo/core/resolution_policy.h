@@ -30,6 +30,14 @@ namespace Stereo
             /* The size in pixels that an extent which the application asks for is made, to the nearest pixel. */
             uint32_t scale_extent(const uint32_t& in_extent) const;
 
+            /* The pixel of what is made larger that a single pixel which the application names is read from: the one under the centre of the pixel of the application, not an average of
+             * those that it covers. A coordinate that is outside what the application has (below 0, or past its last pixel) is brought to the nearest pixel that it has, and the pixel
+             * that is found is kept within what is made (its extent), which the rounding of the centre could take it out of. 0 if either extent is 0.
+             */
+            uint32_t scale_pixel_coordinate(const int64_t&  in_coordinate,
+                                            const uint32_t& in_asked_extent,
+                                            const uint32_t& in_real_extent) const;
+
             /* The rectangle that a rectangle which the application asks for is made: each of its four numbers to the nearest pixel, as scale_extent() does; the one with bounds is kept within
              * them (the size of what it is for), which the rounding of the numbers could take it out of.
              */

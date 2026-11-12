@@ -76,6 +76,83 @@ bool Stereo::ConverterDLL::GlResolutionScaler::is_scaled_texture(const uint32_t&
     return (m_scaled_texture_set.find(in_texture) != m_scaled_texture_set.end() );
 }
 
+bool Stereo::ConverterDLL::GlResolutionScaler::make_scaled_read(const uint32_t&                            in_n_arguments,
+                                                                const APIInterceptor::APIFunctionArgument* in_arguments_ptr) const
+{
+    constexpr uint32_t FORMAT_RGB         = 0x1907;
+    constexpr uint32_t N_READ_ARGUMENTS   = 7;
+    constexpr uint32_t PIXELS_ARGUMENT    = 6;
+    constexpr GLsizei  READ_EXTENT        = 1;
+    constexpr uint32_t TYPE_UNSIGNED_BYTE = 0x1401;
+
+    const bool             is_identity = m_policy.is_identity();
+    bool                   result      = false;
+    std::array<int64_t, 6> value_array = {};
+
+    if (in_n_arguments < N_READ_ARGUMENTS ||
+        is_identity                       ||
+        m_asked_height == 0               ||
+        m_asked_width  == 0               ||
+        m_real_height  == 0               ||
+        m_real_width   == 0)
+    {
+        goto end;
+    }
+
+    /* The buffer of the application: a pointer (not an offset in a buffer of the driver, nor none). */
+    if (in_arguments_ptr[PIXELS_ARGUMENT].type != APIInterceptor::ARGTYPE_VOID_PTR ||
+        in_arguments_ptr[PIXELS_ARGUMENT].get_ptr() == nullptr)
+    {
+        goto end;
+    }
+
+    for (uint32_t n_argument = 0;
+                  n_argument < value_array.size();
+                ++n_argument)
+    {
+        if (APIInterceptor::read_number(in_arguments_ptr[n_argument],
+                                       &value_array.at(n_argument) ) == false)
+        {
+            goto end;
+        }
+    }
+
+    /* Only the read that is known to be made, of one pixel of bytes of the colors, is made here: any other cannot be made to match. */
+    if (value_array.at(2) != READ_EXTENT                                    ||
+        value_array.at(3) != READ_EXTENT                                    ||
+        static_cast<uint32_t>(value_array.at(4) ) != FORMAT_RGB             ||
+        static_cast<uint32_t>(value_array.at(5) ) != TYPE_UNSIGNED_BYTE)
+    {
+        goto end;
+    }
+
+    {
+        /* The pixel under the centre of the one that the application names, which is the nearest one that it has if it names one that it does not. */
+        const uint32_t x_real = m_policy.scale_pixel_coordinate(value_array.at(0),
+                                                                m_asked_width,
+                                                                m_real_width);
+        const uint32_t y_real = m_policy.scale_pixel_coordinate(value_array.at(1),
+                                                                m_asked_height,
+                                                                m_real_height);
+
+        const OwnCallScope own_call_scope;
+
+        /* The framebuffer that is read is the one that the application renders to, and the pixel is given to it in its own buffer, with the way of packing that it has set. */
+        GlDriverFunctions::get().read_pixels_func_ptr(static_cast<GLint>(x_real),
+                                                      static_cast<GLint>(y_real),
+                                                      READ_EXTENT,
+                                                      READ_EXTENT,
+                                                      static_cast<GLenum>(FORMAT_RGB),
+                                                      static_cast<GLenum>(TYPE_UNSIGNED_BYTE),
+                                                      const_cast<void*>(in_arguments_ptr[PIXELS_ARGUMENT].get_ptr() ) );
+
+        result = true;
+    }
+
+end:
+    return result;
+}
+
 bool Stereo::ConverterDLL::GlResolutionScaler::on_pre(const APIInterceptor::APIFunction&         in_function,
                                                       const uint32_t&                            in_n_arguments,
                                                       const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
@@ -86,8 +163,16 @@ bool Stereo::ConverterDLL::GlResolutionScaler::on_pre(const APIInterceptor::APIF
     Analysis::APIDumpAnalysis::ResolutionHazard hazard = Analysis::APIDumpAnalysis::ResolutionHazard::SIZE_QUERIES;
     bool                                        result = false;
 
+    /* A read of bytes from the framebuffer is made here, for the larger one, and the application gets what it would have. */
+    if (in_function == APIInterceptor::APIFUNCTION_GL_GLREADPIXELS)
+    {
+        result = make_scaled_read(in_n_arguments,
+                                  in_arguments_ptr);
+    }
+
     /* What cannot be made to match ends the application. */
-    if (Analysis::APIDumpAnalysis::Frontends::GlResolutionHazards::classify(in_function,
+    if (result == false &&
+        Analysis::APIDumpAnalysis::Frontends::GlResolutionHazards::classify(in_function,
                                                                             in_n_arguments,
                                                                             in_arguments_ptr,
                                                                            &hazard) )

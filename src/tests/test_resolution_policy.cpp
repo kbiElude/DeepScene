@@ -37,6 +37,89 @@ TEST(ResolutionPolicyTest, ExtentsAreMultipliedAndRoundedToTheNearestPixel)
                  765u);
 }
 
+TEST(ResolutionPolicyTest, APixelIsReadWhereTheCentreOfItIsInTheLargerImage)
+{
+    const Stereo::Core::ResolutionPolicy identity(1.0f);
+    const Stereo::Core::ResolutionPolicy twice(2.0f);
+    const Stereo::Core::ResolutionPolicy fitted(2.8625f);
+
+    /* Nothing is made larger: the pixel is the one named. */
+    EXPECT_EQ(identity.scale_pixel_coordinate(95,
+                                              640,
+                                              640),
+              95u);
+
+    /* The centre of pixel 95 is 95.5, which is 191 when the image is twice as large. */
+    EXPECT_EQ(twice.scale_pixel_coordinate(95,
+                                           640,
+                                           1280),
+              191u);
+    EXPECT_EQ(twice.scale_pixel_coordinate(0,
+                                           640,
+                                           1280),
+              1u);
+
+    /* 0.5 * 2.8625 and 639.5 * 2.8625 are 1.43 and 1830.6. */
+    EXPECT_EQ(fitted.scale_pixel_coordinate(0,
+                                            640,
+                                            1832),
+              1u);
+    EXPECT_EQ(fitted.scale_pixel_coordinate(639,
+                                            640,
+                                            1832),
+              1830u);
+}
+
+TEST(ResolutionPolicyTest, APixelThatTheApplicationDoesNotHaveIsReadAtTheNearestOneItHas)
+{
+    const Stereo::Core::ResolutionPolicy twice(2.0f);
+
+    /* Below the first pixel (Gerbera reads at -6 and -13) is the first pixel. */
+    EXPECT_EQ(twice.scale_pixel_coordinate(-6,
+                                           640,
+                                           1280),
+              twice.scale_pixel_coordinate(0,
+                                           640,
+                                           1280) );
+    EXPECT_EQ(twice.scale_pixel_coordinate(-13,
+                                           640,
+                                           1280),
+              1u);
+
+    /* Past the last one (Gerbera reads at 653 of 640, and at 480 of 480) is the last one. */
+    EXPECT_EQ(twice.scale_pixel_coordinate(653,
+                                           640,
+                                           1280),
+              twice.scale_pixel_coordinate(639,
+                                           640,
+                                           1280) );
+    EXPECT_EQ(twice.scale_pixel_coordinate(480,
+                                           480,
+                                           960),
+              959u);
+}
+
+TEST(ResolutionPolicyTest, APixelIsKeptWithinTheImageThatIsMade)
+{
+    const Stereo::Core::ResolutionPolicy twice(2.0f);
+
+    /* The centre of the last pixel is 1279 for an image of 1280, but not for one that is made smaller than the scale says. */
+    EXPECT_EQ(twice.scale_pixel_coordinate(639,
+                                           640,
+                                           1000),
+              999u);
+
+    /* An image or a window with no size has no pixel. */
+    EXPECT_EQ(twice.scale_pixel_coordinate(10,
+                                           0,
+                                           1280),
+              0u);
+    EXPECT_EQ(twice.scale_pixel_coordinate(10,
+                                           640,
+                                           0),
+              0u);
+}
+
 TEST(ResolutionPolicyTest, AScaleOutsideWhatAConverterCanDoIsBroughtInside)
 {
     EXPECT_FLOAT_EQ(Stereo::Core::ResolutionPolicy(0.25f).get_scale(),
