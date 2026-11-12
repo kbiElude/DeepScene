@@ -8,6 +8,7 @@
 #include "analysis/api_dump_analysis/frontends/analysis_session.h"
 #include "common/api_function_argument.h"
 #include "common/callbacks.h"
+#include "common/chunk_pool.h"
 #include <functional>
 #include <map>
 #include <stdint.h>
@@ -112,8 +113,11 @@ namespace Stereo
 
             ChunkFunc                                             m_chunk_func;
             std::vector<uint32_t>                                 m_chunk_id_vec;                /* scratch of analyze() */
+            APIInterceptor::ChunkPool                             m_chunk_pool;                  /* the vectors of the chunks of the calls that were analysed */
             uint64_t                                              m_completed_frame_shape_key;
+            std::vector<std::vector<uint8_t>*>                    m_destination_ptr_vec;         /* scratch of analyze() */
             bool                                                  m_has_completed_frame;
+            std::vector<uint8_t>                                  m_is_taken_u8_vec;             /* scratch of analyze() */
             uint32_t                                              m_last_thread_id;              /* the thread of m_last_thread_pending_calls_ptr */
             PendingCalls*                                         m_last_thread_pending_calls_ptr;
             PendingCallsByThreadMap                               m_pending_calls_by_thread_map;

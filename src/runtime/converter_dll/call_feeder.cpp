@@ -66,47 +66,77 @@ void Stereo::ConverterDLL::CallFeeder::analyze(const Capture::APIDumpLoader::Dum
         }
     }
 
+    /* The chunks of the call before go back to the pool with their room, for the ones of this call: a chunk is then not an allocation. */
+    for (auto& chunk_ptr : m_workload.data_chunk_ptr_vec)
+    {
+        m_chunk_pool.recycle(&chunk_ptr);
+    }
+
     m_workload.data_chunk_ptr_vec.clear();
 
     m_workload.first_data_chunk_id = 0;
 
     if (m_chunk_id_vec.empty() == false)
     {
-        std::sort(m_chunk_id_vec.begin(),
-                  m_chunk_id_vec.end  () );
+        /* One chunk is what most calls have, and there is nothing in it to put in order. */
+        if (m_chunk_id_vec.size() > 1)
+        {
+            std::sort(m_chunk_id_vec.begin(),
+                      m_chunk_id_vec.end  () );
 
-        const auto duplicates_begin_iterator = std::unique(m_chunk_id_vec.begin(),
-                                                           m_chunk_id_vec.end  () );
+            const auto duplicates_begin_iterator = std::unique(m_chunk_id_vec.begin(),
+                                                               m_chunk_id_vec.end  () );
 
-        m_chunk_id_vec.erase(duplicates_begin_iterator,
-                             m_chunk_id_vec.end() );
+            m_chunk_id_vec.erase(duplicates_begin_iterator,
+                                 m_chunk_id_vec.end() );
+        }
 
         const uint32_t first_chunk_id = m_chunk_id_vec.front();
 
         m_workload.first_data_chunk_id = first_chunk_id;
 
+        /* The numbers are in order, so the ones that are too far from the first are the last. */
+        while (m_chunk_id_vec.back() - first_chunk_id >= MAX_CHUNK_ID_SPAN)
+        {
+            m_chunk_id_vec.pop_back();
+        }
+
+        m_destination_ptr_vec.clear();
+
+        m_workload.data_chunk_ptr_vec.resize(m_chunk_id_vec.back() - first_chunk_id + 1);
+
+        /* Each chunk is taken into a vector from the pool, which stays in the workload if the chunk was there. */
         for (const auto& chunk_id : m_chunk_id_vec)
         {
-            if (chunk_id - first_chunk_id < MAX_CHUNK_ID_SPAN)
+            auto& chunk_ptr = m_workload.data_chunk_ptr_vec.at(chunk_id - first_chunk_id);
+
+            chunk_ptr = m_chunk_pool.acquire();
+
+            m_destination_ptr_vec.push_back(chunk_ptr.get() );
+        }
+
+        APIInterceptor::take_data_chunks_by_id(m_chunk_id_vec,
+                                               m_destination_ptr_vec,
+                                              &m_is_taken_u8_vec);
+
+        for (size_t n_chunk = 0;
+                    n_chunk < m_chunk_id_vec.size();
+                  ++n_chunk)
+        {
+            const uint32_t chunk_id  = m_chunk_id_vec.at(n_chunk);
+            auto&          chunk_ptr = m_workload.data_chunk_ptr_vec.at(chunk_id - first_chunk_id);
+
+            if (m_is_taken_u8_vec.at(n_chunk) != 0)
             {
-                if (m_workload.data_chunk_ptr_vec.size() <= chunk_id - first_chunk_id)
+                if (m_chunk_func)
                 {
-                    m_workload.data_chunk_ptr_vec.resize(chunk_id - first_chunk_id + 1);
+                    m_chunk_func(in_call.func,
+                                 chunk_ptr.get() );
                 }
-
-                Capture::APIDumpLoader::DataChunkUniquePtr chunk_ptr(new Capture::APIDumpLoader::DataChunk());
-
-                if (APIInterceptor::take_data_chunk(chunk_id,
-                                                    chunk_ptr.get() ) )
-                {
-                    if (m_chunk_func)
-                    {
-                        m_chunk_func(in_call.func,
-                                     chunk_ptr.get() );
-                    }
-
-                    m_workload.data_chunk_ptr_vec.at(chunk_id - first_chunk_id) = std::move(chunk_ptr);
-                }
+            }
+            else
+            {
+                m_chunk_pool.recycle(&chunk_ptr);
             }
         }
     }

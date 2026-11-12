@@ -65,7 +65,7 @@
 <table>
 <tr><th>Piece</th><th>Job</th></tr>
 <tr><td><code>Converter</code></td><td>Registers the callbacks and orders the work of each call: feed the analysis, keep matrices, classify and render draws, take the settings the VR player changed.</td></tr>
-<tr><td><code>CallFeeder</code></td><td>Gives the analysis each call as a dump would, for Direct3D 7 and 8 alike; keeps the calls that wait for results in per-thread pools.</td></tr>
+<tr><td><code>CallFeeder</code></td><td>Gives the analysis each call as a dump would, for Direct3D 7 and 8 alike; keeps the calls that wait for results in per-thread pools. Takes the data chunks of a call out of the interceptor in one go, into vectors from its own pool (<code>ChunkPool</code>) which the next call gets back, so that a chunk is not an allocation.</td></tr>
 <tr><td><code>StereoCore</code></td><td>The decisions: the class of a draw from the recipe and the view matrix, unknown draws and frames. Owns <code>ConvergenceModel</code> (where the eyes converge and how far apart they are) and <code>MatrixSlots</code> (the matrices a rule is about, and which to put in before a draw).</td></tr>
 <tr><td>The adapter for an API</td><td><code>D3D8EyeRenderer</code>, <code>D3D8ResolutionScaler</code>, <code>D3D8WindowedMode</code>, <code>D3D8HostMemoryExporter</code> in <code>runtime/converter_dll/D3D8</code>; <code>D3D7EyeRenderer</code>, <code>D3D7SurfaceTwins</code>, <code>D3D7WindowedMode</code>, <code>D3D7HostMemoryExporter</code> in <code>d3d7</code>.</td></tr>
 <tr><td><code>FramePasser</code>, <code>SessionLog</code></td><td>What both adapters share: pass the presented frame on to the channel (at most one in 8 ms) and wait for the headset to want the next; one log line per event.</td></tr>
