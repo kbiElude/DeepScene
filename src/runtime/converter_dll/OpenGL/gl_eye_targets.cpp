@@ -24,27 +24,33 @@ namespace
     constexpr GLenum     PACK_SKIP_PIXELS            = 0x0D04;
     constexpr GLenum     PACK_SKIP_ROWS              = 0x0D03;
     constexpr GLenum     PACK_SWAP_BYTES             = 0x0D00;
+    constexpr GLenum     PIXEL_PACK_BUFFER           = 0x88EB;
     constexpr GLenum     PIXEL_PACK_BUFFER_BINDING   = 0x88ED;
     constexpr GLenum     READ_FRAMEBUFFER            = 0x8CA8;
-    constexpr GLenum RENDERBUFFER             = 0x8D41;
-    constexpr GLenum SCISSOR_TEST             = 0x0C11;
+    constexpr GLenum     READ_ONLY                   = 0x88B8;
+    constexpr GLenum     RENDERBUFFER                = 0x8D41;
+    constexpr GLenum     SCISSOR_TEST                = 0x0C11;
+    constexpr GLenum     STREAM_READ                 = 0x88E1;
 
     /* A depth is read for how deep the scene is, and a copy of it this wide says that. */
     constexpr uint32_t DEPTH_PROBE_WIDTH = 320;
 }
 
 Stereo::ConverterDLL::GlEyeTargets::GlEyeTargets()
-    :m_context_ptr         (nullptr),
-     m_has_functions       (false),
-     m_has_depth_probe     (false),
-     m_has_readback_target (false),
-     m_height              (0),
-     m_is_ready            (false),
-     m_probe_height        (0),
-     m_probe_width         (0),
-     m_readback_height     (0),
-     m_readback_width      (0),
-     m_width               (0)
+    :m_context_ptr               (nullptr),
+     m_depth_buffer_array        (),
+     m_generation                (0),
+     m_has_functions             (false),
+     m_has_depth_probe           (false),
+     m_has_readback_target       (false),
+     m_height                    (0),
+     m_is_depth_buffer_busy_array(),
+     m_is_ready                  (false),
+     m_probe_height              (0),
+     m_probe_width               (0),
+     m_readback_height           (0),
+     m_readback_width            (0),
+     m_width                     (0)
 {
     /* Stub */
 }
@@ -73,6 +79,91 @@ bool Stereo::ConverterDLL::GlEyeTargets::are_pack_modes_default()
                                                       &value);
 
         result = (result && value == 0);
+    }
+
+    return result;
+}
+
+bool Stereo::ConverterDLL::GlEyeTargets::begin_depth_read(uint32_t* out_slot_ptr)
+{
+    constexpr size_t N_BYTES_PER_DEPTH = sizeof(float);
+
+    const OwnCallScope own_call_scope;
+    bool               result = false;
+
+    if (has_depth_read_buffers() )
+    {
+        size_t n_slot = 0;
+
+        while (n_slot < N_DEPTH_READ_SLOTS             &&
+               m_is_depth_buffer_busy_array.at(n_slot) )
+        {
+            n_slot++;
+        }
+
+        if (n_slot < N_DEPTH_READ_SLOTS)
+        {
+            GLint saved_alignment   = 4;
+            GLint saved_pack_buffer = 0;
+
+            GlDriverFunctions::get().get_integerv_func_ptr(PIXEL_PACK_BUFFER_BINDING,
+                                                          &saved_pack_buffer);
+
+            /* The buffer of a slot is made when the slot is first used, with room for the small copy of the depth. */
+            if (m_depth_buffer_array.at(n_slot) == 0)
+            {
+                m_functions.gen_buffers_func_ptr(1,
+                                                &m_depth_buffer_array.at(n_slot) );
+                m_functions.bind_buffer_func_ptr(PIXEL_PACK_BUFFER,
+                                                 m_depth_buffer_array.at(n_slot) );
+                m_functions.buffer_data_func_ptr(PIXEL_PACK_BUFFER,
+                                                 static_cast<ptrdiff_t>(m_probe_width) * m_probe_height * N_BYTES_PER_DEPTH,
+                                                 nullptr,
+                                                 STREAM_READ);
+            }
+            else
+            {
+                m_functions.bind_buffer_func_ptr(PIXEL_PACK_BUFFER,
+                                                 m_depth_buffer_array.at(n_slot) );
+            }
+
+            /* The depth of the whole buffer goes to the small copy, and from there to the buffer of the slot: the graphics card does it, and nothing is waited for. */
+            blit_left_eye(m_depth_probe.framebuffer,
+                          m_probe_width,
+                          m_probe_height,
+                          DEPTH_BUFFER_BIT);
+
+            m_functions.bind_framebuffer_func_ptr(FRAMEBUFFER,
+                                                  m_depth_probe.framebuffer);
+
+            GlDriverFunctions::get().get_integerv_func_ptr(PACK_ALIGNMENT,
+                                                          &saved_alignment);
+            GlDriverFunctions::get().pixel_storei_func_ptr(PACK_ALIGNMENT,
+                                                           1);
+
+            /* With a buffer bound the pixels go to it, at its start. */
+            GlDriverFunctions::get().read_pixels_func_ptr(0,
+                                                          0,
+                                                          static_cast<GLsizei>(m_probe_width),
+                                                          static_cast<GLsizei>(m_probe_height),
+                                                          GL_DEPTH_COMPONENT,
+                                                          GL_FLOAT,
+                                                          nullptr);
+
+            GlDriverFunctions::get().pixel_storei_func_ptr(PACK_ALIGNMENT,
+                                                           saved_alignment);
+
+            /* The buffer that the application had bound for pixels to be packed to is bound again. */
+            m_functions.bind_buffer_func_ptr(PIXEL_PACK_BUFFER,
+                                             static_cast<GLuint>(saved_pack_buffer) );
+
+            bind_eye(Analysis::Recipe::Eye::LEFT);
+
+            m_is_depth_buffer_busy_array.at(n_slot) = true;
+
+            *out_slot_ptr = static_cast<uint32_t>(n_slot);
+            result        = true;
+        }
     }
 
     return result;
@@ -222,6 +313,49 @@ end:
     return m_is_ready;
 }
 
+bool Stereo::ConverterDLL::GlEyeTargets::finish_depth_read(const uint32_t&  in_slot,
+                                                           const DepthFunc& in_depth_func)
+{
+    const OwnCallScope own_call_scope;
+    bool               result = false;
+
+    if (in_slot < N_DEPTH_READ_SLOTS)
+    {
+        if (m_is_depth_buffer_busy_array.at(in_slot) &&
+            m_depth_buffer_array.at(in_slot) != 0)
+        {
+            GLint saved_pack_buffer = 0;
+
+            GlDriverFunctions::get().get_integerv_func_ptr(PIXEL_PACK_BUFFER_BINDING,
+                                                          &saved_pack_buffer);
+
+            m_functions.bind_buffer_func_ptr(PIXEL_PACK_BUFFER,
+                                             m_depth_buffer_array.at(in_slot) );
+
+            /* A read of the frame before is done by now: the graphics card has had a whole frame for it. */
+            const void* const data_ptr = m_functions.map_buffer_func_ptr(PIXEL_PACK_BUFFER,
+                                                                         READ_ONLY);
+
+            if (data_ptr != nullptr)
+            {
+                in_depth_func(static_cast<const float*>(data_ptr),
+                              static_cast<size_t>(m_probe_width) * m_probe_height);
+
+                m_functions.unmap_buffer_func_ptr(PIXEL_PACK_BUFFER);
+
+                result = true;
+            }
+
+            m_functions.bind_buffer_func_ptr(PIXEL_PACK_BUFFER,
+                                             static_cast<GLuint>(saved_pack_buffer) );
+
+            m_is_depth_buffer_busy_array.at(in_slot) = false;
+        }
+    }
+
+    return result;
+}
+
 const void* Stereo::ConverterDLL::GlEyeTargets::get_context_ptr() const
 {
     return m_context_ptr;
@@ -232,6 +366,11 @@ const Stereo::ConverterDLL::GlExtensionFunctions& Stereo::ConverterDLL::GlEyeTar
     return m_functions;
 }
 
+uint32_t Stereo::ConverterDLL::GlEyeTargets::get_generation() const
+{
+    return m_generation;
+}
+
 uint32_t Stereo::ConverterDLL::GlEyeTargets::get_height() const
 {
     return m_height;
@@ -240,6 +379,18 @@ uint32_t Stereo::ConverterDLL::GlEyeTargets::get_height() const
 uint32_t Stereo::ConverterDLL::GlEyeTargets::get_width() const
 {
     return m_width;
+}
+
+bool Stereo::ConverterDLL::GlEyeTargets::has_depth_read_buffers() const
+{
+    return (m_is_ready                                     &&
+            m_has_depth_probe                              &&
+            m_functions.bind_buffer_func_ptr    != nullptr &&
+            m_functions.buffer_data_func_ptr    != nullptr &&
+            m_functions.delete_buffers_func_ptr != nullptr &&
+            m_functions.gen_buffers_func_ptr    != nullptr &&
+            m_functions.map_buffer_func_ptr     != nullptr &&
+            m_functions.unmap_buffer_func_ptr   != nullptr);
 }
 
 bool Stereo::ConverterDLL::GlEyeTargets::is_ready() const
@@ -486,6 +637,23 @@ void Stereo::ConverterDLL::GlEyeTargets::release_targets()
     release_target(&m_left);
     release_target(&m_readback_target);
     release_target(&m_right);
+
+    /* The buffers of the graphics card that the depth was read to: a read that was on its way is lost with them. */
+    for (size_t n_slot = 0;
+                n_slot < N_DEPTH_READ_SLOTS;
+              ++n_slot)
+    {
+        if (m_depth_buffer_array.at(n_slot) != 0)
+        {
+            m_functions.delete_buffers_func_ptr(1,
+                                               &m_depth_buffer_array.at(n_slot) );
+        }
+
+        m_depth_buffer_array.at(n_slot)         = 0;
+        m_is_depth_buffer_busy_array.at(n_slot) = false;
+    }
+
+    m_generation++;
 
     m_has_depth_probe     = false;
     m_has_readback_target = false;

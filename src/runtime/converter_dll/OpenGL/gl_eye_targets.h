@@ -7,6 +7,8 @@
 
 #include "analysis/recipe/types.h"
 #include "gl_extension_functions.h"
+#include <array>
+#include <functional>
 #include <stdint.h>
 #include <vector>
 
@@ -22,7 +24,16 @@ namespace Stereo
         class GlEyeTargets
         {
         public:
+            /* What is done with the depths that a read gave (the same rows as read_depth() gives), while they can be looked at. */
+            typedef std::function<void(const float* in_depth_ptr, const size_t& in_n_depths)> DepthFunc;
+
             GlEyeTargets();
+
+            /* Starts a read of the depth of the left eye, brought down to the small copy that read_depth() reads, to a buffer of the graphics card, and does not wait for it: the
+             * number of the buffer is given, for finish_depth_read(). False if there is no buffer to read to (the small copy or the buffers are not there, or all of them are in
+             * use). The left eye is current afterward.
+             */
+            bool begin_depth_read(uint32_t* out_slot_ptr);
 
             /* Makes the framebuffer of the eye the one that is drawn to and read from; false if there are none. */
             bool bind_eye(const Analysis::Recipe::Eye& in_eye);
@@ -37,14 +48,26 @@ namespace Stereo
                         const uint32_t& in_width,
                         const uint32_t& in_height);
 
+            /* Looks at the depths that the read of the number gave (it waits if they are not there yet), with the function, and gives the buffer back. False if the read is not
+             * one that was begun and not finished (the buffers were made again since).
+             */
+            bool finish_depth_read(const uint32_t&  in_slot,
+                                   const DepthFunc& in_depth_func);
+
             const void* get_context_ptr() const;
 
             /* The functions of the framebuffers and buffers, as found for the context; they are the ones that are not in the library. */
             const GlExtensionFunctions& get_functions() const;
 
+            /* How many times the targets were released: a read that was begun in another generation is lost. */
+            uint32_t get_generation() const;
+
             uint32_t get_height() const;
 
             uint32_t get_width() const;
+
+            /* Whether begin_depth_read() can work: there are the buffers of the graphics card, and the small copy of the depth that is read to them. */
+            bool has_depth_read_buffers() const;
 
             bool is_ready() const;
 
@@ -97,22 +120,28 @@ namespace Stereo
             /* Whether the application packs pixels as it does when it has set nothing (no offset, no row length, no swap of bytes) and has no buffer bound for them. */
             static bool are_pack_modes_default();
 
-            const void*          m_context_ptr;
-            EyeTarget            m_depth_probe;
-            GlExtensionFunctions m_functions;
-            bool                 m_has_functions;
-            bool                 m_has_depth_probe;
-            bool                 m_has_readback_target;
-            uint32_t             m_height;
-            bool                 m_is_ready;
-            EyeTarget            m_left;
-            uint32_t             m_probe_height;
-            uint32_t             m_probe_width;
-            uint32_t             m_readback_height;
-            EyeTarget            m_readback_target; /* the picture of the size of the window, which is read from; made once for a size, not for each read */
-            uint32_t             m_readback_width;
-            EyeTarget            m_right;
-            uint32_t             m_width;
+            /* How many reads of the depth can be on their way at once: a pass of a frame is one, and the frame before is still on its way. */
+            static constexpr size_t N_DEPTH_READ_SLOTS = 16;
+
+            const void*                              m_context_ptr;
+            std::array<uint32_t, N_DEPTH_READ_SLOTS> m_depth_buffer_array;         /* the buffers of the graphics card that the depth is read to; made when they are first used */
+            EyeTarget                                m_depth_probe;
+            GlExtensionFunctions                     m_functions;
+            uint32_t                                 m_generation;                 /* how many times the targets were released, to tell reads that were on their way to buffers that are gone */
+            bool                                     m_has_functions;
+            bool                                     m_has_depth_probe;
+            bool                                     m_has_readback_target;
+            uint32_t                                 m_height;
+            std::array<bool, N_DEPTH_READ_SLOTS>     m_is_depth_buffer_busy_array; /* a read is on its way to the buffer, and is not finished */
+            bool                                     m_is_ready;
+            EyeTarget                                m_left;
+            uint32_t                                 m_probe_height;
+            uint32_t                                 m_probe_width;
+            uint32_t                                 m_readback_height;
+            EyeTarget                                m_readback_target;            /* the picture of the size of the window, which is read from; made once for a size, not for each read */
+            uint32_t                                 m_readback_width;
+            EyeTarget                                m_right;
+            uint32_t                                 m_width;
         };
     }
 }

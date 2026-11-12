@@ -46,6 +46,18 @@ namespace Stereo
             RIGHT
         };
 
+        /* A read of the depth buffer that was started, and whose result is not taken yet (see FrameDepthLedger): the frame that was being made, the place that the adapter has
+         * the result in, and the numbers of the projection of the pass that the result is of, which are needed to make sense of it.
+         */
+        struct PendingDepthRead
+        {
+            uint64_t frame   = 0;
+            uint32_t slot    = 0;
+            float    x_scale = 0.0f;
+            float    z_scale = 0.0f;
+            float    z_shift = 0.0f;
+        };
+
         /* How the x of the vertices are moved. */
         /* A rectangle of pixels: where its top left corner is, and how large it is. */
         struct PixelRect

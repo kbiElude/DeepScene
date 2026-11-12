@@ -97,7 +97,7 @@
       "camera_attached_depth": 0.05,               OpenGL: a draw whose origin is nearer the camera than this part of the distance of convergence
                                                    (an interface or a sky drawn with a perspective projection) is made as it is for both eyes
       "measure_depth": true,                       OpenGL: the converter reads the depth buffer before each pass is cleared and takes the
-                                                   nearest and farthest surfaces of the frame from it, in place of what was baked for the scene
+                                                   nearest and farthest surfaces of the frame from it (a frame later: the read is not waited for), in place of what was baked for the scene
                                                    (which cannot see display lists, nor a camera that flies past a near surface)
       "scene_overrides": [                         what is said of single scenes (cuts), by the shape key of their frames: any of
         { "shape": "0x...",                        convergence_distance, max_far_parallax, max_near_parallax and max_separation (the

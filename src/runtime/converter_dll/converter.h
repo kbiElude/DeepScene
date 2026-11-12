@@ -132,6 +132,7 @@ namespace Stereo
                 uint64_t                                  dump_first_frame   = 0; /* the frames before it are not written (see dump_every)     */
                 uint64_t                                  dump_frame         = 0; /* of the frame to write to a file; 0: none */
                 bool                                      is_scene_dump_enabled = false; /* the first frame of each kind of frame (scene) is written to a file */
+                uint64_t                                  previous_shape_key = 0;   /* of the frame before the one that was completed last: the depth that is given may be of that frame */
                 uint64_t                                  scene_run_length   = 0;   /* how many frames in a row were of the scene of scene_run_key */
                 uint64_t                                  scene_run_key      = 0;
                 bool                                      is_overlay_push_forced = false; /* from the environment, not the program which shows the images */

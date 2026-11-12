@@ -269,6 +269,7 @@ void Stereo::ConverterDLL::Converter::count_frame(std::vector<std::string>* out_
 
     m_live_state.n_frames++;
 
+
     /* The first frame says that the calls of the application reach the converter, and how far the application has come. */
     if (m_live_state.n_frames == 1)
     {
@@ -495,11 +496,21 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
             Stereo::Core::DepthRange depth_range;
             float                    projection_scale = 0.0f;
 
+            /* The depth that is given is of the frame before when the depth buffer is read to a buffer of the graphics card, which is not waited for (see
+             * GlEyeRenderer::get_depth_lag()): it goes with the scene that frame was of.
+             */
+            const uint32_t depth_lag       = this_ptr->m_live_state.gl_renderer_ptr->get_depth_lag();
+            const uint64_t depth_shape_key = (depth_lag == 0) ? shape_key
+                                                              : this_ptr->m_live_state.previous_shape_key;
+
             const bool is_measured = (this_ptr->m_live_state.gl_renderer_ptr->take_frame_depth(&depth_range,
                                                                                                 &projection_scale) &&
-                                      this_ptr->m_live_state.core_ptr->on_frame_depth      (shape_key,
+                                      this_ptr->m_live_state.core_ptr->on_frame_depth      (depth_shape_key,
                                                                                             depth_range,
                                                                                             projection_scale) );
+
+            this_ptr->m_live_state.previous_shape_key = shape_key;
+
 
             if (is_measured == false)
             {

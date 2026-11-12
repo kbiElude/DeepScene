@@ -8,6 +8,7 @@
 #include "analysis/recipe/types.h"
 #include "common/api_function_argument.h"
 #include "common/types.h"
+#include "stereo/core/frame_depth_ledger.h"
 #include "stereo/core/picture_readback_cache.h"
 #include "stereo/core/stereo_core.h"
 #include "gl_eye_targets.h"
@@ -65,12 +66,18 @@ namespace Stereo
                           const uint32_t&           in_target_width,
                           const uint32_t&           in_target_height);
 
+            /* How many frames behind the depth that take_frame_depth() gives is: 1 if the depth buffer is read to a buffer of the graphics card, which is not waited for (the
+             * result of a read is taken at the end of the frame after it), 0 if it is read at once (no buffers of the graphics card, or the small copy of the depth is not there).
+             */
+            uint32_t get_depth_lag() const;
+
             const Statistics& get_statistics() const;
 
             bool is_ready() const;
 
-            /* How deep the passes of the frame that ended were (the depth buffer was read before each of them was cleared, and at the end of the frame), and the x scale of the
-             * projection of the last of them; false if the recipe does not have the depth measured (see Comfort::measures_depth), or nothing in the frame says it. Starts again. */
+            /* How deep the passes of a frame were (the depth buffer was read before each of them was cleared, and at the end of the frame), and the x scale of the projection of
+             * the last of them: of the frame that ended, or of the one before (see get_depth_lag()); false if the recipe does not have the depth measured (see
+             * Comfort::measures_depth), or nothing in the frame says it. Starts again. */
             bool take_frame_depth(Stereo::Core::DepthRange* out_depth_range_ptr,
                                   float*                    out_projection_scale_ptr);
 
@@ -128,8 +135,33 @@ namespace Stereo
             void note_once(const std::string& in_key,
                            const std::string& in_note);
 
-            /* The depth buffer of the left eye is read, and what it says of how deep the pass that is ending is goes to the frame. */
+            /* Takes the results of the reads of the depth buffer that were started and are on their way (see start_depth_read()), oldest first: the ones that were started before the
+             * frame that is being made, or all of them; one only, or all that qualify. Each result is added to the frame it is of.
+             */
+            void collect_depth_reads(const bool& in_only_older_frames,
+                                     const bool& in_only_the_oldest);
+
+            /* The reads that were on their way to buffers of the graphics card that were made again since are forgotten: they are lost with the buffers. */
+            void forget_lost_depth_reads();
+
+            /* The depths of a read of the depth buffer looked at: how deep the surfaces that were drawn are (see DepthBufferStatistics), for a projection with the z scale and shift. */
+            Stereo::Core::DepthRange measure_depths(const float&  in_z_scale,
+                                                    const float&  in_z_shift,
+                                                    const float*  in_depth_ptr,
+                                                    const size_t& in_n_depths) const;
+
+            /* The depth buffer of the left eye is read, and what it says of how deep the pass that is ending is goes to the frame (when its result is in: see
+             * start_depth_read()).
+             */
             void measure_pass_depth();
+
+            /* Reads the depth buffer of the left eye and waits for it, when there is no buffer of the graphics card to read it to: the pass is added to the frame that is being made. */
+            void read_depth_at_once();
+
+            /* Starts a read of the depth buffer of the left eye to a buffer of the graphics card (see GlEyeTargets::begin_depth_read()): the result is taken when the frame ends,
+             * in the frame after it. If all the buffers are in use the oldest read is waited for, to have one free.
+             */
+            void start_depth_read();
 
             /* The data that an argument stands for (a chunk, or a pointer); nullptr if it is not there. */
             const void* resolve_pointer(const APIInterceptor::APIFunctionArgument& in_argument) const;
@@ -155,10 +187,9 @@ namespace Stereo
 
             std::array<uint32_t, N_TEXTURE_UNITS> m_bound_texture_array;
             std::vector<float>                    m_depth_f32_vec;
-            Stereo::Core::DepthRange              m_frame_depth;
-            float                                 m_frame_projection_scale;
-            std::vector<float>                    m_frame_median_vec;
-            bool                                  m_has_frame_depth;
+            uint32_t                              m_depth_generation;       /* of the targets that the reads that are on their way were begun with (see GlEyeTargets::get_generation()) */
+            uint32_t                              m_depth_lag;              /* see get_depth_lag() */
+            Stereo::Core::FrameDepthLedger        m_depth_ledger;
             uint32_t                              m_active_unit;
             uint32_t                              m_applied_height; /* of the viewport and the scissor box that were set for the size of the framebuffers */
             uint32_t                              m_applied_width;

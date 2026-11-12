@@ -41,9 +41,8 @@ Stereo::ConverterDLL::GlEyeRenderer::GlEyeRenderer(Stereo::Core::StereoCore* in_
      m_block_list         (0),
      m_caches_pixel_reads (in_core_ptr->get_caches_pixel_reads() ),
      m_core_ptr           (in_core_ptr),
-     m_frame_depth        (),
-     m_frame_projection_scale(0.0f),
-     m_has_frame_depth    (false),
+     m_depth_generation   (0),
+     m_depth_lag          (0),
      m_get_chunk_func     (),
      m_has_failed         (false),
      m_is_in_app_list     (false),
@@ -64,6 +63,63 @@ Stereo::ConverterDLL::GlEyeRenderer::GlEyeRenderer(Stereo::Core::StereoCore* in_
     {
         m_note_vec.push_back("The recipe has the reads of one pixel that the application makes in a run given from a picture of the left eye that is read once (cache_pixel_reads)");
     }
+}
+
+void Stereo::ConverterDLL::GlEyeRenderer::collect_depth_reads(const bool& in_only_older_frames,
+                                                              const bool& in_only_the_oldest)
+{
+    Stereo::Core::PendingDepthRead read;
+
+    bool is_popped = m_depth_ledger.pop_pending(in_only_older_frames,
+                                               &read);
+
+    while (is_popped)
+    {
+        /* What the read gave is looked at where it is, in the buffer of the graphics card, and the pass it is of is told by the numbers that were kept for it. */
+        const auto depth_func = [this, &read](const float* in_depth_ptr, const size_t& in_n_depths)
+        {
+            const auto range = measure_depths(read.z_scale,
+                                              read.z_shift,
+                                              in_depth_ptr,
+                                              in_n_depths);
+
+            if (range.has_depth)
+            {
+                m_depth_ledger.add_result(read,
+                                          range);
+            }
+        };
+
+        m_targets.finish_depth_read(read.slot,
+                                    depth_func);
+
+        if (in_only_the_oldest)
+        {
+            is_popped = false;
+        }
+        else
+        {
+            is_popped = m_depth_ledger.pop_pending(in_only_older_frames,
+                                                  &read);
+        }
+    }
+}
+
+void Stereo::ConverterDLL::GlEyeRenderer::forget_lost_depth_reads()
+{
+    const uint32_t generation = m_targets.get_generation();
+
+    if (generation != m_depth_generation)
+    {
+        m_depth_ledger.forget_pending();
+
+        m_depth_generation = generation;
+    }
+}
+
+uint32_t Stereo::ConverterDLL::GlEyeRenderer::get_depth_lag() const
+{
+    return m_depth_lag;
 }
 
 const Stereo::ConverterDLL::GlEyeRenderer::Statistics& Stereo::ConverterDLL::GlEyeRenderer::get_statistics() const
@@ -166,48 +222,45 @@ end:
     return result;
 }
 
-void Stereo::ConverterDLL::GlEyeRenderer::measure_pass_depth()
+Stereo::Core::DepthRange Stereo::ConverterDLL::GlEyeRenderer::measure_depths(const float&  in_z_scale,
+                                                                             const float&  in_z_shift,
+                                                                             const float*  in_depth_ptr,
+                                                                             const size_t& in_n_depths) const
 {
     /* A depth buffer that is read whole (the copy of it could not be made) is looked at every few pixels; the copy is small enough to be looked at whole. */
     constexpr size_t N_DEPTHS_LOOKED_AT_WHOLE = 100000;
     constexpr size_t N_PIXELS_BETWEEN_SAMPLES = 4;
 
-    uint32_t depth_height = 0;
-    uint32_t depth_width  = 0;
+    const float  near_fraction = m_core_ptr->get_near_fraction();
+    const size_t step          = (in_n_depths > N_DEPTHS_LOOKED_AT_WHOLE) ? N_PIXELS_BETWEEN_SAMPLES
+                                                                          : 1;
 
-    if (m_measures_depth           &&
-        m_pass_has_affected_draws  &&
-        m_targets.is_ready()       &&
-        m_targets.read_depth(&m_depth_f32_vec,
-                             &depth_width,
-                             &depth_height) )
+    return Stereo::Core::DepthBufferStatistics::measure(in_depth_ptr,
+                                                        in_n_depths,
+                                                        step,
+                                                        in_z_scale,
+                                                        in_z_shift,
+                                                        near_fraction);
+}
+
+void Stereo::ConverterDLL::GlEyeRenderer::measure_pass_depth()
+{
+    const bool is_ready = m_targets.is_ready();
+
+    if (m_measures_depth          &&
+        m_pass_has_affected_draws &&
+        is_ready)
     {
-        const auto range = Stereo::Core::DepthBufferStatistics::measure(m_depth_f32_vec.data(),
-                                                                        m_depth_f32_vec.size(),
-                                                                        (m_depth_f32_vec.size() > N_DEPTHS_LOOKED_AT_WHOLE) ? N_PIXELS_BETWEEN_SAMPLES
-                                                                                                                            : 1,
-                                                                        m_pass_projection_f32mat.at(10),
-                                                                        m_pass_projection_f32mat.at(14),
-                                                                        m_core_ptr->get_near_fraction() );
+        forget_lost_depth_reads();
 
-        if (range.has_depth)
+        /* With a buffer of the graphics card to read it to the depth is not waited for: the result is taken when the frame ends, and is of the frame that is given then. */
+        if (m_targets.has_depth_read_buffers() )
         {
-            if (m_has_frame_depth == false)
-            {
-                m_frame_depth     = range;
-                m_has_frame_depth = true;
-            }
-            else
-            {
-                m_frame_depth.far_depth  = (std::max)(m_frame_depth.far_depth,
-                                                    range.far_depth);
-                m_frame_depth.near_depth = (std::min)(m_frame_depth.near_depth,
-                                                    range.near_depth);
-            }
-
-            m_frame_median_vec.push_back(range.median_depth);
-
-            m_frame_projection_scale = m_pass_projection_f32mat.at(0);
+            start_depth_read();
+        }
+        else
+        {
+            read_depth_at_once();
         }
     }
 
@@ -416,7 +469,19 @@ bool Stereo::ConverterDLL::GlEyeRenderer::on_frame_ending(GlFrameImages* out_ima
         goto end;
     }
 
+    /* The reads of the depth that were started before this frame are done by now, whatever the graphics card had to do: their results go to the frames they are of. */
+    forget_lost_depth_reads();
+
+    collect_depth_reads(true,   /* in_only_older_frames */
+                        false); /* in_only_the_oldest */
+
     measure_pass_depth();
+
+    /* The depth of the frame before is complete (its reads were all taken above); the depth of this frame is when its reads are, if they are not waited for. */
+    m_depth_lag = (m_targets.has_depth_read_buffers() ) ? 1
+                                                        : 0;
+
+    m_depth_ledger.end_frame(m_depth_lag);
 
     {
         /* The images that come are those of the frame before, which have been read while this one was made. */
@@ -1074,6 +1139,30 @@ void Stereo::ConverterDLL::GlEyeRenderer::play_eyes(const std::function<void()>&
     }
 }
 
+void Stereo::ConverterDLL::GlEyeRenderer::read_depth_at_once()
+{
+    uint32_t depth_height = 0;
+    uint32_t depth_width  = 0;
+
+    const bool is_read = m_targets.read_depth(&m_depth_f32_vec,
+                                              &depth_width,
+                                              &depth_height);
+
+    if (is_read)
+    {
+        const auto range = measure_depths(m_pass_projection_f32mat.at(10),
+                                          m_pass_projection_f32mat.at(14),
+                                          m_depth_f32_vec.data(),
+                                          m_depth_f32_vec.size() );
+
+        if (range.has_depth)
+        {
+            m_depth_ledger.add_result_now(range,
+                                          m_pass_projection_f32mat.at(0) );
+        }
+    }
+}
+
 const void* Stereo::ConverterDLL::GlEyeRenderer::resolve_pointer(const APIInterceptor::APIFunctionArgument& in_argument) const
 {
     const void* result = nullptr;
@@ -1187,28 +1276,35 @@ void Stereo::ConverterDLL::GlEyeRenderer::set_get_chunk_func(const GetChunkFunc&
     m_get_chunk_func = in_get_chunk_func;
 }
 
+void Stereo::ConverterDLL::GlEyeRenderer::start_depth_read()
+{
+    uint32_t slot = 0;
+
+    bool is_started = m_targets.begin_depth_read(&slot);
+
+    /* All the buffers are in use: the oldest read is waited for, to have one free. */
+    if (is_started == false)
+    {
+        collect_depth_reads(false, /* in_only_older_frames */
+                            true); /* in_only_the_oldest */
+
+        is_started = m_targets.begin_depth_read(&slot);
+    }
+
+    if (is_started)
+    {
+        m_depth_ledger.add_pending(slot,
+                                   m_pass_projection_f32mat.at(0),
+                                   m_pass_projection_f32mat.at(10),
+                                   m_pass_projection_f32mat.at(14) );
+    }
+}
+
 bool Stereo::ConverterDLL::GlEyeRenderer::take_frame_depth(Stereo::Core::DepthRange* out_depth_range_ptr,
                                                            float*                    out_projection_scale_ptr)
 {
-    const bool result = m_has_frame_depth;
-
-    if (result)
-    {
-        *out_depth_range_ptr = m_frame_depth;
-
-        /* Of the passes, the one in the middle. */
-        std::sort(m_frame_median_vec.begin(),
-                  m_frame_median_vec.end  () );
-
-        out_depth_range_ptr->median_depth = m_frame_median_vec.at(m_frame_median_vec.size() / 2);
-        *out_projection_scale_ptr         = m_frame_projection_scale;
-    }
-
-    m_frame_median_vec.clear();
-
-    m_has_frame_depth = false;
-
-    return result;
+    return m_depth_ledger.take_ready(out_depth_range_ptr,
+                                     out_projection_scale_ptr);
 }
 
 std::vector<std::string> Stereo::ConverterDLL::GlEyeRenderer::take_notes()
