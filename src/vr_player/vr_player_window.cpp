@@ -514,8 +514,21 @@ void VRPlayer::VrPlayerWindow::draw_launch_area()
     const float       button_height = ImGui::GetFrameHeight() * 1.6f;
     const float       button_width  = LAUNCH_BUTTON_WIDTH     * style.FontScaleDpi;
     const bool        is_possible   = is_launch_possible();
-    const float       status_height = STATUS_N_LINES          * ImGui::GetTextLineHeightWithSpacing();
-    const float       area_height   = button_height + status_height;
+    const bool        is_error_text = (m_installing_app < 0   &&
+                                       m_status.empty() == false &&
+                                       m_is_status_error);
+    const float       line_height   = ImGui::GetTextLineHeightWithSpacing();
+    const float       status_height = STATUS_N_LINES * line_height;
+
+    /* An error is as tall as its text, which wraps in a cell of a table, and a blank line comes after it. */
+    const float       error_width   = ImGui::GetContentRegionAvail().x - 2.0f * style.CellPadding.x;
+    const float       error_height  = (is_error_text) ? ImGui::CalcTextSize(m_status.c_str(),
+                                                                            nullptr,
+                                                                            false, /* hide_text_after_double_hash */
+                                                                            error_width).y + 2.0f * style.CellPadding.y + line_height
+                                                      : 0.0f;
+    const float       area_height   = button_height + std::max<float>(status_height,
+                                                                      error_height);
     const float       free_height   = ImGui::GetContentRegionAvail().y;
 
     /* The button is at the bottom of the panel, in the middle. */
@@ -526,11 +539,41 @@ void VRPlayer::VrPlayerWindow::draw_launch_area()
 
     const float status_top = ImGui::GetCursorPosY();
 
-    ImGui::PushStyleColor(ImGuiCol_Text,
-                          (m_is_status_error) ? ERROR_TEXT_COLOR
-                                              : DIM_TEXT_COLOR);
-    ImGui::PushTextWrapPos(0.0f);
+    if (is_error_text)
+    {
+        /* The error is in a table, and the button follows it after a newline: nothing covers the text, however long it is. */
+        if (ImGui::BeginTable("##status_error",
+                              1, /* columns */
+                              ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg) )
+        {
+            ImGui::TableNextRow   ();
+            ImGui::TableNextColumn();
 
+            ImGui::PushStyleColor(ImGuiCol_Text,
+                                  ERROR_TEXT_COLOR);
+            ImGui::TextWrapped   ("%s",
+                                  m_status.c_str() );
+            ImGui::PopStyleColor ();
+
+            ImGui::EndTable();
+        }
+
+        ImGui::NewLine();
+    }
+
+    if (is_error_text == false)
+    {
+        ImGui::PushStyleColor(ImGuiCol_Text,
+                              (m_is_status_error) ? ERROR_TEXT_COLOR
+                                                  : DIM_TEXT_COLOR);
+        ImGui::PushTextWrapPos(0.0f);
+    }
+
+    if (is_error_text)
+    {
+        /* Said above. */
+    }
+    else
     if (m_installing_app >= 0)
     {
         const VRPlayer::AppInstaller::InstallProgress progress          = m_installer.get_progress();
@@ -559,11 +602,15 @@ void VRPlayer::VrPlayerWindow::draw_launch_area()
         ImGui::TextUnformatted("Pick an application which is available.");
     }
 
-    ImGui::PopTextWrapPos();
-    ImGui::PopStyleColor ();
+    if (is_error_text == false)
+    {
+        ImGui::PopTextWrapPos();
+        ImGui::PopStyleColor ();
 
-    /* The button does not move with the length of what is said above it. */
-    ImGui::SetCursorPosY(status_top + status_height);
+        /* The button does not move with the length of what is said above it. */
+        ImGui::SetCursorPosY(status_top + status_height);
+    }
+
     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 0.5f * std::max<float>(0.0f,
                                                                          ImGui::GetContentRegionAvail().x - button_width) );
 
