@@ -31,6 +31,31 @@ TEST(StereoLauncherCommandLineTest, EverythingIsRead)
     EXPECT_TRUE(options.is_logging);
 }
 
+TEST(StereoLauncherCommandLineTest, TheButtonToPressIsRead)
+{
+    std::string               error;
+    Stereo::Launcher::Options options;
+
+    ASSERT_TRUE(Stereo::Launcher::CommandLine::parse({"--session", "s", "--recipe", "r.json", "--click-button", "Launch", "demo.exe"},
+                                                     &options,
+                                                     &error) ) << error;
+
+    EXPECT_EQ(options.click_button_text,
+              "Launch");
+}
+
+TEST(StereoLauncherCommandLineTest, NoButtonIsPressedUnlessOneIsGiven)
+{
+    std::string               error;
+    Stereo::Launcher::Options options;
+
+    ASSERT_TRUE(Stereo::Launcher::CommandLine::parse({"--session", "s", "--recipe", "r.json", "demo.exe"},
+                                                     &options,
+                                                     &error) ) << error;
+
+    EXPECT_TRUE(options.click_button_text.empty() );
+}
+
 TEST(StereoLauncherCommandLineTest, OnlyTheApplicationTheRecipeAndTheSessionAreNeeded)
 {
     std::string               error;

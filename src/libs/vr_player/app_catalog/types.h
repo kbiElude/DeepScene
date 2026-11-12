@@ -24,6 +24,7 @@ namespace VRPlayer
             std::string                         id;                         /* in the catalog; letters, digits, '-' and '_'                                     */
             VRPlayer::AppInstaller::InstallSpec install_spec;               /* where it can be got, if the catalog says; empty if not                           */
             bool                                is_download_needed = false; /* the executable is not there, and the catalog says where to get it                */
+            std::string                         launch_button_text;         /* of a button of the dialog that the application shows first, which is pressed for the user; empty: none */
             std::string                         name;                       /* what is shown: the title, else the name of the target of the recipe, else the id */
             float                               overlay_parallax   = 0.0f;  /* from the comfort of the recipe: how far its overlays can be pushed toward the viewer; 0 if it has no amount, which means the application wants none */
             std::string                         recipe_path;                /* absolute                                                                         */

@@ -6,13 +6,15 @@
 
 const char* Stereo::Launcher::CommandLine::get_usage_ptr()
 {
-    return "Usage: StereoLauncher --recipe file.json --session id [--arguments \"text\"] [--working-directory dir] [--log] [--wait] application.exe\n"
+    return "Usage: StereoLauncher --recipe file.json --session id [--arguments \"text\"] [--click-button \"text\"] [--working-directory dir] [--log] [--wait] application.exe\n"
            "Starts the application with the stereo converter in it. The launcher has to be of the architecture of the application:\n"
            "StereoLauncher_x86.exe for a 32-bit one, StereoLauncher_x64.exe for a 64-bit one.\n"
            "\n"
            "  --recipe file.json        the recipe which converts the application to stereo (required)\n"
            "  --session id              names the playback, so that the programs which take part in it find each other (required)\n"
            "  --arguments \"text\"        put on the command line of the application as it is\n"
+           "  --click-button \"text\"     presses the button of that text (not looking at the case or at the '&') when the application shows it,\n"
+           "                            for the dialog that a demo shows before it starts; given up after a minute\n"
            "  --working-directory dir   where the application runs (the current directory by default)\n"
            "  --log                     the converter writes a log of what it does (see SessionEnvironment::get_log_path());\n"
            "                            without it, only why it stops the application is written\n"
@@ -45,6 +47,7 @@ bool Stereo::Launcher::CommandLine::parse(const std::vector<std::string>& in_arg
         }
         else
         if (argument == "--arguments"         ||
+            argument == "--click-button"      ||
             argument == "--recipe"            ||
             argument == "--session"           ||
             argument == "--working-directory")
@@ -61,6 +64,11 @@ bool Stereo::Launcher::CommandLine::parse(const std::vector<std::string>& in_arg
             if (argument == "--arguments")
             {
                 out_options_ptr->arguments = value;
+            }
+            else
+            if (argument == "--click-button")
+            {
+                out_options_ptr->click_button_text = value;
             }
             else
             if (argument == "--recipe")

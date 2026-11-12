@@ -23,6 +23,7 @@ namespace VRPlayer
     {
         std::string arguments;          /* of the application                                                   */
         std::string executable_path;
+        std::string launch_button_text; /* of a button that the application shows first, which the launcher presses; empty: none */
         std::string launcher_path;      /* StereoLauncher of the architecture of the application                */
         bool        is_logging          = false; /* the converter and the presenter write a log of the session  */
         bool        pace_to_headset     = true;  /* the application makes a frame for each one of the headset   */

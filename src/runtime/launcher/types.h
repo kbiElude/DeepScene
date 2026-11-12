@@ -23,6 +23,7 @@ namespace Stereo
         struct Options
         {
             std::string arguments;          /* of the application, as they are put on its command line   */
+            std::string click_button_text;  /* of a button that the application shows, which is pressed; empty: none */
             std::string executable_path;
             bool        is_logging          = false; /* the converter writes a log of what it does                         */
             std::string recipe_path;

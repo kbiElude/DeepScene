@@ -103,6 +103,14 @@ TEST_F(CatalogLoaderTest, TheCatalogCanSayTheTitleTheArgumentsAndTheWorkingDirec
     EXPECT_TRUE(app.unavailable_reason.empty() ) << app.unavailable_reason;
 }
 
+TEST_F(CatalogLoaderTest, TheCatalogCanSayWhichButtonOfTheFirstDialogIsPressedForTheUser)
+{
+    ASSERT_TRUE(parse(get_text(", \"launch_button\": \"Launch\"") ) ) << m_error;
+
+    EXPECT_EQ(m_catalog.app_vec.at(0).launch_button_text,
+              "Launch");
+}
+
 TEST_F(CatalogLoaderTest, TheCatalogCanSayWhyAnApplicationWhoseRecipeIsThereCannotBeStarted)
 {
     ASSERT_TRUE(parse(get_text(", \"unavailable_reason\": \"Not converted yet.\"") ) ) << m_error;

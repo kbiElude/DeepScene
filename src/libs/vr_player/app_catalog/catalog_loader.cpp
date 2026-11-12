@@ -252,6 +252,7 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_app(const Utils::Json::JsonValue
                                                                           "download",
                                                                           "executable",
                                                                           "id",
+                                                                          "launch_button",
                                                                           "recipe",
                                                                           "title",
                                                                           "unavailable_reason",
@@ -300,6 +301,16 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_app(const Utils::Json::JsonValue
                                      false, /* in_is_required */
                                      in_path,
                                     &out_app_ptr->arguments,
+                                     out_error_ptr);
+        }
+
+        if (is_parsed)
+        {
+            is_parsed = parse_string(in_app,
+                                     "launch_button",
+                                     false, /* in_is_required */
+                                     in_path,
+                                    &out_app_ptr->launch_button_text,
                                      out_error_ptr);
         }
 

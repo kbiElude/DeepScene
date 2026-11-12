@@ -8,6 +8,7 @@
 #include "analysis/recipe/recipe_loader.h"
 #include "capture/injection_launcher/launcher.h"
 #include "stereo/session/session_environment.h"
+#include "button_clicker.h"
 #include "command_line.h"
 #include "log_summary.h"
 #include <stdio.h>
@@ -212,6 +213,23 @@ int Stereo::Launcher::run(const std::vector<std::string>& in_argument_vec)
             options.executable_path.c_str(),
             process_info.dwProcessId);
     fflush (stdout);
+
+    /* The dialog that some demos show before they start. */
+    if (options.click_button_text.empty() == false)
+    {
+        constexpr DWORD CLICK_TIMEOUT_MILLISECONDS = 60000;
+
+        const bool is_clicked = ButtonClicker::click_when_shown(process_info.hProcess,
+                                                                process_info.dwProcessId,
+                                                                options.click_button_text,
+                                                                CLICK_TIMEOUT_MILLISECONDS);
+
+        fprintf(stdout,
+                (is_clicked) ? "[*] Pressed the button [%s].\n"
+                             : "[!] The button [%s] was not found; it has to be pressed by hand.\n",
+                options.click_button_text.c_str() );
+        fflush (stdout);
+    }
 
     if (options.should_wait)
     {

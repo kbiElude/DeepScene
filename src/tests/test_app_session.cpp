@@ -41,6 +41,20 @@ TEST(AppSessionTest, ArgumentsAndTheWorkingDirectoryAreHandedOverWithTheirQuotes
               "--working-directory \"C:\\work dir\\\\\" --wait \"demo.exe\"");
 }
 
+TEST(AppSessionTest, TheButtonThatTheLauncherPressesIsHandedOver)
+{
+    VRPlayer::SessionRequest request;
+
+    request.executable_path   = "demo.exe";
+    request.launch_button_text = "Launch";
+    request.launcher_path     = "launcher.exe";
+    request.recipe_path       = "r.json";
+    request.session_id        = "s";
+
+    EXPECT_EQ(VRPlayer::AppSession::get_command_line(request),
+              "\"launcher.exe\" --recipe \"r.json\" --session \"s\" --click-button \"Launch\" --wait \"demo.exe\"");
+}
+
 TEST(AppSessionTest, TheWindowIsStartedWithTheSessionAndTheTitle)
 {
     VRPlayer::SessionRequest request;
