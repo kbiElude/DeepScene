@@ -69,8 +69,8 @@
 </figure>
 <table>
 <tr><th>Library</th><th>What it is for</th><th>Its parts</th></tr>
-<tr><td><code>utils</code></td><td>What no other library owns and any may use.</td><td><code>images</code>, <code>binary_io</code>, <code>json</code>, <code>command_line</code>, <code>hashing</code>, <code>parallel</code>, <code>statistics</code>, <code>files</code>, <code>ui_host</code>, <code>d3d12</code></td></tr>
-<tr><td><code>analysis</code></td><td>Turns a workload into a model and the model into a recipe; also reads and applies recipes.</td><td><code>api_dump_analysis</code> (with the front ends), <code>api_dump_dependencies</code>, <code>api_dump_slicing</code>, <code>recipe</code></td></tr>
+<tr><td><code>utils</code></td><td>What no other library owns and any may use.</td><td><code>images</code>, <code>binary_io</code>, <code>json</code>, <code>command_line</code>, <code>cpu</code>, <code>hashing</code>, <code>parallel</code>, <code>statistics</code>, <code>files</code>, <code>graphics</code>, <code>ui_host</code>, <code>d3d12</code></td></tr>
+<tr><td><code>analysis</code></td><td>Turns a workload into a model and the model into a recipe; also reads and applies recipes.</td><td><code>api_dump_analysis</code> (with the front ends), <code>api_dump_dependencies</code>, <code>api_dump_slicing</code>, <code>api_dump_textures</code>, <code>recipe</code></td></tr>
 <tr><td><code>stereo</code></td><td>What the converter decides and what it hands on, whatever the API is.</td><td><code>core</code>, <code>D3D7</code>, <code>session</code>, <code>transport</code></td></tr>
 <tr><td><code>headset</code></td><td>Shows the images in a headset.</td><td><code>d3d12</code>, <code>xr</code>, <code>vr_devices</code></td></tr>
 <tr><td><code>vr_player</code></td><td>What the VR player is made of besides the window and the headset.</td><td><code>app_catalog</code>, <code>app_installer</code></td></tr>
@@ -112,7 +112,7 @@
 
 <h2 id="data">The files that flow between them</h2>
 <figure>
-<svg viewBox="0 0 900 270" role="img" aria-label="Files and the tools that make and read them">
+<svg viewBox="0 0 900 300" role="img" aria-label="Files and the tools that make and read them">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
   <rect class="box" x="10" y="100" width="100" height="46" rx="6"/><text x="60" y="127" text-anchor="middle">APIDumper</text>
   <rect class="box3" x="140" y="100" width="110" height="46" rx="6"/><text x="195" y="120" text-anchor="middle">.workload</text><text class="small" x="195" y="136" text-anchor="middle">+ .index</text>
@@ -126,9 +126,12 @@
   <path class="arrow" d="M110 123H138"/><path class="arrow" d="M250 112L288 70"/><path class="arrow" d="M250 134L288 178"/><path class="arrow" d="M420 63H448"/><path class="arrow" d="M420 183H448"/>
   <path class="arrow" d="M540 63L578 108"/><path class="arrow" d="M540 183L578 140"/><path class="arrow" d="M700 123H738"/><path class="arrow" d="M810 150V198"/>
   <path class="arrow" d="M540 195L578 215"/>
+  <rect class="box" x="290" y="240" width="130" height="46" rx="6"/><text x="355" y="260" text-anchor="middle">Texture</text><text class="small" x="355" y="276" text-anchor="middle">Extractor</text>
+  <rect class="box3" x="450" y="240" width="110" height="46" rx="6"/><text x="505" y="260" text-anchor="middle">.textures</text><text class="small" x="505" y="276" text-anchor="middle">+ blobs</text>
+  <path class="arrow" d="M240 140L288 262"/><path class="arrow" d="M420 263H448"/>
   <rect class="box3" x="10" y="200" width="150" height="46" rx="6"/><text x="85" y="220" text-anchor="middle">apps.json (catalog)</text><text class="small" x="85" y="236" text-anchor="middle">read by VRPlayer</text>
 </svg>
-<figcaption>Yellow boxes are files, blue boxes programs that make or change them. Everything that needs to know about a program reads the recipe; nothing at play time reads the workload or the analysis.</figcaption>
+<figcaption>Yellow boxes are files, blue boxes programs that make or change them. Everything that needs to know about a program reads the recipe. The live converter reads no workload (it runs the front ends of the analysis on the calls as they come); the replay tools read the workload, and the <code>.deps</code> file to seek. The query programs read the <code>.passes</code>, <code>.deps</code> and <code>.textures</code> files and print what they say.</figcaption>
 </figure>
 
 <h2 id="where">Where to look</h2>
@@ -138,6 +141,7 @@
 <tr><td>How a draw is classified live (scene, interface, skipped)</td><td><code>libs/stereo/core</code> (<code>StereoCore</code>), <code>libs/analysis/recipe</code> (<code>RecipeApplier</code>)</td></tr>
 <tr><td>What the analysis understands of an API</td><td><code>libs/analysis/api_dump_analysis/frontends/&lt;api&gt;</code></td></tr>
 <tr><td>How the second eye is drawn in the running program</td><td><code>runtime/converter_dll/&lt;api&gt;</code></td></tr>
+<tr><td>What the analysis keeps of textures</td><td><code>libs/analysis/api_dump_textures</code>, <code>tools/analysis/api_dump_texture_extractor</code></td></tr>
 <tr><td>What a recipe can say</td><td><code>libs/analysis/recipe</code> (types, loader, applier) and <code>tools/analysis/recipe_bake</code></td></tr>
 <tr><td>How a capture is replayed for two eyes</td><td><code>tools/stereo_replay/engine_dll</code></td></tr>
 <tr><td>How an image reaches a headset</td><td><code>libs/headset/xr</code>, <code>runtime/presenter</code></td></tr>

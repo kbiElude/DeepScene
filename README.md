@@ -8,7 +8,7 @@ It works in three steps:
 2. **Process** the capture: the analysis tells what each draw of the program is (the scene, the interface, the post-processing), and a **recipe** says how each draw is to be treated for stereo.
 3. **Play** it in 3D: a converter is injected into the running program, renders the two eyes from what the program draws, and passes the images on to a window or a headset. `VRPlayer` is the front end that lists the programs and starts them.
 
-Direct3D 8 is the first API supported, and Direct3D 7 the second (for programs whose vertices are already in pixels); the demos are what drove the work.
+Three graphics APIs are supported: Direct3D 8, Direct3D 7 (for programs whose vertices are already in pixels) and OpenGL (the fixed function). The demos are what drove the work: one for each API is in the catalog.
 
 ## What is in here
 
@@ -19,7 +19,7 @@ Direct3D 8 is the first API supported, and Direct3D 7 the second (for programs w
 | `runtime/converter_dll`, `runtime/launcher` | The converter that goes into the running program, and the launcher that puts it there. Built for 32 and 64 bits, to match the program. |
 | `libs/stereo` (Transport), `libs/headset`, `runtime/presenter` | Carry the images of the eyes to the screen: through shared memory, onto the GPU, into a headset or a preview window. |
 | `vr_player`, `libs/vr_player`, `libs/headset` (vr_devices) | The player: the list of programs, the list of devices, and the window. A program which is not on the computer is downloaded the first time it is launched. |
-| `libs/utils` | What is not about any of the above and any of it may use: image and JSON files, hashing, downloading and unpacking, an ImGui window, Direct3D 12 plumbing. |
+| `libs/utils` | What is not about any of the above and any of it may use: image and JSON files, hashing, threads for parallel work, downloading and unpacking, an ImGui window, Direct3D 12 plumbing. |
 | `apps\` | The catalog and the recipes. The programs the catalog lists are downloaded into it. |
 
 Each part is described in [the documentation](docs/index.html) (open it in a browser). The folders of `src` are the folders of the release (`build_final`): see `docs/components.html`.
@@ -33,7 +33,7 @@ build.bat --from-scratch   :: clean, configure and build
 build.bat --debug          :: Debug configuration
 ```
 
-Visual Studio 2026 (the generator is set in `deps\APIInterceptor\build.bat`), CMake 3.15 or newer. The tests are built with `-DDEMOVRPLAYER_BUILD_TESTS=ON` (in both builds; the 32-bit one leaves out the tests of the headset).
+Visual Studio 2026 (the generator is set in `deps\APIInterceptor\build.bat`) and a CMake that knows it (the OpenXR SDK needs 3.16 at least). The tests are off unless the build trees are configured with `-DDEMOVRPLAYER_BUILD_TESTS=ON` (both builds; the 32-bit one leaves out the tests of the headset): `docs/building.html` has the commands.
 
 `build_final\` has `VRPlayer.exe`, `runtime\` (what it starts), `apps\`, and `tools\`: `api_dumper` (capture), `analysis` and `stereo_replay`.
 
@@ -43,14 +43,14 @@ The first time a program of the catalog is launched, `VRPlayer` downloads it (wi
 
 Start `VRPlayer.exe` (from `build_final\`) and you are done: it is the front end, and nothing else has to be started by hand.
 
-1. Pick a program from the list. The first time, a program that is not on the computer yet is downloaded first, so you need internet that time.
+1. Pick a program from the list. The first time, a program that is not on the computer is downloaded first, so you need internet that time.
 2. Pick the device: your headset, or just the preview window on the monitor.
 3. Set the depth and, for a headset, the image quality.
 4. Press **Launch**. The program starts with the converter inside it, and the two eyes go to the headset (or the window). The depth can be changed while it runs.
 
 For a headset, the PC has to see it through an active OpenXR runtime. Without one, the preview window still works.
 
-Only the Oculus Quest 3 has been tested so far. Other headsets that work through OpenXR might be fine, but nobody has tried them yet.
+Only the Oculus Quest 3 is tested. Other headsets that work through OpenXR might be fine, but nobody has tried them.
 
 ## License
 

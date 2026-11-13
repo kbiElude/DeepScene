@@ -27,7 +27,7 @@
 <h1>Adding an app</h1>
 <p class="lead">How to take a 2D program from nothing to a recipe that turns it into stereo 3D, and to a line in the catalog of the VR player. The facts about the program are read from its analysis by an LLM; a person decides, and looks at the pictures.</p>
 
-<div class="note">The converter handles Direct3D 8 programs whose camera is set with <code>SetTransform</code>, and Direct3D 7 programs whose vertices are already in pixels (see <a href="#limits">What this does not cover</a>). The steps are the same for another API once it has its front end and its converter adapter (<a href="analysis.html#frontends">What adding an API takes</a>); only what the rules can name changes.</div>
+<div class="note">The converter handles Direct3D 8 programs whose camera is set with <code>SetTransform</code>, Direct3D 7 programs whose vertices are already in pixels, and OpenGL programs of the fixed function (see <a href="#limits">What this does not cover</a>). The steps are the same for each of them; only what the rules can name changes (<a href="#draft">step 4</a>). For another API they are the same once it has its front end and its converter adapter (<a href="analysis.html#frontends">What adding an API takes</a>). The catalog has one program of each: fr08 (Direct3D 8), Kasparov (Direct3D 7) and Gerbera (OpenGL).</div>
 
 <div class="note">The commands are written from the folder of a release (<code>build_final</code>): the programs are in <code>tools\api_dumper</code>, <code>tools\analysis</code> and <code>tools\stereo_replay</code> (see <a href="building.html#release">The collected build</a>).</div>
 
@@ -57,7 +57,9 @@
 <p>What to capture decides what the recipe knows. The analysis groups frames into <em>shapes</em> (the kinds of passes a frame is made of), and a recipe knows only the shapes it saw; any other frame is treated as the recipe says (<code>on_unknown_frame</code>, mono by default). So one capture should walk through every kind of screen the program has: the loader, the menu, each scene, the transitions. Play it the way a user would, once.</p>
 
 <h2 id="extract">2. Extract the passes</h2>
-<pre><code>tools\analysis\APIDumpAnalysisExtractor_x64 result_dump.workload -o app.passes --stats</code></pre>
+<pre><code>tools\analysis\APIDumpAnalysisExtractor_x64 result_dump.workload -o app.passes --stats
+tools\analysis\APIDumpDependencyExtractor_x64 result_dump.workload -o app.deps --stats</code></pre>
+<p>The second file says which frames and textures each frame needs. The baker takes it (<code>--deps</code>) to know which textures need a copy for the second eye, and the replay tools use it to seek faster. Both extractors read the workload with several threads (<code>--threads</code>), and <code>--max-frames</code> stops at a frame.</p>
 <p>Before going on, look at the summary it prints, or at <code>APIDumpAnalysisQuery app.passes info</code>. A capture is good for the next steps when:</p>
 <ul>
   <li><code>n_unfollowed_calls</code> and <code>n_unsupported_calls</code> are <strong>0</strong>. The first counts calls that the analysis could not make sense of (a call whose arguments were not as expected); the second, calls of an API that the front end does not know. Either means the passes found may be wrong, and the cause is a bug or a gap in the front end, not something a recipe can fix.</li>
@@ -89,7 +91,7 @@
 
 <h3>Giving the model its job</h3>
 <p>Give it a shell where it can run the query tool, the text of <code>APIDumpAnalysisQuery</code>'s usage, the <a href="recipes.html#format">recipe format</a>, and the table above. Ask for evidence, not for a verdict. A prompt that works:</p>
-<pre><code>You are helping to make a stereo-3D recipe for a 2D Direct3D 8 program.
+<pre><code>You are helping to make a stereo-3D recipe for a 2D program (Direct3D 8, Direct3D 7 or OpenGL).
 The analysis of its capture is in app.passes. Run APIDumpAnalysisQuery on it
 (usage and recipe format attached), with --compact and --limit, and do not
 read anything else: you have no access to the program, its code or its pixels.
@@ -112,7 +114,7 @@ marked unclear, with the question that would settle it.</code></pre>
 <p>Two habits make the answers good. The first is to ask for the <em>unclear</em> list: a model that has to say what it does not know checks more than one that has to decide everything. The second is to read the evidence, not the verdict: the facts are fields of the JSON that you can run again yourself, and a verdict that rests on none of them is a guess. Where the facts are not enough, a multimodal model can be given the back buffers of the frames (<code>APIDumpPrinter</code> writes the surface dumps of a workload to its working directory), and a person can always look.</p>
 
 <h2 id="draft">4. Draft the rules</h2>
-<p>The input of the baker is a recipe <em>without</em> the <code>baked</code> section: what the person knows, and what the analysis cannot. For a program that sets its camera with <code>SetTransform</code> it is nearly always the same shape (this is how <code>apps/recipes/fr08.json</code> starts):</p>
+<p>The input of the baker is a recipe <em>without</em> the <code>baked</code> section: what the person knows, and what the analysis cannot. For a program that sets its camera with <code>SetTransform</code> it is nearly always the same shape (these are the rules of <code>apps/recipes/fr08.json</code>):</p>
 <pre><code>{
   "recipe_version": 0,
   "key_scheme_version": 1,
@@ -136,15 +138,17 @@ marked unclear, with the question that would settle it.</code></pre>
   <li>The <code>eye_offset</code> rule moves each eye along an axis by half of the separation, which is a setting of the VR player (the depth choice), not of the recipe. <code>eye_convergence</code> shears the projection so that what is at the convergence distance is at the screen; the distance is measured and baked in step 5. See <a href="recipes.html#format">Recipe format</a> for every action.</li>
   <li><code>known_shape_keys</code> should be the shapes of the capture. Leave <code>on_unknown_frame</code> at <code>mono</code> unless a program has screens that must not appear at all (<code>skip</code>) or that should never occur (<code>fail</code>, which stops the converter with a message, useful while testing).</li>
 </ul>
+<p>For Direct3D 7 with vertices in pixels and for OpenGL there is no matrix call to put a rule on, so <code>rules</code> is empty (<code>apps/recipes/kasparov.json</code>, <code>apps/recipes/gerbera.json</code>). The Kasparov recipe says <code>screen_parallax</code> (the convergence distance and the angle of view, since the vertices have neither), and the Gerbera one says <code>view_anchor_shift</code> (where the eyes converge for a scene with no distance of its own), a <code>comfort</code> section with limits for single scenes (<code>scene_overrides</code>) and <code>"measure_depth": true</code>, so that the converter reads the depth of what is drawn. <a href="recipes.html#format">Recipe format</a> has each of them.</p>
 <p>An LLM can write this file, and the model of step 3 usually already has what it needs. Check three things in what it wrote: that every key is one from the output of <code>APIDumpAnalysisQuery</code> (the loader checks that a key is well formed, but it cannot know that the program has it), that <code>known_shape_keys</code> are shapes and not pass keys, and that nothing was added that the evidence did not support.</p>
 
 <h2 id="bake">5. Bake the recipe</h2>
-<pre><code>tools\analysis\RecipeBake_x64 recipe.json app.passes -o myapp.json</code></pre>
+<pre><code>tools\analysis\RecipeBake_x64 recipe.json app.passes --deps app.deps -o myapp.json</code></pre>
 <p>A converter in the running program can use only what is known when a draw is issued, and a pass or a shape is not (the pass is not over yet). The baker therefore turns what is known offline into what is known live: for every draw signature the analysis saw, whether it is an interface or a scene (<code>draw_rules</code>, with the view matrix where one signature is both), the distance at which the eyes converge for each signature and for each shape (the median depth by vertices of what it draws), and the list of signatures it knew. It prints a summary: the number of signatures, of rules, of signatures that only the view matrix tells apart, and how many have a distance.</p>
 <ul>
   <li><strong>Exit 3</strong> means the recipe cannot be baked, and says why. The usual one: a signature that is drawn as an interface in one pass and as a scene in another, with the same view matrix, so that nothing known when it is issued tells the two apart. The message names the signature; the remedy is in the rules (<code>draw_keys</code> say which draws of an affected pass are an interface).</li>
-  <li>Signatures with <em>no</em> distance are draws that were never in front of the camera in the capture; they will use the distance of their frame's shape.</li>
-  <li>Bake again whenever the capture changes. The baked part is generated; do not edit it.</li>
+  <li>Signatures with <em>no</em> distance are draws that were never in front of the camera in the capture; they use the distance of their frame's shape.</li>
+  <li>Bake again whenever the capture changes. The baked part is generated; do not edit it. Without <code>-o</code> the recipe is written over itself, so keep the unbaked one apart.</li>
+  <li>Three modes write nothing and look at the result. <code>--check</code> says which kinds of frames and which draw signatures of the capture the recipe does not know, and which passes it leaves alone look like 3D scenes (exit 5 or 6 when something is off). <code>--overlays</code> prints, as JSON, the draws that may be 2D overlays. <code>--scenes</code> prints each scene with where its frames are, where the eyes converge, how far apart they may be and what that makes of the parallax of its nearest and farthest surfaces (<code>--screen-degrees</code> says how wide the screen is); it is what the <code>comfort</code> numbers are tuned with (<a href="recipes.html">Recipes</a>).</li>
 </ul>
 
 <h2 id="check">6. Check it offline</h2>
@@ -154,6 +158,7 @@ tools\stereo_replay\StereoReplayConsistencyChecker_x86.exe result_dump.workload 
 <ul>
   <li><strong>StereoReplayPlayer</strong> renders the frames for both eyes and shows the images side by side. Look for the things below, with <code>--eye left</code> and <code>--eye right</code> to see one at a time.</li>
   <li><strong>StereoReplayConsistencyChecker</strong> replays the frames twice, the first time for the left eye and the second for the right, and compares the images with those of a replay without the recipe. With a recipe that changes nothing it must find no difference; with the real one, differences are expected, and the checker's job is to say where the replay itself is unstable (a frame that cannot be executed twice is not one that stereo conversion can handle). Mind that some frames of any program differ on a second execution; compare with the same run without the recipe before blaming the recipe.</li>
+  <li>The checker also looks without a window: <code>--screenshot N --out file.png --recipe myapp.json</code> writes frame N (both eyes side by side, or <code>--eye anaglyph</code>), <code>--contact-sheet K --out sheet.png</code> puts K frames spread over the range on one picture, and <code>--overlay-report candidates.json</code> (the output of <code>RecipeBake --overlays</code>) makes an animation for each draw that may be an overlay, with and without it, to look at in <code>index.html</code> of <code>--dump-dir</code>. The player and the checker come as <code>_x86</code> (for the capture of a 32-bit program, which all three demos are) and <code>_x64</code>.</li>
 </ul>
 <table>
 <tr><th>What you see</th><th>Likely cause</th><th>Go back to</th></tr>
@@ -167,11 +172,11 @@ tools\stereo_replay\StereoReplayConsistencyChecker_x86.exe result_dump.workload 
 </table>
 
 <h2 id="live">7. Try it live</h2>
-<p>Add the program to the catalog (step 8) and start it from <code>VRPlayer</code>, or start <code>StereoLauncher</code> yourself. With <code>--log</code> on StereoLauncher (VR Player has no control for it, and the log is off), the converter writes a session log, <code>%TEMP%\apistereo_&lt;session&gt;.log</code>; lines ending in “(presenter)” come from the headset path. What to look for in it:</p>
+<p>Add the program to the catalog (step 8) and start it from <code>VRPlayer</code>, or start <code>StereoLauncher</code> yourself (<code>runtime\StereoLauncher_x86.exe --recipe myapp.json --session test --log --wait c:\path\to\app.exe</code>; <code>--session</code> names the playback, and <code>--working-directory</code> says where the application runs). With <code>--log</code> on StereoLauncher, or on <code>VRPlayer</code> (which has no control for it in the window, and passes the switch on), the converter writes a session log, <code>%TEMP%\apistereo_&lt;session&gt;.log</code>; lines ending in “(presenter)” come from the headset path. What to look for in it:</p>
 <ul>
   <li>Frames of a scene the recipe has no distance for (<code>scene_convergence</code>): the statistics line counts them. A program that is mostly in such frames is in screens that were not in the capture (step 1).</li>
   <li>A refusal: a rule that depends on a pass or a frame shape (<code>pass_keys</code> or <code>shape_keys</code> in the <code>when</code> of a rule) cannot be followed live, since neither is known when a draw is issued, and the converter then stops with a message instead of drawing wrong images. The interface passes of <code>unaffected</code> are not of this kind: the baker turns them into rules by signature.</li>
-  <li>The statistics line at the end: the numbers of affected, unaffected and skipped draws, of draws of a signature the recipe does not know, of frames of a scene it has no distance for, and of matrices kept. A large count of unknown draws means that the program draws things in play that were not in the capture.</li>
+  <li>The statistics line at the end: the numbers of affected, unaffected and skipped draws, of draws of a signature the recipe does not know, of frames of a scene it has no distance for, and of matrices kept, then the twins and the unmirrored calls (Direct3D 7, OpenGL), the counts of the OpenGL draws, and what the callbacks cost per frame. A large count of unknown draws means that the program draws things in play that were not in the capture.</li>
 </ul>
 <p>Judge what you see in the window first and in the headset second: the window shows the same images, and it is where a fault is easiest to tell from discomfort.</p>
 
@@ -199,15 +204,15 @@ tools\stereo_replay\StereoReplayConsistencyChecker_x86.exe result_dump.workload 
     }
   ]
 }</code></pre>
-<p>An entry whose recipe cannot be found, or whose executable cannot be found and has no <code>download</code>, is listed as unavailable, with the reason. The zip file has to hold the program with the paths of <code>executable</code> under <code>apps/&lt;id&gt;/</code>. Get its <code>sha256</code> from a copy you trust (<code>certutil -hashfile myapp.zip SHA256</code>), and check that the program may be downloaded by whoever uses the catalog.</p>
+<p>An entry whose recipe cannot be found or is not valid, or whose executable cannot be found and has no <code>download</code>, is listed as unavailable, with the reason. A field the loader does not know, a <code>download</code> without <code>urls</code>, <code>sha256</code>, <code>size</code> or <code>unpacked_size</code>, or an <code>executable</code> outside <code>apps/&lt;id&gt;/</code> in an entry with a <code>download</code>, makes the whole catalog unreadable (the window says why). The zip file has to hold the program with the paths of <code>executable</code> under <code>apps/&lt;id&gt;/</code>. Get its <code>sha256</code> from a copy you trust (<code>certutil -hashfile myapp.zip SHA256</code>), and check that the program may be downloaded by whoever uses the catalog.</p>
 
 <h2 id="loop">Doing it again</h2>
 <p>A recipe is made for one version of a program. When the program changes, or when a screen of it is missing, capture again (step 1), extract again, and give the model the new analysis <em>and the old recipe</em>: keys of passes whose structure did not change are the same, so what is already decided stays decided, and the model only has to look at what is new (the shapes and passes not in <code>known_shape_keys</code>). When the analysis tools themselves change in a way that changes keys, <code>key_scheme_version</code> changes, the loader refuses the old recipe, and the whole of steps 2 to 5 is done again from the same capture.</p>
 
 <h2 id="limits">What this does not cover</h2>
 <ul>
-  <li><strong>The camera has to be set with <code>SetTransform</code>.</strong> The calls a rule can apply to are <code>IDirect3DDevice8::SetTransform</code> and <code>IDirect3DDevice7::SetTransform</code> (which has transform states named <code>D3DTRANSFORMSTATE_VIEW</code> and so on). A program that passes its matrices to a vertex shader as constants (<code>SetVertexShaderConstant</code>) has a camera that the converter cannot move: the analysis follows such constants, but a rule that changes them is new work in the loader, the baker and the converter, not a recipe.</li>
-  <li><strong>Direct3D 8, and Direct3D 7 for vertices in pixels.</strong> A Direct3D 7 program whose vertices a matrix moves has no adapter (see <a href="live-conversion.html#d3d7">Direct3D 7</a>). An OpenGL program of the fixed function (a camera that is the model-view matrix) is converted too (see <a href="live-conversion.html#opengl">OpenGL</a>); one that loads its cameras inside display lists, or has more than one context, is not tried. See <a href="index.html#api">One API is not all of them</a>.</li>
+  <li><strong>A Direct3D camera has to be set with <code>SetTransform</code>.</strong> The calls a rule can apply to are <code>IDirect3DDevice8::SetTransform</code> and <code>IDirect3DDevice7::SetTransform</code> (which has transform states named <code>D3DTRANSFORMSTATE_VIEW</code> and so on). A program that passes its matrices to a vertex shader as constants (<code>SetVertexShaderConstant</code>) has a camera that the converter cannot move: the analysis follows such constants, but a rule that changes them is new work in the loader, the baker and the converter, not a recipe.</li>
+  <li><strong>Direct3D 8, and Direct3D 7 for vertices in pixels.</strong> A Direct3D 7 program whose vertices a matrix moves has no adapter (see <a href="live-conversion.html#d3d7">Direct3D 7</a>). An OpenGL program of the fixed function (a camera that is the model-view matrix) is converted too (see <a href="live-conversion.html#opengl">OpenGL</a>); one that loads its cameras inside display lists, or has more than one context, is not tried. See <a href="index.html#api">What is supported</a>.</li>
   <li><strong>The LLM reads facts; it does not see the program.</strong> A fault that the facts cannot show (a pass that is an interface in some frames and a scene in others, with the same structure) is found by a person, in step 6.</li>
 </ul>
 

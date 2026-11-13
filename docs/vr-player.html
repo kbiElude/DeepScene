@@ -27,8 +27,12 @@
 <h1>VR player</h1>
 <p class="lead">The front end: pick a program from the catalog, pick an output, choose the depth and the image quality, press Launch.</p>
 
+<h2 id="start">Starting it</h2>
+<pre><code>VRPlayer.exe [--catalog file.json] [--log]</code></pre>
+<p>Without <code>--catalog</code> the catalog is the first <code>apps.json</code> found next to <code>VRPlayer.exe</code>, in an <code>apps\</code> next to it, or in the <code>apps\</code> of the folder above. A catalog that cannot be read is shown in the window, with the reason. An entry whose recipe cannot be found or is not valid, whose program cannot be found (and which has no download), or which says <code>unavailable_reason</code>, is listed with the reason and cannot be launched. The programs it starts (<code>StereoLauncher_x86.exe</code> or <code>_x64</code> by the architecture of the application, and <code>StereoPresenter_x64.exe</code>) are looked for in <code>runtime\</code> beside it, and beside it when there is no such folder. <code>--log</code> is passed on to both; see <a href="#logs">Logs</a>.</p>
+
 <h2 id="download">The first launch</h2>
-<p>A program of the catalog which is not on the computer yet is marked so, with the size of what is downloaded. Launch starts the download (the zip file, from the addresses of the catalog, one after the other until one works), and the window shows the progress, with a button to cancel. The file is checked against the hash of the catalog and unpacked into <code>apps\&lt;id&gt;\</code> beside <code>VRPlayer.exe</code>, and the program then starts by itself. The next launches start it at once. If something goes wrong (the network, a file which is not the expected one, a folder which cannot be written to, a virus scanner which removes the program), a window says what, and nothing is left half done.</p>
+<p>A program of the catalog which is not on the computer is marked so, with the size of what is downloaded. Launch starts the download (the zip file, from the addresses of the catalog, one after the other until one works), and the window shows the progress, with a button to cancel. The file is checked against the hash of the catalog and unpacked into <code>apps\&lt;id&gt;\</code> beside <code>VRPlayer.exe</code>, and the program then starts by itself. The next launches start it at once. If something goes wrong (the network, a file which is not the expected one, a folder which cannot be written to, a virus scanner which removes the program), a window says what, and nothing is left half done.</p>
 
 <h2 id="launch">The launch sequence</h2>
 <p><code>AppSession::start()</code> does the following, in this order. The order is the reason for each step.</p>
@@ -95,10 +99,10 @@
 <p>The window and <code>AppSession</code> (which starts the launcher and the presenter) are the program, in <code>src/vr_player</code>. What does not draw is the library <code>libs/vr_player</code> (target <code>VRPlayerBackend</code>), in the namespace <code>VRPlayer</code> as the program is: <code>AppCatalog</code> reads the catalog, and <code>AppInstaller</code> installs a program that is not there yet, with the download, the hash and the unpacking of <code>Utils::Files</code>. The window itself is a <code>UIHost</code> of <code>libs/utils</code>, which the presenter and the replay player use too. The headset is <code>libs/headset</code>.</p>
 
 <h2>Devices</h2>
-<p>The device dropdown is filled by <code>OpenXrVrDeviceProvider</code>. With no OpenXR runtime or headset it shows only <em>2D preview only</em> and is disabled; Launch still works.</p>
+<p>The device dropdown is filled by <code>OpenXrVrDeviceProvider</code>. With no OpenXR runtime or headset it shows only <em>2D preview only</em> and is disabled; Launch still works. With a headset, <em>2D preview only</em> is the last entry of the list, and a device that cannot be used is listed as <em>(unavailable)</em>, with the reason as a tooltip.</p>
 <div class="note"><strong>Windows:</strong> the active OpenXR runtime must be set in the vendor's software (for a Quest, Meta Quest Link). If the registry names a runtime that is not installed, the loader finds none and the presenter logs “The headset is not used” and keeps showing frames in the window.</div>
 
-<h2>Logs</h2>
+<h2 id="logs">Logs</h2>
 <p>With <code>--log</code> on StereoLauncher, or on VRPlayer (which passes it on to both programs), a session writes <code>%TEMP%\apistereo_&lt;session&gt;.log</code>; without it, only what stops the application or the headset is written. Lines ending in “(presenter)” come from the headset path. Each second it has three lines of timings, in milliseconds, as count, mean, worst and how many were late: <em>Pacing</em> (the converter: the presents of the program, the frames passed on, what the copies cost, the wait for the screen), <em>Frames to the headset</em> (the presenter: when the frames arrive, taking the images, the copy to them, how far into a frame the images are ready, the delay of the pace) and <em>Frames of the compositor</em> (the frames of the headset, and how many showed new images, repeated ones or none). They tell where a stutter comes from.</p>
 </main>
 </body>
