@@ -46,7 +46,7 @@ Stereo::ConverterDLL::GLHostMemoryExporter::GLHostMemoryExporter(Stereo::Transpo
      m_n_frames_per_second(0)
 {
     /* A debugging aid for a run with no program that shows the images: the application is held to a rate, as Direct3D 7 is held to one, so that what it does with the time
-     * of its music (and what the eyes of the converter do per frame) is what it is when it is shown by a screen, and not that of a run of a thousand frames a second.
+     * of its music is what it is when it is shown by a screen, and not that of a run of a thousand frames a second.
      */
     float      n_frames_per_second = 0.0f;
     const bool is_rate_set         = Environment::get_number("APISTEREO_FRAME_RATE",
