@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_analysis/frontends/D3D8/d3d8_geometry_tracker.h"
-#include "analysis/api_dump_analysis/frontends/shared/position_checker.h"
+#include "analysis/api_dump_analysis/frontends/shared/geometry_sampler.h"
 #include <algorithm>
 #include <string.h>
 
@@ -113,20 +113,17 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8GeometryTracker::on_unlock(const 
 
 std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDumpAnalysis::Frontends::D3D8GeometryTracker::sample(const DrawRange& in_range)
 {
-    /* A few dozen vertices tell where a mesh is, and what the analysis makes of them is a percentile of the depth; the cache is bounded
-     * since a buffer that is written to each frame makes a sample of its own each time.
-     */
-    constexpr size_t MAX_N_POINTS  = 64;
+    /* The cache is bounded since a buffer that is written to each frame makes a sample of its own each time. */
     constexpr size_t MAX_N_SAMPLES = 4096;
-    constexpr size_t N_POSITION_BYTES = 3 * sizeof(float);
 
     std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> result_ptr;
-    const auto                                                       vertex_iterator = m_buffer_map.find(in_range.vertex_buffer_id);
-    const auto                                                       index_iterator  = m_buffer_map.find(in_range.index_buffer_id);
+    const auto                                                       vertex_iterator  = m_buffer_map.find(in_range.vertex_buffer_id);
+    const auto                                                       index_iterator   = m_buffer_map.find(in_range.index_buffer_id);
+    const size_t                                                     n_position_bytes = GeometrySampler::get_position_n_bytes(false /* in_is_pre_transformed */);
 
     const bool has_vertices = (vertex_iterator != m_buffer_map.end() &&
                                in_range.vertex_count > 0             &&
-                               in_range.stride       >= N_POSITION_BYTES);
+                               in_range.stride       >= n_position_bytes);
 
     if (has_vertices)
     {
@@ -159,64 +156,20 @@ std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDu
                 }
                 else
                 {
-                    auto sample_ptr = std::make_shared<Analysis::APIDumpAnalysis::GeometrySample>();
+                    GeometrySamplingRange range;
 
-                    const size_t n_points = std::min<size_t>(in_range.vertex_count,
-                                                             MAX_N_POINTS);
+                    range.base_vertex_index = in_range.base_vertex_index;
+                    range.first             = in_range.first;
+                    range.index_data_ptr    = (in_range.is_indexed) ? index_iterator->second.byte_vec.data() : nullptr;
+                    range.index_n_bytes     = (in_range.is_indexed) ? index_iterator->second.byte_vec.size() : 0;
+                    range.index_stride      = (in_range.is_indexed) ? index_iterator->second.index_stride    : 0;
+                    range.is_indexed        = in_range.is_indexed;
+                    range.stride            = in_range.stride;
+                    range.vertex_count      = in_range.vertex_count;
+                    range.vertex_data_ptr   = vertex_buffer.byte_vec.data();
+                    range.vertex_n_bytes    = vertex_buffer.byte_vec.size();
 
-                    for (size_t n_point = 0;
-                                n_point < n_points;
-                              ++n_point)
-                    {
-                        /* Spread over the draw, so that a mesh whose parts are in different places is told by all of them. */
-                        const uint64_t slot         = static_cast<uint64_t>(n_point) * in_range.vertex_count / n_points;
-                        uint64_t       vertex_index = in_range.first + slot;
-                        bool           is_valid     = true;
-
-                        if (in_range.is_indexed)
-                        {
-                            const auto&    index_buffer = index_iterator->second;
-                            const uint64_t offset       = (in_range.first + slot) * index_buffer.index_stride;
-
-                            is_valid = (offset + index_buffer.index_stride <= index_buffer.byte_vec.size() );
-
-                            if (is_valid)
-                            {
-                                uint32_t index = 0;
-
-                                ::memcpy(&index,
-                                         index_buffer.byte_vec.data() + offset,
-                                         index_buffer.index_stride);
-
-                                vertex_index = static_cast<uint64_t>(index) + in_range.base_vertex_index;
-                            }
-                        }
-
-                        const uint64_t position_offset = vertex_index * in_range.stride;
-
-                        is_valid = (is_valid && position_offset + N_POSITION_BYTES <= vertex_buffer.byte_vec.size() );
-
-                        if (is_valid)
-                        {
-                            std::array<float, 3> position;
-
-                            ::memcpy(position.data(),
-                                     vertex_buffer.byte_vec.data() + position_offset,
-                                     N_POSITION_BYTES);
-
-                            const bool is_position_finite = PositionChecker::is_finite(position);
-
-                            if (is_position_finite)
-                            {
-                                sample_ptr->position_vec.push_back(position);
-                            }
-                        }
-                    }
-
-                    if (sample_ptr->position_vec.empty() == false)
-                    {
-                        result_ptr = sample_ptr;
-                    }
+                    result_ptr = GeometrySampler::sample(range);
 
                     if (m_sample_map.size() >= MAX_N_SAMPLES)
                     {
