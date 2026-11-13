@@ -24,7 +24,7 @@ namespace Stereo
              * is executed twice each execution makes it for its own eye. The name that the program has for the texture is that of the eye's copy: what the remapper maps it to
              * changes with the eye, and so does what is bound.
              */
-            class StereoGLCallExecutor : public ::Replay::ReplayEngineDLL::GlCallExecutor,
+            class StereoGLCallExecutor : public ::Replay::ReplayEngineDLL::GLCallExecutor,
                                          public IEyeExecutor
             {
             public:

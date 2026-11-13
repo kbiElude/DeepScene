@@ -34,7 +34,7 @@ namespace
 }
 
 Stereo::Replay::EngineDLL::StereoGLCallExecutor::StereoGLCallExecutor(::Replay::ReplayEngineDLL::ObjectRemapper* in_remapper_ptr)
-    :GlCallExecutor  (in_remapper_ptr),
+    :GLCallExecutor  (in_remapper_ptr),
      m_eye           (Analysis::Recipe::Eye::LEFT),
      m_is_replicating(false),
      m_n_executions  (1),
@@ -169,7 +169,7 @@ bool Stereo::Replay::EngineDLL::StereoGLCallExecutor::execute(const Capture::API
     /* What is made again for the other eye is not looked at again. */
     if (m_is_replicating)
     {
-        result = GlCallExecutor::execute(in_call,
+        result = GLCallExecutor::execute(in_call,
                                          in_chunk_source,
                                          out_error_ptr);
 
@@ -206,7 +206,7 @@ bool Stereo::Replay::EngineDLL::StereoGLCallExecutor::execute(const Capture::API
         }
     }
 
-    result = GlCallExecutor::execute(in_call,
+    result = GLCallExecutor::execute(in_call,
                                      in_chunk_source,
                                      out_error_ptr);
 
@@ -375,7 +375,7 @@ end:
 
 void Stereo::Replay::EngineDLL::StereoGLCallExecutor::reset()
 {
-    GlCallExecutor::reset();
+    GLCallExecutor::reset();
 
     m_twin_map.clear();
 }
@@ -423,7 +423,7 @@ end:
 
 void Stereo::Replay::EngineDLL::StereoGLCallExecutor::restore_state()
 {
-    GlCallExecutor::restore_state();
+    GLCallExecutor::restore_state();
 
     /* The state that was put back has what the program had bound before: the copies of this eye are bound again. */
     apply_eye();
