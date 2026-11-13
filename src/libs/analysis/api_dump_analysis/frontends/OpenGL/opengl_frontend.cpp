@@ -757,16 +757,18 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_call_list(cons
             /* The list is held on to, as a call of it may delete it. */
             const std::shared_ptr<GlDisplayList> list_ptr = list_iterator->second;
 
+            /* One call is reused for the whole list, so that its room for the arguments is allocated once and not for every recorded call. */
+            Capture::APIDumpLoader::DumpedAPICall call;
+
+            call.thread_id     = in_call.thread_id;
+            call.timestamp_qpc = in_call.timestamp_qpc;
+
             ++m_list_depth;
 
             for (const auto& recorded_call : list_ptr->call_vec)
             {
-                Capture::APIDumpLoader::DumpedAPICall call;
-
-                call.arg_in_vec    = recorded_call.arg_in_vec;
-                call.func          = recorded_call.func;
-                call.thread_id     = in_call.thread_id;
-                call.timestamp_qpc = in_call.timestamp_qpc;
+                call.arg_in_vec = recorded_call.arg_in_vec;
+                call.func       = recorded_call.func;
 
                 handle_gl_call(call,
                                list_ptr->workload);
