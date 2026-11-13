@@ -26,7 +26,7 @@
 #ifndef APIDUMPANALYSIS_FRONTENDS_OPENGL_FRONTEND_H
 #define APIDUMPANALYSIS_FRONTENDS_OPENGL_FRONTEND_H
 
-#include "analysis/api_dump_analysis/frontends/OpenGL/gl_array_draw_describer.h"
+#include "analysis/api_dump_analysis/frontends/OpenGL/gl_draw_handler.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_context_state.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_list_handler.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_matrix_handler.h"
@@ -78,9 +78,6 @@ namespace Analysis
                                                                                                                 const Capture::APIDumpLoader::Workload&      in_workload) override;
 
             private:
-                /* The call that begins the camera of the draw (see DrawDescription::view_anchor_call_index), from the model-view stack. */
-                void add_view_anchor(const GLContextState&                       in_state,
-                                     Analysis::APIDumpAnalysis::DrawDescription* out_description_ptr) const;
 
                 /* The pixels of the window are copied to a region of a level of the texture that the active unit has bound (the depth of the window, for a texture of
                  * depth); false if the program has not given the texture a size, or the level.
@@ -95,23 +92,11 @@ namespace Analysis
                 /* The state of the context that the thread has current; nullptr if it has none. */
                 GLContextState* find_current_context_ptr(const uint32_t& in_thread_id);
 
-                /* A call of glDrawArrays or glDrawElements: a draw from the arrays that the dumper copied into it. */
-                void handle_array_draw(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                       const Capture::APIDumpLoader::Workload&      in_workload,
-                                       const bool&                                  in_is_indexed,
-                                       GLContextState*                              inout_state_ptr);
-
-                void handle_begin(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                  GLContextState*                              inout_state_ptr);
-
                 /* glBindBuffer: a buffer that pixels are packed into (glReadPixels then reads to the buffer, and what is read is in no call) or unpacked from (the
                  * pixels of an upload are then in the buffer, not in the call) is not followed: the process is ended. So is any other buffer object (of vertices, of
                  * indices, of constants): buffers are not followed. Unbinding one (the buffer 0) is not that.
                  */
                 void handle_bind_buffer(const Capture::APIDumpLoader::DumpedAPICall& in_call);
-
-                void handle_clear        (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                          GLContextState*                              inout_state_ptr);
 
                 /* A call of glCopyTexImage2D: the pixels of the window give the texture its size, and are copied to it. */
                 void handle_copy_tex_image(const Capture::APIDumpLoader::DumpedAPICall& in_call,
@@ -121,19 +106,11 @@ namespace Analysis
                 void handle_copy_tex_sub_image(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                GLContextState*                              inout_state_ptr);
 
-                /* The vertices since the glBegin are a draw. */
-                void handle_end(GLContextState* inout_state_ptr);
-
                 /* A call of GL: kept in the list that its context is making, or made, or both. It is also how the calls of a called list are made. */
                 void handle_gl_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                     const Capture::APIDumpLoader::Workload&      in_workload);
 
                 void handle_make_current(const Capture::APIDumpLoader::DumpedAPICall& in_call);
-
-                /* A glVertex of the block that is open: it is counted, and its position kept if the builder wants the geometry. */
-                void handle_vertex(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                   const Capture::APIDumpLoader::Workload&      in_workload,
-                                   GLContextState*                              inout_state_ptr);
 
                 /* What the program does is not followed (a target, a kind of texture, a buffer that pixels go to or come from, a call): what the analysis finds of it
                  * would be wrong or left out, and so the process is ended, saying what it was (AI_ASSERT_ALWAYS). Nothing is left out without being said.
@@ -145,20 +122,17 @@ namespace Analysis
                 /* A context as it starts: what the specification says, and a stack of the identity for each kind of matrix. */
                 static GLContextState get_initial_context_state();
 
-                /* What the mode of a glBegin makes of the vertices; quads are two triangles and a loop of lines is a strip of them. */
-                static Analysis::APIDumpAnalysis::PrimitiveTopology get_primitive_topology(const uint32_t& in_mode);
-
                 /* True for the calls whose effects the front end does not follow, and that are not about textures (they write the framebuffer from somewhere else, or
                  * call lists that are named by an array): one of them ends the process (see report_unsupported_use()).
                  */
                 static bool is_unsupported_function(const APIInterceptor::APIFunction& in_function);
 
-                GLArrayDrawDescriber                     m_array_draw_describer;
                 Analysis::APIDumpAnalysis::ModelBuilder* m_builder_ptr;
                 GLContextState*                          m_cached_context_state_ptr;      /* what find_current_context_ptr() found last, for m_cached_thread_id; nullptr: nothing */
                 uint32_t                                 m_cached_thread_id;
                 std::map<uint64_t, GLContextState>       m_context_map;                   /* by the address of the context */
                 std::map<uint32_t, uint64_t>             m_current_context_by_thread_map; /* the address, by the thread    */
+                GLDrawHandler                            m_draw_handler;
                 GLListHandler                            m_list_handler;
                 GLMatrixHandler                          m_matrix_handler;
                 uint64_t                                 m_n_unfollowed_calls;

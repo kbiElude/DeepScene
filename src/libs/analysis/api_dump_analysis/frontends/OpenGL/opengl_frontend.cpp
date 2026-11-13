@@ -20,10 +20,10 @@
 #include <string.h>
 
 Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::OpenGLFrontend(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr)
-    :m_array_draw_describer    (in_builder_ptr),
-     m_builder_ptr             (in_builder_ptr),
+    :m_builder_ptr             (in_builder_ptr),
      m_cached_context_state_ptr(nullptr),
      m_cached_thread_id        (0),
+     m_draw_handler            (in_builder_ptr),
      m_matrix_handler          (in_builder_ptr),
      m_n_unfollowed_calls      (0),
      m_n_unsupported_calls     (0),
@@ -32,12 +32,6 @@ Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::OpenGLFrontend(Analysis::A
      m_window                  (in_builder_ptr)
 {
     /* Stub */
-}
-
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::add_view_anchor(const GLContextState&                       in_state,
-                                                                          Analysis::APIDumpAnalysis::DrawDescription* out_description_ptr) const
-{
-    out_description_ptr->view_anchor_call_index = in_state.modelview_anchor_call_index_vec.back();
 }
 
 bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::copy_to_bound_texture(const GLContextState& in_state,
@@ -138,7 +132,7 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::find_resource_view(co
 
 const Analysis::APIDumpAnalysis::Frontends::GLBlobStore& Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_blob_store() const
 {
-    return m_array_draw_describer.get_blob_store();
+    return m_draw_handler.get_blob_store();
 }
 
 bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_current_matrices(const uint32_t& in_thread_id,
@@ -187,6 +181,7 @@ const std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t>& Analysis:
 uint64_t Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_n_unfollowed_calls() const
 {
     return (m_n_unfollowed_calls                       +
+            m_draw_handler.get_n_unfollowed_calls()    +
             m_list_handler.get_n_unfollowed_calls()    +
             m_matrix_handler.get_n_unfollowed_calls()  +
             m_state_handler.get_n_unfollowed_calls()   +
@@ -196,167 +191,6 @@ uint64_t Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_n_unfollowed_
 uint64_t Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_n_unsupported_calls() const
 {
     return m_n_unsupported_calls;
-}
-
-Analysis::APIDumpAnalysis::PrimitiveTopology Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_primitive_topology(const uint32_t& in_mode)
-{
-    constexpr uint32_t LINES          = 0x0001;
-    constexpr uint32_t LINE_LOOP      = 0x0002;
-    constexpr uint32_t LINE_STRIP     = 0x0003;
-    constexpr uint32_t POINTS         = 0x0000;
-    constexpr uint32_t POLYGON        = 0x0009;
-    constexpr uint32_t QUADS          = 0x0007;
-    constexpr uint32_t QUAD_STRIP     = 0x0008;
-    constexpr uint32_t TRIANGLES      = 0x0004;
-    constexpr uint32_t TRIANGLE_FAN   = 0x0006;
-    constexpr uint32_t TRIANGLE_STRIP = 0x0005;
-
-    Analysis::APIDumpAnalysis::PrimitiveTopology result = Analysis::APIDumpAnalysis::PrimitiveTopology::UNKNOWN;
-
-    switch (in_mode)
-    {
-        case LINES:
-        {
-            result = Analysis::APIDumpAnalysis::PrimitiveTopology::LINE_LIST;
-
-            break;
-        }
-
-        case LINE_LOOP:
-        case LINE_STRIP:
-        {
-            result = Analysis::APIDumpAnalysis::PrimitiveTopology::LINE_STRIP;
-
-            break;
-        }
-
-        case POINTS:
-        {
-            result = Analysis::APIDumpAnalysis::PrimitiveTopology::POINT_LIST;
-
-            break;
-        }
-
-        case POLYGON:
-        case TRIANGLE_FAN:
-        {
-            result = Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_FAN;
-
-            break;
-        }
-
-        case QUADS:
-        case TRIANGLES:
-        {
-            result = Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST;
-
-            break;
-        }
-
-        case QUAD_STRIP:
-        case TRIANGLE_STRIP:
-        {
-            result = Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_STRIP;
-
-            break;
-        }
-
-        default:
-        {
-            break;
-        }
-    }
-
-    return result;
-}
-
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_array_draw(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                             const Capture::APIDumpLoader::Workload&      in_workload,
-                                                                             const bool&                                  in_is_indexed,
-                                                                             GLContextState*                              inout_state_ptr)
-{
-    constexpr size_t MODE_ARGUMENT = 0;
-
-    uint32_t mode         = 0;
-    bool     is_mode_read = false;
-
-    if (in_call.arg_in_vec.size() > MODE_ARGUMENT)
-    {
-        is_mode_read = APIInterceptor::read_number(in_call.arg_in_vec.at(MODE_ARGUMENT),
-                                                   &mode);
-    }
-
-    if (is_mode_read == false)
-    {
-        m_n_unfollowed_calls++;
-    }
-    else
-    {
-        const auto                                 topology = get_primitive_topology(mode);
-        Analysis::APIDumpAnalysis::DrawDescription description;
-
-        const auto result = m_array_draw_describer.describe(in_call,
-                                                            in_workload,
-                                                            in_is_indexed,
-                                                            topology,
-                                                            inout_state_ptr->pipeline_state,
-                                                            &description);
-
-        switch (result)
-        {
-            case GLArrayDrawResult::DRAW:
-            {
-                m_window.ensure_default_framebuffer(*inout_state_ptr);
-
-                m_texture_handler.add_texture_bindings(*inout_state_ptr,
-                                                       &description);
-                add_view_anchor                       (*inout_state_ptr,
-                                                       &description);
-                m_texture_handler.report_snapshots    (*inout_state_ptr);
-
-                m_builder_ptr->on_draw(description);
-
-                break;
-            }
-
-            case GLArrayDrawResult::EMPTY:
-            {
-                break;
-            }
-
-            default:
-            {
-                m_n_unfollowed_calls++;
-
-                break;
-            }
-        }
-    }
-}
-
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_begin(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                        GLContextState*                              inout_state_ptr)
-{
-    std::array<uint32_t, 1> mode_array = {};
-
-    if (GLArgumentReader::read_arguments(in_call,
-                                        &mode_array) )
-    {
-        GLImmediateBlock& block = inout_state_ptr->immediate_block;
-
-        /* A glBegin that comes while a block is open starts it again. */
-        block.first_call_index = m_builder_ptr->get_call_index();
-        block.is_open         = true;
-        block.mode            = mode_array.at(0);
-        block.n_vertices      = 0;
-        block.wants_positions = m_builder_ptr->wants_geometry();
-
-        block.position_vec.clear();
-    }
-    else
-    {
-        m_n_unfollowed_calls++;
-    }
 }
 
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_bind_buffer(const Capture::APIDumpLoader::DumpedAPICall& in_call)
@@ -400,56 +234,6 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_bind_buffer(co
         report_unsupported_use(in_call.func,
                                "a buffer object is bound, and buffer objects are not followed, so that what a draw reads from one is in no snapshot (the target)",
                                bind_array.at(0) );
-    }
-}
-
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_clear(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                        GLContextState*                              inout_state_ptr)
-{
-    constexpr uint32_t COLOR_BUFFER_BIT   = 0x4000;
-    constexpr uint32_t DEPTH_BUFFER_BIT   = 0x0100;
-    constexpr uint32_t STENCIL_BUFFER_BIT = 0x0400;
-
-    std::array<uint32_t, 1> mask_array = {};
-
-    if (GLArgumentReader::read_arguments(in_call,
-                                        &mask_array) == false)
-    {
-        m_n_unfollowed_calls++;
-    }
-    else
-    {
-        m_window.ensure_default_framebuffer(*inout_state_ptr);
-
-        const GLBox& box = inout_state_ptr->attributes.scissor_box;
-
-        /* With the scissor test on, a clear reaches the box and no more, unless the box is the whole framebuffer. */
-        const int32_t framebuffer_height = static_cast<int32_t>(m_window.get_framebuffer_height() );
-        const int32_t framebuffer_width  = static_cast<int32_t>(m_window.get_framebuffer_width() );
-
-        const bool is_box_whole = (box.x      == 0                 &&
-                                   box.y      == 0                 &&
-                                   box.width  == framebuffer_width &&
-                                   box.height == framebuffer_height);
-
-        Analysis::APIDumpAnalysis::ClearOperation clear;
-
-        clear.clears_color           = ( (mask_array.at(0) & COLOR_BUFFER_BIT)   != 0);
-        clear.clears_depth           = ( (mask_array.at(0) & DEPTH_BUFFER_BIT)   != 0);
-        clear.clears_stencil         = ( (mask_array.at(0) & STENCIL_BUFFER_BIT) != 0);
-        clear.color_fp32vec4         = inout_state_ptr->attributes.clear_color_fp32vec4;
-        clear.depth                  = static_cast<float>(inout_state_ptr->attributes.clear_depth);
-        clear.has_rectangles         = (inout_state_ptr->attributes.is_scissor_enabled &&
-                                        is_box_whole == false);
-        clear.is_limited_to_viewport = false;
-        clear.stencil                = inout_state_ptr->attributes.clear_stencil;
-
-        m_builder_ptr->on_clear(clear);
-
-        if (clear.has_rectangles)
-        {
-            m_resolution_hazard_counter.count(Analysis::APIDumpAnalysis::ResolutionHazard::CLEARS_WITH_RECTANGLES);
-        }
     }
 }
 
@@ -541,41 +325,6 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_copy_tex_sub_i
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_end(GLContextState* inout_state_ptr)
-{
-    GLImmediateBlock& block = inout_state_ptr->immediate_block;
-
-    /* The vertices of a block are one draw; a glEnd with no glBegin, or a block with no vertices, is none. */
-    if (block.is_open &&
-        block.n_vertices > 0)
-    {
-        m_window.ensure_default_framebuffer(*inout_state_ptr);
-
-        const auto topology = get_primitive_topology(block.mode);
-
-        auto description = inout_state_ptr->pipeline_state.describe_draw(topology,
-                                                                         block.n_vertices);
-
-        /* The vertices are calls of the draw: a draw that is left out is left out from the glBegin. */
-        description.first_call_index = block.first_call_index;
-
-        m_texture_handler.add_texture_bindings(*inout_state_ptr,
-                                               &description);
-        add_view_anchor                       (*inout_state_ptr,
-                                               &description);
-        m_texture_handler.report_snapshots    (*inout_state_ptr);
-
-        if (block.wants_positions)
-        {
-            description.geometry_ptr = GLGeometrySampler::make_sample(block.position_vec);
-        }
-
-        m_builder_ptr->on_draw(description);
-    }
-
-    block.is_open = false;
-}
-
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                           const Capture::APIDumpLoader::Workload&      in_workload)
 {
@@ -625,10 +374,12 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
                 {
                     const bool is_indexed = (in_call.func == APIInterceptor::APIFUNCTION_GL_GLDRAWELEMENTS);
 
-                    handle_array_draw(in_call,
-                                      in_workload,
-                                      is_indexed,
-                                      state_ptr);
+                    m_draw_handler.handle_array_draw(in_call,
+                                                     in_workload,
+                                                     is_indexed,
+                                                     &m_window,
+                                                     &m_texture_handler,
+                                                     state_ptr);
 
                     break;
                 }
@@ -643,8 +394,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
 
                 case APIInterceptor::APIFUNCTION_GL_GLBEGIN:
                 {
-                    handle_begin(in_call,
-                                 state_ptr);
+                    m_draw_handler.handle_begin(in_call,
+                                                state_ptr);
 
                     break;
                 }
@@ -674,8 +425,10 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
 
                 case APIInterceptor::APIFUNCTION_GL_GLCLEAR:
                 {
-                    handle_clear(in_call,
-                                 state_ptr);
+                    m_draw_handler.handle_clear(in_call,
+                                                &m_window,
+                                                &m_resolution_hazard_counter,
+                                                state_ptr);
 
                     break;
                 }
@@ -755,7 +508,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
 
                 case APIInterceptor::APIFUNCTION_GL_GLEND:
                 {
-                    handle_end(state_ptr);
+                    m_draw_handler.handle_end(&m_window,
+                                           &m_texture_handler,
+                                           state_ptr);
 
                     break;
                 }
@@ -940,9 +695,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
 
                     if (is_vertex)
                     {
-                        handle_vertex(in_call,
-                                      in_workload,
-                                      state_ptr);
+                        m_draw_handler.handle_vertex(in_call,
+                                                     in_workload,
+                                                     state_ptr);
                     }
                     else
                     if (GLTextureHandler::is_unsupported_texture_function(in_call.func) )
@@ -1035,35 +790,6 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_make_current(c
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_vertex(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                         const Capture::APIDumpLoader::Workload&      in_workload,
-                                                                         GLContextState*                              inout_state_ptr)
-{
-    GLImmediateBlock& block = inout_state_ptr->immediate_block;
-
-    /* A vertex that comes with no block open is one that OpenGL does not use. */
-    if (block.is_open)
-    {
-        block.n_vertices++;
-
-        if (block.wants_positions)
-        {
-            std::array<float, 3> position = {};
-
-            if (GLVertexReader::read_position(in_call,
-                                              in_workload,
-                                              &position) )
-            {
-                block.position_vec.push_back(position);
-            }
-            else
-            {
-                m_n_unfollowed_calls++;
-            }
-        }
-    }
-}
-
 bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::is_unsupported_function(const APIInterceptor::APIFunction& in_function)
 {
     bool result = false;
@@ -1110,7 +836,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::on_call(const Capture
 
     if (is_frame_boundary)
     {
-        m_array_draw_describer.on_frame_ended();
+        m_draw_handler.on_frame_ended();
 
         m_builder_ptr->on_frame_presented();
     }
