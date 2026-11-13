@@ -43,8 +43,6 @@ namespace
 
 Stereo::ConverterDLL::GlHostMemoryExporter::GlHostMemoryExporter(Stereo::Transport::FrameChannel* inout_channel_ptr)
     :HostMemoryExporter   (inout_channel_ptr),
-     m_has_job            (false),
-     m_is_stopping        (false),
      m_n_frames_per_second(0)
 {
     /* A debugging aid for a run with no program that shows the images: the application is held to a rate, as Direct3D 7 is held to one, so that what it does with the time
@@ -63,21 +61,17 @@ Stereo::ConverterDLL::GlHostMemoryExporter::GlHostMemoryExporter(Stereo::Transpo
         ::timeBeginPeriod(1);
     }
 
-    m_thread = std::thread(&GlHostMemoryExporter::run_thread,
-                            this);
+    const auto write_job_func = [this]()
+    {
+        write_job();
+    };
+
+    m_job_thread_ptr.reset(new Utils::Parallel::JobThread(write_job_func) );
 }
 
 Stereo::ConverterDLL::GlHostMemoryExporter::~GlHostMemoryExporter()
 {
-    {
-        std::lock_guard<std::mutex> lock(m_mutex);
-
-        m_is_stopping = true;
-    }
-
-    m_condition.notify_one();
-
-    m_thread.join();
+    m_job_thread_ptr->stop();
 }
 
 Stereo::Transport::ExportStatus Stereo::ConverterDLL::GlHostMemoryExporter::export_frame(const uint64_t&                        in_frame_index,
@@ -104,97 +98,20 @@ Stereo::Transport::ExportStatus Stereo::ConverterDLL::GlHostMemoryExporter::expo
     }
 
     {
-        std::lock_guard<std::mutex> lock(m_mutex);
-
-        /* The thread is at the frame before: this one is left out. */
-        if (m_has_job)
-        {
-            result = Stereo::Transport::ExportStatus::NOT_READY;
-        }
-        else
+        const auto prepare_func = [&]()
         {
             m_job.frame_index       = in_frame_index;
             m_job.images            = *images_ptr;
             m_job.timestamp_seconds = in_source.timestamp_seconds;
-            m_has_job               = true;
+        };
 
-            result = Stereo::Transport::ExportStatus::EXPORTED;
-        }
-    }
-
-    if (result == Stereo::Transport::ExportStatus::EXPORTED)
-    {
-        m_condition.notify_one();
+        /* The thread is at the frame before: this one is left out. */
+        result = (m_job_thread_ptr->try_queue(prepare_func) ) ? Stereo::Transport::ExportStatus::EXPORTED
+                                                              : Stereo::Transport::ExportStatus::NOT_READY;
     }
 
 end:
     return result;
-}
-
-void Stereo::ConverterDLL::GlHostMemoryExporter::run_thread()
-{
-    std::unique_lock<std::mutex> lock(m_mutex);
-
-    for (;;)
-    {
-        m_condition.wait(lock,
-                         [this]()
-                         {
-                             return (m_has_job || m_is_stopping);
-                         });
-
-        if (m_is_stopping)
-        {
-            break;
-        }
-
-        {
-            Job job = m_job;
-
-            lock.unlock();
-
-            {
-                Stereo::Transport::FrameInfo info;
-
-                info.frame_index       = job.frame_index;
-                info.height            = job.images.height;
-                info.n_eyes            = N_EYES;
-                info.timestamp_seconds = job.timestamp_seconds;
-                info.width             = job.images.width * N_EYES;
-
-                uint8_t* const destination_ptr = get_channel_ptr()->begin_write_ptr(info);
-                const uint32_t pitch           = Stereo::Transport::FrameChannel::get_pitch(info.width);
-
-                if (destination_ptr != nullptr)
-                {
-                    write_eye_rows(job.images.left_bgra_ptr,
-                                   job.images.width,
-                                   job.images.height,
-                                   0, /* in_eye */
-                                   true,
-                                   destination_ptr,
-                                   pitch);
-                    write_eye_rows(job.images.right_bgra_ptr,
-                                   job.images.width,
-                                   job.images.height,
-                                   1, /* in_eye */
-                                   true,
-                                   destination_ptr,
-                                   pitch);
-
-                    get_channel_ptr()->end_write();
-                }
-            }
-
-            /* The memory of the images is the reader's again when the copy of the token goes. */
-            job = Job();
-
-            lock.lock();
-
-            m_job     = Job();
-            m_has_job = false;
-        }
-    }
 }
 
 void Stereo::ConverterDLL::GlHostMemoryExporter::wait_for_pace()
@@ -287,4 +204,46 @@ bool Stereo::ConverterDLL::GlHostMemoryExporter::write_debug_image(const GlFrame
     }
 
     return result;
+}
+
+void Stereo::ConverterDLL::GlHostMemoryExporter::write_job()
+{
+    Job job = m_job;
+
+    {
+        Stereo::Transport::FrameInfo info;
+
+        info.frame_index       = job.frame_index;
+        info.height            = job.images.height;
+        info.n_eyes            = N_EYES;
+        info.timestamp_seconds = job.timestamp_seconds;
+        info.width             = job.images.width * N_EYES;
+
+        uint8_t* const destination_ptr = get_channel_ptr()->begin_write_ptr(info);
+        const uint32_t pitch           = Stereo::Transport::FrameChannel::get_pitch(info.width);
+
+        if (destination_ptr != nullptr)
+        {
+            write_eye_rows(job.images.left_bgra_ptr,
+                           job.images.width,
+                           job.images.height,
+                           0, /* in_eye */
+                           true,
+                           destination_ptr,
+                           pitch);
+            write_eye_rows(job.images.right_bgra_ptr,
+                           job.images.width,
+                           job.images.height,
+                           1, /* in_eye */
+                           true,
+                           destination_ptr,
+                           pitch);
+
+            get_channel_ptr()->end_write();
+        }
+    }
+
+    /* The memory of the images is the reader's again when the copies of the token are gone. */
+    job   = Job();
+    m_job = Job();
 }

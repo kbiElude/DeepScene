@@ -153,3 +153,91 @@ TEST(JobThread, AThreadThatHasNoJobEndsWhenItIsDestroyed)
 
     SUCCEED();
 }
+
+TEST(JobThread, ATryToQueueIsAcceptedWhenTheThreadIsFreeAndRunsTheStepAndTheJob)
+{
+    std::atomic<int> n_runs(0);
+    int              input = 0;
+
+    const auto work_func = [&]()
+    {
+        n_runs += input;
+    };
+
+    const auto prepare_func = [&input]()
+    {
+        input = 3;
+    };
+
+    Utils::Parallel::JobThread job_thread(work_func);
+
+    EXPECT_TRUE(job_thread.try_queue(prepare_func) );
+    EXPECT_TRUE(job_thread.wait(Utils::Parallel::JobThread::LockedFunc() ) );
+    EXPECT_EQ  (n_runs.load(),
+                3);
+}
+
+TEST(JobThread, ATryToQueueWhileTheThreadIsAtAJobIsRefusedAndItsStepIsNotRun)
+{
+    std::atomic<bool> is_released(false);
+    std::atomic<int>  n_runs(0);
+
+    const auto work_func = [&]()
+    {
+        while (is_released == false)
+        {
+            std::this_thread::yield();
+        }
+
+        n_runs++;
+    };
+
+    Utils::Parallel::JobThread job_thread(work_func);
+    bool                       is_step_run = false;
+
+    const auto prepare_func = [&is_step_run]()
+    {
+        is_step_run = true;
+    };
+
+    ASSERT_TRUE(job_thread.try_queue(Utils::Parallel::JobThread::LockedFunc() ) );
+
+    EXPECT_FALSE(job_thread.try_queue(prepare_func) );
+    EXPECT_FALSE(is_step_run);
+
+    is_released = true;
+
+    EXPECT_TRUE(job_thread.wait(Utils::Parallel::JobThread::LockedFunc() ) );
+    EXPECT_EQ  (n_runs.load(),
+                1);
+}
+
+TEST(JobThread, AJobThatIsDoneAndWasNotWaitedForDoesNotKeepTheNextOneOut)
+{
+    std::atomic<int> n_runs(0);
+
+    const auto work_func = [&n_runs]()
+    {
+        n_runs++;
+    };
+
+    Utils::Parallel::JobThread job_thread(work_func);
+
+    ASSERT_TRUE(job_thread.try_queue(Utils::Parallel::JobThread::LockedFunc() ) );
+
+    /* The job is done once the work function has run, and nobody collects it. */
+    while (n_runs.load() < 1)
+    {
+        std::this_thread::yield();
+    }
+
+    /* Done is set right after the work function returns: a try that comes in between is refused, so it is tried until the thread is free. */
+    while (job_thread.try_queue(Utils::Parallel::JobThread::LockedFunc() ) == false)
+    {
+        std::this_thread::yield();
+    }
+
+    EXPECT_TRUE(job_thread.wait(Utils::Parallel::JobThread::LockedFunc() ) );
+    EXPECT_EQ  (n_runs.load(),
+                2);
+}

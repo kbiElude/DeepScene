@@ -24,18 +24,39 @@ Utils::Parallel::JobThread::~JobThread()
 
 void Utils::Parallel::JobThread::queue(const LockedFunc& in_prepare_func)
 {
+    queue_job(false, /* in_only_if_free */
+              in_prepare_func);
+}
+
+bool Utils::Parallel::JobThread::queue_job(const bool&       in_only_if_free,
+                                           const LockedFunc& in_prepare_func)
+{
+    bool result = false;
+
     {
         std::lock_guard<std::mutex> lock(m_mutex);
 
-        if (in_prepare_func)
-        {
-            in_prepare_func();
-        }
+        result = (in_only_if_free == false          ||
+                  m_state         == JobState::IDLE ||
+                  m_state         == JobState::DONE);
 
-        m_state = JobState::QUEUED;
+        if (result)
+        {
+            if (in_prepare_func)
+            {
+                in_prepare_func();
+            }
+
+            m_state = JobState::QUEUED;
+        }
     }
 
-    m_condition.notify_one();
+    if (result)
+    {
+        m_condition.notify_one();
+    }
+
+    return result;
 }
 
 void Utils::Parallel::JobThread::run_thread()
@@ -86,6 +107,12 @@ void Utils::Parallel::JobThread::stop()
     {
         m_thread.join();
     }
+}
+
+bool Utils::Parallel::JobThread::try_queue(const LockedFunc& in_prepare_func)
+{
+    return queue_job(true, /* in_only_if_free */
+                     in_prepare_func);
 }
 
 bool Utils::Parallel::JobThread::wait(const LockedFunc& in_collect_func)

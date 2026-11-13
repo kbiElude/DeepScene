@@ -7,11 +7,10 @@
 
 #include "host_memory_exporter.h"
 #include "types.h"
-#include <condition_variable>
-#include <mutex>
+#include "utils/parallel/job_thread.h"
+#include <memory>
 #include <stdint.h>
 #include <string>
-#include <thread>
 
 namespace Stereo
 {
@@ -56,16 +55,12 @@ namespace Stereo
                 double        timestamp_seconds = 0.0;
             };
 
-            /* What the thread does. */
-            void run_thread();
+            /* What the thread does for a frame: copies the rows of the images of the job to the channel. */
+            void write_job();
 
-            std::condition_variable m_condition;
-            bool                    m_has_job;
-            bool                    m_is_stopping;
-            Job                     m_job;
-            std::mutex              m_mutex;
-            int64_t                 m_n_frames_per_second; /* the application is held to this many frames a second when no screen keeps time (APISTEREO_FRAME_RATE); 0: it is not */
-            std::thread             m_thread;
+            Job                                         m_job;
+            std::unique_ptr<Utils::Parallel::JobThread> m_job_thread_ptr;
+            int64_t                                     m_n_frames_per_second; /* the application is held to this many frames a second when no screen keeps time (APISTEREO_FRAME_RATE); 0: it is not */
         };
     }
 }

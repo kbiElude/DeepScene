@@ -86,7 +86,7 @@
 <p>A JSON reader and writer (<code>JsonReader</code>, <code>JsonWriter</code>, <code>JsonValue</code>), used by the recipes, the catalog and the query tools.</p>
 
 <h4>Parallel</h4>
-<p><code>ParallelFor</code> splits a range of items over several threads. <code>JobThread</code> is a thread that does one queued job at a time: the owner queues a job (with a step that puts what the job needs in place, run with the lock taken), goes on, and waits for the job when it needs it (with a step that takes what the job made); <code>JobState</code> says where the job is. <code>SrwMutex</code> is a mutex that works like <code>std::mutex</code> to the code that takes it and costs one atomic operation when nobody else has it, for the locks of callbacks that are taken very many times.
+<p><code>ParallelFor</code> splits a range of items over several threads. <code>JobThread</code> is a thread that does one queued job at a time: the owner queues a job (with a step that puts what the job needs in place, run with the lock taken), goes on, and waits for the job when it needs it (with a step that takes what the job made); <code>try_queue</code> hands a job over only if the thread is free, for an owner that leaves a frame out instead of waiting (the host memory exporters of Direct3D 8, with two of them, and of OpenGL are built on it); <code>JobState</code> says where the job is. <code>SrwMutex</code> is a mutex that works like <code>std::mutex</code> to the code that takes it and costs one atomic operation when nobody else has it, for the locks of callbacks that are taken very many times.
 
 <h4>Statistics</h4>
 <p><code>SeriesStats</code>: count, mean and worst of a series of timings, as the presenter and the converter log them.</p>

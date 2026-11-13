@@ -44,12 +44,21 @@ namespace Utils
             /* Ends the thread, after the job that it is doing, if it is doing one; no job is run after that. Nothing happens if it is ended already. */
             void stop();
 
+            /* For an owner that does not wait for the jobs: hands the thread a job as queue() does if it is not at one (a job that is done and not waited for does not
+             * count), and says whether it did. False, and the step is not run, if a job is queued or running.
+             */
+            bool try_queue(const LockedFunc& in_prepare_func);
+
             /* Waits until the thread is through with the job that was queued last (at once, if it has none). True if there was one: the step is then run with the lock
              * taken, which is where the owner takes what the job made, and the thread is ready for the next job.
              */
             bool wait(const LockedFunc& in_collect_func);
 
         private:
+            /* Queues the job, if the thread is free or the job is wanted whatever the thread is at; false if it was not queued. */
+            bool queue_job(const bool&       in_only_if_free,
+                           const LockedFunc& in_prepare_func);
+
             void run_thread();
 
             std::condition_variable m_condition;      /* wakes the thread                       */
