@@ -23,3 +23,7 @@
 
 # Captures of applications, made for analysis and replay (see APIDumper)
 /captures/
+
+# What the tool that works on this repository keeps for one person (its settings.json is not decided here)
+/.claude/scheduled_tasks.lock
+/.claude/settings.local.json
