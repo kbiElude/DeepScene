@@ -39,6 +39,18 @@ namespace Analysis
                               const PositionalFunc&                 in_positional_func,
                               QueryOptions*                         out_options_ptr,
                               std::string*                          out_error_ptr);
+
+            /* The same, for the programs whose arguments that are not options are a file, a command, and numbers (as many as the rules allow): the program is asked
+             * about none of them, and gets what they said. False, and the reason, if they are not right, or if the file or the command is not there.
+             */
+            static bool parse_file_command_and_numbers(const int&                            in_argc,
+                                                       char*                                 in_argv[],
+                                                       const std::vector<QueryNumberOption>& in_number_option_vec,
+                                                       const ProgramOptionFunc&              in_program_option_func,
+                                                       const QueryPositionalRules&           in_rules,
+                                                       QueryOptions*                         out_options_ptr,
+                                                       QueryPositionals*                     out_positionals_ptr,
+                                                       std::string*                          out_error_ptr);
         };
     }
 }

@@ -18,7 +18,9 @@ bool Analysis::APIDumpAnalysisQuery::parse_arguments(const int&   in_argc,
 {
     typedef Analysis::APIDumpAnalysis::QueryCommandLine QueryCommandLine;
 
-    bool result = false;
+    Analysis::APIDumpAnalysis::QueryPositionalRules positional_rules;
+    Analysis::APIDumpAnalysis::QueryPositionals     positionals;
+    bool                                            result = false;
 
     /* What the tool has besides the options that every query tool has: --shape, which takes a number, and --class and --which. */
     const auto set_shape_id_func = [&](const uint64_t& in_value)
@@ -95,64 +97,33 @@ bool Analysis::APIDumpAnalysisQuery::parse_arguments(const int&   in_argc,
     };
 
     /* The file, the command, and then the id of a pass or the index of a frame. */
-    const QueryCommandLine::PositionalFunc positional_func = [&](const std::string& in_argument,
-                                                                 const size_t&      in_n_positional,
-                                                                 std::string*       out_error_ptr_inner)
-    {
-        uint64_t value  = 0;
-        bool     is_set = true;
+    positional_rules.max_n_numbers     = 1;
+    positional_rules.missing_text      = "A .passes file and a command are needed";
+    positional_rules.number_error_text = "An id must be a number, not ";
 
-        if (in_n_positional == 0)
-        {
-            out_options_ptr->passes_filename = in_argument;
-        }
-        else
-        if (in_n_positional == 1)
-        {
-            out_options_ptr->command = in_argument;
-        }
-        else
-        if (in_n_positional > 2)
-        {
-            *out_error_ptr_inner = "Too many arguments";
-            is_set               = false;
-        }
-        else
-        if (Utils::CommandLine::NumberParser::parse_unsigned(in_argument,
-                                                             UINT64_MAX,
-                                                            &value) == false)
-        {
-            *out_error_ptr_inner = "An id must be a number, not " + in_argument;
-            is_set               = false;
-        }
-        else
-        {
-            out_options_ptr->arguments.frame_index     = value;
-            out_options_ptr->arguments.has_frame_index = (out_options_ptr->command == "frame");
-            out_options_ptr->arguments.has_pass_id     = (out_options_ptr->command == "pass");
-            out_options_ptr->arguments.pass_id         = value;
-        }
-
-        return is_set;
-    };
-
-    if (QueryCommandLine::parse(in_argc,
-                                in_argv,
-                                number_option_vec,
-                                program_option_func,
-                                positional_func,
-                                &out_options_ptr->common,
-                                out_error_ptr) == false)
+    if (QueryCommandLine::parse_file_command_and_numbers(in_argc,
+                                                         in_argv,
+                                                         number_option_vec,
+                                                         program_option_func,
+                                                         positional_rules,
+                                                        &out_options_ptr->common,
+                                                        &positionals,
+                                                         out_error_ptr) == false)
     {
         goto end;
     }
 
-    if (out_options_ptr->passes_filename.empty() ||
-        out_options_ptr->command.empty()         )
-    {
-        *out_error_ptr = "A .passes file and a command are needed";
+    out_options_ptr->command         = positionals.command;
+    out_options_ptr->passes_filename = positionals.filename;
 
-        goto end;
+    if (positionals.number_vec.empty() == false)
+    {
+        const uint64_t value = positionals.number_vec.at(0);
+
+        out_options_ptr->arguments.frame_index     = value;
+        out_options_ptr->arguments.has_frame_index = (out_options_ptr->command == "frame");
+        out_options_ptr->arguments.has_pass_id     = (out_options_ptr->command == "pass");
+        out_options_ptr->arguments.pass_id         = value;
     }
 
     /* The paging of the lists is read with the other options that every query tool has. */

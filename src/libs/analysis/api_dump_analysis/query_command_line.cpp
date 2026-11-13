@@ -177,3 +177,80 @@ bool Analysis::APIDumpAnalysis::QueryCommandLine::parse(const int&              
                                                     parse_argument_func,
                                                     out_error_ptr);
 }
+
+bool Analysis::APIDumpAnalysis::QueryCommandLine::parse_file_command_and_numbers(const int&                            in_argc,
+                                                                                 char*                                 in_argv[],
+                                                                                 const std::vector<QueryNumberOption>& in_number_option_vec,
+                                                                                 const ProgramOptionFunc&              in_program_option_func,
+                                                                                 const QueryPositionalRules&           in_rules,
+                                                                                 QueryOptions*                         out_options_ptr,
+                                                                                 QueryPositionals*                     out_positionals_ptr,
+                                                                                 std::string*                          out_error_ptr)
+{
+    bool result = false;
+
+    /* The file, the command, and then the numbers. */
+    const PositionalFunc positional_func = [&](const std::string& in_argument,
+                                               const size_t&      in_n_positional,
+                                               std::string*       out_error_ptr_inner)
+    {
+        constexpr size_t N_ARGUMENTS_BEFORE_NUMBERS = 2;
+
+        uint64_t value  = 0;
+        bool     is_set = true;
+
+        if (in_n_positional == 0)
+        {
+            out_positionals_ptr->filename = in_argument;
+        }
+        else
+        if (in_n_positional == 1)
+        {
+            out_positionals_ptr->command = in_argument;
+        }
+        else
+        if (in_n_positional - N_ARGUMENTS_BEFORE_NUMBERS >= in_rules.max_n_numbers)
+        {
+            *out_error_ptr_inner = "Too many arguments";
+            is_set               = false;
+        }
+        else
+        if (Utils::CommandLine::NumberParser::parse_unsigned(in_argument,
+                                                             UINT64_MAX,
+                                                            &value) == false)
+        {
+            *out_error_ptr_inner = in_rules.number_error_text + in_argument;
+            is_set               = false;
+        }
+        else
+        {
+            out_positionals_ptr->number_vec.push_back(value);
+        }
+
+        return is_set;
+    };
+
+    if (parse(in_argc,
+              in_argv,
+              in_number_option_vec,
+              in_program_option_func,
+              positional_func,
+              out_options_ptr,
+              out_error_ptr) == false)
+    {
+        goto end;
+    }
+
+    if (out_positionals_ptr->filename.empty() ||
+        out_positionals_ptr->command.empty()  )
+    {
+        *out_error_ptr = in_rules.missing_text;
+
+        goto end;
+    }
+
+    result = true;
+
+end:
+    return result;
+}

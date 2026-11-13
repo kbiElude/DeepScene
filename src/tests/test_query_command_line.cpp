@@ -213,6 +213,85 @@ TEST(QueryCommandLine, AWorkloadOptionWithNoPathIsAnError)
                  std::string::npos);
 }
 
+namespace
+{
+    struct PositionalOutcome
+    {
+        std::string                                 error;
+        Analysis::APIDumpAnalysis::QueryPositionals positionals;
+        bool                                        result = false;
+    };
+
+    PositionalOutcome parse_file_command_and_numbers(const std::vector<std::string>& in_argument_vec,
+                                                     const size_t&                   in_max_n_numbers)
+    {
+        Arguments                                       arguments(in_argument_vec);
+        PositionalOutcome                               outcome;
+        Analysis::APIDumpAnalysis::QueryOptions         options;
+        Analysis::APIDumpAnalysis::QueryPositionalRules rules;
+
+        rules.max_n_numbers     = in_max_n_numbers;
+        rules.missing_text      = "A file and a command are needed";
+        rules.number_error_text = "An id must be a number, not ";
+
+        outcome.result = QueryCommandLine::parse_file_command_and_numbers(arguments.get_argc(),
+                                                                          arguments.get_argv(),
+                                                                          {},
+                                                                          QueryCommandLine::ProgramOptionFunc(),
+                                                                          rules,
+                                                                         &options,
+                                                                         &outcome.positionals,
+                                                                         &outcome.error);
+
+        return outcome;
+    }
+}
+
+TEST(QueryCommandLine, TheFileTheCommandAndTheNumbersAreTold)
+{
+    const PositionalOutcome outcome = parse_file_command_and_numbers({"file.deps", "--compact", "at", "7", "8", "9"},
+                                                                     3);
+
+    ASSERT_TRUE(outcome.result) << outcome.error;
+
+    EXPECT_EQ(outcome.positionals.filename,
+              std::string("file.deps") );
+    EXPECT_EQ(outcome.positionals.command,
+              std::string("at") );
+    EXPECT_EQ(outcome.positionals.number_vec,
+              (std::vector<uint64_t>{7, 8, 9}) );
+}
+
+TEST(QueryCommandLine, MoreNumbersThanTheRulesAllowAreRefused)
+{
+    const PositionalOutcome outcome = parse_file_command_and_numbers({"file.deps", "frame", "1", "2"},
+                                                                     1);
+
+    EXPECT_FALSE(outcome.result);
+    EXPECT_EQ   (outcome.error,
+                 std::string("Too many arguments") );
+}
+
+TEST(QueryCommandLine, AnArgumentThatIsNotANumberIsRefusedWithTheTextOfTheRules)
+{
+    const PositionalOutcome outcome = parse_file_command_and_numbers({"file.deps", "frame", "abc"},
+                                                                     1);
+
+    EXPECT_FALSE(outcome.result);
+    EXPECT_EQ   (outcome.error,
+                 std::string("An id must be a number, not abc") );
+}
+
+TEST(QueryCommandLine, ACommandLineWithNoFileOrNoCommandIsRefusedWithTheTextOfTheRules)
+{
+    EXPECT_EQ(parse_file_command_and_numbers({"file.deps"},
+                                             1).error,
+              std::string("A file and a command are needed") );
+    EXPECT_EQ(parse_file_command_and_numbers({"--compact"},
+                                             1).error,
+              std::string("A file and a command are needed") );
+}
+
 TEST(ArgumentWalker, AnArgumentThatTheFunctionTakesTheNextOneWithIsNotGivenOnItsOwn)
 {
     Arguments arguments({"-o", "out.txt", "in.txt"});

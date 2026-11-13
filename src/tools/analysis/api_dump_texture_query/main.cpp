@@ -18,8 +18,9 @@ bool Analysis::APIDumpTextureQuery::parse_arguments(const int&   in_argc,
 {
     typedef Analysis::APIDumpAnalysis::QueryCommandLine QueryCommandLine;
 
-    std::vector<uint64_t> number_vec;
-    bool                  result = false;
+    Analysis::APIDumpAnalysis::QueryPositionalRules positional_rules;
+    Analysis::APIDumpAnalysis::QueryPositionals     positionals;
+    bool                                            result = false;
 
     /* What the tool has besides the options that every query tool has: --call, which takes a number. */
     const auto set_call_limit_func = [&](const uint64_t& in_value)
@@ -34,56 +35,26 @@ bool Analysis::APIDumpTextureQuery::parse_arguments(const int&   in_argc,
     };
 
     /* The file, the command, and then the numbers: the frame, the resource and the level of at, or the resource of resource. */
-    const QueryCommandLine::PositionalFunc positional_func = [&](const std::string& in_argument,
-                                                                 const size_t&      in_n_positional,
-                                                                 std::string*       out_error_ptr_inner)
-    {
-        uint64_t value  = 0;
-        bool     is_set = true;
+    positional_rules.max_n_numbers     = SIZE_MAX;
+    positional_rules.missing_text      = "A .textures file and a command are needed";
+    positional_rules.number_error_text = "A frame, a resource or a level must be a number, not ";
 
-        if (in_n_positional == 0)
-        {
-            out_options_ptr->textures_filename = in_argument;
-        }
-        else
-        if (in_n_positional == 1)
-        {
-            out_options_ptr->command = in_argument;
-        }
-        else
-        if (Utils::CommandLine::NumberParser::parse_unsigned(in_argument,
-                                                             UINT64_MAX,
-                                                            &value) == false)
-        {
-            *out_error_ptr_inner = "A frame, a resource or a level must be a number, not " + in_argument;
-            is_set               = false;
-        }
-        else
-        {
-            number_vec.push_back(value);
-        }
-
-        return is_set;
-    };
-
-    if (QueryCommandLine::parse(in_argc,
-                                in_argv,
-                                number_option_vec,
-                                QueryCommandLine::ProgramOptionFunc(),
-                                positional_func,
-                                &out_options_ptr->common,
-                                out_error_ptr) == false)
+    if (QueryCommandLine::parse_file_command_and_numbers(in_argc,
+                                                         in_argv,
+                                                         number_option_vec,
+                                                         QueryCommandLine::ProgramOptionFunc(),
+                                                         positional_rules,
+                                                        &out_options_ptr->common,
+                                                        &positionals,
+                                                         out_error_ptr) == false)
     {
         goto end;
     }
 
-    if (out_options_ptr->textures_filename.empty() ||
-        out_options_ptr->command.empty()           )
-    {
-        *out_error_ptr = "A .textures file and a command are needed";
+    out_options_ptr->command           = positionals.command;
+    out_options_ptr->textures_filename = positionals.filename;
 
-        goto end;
-    }
+    const std::vector<uint64_t>& number_vec = positionals.number_vec;
 
     if (out_options_ptr->command == "at")
     {

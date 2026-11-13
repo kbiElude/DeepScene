@@ -9,8 +9,10 @@
 #define APIDUMPANALYSIS_QUERY_OPTIONS_H
 
 #include <functional>
+#include <stddef.h>
 #include <stdint.h>
 #include <string>
+#include <vector>
 
 namespace Analysis
 {
@@ -30,6 +32,22 @@ namespace Analysis
             uint64_t    limit             = 100; /* items in a list; 0 is all */
             uint64_t    offset            = 0;   /* items to skip             */
             std::string workload_filename;       /* where the workload is, if not where the file says */
+        };
+
+        /* What a query program says of the arguments that are not options: the file, the command, and then numbers. */
+        struct QueryPositionalRules
+        {
+            size_t      max_n_numbers = 0; /* more of them are refused with "Too many arguments" */
+            std::string missing_text;      /* said if the file or the command is not there       */
+            std::string number_error_text; /* in front of the argument that is not a number      */
+        };
+
+        /* What the arguments that are not options said. */
+        struct QueryPositionals
+        {
+            std::string           command;
+            std::string           filename;
+            std::vector<uint64_t> number_vec;
         };
     }
 }
