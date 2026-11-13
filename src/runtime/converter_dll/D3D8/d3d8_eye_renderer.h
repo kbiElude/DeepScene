@@ -82,6 +82,9 @@ namespace Stereo
             void  repeat_call             (const APIInterceptor::APIFunction&         in_function,
                                            const APIInterceptor::APIFunctionArgument* in_arguments_ptr) const;
 
+            /* The twin of a surface or a texture, or the object itself if it has none: what the right eye reads from. */
+            void* get_twin_or_own_ptr(void* in_object_ptr) const;
+
             /* The twin of a surface or a texture; nullptr if it has none. */
             void* get_twin_ptr(void* in_object_ptr) const;
 

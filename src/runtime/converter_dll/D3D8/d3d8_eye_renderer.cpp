@@ -6,6 +6,15 @@
 #include "call_feeder.h"
 #include "d3d8_eye_renderer.h"
 
+namespace
+{
+    /* What the argument of a call points at, which the call holds as a pointer to what it does not change, but the device is called with as it is. */
+    void* get_pointer_argument(const APIInterceptor::APIFunctionArgument& in_argument)
+    {
+        return const_cast<void*>(in_argument.get_ptr() );
+    }
+}
+
 Stereo::ConverterDLL::D3D8EyeRenderer::D3D8EyeRenderer(Stereo::Core::StereoCore* in_core_ptr)
     :m_core_ptr  (in_core_ptr),
      m_device_ptr(nullptr),
@@ -61,6 +70,14 @@ void* Stereo::ConverterDLL::D3D8EyeRenderer::get_render_target_ptr() const
     return m_mirror.render_target_ptr;
 }
 
+void* Stereo::ConverterDLL::D3D8EyeRenderer::get_twin_or_own_ptr(void* in_object_ptr) const
+{
+    void* const twin_ptr = get_twin_ptr(in_object_ptr);
+
+    return (twin_ptr != nullptr) ? twin_ptr
+                                 : in_object_ptr;
+}
+
 void* Stereo::ConverterDLL::D3D8EyeRenderer::get_twin_ptr(void* in_object_ptr) const
 {
     const auto twin_iterator = m_twin_map.find(in_object_ptr);
@@ -77,18 +94,18 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::handle_copy_rects(const APIIntercept
     constexpr size_t RECTS_ARGUMENT_INDEX       = 2;
     constexpr size_t SOURCE_ARGUMENT_INDEX      = 1;
 
-    void* const destination_twin_ptr = get_twin_ptr     (const_cast<void*>                              (in_arguments_ptr[DESTINATION_ARGUMENT_INDEX].get_ptr() ));
-    void*       source_ptr           = const_cast<void*>(in_arguments_ptr[SOURCE_ARGUMENT_INDEX].get_ptr() );
-    void* const source_twin_ptr      = get_twin_ptr     (source_ptr);
+    void* const destination_ptr      = get_pointer_argument(in_arguments_ptr[DESTINATION_ARGUMENT_INDEX]);
+    void* const source_ptr           = get_pointer_argument(in_arguments_ptr[SOURCE_ARGUMENT_INDEX]);
+    void* const destination_twin_ptr = get_twin_ptr        (destination_ptr);
+    void* const source_for_right_ptr = get_twin_or_own_ptr (source_ptr);
 
     if (destination_twin_ptr != nullptr)
     {
-        void* const device_ptr = const_cast<void*>(in_arguments_ptr[0].get_ptr() );
+        void* const device_ptr = get_pointer_argument(in_arguments_ptr[0]);
 
         APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_COPYRECTS>(device_ptr,
                                                                                   Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_COPYRECTS)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(device_ptr),
-                                                                                                                                                      static_cast<Interception::Hooks::D3D8::IDirect3DSurface8*>((source_twin_ptr != nullptr) ? source_twin_ptr
-                                                                                                                                                                                                                                              : source_ptr),
+                                                                                                                                                      static_cast<Interception::Hooks::D3D8::IDirect3DSurface8*>(source_for_right_ptr),
                                                                                                                                                       static_cast<const RECT*>                                  (in_arguments_ptr[RECTS_ARGUMENT_INDEX].get_ptr() ),
                                                                                                                                                       in_arguments_ptr[N_RECTS_ARGUMENT_INDEX].get_u32          (),
                                                                                                                                                       static_cast<Interception::Hooks::D3D8::IDirect3DSurface8*>(destination_twin_ptr),
@@ -103,7 +120,7 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::handle_create_device(const APIInterc
     Interception::Hooks::D3D8::IDirect3DSurface8* depth_ptr         = nullptr;
     Interception::Hooks::D3D8::IDirect3DSurface8* render_target_ptr = nullptr;
 
-    m_device_ptr = const_cast<void*>(in_arguments_ptr[DEVICE_ARGUMENT_INDEX].get_ptr() );
+    m_device_ptr = get_pointer_argument(in_arguments_ptr[DEVICE_ARGUMENT_INDEX]);
 
     if (m_device_ptr != nullptr)
     {
@@ -141,13 +158,13 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::handle_create_texture(const APIInter
     constexpr size_t USAGE_ARGUMENT_INDEX   = 4;
     constexpr size_t WIDTH_ARGUMENT_INDEX   = 1;
 
-    void* const    texture_ptr = const_cast<void*>                             (in_arguments_ptr[TEXTURE_ARGUMENT_INDEX].get_ptr() );
+    void* const    texture_ptr = get_pointer_argument(in_arguments_ptr[TEXTURE_ARGUMENT_INDEX]);
     const uint32_t usage       = in_arguments_ptr[USAGE_ARGUMENT_INDEX].get_u32();
 
     if (texture_ptr                                                != nullptr &&
         (usage & Interception::Hooks::D3D8::D3DUSAGE_RENDERTARGET) != 0)
     {
-        void* const                                   device_ptr = const_cast<void*>(in_arguments_ptr[0].get_ptr() );
+        void* const                                   device_ptr = get_pointer_argument(in_arguments_ptr[0]);
         Interception::Hooks::D3D8::IDirect3DTexture8* twin_ptr   = nullptr;
 
         if (SUCCEEDED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_CREATETEXTURE>(device_ptr,
@@ -167,7 +184,7 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::handle_create_texture(const APIInter
 
 void Stereo::ConverterDLL::D3D8EyeRenderer::handle_get_surface(const APIInterceptor::APIFunctionArgument& in_surface_argument)
 {
-    void* const surface_ptr = const_cast<void*>(in_surface_argument.get_ptr() );
+    void* const surface_ptr = get_pointer_argument(in_surface_argument);
 
     if (surface_ptr  != nullptr &&
         m_device_ptr != nullptr)
@@ -182,8 +199,8 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::handle_get_surface_level(const APIIn
     constexpr size_t LEVEL_ARGUMENT_INDEX   = 1;
     constexpr size_t SURFACE_ARGUMENT_INDEX = 2;
 
-    void* const surface_ptr       = const_cast<void*>(in_arguments_ptr[SURFACE_ARGUMENT_INDEX].get_ptr() );
-    void* const texture_twin_ptr  = get_twin_ptr     (const_cast<void*>                               (in_arguments_ptr[0].get_ptr() ));
+    void* const surface_ptr       = get_pointer_argument(in_arguments_ptr[SURFACE_ARGUMENT_INDEX]);
+    void* const texture_twin_ptr  = get_twin_ptr        (get_pointer_argument(in_arguments_ptr[0]));
 
     /* The surface of a level of the texture is the surface of the same level of its twin. */
     if (surface_ptr      != nullptr &&
@@ -206,18 +223,18 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::handle_update_texture(const APIInter
     constexpr size_t DESTINATION_ARGUMENT_INDEX = 2;
     constexpr size_t SOURCE_ARGUMENT_INDEX      = 1;
 
-    void* const destination_twin_ptr = get_twin_ptr     (const_cast<void*>                              (in_arguments_ptr[DESTINATION_ARGUMENT_INDEX].get_ptr() ));
-    void*       source_ptr           = const_cast<void*>(in_arguments_ptr[SOURCE_ARGUMENT_INDEX].get_ptr() );
-    void* const source_twin_ptr      = get_twin_ptr     (source_ptr);
+    void* const destination_ptr      = get_pointer_argument(in_arguments_ptr[DESTINATION_ARGUMENT_INDEX]);
+    void* const source_ptr           = get_pointer_argument(in_arguments_ptr[SOURCE_ARGUMENT_INDEX]);
+    void* const destination_twin_ptr = get_twin_ptr        (destination_ptr);
+    void* const source_for_right_ptr = get_twin_or_own_ptr (source_ptr);
 
     if (destination_twin_ptr != nullptr)
     {
-        void* const device_ptr = const_cast<void*>(in_arguments_ptr[0].get_ptr() );
+        void* const device_ptr = get_pointer_argument(in_arguments_ptr[0]);
 
         APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_UPDATETEXTURE>(device_ptr,
                                                                                                       Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_UPDATETEXTURE)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>     (device_ptr),
-                                                                                                                                                                              static_cast<Interception::Hooks::D3D8::IDirect3DBaseTexture8*>((source_twin_ptr != nullptr) ? source_twin_ptr
-                                                                                                                                                                                                                                                                          : source_ptr),
+                                                                                                                                                                              static_cast<Interception::Hooks::D3D8::IDirect3DBaseTexture8*>(source_for_right_ptr),
                                                                                                                                                                               static_cast<Interception::Hooks::D3D8::IDirect3DBaseTexture8*>(destination_twin_ptr));
     }
 }
@@ -311,7 +328,7 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::on_post(const APIInterceptor::APIFun
 
         case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_CREATETEXTURE:
         {
-            m_device_ptr = const_cast<void*>(in_arguments_ptr[0].get_ptr() );
+            m_device_ptr = get_pointer_argument(in_arguments_ptr[0]);
 
             handle_create_texture(in_arguments_ptr);
 
@@ -399,7 +416,7 @@ bool Stereo::ConverterDLL::D3D8EyeRenderer::on_pre(const APIInterceptor::APIFunc
         case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DSURFACE8_LOCKRECT:
         case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DTEXTURE8_LOCKRECT:
         {
-            const bool is_ok = (get_twin_ptr(const_cast<void*>(in_arguments_ptr[0].get_ptr() )) == nullptr);
+            const bool is_ok = (get_twin_ptr(get_pointer_argument(in_arguments_ptr[0])) == nullptr);
 
             m_core_ptr->require_fast_path(is_ok,
                                           "The application locks a render target, whose images the right eye would not have");
@@ -433,8 +450,8 @@ bool Stereo::ConverterDLL::D3D8EyeRenderer::on_pre(const APIInterceptor::APIFunc
 
         case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_SETRENDERTARGET:
         {
-            void* const depth_stencil_ptr = const_cast<void*>(in_arguments_ptr[DEPTH_STENCIL_ARGUMENT_INDEX].get_ptr() );
-            void* const render_target_ptr = const_cast<void*>(in_arguments_ptr[RENDER_TARGET_ARGUMENT_INDEX].get_ptr() );
+            void* const depth_stencil_ptr = get_pointer_argument(in_arguments_ptr[DEPTH_STENCIL_ARGUMENT_INDEX]);
+            void* const render_target_ptr = get_pointer_argument(in_arguments_ptr[RENDER_TARGET_ARGUMENT_INDEX]);
 
             /* A surface that is not there is no change, in Direct3D 8: of the render target, and of the depth buffer. */
             if (render_target_ptr != nullptr)
@@ -461,7 +478,7 @@ bool Stereo::ConverterDLL::D3D8EyeRenderer::on_pre(const APIInterceptor::APIFunc
 
             if (stage < N_TEXTURE_STAGES)
             {
-                m_mirror.texture_ptr_array.at(stage) = const_cast<void*>(in_arguments_ptr[TEXTURE_ARGUMENT_INDEX].get_ptr() );
+                m_mirror.texture_ptr_array.at(stage) = get_pointer_argument(in_arguments_ptr[TEXTURE_ARGUMENT_INDEX]);
             }
 
             break;
@@ -483,7 +500,7 @@ bool Stereo::ConverterDLL::D3D8EyeRenderer::on_pre_draw(const Analysis::Recipe::
 
     if (in_draw_class != Analysis::Recipe::DrawClass::SKIPPED)
     {
-        void* const    device_ptr      = const_cast<void*>(in_arguments_ptr[0].get_ptr() );
+        void* const    device_ptr      = get_pointer_argument(in_arguments_ptr[0]);
         const bool     is_final_target = (m_mirror.render_target_ptr == m_mirror.back_buffer_ptr);
         const uint32_t n_changes       = m_core_ptr->bind_matrices(in_draw_class,
                                                                    Analysis::Recipe::Eye::LEFT,
@@ -500,7 +517,7 @@ bool Stereo::ConverterDLL::D3D8EyeRenderer::on_pre_draw(const Analysis::Recipe::
 void Stereo::ConverterDLL::D3D8EyeRenderer::play_right_eye(const APIInterceptor::APIFunction&         in_function,
                                                            const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
 {
-    void* const                                  device_ptr         = const_cast<void*>                                        (in_arguments_ptr[0].get_ptr() );
+    void* const                                  device_ptr         = get_pointer_argument(in_arguments_ptr[0]);
     Interception::Hooks::D3D8::IDirect3DDevice8* device             = static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(device_ptr);
     std::array<bool, N_TEXTURE_STAGES>           is_texture_swapped = {};
     void*                                        twin_depth_ptr     = nullptr;
@@ -592,7 +609,7 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::play_right_eye(const APIInterceptor:
 void Stereo::ConverterDLL::D3D8EyeRenderer::repeat_call(const APIInterceptor::APIFunction&         in_function,
                                                         const APIInterceptor::APIFunctionArgument* in_arguments_ptr) const
 {
-    void* const                                  device_ptr = const_cast<void*>(in_arguments_ptr[0].get_ptr() );
+    void* const                                  device_ptr = get_pointer_argument(in_arguments_ptr[0]);
     Interception::Hooks::D3D8::IDirect3DDevice8* device     = static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(device_ptr);
 
     switch (in_function)
