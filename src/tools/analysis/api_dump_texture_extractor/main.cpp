@@ -2,8 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/api_dump_analysis/extractor_command_line.h"
-#include "analysis/api_dump_analysis/extractor_progress.h"
+#include "analysis/api_dump_analysis/extractor_tool.h"
 #include "analysis/api_dump_analysis/frontends/analysis_session.h"
 #include "analysis/api_dump_textures/texture_blob_writer.h"
 #include "analysis/api_dump_textures/texture_collector.h"
@@ -123,28 +122,24 @@ void Analysis::APIDumpTextureExtractor::print_usage()
 int Analysis::APIDumpTextureExtractor::run(int   in_argc,
                                            char* in_argv[])
 {
-    std::string                                     error;
-    ExitCode                                        exit_code                = ExitCode::SUCCESS;
-    bool                                            includes_render_content  = false;
-    Analysis::APIDumpAnalysis::ExtractorOptions     options;
-    Analysis::APIDumpAnalysis::ExtractorProfile     profile;
-    Analysis::APIDumpTextures::TextureBlobWriter    writer;
-    Analysis::APIDumpTextures::TextureCollector     collector(&writer);
-    Analysis::APIDumpTextures::TextureTimeline      timeline;
+    bool                                         includes_render_content = false;
+    Analysis::APIDumpTextures::TextureBlobWriter writer;
+    Analysis::APIDumpTextures::TextureCollector  collector(&writer);
+    Analysis::APIDumpTextures::TextureTimeline   timeline;
 
     /* Without history: the textures need no more of the frames than the model builder keeps anyway. */
     Analysis::APIDumpAnalysis::Frontends::AnalysisSession session(false);
 
-    /* The pixels of an upload are in data chunks, which are all read. */
-    profile.default_skip_data_chunks_above_n_bytes = 0;
-    profile.output_extension                       = ".textures";
+    Analysis::APIDumpAnalysis::ExtractorTool::Steps steps;
 
-    const auto program_option_func = [&includes_render_content](const std::string& in_argument,
-                                                                const bool&        in_has_next,
-                                                                const std::string& in_next_argument,
-                                                                bool*              out_is_known_ptr,
-                                                                bool*              out_uses_next_ptr,
-                                                                std::string*       out_error_ptr)
+    session.set_texture_sink(&collector);
+
+    steps.program_option_func = [&includes_render_content](const std::string& in_argument,
+                                                           const bool&        in_has_next,
+                                                           const std::string& in_next_argument,
+                                                           bool*              out_is_known_ptr,
+                                                           bool*              out_uses_next_ptr,
+                                                           std::string*       out_error_ptr)
     {
         (void) in_has_next;
         (void) in_next_argument;
@@ -172,79 +167,45 @@ int Analysis::APIDumpTextureExtractor::run(int   in_argc,
         return result;
     };
 
-    if (Analysis::APIDumpAnalysis::ExtractorCommandLine::parse(in_argc,
-                                                               in_argv,
-                                                               profile,
-                                                               program_option_func,
-                                                              &options,
-                                                              &error) == false)
+    steps.before_read_func = [&](const Analysis::APIDumpAnalysis::ExtractorOptions& in_options)
     {
-        fprintf(stdout,
-                "Error: %s\n\n",
-                error.c_str() );
+        std::string                                  error;
+        Analysis::APIDumpAnalysis::ExtractorExitCode exit_code = Analysis::APIDumpAnalysis::ExtractorExitCode::SUCCESS;
 
-        print_usage();
+        /* What rendering made is not in the workload: keeping it takes a replay that reads the textures back at the snapshot points, which does not exist yet. A file
+         * that has none of it, from a run that was asked for it, would be taken for one that has it: so the process ends instead.
+         */
+        AI_ASSERT_ALWAYS(includes_render_content == false,
+                         "--include-render-content needs a replay of the workload that reads the textures back at the snapshot points, which is not implemented yet.");
 
-        exit_code = ExitCode::BAD_ARGUMENTS;
-
-        goto end;
-    }
-
-    /* What rendering made is not in the workload: keeping it takes a replay that reads the textures back at the snapshot points, which does not exist yet. A file
-     * that has none of it, from a run that was asked for it, would be taken for one that has it: so the process ends instead.
-     */
-    AI_ASSERT_ALWAYS(includes_render_content == false,
-                     "--include-render-content needs a replay of the workload that reads the textures back at the snapshot points, which is not implemented yet.");
-
-    {
-        const std::string blob_filename = Analysis::APIDumpTextures::TexturesFile::get_blob_filename(options.output_filename);
-
-        Analysis::APIDumpAnalysis::ExtractorProgress progress(options.progress_interval_seconds);
-
-        const auto progress_func = progress.get_progress_func();
-
-        if (writer.open(blob_filename,
+        if (writer.open(Analysis::APIDumpTextures::TexturesFile::get_blob_filename(in_options.output_filename),
                        &error) == false)
         {
             fprintf(stdout,
                     "Error: %s\n",
                     error.c_str() );
 
-            exit_code = ExitCode::CANNOT_WRITE_TEXTURES;
-
-            goto end;
+            exit_code = Analysis::APIDumpAnalysis::ExtractorExitCode::CANNOT_WRITE_OUTPUT;
         }
 
-        fprintf(stdout,
-                "Reading %s\n",
-                options.input_filename.c_str() );
-        fflush(stdout);
+        return exit_code;
+    };
 
-        session.set_max_frames                    (options.max_frames);
-        session.set_n_reader_threads              (options.n_threads);
-        session.set_skip_data_chunks_above_n_bytes(options.skip_data_chunks_above_n_bytes);
-        session.set_texture_sink                  (&collector);
-
-        if (session.run(options.input_filename.c_str(),
-                        progress_func,
-                       &error) == false)
-        {
-            fprintf(stdout,
-                    "Error: %s\n",
-                    error.c_str() );
-
-            exit_code = ExitCode::CANNOT_READ_WORKLOAD;
-
-            goto end;
-        }
+    steps.after_read_func = [&](const Analysis::APIDumpAnalysis::ExtractorOptions&     in_options,
+                                Analysis::APIDumpAnalysis::Frontends::AnalysisSession* inout_session_ptr,
+                                const Analysis::APIDumpAnalysis::ExtractorProgress&    in_progress)
+    {
+        const std::string                            blob_filename = Analysis::APIDumpTextures::TexturesFile::get_blob_filename(in_options.output_filename);
+        std::string                                  error;
+        Analysis::APIDumpAnalysis::ExtractorExitCode exit_code     = Analysis::APIDumpAnalysis::ExtractorExitCode::SUCCESS;
 
         {
-            auto model = session.take_model();
+            auto model = inout_session_ptr->take_model();
 
-            timeline.event_vec              = collector.get_event_vec();
+            timeline.event_vec               = collector.get_event_vec();
             timeline.includes_render_content = false;
-            timeline.resource_vec           = std::move(model.resource_vec);
-            timeline.workload_reference     = session.get_workload_reference();
+            timeline.resource_vec            = std::move(model.resource_vec);
+            timeline.workload_reference      = inout_session_ptr->get_workload_reference();
         }
 
         if (writer.close(&error) == false)
@@ -253,7 +214,7 @@ int Analysis::APIDumpTextureExtractor::run(int   in_argc,
                     "Error: %s\n",
                     error.c_str() );
 
-            exit_code = ExitCode::CANNOT_WRITE_TEXTURES;
+            exit_code = Analysis::APIDumpAnalysis::ExtractorExitCode::CANNOT_WRITE_OUTPUT;
 
             goto end;
         }
@@ -261,16 +222,10 @@ int Analysis::APIDumpTextureExtractor::run(int   in_argc,
         timeline.blob_file_n_bytes = writer.get_n_bytes();
         timeline.blob_vec          = writer.get_blob_vec();
 
-        if (session.get_summary().is_truncated)
-        {
-            fprintf(stdout,
-                    "Warning: the workload ends in the middle of a segment; it was analyzed as far as it goes.\n");
-        }
-
         fprintf(stdout,
                 "Read %llu calls in %.1fs; %llu events of the textures\n",
-                static_cast<unsigned long long>(session.get_summary().n_calls),
-                progress.get_elapsed_seconds(),
+                static_cast<unsigned long long>(inout_session_ptr->get_summary().n_calls),
+                in_progress.get_elapsed_seconds(),
                 static_cast<unsigned long long>(timeline.event_vec.size() ) );
 
         if (collector.get_error().empty() == false)
@@ -279,12 +234,12 @@ int Analysis::APIDumpTextureExtractor::run(int   in_argc,
                     "Error: %s\n",
                     collector.get_error().c_str() );
 
-            exit_code = ExitCode::TEXTURES_ARE_INCOMPLETE;
+            exit_code = Analysis::APIDumpAnalysis::ExtractorExitCode::RESULT_IS_INCOMPLETE;
 
             goto end;
         }
 
-        if (Analysis::APIDumpTextures::TexturesFile::write(options.output_filename,
+        if (Analysis::APIDumpTextures::TexturesFile::write(in_options.output_filename,
                                                            timeline,
                                                           &error) == false)
         {
@@ -292,7 +247,7 @@ int Analysis::APIDumpTextureExtractor::run(int   in_argc,
                     "Error: %s\n",
                     error.c_str() );
 
-            exit_code = ExitCode::CANNOT_WRITE_TEXTURES;
+            exit_code = Analysis::APIDumpAnalysis::ExtractorExitCode::CANNOT_WRITE_OUTPUT;
 
             goto end;
         }
@@ -301,7 +256,7 @@ int Analysis::APIDumpTextureExtractor::run(int   in_argc,
         {
             Analysis::APIDumpTextures::TextureTimeline written_timeline;
 
-            const bool is_read = Analysis::APIDumpTextures::TexturesFile::read(options.output_filename,
+            const bool is_read = Analysis::APIDumpTextures::TexturesFile::read(in_options.output_filename,
                                                                                &written_timeline,
                                                                                &error);
 
@@ -310,11 +265,11 @@ int Analysis::APIDumpTextureExtractor::run(int   in_argc,
             {
                 fprintf(stdout,
                         "Error: %s does not read back as it was written%s%s\n",
-                        options.output_filename.c_str(),
+                        in_options.output_filename.c_str(),
                         (is_read) ? "" : ": ",
                         (is_read) ? "" : error.c_str() );
 
-                exit_code = ExitCode::CANNOT_WRITE_TEXTURES;
+                exit_code = Analysis::APIDumpAnalysis::ExtractorExitCode::CANNOT_WRITE_OUTPUT;
 
                 goto end;
             }
@@ -322,17 +277,28 @@ int Analysis::APIDumpTextureExtractor::run(int   in_argc,
 
         fprintf(stdout,
                 "Wrote %s and %s\n",
-                options.output_filename.c_str(),
+                in_options.output_filename.c_str(),
                 blob_filename.c_str() );
 
-        if (options.print_stats)
+        if (in_options.print_stats)
         {
             print_stats(timeline);
         }
-    }
 
 end:
-    return static_cast<int>(exit_code);
+        return exit_code;
+    };
+
+    steps.print_usage_func = print_usage;
+
+    /* The pixels of an upload are in data chunks, which are all read. */
+    steps.profile.default_skip_data_chunks_above_n_bytes = 0;
+    steps.profile.output_extension                       = ".textures";
+
+    return static_cast<int>(Analysis::APIDumpAnalysis::ExtractorTool::run(in_argc,
+                                                                          in_argv,
+                                                                          steps,
+                                                                         &session) );
 }
 
 int main(int   in_argc,

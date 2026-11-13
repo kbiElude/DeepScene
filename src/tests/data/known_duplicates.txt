@@ -11,6 +11,4 @@
 22 deps/APIInterceptor/src/replay/replay_player/control_window.cpp|src/libs/utils/ui_host/i_imgui_window_host.cpp
 2 deps/APIInterceptor/src/replay/replay_player/main.cpp|src/tools/stereo_replay/player/main.cpp
 4 src/libs/analysis/api_dump_analysis/passes_file.cpp|src/libs/analysis/api_dump_dependencies/deps_file.cpp
-20 src/tools/analysis/api_dump_analysis_extractor/main.cpp|src/tools/analysis/api_dump_dependency_extractor/main.cpp
-4 src/tools/analysis/api_dump_analysis_query/main.cpp|src/tools/analysis/api_dump_dependency_query/main.cpp
 1 src/runtime/converter_dll/D3D7/d3d7_eye_renderer.cpp|src/runtime/converter_dll/D3D8/d3d8_eye_renderer.cpp

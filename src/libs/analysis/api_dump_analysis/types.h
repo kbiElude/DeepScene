@@ -82,6 +82,16 @@ namespace Analysis
             UNKNOWN
         };
 
+        /* What a program that reads a workload and writes a file of what it found exits with. */
+        enum class ExtractorExitCode
+        {
+            BAD_ARGUMENTS        = 1,
+            CANNOT_READ_WORKLOAD = 2,
+            CANNOT_WRITE_OUTPUT  = 3,
+            RESULT_IS_INCOMPLETE = 4, /* the workload was read, but what it holds of what the program looks for could not all be kept */
+            SUCCESS              = 0
+        };
+
         enum class FormatClass
         {
             COLOR,

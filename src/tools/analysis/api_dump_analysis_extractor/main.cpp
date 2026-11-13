@@ -2,8 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/api_dump_analysis/extractor_command_line.h"
-#include "analysis/api_dump_analysis/extractor_progress.h"
+#include "analysis/api_dump_analysis/extractor_tool.h"
 #include "analysis/api_dump_analysis/frontends/analysis_session.h"
 #include "analysis/api_dump_analysis/passes_file.h"
 #include "analysis/api_dump_analysis/resource_access_tracker.h"
@@ -94,93 +93,40 @@ int Analysis::APIDumpAnalysisExtractor::run(int   in_argc,
                                             char* in_argv[])
 {
     Analysis::APIDumpAnalysis::AnalysisResult             analysis;
-    std::string                                           error;
-    ExitCode                                              exit_code  = ExitCode::SUCCESS;
-    Analysis::APIDumpAnalysis::ExtractorOptions           options;
-    Analysis::APIDumpAnalysis::ExtractorProfile           profile;
     Analysis::APIDumpAnalysis::Frontends::AnalysisSession session;
 
-    profile.output_extension = ".passes";
+    Analysis::APIDumpAnalysis::ExtractorTool::Steps steps;
 
-    if (Analysis::APIDumpAnalysis::ExtractorCommandLine::parse(in_argc,
-                                                               in_argv,
-                                                               profile,
-                                                               Analysis::APIDumpAnalysis::ExtractorCommandLine::ProgramOptionFunc(),
-                                                              &options,
-                                                              &error) == false)
+    /* The shapes of the frames and the structures of the passes that have been found, which are what this program is for. */
+    steps.extra_text_func = [](const Analysis::APIDumpAnalysis::Frontends::SessionProgress& in_progress)
     {
-        fprintf(stdout,
-                "Error: %s\n\n",
-                error.c_str() );
+        char text_i8vec64[64] = {};
 
-        print_usage();
+        ::snprintf(text_i8vec64,
+                   sizeof(text_i8vec64),
+                   " shapes=%llu passes=%llu",
+                   static_cast<unsigned long long>(in_progress.n_frame_shapes),
+                   static_cast<unsigned long long>(in_progress.n_pass_structures) );
 
-        exit_code = ExitCode::BAD_ARGUMENTS;
+        return std::string(text_i8vec64);
+    };
 
-        goto end;
-    }
-
+    steps.after_read_func = [&analysis](const Analysis::APIDumpAnalysis::ExtractorOptions&     in_options,
+                                        Analysis::APIDumpAnalysis::Frontends::AnalysisSession* inout_session_ptr,
+                                        const Analysis::APIDumpAnalysis::ExtractorProgress&    in_progress)
     {
-        Analysis::APIDumpAnalysis::ExtractorProgress progress(options.progress_interval_seconds);
+        std::string                                  error;
+        Analysis::APIDumpAnalysis::ExtractorExitCode exit_code = Analysis::APIDumpAnalysis::ExtractorExitCode::SUCCESS;
 
-        const auto get_elapsed_seconds_func = [&]()
-        {
-            return progress.get_elapsed_seconds();
-        };
+        analysis.model              = inout_session_ptr->take_model();
+        analysis.summary            = inout_session_ptr->get_summary();
+        analysis.workload_reference = inout_session_ptr->get_workload_reference();
 
-        /* The shapes of the frames and the structures of the passes that have been found, which are what this program is for. */
-        const auto extra_text_func = [](const Analysis::APIDumpAnalysis::Frontends::SessionProgress& in_progress)
-        {
-            char text_i8vec64[64] = {};
-
-            ::snprintf(text_i8vec64,
-                       sizeof(text_i8vec64),
-                       " shapes=%llu passes=%llu",
-                       static_cast<unsigned long long>(in_progress.n_frame_shapes),
-                       static_cast<unsigned long long>(in_progress.n_pass_structures) );
-
-            return std::string(text_i8vec64);
-        };
-
-        const auto progress_func = progress.get_progress_func(extra_text_func);
-
-        fprintf(stdout,
-                "Reading %s\n",
-                options.input_filename.c_str() );
-        fflush(stdout);
-
-        session.set_max_frames                    (options.max_frames);
-        session.set_n_reader_threads              (options.n_threads);
-        session.set_skip_data_chunks_above_n_bytes(options.skip_data_chunks_above_n_bytes);
-
-        if (session.run(options.input_filename.c_str(),
-                        progress_func,
-                       &error) == false)
-        {
-            fprintf(stdout,
-                    "Error: %s\n",
-                    error.c_str() );
-
-            exit_code = ExitCode::CANNOT_READ_WORKLOAD;
-
-            goto end;
-        }
-
-        analysis.model              = session.take_model();
-        analysis.summary            = session.get_summary();
-        analysis.workload_reference = session.get_workload_reference();
-
-        if (analysis.summary.is_truncated)
-        {
-            fprintf(stdout,
-                    "Warning: the workload ends in the middle of a segment; it was analyzed as far as it goes.\n");
-        }
-
-        if (session.has_reached_frame_limit() )
+        if (inout_session_ptr->has_reached_frame_limit() )
         {
             fprintf(stdout,
                     "Stopped at the limit of %llu frames.\n",
-                    static_cast<unsigned long long>(options.max_frames) );
+                    static_cast<unsigned long long>(in_options.max_frames) );
         }
 
         fprintf(stdout,
@@ -189,9 +135,9 @@ int Analysis::APIDumpAnalysisExtractor::run(int   in_argc,
                 static_cast<unsigned long long>(analysis.model.frame_record_vec.size() ),
                 static_cast<unsigned long long>(analysis.model.frame_shape_interner.get_n_structures() ),
                 static_cast<unsigned long long>(analysis.model.pass_structure_interner.get_n_structures() ),
-                get_elapsed_seconds_func() );
+                in_progress.get_elapsed_seconds() );
 
-        if (Analysis::APIDumpAnalysis::PassesFile::write(options.output_filename,
+        if (Analysis::APIDumpAnalysis::PassesFile::write(in_options.output_filename,
                                                          analysis,
                                                         &error) == false)
         {
@@ -199,23 +145,31 @@ int Analysis::APIDumpAnalysisExtractor::run(int   in_argc,
                     "Error: %s\n",
                     error.c_str() );
 
-            exit_code = ExitCode::CANNOT_WRITE_PASSES;
+            exit_code = Analysis::APIDumpAnalysis::ExtractorExitCode::CANNOT_WRITE_OUTPUT;
 
             goto end;
         }
 
         fprintf(stdout,
                 "Wrote %s\n",
-                options.output_filename.c_str() );
+                in_options.output_filename.c_str() );
 
-        if (options.print_stats)
+        if (in_options.print_stats)
         {
             print_stats(analysis);
         }
-    }
 
 end:
-    return static_cast<int>(exit_code);
+        return exit_code;
+    };
+
+    steps.print_usage_func         = print_usage;
+    steps.profile.output_extension = ".passes";
+
+    return static_cast<int>(Analysis::APIDumpAnalysis::ExtractorTool::run(in_argc,
+                                                                          in_argv,
+                                                                          steps,
+                                                                         &session) );
 }
 
 int main(int   in_argc,

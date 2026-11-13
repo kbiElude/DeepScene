@@ -8,7 +8,6 @@
 #define APIDUMPANALYSISEXTRACTOR_EXTRACTOR_H
 
 #include "analysis/api_dump_analysis/model.h"
-#include "types.h"
 #include <string>
 
 namespace Analysis

@@ -8,7 +8,6 @@
 #define APIDUMPTEXTUREEXTRACTOR_EXTRACTOR_H
 
 #include "analysis/api_dump_textures/types.h"
-#include "types.h"
 
 namespace Analysis
 {

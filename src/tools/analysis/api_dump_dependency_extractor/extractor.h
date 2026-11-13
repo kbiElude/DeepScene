@@ -8,7 +8,6 @@
 #define APIDUMPDEPENDENCYEXTRACTOR_EXTRACTOR_H
 
 #include "analysis/api_dump_dependencies/types.h"
-#include "types.h"
 #include <string>
 
 namespace Analysis

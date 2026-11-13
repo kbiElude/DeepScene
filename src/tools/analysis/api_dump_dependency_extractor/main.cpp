@@ -2,8 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/api_dump_analysis/extractor_command_line.h"
-#include "analysis/api_dump_analysis/extractor_progress.h"
+#include "analysis/api_dump_analysis/extractor_tool.h"
 #include "analysis/api_dump_analysis/frontends/analysis_session.h"
 #include "analysis/api_dump_dependencies/access_log.h"
 #include "analysis/api_dump_dependencies/dependency_analyzer.h"
@@ -72,74 +71,26 @@ int Analysis::APIDumpDependencyExtractor::run(int   in_argc,
 {
     Analysis::APIDumpDependencies::AccessLog          log;
     Analysis::APIDumpDependencies::DependencyAnalysis analysis;
-    std::string                                       error;
-    ExitCode                                          exit_code  = ExitCode::SUCCESS;
-    Analysis::APIDumpAnalysis::ExtractorOptions       options;
-    Analysis::APIDumpAnalysis::ExtractorProfile       profile;
 
     /* Without history: the analysis keeps what it keeps of the frames only as far as the dependencies need it. */
     Analysis::APIDumpAnalysis::Frontends::AnalysisSession session(false);
 
-    /* Pixels and vertices are not what the dependencies are made of. */
-    profile.default_skip_data_chunks_above_n_bytes = 64 * 1024;
-    profile.output_extension                       = ".deps";
+    Analysis::APIDumpAnalysis::ExtractorTool::Steps steps;
 
-    if (Analysis::APIDumpAnalysis::ExtractorCommandLine::parse(in_argc,
-                                                               in_argv,
-                                                               profile,
-                                                               Analysis::APIDumpAnalysis::ExtractorCommandLine::ProgramOptionFunc(),
-                                                              &options,
-                                                              &error) == false)
+    session.set_access_sink(&log);
+
+    steps.after_read_func = [&analysis, &log](const Analysis::APIDumpAnalysis::ExtractorOptions&     in_options,
+                                              Analysis::APIDumpAnalysis::Frontends::AnalysisSession* inout_session_ptr,
+                                              const Analysis::APIDumpAnalysis::ExtractorProgress&    in_progress)
     {
-        fprintf(stdout,
-                "Error: %s\n\n",
-                error.c_str() );
+        std::string                                  error;
+        Analysis::APIDumpAnalysis::ExtractorExitCode exit_code = Analysis::APIDumpAnalysis::ExtractorExitCode::SUCCESS;
 
-        print_usage();
-
-        exit_code = ExitCode::BAD_ARGUMENTS;
-
-        goto end;
-    }
-
-    {
-        Analysis::APIDumpAnalysis::ExtractorProgress progress(options.progress_interval_seconds);
-
-        const auto get_elapsed_seconds_func = [&]()
-        {
-            return progress.get_elapsed_seconds();
-        };
-
-        const auto progress_func = progress.get_progress_func();
-
-        fprintf(stdout,
-                "Reading %s\n",
-                options.input_filename.c_str() );
-        fflush(stdout);
-
-        session.set_access_sink                   (&log);
-        session.set_max_frames                    (options.max_frames);
-        session.set_n_reader_threads              (options.n_threads);
-        session.set_skip_data_chunks_above_n_bytes(options.skip_data_chunks_above_n_bytes);
-
-        if (session.run(options.input_filename.c_str(),
-                        progress_func,
-                       &error) == false)
-        {
-            fprintf(stdout,
-                    "Error: %s\n",
-                    error.c_str() );
-
-            exit_code = ExitCode::CANNOT_READ_WORKLOAD;
-
-            goto end;
-        }
-
-        const double read_seconds = get_elapsed_seconds_func();
+        const double read_seconds = in_progress.get_elapsed_seconds();
 
         {
-            const auto summary = session.get_summary();
-            auto       model   = session.take_model ();
+            const auto summary = inout_session_ptr->get_summary();
+            auto       model   = inout_session_ptr->take_model ();
 
             analysis.frame_call_range_vec = log.get_frame_call_range_vec();
             analysis.is_truncated         = summary.is_truncated;
@@ -147,7 +98,7 @@ int Analysis::APIDumpDependencyExtractor::run(int   in_argc,
             analysis.pointer_n_bytes      = summary.pointer_n_bytes;
             analysis.qpc_frequency        = summary.qpc_frequency;
             analysis.resource_vec         = std::move                     (model.resource_vec);
-            analysis.workload_reference   = session.get_workload_reference();
+            analysis.workload_reference   = inout_session_ptr->get_workload_reference();
 
             for (const auto& group : summary.n_calls_by_group_map)
             {
@@ -157,9 +108,9 @@ int Analysis::APIDumpDependencyExtractor::run(int   in_argc,
 
         analysis.result = Analysis::APIDumpDependencies::DependencyAnalyzer::analyze(log,
                                                                                      analysis.resource_vec,
-                                                                                     options.n_threads);
+                                                                                     in_options.n_threads);
 
-        const double analyzed_seconds = get_elapsed_seconds_func();
+        const double analyzed_seconds = in_progress.get_elapsed_seconds();
 
         fprintf(stdout,
                 "Read %llu calls, %llu frames, %llu accesses in %.1fs; worked out the dependencies of %llu resources in %.1fs\n",
@@ -170,13 +121,7 @@ int Analysis::APIDumpDependencyExtractor::run(int   in_argc,
                 static_cast<unsigned long long>(analysis.resource_vec.size() ),
                 analyzed_seconds - read_seconds);
 
-        if (analysis.is_truncated)
-        {
-            fprintf(stdout,
-                    "Warning: the workload ends in the middle of a segment; it was analyzed as far as it goes.\n");
-        }
-
-        if (Analysis::APIDumpDependencies::DepsFile::write(options.output_filename,
+        if (Analysis::APIDumpDependencies::DepsFile::write(in_options.output_filename,
                                                            analysis,
                                                           &error) == false)
         {
@@ -184,23 +129,34 @@ int Analysis::APIDumpDependencyExtractor::run(int   in_argc,
                     "Error: %s\n",
                     error.c_str() );
 
-            exit_code = ExitCode::CANNOT_WRITE_DEPS;
+            exit_code = Analysis::APIDumpAnalysis::ExtractorExitCode::CANNOT_WRITE_OUTPUT;
 
             goto end;
         }
 
         fprintf(stdout,
                 "Wrote %s\n",
-                options.output_filename.c_str() );
+                in_options.output_filename.c_str() );
 
-        if (options.print_stats)
+        if (in_options.print_stats)
         {
             print_stats(analysis);
         }
-    }
 
 end:
-    return static_cast<int>(exit_code);
+        return exit_code;
+    };
+
+    steps.print_usage_func = print_usage;
+
+    /* Pixels and vertices are not what the dependencies are made of. */
+    steps.profile.default_skip_data_chunks_above_n_bytes = 64 * 1024;
+    steps.profile.output_extension                       = ".deps";
+
+    return static_cast<int>(Analysis::APIDumpAnalysis::ExtractorTool::run(in_argc,
+                                                                          in_argv,
+                                                                          steps,
+                                                                         &session) );
 }
 
 int main(int   in_argc,
