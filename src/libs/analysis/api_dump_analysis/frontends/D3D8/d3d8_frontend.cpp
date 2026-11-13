@@ -1151,7 +1151,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::on_call(const Capture::
                                             in_call.arg_in_vec.data(),
                                            &hazard) )
         {
-            m_n_resolution_hazard_map[hazard]++;
+            m_resolution_hazard_counter.count(hazard);
         }
     }
 

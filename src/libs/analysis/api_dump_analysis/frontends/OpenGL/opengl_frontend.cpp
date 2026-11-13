@@ -11,6 +11,7 @@
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_texture_handler.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_vertex_reader.h"
 #include "analysis/api_dump_analysis/frontends/shared/call_view.h"
+#include "analysis/api_dump_analysis/frontends/shared/resolution_hazard_counter.h"
 #include "analysis/api_dump_analysis/frontends/shared/unsupported_use.h"
 #include "capture/api_dump_loader/api_info.h"
 #include "capture/api_dump_names/function_names.h"
@@ -89,15 +90,10 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::copy_to_bound_texture
         m_texture_handler.generate_mipmaps_if_automatic(in_state,
                                                         in_level);
 
-        count_hazard(Analysis::APIDumpAnalysis::ResolutionHazard::COPIES_WITH_RECTANGLES);
+        m_resolution_hazard_counter.count(Analysis::APIDumpAnalysis::ResolutionHazard::COPIES_WITH_RECTANGLES);
     }
 
     return result;
-}
-
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::count_hazard(const Analysis::APIDumpAnalysis::ResolutionHazard& in_hazard)
-{
-    m_n_resolution_hazard_map[in_hazard]++;
 }
 
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::ensure_default_framebuffer(const GLContextState& in_state)
@@ -238,7 +234,7 @@ Analysis::APIDumpAnalysis::Viewport Analysis::APIDumpAnalysis::Frontends::OpenGL
 
 const std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t>& Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_n_resolution_hazards() const
 {
-    return m_n_resolution_hazard_map;
+    return m_resolution_hazard_counter.get_counts();
 }
 
 uint64_t Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_n_unfollowed_calls() const
@@ -498,7 +494,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_clear(const Ca
 
         if (clear.has_rectangles)
         {
-            count_hazard(Analysis::APIDumpAnalysis::ResolutionHazard::CLEARS_WITH_RECTANGLES);
+            m_resolution_hazard_counter.count(Analysis::APIDumpAnalysis::ResolutionHazard::CLEARS_WITH_RECTANGLES);
         }
     }
 }
@@ -937,7 +933,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
 
                 case APIInterceptor::APIFUNCTION_GL_GLLINEWIDTH:
                 {
-                    count_hazard(Analysis::APIDumpAnalysis::ResolutionHazard::LINE_WIDTH_STATES);
+                    m_resolution_hazard_counter.count(Analysis::APIDumpAnalysis::ResolutionHazard::LINE_WIDTH_STATES);
 
                     break;
                 }
@@ -952,7 +948,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
 
                 case APIInterceptor::APIFUNCTION_GL_GLPOINTSIZE:
                 {
-                    count_hazard(Analysis::APIDumpAnalysis::ResolutionHazard::POINT_SIZE_STATES);
+                    m_resolution_hazard_counter.count(Analysis::APIDumpAnalysis::ResolutionHazard::POINT_SIZE_STATES);
 
                     break;
                 }
@@ -991,7 +987,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
                     /* What a program reads back is used by the program, which the model does not follow. What it makes of the pixels that it reads into its memory (a
                      * texture, say) is in the call that gives it, as the bytes of an upload; reading to a buffer is not possible here, as binding one ends the process.
                      */
-                    count_hazard(Analysis::APIDumpAnalysis::ResolutionHazard::PIXEL_READBACKS);
+                    m_resolution_hazard_counter.count(Analysis::APIDumpAnalysis::ResolutionHazard::PIXEL_READBACKS);
 
                     m_n_unsupported_calls++;
 
@@ -1225,7 +1221,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_scissor(const 
     {
         inout_state_ptr->attributes.scissor_box = box;
 
-        count_hazard(Analysis::APIDumpAnalysis::ResolutionHazard::SCISSOR_BOXES);
+        m_resolution_hazard_counter.count(Analysis::APIDumpAnalysis::ResolutionHazard::SCISSOR_BOXES);
     }
     else
     {

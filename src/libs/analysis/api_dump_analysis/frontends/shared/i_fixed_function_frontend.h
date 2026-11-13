@@ -14,6 +14,7 @@
 #include "analysis/api_dump_analysis/frontends/shared/i_api_frontend.h"
 #include "capture/api_dump_loader/object_namer.h"
 #include "analysis/api_dump_analysis/frontends/shared/object_tracker.h"
+#include "analysis/api_dump_analysis/frontends/shared/resolution_hazard_counter.h"
 #include "analysis/api_dump_analysis/model_builder.h"
 #include <map>
 #include <stdint.h>
@@ -68,16 +69,16 @@ namespace Analysis
                 void handle_set_transform          (const CallView& in_view);
 
 
-                Analysis::APIDumpAnalysis::ModelBuilder*                        m_builder_ptr;
-                Analysis::APIDumpAnalysis::ResourceView                         m_color_view;           /* what is rendered to                  */
-                Analysis::APIDumpAnalysis::ResourceView                         m_depth_stencil_view;   /* resource_id is NONE if there is none */
-                Capture::APIDumpLoader::ObjectNamer                             m_namer;
-                std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t> m_n_resolution_hazard_map;
-                uint64_t                                                        m_n_unfollowed_calls;
-                uint64_t                                                        m_n_unsupported_calls;
-                std::unordered_set<APIInterceptor::APIFunction>                 m_release_function_set; /* the methods which Release, for the front end to fill */
-                ObjectTracker                                                   m_tracker;
-                Analysis::APIDumpAnalysis::ConstantUpdate                       m_transform_update_scratch;
+                Analysis::APIDumpAnalysis::ModelBuilder*        m_builder_ptr;
+                Analysis::APIDumpAnalysis::ResourceView         m_color_view;           /* what is rendered to                  */
+                Analysis::APIDumpAnalysis::ResourceView         m_depth_stencil_view;   /* resource_id is NONE if there is none */
+                Capture::APIDumpLoader::ObjectNamer             m_namer;
+                uint64_t                                        m_n_unfollowed_calls;
+                uint64_t                                        m_n_unsupported_calls;
+                std::unordered_set<APIInterceptor::APIFunction> m_release_function_set; /* the methods which Release, for the front end to fill */
+                ResolutionHazardCounter                         m_resolution_hazard_counter;
+                ObjectTracker                                   m_tracker;
+                Analysis::APIDumpAnalysis::ConstantUpdate       m_transform_update_scratch;
             };
         }
     }

@@ -62,7 +62,7 @@ Analysis::APIDumpAnalysis::Viewport Analysis::APIDumpAnalysis::Frontends::IFixed
 
 const std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t>& Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::get_n_resolution_hazards() const
 {
-    return m_n_resolution_hazard_map;
+    return m_resolution_hazard_counter.get_counts();
 }
 
 uint64_t Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::get_n_unfollowed_calls() const

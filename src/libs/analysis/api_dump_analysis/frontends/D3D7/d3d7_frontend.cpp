@@ -96,7 +96,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::count_resolution_hazard
         {
             if (in_view.get_u32(CLEAR_N_RECTS_ARGUMENT) != 0)
             {
-                m_n_resolution_hazard_map[Analysis::APIDumpAnalysis::ResolutionHazard::CLEARS_WITH_RECTANGLES]++;
+                m_resolution_hazard_counter.count(Analysis::APIDumpAnalysis::ResolutionHazard::CLEARS_WITH_RECTANGLES);
             }
 
             break;
@@ -106,7 +106,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::count_resolution_hazard
         case APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAW7_GETDISPLAYMODE:
         case APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_GETSURFACEDESC:
         {
-            m_n_resolution_hazard_map[Analysis::APIDumpAnalysis::ResolutionHazard::SIZE_QUERIES]++;
+            m_resolution_hazard_counter.count(Analysis::APIDumpAnalysis::ResolutionHazard::SIZE_QUERIES);
 
             break;
         }
@@ -119,7 +119,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::count_resolution_hazard
             if (has_destination_point ||
                 has_source_rect)
             {
-                m_n_resolution_hazard_map[Analysis::APIDumpAnalysis::ResolutionHazard::COPIES_WITH_RECTANGLES]++;
+                m_resolution_hazard_counter.count(Analysis::APIDumpAnalysis::ResolutionHazard::COPIES_WITH_RECTANGLES);
             }
 
             break;
@@ -133,7 +133,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::count_resolution_hazard
             if (has_destination_rect ||
                 has_source_rect)
             {
-                m_n_resolution_hazard_map[Analysis::APIDumpAnalysis::ResolutionHazard::COPIES_WITH_RECTANGLES]++;
+                m_resolution_hazard_counter.count(Analysis::APIDumpAnalysis::ResolutionHazard::COPIES_WITH_RECTANGLES);
             }
 
             break;
@@ -143,7 +143,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::count_resolution_hazard
         {
             if (has_data_func(BLT_FAST_SOURCE_RECT_ARGUMENT) )
             {
-                m_n_resolution_hazard_map[Analysis::APIDumpAnalysis::ResolutionHazard::COPIES_WITH_RECTANGLES]++;
+                m_resolution_hazard_counter.count(Analysis::APIDumpAnalysis::ResolutionHazard::COPIES_WITH_RECTANGLES);
             }
 
             break;
@@ -500,7 +500,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_draw(const CallV
 
     if ( (fvf & Interception::Core::D3D7Utils::D3DFVF_POSITION_MASK) == Interception::Core::D3D7Utils::D3DFVF_XYZRHW)
     {
-        m_n_resolution_hazard_map[Analysis::APIDumpAnalysis::ResolutionHazard::SCREEN_SPACE_VERTICES]++;
+        m_resolution_hazard_counter.count(Analysis::APIDumpAnalysis::ResolutionHazard::SCREEN_SPACE_VERTICES);
     }
 
     const Analysis::APIDumpAnalysis::PrimitiveTopology topology = get_primitive_topology(in_view.get_u32(PRIMITIVE_TYPE_ARGUMENT) );

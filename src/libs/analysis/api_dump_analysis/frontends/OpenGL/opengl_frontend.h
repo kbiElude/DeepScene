@@ -30,6 +30,7 @@
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_context_state.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_list_handler.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_matrix_handler.h"
+#include "analysis/api_dump_analysis/frontends/shared/resolution_hazard_counter.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_texture_handler.h"
 #include "analysis/api_dump_analysis/frontends/shared/i_api_frontend.h"
 #include "analysis/api_dump_analysis/model_builder.h"
@@ -88,9 +89,6 @@ namespace Analysis
                                            const uint32_t&       in_y_offset,
                                            const uint32_t&       in_width,
                                            const uint32_t&       in_height);
-
-                /* A call that depends on the size of what is rendered to in pixels. */
-                void count_hazard(const Analysis::APIDumpAnalysis::ResolutionHazard& in_hazard);
 
                 /* Makes the resources of the window, and tells the builder what is rendered to and where, if that has not been done. */
                 void ensure_default_framebuffer(const GLContextState& in_state);
@@ -194,23 +192,23 @@ namespace Analysis
                 static void restore_attributes(const GLAttributeFrame& in_frame,
                                                GLAttributes*           inout_attributes_ptr);
 
-                GLArrayDrawDescriber                                            m_array_draw_describer;
-                Analysis::APIDumpAnalysis::ModelBuilder*                        m_builder_ptr;
-                GLContextState*                                                 m_cached_context_state_ptr;      /* what find_current_context_ptr() found last, for m_cached_thread_id; nullptr: nothing */
-                uint32_t                                                        m_cached_thread_id;
-                Analysis::APIDumpAnalysis::ResourceView                         m_color_view;
-                std::map<uint64_t, GLContextState>                              m_context_map;                   /* by the address of the context */
-                std::map<uint32_t, uint64_t>                                    m_current_context_by_thread_map; /* the address, by the thread    */
-                Analysis::APIDumpAnalysis::ResourceView                         m_depth_stencil_view;
-                uint32_t                                                        m_framebuffer_height;
-                uint32_t                                                        m_framebuffer_width;
-                bool                                                            m_has_default_framebuffer;
-                GLListHandler                                                   m_list_handler;
-                GLMatrixHandler                                                 m_matrix_handler;
-                std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t> m_n_resolution_hazard_map;
-                uint64_t                                                        m_n_unfollowed_calls;
-                uint64_t                                                        m_n_unsupported_calls;
-                GLTextureHandler                                                m_texture_handler;
+                GLArrayDrawDescriber                     m_array_draw_describer;
+                Analysis::APIDumpAnalysis::ModelBuilder* m_builder_ptr;
+                GLContextState*                          m_cached_context_state_ptr;      /* what find_current_context_ptr() found last, for m_cached_thread_id; nullptr: nothing */
+                uint32_t                                 m_cached_thread_id;
+                Analysis::APIDumpAnalysis::ResourceView  m_color_view;
+                std::map<uint64_t, GLContextState>       m_context_map;                   /* by the address of the context */
+                std::map<uint32_t, uint64_t>             m_current_context_by_thread_map; /* the address, by the thread    */
+                Analysis::APIDumpAnalysis::ResourceView  m_depth_stencil_view;
+                uint32_t                                 m_framebuffer_height;
+                uint32_t                                 m_framebuffer_width;
+                bool                                     m_has_default_framebuffer;
+                GLListHandler                            m_list_handler;
+                GLMatrixHandler                          m_matrix_handler;
+                uint64_t                                 m_n_unfollowed_calls;
+                uint64_t                                 m_n_unsupported_calls;
+                ResolutionHazardCounter                  m_resolution_hazard_counter;
+                GLTextureHandler                         m_texture_handler;
             };
         }
     }
