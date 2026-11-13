@@ -3,6 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_analysis/frontends/OpenGL/opengl_frontend.h"
+#include "analysis/api_dump_analysis/frontends/OpenGL/gl_argument_reader.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_matrix_math.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_geometry_sampler.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_list_classifier.h"
@@ -573,8 +574,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_active_texture
 
     std::array<uint32_t, 1> unit_array = {};
 
-    if (read_arguments(in_call,
-                       &unit_array) )
+    if (GlArgumentReader::read_arguments(in_call,
+                                         &unit_array) )
     {
         inout_state_ptr->attributes.active_texture_unit = unit_array.at(0) - TEXTURE0;
     }
@@ -653,8 +654,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_begin(const Ca
 {
     std::array<uint32_t, 1> mode_array = {};
 
-    if (read_arguments(in_call,
-                      &mode_array) )
+    if (GlArgumentReader::read_arguments(in_call,
+                                        &mode_array) )
     {
         GlImmediateBlock& block = inout_state_ptr->immediate_block;
 
@@ -680,8 +681,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_bind_buffer(co
 
     std::array<uint32_t, 2> bind_array = {};
 
-    if (read_arguments(in_call,
-                       &bind_array) == false)
+    if (GlArgumentReader::read_arguments(in_call,
+                                         &bind_array) == false)
     {
         m_n_unfollowed_calls++;
     }
@@ -724,8 +725,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_bind_texture(c
 
     std::array<uint32_t, 2> bind_array = {};
 
-    if (read_arguments(in_call,
-                       &bind_array) == false)
+    if (GlArgumentReader::read_arguments(in_call,
+                                         &bind_array) == false)
     {
         m_n_unfollowed_calls++;
     }
@@ -753,8 +754,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_call_list(cons
 
     std::array<uint32_t, 1> list_array = {};
 
-    if (read_arguments(in_call,
-                       &list_array) == false)
+    if (GlArgumentReader::read_arguments(in_call,
+                                         &list_array) == false)
     {
         m_n_unfollowed_calls++;
     }
@@ -803,8 +804,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_clear(const Ca
 
     std::array<uint32_t, 1> mask_array = {};
 
-    if (read_arguments(in_call,
-                      &mask_array) == false)
+    if (GlArgumentReader::read_arguments(in_call,
+                                        &mask_array) == false)
     {
         m_n_unfollowed_calls++;
     }
@@ -846,8 +847,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_clear_color(co
 {
     std::array<float, 4> color_array = {};
 
-    if (read_arguments(in_call,
-                      &color_array) )
+    if (GlArgumentReader::read_arguments(in_call,
+                                        &color_array) )
     {
         inout_state_ptr->attributes.clear_color_fp32vec4 = color_array;
     }
@@ -862,8 +863,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_clear_depth(co
 {
     std::array<double, 1> depth_array = {};
 
-    if (read_arguments(in_call,
-                      &depth_array) )
+    if (GlArgumentReader::read_arguments(in_call,
+                                        &depth_array) )
     {
         inout_state_ptr->attributes.clear_depth = depth_array.at(0);
     }
@@ -878,8 +879,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_clear_stencil(
 {
     std::array<uint32_t, 1> stencil_array = {};
 
-    if (read_arguments(in_call,
-                      &stencil_array) )
+    if (GlArgumentReader::read_arguments(in_call,
+                                        &stencil_array) )
     {
         inout_state_ptr->attributes.clear_stencil = stencil_array.at(0);
     }
@@ -897,8 +898,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_copy_tex_image
 
     std::array<int32_t, 7> image_array = {};
 
-    if (read_arguments(in_call,
-                       &image_array) == false)
+    if (GlArgumentReader::read_arguments(in_call,
+                                         &image_array) == false)
     {
         m_n_unfollowed_calls++;
     }
@@ -952,8 +953,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_copy_tex_sub_i
 
     std::array<uint32_t, 8> image_array = {};
 
-    if (read_arguments(in_call,
-                       &image_array) == false)
+    if (GlArgumentReader::read_arguments(in_call,
+                                         &image_array) == false)
     {
         m_n_unfollowed_calls++;
     }
@@ -981,8 +982,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_delete_lists(c
 {
     std::array<int32_t, 2> list_array = {};
 
-    if (read_arguments(in_call,
-                       &list_array) )
+    if (GlArgumentReader::read_arguments(in_call,
+                                         &list_array) )
     {
         const int32_t first_list = list_array.at(0);
         const int32_t n_lists    = list_array.at(1);
@@ -1063,8 +1064,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_enable(const C
 
     std::array<uint32_t, 1> capability_array = {};
 
-    if (read_arguments(in_call,
-                      &capability_array) == false)
+    if (GlArgumentReader::read_arguments(in_call,
+                                        &capability_array) == false)
     {
         m_n_unfollowed_calls++;
     }
@@ -1145,8 +1146,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_generate_mipma
 
     std::array<uint32_t, 1> target_array = {};
 
-    if (read_arguments(in_call,
-                       &target_array) == false)
+    if (GlArgumentReader::read_arguments(in_call,
+                                         &target_array) == false)
     {
         m_n_unfollowed_calls++;
     }
@@ -1666,8 +1667,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_matrix_mode(co
 {
     std::array<uint32_t, 1> mode_array = {};
 
-    if (read_arguments(in_call,
-                      &mode_array) )
+    if (GlArgumentReader::read_arguments(in_call,
+                                        &mode_array) )
     {
         inout_state_ptr->attributes.matrix_mode = mode_array.at(0);
     }
@@ -1686,8 +1687,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_new_list(const
     std::array<uint32_t, 2> list_array  = {};
     bool                    is_followed = false;
 
-    if (read_arguments(in_call,
-                       &list_array) )
+    if (GlArgumentReader::read_arguments(in_call,
+                                         &list_array) )
     {
         const uint32_t mode = list_array.at(1);
 
@@ -1719,8 +1720,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_pixel_store(co
     std::array<int32_t, 2> parameter_array = {};
 
     /* The values that are not followed (the packing of what is read back, the skips) do not touch how an upload is laid out here. */
-    if (read_arguments(in_call,
-                       &parameter_array) )
+    if (GlArgumentReader::read_arguments(in_call,
+                                         &parameter_array) )
     {
         switch (static_cast<uint32_t>(parameter_array.at(0) ) )
         {
@@ -1808,8 +1809,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_push_attribute
 {
     std::array<uint32_t, 1> mask_array = {};
 
-    if (read_arguments(in_call,
-                      &mask_array) )
+    if (GlArgumentReader::read_arguments(in_call,
+                                        &mask_array) )
     {
         GlAttributeFrame frame;
 
@@ -2020,8 +2021,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_tex_image(cons
 
     std::array<uint32_t, 8> image_array = {};
 
-    if (read_arguments(in_call,
-                       &image_array) == false)
+    if (GlArgumentReader::read_arguments(in_call,
+                                         &image_array) == false)
     {
         m_n_unfollowed_calls++;
     }
@@ -2110,8 +2111,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_tex_parameter(
 
     std::array<uint32_t, 2> parameter_array = {};
 
-    if (read_arguments(in_call,
-                       &parameter_array) == false)
+    if (GlArgumentReader::read_arguments(in_call,
+                                         &parameter_array) == false)
     {
         m_n_unfollowed_calls++;
     }
@@ -2186,8 +2187,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_tex_sub_image(
 
     std::array<uint32_t, 8> image_array = {};
 
-    if (read_arguments(in_call,
-                       &image_array) == false)
+    if (GlArgumentReader::read_arguments(in_call,
+                                         &image_array) == false)
     {
         m_n_unfollowed_calls++;
     }
@@ -2482,8 +2483,8 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::read_box(const Captur
 {
     std::array<int32_t, 4> value_array = {};
 
-    const bool result = read_arguments(in_call,
-                                      &value_array);
+    const bool result = GlArgumentReader::read_arguments(in_call,
+                                                        &value_array);
 
     if (result)
     {
@@ -2559,8 +2560,8 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::read_matrix_operand(c
         {
             std::array<double, 6> box_array = {};
 
-            result = read_arguments(in_call,
-                                   &box_array);
+            result = GlArgumentReader::read_arguments(in_call,
+                                                     &box_array);
 
             if (result)
             {
@@ -2610,8 +2611,8 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::read_matrix_operand(c
         {
             std::array<double, 4> rotation_array = {};
 
-            result = read_arguments(in_call,
-                                   &rotation_array);
+            result = GlArgumentReader::read_arguments(in_call,
+                                                     &rotation_array);
 
             if (result)
             {
@@ -2631,8 +2632,8 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::read_matrix_operand(c
         {
             std::array<double, 3> vector_array = {};
 
-            result = read_arguments(in_call,
-                                   &vector_array);
+            result = GlArgumentReader::read_arguments(in_call,
+                                                     &vector_array);
 
             if (result)
             {

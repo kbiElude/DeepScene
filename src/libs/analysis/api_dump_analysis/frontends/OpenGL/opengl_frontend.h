@@ -30,8 +30,6 @@
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_context_state.h"
 #include "analysis/api_dump_analysis/frontends/shared/i_api_frontend.h"
 #include "analysis/api_dump_analysis/model_builder.h"
-#include "common/argument_reader.h"
-#include <array>
 #include <map>
 #include <memory>
 #include <stddef.h>
@@ -358,25 +356,6 @@ namespace Analysis
                 /* Puts back what the mask of a glPushAttrib asked to be saved. */
                 static void restore_attributes(const GlAttributeFrame& in_frame,
                                                GlAttributes*           inout_attributes_ptr);
-
-                /* Reads the first N arguments of the call as numbers; false if it has fewer, or one that is not a number. */
-                template<typename T, size_t N>
-                static bool read_arguments(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                           std::array<T, N>*                            out_value_array_ptr)
-                {
-                    bool result = (in_call.arg_in_vec.size() >= N);
-
-                    for (size_t n_value = 0;
-                                result   &&
-                                n_value < N;
-                              ++n_value)
-                    {
-                        result = APIInterceptor::read_number(in_call.arg_in_vec.at(n_value),
-                                                             &out_value_array_ptr->at(n_value) );
-                    }
-
-                    return result;
-                }
 
                 GlArrayDrawDescriber                                            m_array_draw_describer;
                 Analysis::APIDumpAnalysis::ModelBuilder*                        m_builder_ptr;
