@@ -39,20 +39,20 @@ Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::OpenGLFrontend(Analysis::A
     /* Stub */
 }
 
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::add_view_anchor(const GlContextState&                       in_state,
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::add_view_anchor(const GLContextState&                       in_state,
                                                                           Analysis::APIDumpAnalysis::DrawDescription* out_description_ptr) const
 {
     out_description_ptr->view_anchor_call_index = in_state.modelview_anchor_call_index_vec.back();
 }
 
-bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::copy_to_bound_texture(const GlContextState& in_state,
+bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::copy_to_bound_texture(const GLContextState& in_state,
                                                                                  const uint32_t&       in_level,
                                                                                  const uint32_t&       in_x_offset,
                                                                                  const uint32_t&       in_y_offset,
                                                                                  const uint32_t&       in_width,
                                                                                  const uint32_t&       in_height)
 {
-    const uint32_t name        = GlTextureHandler::get_bound_texture_name(in_state);
+    const uint32_t name        = GLTextureHandler::get_bound_texture_name(in_state);
     const auto*    texture_ptr = m_texture_handler.find_texture_ptr(name);
     const bool     result      = (texture_ptr != nullptr);
 
@@ -61,7 +61,7 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::copy_to_bound_texture
         ensure_default_framebuffer(in_state);
 
         /* What is copied is the color of the window, or its depth if the texture is of depth. */
-        const auto format_class = GlTextureHandler::get_format_class(texture_ptr->internal_format);
+        const auto format_class = GLTextureHandler::get_format_class(texture_ptr->internal_format);
         const auto source       = (format_class == Analysis::APIDumpAnalysis::FormatClass::COLOR) ? m_color_view
                                                                                                    : m_depth_stencil_view;
 
@@ -105,7 +105,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::count_hazard(const An
     m_n_resolution_hazard_map[in_hazard]++;
 }
 
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::ensure_default_framebuffer(const GlContextState& in_state)
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::ensure_default_framebuffer(const GLContextState& in_state)
 {
     if (m_has_default_framebuffer == false)
     {
@@ -145,9 +145,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::ensure_default_frameb
     }
 }
 
-Analysis::APIDumpAnalysis::Frontends::GlContextState* Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::find_current_context_ptr(const uint32_t& in_thread_id)
+Analysis::APIDumpAnalysis::Frontends::GLContextState* Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::find_current_context_ptr(const uint32_t& in_thread_id)
 {
-    GlContextState* result_ptr = nullptr;
+    GLContextState* result_ptr = nullptr;
 
     /* The thread that makes a call nearly always made the one before it. A state is never taken out of the map, so one that was found stays good until handle_make_current(). */
     if (m_cached_context_state_ptr != nullptr &&
@@ -173,7 +173,7 @@ Analysis::APIDumpAnalysis::Frontends::GlContextState* Analysis::APIDumpAnalysis:
 }
 
 bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::find_list_eye_dependence(const uint32_t&      in_list,
-                                                                                    GlListEyeDependence* out_dependence_ptr) const
+                                                                                    GLListEyeDependence* out_dependence_ptr) const
 {
     const auto list_iterator = m_display_list_map.find(in_list);
     const bool result        = (list_iterator != m_display_list_map.end() );
@@ -193,15 +193,15 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::find_resource_view(co
                                                 out_view_ptr);
 }
 
-const Analysis::APIDumpAnalysis::Frontends::GlBlobStore& Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_blob_store() const
+const Analysis::APIDumpAnalysis::Frontends::GLBlobStore& Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_blob_store() const
 {
     return m_array_draw_describer.get_blob_store();
 }
 
-Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_call_eye_dependence(const APIInterceptor::APIFunction&                      in_function,
+Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_call_eye_dependence(const APIInterceptor::APIFunction&                      in_function,
                                                                                                                                         const std::vector<APIInterceptor::APIFunctionArgument>& in_argument_vec) const
 {
-    GlListEyeDependence result = GlListClassifier::classify_call(in_function);
+    GLListEyeDependence result = GLListClassifier::classify_call(in_function);
 
     if (in_function == APIInterceptor::APIFUNCTION_GL_GLCALLLIST)
     {
@@ -215,7 +215,7 @@ Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence Analysis::APIDumpAnaly
         }
 
         /* A list that is not there yet when the call is kept may be anything when it is made: it is taken for the worst. */
-        result = GlListEyeDependence::EYE_DEPENDENT;
+        result = GLListEyeDependence::EYE_DEPENDENT;
 
         if (is_found)
         {
@@ -228,8 +228,8 @@ Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence Analysis::APIDumpAnaly
 }
 
 bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_current_matrices(const uint32_t& in_thread_id,
-                                                                                GlMatrix*       out_modelview_f32mat_ptr,
-                                                                                GlMatrix*       out_projection_f32mat_ptr) const
+                                                                                GLMatrix*       out_modelview_f32mat_ptr,
+                                                                                GLMatrix*       out_projection_f32mat_ptr) const
 {
     const auto thread_iterator = m_current_context_by_thread_map.find(in_thread_id);
     const auto thread_end      = m_current_context_by_thread_map.end();
@@ -237,7 +237,7 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_current_matrices(
 
     if (thread_iterator != thread_end)
     {
-        const GlContextState& state = m_context_map.at(thread_iterator->second);
+        const GLContextState& state = m_context_map.at(thread_iterator->second);
 
         *out_modelview_f32mat_ptr  = state.modelview_f32mat_vec.back();
         *out_projection_f32mat_ptr = state.projection_f32mat_vec.back();
@@ -248,12 +248,12 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_current_matrices(
     return result;
 }
 
-std::vector<Analysis::APIDumpAnalysis::Frontends::GlMatrix>* Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_current_stack_ptr(GlContextState* inout_state_ptr)
+std::vector<Analysis::APIDumpAnalysis::Frontends::GLMatrix>* Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_current_stack_ptr(GLContextState* inout_state_ptr)
 {
     constexpr uint32_t MODELVIEW  = 0x1700;
     constexpr uint32_t PROJECTION = 0x1701;
 
-    std::vector<GlMatrix>* result_ptr = nullptr;
+    std::vector<GLMatrix>* result_ptr = nullptr;
 
     switch (inout_state_ptr->attributes.matrix_mode)
     {
@@ -283,10 +283,10 @@ std::vector<Analysis::APIDumpAnalysis::Frontends::GlMatrix>* Analysis::APIDumpAn
     return result_ptr;
 }
 
-Analysis::APIDumpAnalysis::Frontends::GlContextState Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_initial_context_state()
+Analysis::APIDumpAnalysis::Frontends::GLContextState Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_initial_context_state()
 {
-    const GlMatrix identity = GlMatrixMath::get_identity();
-    GlContextState result;
+    const GLMatrix identity = GLMatrixMath::get_identity();
+    GLContextState result;
 
     result.modelview_anchor_call_index_vec.assign(1,
                                                   UINT64_MAX);
@@ -300,7 +300,7 @@ Analysis::APIDumpAnalysis::Frontends::GlContextState Analysis::APIDumpAnalysis::
     return result;
 }
 
-Analysis::APIDumpAnalysis::Viewport Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_model_viewport(const GlContextState& in_state)
+Analysis::APIDumpAnalysis::Viewport Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_model_viewport(const GLContextState& in_state)
 {
     Analysis::APIDumpAnalysis::Viewport result;
 
@@ -402,7 +402,7 @@ Analysis::APIDumpAnalysis::PrimitiveTopology Analysis::APIDumpAnalysis::Frontend
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_array_draw(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                              const Capture::APIDumpLoader::Workload&      in_workload,
                                                                              const bool&                                  in_is_indexed,
-                                                                             GlContextState*                              inout_state_ptr)
+                                                                             GLContextState*                              inout_state_ptr)
 {
     constexpr size_t MODE_ARGUMENT = 0;
 
@@ -433,7 +433,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_array_draw(con
 
         switch (result)
         {
-            case GlArrayDrawResult::DRAW:
+            case GLArrayDrawResult::DRAW:
             {
                 ensure_default_framebuffer(*inout_state_ptr);
 
@@ -448,7 +448,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_array_draw(con
                 break;
             }
 
-            case GlArrayDrawResult::EMPTY:
+            case GLArrayDrawResult::EMPTY:
             {
                 break;
             }
@@ -464,14 +464,14 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_array_draw(con
 }
 
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_begin(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                        GlContextState*                              inout_state_ptr)
+                                                                        GLContextState*                              inout_state_ptr)
 {
     std::array<uint32_t, 1> mode_array = {};
 
-    if (GlArgumentReader::read_arguments(in_call,
+    if (GLArgumentReader::read_arguments(in_call,
                                         &mode_array) )
     {
-        GlImmediateBlock& block = inout_state_ptr->immediate_block;
+        GLImmediateBlock& block = inout_state_ptr->immediate_block;
 
         /* A glBegin that comes while a block is open starts it again. */
         block.first_call_index = m_builder_ptr->get_call_index();
@@ -495,7 +495,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_bind_buffer(co
 
     std::array<uint32_t, 2> bind_array = {};
 
-    if (GlArgumentReader::read_arguments(in_call,
+    if (GLArgumentReader::read_arguments(in_call,
                                          &bind_array) == false)
     {
         m_n_unfollowed_calls++;
@@ -539,7 +539,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_call_list(cons
 
     std::array<uint32_t, 1> list_array = {};
 
-    if (GlArgumentReader::read_arguments(in_call,
+    if (GLArgumentReader::read_arguments(in_call,
                                          &list_array) == false)
     {
         m_n_unfollowed_calls++;
@@ -556,7 +556,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_call_list(cons
         else
         {
             /* The list is held on to, as a call of it may delete it. */
-            const std::shared_ptr<GlDisplayList> list_ptr = list_iterator->second;
+            const std::shared_ptr<GLDisplayList> list_ptr = list_iterator->second;
 
             /* One call is reused for the whole list, so that its room for the arguments is allocated once and not for every recorded call. */
             Capture::APIDumpLoader::DumpedAPICall call;
@@ -581,7 +581,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_call_list(cons
 }
 
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_clear(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                        GlContextState*                              inout_state_ptr)
+                                                                        GLContextState*                              inout_state_ptr)
 {
     constexpr uint32_t COLOR_BUFFER_BIT   = 0x4000;
     constexpr uint32_t DEPTH_BUFFER_BIT   = 0x0100;
@@ -589,7 +589,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_clear(const Ca
 
     std::array<uint32_t, 1> mask_array = {};
 
-    if (GlArgumentReader::read_arguments(in_call,
+    if (GLArgumentReader::read_arguments(in_call,
                                         &mask_array) == false)
     {
         m_n_unfollowed_calls++;
@@ -598,7 +598,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_clear(const Ca
     {
         ensure_default_framebuffer(*inout_state_ptr);
 
-        const GlBox& box = inout_state_ptr->attributes.scissor_box;
+        const GLBox& box = inout_state_ptr->attributes.scissor_box;
 
         /* With the scissor test on, a clear reaches the box and no more, unless the box is the whole framebuffer. */
         const bool is_box_whole = (box.x      == 0                                         &&
@@ -628,11 +628,11 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_clear(const Ca
 }
 
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_clear_color(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                              GlContextState*                              inout_state_ptr)
+                                                                              GLContextState*                              inout_state_ptr)
 {
     std::array<float, 4> color_array = {};
 
-    if (GlArgumentReader::read_arguments(in_call,
+    if (GLArgumentReader::read_arguments(in_call,
                                         &color_array) )
     {
         inout_state_ptr->attributes.clear_color_fp32vec4 = color_array;
@@ -644,11 +644,11 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_clear_color(co
 }
 
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_clear_depth(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                              GlContextState*                              inout_state_ptr)
+                                                                              GLContextState*                              inout_state_ptr)
 {
     std::array<double, 1> depth_array = {};
 
-    if (GlArgumentReader::read_arguments(in_call,
+    if (GLArgumentReader::read_arguments(in_call,
                                         &depth_array) )
     {
         inout_state_ptr->attributes.clear_depth = depth_array.at(0);
@@ -660,11 +660,11 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_clear_depth(co
 }
 
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_clear_stencil(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                GlContextState*                              inout_state_ptr)
+                                                                                GLContextState*                              inout_state_ptr)
 {
     std::array<uint32_t, 1> stencil_array = {};
 
-    if (GlArgumentReader::read_arguments(in_call,
+    if (GLArgumentReader::read_arguments(in_call,
                                         &stencil_array) )
     {
         inout_state_ptr->attributes.clear_stencil = stencil_array.at(0);
@@ -676,14 +676,14 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_clear_stencil(
 }
 
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_copy_tex_image(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                 GlContextState*                              inout_state_ptr)
+                                                                                 GLContextState*                              inout_state_ptr)
 {
     /* glCopyTexImage2D(target, level, internalformat, x, y, width, height, border). */
     constexpr uint32_t TEXTURE_2D = 0x0DE1;
 
     std::array<int32_t, 7> image_array = {};
 
-    if (GlArgumentReader::read_arguments(in_call,
+    if (GLArgumentReader::read_arguments(in_call,
                                          &image_array) == false)
     {
         m_n_unfollowed_calls++;
@@ -699,7 +699,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_copy_tex_image
     {
         const uint32_t level = static_cast<uint32_t>(image_array.at(1) );
 
-        GlTextureLevel texture_level;
+        GLTextureLevel texture_level;
 
         texture_level.height          = static_cast<uint32_t>(image_array.at(6) );
         texture_level.internal_format = static_cast<uint32_t>(image_array.at(2) );
@@ -731,14 +731,14 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_copy_tex_image
 }
 
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_copy_tex_sub_image(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                     GlContextState*                              inout_state_ptr)
+                                                                                     GLContextState*                              inout_state_ptr)
 {
     /* glCopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height). */
     constexpr uint32_t TEXTURE_2D = 0x0DE1;
 
     std::array<uint32_t, 8> image_array = {};
 
-    if (GlArgumentReader::read_arguments(in_call,
+    if (GLArgumentReader::read_arguments(in_call,
                                          &image_array) == false)
     {
         m_n_unfollowed_calls++;
@@ -767,7 +767,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_delete_lists(c
 {
     std::array<int32_t, 2> list_array = {};
 
-    if (GlArgumentReader::read_arguments(in_call,
+    if (GLArgumentReader::read_arguments(in_call,
                                          &list_array) )
     {
         const int32_t first_list = list_array.at(0);
@@ -788,13 +788,13 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_delete_lists(c
 
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_enable(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                          const bool&                                  in_is_enabled,
-                                                                         GlContextState*                              inout_state_ptr)
+                                                                         GLContextState*                              inout_state_ptr)
 {
     constexpr uint32_t SCISSOR_TEST = 0x0C11;
 
     std::array<uint32_t, 1> capability_array = {};
 
-    if (GlArgumentReader::read_arguments(in_call,
+    if (GLArgumentReader::read_arguments(in_call,
                                         &capability_array) == false)
     {
         m_n_unfollowed_calls++;
@@ -805,7 +805,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_enable(const C
         inout_state_ptr->attributes.is_scissor_enabled = in_is_enabled;
     }
     else
-    if (GlPipelineState::is_unit_capability(capability_array.at(0) ) )
+    if (GLPipelineState::is_unit_capability(capability_array.at(0) ) )
     {
         inout_state_ptr->pipeline_state.set_unit_capability(inout_state_ptr->attributes.active_texture_unit,
                                                             capability_array.at(0),
@@ -818,9 +818,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_enable(const C
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_end(GlContextState* inout_state_ptr)
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_end(GLContextState* inout_state_ptr)
 {
-    GlImmediateBlock& block = inout_state_ptr->immediate_block;
+    GLImmediateBlock& block = inout_state_ptr->immediate_block;
 
     /* The vertices of a block are one draw; a glEnd with no glBegin, or a block with no vertices, is none. */
     if (block.is_open &&
@@ -844,7 +844,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_end(GlContextS
 
         if (block.wants_positions)
         {
-            description.geometry_ptr = GlGeometrySampler::make_sample(block.position_vec);
+            description.geometry_ptr = GLGeometrySampler::make_sample(block.position_vec);
         }
 
         m_builder_ptr->on_draw(description);
@@ -853,15 +853,15 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_end(GlContextS
     block.is_open = false;
 }
 
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_end_list(GlContextState* inout_state_ptr)
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_end_list(GLContextState* inout_state_ptr)
 {
-    GlListRecording& recording = inout_state_ptr->list_recording;
+    GLListRecording& recording = inout_state_ptr->list_recording;
 
     if (recording.list_ptr != nullptr)
     {
         m_display_list_map[recording.list_number] = recording.list_ptr;
 
-        recording = GlListRecording();
+        recording = GLListRecording();
     }
     else
     {
@@ -872,7 +872,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_end_list(GlCon
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                           const Capture::APIDumpLoader::Workload&      in_workload)
 {
-    GlContextState* state_ptr = find_current_context_ptr(in_call.thread_id);
+    GLContextState* state_ptr = find_current_context_ptr(in_call.thread_id);
 
     /* A call made by a thread which has no context current does nothing. */
     if (state_ptr == nullptr)
@@ -1215,9 +1215,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
 
                 default:
                 {
-                    GlVertexLayout vertex_layout;
+                    GLVertexLayout vertex_layout;
 
-                    const bool is_vertex = GlVertexReader::find_layout(in_call.func,
+                    const bool is_vertex = GLVertexReader::find_layout(in_call.func,
                                                                        &vertex_layout);
 
                     if (is_vertex)
@@ -1227,7 +1227,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
                                       state_ptr);
                     }
                     else
-                    if (GlTextureHandler::is_unsupported_texture_function(in_call.func) )
+                    if (GLTextureHandler::is_unsupported_texture_function(in_call.func) )
                     {
                         report_unsupported_use(in_call.func,
                                                "a texture is made or changed in a way that is not followed (the function)",
@@ -1244,7 +1244,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
                                                static_cast<uint64_t>(in_call.func) );
                     }
                     else
-                    if (GlFunctionPolicy::changes_what_a_draw_writes(in_call.func) )
+                    if (GLFunctionPolicy::changes_what_a_draw_writes(in_call.func) )
                     {
                         /* Not followed: a frame that has only a draw that this decides could be taken for one that writes nothing, and a seek would leave it out.
                          * It is said, and not passed over.
@@ -1254,8 +1254,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
                                                static_cast<uint64_t>(in_call.func) );
                     }
                     else
-                    if (GlFunctionPolicy::is_left_out_by_design(in_call.func) == false &&
-                        GlFunctionPolicy::bakes_current_matrix (in_call.func) == false)
+                    if (GLFunctionPolicy::is_left_out_by_design(in_call.func) == false &&
+                        GLFunctionPolicy::bakes_current_matrix (in_call.func) == false)
                     {
                         /* Not followed, and not known to be of no matter: a call that the front end has never been told about is not passed over without saying so (a
                          * shader, a buffer, an evaluator, the selection, an accumulation buffer, a rectangle, what changes how pixels are converted, and so on).
@@ -1319,14 +1319,14 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_make_current(c
 
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_matrix(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                          const Capture::APIDumpLoader::Workload&      in_workload,
-                                                                         GlContextState*                              inout_state_ptr)
+                                                                         GLContextState*                              inout_state_ptr)
 {
     const bool is_identity = (in_call.func == APIInterceptor::APIFUNCTION_GL_GLLOADIDENTITY);
     const bool is_load     = (is_identity                                                       ||
                               in_call.func == APIInterceptor::APIFUNCTION_GL_GLLOADMATRIXD      ||
                               in_call.func == APIInterceptor::APIFUNCTION_GL_GLLOADMATRIXF);
     bool       has_operand = true;
-    GlMatrix   operand     = GlMatrixMath::get_identity();
+    GLMatrix   operand     = GLMatrixMath::get_identity();
 
     if (is_identity == false)
     {
@@ -1341,8 +1341,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_matrix(const C
     }
     else
     {
-        std::vector<GlMatrix>* stack_ptr = get_current_stack_ptr(inout_state_ptr);
-        const GlMatrix         current   = stack_ptr->back();
+        std::vector<GLMatrix>* stack_ptr = get_current_stack_ptr(inout_state_ptr);
+        const GLMatrix         current   = stack_ptr->back();
 
         if (is_load)
         {
@@ -1350,7 +1350,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_matrix(const C
         }
         else
         {
-            stack_ptr->back() = GlMatrixMath::multiply(current,
+            stack_ptr->back() = GLMatrixMath::multiply(current,
                                                        operand);
         }
 
@@ -1368,11 +1368,11 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_matrix(const C
 }
 
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_matrix_mode(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                              GlContextState*                              inout_state_ptr)
+                                                                              GLContextState*                              inout_state_ptr)
 {
     std::array<uint32_t, 1> mode_array = {};
 
-    if (GlArgumentReader::read_arguments(in_call,
+    if (GLArgumentReader::read_arguments(in_call,
                                         &mode_array) )
     {
         inout_state_ptr->attributes.matrix_mode = mode_array.at(0);
@@ -1384,7 +1384,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_matrix_mode(co
 }
 
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_new_list(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                           GlContextState*                              inout_state_ptr)
+                                                                           GLContextState*                              inout_state_ptr)
 {
     constexpr uint32_t COMPILE             = 0x1300;
     constexpr uint32_t COMPILE_AND_EXECUTE = 0x1301;
@@ -1392,7 +1392,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_new_list(const
     std::array<uint32_t, 2> list_array  = {};
     bool                    is_followed = false;
 
-    if (GlArgumentReader::read_arguments(in_call,
+    if (GLArgumentReader::read_arguments(in_call,
                                          &list_array) )
     {
         const uint32_t mode = list_array.at(1);
@@ -1401,11 +1401,11 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_new_list(const
         if (mode == COMPILE ||
             mode == COMPILE_AND_EXECUTE)
         {
-            GlListRecording& recording = inout_state_ptr->list_recording;
+            GLListRecording& recording = inout_state_ptr->list_recording;
 
             recording.is_executing = (mode == COMPILE_AND_EXECUTE);
             recording.list_number  = list_array.at(0);
-            recording.list_ptr     = std::make_shared<GlDisplayList>();
+            recording.list_ptr     = std::make_shared<GLDisplayList>();
             is_followed            = true;
         }
     }
@@ -1416,7 +1416,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_new_list(const
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_pop_attributes(GlContextState* inout_state_ptr)
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_pop_attributes(GLContextState* inout_state_ptr)
 {
     if (inout_state_ptr->attribute_frame_vec.empty() )
     {
@@ -1424,8 +1424,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_pop_attributes
     }
     else
     {
-        const GlAttributeFrame frame        = inout_state_ptr->attribute_frame_vec.back();
-        const GlBox            old_viewport = inout_state_ptr->attributes.viewport;
+        const GLAttributeFrame frame        = inout_state_ptr->attribute_frame_vec.back();
+        const GLBox            old_viewport = inout_state_ptr->attributes.viewport;
 
         inout_state_ptr->attribute_frame_vec.pop_back();
 
@@ -1447,9 +1447,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_pop_attributes
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_pop_matrix(GlContextState* inout_state_ptr)
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_pop_matrix(GLContextState* inout_state_ptr)
 {
-    std::vector<GlMatrix>* stack_ptr = get_current_stack_ptr(inout_state_ptr);
+    std::vector<GLMatrix>* stack_ptr = get_current_stack_ptr(inout_state_ptr);
 
     /* A stack is never empty: the matrix at its bottom is the one that the context starts with. */
     if (stack_ptr->size() <= 1)
@@ -1470,14 +1470,14 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_pop_matrix(GlC
 }
 
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_push_attributes(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                  GlContextState*                              inout_state_ptr)
+                                                                                  GLContextState*                              inout_state_ptr)
 {
     std::array<uint32_t, 1> mask_array = {};
 
-    if (GlArgumentReader::read_arguments(in_call,
+    if (GLArgumentReader::read_arguments(in_call,
                                         &mask_array) )
     {
-        GlAttributeFrame frame;
+        GLAttributeFrame frame;
 
         frame.attributes     = inout_state_ptr->attributes;
         frame.mask           = mask_array.at(0);
@@ -1491,10 +1491,10 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_push_attribute
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_push_matrix(GlContextState* inout_state_ptr)
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_push_matrix(GLContextState* inout_state_ptr)
 {
-    std::vector<GlMatrix>* stack_ptr = get_current_stack_ptr(inout_state_ptr);
-    const GlMatrix         current   = stack_ptr->back();
+    std::vector<GLMatrix>* stack_ptr = get_current_stack_ptr(inout_state_ptr);
+    const GLMatrix         current   = stack_ptr->back();
 
     stack_ptr->push_back(current);
 
@@ -1505,9 +1505,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_push_matrix(Gl
 }
 
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_scissor(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                          GlContextState*                              inout_state_ptr)
+                                                                          GLContextState*                              inout_state_ptr)
 {
-    GlBox box;
+    GLBox box;
 
     if (read_box(in_call,
                 &box) )
@@ -1523,14 +1523,14 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_scissor(const 
 }
 
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_state_value(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                              GlContextState*                              inout_state_ptr)
+                                                                              GLContextState*                              inout_state_ptr)
 {
     constexpr uint32_t BACK           = 0x0405;
     constexpr uint32_t FRONT          = 0x0404;
     constexpr uint32_t FRONT_AND_BACK = 0x0408;
 
     std::array<uint32_t, 4> argument_array = {};
-    GlPipelineState*        pipeline_ptr   = &inout_state_ptr->pipeline_state;
+    GLPipelineState*        pipeline_ptr   = &inout_state_ptr->pipeline_state;
     size_t                  n_arguments    = 1;
 
     /* The functions that have more than one argument. */
@@ -1579,7 +1579,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_state_value(co
         {
             case APIInterceptor::APIFUNCTION_GL_GLALPHAFUNC:
             {
-                pipeline_ptr->set_value(GlStateValue::ALPHA_FUNC,
+                pipeline_ptr->set_value(GLStateValue::ALPHA_FUNC,
                                         argument_array.at(0) );
 
                 break;
@@ -1587,9 +1587,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_state_value(co
 
             case APIInterceptor::APIFUNCTION_GL_GLBLENDFUNC:
             {
-                pipeline_ptr->set_value(GlStateValue::BLEND_SOURCE,
+                pipeline_ptr->set_value(GLStateValue::BLEND_SOURCE,
                                         argument_array.at(0) );
-                pipeline_ptr->set_value(GlStateValue::BLEND_DESTINATION,
+                pipeline_ptr->set_value(GLStateValue::BLEND_DESTINATION,
                                         argument_array.at(1) );
 
                 break;
@@ -1608,7 +1608,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_state_value(co
                                       ( (argument_array.at(2) != 0) ? BLUE_BIT  : 0) |
                                       ( (argument_array.at(3) != 0) ? ALPHA_BIT : 0);
 
-                pipeline_ptr->set_value(GlStateValue::COLOR_MASK,
+                pipeline_ptr->set_value(GLStateValue::COLOR_MASK,
                                         mask);
 
                 break;
@@ -1616,7 +1616,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_state_value(co
 
             case APIInterceptor::APIFUNCTION_GL_GLCULLFACE:
             {
-                pipeline_ptr->set_value(GlStateValue::CULL_FACE,
+                pipeline_ptr->set_value(GLStateValue::CULL_FACE,
                                         argument_array.at(0) );
 
                 break;
@@ -1624,7 +1624,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_state_value(co
 
             case APIInterceptor::APIFUNCTION_GL_GLDEPTHFUNC:
             {
-                pipeline_ptr->set_value(GlStateValue::DEPTH_FUNC,
+                pipeline_ptr->set_value(GLStateValue::DEPTH_FUNC,
                                         argument_array.at(0) );
 
                 break;
@@ -1632,7 +1632,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_state_value(co
 
             case APIInterceptor::APIFUNCTION_GL_GLDEPTHMASK:
             {
-                pipeline_ptr->set_value(GlStateValue::DEPTH_MASK,
+                pipeline_ptr->set_value(GLStateValue::DEPTH_MASK,
                                         argument_array.at(0) );
 
                 break;
@@ -1647,13 +1647,13 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_state_value(co
 
                 if (is_back)
                 {
-                    pipeline_ptr->set_value(GlStateValue::POLYGON_MODE_BACK,
+                    pipeline_ptr->set_value(GLStateValue::POLYGON_MODE_BACK,
                                             argument_array.at(1) );
                 }
 
                 if (is_front)
                 {
-                    pipeline_ptr->set_value(GlStateValue::POLYGON_MODE_FRONT,
+                    pipeline_ptr->set_value(GLStateValue::POLYGON_MODE_FRONT,
                                             argument_array.at(1) );
                 }
 
@@ -1662,7 +1662,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_state_value(co
 
             case APIInterceptor::APIFUNCTION_GL_GLSHADEMODEL:
             {
-                pipeline_ptr->set_value(GlStateValue::SHADE_MODEL,
+                pipeline_ptr->set_value(GLStateValue::SHADE_MODEL,
                                         argument_array.at(0) );
 
                 break;
@@ -1678,9 +1678,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_state_value(co
 
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_vertex(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                          const Capture::APIDumpLoader::Workload&      in_workload,
-                                                                         GlContextState*                              inout_state_ptr)
+                                                                         GLContextState*                              inout_state_ptr)
 {
-    GlImmediateBlock& block = inout_state_ptr->immediate_block;
+    GLImmediateBlock& block = inout_state_ptr->immediate_block;
 
     /* A vertex that comes with no block open is one that OpenGL does not use. */
     if (block.is_open)
@@ -1691,7 +1691,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_vertex(const C
         {
             std::array<float, 3> position = {};
 
-            if (GlVertexReader::read_position(in_call,
+            if (GLVertexReader::read_position(in_call,
                                               in_workload,
                                               &position) )
             {
@@ -1706,9 +1706,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_vertex(const C
 }
 
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_viewport(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                           GlContextState*                              inout_state_ptr)
+                                                                           GLContextState*                              inout_state_ptr)
 {
-    GlBox box;
+    GLBox box;
 
     if (read_box(in_call,
                 &box) == false)
@@ -1727,8 +1727,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_viewport(const
     }
 }
 
-bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::is_same_box(const GlBox& in_first,
-                                                                       const GlBox& in_second)
+bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::is_same_box(const GLBox& in_first,
+                                                                       const GLBox& in_second)
 {
     return (in_first.height == in_second.height &&
             in_first.width  == in_second.width  &&
@@ -1789,11 +1789,11 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::on_call(const Capture
 }
 
 bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::read_box(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                    GlBox*                                       out_box_ptr)
+                                                                    GLBox*                                       out_box_ptr)
 {
     std::array<int32_t, 4> value_array = {};
 
-    const bool result = GlArgumentReader::read_arguments(in_call,
+    const bool result = GLArgumentReader::read_arguments(in_call,
                                                         &value_array);
 
     if (result)
@@ -1810,7 +1810,7 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::read_box(const Captur
 bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::read_matrix_chunk(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                              const Capture::APIDumpLoader::Workload&      in_workload,
                                                                              const bool&                                  in_is_double,
-                                                                             GlMatrix*                                    out_matrix_f32mat_ptr)
+                                                                             GLMatrix*                                    out_matrix_f32mat_ptr)
 {
     constexpr size_t MATRIX_ARGUMENT = 0;
 
@@ -1825,11 +1825,11 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::read_matrix_chunk(con
         const size_t n_bytes = chunk_ptr->size();
 
         if (in_is_double == false &&
-            n_bytes      == sizeof(GlMatrix) )
+            n_bytes      == sizeof(GLMatrix) )
         {
             ::memcpy(out_matrix_f32mat_ptr->data(),
                      chunk_ptr->data(),
-                     sizeof(GlMatrix) );
+                     sizeof(GLMatrix) );
 
             result = true;
         }
@@ -1859,7 +1859,7 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::read_matrix_chunk(con
 
 bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::read_matrix_operand(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                                const Capture::APIDumpLoader::Workload&      in_workload,
-                                                                               GlMatrix*                                    out_matrix_f32mat_ptr)
+                                                                               GLMatrix*                                    out_matrix_f32mat_ptr)
 {
     bool result = false;
 
@@ -1870,20 +1870,20 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::read_matrix_operand(c
         {
             std::array<double, 6> box_array = {};
 
-            result = GlArgumentReader::read_arguments(in_call,
+            result = GLArgumentReader::read_arguments(in_call,
                                                      &box_array);
 
             if (result)
             {
                 const bool is_frustum = (in_call.func == APIInterceptor::APIFUNCTION_GL_GLFRUSTUM);
 
-                *out_matrix_f32mat_ptr = (is_frustum) ? GlMatrixMath::get_frustum(box_array.at(0),
+                *out_matrix_f32mat_ptr = (is_frustum) ? GLMatrixMath::get_frustum(box_array.at(0),
                                                                                   box_array.at(1),
                                                                                   box_array.at(2),
                                                                                   box_array.at(3),
                                                                                   box_array.at(4),
                                                                                   box_array.at(5) )
-                                                      : GlMatrixMath::get_ortho  (box_array.at(0),
+                                                      : GLMatrixMath::get_ortho  (box_array.at(0),
                                                                                   box_array.at(1),
                                                                                   box_array.at(2),
                                                                                   box_array.at(3),
@@ -1921,12 +1921,12 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::read_matrix_operand(c
         {
             std::array<double, 4> rotation_array = {};
 
-            result = GlArgumentReader::read_arguments(in_call,
+            result = GLArgumentReader::read_arguments(in_call,
                                                      &rotation_array);
 
             if (result)
             {
-                *out_matrix_f32mat_ptr = GlMatrixMath::get_rotation(rotation_array.at(0),
+                *out_matrix_f32mat_ptr = GLMatrixMath::get_rotation(rotation_array.at(0),
                                                                     rotation_array.at(1),
                                                                     rotation_array.at(2),
                                                                     rotation_array.at(3) );
@@ -1942,7 +1942,7 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::read_matrix_operand(c
         {
             std::array<double, 3> vector_array = {};
 
-            result = GlArgumentReader::read_arguments(in_call,
+            result = GLArgumentReader::read_arguments(in_call,
                                                      &vector_array);
 
             if (result)
@@ -1950,10 +1950,10 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::read_matrix_operand(c
                 const bool is_scale = (in_call.func == APIInterceptor::APIFUNCTION_GL_GLSCALED ||
                                        in_call.func == APIInterceptor::APIFUNCTION_GL_GLSCALEF);
 
-                *out_matrix_f32mat_ptr = (is_scale) ? GlMatrixMath::get_scale      (vector_array.at(0),
+                *out_matrix_f32mat_ptr = (is_scale) ? GLMatrixMath::get_scale      (vector_array.at(0),
                                                                                     vector_array.at(1),
                                                                                     vector_array.at(2) )
-                                                    : GlMatrixMath::get_translation(vector_array.at(0),
+                                                    : GLMatrixMath::get_translation(vector_array.at(0),
                                                                                     vector_array.at(1),
                                                                                     vector_array.at(2) );
             }
@@ -1972,10 +1972,10 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::read_matrix_operand(c
 
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::record_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                        const Capture::APIDumpLoader::Workload&      in_workload,
-                                                                       GlContextState*                              inout_state_ptr)
+                                                                       GLContextState*                              inout_state_ptr)
 {
-    GlDisplayList* list_ptr = inout_state_ptr->list_recording.list_ptr.get();
-    GlRecordedCall recorded_call;
+    GLDisplayList* list_ptr = inout_state_ptr->list_recording.list_ptr.get();
+    GLRecordedCall recorded_call;
 
     recorded_call.arg_in_vec = in_call.arg_in_vec;
     recorded_call.func       = in_call.func;
@@ -2004,19 +2004,19 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::record_call(const Cap
         }
     }
 
-    const GlListEyeDependence call_dependence = get_call_eye_dependence(recorded_call.func,
+    const GLListEyeDependence call_dependence = get_call_eye_dependence(recorded_call.func,
                                                                         recorded_call.arg_in_vec);
 
-    list_ptr->eye_dependence = GlListClassifier::combine(list_ptr->eye_dependence,
+    list_ptr->eye_dependence = GLListClassifier::combine(list_ptr->eye_dependence,
                                                          call_dependence);
 
     list_ptr->call_vec.push_back(std::move(recorded_call) );
 }
 
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_matrices(const GlContextState& in_state)
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_matrices(const GLContextState& in_state)
 {
-    const GlMatrix& modelview  = in_state.modelview_f32mat_vec.back();
-    const GlMatrix& projection = in_state.projection_f32mat_vec.back();
+    const GLMatrix& modelview  = in_state.modelview_f32mat_vec.back();
+    const GLMatrix& projection = in_state.projection_f32mat_vec.back();
 
     report_matrix(modelview,
                   Analysis::APIDumpAnalysis::ConstantSemantic::MODEL_VIEW_MATRIX,
@@ -2024,14 +2024,14 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_matrices(const
                   &m_reported_modelview);
     report_matrix(projection,
                   Analysis::APIDumpAnalysis::ConstantSemantic::PROJECTION_MATRIX,
-                  sizeof(GlMatrix),
+                  sizeof(GLMatrix),
                   &m_reported_projection);
 }
 
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_matrix(const GlMatrix&                                    in_matrix_f32mat,
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_matrix(const GLMatrix&                                    in_matrix_f32mat,
                                                                          const Analysis::APIDumpAnalysis::ConstantSemantic& in_semantic,
                                                                          const uint64_t&                                    in_byte_offset,
-                                                                         GlReportedMatrix*                                  inout_reported_ptr)
+                                                                         GLReportedMatrix*                                  inout_reported_ptr)
 {
     const bool is_changed = (inout_reported_ptr->has_value     == false ||
                              inout_reported_ptr->matrix_f32mat != in_matrix_f32mat);
@@ -2043,15 +2043,15 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_matrix(const G
         /* The state of the fixed-function pipeline has no memory the application can see: the front end says where the matrices are in it. */
         update.location.block_kind  = Analysis::APIDumpAnalysis::ConstantBlockKind::FIXED_FUNCTION_STATE;
         update.location.byte_offset = in_byte_offset;
-        update.location.byte_size   = sizeof(GlMatrix);
+        update.location.byte_size   = sizeof(GLMatrix);
         update.provenance           = Analysis::APIDumpAnalysis::ConstantProvenance::API_DEFINED;
         update.semantic             = in_semantic;
 
-        update.value_u8_vec.resize(sizeof(GlMatrix) );
+        update.value_u8_vec.resize(sizeof(GLMatrix) );
 
         ::memcpy(update.value_u8_vec.data(),
                  in_matrix_f32mat.data(),
-                 sizeof(GlMatrix) );
+                 sizeof(GLMatrix) );
 
         m_builder_ptr->on_update_constant(update);
 
@@ -2069,8 +2069,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_unsupported_us
                                       in_value);
 }
 
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::restore_attributes(const GlAttributeFrame& in_frame,
-                                                                              GlAttributes*           inout_attributes_ptr)
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::restore_attributes(const GLAttributeFrame& in_frame,
+                                                                              GLAttributes*           inout_attributes_ptr)
 {
     constexpr uint32_t COLOR_BUFFER_BIT   = 0x00004000;
     constexpr uint32_t DEPTH_BUFFER_BIT   = 0x00000100;
@@ -2081,7 +2081,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::restore_attributes(co
     constexpr uint32_t TRANSFORM_BIT      = 0x00001000;
     constexpr uint32_t VIEWPORT_BIT       = 0x00000800;
 
-    const GlAttributes& saved = in_frame.attributes;
+    const GLAttributes& saved = in_frame.attributes;
 
     if ( (in_frame.mask & COLOR_BUFFER_BIT) != 0)
     {

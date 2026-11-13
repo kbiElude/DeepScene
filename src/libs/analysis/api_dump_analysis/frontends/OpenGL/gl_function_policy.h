@@ -17,13 +17,13 @@ namespace Analysis
     {
         namespace Frontends
         {
-            class GlFunctionPolicy
+            class GLFunctionPolicy
             {
             public:
                 /* True for the functions that the front end does not follow, that are not of no matter, and that it lets through: what they do is made relative to the
                  * model-view matrix of the moment of the call (a position or a direction of a light, a clip plane, the planes of the generation of texture
                  * coordinates, the raster position). A replay of a frame for the other eye makes them again with the matrix of that eye, and a list that has one is
-                 * relative to the matrix (see GlListClassifier). Not in is_left_out_by_design().
+                 * relative to the matrix (see GLListClassifier). Not in is_left_out_by_design().
                  */
                 static bool bakes_current_matrix(const APIInterceptor::APIFunction& in_function);
 

@@ -100,7 +100,7 @@ namespace Stereo
                                  void* in_back_buffer_ptr);
 
             /* The images of the eyes of a frame of an OpenGL application are passed on to the program which shows the images. */
-            void pass_gl_frame(const GlFrameImages& in_images);
+            void pass_gl_frame(const GLFrameImages& in_images);
 
             /* The program which shows the images says how far apart the eyes are, how strong the 3D is and where the eyes converge, and can
              * say it again while the application plays.
@@ -124,7 +124,7 @@ namespace Stereo
             struct LiveState
             {
                 std::unique_ptr<Stereo::Core::StereoCore> core_ptr;
-                std::unique_ptr<GlEyeRenderer>            gl_renderer_ptr;
+                std::unique_ptr<GLEyeRenderer>            gl_renderer_ptr;
                 std::unique_ptr<D3D7EyeRenderer>          d3d7_renderer_ptr;
                 std::atomic<int64_t>                      n_callback_ticks = {0}; /* spent in the callbacks, in the ticks of the performance counter: of one call in so many that is timed, times that many */
                 std::atomic<int64_t>                      n_draw_ticks     = {0}; /* of those, in the draws of Direct3D 7                              */
@@ -143,7 +143,7 @@ namespace Stereo
                 Utils::Parallel::SrwMutex                 mutex;
                 Stereo::Core::DepthRange                  last_depth_range;              /* what was last measured of how deep a frame was */
                 float                                     last_projection_scale = 0.0f;
-                GlFrameImages                             last_gl_images;                 /* of the last frame of OpenGL that was read; valid until the next one */
+                GLFrameImages                             last_gl_images;                 /* of the last frame of OpenGL that was read; valid until the next one */
                 bool                                      has_last_gl_images    = false;
                 int64_t                                   last_frame_qpc     = 0;      /* when the frame before was completed, in the ticks of the performance counter; 0: none yet */
                 uint64_t                                  n_affected_draws   = 0;

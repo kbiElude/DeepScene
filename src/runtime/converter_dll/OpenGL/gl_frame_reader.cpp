@@ -13,13 +13,13 @@ namespace
     constexpr GLenum STREAM_READ       = 0x88E1;
 }
 
-Stereo::ConverterDLL::GlFrameReader::GlFrameReader()
+Stereo::ConverterDLL::GLFrameReader::GLFrameReader()
     :m_n_reads(0)
 {
     /* Stub */
 }
 
-void Stereo::ConverterDLL::GlFrameReader::finish_set(const GlEyeTargets& in_targets,
+void Stereo::ConverterDLL::GLFrameReader::finish_set(const GLEyeTargets& in_targets,
                                                      Set*                inout_set_ptr)
 {
     const auto& functions = in_targets.get_functions();
@@ -48,8 +48,8 @@ void Stereo::ConverterDLL::GlFrameReader::finish_set(const GlEyeTargets& in_targ
     }
 }
 
-bool Stereo::ConverterDLL::GlFrameReader::read(GlEyeTargets*  inout_targets_ptr,
-                                               GlFrameImages* out_images_ptr)
+bool Stereo::ConverterDLL::GLFrameReader::read(GLEyeTargets*  inout_targets_ptr,
+                                               GLFrameImages* out_images_ptr)
 {
     const OwnCallScope own_call_scope;
     const auto&        functions   = inout_targets_ptr->get_functions();
@@ -191,7 +191,7 @@ end:
     return result;
 }
 
-void Stereo::ConverterDLL::GlFrameReader::release_set(const GlEyeTargets& in_targets,
+void Stereo::ConverterDLL::GLFrameReader::release_set(const GLEyeTargets& in_targets,
                                                       Set*                inout_set_ptr)
 {
     const auto& functions = in_targets.get_functions();

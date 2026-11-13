@@ -102,7 +102,7 @@ namespace
     };
 }
 
-uint32_t Analysis::APIDumpAnalysis::Frontends::GlTextureFormatMapper::get_n_bytes_per_texel(const uint32_t& in_format,
+uint32_t Analysis::APIDumpAnalysis::Frontends::GLTextureFormatMapper::get_n_bytes_per_texel(const uint32_t& in_format,
                                                                                             const uint32_t& in_type)
 {
     uint32_t n_components = 0;
@@ -129,7 +129,7 @@ uint32_t Analysis::APIDumpAnalysis::Frontends::GlTextureFormatMapper::get_n_byte
     return result;
 }
 
-Utils::Graphics::TextureFormat Analysis::APIDumpAnalysis::Frontends::GlTextureFormatMapper::get_texture_format(const uint32_t& in_internal_format)
+Utils::Graphics::TextureFormat Analysis::APIDumpAnalysis::Frontends::GLTextureFormatMapper::get_texture_format(const uint32_t& in_internal_format)
 {
     Format result = Format::UNKNOWN;
 
@@ -144,7 +144,7 @@ Utils::Graphics::TextureFormat Analysis::APIDumpAnalysis::Frontends::GlTextureFo
     return result;
 }
 
-uint32_t Analysis::APIDumpAnalysis::Frontends::GlTextureFormatMapper::get_unpack_row_pitch(const uint32_t& in_width,
+uint32_t Analysis::APIDumpAnalysis::Frontends::GLTextureFormatMapper::get_unpack_row_pitch(const uint32_t& in_width,
                                                                                            const uint32_t& in_n_bytes_per_texel,
                                                                                            const uint32_t& in_row_length,
                                                                                            const uint32_t& in_alignment)

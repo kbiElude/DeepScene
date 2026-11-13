@@ -161,7 +161,7 @@ namespace
     }
 }
 
-uint32_t Stereo::Replay::EngineDLL::GlAttributeCoverage::get_attribute_bits(const APIInterceptor::APIFunction& in_function)
+uint32_t Stereo::Replay::EngineDLL::GLAttributeCoverage::get_attribute_bits(const APIInterceptor::APIFunction& in_function)
 {
     /* Made once, from the names, when the first call is asked about; the reader threads ask at the same time. */
     static const std::vector<uint32_t> bits_vec = []()
@@ -195,7 +195,7 @@ uint32_t Stereo::Replay::EngineDLL::GlAttributeCoverage::get_attribute_bits(cons
     return result;
 }
 
-bool Stereo::Replay::EngineDLL::GlAttributeCoverage::is_undone_by_pop(const uint32_t&                    in_mask,
+bool Stereo::Replay::EngineDLL::GLAttributeCoverage::is_undone_by_pop(const uint32_t&                    in_mask,
                                                                       const APIInterceptor::APIFunction& in_function)
 {
     const uint32_t bits = get_attribute_bits(in_function);

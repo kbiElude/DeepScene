@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Tests for GlTextureFormatMapper: what OpenGL calls the texels of a texture is a named format of the project, and the bytes of an upload have the size that its
+ * Tests for GLTextureFormatMapper: what OpenGL calls the texels of a texture is a named format of the project, and the bytes of an upload have the size that its
  * format and type, and the pixel store, say.
  */
 #include <gtest/gtest.h>
@@ -10,11 +10,11 @@
 
 namespace
 {
-    typedef Analysis::APIDumpAnalysis::Frontends::GlTextureFormatMapper Mapper;
+    typedef Analysis::APIDumpAnalysis::Frontends::GLTextureFormatMapper Mapper;
     typedef Utils::Graphics::TextureFormat                              Format;
 }
 
-TEST(GlTextureFormatMapper, AnInternalFormatIsTheNamedFormatOfTheLayoutThatItMakes)
+TEST(GLTextureFormatMapper, AnInternalFormatIsTheNamedFormatOfTheLayoutThatItMakes)
 {
     EXPECT_EQ(Mapper::get_texture_format(0x8058),
               Format::R8G8B8A8_UNORM);              /* GL_RGBA8 */
@@ -36,7 +36,7 @@ TEST(GlTextureFormatMapper, AnInternalFormatIsTheNamedFormatOfTheLayoutThatItMak
               Format::R8G8B8A8_UNORM_SRGB);         /* GL_SRGB8_ALPHA8 */
 }
 
-TEST(GlTextureFormatMapper, TheCompressedInternalFormatsAreTheBlockCompressedOnes)
+TEST(GLTextureFormatMapper, TheCompressedInternalFormatsAreTheBlockCompressedOnes)
 {
     EXPECT_EQ(Mapper::get_texture_format(0x83F0),
               Format::BC1_UNORM);
@@ -48,7 +48,7 @@ TEST(GlTextureFormatMapper, TheCompressedInternalFormatsAreTheBlockCompressedOne
               Format::BC3_UNORM);
 }
 
-TEST(GlTextureFormatMapper, AnInternalFormatThatIsNotFollowedIsUnknown)
+TEST(GLTextureFormatMapper, AnInternalFormatThatIsNotFollowedIsUnknown)
 {
     EXPECT_EQ(Mapper::get_texture_format(0xDEADBEEF),
               Format::UNKNOWN);
@@ -60,7 +60,7 @@ TEST(GlTextureFormatMapper, AnInternalFormatThatIsNotFollowedIsUnknown)
               Format::UNKNOWN);
 }
 
-TEST(GlTextureFormatMapper, ATexelOfAnUploadHasTheBytesThatTheFormatAndTheTypeSay)
+TEST(GLTextureFormatMapper, ATexelOfAnUploadHasTheBytesThatTheFormatAndTheTypeSay)
 {
     EXPECT_EQ(Mapper::get_n_bytes_per_texel(0x1908, 0x1401),
               4u);   /* RGBA, bytes */
@@ -78,7 +78,7 @@ TEST(GlTextureFormatMapper, ATexelOfAnUploadHasTheBytesThatTheFormatAndTheTypeSa
               8u);   /* RGBA, shorts */
 }
 
-TEST(GlTextureFormatMapper, ATypeThatPacksTheChannelsGivesTheWordAsTheWholeTexel)
+TEST(GLTextureFormatMapper, ATypeThatPacksTheChannelsGivesTheWordAsTheWholeTexel)
 {
     EXPECT_EQ(Mapper::get_n_bytes_per_texel(0x1907, 0x8363),
               2u);   /* RGB, 5 6 5 */
@@ -90,7 +90,7 @@ TEST(GlTextureFormatMapper, ATypeThatPacksTheChannelsGivesTheWordAsTheWholeTexel
               1u);   /* RGB, 3 3 2 */
 }
 
-TEST(GlTextureFormatMapper, APairThatIsNotFollowedHasNoSize)
+TEST(GLTextureFormatMapper, APairThatIsNotFollowedHasNoSize)
 {
     EXPECT_EQ(Mapper::get_n_bytes_per_texel(0xDEAD, 0x1401),
               0u);
@@ -98,7 +98,7 @@ TEST(GlTextureFormatMapper, APairThatIsNotFollowedHasNoSize)
               0u);
 }
 
-TEST(GlTextureFormatMapper, ARowStartsAtAMultipleOfTheAlignmentAndIsAsLongAsTheRowLengthSays)
+TEST(GLTextureFormatMapper, ARowStartsAtAMultipleOfTheAlignmentAndIsAsLongAsTheRowLengthSays)
 {
     /* Three texels of three bytes: nine bytes, up to the alignment. */
     EXPECT_EQ(Mapper::get_unpack_row_pitch(3, 3, 0, 1),

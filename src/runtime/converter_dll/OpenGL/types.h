@@ -16,7 +16,7 @@ namespace Stereo
          * images of the channel). They are in memory that is mapped from the buffers that the pixels were read into, and stay there while anything holds the token: the
          * one that passes them on keeps a copy of the struct until it is done with them.
          */
-        struct GlFrameImages
+        struct GLFrameImages
         {
             std::shared_ptr<const void> consumer_token;
             uint32_t                    height          = 0;
@@ -25,7 +25,7 @@ namespace Stereo
             uint32_t                    width           = 0;
         };
 
-        /* A glReadPixels of the application that reads one pixel of the colors, in bytes, to memory of its own: the only read that the converter makes itself (see GlResolutionScaler). */
+        /* A glReadPixels of the application that reads one pixel of the colors, in bytes, to memory of its own: the only read that the converter makes itself (see GLResolutionScaler). */
         struct SinglePixelRead
         {
             uint32_t format     = 0;

@@ -33,7 +33,7 @@ namespace
     constexpr int MAX_N_UNITS = 8;
 }
 
-Stereo::Replay::EngineDLL::StereoGlCallExecutor::StereoGlCallExecutor(::Replay::ReplayEngineDLL::ObjectRemapper* in_remapper_ptr)
+Stereo::Replay::EngineDLL::StereoGLCallExecutor::StereoGLCallExecutor(::Replay::ReplayEngineDLL::ObjectRemapper* in_remapper_ptr)
     :GlCallExecutor  (in_remapper_ptr),
      m_eye           (Analysis::Recipe::Eye::LEFT),
      m_is_replicating(false),
@@ -43,7 +43,7 @@ Stereo::Replay::EngineDLL::StereoGlCallExecutor::StereoGlCallExecutor(::Replay::
     /* Stub */
 }
 
-void Stereo::Replay::EngineDLL::StereoGlCallExecutor::apply_eye()
+void Stereo::Replay::EngineDLL::StereoGLCallExecutor::apply_eye()
 {
     const auto active_texture_func_ptr = reinterpret_cast<PFNACTIVETEXTUREPROC>(get_proc_ptr("glActiveTexture") );
     const auto bind_func_ptr           = reinterpret_cast<PFNBINDTEXTUREPROC>   (get_proc_ptr("glBindTexture") );
@@ -123,7 +123,7 @@ end:
     return;
 }
 
-bool Stereo::Replay::EngineDLL::StereoGlCallExecutor::changes_bound_texture(const APIInterceptor::APIFunction& in_function)
+bool Stereo::Replay::EngineDLL::StereoGLCallExecutor::changes_bound_texture(const APIInterceptor::APIFunction& in_function)
 {
     static const char* const prefix_ptr_array[] =
     {
@@ -157,7 +157,7 @@ bool Stereo::Replay::EngineDLL::StereoGlCallExecutor::changes_bound_texture(cons
     return result;
 }
 
-bool Stereo::Replay::EngineDLL::StereoGlCallExecutor::execute(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
+bool Stereo::Replay::EngineDLL::StereoGLCallExecutor::execute(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
                                                               const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
                                                               std::string*                                   out_error_ptr)
 {
@@ -287,7 +287,7 @@ end:
     return result;
 }
 
-bool Stereo::Replay::EngineDLL::StereoGlCallExecutor::make_twin(const uint32_t& in_dumped_name,
+bool Stereo::Replay::EngineDLL::StereoGLCallExecutor::make_twin(const uint32_t& in_dumped_name,
                                                                 const uint32_t& in_live_name)
 {
     const auto bind_func_ptr         = reinterpret_cast<PFNBINDTEXTUREPROC>      (get_proc_ptr("glBindTexture") );
@@ -299,7 +299,7 @@ bool Stereo::Replay::EngineDLL::StereoGlCallExecutor::make_twin(const uint32_t& 
     /* What a texture has besides its pixels, that a copy takes: the parameters that the cache of them looks at, so that a call it leaves out is one that the twin
      * would not have changed either.
      */
-    const auto&      parameter_vec = GlTextureParameterCache::get_cached_parameters();
+    const auto&      parameter_vec = GLTextureParameterCache::get_cached_parameters();
     const size_t     n_parameters  = parameter_vec.size();
     std::vector<int> value_vec(n_parameters);
     unsigned int     fresh_name    = 0;
@@ -373,14 +373,14 @@ end:
     return result;
 }
 
-void Stereo::Replay::EngineDLL::StereoGlCallExecutor::reset()
+void Stereo::Replay::EngineDLL::StereoGLCallExecutor::reset()
 {
     GlCallExecutor::reset();
 
     m_twin_map.clear();
 }
 
-bool Stereo::Replay::EngineDLL::StereoGlCallExecutor::replicate_for_other_eye(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
+bool Stereo::Replay::EngineDLL::StereoGLCallExecutor::replicate_for_other_eye(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
                                                                               const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
                                                                               const uint32_t&                                in_dumped_name,
                                                                               std::string*                                   out_error_ptr)
@@ -421,7 +421,7 @@ end:
     return result;
 }
 
-void Stereo::Replay::EngineDLL::StereoGlCallExecutor::restore_state()
+void Stereo::Replay::EngineDLL::StereoGLCallExecutor::restore_state()
 {
     GlCallExecutor::restore_state();
 
@@ -429,19 +429,19 @@ void Stereo::Replay::EngineDLL::StereoGlCallExecutor::restore_state()
     apply_eye();
 }
 
-void Stereo::Replay::EngineDLL::StereoGlCallExecutor::set_eye(const Analysis::Recipe::Eye& in_eye)
+void Stereo::Replay::EngineDLL::StereoGLCallExecutor::set_eye(const Analysis::Recipe::Eye& in_eye)
 {
     m_eye = in_eye;
 
     apply_eye();
 }
 
-void Stereo::Replay::EngineDLL::StereoGlCallExecutor::set_n_executions(const uint32_t& in_n_executions)
+void Stereo::Replay::EngineDLL::StereoGLCallExecutor::set_n_executions(const uint32_t& in_n_executions)
 {
     m_n_executions = in_n_executions;
 }
 
-void Stereo::Replay::EngineDLL::StereoGlCallExecutor::set_per_eye_predicate(const PerEyePredicate& in_predicate)
+void Stereo::Replay::EngineDLL::StereoGLCallExecutor::set_per_eye_predicate(const PerEyePredicate& in_predicate)
 {
     m_per_eye_predicate = in_predicate;
 }

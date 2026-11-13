@@ -16,7 +16,7 @@ namespace Analysis
     {
         namespace Frontends
         {
-            class GlTextureFormatMapper
+            class GLTextureFormatMapper
             {
             public:
                 /* The bytes of a texel that an upload of the format and the type has (the type that packs the channels in a word gives the word); 0 for a pair that is

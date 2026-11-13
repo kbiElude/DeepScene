@@ -18,19 +18,19 @@ namespace Stereo
     {
         /* Reads the images of the eyes of a frame out of their framebuffers without making the application wait for the graphics card: the pixels are read into buffers
          * (which the card fills while the application goes on), and the frame is given a frame later, from the buffers of the frame before, which are mapped. There are two
-         * sets of buffers; a set is not used again while what was given from it is held (see GlFrameImages::consumer_token). Without buffers the images are read at once.
+         * sets of buffers; a set is not used again while what was given from it is held (see GLFrameImages::consumer_token). Without buffers the images are read at once.
          * Calls are made with the context of the application current, and the converter's own.
          */
-        class GlFrameReader
+        class GLFrameReader
         {
         public:
-            GlFrameReader();
+            GLFrameReader();
 
             /* Starts reading the frame that is ready in the framebuffers, and gives the one that was started the frame before (with the buffers mapped), or if the
              * buffers cannot be used the frame that is ready (read at once). False if there is none to give: the first frame, or a size that changed.
              */
-            bool read(GlEyeTargets*  inout_targets_ptr,
-                      GlFrameImages* out_images_ptr);
+            bool read(GLEyeTargets*  inout_targets_ptr,
+                      GLFrameImages* out_images_ptr);
 
         private:
             static constexpr size_t N_EYES = 2;
@@ -50,11 +50,11 @@ namespace Stereo
             };
 
             /* Waits until what was given of the set is not held, and unmaps its buffers. */
-            void finish_set(const GlEyeTargets& in_targets,
+            void finish_set(const GLEyeTargets& in_targets,
                             Set*                inout_set_ptr);
 
             /* Finishes the set, and gives its buffers back. */
-            void release_set(const GlEyeTargets& in_targets,
+            void release_set(const GLEyeTargets& in_targets,
                              Set*                inout_set_ptr);
 
             uint64_t                m_n_reads;

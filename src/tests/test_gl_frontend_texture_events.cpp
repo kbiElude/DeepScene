@@ -49,7 +49,7 @@ namespace
         std::vector<bool>                 has_data_vec;
     };
 
-    class GlFrontendTextureEvents : public Tests::GlFrontendFixture
+    class GLFrontendTextureEvents : public Tests::GLFrontendFixture
     {
     protected:
         enum : uint32_t
@@ -87,7 +87,7 @@ namespace
     };
 }
 
-TEST_F(GlFrontendTextureEvents, ALevelThatIsGivenPixelsIsAnUploadWithTheBytesAndHowTheyAreLaidOut)
+TEST_F(GLFrontendTextureEvents, ALevelThatIsGivenPixelsIsAnUploadWithTheBytesAndHowTheyAreLaidOut)
 {
     const auto pixels = make_pixels(4 * 4 * 4,
                                     10);
@@ -145,7 +145,7 @@ TEST_F(GlFrontendTextureEvents, ALevelThatIsGivenPixelsIsAnUploadWithTheBytesAnd
               pixels);
 }
 
-TEST_F(GlFrontendTextureEvents, ALevelThatIsGivenNoPixelsIsAnUploadWithNoData)
+TEST_F(GLFrontendTextureEvents, ALevelThatIsGivenNoPixelsIsAnUploadWithNoData)
 {
     m_builder.bind_texture(GL_TEXTURE_2D,
                            5);
@@ -164,7 +164,7 @@ TEST_F(GlFrontendTextureEvents, ALevelThatIsGivenNoPixelsIsAnUploadWithNoData)
     EXPECT_FALSE(m_sink.has_data_vec.at(0) );
 }
 
-TEST_F(GlFrontendTextureEvents, TheRowsOfAnUploadAreAsLongAsThePixelStoreSays)
+TEST_F(GLFrontendTextureEvents, TheRowsOfAnUploadAreAsLongAsThePixelStoreSays)
 {
     m_builder.bind_texture(GL_TEXTURE_2D,
                            5);
@@ -196,7 +196,7 @@ TEST_F(GlFrontendTextureEvents, TheRowsOfAnUploadAreAsLongAsThePixelStoreSays)
               40u);
 }
 
-TEST_F(GlFrontendTextureEvents, APartOfALevelIsAnUploadOfTheRegionAndTheLevelIsAsItWas)
+TEST_F(GLFrontendTextureEvents, APartOfALevelIsAnUploadOfTheRegionAndTheLevelIsAsItWas)
 {
     const auto pixels = make_pixels(2 * 3 * 4,
                                     50);
@@ -245,7 +245,7 @@ TEST_F(GlFrontendTextureEvents, APartOfALevelIsAnUploadOfTheRegionAndTheLevelIsA
               m_sink.event_vec.at(0).destination.resource_id);
 }
 
-TEST_F(GlFrontendTextureEvents, APartOfALevelThatTheTextureHasNotBeenGivenIsNotTold)
+TEST_F(GLFrontendTextureEvents, APartOfALevelThatTheTextureHasNotBeenGivenIsNotTold)
 {
     m_builder.bind_texture(GL_TEXTURE_2D,
                            5);
@@ -267,7 +267,7 @@ TEST_F(GlFrontendTextureEvents, APartOfALevelThatTheTextureHasNotBeenGivenIsNotT
               1u);
 }
 
-TEST_F(GlFrontendTextureEvents, EachLevelHasTheSizeThatItWasGiven)
+TEST_F(GLFrontendTextureEvents, EachLevelHasTheSizeThatItWasGiven)
 {
     m_builder.bind_texture(GL_TEXTURE_2D,
                            5);
@@ -306,7 +306,7 @@ TEST_F(GlFrontendTextureEvents, EachLevelHasTheSizeThatItWasGiven)
               4u);
 }
 
-TEST_F(GlFrontendTextureEvents, WhatIsCopiedFromTheWindowIsContentThatRenderingMadeAndHasNoSource)
+TEST_F(GLFrontendTextureEvents, WhatIsCopiedFromTheWindowIsContentThatRenderingMadeAndHasNoSource)
 {
     m_builder.bind_texture(GL_TEXTURE_2D,
                            5);
@@ -358,7 +358,7 @@ TEST_F(GlFrontendTextureEvents, WhatIsCopiedFromTheWindowIsContentThatRenderingM
               16u);
 }
 
-TEST_F(GlFrontendTextureEvents, ATextureThatIsGivenAnotherSizeIsAnotherResourceAndTheLevelIsAsTheLastCallMadeIt)
+TEST_F(GLFrontendTextureEvents, ATextureThatIsGivenAnotherSizeIsAnotherResourceAndTheLevelIsAsTheLastCallMadeIt)
 {
     m_builder.bind_texture(GL_TEXTURE_2D,
                            5);
@@ -386,7 +386,7 @@ TEST_F(GlFrontendTextureEvents, ATextureThatIsGivenAnotherSizeIsAnotherResourceA
               4u);
 }
 
-TEST_F(GlFrontendTextureEvents, EachEventHasTheCallAndTheFrameItIsIn)
+TEST_F(GLFrontendTextureEvents, EachEventHasTheCallAndTheFrameItIsIn)
 {
     m_builder.bind_texture(GL_TEXTURE_2D,
                            5);
@@ -416,7 +416,7 @@ TEST_F(GlFrontendTextureEvents, EachEventHasTheCallAndTheFrameItIsIn)
               m_sink.event_vec.at(1).call_index);
 }
 
-TEST_F(GlFrontendTextureEvents, TheCollectorKeepsTheEventsAndLeavesTheBytesInTheWorkload)
+TEST_F(GLFrontendTextureEvents, TheCollectorKeepsTheEventsAndLeavesTheBytesInTheWorkload)
 {
     Tests::TempDirectory                              directory;
     Analysis::APIDumpTextures::TextureBlobWriter      writer;
@@ -481,7 +481,7 @@ TEST_F(GlFrontendTextureEvents, TheCollectorKeepsTheEventsAndLeavesTheBytesInThe
 
 namespace
 {
-    class GlFrontendTextureSnapshots : public GlFrontendTextureEvents
+    class GLFrontendTextureSnapshots : public GLFrontendTextureEvents
     {
     protected:
         /* A triangle, drawn with whatever the units have. */
@@ -514,7 +514,7 @@ namespace
     };
 }
 
-TEST_F(GlFrontendTextureSnapshots, ALevelThatRenderingMadeIsSnapshotWhenADrawFirstReadsItAndNotAgain)
+TEST_F(GLFrontendTextureSnapshots, ALevelThatRenderingMadeIsSnapshotWhenADrawFirstReadsItAndNotAgain)
 {
     m_builder.bind_texture(GL_TEXTURE_2D,
                            5);
@@ -554,7 +554,7 @@ TEST_F(GlFrontendTextureSnapshots, ALevelThatRenderingMadeIsSnapshotWhenADrawFir
               m_sink.event_vec.at(0).call_index);
 }
 
-TEST_F(GlFrontendTextureSnapshots, ALevelThatIsChangedAgainIsSnapshotAgainWhenItIsRead)
+TEST_F(GLFrontendTextureSnapshots, ALevelThatIsChangedAgainIsSnapshotAgainWhenItIsRead)
 {
     m_builder.bind_texture(GL_TEXTURE_2D,
                            5);
@@ -586,7 +586,7 @@ TEST_F(GlFrontendTextureSnapshots, ALevelThatIsChangedAgainIsSnapshotAgainWhenIt
               2u);
 }
 
-TEST_F(GlFrontendTextureSnapshots, ATextureThatRenderingDidNotChangeIsNotSnapshot)
+TEST_F(GLFrontendTextureSnapshots, ATextureThatRenderingDidNotChangeIsNotSnapshot)
 {
     m_builder.bind_texture(GL_TEXTURE_2D,
                            5);
@@ -605,7 +605,7 @@ TEST_F(GlFrontendTextureSnapshots, ATextureThatRenderingDidNotChangeIsNotSnapsho
               0u);
 }
 
-TEST_F(GlFrontendTextureSnapshots, ATextureThatNothingSamplesIsNotRead)
+TEST_F(GLFrontendTextureSnapshots, ATextureThatNothingSamplesIsNotRead)
 {
     m_builder.bind_texture(GL_TEXTURE_2D,
                            5);
@@ -635,7 +635,7 @@ TEST_F(GlFrontendTextureSnapshots, ATextureThatNothingSamplesIsNotRead)
               1u);
 }
 
-TEST_F(GlFrontendTextureSnapshots, ALevelThatIsGivenAgainIsNoLongerWhatRenderingMade)
+TEST_F(GLFrontendTextureSnapshots, ALevelThatIsGivenAgainIsNoLongerWhatRenderingMade)
 {
     m_builder.bind_texture(GL_TEXTURE_2D,
                            5);
@@ -660,7 +660,7 @@ TEST_F(GlFrontendTextureSnapshots, ALevelThatIsGivenAgainIsNoLongerWhatRendering
               0u);
 }
 
-TEST_F(GlFrontendTextureSnapshots, EachLevelThatRenderingChangedIsSnapshotOnce)
+TEST_F(GLFrontendTextureSnapshots, EachLevelThatRenderingChangedIsSnapshotOnce)
 {
     m_builder.bind_texture(GL_TEXTURE_2D,
                            5);
@@ -695,7 +695,7 @@ TEST_F(GlFrontendTextureSnapshots, EachLevelThatRenderingChangedIsSnapshotOnce)
 
 namespace
 {
-    class GlFrontendTextureLevels : public GlFrontendTextureEvents
+    class GLFrontendTextureLevels : public GLFrontendTextureEvents
     {
     protected:
         enum : uint32_t
@@ -767,7 +767,7 @@ namespace
     };
 }
 
-TEST_F(GlFrontendTextureLevels, GlGenerateMipmapMakesEachLevelBelowTheFirstDownToOneTexel)
+TEST_F(GLFrontendTextureLevels, GLGenerateMipmapMakesEachLevelBelowTheFirstDownToOneTexel)
 {
     m_builder.bind_texture(GL_TEXTURE_2D,
                            5);
@@ -808,7 +808,7 @@ TEST_F(GlFrontendTextureLevels, GlGenerateMipmapMakesEachLevelBelowTheFirstDownT
     }
 }
 
-TEST_F(GlFrontendTextureLevels, TheLevelsThatAreMadeAreCopiesOfTheLevelAboveToTheDependenciesAndAreSnapshotWhenRead)
+TEST_F(GLFrontendTextureLevels, TheLevelsThatAreMadeAreCopiesOfTheLevelAboveToTheDependenciesAndAreSnapshotWhenRead)
 {
     Tests::RecordingAccessSink access_sink;
 
@@ -850,7 +850,7 @@ TEST_F(GlFrontendTextureLevels, TheLevelsThatAreMadeAreCopiesOfTheLevelAboveToTh
               2u);
 }
 
-TEST_F(GlFrontendTextureLevels, WithGenerateMipmapSetTheLevelsAreMadeWheneverTheFirstOneChanges)
+TEST_F(GLFrontendTextureLevels, WithGenerateMipmapSetTheLevelsAreMadeWheneverTheFirstOneChanges)
 {
     /* The parameter is set before the texture is given a size, as programs do. */
     m_builder.bind_texture(GL_TEXTURE_2D,
@@ -889,7 +889,7 @@ TEST_F(GlFrontendTextureLevels, WithGenerateMipmapSetTheLevelsAreMadeWheneverThe
               9u);
 }
 
-TEST_F(GlFrontendTextureLevels, TheMaxLevelOfTheTextureLimitsTheLevelsThatAreMade)
+TEST_F(GLFrontendTextureLevels, TheMaxLevelOfTheTextureLimitsTheLevelsThatAreMade)
 {
     m_builder.bind_texture(GL_TEXTURE_2D,
                            5);
@@ -907,7 +907,7 @@ TEST_F(GlFrontendTextureLevels, TheMaxLevelOfTheTextureLimitsTheLevelsThatAreMad
               1u);
 }
 
-TEST_F(GlFrontendTextureLevels, ATextureThatIsDeletedHasNoParametersLeft)
+TEST_F(GLFrontendTextureLevels, ATextureThatIsDeletedHasNoParametersLeft)
 {
     m_builder.bind_texture(GL_TEXTURE_2D,
                            5);
@@ -929,7 +929,7 @@ TEST_F(GlFrontendTextureLevels, ATextureThatIsDeletedHasNoParametersLeft)
               0u);
 }
 
-TEST_F(GlFrontendTextureLevels, APartOfALevelIsAWriteToTheDependencies)
+TEST_F(GLFrontendTextureLevels, APartOfALevelIsAWriteToTheDependencies)
 {
     Tests::RecordingAccessSink access_sink;
 
@@ -963,7 +963,7 @@ TEST_F(GlFrontendTextureLevels, APartOfALevelIsAWriteToTheDependencies)
               2u);
 }
 
-TEST_F(GlFrontendTextureLevels, APartThatIsLaidOverALevelThatRenderingMadeIsReadAgainAndOverOneThatWasUploadedIsNot)
+TEST_F(GLFrontendTextureLevels, APartThatIsLaidOverALevelThatRenderingMadeIsReadAgainAndOverOneThatWasUploadedIsNot)
 {
     /* Two textures: the first is made by a copy, the second by an upload. Each has a part laid over it after a draw has read it. */
     m_builder.enable           (GL_TEXTURE_2D);
@@ -1020,7 +1020,7 @@ TEST_F(GlFrontendTextureLevels, APartThatIsLaidOverALevelThatRenderingMadeIsRead
               2u);
 }
 
-TEST_F(GlFrontendTextureLevels, ATargetThatIsNotFollowedIsToldWhateverTheCall)
+TEST_F(GLFrontendTextureLevels, ATargetThatIsNotFollowedIsToldWhateverTheCall)
 {
     m_builder.bind_texture(GL_TEXTURE_2D,
                            5);
@@ -1031,42 +1031,42 @@ TEST_F(GlFrontendTextureLevels, ATargetThatIsNotFollowedIsToldWhateverTheCall)
     expect_unsupported("glTexImage2D.*GL_TEXTURE_2D.*0x8515");
 }
 
-TEST_F(GlFrontendTextureLevels, ACallThatMakesATextureOfAKindThatIsNotFollowedIsToldByItsName)
+TEST_F(GLFrontendTextureLevels, ACallThatMakesATextureOfAKindThatIsNotFollowedIsToldByItsName)
 {
     add_call_of(APIInterceptor::APIFUNCTION_GL_GLTEXIMAGE3D);
 
     expect_unsupported("glTexImage3D");
 }
 
-TEST_F(GlFrontendTextureLevels, CompressedImagesAreToldAndNotLeftOut)
+TEST_F(GLFrontendTextureLevels, CompressedImagesAreToldAndNotLeftOut)
 {
     add_call_of(APIInterceptor::APIFUNCTION_GL_GLCOMPRESSEDTEXIMAGE2D);
 
     expect_unsupported("glCompressedTexImage2D");
 }
 
-TEST_F(GlFrontendTextureLevels, StorageThatIsFixedIsToldAndNotLeftOut)
+TEST_F(GLFrontendTextureLevels, StorageThatIsFixedIsToldAndNotLeftOut)
 {
     add_call_of(APIInterceptor::APIFUNCTION_GL_GLTEXSTORAGE2D);
 
     expect_unsupported("glTexStorage2D");
 }
 
-TEST_F(GlFrontendTextureLevels, ATextureThatIsRenderedToThroughAFramebufferIsToldAndNotLeftOut)
+TEST_F(GLFrontendTextureLevels, ATextureThatIsRenderedToThroughAFramebufferIsToldAndNotLeftOut)
 {
     add_call_of(APIInterceptor::APIFUNCTION_GL_GLFRAMEBUFFERTEXTURE2D);
 
     expect_unsupported("glFramebufferTexture2D");
 }
 
-TEST_F(GlFrontendTextureLevels, MultisampledTexturesAreToldAndNotLeftOut)
+TEST_F(GLFrontendTextureLevels, MultisampledTexturesAreToldAndNotLeftOut)
 {
     add_call_of(APIInterceptor::APIFUNCTION_GL_GLTEXIMAGE2DMULTISAMPLE);
 
     expect_unsupported("glTexImage2DMultisample");
 }
 
-TEST_F(GlFrontendTextureLevels, PixelsThatAreUnpackedFromABufferAreToldAndNotLeftOut)
+TEST_F(GLFrontendTextureLevels, PixelsThatAreUnpackedFromABufferAreToldAndNotLeftOut)
 {
     m_builder.bind_buffer(GL_PIXEL_UNPACK_BUFFER,
                           3);
@@ -1074,14 +1074,14 @@ TEST_F(GlFrontendTextureLevels, PixelsThatAreUnpackedFromABufferAreToldAndNotLef
     expect_unsupported("glBindBuffer.*unpacked from a buffer");
 }
 
-TEST_F(GlFrontendTextureLevels, GenerateMipmapOfATargetThatIsNotFollowedIsToldAndNotLeftOut)
+TEST_F(GLFrontendTextureLevels, GenerateMipmapOfATargetThatIsNotFollowedIsToldAndNotLeftOut)
 {
     m_builder.generate_mipmap(GL_TEXTURE_CUBE_MAP);
 
     expect_unsupported("glGenerateMipmap.*0x8513");
 }
 
-TEST_F(GlFrontendTextureLevels, AParameterThatDecidesTheLevelsOfATargetThatIsNotFollowedIsToldAndNotLeftOut)
+TEST_F(GLFrontendTextureLevels, AParameterThatDecidesTheLevelsOfATargetThatIsNotFollowedIsToldAndNotLeftOut)
 {
     m_builder.tex_parameter(GL_GENERATE_MIPMAP,
                             1,
@@ -1090,7 +1090,7 @@ TEST_F(GlFrontendTextureLevels, AParameterThatDecidesTheLevelsOfATargetThatIsNot
     expect_unsupported("glTexParameteri.*0xDE0");
 }
 
-TEST_F(GlFrontendTextureLevels, AFirstLevelThatIsNotTheFirstIsToldAndNotLeftOut)
+TEST_F(GLFrontendTextureLevels, AFirstLevelThatIsNotTheFirstIsToldAndNotLeftOut)
 {
     m_builder.bind_texture(GL_TEXTURE_2D,
                            5);
@@ -1100,7 +1100,7 @@ TEST_F(GlFrontendTextureLevels, AFirstLevelThatIsNotTheFirstIsToldAndNotLeftOut)
     expect_unsupported("glTexParameteri.*GL_TEXTURE_BASE_LEVEL");
 }
 
-TEST_F(GlFrontendTextureLevels, WhatDoesNotChangeWhatATextureHoldsIsLeftAlone)
+TEST_F(GLFrontendTextureLevels, WhatDoesNotChangeWhatATextureHoldsIsLeftAlone)
 {
     m_builder.bind_texture(GL_TEXTURE_2D,
                            5);
@@ -1117,7 +1117,7 @@ TEST_F(GlFrontendTextureLevels, WhatDoesNotChangeWhatATextureHoldsIsLeftAlone)
     EXPECT_TRUE(m_sink.event_vec.empty() );
 }
 
-TEST_F(GlFrontendTextureLevels, PixelsThatArePackedIntoABufferAreToldAndNotLeftOut)
+TEST_F(GLFrontendTextureLevels, PixelsThatArePackedIntoABufferAreToldAndNotLeftOut)
 {
     /* What a read of pixels reads then goes to the buffer, which the program may make into a texture, and is in no call of the workload. */
     m_builder.bind_buffer(GL_PIXEL_PACK_BUFFER,
@@ -1130,7 +1130,7 @@ TEST_F(GlFrontendTextureLevels, PixelsThatArePackedIntoABufferAreToldAndNotLeftO
     expect_unsupported("glBindBuffer.*packed into a buffer");
 }
 
-TEST_F(GlFrontendTextureLevels, ThePixelBuffersThatAreUnboundAreLeftAloneAndSoIsAReadIntoTheMemoryOfTheProgram)
+TEST_F(GLFrontendTextureLevels, ThePixelBuffersThatAreUnboundAreLeftAloneAndSoIsAReadIntoTheMemoryOfTheProgram)
 {
     m_builder.bind_buffer(GL_PIXEL_PACK_BUFFER,
                           0);
@@ -1149,70 +1149,70 @@ TEST_F(GlFrontendTextureLevels, ThePixelBuffersThatAreUnboundAreLeftAloneAndSoIs
     EXPECT_TRUE(m_sink.event_vec.empty() );
 }
 
-TEST_F(GlFrontendTextureLevels, ACopyOfPixelsIsToldAndNotLeftOut)
+TEST_F(GLFrontendTextureLevels, ACopyOfPixelsIsToldAndNotLeftOut)
 {
     add_call_of(APIInterceptor::APIFUNCTION_GL_GLCOPYPIXELS);
 
     expect_unsupported("glCopyPixels.*framebuffer is written");
 }
 
-TEST_F(GlFrontendTextureLevels, PixelsThatAreDrawnAreToldAndNotLeftOut)
+TEST_F(GLFrontendTextureLevels, PixelsThatAreDrawnAreToldAndNotLeftOut)
 {
     add_call_of(APIInterceptor::APIFUNCTION_GL_GLDRAWPIXELS);
 
     expect_unsupported("glDrawPixels.*framebuffer is written");
 }
 
-TEST_F(GlFrontendTextureLevels, ABitmapIsToldAndNotLeftOut)
+TEST_F(GLFrontendTextureLevels, ABitmapIsToldAndNotLeftOut)
 {
     add_call_of(APIInterceptor::APIFUNCTION_GL_GLBITMAP);
 
     expect_unsupported("glBitmap.*framebuffer is written");
 }
 
-TEST_F(GlFrontendTextureLevels, ListsThatAreNamedByAnArrayAreToldAndNotLeftOut)
+TEST_F(GLFrontendTextureLevels, ListsThatAreNamedByAnArrayAreToldAndNotLeftOut)
 {
     add_call_of(APIInterceptor::APIFUNCTION_GL_GLCALLLISTS);
 
     expect_unsupported("glCallLists.*lists named by an array");
 }
 
-TEST_F(GlFrontendTextureLevels, AFunctionThatTheFrontEndHasNeverBeenToldAboutEndsTheProcess)
+TEST_F(GLFrontendTextureLevels, AFunctionThatTheFrontEndHasNeverBeenToldAboutEndsTheProcess)
 {
     add_call_of(APIInterceptor::APIFUNCTION_GL_GLCREATESHADER);
 
     expect_unsupported("glCreateShader.*not followed, and is not one that is known");
 }
 
-TEST_F(GlFrontendTextureLevels, AnEvaluatorThatMakesGeometryEndsTheProcess)
+TEST_F(GLFrontendTextureLevels, AnEvaluatorThatMakesGeometryEndsTheProcess)
 {
     add_call_of(APIInterceptor::APIFUNCTION_GL_GLRECTF);
 
     expect_unsupported("glRectf");
 }
 
-TEST_F(GlFrontendTextureLevels, TheAccumulationBufferEndsTheProcess)
+TEST_F(GLFrontendTextureLevels, TheAccumulationBufferEndsTheProcess)
 {
     add_call_of(APIInterceptor::APIFUNCTION_GL_GLACCUM);
 
     expect_unsupported("glAccum");
 }
 
-TEST_F(GlFrontendTextureLevels, TheStateOfHowPixelsAreUnpackedThatIsSavedAndGivenBackEndsTheProcess)
+TEST_F(GLFrontendTextureLevels, TheStateOfHowPixelsAreUnpackedThatIsSavedAndGivenBackEndsTheProcess)
 {
     add_call_of(APIInterceptor::APIFUNCTION_GL_GLPUSHCLIENTATTRIB);
 
     expect_unsupported("glPushClientAttrib");
 }
 
-TEST_F(GlFrontendTextureLevels, WhatChangesHowPixelsAreConvertedEndsTheProcess)
+TEST_F(GLFrontendTextureLevels, WhatChangesHowPixelsAreConvertedEndsTheProcess)
 {
     add_call_of(APIInterceptor::APIFUNCTION_GL_GLPIXELTRANSFERF);
 
     expect_unsupported("glPixelTransferf");
 }
 
-TEST_F(GlFrontendTextureLevels, ABufferOfVerticesEndsTheProcess)
+TEST_F(GLFrontendTextureLevels, ABufferOfVerticesEndsTheProcess)
 {
     m_builder.bind_buffer(0x8892, /* GL_ARRAY_BUFFER */
                           3);
@@ -1220,7 +1220,7 @@ TEST_F(GlFrontendTextureLevels, ABufferOfVerticesEndsTheProcess)
     expect_unsupported("glBindBuffer.*buffer object is bound.*0x8892");
 }
 
-TEST_F(GlFrontendTextureLevels, EveryFunctionThatGerberaMakesAndTheFrontEndDoesNotFollowGoesThroughWithoutBeingToldAbout)
+TEST_F(GLFrontendTextureLevels, EveryFunctionThatGerberaMakesAndTheFrontEndDoesNotFollowGoesThroughWithoutBeingToldAbout)
 {
     const APIInterceptor::APIFunction function_array[] =
     {
@@ -1254,56 +1254,56 @@ TEST_F(GlFrontendTextureLevels, EveryFunctionThatGerberaMakesAndTheFrontEndDoesN
     SUCCEED();
 }
 
-TEST_F(GlFrontendTextureLevels, TheStencilTestAndWhatItDoesEndTheProcessUntilTheyAreFollowed)
+TEST_F(GLFrontendTextureLevels, TheStencilTestAndWhatItDoesEndTheProcessUntilTheyAreFollowed)
 {
     add_call_of(APIInterceptor::APIFUNCTION_GL_GLSTENCILFUNC);
 
     expect_unsupported("glStencilFunc.*decides what a draw writes");
 }
 
-TEST_F(GlFrontendTextureLevels, TheStencilOperationsEndTheProcessUntilTheyAreFollowed)
+TEST_F(GLFrontendTextureLevels, TheStencilOperationsEndTheProcessUntilTheyAreFollowed)
 {
     add_call_of(APIInterceptor::APIFUNCTION_GL_GLSTENCILOP);
 
     expect_unsupported("glStencilOp.*decides what a draw writes");
 }
 
-TEST_F(GlFrontendTextureLevels, TheStencilMaskEndsTheProcessUntilItIsFollowed)
+TEST_F(GLFrontendTextureLevels, TheStencilMaskEndsTheProcessUntilItIsFollowed)
 {
     add_call_of(APIInterceptor::APIFUNCTION_GL_GLSTENCILMASK);
 
     expect_unsupported("glStencilMask.*decides what a draw writes");
 }
 
-TEST_F(GlFrontendTextureLevels, TheLogicOpEndsTheProcessUntilItIsFollowed)
+TEST_F(GLFrontendTextureLevels, TheLogicOpEndsTheProcessUntilItIsFollowed)
 {
     add_call_of(APIInterceptor::APIFUNCTION_GL_GLLOGICOP);
 
     expect_unsupported("glLogicOp.*decides what a draw writes");
 }
 
-TEST_F(GlFrontendTextureLevels, TheBlendEquationEndsTheProcessUntilItIsFollowed)
+TEST_F(GLFrontendTextureLevels, TheBlendEquationEndsTheProcessUntilItIsFollowed)
 {
     add_call_of(APIInterceptor::APIFUNCTION_GL_GLBLENDEQUATION);
 
     expect_unsupported("glBlendEquation.*decides what a draw writes");
 }
 
-TEST_F(GlFrontendTextureLevels, TheSeparateFactorsAndTheConstantColorOfBlendingEndTheProcessUntilTheyAreFollowed)
+TEST_F(GLFrontendTextureLevels, TheSeparateFactorsAndTheConstantColorOfBlendingEndTheProcessUntilTheyAreFollowed)
 {
     add_call_of(APIInterceptor::APIFUNCTION_GL_GLBLENDFUNCSEPARATE);
 
     expect_unsupported("glBlendFuncSeparate.*decides what a draw writes");
 }
 
-TEST_F(GlFrontendTextureLevels, TheWindingOfFacesEndsTheProcessUntilItIsFollowed)
+TEST_F(GLFrontendTextureLevels, TheWindingOfFacesEndsTheProcessUntilItIsFollowed)
 {
     add_call_of(APIInterceptor::APIFUNCTION_GL_GLFRONTFACE);
 
     expect_unsupported("glFrontFace.*decides what a draw writes");
 }
 
-TEST_F(GlFrontendTextureLevels, WhatOnlyChangesHowADrawLooksGoesThroughAndSoDoThePolygonOffsetAndTheFog)
+TEST_F(GLFrontendTextureLevels, WhatOnlyChangesHowADrawLooksGoesThroughAndSoDoThePolygonOffsetAndTheFog)
 {
     add_call_of(APIInterceptor::APIFUNCTION_GL_GLPOLYGONOFFSET);
     add_call_of(APIInterceptor::APIFUNCTION_GL_GLFOGF);
@@ -1315,7 +1315,7 @@ TEST_F(GlFrontendTextureLevels, WhatOnlyChangesHowADrawLooksGoesThroughAndSoDoTh
     SUCCEED();
 }
 
-TEST_F(GlFrontendTextureEvents, AChunkOfNoBytesIsTheNullPointerThatTheDumperMakesOfItAndIsAnUploadWithNoData)
+TEST_F(GLFrontendTextureEvents, AChunkOfNoBytesIsTheNullPointerThatTheDumperMakesOfItAndIsAnUploadWithNoData)
 {
     m_builder.bind_texture(GL_TEXTURE_2D,
                            5);
@@ -1360,7 +1360,7 @@ TEST_F(GlFrontendTextureEvents, AChunkOfNoBytesIsTheNullPointerThatTheDumperMake
               414u);
 }
 
-TEST_F(GlFrontendTextureSnapshots, ASnapshotIsOfTheRegionThatRenderingMadeAndNotOfStorageThatWasGivenAndNotFilled)
+TEST_F(GLFrontendTextureSnapshots, ASnapshotIsOfTheRegionThatRenderingMadeAndNotOfStorageThatWasGivenAndNotFilled)
 {
     m_builder.bind_texture(GL_TEXTURE_2D,
                            5);
@@ -1407,7 +1407,7 @@ TEST_F(GlFrontendTextureSnapshots, ASnapshotIsOfTheRegionThatRenderingMadeAndNot
               512u);
 }
 
-TEST_F(GlFrontendTextureSnapshots, ASnapshotHoldsAllTheCopiesThatWereMadeSinceTheLevelWasGiven)
+TEST_F(GLFrontendTextureSnapshots, ASnapshotHoldsAllTheCopiesThatWereMadeSinceTheLevelWasGiven)
 {
     m_builder.bind_texture(GL_TEXTURE_2D,
                            5);
@@ -1461,7 +1461,7 @@ TEST_F(GlFrontendTextureSnapshots, ASnapshotHoldsAllTheCopiesThatWereMadeSinceTh
               40u);
 }
 
-TEST_F(GlFrontendTextureSnapshots, ALevelThatIsGivenAgainStartsAgainWithNothingThatRenderingMade)
+TEST_F(GLFrontendTextureSnapshots, ALevelThatIsGivenAgainStartsAgainWithNothingThatRenderingMade)
 {
     m_builder.bind_texture(GL_TEXTURE_2D,
                            5);
@@ -1505,7 +1505,7 @@ TEST_F(GlFrontendTextureSnapshots, ALevelThatIsGivenAgainStartsAgainWithNothingT
               8u);
 }
 
-TEST_F(GlFrontendTextureSnapshots, TheLevelsThatTheDriverMakesAreSnapshotWhole)
+TEST_F(GLFrontendTextureSnapshots, TheLevelsThatTheDriverMakesAreSnapshotWhole)
 {
     m_builder.bind_texture(GL_TEXTURE_2D,
                            5);

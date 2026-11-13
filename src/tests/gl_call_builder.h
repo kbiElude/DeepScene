@@ -17,7 +17,7 @@
 
 namespace Tests
 {
-    class GlCallBuilder
+    class GLCallBuilder
     {
     public:
         typedef std::vector<APIInterceptor::APIFunctionArgument> ArgumentVector;
@@ -36,7 +36,7 @@ namespace Tests
             uint32_t             type          = 0x1406; /* GL_FLOAT          */
         };
 
-        GlCallBuilder();
+        GLCallBuilder();
 
         /* The unit is counted from 0. */
         void active_texture(const uint32_t& in_unit);

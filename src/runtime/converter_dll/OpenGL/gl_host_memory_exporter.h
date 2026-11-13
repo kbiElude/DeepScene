@@ -17,22 +17,22 @@ namespace Stereo
     namespace ConverterDLL
     {
         /* Passes the images of the eyes of an OpenGL application on by the memory of the channel. The images are already in the memory of the application (the
-         * converter reads them from its framebuffers into buffers it has mapped, see GlFrameReader), so this only turns the rows over (OpenGL has the bottom one first), and
+         * converter reads them from its framebuffers into buffers it has mapped, see GLFrameReader), so this only turns the rows over (OpenGL has the bottom one first), and
          * a thread of its own does that while the application goes on with the next frame. A frame that is given while the thread is still at the one before is left out.
          *
-         * The source (see ExportSource) holds a GlFrameImages in the left surface, and anything that is not null in the right one. The exporter keeps a copy of it, with
+         * The source (see ExportSource) holds a GLFrameImages in the left surface, and anything that is not null in the right one. The exporter keeps a copy of it, with
          * the token that says the memory is in use, until the thread is through.
          */
-        class GlHostMemoryExporter : public HostMemoryExporter
+        class GLHostMemoryExporter : public HostMemoryExporter
         {
         public:
             /* The channel must outlive the exporter. The exporter says on it what it offers. */
-            explicit GlHostMemoryExporter(Stereo::Transport::FrameChannel* inout_channel_ptr);
+            explicit GLHostMemoryExporter(Stereo::Transport::FrameChannel* inout_channel_ptr);
 
-            ~GlHostMemoryExporter() override;
+            ~GLHostMemoryExporter() override;
 
-            GlHostMemoryExporter(const GlHostMemoryExporter&)            = delete;
-            GlHostMemoryExporter& operator=(const GlHostMemoryExporter&) = delete;
+            GLHostMemoryExporter(const GLHostMemoryExporter&)            = delete;
+            GLHostMemoryExporter& operator=(const GLHostMemoryExporter&) = delete;
 
             /* EXPORTED when the thread has the frame to copy to the channel. NOT_READY until the other side has said that it takes the host memory kind, and while the thread is
              * at the frame before; FAILED if the images are larger than the channel takes.
@@ -43,7 +43,7 @@ namespace Stereo
             void wait_for_pace() override;
 
             /* A debugging aid: the images of the eyes, side by side, in a file of the type BMP. */
-            static bool write_debug_image(const GlFrameImages& in_images,
+            static bool write_debug_image(const GLFrameImages& in_images,
                                           const std::string&   in_path);
 
         private:
@@ -51,7 +51,7 @@ namespace Stereo
             struct Job
             {
                 uint64_t      frame_index       = 0;
-                GlFrameImages images;
+                GLFrameImages images;
                 double        timestamp_seconds = 0.0;
             };
 

@@ -5,7 +5,7 @@
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_client_array_snapshot.h"
 #include <string.h>
 
-uint32_t Analysis::APIDumpAnalysis::Frontends::GlClientArraySnapshot::get_element_stride(const GlClientArray& in_array)
+uint32_t Analysis::APIDumpAnalysis::Frontends::GLClientArraySnapshot::get_element_stride(const GLClientArray& in_array)
 {
     uint32_t result = in_array.stride;
 
@@ -19,7 +19,7 @@ uint32_t Analysis::APIDumpAnalysis::Frontends::GlClientArraySnapshot::get_elemen
     return result;
 }
 
-uint32_t Analysis::APIDumpAnalysis::Frontends::GlClientArraySnapshot::get_type_n_bytes(const uint32_t& in_type)
+uint32_t Analysis::APIDumpAnalysis::Frontends::GLClientArraySnapshot::get_type_n_bytes(const uint32_t& in_type)
 {
     uint32_t result = 0;
 
@@ -72,8 +72,8 @@ uint32_t Analysis::APIDumpAnalysis::Frontends::GlClientArraySnapshot::get_type_n
     return result;
 }
 
-bool Analysis::APIDumpAnalysis::Frontends::GlClientArraySnapshot::parse(const Capture::APIDumpLoader::DataChunk& in_chunk,
-                                                                        std::vector<GlClientArray>*              out_array_vec_ptr)
+bool Analysis::APIDumpAnalysis::Frontends::GLClientArraySnapshot::parse(const Capture::APIDumpLoader::DataChunk& in_chunk,
+                                                                        std::vector<GLClientArray>*              out_array_vec_ptr)
 {
     const uint8_t* chunk_ptr = in_chunk.data();
     const size_t   n_bytes   = in_chunk.size();
@@ -112,14 +112,14 @@ bool Analysis::APIDumpAnalysis::Frontends::GlClientArraySnapshot::parse(const Ca
 
         if (result)
         {
-            GlClientArray array;
+            GLClientArray array;
 
             array.data_ptr      = chunk_ptr + offset;
             array.divisor       = packed.divisor;
             array.first_element = packed.first_element;
             array.flags         = packed.flags;
             array.index         = packed.index;
-            array.kind          = static_cast<GlClientArrayKind>(packed.kind);
+            array.kind          = static_cast<GLClientArrayKind>(packed.kind);
             array.n_bytes       = packed.n_bytes;
             array.n_elements    = packed.n_elements;
             array.pointer       = packed.pointer;
@@ -136,7 +136,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GlClientArraySnapshot::parse(const Ca
     return result;
 }
 
-bool Analysis::APIDumpAnalysis::Frontends::GlClientArraySnapshot::read_component(const uint32_t& in_type,
+bool Analysis::APIDumpAnalysis::Frontends::GLClientArraySnapshot::read_component(const uint32_t& in_type,
                                                                                  const uint8_t*  in_data_ptr,
                                                                                  double*         out_value_ptr)
 {
@@ -207,7 +207,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GlClientArraySnapshot::read_component
     return result;
 }
 
-bool Analysis::APIDumpAnalysis::Frontends::GlClientArraySnapshot::read_position(const GlClientArray&  in_array,
+bool Analysis::APIDumpAnalysis::Frontends::GLClientArraySnapshot::read_position(const GLClientArray&  in_array,
                                                                                 const uint32_t&       in_element,
                                                                                 std::array<float, 3>* out_position_ptr)
 {

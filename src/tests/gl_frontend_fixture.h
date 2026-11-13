@@ -39,11 +39,11 @@ namespace Tests
         std::vector<Analysis::APIDumpAnalysis::AccessEvent> event_vec;
     };
 
-    class GlFrontendFixture : public ::testing::Test
+    class GLFrontendFixture : public ::testing::Test
     {
     protected:
         typedef FrontendHarness<Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend,
-                                GlCallBuilder>                                       Harness;
+                                GLCallBuilder>                                       Harness;
 
         /* Addresses of the objects of a program. */
         enum : uint64_t
@@ -92,10 +92,10 @@ namespace Tests
                                                                      &m_projection_f32mat) );
         }
 
-        GlCallBuilder                                  m_builder;
+        GLCallBuilder                                  m_builder;
         Harness                                        m_harness;
-        Analysis::APIDumpAnalysis::Frontends::GlMatrix m_modelview_f32mat;
-        Analysis::APIDumpAnalysis::Frontends::GlMatrix m_projection_f32mat;
+        Analysis::APIDumpAnalysis::Frontends::GLMatrix m_modelview_f32mat;
+        Analysis::APIDumpAnalysis::Frontends::GLMatrix m_projection_f32mat;
     };
 }
 

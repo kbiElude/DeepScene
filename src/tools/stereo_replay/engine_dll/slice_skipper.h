@@ -22,7 +22,7 @@ namespace Stereo
             /* Leaves out what the dead frames of a slice make (see FrameSlicePlanner): the draws, the clears, the copies and the uploads. The calls
              * which set the state of the device or make and release objects are made, since the frames which are not dead go on from the state which
              * the dead ones leave, and the objects they use must be there. Of OpenGL, the calls that only give a piece of state a value that the groups of a
-             * glPushAttrib save are left out between it and its glPopAttrib as well, in the reader (see GlAttributeCoverage), since the pop undoes them.
+             * glPushAttrib save are left out between it and its glPopAttrib as well, in the reader (see GLAttributeCoverage), since the pop undoes them.
              */
             class SliceSkipper : public ::Replay::ReplayEngineDLL::ICallInterceptor
             {
@@ -70,7 +70,7 @@ namespace Stereo
                 /* The replay thread looks at the slice at every call, so it is not locked for that: a slice which is replaced is kept, since the replay may be
                  * looking at it still. A slice is a bit for each frame of the workload, and a person seeks a few times.
                  */
-                GlDisplayListTracker                                                    m_list_tracker; /* the replay thread only */
+                GLDisplayListTracker                                                    m_list_tracker; /* the replay thread only */
                 std::mutex                                                              m_slice_mutex;
                 std::atomic<const Analysis::APIDumpDependencies::FrameSlice*>           m_slice_ptr;
                 std::deque<std::unique_ptr<Analysis::APIDumpDependencies::FrameSlice> > m_slice_ptr_deque;

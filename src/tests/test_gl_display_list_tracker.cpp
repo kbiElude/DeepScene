@@ -2,14 +2,14 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Tests for GlDisplayListTracker: what the lists that a replay makes do to what an eye has of its own, as the calls come.
+ * Tests for GLDisplayListTracker: what the lists that a replay makes do to what an eye has of its own, as the calls come.
  */
 #include <gtest/gtest.h>
 #include "gl_display_list_tracker.h"
 
 namespace
 {
-    typedef Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence Dependence;
+    typedef Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence Dependence;
 
     Capture::APIDumpLoader::DumpedAPICall make_call(const APIInterceptor::APIFunction& in_function,
                                                     const int&                         in_first_number = 0,
@@ -26,7 +26,7 @@ namespace
     }
 
     /* A list of the number that has the calls in it. */
-    void make_list(Stereo::Replay::EngineDLL::GlDisplayListTracker*   inout_tracker_ptr,
+    void make_list(Stereo::Replay::EngineDLL::GLDisplayListTracker*   inout_tracker_ptr,
                    const int&                                          in_list,
                    const std::vector<APIInterceptor::APIFunction>&     in_function_vec)
     {
@@ -42,9 +42,9 @@ namespace
     }
 }
 
-TEST(GlDisplayListTracker, AListThatDoesDrawsAndStateOnlyIsIndependent)
+TEST(GLDisplayListTracker, AListThatDoesDrawsAndStateOnlyIsIndependent)
 {
-    Stereo::Replay::EngineDLL::GlDisplayListTracker tracker;
+    Stereo::Replay::EngineDLL::GLDisplayListTracker tracker;
     Dependence                                      dependence = Dependence::EYE_DEPENDENT;
 
     make_list(&tracker,
@@ -60,9 +60,9 @@ TEST(GlDisplayListTracker, AListThatDoesDrawsAndStateOnlyIsIndependent)
               Dependence::INDEPENDENT);
 }
 
-TEST(GlDisplayListTracker, AListThatLoadsAMatrixIsEyeDependentAndOneThatMovesItIsRelative)
+TEST(GLDisplayListTracker, AListThatLoadsAMatrixIsEyeDependentAndOneThatMovesItIsRelative)
 {
-    Stereo::Replay::EngineDLL::GlDisplayListTracker tracker;
+    Stereo::Replay::EngineDLL::GLDisplayListTracker tracker;
     Dependence                                      dependence = Dependence::INDEPENDENT;
 
     make_list(&tracker, 1, {APIInterceptor::APIFUNCTION_GL_GLLOADIDENTITY});
@@ -79,9 +79,9 @@ TEST(GlDisplayListTracker, AListThatLoadsAMatrixIsEyeDependentAndOneThatMovesItI
               Dependence::RELATIVE_MATRIX_ONLY);
 }
 
-TEST(GlDisplayListTracker, AListTakesTheClassOfTheListsItCalls)
+TEST(GLDisplayListTracker, AListTakesTheClassOfTheListsItCalls)
 {
-    Stereo::Replay::EngineDLL::GlDisplayListTracker tracker;
+    Stereo::Replay::EngineDLL::GLDisplayListTracker tracker;
     Dependence                                      dependence = Dependence::INDEPENDENT;
 
     make_list(&tracker, 1, {APIInterceptor::APIFUNCTION_GL_GLTRANSLATEF});
@@ -98,9 +98,9 @@ TEST(GlDisplayListTracker, AListTakesTheClassOfTheListsItCalls)
               Dependence::RELATIVE_MATRIX_ONLY);
 }
 
-TEST(GlDisplayListTracker, AListThatCallsOneThatIsNotDefinedIsEyeDependent)
+TEST(GLDisplayListTracker, AListThatCallsOneThatIsNotDefinedIsEyeDependent)
 {
-    Stereo::Replay::EngineDLL::GlDisplayListTracker tracker;
+    Stereo::Replay::EngineDLL::GLDisplayListTracker tracker;
     Dependence                                      dependence = Dependence::INDEPENDENT;
 
     make_list(&tracker, 2, {APIInterceptor::APIFUNCTION_GL_GLCALLLIST});
@@ -111,9 +111,9 @@ TEST(GlDisplayListTracker, AListThatCallsOneThatIsNotDefinedIsEyeDependent)
               Dependence::EYE_DEPENDENT);
 }
 
-TEST(GlDisplayListTracker, ADeletedListIsNotThereAndTheCallsOutsideAListAreNotItsOwn)
+TEST(GLDisplayListTracker, ADeletedListIsNotThereAndTheCallsOutsideAListAreNotItsOwn)
 {
-    Stereo::Replay::EngineDLL::GlDisplayListTracker tracker;
+    Stereo::Replay::EngineDLL::GLDisplayListTracker tracker;
     Dependence                                      dependence = Dependence::INDEPENDENT;
 
     make_list(&tracker, 4, {APIInterceptor::APIFUNCTION_GL_GLBEGIN});
@@ -135,9 +135,9 @@ TEST(GlDisplayListTracker, ADeletedListIsNotThereAndTheCallsOutsideAListAreNotIt
                                              &dependence) );
 }
 
-TEST(GlDisplayListTracker, ItIsRecordingBetweenTheNewListAndTheEndList)
+TEST(GLDisplayListTracker, ItIsRecordingBetweenTheNewListAndTheEndList)
 {
-    Stereo::Replay::EngineDLL::GlDisplayListTracker tracker;
+    Stereo::Replay::EngineDLL::GLDisplayListTracker tracker;
 
     tracker.on_call(make_call(APIInterceptor::APIFUNCTION_GL_GLNEWLIST,
                               9) );
@@ -149,9 +149,9 @@ TEST(GlDisplayListTracker, ItIsRecordingBetweenTheNewListAndTheEndList)
     EXPECT_FALSE(tracker.is_recording() );
 }
 
-TEST(GlDisplayListTracker, AListThatOnlyDrawsDoesNotSetState)
+TEST(GLDisplayListTracker, AListThatOnlyDrawsDoesNotSetState)
 {
-    Stereo::Replay::EngineDLL::GlDisplayListTracker tracker;
+    Stereo::Replay::EngineDLL::GLDisplayListTracker tracker;
     bool                                            sets_state = true;
 
     make_list(&tracker,
@@ -171,7 +171,7 @@ namespace
     /* A list of the one call, which has to be told to set state. */
     void expect_list_of_call_sets_state(const APIInterceptor::APIFunction& in_function)
     {
-        Stereo::Replay::EngineDLL::GlDisplayListTracker tracker;
+        Stereo::Replay::EngineDLL::GLDisplayListTracker tracker;
         bool                                            sets_state = false;
 
         make_list(&tracker,
@@ -184,7 +184,7 @@ namespace
     }
 }
 
-TEST(GlDisplayListTracker, AListThatDoesAnythingButDrawSetsState)
+TEST(GLDisplayListTracker, AListThatDoesAnythingButDrawSetsState)
 {
     /* A capability, a texture coordinate for the vertices that follow, a material, an object that is bound, a light. */
     expect_list_of_call_sets_state(APIInterceptor::APIFUNCTION_GL_GLENABLE);
@@ -194,9 +194,9 @@ TEST(GlDisplayListTracker, AListThatDoesAnythingButDrawSetsState)
     expect_list_of_call_sets_state(APIInterceptor::APIFUNCTION_GL_GLLIGHTFV);
 }
 
-TEST(GlDisplayListTracker, AListThatCallsOneThatSetsStateOrOneThatIsNotDefinedSetsState)
+TEST(GLDisplayListTracker, AListThatCallsOneThatSetsStateOrOneThatIsNotDefinedSetsState)
 {
-    Stereo::Replay::EngineDLL::GlDisplayListTracker tracker;
+    Stereo::Replay::EngineDLL::GLDisplayListTracker tracker;
     bool                                            sets_state = false;
 
     make_list(&tracker,
@@ -226,9 +226,9 @@ TEST(GlDisplayListTracker, AListThatCallsOneThatSetsStateOrOneThatIsNotDefinedSe
     EXPECT_TRUE(sets_state);
 }
 
-TEST(GlDisplayListTracker, AListThatIsDeletedHasNothingToTellOf)
+TEST(GLDisplayListTracker, AListThatIsDeletedHasNothingToTellOf)
 {
-    Stereo::Replay::EngineDLL::GlDisplayListTracker tracker;
+    Stereo::Replay::EngineDLL::GLDisplayListTracker tracker;
     bool                                            sets_state = false;
 
     make_list(&tracker,

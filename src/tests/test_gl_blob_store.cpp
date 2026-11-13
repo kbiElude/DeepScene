@@ -11,12 +11,12 @@
 
 namespace
 {
-    typedef Analysis::APIDumpAnalysis::Frontends::GlBlobReuse GlBlobReuse;
+    typedef Analysis::APIDumpAnalysis::Frontends::GLBlobReuse GLBlobReuse;
 
-    class GlBlobStoreTest : public ::testing::Test
+    class GLBlobStoreTest : public ::testing::Test
     {
     protected:
-        GlBlobStoreTest()
+        GLBlobStoreTest()
             :m_store(&m_builder)
         {
             /* Stub */
@@ -30,11 +30,11 @@ namespace
         }
 
         Analysis::APIDumpAnalysis::ModelBuilder           m_builder;
-        Analysis::APIDumpAnalysis::Frontends::GlBlobStore m_store;
+        Analysis::APIDumpAnalysis::Frontends::GLBlobStore m_store;
     };
 }
 
-TEST_F(GlBlobStoreTest, TheSameBytesAreTheSameResource)
+TEST_F(GLBlobStoreTest, TheSameBytesAreTheSameResource)
 {
     const auto first  = get_vertex_resource({1, 2, 3, 4});
     const auto second = get_vertex_resource({1, 2, 3, 4});
@@ -48,7 +48,7 @@ TEST_F(GlBlobStoreTest, TheSameBytesAreTheSameResource)
               2u);
 }
 
-TEST_F(GlBlobStoreTest, TheKindOfBufferTellsTheSameBytesApart)
+TEST_F(GLBlobStoreTest, TheKindOfBufferTellsTheSameBytesApart)
 {
     const std::vector<uint8_t> data_u8vec = {1, 2, 3, 4};
 
@@ -61,7 +61,7 @@ TEST_F(GlBlobStoreTest, TheKindOfBufferTellsTheSameBytesApart)
               indices);
 }
 
-TEST_F(GlBlobStoreTest, TheBytesAreKeptForTheFrameThatTheyAreSeenIn)
+TEST_F(GLBlobStoreTest, TheBytesAreKeptForTheFrameThatTheyAreSeenIn)
 {
     const auto resource = get_vertex_resource({1, 2, 3, 4});
     const auto data_ptr = m_store.get_data_ptr(resource);
@@ -74,7 +74,7 @@ TEST_F(GlBlobStoreTest, TheBytesAreKeptForTheFrameThatTheyAreSeenIn)
               4u);
 }
 
-TEST_F(GlBlobStoreTest, WhatWasSeenInOneFrameOnlyIsLetGoOfAtItsEnd)
+TEST_F(GLBlobStoreTest, WhatWasSeenInOneFrameOnlyIsLetGoOfAtItsEnd)
 {
     const auto resource = get_vertex_resource({1, 2, 3, 4});
 
@@ -83,12 +83,12 @@ TEST_F(GlBlobStoreTest, WhatWasSeenInOneFrameOnlyIsLetGoOfAtItsEnd)
     EXPECT_EQ(m_store.get_data_ptr(resource),
               nullptr);
     EXPECT_EQ(m_store.get_reuse(resource),
-              GlBlobReuse::ONE_FRAME);
+              GLBlobReuse::ONE_FRAME);
     EXPECT_EQ(m_store.get_n_cached_bytes(),
               0u);
 }
 
-TEST_F(GlBlobStoreTest, WhatIsSeenInTwoFramesIsReuseAndIsKeptOn)
+TEST_F(GLBlobStoreTest, WhatIsSeenInTwoFramesIsReuseAndIsKeptOn)
 {
     const auto resource = get_vertex_resource({1, 2, 3, 4});
 
@@ -99,7 +99,7 @@ TEST_F(GlBlobStoreTest, WhatIsSeenInTwoFramesIsReuseAndIsKeptOn)
     EXPECT_EQ(resource,
               again);
     EXPECT_EQ(m_store.get_reuse(resource),
-              GlBlobReuse::ACROSS_FRAMES);
+              GLBlobReuse::ACROSS_FRAMES);
 
     m_store.on_frame_ended();
 
@@ -109,7 +109,7 @@ TEST_F(GlBlobStoreTest, WhatIsSeenInTwoFramesIsReuseAndIsKeptOn)
               4u);
 }
 
-TEST_F(GlBlobStoreTest, TheSameBytesSeenManyTimesInAFrameAreOneFrame)
+TEST_F(GLBlobStoreTest, TheSameBytesSeenManyTimesInAFrameAreOneFrame)
 {
     const auto resource = get_vertex_resource({1, 2, 3, 4});
 
@@ -117,12 +117,12 @@ TEST_F(GlBlobStoreTest, TheSameBytesSeenManyTimesInAFrameAreOneFrame)
     get_vertex_resource({1, 2, 3, 4});
 
     EXPECT_EQ(m_store.get_reuse(resource),
-              GlBlobReuse::ONE_FRAME);
+              GLBlobReuse::ONE_FRAME);
     EXPECT_EQ(m_store.get_n_cached_bytes(),
               4u);
 }
 
-TEST_F(GlBlobStoreTest, WhatWasLetGoOfIsKeptAgainWhenItIsSeenAgain)
+TEST_F(GLBlobStoreTest, WhatWasLetGoOfIsKeptAgainWhenItIsSeenAgain)
 {
     const auto resource = get_vertex_resource({1, 2, 3, 4});
 
@@ -134,15 +134,15 @@ TEST_F(GlBlobStoreTest, WhatWasLetGoOfIsKeptAgainWhenItIsSeenAgain)
     EXPECT_NE(m_store.get_data_ptr(resource),
               nullptr);
     EXPECT_EQ(m_store.get_reuse(resource),
-              GlBlobReuse::ACROSS_FRAMES);
+              GLBlobReuse::ACROSS_FRAMES);
 }
 
-TEST_F(GlBlobStoreTest, AResourceOfNoStoreHasNoBytesAndNoReuse)
+TEST_F(GLBlobStoreTest, AResourceOfNoStoreHasNoBytesAndNoReuse)
 {
     const auto unknown = static_cast<Analysis::APIDumpAnalysis::ResourceId>(12345);
 
     EXPECT_EQ(m_store.get_data_ptr(unknown),
               nullptr);
     EXPECT_EQ(m_store.get_reuse(unknown),
-              GlBlobReuse::ONE_FRAME);
+              GLBlobReuse::ONE_FRAME);
 }

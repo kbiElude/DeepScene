@@ -21,13 +21,13 @@ namespace Stereo
          * headset's eye is too much to read often). The application is given the one of the left eye and never the window, which is not drawn to, so that it
          * does not matter if the window can be seen. All calls are the converter's own and are made with the context of the application current.
          */
-        class GlEyeTargets
+        class GLEyeTargets
         {
         public:
             /* What is done with the depths that a read gave (the same rows as read_depth() gives), while they can be looked at. */
             typedef std::function<void(const float* in_depth_ptr, const size_t& in_n_depths)> DepthFunc;
 
-            GlEyeTargets();
+            GLEyeTargets();
 
             /* Starts a read of the depth of the left eye, brought down to the small copy that read_depth() reads, to a buffer of the graphics card, and does not wait for it: the
              * number of the buffer is given, for finish_depth_read(). False if there is no buffer to read to (the small copy or the buffers are not there, or all of them are in
@@ -57,7 +57,7 @@ namespace Stereo
             const void* get_context_ptr() const;
 
             /* The functions of the framebuffers and buffers, as found for the context; they are the ones that are not in the library. */
-            const GlExtensionFunctions& get_functions() const;
+            const GLExtensionFunctions& get_functions() const;
 
             /* How many times the targets were released: a read that was begun in another generation is lost. */
             uint32_t get_generation() const;
@@ -126,7 +126,7 @@ namespace Stereo
             const void*                              m_context_ptr;
             std::array<uint32_t, N_DEPTH_READ_SLOTS> m_depth_buffer_array;         /* the buffers of the graphics card that the depth is read to; made when they are first used */
             EyeTarget                                m_depth_probe;
-            GlExtensionFunctions                     m_functions;
+            GLExtensionFunctions                     m_functions;
             uint32_t                                 m_generation;                 /* how many times the targets were released, to tell reads that were on their way to buffers that are gone */
             bool                                     m_has_functions;
             bool                                     m_has_depth_probe;

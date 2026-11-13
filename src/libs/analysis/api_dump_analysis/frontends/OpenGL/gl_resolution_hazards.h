@@ -21,7 +21,7 @@ namespace Analysis
              * places in pixels, and what asks how large the viewport is. The state that is in pixels and can be made to match (the viewport, the scissor box, the width of lines,
              * and the copies of the framebuffer to textures) is not here; the converter makes those match.
              */
-            class GlResolutionHazards
+            class GLResolutionHazards
             {
             public:
                 /* Returns true, and which hazard it is, if the call is one. The arguments are those the call was made with. */

@@ -28,11 +28,11 @@ namespace Analysis
     {
         namespace Frontends
         {
-            class GlBlobStore
+            class GLBlobStore
             {
             public:
                 /* The builder must outlive the store. */
-                explicit GlBlobStore(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr);
+                explicit GLBlobStore(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr);
 
                 /* The bytes of the piece if they are kept (they are for every piece of this frame, and for those seen in more than one frame);
                  * null if they are not, or the resource is not one of the store.
@@ -53,7 +53,7 @@ namespace Analysis
                                                                       const size_t&                                  in_n_bytes);
 
                 /* How the piece has been used again so far; ONE_FRAME for a resource that is not one of the store. */
-                GlBlobReuse get_reuse(const Analysis::APIDumpAnalysis::ResourceId& in_resource_id) const;
+                GLBlobReuse get_reuse(const Analysis::APIDumpAnalysis::ResourceId& in_resource_id) const;
 
                 /* The frame is over: what was seen in it only is let go of. */
                 void on_frame_ended();
@@ -65,11 +65,11 @@ namespace Analysis
                 /* Keeps the bytes of the blob, which are not kept. */
                 void cache_bytes(const void*   in_data_ptr,
                                  const size_t& in_n_bytes,
-                                 GlBlob*       inout_blob_ptr);
+                                 GLBlob*       inout_blob_ptr);
 
-                std::map<BlobKey, GlBlob>                                m_blob_map;
+                std::map<BlobKey, GLBlob>                                m_blob_map;
                 Analysis::APIDumpAnalysis::ModelBuilder*                 m_builder_ptr;
-                std::vector<GlBlob*>                                     m_frame_blob_ptr_vec; /* seen in this frame */
+                std::vector<GLBlob*>                                     m_frame_blob_ptr_vec; /* seen in this frame */
                 uint64_t                                                 m_frame_index;
                 std::map<Analysis::APIDumpAnalysis::ResourceId, BlobKey> m_key_by_resource_id_map;
                 uint64_t                                                 m_n_cached_bytes;

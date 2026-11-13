@@ -27,7 +27,7 @@ namespace
 
 }
 
-Stereo::ConverterDLL::GlEyeRenderer::GlEyeRenderer(Stereo::Core::StereoCore* in_core_ptr,
+Stereo::ConverterDLL::GLEyeRenderer::GLEyeRenderer(Stereo::Core::StereoCore* in_core_ptr,
                                                    const bool&               in_is_shown_elsewhere,
                                                    const uint32_t&           in_target_width,
                                                    const uint32_t&           in_target_height)
@@ -66,7 +66,7 @@ Stereo::ConverterDLL::GlEyeRenderer::GlEyeRenderer(Stereo::Core::StereoCore* in_
     }
 }
 
-void Stereo::ConverterDLL::GlEyeRenderer::collect_depth_reads(const bool& in_only_older_frames,
+void Stereo::ConverterDLL::GLEyeRenderer::collect_depth_reads(const bool& in_only_older_frames,
                                                               const bool& in_only_the_oldest)
 {
     Stereo::Core::PendingDepthRead read;
@@ -106,7 +106,7 @@ void Stereo::ConverterDLL::GlEyeRenderer::collect_depth_reads(const bool& in_onl
     }
 }
 
-void Stereo::ConverterDLL::GlEyeRenderer::forget_lost_depth_reads()
+void Stereo::ConverterDLL::GLEyeRenderer::forget_lost_depth_reads()
 {
     const uint32_t generation = m_targets.get_generation();
 
@@ -118,22 +118,22 @@ void Stereo::ConverterDLL::GlEyeRenderer::forget_lost_depth_reads()
     }
 }
 
-uint32_t Stereo::ConverterDLL::GlEyeRenderer::get_depth_lag() const
+uint32_t Stereo::ConverterDLL::GLEyeRenderer::get_depth_lag() const
 {
     return m_depth_lag;
 }
 
-const Stereo::ConverterDLL::GlEyeRenderer::Statistics& Stereo::ConverterDLL::GlEyeRenderer::get_statistics() const
+const Stereo::ConverterDLL::GLEyeRenderer::Statistics& Stereo::ConverterDLL::GLEyeRenderer::get_statistics() const
 {
     return m_statistics;
 }
 
-bool Stereo::ConverterDLL::GlEyeRenderer::is_ready() const
+bool Stereo::ConverterDLL::GLEyeRenderer::is_ready() const
 {
     return m_targets.is_ready();
 }
 
-bool Stereo::ConverterDLL::GlEyeRenderer::make_twin(const uint32_t& in_texture,
+bool Stereo::ConverterDLL::GLEyeRenderer::make_twin(const uint32_t& in_texture,
                                                     const bool&     in_has_level_size,
                                                     const int32_t&  in_level)
 {
@@ -147,15 +147,15 @@ bool Stereo::ConverterDLL::GlEyeRenderer::make_twin(const uint32_t& in_texture,
 
     if (in_has_level_size)
     {
-        GlDriverFunctions::get().get_tex_level_parameteriv_func_ptr(GL_TEXTURE_2D,
+        GLDriverFunctions::get().get_tex_level_parameteriv_func_ptr(GL_TEXTURE_2D,
                                                                     in_level,
                                                                     TEXTURE_WIDTH,
                                                                     &width);
-        GlDriverFunctions::get().get_tex_level_parameteriv_func_ptr(GL_TEXTURE_2D,
+        GLDriverFunctions::get().get_tex_level_parameteriv_func_ptr(GL_TEXTURE_2D,
                                                                     in_level,
                                                                     TEXTURE_HEIGHT,
                                                                     &height);
-        GlDriverFunctions::get().get_tex_level_parameteriv_func_ptr(GL_TEXTURE_2D,
+        GLDriverFunctions::get().get_tex_level_parameteriv_func_ptr(GL_TEXTURE_2D,
                                                                     in_level,
                                                                     TEXTURE_INTERNAL_FORMAT,
                                                                     &format);
@@ -167,40 +167,40 @@ bool Stereo::ConverterDLL::GlEyeRenderer::make_twin(const uint32_t& in_texture,
         }
     }
 
-    GlDriverFunctions::get().get_tex_parameteriv_func_ptr(GL_TEXTURE_2D,
+    GLDriverFunctions::get().get_tex_parameteriv_func_ptr(GL_TEXTURE_2D,
                                                           TEXTURE_MIN_FILTER,
                                                           &parameter_array.at(0) );
-    GlDriverFunctions::get().get_tex_parameteriv_func_ptr(GL_TEXTURE_2D,
+    GLDriverFunctions::get().get_tex_parameteriv_func_ptr(GL_TEXTURE_2D,
                                                           TEXTURE_MAG_FILTER,
                                                           &parameter_array.at(1) );
-    GlDriverFunctions::get().get_tex_parameteriv_func_ptr(GL_TEXTURE_2D,
+    GLDriverFunctions::get().get_tex_parameteriv_func_ptr(GL_TEXTURE_2D,
                                                           TEXTURE_WRAP_S,
                                                           &parameter_array.at(2) );
-    GlDriverFunctions::get().get_tex_parameteriv_func_ptr(GL_TEXTURE_2D,
+    GLDriverFunctions::get().get_tex_parameteriv_func_ptr(GL_TEXTURE_2D,
                                                           TEXTURE_WRAP_T,
                                                           &parameter_array.at(3) );
 
-    GlDriverFunctions::get().gen_textures_func_ptr(1,
+    GLDriverFunctions::get().gen_textures_func_ptr(1,
                                                    &twin);
-    GlDriverFunctions::get().bind_texture_func_ptr(GL_TEXTURE_2D,
+    GLDriverFunctions::get().bind_texture_func_ptr(GL_TEXTURE_2D,
                                                    twin);
 
-    GlDriverFunctions::get().tex_parameteri_func_ptr(GL_TEXTURE_2D,
+    GLDriverFunctions::get().tex_parameteri_func_ptr(GL_TEXTURE_2D,
                                                      TEXTURE_MIN_FILTER,
                                                      parameter_array.at(0) );
-    GlDriverFunctions::get().tex_parameteri_func_ptr(GL_TEXTURE_2D,
+    GLDriverFunctions::get().tex_parameteri_func_ptr(GL_TEXTURE_2D,
                                                      TEXTURE_MAG_FILTER,
                                                      parameter_array.at(1) );
-    GlDriverFunctions::get().tex_parameteri_func_ptr(GL_TEXTURE_2D,
+    GLDriverFunctions::get().tex_parameteri_func_ptr(GL_TEXTURE_2D,
                                                      TEXTURE_WRAP_S,
                                                      parameter_array.at(2) );
-    GlDriverFunctions::get().tex_parameteri_func_ptr(GL_TEXTURE_2D,
+    GLDriverFunctions::get().tex_parameteri_func_ptr(GL_TEXTURE_2D,
                                                      TEXTURE_WRAP_T,
                                                      parameter_array.at(3) );
 
     if (in_has_level_size)
     {
-        GlDriverFunctions::get().tex_image_2d_func_ptr(GL_TEXTURE_2D,
+        GLDriverFunctions::get().tex_image_2d_func_ptr(GL_TEXTURE_2D,
                                                        in_level,
                                                        format,
                                                        width,
@@ -211,7 +211,7 @@ bool Stereo::ConverterDLL::GlEyeRenderer::make_twin(const uint32_t& in_texture,
                                                        nullptr);
     }
 
-    GlDriverFunctions::get().bind_texture_func_ptr(GL_TEXTURE_2D,
+    GLDriverFunctions::get().bind_texture_func_ptr(GL_TEXTURE_2D,
                                                    in_texture);
 
     m_twin_map[in_texture] = twin;
@@ -223,7 +223,7 @@ end:
     return result;
 }
 
-Stereo::Core::DepthRange Stereo::ConverterDLL::GlEyeRenderer::measure_depths(const float&  in_z_scale,
+Stereo::Core::DepthRange Stereo::ConverterDLL::GLEyeRenderer::measure_depths(const float&  in_z_scale,
                                                                              const float&  in_z_shift,
                                                                              const float*  in_depth_ptr,
                                                                              const size_t& in_n_depths)
@@ -244,7 +244,7 @@ Stereo::Core::DepthRange Stereo::ConverterDLL::GlEyeRenderer::measure_depths(con
                                     near_fraction);
 }
 
-void Stereo::ConverterDLL::GlEyeRenderer::measure_pass_depth()
+void Stereo::ConverterDLL::GLEyeRenderer::measure_pass_depth()
 {
     const bool is_ready = m_targets.is_ready();
 
@@ -268,7 +268,7 @@ void Stereo::ConverterDLL::GlEyeRenderer::measure_pass_depth()
     m_pass_has_affected_draws = false;
 }
 
-bool Stereo::ConverterDLL::GlEyeRenderer::mirror_copy(const APIInterceptor::APIFunction&         in_function,
+bool Stereo::ConverterDLL::GLEyeRenderer::mirror_copy(const APIInterceptor::APIFunction&         in_function,
                                                       const uint32_t&                            in_n_arguments,
                                                       const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
 {
@@ -325,12 +325,12 @@ bool Stereo::ConverterDLL::GlEyeRenderer::mirror_copy(const APIInterceptor::APIF
 
                 m_targets.bind_eye(Analysis::Recipe::Eye::RIGHT);
 
-                GlDriverFunctions::get().bind_texture_func_ptr(GL_TEXTURE_2D,
+                GLDriverFunctions::get().bind_texture_func_ptr(GL_TEXTURE_2D,
                                                                twin);
 
                 if (is_sub)
                 {
-                    GlDriverFunctions::get().copy_tex_sub_image_2d_func_ptr(target,
+                    GLDriverFunctions::get().copy_tex_sub_image_2d_func_ptr(target,
                                                                             value_array.at(1),
                                                                             value_array.at(2),
                                                                             value_array.at(3),
@@ -341,7 +341,7 @@ bool Stereo::ConverterDLL::GlEyeRenderer::mirror_copy(const APIInterceptor::APIF
                 }
                 else
                 {
-                    GlDriverFunctions::get().copy_tex_image_2d_func_ptr(target,
+                    GLDriverFunctions::get().copy_tex_image_2d_func_ptr(target,
                                                                         value_array.at(1),
                                                                         value_array.at(2),
                                                                         value_array.at(3),
@@ -351,7 +351,7 @@ bool Stereo::ConverterDLL::GlEyeRenderer::mirror_copy(const APIInterceptor::APIF
                                                                         value_array.at(7) );
                 }
 
-                GlDriverFunctions::get().bind_texture_func_ptr(GL_TEXTURE_2D,
+                GLDriverFunctions::get().bind_texture_func_ptr(GL_TEXTURE_2D,
                                                                texture);
 
                 m_targets.bind_eye(Analysis::Recipe::Eye::LEFT);
@@ -371,7 +371,7 @@ bool Stereo::ConverterDLL::GlEyeRenderer::mirror_copy(const APIInterceptor::APIF
             {
                 if (is_sub)
                 {
-                    GlDriverFunctions::get().copy_tex_sub_image_2d_func_ptr(target,
+                    GLDriverFunctions::get().copy_tex_sub_image_2d_func_ptr(target,
                                                                             value_array.at(1),
                                                                             value_array.at(2),
                                                                             value_array.at(3),
@@ -382,7 +382,7 @@ bool Stereo::ConverterDLL::GlEyeRenderer::mirror_copy(const APIInterceptor::APIF
                 }
                 else
                 {
-                    GlDriverFunctions::get().copy_tex_image_2d_func_ptr(target,
+                    GLDriverFunctions::get().copy_tex_image_2d_func_ptr(target,
                                                                         value_array.at(1),
                                                                         value_array.at(2),
                                                                         value_array.at(3),
@@ -400,7 +400,7 @@ bool Stereo::ConverterDLL::GlEyeRenderer::mirror_copy(const APIInterceptor::APIF
     return is_made_scaled;
 }
 
-void Stereo::ConverterDLL::GlEyeRenderer::mirror_texture_parameter(const APIInterceptor::APIFunction&         in_function,
+void Stereo::ConverterDLL::GLEyeRenderer::mirror_texture_parameter(const APIInterceptor::APIFunction&         in_function,
                                                                    const uint32_t&                            in_n_arguments,
                                                                    const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
 {
@@ -425,28 +425,28 @@ void Stereo::ConverterDLL::GlEyeRenderer::mirror_texture_parameter(const APIInte
     {
         const OwnCallScope own_call_scope;
 
-        GlDriverFunctions::get().bind_texture_func_ptr(GL_TEXTURE_2D,
+        GLDriverFunctions::get().bind_texture_func_ptr(GL_TEXTURE_2D,
                                                        twin_it->second);
 
         if (in_function == APIInterceptor::APIFUNCTION_GL_GLTEXPARAMETERI)
         {
-            GlDriverFunctions::get().tex_parameteri_func_ptr(target,
+            GLDriverFunctions::get().tex_parameteri_func_ptr(target,
                                                              name,
                                                              static_cast<GLint>(value) );
         }
         else
         {
-            GlDriverFunctions::get().tex_parameterf_func_ptr(target,
+            GLDriverFunctions::get().tex_parameterf_func_ptr(target,
                                                              name,
                                                              value);
         }
 
-        GlDriverFunctions::get().bind_texture_func_ptr(GL_TEXTURE_2D,
+        GLDriverFunctions::get().bind_texture_func_ptr(GL_TEXTURE_2D,
                                                        texture);
     }
 }
 
-void Stereo::ConverterDLL::GlEyeRenderer::note_once(const std::string& in_key,
+void Stereo::ConverterDLL::GLEyeRenderer::note_once(const std::string& in_key,
                                                     const std::string& in_note)
 {
     if (std::find(m_noted_key_vec.begin(),
@@ -458,7 +458,7 @@ void Stereo::ConverterDLL::GlEyeRenderer::note_once(const std::string& in_key,
     }
 }
 
-bool Stereo::ConverterDLL::GlEyeRenderer::on_frame_ending(GlFrameImages* out_images_ptr)
+bool Stereo::ConverterDLL::GLEyeRenderer::on_frame_ending(GLFrameImages* out_images_ptr)
 {
     bool result = false;
 
@@ -502,7 +502,7 @@ end:
     return result;
 }
 
-void Stereo::ConverterDLL::GlEyeRenderer::on_post(const APIInterceptor::APIFunction&         in_function,
+void Stereo::ConverterDLL::GLEyeRenderer::on_post(const APIInterceptor::APIFunction&         in_function,
                                                   const uint32_t&                            in_n_arguments_out,
                                                   const APIInterceptor::APIFunctionArgument* in_arguments_out_ptr)
 {
@@ -525,7 +525,7 @@ void Stereo::ConverterDLL::GlEyeRenderer::on_post(const APIInterceptor::APIFunct
             {
                 const OwnCallScope own_call_scope;
 
-                GlDriverFunctions::get().end_list_func_ptr();
+                GLDriverFunctions::get().end_list_func_ptr();
 
                 m_is_in_block = false;
 
@@ -536,7 +536,7 @@ void Stereo::ConverterDLL::GlEyeRenderer::on_post(const APIInterceptor::APIFunct
 
                     const auto call_list_func = [list]()
                     {
-                        GlDriverFunctions::get().call_list_func_ptr(list);
+                        GLDriverFunctions::get().call_list_func_ptr(list);
                     };
 
                     play_eyes(call_list_func,
@@ -572,7 +572,7 @@ void Stereo::ConverterDLL::GlEyeRenderer::on_post(const APIInterceptor::APIFunct
     }
 }
 
-bool Stereo::ConverterDLL::GlEyeRenderer::on_pre(const APIInterceptor::APIFunction&         in_function,
+bool Stereo::ConverterDLL::GLEyeRenderer::on_pre(const APIInterceptor::APIFunction&         in_function,
                                                  const uint32_t&                            in_n_arguments,
                                                  const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
                                                  const bool&                                in_has_draws,
@@ -671,10 +671,10 @@ bool Stereo::ConverterDLL::GlEyeRenderer::on_pre(const APIInterceptor::APIFuncti
 
                 if (m_block_list == 0)
                 {
-                    m_block_list = GlDriverFunctions::get().gen_lists_func_ptr(1);
+                    m_block_list = GLDriverFunctions::get().gen_lists_func_ptr(1);
                 }
 
-                GlDriverFunctions::get().new_list_func_ptr(m_block_list,
+                GLDriverFunctions::get().new_list_func_ptr(m_block_list,
                                                            GL_COMPILE);
 
                 m_is_in_block = true;
@@ -739,7 +739,7 @@ bool Stereo::ConverterDLL::GlEyeRenderer::on_pre(const APIInterceptor::APIFuncti
 
                 m_targets.bind_eye(Analysis::Recipe::Eye::RIGHT);
 
-                GlDriverFunctions::get().clear_func_ptr(mask);
+                GLDriverFunctions::get().clear_func_ptr(mask);
 
                 m_targets.bind_eye(Analysis::Recipe::Eye::LEFT);
 
@@ -795,7 +795,7 @@ bool Stereo::ConverterDLL::GlEyeRenderer::on_pre(const APIInterceptor::APIFuncti
                     {
                         const GLuint twin = twin_it->second;
 
-                        GlDriverFunctions::get().delete_textures_func_ptr(1,
+                        GLDriverFunctions::get().delete_textures_func_ptr(1,
                                                                           &twin);
 
                         m_twin_map.erase(twin_it);
@@ -880,7 +880,7 @@ end:
             is_read_served == false);
 }
 
-bool Stereo::ConverterDLL::GlEyeRenderer::on_pre_draw(const APIInterceptor::APIFunction&         in_function,
+bool Stereo::ConverterDLL::GLEyeRenderer::on_pre_draw(const APIInterceptor::APIFunction&         in_function,
                                                       const uint32_t&                            in_n_arguments,
                                                       const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
                                                       const Analysis::Recipe::DrawClass&         in_draw_class,
@@ -900,7 +900,7 @@ bool Stereo::ConverterDLL::GlEyeRenderer::on_pre_draw(const APIInterceptor::APIF
             {
                 draw_func = [list]()
                 {
-                    GlDriverFunctions::get().call_list_func_ptr(list);
+                    GLDriverFunctions::get().call_list_func_ptr(list);
                 };
 
                 m_statistics.n_list_draws++;
@@ -925,7 +925,7 @@ bool Stereo::ConverterDLL::GlEyeRenderer::on_pre_draw(const APIInterceptor::APIF
             {
                 draw_func = [count, first, mode]()
                 {
-                    GlDriverFunctions::get().draw_arrays_func_ptr(mode,
+                    GLDriverFunctions::get().draw_arrays_func_ptr(mode,
                                                                   first,
                                                                   count);
                 };
@@ -956,7 +956,7 @@ bool Stereo::ConverterDLL::GlEyeRenderer::on_pre_draw(const APIInterceptor::APIF
 
                 draw_func = [count, indices_ptr, mode, type]()
                 {
-                    GlDriverFunctions::get().draw_elements_func_ptr(mode,
+                    GLDriverFunctions::get().draw_elements_func_ptr(mode,
                                                                     count,
                                                                     type,
                                                                     indices_ptr);
@@ -992,7 +992,7 @@ bool Stereo::ConverterDLL::GlEyeRenderer::on_pre_draw(const APIInterceptor::APIF
     return (draw_func == nullptr);
 }
 
-void Stereo::ConverterDLL::GlEyeRenderer::play_eyes(const std::function<void()>&       in_draw_func,
+void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&       in_draw_func,
                                                     const Analysis::Recipe::DrawClass& in_draw_class,
                                                     const bool&                        in_is_pushed)
 {
@@ -1022,7 +1022,7 @@ void Stereo::ConverterDLL::GlEyeRenderer::play_eyes(const std::function<void()>&
     /* The viewport is the one the draw is made with: a pushed draw is moved by moving its origin, which works for any projection. */
     if (in_is_pushed)
     {
-        GlDriverFunctions::get().get_integerv_func_ptr(VIEWPORT,
+        GLDriverFunctions::get().get_integerv_func_ptr(VIEWPORT,
                                                        saved_viewport.data() );
     }
 
@@ -1030,9 +1030,9 @@ void Stereo::ConverterDLL::GlEyeRenderer::play_eyes(const std::function<void()>&
     if (in_is_pushed &&
         is_last_draw_part)
     {
-        GlDriverFunctions::get().get_floatv_func_ptr(GL_MODELVIEW_MATRIX,
+        GLDriverFunctions::get().get_floatv_func_ptr(GL_MODELVIEW_MATRIX,
                                                      part_matrix.data() );
-        GlDriverFunctions::get().get_floatv_func_ptr(PROJECTION_MATRIX,
+        GLDriverFunctions::get().get_floatv_func_ptr(PROJECTION_MATRIX,
                                                      part_projection.data() );
 
         is_part = true;
@@ -1042,7 +1042,7 @@ void Stereo::ConverterDLL::GlEyeRenderer::play_eyes(const std::function<void()>&
         m_measures_depth                    &&
         m_pass_has_affected_draws == false)
     {
-        GlDriverFunctions::get().get_floatv_func_ptr(PROJECTION_MATRIX,
+        GLDriverFunctions::get().get_floatv_func_ptr(PROJECTION_MATRIX,
                                                      m_pass_projection_f32mat.data() );
 
         /* A projection that is not a perspective one (the last element is 0 in it, and the one before it is -1) says nothing of depth. */
@@ -1052,17 +1052,17 @@ void Stereo::ConverterDLL::GlEyeRenderer::play_eyes(const std::function<void()>&
 
     if (is_affected)
     {
-        GlDriverFunctions::get().get_integerv_func_ptr(GL_MATRIX_MODE,
+        GLDriverFunctions::get().get_integerv_func_ptr(GL_MATRIX_MODE,
                                                        &matrix_mode);
 
         has_read_matrix = true;
 
         if (matrix_mode != MODELVIEW)
         {
-            GlDriverFunctions::get().matrix_mode_func_ptr(MODELVIEW);
+            GLDriverFunctions::get().matrix_mode_func_ptr(MODELVIEW);
         }
 
-        GlDriverFunctions::get().get_floatv_func_ptr(GL_MODELVIEW_MATRIX,
+        GLDriverFunctions::get().get_floatv_func_ptr(GL_MODELVIEW_MATRIX,
                                                      saved_matrix.data() );
 
         /* A draw that is attached to the camera is made as it is: its origin is in front of the camera, and nearer than the part of the distance of convergence that the recipe says. */
@@ -1086,8 +1086,8 @@ void Stereo::ConverterDLL::GlEyeRenderer::play_eyes(const std::function<void()>&
         {
             const auto eye_matrix = m_core_ptr->make_eye_shift_matrix(eye);
 
-            GlDriverFunctions::get().load_matrixf_func_ptr(eye_matrix.data() );
-            GlDriverFunctions::get().mult_matrixf_func_ptr(saved_matrix.data() );
+            GLDriverFunctions::get().load_matrixf_func_ptr(eye_matrix.data() );
+            GLDriverFunctions::get().mult_matrixf_func_ptr(saved_matrix.data() );
         }
 
         select_textures(eye == Analysis::Recipe::Eye::RIGHT);
@@ -1109,7 +1109,7 @@ void Stereo::ConverterDLL::GlEyeRenderer::play_eyes(const std::function<void()>&
             }
 
             /* Toward zero, so that the shift never goes past what the planner allowed. */
-            GlDriverFunctions::get().viewport_func_ptr(saved_viewport.at(VIEWPORT_X) + static_cast<GLint>(shift_pixels),
+            GLDriverFunctions::get().viewport_func_ptr(saved_viewport.at(VIEWPORT_X) + static_cast<GLint>(shift_pixels),
                                                        saved_viewport.at(VIEWPORT_Y),
                                                        saved_viewport.at(VIEWPORT_WIDTH),
                                                        saved_viewport.at(VIEWPORT_HEIGHT) );
@@ -1120,7 +1120,7 @@ void Stereo::ConverterDLL::GlEyeRenderer::play_eyes(const std::function<void()>&
 
     if (in_is_pushed)
     {
-        GlDriverFunctions::get().viewport_func_ptr(saved_viewport.at(VIEWPORT_X),
+        GLDriverFunctions::get().viewport_func_ptr(saved_viewport.at(VIEWPORT_X),
                                                    saved_viewport.at(VIEWPORT_Y),
                                                    saved_viewport.at(VIEWPORT_WIDTH),
                                                    saved_viewport.at(VIEWPORT_HEIGHT) );
@@ -1130,17 +1130,17 @@ void Stereo::ConverterDLL::GlEyeRenderer::play_eyes(const std::function<void()>&
 
     if (is_affected)
     {
-        GlDriverFunctions::get().load_matrixf_func_ptr(saved_matrix.data() );
+        GLDriverFunctions::get().load_matrixf_func_ptr(saved_matrix.data() );
     }
 
     if (has_read_matrix                &&
         matrix_mode != MODELVIEW)
     {
-        GlDriverFunctions::get().matrix_mode_func_ptr(matrix_mode);
+        GLDriverFunctions::get().matrix_mode_func_ptr(matrix_mode);
     }
 }
 
-void Stereo::ConverterDLL::GlEyeRenderer::read_depth_at_once()
+void Stereo::ConverterDLL::GLEyeRenderer::read_depth_at_once()
 {
     uint32_t depth_height = 0;
     uint32_t depth_width  = 0;
@@ -1164,7 +1164,7 @@ void Stereo::ConverterDLL::GlEyeRenderer::read_depth_at_once()
     }
 }
 
-const void* Stereo::ConverterDLL::GlEyeRenderer::resolve_pointer(const APIInterceptor::APIFunctionArgument& in_argument) const
+const void* Stereo::ConverterDLL::GLEyeRenderer::resolve_pointer(const APIInterceptor::APIFunctionArgument& in_argument) const
 {
     const void* result = nullptr;
 
@@ -1190,7 +1190,7 @@ const void* Stereo::ConverterDLL::GlEyeRenderer::resolve_pointer(const APIInterc
     return result;
 }
 
-void Stereo::ConverterDLL::GlEyeRenderer::select_textures(const bool& in_are_twins)
+void Stereo::ConverterDLL::GLEyeRenderer::select_textures(const bool& in_are_twins)
 {
     if (m_twin_map.empty() == false)
     {
@@ -1212,7 +1212,7 @@ void Stereo::ConverterDLL::GlEyeRenderer::select_textures(const bool& in_are_twi
             /* Only the unit that is active can be bound without the function that changes it. */
             if (n_unit == m_active_unit)
             {
-                GlDriverFunctions::get().bind_texture_func_ptr(GL_TEXTURE_2D,
+                GLDriverFunctions::get().bind_texture_func_ptr(GL_TEXTURE_2D,
                                                                (in_are_twins) ? twin_it->second
                                                                : texture);
             }
@@ -1225,13 +1225,13 @@ void Stereo::ConverterDLL::GlEyeRenderer::select_textures(const bool& in_are_twi
     }
 }
 
-bool Stereo::ConverterDLL::GlEyeRenderer::serve_pixel_read(const uint32_t&                            in_n_arguments,
+bool Stereo::ConverterDLL::GLEyeRenderer::serve_pixel_read(const uint32_t&                            in_n_arguments,
                                                            const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
 {
     constexpr size_t N_PIXEL_BYTES = 3; /* R, G and B of a pixel that the application reads as GL_RGB */
 
     SinglePixelRead read;
-    const bool      is_read        = GlResolutionScaler::parse_single_pixel_read(in_n_arguments,
+    const bool      is_read        = GLResolutionScaler::parse_single_pixel_read(in_n_arguments,
                                                                                  in_arguments_ptr,
                                                                                 &read);
     const uint32_t  picture_height = m_scaler.get_asked_height();
@@ -1272,12 +1272,12 @@ bool Stereo::ConverterDLL::GlEyeRenderer::serve_pixel_read(const uint32_t&      
     return result;
 }
 
-void Stereo::ConverterDLL::GlEyeRenderer::set_get_chunk_func(const GetChunkFunc& in_get_chunk_func)
+void Stereo::ConverterDLL::GLEyeRenderer::set_get_chunk_func(const GetChunkFunc& in_get_chunk_func)
 {
     m_get_chunk_func = in_get_chunk_func;
 }
 
-void Stereo::ConverterDLL::GlEyeRenderer::start_depth_read()
+void Stereo::ConverterDLL::GLEyeRenderer::start_depth_read()
 {
     uint32_t slot = 0;
 
@@ -1301,14 +1301,14 @@ void Stereo::ConverterDLL::GlEyeRenderer::start_depth_read()
     }
 }
 
-bool Stereo::ConverterDLL::GlEyeRenderer::take_frame_depth(Stereo::Core::DepthRange* out_depth_range_ptr,
+bool Stereo::ConverterDLL::GLEyeRenderer::take_frame_depth(Stereo::Core::DepthRange* out_depth_range_ptr,
                                                            float*                    out_projection_scale_ptr)
 {
     return m_depth_ledger.take_ready(out_depth_range_ptr,
                                      out_projection_scale_ptr);
 }
 
-std::vector<std::string> Stereo::ConverterDLL::GlEyeRenderer::take_notes()
+std::vector<std::string> Stereo::ConverterDLL::GLEyeRenderer::take_notes()
 {
     std::vector<std::string> result;
 
@@ -1317,7 +1317,7 @@ std::vector<std::string> Stereo::ConverterDLL::GlEyeRenderer::take_notes()
     return result;
 }
 
-void Stereo::ConverterDLL::GlEyeRenderer::try_to_prepare()
+void Stereo::ConverterDLL::GLEyeRenderer::try_to_prepare()
 {
     const OwnCallScope own_call_scope;
     constexpr uint32_t MAX_FAILED_ATTEMPTS = 20;
@@ -1352,7 +1352,7 @@ void Stereo::ConverterDLL::GlEyeRenderer::try_to_prepare()
 
             GLint max_extent = 0;
 
-            GlDriverFunctions::get().get_integerv_func_ptr(MAX_RENDERBUFFER_SIZE,
+            GLDriverFunctions::get().get_integerv_func_ptr(MAX_RENDERBUFFER_SIZE,
                                                            &max_extent);
 
             m_scaler.plan(asked_width,
@@ -1372,11 +1372,11 @@ void Stereo::ConverterDLL::GlEyeRenderer::try_to_prepare()
             (real_width  != m_applied_width    ||
              real_height != m_applied_height) )
         {
-            GlDriverFunctions::get().viewport_func_ptr(0,
+            GLDriverFunctions::get().viewport_func_ptr(0,
                                                        0,
                                                        static_cast<GLsizei>(real_width),
                                                        static_cast<GLsizei>(real_height) );
-            GlDriverFunctions::get().scissor_func_ptr (0,
+            GLDriverFunctions::get().scissor_func_ptr (0,
                                                        0,
                                                        static_cast<GLsizei>(real_width),
                                                        static_cast<GLsizei>(real_height) );

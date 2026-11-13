@@ -5,9 +5,9 @@
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_function_policy.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_list_classifier.h"
 
-Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence Analysis::APIDumpAnalysis::Frontends::GlListClassifier::classify_call(const APIInterceptor::APIFunction& in_function)
+Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence Analysis::APIDumpAnalysis::Frontends::GLListClassifier::classify_call(const APIInterceptor::APIFunction& in_function)
 {
-    GlListEyeDependence result = GlListEyeDependence::INDEPENDENT;
+    GLListEyeDependence result = GLListEyeDependence::INDEPENDENT;
 
     switch (in_function)
     {
@@ -19,7 +19,7 @@ Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence Analysis::APIDumpAnaly
         case APIInterceptor::APIFUNCTION_GL_GLSCISSOR:
         case APIInterceptor::APIFUNCTION_GL_GLVIEWPORT:
         {
-            result = GlListEyeDependence::EYE_DEPENDENT;
+            result = GLListEyeDependence::EYE_DEPENDENT;
 
             break;
         }
@@ -33,7 +33,7 @@ Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence Analysis::APIDumpAnaly
         case APIInterceptor::APIFUNCTION_GL_GLTRANSLATED:
         case APIInterceptor::APIFUNCTION_GL_GLTRANSLATEF:
         {
-            result = GlListEyeDependence::RELATIVE_MATRIX_ONLY;
+            result = GLListEyeDependence::RELATIVE_MATRIX_ONLY;
 
             break;
         }
@@ -41,9 +41,9 @@ Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence Analysis::APIDumpAnaly
         default:
         {
             /* What is made relative to the matrix of the moment of the call (a light, a clip plane) is the eye's own, as far as the matrix is. */
-            if (GlFunctionPolicy::bakes_current_matrix(in_function) )
+            if (GLFunctionPolicy::bakes_current_matrix(in_function) )
             {
-                result = GlListEyeDependence::RELATIVE_MATRIX_ONLY;
+                result = GLListEyeDependence::RELATIVE_MATRIX_ONLY;
             }
 
             break;
@@ -53,8 +53,8 @@ Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence Analysis::APIDumpAnaly
     return result;
 }
 
-Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence Analysis::APIDumpAnalysis::Frontends::GlListClassifier::combine(const GlListEyeDependence& in_first,
-                                                                                                                          const GlListEyeDependence& in_second)
+Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence Analysis::APIDumpAnalysis::Frontends::GLListClassifier::combine(const GLListEyeDependence& in_first,
+                                                                                                                          const GLListEyeDependence& in_second)
 {
     const uint32_t first_rank  = get_rank(in_first);
     const uint32_t second_rank = get_rank(in_second);
@@ -63,20 +63,20 @@ Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence Analysis::APIDumpAnaly
                                        : in_second;
 }
 
-uint32_t Analysis::APIDumpAnalysis::Frontends::GlListClassifier::get_rank(const GlListEyeDependence& in_dependence)
+uint32_t Analysis::APIDumpAnalysis::Frontends::GLListClassifier::get_rank(const GLListEyeDependence& in_dependence)
 {
     uint32_t result = 0;
 
     switch (in_dependence)
     {
-        case GlListEyeDependence::EYE_DEPENDENT:
+        case GLListEyeDependence::EYE_DEPENDENT:
         {
             result = 2;
 
             break;
         }
 
-        case GlListEyeDependence::RELATIVE_MATRIX_ONLY:
+        case GLListEyeDependence::RELATIVE_MATRIX_ONLY:
         {
             result = 1;
 

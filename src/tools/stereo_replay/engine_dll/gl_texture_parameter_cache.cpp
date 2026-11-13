@@ -5,7 +5,7 @@
 #include "common/argument_reader.h"
 #include "gl_texture_parameter_cache.h"
 
-Stereo::Replay::EngineDLL::GlTextureParameterCache::GlTextureParameterCache()
+Stereo::Replay::EngineDLL::GLTextureParameterCache::GLTextureParameterCache()
     :m_active_unit                 (0),
      m_is_recording                (false),
      m_is_unit_known               (true), /* the unit of a context that is new */
@@ -19,12 +19,12 @@ Stereo::Replay::EngineDLL::GlTextureParameterCache::GlTextureParameterCache()
     /* Stub */
 }
 
-uint64_t Stereo::Replay::EngineDLL::GlTextureParameterCache::get_n_skipped_calls() const
+uint64_t Stereo::Replay::EngineDLL::GLTextureParameterCache::get_n_skipped_calls() const
 {
     return m_n_skipped_calls;
 }
 
-void Stereo::Replay::EngineDLL::GlTextureParameterCache::on_call_replayed(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+void Stereo::Replay::EngineDLL::GLTextureParameterCache::on_call_replayed(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                           const uint32_t&                              in_n_frame,
                                                                           const bool&                                  in_was_executed)
 {
@@ -166,7 +166,7 @@ void Stereo::Replay::EngineDLL::GlTextureParameterCache::on_call_replayed(const 
     }
 }
 
-bool Stereo::Replay::EngineDLL::GlTextureParameterCache::should_execute_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+bool Stereo::Replay::EngineDLL::GLTextureParameterCache::should_execute_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                              const uint32_t&                              in_n_frame)
 {
     uint32_t parameter = 0;
@@ -222,7 +222,7 @@ bool Stereo::Replay::EngineDLL::GlTextureParameterCache::should_execute_call(con
     return result;
 }
 
-const std::vector<unsigned int>& Stereo::Replay::EngineDLL::GlTextureParameterCache::get_cached_parameters()
+const std::vector<unsigned int>& Stereo::Replay::EngineDLL::GLTextureParameterCache::get_cached_parameters()
 {
     static const std::vector<unsigned int> result =
     {
@@ -241,7 +241,7 @@ const std::vector<unsigned int>& Stereo::Replay::EngineDLL::GlTextureParameterCa
     return result;
 }
 
-bool Stereo::Replay::EngineDLL::GlTextureParameterCache::find_bound_texture(const uint32_t& in_target,
+bool Stereo::Replay::EngineDLL::GLTextureParameterCache::find_bound_texture(const uint32_t& in_target,
                                                                             uint32_t*       out_texture_ptr) const
 {
     const BindingKey binding_key(m_active_unit,
@@ -262,7 +262,7 @@ bool Stereo::Replay::EngineDLL::GlTextureParameterCache::find_bound_texture(cons
     return result;
 }
 
-void Stereo::Replay::EngineDLL::GlTextureParameterCache::forget_all()
+void Stereo::Replay::EngineDLL::GLTextureParameterCache::forget_all()
 {
     /* A call of a list, or glPopAttrib, may have changed the active unit as well. */
     m_bound_texture_map.clear();
@@ -271,7 +271,7 @@ void Stereo::Replay::EngineDLL::GlTextureParameterCache::forget_all()
     m_is_unit_known = false;
 }
 
-void Stereo::Replay::EngineDLL::GlTextureParameterCache::update_for_executed_call(const Capture::APIDumpLoader::DumpedAPICall& in_call)
+void Stereo::Replay::EngineDLL::GLTextureParameterCache::update_for_executed_call(const Capture::APIDumpLoader::DumpedAPICall& in_call)
 {
     constexpr uint32_t TEXTURE0 = 0x84C0; /* GL_TEXTURE0 */
 
@@ -457,7 +457,7 @@ void Stereo::Replay::EngineDLL::GlTextureParameterCache::update_for_executed_cal
     }
 }
 
-bool Stereo::Replay::EngineDLL::GlTextureParameterCache::is_cached_parameter(const uint32_t& in_parameter)
+bool Stereo::Replay::EngineDLL::GLTextureParameterCache::is_cached_parameter(const uint32_t& in_parameter)
 {
     const auto& parameter_vec = get_cached_parameters();
     bool        result        = false;
@@ -475,7 +475,7 @@ bool Stereo::Replay::EngineDLL::GlTextureParameterCache::is_cached_parameter(con
     return result;
 }
 
-bool Stereo::Replay::EngineDLL::GlTextureParameterCache::is_texture_state_call(const APIInterceptor::APIFunction& in_function)
+bool Stereo::Replay::EngineDLL::GLTextureParameterCache::is_texture_state_call(const APIInterceptor::APIFunction& in_function)
 {
     bool result = false;
 
@@ -510,7 +510,7 @@ bool Stereo::Replay::EngineDLL::GlTextureParameterCache::is_texture_state_call(c
     return result;
 }
 
-bool Stereo::Replay::EngineDLL::GlTextureParameterCache::read_scalar_parameter_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+bool Stereo::Replay::EngineDLL::GLTextureParameterCache::read_scalar_parameter_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                                     uint32_t*                                    out_parameter_ptr,
                                                                                     uint32_t*                                    out_target_ptr,
                                                                                     double*                                      out_value_ptr)

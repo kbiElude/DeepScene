@@ -23,7 +23,7 @@ namespace Analysis
     {
         namespace Frontends
         {
-            class GlPipelineState
+            class GLPipelineState
             {
             public:
                 /* A draw made with what is set now, but for the geometry, which the caller adds. The camera of OpenGL looks down minus z. */
@@ -35,7 +35,7 @@ namespace Analysis
                                                 const uint32_t& in_capability) const;
 
                 /* Puts back what the groups of the mask hold (a mask of all the bits puts back all of it). */
-                void restore(const GlPipelineState& in_saved,
+                void restore(const GLPipelineState& in_saved,
                              const uint32_t&        in_mask);
 
                 void set_capability(const uint32_t& in_capability,
@@ -46,7 +46,7 @@ namespace Analysis
                                          const uint32_t& in_capability,
                                          const bool&     in_is_enabled);
 
-                void set_value(const GlStateValue& in_value,
+                void set_value(const GLStateValue& in_value,
                                const uint32_t&     in_setting);
 
                 /* True for the capabilities that each texture unit has its own of: the targets of the textures, and the generation of coordinates. */
@@ -65,10 +65,10 @@ namespace Analysis
                 static uint64_t get_unit_key(const uint32_t& in_unit,
                                              const uint32_t& in_capability);
 
-                static uint32_t get_value_groups(const GlStateValue& in_value);
+                static uint32_t get_value_groups(const GLStateValue& in_value);
 
                 std::set<uint64_t>               m_enabled_capability_set;
-                std::map<GlStateValue, uint32_t> m_value_map;
+                std::map<GLStateValue, uint32_t> m_value_map;
             };
         }
     }

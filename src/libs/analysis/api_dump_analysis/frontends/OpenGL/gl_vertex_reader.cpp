@@ -7,12 +7,12 @@
 #include "common/argument_reader.h"
 #include <string.h>
 
-bool Analysis::APIDumpAnalysis::Frontends::GlVertexReader::find_layout(const APIInterceptor::APIFunction& in_function,
-                                                                       GlVertexLayout*                    out_layout_ptr)
+bool Analysis::APIDumpAnalysis::Frontends::GLVertexReader::find_layout(const APIInterceptor::APIFunction& in_function,
+                                                                       GLVertexLayout*                    out_layout_ptr)
 {
     bool result = true;
 
-    *out_layout_ptr = GlVertexLayout();
+    *out_layout_ptr = GLVertexLayout();
 
     /* What each function takes: the number of components and their kind, and below whether it is the one of a pointer. */
     switch (in_function)
@@ -20,7 +20,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GlVertexReader::find_layout(const API
         case APIInterceptor::APIFUNCTION_GL_GLVERTEX2D:
         case APIInterceptor::APIFUNCTION_GL_GLVERTEX2DV:
         {
-            out_layout_ptr->component    = GlVertexComponent::DOUBLE;
+            out_layout_ptr->component    = GLVertexComponent::DOUBLE;
             out_layout_ptr->n_components = 2;
 
             break;
@@ -29,7 +29,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GlVertexReader::find_layout(const API
         case APIInterceptor::APIFUNCTION_GL_GLVERTEX2F:
         case APIInterceptor::APIFUNCTION_GL_GLVERTEX2FV:
         {
-            out_layout_ptr->component    = GlVertexComponent::FLOAT;
+            out_layout_ptr->component    = GLVertexComponent::FLOAT;
             out_layout_ptr->n_components = 2;
 
             break;
@@ -38,7 +38,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GlVertexReader::find_layout(const API
         case APIInterceptor::APIFUNCTION_GL_GLVERTEX2I:
         case APIInterceptor::APIFUNCTION_GL_GLVERTEX2IV:
         {
-            out_layout_ptr->component    = GlVertexComponent::INT;
+            out_layout_ptr->component    = GLVertexComponent::INT;
             out_layout_ptr->n_components = 2;
 
             break;
@@ -47,7 +47,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GlVertexReader::find_layout(const API
         case APIInterceptor::APIFUNCTION_GL_GLVERTEX2S:
         case APIInterceptor::APIFUNCTION_GL_GLVERTEX2SV:
         {
-            out_layout_ptr->component    = GlVertexComponent::SHORT;
+            out_layout_ptr->component    = GLVertexComponent::SHORT;
             out_layout_ptr->n_components = 2;
 
             break;
@@ -56,7 +56,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GlVertexReader::find_layout(const API
         case APIInterceptor::APIFUNCTION_GL_GLVERTEX3D:
         case APIInterceptor::APIFUNCTION_GL_GLVERTEX3DV:
         {
-            out_layout_ptr->component    = GlVertexComponent::DOUBLE;
+            out_layout_ptr->component    = GLVertexComponent::DOUBLE;
             out_layout_ptr->n_components = 3;
 
             break;
@@ -65,7 +65,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GlVertexReader::find_layout(const API
         case APIInterceptor::APIFUNCTION_GL_GLVERTEX3F:
         case APIInterceptor::APIFUNCTION_GL_GLVERTEX3FV:
         {
-            out_layout_ptr->component    = GlVertexComponent::FLOAT;
+            out_layout_ptr->component    = GLVertexComponent::FLOAT;
             out_layout_ptr->n_components = 3;
 
             break;
@@ -74,7 +74,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GlVertexReader::find_layout(const API
         case APIInterceptor::APIFUNCTION_GL_GLVERTEX3I:
         case APIInterceptor::APIFUNCTION_GL_GLVERTEX3IV:
         {
-            out_layout_ptr->component    = GlVertexComponent::INT;
+            out_layout_ptr->component    = GLVertexComponent::INT;
             out_layout_ptr->n_components = 3;
 
             break;
@@ -83,7 +83,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GlVertexReader::find_layout(const API
         case APIInterceptor::APIFUNCTION_GL_GLVERTEX3S:
         case APIInterceptor::APIFUNCTION_GL_GLVERTEX3SV:
         {
-            out_layout_ptr->component    = GlVertexComponent::SHORT;
+            out_layout_ptr->component    = GLVertexComponent::SHORT;
             out_layout_ptr->n_components = 3;
 
             break;
@@ -92,7 +92,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GlVertexReader::find_layout(const API
         case APIInterceptor::APIFUNCTION_GL_GLVERTEX4D:
         case APIInterceptor::APIFUNCTION_GL_GLVERTEX4DV:
         {
-            out_layout_ptr->component    = GlVertexComponent::DOUBLE;
+            out_layout_ptr->component    = GLVertexComponent::DOUBLE;
             out_layout_ptr->n_components = 4;
 
             break;
@@ -101,7 +101,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GlVertexReader::find_layout(const API
         case APIInterceptor::APIFUNCTION_GL_GLVERTEX4F:
         case APIInterceptor::APIFUNCTION_GL_GLVERTEX4FV:
         {
-            out_layout_ptr->component    = GlVertexComponent::FLOAT;
+            out_layout_ptr->component    = GLVertexComponent::FLOAT;
             out_layout_ptr->n_components = 4;
 
             break;
@@ -110,7 +110,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GlVertexReader::find_layout(const API
         case APIInterceptor::APIFUNCTION_GL_GLVERTEX4I:
         case APIInterceptor::APIFUNCTION_GL_GLVERTEX4IV:
         {
-            out_layout_ptr->component    = GlVertexComponent::INT;
+            out_layout_ptr->component    = GLVertexComponent::INT;
             out_layout_ptr->n_components = 4;
 
             break;
@@ -119,7 +119,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GlVertexReader::find_layout(const API
         case APIInterceptor::APIFUNCTION_GL_GLVERTEX4S:
         case APIInterceptor::APIFUNCTION_GL_GLVERTEX4SV:
         {
-            out_layout_ptr->component    = GlVertexComponent::SHORT;
+            out_layout_ptr->component    = GLVertexComponent::SHORT;
             out_layout_ptr->n_components = 4;
 
             break;
@@ -165,36 +165,36 @@ bool Analysis::APIDumpAnalysis::Frontends::GlVertexReader::find_layout(const API
     return result;
 }
 
-bool Analysis::APIDumpAnalysis::Frontends::GlVertexReader::read_components(const Capture::APIDumpLoader::DataChunk& in_chunk,
-                                                                           const GlVertexLayout&                    in_layout,
+bool Analysis::APIDumpAnalysis::Frontends::GLVertexReader::read_components(const Capture::APIDumpLoader::DataChunk& in_chunk,
+                                                                           const GLVertexLayout&                    in_layout,
                                                                            std::array<double, 4>*                   out_component_array_ptr)
 {
     size_t component_n_bytes = 0;
 
     switch (in_layout.component)
     {
-        case GlVertexComponent::DOUBLE:
+        case GLVertexComponent::DOUBLE:
         {
             component_n_bytes = sizeof(double);
 
             break;
         }
 
-        case GlVertexComponent::FLOAT:
+        case GLVertexComponent::FLOAT:
         {
             component_n_bytes = sizeof(float);
 
             break;
         }
 
-        case GlVertexComponent::INT:
+        case GLVertexComponent::INT:
         {
             component_n_bytes = sizeof(int32_t);
 
             break;
         }
 
-        case GlVertexComponent::SHORT:
+        case GLVertexComponent::SHORT:
         {
             component_n_bytes = sizeof(int16_t);
 
@@ -221,7 +221,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GlVertexReader::read_components(const
 
             switch (in_layout.component)
             {
-                case GlVertexComponent::DOUBLE:
+                case GLVertexComponent::DOUBLE:
                 {
                     double value = 0.0;
 
@@ -234,7 +234,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GlVertexReader::read_components(const
                     break;
                 }
 
-                case GlVertexComponent::FLOAT:
+                case GLVertexComponent::FLOAT:
                 {
                     float value = 0.0f;
 
@@ -247,7 +247,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GlVertexReader::read_components(const
                     break;
                 }
 
-                case GlVertexComponent::INT:
+                case GLVertexComponent::INT:
                 {
                     int32_t value = 0;
 
@@ -260,7 +260,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GlVertexReader::read_components(const
                     break;
                 }
 
-                case GlVertexComponent::SHORT:
+                case GLVertexComponent::SHORT:
                 {
                     int16_t value = 0;
 
@@ -284,14 +284,14 @@ bool Analysis::APIDumpAnalysis::Frontends::GlVertexReader::read_components(const
     return result;
 }
 
-bool Analysis::APIDumpAnalysis::Frontends::GlVertexReader::read_position(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+bool Analysis::APIDumpAnalysis::Frontends::GLVertexReader::read_position(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                          const Capture::APIDumpLoader::Workload&      in_workload,
                                                                          std::array<float, 3>*                        out_position_ptr)
 {
     constexpr size_t POINTER_ARGUMENT = 0;
 
     std::array<double, 4> component_array = {};
-    GlVertexLayout        layout;
+    GLVertexLayout        layout;
     bool                  result          = find_layout(in_call.func,
                                                         &layout);
 

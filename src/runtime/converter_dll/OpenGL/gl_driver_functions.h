@@ -14,7 +14,7 @@ namespace Stereo
         /* The functions of OpenGL 1.1 that the converter calls, as the driver has them: not the hooks, which, besides the callbacks, record the data of a
          * call (a read of pixels makes a copy of them) for a program that is watching the application, and are of no use for what the converter does itself.
          */
-        struct GlDriverFunctions
+        struct GLDriverFunctions
         {
             PFNGLBINDTEXTUREPROC             bind_texture_func_ptr               = nullptr;
             PFNGLCALLLISTPROC                call_list_func_ptr                  = nullptr;
@@ -49,7 +49,7 @@ namespace Stereo
             PFNGLVIEWPORTPROC                viewport_func_ptr                   = nullptr;
 
             /* The functions, found once. */
-            static const GlDriverFunctions& get();
+            static const GLDriverFunctions& get();
         };
     }
 }

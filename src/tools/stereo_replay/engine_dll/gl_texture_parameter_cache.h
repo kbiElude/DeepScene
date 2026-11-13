@@ -29,10 +29,10 @@ namespace Stereo
              * the deletion of textures, glPopAttrib, a context made or deleted, a call that another interceptor left out, and a replay that starts over. The first
              * call that gives a parameter of a texture its value is never left out, as the value that it has until then is not known.
              */
-            class GlTextureParameterCache : public ::Replay::ReplayEngineDLL::ICallInterceptor
+            class GLTextureParameterCache : public ::Replay::ReplayEngineDLL::ICallInterceptor
             {
             public:
-                GlTextureParameterCache();
+                GLTextureParameterCache();
 
                 /* The calls that were left out since the cache was made. */
                 uint64_t get_n_skipped_calls() const;

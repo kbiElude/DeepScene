@@ -3,8 +3,8 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
  * Makes a draw of the model of a call of glDrawArrays or glDrawElements whose vertices (and indices) are in the memory of the application. The
- * dumper copies what such a draw reads and stores the copy in the call (see GlClientArraySnapshot); each array of it, and the indices, are
- * resources of the model that are made once for the same bytes (see GlBlobStore), whatever the frame they are seen in.
+ * dumper copies what such a draw reads and stores the copy in the call (see GLClientArraySnapshot); each array of it, and the indices, are
+ * resources of the model that are made once for the same bytes (see GLBlobStore), whatever the frame they are seen in.
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_ARRAY_DRAW_DESCRIBER_H
 #define APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_ARRAY_DRAW_DESCRIBER_H
@@ -23,29 +23,29 @@ namespace Analysis
     {
         namespace Frontends
         {
-            class GlArrayDrawDescriber
+            class GLArrayDrawDescriber
             {
             public:
                 /* The builder must outlive the describer. */
-                explicit GlArrayDrawDescriber(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr);
+                explicit GLArrayDrawDescriber(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr);
 
                 /* The draw that the call makes, with what the pipeline has set now; the description is only written if the result is DRAW. */
-                GlArrayDrawResult describe(const Capture::APIDumpLoader::DumpedAPICall&        in_call,
+                GLArrayDrawResult describe(const Capture::APIDumpLoader::DumpedAPICall&        in_call,
                                            const Capture::APIDumpLoader::Workload&             in_workload,
                                            const bool&                                         in_is_indexed,
                                            const Analysis::APIDumpAnalysis::PrimitiveTopology& in_topology,
-                                           const GlPipelineState&                              in_pipeline_state,
+                                           const GLPipelineState&                              in_pipeline_state,
                                            Analysis::APIDumpAnalysis::DrawDescription*         out_description_ptr);
 
                 /* The data that draws have read from the memory of the application, as resources. */
-                const GlBlobStore& get_blob_store() const;
+                const GLBlobStore& get_blob_store() const;
 
                 /* The frame is over: the data that was read in it only is let go of. */
                 void on_frame_ended();
 
             private:
                 /* The sample of the geometry of the draw, from the array of the positions; null if none of the vertices could be read. */
-                std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> make_geometry_sample(const std::vector<GlClientArray>&        in_array_vec,
+                std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> make_geometry_sample(const std::vector<GLClientArray>&        in_array_vec,
                                                                                                       const Capture::APIDumpLoader::DataChunk* in_indices_chunk_ptr,
                                                                                                       const uint32_t&                          in_index_type,
                                                                                                       const int32_t&                           in_first,
@@ -56,7 +56,7 @@ namespace Analysis
                                            const uint32_t&                          in_index_type,
                                            const size_t&                            in_place);
 
-                GlBlobStore                              m_blob_store;
+                GLBlobStore                              m_blob_store;
                 Analysis::APIDumpAnalysis::ModelBuilder* m_builder_ptr;
             };
         }

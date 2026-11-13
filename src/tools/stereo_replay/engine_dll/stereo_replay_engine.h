@@ -61,7 +61,7 @@ namespace Stereo
                 PresentSkipper                                    m_present_skipper;
                 uint32_t                                          m_seek_target_frame;
                 SliceSkipper                                      m_slice_skipper;
-                GlTextureParameterCache                           m_texture_parameter_cache;
+                GLTextureParameterCache                           m_texture_parameter_cache;
                 std::string                                       m_workload_filename; /* what was loaded; the dependencies are checked against it */
                 StereoFrameExecutor                               m_stereo_executor;
                 PacedFrameExecutor                                m_paced_executor;

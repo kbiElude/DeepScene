@@ -5,7 +5,7 @@
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_pipeline_state.h"
 #include "utils/hashing/hasher.h"
 
-uint64_t Analysis::APIDumpAnalysis::Frontends::GlPipelineState::compute_state_key() const
+uint64_t Analysis::APIDumpAnalysis::Frontends::GLPipelineState::compute_state_key() const
 {
     Utils::Hashing::Hasher hasher;
 
@@ -24,7 +24,7 @@ uint64_t Analysis::APIDumpAnalysis::Frontends::GlPipelineState::compute_state_ke
     return hasher.get_digest();
 }
 
-Analysis::APIDumpAnalysis::DrawDescription Analysis::APIDumpAnalysis::Frontends::GlPipelineState::describe_draw(const Analysis::APIDumpAnalysis::PrimitiveTopology& in_topology,
+Analysis::APIDumpAnalysis::DrawDescription Analysis::APIDumpAnalysis::Frontends::GLPipelineState::describe_draw(const Analysis::APIDumpAnalysis::PrimitiveTopology& in_topology,
                                                                                                                 const uint32_t&                                     in_vertex_count) const
 {
     constexpr uint32_t BLEND        = 0x0BE2;
@@ -48,7 +48,7 @@ Analysis::APIDumpAnalysis::DrawDescription Analysis::APIDumpAnalysis::Frontends:
     return result;
 }
 
-uint32_t Analysis::APIDumpAnalysis::Frontends::GlPipelineState::get_capability_groups(const uint32_t& in_capability)
+uint32_t Analysis::APIDumpAnalysis::Frontends::GLPipelineState::get_capability_groups(const uint32_t& in_capability)
 {
     constexpr uint32_t COLOR_BUFFER_BIT   = 0x00004000;
     constexpr uint32_t DEPTH_BUFFER_BIT   = 0x00000100;
@@ -155,14 +155,14 @@ uint32_t Analysis::APIDumpAnalysis::Frontends::GlPipelineState::get_capability_g
     return result;
 }
 
-uint64_t Analysis::APIDumpAnalysis::Frontends::GlPipelineState::get_unit_key(const uint32_t& in_unit,
+uint64_t Analysis::APIDumpAnalysis::Frontends::GLPipelineState::get_unit_key(const uint32_t& in_unit,
                                                                              const uint32_t& in_capability)
 {
     /* The unit is in the upper half, from 1 on, so that no key of a unit is a key of a capability that has none. */
     return (static_cast<uint64_t>(in_unit) + 1) << 32 | in_capability;
 }
 
-uint32_t Analysis::APIDumpAnalysis::Frontends::GlPipelineState::get_value_groups(const GlStateValue& in_value)
+uint32_t Analysis::APIDumpAnalysis::Frontends::GLPipelineState::get_value_groups(const GLStateValue& in_value)
 {
     constexpr uint32_t COLOR_BUFFER_BIT = 0x00004000;
     constexpr uint32_t DEPTH_BUFFER_BIT = 0x00000100;
@@ -173,34 +173,34 @@ uint32_t Analysis::APIDumpAnalysis::Frontends::GlPipelineState::get_value_groups
 
     switch (in_value)
     {
-        case GlStateValue::ALPHA_FUNC:
-        case GlStateValue::BLEND_DESTINATION:
-        case GlStateValue::BLEND_SOURCE:
-        case GlStateValue::COLOR_MASK:
+        case GLStateValue::ALPHA_FUNC:
+        case GLStateValue::BLEND_DESTINATION:
+        case GLStateValue::BLEND_SOURCE:
+        case GLStateValue::COLOR_MASK:
         {
             result = COLOR_BUFFER_BIT;
 
             break;
         }
 
-        case GlStateValue::CULL_FACE:
-        case GlStateValue::POLYGON_MODE_BACK:
-        case GlStateValue::POLYGON_MODE_FRONT:
+        case GLStateValue::CULL_FACE:
+        case GLStateValue::POLYGON_MODE_BACK:
+        case GLStateValue::POLYGON_MODE_FRONT:
         {
             result = POLYGON_BIT;
 
             break;
         }
 
-        case GlStateValue::DEPTH_FUNC:
-        case GlStateValue::DEPTH_MASK:
+        case GLStateValue::DEPTH_FUNC:
+        case GLStateValue::DEPTH_MASK:
         {
             result = DEPTH_BUFFER_BIT;
 
             break;
         }
 
-        case GlStateValue::SHADE_MODEL:
+        case GLStateValue::SHADE_MODEL:
         {
             result = LIGHTING_BIT;
 
@@ -216,7 +216,7 @@ uint32_t Analysis::APIDumpAnalysis::Frontends::GlPipelineState::get_value_groups
     return result;
 }
 
-bool Analysis::APIDumpAnalysis::Frontends::GlPipelineState::is_unit_capability(const uint32_t& in_capability)
+bool Analysis::APIDumpAnalysis::Frontends::GLPipelineState::is_unit_capability(const uint32_t& in_capability)
 {
     bool result = false;
 
@@ -245,7 +245,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GlPipelineState::is_unit_capability(c
     return result;
 }
 
-bool Analysis::APIDumpAnalysis::Frontends::GlPipelineState::is_unit_capability_enabled(const uint32_t& in_unit,
+bool Analysis::APIDumpAnalysis::Frontends::GLPipelineState::is_unit_capability_enabled(const uint32_t& in_unit,
                                                                                        const uint32_t& in_capability) const
 {
     const uint64_t key = get_unit_key(in_unit,
@@ -254,11 +254,11 @@ bool Analysis::APIDumpAnalysis::Frontends::GlPipelineState::is_unit_capability_e
     return (m_enabled_capability_set.count(key) != 0);
 }
 
-void Analysis::APIDumpAnalysis::Frontends::GlPipelineState::restore(const GlPipelineState& in_saved,
+void Analysis::APIDumpAnalysis::Frontends::GLPipelineState::restore(const GLPipelineState& in_saved,
                                                                     const uint32_t&        in_mask)
 {
     std::set<uint64_t>               capability_set = m_enabled_capability_set;
-    std::map<GlStateValue, uint32_t> value_map      = m_value_map;
+    std::map<GLStateValue, uint32_t> value_map      = m_value_map;
 
     /* What is enabled now, and what was when the state was saved: the capability of a group of the mask is as it was. */
     capability_set.insert(in_saved.m_enabled_capability_set.begin(),
@@ -299,14 +299,14 @@ void Analysis::APIDumpAnalysis::Frontends::GlPipelineState::restore(const GlPipe
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::GlPipelineState::set_capability(const uint32_t& in_capability,
+void Analysis::APIDumpAnalysis::Frontends::GLPipelineState::set_capability(const uint32_t& in_capability,
                                                                            const bool&     in_is_enabled)
 {
     set_key(in_capability,
             in_is_enabled);
 }
 
-void Analysis::APIDumpAnalysis::Frontends::GlPipelineState::set_key(const uint64_t& in_key,
+void Analysis::APIDumpAnalysis::Frontends::GLPipelineState::set_key(const uint64_t& in_key,
                                                                     const bool&     in_is_enabled)
 {
     if (in_is_enabled)
@@ -319,7 +319,7 @@ void Analysis::APIDumpAnalysis::Frontends::GlPipelineState::set_key(const uint64
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::GlPipelineState::set_unit_capability(const uint32_t& in_unit,
+void Analysis::APIDumpAnalysis::Frontends::GLPipelineState::set_unit_capability(const uint32_t& in_unit,
                                                                                 const uint32_t& in_capability,
                                                                                 const bool&     in_is_enabled)
 {
@@ -330,7 +330,7 @@ void Analysis::APIDumpAnalysis::Frontends::GlPipelineState::set_unit_capability(
             in_is_enabled);
 }
 
-void Analysis::APIDumpAnalysis::Frontends::GlPipelineState::set_value(const GlStateValue& in_value,
+void Analysis::APIDumpAnalysis::Frontends::GLPipelineState::set_value(const GLStateValue& in_value,
                                                                       const uint32_t&     in_setting)
 {
     m_value_map[in_value] = in_setting;

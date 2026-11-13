@@ -36,7 +36,7 @@ namespace
     constexpr uint32_t DEPTH_PROBE_WIDTH = 320;
 }
 
-Stereo::ConverterDLL::GlEyeTargets::GlEyeTargets()
+Stereo::ConverterDLL::GLEyeTargets::GLEyeTargets()
     :m_context_ptr               (nullptr),
      m_depth_buffer_array        (),
      m_generation                (0),
@@ -55,7 +55,7 @@ Stereo::ConverterDLL::GlEyeTargets::GlEyeTargets()
     /* Stub */
 }
 
-bool Stereo::ConverterDLL::GlEyeTargets::are_pack_modes_default()
+bool Stereo::ConverterDLL::GLEyeTargets::are_pack_modes_default()
 {
     constexpr std::array<GLenum, 5> MODE_ARRAY = {PACK_LSB_FIRST,
                                                   PACK_ROW_LENGTH,
@@ -66,7 +66,7 @@ bool Stereo::ConverterDLL::GlEyeTargets::are_pack_modes_default()
     GLint buffer = 0;
     bool  result = false;
 
-    GlDriverFunctions::get().get_integerv_func_ptr(PIXEL_PACK_BUFFER_BINDING,
+    GLDriverFunctions::get().get_integerv_func_ptr(PIXEL_PACK_BUFFER_BINDING,
                                                   &buffer);
 
     result = (buffer == 0);
@@ -75,7 +75,7 @@ bool Stereo::ConverterDLL::GlEyeTargets::are_pack_modes_default()
     {
         GLint value = 0;
 
-        GlDriverFunctions::get().get_integerv_func_ptr(mode,
+        GLDriverFunctions::get().get_integerv_func_ptr(mode,
                                                       &value);
 
         result = (result && value == 0);
@@ -84,7 +84,7 @@ bool Stereo::ConverterDLL::GlEyeTargets::are_pack_modes_default()
     return result;
 }
 
-bool Stereo::ConverterDLL::GlEyeTargets::begin_depth_read(uint32_t* out_slot_ptr)
+bool Stereo::ConverterDLL::GLEyeTargets::begin_depth_read(uint32_t* out_slot_ptr)
 {
     constexpr size_t N_BYTES_PER_DEPTH = sizeof(float);
 
@@ -106,7 +106,7 @@ bool Stereo::ConverterDLL::GlEyeTargets::begin_depth_read(uint32_t* out_slot_ptr
             GLint saved_alignment   = 4;
             GLint saved_pack_buffer = 0;
 
-            GlDriverFunctions::get().get_integerv_func_ptr(PIXEL_PACK_BUFFER_BINDING,
+            GLDriverFunctions::get().get_integerv_func_ptr(PIXEL_PACK_BUFFER_BINDING,
                                                           &saved_pack_buffer);
 
             /* The buffer of a slot is made when the slot is first used, with room for the small copy of the depth. */
@@ -136,13 +136,13 @@ bool Stereo::ConverterDLL::GlEyeTargets::begin_depth_read(uint32_t* out_slot_ptr
             m_functions.bind_framebuffer_func_ptr(FRAMEBUFFER,
                                                   m_depth_probe.framebuffer);
 
-            GlDriverFunctions::get().get_integerv_func_ptr(PACK_ALIGNMENT,
+            GLDriverFunctions::get().get_integerv_func_ptr(PACK_ALIGNMENT,
                                                           &saved_alignment);
-            GlDriverFunctions::get().pixel_storei_func_ptr(PACK_ALIGNMENT,
+            GLDriverFunctions::get().pixel_storei_func_ptr(PACK_ALIGNMENT,
                                                            1);
 
             /* With a buffer bound the pixels go to it, at its start. */
-            GlDriverFunctions::get().read_pixels_func_ptr(0,
+            GLDriverFunctions::get().read_pixels_func_ptr(0,
                                                           0,
                                                           static_cast<GLsizei>(m_probe_width),
                                                           static_cast<GLsizei>(m_probe_height),
@@ -150,7 +150,7 @@ bool Stereo::ConverterDLL::GlEyeTargets::begin_depth_read(uint32_t* out_slot_ptr
                                                           GL_FLOAT,
                                                           nullptr);
 
-            GlDriverFunctions::get().pixel_storei_func_ptr(PACK_ALIGNMENT,
+            GLDriverFunctions::get().pixel_storei_func_ptr(PACK_ALIGNMENT,
                                                            saved_alignment);
 
             /* The buffer that the application had bound for pixels to be packed to is bound again. */
@@ -169,7 +169,7 @@ bool Stereo::ConverterDLL::GlEyeTargets::begin_depth_read(uint32_t* out_slot_ptr
     return result;
 }
 
-bool Stereo::ConverterDLL::GlEyeTargets::bind_eye(const Analysis::Recipe::Eye& in_eye)
+bool Stereo::ConverterDLL::GLEyeTargets::bind_eye(const Analysis::Recipe::Eye& in_eye)
 {
     const OwnCallScope own_call_scope;
 
@@ -183,17 +183,17 @@ bool Stereo::ConverterDLL::GlEyeTargets::bind_eye(const Analysis::Recipe::Eye& i
     return m_is_ready;
 }
 
-void Stereo::ConverterDLL::GlEyeTargets::blit_left_eye(const uint32_t&   in_destination_framebuffer,
+void Stereo::ConverterDLL::GLEyeTargets::blit_left_eye(const uint32_t&   in_destination_framebuffer,
                                                        const uint32_t&   in_destination_width,
                                                        const uint32_t&   in_destination_height,
                                                        const GLbitfield& in_mask)
 {
     /* A blit is cut to the scissor box if the test is on, which the application has made the box of something else. */
-    const bool is_scissor_on = (GlDriverFunctions::get().is_enabled_func_ptr(SCISSOR_TEST) != GL_FALSE);
+    const bool is_scissor_on = (GLDriverFunctions::get().is_enabled_func_ptr(SCISSOR_TEST) != GL_FALSE);
 
     if (is_scissor_on)
     {
-        GlDriverFunctions::get().disable_func_ptr(SCISSOR_TEST);
+        GLDriverFunctions::get().disable_func_ptr(SCISSOR_TEST);
     }
 
     m_functions.bind_framebuffer_func_ptr(READ_FRAMEBUFFER,
@@ -213,11 +213,11 @@ void Stereo::ConverterDLL::GlEyeTargets::blit_left_eye(const uint32_t&   in_dest
 
     if (is_scissor_on)
     {
-        GlDriverFunctions::get().enable_func_ptr(SCISSOR_TEST);
+        GLDriverFunctions::get().enable_func_ptr(SCISSOR_TEST);
     }
 }
 
-void Stereo::ConverterDLL::GlEyeTargets::blit_left_to_window()
+void Stereo::ConverterDLL::GLEyeTargets::blit_left_to_window()
 {
     const OwnCallScope own_call_scope;
 
@@ -234,7 +234,7 @@ void Stereo::ConverterDLL::GlEyeTargets::blit_left_to_window()
     }
 }
 
-bool Stereo::ConverterDLL::GlEyeTargets::ensure(const void*     in_context_ptr,
+bool Stereo::ConverterDLL::GLEyeTargets::ensure(const void*     in_context_ptr,
                                                 const uint32_t& in_width,
                                                 const uint32_t& in_height)
 {
@@ -313,7 +313,7 @@ end:
     return m_is_ready;
 }
 
-bool Stereo::ConverterDLL::GlEyeTargets::finish_depth_read(const uint32_t&  in_slot,
+bool Stereo::ConverterDLL::GLEyeTargets::finish_depth_read(const uint32_t&  in_slot,
                                                            const DepthFunc& in_depth_func)
 {
     const OwnCallScope own_call_scope;
@@ -326,7 +326,7 @@ bool Stereo::ConverterDLL::GlEyeTargets::finish_depth_read(const uint32_t&  in_s
         {
             GLint saved_pack_buffer = 0;
 
-            GlDriverFunctions::get().get_integerv_func_ptr(PIXEL_PACK_BUFFER_BINDING,
+            GLDriverFunctions::get().get_integerv_func_ptr(PIXEL_PACK_BUFFER_BINDING,
                                                           &saved_pack_buffer);
 
             m_functions.bind_buffer_func_ptr(PIXEL_PACK_BUFFER,
@@ -356,32 +356,32 @@ bool Stereo::ConverterDLL::GlEyeTargets::finish_depth_read(const uint32_t&  in_s
     return result;
 }
 
-const void* Stereo::ConverterDLL::GlEyeTargets::get_context_ptr() const
+const void* Stereo::ConverterDLL::GLEyeTargets::get_context_ptr() const
 {
     return m_context_ptr;
 }
 
-const Stereo::ConverterDLL::GlExtensionFunctions& Stereo::ConverterDLL::GlEyeTargets::get_functions() const
+const Stereo::ConverterDLL::GLExtensionFunctions& Stereo::ConverterDLL::GLEyeTargets::get_functions() const
 {
     return m_functions;
 }
 
-uint32_t Stereo::ConverterDLL::GlEyeTargets::get_generation() const
+uint32_t Stereo::ConverterDLL::GLEyeTargets::get_generation() const
 {
     return m_generation;
 }
 
-uint32_t Stereo::ConverterDLL::GlEyeTargets::get_height() const
+uint32_t Stereo::ConverterDLL::GLEyeTargets::get_height() const
 {
     return m_height;
 }
 
-uint32_t Stereo::ConverterDLL::GlEyeTargets::get_width() const
+uint32_t Stereo::ConverterDLL::GLEyeTargets::get_width() const
 {
     return m_width;
 }
 
-bool Stereo::ConverterDLL::GlEyeTargets::has_depth_read_buffers() const
+bool Stereo::ConverterDLL::GLEyeTargets::has_depth_read_buffers() const
 {
     return (m_is_ready                                     &&
             m_has_depth_probe                              &&
@@ -393,12 +393,12 @@ bool Stereo::ConverterDLL::GlEyeTargets::has_depth_read_buffers() const
             m_functions.unmap_buffer_func_ptr   != nullptr);
 }
 
-bool Stereo::ConverterDLL::GlEyeTargets::is_ready() const
+bool Stereo::ConverterDLL::GLEyeTargets::is_ready() const
 {
     return m_is_ready;
 }
 
-bool Stereo::ConverterDLL::GlEyeTargets::make_target(const uint32_t& in_width,
+bool Stereo::ConverterDLL::GLEyeTargets::make_target(const uint32_t& in_width,
                                                      const uint32_t& in_height,
                                                      EyeTarget*      out_target_ptr)
 {
@@ -438,7 +438,7 @@ bool Stereo::ConverterDLL::GlEyeTargets::make_target(const uint32_t& in_width,
     return (m_functions.check_framebuffer_status_func_ptr(FRAMEBUFFER) == FRAMEBUFFER_COMPLETE);
 }
 
-bool Stereo::ConverterDLL::GlEyeTargets::read_depth(std::vector<float>* out_depth_f32_vec_ptr,
+bool Stereo::ConverterDLL::GLEyeTargets::read_depth(std::vector<float>* out_depth_f32_vec_ptr,
                                                     uint32_t*           out_width_ptr,
                                                     uint32_t*           out_height_ptr)
 {
@@ -474,12 +474,12 @@ bool Stereo::ConverterDLL::GlEyeTargets::read_depth(std::vector<float>* out_dept
             bind_eye(Analysis::Recipe::Eye::LEFT);
         }
 
-        GlDriverFunctions::get().get_integerv_func_ptr(PACK_ALIGNMENT,
+        GLDriverFunctions::get().get_integerv_func_ptr(PACK_ALIGNMENT,
                                                        &saved_alignment);
-        GlDriverFunctions::get().pixel_storei_func_ptr(PACK_ALIGNMENT,
+        GLDriverFunctions::get().pixel_storei_func_ptr(PACK_ALIGNMENT,
                                                        1);
 
-        GlDriverFunctions::get().read_pixels_func_ptr(0,
+        GLDriverFunctions::get().read_pixels_func_ptr(0,
                                                       0,
                                                       static_cast<GLsizei>(width),
                                                       static_cast<GLsizei>(height),
@@ -487,7 +487,7 @@ bool Stereo::ConverterDLL::GlEyeTargets::read_depth(std::vector<float>* out_dept
                                                       GL_FLOAT,
                                                       out_depth_f32_vec_ptr->data() );
 
-        GlDriverFunctions::get().pixel_storei_func_ptr(PACK_ALIGNMENT,
+        GLDriverFunctions::get().pixel_storei_func_ptr(PACK_ALIGNMENT,
                                                        saved_alignment);
 
         bind_eye(Analysis::Recipe::Eye::LEFT);
@@ -496,7 +496,7 @@ bool Stereo::ConverterDLL::GlEyeTargets::read_depth(std::vector<float>* out_dept
     return result;
 }
 
-bool Stereo::ConverterDLL::GlEyeTargets::read_eye(const Analysis::Recipe::Eye& in_eye,
+bool Stereo::ConverterDLL::GLEyeTargets::read_eye(const Analysis::Recipe::Eye& in_eye,
                                                   void*                        out_pixels_ptr)
 {
     constexpr GLenum BGRA = 0x80E1;
@@ -507,14 +507,14 @@ bool Stereo::ConverterDLL::GlEyeTargets::read_eye(const Analysis::Recipe::Eye& i
 
     if (m_is_ready)
     {
-        GlDriverFunctions::get().get_integerv_func_ptr(PACK_ALIGNMENT,
+        GLDriverFunctions::get().get_integerv_func_ptr(PACK_ALIGNMENT,
                                                        &saved_alignment);
-        GlDriverFunctions::get().pixel_storei_func_ptr(PACK_ALIGNMENT,
+        GLDriverFunctions::get().pixel_storei_func_ptr(PACK_ALIGNMENT,
                                                        1);
 
         bind_eye(in_eye);
 
-        GlDriverFunctions::get().read_pixels_func_ptr(0,
+        GLDriverFunctions::get().read_pixels_func_ptr(0,
                                                       0,
                                                       static_cast<GLsizei>(m_width),
                                                       static_cast<GLsizei>(m_height),
@@ -522,7 +522,7 @@ bool Stereo::ConverterDLL::GlEyeTargets::read_eye(const Analysis::Recipe::Eye& i
                                                       GL_UNSIGNED_BYTE,
                                                       out_pixels_ptr);
 
-        GlDriverFunctions::get().pixel_storei_func_ptr(PACK_ALIGNMENT,
+        GLDriverFunctions::get().pixel_storei_func_ptr(PACK_ALIGNMENT,
                                                        saved_alignment);
 
         bind_eye(Analysis::Recipe::Eye::LEFT);
@@ -531,7 +531,7 @@ bool Stereo::ConverterDLL::GlEyeTargets::read_eye(const Analysis::Recipe::Eye& i
     return result;
 }
 
-bool Stereo::ConverterDLL::GlEyeTargets::read_picture(const uint32_t&       in_width,
+bool Stereo::ConverterDLL::GLEyeTargets::read_picture(const uint32_t&       in_width,
                                                       const uint32_t&       in_height,
                                                       std::vector<uint8_t>* out_rgba_u8_vec_ptr)
 {
@@ -582,12 +582,12 @@ bool Stereo::ConverterDLL::GlEyeTargets::read_picture(const uint32_t&       in_w
                 m_functions.bind_framebuffer_func_ptr(FRAMEBUFFER,
                                                       m_readback_target.framebuffer);
 
-                GlDriverFunctions::get().get_integerv_func_ptr(PACK_ALIGNMENT,
+                GLDriverFunctions::get().get_integerv_func_ptr(PACK_ALIGNMENT,
                                                               &saved_alignment);
-                GlDriverFunctions::get().pixel_storei_func_ptr(PACK_ALIGNMENT,
+                GLDriverFunctions::get().pixel_storei_func_ptr(PACK_ALIGNMENT,
                                                                1);
 
-                GlDriverFunctions::get().read_pixels_func_ptr(0,
+                GLDriverFunctions::get().read_pixels_func_ptr(0,
                                                               0,
                                                               static_cast<GLsizei>(in_width),
                                                               static_cast<GLsizei>(in_height),
@@ -595,7 +595,7 @@ bool Stereo::ConverterDLL::GlEyeTargets::read_picture(const uint32_t&       in_w
                                                               GL_UNSIGNED_BYTE,
                                                               out_rgba_u8_vec_ptr->data() );
 
-                GlDriverFunctions::get().pixel_storei_func_ptr(PACK_ALIGNMENT,
+                GLDriverFunctions::get().pixel_storei_func_ptr(PACK_ALIGNMENT,
                                                                saved_alignment);
 
                 bind_eye(Analysis::Recipe::Eye::LEFT);
@@ -608,7 +608,7 @@ bool Stereo::ConverterDLL::GlEyeTargets::read_picture(const uint32_t&       in_w
     return result;
 }
 
-void Stereo::ConverterDLL::GlEyeTargets::release_target(EyeTarget* inout_target_ptr)
+void Stereo::ConverterDLL::GLEyeTargets::release_target(EyeTarget* inout_target_ptr)
 {
     if (inout_target_ptr->framebuffer != 0)
     {
@@ -631,7 +631,7 @@ void Stereo::ConverterDLL::GlEyeTargets::release_target(EyeTarget* inout_target_
     *inout_target_ptr = EyeTarget();
 }
 
-void Stereo::ConverterDLL::GlEyeTargets::release_targets()
+void Stereo::ConverterDLL::GLEyeTargets::release_targets()
 {
     release_target(&m_depth_probe);
     release_target(&m_left);

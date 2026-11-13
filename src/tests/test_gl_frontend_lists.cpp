@@ -10,7 +10,7 @@
 
 namespace
 {
-    class GlFrontendLists : public Tests::GlFrontendFixture
+    class GLFrontendLists : public Tests::GLFrontendFixture
     {
     protected:
         enum : uint32_t
@@ -40,9 +40,9 @@ namespace
         }
 
         /* What the list does to what an eye has of its own. */
-        Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence get_eye_dependence(const uint32_t& in_list)
+        Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence get_eye_dependence(const uint32_t& in_list)
         {
-            Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence result = Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::INDEPENDENT;
+            Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence result = Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence::INDEPENDENT;
 
             EXPECT_TRUE(m_harness.get_frontend().find_list_eye_dependence(in_list,
                                                                           &result) ) << "list " << in_list;
@@ -57,7 +57,7 @@ namespace
     };
 }
 
-TEST_F(GlFrontendLists, ACallOfAListMakesItsCalls)
+TEST_F(GLFrontendLists, ACallOfAListMakesItsCalls)
 {
     start(640,
           480);
@@ -77,7 +77,7 @@ TEST_F(GlFrontendLists, ACallOfAListMakesItsCalls)
               0u);
 }
 
-TEST_F(GlFrontendLists, AListIsMadeEachTimeItIsCalled)
+TEST_F(GLFrontendLists, AListIsMadeEachTimeItIsCalled)
 {
     start(640,
           480);
@@ -97,7 +97,7 @@ TEST_F(GlFrontendLists, AListIsMadeEachTimeItIsCalled)
               1u);
 }
 
-TEST_F(GlFrontendLists, AListWhichIsNotCalledMakesNothing)
+TEST_F(GLFrontendLists, AListWhichIsNotCalledMakesNothing)
 {
     start(640,
           480);
@@ -112,7 +112,7 @@ TEST_F(GlFrontendLists, AListWhichIsNotCalledMakesNothing)
               0u);
 }
 
-TEST_F(GlFrontendLists, ACallMadeWhileAListIsMadeIsNotMadeThen)
+TEST_F(GLFrontendLists, ACallMadeWhileAListIsMadeIsNotMadeThen)
 {
     start(640,
           480);
@@ -131,7 +131,7 @@ TEST_F(GlFrontendLists, ACallMadeWhileAListIsMadeIsNotMadeThen)
                     0.0f);
 }
 
-TEST_F(GlFrontendLists, ACallOfAListMakesItsStateChangesEachTime)
+TEST_F(GLFrontendLists, ACallOfAListMakesItsStateChangesEachTime)
 {
     start(640,
           480);
@@ -152,7 +152,7 @@ TEST_F(GlFrontendLists, ACallOfAListMakesItsStateChangesEachTime)
                     10.0f);
 }
 
-TEST_F(GlFrontendLists, AListWithAnotherPipelineStateMakesAnotherDraw)
+TEST_F(GLFrontendLists, AListWithAnotherPipelineStateMakesAnotherDraw)
 {
     start(640,
           480);
@@ -175,7 +175,7 @@ TEST_F(GlFrontendLists, AListWithAnotherPipelineStateMakesAnotherDraw)
               2u);
 }
 
-TEST_F(GlFrontendLists, AListCanCallAnotherList)
+TEST_F(GLFrontendLists, AListCanCallAnotherList)
 {
     start(640,
           480);
@@ -196,7 +196,7 @@ TEST_F(GlFrontendLists, AListCanCallAnotherList)
               2u);
 }
 
-TEST_F(GlFrontendLists, AListWhichCallsItselfIsNotMadeForEver)
+TEST_F(GLFrontendLists, AListWhichCallsItselfIsNotMadeForEver)
 {
     start(640,
           480);
@@ -217,7 +217,7 @@ TEST_F(GlFrontendLists, AListWhichCallsItselfIsNotMadeForEver)
               1u);
 }
 
-TEST_F(GlFrontendLists, ADeletedListIsNotCalled)
+TEST_F(GLFrontendLists, ADeletedListIsNotCalled)
 {
     start(640,
           480);
@@ -241,7 +241,7 @@ TEST_F(GlFrontendLists, ADeletedListIsNotCalled)
               2u);
 }
 
-TEST_F(GlFrontendLists, AListWhichWasNeverMadeIsNotFollowed)
+TEST_F(GLFrontendLists, AListWhichWasNeverMadeIsNotFollowed)
 {
     start(640,
           480);
@@ -258,7 +258,7 @@ TEST_F(GlFrontendLists, AListWhichWasNeverMadeIsNotFollowed)
               1u);
 }
 
-TEST_F(GlFrontendLists, ACompileAndExecuteListIsMadeAtOnceAndWhenCalled)
+TEST_F(GLFrontendLists, ACompileAndExecuteListIsMadeAtOnceAndWhenCalled)
 {
     start(640,
           480);
@@ -277,11 +277,11 @@ TEST_F(GlFrontendLists, ACompileAndExecuteListIsMadeAtOnceAndWhenCalled)
               2u);
 }
 
-TEST_F(GlFrontendLists, ADrawOfArraysInAListKeepsItsData)
+TEST_F(GLFrontendLists, ADrawOfArraysInAListKeepsItsData)
 {
-    typedef Tests::GlCallBuilder::ClientArray ClientArray;
+    typedef Tests::GLCallBuilder::ClientArray ClientArray;
 
-    const ClientArray vertices = Tests::GlCallBuilder::make_vertex_array({{0.0f, 0.0f, -1.0f},
+    const ClientArray vertices = Tests::GLCallBuilder::make_vertex_array({{0.0f, 0.0f, -1.0f},
                                                                           {1.0f, 0.0f, -1.0f},
                                                                           {0.0f, 1.0f, -1.0f} });
 
@@ -320,7 +320,7 @@ TEST_F(GlFrontendLists, ADrawOfArraysInAListKeepsItsData)
               0u);
 }
 
-TEST_F(GlFrontendLists, AListMadeInOneContextIsCalledInAnother)
+TEST_F(GLFrontendLists, AListMadeInOneContextIsCalledInAnother)
 {
     start(640,
           480);
@@ -342,7 +342,7 @@ TEST_F(GlFrontendLists, AListMadeInOneContextIsCalledInAnother)
               1u);
 }
 
-TEST_F(GlFrontendLists, AListWhichOnlyDrawsAndSetsStateIsEyeIndependent)
+TEST_F(GLFrontendLists, AListWhichOnlyDrawsAndSetsStateIsEyeIndependent)
 {
     start(640,
           480);
@@ -356,10 +356,10 @@ TEST_F(GlFrontendLists, AListWhichOnlyDrawsAndSetsStateIsEyeIndependent)
     feed();
 
     EXPECT_EQ(get_eye_dependence(1),
-              Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::INDEPENDENT);
+              Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence::INDEPENDENT);
 }
 
-TEST_F(GlFrontendLists, AListWhichMovesTheMatricesRelativeToTheCurrentOnesIsToldSo)
+TEST_F(GLFrontendLists, AListWhichMovesTheMatricesRelativeToTheCurrentOnesIsToldSo)
 {
     start(640,
           480);
@@ -381,10 +381,10 @@ TEST_F(GlFrontendLists, AListWhichMovesTheMatricesRelativeToTheCurrentOnesIsTold
     feed();
 
     EXPECT_EQ(get_eye_dependence(1),
-              Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::RELATIVE_MATRIX_ONLY);
+              Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence::RELATIVE_MATRIX_ONLY);
 }
 
-TEST_F(GlFrontendLists, AListThatMakesSomethingRelativeToTheMatrixOfTheMomentIsRelativeToTheMatrix)
+TEST_F(GLFrontendLists, AListThatMakesSomethingRelativeToTheMatrixOfTheMomentIsRelativeToTheMatrix)
 {
     start(640,
           480);
@@ -422,16 +422,16 @@ TEST_F(GlFrontendLists, AListThatMakesSomethingRelativeToTheMatrixOfTheMomentIsR
     feed();
 
     EXPECT_EQ(get_eye_dependence(1),
-              Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::RELATIVE_MATRIX_ONLY);
+              Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence::RELATIVE_MATRIX_ONLY);
     EXPECT_EQ(get_eye_dependence(2),
-              Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::RELATIVE_MATRIX_ONLY);
+              Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence::RELATIVE_MATRIX_ONLY);
     EXPECT_EQ(get_eye_dependence(3),
-              Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::RELATIVE_MATRIX_ONLY);
+              Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence::RELATIVE_MATRIX_ONLY);
     EXPECT_EQ(get_eye_dependence(4),
-              Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::INDEPENDENT);
+              Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence::INDEPENDENT);
 }
 
-TEST_F(GlFrontendLists, AListWhichSetsAValueOfItsOwnIsEyeDependent)
+TEST_F(GLFrontendLists, AListWhichSetsAValueOfItsOwnIsEyeDependent)
 {
     start(640,
           480);
@@ -474,11 +474,11 @@ TEST_F(GlFrontendLists, AListWhichSetsAValueOfItsOwnIsEyeDependent)
                 ++list)
     {
         EXPECT_EQ(get_eye_dependence(list),
-                  Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::EYE_DEPENDENT) << "list " << list;
+                  Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence::EYE_DEPENDENT) << "list " << list;
     }
 }
 
-TEST_F(GlFrontendLists, TheStrongestCallOfAListTellsWhatItIs)
+TEST_F(GLFrontendLists, TheStrongestCallOfAListTellsWhatItIs)
 {
     start(640,
           480);
@@ -497,10 +497,10 @@ TEST_F(GlFrontendLists, TheStrongestCallOfAListTellsWhatItIs)
     feed();
 
     EXPECT_EQ(get_eye_dependence(1),
-              Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::EYE_DEPENDENT);
+              Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence::EYE_DEPENDENT);
 }
 
-TEST_F(GlFrontendLists, AListWhichCallsAnotherIsWhatTheOtherIs)
+TEST_F(GLFrontendLists, AListWhichCallsAnotherIsWhatTheOtherIs)
 {
     start(640,
           480);
@@ -536,29 +536,29 @@ TEST_F(GlFrontendLists, AListWhichCallsAnotherIsWhatTheOtherIs)
     feed();
 
     EXPECT_EQ(get_eye_dependence(4),
-              Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::INDEPENDENT);
+              Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence::INDEPENDENT);
     EXPECT_EQ(get_eye_dependence(5),
-              Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::RELATIVE_MATRIX_ONLY);
+              Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence::RELATIVE_MATRIX_ONLY);
     EXPECT_EQ(get_eye_dependence(6),
-              Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::EYE_DEPENDENT);
+              Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence::EYE_DEPENDENT);
     EXPECT_EQ(get_eye_dependence(7),
-              Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::EYE_DEPENDENT);
+              Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence::EYE_DEPENDENT);
 }
 
-TEST_F(GlFrontendLists, AListWhichWasNeverMadeHasNoDependence)
+TEST_F(GLFrontendLists, AListWhichWasNeverMadeHasNoDependence)
 {
     start(640,
           480);
 
     feed();
 
-    Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence dependence = Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::INDEPENDENT;
+    Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence dependence = Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence::INDEPENDENT;
 
     EXPECT_FALSE(m_harness.get_frontend().find_list_eye_dependence(42,
                                                                    &dependence) );
 }
 
-TEST_F(GlFrontendLists, ACallOfAListGivesTheKeysOfEachDrawItMakes)
+TEST_F(GLFrontendLists, ACallOfAListGivesTheKeysOfEachDrawItMakes)
 {
     start(640,
           480);
@@ -578,7 +578,7 @@ TEST_F(GlFrontendLists, ACallOfAListGivesTheKeysOfEachDrawItMakes)
               1u);
 }
 
-TEST_F(GlFrontendLists, ACallThatDrawsNothingGivesNoKeys)
+TEST_F(GLFrontendLists, ACallThatDrawsNothingGivesNoKeys)
 {
     start(640,
           480);

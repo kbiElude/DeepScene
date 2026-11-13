@@ -168,7 +168,7 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
                                                             target_height);
         m_live_state.d3d7_windowed_mode.set_is_enabled     (is_shown_elsewhere);
 
-        m_live_state.gl_renderer_ptr.reset(new GlEyeRenderer(m_live_state.core_ptr.get(),
+        m_live_state.gl_renderer_ptr.reset(new GLEyeRenderer(m_live_state.core_ptr.get(),
                                                              is_shown_elsewhere,
                                                              target_width,
                                                              target_height) );
@@ -185,7 +185,7 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
         m_live_state.gl_renderer_ptr->set_get_chunk_func(get_gl_chunk_func);
 
         {
-            std::unique_ptr<Stereo::Transport::IFrameExporter> gl_exporter_ptr(new GlHostMemoryExporter(m_channel_ptr.get() ));
+            std::unique_ptr<Stereo::Transport::IFrameExporter> gl_exporter_ptr(new GLHostMemoryExporter(m_channel_ptr.get() ));
 
             m_gl_frame_passer_ptr.reset(new FramePasser(std::move(gl_exporter_ptr),
                                                         m_log) );
@@ -511,7 +511,7 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
             float                    projection_scale = 0.0f;
 
             /* The depth that is given is of the frame before when the depth buffer is read to a buffer of the graphics card, which is not waited for (see
-             * GlEyeRenderer::get_depth_lag()): it goes with the scene that frame was of.
+             * GLEyeRenderer::get_depth_lag()): it goes with the scene that frame was of.
              */
             const uint32_t depth_lag       = this_ptr->m_live_state.gl_renderer_ptr->get_depth_lag();
             const uint64_t depth_shape_key = (depth_lag == 0) ? shape_key
@@ -611,7 +611,7 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
 
                     const std::string filename = std::string(temp_i8vec260) + "apistereo_scene_" + key_i8vec19 + ( (n_sample == 0) ? std::string() : "_" + std::to_string(n_sample) ) + ".bmp";
 
-                    GlHostMemoryExporter::write_debug_image(this_ptr->m_live_state.last_gl_images,
+                    GLHostMemoryExporter::write_debug_image(this_ptr->m_live_state.last_gl_images,
                                                             filename);
 
                     this_ptr->m_log.write(std::string("A scene has settled: ") + key_i8vec19 + ", sample " + std::to_string(n_sample) + ", frame " + std::to_string(this_ptr->m_live_state.n_frames) + ", the eyes converge at " + std::to_string(this_ptr->m_live_state.core_ptr->get_effective_convergence_distance() ) + " and are " + std::to_string(this_ptr->m_live_state.core_ptr->get_effective_eye_separation() ) + " apart; measured near " + std::to_string(this_ptr->m_live_state.last_depth_range.near_depth) + ", median " + std::to_string(this_ptr->m_live_state.last_depth_range.median_depth) + ", far " + std::to_string(this_ptr->m_live_state.last_depth_range.far_depth) + ", scale " + std::to_string(this_ptr->m_live_state.last_projection_scale) );
@@ -690,7 +690,7 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
 {
     const bool               is_present        = (in_api_func    == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_PRESENT &&
                                                   in_n_arguments >  0);
-    GlFrameImages            gl_images;
+    GLFrameImages            gl_images;
     bool                     has_gl_images     = false;
     std::vector<std::string> log_line_vec;
     void*                    right_surface_ptr = nullptr;
@@ -1038,7 +1038,7 @@ void Stereo::ConverterDLL::Converter::pass_d3d7_frame(void* in_primary_surface_p
     }
 }
 
-void Stereo::ConverterDLL::Converter::pass_gl_frame(const GlFrameImages& in_images)
+void Stereo::ConverterDLL::Converter::pass_gl_frame(const GLFrameImages& in_images)
 {
     /* A debugging aid: the images of the eyes of one frame, to look at (the same switches as for Direct3D 7). */
     if ( (m_live_state.dump_frame                           != 0                             &&
@@ -1056,7 +1056,7 @@ void Stereo::ConverterDLL::Converter::pass_gl_frame(const GlFrameImages& in_imag
                                            "apistereo_frame_"                    +
                                            std::to_string(m_live_state.n_frames) +
                                            ".bmp";
-            const bool        is_written = GlHostMemoryExporter::write_debug_image(in_images,
+            const bool        is_written = GLHostMemoryExporter::write_debug_image(in_images,
                                                                                    filename);
 
             m_log.write((is_written) ? "A frame is written to a file"
@@ -1065,8 +1065,8 @@ void Stereo::ConverterDLL::Converter::pass_gl_frame(const GlFrameImages& in_imag
     }
 
     m_gl_frame_passer_ptr->on_present(nullptr,
-                                      const_cast<GlFrameImages*>(&in_images),
-                                      const_cast<GlFrameImages*>(&in_images) );
+                                      const_cast<GLFrameImages*>(&in_images),
+                                      const_cast<GLFrameImages*>(&in_images) );
 }
 
 void Stereo::ConverterDLL::Converter::read_channel_settings(std::vector<std::string>* out_log_line_vec_ptr)

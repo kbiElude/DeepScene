@@ -10,18 +10,18 @@
 #include "utils/hashing/hasher.h"
 #include <string.h>
 
-Analysis::APIDumpAnalysis::Frontends::GlArrayDrawDescriber::GlArrayDrawDescriber(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr)
+Analysis::APIDumpAnalysis::Frontends::GLArrayDrawDescriber::GLArrayDrawDescriber(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr)
     :m_blob_store (in_builder_ptr),
      m_builder_ptr(in_builder_ptr)
 {
     /* Stub */
 }
 
-Analysis::APIDumpAnalysis::Frontends::GlArrayDrawResult Analysis::APIDumpAnalysis::Frontends::GlArrayDrawDescriber::describe(const Capture::APIDumpLoader::DumpedAPICall&        in_call,
+Analysis::APIDumpAnalysis::Frontends::GLArrayDrawResult Analysis::APIDumpAnalysis::Frontends::GLArrayDrawDescriber::describe(const Capture::APIDumpLoader::DumpedAPICall&        in_call,
                                                                                                                              const Capture::APIDumpLoader::Workload&             in_workload,
                                                                                                                              const bool&                                         in_is_indexed,
                                                                                                                              const Analysis::APIDumpAnalysis::PrimitiveTopology& in_topology,
-                                                                                                                             const GlPipelineState&                              in_pipeline_state,
+                                                                                                                             const GLPipelineState&                              in_pipeline_state,
                                                                                                                              Analysis::APIDumpAnalysis::DrawDescription*         out_description_ptr)
 {
     /* glDrawArrays(mode, first, count, arrays) and glDrawElements(mode, count, type, indices, arrays). */
@@ -37,12 +37,12 @@ Analysis::APIDumpAnalysis::Frontends::GlArrayDrawResult Analysis::APIDumpAnalysi
                                                    : ARRAYS_ARGUMENT_OF_ARRAYS;
     const size_t n_arguments     = in_call.arg_in_vec.size();
 
-    std::vector<GlClientArray>               array_vec;
+    std::vector<GLClientArray>               array_vec;
     int32_t                                  count             = 0;
     int32_t                                  first             = 0;
     const Capture::APIDumpLoader::DataChunk* indices_chunk_ptr = nullptr;
     uint32_t                                 index_type        = 0;
-    GlArrayDrawResult                        result            = GlArrayDrawResult::UNREADABLE;
+    GLArrayDrawResult                        result            = GLArrayDrawResult::UNREADABLE;
 
     if (n_arguments >= n_min_arguments)
     {
@@ -83,14 +83,14 @@ Analysis::APIDumpAnalysis::Frontends::GlArrayDrawResult Analysis::APIDumpAnalysi
         else
         if (count <= 0)
         {
-            result = GlArrayDrawResult::EMPTY;
+            result = GLArrayDrawResult::EMPTY;
         }
         else
         {
             const size_t   arrays_argument  = (in_is_indexed) ? ARRAYS_ARGUMENT_OF_ELEMENTS
                                                               : ARRAYS_ARGUMENT_OF_ARRAYS;
             const auto*    arrays_chunk_ptr = view.get_chunk_ptr(arrays_argument);
-            const uint32_t index_n_bytes    = GlClientArraySnapshot::get_type_n_bytes(index_type);
+            const uint32_t index_n_bytes    = GLClientArraySnapshot::get_type_n_bytes(index_type);
             const size_t   indices_n_bytes  = static_cast<size_t>(count) * index_n_bytes;
 
             /* The arrays are not in the call if no array of it reads the memory of the application (the draw has no vertex data to see). */
@@ -98,7 +98,7 @@ Analysis::APIDumpAnalysis::Frontends::GlArrayDrawResult Analysis::APIDumpAnalysi
 
             if (arrays_chunk_ptr != nullptr)
             {
-                is_valid = GlClientArraySnapshot::parse(*arrays_chunk_ptr,
+                is_valid = GLClientArraySnapshot::parse(*arrays_chunk_ptr,
                                                         &array_vec);
             }
 
@@ -167,7 +167,7 @@ Analysis::APIDumpAnalysis::Frontends::GlArrayDrawResult Analysis::APIDumpAnalysi
                                                                              count);
                 }
 
-                result = GlArrayDrawResult::DRAW;
+                result = GLArrayDrawResult::DRAW;
             }
         }
     }
@@ -175,23 +175,23 @@ Analysis::APIDumpAnalysis::Frontends::GlArrayDrawResult Analysis::APIDumpAnalysi
     return result;
 }
 
-const Analysis::APIDumpAnalysis::Frontends::GlBlobStore& Analysis::APIDumpAnalysis::Frontends::GlArrayDrawDescriber::get_blob_store() const
+const Analysis::APIDumpAnalysis::Frontends::GLBlobStore& Analysis::APIDumpAnalysis::Frontends::GLArrayDrawDescriber::get_blob_store() const
 {
     return m_blob_store;
 }
 
-std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDumpAnalysis::Frontends::GlArrayDrawDescriber::make_geometry_sample(const std::vector<GlClientArray>&        in_array_vec,
+std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDumpAnalysis::Frontends::GLArrayDrawDescriber::make_geometry_sample(const std::vector<GLClientArray>&        in_array_vec,
                                                                                                                                                   const Capture::APIDumpLoader::DataChunk* in_indices_chunk_ptr,
                                                                                                                                                   const uint32_t&                          in_index_type,
                                                                                                                                                   const int32_t&                           in_first,
                                                                                                                                                   const int32_t&                           in_count) const
 {
-    const GlClientArray*                                       position_array_ptr = nullptr;
+    const GLClientArray*                                       position_array_ptr = nullptr;
     std::shared_ptr<Analysis::APIDumpAnalysis::GeometrySample> result_ptr;
 
     for (const auto& array : in_array_vec)
     {
-        if (array.kind  == GlClientArrayKind::VERTEX &&
+        if (array.kind  == GLClientArrayKind::VERTEX &&
             array.index == 0)
         {
             position_array_ptr = &array;
@@ -203,7 +203,7 @@ std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDu
     if (position_array_ptr != nullptr)
     {
         const size_t n_vertices = static_cast<size_t>(in_count);
-        const size_t n_samples  = GlGeometrySampler::get_n_samples(n_vertices);
+        const size_t n_samples  = GLGeometrySampler::get_n_samples(n_vertices);
 
         result_ptr = std::make_shared<Analysis::APIDumpAnalysis::GeometrySample>();
 
@@ -211,7 +211,7 @@ std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDu
                     n_sample < n_samples;
                   ++n_sample)
         {
-            const size_t         place    = GlGeometrySampler::get_sample_vertex(n_sample,
+            const size_t         place    = GLGeometrySampler::get_sample_vertex(n_sample,
                                                                                  n_vertices);
             uint32_t             element  = static_cast<uint32_t>(in_first) + static_cast<uint32_t>(place);
             std::array<float, 3> position = {};
@@ -223,7 +223,7 @@ std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDu
                                      place);
             }
 
-            const bool is_read = GlClientArraySnapshot::read_position(*position_array_ptr,
+            const bool is_read = GLClientArraySnapshot::read_position(*position_array_ptr,
                                                                       element,
                                                                       &position);
 
@@ -242,16 +242,16 @@ std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDu
     return result_ptr;
 }
 
-void Analysis::APIDumpAnalysis::Frontends::GlArrayDrawDescriber::on_frame_ended()
+void Analysis::APIDumpAnalysis::Frontends::GLArrayDrawDescriber::on_frame_ended()
 {
     m_blob_store.on_frame_ended();
 }
 
-uint32_t Analysis::APIDumpAnalysis::Frontends::GlArrayDrawDescriber::read_index(const Capture::APIDumpLoader::DataChunk& in_indices_chunk,
+uint32_t Analysis::APIDumpAnalysis::Frontends::GLArrayDrawDescriber::read_index(const Capture::APIDumpLoader::DataChunk& in_indices_chunk,
                                                                                 const uint32_t&                          in_index_type,
                                                                                 const size_t&                            in_place)
 {
-    const uint32_t index_n_bytes = GlClientArraySnapshot::get_type_n_bytes(in_index_type);
+    const uint32_t index_n_bytes = GLClientArraySnapshot::get_type_n_bytes(in_index_type);
     uint32_t       result        = 0;
 
     ::memcpy(&result,

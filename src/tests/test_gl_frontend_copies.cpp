@@ -10,7 +10,7 @@
 
 namespace
 {
-    class GlFrontendCopies : public Tests::GlFrontendFixture
+    class GLFrontendCopies : public Tests::GLFrontendFixture
     {
     protected:
         enum : uint32_t
@@ -88,7 +88,7 @@ namespace
     };
 }
 
-TEST_F(GlFrontendCopies, ACopyToATextureReadsTheWindowAndWritesTheTexture)
+TEST_F(GLFrontendCopies, ACopyToATextureReadsTheWindowAndWritesTheTexture)
 {
     start(640,
           480);
@@ -130,7 +130,7 @@ TEST_F(GlFrontendCopies, ACopyToATextureReadsTheWindowAndWritesTheTexture)
               0u);
 }
 
-TEST_F(GlFrontendCopies, ACopyOfWhatWasDrawnEndsThePass)
+TEST_F(GLFrontendCopies, ACopyOfWhatWasDrawnEndsThePass)
 {
     start(640,
           480);
@@ -160,7 +160,7 @@ TEST_F(GlFrontendCopies, ACopyOfWhatWasDrawnEndsThePass)
               2u);
 }
 
-TEST_F(GlFrontendCopies, ACopyIsAHazardOfTheSizeOfTheWindow)
+TEST_F(GLFrontendCopies, ACopyIsAHazardOfTheSizeOfTheWindow)
 {
     start(640,
           480);
@@ -191,7 +191,7 @@ TEST_F(GlFrontendCopies, ACopyIsAHazardOfTheSizeOfTheWindow)
               2u);
 }
 
-TEST_F(GlFrontendCopies, ACopyToAnImageGivesTheTextureItsSize)
+TEST_F(GLFrontendCopies, ACopyToAnImageGivesTheTextureItsSize)
 {
     start(640,
           480);
@@ -226,7 +226,7 @@ TEST_F(GlFrontendCopies, ACopyToAnImageGivesTheTextureItsSize)
               1u);
 }
 
-TEST_F(GlFrontendCopies, ATextureOfDepthIsCopiedFromTheDepthOfTheWindow)
+TEST_F(GLFrontendCopies, ATextureOfDepthIsCopiedFromTheDepthOfTheWindow)
 {
     start(640,
           480);
@@ -252,7 +252,7 @@ TEST_F(GlFrontendCopies, ATextureOfDepthIsCopiedFromTheDepthOfTheWindow)
               get_window_resource(true) );
 }
 
-TEST_F(GlFrontendCopies, ACopyToATextureWithNoSizeIsNotFollowed)
+TEST_F(GLFrontendCopies, ACopyToATextureWithNoSizeIsNotFollowed)
 {
     start(640,
           480);
@@ -273,7 +273,7 @@ TEST_F(GlFrontendCopies, ACopyToATextureWithNoSizeIsNotFollowed)
               1u);
 }
 
-TEST_F(GlFrontendCopies, ATextureMadeByACopyIsSampledByTheDrawsAfterIt)
+TEST_F(GLFrontendCopies, ATextureMadeByACopyIsSampledByTheDrawsAfterIt)
 {
     start(640,
           480);
@@ -297,7 +297,7 @@ TEST_F(GlFrontendCopies, ATextureMadeByACopyIsSampledByTheDrawsAfterIt)
               1u);
 }
 
-TEST_F(GlFrontendCopies, AReadOfPixelsIsAHazardAndIsNotFollowed)
+TEST_F(GLFrontendCopies, AReadOfPixelsIsAHazardAndIsNotFollowed)
 {
     start(640,
           480);
@@ -319,7 +319,7 @@ TEST_F(GlFrontendCopies, AReadOfPixelsIsAHazardAndIsNotFollowed)
               2u);
 }
 
-TEST_F(GlFrontendCopies, ScissorBoxesLineWidthsAndPointSizesAreHazards)
+TEST_F(GLFrontendCopies, ScissorBoxesLineWidthsAndPointSizesAreHazards)
 {
     start(640,
           480);
@@ -346,7 +346,7 @@ TEST_F(GlFrontendCopies, ScissorBoxesLineWidthsAndPointSizesAreHazards)
               2u);
 }
 
-TEST_F(GlFrontendCopies, OnlyAClearOfPartOfTheWindowIsAHazard)
+TEST_F(GLFrontendCopies, OnlyAClearOfPartOfTheWindowIsAHazard)
 {
     start(640,
           480);

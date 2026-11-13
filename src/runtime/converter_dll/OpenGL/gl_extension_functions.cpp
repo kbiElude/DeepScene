@@ -41,7 +41,7 @@ namespace
     }
 }
 
-bool Stereo::ConverterDLL::GlExtensionFunctions::load()
+bool Stereo::ConverterDLL::GLExtensionFunctions::load()
 {
     /* The functions are looked for through the library, which the hooks watch: these calls are the converter's own. */
     const OwnCallScope own_call_scope;

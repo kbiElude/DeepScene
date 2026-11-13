@@ -10,10 +10,10 @@
 
 namespace
 {
-    class GlFrontendArrays : public Tests::GlFrontendFixture
+    class GLFrontendArrays : public Tests::GLFrontendFixture
     {
     protected:
-        typedef Tests::GlCallBuilder::ClientArray ClientArray;
+        typedef Tests::GLCallBuilder::ClientArray ClientArray;
 
         enum : uint32_t
         {
@@ -57,14 +57,14 @@ namespace
         /* A triangle whose positions are the given ones moved along x. */
         static ClientArray make_triangle(const float& in_x)
         {
-            return Tests::GlCallBuilder::make_vertex_array({{in_x,        0.0f, -1.0f},
+            return Tests::GLCallBuilder::make_vertex_array({{in_x,        0.0f, -1.0f},
                                                             {in_x + 1.0f, 0.0f, -1.0f},
                                                             {in_x,        1.0f, -1.0f} });
         }
     };
 }
 
-TEST_F(GlFrontendArrays, ADrawOfArraysIsOneDrawWithABufferOfItsVertices)
+TEST_F(GLFrontendArrays, ADrawOfArraysIsOneDrawWithABufferOfItsVertices)
 {
     start(640,
           480);
@@ -96,7 +96,7 @@ TEST_F(GlFrontendArrays, ADrawOfArraysIsOneDrawWithABufferOfItsVertices)
     EXPECT_FALSE(model.draw_structure_map.begin()->second.is_indexed);
 }
 
-TEST_F(GlFrontendArrays, TheSameDataIsTheSameBufferInAnyDrawOrFrame)
+TEST_F(GLFrontendArrays, TheSameDataIsTheSameBufferInAnyDrawOrFrame)
 {
     start(640,
           480);
@@ -126,7 +126,7 @@ TEST_F(GlFrontendArrays, TheSameDataIsTheSameBufferInAnyDrawOrFrame)
               1u);
 }
 
-TEST_F(GlFrontendArrays, TheBytesOfAFrameAreThereUntilItEnds)
+TEST_F(GLFrontendArrays, TheBytesOfAFrameAreThereUntilItEnds)
 {
     start(640,
           480);
@@ -150,7 +150,7 @@ TEST_F(GlFrontendArrays, TheBytesOfAFrameAreThereUntilItEnds)
               3u * sizeof(float) * 3u);
 }
 
-TEST_F(GlFrontendArrays, DataOfOneFrameIsLetGoOfAndDataOfTwoFramesIsKept)
+TEST_F(GLFrontendArrays, DataOfOneFrameIsLetGoOfAndDataOfTwoFramesIsKept)
 {
     start(640,
           480);
@@ -179,16 +179,16 @@ TEST_F(GlFrontendArrays, DataOfOneFrameIsLetGoOfAndDataOfTwoFramesIsKept)
     const auto  once       = get_first_vertex_resource(repeated);
 
     EXPECT_EQ(blob_store.get_reuse(repeated),
-              Analysis::APIDumpAnalysis::Frontends::GlBlobReuse::ACROSS_FRAMES);
+              Analysis::APIDumpAnalysis::Frontends::GLBlobReuse::ACROSS_FRAMES);
     EXPECT_NE(blob_store.get_data_ptr(repeated),
               nullptr);
     EXPECT_EQ(blob_store.get_reuse(once),
-              Analysis::APIDumpAnalysis::Frontends::GlBlobReuse::ONE_FRAME);
+              Analysis::APIDumpAnalysis::Frontends::GLBlobReuse::ONE_FRAME);
     EXPECT_EQ(blob_store.get_data_ptr(once),
               nullptr);
 }
 
-TEST_F(GlFrontendArrays, OtherDataIsAnotherBuffer)
+TEST_F(GLFrontendArrays, OtherDataIsAnotherBuffer)
 {
     start(640,
           480);
@@ -210,7 +210,7 @@ TEST_F(GlFrontendArrays, OtherDataIsAnotherBuffer)
               2u);
 }
 
-TEST_F(GlFrontendArrays, TheBytesOfTheArraysDoNotTellDrawsApart)
+TEST_F(GLFrontendArrays, TheBytesOfTheArraysDoNotTellDrawsApart)
 {
     start(640,
           480);
@@ -237,7 +237,7 @@ TEST_F(GlFrontendArrays, TheBytesOfTheArraysDoNotTellDrawsApart)
               1u);
 }
 
-TEST_F(GlFrontendArrays, TheLayoutOfTheArraysTellsDrawsApart)
+TEST_F(GLFrontendArrays, TheLayoutOfTheArraysTellsDrawsApart)
 {
     ClientArray padded = make_triangle(0.0f);
 
@@ -267,7 +267,7 @@ TEST_F(GlFrontendArrays, TheLayoutOfTheArraysTellsDrawsApart)
               2u);
 }
 
-TEST_F(GlFrontendArrays, ADrawOfElementsHasABufferOfItsIndices)
+TEST_F(GLFrontendArrays, ADrawOfElementsHasABufferOfItsIndices)
 {
     start(640,
           480);
@@ -304,7 +304,7 @@ TEST_F(GlFrontendArrays, ADrawOfElementsHasABufferOfItsIndices)
     }
 }
 
-TEST_F(GlFrontendArrays, ADrawOfNothingIsNoDraw)
+TEST_F(GLFrontendArrays, ADrawOfNothingIsNoDraw)
 {
     start(640,
           480);
@@ -324,7 +324,7 @@ TEST_F(GlFrontendArrays, ADrawOfNothingIsNoDraw)
               0u);
 }
 
-TEST_F(GlFrontendArrays, ADrawWithNoArraysInItIsADrawWithNoBuffers)
+TEST_F(GLFrontendArrays, ADrawWithNoArraysInItIsADrawWithNoBuffers)
 {
     start(640,
           480);
@@ -344,7 +344,7 @@ TEST_F(GlFrontendArrays, ADrawWithNoArraysInItIsADrawWithNoBuffers)
               0u);
 }
 
-TEST_F(GlFrontendArrays, ADrawMadeWhileAListIsMadeIsNotMade)
+TEST_F(GLFrontendArrays, ADrawMadeWhileAListIsMadeIsNotMade)
 {
     start(640,
           480);

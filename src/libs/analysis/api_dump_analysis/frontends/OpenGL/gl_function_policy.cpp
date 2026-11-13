@@ -8,7 +8,7 @@
 #include "capture/api_dump_names/function_names.h"
 #include <string.h>
 
-bool Analysis::APIDumpAnalysis::Frontends::GlFunctionPolicy::bakes_current_matrix(const APIInterceptor::APIFunction& in_function)
+bool Analysis::APIDumpAnalysis::Frontends::GLFunctionPolicy::bakes_current_matrix(const APIInterceptor::APIFunction& in_function)
 {
     bool result = false;
 
@@ -61,7 +61,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GlFunctionPolicy::bakes_current_matri
     return result;
 }
 
-bool Analysis::APIDumpAnalysis::Frontends::GlFunctionPolicy::changes_what_a_draw_writes(const APIInterceptor::APIFunction& in_function)
+bool Analysis::APIDumpAnalysis::Frontends::GLFunctionPolicy::changes_what_a_draw_writes(const APIInterceptor::APIFunction& in_function)
 {
     bool result = false;
 
@@ -95,7 +95,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GlFunctionPolicy::changes_what_a_draw
     return result;
 }
 
-bool Analysis::APIDumpAnalysis::Frontends::GlFunctionPolicy::is_left_out_by_design(const APIInterceptor::APIFunction& in_function)
+bool Analysis::APIDumpAnalysis::Frontends::GLFunctionPolicy::is_left_out_by_design(const APIInterceptor::APIFunction& in_function)
 {
     bool result = false;
 
@@ -262,7 +262,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GlFunctionPolicy::is_left_out_by_desi
             break;
         }
 
-        /* State of the arrays that a draw reads: A draw of arrays comes with a snapshot of what it reads (see GlArrayDrawDescriber), so where the arrays are and which are on is not needed. */
+        /* State of the arrays that a draw reads: A draw of arrays comes with a snapshot of what it reads (see GLArrayDrawDescriber), so where the arrays are and which are on is not needed. */
         case APIInterceptor::APIFUNCTION_GL_GLCLIENTACTIVETEXTURE:
         case APIInterceptor::APIFUNCTION_GL_GLCOLORPOINTER:
         case APIInterceptor::APIFUNCTION_GL_GLDISABLECLIENTSTATE:
@@ -347,7 +347,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GlFunctionPolicy::is_left_out_by_desi
     return result;
 }
 
-bool Analysis::APIDumpAnalysis::Frontends::GlFunctionPolicy::is_query(const APIInterceptor::APIFunction& in_function)
+bool Analysis::APIDumpAnalysis::Frontends::GLFunctionPolicy::is_query(const APIInterceptor::APIFunction& in_function)
 {
     const char* name_ptr = Capture::APIDumpNames::get_function_name(in_function);
 

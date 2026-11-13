@@ -41,7 +41,7 @@ namespace
     }
 }
 
-Stereo::ConverterDLL::GlHostMemoryExporter::GlHostMemoryExporter(Stereo::Transport::FrameChannel* inout_channel_ptr)
+Stereo::ConverterDLL::GLHostMemoryExporter::GLHostMemoryExporter(Stereo::Transport::FrameChannel* inout_channel_ptr)
     :HostMemoryExporter   (inout_channel_ptr),
      m_n_frames_per_second(0)
 {
@@ -69,15 +69,15 @@ Stereo::ConverterDLL::GlHostMemoryExporter::GlHostMemoryExporter(Stereo::Transpo
     m_job_thread_ptr.reset(new Utils::Parallel::JobThread(write_job_func) );
 }
 
-Stereo::ConverterDLL::GlHostMemoryExporter::~GlHostMemoryExporter()
+Stereo::ConverterDLL::GLHostMemoryExporter::~GLHostMemoryExporter()
 {
     m_job_thread_ptr->stop();
 }
 
-Stereo::Transport::ExportStatus Stereo::ConverterDLL::GlHostMemoryExporter::export_frame(const uint64_t&                        in_frame_index,
+Stereo::Transport::ExportStatus Stereo::ConverterDLL::GLHostMemoryExporter::export_frame(const uint64_t&                        in_frame_index,
                                                                                          const Stereo::Transport::ExportSource& in_source)
 {
-    const auto*                     images_ptr = static_cast<const GlFrameImages*>(in_source.left_surface_ptr);
+    const auto*                     images_ptr = static_cast<const GLFrameImages*>(in_source.left_surface_ptr);
     Stereo::Transport::ExportStatus result     = Stereo::Transport::ExportStatus::FAILED;
 
     if (is_host_memory_negotiated() == false)
@@ -114,7 +114,7 @@ end:
     return result;
 }
 
-void Stereo::ConverterDLL::GlHostMemoryExporter::wait_for_pace()
+void Stereo::ConverterDLL::GLHostMemoryExporter::wait_for_pace()
 {
     const bool is_paced_by_screen = wait_for_screen();
 
@@ -132,7 +132,7 @@ void Stereo::ConverterDLL::GlHostMemoryExporter::wait_for_pace()
     }
 }
 
-bool Stereo::ConverterDLL::GlHostMemoryExporter::write_debug_image(const GlFrameImages& in_images,
+bool Stereo::ConverterDLL::GLHostMemoryExporter::write_debug_image(const GLFrameImages& in_images,
                                                                    const std::string&   in_path)
 {
     constexpr uint32_t HEADER_N_BYTES   = 54;
@@ -206,7 +206,7 @@ bool Stereo::ConverterDLL::GlHostMemoryExporter::write_debug_image(const GlFrame
     return result;
 }
 
-void Stereo::ConverterDLL::GlHostMemoryExporter::write_job()
+void Stereo::ConverterDLL::GLHostMemoryExporter::write_job()
 {
     Job job = m_job;
 

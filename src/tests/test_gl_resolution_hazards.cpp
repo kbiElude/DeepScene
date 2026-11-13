@@ -8,14 +8,14 @@
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_resolution_hazards.h"
 #include <vector>
 
-class GlResolutionHazardsTest : public ::testing::Test
+class GLResolutionHazardsTest : public ::testing::Test
 {
 protected:
     static bool classify(const APIInterceptor::APIFunction&                      in_function,
                          const std::vector<APIInterceptor::APIFunctionArgument>& in_argument_vec,
                          Analysis::APIDumpAnalysis::ResolutionHazard*            out_hazard_ptr)
     {
-        return Analysis::APIDumpAnalysis::Frontends::GlResolutionHazards::classify(in_function,
+        return Analysis::APIDumpAnalysis::Frontends::GLResolutionHazards::classify(in_function,
                                                                                    static_cast<uint32_t>(in_argument_vec.size() ),
                                                                                    in_argument_vec.data(),
                                                                                    out_hazard_ptr);
@@ -34,7 +34,7 @@ protected:
     }
 };
 
-TEST_F(GlResolutionHazardsTest, WhatReadsOrDrawsPixelsAtPlacesInPixelsIsOne)
+TEST_F(GLResolutionHazardsTest, WhatReadsOrDrawsPixelsAtPlacesInPixelsIsOne)
 {
     struct HazardCase
     {
@@ -64,7 +64,7 @@ TEST_F(GlResolutionHazardsTest, WhatReadsOrDrawsPixelsAtPlacesInPixelsIsOne)
     }
 }
 
-TEST_F(GlResolutionHazardsTest, AskingForTheViewportTheScissorBoxTheWidthOfLinesOrTheSizeOfPointsIsOneAndAskingForAMatrixIsNot)
+TEST_F(GLResolutionHazardsTest, AskingForTheViewportTheScissorBoxTheWidthOfLinesOrTheSizeOfPointsIsOneAndAskingForAMatrixIsNot)
 {
     Analysis::APIDumpAnalysis::ResolutionHazard hazard = Analysis::APIDumpAnalysis::ResolutionHazard::PIXEL_READBACKS;
 
@@ -86,7 +86,7 @@ TEST_F(GlResolutionHazardsTest, AskingForTheViewportTheScissorBoxTheWidthOfLines
                          &hazard) );
 }
 
-TEST_F(GlResolutionHazardsTest, AskingForTheSizeOfALevelOfATextureIsOneAndAskingForItsFormatIsNot)
+TEST_F(GLResolutionHazardsTest, AskingForTheSizeOfALevelOfATextureIsOneAndAskingForItsFormatIsNot)
 {
     Analysis::APIDumpAnalysis::ResolutionHazard hazard = Analysis::APIDumpAnalysis::ResolutionHazard::PIXEL_READBACKS;
 
@@ -101,7 +101,7 @@ TEST_F(GlResolutionHazardsTest, AskingForTheSizeOfALevelOfATextureIsOneAndAsking
                          &hazard) );
 }
 
-TEST_F(GlResolutionHazardsTest, WhatTheConverterMakesMatchIsNotOne)
+TEST_F(GLResolutionHazardsTest, WhatTheConverterMakesMatchIsNotOne)
 {
     Analysis::APIDumpAnalysis::ResolutionHazard hazard = Analysis::APIDumpAnalysis::ResolutionHazard::PIXEL_READBACKS;
 

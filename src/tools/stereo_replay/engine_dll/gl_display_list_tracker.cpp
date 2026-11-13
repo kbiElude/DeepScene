@@ -7,15 +7,15 @@
 #include "gl_display_list_tracker.h"
 #include "slice_skipper.h"
 
-Stereo::Replay::EngineDLL::GlDisplayListTracker::GlDisplayListTracker()
+Stereo::Replay::EngineDLL::GLDisplayListTracker::GLDisplayListTracker()
     :m_is_recording  (false),
      m_recording_list(0)
 {
     /* Stub */
 }
 
-bool Stereo::Replay::EngineDLL::GlDisplayListTracker::find_eye_dependence(const uint32_t&                                            in_list,
-                                                                          Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence* out_dependence_ptr) const
+bool Stereo::Replay::EngineDLL::GLDisplayListTracker::find_eye_dependence(const uint32_t&                                            in_list,
+                                                                          Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence* out_dependence_ptr) const
 {
     const auto list_iterator = m_effects_map.find(in_list);
     bool       result        = false;
@@ -29,7 +29,7 @@ bool Stereo::Replay::EngineDLL::GlDisplayListTracker::find_eye_dependence(const 
     return result;
 }
 
-bool Stereo::Replay::EngineDLL::GlDisplayListTracker::find_sets_state(const uint32_t& in_list,
+bool Stereo::Replay::EngineDLL::GLDisplayListTracker::find_sets_state(const uint32_t& in_list,
                                                                       bool*           out_sets_state_ptr) const
 {
     const auto list_iterator = m_effects_map.find(in_list);
@@ -44,15 +44,15 @@ bool Stereo::Replay::EngineDLL::GlDisplayListTracker::find_sets_state(const uint
     return result;
 }
 
-bool Stereo::Replay::EngineDLL::GlDisplayListTracker::is_recording() const
+bool Stereo::Replay::EngineDLL::GLDisplayListTracker::is_recording() const
 {
     return m_is_recording;
 }
 
-void Stereo::Replay::EngineDLL::GlDisplayListTracker::on_call(const Capture::APIDumpLoader::DumpedAPICall& in_call)
+void Stereo::Replay::EngineDLL::GLDisplayListTracker::on_call(const Capture::APIDumpLoader::DumpedAPICall& in_call)
 {
-    typedef Analysis::APIDumpAnalysis::Frontends::GlListClassifier    GlListClassifier;
-    typedef Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence GlListEyeDependence;
+    typedef Analysis::APIDumpAnalysis::Frontends::GLListClassifier    GLListClassifier;
+    typedef Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence GLListEyeDependence;
 
     uint32_t first_number = 0;
     bool     has_number   = false;
@@ -70,7 +70,7 @@ void Stereo::Replay::EngineDLL::GlDisplayListTracker::on_call(const Capture::API
             if (m_is_recording)
             {
                 /* A list that is not defined when the call is read may be anything when it is made: it is taken for the worst, and for one that sets state. */
-                GlListEyeDependence called_dependence = GlListEyeDependence::EYE_DEPENDENT;
+                GLListEyeDependence called_dependence = GLListEyeDependence::EYE_DEPENDENT;
                 bool                called_sets_state = true;
 
                 if (has_number)
@@ -81,7 +81,7 @@ void Stereo::Replay::EngineDLL::GlDisplayListTracker::on_call(const Capture::API
                                         &called_sets_state);
                 }
 
-                m_recording_effects.dependence = GlListClassifier::combine(m_recording_effects.dependence,
+                m_recording_effects.dependence = GLListClassifier::combine(m_recording_effects.dependence,
                                                                            called_dependence);
                 m_recording_effects.sets_state = (m_recording_effects.sets_state || called_sets_state);
             }
@@ -94,7 +94,7 @@ void Stereo::Replay::EngineDLL::GlDisplayListTracker::on_call(const Capture::API
             /* The lists are named by an array that is not looked at here. */
             if (m_is_recording)
             {
-                m_recording_effects.dependence = GlListEyeDependence::EYE_DEPENDENT;
+                m_recording_effects.dependence = GLListEyeDependence::EYE_DEPENDENT;
                 m_recording_effects.sets_state = true;
             }
 
@@ -148,9 +148,9 @@ void Stereo::Replay::EngineDLL::GlDisplayListTracker::on_call(const Capture::API
         {
             if (m_is_recording)
             {
-                const GlListEyeDependence call_dependence = GlListClassifier::classify_call(in_call.func);
+                const GLListEyeDependence call_dependence = GLListClassifier::classify_call(in_call.func);
 
-                m_recording_effects.dependence = GlListClassifier::combine(m_recording_effects.dependence,
+                m_recording_effects.dependence = GLListClassifier::combine(m_recording_effects.dependence,
                                                                            call_dependence);
 
                 /* What is not content is state, whatever it is: a state, a texture coordinate that the vertices that follow have, an object. */

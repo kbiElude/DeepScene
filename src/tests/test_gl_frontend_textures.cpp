@@ -12,7 +12,7 @@
 
 namespace
 {
-    class GlFrontendTextures : public Tests::GlFrontendFixture
+    class GLFrontendTextures : public Tests::GLFrontendFixture
     {
     protected:
         enum : uint32_t
@@ -84,7 +84,7 @@ namespace
     };
 }
 
-TEST_F(GlFrontendTextures, TheFirstLevelOfATextureMakesItAResourceOfItsSize)
+TEST_F(GLFrontendTextures, TheFirstLevelOfATextureMakesItAResourceOfItsSize)
 {
     start(640,
           480);
@@ -109,7 +109,7 @@ TEST_F(GlFrontendTextures, TheFirstLevelOfATextureMakesItAResourceOfItsSize)
     }
 }
 
-TEST_F(GlFrontendTextures, ATextureIsSampledByADrawWhenItsUnitHasTheTargetEnabled)
+TEST_F(GLFrontendTextures, ATextureIsSampledByADrawWhenItsUnitHasTheTargetEnabled)
 {
     start(640,
           480);
@@ -130,7 +130,7 @@ TEST_F(GlFrontendTextures, ATextureIsSampledByADrawWhenItsUnitHasTheTargetEnable
               2u);
 }
 
-TEST_F(GlFrontendTextures, ADrawWithNoTextureBoundSamplesNone)
+TEST_F(GLFrontendTextures, ADrawWithNoTextureBoundSamplesNone)
 {
     start(640,
           480);
@@ -146,7 +146,7 @@ TEST_F(GlFrontendTextures, ADrawWithNoTextureBoundSamplesNone)
               0u);
 }
 
-TEST_F(GlFrontendTextures, TheTargetIsEnabledForTheActiveUnitOnly)
+TEST_F(GLFrontendTextures, TheTargetIsEnabledForTheActiveUnitOnly)
 {
     start(640,
           480);
@@ -166,7 +166,7 @@ TEST_F(GlFrontendTextures, TheTargetIsEnabledForTheActiveUnitOnly)
               0u);
 }
 
-TEST_F(GlFrontendTextures, EachUnitSamplesItsOwnTexture)
+TEST_F(GLFrontendTextures, EachUnitSamplesItsOwnTexture)
 {
     start(640,
           480);
@@ -188,7 +188,7 @@ TEST_F(GlFrontendTextures, EachUnitSamplesItsOwnTexture)
               2u);
 }
 
-TEST_F(GlFrontendTextures, DrawsWithTexturesOfAnotherSizeAreOfAnotherStructure)
+TEST_F(GLFrontendTextures, DrawsWithTexturesOfAnotherSizeAreOfAnotherStructure)
 {
     start(640,
           480);
@@ -212,7 +212,7 @@ TEST_F(GlFrontendTextures, DrawsWithTexturesOfAnotherSizeAreOfAnotherStructure)
               2u);
 }
 
-TEST_F(GlFrontendTextures, PixelsInACallAreAnUpload)
+TEST_F(GLFrontendTextures, PixelsInACallAreAnUpload)
 {
     start(640,
           480);
@@ -241,7 +241,7 @@ TEST_F(GlFrontendTextures, PixelsInACallAreAnUpload)
               1u);
 }
 
-TEST_F(GlFrontendTextures, ALevelWithNoPixelsIsNotAnUpload)
+TEST_F(GLFrontendTextures, ALevelWithNoPixelsIsNotAnUpload)
 {
     start(640,
           480);
@@ -258,7 +258,7 @@ TEST_F(GlFrontendTextures, ALevelWithNoPixelsIsNotAnUpload)
     }
 }
 
-TEST_F(GlFrontendTextures, ATextureGivenAnotherSizeIsAnotherResource)
+TEST_F(GLFrontendTextures, ATextureGivenAnotherSizeIsAnotherResource)
 {
     start(640,
           480);
@@ -292,7 +292,7 @@ TEST_F(GlFrontendTextures, ATextureGivenAnotherSizeIsAnotherResource)
               1u);
 }
 
-TEST_F(GlFrontendTextures, ADeletedTextureIsGoneAndNotSampled)
+TEST_F(GLFrontendTextures, ADeletedTextureIsGoneAndNotSampled)
 {
     start(640,
           480);
@@ -323,7 +323,7 @@ TEST_F(GlFrontendTextures, ADeletedTextureIsGoneAndNotSampled)
     }
 }
 
-TEST_F(GlFrontendTextures, APopPutsBackTheTextureThatWasBound)
+TEST_F(GLFrontendTextures, APopPutsBackTheTextureThatWasBound)
 {
     start(640,
           480);
@@ -350,7 +350,7 @@ TEST_F(GlFrontendTextures, APopPutsBackTheTextureThatWasBound)
               1u);
 }
 
-TEST_F(GlFrontendTextures, TheDefaultTextureOfATargetThatIsNotFollowedIsNotCounted)
+TEST_F(GLFrontendTextures, TheDefaultTextureOfATargetThatIsNotFollowedIsNotCounted)
 {
     start(640,
           480);
@@ -364,7 +364,7 @@ TEST_F(GlFrontendTextures, TheDefaultTextureOfATargetThatIsNotFollowedIsNotCount
               0u);
 }
 
-TEST_F(GlFrontendTextures, ATargetThatIsNotFollowedEndsTheProcess)
+TEST_F(GLFrontendTextures, ATargetThatIsNotFollowedEndsTheProcess)
 {
     start(640,
           480);
@@ -381,7 +381,7 @@ TEST_F(GlFrontendTextures, ATargetThatIsNotFollowedEndsTheProcess)
                 "glBindTexture.*GL_TEXTURE_2D");
 }
 
-TEST_F(GlFrontendTextures, ATextureIsFoundByItsNameOnceItHasASize)
+TEST_F(GLFrontendTextures, ATextureIsFoundByItsNameOnceItHasASize)
 {
     start(640,
           480);

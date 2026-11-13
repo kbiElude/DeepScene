@@ -12,7 +12,7 @@
  * to), and made when it is called (glCallList; the lists of the contexts are shared), and at once too for GL_COMPILE_AND_EXECUTE. What it does
  * not follow ends the process, saying the function and why (see UnsupportedUse): what writes the framebuffer and is not a draw (glBitmap,
  * glDrawPixels, glCopyPixels), glCallLists, a texture that is made or changed in a way that is not followed (see
- * GlTextureHandler::is_unsupported_texture_function()), and the state that decides what a draw writes (see GlFunctionPolicy::changes_what_a_draw_writes()).
+ * GLTextureHandler::is_unsupported_texture_function()), and the state that decides what a draw writes (see GLFunctionPolicy::changes_what_a_draw_writes()).
  * A read of the framebuffer (glReadPixels) is only counted, as a hazard of pixel readbacks.
  *
  * The matrices: OpenGL has one matrix for the model and the view together, and a projection of its own. The front end tells the model builder
@@ -51,20 +51,20 @@ namespace Analysis
 
                 /* What the list does to what an eye has of its own; false if there is no such list. */
                 bool find_list_eye_dependence(const uint32_t&      in_list,
-                                              GlListEyeDependence* out_dependence_ptr) const;
+                                              GLListEyeDependence* out_dependence_ptr) const;
 
                 bool find_resource_view(const uint64_t&                          in_address,
                                         Analysis::APIDumpAnalysis::ResourceView* out_view_ptr) const override;
 
-                /* The data that the draws read from the memory of the application, kept for as long as it is worth keeping (see GlBlobStore). */
-                const GlBlobStore& get_blob_store() const;
+                /* The data that the draws read from the memory of the application, kept for as long as it is worth keeping (see GLBlobStore). */
+                const GLBlobStore& get_blob_store() const;
 
                 /* The current model-view and projection matrices of the context that the thread has current (for the checks of the tests);
                  * false if it has none.
                  */
                 bool get_current_matrices(const uint32_t& in_thread_id,
-                                          GlMatrix*       out_modelview_f32mat_ptr,
-                                          GlMatrix*       out_projection_f32mat_ptr) const;
+                                          GLMatrix*       out_modelview_f32mat_ptr,
+                                          GLMatrix*       out_projection_f32mat_ptr) const;
 
                 const std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t>& get_n_resolution_hazards() const override;
                 uint64_t                                                               get_n_unfollowed_calls  () const override;
@@ -74,13 +74,13 @@ namespace Analysis
 
             private:
                 /* The call that begins the camera of the draw (see DrawDescription::view_anchor_call_index), from the model-view stack. */
-                void add_view_anchor(const GlContextState&                       in_state,
+                void add_view_anchor(const GLContextState&                       in_state,
                                      Analysis::APIDumpAnalysis::DrawDescription* out_description_ptr) const;
 
                 /* The pixels of the window are copied to a region of a level of the texture that the active unit has bound (the depth of the window, for a texture of
                  * depth); false if the program has not given the texture a size, or the level.
                  */
-                bool copy_to_bound_texture(const GlContextState& in_state,
+                bool copy_to_bound_texture(const GLContextState& in_state,
                                            const uint32_t&       in_level,
                                            const uint32_t&       in_x_offset,
                                            const uint32_t&       in_y_offset,
@@ -91,23 +91,23 @@ namespace Analysis
                 void count_hazard(const Analysis::APIDumpAnalysis::ResolutionHazard& in_hazard);
 
                 /* Makes the resources of the window, and tells the builder what is rendered to and where, if that has not been done. */
-                void ensure_default_framebuffer(const GlContextState& in_state);
+                void ensure_default_framebuffer(const GLContextState& in_state);
 
                 /* The state of the context that the thread has current; nullptr if it has none. */
-                GlContextState* find_current_context_ptr(const uint32_t& in_thread_id);
+                GLContextState* find_current_context_ptr(const uint32_t& in_thread_id);
 
                 /* What a call that a list keeps does to what an eye has of its own: that of the list, for the call of one. */
-                GlListEyeDependence get_call_eye_dependence(const APIInterceptor::APIFunction&                      in_function,
+                GLListEyeDependence get_call_eye_dependence(const APIInterceptor::APIFunction&                      in_function,
                                                             const std::vector<APIInterceptor::APIFunctionArgument>& in_argument_vec) const;
 
                 /* A call of glDrawArrays or glDrawElements: a draw from the arrays that the dumper copied into it. */
                 void handle_array_draw(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                        const Capture::APIDumpLoader::Workload&      in_workload,
                                        const bool&                                  in_is_indexed,
-                                       GlContextState*                              inout_state_ptr);
+                                       GLContextState*                              inout_state_ptr);
 
                 void handle_begin(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                  GlContextState*                              inout_state_ptr);
+                                  GLContextState*                              inout_state_ptr);
 
                 /* glBindBuffer: a buffer that pixels are packed into (glReadPixels then reads to the buffer, and what is read is in no call) or unpacked from (the
                  * pixels of an upload are then in the buffer, not in the call) is not followed: the process is ended. So is any other buffer object (of vertices, of
@@ -119,34 +119,34 @@ namespace Analysis
                 void handle_call_list(const Capture::APIDumpLoader::DumpedAPICall& in_call);
 
                 void handle_clear        (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                          GlContextState*                              inout_state_ptr);
+                                          GLContextState*                              inout_state_ptr);
                 void handle_clear_color  (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                          GlContextState*                              inout_state_ptr);
+                                          GLContextState*                              inout_state_ptr);
                 void handle_clear_depth  (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                          GlContextState*                              inout_state_ptr);
+                                          GLContextState*                              inout_state_ptr);
                 void handle_clear_stencil(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                          GlContextState*                              inout_state_ptr);
+                                          GLContextState*                              inout_state_ptr);
 
                 /* A call of glCopyTexImage2D: the pixels of the window give the texture its size, and are copied to it. */
                 void handle_copy_tex_image(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                           GlContextState*                              inout_state_ptr);
+                                           GLContextState*                              inout_state_ptr);
 
                 /* A call of glCopyTexSubImage2D: the pixels of the window are copied to a part of the texture. */
                 void handle_copy_tex_sub_image(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                               GlContextState*                              inout_state_ptr);
+                                               GLContextState*                              inout_state_ptr);
 
                 /* The lists of glDeleteLists are gone. */
                 void handle_delete_lists(const Capture::APIDumpLoader::DumpedAPICall& in_call);
 
                 void handle_enable(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                    const bool&                                  in_is_enabled,
-                                   GlContextState*                              inout_state_ptr);
+                                   GLContextState*                              inout_state_ptr);
 
                 /* The vertices since the glBegin are a draw. */
-                void handle_end(GlContextState* inout_state_ptr);
+                void handle_end(GLContextState* inout_state_ptr);
 
                 /* A list which was being made is made, and its calls are made when it is called. */
-                void handle_end_list(GlContextState* inout_state_ptr);
+                void handle_end_list(GLContextState* inout_state_ptr);
 
                 /* A call of GL: kept in the list that its context is making, or made, or both. It is also how the calls of a called list are made. */
                 void handle_gl_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
@@ -157,44 +157,44 @@ namespace Analysis
                 /* A call that loads or multiplies the current matrix: the matrix is what its arguments (or its data) say. */
                 void handle_matrix(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                    const Capture::APIDumpLoader::Workload&      in_workload,
-                                   GlContextState*                              inout_state_ptr);
+                                   GLContextState*                              inout_state_ptr);
 
                 void handle_matrix_mode    (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                            GlContextState*                              inout_state_ptr);
+                                            GLContextState*                              inout_state_ptr);
                 void handle_new_list       (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                            GlContextState*                              inout_state_ptr);
-                void handle_pop_attributes (GlContextState*                              inout_state_ptr);
-                void handle_pop_matrix     (GlContextState*                              inout_state_ptr);
+                                            GLContextState*                              inout_state_ptr);
+                void handle_pop_attributes (GLContextState*                              inout_state_ptr);
+                void handle_pop_matrix     (GLContextState*                              inout_state_ptr);
                 void handle_push_attributes(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                            GlContextState*                              inout_state_ptr);
-                void handle_push_matrix    (GlContextState*                              inout_state_ptr);
+                                            GLContextState*                              inout_state_ptr);
+                void handle_push_matrix    (GLContextState*                              inout_state_ptr);
                 void handle_scissor        (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                            GlContextState*                              inout_state_ptr);
+                                            GLContextState*                              inout_state_ptr);
 
                 /* A call which sets a value of the pipeline that a draw is told apart by (a function, a mode, a mask). */
                 void handle_state_value(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                        GlContextState*                              inout_state_ptr);
+                                        GLContextState*                              inout_state_ptr);
 
                 /* A glVertex of the block that is open: it is counted, and its position kept if the builder wants the geometry. */
                 void handle_vertex(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                    const Capture::APIDumpLoader::Workload&      in_workload,
-                                   GlContextState*                              inout_state_ptr);
+                                   GLContextState*                              inout_state_ptr);
 
                 void handle_viewport(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                     GlContextState*                              inout_state_ptr);
+                                     GLContextState*                              inout_state_ptr);
 
                 /* Keeps the call in the list that the context is making, with the data that it refers to. */
                 void record_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                  const Capture::APIDumpLoader::Workload&      in_workload,
-                                 GlContextState*                              inout_state_ptr);
+                                 GLContextState*                              inout_state_ptr);
 
                 /* Tells the model builder the model-view and the projection matrix of the context, those of them which are not what it was told last. */
-                void report_matrices(const GlContextState& in_state);
+                void report_matrices(const GLContextState& in_state);
 
-                void report_matrix(const GlMatrix&                                    in_matrix_f32mat,
+                void report_matrix(const GLMatrix&                                    in_matrix_f32mat,
                                    const Analysis::APIDumpAnalysis::ConstantSemantic& in_semantic,
                                    const uint64_t&                                    in_byte_offset,
-                                   GlReportedMatrix*                                  inout_reported_ptr);
+                                   GLReportedMatrix*                                  inout_reported_ptr);
 
                 /* What the program does is not followed (a target, a kind of texture, a buffer that pixels go to or come from, a call): what the analysis finds of it
                  * would be wrong or left out, and so the process is ended, saying what it was (AI_ASSERT_ALWAYS). Nothing is left out without being said.
@@ -204,20 +204,20 @@ namespace Analysis
                                                    const uint64_t&                    in_value);
 
                 /* The stack of the matrices that glMatrixMode has chosen. */
-                static std::vector<GlMatrix>* get_current_stack_ptr(GlContextState* inout_state_ptr);
+                static std::vector<GLMatrix>* get_current_stack_ptr(GLContextState* inout_state_ptr);
 
                 /* A context as it starts: what the specification says, and a stack of the identity for each kind of matrix. */
-                static GlContextState get_initial_context_state();
+                static GLContextState get_initial_context_state();
 
                 /* The viewport of the model, from the box of the context. */
-                static Analysis::APIDumpAnalysis::Viewport get_model_viewport(const GlContextState& in_state);
+                static Analysis::APIDumpAnalysis::Viewport get_model_viewport(const GLContextState& in_state);
 
                 /* What the mode of a glBegin makes of the vertices; quads are two triangles and a loop of lines is a strip of them. */
                 static Analysis::APIDumpAnalysis::PrimitiveTopology get_primitive_topology(const uint32_t& in_mode);
 
                 /* True if the two boxes are the same. */
-                static bool is_same_box(const GlBox& in_first,
-                                        const GlBox& in_second);
+                static bool is_same_box(const GLBox& in_first,
+                                        const GLBox& in_second);
 
                 /* True for the calls whose effects the front end does not follow, and that are not about textures (they write the framebuffer from somewhere else, or
                  * call lists that are named by an array): one of them ends the process (see report_unsupported_use()).
@@ -226,32 +226,32 @@ namespace Analysis
 
                 /* A box from the four arguments of glViewport or glScissor. */
                 static bool read_box(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                     GlBox*                                       out_box_ptr);
+                                     GLBox*                                       out_box_ptr);
 
                 /* The matrix that a call of glLoadMatrix or glMultMatrix has stored as its argument, of floats or of doubles. */
                 static bool read_matrix_chunk(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                               const Capture::APIDumpLoader::Workload&      in_workload,
                                               const bool&                                  in_is_double,
-                                              GlMatrix*                                    out_matrix_f32mat_ptr);
+                                              GLMatrix*                                    out_matrix_f32mat_ptr);
 
                 /* The matrix that the call has to load into the current one, or to multiply it by; false if its arguments cannot be read. */
                 static bool read_matrix_operand(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                 const Capture::APIDumpLoader::Workload&      in_workload,
-                                                GlMatrix*                                    out_matrix_f32mat_ptr);
+                                                GLMatrix*                                    out_matrix_f32mat_ptr);
 
                 /* Puts back what the mask of a glPushAttrib asked to be saved. */
-                static void restore_attributes(const GlAttributeFrame& in_frame,
-                                               GlAttributes*           inout_attributes_ptr);
+                static void restore_attributes(const GLAttributeFrame& in_frame,
+                                               GLAttributes*           inout_attributes_ptr);
 
-                GlArrayDrawDescriber                                            m_array_draw_describer;
+                GLArrayDrawDescriber                                            m_array_draw_describer;
                 Analysis::APIDumpAnalysis::ModelBuilder*                        m_builder_ptr;
-                GlContextState*                                                 m_cached_context_state_ptr;      /* what find_current_context_ptr() found last, for m_cached_thread_id; nullptr: nothing */
+                GLContextState*                                                 m_cached_context_state_ptr;      /* what find_current_context_ptr() found last, for m_cached_thread_id; nullptr: nothing */
                 uint32_t                                                        m_cached_thread_id;
                 Analysis::APIDumpAnalysis::ResourceView                         m_color_view;
-                std::map<uint64_t, GlContextState>                              m_context_map;                   /* by the address of the context */
+                std::map<uint64_t, GLContextState>                              m_context_map;                   /* by the address of the context */
                 std::map<uint32_t, uint64_t>                                    m_current_context_by_thread_map; /* the address, by the thread    */
                 Analysis::APIDumpAnalysis::ResourceView                         m_depth_stencil_view;
-                std::map<uint32_t, std::shared_ptr<GlDisplayList> >             m_display_list_map;              /* by the number of the list; the contexts share them */
+                std::map<uint32_t, std::shared_ptr<GLDisplayList> >             m_display_list_map;              /* by the number of the list; the contexts share them */
                 uint32_t                                                        m_framebuffer_height;
                 uint32_t                                                        m_framebuffer_width;
                 bool                                                            m_has_default_framebuffer;
@@ -259,9 +259,9 @@ namespace Analysis
                 std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t> m_n_resolution_hazard_map;
                 uint64_t                                                        m_n_unfollowed_calls;
                 uint64_t                                                        m_n_unsupported_calls;
-                GlReportedMatrix                                                m_reported_modelview;
-                GlReportedMatrix                                                m_reported_projection;
-                GlTextureHandler                                                m_texture_handler;
+                GLReportedMatrix                                                m_reported_modelview;
+                GLReportedMatrix                                                m_reported_projection;
+                GLTextureHandler                                                m_texture_handler;
             };
         }
     }

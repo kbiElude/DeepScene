@@ -763,7 +763,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_view_anchor_call(co
     const auto                                        shift = m_recipe_applier_ptr->make_view_anchor_matrix(in_eye,
                                                                                                            m_frame_eye_separation,
                                                                                                            m_session_ptr->get_completed_frame().shape_key);
-    Analysis::APIDumpAnalysis::Frontends::GlMatrix    loaded = shift;
+    Analysis::APIDumpAnalysis::Frontends::GLMatrix    loaded = shift;
     Capture::APIDumpLoader::DumpedAPICall             rewritten;
     bool                                              result = false;
 
@@ -797,7 +797,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_view_anchor_call(co
                 chunk_ptr->size() == MATRIX_N_ELEMENTS * ((is_double) ? sizeof(double)
                                                                       : sizeof(float) ) )
             {
-                Analysis::APIDumpAnalysis::Frontends::GlMatrix program_matrix = {};
+                Analysis::APIDumpAnalysis::Frontends::GLMatrix program_matrix = {};
 
                 for (size_t n_element = 0;
                             n_element < MATRIX_N_ELEMENTS;
@@ -821,7 +821,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_view_anchor_call(co
                     }
                 }
 
-                loaded = Analysis::APIDumpAnalysis::Frontends::GlMatrixMath::multiply(shift,
+                loaded = Analysis::APIDumpAnalysis::Frontends::GLMatrixMath::multiply(shift,
                                                                                       program_matrix);
                 result = true;
             }

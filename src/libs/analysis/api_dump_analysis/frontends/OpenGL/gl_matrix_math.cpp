@@ -5,7 +5,7 @@
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_matrix_math.h"
 #include <math.h>
 
-Analysis::APIDumpAnalysis::Frontends::GlMatrix Analysis::APIDumpAnalysis::Frontends::GlMatrixMath::get_frustum(const double& in_left,
+Analysis::APIDumpAnalysis::Frontends::GLMatrix Analysis::APIDumpAnalysis::Frontends::GLMatrixMath::get_frustum(const double& in_left,
                                                                                                                 const double& in_right,
                                                                                                                 const double& in_bottom,
                                                                                                                 const double& in_top,
@@ -15,7 +15,7 @@ Analysis::APIDumpAnalysis::Frontends::GlMatrix Analysis::APIDumpAnalysis::Fronte
     const double depth  = in_far   - in_near;
     const double height = in_top   - in_bottom;
     const double width  = in_right - in_left;
-    GlMatrix     result = get_identity();
+    GLMatrix     result = get_identity();
 
     if (depth  != 0.0 &&
         height != 0.0 &&
@@ -35,9 +35,9 @@ Analysis::APIDumpAnalysis::Frontends::GlMatrix Analysis::APIDumpAnalysis::Fronte
     return result;
 }
 
-Analysis::APIDumpAnalysis::Frontends::GlMatrix Analysis::APIDumpAnalysis::Frontends::GlMatrixMath::get_identity()
+Analysis::APIDumpAnalysis::Frontends::GLMatrix Analysis::APIDumpAnalysis::Frontends::GLMatrixMath::get_identity()
 {
-    GlMatrix result = {};
+    GLMatrix result = {};
 
     result.at(0)  = 1.0f;
     result.at(5)  = 1.0f;
@@ -47,7 +47,7 @@ Analysis::APIDumpAnalysis::Frontends::GlMatrix Analysis::APIDumpAnalysis::Fronte
     return result;
 }
 
-Analysis::APIDumpAnalysis::Frontends::GlMatrix Analysis::APIDumpAnalysis::Frontends::GlMatrixMath::get_ortho(const double& in_left,
+Analysis::APIDumpAnalysis::Frontends::GLMatrix Analysis::APIDumpAnalysis::Frontends::GLMatrixMath::get_ortho(const double& in_left,
                                                                                                               const double& in_right,
                                                                                                               const double& in_bottom,
                                                                                                               const double& in_top,
@@ -57,7 +57,7 @@ Analysis::APIDumpAnalysis::Frontends::GlMatrix Analysis::APIDumpAnalysis::Fronte
     const double depth  = in_far   - in_near;
     const double height = in_top   - in_bottom;
     const double width  = in_right - in_left;
-    GlMatrix     result = get_identity();
+    GLMatrix     result = get_identity();
 
     if (depth  != 0.0 &&
         height != 0.0 &&
@@ -74,7 +74,7 @@ Analysis::APIDumpAnalysis::Frontends::GlMatrix Analysis::APIDumpAnalysis::Fronte
     return result;
 }
 
-Analysis::APIDumpAnalysis::Frontends::GlMatrix Analysis::APIDumpAnalysis::Frontends::GlMatrixMath::get_rotation(const double& in_angle_degrees,
+Analysis::APIDumpAnalysis::Frontends::GLMatrix Analysis::APIDumpAnalysis::Frontends::GLMatrixMath::get_rotation(const double& in_angle_degrees,
                                                                                                                 const double& in_x,
                                                                                                                 const double& in_y,
                                                                                                                 const double& in_z)
@@ -83,7 +83,7 @@ Analysis::APIDumpAnalysis::Frontends::GlMatrix Analysis::APIDumpAnalysis::Fronte
     constexpr double HALF_TURN_RADIANS     = 3.14159265358979323846;
 
     const double axis_length = ::sqrt(in_x * in_x + in_y * in_y + in_z * in_z);
-    GlMatrix     result      = get_identity();
+    GLMatrix     result      = get_identity();
 
     if (axis_length != 0.0)
     {
@@ -109,11 +109,11 @@ Analysis::APIDumpAnalysis::Frontends::GlMatrix Analysis::APIDumpAnalysis::Fronte
     return result;
 }
 
-Analysis::APIDumpAnalysis::Frontends::GlMatrix Analysis::APIDumpAnalysis::Frontends::GlMatrixMath::get_scale(const double& in_x,
+Analysis::APIDumpAnalysis::Frontends::GLMatrix Analysis::APIDumpAnalysis::Frontends::GLMatrixMath::get_scale(const double& in_x,
                                                                                                               const double& in_y,
                                                                                                               const double& in_z)
 {
-    GlMatrix result = get_identity();
+    GLMatrix result = get_identity();
 
     result.at(0)  = static_cast<float>(in_x);
     result.at(5)  = static_cast<float>(in_y);
@@ -122,11 +122,11 @@ Analysis::APIDumpAnalysis::Frontends::GlMatrix Analysis::APIDumpAnalysis::Fronte
     return result;
 }
 
-Analysis::APIDumpAnalysis::Frontends::GlMatrix Analysis::APIDumpAnalysis::Frontends::GlMatrixMath::get_translation(const double& in_x,
+Analysis::APIDumpAnalysis::Frontends::GLMatrix Analysis::APIDumpAnalysis::Frontends::GLMatrixMath::get_translation(const double& in_x,
                                                                                                                     const double& in_y,
                                                                                                                     const double& in_z)
 {
-    GlMatrix result = get_identity();
+    GLMatrix result = get_identity();
 
     result.at(12) = static_cast<float>(in_x);
     result.at(13) = static_cast<float>(in_y);
@@ -135,12 +135,12 @@ Analysis::APIDumpAnalysis::Frontends::GlMatrix Analysis::APIDumpAnalysis::Fronte
     return result;
 }
 
-Analysis::APIDumpAnalysis::Frontends::GlMatrix Analysis::APIDumpAnalysis::Frontends::GlMatrixMath::multiply(const GlMatrix& in_left,
-                                                                                                             const GlMatrix& in_right)
+Analysis::APIDumpAnalysis::Frontends::GLMatrix Analysis::APIDumpAnalysis::Frontends::GLMatrixMath::multiply(const GLMatrix& in_left,
+                                                                                                             const GLMatrix& in_right)
 {
     constexpr size_t N_COLUMNS = 4;
 
-    GlMatrix result = {};
+    GLMatrix result = {};
 
     for (size_t n_column = 0;
                 n_column < N_COLUMNS;

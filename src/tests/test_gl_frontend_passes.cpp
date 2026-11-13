@@ -10,12 +10,12 @@
 
 namespace
 {
-    class GlFrontendPasses : public Tests::GlFrontendFixture
+    class GLFrontendPasses : public Tests::GLFrontendFixture
     {
     };
 }
 
-TEST_F(GlFrontendPasses, NothingIsMadeBeforeTheFirstClear)
+TEST_F(GLFrontendPasses, NothingIsMadeBeforeTheFirstClear)
 {
     start(640,
           480);
@@ -24,7 +24,7 @@ TEST_F(GlFrontendPasses, NothingIsMadeBeforeTheFirstClear)
     EXPECT_TRUE(m_harness.get_model().resource_vec.empty() );
 }
 
-TEST_F(GlFrontendPasses, TheWindowIsMadeAtTheFirstClearWithTheSizeOfTheViewport)
+TEST_F(GLFrontendPasses, TheWindowIsMadeAtTheFirstClearWithTheSizeOfTheViewport)
 {
     start(640,
           480);
@@ -53,7 +53,7 @@ TEST_F(GlFrontendPasses, TheWindowIsMadeAtTheFirstClearWithTheSizeOfTheViewport)
                 640u);
 }
 
-TEST_F(GlFrontendPasses, TheWindowIsMadeOnce)
+TEST_F(GLFrontendPasses, TheWindowIsMadeOnce)
 {
     start(640,
           480);
@@ -67,7 +67,7 @@ TEST_F(GlFrontendPasses, TheWindowIsMadeOnce)
               2u);
 }
 
-TEST_F(GlFrontendPasses, ASwapBuffersEndsAFrame)
+TEST_F(GLFrontendPasses, ASwapBuffersEndsAFrame)
 {
     start(640,
           480);
@@ -83,7 +83,7 @@ TEST_F(GlFrontendPasses, ASwapBuffersEndsAFrame)
               2u);
 }
 
-TEST_F(GlFrontendPasses, AClearIsAPassWithTheViewportOfTheContext)
+TEST_F(GLFrontendPasses, AClearIsAPassWithTheViewportOfTheContext)
 {
     start(640,
           480);
@@ -109,7 +109,7 @@ TEST_F(GlFrontendPasses, AClearIsAPassWithTheViewportOfTheContext)
                 480.0f);
 }
 
-TEST_F(GlFrontendPasses, TheLastViewportBeforeTheFirstClearIsTheOneOfThePass)
+TEST_F(GLFrontendPasses, TheLastViewportBeforeTheFirstClearIsTheOneOfThePass)
 {
     /* The first glViewport of a program can be the size it asks for before it has the window it wanted (626 x 466, then 640 x 480). */
     m_builder.make_current(DEVICE_CONTEXT_ADDRESS,
@@ -135,7 +135,7 @@ TEST_F(GlFrontendPasses, TheLastViewportBeforeTheFirstClearIsTheOneOfThePass)
               480.0f);
 }
 
-TEST_F(GlFrontendPasses, AClearWithNoMaskOfDepthDoesNotClearDepth)
+TEST_F(GLFrontendPasses, AClearWithNoMaskOfDepthDoesNotClearDepth)
 {
     start(640,
           480);
@@ -152,7 +152,7 @@ TEST_F(GlFrontendPasses, AClearWithNoMaskOfDepthDoesNotClearDepth)
     EXPECT_TRUE (structure.clears_stencil);
 }
 
-TEST_F(GlFrontendPasses, ACallOfAThreadWithNoContextIsNotFollowed)
+TEST_F(GLFrontendPasses, ACallOfAThreadWithNoContextIsNotFollowed)
 {
     m_builder.viewport(0,
                        0,
@@ -167,7 +167,7 @@ TEST_F(GlFrontendPasses, ACallOfAThreadWithNoContextIsNotFollowed)
     EXPECT_TRUE(m_harness.get_model().resource_vec.empty() );
 }
 
-TEST_F(GlFrontendPasses, AMakeCurrentWhichFailedChangesNothing)
+TEST_F(GLFrontendPasses, AMakeCurrentWhichFailedChangesNothing)
 {
     /* The first unbind of a program, with no context current, fails and does not matter; a bind which fails does not give a context either. */
     m_builder.make_current(0,
@@ -184,7 +184,7 @@ TEST_F(GlFrontendPasses, AMakeCurrentWhichFailedChangesNothing)
               1u);
 }
 
-TEST_F(GlFrontendPasses, AnUnbindLeavesTheThreadWithNoContext)
+TEST_F(GLFrontendPasses, AnUnbindLeavesTheThreadWithNoContext)
 {
     start(640,
           480);
@@ -200,7 +200,7 @@ TEST_F(GlFrontendPasses, AnUnbindLeavesTheThreadWithNoContext)
     EXPECT_TRUE(m_harness.get_model().resource_vec.empty() );
 }
 
-TEST_F(GlFrontendPasses, EachContextHasItsOwnViewport)
+TEST_F(GLFrontendPasses, EachContextHasItsOwnViewport)
 {
     start(640,
           480);
@@ -229,7 +229,7 @@ TEST_F(GlFrontendPasses, EachContextHasItsOwnViewport)
               0u);
 }
 
-TEST_F(GlFrontendPasses, TwoThreadsEachHaveTheirOwnCurrentContext)
+TEST_F(GLFrontendPasses, TwoThreadsEachHaveTheirOwnCurrentContext)
 {
     start(640,
           480);
@@ -244,7 +244,7 @@ TEST_F(GlFrontendPasses, TwoThreadsEachHaveTheirOwnCurrentContext)
     EXPECT_TRUE(m_harness.get_model().resource_vec.empty() );
 }
 
-TEST_F(GlFrontendPasses, AClearWithTheScissorTestOnReachesPartOfTheWindow)
+TEST_F(GLFrontendPasses, AClearWithTheScissorTestOnReachesPartOfTheWindow)
 {
     Tests::RecordingAccessSink sink;
 
@@ -280,7 +280,7 @@ TEST_F(GlFrontendPasses, AClearWithTheScissorTestOnReachesPartOfTheWindow)
               Analysis::APIDumpAnalysis::AccessCoverage::FULL);
 }
 
-TEST_F(GlFrontendPasses, ReadsOfTheFramebufferAreNotFollowedYetAndAreCounted)
+TEST_F(GLFrontendPasses, ReadsOfTheFramebufferAreNotFollowedYetAndAreCounted)
 {
     start(640,
           480);
@@ -297,7 +297,7 @@ TEST_F(GlFrontendPasses, ReadsOfTheFramebufferAreNotFollowedYetAndAreCounted)
               0u);
 }
 
-TEST_F(GlFrontendPasses, TheSessionGivesTheCallsOfOpenGLAndTheSwapToTheFrontEnd)
+TEST_F(GLFrontendPasses, TheSessionGivesTheCallsOfOpenGLAndTheSwapToTheFrontEnd)
 {
     Analysis::APIDumpAnalysis::Frontends::AnalysisSession session;
     bool                                                   did_swap_end_frame = false;

@@ -16,21 +16,21 @@ namespace Analysis
     {
         namespace Frontends
         {
-            class GlMatrixMath
+            class GLMatrixMath
             {
             public:
                 /* The matrix of glFrustum. */
-                static GlMatrix get_frustum(const double& in_left,
+                static GLMatrix get_frustum(const double& in_left,
                                             const double& in_right,
                                             const double& in_bottom,
                                             const double& in_top,
                                             const double& in_near,
                                             const double& in_far);
 
-                static GlMatrix get_identity();
+                static GLMatrix get_identity();
 
                 /* The matrix of glOrtho. */
-                static GlMatrix get_ortho(const double& in_left,
+                static GLMatrix get_ortho(const double& in_left,
                                           const double& in_right,
                                           const double& in_bottom,
                                           const double& in_top,
@@ -38,22 +38,22 @@ namespace Analysis
                                           const double& in_far);
 
                 /* The matrix of glRotate: the angle is in degrees, the axis need not be of length 1. */
-                static GlMatrix get_rotation(const double& in_angle_degrees,
+                static GLMatrix get_rotation(const double& in_angle_degrees,
                                              const double& in_x,
                                              const double& in_y,
                                              const double& in_z);
 
-                static GlMatrix get_scale(const double& in_x,
+                static GLMatrix get_scale(const double& in_x,
                                           const double& in_y,
                                           const double& in_z);
 
-                static GlMatrix get_translation(const double& in_x,
+                static GLMatrix get_translation(const double& in_x,
                                                 const double& in_y,
                                                 const double& in_z);
 
                 /* What glMultMatrix makes of the current matrix and the one it is given: the current one first, as the left factor. */
-                static GlMatrix multiply(const GlMatrix& in_left,
-                                         const GlMatrix& in_right);
+                static GLMatrix multiply(const GLMatrix& in_left,
+                                         const GLMatrix& in_right);
             };
         }
     }

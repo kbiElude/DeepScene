@@ -29,7 +29,7 @@ namespace Stereo
     namespace ConverterDLL
     {
         /* Makes the second eye for an application of OpenGL, as the application runs. The application renders to the framebuffer of the left eye
-         * (see GlEyeTargets), and each draw and each clear is made again for the right one, a draw with the camera moved for the eye (the matrix
+         * (see GLEyeTargets), and each draw and each clear is made again for the right one, a draw with the camera moved for the eye (the matrix
          * of the eye, in front of the model-view matrix the draw has, see StereoCore::make_eye_shift_matrix()), the left draw as well, so that
          * both eyes are moved half the separation. What the application renders to a texture (a copy of the framebuffer) is copied for the right
          * eye to a twin of the texture, which the draws of the right eye bind in its place. A draw is told to be affected, unaffected (made for both
@@ -39,7 +39,7 @@ namespace Stereo
          * owns, which is called for each eye when the block ends. Everything the converter calls is its own call (see OwnCallScope). Not thread safe:
          * the converter holds its lock around every call.
          */
-        class GlEyeRenderer
+        class GLEyeRenderer
         {
         public:
             /* Where the data that an argument refers to (the indices of a draw, the names of textures) is found: the chunks the feeder took. */
@@ -60,9 +60,9 @@ namespace Stereo
             };
 
             /* The core must outlive the renderer. If the images are shown elsewhere, the windows of the application are made invisible, and the application is made to
-             * render as large as fits the target, an eye of the headset (see GlResolutionScaler); no target (0) leaves the size as it is.
+             * render as large as fits the target, an eye of the headset (see GLResolutionScaler); no target (0) leaves the size as it is.
              */
-            GlEyeRenderer(Stereo::Core::StereoCore* in_core_ptr,
+            GLEyeRenderer(Stereo::Core::StereoCore* in_core_ptr,
                           const bool&               in_is_shown_elsewhere,
                           const uint32_t&           in_target_width,
                           const uint32_t&           in_target_height);
@@ -84,7 +84,7 @@ namespace Stereo
 
             /* The frame is about to be presented: the images of both eyes are read, and those of the frame before are given (false if there are none: the first frame, or a size
              * that changed). They stay where they are while the token in them is held. */
-            bool on_frame_ending(GlFrameImages* out_images_ptr);
+            bool on_frame_ending(GLFrameImages* out_images_ptr);
 
             /* A call of the application has been made. */
             void on_post(const APIInterceptor::APIFunction&         in_function,
@@ -159,7 +159,7 @@ namespace Stereo
             /* Reads the depth buffer of the left eye and waits for it, when there is no buffer of the graphics card to read it to: the pass is added to the frame that is being made. */
             void read_depth_at_once();
 
-            /* Starts a read of the depth buffer of the left eye to a buffer of the graphics card (see GlEyeTargets::begin_depth_read()): the result is taken when the frame ends,
+            /* Starts a read of the depth buffer of the left eye to a buffer of the graphics card (see GLEyeTargets::begin_depth_read()): the result is taken when the frame ends,
              * in the frame after it. If all the buffers are in use the oldest read is waited for, to have one free.
              */
             void start_depth_read();
@@ -188,7 +188,7 @@ namespace Stereo
 
             std::array<uint32_t, N_TEXTURE_UNITS> m_bound_texture_array;
             std::vector<float>                    m_depth_f32_vec;
-            uint32_t                              m_depth_generation;       /* of the targets that the reads that are on their way were begun with (see GlEyeTargets::get_generation()) */
+            uint32_t                              m_depth_generation;       /* of the targets that the reads that are on their way were begun with (see GLEyeTargets::get_generation()) */
             uint32_t                              m_depth_lag;              /* see get_depth_lag() */
             Stereo::Core::FrameDepthLedger        m_depth_ledger;
             Stereo::Core::DepthMeasurer           m_depth_measurer;
@@ -201,7 +201,7 @@ namespace Stereo
             uint32_t                              m_block_list;
             bool                                  m_caches_pixel_reads; /* the recipe has the reads of one pixel in a run given from a picture that is read once */
             Stereo::Core::StereoCore*             m_core_ptr;
-            GlFrameReader                         m_frame_reader;
+            GLFrameReader                         m_frame_reader;
             GetChunkFunc                          m_get_chunk_func;
             bool                                  m_has_failed;
             InvisibleWindows                      m_invisible_windows;
@@ -215,9 +215,9 @@ namespace Stereo
             std::array<float, 16>                 m_pass_projection_f32mat; /* of the first draw of the pass that is affected */
             bool                                  m_pass_has_affected_draws;
             Stereo::Core::PictureReadbackCache    m_readback_cache;
-            GlResolutionScaler                    m_scaler;
+            GLResolutionScaler                    m_scaler;
             Statistics                            m_statistics;
-            GlEyeTargets                          m_targets;
+            GLEyeTargets                          m_targets;
             std::map<uint32_t, uint32_t>          m_twin_map;
         };
     }

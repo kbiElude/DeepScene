@@ -12,7 +12,7 @@
 #include "resolution_hazard_gate.h"
 #include "eye_image_limits.h"
 
-Stereo::ConverterDLL::GlResolutionScaler::GlResolutionScaler(const uint32_t&              in_target_width,
+Stereo::ConverterDLL::GLResolutionScaler::GLResolutionScaler(const uint32_t&              in_target_width,
                                                              const uint32_t&              in_target_height,
                                                              Stereo::Core::StereoCore*    in_core_ptr,
                                                              const Stereo::Core::LogFunc& in_log_func)
@@ -30,32 +30,32 @@ Stereo::ConverterDLL::GlResolutionScaler::GlResolutionScaler(const uint32_t&    
     /* Stub */
 }
 
-void Stereo::ConverterDLL::GlResolutionScaler::forget_texture(const uint32_t& in_texture)
+void Stereo::ConverterDLL::GLResolutionScaler::forget_texture(const uint32_t& in_texture)
 {
     m_scaled_texture_set.erase(in_texture);
 }
 
-uint32_t Stereo::ConverterDLL::GlResolutionScaler::get_asked_height() const
+uint32_t Stereo::ConverterDLL::GLResolutionScaler::get_asked_height() const
 {
     return m_asked_height;
 }
 
-uint32_t Stereo::ConverterDLL::GlResolutionScaler::get_asked_width() const
+uint32_t Stereo::ConverterDLL::GLResolutionScaler::get_asked_width() const
 {
     return m_asked_width;
 }
 
-const Stereo::Core::ResolutionPolicy& Stereo::ConverterDLL::GlResolutionScaler::get_policy() const
+const Stereo::Core::ResolutionPolicy& Stereo::ConverterDLL::GLResolutionScaler::get_policy() const
 {
     return m_policy;
 }
 
-bool Stereo::ConverterDLL::GlResolutionScaler::is_identity() const
+bool Stereo::ConverterDLL::GLResolutionScaler::is_identity() const
 {
     return m_policy.is_identity();
 }
 
-bool Stereo::ConverterDLL::GlResolutionScaler::is_null_pointer(const APIInterceptor::APIFunctionArgument& in_argument)
+bool Stereo::ConverterDLL::GLResolutionScaler::is_null_pointer(const APIInterceptor::APIFunctionArgument& in_argument)
 {
     bool result = false;
 
@@ -81,12 +81,12 @@ bool Stereo::ConverterDLL::GlResolutionScaler::is_null_pointer(const APIIntercep
     return result;
 }
 
-bool Stereo::ConverterDLL::GlResolutionScaler::is_scaled_texture(const uint32_t& in_texture) const
+bool Stereo::ConverterDLL::GLResolutionScaler::is_scaled_texture(const uint32_t& in_texture) const
 {
     return (m_scaled_texture_set.find(in_texture) != m_scaled_texture_set.end() );
 }
 
-bool Stereo::ConverterDLL::GlResolutionScaler::make_scaled_read(const uint32_t&                            in_n_arguments,
+bool Stereo::ConverterDLL::GLResolutionScaler::make_scaled_read(const uint32_t&                            in_n_arguments,
                                                                 const APIInterceptor::APIFunctionArgument* in_arguments_ptr) const
 {
     constexpr GLsizei READ_EXTENT = 1;
@@ -116,7 +116,7 @@ bool Stereo::ConverterDLL::GlResolutionScaler::make_scaled_read(const uint32_t& 
         const OwnCallScope own_call_scope;
 
         /* The framebuffer that is read is the one that the application renders to, and the pixel is given to it in its own buffer, with the way of packing that it has set. */
-        GlDriverFunctions::get().read_pixels_func_ptr(static_cast<GLint>(x_real),
+        GLDriverFunctions::get().read_pixels_func_ptr(static_cast<GLint>(x_real),
                                                       static_cast<GLint>(y_real),
                                                       READ_EXTENT,
                                                       READ_EXTENT,
@@ -130,7 +130,7 @@ bool Stereo::ConverterDLL::GlResolutionScaler::make_scaled_read(const uint32_t& 
     return result;
 }
 
-bool Stereo::ConverterDLL::GlResolutionScaler::on_pre(const APIInterceptor::APIFunction&         in_function,
+bool Stereo::ConverterDLL::GLResolutionScaler::on_pre(const APIInterceptor::APIFunction&         in_function,
                                                       const uint32_t&                            in_n_arguments,
                                                       const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
                                                       const uint32_t&                            in_bound_texture)
@@ -150,7 +150,7 @@ bool Stereo::ConverterDLL::GlResolutionScaler::on_pre(const APIInterceptor::APIF
     /* What cannot be made to match ends the application. */
     if (result == false)
     {
-        const bool is_hazard = Analysis::APIDumpAnalysis::Frontends::GlResolutionHazards::classify(in_function,
+        const bool is_hazard = Analysis::APIDumpAnalysis::Frontends::GLResolutionHazards::classify(in_function,
                                                                                                    in_n_arguments,
                                                                                                    in_arguments_ptr,
                                                                                                   &hazard);
@@ -179,11 +179,11 @@ bool Stereo::ConverterDLL::GlResolutionScaler::on_pre(const APIInterceptor::APIF
 
                 if (in_function == APIInterceptor::APIFUNCTION_GL_GLLINEWIDTH)
                 {
-                    GlDriverFunctions::get().line_width_func_ptr(scaled_size);
+                    GLDriverFunctions::get().line_width_func_ptr(scaled_size);
                 }
                 else
                 {
-                    GlDriverFunctions::get().point_size_func_ptr(scaled_size);
+                    GLDriverFunctions::get().point_size_func_ptr(scaled_size);
                 }
 
                 result = true;
@@ -229,14 +229,14 @@ bool Stereo::ConverterDLL::GlResolutionScaler::on_pre(const APIInterceptor::APIF
 
                 if (in_function == APIInterceptor::APIFUNCTION_GL_GLSCISSOR)
                 {
-                    GlDriverFunctions::get().scissor_func_ptr(static_cast<GLint>(rect.x),
+                    GLDriverFunctions::get().scissor_func_ptr(static_cast<GLint>(rect.x),
                                                               static_cast<GLint>(rect.y),
                                                               static_cast<GLsizei>(rect.width),
                                                               static_cast<GLsizei>(rect.height) );
                 }
                 else
                 {
-                    GlDriverFunctions::get().viewport_func_ptr(static_cast<GLint>(rect.x),
+                    GLDriverFunctions::get().viewport_func_ptr(static_cast<GLint>(rect.x),
                                                                static_cast<GLint>(rect.y),
                                                                static_cast<GLsizei>(rect.width),
                                                                static_cast<GLsizei>(rect.height) );
@@ -305,7 +305,7 @@ bool Stereo::ConverterDLL::GlResolutionScaler::on_pre(const APIInterceptor::APIF
                                                           "A texture that the application renders to would be " + std::to_string(width) + " x " + std::to_string(height) +
                                                           ", larger than the driver makes; lower the render scale");
 
-                            GlDriverFunctions::get().tex_image_2d_func_ptr(target,
+                            GLDriverFunctions::get().tex_image_2d_func_ptr(target,
                                                                            value_array.at(1),
                                                                            value_array.at(2),
                                                                            static_cast<GLsizei>(width),
@@ -350,7 +350,7 @@ bool Stereo::ConverterDLL::GlResolutionScaler::on_pre(const APIInterceptor::APIF
     return result;
 }
 
-bool Stereo::ConverterDLL::GlResolutionScaler::parse_single_pixel_read(const uint32_t&                            in_n_arguments,
+bool Stereo::ConverterDLL::GLResolutionScaler::parse_single_pixel_read(const uint32_t&                            in_n_arguments,
                                                                        const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
                                                                        SinglePixelRead*                           out_read_ptr)
 {
@@ -425,7 +425,7 @@ end:
     return result;
 }
 
-void Stereo::ConverterDLL::GlResolutionScaler::plan(const uint32_t& in_asked_width,
+void Stereo::ConverterDLL::GLResolutionScaler::plan(const uint32_t& in_asked_width,
                                                     const uint32_t& in_asked_height,
                                                     const uint32_t& in_max_extent,
                                                     uint32_t*       out_real_width_ptr,
@@ -467,7 +467,7 @@ void Stereo::ConverterDLL::GlResolutionScaler::plan(const uint32_t& in_asked_wid
     *out_real_width_ptr  = m_real_width;
 }
 
-void Stereo::ConverterDLL::GlResolutionScaler::scale_copy(const bool&             in_is_sub_image,
+void Stereo::ConverterDLL::GLResolutionScaler::scale_copy(const bool&             in_is_sub_image,
                                                           const uint32_t&         in_bound_texture,
                                                           std::array<int32_t, 8>* inout_value_array_ptr)
 {

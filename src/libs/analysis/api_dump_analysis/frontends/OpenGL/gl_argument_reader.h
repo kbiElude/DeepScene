@@ -17,7 +17,7 @@ namespace Analysis
         namespace Frontends
         {
             /* How the classes that follow the calls of OpenGL read the arguments of a call. */
-            class GlArgumentReader
+            class GLArgumentReader
             {
             public:
                 /* Reads the first N arguments of the call as numbers; false if it has fewer, or one that is not a number. */

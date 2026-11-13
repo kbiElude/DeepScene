@@ -18,12 +18,12 @@ namespace Analysis
     {
         namespace Frontends
         {
-            class GlVertexReader
+            class GLVertexReader
             {
             public:
                 /* How the vertex of the function is given; false if it is not a call of glVertex. */
                 static bool find_layout(const APIInterceptor::APIFunction& in_function,
-                                        GlVertexLayout*                    out_layout_ptr);
+                                        GLVertexLayout*                    out_layout_ptr);
 
                 /* The x, y and z of the vertex (a z that the call does not give is 0, and a w is left out); false if the call has not got what its
                  * function says (a data chunk of another size, an argument that is not a number).
@@ -35,7 +35,7 @@ namespace Analysis
             private:
                 /* The first components of the data, as the kind of a component says they are kept; false if there are not that many bytes. */
                 static bool read_components(const Capture::APIDumpLoader::DataChunk& in_chunk,
-                                            const GlVertexLayout&                    in_layout,
+                                            const GLVertexLayout&                    in_layout,
                                             std::array<double, 4>*                   out_component_array_ptr);
             };
         }

@@ -20,7 +20,7 @@ namespace Analysis
     {
         namespace Frontends
         {
-            class GlGeometrySampler
+            class GLGeometrySampler
             {
             public:
                 /* The number of vertices of a draw that are sampled (all of them if they are not many). */

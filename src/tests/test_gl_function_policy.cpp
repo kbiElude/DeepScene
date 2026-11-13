@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Tests for GlFunctionPolicy: which GL functions that the front end does not follow it may leave out. The ones that a real workload (Gerbera) makes must be among
+ * Tests for GLFunctionPolicy: which GL functions that the front end does not follow it may leave out. The ones that a real workload (Gerbera) makes must be among
  * them, and the ones that change what the model finds, or that it has never been told about, must not.
  */
 #include <gtest/gtest.h>
@@ -13,10 +13,10 @@
 
 namespace
 {
-    typedef Analysis::APIDumpAnalysis::Frontends::GlFunctionPolicy GlFunctionPolicy;
+    typedef Analysis::APIDumpAnalysis::Frontends::GLFunctionPolicy GLFunctionPolicy;
 }
 
-TEST(GlFunctionPolicy, TheFunctionsThatGerberaMakesAndTheFrontEndDoesNotFollowMayBeLeftOut)
+TEST(GLFunctionPolicy, TheFunctionsThatGerberaMakesAndTheFrontEndDoesNotFollowMayBeLeftOut)
 {
     const APIInterceptor::APIFunction function_array[] =
     {
@@ -54,11 +54,11 @@ TEST(GlFunctionPolicy, TheFunctionsThatGerberaMakesAndTheFrontEndDoesNotFollowMa
 
     for (const auto function : function_array)
     {
-        EXPECT_TRUE(GlFunctionPolicy::is_left_out_by_design(function) ) << Capture::APIDumpNames::get_function_name(function);
+        EXPECT_TRUE(GLFunctionPolicy::is_left_out_by_design(function) ) << Capture::APIDumpNames::get_function_name(function);
     }
 }
 
-TEST(GlFunctionPolicy, WhatIsMadeRelativeToTheMatrixOfTheMomentIsNotLeftOutAndIsToldAsSuch)
+TEST(GLFunctionPolicy, WhatIsMadeRelativeToTheMatrixOfTheMomentIsNotLeftOutAndIsToldAsSuch)
 {
     const APIInterceptor::APIFunction function_array[] =
     {
@@ -73,12 +73,12 @@ TEST(GlFunctionPolicy, WhatIsMadeRelativeToTheMatrixOfTheMomentIsNotLeftOutAndIs
 
     for (const auto function : function_array)
     {
-        EXPECT_TRUE (GlFunctionPolicy::bakes_current_matrix(function) )    << Capture::APIDumpNames::get_function_name(function);
-        EXPECT_FALSE(GlFunctionPolicy::is_left_out_by_design(function) )   << Capture::APIDumpNames::get_function_name(function);
+        EXPECT_TRUE (GLFunctionPolicy::bakes_current_matrix(function) )    << Capture::APIDumpNames::get_function_name(function);
+        EXPECT_FALSE(GLFunctionPolicy::is_left_out_by_design(function) )   << Capture::APIDumpNames::get_function_name(function);
     }
 }
 
-TEST(GlFunctionPolicy, WhatDoesNotDependOnTheMatrixIsNotToldAsSuch)
+TEST(GLFunctionPolicy, WhatDoesNotDependOnTheMatrixIsNotToldAsSuch)
 {
     const APIInterceptor::APIFunction function_array[] =
     {
@@ -92,11 +92,11 @@ TEST(GlFunctionPolicy, WhatDoesNotDependOnTheMatrixIsNotToldAsSuch)
 
     for (const auto function : function_array)
     {
-        EXPECT_FALSE(GlFunctionPolicy::bakes_current_matrix(function) ) << Capture::APIDumpNames::get_function_name(function);
+        EXPECT_FALSE(GLFunctionPolicy::bakes_current_matrix(function) ) << Capture::APIDumpNames::get_function_name(function);
     }
 }
 
-TEST(GlFunctionPolicy, WhatDecidesWhatADrawWritesAndTheModelDoesNotFollowIsNotLeftOut)
+TEST(GLFunctionPolicy, WhatDecidesWhatADrawWritesAndTheModelDoesNotFollowIsNotLeftOut)
 {
     const APIInterceptor::APIFunction function_array[] =
     {
@@ -113,13 +113,13 @@ TEST(GlFunctionPolicy, WhatDecidesWhatADrawWritesAndTheModelDoesNotFollowIsNotLe
 
     for (const auto function : function_array)
     {
-        EXPECT_TRUE (GlFunctionPolicy::changes_what_a_draw_writes(function) ) << Capture::APIDumpNames::get_function_name(function);
-        EXPECT_FALSE(GlFunctionPolicy::is_left_out_by_design(function) )      << Capture::APIDumpNames::get_function_name(function);
-        EXPECT_FALSE(GlFunctionPolicy::bakes_current_matrix(function) )       << Capture::APIDumpNames::get_function_name(function);
+        EXPECT_TRUE (GLFunctionPolicy::changes_what_a_draw_writes(function) ) << Capture::APIDumpNames::get_function_name(function);
+        EXPECT_FALSE(GLFunctionPolicy::is_left_out_by_design(function) )      << Capture::APIDumpNames::get_function_name(function);
+        EXPECT_FALSE(GLFunctionPolicy::bakes_current_matrix(function) )       << Capture::APIDumpNames::get_function_name(function);
     }
 }
 
-TEST(GlFunctionPolicy, WhatOnlyChangesHowADrawLooksIsStillLeftOut)
+TEST(GLFunctionPolicy, WhatOnlyChangesHowADrawLooksIsStillLeftOut)
 {
     const APIInterceptor::APIFunction function_array[] =
     {
@@ -133,21 +133,21 @@ TEST(GlFunctionPolicy, WhatOnlyChangesHowADrawLooksIsStillLeftOut)
 
     for (const auto function : function_array)
     {
-        EXPECT_TRUE (GlFunctionPolicy::is_left_out_by_design(function) )      << Capture::APIDumpNames::get_function_name(function);
-        EXPECT_FALSE(GlFunctionPolicy::changes_what_a_draw_writes(function) ) << Capture::APIDumpNames::get_function_name(function);
+        EXPECT_TRUE (GLFunctionPolicy::is_left_out_by_design(function) )      << Capture::APIDumpNames::get_function_name(function);
+        EXPECT_FALSE(GLFunctionPolicy::changes_what_a_draw_writes(function) ) << Capture::APIDumpNames::get_function_name(function);
     }
 }
 
-TEST(GlFunctionPolicy, TheQueriesAreLeftOutWhateverTheyAre)
+TEST(GLFunctionPolicy, TheQueriesAreLeftOutWhateverTheyAre)
 {
-    EXPECT_TRUE(GlFunctionPolicy::is_left_out_by_design(APIInterceptor::APIFUNCTION_GL_GLGETINTEGERV) );
-    EXPECT_TRUE(GlFunctionPolicy::is_left_out_by_design(APIInterceptor::APIFUNCTION_GL_GLGETTEXIMAGE) );
-    EXPECT_TRUE(GlFunctionPolicy::is_left_out_by_design(APIInterceptor::APIFUNCTION_GL_GLISENABLED) );
-    EXPECT_TRUE(GlFunctionPolicy::is_left_out_by_design(APIInterceptor::APIFUNCTION_GL_GLISTEXTURE) );
-    EXPECT_TRUE(GlFunctionPolicy::is_left_out_by_design(APIInterceptor::APIFUNCTION_GL_GLARETEXTURESRESIDENT) );
+    EXPECT_TRUE(GLFunctionPolicy::is_left_out_by_design(APIInterceptor::APIFUNCTION_GL_GLGETINTEGERV) );
+    EXPECT_TRUE(GLFunctionPolicy::is_left_out_by_design(APIInterceptor::APIFUNCTION_GL_GLGETTEXIMAGE) );
+    EXPECT_TRUE(GLFunctionPolicy::is_left_out_by_design(APIInterceptor::APIFUNCTION_GL_GLISENABLED) );
+    EXPECT_TRUE(GLFunctionPolicy::is_left_out_by_design(APIInterceptor::APIFUNCTION_GL_GLISTEXTURE) );
+    EXPECT_TRUE(GLFunctionPolicy::is_left_out_by_design(APIInterceptor::APIFUNCTION_GL_GLARETEXTURESRESIDENT) );
 }
 
-TEST(GlFunctionPolicy, WhatChangesWhatTheModelFindsOrHasNeverBeenToldAboutIsNotLeftOut)
+TEST(GLFunctionPolicy, WhatChangesWhatTheModelFindsOrHasNeverBeenToldAboutIsNotLeftOut)
 {
     const APIInterceptor::APIFunction function_array[] =
     {
@@ -169,14 +169,14 @@ TEST(GlFunctionPolicy, WhatChangesWhatTheModelFindsOrHasNeverBeenToldAboutIsNotL
 
     for (const auto function : function_array)
     {
-        EXPECT_FALSE(GlFunctionPolicy::is_left_out_by_design(function) ) << Capture::APIDumpNames::get_function_name(function);
+        EXPECT_FALSE(GLFunctionPolicy::is_left_out_by_design(function) ) << Capture::APIDumpNames::get_function_name(function);
     }
 }
 
-TEST(GlFunctionPolicy, AFunctionThatTheFrontEndFollowsIsNotAskedAboutHere)
+TEST(GLFunctionPolicy, AFunctionThatTheFrontEndFollowsIsNotAskedAboutHere)
 {
     /* The ones that the front end names are followed there; the policy says nothing of them, and they are not on its list. */
-    EXPECT_FALSE(GlFunctionPolicy::is_left_out_by_design(APIInterceptor::APIFUNCTION_GL_GLVERTEX3FV) );
-    EXPECT_FALSE(GlFunctionPolicy::is_left_out_by_design(APIInterceptor::APIFUNCTION_GL_GLTEXIMAGE2D) );
-    EXPECT_FALSE(GlFunctionPolicy::is_left_out_by_design(APIInterceptor::APIFUNCTION_GL_GLDRAWARRAYS) );
+    EXPECT_FALSE(GLFunctionPolicy::is_left_out_by_design(APIInterceptor::APIFUNCTION_GL_GLVERTEX3FV) );
+    EXPECT_FALSE(GLFunctionPolicy::is_left_out_by_design(APIInterceptor::APIFUNCTION_GL_GLTEXIMAGE2D) );
+    EXPECT_FALSE(GLFunctionPolicy::is_left_out_by_design(APIInterceptor::APIFUNCTION_GL_GLDRAWARRAYS) );
 }

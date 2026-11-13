@@ -5,7 +5,7 @@
 #include "common/argument_reader.h"
 #include "gl_resolution_hazards.h"
 
-bool Analysis::APIDumpAnalysis::Frontends::GlResolutionHazards::classify(const APIInterceptor::APIFunction&         in_function,
+bool Analysis::APIDumpAnalysis::Frontends::GLResolutionHazards::classify(const APIInterceptor::APIFunction&         in_function,
                                                                          const uint32_t&                            in_n_arguments,
                                                                          const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
                                                                          ResolutionHazard*                          out_hazard_ptr)

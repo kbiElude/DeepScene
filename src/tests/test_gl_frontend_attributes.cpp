@@ -10,12 +10,12 @@
 
 namespace
 {
-    class GlFrontendAttributes : public Tests::GlFrontendFixture
+    class GLFrontendAttributes : public Tests::GLFrontendFixture
     {
     };
 }
 
-TEST_F(GlFrontendAttributes, APopPutsBackTheScissorTest)
+TEST_F(GLFrontendAttributes, APopPutsBackTheScissorTest)
 {
     Tests::RecordingAccessSink sink;
 
@@ -43,7 +43,7 @@ TEST_F(GlFrontendAttributes, APopPutsBackTheScissorTest)
               Analysis::APIDumpAnalysis::AccessCoverage::FULL);
 }
 
-TEST_F(GlFrontendAttributes, WithoutAPopTheScissorTestStaysOn)
+TEST_F(GLFrontendAttributes, WithoutAPopTheScissorTestStaysOn)
 {
     Tests::RecordingAccessSink sink;
 
@@ -70,7 +70,7 @@ TEST_F(GlFrontendAttributes, WithoutAPopTheScissorTestStaysOn)
               Analysis::APIDumpAnalysis::AccessCoverage::PARTIAL);
 }
 
-TEST_F(GlFrontendAttributes, APopPutsBackTheViewport)
+TEST_F(GLFrontendAttributes, APopPutsBackTheViewport)
 {
     start(640,
           480);
@@ -97,7 +97,7 @@ TEST_F(GlFrontendAttributes, APopPutsBackTheViewport)
               480.0f);
 }
 
-TEST_F(GlFrontendAttributes, APopPutsBackTheMatrixMode)
+TEST_F(GLFrontendAttributes, APopPutsBackTheMatrixMode)
 {
     start(640,
           480);
@@ -119,7 +119,7 @@ TEST_F(GlFrontendAttributes, APopPutsBackTheMatrixMode)
                     0.0f);
 }
 
-TEST_F(GlFrontendAttributes, AMaskOfNothingPutsBackNothing)
+TEST_F(GLFrontendAttributes, AMaskOfNothingPutsBackNothing)
 {
     start(640,
           480);
@@ -140,7 +140,7 @@ TEST_F(GlFrontendAttributes, AMaskOfNothingPutsBackNothing)
                     1.0f);
 }
 
-TEST_F(GlFrontendAttributes, TheMatricesAreNotAPartOfTheAttributes)
+TEST_F(GLFrontendAttributes, TheMatricesAreNotAPartOfTheAttributes)
 {
     start(640,
           480);
@@ -161,7 +161,7 @@ TEST_F(GlFrontendAttributes, TheMatricesAreNotAPartOfTheAttributes)
                     3.0f);
 }
 
-TEST_F(GlFrontendAttributes, APopWithNothingPushedIsNotFollowed)
+TEST_F(GLFrontendAttributes, APopWithNothingPushedIsNotFollowed)
 {
     start(640,
           480);
@@ -174,7 +174,7 @@ TEST_F(GlFrontendAttributes, APopWithNothingPushedIsNotFollowed)
               1u);
 }
 
-TEST_F(GlFrontendAttributes, EachContextHasItsOwnStackOfAttributes)
+TEST_F(GLFrontendAttributes, EachContextHasItsOwnStackOfAttributes)
 {
     start(640,
           480);

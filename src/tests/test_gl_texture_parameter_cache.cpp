@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Tests for GlTextureParameterCache: which glTexParameter calls of a replay it leaves out, and when it forgets what it knows.
+ * Tests for GLTextureParameterCache: which glTexParameter calls of a replay it leaves out, and when it forgets what it knows.
  */
 #include <gtest/gtest.h>
 #include "gl_texture_parameter_cache.h"
@@ -35,7 +35,7 @@ namespace
     }
 
     /* What the engine does with a call: asks, and says what came of it. Returns whether the call was made. */
-    bool play(Stereo::Replay::EngineDLL::GlTextureParameterCache*  inout_cache_ptr,
+    bool play(Stereo::Replay::EngineDLL::GLTextureParameterCache*  inout_cache_ptr,
               const Capture::APIDumpLoader::DumpedAPICall&         in_call,
               const uint32_t&                                      in_n_frame = 0)
     {
@@ -49,7 +49,7 @@ namespace
         return is_executed;
     }
 
-    bool bind(Stereo::Replay::EngineDLL::GlTextureParameterCache* inout_cache_ptr,
+    bool bind(Stereo::Replay::EngineDLL::GLTextureParameterCache* inout_cache_ptr,
               const uint32_t&                                     in_texture)
     {
         return play(inout_cache_ptr,
@@ -57,7 +57,7 @@ namespace
                               {TEXTURE_2D, in_texture}) );
     }
 
-    bool set_parameter(Stereo::Replay::EngineDLL::GlTextureParameterCache* inout_cache_ptr,
+    bool set_parameter(Stereo::Replay::EngineDLL::GLTextureParameterCache* inout_cache_ptr,
                        const uint32_t&                                     in_parameter,
                        const uint32_t&                                     in_value)
     {
@@ -67,9 +67,9 @@ namespace
     }
 }
 
-TEST(GlTextureParameterCache, AParameterThatHasTheValueIsLeftOutAndAChangedOneIsNot)
+TEST(GLTextureParameterCache, AParameterThatHasTheValueIsLeftOutAndAChangedOneIsNot)
 {
-    Stereo::Replay::EngineDLL::GlTextureParameterCache cache;
+    Stereo::Replay::EngineDLL::GLTextureParameterCache cache;
 
     bind(&cache, 7);
 
@@ -82,9 +82,9 @@ TEST(GlTextureParameterCache, AParameterThatHasTheValueIsLeftOutAndAChangedOneIs
     EXPECT_EQ   (cache.get_n_skipped_calls(), 3u);
 }
 
-TEST(GlTextureParameterCache, EachTextureAndEachParameterHasItsOwnValue)
+TEST(GLTextureParameterCache, EachTextureAndEachParameterHasItsOwnValue)
 {
-    Stereo::Replay::EngineDLL::GlTextureParameterCache cache;
+    Stereo::Replay::EngineDLL::GLTextureParameterCache cache;
 
     bind(&cache, 1);
     EXPECT_TRUE(set_parameter(&cache, MIN_FILTER, LINEAR) );
@@ -102,9 +102,9 @@ TEST(GlTextureParameterCache, EachTextureAndEachParameterHasItsOwnValue)
     EXPECT_TRUE (set_parameter(&cache, MAG_FILTER, LINEAR) );
 }
 
-TEST(GlTextureParameterCache, EachUnitHasItsOwnBinding)
+TEST(GLTextureParameterCache, EachUnitHasItsOwnBinding)
 {
-    Stereo::Replay::EngineDLL::GlTextureParameterCache cache;
+    Stereo::Replay::EngineDLL::GLTextureParameterCache cache;
 
     play(&cache, make_call(APIInterceptor::APIFUNCTION_GL_GLACTIVETEXTURE, {TEXTURE0}) );
     bind(&cache, 1);
@@ -118,9 +118,9 @@ TEST(GlTextureParameterCache, EachUnitHasItsOwnBinding)
     EXPECT_FALSE(set_parameter(&cache, MIN_FILTER, LINEAR) ); /* texture 1 still */
 }
 
-TEST(GlTextureParameterCache, AParameterThatTheCacheDoesNotLookAtIsNeverLeftOut)
+TEST(GLTextureParameterCache, AParameterThatTheCacheDoesNotLookAtIsNeverLeftOut)
 {
-    Stereo::Replay::EngineDLL::GlTextureParameterCache cache;
+    Stereo::Replay::EngineDLL::GLTextureParameterCache cache;
 
     bind(&cache, 1);
 
@@ -128,9 +128,9 @@ TEST(GlTextureParameterCache, AParameterThatTheCacheDoesNotLookAtIsNeverLeftOut)
     EXPECT_TRUE(set_parameter(&cache, BORDER_COLOR, 0) );
 }
 
-TEST(GlTextureParameterCache, AFloatThatIsTheValueOfAnIntegerIsTheSameValue)
+TEST(GLTextureParameterCache, AFloatThatIsTheValueOfAnIntegerIsTheSameValue)
 {
-    Stereo::Replay::EngineDLL::GlTextureParameterCache cache;
+    Stereo::Replay::EngineDLL::GLTextureParameterCache cache;
     Capture::APIDumpLoader::DumpedAPICall              float_call;
 
     float_call.func = APIInterceptor::APIFUNCTION_GL_GLTEXPARAMETERF;
@@ -145,17 +145,17 @@ TEST(GlTextureParameterCache, AFloatThatIsTheValueOfAnIntegerIsTheSameValue)
     EXPECT_FALSE(play(&cache, float_call) );
 }
 
-TEST(GlTextureParameterCache, NothingIsLeftOutBeforeATextureIsBound)
+TEST(GLTextureParameterCache, NothingIsLeftOutBeforeATextureIsBound)
 {
-    Stereo::Replay::EngineDLL::GlTextureParameterCache cache;
+    Stereo::Replay::EngineDLL::GLTextureParameterCache cache;
 
     EXPECT_TRUE(set_parameter(&cache, MIN_FILTER, LINEAR) );
     EXPECT_TRUE(set_parameter(&cache, MIN_FILTER, LINEAR) );
 }
 
-TEST(GlTextureParameterCache, DeletingTexturesMakesTheCacheForgetThem)
+TEST(GLTextureParameterCache, DeletingTexturesMakesTheCacheForgetThem)
 {
-    Stereo::Replay::EngineDLL::GlTextureParameterCache cache;
+    Stereo::Replay::EngineDLL::GLTextureParameterCache cache;
 
     bind(&cache, 1);
     EXPECT_TRUE(set_parameter(&cache, MIN_FILTER, LINEAR) );
@@ -172,9 +172,9 @@ TEST(GlTextureParameterCache, DeletingTexturesMakesTheCacheForgetThem)
     EXPECT_FALSE(set_parameter(&cache, MIN_FILTER, LINEAR) );
 }
 
-TEST(GlTextureParameterCache, GlPopAttribMakesTheCacheForgetEverything)
+TEST(GLTextureParameterCache, GLPopAttribMakesTheCacheForgetEverything)
 {
-    Stereo::Replay::EngineDLL::GlTextureParameterCache cache;
+    Stereo::Replay::EngineDLL::GLTextureParameterCache cache;
 
     bind(&cache, 1);
     EXPECT_TRUE(set_parameter(&cache, MIN_FILTER, LINEAR) );
@@ -186,9 +186,9 @@ TEST(GlTextureParameterCache, GlPopAttribMakesTheCacheForgetEverything)
     EXPECT_TRUE(set_parameter(&cache, MIN_FILTER, LINEAR) );
 }
 
-TEST(GlTextureParameterCache, ACallThatAnotherInterceptorLeftOutMakesTheCacheForget)
+TEST(GLTextureParameterCache, ACallThatAnotherInterceptorLeftOutMakesTheCacheForget)
 {
-    Stereo::Replay::EngineDLL::GlTextureParameterCache cache;
+    Stereo::Replay::EngineDLL::GLTextureParameterCache cache;
 
     bind(&cache, 1);
     EXPECT_TRUE(set_parameter(&cache, MIN_FILTER, LINEAR) );
@@ -209,9 +209,9 @@ TEST(GlTextureParameterCache, ACallThatAnotherInterceptorLeftOutMakesTheCacheFor
     EXPECT_TRUE(set_parameter(&cache, MIN_FILTER, LINEAR) );
 }
 
-TEST(GlTextureParameterCache, TheCallsOfAListThatIsBeingMadeAreNeverLeftOut)
+TEST(GLTextureParameterCache, TheCallsOfAListThatIsBeingMadeAreNeverLeftOut)
 {
-    Stereo::Replay::EngineDLL::GlTextureParameterCache cache;
+    Stereo::Replay::EngineDLL::GLTextureParameterCache cache;
 
     bind(&cache, 1);
     EXPECT_TRUE(set_parameter(&cache, MIN_FILTER, LINEAR) );
@@ -224,9 +224,9 @@ TEST(GlTextureParameterCache, TheCallsOfAListThatIsBeingMadeAreNeverLeftOut)
     play(&cache, make_call(APIInterceptor::APIFUNCTION_GL_GLENDLIST) );
 }
 
-TEST(GlTextureParameterCache, ACallOfAListThatSetsTheTextureStateMakesTheCacheForgetButOneThatDoesNotDoesNot)
+TEST(GLTextureParameterCache, ACallOfAListThatSetsTheTextureStateMakesTheCacheForgetButOneThatDoesNotDoesNot)
 {
-    Stereo::Replay::EngineDLL::GlTextureParameterCache cache;
+    Stereo::Replay::EngineDLL::GLTextureParameterCache cache;
 
     /* List 5 sets a parameter; list 6 only draws. */
     play(&cache, make_call(APIInterceptor::APIFUNCTION_GL_GLNEWLIST, {5}) );
@@ -256,9 +256,9 @@ TEST(GlTextureParameterCache, ACallOfAListThatSetsTheTextureStateMakesTheCacheFo
     EXPECT_TRUE(set_parameter(&cache, MIN_FILTER, LINEAR) );
 }
 
-TEST(GlTextureParameterCache, AListThatIsNotKnownIsTakenForOneThatSetsTheTextureState)
+TEST(GLTextureParameterCache, AListThatIsNotKnownIsTakenForOneThatSetsTheTextureState)
 {
-    Stereo::Replay::EngineDLL::GlTextureParameterCache cache;
+    Stereo::Replay::EngineDLL::GLTextureParameterCache cache;
 
     bind(&cache, 1);
     EXPECT_TRUE(set_parameter(&cache, MIN_FILTER, LINEAR) );
@@ -270,9 +270,9 @@ TEST(GlTextureParameterCache, AListThatIsNotKnownIsTakenForOneThatSetsTheTexture
     EXPECT_TRUE(set_parameter(&cache, MIN_FILTER, LINEAR) );
 }
 
-TEST(GlTextureParameterCache, AReplayThatStartsOverMakesTheCacheForget)
+TEST(GLTextureParameterCache, AReplayThatStartsOverMakesTheCacheForget)
 {
-    Stereo::Replay::EngineDLL::GlTextureParameterCache cache;
+    Stereo::Replay::EngineDLL::GLTextureParameterCache cache;
 
     play(&cache, make_call(APIInterceptor::APIFUNCTION_GL_GLACTIVETEXTURE, {TEXTURE0}), 40);
     play(&cache, make_call(APIInterceptor::APIFUNCTION_GL_GLBINDTEXTURE, {TEXTURE_2D, 1}), 40);
@@ -284,9 +284,9 @@ TEST(GlTextureParameterCache, AReplayThatStartsOverMakesTheCacheForget)
     EXPECT_TRUE(play(&cache, make_call(APIInterceptor::APIFUNCTION_GL_GLTEXPARAMETERI, {TEXTURE_2D, MIN_FILTER, LINEAR}), 0) );
 }
 
-TEST(GlTextureParameterCache, AnotherContextHasOtherTextures)
+TEST(GLTextureParameterCache, AnotherContextHasOtherTextures)
 {
-    Stereo::Replay::EngineDLL::GlTextureParameterCache cache;
+    Stereo::Replay::EngineDLL::GLTextureParameterCache cache;
 
     const auto make_current = [](const uint64_t& in_context)
     {
@@ -316,9 +316,9 @@ TEST(GlTextureParameterCache, AnotherContextHasOtherTextures)
     EXPECT_TRUE(set_parameter(&cache, MIN_FILTER, LINEAR) );
 }
 
-TEST(GlTextureParameterCache, TheParametersThatAreLookedAtAreThoseThatATwinTakes)
+TEST(GLTextureParameterCache, TheParametersThatAreLookedAtAreThoseThatATwinTakes)
 {
-    const auto& parameter_vec = Stereo::Replay::EngineDLL::GlTextureParameterCache::get_cached_parameters();
+    const auto& parameter_vec = Stereo::Replay::EngineDLL::GLTextureParameterCache::get_cached_parameters();
 
     EXPECT_EQ(parameter_vec.size(), 10u);
     EXPECT_NE(std::find(parameter_vec.begin(), parameter_vec.end(), MIN_FILTER), parameter_vec.end() );

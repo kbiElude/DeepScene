@@ -11,7 +11,7 @@
 
 namespace
 {
-    class GlFrontendDraws : public Tests::GlFrontendFixture
+    class GLFrontendDraws : public Tests::GLFrontendFixture
     {
     protected:
         /* The values of OpenGL that the draws use. */
@@ -47,7 +47,7 @@ namespace
     };
 }
 
-TEST_F(GlFrontendDraws, ABlockIsOneDraw)
+TEST_F(GLFrontendDraws, ABlockIsOneDraw)
 {
     start(640,
           480);
@@ -69,7 +69,7 @@ TEST_F(GlFrontendDraws, ABlockIsOneDraw)
               0u);
 }
 
-TEST_F(GlFrontendDraws, ABlockWithNoVerticesIsNoDraw)
+TEST_F(GLFrontendDraws, ABlockWithNoVerticesIsNoDraw)
 {
     start(640,
           480);
@@ -85,7 +85,7 @@ TEST_F(GlFrontendDraws, ABlockWithNoVerticesIsNoDraw)
               0u);
 }
 
-TEST_F(GlFrontendDraws, EveryKindOfVertexCallCountsAsAVertex)
+TEST_F(GLFrontendDraws, EveryKindOfVertexCallCountsAsAVertex)
 {
     start(640,
           480);
@@ -110,7 +110,7 @@ TEST_F(GlFrontendDraws, EveryKindOfVertexCallCountsAsAVertex)
               Analysis::APIDumpAnalysis::PrimitiveTopology::LINE_LIST);
 }
 
-TEST_F(GlFrontendDraws, QuadsAreTriangles)
+TEST_F(GLFrontendDraws, QuadsAreTriangles)
 {
     start(640,
           480);
@@ -129,7 +129,7 @@ TEST_F(GlFrontendDraws, QuadsAreTriangles)
               Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST);
 }
 
-TEST_F(GlFrontendDraws, DrawsOfOneKindAreOneStructure)
+TEST_F(GLFrontendDraws, DrawsOfOneKindAreOneStructure)
 {
     start(640,
           480);
@@ -149,7 +149,7 @@ TEST_F(GlFrontendDraws, DrawsOfOneKindAreOneStructure)
               1u);
 }
 
-TEST_F(GlFrontendDraws, TheModeOfABlockTellsDrawsApart)
+TEST_F(GLFrontendDraws, TheModeOfABlockTellsDrawsApart)
 {
     start(640,
           480);
@@ -165,7 +165,7 @@ TEST_F(GlFrontendDraws, TheModeOfABlockTellsDrawsApart)
               2u);
 }
 
-TEST_F(GlFrontendDraws, TheDepthFunctionTellsDrawsApart)
+TEST_F(GLFrontendDraws, TheDepthFunctionTellsDrawsApart)
 {
     start(640,
           480);
@@ -184,7 +184,7 @@ TEST_F(GlFrontendDraws, TheDepthFunctionTellsDrawsApart)
               2u);
 }
 
-TEST_F(GlFrontendDraws, TheBlendFunctionTellsDrawsApart)
+TEST_F(GLFrontendDraws, TheBlendFunctionTellsDrawsApart)
 {
     start(640,
           480);
@@ -205,7 +205,7 @@ TEST_F(GlFrontendDraws, TheBlendFunctionTellsDrawsApart)
               2u);
 }
 
-TEST_F(GlFrontendDraws, APopPutsBackThePipelineState)
+TEST_F(GLFrontendDraws, APopPutsBackThePipelineState)
 {
     start(640,
           480);
@@ -225,7 +225,7 @@ TEST_F(GlFrontendDraws, APopPutsBackThePipelineState)
               1u);
 }
 
-TEST_F(GlFrontendDraws, ADrawIsNotMadeWhileAListIsMade)
+TEST_F(GLFrontendDraws, ADrawIsNotMadeWhileAListIsMade)
 {
     start(640,
           480);
@@ -251,7 +251,7 @@ TEST_F(GlFrontendDraws, ADrawIsNotMadeWhileAListIsMade)
               1u);
 }
 
-TEST_F(GlFrontendDraws, TheCallsOfAListAreNotMadeByTheMatrixStack)
+TEST_F(GLFrontendDraws, TheCallsOfAListAreNotMadeByTheMatrixStack)
 {
     start(640,
           480);
@@ -270,7 +270,7 @@ TEST_F(GlFrontendDraws, TheCallsOfAListAreNotMadeByTheMatrixStack)
                     0.0f);
 }
 
-TEST_F(GlFrontendDraws, TheCallsOfABlockBeginWithItsGlBegin)
+TEST_F(GLFrontendDraws, TheCallsOfABlockBeginWithItsGLBegin)
 {
     start(640,
           480);
@@ -292,7 +292,7 @@ TEST_F(GlFrontendDraws, TheCallsOfABlockBeginWithItsGlBegin)
               3u);
 }
 
-TEST_F(GlFrontendDraws, ADrawOfArraysBeginsWithItsOwnCall)
+TEST_F(GLFrontendDraws, ADrawOfArraysBeginsWithItsOwnCall)
 {
     start(640,
           480);
@@ -301,7 +301,7 @@ TEST_F(GlFrontendDraws, ADrawOfArraysBeginsWithItsOwnCall)
     m_builder.draw_arrays (TRIANGLES,
                            0,
                            3,
-                           {Tests::GlCallBuilder::make_vertex_array({{0.0f, 0.0f, -1.0f},
+                           {Tests::GLCallBuilder::make_vertex_array({{0.0f, 0.0f, -1.0f},
                                                                      {1.0f, 0.0f, -1.0f},
                                                                      {0.0f, 1.0f, -1.0f} })});
     m_builder.swap_buffers(DEVICE_CONTEXT_ADDRESS);
@@ -317,7 +317,7 @@ TEST_F(GlFrontendDraws, ADrawOfArraysBeginsWithItsOwnCall)
               draw_vec.at(0).call_index);
 }
 
-TEST_F(GlFrontendDraws, TheCameraOfADrawBeginsAtTheLastLoadOfTheModelViewMatrix)
+TEST_F(GLFrontendDraws, TheCameraOfADrawBeginsAtTheLastLoadOfTheModelViewMatrix)
 {
     start(640,
           480);
@@ -341,7 +341,7 @@ TEST_F(GlFrontendDraws, TheCameraOfADrawBeginsAtTheLastLoadOfTheModelViewMatrix)
               2u);
 }
 
-TEST_F(GlFrontendDraws, ALoadInsideAPushBeginsItsOwnCameraAndAPopGivesBackTheOneOfTheMatrixBelow)
+TEST_F(GLFrontendDraws, ALoadInsideAPushBeginsItsOwnCameraAndAPopGivesBackTheOneOfTheMatrixBelow)
 {
     start(640,
           480);
@@ -367,7 +367,7 @@ TEST_F(GlFrontendDraws, ALoadInsideAPushBeginsItsOwnCameraAndAPopGivesBackTheOne
               2u);
 }
 
-TEST_F(GlFrontendDraws, AMatrixThatIsLoadedBeginsTheCameraToo)
+TEST_F(GLFrontendDraws, AMatrixThatIsLoadedBeginsTheCameraToo)
 {
     start(640,
           480);
@@ -391,7 +391,7 @@ TEST_F(GlFrontendDraws, AMatrixThatIsLoadedBeginsTheCameraToo)
               3u);
 }
 
-TEST_F(GlFrontendDraws, TheProjectionHasNoPartInTheCamera)
+TEST_F(GLFrontendDraws, TheProjectionHasNoPartInTheCamera)
 {
     start(640,
           480);

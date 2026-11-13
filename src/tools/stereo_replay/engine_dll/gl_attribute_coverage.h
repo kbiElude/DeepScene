@@ -20,7 +20,7 @@ namespace Stereo
              * parameters of a texture), and the state of the client (the arrays and their pointers, which glPushClientAttrib saves, and not glPushAttrib) are not
              * of them.
              */
-            class GlAttributeCoverage
+            class GLAttributeCoverage
             {
             public:
                 /* The groups of glPushAttrib that the call is saved in, as its mask (GL_ENABLE_BIT, ...); 0 for a call that a pop does not undo. */

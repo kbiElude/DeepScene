@@ -6,7 +6,7 @@
 #include "utils/hashing/hasher.h"
 #include <string.h>
 
-Analysis::APIDumpAnalysis::Frontends::GlBlobStore::GlBlobStore(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr)
+Analysis::APIDumpAnalysis::Frontends::GLBlobStore::GLBlobStore(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr)
     :m_builder_ptr   (in_builder_ptr),
      m_frame_index   (0),
      m_n_cached_bytes(0)
@@ -14,9 +14,9 @@ Analysis::APIDumpAnalysis::Frontends::GlBlobStore::GlBlobStore(Analysis::APIDump
     /* Stub */
 }
 
-void Analysis::APIDumpAnalysis::Frontends::GlBlobStore::cache_bytes(const void*   in_data_ptr,
+void Analysis::APIDumpAnalysis::Frontends::GLBlobStore::cache_bytes(const void*   in_data_ptr,
                                                                     const size_t& in_n_bytes,
-                                                                    GlBlob*       inout_blob_ptr)
+                                                                    GLBlob*       inout_blob_ptr)
 {
     const uint8_t* bytes_ptr = static_cast<const uint8_t*>(in_data_ptr);
 
@@ -26,7 +26,7 @@ void Analysis::APIDumpAnalysis::Frontends::GlBlobStore::cache_bytes(const void* 
     m_n_cached_bytes += in_n_bytes;
 }
 
-std::shared_ptr<const std::vector<uint8_t> > Analysis::APIDumpAnalysis::Frontends::GlBlobStore::get_data_ptr(const Analysis::APIDumpAnalysis::ResourceId& in_resource_id) const
+std::shared_ptr<const std::vector<uint8_t> > Analysis::APIDumpAnalysis::Frontends::GLBlobStore::get_data_ptr(const Analysis::APIDumpAnalysis::ResourceId& in_resource_id) const
 {
     std::shared_ptr<const std::vector<uint8_t> > result_ptr;
     const auto                                   key_iterator = m_key_by_resource_id_map.find(in_resource_id);
@@ -39,17 +39,17 @@ std::shared_ptr<const std::vector<uint8_t> > Analysis::APIDumpAnalysis::Frontend
     return result_ptr;
 }
 
-uint64_t Analysis::APIDumpAnalysis::Frontends::GlBlobStore::get_n_blobs() const
+uint64_t Analysis::APIDumpAnalysis::Frontends::GLBlobStore::get_n_blobs() const
 {
     return static_cast<uint64_t>(m_blob_map.size() );
 }
 
-uint64_t Analysis::APIDumpAnalysis::Frontends::GlBlobStore::get_n_cached_bytes() const
+uint64_t Analysis::APIDumpAnalysis::Frontends::GLBlobStore::get_n_cached_bytes() const
 {
     return m_n_cached_bytes;
 }
 
-Analysis::APIDumpAnalysis::ResourceId Analysis::APIDumpAnalysis::Frontends::GlBlobStore::get_resource_id(const Analysis::APIDumpAnalysis::ResourceKind& in_kind,
+Analysis::APIDumpAnalysis::ResourceId Analysis::APIDumpAnalysis::Frontends::GLBlobStore::get_resource_id(const Analysis::APIDumpAnalysis::ResourceKind& in_kind,
                                                                                                          const void*                                    in_data_ptr,
                                                                                                          const size_t&                                  in_n_bytes)
 {
@@ -59,7 +59,7 @@ Analysis::APIDumpAnalysis::ResourceId Analysis::APIDumpAnalysis::Frontends::GlBl
                                           content_hash,
                                           static_cast<uint64_t>(in_n_bytes) );
     const auto     iterator     = m_blob_map.find(key);
-    GlBlob*        blob_ptr     = nullptr;
+    GLBlob*        blob_ptr     = nullptr;
 
     if (iterator == m_blob_map.end() )
     {
@@ -110,11 +110,11 @@ Analysis::APIDumpAnalysis::ResourceId Analysis::APIDumpAnalysis::Frontends::GlBl
     return blob_ptr->resource_id;
 }
 
-Analysis::APIDumpAnalysis::Frontends::GlBlobReuse Analysis::APIDumpAnalysis::Frontends::GlBlobStore::get_reuse(const Analysis::APIDumpAnalysis::ResourceId& in_resource_id) const
+Analysis::APIDumpAnalysis::Frontends::GLBlobReuse Analysis::APIDumpAnalysis::Frontends::GLBlobStore::get_reuse(const Analysis::APIDumpAnalysis::ResourceId& in_resource_id) const
 {
     constexpr uint32_t N_FRAMES_OF_REUSE = 2;
 
-    GlBlobReuse result       = GlBlobReuse::ONE_FRAME;
+    GLBlobReuse result       = GLBlobReuse::ONE_FRAME;
     const auto  key_iterator = m_key_by_resource_id_map.find(in_resource_id);
 
     if (key_iterator != m_key_by_resource_id_map.end() )
@@ -123,20 +123,20 @@ Analysis::APIDumpAnalysis::Frontends::GlBlobReuse Analysis::APIDumpAnalysis::Fro
 
         if (n_frames >= N_FRAMES_OF_REUSE)
         {
-            result = GlBlobReuse::ACROSS_FRAMES;
+            result = GLBlobReuse::ACROSS_FRAMES;
         }
     }
 
     return result;
 }
 
-void Analysis::APIDumpAnalysis::Frontends::GlBlobStore::on_frame_ended()
+void Analysis::APIDumpAnalysis::Frontends::GLBlobStore::on_frame_ended()
 {
-    for (GlBlob* blob_ptr : m_frame_blob_ptr_vec)
+    for (GLBlob* blob_ptr : m_frame_blob_ptr_vec)
     {
-        const GlBlobReuse reuse = get_reuse(blob_ptr->resource_id);
+        const GLBlobReuse reuse = get_reuse(blob_ptr->resource_id);
 
-        if (reuse == GlBlobReuse::ONE_FRAME &&
+        if (reuse == GLBlobReuse::ONE_FRAME &&
             blob_ptr->data_ptr != nullptr)
         {
             m_n_cached_bytes -= blob_ptr->data_ptr->size();

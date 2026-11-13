@@ -18,31 +18,31 @@ namespace Analysis
     {
         namespace Frontends
         {
-            /* What a glPushAttrib saved: the state, and which parts of it the mask asked for. Follows GlAttributes and GlPipelineState. */
-            struct GlAttributeFrame
+            /* What a glPushAttrib saved: the state, and which parts of it the mask asked for. Follows GLAttributes and GLPipelineState. */
+            struct GLAttributeFrame
             {
-                GlAttributes    attributes;
+                GLAttributes    attributes;
                 uint32_t        mask = 0;
-                GlPipelineState pipeline_state;
+                GLPipelineState pipeline_state;
             };
 
             /* The state of one OpenGL context, from the calls that set it (the values a context starts with are those of the specification).
              * The matrices of the three kinds each have a stack, which is never empty (the current matrix is its last element): the model-view
              * and the projection, which the front end tells the model builder of, and the others (texture and color), which it only keeps right.
-             * Follows GlAttributeFrame, GlAttributes, GlImmediateBlock, GlListRecording, GlMatrix and GlPipelineState.
+             * Follows GLAttributeFrame, GLAttributes, GLImmediateBlock, GLListRecording, GLMatrix and GLPipelineState.
              */
-            struct GlContextState
+            struct GLContextState
             {
-                std::vector<GlAttributeFrame> attribute_frame_vec;
-                GlAttributes                  attributes;
-                GlImmediateBlock              immediate_block;
-                GlListRecording               list_recording;
+                std::vector<GLAttributeFrame> attribute_frame_vec;
+                GLAttributes                  attributes;
+                GLImmediateBlock              immediate_block;
+                GLListRecording               list_recording;
                 std::vector<uint64_t>         modelview_anchor_call_index_vec; /* of each matrix of the stack below: the call that begins its camera (the last load of that matrix, a glLoadIdentity or a glLoadMatrix), or UINT64_MAX */
-                std::vector<GlMatrix>         modelview_f32mat_vec;
-                std::vector<GlMatrix>         other_f32mat_vec;
-                GlPipelineState               pipeline_state;
-                GlPixelStore                  pixel_store;
-                std::vector<GlMatrix>         projection_f32mat_vec;
+                std::vector<GLMatrix>         modelview_f32mat_vec;
+                std::vector<GLMatrix>         other_f32mat_vec;
+                GLPipelineState               pipeline_state;
+                GLPixelStore                  pixel_store;
+                std::vector<GLMatrix>         projection_f32mat_vec;
             };
         }
     }

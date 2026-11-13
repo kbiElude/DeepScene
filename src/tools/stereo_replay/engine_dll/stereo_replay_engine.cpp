@@ -37,7 +37,7 @@ Stereo::Replay::EngineDLL::StereoReplayEngine::StereoReplayEngine()
     m_engine.add_call_executor(Capture::APIDumpLoader::APIGroup::D3D7,
                                d3d7_executor_ptr);
 
-    const auto gl_executor_ptr = std::make_shared<StereoGlCallExecutor>(m_engine.get_remapper_ptr() );
+    const auto gl_executor_ptr = std::make_shared<StereoGLCallExecutor>(m_engine.get_remapper_ptr() );
 
     const auto is_per_eye_texture_func = [this](const uint64_t& in_dumped_name)
     {

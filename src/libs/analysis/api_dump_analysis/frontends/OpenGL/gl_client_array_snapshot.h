@@ -20,23 +20,23 @@ namespace Analysis
     {
         namespace Frontends
         {
-            class GlClientArraySnapshot
+            class GLClientArraySnapshot
             {
             public:
                 /* The distance between the elements of the array, in bytes. */
-                static uint32_t get_element_stride(const GlClientArray& in_array);
+                static uint32_t get_element_stride(const GLClientArray& in_array);
 
                 /* The size of a GL type of a component (a byte, a short, an int, a float or a double), in bytes; 0 for any other. */
                 static uint32_t get_type_n_bytes(const uint32_t& in_type);
 
                 /* The arrays of the snapshot, which point into its data; false if it is not the size that it says it is. */
                 static bool parse(const Capture::APIDumpLoader::DataChunk& in_chunk,
-                                  std::vector<GlClientArray>*              out_array_vec_ptr);
+                                  std::vector<GLClientArray>*              out_array_vec_ptr);
 
                 /* The first three components of an element as numbers (the third is 0 if the array has two); false if the element is not
                  * in the part of the array that the snapshot has, or the type of a component is not a number that a position is made of.
                  */
-                static bool read_position(const GlClientArray&  in_array,
+                static bool read_position(const GLClientArray&  in_array,
                                           const uint32_t&       in_element,
                                           std::array<float, 3>* out_position_ptr);
 

@@ -4,13 +4,13 @@
  */
 #include "gl_driver_functions.h"
 
-const Stereo::ConverterDLL::GlDriverFunctions& Stereo::ConverterDLL::GlDriverFunctions::get()
+const Stereo::ConverterDLL::GLDriverFunctions& Stereo::ConverterDLL::GLDriverFunctions::get()
 {
     namespace Hooks = Interception::Hooks::OpenGL;
 
-    static const GlDriverFunctions result = []()
+    static const GLDriverFunctions result = []()
     {
-        GlDriverFunctions functions;
+        GLDriverFunctions functions;
 
         functions.bind_texture_func_ptr              = reinterpret_cast<PFNGLBINDTEXTUREPROC>            (Hooks::g_cached_gl_bind_texture);
         functions.call_list_func_ptr                 = reinterpret_cast<PFNGLCALLLISTPROC>               (Hooks::g_cached_gl_call_list);

@@ -10,12 +10,12 @@
 
 namespace
 {
-    class GlFrontendMatrices : public Tests::GlFrontendFixture
+    class GLFrontendMatrices : public Tests::GLFrontendFixture
     {
     };
 }
 
-TEST_F(GlFrontendMatrices, TheModelViewAndTheProjectionAreKeptApart)
+TEST_F(GLFrontendMatrices, TheModelViewAndTheProjectionAreKeptApart)
 {
     start(640,
           480);
@@ -64,7 +64,7 @@ TEST_F(GlFrontendMatrices, TheModelViewAndTheProjectionAreKeptApart)
                     0.0f);
 }
 
-TEST_F(GlFrontendMatrices, AnOrthographicProjectionHasNoPerspective)
+TEST_F(GLFrontendMatrices, AnOrthographicProjectionHasNoPerspective)
 {
     start(640,
           480);
@@ -96,7 +96,7 @@ TEST_F(GlFrontendMatrices, AnOrthographicProjectionHasNoPerspective)
                     1.0f);
 }
 
-TEST_F(GlFrontendMatrices, APopPutsBackTheMatrixOfThePush)
+TEST_F(GLFrontendMatrices, APopPutsBackTheMatrixOfThePush)
 {
     start(640,
           480);
@@ -119,7 +119,7 @@ TEST_F(GlFrontendMatrices, APopPutsBackTheMatrixOfThePush)
                     0.0f);
 }
 
-TEST_F(GlFrontendMatrices, EachKindOfMatrixHasItsOwnStack)
+TEST_F(GLFrontendMatrices, EachKindOfMatrixHasItsOwnStack)
 {
     start(640,
           480);
@@ -137,7 +137,7 @@ TEST_F(GlFrontendMatrices, EachKindOfMatrixHasItsOwnStack)
               1u);
 }
 
-TEST_F(GlFrontendMatrices, APopWithNothingPushedIsNotFollowed)
+TEST_F(GLFrontendMatrices, APopWithNothingPushedIsNotFollowed)
 {
     start(640,
           480);
@@ -150,7 +150,7 @@ TEST_F(GlFrontendMatrices, APopWithNothingPushedIsNotFollowed)
               1u);
 }
 
-TEST_F(GlFrontendMatrices, ACallMultipliesTheCurrentMatrixOnTheRight)
+TEST_F(GLFrontendMatrices, ACallMultipliesTheCurrentMatrixOnTheRight)
 {
     start(640,
           480);
@@ -187,7 +187,7 @@ TEST_F(GlFrontendMatrices, ACallMultipliesTheCurrentMatrixOnTheRight)
                     20.0f);
 }
 
-TEST_F(GlFrontendMatrices, ARotationIsAboutTheAxisByTheAngleInDegrees)
+TEST_F(GLFrontendMatrices, ARotationIsAboutTheAxisByTheAngleInDegrees)
 {
     start(640,
           480);
@@ -217,7 +217,7 @@ TEST_F(GlFrontendMatrices, ARotationIsAboutTheAxisByTheAngleInDegrees)
                     1.0f);
 }
 
-TEST_F(GlFrontendMatrices, AMatrixLoadedFromDataReplacesTheCurrentOne)
+TEST_F(GLFrontendMatrices, AMatrixLoadedFromDataReplacesTheCurrentOne)
 {
     start(640,
           480);
@@ -266,7 +266,7 @@ TEST_F(GlFrontendMatrices, AMatrixLoadedFromDataReplacesTheCurrentOne)
                     4.0f);
 }
 
-TEST_F(GlFrontendMatrices, AMatrixMultipliedFromDataIsMultipliedOnTheRight)
+TEST_F(GLFrontendMatrices, AMatrixMultipliedFromDataIsMultipliedOnTheRight)
 {
     start(640,
           480);
@@ -292,7 +292,7 @@ TEST_F(GlFrontendMatrices, AMatrixMultipliedFromDataIsMultipliedOnTheRight)
                     1.0f);
 }
 
-TEST_F(GlFrontendMatrices, ATextureMatrixIsNotTheModelView)
+TEST_F(GLFrontendMatrices, ATextureMatrixIsNotTheModelView)
 {
     start(640,
           480);
@@ -312,7 +312,7 @@ TEST_F(GlFrontendMatrices, ATextureMatrixIsNotTheModelView)
                     0.0f);
 }
 
-TEST_F(GlFrontendMatrices, EachContextHasItsOwnMatrices)
+TEST_F(GLFrontendMatrices, EachContextHasItsOwnMatrices)
 {
     start(640,
           480);
@@ -339,7 +339,7 @@ TEST_F(GlFrontendMatrices, EachContextHasItsOwnMatrices)
                     1.0f);
 }
 
-TEST_F(GlFrontendMatrices, AMatrixCallWithNoDataIsNotFollowed)
+TEST_F(GLFrontendMatrices, AMatrixCallWithNoDataIsNotFollowed)
 {
     start(640,
           480);
@@ -354,7 +354,7 @@ TEST_F(GlFrontendMatrices, AMatrixCallWithNoDataIsNotFollowed)
               1u);
 }
 
-TEST_F(GlFrontendMatrices, TheProjectionIsToldToTheModelAsAConstantTheApiDefines)
+TEST_F(GLFrontendMatrices, TheProjectionIsToldToTheModelAsAConstantTheApiDefines)
 {
     start(640,
           480);

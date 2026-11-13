@@ -82,7 +82,7 @@ Capture::APIDumpLoader::CallKeptFuncFactory Stereo::Replay::EngineDLL::SliceSkip
                                                                                             is_live);
 
                                                                                  /* What a push of attributes that a pop undoes, in a frame that is left out, does not need to be made, since nothing that is made looks at
-                                                                                  * it before the pop does away with it (see GlAttributeCoverage). The calls that are made are the push and the pop themselves, and what a pop
+                                                                                  * it before the pop does away with it (see GLAttributeCoverage). The calls that are made are the push and the pop themselves, and what a pop
                                                                                   * does not undo. A frame is left out all of it, so it has to pop what it pushes: the state that its calls would have left is not made.
                                                                                   */
                                                                                  if (in_frame_index != last_frame_index)
@@ -118,7 +118,7 @@ Capture::APIDumpLoader::CallKeptFuncFactory Stereo::Replay::EngineDLL::SliceSkip
                                                                                      else
                                                                                      if (push_mask_vec.empty() == false)
                                                                                      {
-                                                                                         const bool is_undone = GlAttributeCoverage::is_undone_by_pop(push_mask_vec.back(),
+                                                                                         const bool is_undone = GLAttributeCoverage::is_undone_by_pop(push_mask_vec.back(),
                                                                                                                                                        in_call.func);
 
                                                                                          if (is_undone)
@@ -290,7 +290,7 @@ bool Stereo::Replay::EngineDLL::SliceSkipper::is_dead_frame(const uint32_t& in_n
 
 bool Stereo::Replay::EngineDLL::SliceSkipper::is_list_call_skippable(const Capture::APIDumpLoader::DumpedAPICall& in_call) const
 {
-    Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence dependence = Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::EYE_DEPENDENT;
+    Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence dependence = Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence::EYE_DEPENDENT;
 
     uint32_t list     = 0;
     bool     is_found = false;
@@ -307,7 +307,7 @@ bool Stereo::Replay::EngineDLL::SliceSkipper::is_list_call_skippable(const Captu
                                                       &dependence);
     }
 
-    const bool is_independent = (dependence == Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::INDEPENDENT);
+    const bool is_independent = (dependence == Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence::INDEPENDENT);
 
     /* A list that touches the matrices, the projection, the viewport or the scissor box (or calls one that does, or is not defined) would leave them as it
      * found them for the one eye and not the other, and the frames that follow would go on from what is not the state the capture had. Such a list is not

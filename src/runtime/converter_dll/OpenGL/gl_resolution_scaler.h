@@ -20,21 +20,21 @@ namespace Stereo
 {
     namespace ConverterDLL
     {
-        /* Has an OpenGL application render larger than it asks (see ResolutionPolicy), without its knowing. The framebuffers of the eyes (see GlEyeTargets) are made as
+        /* Has an OpenGL application render larger than it asks (see ResolutionPolicy), without its knowing. The framebuffers of the eyes (see GLEyeTargets) are made as
          * large as the policy says, and what the application states in pixels is made to match: the viewport, the scissor box, the width of lines and the size of points
          * are scaled, and so are the textures that it makes room in for what it copies from the framebuffer (a texture whose storage it gives without pixels), with
          * the rectangles of the copies, and a glReadPixels of one pixel of the colors, in bytes, is made at the pixel of the larger framebuffer that is under the centre of the one the
          * application names. A call of the application that is made here is not made by it (the converter says so, and the analysis still sees the call as the
          * application made it). What the application does that cannot be made to match (any other read of pixels, drawing pixels, asking how large the viewport is, giving pixels to a
-         * texture it renders to) ends the application, through the core, instead of showing it wrong; the calls that do that are the ones of GlResolutionHazards.
+         * texture it renders to) ends the application, through the core, instead of showing it wrong; the calls that do that are the ones of GLResolutionHazards.
          */
-        class GlResolutionScaler
+        class GLResolutionScaler
         {
         public:
             /* The core must outlive the scaler. What the application renders is made as large as fits the target (the size of an eye of the headset) with its proportions,
              * once the application's window is known (see plan()); no target, or a target that is not larger than the window, makes the scaler do nothing.
              */
-            GlResolutionScaler(const uint32_t&              in_target_width,
+            GLResolutionScaler(const uint32_t&              in_target_width,
                                const uint32_t&              in_target_height,
                                Stereo::Core::StereoCore*    in_core_ptr,
                                const Stereo::Core::LogFunc& in_log_func);

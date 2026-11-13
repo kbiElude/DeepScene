@@ -8,14 +8,14 @@
 #include "analysis/api_dump_analysis/frontends/shared/call_view.h"
 #include "analysis/api_dump_analysis/frontends/shared/unsupported_use.h"
 
-Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::GlTextureHandler(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr)
+Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::GLTextureHandler(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr)
     :m_builder_ptr       (in_builder_ptr),
      m_n_unfollowed_calls(0)
 {
     /* Stub */
 }
 
-void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::add_texture_bindings(const GlContextState&                       in_state,
+void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::add_texture_bindings(const GLContextState&                       in_state,
                                                                                   Analysis::APIDumpAnalysis::DrawDescription* out_description_ptr) const
 {
     constexpr uint32_t TEXTURE_2D = 0x0DE1;
@@ -42,7 +42,7 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::add_texture_binding
     }
 }
 
-bool Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::find_resource_view(const uint64_t&                          in_address,
+bool Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::find_resource_view(const uint64_t&                          in_address,
                                                                                 Analysis::APIDumpAnalysis::ResourceView* out_view_ptr) const
 {
     /* The objects of OpenGL are numbers, not addresses of the application: the address is the name of a texture, as the program has it. A texture has a resource
@@ -62,7 +62,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::find_resource_view(
     return result;
 }
 
-const Analysis::APIDumpAnalysis::Frontends::GlTexture* Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::find_texture_ptr(const uint32_t& in_name) const
+const Analysis::APIDumpAnalysis::Frontends::GLTexture* Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::find_texture_ptr(const uint32_t& in_name) const
 {
     const auto texture_iterator = m_texture_map.find(in_name);
 
@@ -70,7 +70,7 @@ const Analysis::APIDumpAnalysis::Frontends::GlTexture* Analysis::APIDumpAnalysis
                                                       : nullptr;
 }
 
-void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::generate_mipmap_levels(const GlContextState& in_state)
+void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::generate_mipmap_levels(const GLContextState& in_state)
 {
     const uint32_t name             = get_bound_texture_name(in_state);
     const auto     texture_iterator = m_texture_map.find(name);
@@ -83,11 +83,11 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::generate_mipmap_lev
     }
     else
     {
-        GlTexture&           texture       = texture_iterator->second;
-        GlTextureLevel       texture_level = texture.level_map.at(0);
+        GLTexture&           texture       = texture_iterator->second;
+        GLTextureLevel       texture_level = texture.level_map.at(0);
         const auto           parameters_it = m_texture_parameter_map.find(name);
         const uint32_t       max_level     = (parameters_it != m_texture_parameter_map.end() ) ? parameters_it->second.max_level
-                                                                                               : GlTextureParameters().max_level;
+                                                                                               : GLTextureParameters().max_level;
         const bool           wants_events  = m_builder_ptr->wants_texture_events();
         uint32_t             level         = 1;
 
@@ -108,7 +108,7 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::generate_mipmap_lev
             texture.render_level_set.insert(level);
 
             /* The driver makes the whole of the level. */
-            GlTextureRegion whole_level;
+            GLTextureRegion whole_level;
 
             whole_level.height = texture_level.height;
             whole_level.width  = texture_level.width;
@@ -146,7 +146,7 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::generate_mipmap_lev
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::generate_mipmaps_if_automatic(const GlContextState& in_state,
+void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::generate_mipmaps_if_automatic(const GLContextState& in_state,
                                                                                            const uint32_t&       in_level)
 {
     const uint32_t name          = get_bound_texture_name(in_state);
@@ -161,7 +161,7 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::generate_mipmaps_if
     }
 }
 
-uint32_t Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::get_bound_texture_name(const GlContextState& in_state)
+uint32_t Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::get_bound_texture_name(const GLContextState& in_state)
 {
     const uint32_t unit             = in_state.attributes.active_texture_unit;
     const auto     binding_iterator = in_state.attributes.texture_binding_map.find(unit);
@@ -176,7 +176,7 @@ uint32_t Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::get_bound_textu
     return result;
 }
 
-Analysis::APIDumpAnalysis::FormatClass Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::get_format_class(const uint32_t& in_internal_format)
+Analysis::APIDumpAnalysis::FormatClass Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::get_format_class(const uint32_t& in_internal_format)
 {
     constexpr uint32_t DEPTH_COMPONENT   = 0x1902;
     constexpr uint32_t DEPTH_STENCIL     = 0x84F9;
@@ -199,19 +199,19 @@ Analysis::APIDumpAnalysis::FormatClass Analysis::APIDumpAnalysis::Frontends::GlT
     return result;
 }
 
-uint64_t Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::get_n_unfollowed_calls() const
+uint64_t Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::get_n_unfollowed_calls() const
 {
     return m_n_unfollowed_calls;
 }
 
-void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::handle_active_texture(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                   GlContextState*                              inout_state_ptr)
+void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::handle_active_texture(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                                   GLContextState*                              inout_state_ptr)
 {
     constexpr uint32_t TEXTURE0 = 0x84C0;
 
     std::array<uint32_t, 1> unit_array = {};
 
-    if (GlArgumentReader::read_arguments(in_call,
+    if (GLArgumentReader::read_arguments(in_call,
                                          &unit_array) )
     {
         inout_state_ptr->attributes.active_texture_unit = unit_array.at(0) - TEXTURE0;
@@ -222,14 +222,14 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::handle_active_textu
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::handle_bind_texture(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                 GlContextState*                              inout_state_ptr)
+void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::handle_bind_texture(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                                 GLContextState*                              inout_state_ptr)
 {
     constexpr uint32_t TEXTURE_2D = 0x0DE1;
 
     std::array<uint32_t, 2> bind_array = {};
 
-    if (GlArgumentReader::read_arguments(in_call,
+    if (GLArgumentReader::read_arguments(in_call,
                                          &bind_array) == false)
     {
         m_n_unfollowed_calls++;
@@ -251,7 +251,7 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::handle_bind_texture
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::handle_delete_textures(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::handle_delete_textures(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                                     const Capture::APIDumpLoader::Workload&      in_workload)
 {
     constexpr size_t COUNT_ARGUMENT = 0;
@@ -306,14 +306,14 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::handle_delete_textu
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::handle_generate_mipmap(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                    const GlContextState&                        in_state)
+void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::handle_generate_mipmap(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                                    const GLContextState&                        in_state)
 {
     constexpr uint32_t TEXTURE_2D = 0x0DE1;
 
     std::array<uint32_t, 1> target_array = {};
 
-    if (GlArgumentReader::read_arguments(in_call,
+    if (GLArgumentReader::read_arguments(in_call,
                                          &target_array) == false)
     {
         m_n_unfollowed_calls++;
@@ -331,8 +331,8 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::handle_generate_mip
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::handle_pixel_store(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                GlContextState*                              inout_state_ptr)
+void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::handle_pixel_store(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                                GLContextState*                              inout_state_ptr)
 {
     constexpr uint32_t UNPACK_ALIGNMENT  = 0x0CF5;
     constexpr uint32_t UNPACK_ROW_LENGTH = 0x0CF2;
@@ -340,7 +340,7 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::handle_pixel_store(
     std::array<int32_t, 2> parameter_array = {};
 
     /* The values that are not followed (the packing of what is read back, the skips) do not touch how an upload is laid out here. */
-    if (GlArgumentReader::read_arguments(in_call,
+    if (GLArgumentReader::read_arguments(in_call,
                                          &parameter_array) )
     {
         switch (static_cast<uint32_t>(parameter_array.at(0) ) )
@@ -371,9 +371,9 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::handle_pixel_store(
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::handle_tex_image(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::handle_tex_image(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                               const Capture::APIDumpLoader::Workload&      in_workload,
-                                                                              GlContextState*                              inout_state_ptr)
+                                                                              GLContextState*                              inout_state_ptr)
 {
     /* glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels). */
     constexpr uint32_t PROXY_TEXTURE_2D = 0x8064;
@@ -381,7 +381,7 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::handle_tex_image(co
 
     std::array<uint32_t, 8> image_array = {};
 
-    if (GlArgumentReader::read_arguments(in_call,
+    if (GLArgumentReader::read_arguments(in_call,
                                          &image_array) == false)
     {
         m_n_unfollowed_calls++;
@@ -402,7 +402,7 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::handle_tex_image(co
     else
     {
         const uint32_t level = image_array.at(1);
-        GlTextureLevel texture_level;
+        GLTextureLevel texture_level;
 
         texture_level.height          = image_array.at(4);
         texture_level.internal_format = image_array.at(2);
@@ -460,8 +460,8 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::handle_tex_image(co
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::handle_tex_parameter(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                  const GlContextState&                        in_state)
+void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::handle_tex_parameter(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                                  const GLContextState&                        in_state)
 {
     /* glTexParameter(target, pname, param): of all the parameters, three change what the levels of a texture hold or which of them there are. */
     constexpr uint32_t BASE_LEVEL      = 0x813C;
@@ -471,7 +471,7 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::handle_tex_paramete
 
     std::array<uint32_t, 2> parameter_array = {};
 
-    if (GlArgumentReader::read_arguments(in_call,
+    if (GLArgumentReader::read_arguments(in_call,
                                          &parameter_array) == false)
     {
         m_n_unfollowed_calls++;
@@ -537,9 +537,9 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::handle_tex_paramete
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::handle_tex_sub_image(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::handle_tex_sub_image(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                                   const Capture::APIDumpLoader::Workload&      in_workload,
-                                                                                  GlContextState*                              inout_state_ptr)
+                                                                                  GLContextState*                              inout_state_ptr)
 {
     /* glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels): a write to a part of the level, to the dependencies and to the textures. */
     constexpr uint32_t PROXY_TEXTURE_2D = 0x8064;
@@ -547,7 +547,7 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::handle_tex_sub_imag
 
     std::array<uint32_t, 8> image_array = {};
 
-    if (GlArgumentReader::read_arguments(in_call,
+    if (GLArgumentReader::read_arguments(in_call,
                                          &image_array) == false)
     {
         m_n_unfollowed_calls++;
@@ -618,7 +618,7 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::handle_tex_sub_imag
     }
 }
 
-bool Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::is_unsupported_texture_function(const APIInterceptor::APIFunction& in_function)
+bool Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::is_unsupported_texture_function(const APIInterceptor::APIFunction& in_function)
 {
     bool result = false;
 
@@ -702,21 +702,21 @@ bool Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::is_unsupported_text
     return result;
 }
 
-Analysis::APIDumpTextures::TextureEvent Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::make_texture_event(const GlTexture& in_texture,
+Analysis::APIDumpTextures::TextureEvent Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::make_texture_event(const GLTexture& in_texture,
                                                                                                                   const uint32_t&  in_level,
                                                                                                                   const uint32_t&  in_x_offset,
                                                                                                                   const uint32_t&  in_y_offset,
                                                                                                                   const uint32_t&  in_width,
                                                                                                                   const uint32_t&  in_height) const
 {
-    const GlTextureLevel&                   level = in_texture.level_map.at(in_level);
+    const GLTextureLevel&                   level = in_texture.level_map.at(in_level);
     Analysis::APIDumpTextures::TextureEvent result;
 
     result.destination.mip_level   = in_level;
     result.destination.resource_id = in_texture.resource_id;
     result.height                  = in_height;
     result.level_api_format        = level.internal_format;
-    result.level_format            = GlTextureFormatMapper::get_texture_format(level.internal_format);
+    result.level_format            = GLTextureFormatMapper::get_texture_format(level.internal_format);
     result.level_height            = level.height;
     result.level_width             = level.width;
     result.width                   = in_width;
@@ -726,9 +726,9 @@ Analysis::APIDumpTextures::TextureEvent Analysis::APIDumpAnalysis::Frontends::Gl
     return result;
 }
 
-bool Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::record_texture_level(const GlContextState& in_state,
+bool Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::record_texture_level(const GLContextState& in_state,
                                                                                   const uint32_t&       in_level,
-                                                                                  const GlTextureLevel& in_texture_level)
+                                                                                  const GLTextureLevel& in_texture_level)
 {
     const uint32_t name             = get_bound_texture_name(in_state);
     const auto     texture_iterator = m_texture_map.find(name);
@@ -747,7 +747,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::record_texture_leve
     return result;
 }
 
-void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::report_render_write(const GlContextState& in_state,
+void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::report_render_write(const GLContextState& in_state,
                                                                                  const uint32_t&       in_level,
                                                                                  const uint32_t&       in_x_offset,
                                                                                  const uint32_t&       in_y_offset,
@@ -763,9 +763,9 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::report_render_write
     /* What rendering made of the level is not in the workload, so it is a content to be read when something first reads it. */
     if (is_level_known)
     {
-        GlTexture&       texture        = texture_iterator->second;
+        GLTexture&       texture        = texture_iterator->second;
         const auto       region_iterator = texture.render_region_map.find(in_level);
-        GlTextureRegion  region;
+        GLTextureRegion  region;
 
         texture.dirty_level_set.insert (in_level);
         texture.render_level_set.insert(in_level);
@@ -780,7 +780,7 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::report_render_write
 
         if (region_iterator != texture.render_region_map.end() )
         {
-            const GlTextureRegion& known   = region_iterator->second;
+            const GLTextureRegion& known   = region_iterator->second;
             const uint32_t         left    = (known.x < region.x) ? known.x : region.x;
             const uint32_t         bottom  = (known.y < region.y) ? known.y : region.y;
             const uint32_t         right   = (known.x + known.width  > region.x + region.width)  ? known.x + known.width
@@ -817,7 +817,7 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::report_render_write
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::report_snapshots(const GlContextState& in_state)
+void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::report_snapshots(const GLContextState& in_state)
 {
     constexpr uint32_t TEXTURE_2D = 0x0DE1;
 
@@ -837,7 +837,7 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::report_snapshots(co
             texture_iterator != m_texture_map.end() &&
             texture_iterator->second.dirty_level_set.empty() == false)
         {
-            GlTexture& texture = texture_iterator->second;
+            GLTexture& texture = texture_iterator->second;
 
             for (const uint32_t level : texture.dirty_level_set)
             {
@@ -845,9 +845,9 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::report_snapshots(co
                     texture.level_map.count(level) != 0)
                 {
                     /* The region that rendering has made of the level; the whole of it if it is not known (a level that rendering made without a copy). */
-                    const GlTextureLevel& texture_level   = texture.level_map.at(level);
+                    const GLTextureLevel& texture_level   = texture.level_map.at(level);
                     const auto            region_iterator = texture.render_region_map.find(level);
-                    GlTextureRegion       region;
+                    GLTextureRegion       region;
 
                     region.height = texture_level.height;
                     region.width  = texture_level.width;
@@ -878,9 +878,9 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::report_snapshots(co
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::report_upload(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::report_upload(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                            const Capture::APIDumpLoader::Workload&      in_workload,
-                                                                           const GlContextState&                        in_state,
+                                                                           const GLContextState&                        in_state,
                                                                            const uint32_t&                              in_level,
                                                                            const uint32_t&                              in_x_offset,
                                                                            const uint32_t&                              in_y_offset,
@@ -903,7 +903,7 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::report_upload(const
                                                       in_workload,
                                                       in_call.arg_in_vec.size() );
         const Capture::APIDumpLoader::DataChunk* chunk_ptr         = view.get_chunk_ptr(PIXELS_ARGUMENT);
-        const uint32_t                           n_bytes_per_texel = GlTextureFormatMapper::get_n_bytes_per_texel(in_format,
+        const uint32_t                           n_bytes_per_texel = GLTextureFormatMapper::get_n_bytes_per_texel(in_format,
                                                                                                                   in_type);
         const uint8_t*                           data_ptr          = nullptr;
         uint32_t                                 data_chunk_id     = 0;
@@ -919,7 +919,7 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::report_upload(const
         event.kind                     = Analysis::APIDumpTextures::TextureEventKind::UPLOAD;
         event.layout.api_format        = in_format;
         event.layout.api_type          = in_type;
-        event.layout.row_pitch_n_bytes = GlTextureFormatMapper::get_unpack_row_pitch(in_width,
+        event.layout.row_pitch_n_bytes = GLTextureFormatMapper::get_unpack_row_pitch(in_width,
                                                                                      n_bytes_per_texel,
                                                                                      in_state.pixel_store.unpack_row_length,
                                                                                      in_state.pixel_store.unpack_alignment);
@@ -943,7 +943,7 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::report_upload(const
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::specify_texture(const GlContextState& in_state,
+void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::specify_texture(const GLContextState& in_state,
                                                                              const uint32_t&       in_internal_format,
                                                                              const uint32_t&       in_width,
                                                                              const uint32_t&       in_height)
@@ -964,7 +964,7 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::specify_texture(con
     if (is_same == false)
     {
         Analysis::APIDumpAnalysis::ResourceDescription description;
-        GlTexture                                      texture;
+        GLTexture                                      texture;
 
         if (is_known)
         {
@@ -987,9 +987,9 @@ void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::specify_texture(con
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::GlTextureHandler::upload_texture_level(const Capture::APIDumpLoader::DumpedAPICall&      in_call,
+void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::upload_texture_level(const Capture::APIDumpLoader::DumpedAPICall&      in_call,
                                                                                   const Capture::APIDumpLoader::Workload&           in_workload,
-                                                                                  const GlContextState&                             in_state,
+                                                                                  const GLContextState&                             in_state,
                                                                                   const uint32_t&                                   in_level,
                                                                                   const Analysis::APIDumpAnalysis::AccessCoverage&  in_coverage,
                                                                                   const Analysis::APIDumpAnalysis::AccessRectangle& in_rectangle)
