@@ -10,8 +10,10 @@
  * arrays (glDrawArrays and glDrawElements, from the copy of the arrays that the dumper made), each with the state of the pipeline that
  * was set; and the end of the frames. A display list is followed: the calls made while it is made are kept in it (with the data that they refer
  * to), and made when it is called (glCallList; the lists of the contexts are shared), and at once too for GL_COMPILE_AND_EXECUTE. What it does
- * not follow yet (glCallLists, copies and reads of the framebuffer) is counted as unsupported, so that a model made of it says that its
- * passes are not right.
+ * not follow ends the process, saying the function and why (see UnsupportedUse): what writes the framebuffer and is not a draw (glBitmap,
+ * glDrawPixels, glCopyPixels), glCallLists, a texture that is made or changed in a way that is not followed (see
+ * is_unsupported_texture_function()), and the state that decides what a draw writes (see GlFunctionPolicy::changes_what_a_draw_writes()).
+ * A read of the framebuffer (glReadPixels) is only counted, as a hazard of pixel readbacks.
  *
  * The matrices: OpenGL has one matrix for the model and the view together, and a projection of its own. The front end tells the model builder
  * the two as they are, each when it changes (MODEL_VIEW_MATRIX and PROJECTION_MATRIX, in the state of the fixed-function pipeline, at
