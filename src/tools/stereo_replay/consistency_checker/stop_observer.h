@@ -6,7 +6,7 @@
 #define STEREO_REPLAY_CONSISTENCYCHECKER_STOP_OBSERVER_H
 
 #include "tools/stereo_replay/engine_dll/i_playback_controller.h"
-#include "tools/stereo_replay/engine_dll/i_replay_observer.h"
+#include "tools/stereo_replay/engine_dll/null_replay_observer.h"
 
 namespace Stereo
 {
@@ -15,18 +15,13 @@ namespace Stereo
         namespace ConsistencyChecker
         {
             /* Pauses the replay after the last frame of the check. */
-            class StopObserver : public Stereo::Replay::EngineDLL::IReplayObserver
+            class StopObserver : public Stereo::Replay::EngineDLL::NullReplayObserver
             {
             public:
                 StopObserver(Stereo::Replay::EngineDLL::IPlaybackController* in_controller_ptr,
                              const uint32_t&                                 in_last_frame);
 
-                void on_error          (const std::string&                                in_message)   override;
-                void on_frame_presented(const uint32_t&                                   in_n_frame)   override;
-                void on_state_changed  (const Stereo::Replay::EngineDLL::PlaybackState&   in_old_state,
-                                        const Stereo::Replay::EngineDLL::PlaybackState&   in_new_state) override;
-                void on_window_closed  ()                                                               override;
-                void on_window_placed  (const Stereo::Replay::EngineDLL::WindowPlacement& in_placement) override;
+                void on_frame_presented(const uint32_t& in_n_frame) override;
 
             private:
                 Stereo::Replay::EngineDLL::IPlaybackController* m_controller_ptr;

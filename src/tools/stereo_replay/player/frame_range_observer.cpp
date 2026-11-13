@@ -14,11 +14,6 @@ Stereo::Replay::Player::FrameRangeObserver::FrameRangeObserver(Stereo::Replay::E
     /* Stub */
 }
 
-void Stereo::Replay::Player::FrameRangeObserver::on_error(const std::string& in_message)
-{
-    (void) in_message;
-}
-
 void Stereo::Replay::Player::FrameRangeObserver::on_frame_presented(const uint32_t& in_n_frame)
 {
     /* The frame before the range was the last one to hurry through. */
@@ -32,23 +27,6 @@ void Stereo::Replay::Player::FrameRangeObserver::on_frame_presented(const uint32
     {
         m_controller_ptr->pause();
     }
-}
-
-void Stereo::Replay::Player::FrameRangeObserver::on_state_changed(const Stereo::Replay::EngineDLL::PlaybackState& in_old_state,
-                                                                  const Stereo::Replay::EngineDLL::PlaybackState& in_new_state)
-{
-    (void) in_old_state;
-    (void) in_new_state;
-}
-
-void Stereo::Replay::Player::FrameRangeObserver::on_window_closed()
-{
-    /* Stub */
-}
-
-void Stereo::Replay::Player::FrameRangeObserver::on_window_placed(const Stereo::Replay::EngineDLL::WindowPlacement& in_placement)
-{
-    (void) in_placement;
 }
 
 void Stereo::Replay::Player::FrameRangeObserver::start()

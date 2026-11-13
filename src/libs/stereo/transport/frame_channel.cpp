@@ -62,6 +62,44 @@ constexpr uint64_t SLOT_N_BYTES    = static_cast<uint64_t>(MAX_WIDTH) * BYTES_PE
 static_assert(SLOT_N_BYTES % 65536 == 0,
               "A slot has to start where a GPU places a buffer");
 
+namespace
+{
+    /* A value that the other process may not have set yet: the flag says whether there is one, and the bits are those of the float. False if there is none. */
+    bool read_float(const volatile LONG& in_has_value,
+                    const volatile LONG& in_value_bits,
+                    float*               out_value_ptr)
+    {
+        const bool result = (in_has_value != 0);
+
+        if (result)
+        {
+            const LONG bits = in_value_bits;
+
+            ::memcpy(out_value_ptr,
+                     &bits,
+                     sizeof(float) );
+        }
+
+        return result;
+    }
+
+    void write_float(const float&   in_value,
+                     volatile LONG* out_value_bits_ptr,
+                     volatile LONG* out_has_value_ptr)
+    {
+        LONG bits = 0;
+
+        ::memcpy(&bits,
+                 &in_value,
+                 sizeof(float) );
+
+        /* The value first, then the flag that says that there is one. */
+        ::InterlockedExchange(out_value_bits_ptr,
+                              bits);
+        ::InterlockedExchange(out_has_value_ptr,
+                              1);
+    }
+}
 
 Stereo::Transport::FrameChannel::FrameChannel(const HANDLE& in_mapping,
                                               const HANDLE& in_pace_event,
@@ -204,66 +242,30 @@ Stereo::Transport::TransportKindMask Stereo::Transport::FrameChannel::get_accept
 
 bool Stereo::Transport::FrameChannel::get_convergence_distance(float* out_convergence_distance_ptr) const
 {
-    const bool result = (m_header_ptr->has_convergence_distance != 0);
-
-    if (result)
-    {
-        const LONG bits = m_header_ptr->convergence_distance_bits;
-
-        ::memcpy(out_convergence_distance_ptr,
-                 &bits,
-                 sizeof(float) );
-    }
-
-    return result;
+    return read_float(m_header_ptr->has_convergence_distance,
+                      m_header_ptr->convergence_distance_bits,
+                      out_convergence_distance_ptr);
 }
 
 bool Stereo::Transport::FrameChannel::get_depth_strength(float* out_depth_strength_ptr) const
 {
-    const bool result = (m_header_ptr->has_depth_strength != 0);
-
-    if (result)
-    {
-        const LONG bits = m_header_ptr->depth_strength_bits;
-
-        ::memcpy(out_depth_strength_ptr,
-                 &bits,
-                 sizeof(float) );
-    }
-
-    return result;
+    return read_float(m_header_ptr->has_depth_strength,
+                      m_header_ptr->depth_strength_bits,
+                      out_depth_strength_ptr);
 }
 
 bool Stereo::Transport::FrameChannel::get_eye_separation(float* out_eye_separation_ptr) const
 {
-    const bool result = (m_header_ptr->has_eye_separation != 0);
-
-    if (result)
-    {
-        const LONG bits = m_header_ptr->eye_separation_bits;
-
-        ::memcpy(out_eye_separation_ptr,
-                 &bits,
-                 sizeof(float) );
-    }
-
-    return result;
+    return read_float(m_header_ptr->has_eye_separation,
+                      m_header_ptr->eye_separation_bits,
+                      out_eye_separation_ptr);
 }
 
 bool Stereo::Transport::FrameChannel::get_ipd_scale(float* out_ipd_scale_ptr) const
 {
-    const bool result = (m_header_ptr->has_ipd_scale != 0);
-
-    if (result)
-    {
-        const LONG bits = m_header_ptr->ipd_scale_bits;
-
-        ::memcpy(out_ipd_scale_ptr,
-                 &bits,
-                 sizeof(float) );
-    }
-
-    return result;
+    return read_float(m_header_ptr->has_ipd_scale,
+                      m_header_ptr->ipd_scale_bits,
+                      out_ipd_scale_ptr);
 }
 
 bool Stereo::Transport::FrameChannel::get_is_overlay_pushed() const
@@ -428,62 +430,30 @@ void Stereo::Transport::FrameChannel::set_accepted_kinds(const TransportKindMask
 
 void Stereo::Transport::FrameChannel::set_convergence_distance(const float& in_convergence_distance)
 {
-    LONG bits = 0;
-
-    ::memcpy(&bits,
-             &in_convergence_distance,
-             sizeof(float) );
-
-    /* The value first, then the flag that says that there is one. */
-    ::InterlockedExchange(&m_header_ptr->convergence_distance_bits,
-                          bits);
-    ::InterlockedExchange(&m_header_ptr->has_convergence_distance,
-                          1);
+    write_float(in_convergence_distance,
+                &m_header_ptr->convergence_distance_bits,
+                &m_header_ptr->has_convergence_distance);
 }
 
 void Stereo::Transport::FrameChannel::set_depth_strength(const float& in_depth_strength)
 {
-    LONG bits = 0;
-
-    ::memcpy(&bits,
-             &in_depth_strength,
-             sizeof(float) );
-
-    /* The value first, then the flag that says that there is one. */
-    ::InterlockedExchange(&m_header_ptr->depth_strength_bits,
-                          bits);
-    ::InterlockedExchange(&m_header_ptr->has_depth_strength,
-                          1);
+    write_float(in_depth_strength,
+                &m_header_ptr->depth_strength_bits,
+                &m_header_ptr->has_depth_strength);
 }
 
 void Stereo::Transport::FrameChannel::set_eye_separation(const float& in_eye_separation)
 {
-    LONG bits = 0;
-
-    ::memcpy(&bits,
-             &in_eye_separation,
-             sizeof(float) );
-
-    /* The value first, then the flag that says that there is one. */
-    ::InterlockedExchange(&m_header_ptr->eye_separation_bits,
-                          bits);
-    ::InterlockedExchange(&m_header_ptr->has_eye_separation,
-                          1);
+    write_float(in_eye_separation,
+                &m_header_ptr->eye_separation_bits,
+                &m_header_ptr->has_eye_separation);
 }
 
 void Stereo::Transport::FrameChannel::set_ipd_scale(const float& in_ipd_scale)
 {
-    LONG bits = 0;
-
-    ::memcpy(&bits,
-             &in_ipd_scale,
-             sizeof(float) );
-
-    /* The value first, then the flag that says that there is one. */
-    ::InterlockedExchange(&m_header_ptr->ipd_scale_bits,
-                          bits);
-    ::InterlockedExchange(&m_header_ptr->has_ipd_scale,
-                          1);
+    write_float(in_ipd_scale,
+                &m_header_ptr->ipd_scale_bits,
+                &m_header_ptr->has_ipd_scale);
 }
 
 void Stereo::Transport::FrameChannel::set_is_overlay_pushed(const bool& in_is_pushed)
