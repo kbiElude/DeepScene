@@ -127,7 +127,7 @@ namespace Stereo
                 std::unique_ptr<GLEyeRenderer>            gl_renderer_ptr;
                 std::unique_ptr<D3D7EyeRenderer>          d3d7_renderer_ptr;
                 std::atomic<int64_t>                      n_callback_ticks = {0}; /* spent in the callbacks, in the ticks of the performance counter: of one call in so many that is timed, times that many */
-                std::atomic<int64_t>                      n_draw_ticks     = {0}; /* of those, in the draws of Direct3D 7                              */
+                std::atomic<int64_t>                      n_draw_ticks     = {0}; /* of those, in the draws (Direct3D 7, Direct3D 8 and OpenGL)         */
                 D3D7WindowedMode                          d3d7_windowed_mode;
                 uint64_t                                  dump_every         = 0; /* a frame is written to a file every so many frames; 0: none */
                 uint64_t                                  dump_first_frame   = 0; /* the frames before it are not written (see dump_every)     */

@@ -11,6 +11,7 @@
 #include "converter.h"
 #include "environment.h"
 #include "own_call_scope.h"
+#include "scoped_tick_adder.h"
 #include <array>
 #include <set>
 #include <stdlib.h>
@@ -325,7 +326,7 @@ std::string Stereo::ConverterDLL::Converter::make_statistics_line() const
                                    std::to_string(1000.0 * static_cast<double>(m_live_state.n_callback_ticks.load() ) / static_cast<double>(frequency.QuadPart) / n_frames_d) +
                                    " ms a frame, "                                                                                                                            +
                                    std::to_string(1000.0 * static_cast<double>(m_live_state.n_draw_ticks.load    () ) / static_cast<double>(frequency.QuadPart) / n_frames_d) +
-                                   " of them in the draws of Direct3D 7";
+                                   " of them in the draws";
     const std::string twin_text  = (n_twins + n_failed_twins > 0) ? ", "                                                                      +
                                                                     std::to_string(n_twins)                                                   +
                                                                     " surfaces with a twin, "                                                 +
@@ -727,6 +728,10 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
             Analysis::Recipe::DrawClass draw_class = Analysis::Recipe::DrawClass::UNAFFECTED;
             bool                        is_pushed  = false;
 
+            /* What is done for a call that draws, down to the end of this block, is the time of the draws. */
+            ScopedTickAdder draw_timing(&m_live_state.n_draw_ticks,
+                                        is_draw);
+
             /* The draws of a call of OpenGL are those that the front end made of it (a display list makes several, or none). */
             const bool has_draws = (is_draw) ? on_gl_draws(&draw_class,
                                                            &is_pushed,
@@ -804,18 +809,19 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
             const auto draw_class = m_live_state.core_ptr->classify_draw(m_live_state.feeder.get_last_draw_signature_key(),
                                                                          m_live_state.feeder.get_last_draw_cover_key    () );
 
-            /* A draw of Direct3D 7 is made by the renderer if it moves the vertices for the eye. */
+            /* A draw of Direct3D 7 or 8 is made by the renderer if it moves the vertices for the eye. */
             if (is_d3d8)
             {
+                ScopedTickAdder draw_timing(&m_live_state.n_draw_ticks,
+                                            true); /* in_is_enabled */
+
                 *out_should_pass_through_ptr = m_live_state.d3d8_renderer_ptr->on_pre_draw(draw_class,
                                                                                            in_arguments_ptr);
             }
             else
             {
-                LARGE_INTEGER draw_end_qpc;
-                LARGE_INTEGER draw_start_qpc;
-
-                ::QueryPerformanceCounter(&draw_start_qpc);
+                ScopedTickAdder draw_timing(&m_live_state.n_draw_ticks,
+                                            true); /* in_is_enabled */
 
                 const auto get_chunk_func = [this](const uint32_t& in_chunk_id,
                                                    const void**    out_data_ptr_ptr,
@@ -831,10 +837,6 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
                                                                                            in_arguments_ptr,
                                                                                            get_chunk_func,
                                                                                            m_live_state.feeder.get_viewport().width);
-
-                ::QueryPerformanceCounter(&draw_end_qpc);
-
-                m_live_state.n_draw_ticks += draw_end_qpc.QuadPart - draw_start_qpc.QuadPart;
             }
 
             count_draw(draw_class);
