@@ -13,6 +13,38 @@
 #include "workload_file_builder.h"
 #include <stdio.h>
 
+namespace
+{
+    /* The slice of fr08 with only the first in_n_tenths_kept tenths of its bytes: it ends in the middle of a segment. The file is Tests::WorkloadFileBuilder\x27s. */
+    void write_cut_fr08_workload(const size_t& in_n_tenths_kept)
+    {
+        std::vector<uint8_t> file_u8_vec;
+        FILE*                file_handle = ::fopen(Tests::DataFixtures::get_fr08_slice_filename().c_str(),
+                                                   "rb");
+
+        ASSERT_NE(file_handle,
+                  nullptr);
+
+        ::fseek(file_handle,
+                0,
+                SEEK_END);
+
+        file_u8_vec.resize(static_cast<size_t>(::ftell(file_handle) ));
+
+        ::fseek(file_handle,
+                0,
+                SEEK_SET);
+        ::fread(file_u8_vec.data(),
+                file_u8_vec.size(),
+                1,
+                file_handle);
+        ::fclose(file_handle);
+
+        file_u8_vec.resize(file_u8_vec.size() * in_n_tenths_kept / 10);
+        Tests::WorkloadFileBuilder::write_file(file_u8_vec);
+    }
+}
+
 TEST(AnalysisSession, TheSliceOfFr08IsAnalyzedAndDescribed)
 {
     Analysis::APIDumpAnalysis::Frontends::AnalysisSession session;
@@ -98,31 +130,9 @@ TEST(AnalysisSession, AFileThatCannotBeReadIsReported)
 TEST(AnalysisSession, ACutOffWorkloadIsAnalyzedAsFarAsItGoes)
 {
     Analysis::APIDumpAnalysis::Frontends::AnalysisSession session;
-    std::vector<uint8_t>                                  file_u8_vec;
-    FILE*                                                 file_handle = ::fopen(Tests::DataFixtures::get_fr08_slice_filename().c_str(),
-                                                                          "rb");
-
-    ASSERT_NE(file_handle,
-              nullptr);
-
-    ::fseek(file_handle,
-            0,
-            SEEK_END);
-
-    file_u8_vec.resize(static_cast<size_t>(::ftell(file_handle) ));
-
-    ::fseek(file_handle,
-            0,
-            SEEK_SET);
-    ::fread(file_u8_vec.data(),
-            file_u8_vec.size(),
-            1,
-            file_handle);
-    ::fclose(file_handle);
 
     /* A tenth of the workload is there. */
-    file_u8_vec.resize(file_u8_vec.size() / 10);
-    Tests::WorkloadFileBuilder::write_file(file_u8_vec);
+    write_cut_fr08_workload(1);
 
     ASSERT_TRUE(session.run(Tests::WorkloadFileBuilder::get_filename_ptr(),
                             nullptr,
@@ -133,6 +143,25 @@ TEST(AnalysisSession, ACutOffWorkloadIsAnalyzedAsFarAsItGoes)
                 0u);
     EXPECT_LT  (session.get_summary().n_calls,
                 16836u);
+
+    ::remove(Tests::WorkloadFileBuilder::get_filename_ptr() );
+}
+
+TEST(AnalysisSession, AWorkloadThatIsCutOffBeyondTheFrameLimitIsNotSaidToBeCutOff)
+{
+    Analysis::APIDumpAnalysis::Frontends::AnalysisSession session;
+
+    /* Most of the workload is there, and the analysis stops at the second frame, long before the end where it is cut. */
+    write_cut_fr08_workload(7);
+
+    session.set_max_frames(2);
+
+    ASSERT_TRUE(session.run(Tests::WorkloadFileBuilder::get_filename_ptr(),
+                            nullptr,
+                            nullptr) );
+
+    EXPECT_TRUE (session.has_reached_frame_limit() );
+    EXPECT_FALSE(session.get_summary().is_truncated);
 
     ::remove(Tests::WorkloadFileBuilder::get_filename_ptr() );
 }

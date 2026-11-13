@@ -305,7 +305,9 @@ bool Analysis::APIDumpAnalysis::Frontends::AnalysisSession::run(const char*     
 
     if (result)
     {
-        m_summary.is_truncated = reader_ptr->is_truncated();
+        /* Where the analysis stopped at the frame limit, the end of the file was not reached, so it is not said to be cut: it was never looked at. */
+        m_summary.is_truncated = (reader_ptr->is_truncated()          &&
+                                  has_reached_frame_limit() == false);
     }
 
     return result;
