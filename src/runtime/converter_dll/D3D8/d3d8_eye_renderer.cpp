@@ -2,6 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
+#include "common/macros.h"
 #include "common/vtable.h"
 #include "call_feeder.h"
 #include "d3d8_eye_renderer.h"
@@ -12,6 +13,15 @@ namespace
     void* get_pointer_argument(const APIInterceptor::APIFunctionArgument& in_argument)
     {
         return const_cast<void*>(in_argument.get_ptr() );
+    }
+
+    /* Whether what SetVertexShader was given is a vertex format (not the handle of a shader) whose positions are in pixels. */
+    bool is_pre_transformed_format(const uint32_t& in_vertex_shader)
+    {
+        constexpr uint32_t HANDLE_BIT = 0x80000000u; /* a handle of a vertex shader has it set, a vertex format has not */
+
+        return ((in_vertex_shader & HANDLE_BIT)                                      == 0 &&
+                (in_vertex_shader & Interception::Hooks::D3D8::D3DFVF_POSITION_MASK) == Interception::Hooks::D3D8::D3DFVF_XYZRHW);
     }
 }
 
@@ -412,6 +422,15 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::on_post(const APIInterceptor::APIFun
             break;
         }
 
+        case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_SETVERTEXSHADER:
+        {
+            constexpr size_t VERTEX_SHADER_ARGUMENT_INDEX = 1;
+
+            m_mirror.vertex_shader = in_arguments_ptr[VERTEX_SHADER_ARGUMENT_INDEX].get_u32();
+
+            break;
+        }
+
         default:
         {
             /* A draw which was skipped is not made again either. */
@@ -534,6 +553,15 @@ bool Stereo::ConverterDLL::D3D8EyeRenderer::on_pre_draw(const Analysis::Recipe::
 
     if (in_draw_class != Analysis::Recipe::DrawClass::SKIPPED)
     {
+        /* The vertices of a draw whose vertex format is XYZRHW are positioned in pixels: no matrix moves them, and the second eye needs them moved, which the converter
+         * does not do for Direct3D 8. Drawing them as they are would show the picture of the application flat.
+         */
+        const bool is_pre_transformed = is_pre_transformed_format(m_mirror.vertex_shader);
+
+        AI_ASSERT_ALWAYS(is_pre_transformed == false,
+                         "The application draws vertices that are positioned in pixels (a vertex format with D3DFVF_XYZRHW, as a HUD or text uses), "
+                         "and the converter does not move them for the second eye of Direct3D 8: that feature has not been implemented yet.");
+
         void* const    device_ptr      = get_pointer_argument(in_arguments_ptr[0]);
         const bool     is_final_target = (m_mirror.render_target_ptr == m_mirror.back_buffer_ptr);
         const uint32_t n_changes       = m_core_ptr->bind_matrices(in_draw_class,

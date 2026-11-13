@@ -26,7 +26,8 @@ namespace Stereo
          * is done inside the callbacks of the interceptor is not seen by anything that watches the device.
          *
          * What the application does that the renderer cannot follow (it locks a render target, it resets the device, it renders to a
-         * surface that was not seen made) ends the application, through the core, rather than show wrong images.
+         * surface that was not seen made, it draws vertices that are positioned in pixels) ends the application, through the core or by an
+         * assertion, rather than show wrong images.
          *
          * Not thread-safe: the caller serializes the calls, and the device is the one thread's.
          */
@@ -69,6 +70,7 @@ namespace Stereo
                 void*                                    depth_stencil_ptr = nullptr;
                 void*                                    render_target_ptr = nullptr;
                 std::array<void*, N_TEXTURE_STAGES>      texture_ptr_array = {};
+                uint32_t                                 vertex_shader     = 0;       /* what SetVertexShader was given last: the handle of a shader, or the format of the vertices (a handle has the top bit set) */
             };
 
             void  apply_matrices          (void*                                      in_device_ptr,
