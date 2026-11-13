@@ -63,15 +63,22 @@ std::vector<Analysis::RecipeBake::SceneReport> Analysis::RecipeBake::SceneReport
                                                                        : 1.0f;
         const float half    = 0.5f;
 
+        /* A model that has nothing yet goes to the first target at once, whatever the fraction. */
+        const float reference_frame_seconds = Stereo::Core::ConvergenceModel::get_reference_frame_seconds();
+        const float fraction_of_the_way     = Stereo::Core::ConvergenceModel::get_fraction_of_the_way(reference_frame_seconds);
+
         /* The same model that the converter uses, with the strength 1 that the player starts with and the limit of the scene. */
         Stereo::Core::ConvergenceModel limited_model;
         Stereo::Core::ConvergenceModel natural_model;
 
         limited_model.set_depth_strength               (1.0f);
-        limited_model.follow_scene_convergence_distance(report.limits.distance);
-        limited_model.follow_scene_max_separation      (report.limits.max_separation);
+        limited_model.follow_scene_convergence_distance(report.limits.distance,
+                                                        fraction_of_the_way);
+        limited_model.follow_scene_max_separation      (report.limits.max_separation,
+                                                        fraction_of_the_way);
         natural_model.set_depth_strength               (1.0f);
-        natural_model.follow_scene_convergence_distance(report.limits.distance);
+        natural_model.follow_scene_convergence_distance(report.limits.distance,
+                                                        fraction_of_the_way);
 
         report.natural_separation = natural_model.get_effective_eye_separation();
         report.separation         = limited_model.get_effective_eye_separation();

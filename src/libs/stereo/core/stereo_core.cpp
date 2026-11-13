@@ -10,6 +10,7 @@ Stereo::Core::StereoCore::StereoCore(const Analysis::Recipe::Recipe& in_recipe,
                                      const FailFunc&                 in_fail_func)
     :m_applier               (in_recipe),
      m_fail_func             (in_fail_func),
+     m_frame_interval_seconds(ConvergenceModel::get_reference_frame_seconds() ),
      m_is_last_draw_covering (false),
      m_is_last_draw_part     (false),
      m_is_last_draw_pushed   (false),
@@ -216,9 +217,13 @@ std::array<float, 16> Stereo::Core::StereoCore::make_eye_shift_matrix(const Anal
 
 void Stereo::Core::StereoCore::on_frame_completed(const uint64_t& in_shape_key)
 {
+    const float fraction_of_the_way = ConvergenceModel::get_fraction_of_the_way(m_frame_interval_seconds);
+    const float scene_distance      = m_applier.get_scene_convergence_distance(in_shape_key);
+
     m_scene_shape_key = in_shape_key;
 
-    if (m_convergence_model.follow_scene_convergence_distance(m_applier.get_scene_convergence_distance(in_shape_key) ) == false)
+    if (m_convergence_model.follow_scene_convergence_distance(scene_distance,
+                                                              fraction_of_the_way) == false)
     {
         /* The scene is not known: the limit of the one before stays with its distance, for lifting it would give the eyes more room than
          * the scene that is on the screen may allow.
@@ -227,7 +232,10 @@ void Stereo::Core::StereoCore::on_frame_completed(const uint64_t& in_shape_key)
     }
     else
     {
-        m_convergence_model.follow_scene_max_separation(m_applier.get_scene_max_separation(in_shape_key) );
+        const float scene_max_separation = m_applier.get_scene_max_separation(in_shape_key);
+
+        m_convergence_model.follow_scene_max_separation(scene_max_separation,
+                                                        fraction_of_the_way);
     }
 }
 
@@ -246,8 +254,12 @@ bool Stereo::Core::StereoCore::on_frame_depth(const uint64_t&   in_shape_key,
                                                                                 in_depth_range.far_depth,
                                                                                 in_projection_scale);
 
-        m_convergence_model.follow_scene_convergence_distance(limits.distance);
-        m_convergence_model.follow_scene_max_separation      (limits.max_separation);
+        const float fraction_of_the_way = ConvergenceModel::get_fraction_of_the_way(m_frame_interval_seconds);
+
+        m_convergence_model.follow_scene_convergence_distance(limits.distance,
+                                                              fraction_of_the_way);
+        m_convergence_model.follow_scene_max_separation      (limits.max_separation,
+                                                              fraction_of_the_way);
     }
 
     return result;
@@ -434,6 +446,11 @@ void Stereo::Core::StereoCore::set_eye_separation(const float& in_eye_separation
     {
         fail("The eye separation must be zero or more");
     }
+}
+
+void Stereo::Core::StereoCore::set_frame_interval_seconds(const float& in_frame_interval_seconds)
+{
+    m_frame_interval_seconds = in_frame_interval_seconds;
 }
 
 void Stereo::Core::StereoCore::set_ipd_scale(const float& in_ipd_scale)

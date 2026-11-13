@@ -490,6 +490,22 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
         /* What the frame that ended was made of tells which scene it is; the draws that follow are converged for it. */
         if (this_ptr->m_live_state.feeder.take_completed_frame_shape_key(&shape_key) )
         {
+            /* The eyes follow a scene by the time that goes, not by the number of frames: how long this frame took after the one before says how far they go. */
+            LARGE_INTEGER frame_qpc;
+            LARGE_INTEGER frequency;
+
+            ::QueryPerformanceCounter  (&frame_qpc);
+            ::QueryPerformanceFrequency(&frequency);
+
+            if (this_ptr->m_live_state.last_frame_qpc != 0)
+            {
+                const double frame_seconds = static_cast<double>(frame_qpc.QuadPart - this_ptr->m_live_state.last_frame_qpc) / static_cast<double>(frequency.QuadPart);
+
+                this_ptr->m_live_state.core_ptr->set_frame_interval_seconds(static_cast<float>(frame_seconds) );
+            }
+
+            this_ptr->m_live_state.last_frame_qpc = frame_qpc.QuadPart;
+
             /* How deep the frame was, as the application drew it, if the recipe has it measured (see Comfort::measures_depth); else what was baked for the kind of frame. */
             Stereo::Core::DepthRange depth_range;
             float                    projection_scale = 0.0f;
@@ -521,7 +537,7 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
             }
 
             /* A debugging aid for tuning a recipe: a frame of each scene, to look at, with the key that the recipe knows it by. It is the one that ends a run of frames of the scene, so
-             * that the eyes have had the time to come to what the scene says (they follow it over some frames) and the cuts of a frame or two are left out.
+             * that the eyes have had the time to come to what the scene says (they follow it over a fraction of a second, by the time that goes, which a frame count only stands for in a run held to a rate) and the cuts of a frame or two are left out.
              */
             constexpr uint64_t N_FRAMES_IN_A_SCENE_TO_SETTLE = 80;
 

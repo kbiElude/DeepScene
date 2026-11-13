@@ -18,23 +18,27 @@ Stereo::Core::ConvergenceModel::ConvergenceModel()
     /* Stub */
 }
 
-bool Stereo::Core::ConvergenceModel::follow_scene_convergence_distance(const float& in_target)
+bool Stereo::Core::ConvergenceModel::follow_scene_convergence_distance(const float& in_target,
+                                                                  const float& in_fraction_of_the_way)
 {
     const bool result = (in_target > 0.0f);
 
     if (result)
     {
         m_scene_convergence_distance = get_eased_value(m_scene_convergence_distance,
-                                                       in_target);
+                                                       in_target,
+                                                       in_fraction_of_the_way);
     }
 
     return result;
 }
 
-void Stereo::Core::ConvergenceModel::follow_scene_max_separation(const float& in_target)
+void Stereo::Core::ConvergenceModel::follow_scene_max_separation(const float& in_target,
+                                                            const float& in_fraction_of_the_way)
 {
     m_scene_max_separation = (in_target > 0.0f) ? get_eased_value(m_scene_max_separation,
-                                                                   in_target)
+                                                                   in_target,
+                                                                   in_fraction_of_the_way)
                                                 : 0.0f;
 }
 
@@ -49,11 +53,11 @@ float Stereo::Core::ConvergenceModel::get_depth_strength() const
 }
 
 float Stereo::Core::ConvergenceModel::get_eased_value(const float& in_current,
-                                                      const float& in_target)
+                                                      const float& in_target,
+                                                      const float& in_fraction_of_the_way)
 {
-    /* How much of the way to the target the value goes in a frame, and how close is the same. */
-    constexpr float SMOOTHING_PER_FRAME = 0.05f;
-    constexpr float SNAP_FRACTION       = 0.001f;
+    /* How close to the target is the same as being there. */
+    constexpr float SNAP_FRACTION = 0.001f;
 
     float result = in_target;
 
@@ -61,7 +65,7 @@ float Stereo::Core::ConvergenceModel::get_eased_value(const float& in_current,
     {
         /* Along the logarithm, as a depth is felt in proportion to itself. */
         const float eased = ::expf(::logf(in_current) +
-                                   (::logf(in_target) - ::logf(in_current)) * SMOOTHING_PER_FRAME);
+                                   (::logf(in_target) - ::logf(in_current)) * in_fraction_of_the_way);
 
         result = (::fabsf(eased - in_target) < in_target * SNAP_FRACTION) ? in_target
                                                                           : eased;
@@ -104,9 +108,34 @@ float Stereo::Core::ConvergenceModel::get_eye_separation() const
     return m_eye_separation;
 }
 
+float Stereo::Core::ConvergenceModel::get_fraction_of_the_way(const float& in_elapsed_seconds)
+{
+    /* What a frame of the reference time goes. */
+    constexpr float FRACTION_PER_REFERENCE_FRAME = 0.05f;
+
+    float result = 0.0f;
+
+    if (in_elapsed_seconds > 0.0f)
+    {
+        const float n_reference_frames = in_elapsed_seconds / get_reference_frame_seconds();
+
+        result = 1.0f - ::powf(1.0f - FRACTION_PER_REFERENCE_FRAME,
+                               n_reference_frames);
+    }
+
+    return result;
+}
+
 float Stereo::Core::ConvergenceModel::get_ipd_scale() const
 {
     return m_ipd_scale;
+}
+
+float Stereo::Core::ConvergenceModel::get_reference_frame_seconds()
+{
+    constexpr float REFERENCE_FRAMES_PER_SECOND = 72.0f; /* the rate of the headset */
+
+    return 1.0f / REFERENCE_FRAMES_PER_SECOND;
 }
 
 bool Stereo::Core::ConvergenceModel::set_convergence_distance(const float& in_convergence_distance)

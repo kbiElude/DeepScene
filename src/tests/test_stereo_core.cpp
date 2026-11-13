@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 #include "analysis/recipe/recipe_loader.h"
 #include "stereo/core/stereo_core.h"
+#include <math.h>
 #include <string>
 #include <vector>
 
@@ -562,6 +563,48 @@ TEST_F(StereoCoreTest, TheDistanceOfTheRecipeIsFollowedForEachDrawUnlessOneIsSet
     EXPECT_FLOAT_EQ(left.at(0).matrix_fp32vec16.at(8),
                     -0.01f);
     EXPECT_TRUE(message_vec.empty() );
+}
+
+TEST_F(StereoCoreTest, TheEyesGoTowardASceneByTheTimeThatTheFrameTookAndNotByTheNumberOfFrames)
+{
+    auto recipe = make_recipe(get_baked_text(""),
+                              "");
+
+    recipe.scene_convergence_vec.push_back({10.0f, 100});
+    recipe.scene_convergence_vec.push_back({40.0f, 200});
+
+    /* The distance after one frame of the second scene that took this long, from the first scene taken at once. */
+    const auto get_distance_func = [&recipe](const float& in_frame_seconds)
+    {
+        Stereo::Core::StereoCore core(recipe,
+                                      [](const std::string&)
+                                      {
+                                      });
+
+        core.on_frame_completed(100);
+        core.set_frame_interval_seconds(in_frame_seconds);
+        core.on_frame_completed(200);
+
+        return core.get_effective_convergence_distance();
+    };
+
+    const float reference_seconds = Stereo::Core::ConvergenceModel::get_reference_frame_seconds();
+
+    /* A twentieth of the way along the logarithm for a frame of 72 Hz: 10 * 4 ^ 0.05. */
+    EXPECT_NEAR(get_distance_func(reference_seconds),
+                10.0f * ::powf(4.0f, 0.05f),
+                0.001f);
+
+    /* A frame of twice the time goes further, and one of a thousandth of a second hardly moves. */
+    EXPECT_GT(get_distance_func(2.0f * reference_seconds),
+              get_distance_func(reference_seconds) + 0.5f);
+    EXPECT_LT(get_distance_func(0.001f),
+              10.1f);
+
+    /* A stall of seconds puts the eyes at the distance of the scene. */
+    EXPECT_NEAR(get_distance_func(5.0f),
+                40.0f,
+                0.1f);
 }
 
 TEST_F(StereoCoreTest, TheDistanceOfTheSceneIsTakenAtOnceAtFirstAndThenEasedTowardWhatTheNextSceneHasAndASetOneBeatsIt)

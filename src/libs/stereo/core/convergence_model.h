@@ -19,16 +19,18 @@ namespace Stereo
         public:
             ConvergenceModel();
 
-            /* The frame that was completed has a distance of its scene: the distance goes toward it by some of the way each frame, which
-             * keeps a scene that is made of frames of slightly different shapes from pulsing, and is it at once the first time. Returns
-             * false, and leaves it as it was, if there is none (0).
+            /* The frame that was completed has a distance of its scene: the distance goes toward it by the fraction of the way that is given (see
+             * get_fraction_of_the_way()), which keeps a scene that is made of frames of slightly different shapes from pulsing, and is it at once the first
+             * time. Returns false, and leaves it as it was, if there is none (0).
              */
-            bool follow_scene_convergence_distance(const float& in_target);
+            bool follow_scene_convergence_distance(const float& in_target,
+                                                   const float& in_fraction_of_the_way);
 
             /* The frame that was completed has a limit of how far apart the eyes may be in its scene (see SceneSeparation): the limit goes
              * toward it as the distance does, along the logarithm. A scene with none (0) lifts the limit at once.
              */
-            void follow_scene_max_separation(const float& in_target);
+            void follow_scene_max_separation(const float& in_target,
+                                             const float& in_fraction_of_the_way);
 
             /* The setters' values; 0 for the ones that were not set. */
             float get_convergence_distance() const;
@@ -59,10 +61,20 @@ namespace Stereo
             /* The distance of the draw that was classified last, from the recipe; 0 if it has none. */
             void set_draw_convergence_distance(const float& in_draw_convergence_distance);
 
+            /* How much of the way to its target a value goes in the time that a frame took: 0 for no time, 0.05 for the time of a frame of 72 Hz (the rate of the
+             * headset, which the eyes were tuned at), and the same movement in the same time whatever the rate is (two frames of half the time go as far as one of
+             * the whole), so that a run of a thousand frames a second and one of 72 look the same in time. Near 1 for a long stall: the eyes are there.
+             */
+            static float get_fraction_of_the_way(const float& in_elapsed_seconds);
+
+            /* The time of a frame of 72 Hz, which get_fraction_of_the_way() gives 0.05 for. */
+            static float get_reference_frame_seconds();
+
         private:
-            /* The value that is eased toward the target by some of the way (along the logarithm); the target itself if the value is not above zero, or if it is near enough. */
+            /* The value that is eased toward the target by some of the way, by the fraction of the way that is given (along the logarithm); the target itself if the value is not above zero, or if it is near enough. */
             static float get_eased_value(const float& in_current,
-                                         const float& in_target);
+                                         const float& in_target,
+                                         const float& in_fraction_of_the_way);
 
             float m_convergence_distance;
             float m_depth_strength;

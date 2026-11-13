@@ -145,6 +145,7 @@ namespace Stereo
                 float                                     last_projection_scale = 0.0f;
                 GlFrameImages                             last_gl_images;                 /* of the last frame of OpenGL that was read; valid until the next one */
                 bool                                      has_last_gl_images    = false;
+                int64_t                                   last_frame_qpc     = 0;      /* when the frame before was completed, in the ticks of the performance counter; 0: none yet */
                 uint64_t                                  n_affected_draws   = 0;
                 uint64_t                                  n_frames           = 0;
                 uint64_t                                  n_kept_matrices    = 0;

@@ -192,6 +192,12 @@ namespace Stereo
             /* The distance between the eyes, in the units of the matrices. */
             void set_eye_separation(const float& in_eye_separation);
 
+            /* How long the frames take, which the eyes follow a scene by (see ConvergenceModel::get_fraction_of_the_way()): the time since the frame before, said
+             * before the frame that was completed is told (on_frame_completed(), on_frame_depth()). The time of a frame of 72 Hz until it is said, as it is for a
+             * replay or a test, which have no clock that means anything.
+             */
+            void set_frame_interval_seconds(const float& in_frame_interval_seconds);
+
             /* How the eyes of the person who looks compare with the ones that the separation is made for (see ConvergenceModel::set_ipd_scale()). */
             void set_ipd_scale(const float& in_ipd_scale);
 
@@ -207,6 +213,7 @@ namespace Stereo
             Analysis::Recipe::RecipeApplier m_applier;
             ConvergenceModel                m_convergence_model;
             FailFunc                        m_fail_func;
+            float                           m_frame_interval_seconds; /* the time of the frame that was completed last */
             bool                            m_is_last_draw_covering; /* the draw that was classified last covers the whole of the view */
             bool                            m_is_last_draw_part;     /* the draw that was classified last is a part that protrudes        */
             bool                            m_is_last_draw_pushed;   /* the recipe pushes the draw that was classified last              */
