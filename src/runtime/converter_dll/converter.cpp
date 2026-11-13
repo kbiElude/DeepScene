@@ -533,15 +533,55 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
             }
             else
             {
-                this_ptr->m_live_state.scene_run_key    = shape_key;
-                this_ptr->m_live_state.scene_run_length = 1;
+                LARGE_INTEGER run_start_qpc = {};
+
+                ::QueryPerformanceCounter(&run_start_qpc);
+
+                this_ptr->m_live_state.scene_run_key         = shape_key;
+                this_ptr->m_live_state.scene_run_length      = 1;
+                this_ptr->m_live_state.scene_run_n_samples   = 0;
+                this_ptr->m_live_state.scene_run_start_qpc   = run_start_qpc.QuadPart;
             }
 
-            if (this_ptr->m_live_state.is_scene_dump_enabled                                                  &&
-                this_ptr->m_live_state.has_last_gl_images                                                     &&
-                this_ptr->m_live_state.scene_run_length == N_FRAMES_IN_A_SCENE_TO_SETTLE                      &&
-                this_ptr->m_live_state.scene_seen_set.insert(shape_key).second)
+            /* A scene that goes on is looked at again, since a scene is not one picture: what the camera shows moves with the time of the demo (a second apart, whatever the frames per
+             * second are). Only the run of the scene in which the first was written goes on.
+             */
+            constexpr uint32_t N_SAMPLES_OF_A_SCENE      = 6;
+            constexpr double   N_SECONDS_BETWEEN_SAMPLES = 1.0;
+
+            bool     is_sampled_now = false;
+            uint32_t n_sample       = this_ptr->m_live_state.scene_run_n_samples;
+
+            if (this_ptr->m_live_state.is_scene_dump_enabled &&
+                this_ptr->m_live_state.has_last_gl_images)
             {
+                LARGE_INTEGER frequency = {};
+                LARGE_INTEGER now_qpc   = {};
+
+                ::QueryPerformanceCounter  (&now_qpc);
+                ::QueryPerformanceFrequency(&frequency);
+
+                const double n_seconds_in_scene = static_cast<double>(now_qpc.QuadPart - this_ptr->m_live_state.scene_run_start_qpc) / static_cast<double>(frequency.QuadPart);
+
+                if (n_sample == 0)
+                {
+                    if (this_ptr->m_live_state.scene_run_length == N_FRAMES_IN_A_SCENE_TO_SETTLE)
+                    {
+                        is_sampled_now = this_ptr->m_live_state.scene_seen_set.insert(shape_key).second;
+                    }
+                }
+                else
+                if (n_sample                 <  N_SAMPLES_OF_A_SCENE                               &&
+                    n_seconds_in_scene       >= static_cast<double>(n_sample) * N_SECONDS_BETWEEN_SAMPLES)
+                {
+                    is_sampled_now = true;
+                }
+            }
+
+            if (is_sampled_now)
+            {
+                this_ptr->m_live_state.scene_run_n_samples++;
+
                 char temp_i8vec260[MAX_PATH] = {};
 
                 if (::GetTempPathA(MAX_PATH,
@@ -554,12 +594,12 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
                                "0x%016llx",
                                static_cast<unsigned long long>(shape_key) );
 
-                    const std::string filename = std::string(temp_i8vec260) + "apistereo_scene_" + key_i8vec19 + ".bmp";
+                    const std::string filename = std::string(temp_i8vec260) + "apistereo_scene_" + key_i8vec19 + ( (n_sample == 0) ? std::string() : "_" + std::to_string(n_sample) ) + ".bmp";
 
                     GlHostMemoryExporter::write_debug_image(this_ptr->m_live_state.last_gl_images,
                                                             filename);
 
-                    this_ptr->m_log.write(std::string("A scene has settled: ") + key_i8vec19 + ", frame " + std::to_string(this_ptr->m_live_state.n_frames) + ", the eyes converge at " + std::to_string(this_ptr->m_live_state.core_ptr->get_effective_convergence_distance() ) + " and are " + std::to_string(this_ptr->m_live_state.core_ptr->get_effective_eye_separation() ) + " apart; measured near " + std::to_string(this_ptr->m_live_state.last_depth_range.near_depth) + ", median " + std::to_string(this_ptr->m_live_state.last_depth_range.median_depth) + ", far " + std::to_string(this_ptr->m_live_state.last_depth_range.far_depth) + ", scale " + std::to_string(this_ptr->m_live_state.last_projection_scale) );
+                    this_ptr->m_log.write(std::string("A scene has settled: ") + key_i8vec19 + ", sample " + std::to_string(n_sample) + ", frame " + std::to_string(this_ptr->m_live_state.n_frames) + ", the eyes converge at " + std::to_string(this_ptr->m_live_state.core_ptr->get_effective_convergence_distance() ) + " and are " + std::to_string(this_ptr->m_live_state.core_ptr->get_effective_eye_separation() ) + " apart; measured near " + std::to_string(this_ptr->m_live_state.last_depth_range.near_depth) + ", median " + std::to_string(this_ptr->m_live_state.last_depth_range.median_depth) + ", far " + std::to_string(this_ptr->m_live_state.last_depth_range.far_depth) + ", scale " + std::to_string(this_ptr->m_live_state.last_projection_scale) );
                 }
             }
         }
