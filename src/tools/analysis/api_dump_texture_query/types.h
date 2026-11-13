@@ -15,16 +15,6 @@ namespace Analysis
 {
     namespace APIDumpTextureQuery
     {
-        /* What the tool exits with. */
-        enum class ExitCode
-        {
-            BAD_ARGUMENTS        = 1,
-            CANNOT_READ_TEXTURES = 2,
-            NOT_FOUND            = 3,
-            SUCCESS              = 0,
-            WORKLOAD_MISMATCH    = 4
-        };
-
         struct Options
         {
             Analysis::APIDumpTextures::QueryArguments arguments;

@@ -3,11 +3,10 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_analysis/query_command_line.h"
-#include "analysis/api_dump_analysis/workload_identity.h"
+#include "analysis/api_dump_analysis/query_tool.h"
 #include "analysis/api_dump_textures/textures_file.h"
 #include "query.h"
 #include "utils/command_line/number_parser.h"
-#include "utils/json/json_writer.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
@@ -165,10 +164,10 @@ void Analysis::APIDumpTextureQuery::print_usage()
 int Analysis::APIDumpTextureQuery::run(int   in_argc,
                                        char* in_argv[])
 {
-    std::string                                 error;
-    ExitCode                                    exit_code = ExitCode::SUCCESS;
-    Options                                     options;
-    Analysis::APIDumpTextures::TextureTimeline  timeline;
+    std::string                                  error;
+    Analysis::APIDumpAnalysis::QueryExitCode     exit_code = Analysis::APIDumpAnalysis::QueryExitCode::SUCCESS;
+    Options                                      options;
+    Analysis::APIDumpTextures::TextureTimeline   timeline;
 
     if (parse_arguments(in_argc,
                         in_argv,
@@ -181,62 +180,41 @@ int Analysis::APIDumpTextureQuery::run(int   in_argc,
 
         print_usage();
 
-        exit_code = ExitCode::BAD_ARGUMENTS;
+        exit_code = Analysis::APIDumpAnalysis::QueryExitCode::BAD_ARGUMENTS;
 
         goto end;
     }
 
-    if (Analysis::APIDumpTextures::TexturesFile::read(options.textures_filename,
-                                                     &timeline,
-                                                     &error) == false)
     {
-        fprintf(stderr,
-                "Error: %s\n",
-                error.c_str() );
-
-        exit_code = ExitCode::CANNOT_READ_TEXTURES;
-
-        goto end;
-    }
-
-    if (options.common.is_verify_off == false)
-    {
-        const auto match = Analysis::APIDumpAnalysis::WorkloadIdentity::check_for_query(options.common.workload_filename,
-                                                                                         timeline.workload_reference,
-                                                                                         "file");
-
-        if (match == Analysis::APIDumpAnalysis::WorkloadMatch::MISMATCH)
+        const auto command_func = [&](Utils::Json::JsonWriter* in_writer_ptr,
+                                      std::string*             out_error_ptr)
         {
-            exit_code = ExitCode::WORKLOAD_MISMATCH;
+            return Analysis::APIDumpTextures::QueryCommands::run(options.command,
+                                                                 timeline,
+                                                                 options.arguments,
+                                                                 in_writer_ptr,
+                                                                 out_error_ptr);
+        };
 
-            goto end;
-        }
-    }
-
-    {
-        Utils::Json::JsonWriter writer(options.common.is_compact == false);
-
-        const auto status = Analysis::APIDumpTextures::QueryCommands::run(options.command,
-                                                                          timeline,
-                                                                          options.arguments,
-                                                                         &writer,
-                                                                         &error);
-
-        if (status == Analysis::APIDumpAnalysis::QueryStatus::OK)
+        const auto read_func = [&](const std::string& in_filename,
+                                   std::string*       out_error_ptr)
         {
-            fprintf(stdout,
-                    "%s\n",
-                    writer.get_text().c_str() );
-        }
-        else
-        {
-            fprintf(stderr,
-                    "Error: %s\n",
-                    error.c_str() );
+            return Analysis::APIDumpTextures::TexturesFile::read(in_filename,
+                                                                &timeline,
+                                                                 out_error_ptr);
+        };
 
-            exit_code = (status == Analysis::APIDumpAnalysis::QueryStatus::NOT_FOUND) ? ExitCode::NOT_FOUND
-                                                                                      : ExitCode::BAD_ARGUMENTS;
-        }
+        const auto reference_func = [&]() -> const Analysis::APIDumpAnalysis::WorkloadReference&
+        {
+            return timeline.workload_reference;
+        };
+
+        exit_code = Analysis::APIDumpAnalysis::QueryTool::run(options.common,
+                                                              options.textures_filename,
+                                                              "file",
+                                                              read_func,
+                                                              reference_func,
+                                                              command_func);
     }
 
 end:

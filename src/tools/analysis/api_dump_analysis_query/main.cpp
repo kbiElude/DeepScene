@@ -5,10 +5,9 @@
 #include "analysis/api_dump_analysis/passes_file.h"
 #include "analysis/api_dump_analysis/query_command_line.h"
 #include "analysis/api_dump_analysis/query_commands.h"
-#include "analysis/api_dump_analysis/workload_identity.h"
+#include "analysis/api_dump_analysis/query_tool.h"
 #include "query.h"
 #include "utils/command_line/number_parser.h"
-#include "utils/json/json_writer.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -206,7 +205,7 @@ int Analysis::APIDumpAnalysisQuery::run(int   in_argc,
 {
     Analysis::APIDumpAnalysis::AnalysisResult analysis;
     std::string                               error;
-    ExitCode                                  exit_code = ExitCode::SUCCESS;
+    Analysis::APIDumpAnalysis::QueryExitCode  exit_code = Analysis::APIDumpAnalysis::QueryExitCode::SUCCESS;
     Options                                   options;
 
     if (parse_arguments(in_argc,
@@ -220,61 +219,41 @@ int Analysis::APIDumpAnalysisQuery::run(int   in_argc,
 
         print_usage();
 
-        exit_code = ExitCode::BAD_ARGUMENTS;
+        exit_code = Analysis::APIDumpAnalysis::QueryExitCode::BAD_ARGUMENTS;
 
         goto end;
     }
 
-    if (Analysis::APIDumpAnalysis::PassesFile::read(options.passes_filename,
-                                                   &analysis,
-                                                   &error) == false)
     {
-        fprintf(stderr,
-                "Error: %s\n",
-                error.c_str() );
-
-        exit_code = ExitCode::CANNOT_READ_PASSES;
-
-        goto end;
-    }
-
-    if (options.common.is_verify_off == false)
-    {
-        const auto match = Analysis::APIDumpAnalysis::WorkloadIdentity::check_for_query(options.common.workload_filename,
-                                                                                         analysis.workload_reference,
-                                                                                         "analysis");
-
-        if (match == Analysis::APIDumpAnalysis::WorkloadMatch::MISMATCH)
+        const auto command_func = [&](Utils::Json::JsonWriter* in_writer_ptr,
+                                      std::string*             out_error_ptr)
         {
-            exit_code = ExitCode::WORKLOAD_MISMATCH;
+            return Analysis::APIDumpAnalysis::QueryCommands::run(options.command,
+                                                                 analysis,
+                                                                 options.arguments,
+                                                                 in_writer_ptr,
+                                                                 out_error_ptr);
+        };
 
-            goto end;
-        }
-    }
-
-    {
-        Utils::Json::JsonWriter writer(options.common.is_compact == false);
-        const auto                  status = Analysis::APIDumpAnalysis::QueryCommands::run(options.command,
-                                                                                           analysis,
-                                                                                           options.arguments,
-                                                                                          &writer,
-                                                                                          &error);
-
-        if (status == Analysis::APIDumpAnalysis::QueryStatus::OK)
+        const auto read_func = [&](const std::string& in_filename,
+                                   std::string*       out_error_ptr)
         {
-            fprintf(stdout,
-                    "%s\n",
-                    writer.get_text().c_str() );
-        }
-        else
-        {
-            fprintf(stderr,
-                    "Error: %s\n",
-                    error.c_str() );
+            return Analysis::APIDumpAnalysis::PassesFile::read(in_filename,
+                                                              &analysis,
+                                                               out_error_ptr);
+        };
 
-            exit_code = (status == Analysis::APIDumpAnalysis::QueryStatus::NOT_FOUND) ? ExitCode::NOT_FOUND
-                                                                                      : ExitCode::BAD_ARGUMENTS;
-        }
+        const auto reference_func = [&]() -> const Analysis::APIDumpAnalysis::WorkloadReference&
+        {
+            return analysis.workload_reference;
+        };
+
+        exit_code = Analysis::APIDumpAnalysis::QueryTool::run(options.common,
+                                                              options.passes_filename,
+                                                              "analysis",
+                                                              read_func,
+                                                              reference_func,
+                                                              command_func);
     }
 
 end:

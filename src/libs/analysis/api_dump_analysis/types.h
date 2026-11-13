@@ -104,6 +104,16 @@ namespace Analysis
             UNKNOWN
         };
 
+        /* What a program that asks questions of a file of the analysis exits with. */
+        enum class QueryExitCode
+        {
+            BAD_ARGUMENTS     = 1,
+            CANNOT_READ_FILE  = 2,
+            NOT_FOUND         = 3,
+            SUCCESS           = 0,
+            WORKLOAD_MISMATCH = 4
+        };
+
         /* How a query ended. */
         enum class QueryStatus
         {
