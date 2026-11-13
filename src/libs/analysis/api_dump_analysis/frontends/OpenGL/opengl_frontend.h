@@ -28,6 +28,7 @@
 
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_array_draw_describer.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_context_state.h"
+#include "analysis/api_dump_analysis/frontends/OpenGL/gl_list_handler.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_matrix_handler.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_texture_handler.h"
 #include "analysis/api_dump_analysis/frontends/shared/i_api_frontend.h"
@@ -97,10 +98,6 @@ namespace Analysis
                 /* The state of the context that the thread has current; nullptr if it has none. */
                 GLContextState* find_current_context_ptr(const uint32_t& in_thread_id);
 
-                /* What a call that a list keeps does to what an eye has of its own: that of the list, for the call of one. */
-                GLListEyeDependence get_call_eye_dependence(const APIInterceptor::APIFunction&                      in_function,
-                                                            const std::vector<APIInterceptor::APIFunctionArgument>& in_argument_vec) const;
-
                 /* A call of glDrawArrays or glDrawElements: a draw from the arrays that the dumper copied into it. */
                 void handle_array_draw(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                        const Capture::APIDumpLoader::Workload&      in_workload,
@@ -115,9 +112,6 @@ namespace Analysis
                  * indices, of constants): buffers are not followed. Unbinding one (the buffer 0) is not that.
                  */
                 void handle_bind_buffer(const Capture::APIDumpLoader::DumpedAPICall& in_call);
-
-                /* A call of glCallList: the calls of the list are made, as the list has them. */
-                void handle_call_list(const Capture::APIDumpLoader::DumpedAPICall& in_call);
 
                 void handle_clear        (const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                           GLContextState*                              inout_state_ptr);
@@ -136,9 +130,6 @@ namespace Analysis
                 void handle_copy_tex_sub_image(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                GLContextState*                              inout_state_ptr);
 
-                /* The lists of glDeleteLists are gone. */
-                void handle_delete_lists(const Capture::APIDumpLoader::DumpedAPICall& in_call);
-
                 void handle_enable(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                    const bool&                                  in_is_enabled,
                                    GLContextState*                              inout_state_ptr);
@@ -146,17 +137,12 @@ namespace Analysis
                 /* The vertices since the glBegin are a draw. */
                 void handle_end(GLContextState* inout_state_ptr);
 
-                /* A list which was being made is made, and its calls are made when it is called. */
-                void handle_end_list(GLContextState* inout_state_ptr);
-
                 /* A call of GL: kept in the list that its context is making, or made, or both. It is also how the calls of a called list are made. */
                 void handle_gl_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                     const Capture::APIDumpLoader::Workload&      in_workload);
 
                 void handle_make_current(const Capture::APIDumpLoader::DumpedAPICall& in_call);
 
-                void handle_new_list       (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                            GLContextState*                              inout_state_ptr);
                 void handle_pop_attributes (GLContextState*                              inout_state_ptr);
                 void handle_push_attributes(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                             GLContextState*                              inout_state_ptr);
@@ -174,11 +160,6 @@ namespace Analysis
 
                 void handle_viewport(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                      GLContextState*                              inout_state_ptr);
-
-                /* Keeps the call in the list that the context is making, with the data that it refers to. */
-                void record_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                 const Capture::APIDumpLoader::Workload&      in_workload,
-                                 GLContextState*                              inout_state_ptr);
 
                 /* What the program does is not followed (a target, a kind of texture, a buffer that pixels go to or come from, a call): what the analysis finds of it
                  * would be wrong or left out, and so the process is ended, saying what it was (AI_ASSERT_ALWAYS). Nothing is left out without being said.
@@ -221,11 +202,10 @@ namespace Analysis
                 std::map<uint64_t, GLContextState>                              m_context_map;                   /* by the address of the context */
                 std::map<uint32_t, uint64_t>                                    m_current_context_by_thread_map; /* the address, by the thread    */
                 Analysis::APIDumpAnalysis::ResourceView                         m_depth_stencil_view;
-                std::map<uint32_t, std::shared_ptr<GLDisplayList> >             m_display_list_map;              /* by the number of the list; the contexts share them */
                 uint32_t                                                        m_framebuffer_height;
                 uint32_t                                                        m_framebuffer_width;
                 bool                                                            m_has_default_framebuffer;
-                uint32_t                                                        m_list_depth;                    /* of the lists that are being called */
+                GLListHandler                                                   m_list_handler;
                 GLMatrixHandler                                                 m_matrix_handler;
                 std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t> m_n_resolution_hazard_map;
                 uint64_t                                                        m_n_unfollowed_calls;
