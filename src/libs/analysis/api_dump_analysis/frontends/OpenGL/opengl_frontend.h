@@ -15,12 +15,16 @@
  * GLTextureHandler::is_unsupported_texture_function()), and the state that decides what a draw writes (see GLFunctionPolicy::changes_what_a_draw_writes()).
  * A read of the framebuffer (glReadPixels) is only counted, as a hazard of pixel readbacks.
  *
- * The matrices: OpenGL has one matrix for the model and the view together, and a projection of its own. The front end tells the model builder
- * the two as they are, each when it changes (MODEL_VIEW_MATRIX and PROJECTION_MATRIX, in the state of the fixed-function pipeline, at
- * the offsets 0 and 64), and does not tell a model from a view, which the calls do not.
+ * The front end keeps the contexts and dispatches the calls (handle_gl_call); what a kind of call does is in a class of its own, which keeps no
+ * address of the front end (what it needs of the others is given with the call): GLTextureHandler (textures), GLMatrixHandler (matrices),
+ * GLListHandler (display lists), GLStateHandler (state values, viewport, scissor box, attributes) and GLDrawHandler (draws and clears).
  *
- * The window is the default framebuffer: one of them for the whole workload, made at the first clear with the size of the viewport that
- * the context has by then (the size of the window is not in the calls; a context starts with a viewport of the whole window, and the
+ * The matrices: OpenGL has one matrix for the model and the view together, and a projection of its own. The model builder is told the two as
+ * they are, each when it changes (MODEL_VIEW_MATRIX and PROJECTION_MATRIX, in the state of the fixed-function pipeline, at the offsets 0 and
+ * 64), and does not tell a model from a view, which the calls do not.
+ *
+ * The window (GLWindow) is the default framebuffer: one of them for the whole workload, made at the first clear with the size of the viewport
+ * that the context has by then (the size of the window is not in the calls; a context starts with a viewport of the whole window, and the
  * application says what it is in its first glViewport).
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_OPENGL_FRONTEND_H
