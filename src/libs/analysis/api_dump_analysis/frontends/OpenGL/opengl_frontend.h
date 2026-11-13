@@ -28,6 +28,7 @@
 
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_array_draw_describer.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_context_state.h"
+#include "analysis/api_dump_analysis/frontends/OpenGL/gl_matrix_handler.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_texture_handler.h"
 #include "analysis/api_dump_analysis/frontends/shared/i_api_frontend.h"
 #include "analysis/api_dump_analysis/model_builder.h"
@@ -154,20 +155,11 @@ namespace Analysis
 
                 void handle_make_current(const Capture::APIDumpLoader::DumpedAPICall& in_call);
 
-                /* A call that loads or multiplies the current matrix: the matrix is what its arguments (or its data) say. */
-                void handle_matrix(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                   const Capture::APIDumpLoader::Workload&      in_workload,
-                                   GLContextState*                              inout_state_ptr);
-
-                void handle_matrix_mode    (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                            GLContextState*                              inout_state_ptr);
                 void handle_new_list       (const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                             GLContextState*                              inout_state_ptr);
                 void handle_pop_attributes (GLContextState*                              inout_state_ptr);
-                void handle_pop_matrix     (GLContextState*                              inout_state_ptr);
                 void handle_push_attributes(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                             GLContextState*                              inout_state_ptr);
-                void handle_push_matrix    (GLContextState*                              inout_state_ptr);
                 void handle_scissor        (const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                             GLContextState*                              inout_state_ptr);
 
@@ -188,23 +180,12 @@ namespace Analysis
                                  const Capture::APIDumpLoader::Workload&      in_workload,
                                  GLContextState*                              inout_state_ptr);
 
-                /* Tells the model builder the model-view and the projection matrix of the context, those of them which are not what it was told last. */
-                void report_matrices(const GLContextState& in_state);
-
-                void report_matrix(const GLMatrix&                                    in_matrix_f32mat,
-                                   const Analysis::APIDumpAnalysis::ConstantSemantic& in_semantic,
-                                   const uint64_t&                                    in_byte_offset,
-                                   GLReportedMatrix*                                  inout_reported_ptr);
-
                 /* What the program does is not followed (a target, a kind of texture, a buffer that pixels go to or come from, a call): what the analysis finds of it
                  * would be wrong or left out, and so the process is ended, saying what it was (AI_ASSERT_ALWAYS). Nothing is left out without being said.
                  */
                 static void report_unsupported_use(const APIInterceptor::APIFunction& in_function,
                                                    const char*                        in_reason_ptr,
                                                    const uint64_t&                    in_value);
-
-                /* The stack of the matrices that glMatrixMode has chosen. */
-                static std::vector<GLMatrix>* get_current_stack_ptr(GLContextState* inout_state_ptr);
 
                 /* A context as it starts: what the specification says, and a stack of the identity for each kind of matrix. */
                 static GLContextState get_initial_context_state();
@@ -228,17 +209,6 @@ namespace Analysis
                 static bool read_box(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                      GLBox*                                       out_box_ptr);
 
-                /* The matrix that a call of glLoadMatrix or glMultMatrix has stored as its argument, of floats or of doubles. */
-                static bool read_matrix_chunk(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                              const Capture::APIDumpLoader::Workload&      in_workload,
-                                              const bool&                                  in_is_double,
-                                              GLMatrix*                                    out_matrix_f32mat_ptr);
-
-                /* The matrix that the call has to load into the current one, or to multiply it by; false if its arguments cannot be read. */
-                static bool read_matrix_operand(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                const Capture::APIDumpLoader::Workload&      in_workload,
-                                                GLMatrix*                                    out_matrix_f32mat_ptr);
-
                 /* Puts back what the mask of a glPushAttrib asked to be saved. */
                 static void restore_attributes(const GLAttributeFrame& in_frame,
                                                GLAttributes*           inout_attributes_ptr);
@@ -256,11 +226,10 @@ namespace Analysis
                 uint32_t                                                        m_framebuffer_width;
                 bool                                                            m_has_default_framebuffer;
                 uint32_t                                                        m_list_depth;                    /* of the lists that are being called */
+                GLMatrixHandler                                                 m_matrix_handler;
                 std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t> m_n_resolution_hazard_map;
                 uint64_t                                                        m_n_unfollowed_calls;
                 uint64_t                                                        m_n_unsupported_calls;
-                GLReportedMatrix                                                m_reported_modelview;
-                GLReportedMatrix                                                m_reported_projection;
                 GLTextureHandler                                                m_texture_handler;
             };
         }
