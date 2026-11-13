@@ -13,60 +13,33 @@ Stereo::ConverterDLL::D3D8HostMemoryExporter::D3D8HostMemoryExporter(Stereo::Tra
      m_eye_destination_ptr(nullptr),
      m_eye_is_ok   (false),
      m_eye_pitch   (0),
-     m_eye_state   (ExportJobState::IDLE),
-     m_is_eye_stopping(false),
      m_issue_cost  (4.0),
-     m_is_stopping (false),
      m_job_set     (0),
-     m_job_state   (ExportJobState::IDLE),
      m_job_wait    (2.0),
      m_lock_cost   (2.0),
      m_pace_wait   (0.0),
      m_next_set    (0),
      m_write_cost  (8.0)
 {
-    const auto run_eye_thread_func = [this]()
+    const auto write_job_func = [this]()
     {
-        run_eye_thread();
+        write_job();
     };
 
-    m_eye_thread = std::thread(run_eye_thread_func);
-
-    const auto run_thread_func = [this]()
+    const auto write_right_eye_func = [this]()
     {
-        run_thread();
+        write_right_eye();
     };
 
-    m_thread = std::thread(run_thread_func);
+    m_eye_thread_ptr.reset(new Utils::Parallel::JobThread(write_right_eye_func) );
+    m_job_thread_ptr.reset(new Utils::Parallel::JobThread(write_job_func) );
 }
 
 Stereo::ConverterDLL::D3D8HostMemoryExporter::~D3D8HostMemoryExporter()
 {
-    {
-        std::lock_guard<std::mutex> lock(m_mutex);
-
-        m_is_stopping = true;
-    }
-
-    m_condition.notify_all();
-
-    if (m_thread.joinable() )
-    {
-        m_thread.join();
-    }
-
-    {
-        std::lock_guard<std::mutex> lock(m_eye_mutex);
-
-        m_is_eye_stopping = true;
-    }
-
-    m_eye_condition.notify_all();
-
-    if (m_eye_thread.joinable() )
-    {
-        m_eye_thread.join();
-    }
+    /* The thread of the job first: it hands the right eye to the other. */
+    m_job_thread_ptr->stop();
+    m_eye_thread_ptr->stop();
 
     for (auto& set : m_staging_array)
     {
@@ -244,14 +217,14 @@ Stereo::Transport::ExportStatus Stereo::ConverterDLL::D3D8HostMemoryExporter::ex
     wait_for_job();
 
     {
-        std::lock_guard<std::mutex> lock(m_mutex);
+        const auto prepare_func = [&]()
+        {
+            m_job     = job;
+            m_job_set = set;
+        };
 
-        m_job       = job;
-        m_job_set   = set;
-        m_job_state = ExportJobState::QUEUED;
+        m_job_thread_ptr->queue(prepare_func);
     }
-
-    m_condition.notify_one();
 
     m_next_set = (set + 1) % N_SETS;
     result     = Stereo::Transport::ExportStatus::EXPORTED;
@@ -314,83 +287,9 @@ void Stereo::ConverterDLL::D3D8HostMemoryExporter::release_staging(Staging* inou
     *inout_staging_ptr = Staging();
 }
 
-void Stereo::ConverterDLL::D3D8HostMemoryExporter::run_eye_thread()
-{
-    std::unique_lock<std::mutex> lock(m_eye_mutex);
-
-    while (true)
-    {
-        const auto is_eye_job_queued_func = [this]()
-        {
-            return (m_is_eye_stopping                           ||
-                    m_eye_state       == ExportJobState::QUEUED);
-        };
-
-        m_eye_condition.wait(lock,
-                             is_eye_job_queued_func);
-
-        if (m_is_eye_stopping)
-        {
-            break;
-        }
-
-        m_eye_state = ExportJobState::RUNNING;
-
-        uint8_t* const destination_ptr = m_eye_destination_ptr;
-        const uint32_t pitch           = m_eye_pitch;
-
-        lock.unlock();
-
-        const bool is_ok = write_eye(1,
-                                     destination_ptr,
-                                     pitch);
-
-        lock.lock();
-
-        m_eye_is_ok = is_ok;
-        m_eye_state = ExportJobState::DONE;
-
-        m_eye_done_condition.notify_all();
-    }
-}
-
-void Stereo::ConverterDLL::D3D8HostMemoryExporter::run_thread()
-{
-    std::unique_lock<std::mutex> lock(m_mutex);
-
-    while (true)
-    {
-        const auto is_job_queued_func = [this]()
-        {
-            return (m_is_stopping                            ||
-                    m_job_state   == ExportJobState::QUEUED);
-        };
-
-        m_condition.wait(lock,
-                         is_job_queued_func);
-
-        if (m_is_stopping)
-        {
-            break;
-        }
-
-        m_job_state = ExportJobState::RUNNING;
-
-        lock.unlock();
-
-        write_job();
-
-        lock.lock();
-
-        m_job_state = ExportJobState::DONE;
-
-        m_done_condition.notify_all();
-    }
-}
-
 std::string Stereo::ConverterDLL::D3D8HostMemoryExporter::take_timing_text()
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::mutex> lock(m_series_mutex);
 
     return m_issue_cost.take_text("asking for the copies")        +
            "; "                                                   +
@@ -418,19 +317,9 @@ void Stereo::ConverterDLL::D3D8HostMemoryExporter::unlock_staging(Staging* inout
 
 void Stereo::ConverterDLL::D3D8HostMemoryExporter::wait_for_job()
 {
-    const double                 wait_start_ms = Utils::Statistics::SeriesStats::get_now();
-    std::unique_lock<std::mutex> lock(m_mutex);
+    const double wait_start_ms = Utils::Statistics::SeriesStats::get_now();
 
-    const auto is_job_finished_func = [this]()
-    {
-        return (m_job_state == ExportJobState::DONE ||
-                m_job_state == ExportJobState::IDLE);
-    };
-
-    m_done_condition.wait(lock,
-                          is_job_finished_func);
-
-    if (m_job_state == ExportJobState::DONE)
+    const auto unlock_surfaces_func = [this]()
     {
         for (uint32_t n_eye = 0;
                       n_eye < m_job.info.n_eyes;
@@ -438,11 +327,15 @@ void Stereo::ConverterDLL::D3D8HostMemoryExporter::wait_for_job()
         {
             unlock_staging(&m_staging_array.at(m_job_set).at(n_eye) );
         }
+    };
 
-        m_job_state = ExportJobState::IDLE;
+    m_job_thread_ptr->wait(unlock_surfaces_func);
+
+    {
+        std::lock_guard<std::mutex> lock(m_series_mutex);
+
+        m_job_wait.add(Utils::Statistics::SeriesStats::get_now() - wait_start_ms);
     }
-
-    m_job_wait.add(Utils::Statistics::SeriesStats::get_now() - wait_start_ms);
 }
 
 void Stereo::ConverterDLL::D3D8HostMemoryExporter::wait_for_pace()
@@ -451,7 +344,7 @@ void Stereo::ConverterDLL::D3D8HostMemoryExporter::wait_for_pace()
 
     if (wait_for_screen() )
     {
-        std::lock_guard<std::mutex> lock(m_mutex);
+        std::lock_guard<std::mutex> lock(m_series_mutex);
 
         m_pace_wait.add(Utils::Statistics::SeriesStats::get_now() - start_ms);
     }
@@ -487,16 +380,14 @@ void Stereo::ConverterDLL::D3D8HostMemoryExporter::write_job()
     if (is_ok                 &&
         m_job.info.n_eyes > 1)
     {
+        const auto prepare_func = [&]()
         {
-            std::lock_guard<std::mutex> lock(m_eye_mutex);
-
             m_eye_destination_ptr = destination_ptr;
             m_eye_is_ok           = false;
             m_eye_pitch           = pitch;
-            m_eye_state           = ExportJobState::QUEUED;
-        }
+        };
 
-        m_eye_condition.notify_one();
+        m_eye_thread_ptr->queue(prepare_func);
     }
 
     if (is_ok)
@@ -509,18 +400,12 @@ void Stereo::ConverterDLL::D3D8HostMemoryExporter::write_job()
     if (destination_ptr   != nullptr &&
         m_job.info.n_eyes >  1)
     {
-        std::unique_lock<std::mutex> lock(m_eye_mutex);
-
-        const auto is_eye_job_done_func = [this]()
+        const auto collect_func = [&]()
         {
-            return (m_eye_state == ExportJobState::DONE);
+            is_ok = (is_ok && m_eye_is_ok);
         };
 
-        m_eye_done_condition.wait(lock,
-                                  is_eye_job_done_func);
-
-        is_ok         = (is_ok && m_eye_is_ok);
-        m_eye_state   = ExportJobState::IDLE;
+        m_eye_thread_ptr->wait(collect_func);
     }
 
     if (is_ok)
@@ -529,8 +414,15 @@ void Stereo::ConverterDLL::D3D8HostMemoryExporter::write_job()
     }
 
     {
-        std::lock_guard<std::mutex> lock(m_mutex);
+        std::lock_guard<std::mutex> lock(m_series_mutex);
 
         m_write_cost.add(Utils::Statistics::SeriesStats::get_now() - start_ms);
     }
+}
+
+void Stereo::ConverterDLL::D3D8HostMemoryExporter::write_right_eye()
+{
+    m_eye_is_ok = write_eye(1,
+                            m_eye_destination_ptr,
+                            m_eye_pitch);
 }
