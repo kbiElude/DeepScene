@@ -30,6 +30,7 @@
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_context_state.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_list_handler.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_matrix_handler.h"
+#include "analysis/api_dump_analysis/frontends/OpenGL/gl_state_handler.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_window.h"
 #include "analysis/api_dump_analysis/frontends/shared/resolution_hazard_counter.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_texture_handler.h"
@@ -111,12 +112,6 @@ namespace Analysis
 
                 void handle_clear        (const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                           GLContextState*                              inout_state_ptr);
-                void handle_clear_color  (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                          GLContextState*                              inout_state_ptr);
-                void handle_clear_depth  (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                          GLContextState*                              inout_state_ptr);
-                void handle_clear_stencil(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                          GLContextState*                              inout_state_ptr);
 
                 /* A call of glCopyTexImage2D: the pixels of the window give the texture its size, and are copied to it. */
                 void handle_copy_tex_image(const Capture::APIDumpLoader::DumpedAPICall& in_call,
@@ -125,10 +120,6 @@ namespace Analysis
                 /* A call of glCopyTexSubImage2D: the pixels of the window are copied to a part of the texture. */
                 void handle_copy_tex_sub_image(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                GLContextState*                              inout_state_ptr);
-
-                void handle_enable(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                   const bool&                                  in_is_enabled,
-                                   GLContextState*                              inout_state_ptr);
 
                 /* The vertices since the glBegin are a draw. */
                 void handle_end(GLContextState* inout_state_ptr);
@@ -139,23 +130,10 @@ namespace Analysis
 
                 void handle_make_current(const Capture::APIDumpLoader::DumpedAPICall& in_call);
 
-                void handle_pop_attributes (GLContextState*                              inout_state_ptr);
-                void handle_push_attributes(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                            GLContextState*                              inout_state_ptr);
-                void handle_scissor        (const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                            GLContextState*                              inout_state_ptr);
-
-                /* A call which sets a value of the pipeline that a draw is told apart by (a function, a mode, a mask). */
-                void handle_state_value(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                        GLContextState*                              inout_state_ptr);
-
                 /* A glVertex of the block that is open: it is counted, and its position kept if the builder wants the geometry. */
                 void handle_vertex(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                    const Capture::APIDumpLoader::Workload&      in_workload,
                                    GLContextState*                              inout_state_ptr);
-
-                void handle_viewport(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                     GLContextState*                              inout_state_ptr);
 
                 /* What the program does is not followed (a target, a kind of texture, a buffer that pixels go to or come from, a call): what the analysis finds of it
                  * would be wrong or left out, and so the process is ended, saying what it was (AI_ASSERT_ALWAYS). Nothing is left out without being said.
@@ -170,22 +148,10 @@ namespace Analysis
                 /* What the mode of a glBegin makes of the vertices; quads are two triangles and a loop of lines is a strip of them. */
                 static Analysis::APIDumpAnalysis::PrimitiveTopology get_primitive_topology(const uint32_t& in_mode);
 
-                /* True if the two boxes are the same. */
-                static bool is_same_box(const GLBox& in_first,
-                                        const GLBox& in_second);
-
                 /* True for the calls whose effects the front end does not follow, and that are not about textures (they write the framebuffer from somewhere else, or
                  * call lists that are named by an array): one of them ends the process (see report_unsupported_use()).
                  */
                 static bool is_unsupported_function(const APIInterceptor::APIFunction& in_function);
-
-                /* A box from the four arguments of glViewport or glScissor. */
-                static bool read_box(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                     GLBox*                                       out_box_ptr);
-
-                /* Puts back what the mask of a glPushAttrib asked to be saved. */
-                static void restore_attributes(const GLAttributeFrame& in_frame,
-                                               GLAttributes*           inout_attributes_ptr);
 
                 GLArrayDrawDescriber                     m_array_draw_describer;
                 Analysis::APIDumpAnalysis::ModelBuilder* m_builder_ptr;
@@ -198,6 +164,7 @@ namespace Analysis
                 uint64_t                                 m_n_unfollowed_calls;
                 uint64_t                                 m_n_unsupported_calls;
                 ResolutionHazardCounter                  m_resolution_hazard_counter;
+                GLStateHandler                           m_state_handler;
                 GLTextureHandler                         m_texture_handler;
                 GLWindow                                 m_window;
             };

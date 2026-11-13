@@ -27,6 +27,7 @@ Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::OpenGLFrontend(Analysis::A
      m_matrix_handler          (in_builder_ptr),
      m_n_unfollowed_calls      (0),
      m_n_unsupported_calls     (0),
+     m_state_handler           (in_builder_ptr),
      m_texture_handler         (in_builder_ptr),
      m_window                  (in_builder_ptr)
 {
@@ -185,7 +186,11 @@ const std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t>& Analysis:
 
 uint64_t Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_n_unfollowed_calls() const
 {
-    return m_n_unfollowed_calls + m_list_handler.get_n_unfollowed_calls() + m_matrix_handler.get_n_unfollowed_calls() + m_texture_handler.get_n_unfollowed_calls();
+    return (m_n_unfollowed_calls                       +
+            m_list_handler.get_n_unfollowed_calls()    +
+            m_matrix_handler.get_n_unfollowed_calls()  +
+            m_state_handler.get_n_unfollowed_calls()   +
+            m_texture_handler.get_n_unfollowed_calls() );
 }
 
 uint64_t Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_n_unsupported_calls() const
@@ -448,54 +453,6 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_clear(const Ca
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_clear_color(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                              GLContextState*                              inout_state_ptr)
-{
-    std::array<float, 4> color_array = {};
-
-    if (GLArgumentReader::read_arguments(in_call,
-                                        &color_array) )
-    {
-        inout_state_ptr->attributes.clear_color_fp32vec4 = color_array;
-    }
-    else
-    {
-        m_n_unfollowed_calls++;
-    }
-}
-
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_clear_depth(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                              GLContextState*                              inout_state_ptr)
-{
-    std::array<double, 1> depth_array = {};
-
-    if (GLArgumentReader::read_arguments(in_call,
-                                        &depth_array) )
-    {
-        inout_state_ptr->attributes.clear_depth = depth_array.at(0);
-    }
-    else
-    {
-        m_n_unfollowed_calls++;
-    }
-}
-
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_clear_stencil(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                GLContextState*                              inout_state_ptr)
-{
-    std::array<uint32_t, 1> stencil_array = {};
-
-    if (GLArgumentReader::read_arguments(in_call,
-                                        &stencil_array) )
-    {
-        inout_state_ptr->attributes.clear_stencil = stencil_array.at(0);
-    }
-    else
-    {
-        m_n_unfollowed_calls++;
-    }
-}
-
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_copy_tex_image(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                                  GLContextState*                              inout_state_ptr)
 {
@@ -584,38 +541,6 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_copy_tex_sub_i
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_enable(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                         const bool&                                  in_is_enabled,
-                                                                         GLContextState*                              inout_state_ptr)
-{
-    constexpr uint32_t SCISSOR_TEST = 0x0C11;
-
-    std::array<uint32_t, 1> capability_array = {};
-
-    if (GLArgumentReader::read_arguments(in_call,
-                                        &capability_array) == false)
-    {
-        m_n_unfollowed_calls++;
-    }
-    else
-    if (capability_array.at(0) == SCISSOR_TEST)
-    {
-        inout_state_ptr->attributes.is_scissor_enabled = in_is_enabled;
-    }
-    else
-    if (GLPipelineState::is_unit_capability(capability_array.at(0) ) )
-    {
-        inout_state_ptr->pipeline_state.set_unit_capability(inout_state_ptr->attributes.active_texture_unit,
-                                                            capability_array.at(0),
-                                                            in_is_enabled);
-    }
-    else
-    {
-        inout_state_ptr->pipeline_state.set_capability(capability_array.at(0),
-                                                       in_is_enabled);
-    }
-}
-
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_end(GLContextState* inout_state_ptr)
 {
     GLImmediateBlock& block = inout_state_ptr->immediate_block;
@@ -689,8 +614,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
                 case APIInterceptor::APIFUNCTION_GL_GLPOLYGONMODE:
                 case APIInterceptor::APIFUNCTION_GL_GLSHADEMODEL:
                 {
-                    handle_state_value(in_call,
-                                       state_ptr);
+                    m_state_handler.handle_state_value(in_call,
+                                                       state_ptr);
 
                     break;
                 }
@@ -757,42 +682,42 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
 
                 case APIInterceptor::APIFUNCTION_GL_GLCLEARCOLOR:
                 {
-                    handle_clear_color(in_call,
-                                       state_ptr);
+                    m_state_handler.handle_clear_color(in_call,
+                                                       state_ptr);
 
                     break;
                 }
 
                 case APIInterceptor::APIFUNCTION_GL_GLCLEARDEPTH:
                 {
-                    handle_clear_depth(in_call,
-                                       state_ptr);
+                    m_state_handler.handle_clear_depth(in_call,
+                                                       state_ptr);
 
                     break;
                 }
 
                 case APIInterceptor::APIFUNCTION_GL_GLCLEARSTENCIL:
                 {
-                    handle_clear_stencil(in_call,
-                                         state_ptr);
+                    m_state_handler.handle_clear_stencil(in_call,
+                                                         state_ptr);
 
                     break;
                 }
 
                 case APIInterceptor::APIFUNCTION_GL_GLDISABLE:
                 {
-                    handle_enable(in_call,
-                                  false, /* in_is_enabled */
-                                  state_ptr);
+                    m_state_handler.handle_enable(in_call,
+                                                  false, /* in_is_enabled */
+                                                  state_ptr);
 
                     break;
                 }
 
                 case APIInterceptor::APIFUNCTION_GL_GLENABLE:
                 {
-                    handle_enable(in_call,
-                                  true, /* in_is_enabled */
-                                  state_ptr);
+                    m_state_handler.handle_enable(in_call,
+                                                  true, /* in_is_enabled */
+                                                  state_ptr);
 
                     break;
                 }
@@ -904,7 +829,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
 
                 case APIInterceptor::APIFUNCTION_GL_GLPOPATTRIB:
                 {
-                    handle_pop_attributes(state_ptr);
+                    m_state_handler.handle_pop_attributes(m_window,
+                                                      state_ptr);
 
                     break;
                 }
@@ -918,8 +844,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
 
                 case APIInterceptor::APIFUNCTION_GL_GLPUSHATTRIB:
                 {
-                    handle_push_attributes(in_call,
-                                           state_ptr);
+                    m_state_handler.handle_push_attributes(in_call,
+                                                           state_ptr);
 
                     break;
                 }
@@ -945,8 +871,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
 
                 case APIInterceptor::APIFUNCTION_GL_GLSCISSOR:
                 {
-                    handle_scissor(in_call,
-                                   state_ptr);
+                    m_state_handler.handle_scissor(in_call,
+                                                   &m_resolution_hazard_counter,
+                                                   state_ptr);
 
                     break;
                 }
@@ -997,8 +924,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
 
                 case APIInterceptor::APIFUNCTION_GL_GLVIEWPORT:
                 {
-                    handle_viewport(in_call,
-                                    state_ptr);
+                    m_state_handler.handle_viewport(in_call,
+                                                    m_window,
+                                                    state_ptr);
 
                     break;
                 }
@@ -1107,233 +1035,6 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_make_current(c
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_pop_attributes(GLContextState* inout_state_ptr)
-{
-    if (inout_state_ptr->attribute_frame_vec.empty() )
-    {
-        m_n_unfollowed_calls++;
-    }
-    else
-    {
-        const GLAttributeFrame frame        = inout_state_ptr->attribute_frame_vec.back();
-        const GLBox            old_viewport = inout_state_ptr->attributes.viewport;
-
-        inout_state_ptr->attribute_frame_vec.pop_back();
-
-        restore_attributes(frame,
-                          &inout_state_ptr->attributes);
-
-        inout_state_ptr->pipeline_state.restore(frame.pipeline_state,
-                                                frame.mask);
-
-        const bool is_viewport_same = is_same_box(old_viewport,
-                                                  inout_state_ptr->attributes.viewport);
-
-        /* What was put back may be another viewport, which is a change for what is rendered to. */
-        const bool has_window = m_window.has_default_framebuffer();
-
-        if (has_window &&
-            is_viewport_same == false)
-        {
-            m_builder_ptr->on_set_viewport(GLWindow::get_model_viewport(*inout_state_ptr) );
-        }
-    }
-}
-
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_push_attributes(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                  GLContextState*                              inout_state_ptr)
-{
-    std::array<uint32_t, 1> mask_array = {};
-
-    if (GLArgumentReader::read_arguments(in_call,
-                                        &mask_array) )
-    {
-        GLAttributeFrame frame;
-
-        frame.attributes     = inout_state_ptr->attributes;
-        frame.mask           = mask_array.at(0);
-        frame.pipeline_state = inout_state_ptr->pipeline_state;
-
-        inout_state_ptr->attribute_frame_vec.push_back(frame);
-    }
-    else
-    {
-        m_n_unfollowed_calls++;
-    }
-}
-
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_scissor(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                          GLContextState*                              inout_state_ptr)
-{
-    GLBox box;
-
-    if (read_box(in_call,
-                &box) )
-    {
-        inout_state_ptr->attributes.scissor_box = box;
-
-        m_resolution_hazard_counter.count(Analysis::APIDumpAnalysis::ResolutionHazard::SCISSOR_BOXES);
-    }
-    else
-    {
-        m_n_unfollowed_calls++;
-    }
-}
-
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_state_value(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                              GLContextState*                              inout_state_ptr)
-{
-    constexpr uint32_t BACK           = 0x0405;
-    constexpr uint32_t FRONT          = 0x0404;
-    constexpr uint32_t FRONT_AND_BACK = 0x0408;
-
-    std::array<uint32_t, 4> argument_array = {};
-    GLPipelineState*        pipeline_ptr   = &inout_state_ptr->pipeline_state;
-    size_t                  n_arguments    = 1;
-
-    /* The functions that have more than one argument. */
-    switch (in_call.func)
-    {
-        case APIInterceptor::APIFUNCTION_GL_GLALPHAFUNC:
-        case APIInterceptor::APIFUNCTION_GL_GLBLENDFUNC:
-        case APIInterceptor::APIFUNCTION_GL_GLPOLYGONMODE:
-        {
-            n_arguments = 2;
-
-            break;
-        }
-
-        case APIInterceptor::APIFUNCTION_GL_GLCOLORMASK:
-        {
-            n_arguments = 4;
-
-            break;
-        }
-
-        default:
-        {
-            break;
-        }
-    }
-
-    bool are_read = (in_call.arg_in_vec.size() >= n_arguments);
-
-    for (size_t n_argument = 0;
-                are_read &&
-                n_argument < n_arguments;
-              ++n_argument)
-    {
-        are_read = APIInterceptor::read_number(in_call.arg_in_vec.at(n_argument),
-                                               &argument_array.at(n_argument) );
-    }
-
-    if (are_read == false)
-    {
-        m_n_unfollowed_calls++;
-    }
-    else
-    {
-        switch (in_call.func)
-        {
-            case APIInterceptor::APIFUNCTION_GL_GLALPHAFUNC:
-            {
-                pipeline_ptr->set_value(GLStateValue::ALPHA_FUNC,
-                                        argument_array.at(0) );
-
-                break;
-            }
-
-            case APIInterceptor::APIFUNCTION_GL_GLBLENDFUNC:
-            {
-                pipeline_ptr->set_value(GLStateValue::BLEND_SOURCE,
-                                        argument_array.at(0) );
-                pipeline_ptr->set_value(GLStateValue::BLEND_DESTINATION,
-                                        argument_array.at(1) );
-
-                break;
-            }
-
-            case APIInterceptor::APIFUNCTION_GL_GLCOLORMASK:
-            {
-                constexpr uint32_t ALPHA_BIT = 8;
-                constexpr uint32_t BLUE_BIT  = 4;
-                constexpr uint32_t GREEN_BIT = 2;
-                constexpr uint32_t RED_BIT   = 1;
-
-                /* The four flags in one number. */
-                const uint32_t mask = ( (argument_array.at(0) != 0) ? RED_BIT   : 0) |
-                                      ( (argument_array.at(1) != 0) ? GREEN_BIT : 0) |
-                                      ( (argument_array.at(2) != 0) ? BLUE_BIT  : 0) |
-                                      ( (argument_array.at(3) != 0) ? ALPHA_BIT : 0);
-
-                pipeline_ptr->set_value(GLStateValue::COLOR_MASK,
-                                        mask);
-
-                break;
-            }
-
-            case APIInterceptor::APIFUNCTION_GL_GLCULLFACE:
-            {
-                pipeline_ptr->set_value(GLStateValue::CULL_FACE,
-                                        argument_array.at(0) );
-
-                break;
-            }
-
-            case APIInterceptor::APIFUNCTION_GL_GLDEPTHFUNC:
-            {
-                pipeline_ptr->set_value(GLStateValue::DEPTH_FUNC,
-                                        argument_array.at(0) );
-
-                break;
-            }
-
-            case APIInterceptor::APIFUNCTION_GL_GLDEPTHMASK:
-            {
-                pipeline_ptr->set_value(GLStateValue::DEPTH_MASK,
-                                        argument_array.at(0) );
-
-                break;
-            }
-
-            case APIInterceptor::APIFUNCTION_GL_GLPOLYGONMODE:
-            {
-                const bool is_back  = (argument_array.at(0) == BACK  ||
-                                       argument_array.at(0) == FRONT_AND_BACK);
-                const bool is_front = (argument_array.at(0) == FRONT ||
-                                       argument_array.at(0) == FRONT_AND_BACK);
-
-                if (is_back)
-                {
-                    pipeline_ptr->set_value(GLStateValue::POLYGON_MODE_BACK,
-                                            argument_array.at(1) );
-                }
-
-                if (is_front)
-                {
-                    pipeline_ptr->set_value(GLStateValue::POLYGON_MODE_FRONT,
-                                            argument_array.at(1) );
-                }
-
-                break;
-            }
-
-            case APIInterceptor::APIFUNCTION_GL_GLSHADEMODEL:
-            {
-                pipeline_ptr->set_value(GLStateValue::SHADE_MODEL,
-                                        argument_array.at(0) );
-
-                break;
-            }
-
-            default:
-            {
-                break;
-            }
-        }
-    }
-}
-
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_vertex(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                          const Capture::APIDumpLoader::Workload&      in_workload,
                                                                          GLContextState*                              inout_state_ptr)
@@ -1361,37 +1062,6 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_vertex(const C
             }
         }
     }
-}
-
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_viewport(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                           GLContextState*                              inout_state_ptr)
-{
-    GLBox box;
-
-    if (read_box(in_call,
-                &box) == false)
-    {
-        m_n_unfollowed_calls++;
-    }
-    else
-    {
-        inout_state_ptr->attributes.viewport = box;
-
-        /* The model has the viewport of what is rendered to, and there is none before the first clear. */
-        if (m_window.has_default_framebuffer() )
-        {
-            m_builder_ptr->on_set_viewport(GLWindow::get_model_viewport(*inout_state_ptr) );
-        }
-    }
-}
-
-bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::is_same_box(const GLBox& in_first,
-                                                                       const GLBox& in_second)
-{
-    return (in_first.height == in_second.height &&
-            in_first.width  == in_second.width  &&
-            in_first.x      == in_second.x      &&
-            in_first.y      == in_second.y);
 }
 
 bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::is_unsupported_function(const APIInterceptor::APIFunction& in_function)
@@ -1446,25 +1116,6 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::on_call(const Capture
     }
 }
 
-bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::read_box(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                    GLBox*                                       out_box_ptr)
-{
-    std::array<int32_t, 4> value_array = {};
-
-    const bool result = GLArgumentReader::read_arguments(in_call,
-                                                        &value_array);
-
-    if (result)
-    {
-        out_box_ptr->x      = value_array.at(0);
-        out_box_ptr->y      = value_array.at(1);
-        out_box_ptr->width  = value_array.at(2);
-        out_box_ptr->height = value_array.at(3);
-    }
-
-    return result;
-}
-
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_unsupported_use(const APIInterceptor::APIFunction& in_function,
                                                                                  const char*                        in_reason_ptr,
                                                                                  const uint64_t&                    in_value)
@@ -1472,62 +1123,4 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_unsupported_us
     UnsupportedUse::report_with_value(in_function,
                                       in_reason_ptr,
                                       in_value);
-}
-
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::restore_attributes(const GLAttributeFrame& in_frame,
-                                                                              GLAttributes*           inout_attributes_ptr)
-{
-    constexpr uint32_t COLOR_BUFFER_BIT   = 0x00004000;
-    constexpr uint32_t DEPTH_BUFFER_BIT   = 0x00000100;
-    constexpr uint32_t ENABLE_BIT         = 0x00002000;
-    constexpr uint32_t SCISSOR_BIT        = 0x00080000;
-    constexpr uint32_t STENCIL_BUFFER_BIT = 0x00000400;
-    constexpr uint32_t TEXTURE_BIT        = 0x00040000;
-    constexpr uint32_t TRANSFORM_BIT      = 0x00001000;
-    constexpr uint32_t VIEWPORT_BIT       = 0x00000800;
-
-    const GLAttributes& saved = in_frame.attributes;
-
-    if ( (in_frame.mask & COLOR_BUFFER_BIT) != 0)
-    {
-        inout_attributes_ptr->clear_color_fp32vec4 = saved.clear_color_fp32vec4;
-    }
-
-    if ( (in_frame.mask & DEPTH_BUFFER_BIT) != 0)
-    {
-        inout_attributes_ptr->clear_depth = saved.clear_depth;
-    }
-
-    if ( (in_frame.mask & STENCIL_BUFFER_BIT) != 0)
-    {
-        inout_attributes_ptr->clear_stencil = saved.clear_stencil;
-    }
-
-    /* The scissor test is one of the flags of the enable group as well as of the scissor group. */
-    if ( (in_frame.mask & (ENABLE_BIT | SCISSOR_BIT) ) != 0)
-    {
-        inout_attributes_ptr->is_scissor_enabled = saved.is_scissor_enabled;
-    }
-
-    if ( (in_frame.mask & SCISSOR_BIT) != 0)
-    {
-        inout_attributes_ptr->scissor_box = saved.scissor_box;
-    }
-
-    /* The textures that are bound, and the unit that is active. */
-    if ( (in_frame.mask & TEXTURE_BIT) != 0)
-    {
-        inout_attributes_ptr->active_texture_unit = saved.active_texture_unit;
-        inout_attributes_ptr->texture_binding_map = saved.texture_binding_map;
-    }
-
-    if ( (in_frame.mask & TRANSFORM_BIT) != 0)
-    {
-        inout_attributes_ptr->matrix_mode = saved.matrix_mode;
-    }
-
-    if ( (in_frame.mask & VIEWPORT_BIT) != 0)
-    {
-        inout_attributes_ptr->viewport = saved.viewport;
-    }
 }
