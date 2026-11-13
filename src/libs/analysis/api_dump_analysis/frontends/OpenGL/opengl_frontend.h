@@ -380,6 +380,8 @@ namespace Analysis
 
                 GlArrayDrawDescriber                                            m_array_draw_describer;
                 Analysis::APIDumpAnalysis::ModelBuilder*                        m_builder_ptr;
+                GlContextState*                                                 m_cached_context_state_ptr;      /* what find_current_context_ptr() found last, for m_cached_thread_id; nullptr: nothing */
+                uint32_t                                                        m_cached_thread_id;
                 Analysis::APIDumpAnalysis::ResourceView                         m_color_view;
                 std::map<uint64_t, GlContextState>                              m_context_map;                   /* by the address of the context */
                 std::map<uint32_t, uint64_t>                                    m_current_context_by_thread_map; /* the address, by the thread    */

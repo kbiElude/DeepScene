@@ -23,14 +23,16 @@ namespace
 }
 
 Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::OpenGLFrontend(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr)
-    :m_array_draw_describer   (in_builder_ptr),
-     m_builder_ptr            (in_builder_ptr),
-     m_framebuffer_height     (0),
-     m_framebuffer_width      (0),
-     m_has_default_framebuffer(false),
-     m_list_depth             (0),
-     m_n_unfollowed_calls     (0),
-     m_n_unsupported_calls    (0)
+    :m_array_draw_describer    (in_builder_ptr),
+     m_builder_ptr             (in_builder_ptr),
+     m_cached_context_state_ptr(nullptr),
+     m_cached_thread_id        (0),
+     m_framebuffer_height      (0),
+     m_framebuffer_width       (0),
+     m_has_default_framebuffer (false),
+     m_list_depth              (0),
+     m_n_unfollowed_calls      (0),
+     m_n_unsupported_calls     (0)
 {
     /* Stub */
 }
@@ -170,13 +172,26 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::ensure_default_frameb
 
 Analysis::APIDumpAnalysis::Frontends::GlContextState* Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::find_current_context_ptr(const uint32_t& in_thread_id)
 {
-    const auto      thread_iterator = m_current_context_by_thread_map.find(in_thread_id);
-    const auto      thread_end      = m_current_context_by_thread_map.end();
-    GlContextState* result_ptr      = nullptr;
+    GlContextState* result_ptr = nullptr;
 
-    if (thread_iterator != thread_end)
+    /* The thread that makes a call nearly always made the one before it. A state is never taken out of the map, so one that was found stays good until handle_make_current(). */
+    if (m_cached_context_state_ptr != nullptr &&
+        m_cached_thread_id         == in_thread_id)
     {
-        result_ptr = &m_context_map.at(thread_iterator->second);
+        result_ptr = m_cached_context_state_ptr;
+    }
+    else
+    {
+        const auto thread_iterator = m_current_context_by_thread_map.find(in_thread_id);
+        const auto thread_end      = m_current_context_by_thread_map.end();
+
+        if (thread_iterator != thread_end)
+        {
+            result_ptr = &m_context_map.at(thread_iterator->second);
+
+            m_cached_context_state_ptr = result_ptr;
+            m_cached_thread_id         = in_thread_id;
+        }
     }
 
     return result_ptr;
@@ -1575,6 +1590,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_make_current(c
     {
         /* A call which failed changed nothing (the first unbind of a program, with no context current, fails). */
         const uint64_t context_address = in_call.arg_in_vec.at(CONTEXT_ARGUMENT).get_ptr_as_u64();
+
+        /* The context of a thread is changed here and nowhere else: what find_current_context_ptr() kept is not to be trusted. */
+        m_cached_context_state_ptr = nullptr;
 
         if (context_address == 0)
         {
