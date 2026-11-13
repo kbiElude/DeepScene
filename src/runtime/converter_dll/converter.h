@@ -152,7 +152,7 @@ namespace Stereo
                 uint64_t                                  n_skipped_draws    = 0;
                 uint64_t                                  n_unaffected_draws = 0;
                 std::set<uint64_t>                        scene_seen_set;                 /* the shape keys of the scenes that were written, see is_scene_dump_enabled */
-                std::unique_ptr<D3D8EyeRenderer>          renderer_ptr;
+                std::unique_ptr<D3D8EyeRenderer>          d3d8_renderer_ptr;
                 std::unique_ptr<D3D8ResolutionScaler>     scaler_ptr;
             };
 

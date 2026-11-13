@@ -114,7 +114,7 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
 
     m_live_state.d3d7_renderer_ptr.reset(new D3D7EyeRenderer(m_live_state.core_ptr.get(),
                                                             &m_live_state.d3d7_windowed_mode) );
-    m_live_state.renderer_ptr.reset     (new D3D8EyeRenderer(m_live_state.core_ptr.get() ));
+    m_live_state.d3d8_renderer_ptr.reset(new D3D8EyeRenderer(m_live_state.core_ptr.get() ));
 
     {
         std::unique_ptr<Stereo::Transport::IFrameExporter> d3d7_exporter_ptr(new D3D7HostMemoryExporter(m_channel_ptr.get() ));
@@ -193,7 +193,7 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
 
         const auto get_render_target_func = [this]()
         {
-            return m_live_state.renderer_ptr->get_render_target_ptr();
+            return m_live_state.d3d8_renderer_ptr->get_render_target_ptr();
         };
 
         const auto write_log_func = [this](const std::string& in_message)
@@ -314,8 +314,8 @@ std::unique_ptr<Stereo::ConverterDLL::Converter> Stereo::ConverterDLL::Converter
 std::string Stereo::ConverterDLL::Converter::make_statistics_line() const
 {
     /* The application is of one API, so one of the two renderers has the twins. */
-    const uint64_t n_failed_twins = m_live_state.d3d7_renderer_ptr->get_n_failed_twins() + m_live_state.renderer_ptr->get_n_failed_twins();
-    const uint64_t n_twins        = m_live_state.d3d7_renderer_ptr->get_n_twins       () + m_live_state.renderer_ptr->get_n_twins       ();
+    const uint64_t n_failed_twins = m_live_state.d3d7_renderer_ptr->get_n_failed_twins() + m_live_state.d3d8_renderer_ptr->get_n_failed_twins();
+    const uint64_t n_twins        = m_live_state.d3d7_renderer_ptr->get_n_twins       () + m_live_state.d3d8_renderer_ptr->get_n_twins       ();
     LARGE_INTEGER  frequency;
 
     ::QueryPerformanceFrequency(&frequency);
@@ -608,9 +608,9 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
 
         if (api_group == Capture::APIDumpLoader::APIGroup::D3D8)
         {
-            this_ptr->m_live_state.renderer_ptr->on_post(in_api_func,
-                                                         in_n_arguments_out,
-                                                         in_arguments_out_ptr);
+            this_ptr->m_live_state.d3d8_renderer_ptr->on_post(in_api_func,
+                                                              in_n_arguments_out,
+                                                              in_arguments_out_ptr);
         }
         else
         if (api_group == Capture::APIDumpLoader::APIGroup::D3D7)
@@ -751,9 +751,9 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
         {
             if (is_d3d8)
             {
-                m_live_state.renderer_ptr->on_pre(in_api_func,
-                                                  in_n_arguments,
-                                                  in_arguments_ptr);
+                m_live_state.d3d8_renderer_ptr->on_pre(in_api_func,
+                                                       in_n_arguments,
+                                                       in_arguments_ptr);
             }
             else
             {
@@ -791,8 +791,8 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
             /* A draw of Direct3D 7 is made by the renderer if it moves the vertices for the eye. */
             if (is_d3d8)
             {
-                *out_should_pass_through_ptr = m_live_state.renderer_ptr->on_pre_draw(draw_class,
-                                                                                      in_arguments_ptr);
+                *out_should_pass_through_ptr = m_live_state.d3d8_renderer_ptr->on_pre_draw(draw_class,
+                                                                                           in_arguments_ptr);
             }
             else
             {
@@ -895,7 +895,7 @@ void Stereo::ConverterDLL::Converter::on_present_starting(const APIInterceptor::
                                                           void**                                     out_right_surface_ptr_ptr,
                                                           std::vector<std::string>*                  out_log_line_vec_ptr)
 {
-    *out_right_surface_ptr_ptr = m_live_state.renderer_ptr->get_back_buffer_twin_ptr(const_cast<void*>(in_arguments_ptr[0].get_ptr() ));
+    *out_right_surface_ptr_ptr = m_live_state.d3d8_renderer_ptr->get_back_buffer_twin_ptr(const_cast<void*>(in_arguments_ptr[0].get_ptr() ));
 
     /* The application renders to a window that cannot be seen; it may change its style. */
     m_windowed_mode.keep_windows_invisible();
