@@ -14,6 +14,7 @@
 #include <array>
 #include <map>
 #include <memory>
+#include <set>
 #include <stdint.h>
 #include <string>
 #include <tuple>
@@ -656,6 +657,42 @@ namespace Analysis
             std::vector<bool>         pass_is_presented_vec; /* whether each pass above renders to what is presented */
             std::vector<uint64_t>     pass_key_vec;         /* match key of each pass above                             */
             uint64_t                  shape_key        = 0; /* match key of the frame's shape                           */
+        };
+
+        /* What the model builder has collected of the frame that is not over: it is read when the frame is presented, and then emptied. The vectors that have an entry for
+         * each pass are in the order of pass_instance_vec.
+         */
+        struct FrameInProgress
+        {
+            uint64_t                     begin_timestamp_qpc = 0;
+            std::vector<DepthHistogram>  depth_histogram_vec;
+            std::vector<DrawInstance>    draw_instance_vec;
+            uint64_t                     first_call_index    = 0;
+            bool                         has_calls           = false; /* a call has been told since the last present */
+            std::vector<PassInstance>    pass_instance_vec;
+            std::vector<bool>            pass_is_presented_vec;
+            std::vector<ProjectionScale> projection_scale_vec;
+            std::vector<DepthHistogram>  surface_depth_histogram_vec;
+            std::vector<TransferRecord>  transfer_record_vec;
+        };
+
+        /* A pass until it ends. */
+        struct OpenPass
+        {
+            AttachmentSet                attachments;
+            uint64_t                     begin_call_index     = 0;
+            uint64_t                     begin_timestamp_qpc  = 0;
+            bool                         clears_color         = false;
+            bool                         clears_depth         = false;
+            bool                         clears_stencil       = false;
+            std::set<uint64_t>           covering_draw_key_set;        /* keys of the draws of the pass that cover the view */
+            PassDepth                    depth;
+            std::map<uint64_t, uint64_t> draw_signature_map;           /* key of the draw structure -> key of its signature */
+            bool                         has_draws            = false;
+            uint64_t                     last_draw_call_index = 0;     /* last draw, or the clear if there is none */
+            uint64_t                     n_draws              = 0;
+            uint64_t                     n_vertices           = 0;
+            Viewport                     viewport;
         };
 
         /* The pass structures that make a frame. Order is ignored, since independent passes may happen in any order. */

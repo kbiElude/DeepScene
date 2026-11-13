@@ -14,10 +14,6 @@
 Analysis::APIDumpAnalysis::ModelBuilder::ModelBuilder(const bool& in_keeps_history)
     :m_access_sink_ptr          (nullptr),
      m_call_index               (0),
-     m_frame_begin_timestamp_qpc(0),
-     m_frame_first_call_index   (0),
-     m_has_frame_calls          (false),
-     m_has_open_pass            (false),
      m_keeps_history            (in_keeps_history),
      m_last_draw_cover_key      (0),
      m_last_draw_signature_key  (0),
@@ -36,36 +32,30 @@ void Analysis::APIDumpAnalysis::ModelBuilder::begin_call(const uint64_t& in_call
 
     m_call_draw_key_vec.clear();
 
-    if (m_has_frame_calls == false)
+    if (m_frame.has_calls == false)
     {
-        m_frame_begin_timestamp_qpc = in_timestamp_qpc;
-        m_frame_first_call_index    = in_call_index;
-        m_has_frame_calls           = true;
+        m_frame.begin_timestamp_qpc = in_timestamp_qpc;
+        m_frame.first_call_index    = in_call_index;
+        m_frame.has_calls           = true;
     }
 }
 
 void Analysis::APIDumpAnalysis::ModelBuilder::close_pass()
 {
-    if (m_has_open_pass)
+    if (m_pass_tracker.has_open_pass() )
     {
-        complete_pass();
+        m_pass_tracker.complete(m_call_index,
+                                m_keeps_history,
+                                m_constant_state_map,
+                               &m_key_table,
+                               &m_model,
+                               &m_frame);
     }
 }
 
 void Analysis::APIDumpAnalysis::ModelBuilder::close_pass_if_rendered_to(const ResourceView& in_view)
 {
-    bool is_rendered_to = false;
-
-    if (m_has_open_pass                            &&
-        in_view.resource_id != ResourceId::NONE)
-    {
-        is_rendered_to = (in_view.resource_id == m_open_pass.attachments.depth_stencil_view.resource_id);
-
-        for (const auto& color_view : m_open_pass.attachments.color_view_vec)
-        {
-            is_rendered_to |= (in_view.resource_id == color_view.resource_id);
-        }
-    }
+    const bool is_rendered_to = m_pass_tracker.is_rendered_to(in_view);
 
     if (is_rendered_to)
     {
@@ -73,175 +63,24 @@ void Analysis::APIDumpAnalysis::ModelBuilder::close_pass_if_rendered_to(const Re
     }
 }
 
-void Analysis::APIDumpAnalysis::ModelBuilder::complete_pass()
-{
-    /* A constant in effect, with the value that it has. */
-    typedef std::vector<uint8_t>                             ValueVector;
-    typedef std::pair<ConstantSignature, const ValueVector*> ConstantInEffect;
-    typedef std::vector<ConstantInEffect>                    ConstantInEffectVector;
-
-    ConstantInEffectVector constant_vec;
-    uint32_t               pass_id        = 0;
-    PassStructure          pass_structure;
-
-    pass_structure.clears_color   = m_open_pass.clears_color;
-    pass_structure.clears_depth   = m_open_pass.clears_depth;
-    pass_structure.clears_stencil = m_open_pass.clears_stencil;
-    pass_structure.viewport       = m_open_pass.viewport;
-
-    /* Views are keyed as before the pass; a view the pass clears ignores its old contents. */
-    for (const auto& color_view : m_open_pass.attachments.color_view_vec)
-    {
-        pass_structure.color_view_key_vec.push_back((m_open_pass.clears_color) ? m_key_table.get_unwritten_view_key(color_view)
-                                                                               : m_key_table.get_view_key         (color_view) );
-    }
-
-    if (m_open_pass.attachments.depth_stencil_view.resource_id != ResourceId::NONE)
-    {
-        pass_structure.depth_stencil_view_key = (m_open_pass.clears_depth) ? m_key_table.get_unwritten_view_key(m_open_pass.attachments.depth_stencil_view)
-                                                                           : m_key_table.get_view_key         (m_open_pass.attachments.depth_stencil_view);
-    }
-
-    for (const auto& signature_pair : m_open_pass.draw_signature_map)
-    {
-        pass_structure.draw_signature_vec.push_back    ({signature_pair.second,
-                                                         signature_pair.first});
-        pass_structure.draw_structure_key_vec.push_back(signature_pair.first);
-    }
-
-    for (const auto& state_pair : m_constant_state_map)
-    {
-        ConstantSignature signature;
-
-        signature.block_key   = state_pair.second.block_key;
-        signature.block_kind  = state_pair.second.update.location.block_kind;
-        signature.byte_offset = state_pair.second.update.location.byte_offset;
-        signature.byte_size   = state_pair.second.update.location.byte_size;
-        signature.provenance  = state_pair.second.update.provenance;
-        signature.semantic    = state_pair.second.update.semantic;
-
-        constant_vec.push_back({signature,
-                               &state_pair.second.update.value_u8_vec});
-    }
-
-    const auto is_signature_key_less_func = [](const ConstantInEffect& in_a,
-                                               const ConstantInEffect& in_b)
-    {
-        return KeyBuilder::compute_constant_signature_key(in_a.first) < KeyBuilder::compute_constant_signature_key(in_b.first);
-    };
-
-    std::sort(constant_vec.begin(),
-              constant_vec.end(),
-              is_signature_key_less_func);
-
-    for (const auto& constant : constant_vec)
-    {
-        pass_structure.constant_signature_vec.push_back(constant.first);
-    }
-
-    pass_structure.key = KeyBuilder::compute_pass_structure_key(pass_structure);
-
-    pass_id = m_model.pass_structure_interner.intern(pass_structure,
-                                                     pass_structure.key);
-
-    /* Camera series, for each kind of pass that has them. */
-    for (uint32_t n_constant = 0;
-                  n_constant < constant_vec.size();
-                ++n_constant)
-    {
-        const bool is_camera = is_camera_semantic(constant_vec.at(n_constant).first.semantic);
-
-        if (is_camera)
-        {
-            if (m_keeps_history)
-            {
-                const ConstantSeriesKey series_key(pass_id,
-                                                   n_constant);
-
-                m_model.constant_series_map[series_key].add(m_open_pass.begin_timestamp_qpc,
-                                                           *constant_vec.at(n_constant).second);
-            }
-        }
-    }
-
-
-    /* What the pass has rendered to is what later passes read. */
-    for (const auto& color_view : m_open_pass.attachments.color_view_vec)
-    {
-        m_key_table.record_write(color_view.resource_id,
-                                 pass_structure.key);
-    }
-
-    m_key_table.record_write(m_open_pass.attachments.depth_stencil_view.resource_id,
-                             pass_structure.key);
-
-    {
-        PassInstance instance;
-
-        instance.begin_call_index     = m_open_pass.begin_call_index;
-        instance.begin_timestamp_qpc  = m_open_pass.begin_timestamp_qpc;
-        instance.end_call_index       = m_call_index;
-        instance.last_draw_call_index = m_open_pass.last_draw_call_index;
-        instance.n_draws              = m_open_pass.n_draws;
-        instance.n_vertices           = m_open_pass.n_vertices;
-        instance.structure_id         = pass_id;
-
-        m_frame_pass_instance_vec.push_back(instance);
-
-        /* A pass which renders to what is presented is the one whose draws the viewer sees as they are. */
-        {
-            bool is_presented = false;
-
-            for (const auto& color_view : m_open_pass.attachments.color_view_vec)
-            {
-                const uint32_t id_value = get_resource_id_value(color_view.resource_id);
-
-                if (id_value != 0                          &&
-                    id_value <= m_model.resource_vec.size() )
-                {
-                    is_presented |= (m_model.resource_vec.at(id_value - 1).description.kind == ResourceKind::SWAP_CHAIN_IMAGE);
-                }
-            }
-
-            m_frame_pass_is_presented_vec.push_back(is_presented);
-        }
-
-        /* Kept with the frame: which kind of frame it is in is known when the frame ends. */
-        if (m_keeps_history)
-        {
-            if (m_open_pass.covering_draw_key_set.empty() == false)
-            {
-                m_model.covering_draw_key_map[pass_id].insert(m_open_pass.covering_draw_key_set.begin(),
-                                                              m_open_pass.covering_draw_key_set.end  () );
-            }
-
-            m_frame_depth_histogram_vec.push_back        (m_open_pass.depth.depth_histogram);
-            m_frame_surface_depth_histogram_vec.push_back(m_open_pass.depth.surface_depth_histogram);
-            m_frame_projection_scale_vec.push_back        (m_open_pass.depth.projection_scale);
-        }
-    }
-
-    m_has_open_pass = false;
-    m_open_pass     = OpenPass();
-}
-
 uint64_t Analysis::APIDumpAnalysis::ModelBuilder::compute_draw_signature_key(const DrawDescription& in_draw)
 {
     std::vector<uint64_t> color_view_key_vec;
     uint64_t              depth_stencil_view_key = 0;
+    const OpenPass*       open_pass_ptr          = m_pass_tracker.get_open_pass_ptr();
 
     fill_draw_structure(in_draw,
                         true, /* in_uses_unwritten_keys */
                        &m_draw_signature_scratch);
 
-    for (const auto& color_view : m_open_pass.attachments.color_view_vec)
+    for (const auto& color_view : open_pass_ptr->attachments.color_view_vec)
     {
         color_view_key_vec.push_back(m_key_table.get_unwritten_view_key(color_view) );
     }
 
-    if (m_open_pass.attachments.depth_stencil_view.resource_id != ResourceId::NONE)
+    if (open_pass_ptr->attachments.depth_stencil_view.resource_id != ResourceId::NONE)
     {
-        depth_stencil_view_key = m_key_table.get_unwritten_view_key(m_open_pass.attachments.depth_stencil_view);
+        depth_stencil_view_key = m_key_table.get_unwritten_view_key(open_pass_ptr->attachments.depth_stencil_view);
     }
 
     const uint64_t structure_key = KeyBuilder::compute_draw_structure_key(m_draw_signature_scratch);
@@ -483,30 +322,6 @@ const Analysis::APIDumpAnalysis::Viewport& Analysis::APIDumpAnalysis::ModelBuild
     return m_viewport;
 }
 
-bool Analysis::APIDumpAnalysis::ModelBuilder::is_camera_semantic(const ConstantSemantic& in_semantic)
-{
-    bool result = false;
-
-    switch (in_semantic)
-    {
-        case ConstantSemantic::PROJECTION_MATRIX:
-        case ConstantSemantic::VIEW_MATRIX:
-        case ConstantSemantic::VIEW_PROJECTION_MATRIX:
-        {
-            result = true;
-
-            break;
-        }
-
-        default:
-        {
-            break;
-        }
-    }
-
-    return result;
-}
-
 void Analysis::APIDumpAnalysis::ModelBuilder::merge_depth_histograms(const uint32_t&                              in_shape_id,
                                                                      const std::vector<DepthHistogram>&           in_histogram_vec,
                                                                      const std::vector<PassInstance>&             in_pass_instance_vec,
@@ -560,19 +375,23 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_clear(const ClearOperation& in_
                     range);
     }
 
-    if (m_has_open_pass         &&
-        m_open_pass.has_draws)
+    OpenPass* open_pass_ptr = m_pass_tracker.get_open_pass_ptr();
+
+    if (open_pass_ptr != nullptr &&
+        open_pass_ptr->has_draws)
     {
         close_pass();
     }
 
     open_pass_if_needed();
 
-    m_open_pass.last_draw_call_index = m_call_index;
+    open_pass_ptr = m_pass_tracker.get_open_pass_ptr();
 
-    m_open_pass.clears_color   |= in_clear.clears_color;
-    m_open_pass.clears_depth   |= in_clear.clears_depth;
-    m_open_pass.clears_stencil |= in_clear.clears_stencil;
+    open_pass_ptr->last_draw_call_index = m_call_index;
+
+    open_pass_ptr->clears_color   |= in_clear.clears_color;
+    open_pass_ptr->clears_depth   |= in_clear.clears_depth;
+    open_pass_ptr->clears_stencil |= in_clear.clears_stencil;
 }
 
 void Analysis::APIDumpAnalysis::ModelBuilder::on_copy(const ResourceView&    in_source,
@@ -628,7 +447,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_copy(const ResourceView&    in_
         record.kind        = TransferKind::COPY;
         record.source      = in_source;
 
-        m_frame_transfer_record_vec.push_back(record);
+        m_frame.transfer_record_vec.push_back(record);
     }
 }
 
@@ -676,6 +495,8 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_draw(const DrawDescription& in_
     open_pass_if_needed();
     record_draw_access (in_draw);
 
+    OpenPass* open_pass_ptr = m_pass_tracker.get_open_pass_ptr();
+
     ViewCoverage coverage = ViewCoverage::UNKNOWN;
 
     if (m_keeps_history)
@@ -685,17 +506,17 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_draw(const DrawDescription& in_
         {
             coverage = DrawMeasurer::record_screen_depth(in_draw,
                                                          m_viewport,
-                                                        &m_open_pass.depth);
+                                                        &open_pass_ptr->depth);
         }
         else
         {
             DrawMeasurer::record_draw_depth(in_draw,
                                             m_constant_state_map,
-                                           &m_open_pass.depth);
+                                           &open_pass_ptr->depth);
 
             coverage = DrawMeasurer::record_draw_surface_depth(in_draw,
                                                                m_constant_state_map,
-                                                              &m_open_pass.depth);
+                                                              &open_pass_ptr->depth);
         }
     }
 
@@ -704,11 +525,11 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_draw(const DrawDescription& in_
                        &structure);
 
     {
-        const uint64_t key            = KeyBuilder::compute_draw_structure_key(structure);
-        const auto     known_entry    = m_model.draw_structure_map.find       (key);
-        const uint64_t signature_key  = compute_draw_signature_key            (in_draw);
-        const auto     signature_pair = m_open_pass.draw_signature_map.emplace(key,
-                                                                               signature_key);
+        const uint64_t key            = KeyBuilder::compute_draw_structure_key   (structure);
+        const auto     known_entry    = m_model.draw_structure_map.find          (key);
+        const uint64_t signature_key  = compute_draw_signature_key               (in_draw);
+        const auto     signature_pair = open_pass_ptr->draw_signature_map.emplace(key,
+                                                                                  signature_key);
 
         if (known_entry == m_model.draw_structure_map.end() )
         {
@@ -745,7 +566,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_draw(const DrawDescription& in_
 
         if (coverage == ViewCoverage::COVERING)
         {
-            m_open_pass.covering_draw_key_set.insert(m_last_draw_cover_key);
+            open_pass_ptr->covering_draw_key_set.insert(m_last_draw_cover_key);
         }
 
         m_call_draw_key_vec.push_back({m_last_draw_cover_key,
@@ -764,19 +585,19 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_draw(const DrawDescription& in_
                                                          : m_call_index;
 
         /* The pass is not complete yet, so it is the next one to be added to the frame. */
-        m_frame_draw_instance_vec.push_back({m_call_index,
+        m_frame.draw_instance_vec.push_back({m_call_index,
                                              m_last_draw_cover_key,
                                              first_call,
-                                             static_cast<uint32_t>(m_frame_pass_instance_vec.size() ),
+                                             static_cast<uint32_t>(m_frame.pass_instance_vec.size() ),
                                              key,
                                              in_draw.view_anchor_call_index});
     }
 
-    m_open_pass.has_draws            = true;
-    m_open_pass.last_draw_call_index = m_call_index;
+    open_pass_ptr->has_draws            = true;
+    open_pass_ptr->last_draw_call_index = m_call_index;
 
-    m_open_pass.n_draws    += 1;
-    m_open_pass.n_vertices += in_draw.vertex_count;
+    open_pass_ptr->n_draws    += 1;
+    open_pass_ptr->n_vertices += in_draw.vertex_count;
 }
 
 void Analysis::APIDumpAnalysis::ModelBuilder::on_frame_presented()
@@ -789,7 +610,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_frame_presented()
 
     close_pass();
 
-    for (const auto& instance : m_frame_pass_instance_vec)
+    for (const auto& instance : m_frame.pass_instance_vec)
     {
         frame_shape.pass_structure_id_vec.push_back(instance.structure_id);
         pass_key_vec.push_back                     (m_model.pass_structure_interner.get_structure(instance.structure_id).key);
@@ -800,35 +621,35 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_frame_presented()
     std::sort(frame_shape.pass_structure_id_vec.begin(),
               frame_shape.pass_structure_id_vec.end() );
 
-    frame_record.begin_timestamp_qpc = m_frame_begin_timestamp_qpc;
+    frame_record.begin_timestamp_qpc = m_frame.begin_timestamp_qpc;
     frame_record.end_timestamp_qpc   = m_timestamp_qpc;
-    frame_record.first_call_index    = m_frame_first_call_index;
+    frame_record.first_call_index    = m_frame.first_call_index;
     frame_record.frame_index         = m_n_frames;
     frame_record.last_call_index     = m_call_index;
-    frame_record.n_passes            = static_cast<uint32_t>              (m_frame_pass_instance_vec.size() );
+    frame_record.n_passes            = static_cast<uint32_t>              (m_frame.pass_instance_vec.size() );
     shape_key                        = KeyBuilder::compute_key_set_key    (pass_key_vec);
     frame_record.shape_id            = m_model.frame_shape_interner.intern(frame_shape,
                                                                            shape_key);
 
     merge_depth_histograms(frame_record.shape_id,
-                           m_frame_depth_histogram_vec,
-                           m_frame_pass_instance_vec,
+                           m_frame.depth_histogram_vec,
+                           m_frame.pass_instance_vec,
                           &m_model.depth_histogram_map);
     merge_depth_histograms(frame_record.shape_id,
-                           m_frame_surface_depth_histogram_vec,
-                           m_frame_pass_instance_vec,
+                           m_frame.surface_depth_histogram_vec,
+                           m_frame.pass_instance_vec,
                           &m_model.surface_depth_histogram_map);
 
     for (size_t n_pass = 0;
-                n_pass < m_frame_projection_scale_vec.size();
+                n_pass < m_frame.projection_scale_vec.size();
               ++n_pass)
     {
-        const auto& scale = m_frame_projection_scale_vec.at(n_pass);
+        const auto& scale = m_frame.projection_scale_vec.at(n_pass);
 
         if (scale.weight != 0)
         {
             auto& total = m_model.projection_scale_map[DepthHistogramKey(frame_record.shape_id,
-                                                                         m_frame_pass_instance_vec.at(n_pass).structure_id)];
+                                                                         m_frame.pass_instance_vec.at(n_pass).structure_id)];
             const double weight_sum = static_cast<double>(total.weight) + static_cast<double>(scale.weight);
 
             total.mean   = static_cast<float>( (static_cast<double>(total.mean) * static_cast<double>(total.weight) + static_cast<double>(scale.mean) * static_cast<double>(scale.weight) ) / weight_sum);
@@ -839,11 +660,11 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_frame_presented()
     m_completed_frame.first_call_index  = frame_record.first_call_index;
     m_completed_frame.frame_index       = frame_record.frame_index;
     m_completed_frame.last_call_index   = frame_record.last_call_index;
-    m_completed_frame.pass_instance_vec = m_frame_pass_instance_vec;
-    m_completed_frame.pass_is_presented_vec = m_frame_pass_is_presented_vec;
+    m_completed_frame.pass_instance_vec = m_frame.pass_instance_vec;
+    m_completed_frame.pass_is_presented_vec = m_frame.pass_is_presented_vec;
 
     /* What was in the completed frame before is cleared with the rest at the end. */
-    m_completed_frame.draw_instance_vec.swap(m_frame_draw_instance_vec);
+    m_completed_frame.draw_instance_vec.swap(m_frame.draw_instance_vec);
 
     m_completed_frame.pass_key_vec = pass_key_vec;
     m_completed_frame.shape_key    = shape_key;
@@ -865,8 +686,8 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_frame_presented()
 
         if (is_wanted)
         {
-            frame_detail.pass_instance_vec   = m_frame_pass_instance_vec;
-            frame_detail.transfer_record_vec = m_frame_transfer_record_vec;
+            frame_detail.pass_instance_vec   = m_frame.pass_instance_vec;
+            frame_detail.transfer_record_vec = m_frame.transfer_record_vec;
 
             m_model.representative_store.add(frame_record.shape_id,
                                              frame_record.frame_index,
@@ -882,16 +703,16 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_frame_presented()
         m_key_table.forget_resource(destroyed_id);
     }
 
-    m_frame_depth_histogram_vec.clear        ();
-    m_frame_draw_instance_vec.clear          ();
-    m_frame_pass_instance_vec.clear          ();
-    m_frame_pass_is_presented_vec.clear      ();
-    m_frame_surface_depth_histogram_vec.clear();
-    m_frame_projection_scale_vec.clear();
-    m_frame_transfer_record_vec.clear();
+    m_frame.depth_histogram_vec.clear        ();
+    m_frame.draw_instance_vec.clear          ();
+    m_frame.pass_instance_vec.clear          ();
+    m_frame.pass_is_presented_vec.clear      ();
+    m_frame.projection_scale_vec.clear       ();
+    m_frame.surface_depth_histogram_vec.clear();
+    m_frame.transfer_record_vec.clear        ();
     m_pending_forget_vec.clear       ();
 
-    m_has_frame_calls = false;
+    m_frame.has_calls = false;
 
     if (m_access_sink_ptr != nullptr)
     {
@@ -912,8 +733,10 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_set_attachments(const Attachmen
 
 void Analysis::APIDumpAnalysis::ModelBuilder::on_set_viewport(const Viewport& in_viewport)
 {
-    if (m_has_open_pass                      &&
-        m_open_pass.has_draws                &&
+    OpenPass* open_pass_ptr = m_pass_tracker.get_open_pass_ptr();
+
+    if (open_pass_ptr != nullptr          &&
+        open_pass_ptr->has_draws          &&
         (in_viewport == m_viewport) == false)
     {
         close_pass();
@@ -921,9 +744,12 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_set_viewport(const Viewport& in
 
     m_viewport = in_viewport;
 
-    if (m_has_open_pass)
+    /* The pass that was open may be the one that was just closed. */
+    open_pass_ptr = m_pass_tracker.get_open_pass_ptr();
+
+    if (open_pass_ptr != nullptr)
     {
-        m_open_pass.viewport = in_viewport;
+        open_pass_ptr->viewport = in_viewport;
     }
 }
 
@@ -995,22 +821,16 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_upload(const ResourceView&    i
         record.destination = in_destination;
         record.kind        = TransferKind::UPLOAD;
 
-        m_frame_transfer_record_vec.push_back(record);
+        m_frame.transfer_record_vec.push_back(record);
     }
 }
 
 void Analysis::APIDumpAnalysis::ModelBuilder::open_pass_if_needed()
 {
-    if (m_has_open_pass == false)
-    {
-        m_open_pass                     = OpenPass();
-        m_open_pass.attachments         = m_attachments;
-        m_open_pass.begin_call_index    = m_call_index;
-        m_open_pass.begin_timestamp_qpc = m_timestamp_qpc;
-        m_open_pass.viewport            = m_viewport;
-
-        m_has_open_pass = true;
-    }
+    m_pass_tracker.open_if_needed(m_attachments,
+                                  m_call_index,
+                                  m_timestamp_qpc,
+                                  m_viewport);
 }
 
 void Analysis::APIDumpAnalysis::ModelBuilder::record_draw_access(const DrawDescription& in_draw)

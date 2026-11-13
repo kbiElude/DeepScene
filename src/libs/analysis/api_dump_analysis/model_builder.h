@@ -16,6 +16,7 @@
 
 #include "analysis/api_dump_analysis/i_access_sink.h"
 #include "analysis/api_dump_analysis/model.h"
+#include "analysis/api_dump_analysis/pass_tracker.h"
 #include "analysis/api_dump_analysis/resource_access_tracker.h"
 #include "analysis/api_dump_analysis/resource_key_table.h"
 #include "analysis/api_dump_analysis/depth_histogram.h"
@@ -122,7 +123,6 @@ namespace Analysis
             /* True if there is a sink for what happens to the textures: a front end that has to work to tell it (the bytes of an upload) asks first. */
             bool wants_texture_events() const;
 
-
             /* The match key of a frame shape of the model: made of the keys of its passes, as the shape key of a completed frame is. */
             static uint64_t compute_shape_key(const Model&    in_model,
                                               const uint32_t& in_shape_id);
@@ -136,28 +136,10 @@ namespace Analysis
                                         uint32_t*             out_pass_index_ptr);
 
         private:
-            /* A pass until it ends. */
-            struct OpenPass
-            {
-                AttachmentSet                attachments;
-                uint64_t                     begin_call_index     = 0;
-                uint64_t                     begin_timestamp_qpc  = 0;
-                bool                         clears_color         = false;
-                bool                         clears_depth         = false;
-                bool                         clears_stencil       = false;
-                std::set<uint64_t>           covering_draw_key_set;        /* keys of the draws of the pass that cover the view */
-                PassDepth                    depth;
-                std::map<uint64_t, uint64_t> draw_signature_map;           /* key of the draw structure -> key of its signature */
-                bool                         has_draws            = false;
-                uint64_t                     last_draw_call_index = 0;     /* last draw, or the clear if there is none */
-                uint64_t                     n_draws              = 0;
-                uint64_t                     n_vertices           = 0;
-                Viewport                     viewport;
-            };
+            /* Completes the pass that is open, if there is one. */
+            void close_pass();
 
-            void close_pass               ();
             void close_pass_if_rendered_to(const ResourceView& in_view);
-            void complete_pass            ();
 
             /* Of the draw in the open pass, as KeyBuilder::compute_draw_signature_key() says. */
             uint64_t compute_draw_signature_key(const DrawDescription& in_draw);
@@ -185,16 +167,11 @@ namespace Analysis
             void open_pass_if_needed();
             void record_draw_access (const DrawDescription& in_draw);
 
-
-            /* True for the constants that describe the camera, which is the same for all the draws of a pass. */
-            static bool is_camera_semantic(const ConstantSemantic& in_semantic);
-
             /* Adds what the histograms of a frame hold to those of the model, for the shape of the frame. */
             static void merge_depth_histograms(const uint32_t&                              in_shape_id,
                                                const std::vector<DepthHistogram>&           in_histogram_vec,
                                                const std::vector<PassInstance>&             in_pass_instance_vec,
                                                std::map<DepthHistogramKey, DepthHistogram>* inout_map_ptr);
-
 
             IAccessSink*                              m_access_sink_ptr;
             ResourceAccessTracker                     m_access_tracker;
@@ -206,24 +183,14 @@ namespace Analysis
             ConstantStateMap                          m_constant_state_map;
             DrawStructure                             m_draw_signature_scratch; /* for on_draw(), so that it need not allocate each time */
             DrawStructure                             m_draw_structure_scratch;
-            uint64_t                                  m_frame_begin_timestamp_qpc;
-            std::vector<DepthHistogram>               m_frame_depth_histogram_vec; /* of the passes above, in the same order */
-            uint64_t                                  m_frame_first_call_index;
-            std::vector<DrawInstance>                 m_frame_draw_instance_vec;
-            std::vector<PassInstance>                 m_frame_pass_instance_vec;
-            std::vector<bool>                         m_frame_pass_is_presented_vec; /* of the passes above, in the same order */
-            std::vector<ProjectionScale>              m_frame_projection_scale_vec; /* of the passes above, in the same order */
-            std::vector<DepthHistogram>               m_frame_surface_depth_histogram_vec; /* of the passes above, in the same order */
-            std::vector<TransferRecord>               m_frame_transfer_record_vec;
-            bool                                      m_has_frame_calls;
-            bool                                      m_has_open_pass;
+            FrameInProgress                           m_frame;
             bool                                      m_keeps_history;
             ResourceKeyTable                          m_key_table;
             uint64_t                                  m_last_draw_cover_key;
             uint64_t                                  m_last_draw_signature_key;
             Model                                     m_model;
             uint64_t                                  m_n_frames;
-            OpenPass                                  m_open_pass;
+            PassTracker                               m_pass_tracker;
             std::vector<ResourceId>                   m_pending_forget_vec;
             Analysis::APIDumpTextures::ITextureSink*  m_texture_sink_ptr;
             uint64_t                                  m_timestamp_qpc;
