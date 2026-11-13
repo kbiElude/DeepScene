@@ -533,21 +533,16 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
             }
             else
             {
-                LARGE_INTEGER run_start_qpc = {};
-
-                ::QueryPerformanceCounter(&run_start_qpc);
-
-                this_ptr->m_live_state.scene_run_key         = shape_key;
-                this_ptr->m_live_state.scene_run_length      = 1;
-                this_ptr->m_live_state.scene_run_n_samples   = 0;
-                this_ptr->m_live_state.scene_run_start_qpc   = run_start_qpc.QuadPart;
+                this_ptr->m_live_state.scene_run_key       = shape_key;
+                this_ptr->m_live_state.scene_run_length    = 1;
+                this_ptr->m_live_state.scene_run_n_samples = 0;
             }
 
-            /* A scene that goes on is looked at again, since a scene is not one picture: what the camera shows moves with the time of the demo (a second apart, whatever the frames per
+            /* A scene that goes on is looked at again, since a scene is not one picture: what the camera shows moves with the time of the demo (half a second apart, whatever the frames per
              * second are). Only the run of the scene in which the first was written goes on.
              */
-            constexpr uint32_t N_SAMPLES_OF_A_SCENE      = 6;
-            constexpr double   N_SECONDS_BETWEEN_SAMPLES = 1.0;
+            constexpr uint32_t N_SAMPLES_OF_A_SCENE      = 60;
+            constexpr double   N_SECONDS_BETWEEN_SAMPLES = 0.5;
 
             bool     is_sampled_now = false;
             uint32_t n_sample       = this_ptr->m_live_state.scene_run_n_samples;
@@ -561,7 +556,7 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
                 ::QueryPerformanceCounter  (&now_qpc);
                 ::QueryPerformanceFrequency(&frequency);
 
-                const double n_seconds_in_scene = static_cast<double>(now_qpc.QuadPart - this_ptr->m_live_state.scene_run_start_qpc) / static_cast<double>(frequency.QuadPart);
+                const double n_seconds_since_sample = static_cast<double>(now_qpc.QuadPart - this_ptr->m_live_state.scene_run_last_sample_qpc) / static_cast<double>(frequency.QuadPart);
 
                 if (n_sample == 0)
                 {
@@ -571,8 +566,8 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
                     }
                 }
                 else
-                if (n_sample                 <  N_SAMPLES_OF_A_SCENE                               &&
-                    n_seconds_in_scene       >= static_cast<double>(n_sample) * N_SECONDS_BETWEEN_SAMPLES)
+                if (n_sample               <  N_SAMPLES_OF_A_SCENE      &&
+                    n_seconds_since_sample >= N_SECONDS_BETWEEN_SAMPLES)
                 {
                     is_sampled_now = true;
                 }
@@ -581,6 +576,12 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
             if (is_sampled_now)
             {
                 this_ptr->m_live_state.scene_run_n_samples++;
+
+                LARGE_INTEGER sample_qpc = {};
+
+                ::QueryPerformanceCounter(&sample_qpc);
+
+                this_ptr->m_live_state.scene_run_last_sample_qpc = sample_qpc.QuadPart;
 
                 char temp_i8vec260[MAX_PATH] = {};
 

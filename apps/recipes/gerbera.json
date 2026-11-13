@@ -20,8 +20,8 @@
         "shape": "0x17b151ac056b1c0d"
       },
       {
-        "max_far_parallax": 0.00421052632,
-        "max_near_parallax": 0.00631578947,
+        "max_far_parallax": 0.00229986732,
+        "max_near_parallax": 0.00344980097,
         "shape": "0x3b5b8c26b3105201"
       },
       {
@@ -30,8 +30,28 @@
         "shape": "0x4940d1fd4fdf7777"
       },
       {
+        "max_far_parallax": 0.00472502954,
+        "max_near_parallax": 0.0070875443,
+        "shape": "0x61bcfc65f233aed6"
+      },
+      {
+        "max_far_parallax": 0.00671892498,
+        "max_near_parallax": 0.0100783875,
+        "shape": "0x7fdd9c12aa6b6142"
+      },
+      {
         "max_near_parallax": 0.0105263158,
         "shape": "0x851838905ff2c304"
+      },
+      {
+        "max_far_parallax": 0.00578405242,
+        "max_near_parallax": 0.00867607863,
+        "shape": "0x98cc4d5ae749221c"
+      },
+      {
+        "max_far_parallax": 0.0075371456,
+        "max_near_parallax": 0.0113057184,
+        "shape": "0x9aa749ff3336d017"
       },
       {
         "max_far_parallax": 0.00631578947,
@@ -1068,7 +1088,7 @@
       },
       {
         "shape": "0x3b5b8c26b3105201",
-        "distance": 708.634094
+        "distance": 708.634155
       },
       {
         "shape": "0x9471ea12fc9ee90f",
@@ -1192,7 +1212,7 @@
       },
       {
         "shape": "0x61bcfc65f233aed6",
-        "distance": 1155.4906
+        "distance": 1155.49072
       },
       {
         "shape": "0x7b8dc82c56e45551",
@@ -1392,7 +1412,7 @@
       },
       {
         "shape": "0x7fdd9c12aa6b6142",
-        "distance": 2712.73291
+        "distance": 2712.73315
       },
       {
         "shape": "0xc444f0ba0f3b8dfc",
@@ -1454,7 +1474,7 @@
       },
       {
         "shape": "0x98cc4d5ae749221c",
-        "separation": 9.05581665
+        "separation": 4.97603512
       },
       {
         "shape": "0xc32826c3be6d1394",
@@ -1478,7 +1498,7 @@
       },
       {
         "shape": "0x3b5b8c26b3105201",
-        "separation": 2.63751769
+        "separation": 1.44066095
       },
       {
         "shape": "0x9471ea12fc9ee90f",
@@ -1538,7 +1558,7 @@
       },
       {
         "shape": "0x9aa749ff3336d017",
-        "separation": 11.3325443
+        "separation": 8.11442852
       },
       {
         "shape": "0xbcc4b00e71dae5e2",
@@ -1602,7 +1622,7 @@
       },
       {
         "shape": "0x61bcfc65f233aed6",
-        "separation": 20.1395607
+        "separation": 9.04020119
       },
       {
         "shape": "0x7b8dc82c56e45551",
@@ -1802,7 +1822,7 @@
       },
       {
         "shape": "0x7fdd9c12aa6b6142",
-        "separation": 35.4541054
+        "separation": 22.6302814
       },
       {
         "shape": "0xc444f0ba0f3b8dfc",

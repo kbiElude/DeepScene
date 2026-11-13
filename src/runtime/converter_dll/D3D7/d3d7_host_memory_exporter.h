@@ -74,7 +74,6 @@ namespace Stereo
 
 
             std::array<std::vector<uint8_t>, N_EYES> m_converted_u8_vec_array; /* of the formats that are not as they are wanted */
-            int64_t                                  m_last_frame_qpc;         /* of the last frame that was waited for, with no one to show it to */
         };
     }
 }

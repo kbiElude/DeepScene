@@ -64,6 +64,7 @@ namespace Stereo
             bool                    m_is_stopping;
             Job                     m_job;
             std::mutex              m_mutex;
+            int64_t                 m_n_frames_per_second; /* the application is held to this many frames a second when no screen keeps time (APISTEREO_FRAME_RATE); 0: it is not */
             std::thread             m_thread;
         };
     }

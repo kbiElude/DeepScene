@@ -13,8 +13,7 @@
 #include <string.h>
 
 Stereo::ConverterDLL::D3D7HostMemoryExporter::D3D7HostMemoryExporter(Stereo::Transport::FrameChannel* inout_channel_ptr)
-    :HostMemoryExporter(inout_channel_ptr),
-     m_last_frame_qpc(0)
+    :HostMemoryExporter(inout_channel_ptr)
 {
     /* A wait of the length of a frame is not the length of a tick of the timer, which is some 15 ms: without this the application is held to half
      * the rate it is meant to have, when there is no program that shows the images to keep time by.
@@ -230,34 +229,13 @@ void Stereo::ConverterDLL::D3D7HostMemoryExporter::wait_for_pace()
 
         if (is_limiter_disabled == false)
         {
-            LARGE_INTEGER frequency;
-            LARGE_INTEGER now;
-
-            ::QueryPerformanceFrequency(&frequency);
-            ::QueryPerformanceCounter  (&now);
-
-            const LONGLONG frame_n_ticks = frequency.QuadPart / FALLBACK_N_FRAMES_PER_SECOND;
-            const LONGLONG due_qpc       = m_last_frame_qpc + frame_n_ticks;
-
-            if (m_last_frame_qpc != 0       &&
-                now.QuadPart     <  due_qpc)
-            {
-                ::Sleep(static_cast<DWORD>( (due_qpc - now.QuadPart) * 1000 / frequency.QuadPart) );
-            }
-
-            ::QueryPerformanceCounter(&now);
-
-            m_last_frame_qpc = now.QuadPart;
+            hold_to_frame_rate(FALLBACK_N_FRAMES_PER_SECOND);
         }
     }
     else
     {
         /* The next frame of the limiter is counted from this one if the screen stops keeping time. */
-        LARGE_INTEGER now;
-
-        ::QueryPerformanceCounter(&now);
-
-        m_last_frame_qpc = now.QuadPart;
+        restart_frame_rate_clock();
     }
 }
 

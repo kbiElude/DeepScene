@@ -137,7 +137,7 @@ namespace Stereo
                 uint64_t                                  scene_run_length   = 0;   /* how many frames in a row were of the scene of scene_run_key */
                 uint64_t                                  scene_run_key      = 0;
                 uint32_t                                  scene_run_n_samples = 0;  /* how many frames of this run of the scene were written (see is_scene_dump_enabled) */
-                int64_t                                   scene_run_start_qpc = 0;  /* when the run began, in the ticks of the performance counter */
+                int64_t                                   scene_run_last_sample_qpc = 0; /* when the last frame of this run was written, in the ticks of the performance counter */
                 bool                                      is_overlay_push_forced = false; /* from the environment, not the program which shows the images */
                 CallFeeder                                feeder;
                 Utils::Parallel::SrwMutex                 mutex;

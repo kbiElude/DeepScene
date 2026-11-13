@@ -3,6 +3,8 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "gl_host_memory_exporter.h"
+#include "environment.h"
+#include <mmsystem.h>
 #include <stdio.h>
 #include <string.h>
 #include <vector>
@@ -40,10 +42,27 @@ namespace
 }
 
 Stereo::ConverterDLL::GlHostMemoryExporter::GlHostMemoryExporter(Stereo::Transport::FrameChannel* inout_channel_ptr)
-    :HostMemoryExporter(inout_channel_ptr),
-     m_has_job         (false),
-     m_is_stopping     (false)
+    :HostMemoryExporter   (inout_channel_ptr),
+     m_has_job            (false),
+     m_is_stopping        (false),
+     m_n_frames_per_second(0)
 {
+    /* A debugging aid for a run with no program that shows the images: the application is held to a rate, as Direct3D 7 is held to one, so that what it does with the time
+     * of its music (and what the eyes of the converter do per frame) is what it is when it is shown by a screen, and not that of a run of a thousand frames a second.
+     */
+    float      n_frames_per_second = 0.0f;
+    const bool is_rate_set         = Environment::get_number("APISTEREO_FRAME_RATE",
+                                                            &n_frames_per_second);
+
+    if (is_rate_set                      &&
+        n_frames_per_second >= 1.0f)
+    {
+        m_n_frames_per_second = static_cast<int64_t>(n_frames_per_second);
+
+        /* A wait of the length of a frame is not the length of a tick of the timer, which is some 15 ms. */
+        ::timeBeginPeriod(1);
+    }
+
     m_thread = std::thread(&GlHostMemoryExporter::run_thread,
                             this);
 }
@@ -62,7 +81,7 @@ Stereo::ConverterDLL::GlHostMemoryExporter::~GlHostMemoryExporter()
 }
 
 Stereo::Transport::ExportStatus Stereo::ConverterDLL::GlHostMemoryExporter::export_frame(const uint64_t&                        in_frame_index,
-                                                                                          const Stereo::Transport::ExportSource& in_source)
+                                                                                         const Stereo::Transport::ExportSource& in_source)
 {
     const auto*                     images_ptr = static_cast<const GlFrameImages*>(in_source.left_surface_ptr);
     Stereo::Transport::ExportStatus result     = Stereo::Transport::ExportStatus::FAILED;
@@ -180,7 +199,20 @@ void Stereo::ConverterDLL::GlHostMemoryExporter::run_thread()
 
 void Stereo::ConverterDLL::GlHostMemoryExporter::wait_for_pace()
 {
-    wait_for_screen();
+    const bool is_paced_by_screen = wait_for_screen();
+
+    if (m_n_frames_per_second > 0)
+    {
+        if (is_paced_by_screen == false)
+        {
+            hold_to_frame_rate(m_n_frames_per_second);
+        }
+        else
+        {
+            /* The next frame of the limiter is counted from this one if the screen stops keeping time. */
+            restart_frame_rate_clock();
+        }
+    }
 }
 
 bool Stereo::ConverterDLL::GlHostMemoryExporter::write_debug_image(const GlFrameImages& in_images,
