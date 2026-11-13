@@ -30,6 +30,7 @@
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_context_state.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_list_handler.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_matrix_handler.h"
+#include "analysis/api_dump_analysis/frontends/OpenGL/gl_window.h"
 #include "analysis/api_dump_analysis/frontends/shared/resolution_hazard_counter.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_texture_handler.h"
 #include "analysis/api_dump_analysis/frontends/shared/i_api_frontend.h"
@@ -89,9 +90,6 @@ namespace Analysis
                                            const uint32_t&       in_y_offset,
                                            const uint32_t&       in_width,
                                            const uint32_t&       in_height);
-
-                /* Makes the resources of the window, and tells the builder what is rendered to and where, if that has not been done. */
-                void ensure_default_framebuffer(const GLContextState& in_state);
 
                 /* The state of the context that the thread has current; nullptr if it has none. */
                 GLContextState* find_current_context_ptr(const uint32_t& in_thread_id);
@@ -169,9 +167,6 @@ namespace Analysis
                 /* A context as it starts: what the specification says, and a stack of the identity for each kind of matrix. */
                 static GLContextState get_initial_context_state();
 
-                /* The viewport of the model, from the box of the context. */
-                static Analysis::APIDumpAnalysis::Viewport get_model_viewport(const GLContextState& in_state);
-
                 /* What the mode of a glBegin makes of the vertices; quads are two triangles and a loop of lines is a strip of them. */
                 static Analysis::APIDumpAnalysis::PrimitiveTopology get_primitive_topology(const uint32_t& in_mode);
 
@@ -196,19 +191,15 @@ namespace Analysis
                 Analysis::APIDumpAnalysis::ModelBuilder* m_builder_ptr;
                 GLContextState*                          m_cached_context_state_ptr;      /* what find_current_context_ptr() found last, for m_cached_thread_id; nullptr: nothing */
                 uint32_t                                 m_cached_thread_id;
-                Analysis::APIDumpAnalysis::ResourceView  m_color_view;
                 std::map<uint64_t, GLContextState>       m_context_map;                   /* by the address of the context */
                 std::map<uint32_t, uint64_t>             m_current_context_by_thread_map; /* the address, by the thread    */
-                Analysis::APIDumpAnalysis::ResourceView  m_depth_stencil_view;
-                uint32_t                                 m_framebuffer_height;
-                uint32_t                                 m_framebuffer_width;
-                bool                                     m_has_default_framebuffer;
                 GLListHandler                            m_list_handler;
                 GLMatrixHandler                          m_matrix_handler;
                 uint64_t                                 m_n_unfollowed_calls;
                 uint64_t                                 m_n_unsupported_calls;
                 ResolutionHazardCounter                  m_resolution_hazard_counter;
                 GLTextureHandler                         m_texture_handler;
+                GLWindow                                 m_window;
             };
         }
     }

@@ -24,13 +24,11 @@ Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::OpenGLFrontend(Analysis::A
      m_builder_ptr             (in_builder_ptr),
      m_cached_context_state_ptr(nullptr),
      m_cached_thread_id        (0),
-     m_framebuffer_height      (0),
-     m_framebuffer_width       (0),
-     m_has_default_framebuffer (false),
      m_matrix_handler          (in_builder_ptr),
      m_n_unfollowed_calls      (0),
      m_n_unsupported_calls     (0),
-     m_texture_handler         (in_builder_ptr)
+     m_texture_handler         (in_builder_ptr),
+     m_window                  (in_builder_ptr)
 {
     /* Stub */
 }
@@ -54,12 +52,12 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::copy_to_bound_texture
 
     if (result)
     {
-        ensure_default_framebuffer(in_state);
+        m_window.ensure_default_framebuffer(in_state);
 
         /* What is copied is the color of the window, or its depth if the texture is of depth. */
         const auto format_class = GLTextureHandler::get_format_class(texture_ptr->internal_format);
-        const auto source       = (format_class == Analysis::APIDumpAnalysis::FormatClass::COLOR) ? m_color_view
-                                                                                                   : m_depth_stencil_view;
+        const auto source       = (format_class == Analysis::APIDumpAnalysis::FormatClass::COLOR) ? m_window.get_color_view()
+                                                                                                   : m_window.get_depth_stencil_view();
 
         Analysis::APIDumpAnalysis::AccessRectangle destination_rectangle;
         Analysis::APIDumpAnalysis::ResourceView    destination;
@@ -94,46 +92,6 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::copy_to_bound_texture
     }
 
     return result;
-}
-
-void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::ensure_default_framebuffer(const GLContextState& in_state)
-{
-    if (m_has_default_framebuffer == false)
-    {
-        Analysis::APIDumpAnalysis::AttachmentSet       attachments;
-        Analysis::APIDumpAnalysis::ResourceDescription color_description;
-        Analysis::APIDumpAnalysis::ResourceDescription depth_description;
-        const Analysis::APIDumpAnalysis::Viewport      viewport = get_model_viewport(in_state);
-
-        m_framebuffer_height = static_cast<uint32_t>(viewport.height);
-        m_framebuffer_width  = static_cast<uint32_t>(viewport.width);
-
-        color_description.format.format_class = Analysis::APIDumpAnalysis::FormatClass::COLOR;
-        color_description.height              = m_framebuffer_height;
-        color_description.is_render_target    = true;
-        color_description.kind                = Analysis::APIDumpAnalysis::ResourceKind::SWAP_CHAIN_IMAGE;
-        color_description.width               = m_framebuffer_width;
-
-        depth_description.format.format_class = Analysis::APIDumpAnalysis::FormatClass::DEPTH_STENCIL;
-        depth_description.height              = m_framebuffer_height;
-        depth_description.is_depth_stencil    = true;
-        depth_description.kind                = Analysis::APIDumpAnalysis::ResourceKind::TEXTURE_2D;
-        depth_description.width               = m_framebuffer_width;
-
-        m_color_view.resource_id         = m_builder_ptr->on_create_resource(color_description,
-                                                                             "Default framebuffer: color");
-        m_depth_stencil_view.resource_id = m_builder_ptr->on_create_resource(depth_description,
-                                                                             "Default framebuffer: depth and stencil");
-
-        attachments.color_view_vec.push_back(m_color_view);
-
-        attachments.depth_stencil_view = m_depth_stencil_view;
-
-        m_builder_ptr->on_set_attachments(attachments);
-        m_builder_ptr->on_set_viewport   (viewport);
-
-        m_has_default_framebuffer = true;
-    }
 }
 
 Analysis::APIDumpAnalysis::Frontends::GLContextState* Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::find_current_context_ptr(const uint32_t& in_thread_id)
@@ -216,18 +174,6 @@ Analysis::APIDumpAnalysis::Frontends::GLContextState Analysis::APIDumpAnalysis::
                                         identity);
     result.projection_f32mat_vec.assign(1,
                                         identity);
-
-    return result;
-}
-
-Analysis::APIDumpAnalysis::Viewport Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_model_viewport(const GLContextState& in_state)
-{
-    Analysis::APIDumpAnalysis::Viewport result;
-
-    result.height = static_cast<float>(in_state.attributes.viewport.height);
-    result.width  = static_cast<float>(in_state.attributes.viewport.width);
-    result.x      = static_cast<float>(in_state.attributes.viewport.x);
-    result.y      = static_cast<float>(in_state.attributes.viewport.y);
 
     return result;
 }
@@ -355,7 +301,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_array_draw(con
         {
             case GLArrayDrawResult::DRAW:
             {
-                ensure_default_framebuffer(*inout_state_ptr);
+                m_window.ensure_default_framebuffer(*inout_state_ptr);
 
                 m_texture_handler.add_texture_bindings(*inout_state_ptr,
                                                        &description);
@@ -468,15 +414,18 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_clear(const Ca
     }
     else
     {
-        ensure_default_framebuffer(*inout_state_ptr);
+        m_window.ensure_default_framebuffer(*inout_state_ptr);
 
         const GLBox& box = inout_state_ptr->attributes.scissor_box;
 
         /* With the scissor test on, a clear reaches the box and no more, unless the box is the whole framebuffer. */
-        const bool is_box_whole = (box.x      == 0                                         &&
-                                   box.y      == 0                                         &&
-                                   box.width  == static_cast<int32_t>(m_framebuffer_width) &&
-                                   box.height == static_cast<int32_t>(m_framebuffer_height) );
+        const int32_t framebuffer_height = static_cast<int32_t>(m_window.get_framebuffer_height() );
+        const int32_t framebuffer_width  = static_cast<int32_t>(m_window.get_framebuffer_width() );
+
+        const bool is_box_whole = (box.x      == 0                 &&
+                                   box.y      == 0                 &&
+                                   box.width  == framebuffer_width &&
+                                   box.height == framebuffer_height);
 
         Analysis::APIDumpAnalysis::ClearOperation clear;
 
@@ -675,7 +624,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_end(GLContextS
     if (block.is_open &&
         block.n_vertices > 0)
     {
-        ensure_default_framebuffer(*inout_state_ptr);
+        m_window.ensure_default_framebuffer(*inout_state_ptr);
 
         const auto topology = get_primitive_topology(block.mode);
 
@@ -1181,10 +1130,12 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_pop_attributes
                                                   inout_state_ptr->attributes.viewport);
 
         /* What was put back may be another viewport, which is a change for what is rendered to. */
-        if (m_has_default_framebuffer &&
+        const bool has_window = m_window.has_default_framebuffer();
+
+        if (has_window &&
             is_viewport_same == false)
         {
-            m_builder_ptr->on_set_viewport(get_model_viewport(*inout_state_ptr) );
+            m_builder_ptr->on_set_viewport(GLWindow::get_model_viewport(*inout_state_ptr) );
         }
     }
 }
@@ -1427,9 +1378,9 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_viewport(const
         inout_state_ptr->attributes.viewport = box;
 
         /* The model has the viewport of what is rendered to, and there is none before the first clear. */
-        if (m_has_default_framebuffer)
+        if (m_window.has_default_framebuffer() )
         {
-            m_builder_ptr->on_set_viewport(get_model_viewport(*inout_state_ptr) );
+            m_builder_ptr->on_set_viewport(GLWindow::get_model_viewport(*inout_state_ptr) );
         }
     }
 }
