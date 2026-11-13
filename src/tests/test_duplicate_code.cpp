@@ -39,9 +39,8 @@ namespace
 
         return (is_source                                                        &&
                 in_relative_path.find("/tests/")              == std::string::npos &&
-                in_relative_path.find("/tests/")              == std::string::npos &&
                 in_relative_path.find("/entrypoints/")        == std::string::npos &&
-                in_relative_path.find("Hooks/OpenGL/")        == std::string::npos);
+                in_relative_path.find("/hooks/OpenGL/")       == std::string::npos);
     }
 
     std::vector<std::string> get_normalized_lines(const std::filesystem::path& in_path)
