@@ -19,6 +19,14 @@ namespace
         {Analysis::APIDumpTextures::TexturesFormat::TAG_EVNT, 1}
     };
 
+    const Analysis::APIDumpAnalysis::AnalysisFileKind FILE_KIND =
+    {
+        Analysis::APIDumpTextures::TexturesFormat::ANALYSIS_VERSION,
+        ".textures",
+        Analysis::APIDumpTextures::TexturesFormat::FILE_VERSION,
+        Analysis::APIDumpTextures::TexturesFormat::MAGIC
+    };
+
     constexpr size_t N_SECTIONS = sizeof(SECTION_INFO_ARRAY) / sizeof(SECTION_INFO_ARRAY[0]);
 }
 
@@ -57,47 +65,11 @@ bool Analysis::APIDumpTextures::TexturesFile::read_bytes(const std::vector<uint8
 
     *out_timeline_ptr = TextureTimeline();
 
-    if (in_byte_vec.size() < sizeof(TexturesFormat::FileHeader) )
+    if (Analysis::APIDumpAnalysis::SectionedFile::check_analysis_header(in_byte_vec,
+                                                                        FILE_KIND,
+                                                                        out_error_ptr) == false)
     {
-        *out_error_ptr = "The file is too short to be a .textures file";
-
         goto end;
-    }
-
-    {
-        TexturesFormat::FileHeader header;
-
-        ::memcpy(&header,
-                 in_byte_vec.data(),
-                 sizeof(header) );
-
-        if (::memcmp(header.magic_i8vec8,
-                     TexturesFormat::MAGIC,
-                     sizeof(TexturesFormat::MAGIC) ) != 0)
-        {
-            *out_error_ptr = "Not a .textures file (wrong magic)";
-
-            goto end;
-        }
-
-        if (header.version != TexturesFormat::FILE_VERSION)
-        {
-            *out_error_ptr = "Unsupported .textures file version " +
-                             std::to_string(header.version);
-
-            goto end;
-        }
-
-        if (header.analysis_version != TexturesFormat::ANALYSIS_VERSION)
-        {
-            *out_error_ptr = "The .textures file was made by another version of the analysis (" +
-                             std::to_string(header.analysis_version)                            +
-                             ", this is "                                                       +
-                             std::to_string(TexturesFormat::ANALYSIS_VERSION)                   +
-                             "): make it again";
-
-            goto end;
-        }
     }
 
     {
@@ -151,7 +123,7 @@ bool Analysis::APIDumpTextures::TexturesFile::read_bytes(const std::vector<uint8
         };
 
         result = Analysis::APIDumpAnalysis::SectionedFile::read_sections(in_byte_vec,
-                                                                         sizeof(TexturesFormat::FileHeader),
+                                                                         sizeof(Analysis::APIDumpAnalysis::AnalysisFileHeader),
                                                                          SECTION_INFO_ARRAY,
                                                                          N_SECTIONS,
                                                                          read_section_func,
@@ -186,21 +158,7 @@ end:
 
 std::vector<uint8_t> Analysis::APIDumpTextures::TexturesFile::write_bytes(const TextureTimeline& in_timeline)
 {
-    TexturesFormat::FileHeader file_header = {};
-    std::vector<uint8_t>       result_vec;
-
-    ::memcpy(file_header.magic_i8vec8,
-             TexturesFormat::MAGIC,
-             sizeof(TexturesFormat::MAGIC) );
-
-    file_header.analysis_version = TexturesFormat::ANALYSIS_VERSION;
-    file_header.version          = TexturesFormat::FILE_VERSION;
-
-    result_vec.resize(sizeof(file_header) );
-
-    ::memcpy(result_vec.data(),
-             &file_header,
-             sizeof(file_header) );
+    std::vector<uint8_t> result_vec = Analysis::APIDumpAnalysis::SectionedFile::make_analysis_header_bytes(FILE_KIND);
 
     for (const auto& section_info : SECTION_INFO_ARRAY)
     {

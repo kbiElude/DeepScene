@@ -9,6 +9,70 @@
 #include <string.h>
 #include <zstd.h>
 
+bool Analysis::APIDumpAnalysis::SectionedFile::check_analysis_header(const std::vector<uint8_t>& in_byte_vec,
+                                                                     const AnalysisFileKind&     in_kind,
+                                                                     std::string*                out_error_ptr)
+{
+    const std::string extension = in_kind.extension_ptr;
+    bool              result    = false;
+
+    if (in_byte_vec.size() < sizeof(AnalysisFileHeader) )
+    {
+        *out_error_ptr = "The file is too short to be a " +
+                         extension                        +
+                         " file";
+
+        goto end;
+    }
+
+    {
+        AnalysisFileHeader header;
+
+        ::memcpy(&header,
+                 in_byte_vec.data(),
+                 sizeof(header) );
+
+        if (::memcmp(header.magic_i8vec8,
+                     in_kind.magic_ptr,
+                     sizeof(header.magic_i8vec8) ) != 0)
+        {
+            *out_error_ptr = "Not a "             +
+                             extension            +
+                             " file (wrong magic)";
+
+            goto end;
+        }
+
+        if (header.version != in_kind.file_version)
+        {
+            *out_error_ptr = "Unsupported "                +
+                             extension                     +
+                             " file version "              +
+                             std::to_string(header.version);
+
+            goto end;
+        }
+
+        if (header.analysis_version != in_kind.analysis_version)
+        {
+            *out_error_ptr = "The "                                                +
+                             extension                                             +
+                             " file was made by another version of the analysis (" +
+                             std::to_string(header.analysis_version)               +
+                             ", this is "                                          +
+                             std::to_string(in_kind.analysis_version)              +
+                             "): make it again";
+
+            goto end;
+        }
+    }
+
+    result = true;
+
+end:
+    return result;
+}
+
 std::string Analysis::APIDumpAnalysis::SectionedFile::get_tag_name(const uint32_t& in_tag)
 {
     constexpr size_t N_BITS_PER_BYTE = 8;
@@ -23,6 +87,25 @@ std::string Analysis::APIDumpAnalysis::SectionedFile::get_tag_name(const uint32_
     }
 
     return result;
+}
+
+std::vector<uint8_t> Analysis::APIDumpAnalysis::SectionedFile::make_analysis_header_bytes(const AnalysisFileKind& in_kind)
+{
+    AnalysisFileHeader   file_header = {};
+    std::vector<uint8_t> result_vec(sizeof(file_header) );
+
+    ::memcpy(file_header.magic_i8vec8,
+             in_kind.magic_ptr,
+             sizeof(file_header.magic_i8vec8) );
+
+    file_header.analysis_version = in_kind.analysis_version;
+    file_header.version          = in_kind.file_version;
+
+    ::memcpy(result_vec.data(),
+             &file_header,
+             sizeof(file_header) );
+
+    return result_vec;
 }
 
 std::vector<uint8_t> Analysis::APIDumpAnalysis::SectionedFile::pack_section(const SectionInfo&          in_section_info,

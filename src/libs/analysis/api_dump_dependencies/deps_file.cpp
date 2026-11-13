@@ -20,6 +20,14 @@ namespace
         {Analysis::APIDumpDependencies::DepsFormat::TAG_RDEP, 1}
     };
 
+    const Analysis::APIDumpAnalysis::AnalysisFileKind FILE_KIND =
+    {
+        Analysis::APIDumpDependencies::DepsFormat::ANALYSIS_VERSION,
+        ".deps",
+        Analysis::APIDumpDependencies::DepsFormat::FILE_VERSION,
+        Analysis::APIDumpDependencies::DepsFormat::MAGIC
+    };
+
     constexpr size_t N_SECTIONS = sizeof(SECTION_INFO_ARRAY) / sizeof(SECTION_INFO_ARRAY[0]);
 }
 
@@ -53,47 +61,11 @@ bool Analysis::APIDumpDependencies::DepsFile::read_bytes(const std::vector<uint8
 
     *out_analysis_ptr = DependencyAnalysis();
 
-    if (in_byte_vec.size() < sizeof(DepsFormat::FileHeader) )
+    if (Analysis::APIDumpAnalysis::SectionedFile::check_analysis_header(in_byte_vec,
+                                                                        FILE_KIND,
+                                                                        out_error_ptr) == false)
     {
-        *out_error_ptr = "The file is too short to be a .deps file";
-
         goto end;
-    }
-
-    {
-        DepsFormat::FileHeader header;
-
-        ::memcpy(&header,
-                 in_byte_vec.data(),
-                 sizeof(header) );
-
-        if (::memcmp(header.magic_i8vec8,
-                     DepsFormat::MAGIC,
-                     sizeof(DepsFormat::MAGIC) ) != 0)
-        {
-            *out_error_ptr = "Not a .deps file (wrong magic)";
-
-            goto end;
-        }
-
-        if (header.version != DepsFormat::FILE_VERSION)
-        {
-            *out_error_ptr = "Unsupported .deps file version " +
-                             std::to_string(header.version);
-
-            goto end;
-        }
-
-        if (header.analysis_version != DepsFormat::ANALYSIS_VERSION)
-        {
-            *out_error_ptr = "The .deps file was made by another version of the analysis (" +
-                             std::to_string(header.analysis_version)                        +
-                             ", this is "                                                   +
-                             std::to_string(DepsFormat::ANALYSIS_VERSION)                   +
-                             "): make it again";
-
-            goto end;
-        }
     }
 
     {
@@ -147,7 +119,7 @@ bool Analysis::APIDumpDependencies::DepsFile::read_bytes(const std::vector<uint8
         };
 
         result = Analysis::APIDumpAnalysis::SectionedFile::read_sections(in_byte_vec,
-                                                                         sizeof(DepsFormat::FileHeader),
+                                                                         sizeof(Analysis::APIDumpAnalysis::AnalysisFileHeader),
                                                                          SECTION_INFO_ARRAY,
                                                                          N_SECTIONS,
                                                                          read_section_func,
@@ -182,22 +154,8 @@ end:
 
 std::vector<uint8_t> Analysis::APIDumpDependencies::DepsFile::write_bytes(const DependencyAnalysis& in_analysis)
 {
-    DepsFormat::FileHeader                           file_header = {};
     std::vector<std::future<std::vector<uint8_t> > > future_vec;
-    std::vector<uint8_t>                             result_vec;
-
-    ::memcpy(file_header.magic_i8vec8,
-             DepsFormat::MAGIC,
-             sizeof(DepsFormat::MAGIC) );
-
-    file_header.analysis_version = DepsFormat::ANALYSIS_VERSION;
-    file_header.version          = DepsFormat::FILE_VERSION;
-
-    result_vec.resize(sizeof(file_header) );
-
-    ::memcpy(result_vec.data(),
-             &file_header,
-             sizeof(file_header) );
+    std::vector<uint8_t>                             result_vec = Analysis::APIDumpAnalysis::SectionedFile::make_analysis_header_bytes(FILE_KIND);
 
     /* The sections are independent, and compressing them is what takes the time: they are made together, and put in order. */
     for (const auto& section_info : SECTION_INFO_ARRAY)

@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * The container of the files that the analysis makes (.passes, .deps): a header which each file has of its own, and then sections, each a
+ * The container of the files that the analysis makes (.passes, .deps, .textures): a header which each file has of its own, and then sections, each a
  * Zstandard frame of the bytes of a part of the file, with its tag, its version, its size and the hash of its bytes in front of it:
  *
  *   section := SectionHeader stored_bytes
@@ -47,6 +47,28 @@ namespace Analysis
         static_assert(sizeof(SectionHeader) == 32,
                       "Unexpected padding in a section header");
 
+        /* The header of the files whose sections say what an analysis found (.deps, .textures): what kind of file it is, the version of the layout, and the
+         * version of what the sections mean.
+         */
+        struct AnalysisFileHeader
+        {
+            char     magic_i8vec8[8];
+            uint32_t version;
+            uint32_t analysis_version;
+        };
+
+        static_assert(sizeof(AnalysisFileHeader) == 16,
+                      "Unexpected padding in the file header");
+
+        /* What a reader or a writer of a kind of file with an AnalysisFileHeader says of it. */
+        struct AnalysisFileKind
+        {
+            uint32_t    analysis_version;
+            const char* extension_ptr;    /* with the dot, for the messages: ".deps" */
+            uint32_t    file_version;
+            const char* magic_ptr;        /* sizeof(AnalysisFileHeader::magic_i8vec8) bytes */
+        };
+
         /* A section which a reader knows. The file holds them in the order they are listed in. */
         struct SectionInfo
         {
@@ -62,8 +84,16 @@ namespace Analysis
              */
             typedef std::function<bool(const uint32_t& in_tag, const std::vector<uint8_t>& in_raw_byte_vec)> SectionFunc;
 
+            /* Checks the AnalysisFileHeader at the start of the bytes against the kind of file that is expected; false, and the reason, if it is not. */
+            static bool check_analysis_header(const std::vector<uint8_t>& in_byte_vec,
+                                              const AnalysisFileKind&     in_kind,
+                                              std::string*                out_error_ptr);
+
             /* The four characters of a tag. */
             static std::string get_tag_name(const uint32_t& in_tag);
+
+            /* The bytes of the AnalysisFileHeader of a kind of file. */
+            static std::vector<uint8_t> make_analysis_header_bytes(const AnalysisFileKind& in_kind);
 
             /* The header of a section and its compressed bytes; empty if the section cannot be made. */
             static std::vector<uint8_t> pack_section(const SectionInfo&          in_section_info,

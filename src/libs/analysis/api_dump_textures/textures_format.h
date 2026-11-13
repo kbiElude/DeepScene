@@ -52,17 +52,10 @@ namespace Analysis
                 uint32_t reserved;
             };
 
-            struct FileHeader
-            {
-                char     magic_i8vec8[8];
-                uint32_t version;
-                uint32_t analysis_version;
-            };
+            typedef Analysis::APIDumpAnalysis::AnalysisFileHeader FileHeader;
 
             static_assert(sizeof(BlobFileHeader) == 16,
                           "Unexpected padding in the header of the file of blobs");
-            static_assert(sizeof(FileHeader) == 16,
-                          "Unexpected padding in the file header");
         }
     }
 }

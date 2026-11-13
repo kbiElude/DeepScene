@@ -38,15 +38,7 @@ namespace Analysis
             constexpr uint32_t TAG_RDEP = Analysis::APIDumpAnalysis::make_section_tag('R', 'D', 'E', 'P');
             constexpr uint32_t TAG_RSRC = Analysis::APIDumpAnalysis::make_section_tag('R', 'S', 'R', 'C');
 
-            struct FileHeader
-            {
-                char     magic_i8vec8[8];
-                uint32_t version;
-                uint32_t analysis_version;
-            };
-
-            static_assert(sizeof(FileHeader) == 16,
-                          "Unexpected padding in the file header");
+            typedef Analysis::APIDumpAnalysis::AnalysisFileHeader FileHeader;
         }
     }
 }
