@@ -364,6 +364,31 @@ TEST_F(StereoCoreTest, APartThatIsNearTheCameraIsHeldToTheNearestParallaxOfTheSc
     EXPECT_FLOAT_EQ(inside, core.plan_push_shift(Analysis::Recipe::Eye::LEFT, 640.0f) );
 }
 
+TEST_F(StereoCoreTest, APartIsHeldToTheLimitOfTheSceneThatWasSetAlone)
+{
+    Stereo::Core::StereoCore core(make_recipe(std::string("\"comfort\": {\"max_near_parallax\": 0.01, \"max_far_parallax\": 0.01, \"overlay_parallax\": 0.015, \"part_parallax\": 0.006, ") +
+                                              "\"scene_overrides\": [{\"shape\": \"0x00000000000000c8\", \"max_near_parallax\": 0.005}]}, "                                           +
+                                              "\"pushed\": {\"part_cover_keys\": [\"0x0000000000000005\"]}, "                                                                          +
+                                              get_baked_text(""),
+                                              get_view_rule_text() ),
+                                  Stereo::Core::FailFunc() );
+
+    core.set_convergence_distance(100.0f);
+    core.set_eye_separation(8.0f);
+    core.classify_draw(1, 5);
+
+    /* The scene of the draws is told without a frame being completed, which is how a frame whose depth was measured is told: its limit holds the part. */
+    core.set_scene_shape_key(200);
+
+    EXPECT_FLOAT_EQ(core.plan_part_shift(Analysis::Recipe::Eye::LEFT, 640.0f, -1.0f, 1.0f, true),  1.6f); /* 0.005 of 640 pixels, half to each eye */
+    EXPECT_FLOAT_EQ(core.plan_part_shift(Analysis::Recipe::Eye::RIGHT, 640.0f, -1.0f, 1.0f, true), -1.6f);
+
+    /* A scene the recipe has nothing for leaves the limit of the recipe. */
+    core.set_scene_shape_key(300);
+
+    EXPECT_FLOAT_EQ(core.plan_part_shift(Analysis::Recipe::Eye::LEFT, 640.0f, -1.0f, 1.0f, true), 3.2f);
+}
+
 TEST_F(StereoCoreTest, DrawsOfASignatureTheRecipeDoesNotKnowAreCounted)
 {
     Stereo::Core::StereoCore core(make_recipe(get_baked_text(""),

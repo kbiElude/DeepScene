@@ -465,3 +465,8 @@ void Stereo::Core::StereoCore::set_is_overlay_pushed(const bool& in_is_pushed)
 {
     m_is_overlay_pushed = in_is_pushed;
 }
+
+void Stereo::Core::StereoCore::set_scene_shape_key(const uint64_t& in_shape_key)
+{
+    m_scene_shape_key = in_shape_key;
+}

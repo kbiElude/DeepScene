@@ -206,6 +206,11 @@ namespace Stereo
              */
             void set_is_overlay_pushed(const bool& in_is_pushed);
 
+            /* The shape of the frame that was completed last, which is the scene the draws from now on are in. on_frame_completed() says it too; a frame whose depth was
+             * measured is told with on_frame_depth(), which does not, so the converter says it with this.
+             */
+            void set_scene_shape_key(const uint64_t& in_shape_key);
+
         private:
             void fail(const std::string& in_message) const;
 
