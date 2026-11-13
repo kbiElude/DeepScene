@@ -313,8 +313,9 @@ std::unique_ptr<Stereo::ConverterDLL::Converter> Stereo::ConverterDLL::Converter
 
 std::string Stereo::ConverterDLL::Converter::make_statistics_line() const
 {
-    const uint64_t n_failed_twins = m_live_state.d3d7_renderer_ptr->get_n_failed_twins();
-    const uint64_t n_twins        = m_live_state.d3d7_renderer_ptr->get_n_twins       ();
+    /* The application is of one API, so one of the two renderers has the twins. */
+    const uint64_t n_failed_twins = m_live_state.d3d7_renderer_ptr->get_n_failed_twins() + m_live_state.renderer_ptr->get_n_failed_twins();
+    const uint64_t n_twins        = m_live_state.d3d7_renderer_ptr->get_n_twins       () + m_live_state.renderer_ptr->get_n_twins       ();
     LARGE_INTEGER  frequency;
 
     ::QueryPerformanceFrequency(&frequency);

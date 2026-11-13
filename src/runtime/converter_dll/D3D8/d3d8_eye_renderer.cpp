@@ -16,9 +16,10 @@ namespace
 }
 
 Stereo::ConverterDLL::D3D8EyeRenderer::D3D8EyeRenderer(Stereo::Core::StereoCore* in_core_ptr)
-    :m_core_ptr  (in_core_ptr),
-     m_device_ptr(nullptr),
-     m_draw_class(Analysis::Recipe::DrawClass::AFFECTED)
+    :m_core_ptr      (in_core_ptr),
+     m_device_ptr    (nullptr),
+     m_draw_class    (Analysis::Recipe::DrawClass::AFFECTED),
+     m_n_failed_twins(0)
 {
     /* Stub */
 }
@@ -63,6 +64,16 @@ void* Stereo::ConverterDLL::D3D8EyeRenderer::get_back_buffer_twin_ptr(void* in_d
     }
 
     return result_ptr;
+}
+
+uint64_t Stereo::ConverterDLL::D3D8EyeRenderer::get_n_failed_twins() const
+{
+    return m_n_failed_twins;
+}
+
+uint64_t Stereo::ConverterDLL::D3D8EyeRenderer::get_n_twins() const
+{
+    return m_twin_map.size();
 }
 
 void* Stereo::ConverterDLL::D3D8EyeRenderer::get_render_target_ptr() const
@@ -179,6 +190,10 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::handle_create_texture(const APIInter
         {
             m_twin_map[texture_ptr] = twin_ptr;
         }
+        else
+        {
+            m_n_failed_twins++;
+        }
     }
 }
 
@@ -215,6 +230,10 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::handle_get_surface_level(const APIIn
         {
             m_twin_map[surface_ptr] = twin_ptr;
         }
+        else
+        {
+            m_n_failed_twins++;
+        }
     }
 }
 
@@ -243,6 +262,7 @@ void* Stereo::ConverterDLL::D3D8EyeRenderer::make_surface_twin_ptr(void* in_devi
                                                                    void* in_surface_ptr)
 {
     Interception::Hooks::D3D8::D3DSURFACE_DESC    description = {};
+    bool                                          is_twin_wanted = false;
     Interception::Hooks::D3D8::IDirect3DSurface8* twin_ptr    = nullptr;
 
     if (get_twin_ptr(in_surface_ptr) == nullptr)
@@ -253,6 +273,8 @@ void* Stereo::ConverterDLL::D3D8EyeRenderer::make_surface_twin_ptr(void* in_devi
         {
             if ((description.Usage & Interception::Hooks::D3D8::D3DUSAGE_DEPTHSTENCIL) != 0)
             {
+                is_twin_wanted = true;
+
                 APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_CREATEDEPTHSTENCILSURFACE>(in_device_ptr,
                                                                                                                           Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_CREATEDEPTHSTENCILSURFACE)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(in_device_ptr),
                                                                                                                                                                                                               description.Width,
@@ -264,6 +286,8 @@ void* Stereo::ConverterDLL::D3D8EyeRenderer::make_surface_twin_ptr(void* in_devi
             else
             if ((description.Usage & Interception::Hooks::D3D8::D3DUSAGE_RENDERTARGET) != 0)
             {
+                is_twin_wanted = true;
+
                 APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_CREATERENDERTARGET>(in_device_ptr,
                                                                                                                    Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_CREATERENDERTARGET)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(in_device_ptr),
                                                                                                                                                                                                 description.Width,
@@ -274,10 +298,20 @@ void* Stereo::ConverterDLL::D3D8EyeRenderer::make_surface_twin_ptr(void* in_devi
                                                                                                                                                                                                &twin_ptr);
             }
         }
+        else
+        {
+            /* A surface that cannot be described cannot be given a twin. */
+            is_twin_wanted = true;
+        }
 
         if (twin_ptr != nullptr)
         {
             m_twin_map[in_surface_ptr] = twin_ptr;
+        }
+        else
+        if (is_twin_wanted)
+        {
+            m_n_failed_twins++;
         }
     }
 

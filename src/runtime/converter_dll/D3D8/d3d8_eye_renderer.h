@@ -38,6 +38,10 @@ namespace Stereo
             /* The twin of the back buffer of the device, or nullptr if it has none (yet). */
             void* get_back_buffer_twin_ptr(void* in_device_ptr);
 
+            /* How many twins are made, and how many were wanted and could not be made (a render target or a depth buffer that the device would not make again). */
+            uint64_t get_n_failed_twins() const;
+            uint64_t get_n_twins       () const;
+
             /* What the application renders to now, as the renderer knows; nullptr before the device is made. */
             void* get_render_target_ptr() const;
 
@@ -94,6 +98,7 @@ namespace Stereo
             void*                                   m_device_ptr;
             Analysis::Recipe::DrawClass             m_draw_class;
             DeviceMirror                            m_mirror;
+            uint64_t                                m_n_failed_twins;
             std::map<void*, void*>                  m_twin_map;   /* the application's -> its twin */
         };
     }
