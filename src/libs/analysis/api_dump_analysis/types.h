@@ -9,12 +9,14 @@
 #ifndef APIDUMPANALYSIS_TYPES_H
 #define APIDUMPANALYSIS_TYPES_H
 
+#include "analysis/api_dump_analysis/depth_histogram.h"
 #include "capture/api_dump_loader/api_info.h"
 #include <array>
 #include <map>
 #include <memory>
 #include <stdint.h>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -275,6 +277,16 @@ namespace Analysis
         /* Which depth histogram is of which pass in which kind of frame: the number of the frame shape, and that of the pass structure. */
         typedef std::pair<uint32_t, uint32_t> DepthHistogramKey;
 
+        /* What a pass has found of how deep what it draws is: the depth of the origin of each object, the depth of the vertices (the surfaces), and how wide the
+         * picture is for the camera. See DrawMeasurer.
+         */
+        struct PassDepth
+        {
+            DepthHistogram  depth_histogram;
+            ProjectionScale projection_scale;
+            DepthHistogram  surface_depth_histogram;
+        };
+
         /* A constant as the passes are told apart by it: where it is, and what it is, not the value. The block is a key, not an
          * ID. Follows ConstantBlockKind, ConstantProvenance and ConstantSemantic.
          */
@@ -296,6 +308,18 @@ namespace Analysis
             ConstantSemantic     semantic   = ConstantSemantic::UNKNOWN;
             std::vector<uint8_t> value_u8_vec;                                  /* as the API stores it */
         };
+
+        /* Where a constant is kept, as the state of a draw has it: the kind of block, the block, and the place in it (the byte offset and the size). */
+        typedef std::tuple<ConstantBlockKind, uint32_t, uint64_t, uint64_t> ConstantStateKey;
+
+        /* The last value that a constant with a meaning was given, and the key of the block it is in as it was by then. */
+        struct ConstantState
+        {
+            uint64_t       block_key = 0;
+            ConstantUpdate update;
+        };
+
+        typedef std::map<ConstantStateKey, ConstantState> ConstantStateMap;
 
         /* Where an item is kept in the workload, instead of copying it. */
         struct DataReference
@@ -471,6 +495,20 @@ namespace Analysis
             float width     = 0.0f;
             float x         = 0.0f;
             float y         = 0.0f;
+        };
+
+        /* The matrices a draw is made with, as the constants say. */
+        struct DrawMatrices
+        {
+            bool                  has_projection   = false;
+            bool                  has_view         = false;
+            bool                  is_orthographic  = false; /* what is far is not smaller in the projection */
+            std::array<float, 16> model_f32mat     = {1.0f, 0.0f, 0.0f, 0.0f,
+                                                      0.0f, 1.0f, 0.0f, 0.0f,
+                                                      0.0f, 0.0f, 1.0f, 0.0f,
+                                                      0.0f, 0.0f, 0.0f, 1.0f};
+            std::array<float, 16> projection_f32mat = {};
+            std::array<float, 16> view_f32mat       = {};
         };
 
         /* A draw as the passes are told apart by it: the resources are their keys, and the counts are left out. Follows

@@ -136,28 +136,6 @@ namespace Analysis
                                         uint32_t*             out_pass_index_ptr);
 
         private:
-            typedef std::tuple<ConstantBlockKind, uint32_t, uint64_t, uint64_t> ConstantStateKey;
-
-            struct ConstantState
-            {
-                uint64_t       block_key = 0;
-                ConstantUpdate update;
-            };
-
-            /* The matrices a draw is made with, as the constants say. */
-            struct DrawMatrices
-            {
-                bool                  has_projection   = false;
-                bool                  has_view         = false;
-                bool                  is_orthographic  = false; /* what is far is not smaller in the projection */
-                std::array<float, 16> model_f32mat     = {1.0f, 0.0f, 0.0f, 0.0f,
-                                                          0.0f, 1.0f, 0.0f, 0.0f,
-                                                          0.0f, 0.0f, 1.0f, 0.0f,
-                                                          0.0f, 0.0f, 0.0f, 1.0f};
-                std::array<float, 16> projection_f32mat = {};
-                std::array<float, 16> view_f32mat       = {};
-            };
-
             /* A pass until it ends. */
             struct OpenPass
             {
@@ -168,14 +146,12 @@ namespace Analysis
                 bool                         clears_depth         = false;
                 bool                         clears_stencil       = false;
                 std::set<uint64_t>           covering_draw_key_set;        /* keys of the draws of the pass that cover the view */
-                DepthHistogram               depth_histogram;
+                PassDepth                    depth;
                 std::map<uint64_t, uint64_t> draw_signature_map;           /* key of the draw structure -> key of its signature */
                 bool                         has_draws            = false;
                 uint64_t                     last_draw_call_index = 0;     /* last draw, or the clear if there is none */
                 uint64_t                     n_draws              = 0;
                 uint64_t                     n_vertices           = 0;
-                ProjectionScale              projection_scale;
-                DepthHistogram               surface_depth_histogram;
                 Viewport                     viewport;
             };
 
@@ -185,11 +161,6 @@ namespace Analysis
 
             /* Of the draw in the open pass, as KeyBuilder::compute_draw_signature_key() says. */
             uint64_t compute_draw_signature_key(const DrawDescription& in_draw);
-
-            /* The first three columns of the model matrix times the view matrix (rows of four, as the matrices are kept): what a vertex needs to be given its place
-             * in the space of the camera.
-             */
-            static std::array<float, 12> compute_model_view(const DrawMatrices& in_matrices);
 
             /* Tells the sink, if there is one, of a use of a resource at this call. A resource which is NONE is no use. */
             void emit_access(const ResourceId&       in_resource_id,
@@ -203,8 +174,6 @@ namespace Analysis
             void fill_draw_structure(const DrawDescription& in_draw,
                                      const bool&            in_uses_unwritten_keys,
                                      DrawStructure*         out_structure_ptr) const;
-            /* The matrices of the draw, if its camera has depth to converge at (a view, and a perspective projection). */
-            bool find_draw_matrices(DrawMatrices* out_matrices_ptr) const;
 
             /* How much of the view a clear reaches: all of it, or what the viewport and the rectangles of the clear leave of it. */
             AccessCoverage get_clear_coverage(const ClearOperation& in_clear,
@@ -215,25 +184,6 @@ namespace Analysis
 
             void open_pass_if_needed();
             void record_draw_access (const DrawDescription& in_draw);
-
-            /* Counts the draw at the depth of the origin of its object, as the camera of the pass sees it. */
-            void record_draw_depth(const DrawDescription& in_draw);
-
-            /* Adds the draw to the facts of its structure (see DrawFacts): how it blends, whether it samples a copy of the picture, and where its vertices are. */
-            void record_draw_facts(const DrawDescription& in_draw,
-                                   const DrawFactsKey&    in_key);
-
-            /* Counts the draw by the depth of the vertices of its sample (see DrawDescription::geometry_ptr), those in front of the camera
-             * and in view, each for its share of the vertices of the draw. Returns what the vertices, as far as they were looked at, say
-             * of the view: they reach all four edges, or they do not, or there was nothing to look at.
-             */
-            ViewCoverage record_draw_surface_depth(const DrawDescription& in_draw);
-
-            /* The same, for a draw whose vertices are already in the space of the picture (see GeometrySample::is_pre_transformed): the depth of a
-             * vertex is the reciprocal of what it says, it is in view when it is in the viewport, and the draw reaches the edges of the view when its
-             * vertices reach those of the viewport. No matrix is asked.
-             */
-            ViewCoverage record_screen_depth(const DrawDescription& in_draw);
 
 
             /* True for the constants that describe the camera, which is the same for all the draws of a pass. */
@@ -253,7 +203,7 @@ namespace Analysis
             uint64_t                                  m_call_index;
             std::set<ResourceId>                      m_color_copy_target_set; /* the resources that a copy of the color of the picture was made to */
             CompletedFrame                            m_completed_frame;
-            std::map<ConstantStateKey, ConstantState> m_constant_state_map;
+            ConstantStateMap                          m_constant_state_map;
             DrawStructure                             m_draw_signature_scratch; /* for on_draw(), so that it need not allocate each time */
             DrawStructure                             m_draw_structure_scratch;
             uint64_t                                  m_frame_begin_timestamp_qpc;
