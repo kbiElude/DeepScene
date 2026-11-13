@@ -537,19 +537,20 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
                 this_ptr->m_live_state.last_projection_scale  = projection_scale;
             }
 
-            /* A debugging aid for tuning a recipe: a frame of each scene, to look at, with the key that the recipe knows it by. It is the one that ends a run of frames of the scene, so
-             * that the eyes have had the time to come to what the scene says (they follow it over a fraction of a second, by the time that goes, which a frame count only stands for in a run held to a rate) and the cuts of a frame or two are left out.
+            /* A debugging aid for tuning a recipe: a frame of each scene, to look at, with the key that the recipe knows it by. It is taken once the run of frames of the scene has lasted
+             * long enough for the eyes to have come to what the scene says (they follow it over a fraction of a second, by the time that goes, whatever the frames per second are), so that
+             * the cuts of a frame or two are left out.
              */
-            constexpr uint64_t N_FRAMES_IN_A_SCENE_TO_SETTLE = 80;
+            constexpr double N_SECONDS_IN_A_SCENE_TO_SETTLE = 1.5;
 
-            if (shape_key == this_ptr->m_live_state.scene_run_key)
+            if (shape_key != this_ptr->m_live_state.scene_run_key)
             {
-                this_ptr->m_live_state.scene_run_length++;
-            }
-            else
-            {
+                LARGE_INTEGER run_begin_qpc = {};
+
+                ::QueryPerformanceCounter(&run_begin_qpc);
+
+                this_ptr->m_live_state.scene_run_begin_qpc = run_begin_qpc.QuadPart;
                 this_ptr->m_live_state.scene_run_key       = shape_key;
-                this_ptr->m_live_state.scene_run_length    = 1;
                 this_ptr->m_live_state.scene_run_n_samples = 0;
             }
 
@@ -571,11 +572,12 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
                 ::QueryPerformanceCounter  (&now_qpc);
                 ::QueryPerformanceFrequency(&frequency);
 
+                const double n_seconds_in_run       = static_cast<double>(now_qpc.QuadPart - this_ptr->m_live_state.scene_run_begin_qpc)       / static_cast<double>(frequency.QuadPart);
                 const double n_seconds_since_sample = static_cast<double>(now_qpc.QuadPart - this_ptr->m_live_state.scene_run_last_sample_qpc) / static_cast<double>(frequency.QuadPart);
 
                 if (n_sample == 0)
                 {
-                    if (this_ptr->m_live_state.scene_run_length == N_FRAMES_IN_A_SCENE_TO_SETTLE)
+                    if (n_seconds_in_run >= N_SECONDS_IN_A_SCENE_TO_SETTLE)
                     {
                         is_sampled_now = this_ptr->m_live_state.scene_seen_set.insert(shape_key).second;
                     }
