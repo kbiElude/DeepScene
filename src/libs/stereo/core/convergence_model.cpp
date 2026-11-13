@@ -20,27 +20,12 @@ Stereo::Core::ConvergenceModel::ConvergenceModel()
 
 bool Stereo::Core::ConvergenceModel::follow_scene_convergence_distance(const float& in_target)
 {
-    /* How much of the way to the distance of the scene the distance goes in a frame, and how close is the same. */
-    constexpr float SMOOTHING_PER_FRAME = 0.05f;
-    constexpr float SNAP_FRACTION       = 0.001f;
-
     const bool result = (in_target > 0.0f);
 
     if (result)
     {
-        if (m_scene_convergence_distance > 0.0f)
-        {
-            /* Along the logarithm, as a depth is felt in proportion to itself. */
-            const float eased = ::expf(::logf(m_scene_convergence_distance)                                      +
-                               (::logf(in_target) - ::logf(m_scene_convergence_distance)) * SMOOTHING_PER_FRAME);
-
-            m_scene_convergence_distance = (::fabsf(eased - in_target) < in_target * SNAP_FRACTION) ? in_target
-                                                                                                    : eased;
-        }
-        else
-        {
-            m_scene_convergence_distance = in_target;
-        }
+        m_scene_convergence_distance = get_eased_value(m_scene_convergence_distance,
+                                                       in_target);
     }
 
     return result;
@@ -48,27 +33,9 @@ bool Stereo::Core::ConvergenceModel::follow_scene_convergence_distance(const flo
 
 void Stereo::Core::ConvergenceModel::follow_scene_max_separation(const float& in_target)
 {
-    /* The same way to the target as the distance has. */
-    constexpr float SMOOTHING_PER_FRAME = 0.05f;
-    constexpr float SNAP_FRACTION       = 0.001f;
-
-    if (in_target <= 0.0f)
-    {
-        m_scene_max_separation = 0.0f;
-    }
-    else
-    if (m_scene_max_separation > 0.0f)
-    {
-        const float eased = ::expf(::logf(m_scene_max_separation) +
-                                   (::logf(in_target) - ::logf(m_scene_max_separation)) * SMOOTHING_PER_FRAME);
-
-        m_scene_max_separation = (::fabsf(eased - in_target) < in_target * SNAP_FRACTION) ? in_target
-                                                                                          : eased;
-    }
-    else
-    {
-        m_scene_max_separation = in_target;
-    }
+    m_scene_max_separation = (in_target > 0.0f) ? get_eased_value(m_scene_max_separation,
+                                                                   in_target)
+                                                : 0.0f;
 }
 
 float Stereo::Core::ConvergenceModel::get_convergence_distance() const
@@ -79,6 +46,28 @@ float Stereo::Core::ConvergenceModel::get_convergence_distance() const
 float Stereo::Core::ConvergenceModel::get_depth_strength() const
 {
     return m_depth_strength;
+}
+
+float Stereo::Core::ConvergenceModel::get_eased_value(const float& in_current,
+                                                      const float& in_target)
+{
+    /* How much of the way to the target the value goes in a frame, and how close is the same. */
+    constexpr float SMOOTHING_PER_FRAME = 0.05f;
+    constexpr float SNAP_FRACTION       = 0.001f;
+
+    float result = in_target;
+
+    if (in_current > 0.0f)
+    {
+        /* Along the logarithm, as a depth is felt in proportion to itself. */
+        const float eased = ::expf(::logf(in_current) +
+                                   (::logf(in_target) - ::logf(in_current)) * SMOOTHING_PER_FRAME);
+
+        result = (::fabsf(eased - in_target) < in_target * SNAP_FRACTION) ? in_target
+                                                                          : eased;
+    }
+
+    return result;
 }
 
 float Stereo::Core::ConvergenceModel::get_effective_convergence_distance() const

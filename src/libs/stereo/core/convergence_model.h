@@ -60,6 +60,10 @@ namespace Stereo
             void set_draw_convergence_distance(const float& in_draw_convergence_distance);
 
         private:
+            /* The value that is eased toward the target by some of the way (along the logarithm); the target itself if the value is not above zero, or if it is near enough. */
+            static float get_eased_value(const float& in_current,
+                                         const float& in_target);
+
             float m_convergence_distance;
             float m_depth_strength;
             float m_draw_convergence_distance;
