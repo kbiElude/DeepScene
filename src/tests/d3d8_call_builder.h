@@ -71,12 +71,22 @@ namespace Tests
                                         const uint32_t&                                    in_n_vertices,
                                         const uint32_t&                                    in_start_index,
                                         const uint32_t&                                    in_n_primitives);
+        /* The indices and the vertices follow the arguments of the method, in data chunks. */
+        void     draw_indexed_primitive_up(const Interception::Hooks::D3D8::D3DPRIMITIVETYPE& in_type,
+                                           const uint32_t&                                    in_min_index,
+                                           const uint32_t&                                    in_n_vertices,
+                                           const uint32_t&                                    in_n_primitives,
+                                           const std::vector<uint8_t>&                        in_index_data_u8_vec,
+                                           const uint32_t&                                    in_index_format,
+                                           const std::vector<uint8_t>&                        in_vertex_data_u8_vec,
+                                           const uint32_t&                                    in_stride);
         void     draw_primitive        (const Interception::Hooks::D3D8::D3DPRIMITIVETYPE& in_type,
                                         const uint32_t&                                    in_start_vertex,
                                         const uint32_t&                                    in_n_primitives);
         void     draw_primitive_up     (const Interception::Hooks::D3D8::D3DPRIMITIVETYPE& in_type,
                                         const uint32_t&                                    in_n_primitives,
-                                        const uint32_t&                                    in_stride);
+                                        const uint32_t&                                    in_stride,
+                                        const std::vector<uint8_t>&                        in_vertex_data_u8_vec = std::vector<uint8_t>());
         /* The next call of a device method returns a negative HRESULT. */
         void                                    end_scene                ();
         void                                    fail_next_device_call    ();

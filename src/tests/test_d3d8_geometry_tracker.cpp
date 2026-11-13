@@ -248,7 +248,7 @@ TEST(D3D8GeometryTracker, ADrawIsSampledAgainWhenTheBufferIsWrittenAndNotBefore)
                     1.0f);
 }
 
-TEST(D3D8GeometryTracker, VerticesThatHaveNoPositionInTheSpaceOfTheModelAreNotSampled)
+TEST(D3D8GeometryTracker, TheVerticesOfAVertexShaderAreNotSampled)
 {
     Analysis::APIDumpAnalysis::Frontends::D3D8GeometryTracker tracker;
     const float                                               vertex_array[] = {1, 2, 3, 1};
@@ -263,17 +263,10 @@ TEST(D3D8GeometryTracker, VerticesThatHaveNoPositionInTheSpaceOfTheModelAreNotSa
 
     Analysis::APIDumpAnalysis::Frontends::D3D8GeometryTracker::DrawRange range;
 
+    range.fvf              = 0; /* the declaration of a vertex shader is not read */
     range.stride           = 16;
     range.vertex_buffer_id = get_id(1);
     range.vertex_count     = 1;
-
-    /* Pre-transformed, and the vertices of a vertex shader. */
-    range.fvf = FVF_XYZRHW;
-
-    EXPECT_EQ(tracker.sample(range),
-              nullptr);
-
-    range.fvf = 0;
 
     EXPECT_EQ(tracker.sample(range),
               nullptr);
@@ -412,4 +405,139 @@ TEST(D3D8GeometryTracker, AtMostAFewDozenVerticesAreLookedAtSpreadOverTheDraw)
                     0.0f);
     EXPECT_GT(sample_ptr->position_vec.back().at(0),
               static_cast<float>(N_VERTICES) * 0.9f);
+}
+
+TEST(D3D8GeometryTracker, PreTransformedVerticesAreSampledAsPixelsWithTheReciprocalOfTheirDepth)
+{
+    Analysis::APIDumpAnalysis::Frontends::D3D8GeometryTracker tracker;
+
+    /* x and y in pixels, the depth of the buffer, and the reciprocal of the depth. */
+    const float vertex_array[] = {10.0f, 20.0f, 0.5f, 0.25f,
+                                  30.0f, 40.0f, 0.5f, 0.125f};
+
+    tracker.on_create_vertex_buffer(get_id(1),
+                                    sizeof(vertex_array) );
+    write(&tracker,
+          get_id(1),
+          0,
+          vertex_array,
+          sizeof(vertex_array) );
+
+    Analysis::APIDumpAnalysis::Frontends::D3D8GeometryTracker::DrawRange range;
+
+    range.fvf              = FVF_XYZRHW;
+    range.stride           = 16;
+    range.vertex_buffer_id = get_id(1);
+    range.vertex_count     = 2;
+
+    const auto sample_ptr = tracker.sample(range);
+
+    ASSERT_NE(sample_ptr,
+              nullptr);
+    EXPECT_TRUE(sample_ptr->is_pre_transformed);
+    ASSERT_EQ  (sample_ptr->position_vec.size(),
+                2u);
+    EXPECT_EQ  (sample_ptr->position_vec.at(0).at(0),
+                10.0f);
+    EXPECT_EQ  (sample_ptr->position_vec.at(0).at(2),
+                0.25f);
+    EXPECT_EQ  (sample_ptr->position_vec.at(1).at(2),
+                0.125f);
+
+    /* A stride with no room for the four floats of the position is not a vertex of that format. */
+    range.stride = STRIDE_XYZ;
+
+    EXPECT_EQ(tracker.sample(range),
+              nullptr);
+}
+
+TEST(D3D8GeometryTracker, TheFormatsWithAPositionAreTold)
+{
+    typedef Analysis::APIDumpAnalysis::Frontends::D3D8GeometryTracker Tracker;
+
+    EXPECT_TRUE (Tracker::is_position_fvf(FVF_XYZ) );
+    EXPECT_TRUE (Tracker::is_position_fvf(FVF_XYZ_TEX1) );
+    EXPECT_TRUE (Tracker::is_position_fvf(FVF_XYZRHW) );
+    EXPECT_FALSE(Tracker::is_position_fvf(0) );
+
+    EXPECT_TRUE (Tracker::is_pre_transformed_fvf(FVF_XYZRHW) );
+    EXPECT_TRUE (Tracker::is_pre_transformed_fvf(0x044) ); /* XYZRHW and diffuse */
+    EXPECT_FALSE(Tracker::is_pre_transformed_fvf(FVF_XYZ) );
+    EXPECT_FALSE(Tracker::is_pre_transformed_fvf(0) );
+}
+
+TEST(D3D8GeometryTracker, TheVerticesOfADrawFromMemoryAreSampledWithOrWithoutIndices)
+{
+    typedef Analysis::APIDumpAnalysis::Frontends::D3D8GeometryTracker Tracker;
+
+    const float vertex_array[] = {0, 0, 0,
+                                  1, 1, 1,
+                                  2, 2, 2,
+                                  3, 3, 3};
+    const uint16_t index_array[] = {3, 1};
+
+    Tracker::MemoryRange range;
+
+    range.fvf             = FVF_XYZ;
+    range.stride          = STRIDE_XYZ;
+    range.vertex_count    = 4;
+    range.vertex_data_ptr = reinterpret_cast<const uint8_t*>(vertex_array);
+    range.vertex_n_bytes  = sizeof(vertex_array);
+
+    auto sample_ptr = Tracker::sample_memory(range);
+
+    ASSERT_NE(sample_ptr,
+              nullptr);
+    EXPECT_EQ(sample_ptr->position_vec.size(),
+              4u);
+
+    /* Two indices pick the fourth vertex and the second. */
+    range.index_data_ptr = reinterpret_cast<const uint8_t*>(index_array);
+    range.index_n_bytes  = sizeof(index_array);
+    range.index_stride   = Tracker::get_index_stride(FORMAT_INDEX16);
+    range.is_indexed     = true;
+    range.vertex_count   = 2;
+
+    sample_ptr = Tracker::sample_memory(range);
+
+    ASSERT_NE(sample_ptr,
+              nullptr);
+    ASSERT_EQ(sample_ptr->position_vec.size(),
+              2u);
+    EXPECT_EQ(sample_ptr->position_vec.at(0).at(0),
+              3.0f);
+    EXPECT_EQ(sample_ptr->position_vec.at(1).at(0),
+              1.0f);
+    EXPECT_EQ(Tracker::get_index_stride(FORMAT_INDEX16),
+              2u);
+    EXPECT_EQ(Tracker::get_index_stride(FORMAT_INDEX32),
+              4u);
+}
+
+TEST(D3D8GeometryTracker, PreTransformedVerticesOfADrawFromMemoryAreSampledAndThoseOfAVertexShaderAreNot)
+{
+    typedef Analysis::APIDumpAnalysis::Frontends::D3D8GeometryTracker Tracker;
+
+    const float vertex_array[] = {10.0f, 20.0f, 0.5f, 0.25f};
+
+    Tracker::MemoryRange range;
+
+    range.fvf             = FVF_XYZRHW;
+    range.stride          = 16;
+    range.vertex_count    = 1;
+    range.vertex_data_ptr = reinterpret_cast<const uint8_t*>(vertex_array);
+    range.vertex_n_bytes  = sizeof(vertex_array);
+
+    const auto sample_ptr = Tracker::sample_memory(range);
+
+    ASSERT_NE(sample_ptr,
+              nullptr);
+    EXPECT_TRUE(sample_ptr->is_pre_transformed);
+    EXPECT_EQ  (sample_ptr->position_vec.at(0).at(2),
+                0.25f);
+
+    range.fvf = 0;
+
+    EXPECT_EQ(Tracker::sample_memory(range),
+              nullptr);
 }

@@ -333,6 +333,29 @@ void Tests::D3D8CallBuilder::draw_indexed_primitive(const Interception::Hooks::D
                      APIInterceptor::APIFunctionArgument::create_u32(in_n_primitives)});
 }
 
+void Tests::D3D8CallBuilder::draw_indexed_primitive_up(const Interception::Hooks::D3D8::D3DPRIMITIVETYPE& in_type,
+                                                       const uint32_t&                                    in_min_index,
+                                                       const uint32_t&                                    in_n_vertices,
+                                                       const uint32_t&                                    in_n_primitives,
+                                                       const std::vector<uint8_t>&                        in_index_data_u8_vec,
+                                                       const uint32_t&                                    in_index_format,
+                                                       const std::vector<uint8_t>&                        in_vertex_data_u8_vec,
+                                                       const uint32_t&                                    in_stride)
+{
+    /* The indices and the vertices follow the arguments of the method, in data chunks. */
+    add_device_call(APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_DRAWINDEXEDPRIMITIVEUP,
+                    {APIInterceptor::APIFunctionArgument::create_u32     (in_type),
+                     APIInterceptor::APIFunctionArgument::create_u32     (in_min_index),
+                     APIInterceptor::APIFunctionArgument::create_u32     (in_n_vertices),
+                     APIInterceptor::APIFunctionArgument::create_u32     (in_n_primitives),
+                     APIInterceptor::APIFunctionArgument::create_void_ptr(nullptr),
+                     APIInterceptor::APIFunctionArgument::create_u32     (in_index_format),
+                     APIInterceptor::APIFunctionArgument::create_void_ptr(nullptr),
+                     APIInterceptor::APIFunctionArgument::create_u32     (in_stride),
+                     make_chunk_argument                                 (in_index_data_u8_vec),
+                     make_chunk_argument                                 (in_vertex_data_u8_vec)});
+}
+
 void Tests::D3D8CallBuilder::draw_primitive(const Interception::Hooks::D3D8::D3DPRIMITIVETYPE& in_type,
                                             const uint32_t&                                    in_start_vertex,
                                             const uint32_t&                                    in_n_primitives)
@@ -345,7 +368,8 @@ void Tests::D3D8CallBuilder::draw_primitive(const Interception::Hooks::D3D8::D3D
 
 void Tests::D3D8CallBuilder::draw_primitive_up(const Interception::Hooks::D3D8::D3DPRIMITIVETYPE& in_type,
                                                const uint32_t&                                    in_n_primitives,
-                                               const uint32_t&                                    in_stride)
+                                               const uint32_t&                                    in_stride,
+                                               const std::vector<uint8_t>&                        in_vertex_data_u8_vec)
 {
     /* The vertices follow the arguments of the method, in a data chunk. */
     add_device_call(APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_DRAWPRIMITIVEUP,
@@ -353,7 +377,7 @@ void Tests::D3D8CallBuilder::draw_primitive_up(const Interception::Hooks::D3D8::
                      APIInterceptor::APIFunctionArgument::create_u32     (in_n_primitives),
                      APIInterceptor::APIFunctionArgument::create_void_ptr(nullptr),
                      APIInterceptor::APIFunctionArgument::create_u32     (in_stride),
-                     make_chunk_argument                                 ({})});
+                     make_chunk_argument                                 (in_vertex_data_u8_vec)});
 }
 
 void Tests::D3D8CallBuilder::end_scene()

@@ -6,8 +6,10 @@
  * analysis of a workload, which has the time: a converter that plays an application as it runs does not keep the contents of buffers.
  *
  * A buffer is filled by the data of its unlocks, which are stored with them, at the offset that its lock said. The position of a
- * vertex is the first thing in it, for the vertex formats that have one in the space of the model (XYZ, and XYZ with blend weights);
- * the others (pre-transformed vertices, and the vertices of a vertex shader, whose declaration is not read) are not sampled.
+ * vertex is the first thing in it, for the vertex formats that have one: in the space of the model (XYZ, and XYZ with blend weights),
+ * or in pixels, with the reciprocal of the depth (pre-transformed, XYZRHW); the vertices of a vertex shader, whose declaration is not
+ * read, are not sampled. The vertices of a draw from memory of the application (DrawPrimitiveUP and DrawIndexedPrimitiveUP) come with
+ * the call, and are sampled the same way.
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_D3D8_GEOMETRY_TRACKER_H
 #define APIDUMPANALYSIS_FRONTENDS_D3D8_GEOMETRY_TRACKER_H
@@ -16,6 +18,7 @@
 #include <array>
 #include <map>
 #include <memory>
+#include <stddef.h>
 #include <stdint.h>
 #include <vector>
 
@@ -39,6 +42,20 @@ namespace Analysis
                     uint32_t                              stride            = 0;
                     uint32_t                              vertex_count      = 0; /* indices, if the draw is indexed                          */
                     Analysis::APIDumpAnalysis::ResourceId vertex_buffer_id  = Analysis::APIDumpAnalysis::ResourceId::NONE;
+                };
+
+                /* The vertices that a draw from memory of the application uses (the data comes with the call). */
+                struct MemoryRange
+                {
+                    uint32_t       fvf             = 0;       /* 0 if the vertices are those of a vertex shader */
+                    const uint8_t* index_data_ptr  = nullptr;
+                    size_t         index_n_bytes   = 0;
+                    uint32_t       index_stride    = 0;       /* 2 or 4 (see get_index_stride)                  */
+                    bool           is_indexed      = false;
+                    uint32_t       stride          = 0;
+                    uint32_t       vertex_count    = 0;       /* indices, if the draw is indexed                */
+                    const uint8_t* vertex_data_ptr = nullptr;
+                    size_t         vertex_n_bytes  = 0;
                 };
 
                 D3D8GeometryTracker();
@@ -67,6 +84,18 @@ namespace Analysis
                 /* Some of the vertices of the draw, in the space of the model; null if they cannot be told. */
                 std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> sample(const DrawRange& in_range);
 
+                /* The bytes of an index: 2 for D3DFMT_INDEX16, 4 for D3DFMT_INDEX32. */
+                static uint32_t get_index_stride(const uint32_t& in_format);
+
+                /* Whether the vertex format has a position that is sampled: in the space of the model, or in pixels (see is_pre_transformed_fvf). */
+                static bool is_position_fvf(const uint32_t& in_fvf);
+
+                /* Whether the positions are in pixels, with the reciprocal of the depth (XYZRHW): the vertices are not moved by the matrices. */
+                static bool is_pre_transformed_fvf(const uint32_t& in_fvf);
+
+                /* Some of the vertices of a draw from memory, as sample() tells them of a draw from buffers; null if they cannot be told. */
+                static std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> sample_memory(const MemoryRange& in_range);
+
             private:
                 struct Buffer
                 {
@@ -79,9 +108,6 @@ namespace Analysis
 
                 /* What a sample is of: the buffers (and the version of what is in them), and the part of them that is drawn. */
                 typedef std::array<uint64_t, 9> SampleKey;
-
-
-                static bool is_position_fvf(const uint32_t& in_fvf);
 
 
                 std::map<Analysis::APIDumpAnalysis::ResourceId, Buffer>                                   m_buffer_map;

@@ -109,6 +109,12 @@ namespace Analysis
                                                                                                  const bool&     in_is_indexed,
                                                                                                  const uint32_t& in_vertex_count);
 
+                /* The same, for a draw from the memory of the application (DrawPrimitiveUP, DrawIndexedPrimitiveUP), whose vertices and indices come with the call. */
+                std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> sample_user_pointer_geometry(const CallView& in_view,
+                                                                                                              const bool&     in_is_indexed,
+                                                                                                              const uint32_t& in_vertex_count,
+                                                                                                              const uint32_t& in_stride);
+
 
                 /* nullptr for the methods that do not create a resource. */
                 static DescribeFuncPtr get_describe_func_ptr(const APIInterceptor::APIFunction& in_function);

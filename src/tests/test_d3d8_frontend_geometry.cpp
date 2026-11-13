@@ -137,3 +137,147 @@ TEST(D3D8FrontendGeometry, WithoutWhatWasWrittenToTheBuffersADrawHasTheirZeros)
                 4.0f,
                 0.5f);
 }
+
+TEST(D3D8FrontendGeometry, PreTransformedVerticesOfABufferAreSampledByTheReciprocalOfTheirDepthAndNotMovedByAMatrix)
+{
+    constexpr uint32_t FVF_XYZRHW = 0x004;
+    constexpr uint32_t STRIDE     = 16;
+
+    Tests::D3D8Scene scene;
+
+    /* x and y in pixels, the depth of the buffer, and the reciprocal of the depth: 1, so the depth is 1. */
+    const float vertex_array[12] = {10.0f, 10.0f, 0.5f, 1.0f,
+                                    20.0f, 10.0f, 0.5f, 1.0f,
+                                    10.0f, 20.0f, 0.5f, 1.0f};
+
+    scene.get_builder().set_vertex_shader   (FVF_XYZRHW);
+    scene.get_builder().set_stream_source   (0,
+                                             scene.get_vertex_buffer(),
+                                             STRIDE);
+    scene.get_builder().lock_vertex_buffer  (scene.get_vertex_buffer(),
+                                             0,
+                                             sizeof(vertex_array) );
+    scene.get_builder().unlock_vertex_buffer(scene.get_vertex_buffer(),
+                                             get_bytes(vertex_array,
+                                                       sizeof(vertex_array) ));
+    set_camera(&scene);
+    scene.bind_back_buffer();
+    scene.get_builder().draw_primitive(Interception::Hooks::D3D8::D3DPT_TRIANGLELIST,
+                                       0,
+                                       1);
+    scene.feed();
+    scene.present();
+
+    const auto& model = scene.get_harness().get_model();
+
+    /* The camera is 4 away, which has nothing to do with it. */
+    ASSERT_EQ(model.surface_depth_histogram_map.size(),
+              1u);
+    EXPECT_NEAR(model.surface_depth_histogram_map.begin()->second.get_depth_at_fraction(0.5),
+                1.0f,
+                0.2f);
+}
+
+TEST(D3D8FrontendGeometry, TheVerticesOfADrawFromMemoryAreThoseThatCameWithTheCall)
+{
+    constexpr uint32_t FVF_XYZ = 0x002;
+    constexpr uint32_t STRIDE  = 12;
+
+    Tests::D3D8Scene scene;
+
+    /* Three vertices 6 beyond the origin of the world. */
+    const float vertex_array[9] = {0.0f, 0.0f, 6.0f,
+                                   1.0f, 0.0f, 6.0f,
+                                   0.0f, 1.0f, 6.0f};
+
+    scene.get_builder().set_vertex_shader(FVF_XYZ);
+    set_camera(&scene);
+    scene.bind_back_buffer();
+    scene.get_builder().draw_primitive_up(Interception::Hooks::D3D8::D3DPT_TRIANGLELIST,
+                                          1,
+                                          STRIDE,
+                                          get_bytes(vertex_array,
+                                                    sizeof(vertex_array) ));
+    scene.feed();
+    scene.present();
+
+    const auto& model = scene.get_harness().get_model();
+
+    /* The camera is 4 from the origin: the vertices are 10 from it. */
+    ASSERT_EQ(model.surface_depth_histogram_map.size(),
+              1u);
+    EXPECT_NEAR(model.surface_depth_histogram_map.begin()->second.get_depth_at_fraction(0.5),
+                10.0f,
+                1.0f);
+}
+
+TEST(D3D8FrontendGeometry, PreTransformedVerticesOfADrawFromMemoryAreSampledByTheReciprocalOfTheirDepth)
+{
+    constexpr uint32_t FVF_XYZRHW = 0x004;
+    constexpr uint32_t STRIDE     = 16;
+
+    Tests::D3D8Scene scene;
+
+    const float vertex_array[12] = {10.0f, 10.0f, 0.5f, 1.0f,
+                                    20.0f, 10.0f, 0.5f, 1.0f,
+                                    10.0f, 20.0f, 0.5f, 1.0f};
+
+    scene.get_builder().set_vertex_shader(FVF_XYZRHW);
+    set_camera(&scene);
+    scene.bind_back_buffer();
+    scene.get_builder().draw_primitive_up(Interception::Hooks::D3D8::D3DPT_TRIANGLELIST,
+                                          1,
+                                          STRIDE,
+                                          get_bytes(vertex_array,
+                                                    sizeof(vertex_array) ));
+    scene.feed();
+    scene.present();
+
+    const auto& model = scene.get_harness().get_model();
+
+    ASSERT_EQ(model.surface_depth_histogram_map.size(),
+              1u);
+    EXPECT_NEAR(model.surface_depth_histogram_map.begin()->second.get_depth_at_fraction(0.5),
+                1.0f,
+                0.2f);
+}
+
+TEST(D3D8FrontendGeometry, TheIndicesOfAnIndexedDrawFromMemoryPickTheVerticesThatAreSampled)
+{
+    constexpr uint32_t FORMAT_INDEX16 = 101;
+    constexpr uint32_t FVF_XYZRHW     = 0x004;
+    constexpr uint32_t STRIDE         = 16;
+
+    Tests::D3D8Scene scene;
+
+    /* The first vertex is far (the reciprocal of 1000 is small), and the indices do not use it. */
+    const float vertex_array[16] = {10.0f, 10.0f, 0.5f, 0.001f,
+                                    10.0f, 10.0f, 0.5f, 1.0f,
+                                    20.0f, 10.0f, 0.5f, 1.0f,
+                                    10.0f, 20.0f, 0.5f, 1.0f};
+    const uint16_t index_array[3] = {1, 2, 3};
+
+    scene.get_builder().set_vertex_shader(FVF_XYZRHW);
+    set_camera(&scene);
+    scene.bind_back_buffer();
+    scene.get_builder().draw_indexed_primitive_up(Interception::Hooks::D3D8::D3DPT_TRIANGLELIST,
+                                                  0,
+                                                  4,
+                                                  1,
+                                                  get_bytes(index_array,
+                                                            sizeof(index_array) ),
+                                                  FORMAT_INDEX16,
+                                                  get_bytes(vertex_array,
+                                                            sizeof(vertex_array) ),
+                                                  STRIDE);
+    scene.feed();
+    scene.present();
+
+    const auto& model = scene.get_harness().get_model();
+
+    ASSERT_EQ(model.surface_depth_histogram_map.size(),
+              1u);
+    EXPECT_NEAR(model.surface_depth_histogram_map.begin()->second.get_depth_at_fraction(0.5),
+                1.0f,
+                0.2f);
+}

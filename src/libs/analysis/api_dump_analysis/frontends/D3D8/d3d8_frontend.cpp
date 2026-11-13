@@ -611,10 +611,20 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_draw_user_pointe
         const uint32_t                                     vertex_count = get_vertex_count      (type,
                                                                                                  n_primitives);
 
-        m_builder_ptr->on_draw(m_pipeline_state.describe_user_pointer_draw(topology,
-                                                                           vertex_count,
-                                                                           in_is_indexed,
-                                                                           stride) );
+        auto description = m_pipeline_state.describe_user_pointer_draw(topology,
+                                                                       vertex_count,
+                                                                       in_is_indexed,
+                                                                       stride);
+
+        if (m_builder_ptr->wants_geometry() )
+        {
+            description.geometry_ptr = sample_user_pointer_geometry(in_view,
+                                                                    in_is_indexed,
+                                                                    description.vertex_count,
+                                                                    stride);
+        }
+
+        m_builder_ptr->on_draw(description);
     }
 }
 
@@ -1611,6 +1621,57 @@ std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDu
     if (has_stream)
     {
         result_ptr = m_geometry_tracker.sample(range);
+    }
+
+    return result_ptr;
+}
+
+std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::sample_user_pointer_geometry(const CallView& in_view,
+                                                                                                                                                 const bool&     in_is_indexed,
+                                                                                                                                                 const uint32_t& in_vertex_count,
+                                                                                                                                                 const uint32_t& in_stride)
+{
+    /* What the dumper stored with the call follows its arguments: the indices, if the draw has them, and then the vertices. DrawIndexedPrimitiveUP has the
+     * format of the indices as its seventh argument.
+     */
+    constexpr size_t INDEX_FORMAT_ARGUMENT = 6;
+
+    const size_t                             n_indices_extra = (in_is_indexed) ? 1
+                                                                               : 0;
+    const Capture::APIDumpLoader::DataChunk* indices_ptr     = (in_is_indexed) ? in_view.get_extra_chunk_ptr(0)
+                                                                               : nullptr;
+    const Capture::APIDumpLoader::DataChunk* vertices_ptr    = in_view.get_extra_chunk_ptr(n_indices_extra);
+
+    D3D8GeometryTracker::MemoryRange                                 range;
+    std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> result_ptr;
+
+    range.fvf          = m_pipeline_state.get_fvf();
+    range.is_indexed   = in_is_indexed;
+    range.stride       = in_stride;
+    range.vertex_count = in_vertex_count;
+
+    if (in_is_indexed)
+    {
+        range.index_stride = D3D8GeometryTracker::get_index_stride(in_view.get_u32(INDEX_FORMAT_ARGUMENT) );
+    }
+
+    if (indices_ptr != nullptr)
+    {
+        range.index_data_ptr = indices_ptr->data();
+        range.index_n_bytes  = indices_ptr->size();
+    }
+
+    if (vertices_ptr != nullptr)
+    {
+        range.vertex_data_ptr = vertices_ptr->data();
+        range.vertex_n_bytes  = vertices_ptr->size();
+    }
+
+    /* An indexed draw with no data of indices has no vertices to read. */
+    if (vertices_ptr != nullptr &&
+        (in_is_indexed == false || indices_ptr != nullptr) )
+    {
+        result_ptr = D3D8GeometryTracker::sample_memory(range);
     }
 
     return result_ptr;
