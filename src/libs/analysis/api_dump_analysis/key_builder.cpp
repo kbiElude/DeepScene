@@ -120,7 +120,7 @@ uint64_t Analysis::APIDumpAnalysis::KeyBuilder::compute_draw_structure_key(const
 
     hasher.add_u64(in_structure.vertex_layout_key);
 
-    /* Added for a draw that is orthographic only, so that the keys of the other draws are what they were before the draws were told apart by it. */
+    /* Only an orthographic draw adds it, so that the key of any other draw does not depend on the flag. */
     if (in_structure.is_orthographic)
     {
         hasher.add_bool(true);

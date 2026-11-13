@@ -29,7 +29,7 @@ namespace Analysis
             class D3D7GeometryTracker
             {
             public:
-                /* The vertices that a draw uses. The positions are the first three floats of each vertex. */
+                /* The vertices that a draw uses. The positions are the first three floats of each vertex, or four if it is pre-transformed. */
                 struct DrawRange
                 {
                     uint32_t        base_vertex_index = 0;       /* added to the indices                                     */

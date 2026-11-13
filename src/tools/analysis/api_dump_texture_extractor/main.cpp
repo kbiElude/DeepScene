@@ -110,7 +110,7 @@ void Analysis::APIDumpTextureExtractor::print_usage()
             "after it). The pixels that the workload carries are left where they are in it: the file says where.\n"
             "\n"
             "  -o                         The file to write (default: the workload's name with .textures)\n"
-            "  --include-render-content   Also keep what rendering made, at each snapshot point (needs a replay of the workload, which is not made yet: ends the process)\n"
+            "  --include-render-content   Also keep what rendering made, at each snapshot point (needs a replay of the workload that reads the textures back, which no program does: ends the process)\n"
             "  --max-frames N             Stop after the Nth frame (default: all of them)\n"
             "  --progress-interval        Seconds between progress lines (default: 5; 0: after every segment)\n"
             "  --stats                    Print what was found when done\n"
@@ -172,11 +172,11 @@ int Analysis::APIDumpTextureExtractor::run(int   in_argc,
         std::string                                  error;
         Analysis::APIDumpAnalysis::ExtractorExitCode exit_code = Analysis::APIDumpAnalysis::ExtractorExitCode::SUCCESS;
 
-        /* What rendering made is not in the workload: keeping it takes a replay that reads the textures back at the snapshot points, which does not exist yet. A file
+        /* What rendering made is not in the workload: keeping it takes a replay that reads the textures back at the snapshot points, which no program does. A file
          * that has none of it, from a run that was asked for it, would be taken for one that has it: so the process ends instead.
          */
         AI_ASSERT_ALWAYS(includes_render_content == false,
-                         "--include-render-content needs a replay of the workload that reads the textures back at the snapshot points, which is not implemented yet.");
+                         "--include-render-content needs a replay of the workload that reads the textures back at the snapshot points, which no program does.");
 
         if (writer.open(Analysis::APIDumpTextures::TexturesFile::get_blob_filename(in_options.output_filename),
                        &error) == false)

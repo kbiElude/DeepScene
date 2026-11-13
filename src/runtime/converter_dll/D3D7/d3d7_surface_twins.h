@@ -20,7 +20,7 @@ namespace Stereo
          * the application makes it: that is its twin, which the right eye is drawn to while the left eye is drawn to the surface. The
          * attachments of a surface (the depth buffer of a render target) are made again between the twins.
          *
-         * The surfaces are called through their virtual tables, which what is done inside the callbacks of the interceptor is not seen by
+         * The surfaces are called through their virtual tables, so what is done inside the callbacks of the interceptor is not seen by
          * anything that watches them. Not thread-safe: the caller serializes the calls.
          */
         class D3D7SurfaceTwins

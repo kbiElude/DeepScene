@@ -16,7 +16,7 @@ void Analysis::APIDumpAnalysis::Frontends::UnsupportedUse::report(const APIInter
 
     ::snprintf(message_i8vec512,
                sizeof(message_i8vec512),
-               "%s: %s. A workload that does this is not supported yet, and what the analysis finds of it would be wrong or left out.",
+               "%s: %s. A workload that does this is not supported, and what the analysis finds of it would be wrong or left out.",
                Capture::APIDumpNames::get_function_name(in_function),
                in_reason_ptr);
 

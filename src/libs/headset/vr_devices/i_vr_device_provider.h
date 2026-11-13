@@ -13,7 +13,7 @@ namespace Headset
 {
     namespace VRDevices
     {
-        /* Where the list of devices comes from: made-up devices for now, the OpenXR runtimes of the machine later. */
+        /* Where the list of devices comes from: the OpenXR runtime of the machine (OpenXRVRDeviceProvider), or made-up devices (StubVRDeviceProvider). */
         class IVrDeviceProvider
         {
         public:

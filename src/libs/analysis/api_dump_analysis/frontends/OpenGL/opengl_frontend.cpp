@@ -1175,7 +1175,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
     }
     else
     {
-        /* A call made while a list is made is kept in it, and is made when the list is called (and now, too, for GL_COMPILE_AND_EXECUTE). */
+        /* A call made while a list is made is kept in it, and is made when the list is called (and at once too, for GL_COMPILE_AND_EXECUTE). */
         const bool is_recording = (state_ptr->list_recording.list_ptr != nullptr                  &&
                                    in_call.func                       != APIInterceptor::APIFUNCTION_GL_GLENDLIST);
         const bool is_made      = (is_recording                       == false                    ||
@@ -1540,11 +1540,11 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
                     else
                     if (GlFunctionPolicy::changes_what_a_draw_writes(in_call.func) )
                     {
-                        /* Not followed yet: a frame that has only a draw that this decides could be taken for one that writes nothing, and a seek would leave it out. It
-                         * is followed when a workload needs it (the stencil, first), and not before: until then it is said, and not passed over.
+                        /* Not followed: a frame that has only a draw that this decides could be taken for one that writes nothing, and a seek would leave it out.
+                         * It is said, and not passed over.
                          */
                         report_unsupported_use(in_call.func,
-                                               "state that decides what a draw writes, or how its pixels are combined with what is there (the stencil test, the logic op, the blend equation, the winding of faces), is not followed yet (the function)",
+                                               "state that decides what a draw writes, or how its pixels are combined with what is there (the stencil test, the logic op, the blend equation, the winding of faces), is not followed (the function)",
                                                static_cast<uint64_t>(in_call.func) );
                     }
                     else

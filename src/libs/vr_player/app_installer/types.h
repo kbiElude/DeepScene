@@ -27,7 +27,7 @@ namespace VRPlayer
         /* Where an application comes from, and what the archive it comes in has to be. */
         struct InstallSpec
         {
-            std::string              install_directory;        /* absolute: where the files of the application go; it is made, and is not there yet */
+            std::string              install_directory;        /* absolute: where the files of the application go; the installer makes it; it must not exist before */
             uint64_t                 n_archive_bytes      = 0; /* what the download is; 0 if it is not known                                        */
             uint64_t                 n_unpacked_bytes_max = 0; /* what the files may take together                                                  */
             std::string              page_url;                 /* where the archive can be got by hand; shown if the download does not work         */

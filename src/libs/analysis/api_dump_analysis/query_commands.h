@@ -6,7 +6,8 @@
  * tests can use it freely.
  *
  * Commands:
- *   info       what the analysis is of, and how much it found
+ *   depth     how deep the draws of each pass are in each kind of frame: the depths below which a tenth, a half and nine tenths of them are
+ *   info      what the analysis is of, and how much it found
  *   timeline   runs of frames of one shape, in time order (paged)
  *   pipelines  frame shapes and the pass structures each is made of (paged)
  *   overlays   passes whose camera never changes, and the draws of them, and the draws with an orthographic projection: candidates for 2D overlays, as a recipe "unaffected" list (a hint only)

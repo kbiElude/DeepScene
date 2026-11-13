@@ -29,7 +29,7 @@ namespace Stereo
                 Analysis::APIDumpAnalysis::PassDepthSpread depth_spread;                /* how deep the vertices of its pass are */
                 Analysis::APIDumpAnalysis::DrawFacts       draw_facts;                  /* what the draws of its structure did (blending, sampling a copy of the picture, where they draw) */
                 uint32_t                                   frame_index      = 0;
-                bool                                       has_draw_facts   = false;    /* false if the list was made before the analysis told them */
+                bool                                       has_draw_facts   = false;    /* false if the list does not carry them */
                 std::string                                image_filename;              /* relative to the output directory; empty if nothing differs */
                 uint32_t                                   index            = 0;         /* of the candidate in the list, which says its files */
                 std::string                                live_class;

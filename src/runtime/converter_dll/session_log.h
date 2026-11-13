@@ -18,7 +18,7 @@ namespace Stereo
          * what the converter did, with the process and the recipe it is of. Any thread. Nothing is written unless the session asks for a log
          * (see SessionInfo::is_logging), except what has to be said whatever is asked: why the converter stops the application, and what
          * keeps it from showing the application. The file is kept open: opening and closing it for
-         * each line, which a program that watches files then looks at, took the application as long as a frame.
+         * each line costs the application as long as a frame, since a program that watches files looks at it each time.
          */
         class SessionLog
         {

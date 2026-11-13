@@ -1537,7 +1537,7 @@ Analysis::APIDumpAnalysis::ViewCoverage Analysis::APIDumpAnalysis::ModelBuilder:
                     }
                 }
 
-                /* No point in front of the camera is nothing to say of the view. */
+                /* With no point in front of the camera there is nothing to say of the view (the coverage stays UNKNOWN). */
                 if (x_min <= x_max)
                 {
                     result = (x_min <= -EDGE_REACH &&
@@ -1656,7 +1656,7 @@ Analysis::APIDumpAnalysis::Model Analysis::APIDumpAnalysis::ModelBuilder::take_m
 
 bool Analysis::APIDumpAnalysis::ModelBuilder::wants_geometry() const
 {
-    /* Each frame, today: a sample is at most a few dozen vertices, and the front end keeps the ones it has made. */
+    /* Every frame gets a sample (1 in FRAME_STRIDE frames): it is at most a few dozen vertices, and the front end keeps the ones it has made. */
     constexpr uint64_t FRAME_STRIDE = 1;
 
     return (m_keeps_history &&

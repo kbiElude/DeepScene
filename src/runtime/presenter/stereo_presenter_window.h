@@ -19,7 +19,7 @@ namespace Stereo
     {
         /* The window which shows what the converter of an application passes on: the newest image, as large as the window lets it
          * be with its proportions kept. Stereo images, one for each eye, are side by side. The frames come from an importer, and
-         * the window shows them through a sink (see PreviewSink), as the headset will.
+         * the window shows them through a sink (see PreviewSink), as the headset does through its own (see HeadsetSink).
          */
         class StereoPresenterWindow : public Utils::UIHost::IImGuiWindowHost
         {

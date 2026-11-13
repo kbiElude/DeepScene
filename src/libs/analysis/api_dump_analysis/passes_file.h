@@ -35,7 +35,6 @@ namespace Analysis
             static std::vector<uint8_t> write_bytes(const AnalysisResult&       in_analysis);
 
         private:
-            /* The sections this reader knows are in the order of SECTION_INFO_ARRAY, which is the order of the file. */
             static void append_bytes(const void*           in_data_ptr,
                                      const size_t&         in_n_bytes,
                                      std::vector<uint8_t>* inout_byte_vec_ptr);
@@ -50,6 +49,7 @@ namespace Analysis
             static std::vector<uint8_t> serialize_section (const uint32_t&             in_tag,
                                                            const AnalysisResult&       in_analysis);
 
+            /* The sections this reader knows are in the order of SECTION_INFO_ARRAY, which is the order of the file. */
             static const size_t      N_SECTIONS;
             static const SectionInfo SECTION_INFO_ARRAY[];
         };

@@ -25,7 +25,7 @@ namespace Stereo
             enum class ExitCode
             {
                 BAD_ARGUMENTS     = 1,
-                DIFFERENCES_FOUND = 3, /* the last way of replaying gave other images than the frames as they are */
+                DIFFERENCES_FOUND = 3, /* the last way of replaying (or the other workload) gave other images than the frames as they are */
                 REPLAY_FAILED     = 2,
                 SUCCESS           = 0
             };
@@ -45,9 +45,9 @@ namespace Stereo
                 bool                     has_history                    = false;      /* a screenshot replays the frames before it with the recipe too, as a player does, so that what carries over from frame to frame is right (slow without deps) */
                 std::string              deps_filename;                               /* the dependencies of the workload: a replay goes to the last frame leaving out the frames which nothing after it reads */
                 std::string              image_filename;                              /* the PNG file of a screenshot or a contact sheet */
-                std::string              overlay_report_filename;
+                std::string              overlay_report_filename;                     /* the list of draws that may be overlays, whose frames are replayed with each draw left out */
                 bool                     overlay_report_is_exact         = false;      /* each candidate is replayed on its own, from the start, and not with the others of its frame in one run */
-                uint32_t                 overlay_report_last_frame       = UINT32_MAX; /* the report looks at the frames of the candidates up to this one */                      /* the list of draws that may be overlays, whose frames are replayed with each draw left out */
+                uint32_t                 overlay_report_last_frame       = UINT32_MAX; /* the report looks at the frames of the candidates up to this one */
                 uint32_t                 overlay_report_shard_entries    = 40;         /* an overlay report process looks at no more candidates than this, as the memory of a process (32 bits) is used up by the replays it makes; 0: no limit */
                 std::string              overlay_report_result_filename;               /* a part of an overlay report writes what it found here, for the one that put the parts together */
                 uint32_t                 overlay_report_shard_count      = 0;          /* the parts of the report; 0: this is not one of them */

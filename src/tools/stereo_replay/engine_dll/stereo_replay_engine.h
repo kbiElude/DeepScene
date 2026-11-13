@@ -21,7 +21,7 @@ namespace Stereo
         namespace EngineDLL
         {
             /* The replay engine of the interceptor, with the frames played for the eyes of a recipe, at the pace of the dumped process, and
-             * the Direct3D 7 calls executed for two eyes.
+             * the Direct3D 7 and OpenGL calls executed for two eyes.
              */
             class StereoReplayEngine : public IReplayEngine,
                                        public IPlaybackController

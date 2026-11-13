@@ -392,14 +392,14 @@ Stereo::Core::ScreenShiftPlan Stereo::Core::StereoCore::plan_screen_shift(const 
 void Stereo::Core::StereoCore::require_fast_path(const bool&        in_is_ok,
                                                  const std::string& in_reason) const
 {
-    /* TODO: the deferred path - the calls of a pass held back until the pass is known - is what an application that fails here
-     * needs; nothing of it exists yet.
+    /* Limitation: an application that fails here would need the calls of a pass held back until the pass is known; the converter has no
+     * such deferred path.
      */
     if (in_is_ok == false)
     {
         fail(in_reason                                                                                                   +
              ". This application needs the converter to hold the calls of a pass back until it knows which pass it is, "
-             "which the converter cannot do yet");
+             "which the converter cannot do");
     }
 }
 

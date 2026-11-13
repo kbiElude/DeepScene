@@ -78,7 +78,7 @@ namespace Analysis
             Analysis::APIDumpAnalysis::DrawFacts       draw_facts;          /* of its structure, in all the passes: how it blends and where it draws */
             std::map<uint64_t, Analysis::APIDumpAnalysis::DrawFacts> draw_group_map; /* the same for each size of its draws (the cover key), where they are not all alike */
             uint64_t                                   first_frame_index    = 0;
-            bool                                       has_draw_facts       = false; /* false for an analysis made before it told them */
+            bool                                       has_draw_facts       = false; /* false for an analysis file that has no draw facts */
             bool                                       has_first_frame      = false;
             bool                                       is_replay_unaffected = false; /* what a replay does: the keys of the draw and of its pass (see RecipeApplier::is_draw_affected) */
             bool                                       is_replay_skipped    = false;

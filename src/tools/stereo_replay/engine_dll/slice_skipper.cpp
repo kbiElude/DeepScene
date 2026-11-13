@@ -310,8 +310,8 @@ bool Stereo::Replay::EngineDLL::SliceSkipper::is_list_call_skippable(const Captu
     const bool is_independent = (dependence == Analysis::APIDumpAnalysis::Frontends::GlListEyeDependence::INDEPENDENT);
 
     /* A list that touches the matrices, the projection, the viewport or the scissor box (or calls one that does, or is not defined) would leave them as it
-     * found them for the one eye and not the other, and the frames that follow would go on from what is not the state the capture had. Nothing is done for
-     * it yet, so that is told, and not left to give a picture that is wrong.
+     * found them for the one eye and not the other, and the frames that follow would go on from what is not the state the capture had. Such a list is not
+     * supported, so that is told, and not left to give a picture that is wrong.
      */
     AI_ASSERT_ALWAYS(is_found && is_independent,
                      "A display list that is related to the location of the eye (it loads or moves a matrix, makes something relative to it, sets a projection, a viewport or a scissor box, calls such a list, or is not defined) is called in a frame that the slice leaves out. Seeking over it is not implemented.");

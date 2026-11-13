@@ -3,8 +3,8 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
  * What one level of a texture holds at a point of a workload, from the events of a .textures file: the events that write it are laid over each other in the order
- * of the calls, and what is left visible of each is a piece. A write that gives the level another size or format than it had starts the level again, as a
- * glTexImage2D does.
+ * of the calls, and what is left visible of each is a piece. A write that gives the level another size or format than it had starts the level again, as
+ * specifying the level anew does.
  */
 #ifndef APIDUMPTEXTURES_TEXTURE_LEVEL_CONTENT_H
 #define APIDUMPTEXTURES_TEXTURE_LEVEL_CONTENT_H

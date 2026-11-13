@@ -12,7 +12,7 @@ namespace Stereo
 {
     namespace ConverterDLL
     {
-        /* The functions of OpenGL that opengl32.dll does not export (framebuffers, the active texture unit), found through the context that is current. */
+        /* The functions of OpenGL that opengl32.dll does not export (framebuffers, buffers, the active texture unit), found through the context that is current. */
         struct GlExtensionFunctions
         {
             typedef void (APIENTRY* ActiveTextureFunc)        (GLenum in_texture);

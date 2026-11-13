@@ -78,7 +78,7 @@ namespace Stereo
 
             /* How deep the passes of a frame were (the depth buffer was read before each of them was cleared, and at the end of the frame), and the x scale of the projection of
              * the last of them: of the frame that ended, or of the one before (see get_depth_lag()); false if the recipe does not have the depth measured (see
-             * Comfort::measures_depth), or nothing in the frame says it. Starts again. */
+             * Comfort::measures_depth), or nothing in the frame says it. A frame's depth is given once. */
             bool take_frame_depth(Stereo::Core::DepthRange* out_depth_range_ptr,
                                   float*                    out_projection_scale_ptr);
 

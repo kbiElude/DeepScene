@@ -5,7 +5,7 @@
  * Layout of a .deps file: what the frames of a workload do with what the frames before them left in the resources of it, written once so that
  * it can be asked about as often as needed. Integers are little-endian.
  *
- *   file := FileHeader section*          (the sections are those of SectionedFile, in this order, once each)
+ *   file := FileHeader section*          (an AnalysisFileHeader: magic, file version, analysis version; the sections are those of SectionedFile, in this order, once each)
  *
  *   META  the workload (its name, its size and the hashes of its start, middle and end), how it was read, and what the calls were of
  *   RSRC  the resources, as in a .passes file (see PassesSerializer::serialize_resources)
@@ -14,7 +14,7 @@
  *         use each and the rectangles that the frame which wrote it wrote (when the resource is one that every write said where it landed in), and
  *         then the rectangle that holds all of those, if there is one
  *
- * Workload data is not stored. analysis_version is the version of what the sections mean (see DependencyAnalyzer): bump it whenever a file made
+ * Workload data is not stored. ANALYSIS_VERSION is the version of what the sections mean (see DependencyAnalyzer): bump it whenever a file made
  * from the same workload would come out different.
  */
 #ifndef APIDUMPDEPENDENCIES_DEPS_FORMAT_H

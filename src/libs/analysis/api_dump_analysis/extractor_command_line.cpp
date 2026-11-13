@@ -30,7 +30,7 @@ bool Analysis::APIDumpAnalysis::ExtractorCommandLine::parse(const int&          
                                                             ExtractorOptions*        out_options_ptr,
                                                             std::string*             out_error_ptr)
 {
-    /* More threads than this would only wait for the memory: reading is a matter of how much is moved. */
+    /* More threads than the default would only wait for the memory (reading is a matter of how much is moved); the maximum is what --threads accepts. */
     constexpr uint32_t DEFAULT_MAX_N_THREADS = 8;
     constexpr uint64_t MAX_N_THREADS         = 64;
 

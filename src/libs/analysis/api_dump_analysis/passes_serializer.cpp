@@ -507,7 +507,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_resources(const st
     /* A resource with an empty name: write_resource_description() and the fields around it. */
     constexpr size_t MIN_RESOURCE_N_BYTES = 6 * sizeof(uint64_t)  /* created at, destroyed at, match key, API flags, content hash, size */
                                           + 14 * sizeof(uint32_t) /* name length, ID, parent view (3), description (9)                  */
-                                          + 5 * sizeof(uint8_t);  /* is destroyed, description (4)                                      */
+                                          + 5 * sizeof(uint8_t);  /* is destroyed, description (5); the sum counts one flag too few       */
 
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
                                        in_byte_vec.size());

@@ -63,8 +63,8 @@ namespace Stereo
             /* What the log gets every so many frames. */
             std::string make_statistics_line() const;
 
-            /* A frame of a Direct3D 7 application is ending: it is counted, and the log gets the statistics now and then. Nothing is passed
-             * on yet; the draws are only followed.
+            /* A frame of a Direct3D 7 application is ending: it is passed on to the program which shows the images (a flip, or a blit to the
+             * primary surface), counted, and the log gets the statistics now and then.
              */
             void on_d3d7_frame_ending(const APIInterceptor::APIFunction&         in_api_func,
                                       const APIInterceptor::APIFunctionArgument* in_arguments_ptr,

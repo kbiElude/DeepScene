@@ -47,7 +47,7 @@ namespace Analysis
             COLOR_ATTACHMENT,
             DEPTH_STENCIL_ATTACHMENT,
             INDEX_INPUT,
-            SAMPLED,                  /* read by a shader, or by the fixed-function pipeline as a texture */
+            SAMPLED,                  /* read by a shader, or as a texture by an API that has no shaders */
             SHADER_CODE,
             TRANSFER_DESTINATION,
             TRANSFER_SOURCE,
@@ -60,7 +60,7 @@ namespace Analysis
         {
             BUFFER,               /* a buffer resource (a uniform or constant buffer)                                      */
             DEFAULT_UNIFORMS,     /* loose constants of a shader or program: constant registers, the default uniform block */
-            FIXED_FUNCTION_STATE, /* state of the fixed-function pipeline (transforms, lights, materials)                  */
+            FIXED_FUNCTION_STATE, /* state the API keeps outside any shader (transforms, lights, materials)                 */
             PUSH_CONSTANTS
         };
 
@@ -140,7 +140,6 @@ namespace Analysis
             LIGHTEST
         };
 
-        /* How the frames of a workload use a resource (see ResourceAccess). */
         /* What an application does that depends on the size of what it renders to in pixels, so that it cannot be made to render larger
          * than it asks without noticing: the calls are counted when a workload is analyzed (see WorkloadSummary).
          */
@@ -156,11 +155,12 @@ namespace Analysis
             SHADER_CREATIONS,       /* shaders, whose constants may hold the size of the screen    */
             SIZE_QUERIES,           /* the application asks how large the viewport or a surface is */
 
-            /* The kinds below were added after the kinds above were stored in files (by number): they stay at the end. */
+            /* The values are stored in files by number, so the kinds below stay at the end. */
             RASTER_OPERATIONS,                /* pixels or bitmaps that are drawn at places in pixels, or zoomed       */
             TEXTURE_UPLOADS_TO_RENDER_TARGETS /* pixels given to a texture that is the size of what it renders to     */
         };
 
+        /* How the frames of a workload use a resource (see ResourceAccess). */
         enum class ResourceAccessClass
         {
             FRAME_LOCAL,  /* written before each read, in every frame: a frame can be played twice                 */
@@ -246,8 +246,8 @@ namespace Analysis
             uint32_t             stencil                = 0;
         };
 
-        /* A range of bytes in a block of constants. Blocks which are not backed by memory the application can see (fixed-function
-         * state, constant registers) have a layout which the front end defines. Follows ConstantBlockKind and ResourceId.
+        /* A range of bytes in a block of constants. Blocks which are not backed by memory the application can see (state kept outside
+         * shaders, constant registers) have a layout which the front end defines. Follows ConstantBlockKind and ResourceId.
          */
         struct ConstantLocation
         {
@@ -262,7 +262,6 @@ namespace Analysis
          */
         typedef std::pair<uint32_t, uint32_t> ConstantSeriesKey;
 
-        /* Which depth histogram is of which pass in which kind of frame: the number of the frame shape, and that of the pass structure. */
         /* How wide the picture is for a camera: the x scale of the perspective projection of the draws (1 over the tangent of half the angle of view of the
          * width of the picture), as a mean of those of the draws of a pass in a kind of frame, weighted by their vertices. The projection that a pass is seen
          * through can change from frame to frame (a zoom), and the first one it is seen with is no more than that.
@@ -273,6 +272,7 @@ namespace Analysis
             uint64_t weight = 0;
         };
 
+        /* Which depth histogram is of which pass in which kind of frame: the number of the frame shape, and that of the pass structure. */
         typedef std::pair<uint32_t, uint32_t> DepthHistogramKey;
 
         /* A constant as the passes are told apart by it: where it is, and what it is, not the value. The block is a key, not an
@@ -454,7 +454,7 @@ namespace Analysis
             PrimitiveTopology                     primitive_topology      = PrimitiveTopology::UNKNOWN;
             bool                                  reads_color_attachments = false;                     /* blending: the existing color is an input      */
             bool                                  reads_depth_stencil     = false;                     /* depth or stencil test on                      */
-            std::vector<ResourceId>               shader_id_vec;                                       /* empty: the fixed-function pipeline           */
+            std::vector<ResourceId>               shader_id_vec;                                       /* empty: the draw uses no shader               */
             uint64_t                              state_key               = 0;                         /* of all the state which the draw needs        */
             std::vector<TextureBinding>           texture_binding_vec;
             std::vector<ResourceId>               vertex_buffer_id_vec;
@@ -490,15 +490,15 @@ namespace Analysis
             uint64_t                       vertex_layout_key       = 0;
         };
 
-        /* What the draws of one structure did, in all the passes they were made in: what tells an overlay that has content of its own from one that
-         * works on the picture below it. The footprint is in the units of the picture (the edges are at -1 and 1) and is that of the vertices that
-         * were sampled; the view depth is the z of a vertex in the space of the camera (for an orthographic projection, which layer it is on).
-         */
         /* The key of the structure of a draw, and the key that tells the draws of a signature apart by their size (KeyBuilder::compute_draw_cover_key): the quads of a
          * text and of a backdrop have one structure and are not one kind of draw.
          */
         typedef std::pair<uint64_t, uint64_t> DrawFactsKey;
 
+        /* What the draws of one structure did, in all the passes they were made in: what tells an overlay that has content of its own from one that
+         * works on the picture below it. The footprint is in the units of the picture (the edges are at -1 and 1) and is that of the vertices that
+         * were sampled; the view depth is the z of a vertex in the space of the camera (for an orthographic projection, which layer it is on).
+         */
         struct DrawFacts
         {
             float    area_fraction_max              = 0.0f; /* the most of the picture that the box around the vertices of one draw covers (1: all of it) */
@@ -684,7 +684,7 @@ namespace Analysis
         struct WorkloadSummary
         {
             uint64_t                                             first_timestamp_qpc = 0;
-            bool                                                 is_truncated        = false; /* the workload ends in the middle of a segment */
+            bool                                                 is_truncated        = false; /* the workload ends in the middle of a segment and the analysis went to its end; not set when it stopped at the frame limit */
             uint64_t                                             last_timestamp_qpc  = 0;
             uint64_t                                             n_calls             = 0;
             std::map<Capture::APIDumpLoader::APIGroup, uint64_t> n_calls_by_group_map;

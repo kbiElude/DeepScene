@@ -27,7 +27,7 @@ namespace Analysis
             /* The histograms that the model keeps in a member: for how deep the draws are, and for how deep their surfaces are. */
             typedef std::map<DepthHistogramKey, DepthHistogram> Model::* DepthHistogramMapMember;
 
-            /* The sets of keys of draw structures that the model keeps by pass: for the draws that cover the view, and for those with an orthographic projection. */
+            /* The sets of keys of draws that the model keeps by pass structure: for the draws that cover the view. */
             typedef std::map<uint32_t, std::set<uint64_t> > Model::* DrawKeyMapMember;
 
             static bool                 deserialize_depths         (const std::vector<uint8_t>&    in_byte_vec,

@@ -228,7 +228,7 @@ Stereo::Core::DepthRange Stereo::ConverterDLL::GlEyeRenderer::measure_depths(con
                                                                              const float*  in_depth_ptr,
                                                                              const size_t& in_n_depths)
 {
-    /* A depth buffer that is read whole (the copy of it could not be made) is looked at every few pixels; the copy is small enough to be looked at whole. */
+    /* A depth buffer that is read whole (the copy of it could not be made) is looked at every fourth pixel; the copy is small enough to be looked at whole. */
     constexpr size_t N_DEPTHS_LOOKED_AT_WHOLE = 100000;
     constexpr size_t N_PIXELS_BETWEEN_SAMPLES = 4;
 

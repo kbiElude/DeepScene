@@ -180,7 +180,7 @@ bool Analysis::RecipeBake::RecipeBaker::compute_conditional_rules(const Analysis
      */
     const std::string deferred_text = ". This application needs the converter to hold the draws "
                                       "of a pass back until it knows which pass it is, which the "
-                                      "converter cannot do yet";
+                                      "converter cannot do";
 
     std::map<ClassKey, MatrixVector> matrix_vec_by_class;
     bool                             result              = false;

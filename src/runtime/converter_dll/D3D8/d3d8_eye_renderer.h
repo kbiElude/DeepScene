@@ -22,7 +22,7 @@ namespace Stereo
         /* Renders the second eye of a Direct3D 8 application. The eye whose images the application draws, by its own calls, is the left;
          * the right is drawn by the renderer, each time after the left: every render target, depth buffer and texture the application
          * renders to has a twin, made when the application makes it, and a draw (or a clear, or a copy) that the application makes is
-         * made again with the twins in place of what the application has set. The device is called through its virtual table, which what
+         * made again with the twins in place of what the application has set. The device is called through its virtual table, so what
          * is done inside the callbacks of the interceptor is not seen by anything that watches the device.
          *
          * What the application does that the renderer cannot follow (it locks a render target, it resets the device, it renders to a

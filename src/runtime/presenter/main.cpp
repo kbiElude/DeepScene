@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
  * Shows the images which the stereo converter of an application passes on (see command_line.cpp for the arguments). It is a
- * 64-bit program whichever the architecture of the application is, since it is what will talk to the VR runtime.
+ * 64-bit program whichever the architecture of the application is, since it is what talks to the VR runtime.
  */
 #include "stereo/session/session_environment.h"
 #include "stereo/transport/frame_channel.h"
@@ -69,7 +69,7 @@ int WINAPI WinMain(HINSTANCE in_instance,
 
     Utils::UIHost::IImGuiWindowHost::enable_dpi_awareness();
 
-    /* Direct3D 8 applications pass their images by the memory of the channel: it is what the importer takes. */
+    /* The converters (Direct3D 7, Direct3D 8, OpenGL) pass their images by the memory of the channel: it is what the importer takes. */
     {
         std::unique_ptr<Stereo::Transport::IFrameImporter> importer_ptr(new Stereo::Transport::HostMemoryImporter(std::move(channel_ptr) ));
 
@@ -87,8 +87,8 @@ int WINAPI WinMain(HINSTANCE in_instance,
         goto end;
     }
 
-    /* The headset, if it is asked for and there is one: what cannot be done is said in the log of the session, and the window shows the
-     * images as it always does.
+    /* The headset, if it is asked for and there is one: what cannot be done is said in the log of the session, and the window goes on
+     * previewing the images. With a headset the window hands the frames to it and no longer previews them.
      */
     if (options.use_headset)
     {

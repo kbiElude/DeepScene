@@ -335,7 +335,7 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_app(const Utils::Json::JsonValue
         }
 
         /* What the catalog says of an application whose recipe is there: it cannot be started from the player (for a kind of application that the converter inside it does not
-         * convert yet, whose recipe is for the replay tools).
+         * convert, whose recipe is for the replay tools).
          */
         if (is_parsed)
         {

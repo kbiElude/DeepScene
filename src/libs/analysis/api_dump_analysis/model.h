@@ -32,7 +32,7 @@ namespace Analysis
              */
             std::map<DepthHistogramKey, DepthHistogram> depth_histogram_map;
 
-            /* What the draws of each kind did (see DrawFacts), by the key of their structure and of their size. A file made before the analysis told it has none. */
+            /* What the draws of each kind did (see DrawFacts), by the key of their structure and of their size. Empty if the analysis did not tell them. */
             std::map<DrawFactsKey, DrawFacts> draw_facts_map;
 
             /* Draw structures by key. */

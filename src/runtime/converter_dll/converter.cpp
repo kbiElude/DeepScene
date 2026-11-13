@@ -35,8 +35,8 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
     m_live_state.core_ptr.reset(new Stereo::Core::StereoCore(in_recipe,
                                                              write_failure_func) );
 
-    /* The calls that the front end of Direct3D 8 follows, before and after. A frame is passed on before the present, since what the
-     * back buffer holds after a present is not defined.
+    /* The calls that the feeder follows (Direct3D 7, Direct3D 8 and OpenGL), before and after. A Direct3D 8 frame is passed on before
+     * the present, since what the back buffer holds after a present is not defined.
      */
     for (uint32_t n_api_func = 0;
                   n_api_func < APIInterceptor::APIFUNCTION_COUNT;
@@ -44,9 +44,6 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
     {
         const auto function = static_cast<APIInterceptor::APIFunction>(n_api_func);
 
-        /* The rest of the converter (the eye renderer, the scaler, the exporter) is for Direct3D 8: of the calls of Direct3D 7 it only
-         * follows what the application does (see on_d3d7_pre()), until the ones of Direct3D 7 are made.
-         */
         if (CallFeeder::is_followed(function) )
         {
             APIInterceptor::register_for_post_callback(function,
@@ -605,7 +602,7 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
             }
         }
 
-        /* The eye renderer is for Direct3D 8; the calls of Direct3D 7 and of OpenGL are only followed. */
+        /* Each API has its own eye renderer, which follows the calls after they are made. */
         const auto api_group = Capture::APIDumpLoader::get_api_group(in_api_func);
 
         if (api_group == Capture::APIDumpLoader::APIGroup::D3D8)

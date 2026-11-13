@@ -92,7 +92,6 @@ namespace Stereo
             float    z_shift = 0.0f;
         };
 
-        /* How the x of the vertices are moved. */
         /* A rectangle of pixels: where its top left corner is, and how large it is. */
         struct PixelRect
         {
@@ -102,6 +101,7 @@ namespace Stereo
             uint32_t y      = 0;
         };
 
+        /* How the x of the vertices of a draw are moved. */
         enum class ScreenShiftKind
         {
             NONE,       /* as they are                                                              */

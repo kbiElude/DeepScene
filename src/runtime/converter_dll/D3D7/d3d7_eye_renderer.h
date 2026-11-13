@@ -28,11 +28,12 @@ namespace Stereo
          * surface the application renders to has a twin (see D3D7SurfaceTwins), and a draw (or a clear) that the application makes is made
          * again with the twin of what it renders to, and of the textures it sets, in the device, with the vertices moved for the eye. A draw
          * that the core says is to be moved is not made as the application makes it for the left eye either, but by the renderer, with a copy
-         * of its vertices that is moved. The device is called through its virtual table, which what is done inside the callbacks of the
+         * of its vertices that is moved. The device is called through its virtual table, so what is done inside the callbacks of the
          * interceptor is not seen by anything that watches the device.
          *
-         * What the application does that the renderer cannot follow (it draws with vertex buffers, it copies to a surface which has a twin)
-         * is counted, and what the right eye shows is then wrong.
+         * What the application does that the renderer cannot follow (a draw from a vertex buffer that cannot be read, a copy or a load to a
+         * surface which has a twin that cannot be repeated, a draw to a surface without a twin) is counted and noted, and what the right eye
+         * shows is then wrong.
          *
          * Not thread-safe: the caller serializes the calls, and the device is the one thread's.
          */

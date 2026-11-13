@@ -15,7 +15,7 @@
 namespace VRPlayer
 {
     /* The window of the VR player: the applications which can be played in VR, the device to play them on, and the button which
-     * starts the application with the converter in it. The distance between the eyes is passed on, while the application plays too; the device is not yet.
+     * starts the application with the converter in it. The distance between the eyes is passed on while the application plays; the device is chosen before it starts.
      */
     class VrPlayerWindow : public Utils::UIHost::IImGuiWindowHost
     {
@@ -57,7 +57,7 @@ namespace VRPlayer
         bool                                 m_is_status_error;
         bool                                 m_is_styled;
         bool                                 m_pace_to_headset;  /* no control: on */
-        int                                  m_overlay_app;      /* the application m_push_overlay was set for; -1 if none yet */
+        int                                  m_overlay_app;      /* the application m_push_overlay was set for; -1 if there is none */
         bool                                 m_push_overlay;     /* the draws that the recipe leaves alone are pushed toward the viewer */
         bool                                 m_write_log;        /* no control: off, unless the program was started with --log */
         int                                  m_quality_index;    /* in the qualities: how many of the pixels of the headset are rendered */

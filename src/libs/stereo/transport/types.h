@@ -12,8 +12,8 @@ namespace Stereo
     namespace Transport
     {
         /* How the pixels of an image get from the application to the program which shows them. A kind is a bit, so that what a side can
-         * do is a mask (see FrameChannel::get_negotiated_kind()). More kinds will come with the APIs which can share a texture or a heap
-         * with the GPU of the program which shows the images; the kinds are in the order of how much they save, the last being the best.
+         * do is a mask (see FrameChannel::get_negotiated_kind()). The kinds are in the order of how much they save, the last being the
+         * best (a kind that shares a texture or a heap with the GPU of the program which shows the images would come after host memory).
          */
         enum class TransportKind : uint32_t
         {

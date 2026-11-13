@@ -22,7 +22,7 @@ void Stereo::ConverterDLL::FramePasser::on_present(void* in_device_ptr,
                                                    void* in_left_surface_ptr,
                                                    void* in_right_surface_ptr)
 {
-    /* The host shows about this many images in a second; copying more would only slow the application down. */
+    /* The host shows less than one image per this many milliseconds; copying more often would only slow the application down. */
     constexpr int64_t MIN_COPY_INTERVAL_N_MILLISECONDS = 8;
     constexpr double  REPORT_PERIOD_N_MILLISECONDS     = 1000.0;
 

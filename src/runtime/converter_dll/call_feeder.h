@@ -19,7 +19,7 @@ namespace Stereo
     namespace ConverterDLL
     {
         /* Gives the analysis (see AnalysisSession, without history) the calls of the application as they are made, in the form of a dump:
-         * what the front end of Direct3D 8 follows of the device is then what the offline analysis followed, and a draw has the same
+         * what the front end of the API follows of the device is then what the offline analysis followed, and a draw has the same
          * signature (see KeyBuilder::compute_draw_signature_key) here as in the analysis a recipe was baked from.
          *
          * A call has its results only when it is done, so it is analysed then. A draw has none, and its signature is needed before it is

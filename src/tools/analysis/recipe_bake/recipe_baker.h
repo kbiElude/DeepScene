@@ -12,7 +12,7 @@
  * passes of one class only, and a rule per signature says it. Where passes of different classes draw the same signature (an
  * overlay drawn with the shaders of the scene, say), the view matrix of the passes tells them apart, if the matrices of the
  * classes are never the same; if they are, or there is none, baking fails: that application needs the converter to hold the draws
- * of a pass back until it knows which pass it is, which does not exist yet.
+ * of a pass back until it knows which pass it is, which the converter does not do.
  *
  * It also works out the distance at which the eyes are to converge for each signature that is affected (see
  * Recipe::convergence_vec): the median, by vertices, of how deep the draws of the passes that draw it are in the space of the

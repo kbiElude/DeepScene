@@ -22,6 +22,7 @@
  *   SERI  time series of the camera constants
  *   DEPT  how deep the draws of each pass structure are (see DepthHistogram)
  *   SURF  how deep the surfaces that the draws of each pass structure draw are (the same, by vertices)
+ *   PROJ  how wide the picture is for each pass of each kind of frame (see ProjectionScale)
  *   COVR  the keys of the draws that cover the whole of the view (a signature and a size)
  *   FACT  what the draws of each structure did: blending, sampling a copy of the picture, where their vertices are (see DrawFacts)
  *
@@ -71,19 +72,17 @@ namespace Analysis
              * from the camera, which the convergence of a recipe is taken from. */
             constexpr uint32_t TAG_DEPT = make_tag('D', 'E', 'P', 'T');
 
-            /* How deep the surfaces of the draws are: the same as DEPT, from the vertices of the draws and not the origins of their objects. A file
-             * without it was made when the analysis did not read vertices. */
+            /* How deep the surfaces of the draws are: the same as DEPT, from the vertices of the draws and not the origins of their objects. */
             constexpr uint32_t TAG_SURF = make_tag('S', 'U', 'R', 'F');
 
             /* How wide the picture is: for each pass of each kind of frame, the mean x scale of the perspective projection of its draws, weighted by their vertices (see
-             * ProjectionScale). A file without it was made before the analysis told it. */
+             * ProjectionScale). */
             constexpr uint32_t TAG_PROJ = make_tag('P', 'R', 'O', 'J');
 
-            /* The keys of the draws that cover the whole of the view (see Model::covering_draw_key_set). A file without it was made
-             * before the analysis told them. */
+            /* The keys of the draws that cover the whole of the view (see Model::covering_draw_key_map). */
             constexpr uint32_t TAG_COVR = make_tag('C', 'O', 'V', 'R');
 
-            /* What the draws of each structure did (see DrawFacts). A file without it was made before the analysis told it. */
+            /* What the draws of each structure did (see DrawFacts). */
             constexpr uint32_t TAG_FACT = make_tag('F', 'A', 'C', 'T');
 
             /* The draw structures: what each kind of draw is (its shaders, vertex layout and buffers, textures, state, and the views

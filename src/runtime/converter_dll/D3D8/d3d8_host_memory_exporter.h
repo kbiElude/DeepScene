@@ -24,8 +24,8 @@ namespace Stereo
         /* Passes the images of the eyes of a Direct3D 8 device on by the memory of the channel, which is all that Direct3D 8 can: it cannot
          * share a surface with the GPU of another program. Each surface is copied to one in system memory, which the exporter keeps from
          * frame to frame; the rows of that are copied to the channel by a thread of its own (and the rows of the right eye by another, at
-         * the same time), while the application goes on with the next frame. The device is called through its virtual table, as the application does, so what the exporter itself calls is not seen by
-         * anything which watches the device, and only from the thread of the application.
+         * the same time), while the application goes on with the next frame. The device is called through its virtual table, so what the
+         * exporter itself calls is not seen by anything which watches the device; it is called only from the thread of the application.
          *
          * There are two sets of surfaces: the thread copies from the one of the frame before while the next frame is read into the other.
          * The application waits for the thread to be through with the frame before only when it has the next one to hand over, so that the

@@ -44,21 +44,21 @@ namespace Analysis
             void begin_call(const uint64_t& in_call_index,
                             const uint64_t& in_timestamp_qpc);
 
-            /* The keys of each draw that the call now told made, in order: a call of a display list can make several, or none (a list that sets state). Empty until the call makes
+            /* The keys of each draw that the current call made, in order: a call of a display list can make several, or none (a list that sets state). Empty until the call makes
              * one; begin_call() empties it.
              */
             const std::vector<DrawKeys>& get_call_draw_key_vec() const;
 
-            /* The number of the call that the events now told are of (the one that begin_call() was given last). */
+            /* The number of the call that the events told are of (the one that begin_call() was given last). */
             uint64_t get_call_index() const;
 
             /* The frame completed by the last on_frame_presented(); empty before the first. */
             const CompletedFrame& get_completed_frame() const;
 
-            /* The signature (see KeyBuilder::compute_draw_signature_key) of the last draw; 0 before the first. */
-            /* The key of the last draw by its signature and size (see KeyBuilder::compute_draw_cover_key()). */
+            /* The key of the last draw by its signature and size (see KeyBuilder::compute_draw_cover_key()); 0 before the first. */
             uint64_t get_last_draw_cover_key() const;
 
+            /* The signature (see KeyBuilder::compute_draw_signature_key) of the last draw; 0 before the first. */
             uint64_t get_last_draw_signature_key() const;
 
             const Model& get_model() const;
@@ -224,10 +224,8 @@ namespace Analysis
                                    const DrawFactsKey&    in_key);
 
             /* Counts the draw by the depth of the vertices of its sample (see DrawDescription::geometry_ptr), those in front of the camera
-             * and in view, each for its share of the vertices of the draw.
-             */
-            /* What the vertices of the draw, as far as they were looked at, say of the view: they reach all four edges, or they do not, or
-             * there was nothing to look at.
+             * and in view, each for its share of the vertices of the draw. Returns what the vertices, as far as they were looked at, say
+             * of the view: they reach all four edges, or they do not, or there was nothing to look at.
              */
             ViewCoverage record_draw_surface_depth(const DrawDescription& in_draw);
 

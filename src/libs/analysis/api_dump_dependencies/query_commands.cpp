@@ -843,7 +843,7 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_slice(const Depend
         inout_writer_ptr->write_u64(n_dead);
     }
 
-    /* Runs of dead frames, the longest ones first would be a sort; in the order of the frames, paged, is what a person can look through. */
+    /* Runs of dead frames, in the order of the frames and paged, so that a person can look through them. */
     {
         std::vector<FrameRange> dead_run_vec;
 

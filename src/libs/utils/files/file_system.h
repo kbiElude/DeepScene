@@ -11,7 +11,7 @@ namespace Utils
 {
     namespace Files
     {
-        /* The files, as the programs of this project ask for them: names are UTF-8, and paths may be longer than the old limit. */
+        /* The files, as the programs of this project ask for them: names are UTF-8, and paths may be longer than MAX_PATH. */
         class FileSystem
         {
         public:

@@ -1,5 +1,5 @@
 # Utils: what no other library owns and any of them could use. It depends on third-party code and the system, and on nothing of this project (a test,
-# Layout, checks that). Each part is a folder: images (PNG and GIF files, comparing and putting images together), binary_io (bytes in and out), json,
+# Layout, checks that). Each part is a folder: images (PNG and GIF files, comparing and putting images together), binary_io (bytes in and out), command_line (the arguments of a program, and the numbers in them), json,
 # hashing (xxHash), cpu (what the processor can do), graphics (what the texels of a texture are, named in the words of no API), parallel (a loop over several threads, and a cheap mutex), statistics (a series of timings), files (a file from the network, checked, unpacked, and
 # the file system under them), ui_host (a window drawn with ImGui) and d3d12 (a command list run and waited for, a texture cleared).
 file(GLOB_RECURSE Sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"

@@ -289,7 +289,7 @@ bool Stereo::Replay::ConsistencyChecker::OverlayReport::parse_candidates(const O
     {
         OverlayReportEntry entry;
 
-        /* A draw is left out in its own pass only, so the list must say which pass that is (the lists that RecipeBake --overlays made before did not). */
+        /* A draw is left out in its own pass only, so the list must say which pass that is (a list of RecipeBake --overlays has it for each candidate). */
         const auto* pass_key_ptr      = candidate.find_ptr("pass_key");
         bool        is_pass_key_valid = false;
 

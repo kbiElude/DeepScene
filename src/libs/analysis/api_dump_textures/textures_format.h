@@ -6,7 +6,7 @@
  *
  * The .textures file says what happens to the textures of a workload, and where the bytes of each content are:
  *
- *   file := FileHeader section*          (the sections are those of SectionedFile, in this order, once each)
+ *   file := FileHeader section*          (an AnalysisFileHeader: magic, file version, analysis version; the sections are those of SectionedFile, in this order, once each)
  *
  *   META  the workload (its name, its size and the hashes of its start, middle and end), whether render content was asked for, and the size of the
  *         file of blobs

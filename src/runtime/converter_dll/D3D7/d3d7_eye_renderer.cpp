@@ -722,7 +722,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre(const APIInterceptor::APIFunc
             {
                 void* const destination_ptr = const_cast<void*>(in_arguments_ptr[DESTINATION_ARGUMENT].get_ptr() );
 
-                /* What is copied to a surface that has a twin is not copied to the twin yet. */
+                /* A copy to a surface that has a twin is repeated to the twin. */
                 if (get_twin_ptr(destination_ptr) != nullptr)
                 {
                     if (mirror_blt(in_function,

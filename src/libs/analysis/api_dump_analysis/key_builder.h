@@ -28,10 +28,6 @@ namespace Analysis
              */
             static uint64_t compute_description_key(const ResourceDescription& in_description);
 
-            /* Of a draw as it can be recognized at the moment it is issued, by what is known then and nothing else: the structure and
-             * the targets are keyed by how their resources were made (see ResourceKeyTable::get_unwritten_key), not by which pass wrote
-             * to them. The pass a draw belongs to is not known until the pass ends; this key is what a live converter can match.
-             */
             /* The key that tells apart the draws of a signature by how large they are (the number of vertices, or of indices) and how they are
              * put together: one dynamic buffer holds the quad of a flash and the quads of a text, with the same signature, but not the same count.
              */
@@ -39,6 +35,10 @@ namespace Analysis
                                                    const uint32_t&          in_vertex_count,
                                                    const PrimitiveTopology& in_topology);
 
+            /* Of a draw as it can be recognized at the moment it is issued, by what is known then and nothing else: the structure and
+             * the targets are keyed by how their resources were made (see ResourceKeyTable::get_unwritten_key), not by which pass wrote
+             * to them. The pass a draw belongs to is not known until the pass ends; this key is what a live converter can match.
+             */
             static uint64_t compute_draw_signature_key(const uint64_t&              in_unwritten_structure_key,
                                                        const std::vector<uint64_t>& in_unwritten_color_view_key_vec,
                                                        const uint64_t&              in_unwritten_depth_stencil_view_key);

@@ -78,7 +78,7 @@ namespace Stereo
             /* Copies the frame to the images of the eyes, if it is not the one that is shown. */
             void upload_frame(const Stereo::Transport::ImportedFrame& in_frame);
 
-            /* What the frames that the window passes on take, for the log, a second at a time. Of the thread of the window. */
+            /* What the frames that go to the headset take, for the log, a second at a time. Of the upload thread. */
             struct Timing
             {
                 Utils::Statistics::SeriesStats acquire_cost = Utils::Statistics::SeriesStats(4.0);  /* of taking the images of the eyes, ms  */

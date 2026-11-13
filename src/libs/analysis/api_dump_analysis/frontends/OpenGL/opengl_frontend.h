@@ -332,7 +332,7 @@ namespace Analysis
                 static bool is_same_box(const GlBox& in_first,
                                         const GlBox& in_second);
 
-                /* True for the calls whose effects the front end does not follow yet, and that are not about textures (they write the framebuffer from somewhere else, or
+                /* True for the calls whose effects the front end does not follow, and that are not about textures (they write the framebuffer from somewhere else, or
                  * call lists that are named by an array): one of them ends the process (see report_unsupported_use()).
                  */
                 static bool is_unsupported_function(const APIInterceptor::APIFunction& in_function);
