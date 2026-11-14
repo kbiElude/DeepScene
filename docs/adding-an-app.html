@@ -59,6 +59,8 @@
 <h2 id="extract">2. Extract the passes</h2>
 <pre><code>tools\analysis\APIDumpAnalysisExtractor_x64 result_dump.workload -o app.passes --stats
 tools\analysis\APIDumpDependencyExtractor_x64 result_dump.workload -o app.deps --stats</code></pre>
+<p><code>scriptsnalyze_capture.ps1 -Workload result_dump.workload -Recipe recipe.json -OutDir folder</code> runs this step, the bake of step 5 and the check, into a folder of its own, and changes nothing that exists (the recipe is only read; the baked one is written beside the passes). Analysis files made by an older build have to be made again whenever the format of a section changes.</p>
+<p><code>scripts\analyze_capture.ps1 -Workload result_dump.workload -Recipe recipe.json -OutDir folder</code> runs this step, the bake of step 5 and the check, into a folder of its own, and changes nothing that exists (the recipe is only read; the baked one is written beside the passes). Analysis files made by an older build have to be made again whenever the format of a section changes.</p>
 <p>The second file says which frames and textures each frame needs. The baker takes it (<code>--deps</code>) to know which textures need a copy for the second eye, and the replay tools use it to seek faster. Both extractors read the workload with several threads (<code>--threads</code>), and <code>--max-frames</code> stops at a frame.</p>
 <p>Before going on, look at the summary it prints, or at <code>APIDumpAnalysisQuery app.passes info</code>. A capture is good for the next steps when:</p>
 <ul>
