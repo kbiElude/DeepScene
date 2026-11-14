@@ -4,6 +4,7 @@
  */
 #include "utils/files/file_system.h"
 #include "utils/files/zip_extractor.h"
+#include "utils/strings/ascii_text.h"
 #include "miniz.h"
 #include <Windows.h>
 #include <algorithm>
@@ -91,7 +92,7 @@ bool Utils::Files::ZipExtractor::extract(const std::string&       in_archive_pat
             goto end;
         }
 
-        lower_case_entry_name = to_lower(entry_stat.m_filename);
+        lower_case_entry_name = Utils::Strings::AsciiText::to_lower(entry_stat.m_filename);
 
         if (lower_case_entry_name_set.insert(lower_case_entry_name).second == false)
         {
@@ -325,7 +326,7 @@ bool Utils::Files::ZipExtractor::is_name_safe(const std::string& in_name)
             goto end;
         }
 
-        name_part_before_dot = to_lower(name_part_before_dot);
+        name_part_before_dot = Utils::Strings::AsciiText::to_lower(name_part_before_dot);
 
         for (const std::string& device_name : DEVICE_NAME_ARRAY)
         {
@@ -341,23 +342,6 @@ bool Utils::Files::ZipExtractor::is_name_safe(const std::string& in_name)
     result = true;
 
 end:
-    return result;
-}
-
-std::string Utils::Files::ZipExtractor::to_lower(const std::string& in_text)
-{
-    std::string result = in_text;
-
-    const auto to_lower_func = [](const char in_character)
-    {
-        return static_cast<char>(::tolower(static_cast<unsigned char>(in_character) ) );
-    };
-
-    std::transform(result.begin(),
-                   result.end  (),
-                   result.begin(),
-                   to_lower_func);
-
     return result;
 }
 

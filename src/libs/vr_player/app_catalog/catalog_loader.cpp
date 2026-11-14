@@ -4,6 +4,7 @@
  */
 #include "analysis/recipe/recipe_loader.h"
 #include "utils/files/file_system.h"
+#include "utils/strings/ascii_text.h"
 #include "vr_player/app_catalog/catalog_loader.h"
 #include <algorithm>
 #include <set>
@@ -219,6 +220,23 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse(const std::string& in_text,
                            title);
 
         out_catalog_ptr->app_vec.push_back(app);
+    }
+
+    /* The applications are listed by name, whatever the order of the file is: letters of either case count alike, and the id tells those that are named alike apart. */
+    {
+        const auto is_listed_before_func = [](const AppEntry& in_a,
+                                              const AppEntry& in_b)
+        {
+            const std::string name_a = Utils::Strings::AsciiText::to_lower(in_a.name);
+            const std::string name_b = Utils::Strings::AsciiText::to_lower(in_b.name);
+
+            return (name_a != name_b) ? (name_a < name_b)
+                                      : (in_a.id < in_b.id);
+        };
+
+        std::stable_sort(out_catalog_ptr->app_vec.begin(),
+                         out_catalog_ptr->app_vec.end  (),
+                         is_listed_before_func);
     }
 
     result = true;
@@ -517,10 +535,7 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_download(const Utils::Json::Json
         goto end;
     }
 
-    std::transform(out_spec_ptr->sha256_hex.begin(),
-                   out_spec_ptr->sha256_hex.end  (),
-                   out_spec_ptr->sha256_hex.begin(),
-                   ::tolower);
+    out_spec_ptr->sha256_hex = Utils::Strings::AsciiText::to_lower(out_spec_ptr->sha256_hex);
 
     {
         const size_t first_non_hex_position = out_spec_ptr->sha256_hex.find_first_not_of("0123456789abcdef");

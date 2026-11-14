@@ -46,8 +46,6 @@ namespace Utils
                 const ProgressCallback*  progress_func_ptr;
             };
 
-            static std::string to_lower(const std::string& in_text);
-
             static size_t write(void*       in_context_ptr,
                                 uint64_t    in_offset,
                                 const void* in_bytes_ptr,

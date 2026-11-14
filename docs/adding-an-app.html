@@ -183,7 +183,7 @@ tools\stereo_replay\StereoReplayConsistencyChecker_x86.exe result_dump.workload 
 <p>Judge what you see in the window first and in the headset second: the window shows the same images, and it is where a fault is easiest to tell from discomfort.</p>
 
 <h2 id="catalog">8. Put it in the catalog</h2>
-<p>The catalog is <code>apps/apps.json</code>, and the recipes it names are in <code>apps/recipes/</code>; <code>build.bat</code> copies both to <code>build_final\apps\</code>, so a release has them. The program itself is not kept in the repository: the entry says where it can be downloaded, and <code>VRPlayer</code> gets it the first time it is launched, into <code>apps/&lt;id&gt;/</code> (see <a href="vr-player.html#download">VR player</a>). Copy the baked recipe to <code>apps/recipes/myapp.json</code>, and add an entry:</p>
+<p>The catalog is <code>apps/apps.json</code>, and the recipes it names are in <code>apps/recipes/</code>; <code>VRPlayer</code> lists the programs by name (letters of either case count alike, the id tells programs named alike apart), whatever the order of the file is; <code>build.bat</code> copies both to <code>build_final\apps\</code>, so a release has them. The program itself is not kept in the repository: the entry says where it can be downloaded, and <code>VRPlayer</code> gets it the first time it is launched, into <code>apps/&lt;id&gt;/</code> (see <a href="vr-player.html#download">VR player</a>). Copy the baked recipe to <code>apps/recipes/myapp.json</code>, and add an entry:</p>
 <pre><code>{
   "catalog_version": 0,
   "apps": [

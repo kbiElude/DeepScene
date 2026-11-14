@@ -172,18 +172,19 @@ TEST_F(CatalogLoaderTest, AnApplicationWithoutItsFilesIsListedWithTheReason)
     ASSERT_EQ  (m_catalog.app_vec.size(),
                 3u);
 
-    EXPECT_NE(m_catalog.app_vec.at(0).unavailable_reason.find("The recipe cannot be found"),
+    /* They are listed by name: bad-recipe, fr08 (the name of the recipe, for no-exe), no-recipe. */
+    EXPECT_NE(m_catalog.app_vec.at(0).unavailable_reason.find("The recipe is not valid"),
               std::string::npos);
-    EXPECT_EQ(m_catalog.app_vec.at(0).name,
-              "no-recipe");
 
     EXPECT_NE(m_catalog.app_vec.at(1).unavailable_reason.find("The application cannot be found"),
               std::string::npos);
     EXPECT_EQ(m_catalog.app_vec.at(1).name,
               "fr08");
 
-    EXPECT_NE(m_catalog.app_vec.at(2).unavailable_reason.find("The recipe is not valid"),
+    EXPECT_NE(m_catalog.app_vec.at(2).unavailable_reason.find("The recipe cannot be found"),
               std::string::npos);
+    EXPECT_EQ(m_catalog.app_vec.at(2).name,
+              "no-recipe");
 }
 
 TEST_F(CatalogLoaderTest, AnEmptyCatalogAndAByteOrderMarkAreAccepted)
@@ -267,36 +268,36 @@ TEST_F(CatalogLoaderTest, TheCatalogWhichComesWithTheRepositoryListsTheAppsOfThe
     EXPECT_GT(m_catalog.app_vec.at(0).overlay_parallax,
               0.0f);
 
-    /* Kasparov: a recipe which is valid, and an archive of the demo to download, from the mirrors of scene.org. */
+    /* Gerbera (OpenGL): the archive is listed and the recipe is there (for the replay tools),, and it is started like the others. */
     EXPECT_EQ(m_catalog.app_vec.at(1).id,
-              "kasparov");
+              "gerbera");
     EXPECT_EQ(m_catalog.app_vec.at(1).name,
-              "Kasparov");
-    EXPECT_EQ(m_catalog.app_vec.at(1).unavailable_reason.find("recipe"),
-              std::string::npos) << m_catalog.app_vec.at(1).unavailable_reason;
+              "Gerbera");
+    EXPECT_TRUE(m_catalog.app_vec.at(1).unavailable_reason.empty() ) << m_catalog.app_vec.at(1).unavailable_reason;
+    EXPECT_FALSE(m_catalog.app_vec.at(1).description.empty() );
     EXPECT_GE(m_catalog.app_vec.at(1).install_spec.url_vec.size(),
               2u);
     EXPECT_EQ(m_catalog.app_vec.at(1).install_spec.sha256_hex.size(),
               64u);
     EXPECT_EQ(m_catalog.app_vec.at(1).install_spec.n_archive_bytes,
-              4389733u);
-    EXPECT_NE(m_catalog.app_vec.at(1).install_spec.install_directory.find("\\apps\\kasparov"),
+              7877223u);
+    EXPECT_NE(m_catalog.app_vec.at(1).install_spec.install_directory.find("\\apps\\gerbera"),
               std::string::npos);
 
-    /* Gerbera (OpenGL): the archive is listed and the recipe is there (for the replay tools),, and it is started like the others. */
+    /* Kasparov: a recipe which is valid, and an archive of the demo to download, from the mirrors of scene.org. */
     EXPECT_EQ(m_catalog.app_vec.at(2).id,
-              "gerbera");
+              "kasparov");
     EXPECT_EQ(m_catalog.app_vec.at(2).name,
-              "Gerbera");
-    EXPECT_TRUE(m_catalog.app_vec.at(2).unavailable_reason.empty() ) << m_catalog.app_vec.at(2).unavailable_reason;
-    EXPECT_FALSE(m_catalog.app_vec.at(2).description.empty() );
+              "Kasparov");
+    EXPECT_EQ(m_catalog.app_vec.at(2).unavailable_reason.find("recipe"),
+              std::string::npos) << m_catalog.app_vec.at(2).unavailable_reason;
     EXPECT_GE(m_catalog.app_vec.at(2).install_spec.url_vec.size(),
               2u);
     EXPECT_EQ(m_catalog.app_vec.at(2).install_spec.sha256_hex.size(),
               64u);
     EXPECT_EQ(m_catalog.app_vec.at(2).install_spec.n_archive_bytes,
-              7877223u);
-    EXPECT_NE(m_catalog.app_vec.at(2).install_spec.install_directory.find("\\apps\\gerbera"),
+              4389733u);
+    EXPECT_NE(m_catalog.app_vec.at(2).install_spec.install_directory.find("\\apps\\kasparov"),
               std::string::npos);
 }
 
@@ -421,4 +422,28 @@ TEST_F(CatalogLoaderTest, WhatIsNotRightInADownloadIsRefusedWithItsPlace)
         EXPECT_NE   (m_error.find(test_case.expected),
                      std::string::npos) << m_error << " (expected: " << test_case.expected << ")";
     }
+}
+
+TEST_F(CatalogLoaderTest, TheApplicationsAreListedByNameWhateverTheOrderOfTheFileAndTheCaseOfTheLettersAre)
+{
+    const std::string executable = get_json_path(Tests::Fixtures::get_test_executable_path() );
+    const std::string common     = "\"recipe\": \"fr08_example.json\", \"executable\": \"" + executable + "\"";
+
+    /* In the file: Cherry, banana, apple, and a second banana which only its id tells from the first. */
+    ASSERT_TRUE(parse("{\"catalog_version\": 0, \"apps\": ["
+                      "{\"id\": \"a_app\", \"title\": \"Cherry\", " + common + "},"
+                      "{\"id\": \"c_app\", \"title\": \"banana\", " + common + "},"
+                      "{\"id\": \"b_app\", \"title\": \"Apple\", "  + common + "},"
+                      "{\"id\": \"b_other\", \"title\": \"Banana\", " + common + "}]}") ) << m_error;
+    ASSERT_EQ(m_catalog.app_vec.size(),
+              4u);
+
+    EXPECT_EQ(m_catalog.app_vec.at(0).id,
+              "b_app");
+    EXPECT_EQ(m_catalog.app_vec.at(1).id,
+              "b_other");
+    EXPECT_EQ(m_catalog.app_vec.at(2).id,
+              "c_app");
+    EXPECT_EQ(m_catalog.app_vec.at(3).id,
+              "a_app");
 }
