@@ -3,6 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "stereo/core/push_shift_planner.h"
+#include "stereo/core/screen_parallax.h"
 #include "stereo/core/stereo_core.h"
 #include <stdlib.h>
 
@@ -208,6 +209,48 @@ bool Stereo::Core::StereoCore::is_last_draw_attached_to_camera(const float& in_o
     return (attached_depth            >  0.0f           &&
             in_origin_depth           <  attached_depth &&
             m_is_last_draw_eye_space == false);
+}
+
+bool Stereo::Core::StereoCore::make_screen_vertices(const Analysis::Recipe::Eye& in_eye,
+                                                    const bool&                  in_is_presented,
+                                                    const float&                 in_picture_width,
+                                                    const uint8_t*               in_vertex_ptr,
+                                                    const uint32_t&              in_vertex_n_bytes,
+                                                    const size_t&                in_n_vertices,
+                                                    const uint16_t*              in_index_ptr,
+                                                    const size_t&                in_n_indices,
+                                                    const bool&                  in_must_copy,
+                                                    std::vector<uint8_t>*        out_vertex_vec_ptr) const
+{
+    const bool reaches_both_sides = ScreenParallax::reaches_both_sides(in_vertex_ptr,
+                                                                       in_vertex_n_bytes,
+                                                                       in_n_vertices,
+                                                                       in_index_ptr,
+                                                                       in_n_indices,
+                                                                       in_picture_width);
+    const auto plan               = plan_screen_shift(in_eye,
+                                                      true, /* in_has_extent */
+                                                      in_is_presented,
+                                                      in_picture_width,
+                                                      reaches_both_sides);
+    bool       result             = false;
+
+    if (plan.kind != ScreenShiftKind::NONE ||
+        in_must_copy)
+    {
+        out_vertex_vec_ptr->assign(in_vertex_ptr,
+                                   in_vertex_ptr + in_n_vertices * in_vertex_n_bytes);
+
+        const bool is_moved = ScreenParallax::apply_plan(plan,
+                                                         in_vertex_n_bytes,
+                                                         in_n_vertices,
+                                                         out_vertex_vec_ptr->data() );
+
+        result = (is_moved ||
+                  in_must_copy);
+    }
+
+    return result;
 }
 
 std::array<float, 16> Stereo::Core::StereoCore::make_eye_shift_matrix(const Analysis::Recipe::Eye& in_eye) const

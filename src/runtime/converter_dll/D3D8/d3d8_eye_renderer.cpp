@@ -2,6 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
+#include "analysis/api_dump_analysis/frontends/D3D8/d3d8_frontend.h"
 #include "common/macros.h"
 #include "common/vtable.h"
 #include "call_feeder.h"
@@ -14,59 +15,6 @@ namespace
     void* get_pointer_argument(const APIInterceptor::APIFunctionArgument& in_argument)
     {
         return const_cast<void*>(in_argument.get_ptr() );
-    }
-
-    /* How many vertices the primitives of a draw use, by what they are and how many there are. */
-    uint32_t get_n_primitive_vertices(const uint32_t& in_primitive_type,
-                                      const uint32_t& in_n_primitives)
-    {
-        uint32_t result = 0;
-
-        switch (in_primitive_type)
-        {
-            case Interception::Hooks::D3D8::D3DPT_POINTLIST:
-            {
-                result = in_n_primitives;
-
-                break;
-            }
-
-            case Interception::Hooks::D3D8::D3DPT_LINELIST:
-            {
-                result = 2 * in_n_primitives;
-
-                break;
-            }
-
-            case Interception::Hooks::D3D8::D3DPT_LINESTRIP:
-            {
-                result = in_n_primitives + 1;
-
-                break;
-            }
-
-            case Interception::Hooks::D3D8::D3DPT_TRIANGLELIST:
-            {
-                result = 3 * in_n_primitives;
-
-                break;
-            }
-
-            case Interception::Hooks::D3D8::D3DPT_TRIANGLEFAN:
-            case Interception::Hooks::D3D8::D3DPT_TRIANGLESTRIP:
-            {
-                result = in_n_primitives + 2;
-
-                break;
-            }
-
-            default:
-            {
-                AI_FAIL_UNSUPPORTED(in_primitive_type);
-            }
-        }
-
-        return result;
     }
 
     /* Whether what SetVertexShader was given is a vertex format (not the handle of a shader) whose positions are in pixels. */
@@ -210,54 +158,40 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::draw_pre_transformed(const APIInterc
         if (index_format == Interception::Hooks::D3D8::D3DFMT_INDEX16)
         {
             indices_ptr = static_cast<const uint16_t*>(in_arguments_ptr[INDEXED_INDICES_ARGUMENT].get_ptr() );
-            n_indices   = get_n_primitive_vertices(primitive_type,
-                                                   n_primitives);
+            n_indices   = Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::get_vertex_count(static_cast<Interception::Hooks::D3D8::D3DPRIMITIVETYPE>(primitive_type),
+                                                                                               n_primitives);
         }
     }
     else
     {
-        n_vertices = get_n_primitive_vertices(primitive_type,
-                                              n_primitives);
+        n_vertices = Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::get_vertex_count(static_cast<Interception::Hooks::D3D8::D3DPRIMITIVETYPE>(primitive_type),
+                                                                                          n_primitives);
     }
 
-    const bool is_presented       = (m_mirror.render_target_ptr == m_mirror.back_buffer_ptr);
-    const bool is_movable         = (vertices_ptr  != nullptr &&
-                                     vertex_n_bytes >= 4 * sizeof(float) &&
-                                     n_vertices    != 0);
-    const bool reaches_both_sides = (is_movable &&
-                                     Stereo::Core::ScreenParallax::reaches_both_sides(vertices_ptr,
-                                                                                      vertex_n_bytes,
-                                                                                      n_vertices,
-                                                                                      indices_ptr,
-                                                                                      n_indices,
-                                                                                      in_picture_width) );
+    const bool is_presented = (m_mirror.render_target_ptr == m_mirror.back_buffer_ptr);
+    const bool is_movable   = (vertices_ptr   != nullptr           &&
+                               vertex_n_bytes >= 4 * sizeof(float) &&
+                               n_vertices     != 0);
 
     /* The vertices of the application are not touched: the draw is made with a copy. */
     const auto draw_eye_func = [&](const Analysis::Recipe::Eye& in_eye)
     {
-        bool is_shifted = false;
-
-        if (is_movable)
-        {
-            const auto plan = m_core_ptr->plan_screen_shift(in_eye,
-                                                            true, /* in_has_extent */
-                                                            is_presented,
-                                                            in_picture_width,
-                                                            reaches_both_sides);
-
-            m_vertex_vec.assign(vertices_ptr,
-                                vertices_ptr + static_cast<size_t>(n_vertices) * vertex_n_bytes);
-
-            is_shifted = Stereo::Core::ScreenParallax::apply_plan(plan,
-                                                                  vertex_n_bytes,
-                                                                  n_vertices,
-                                                                  m_vertex_vec.data() );
-        }
+        const bool has_copy = (is_movable &&
+                               m_core_ptr->make_screen_vertices(in_eye,
+                                                                is_presented,
+                                                                in_picture_width,
+                                                                vertices_ptr,
+                                                                vertex_n_bytes,
+                                                                n_vertices,
+                                                                indices_ptr,
+                                                                n_indices,
+                                                                false, /* in_must_copy */
+                                                               &m_vertex_vec) );
 
         draw_with_vertices(in_function,
                            in_arguments_ptr,
-                           (is_shifted) ? m_vertex_vec.data()
-                                        : vertices_ptr);
+                           (has_copy) ? m_vertex_vec.data()
+                                      : vertices_ptr);
     };
 
     const auto draw_right_eye_func = [&draw_eye_func]()

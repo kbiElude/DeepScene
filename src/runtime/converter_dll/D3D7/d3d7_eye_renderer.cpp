@@ -184,10 +184,9 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::Recipe:
                                                          const float&                 in_picture_width,
                                                          const bool&                  in_must_draw)
 {
-    Stereo::Core::ScreenShiftPlan plan;
-    bool                          result         = false;
-    float                         scale          = 1.0f;
-    uint32_t                      vertex_n_bytes = 0;
+    bool     result         = false;
+    float    scale          = 1.0f;
+    uint32_t vertex_n_bytes = 0;
 
     /* Vertices which a matrix moves are the matrix's. */
     if ((in_draw_arguments.fvf & Interception::Core::D3D7Utils::D3DFVF_POSITION_MASK) == Interception::Core::D3D7Utils::D3DFVF_XYZRHW)
@@ -199,35 +198,25 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::Recipe:
         in_draw_arguments.n_vertices   != 0   &&
         in_draw_arguments.vertices_ptr != nullptr)
     {
-        const bool is_presented       = m_surface_twins.is_back_buffer                  (m_mirror.render_target_ptr);
-        const bool reaches_both_sides = Stereo::Core::ScreenParallax::reaches_both_sides(static_cast<const uint8_t*>(in_draw_arguments.vertices_ptr),
-                                                                                         vertex_n_bytes,
-                                                                                         in_draw_arguments.n_vertices,
-                                                                                         static_cast<const uint16_t*>(in_draw_arguments.indices_ptr),
-                                                                                         in_draw_arguments.n_indices,
-                                                                                         in_picture_width);
-
-        plan = m_core_ptr->plan_screen_shift(in_eye,
-                                             /* has_extent */ true,
-                                             is_presented,
-                                             in_picture_width,
-                                             reaches_both_sides);
+        const bool is_presented = m_surface_twins.is_back_buffer(m_mirror.render_target_ptr);
 
         /* The positions are in the pixels of the application, which a larger back buffer is not made of. */
         scale = get_render_scale();
 
-        if (plan.kind != Stereo::Core::ScreenShiftKind::NONE ||
-            scale     != 1.0f)
+        /* The vertices of the application are not touched: the draw is made with a copy. */
+        const bool has_copy = m_core_ptr->make_screen_vertices(in_eye,
+                                                               is_presented,
+                                                               in_picture_width,
+                                                               static_cast<const uint8_t*>(in_draw_arguments.vertices_ptr),
+                                                               vertex_n_bytes,
+                                                               in_draw_arguments.n_vertices,
+                                                               static_cast<const uint16_t*>(in_draw_arguments.indices_ptr),
+                                                               in_draw_arguments.n_indices,
+                                                               (scale != 1.0f), /* in_must_copy */
+                                                              &m_vertex_vec);
+
+        if (has_copy)
         {
-            /* The application's own vertices are not touched: the draw is made with a copy. */
-            m_vertex_vec.assign(static_cast<const uint8_t*>(in_draw_arguments.vertices_ptr),
-                                static_cast<const uint8_t*>(in_draw_arguments.vertices_ptr) + static_cast<size_t>(in_draw_arguments.n_vertices) * vertex_n_bytes);
-
-            const bool is_shifted = Stereo::Core::ScreenParallax::apply_plan(plan,
-                                                                             vertex_n_bytes,
-                                                                             in_draw_arguments.n_vertices,
-                                                                             m_vertex_vec.data() );
-
             if (scale != 1.0f)
             {
                 Stereo::Core::ScreenParallax::scale_vertices(scale,
@@ -236,14 +225,10 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::Recipe:
                                                              m_vertex_vec.data() );
             }
 
-            if (is_shifted ||
-                scale != 1.0f)
-            {
-                draw(in_draw_arguments,
-                     m_vertex_vec.data() );
+            draw(in_draw_arguments,
+                 m_vertex_vec.data() );
 
-                result = true;
-            }
+            result = true;
         }
     }
 

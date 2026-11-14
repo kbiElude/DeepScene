@@ -326,6 +326,87 @@ TEST_F(StereoCoreTest, ADrawWhoseVerticesAreInTheSpaceOfTheEyeIsToldByItsSignatu
     EXPECT_FALSE(core.get_is_last_draw_eye_space() );
 }
 
+TEST_F(StereoCoreTest, TheVerticesInPixelsOfADrawAreMovedInACopyForAnEyeWhateverTheAPIIs)
+{
+    /* Two triangles' worth of vertices of 16 bytes: x, y, z and the reciprocal of the depth (0.2: five away, at the distance of convergence of the recipe; 0.05: twenty). */
+    std::vector<uint8_t> vertex_vec(3 * 4 * sizeof(float) );
+    float                vertex_f32vec12[12] = {100.0f, 10.0f, 0.5f, 0.2f,
+                                                200.0f, 10.0f, 0.5f, 0.05f,
+                                                300.0f, 50.0f, 0.5f, 0.05f};
+    std::vector<uint8_t> moved_vec;
+
+    ::memcpy(vertex_vec.data(),
+             vertex_f32vec12,
+             vertex_vec.size() );
+
+    /* A recipe with the parallax of screen-space draws: the draw is affected, so its vertices are moved by their depth. */
+    Stereo::Core::StereoCore core(make_recipe(std::string("\"screen_parallax\": {\"convergence_distance\": 5}, ") +
+                                              get_baked_text(""),
+                                              get_view_rule_text() ),
+                                  Stereo::Core::FailFunc() );
+
+    core.set_convergence_distance(5.0f);
+    core.set_eye_separation      (1.0f);
+    core.classify_draw(1, 0);
+
+    EXPECT_TRUE(core.make_screen_vertices(Analysis::Recipe::Eye::LEFT,
+                                          true, /* in_is_presented */
+                                          640.0f,
+                                          vertex_vec.data(),
+                                          4 * sizeof(float),
+                                          3,
+                                          nullptr,
+                                          0,
+                                          false, /* in_must_copy */
+                                         &moved_vec) );
+    ASSERT_EQ(moved_vec.size(),
+              vertex_vec.size() );
+
+    float moved_f32vec12[12] = {};
+
+    ::memcpy(moved_f32vec12,
+             moved_vec.data(),
+             moved_vec.size() );
+
+    /* At the distance of convergence a vertex stays; a farther one moves, and the vertices of the application are as they were. */
+    EXPECT_FLOAT_EQ(moved_f32vec12[0],
+                    100.0f);
+    EXPECT_NE(moved_f32vec12[4],
+              200.0f);
+    EXPECT_EQ(::memcmp(vertex_vec.data(),
+                       vertex_f32vec12,
+                       vertex_vec.size() ),
+              0);
+
+    /* A draw that nothing moves is not copied, unless the caller asks. */
+    Stereo::Core::StereoCore plain_core(make_recipe(get_baked_text(""),
+                                                    get_view_rule_text() ),
+                                        Stereo::Core::FailFunc() );
+
+    plain_core.classify_draw(1, 0);
+
+    EXPECT_FALSE(plain_core.make_screen_vertices(Analysis::Recipe::Eye::LEFT,
+                                                 true, /* in_is_presented */
+                                                 640.0f,
+                                                 vertex_vec.data(),
+                                                 4 * sizeof(float),
+                                                 3,
+                                                 nullptr,
+                                                 0,
+                                                 false, /* in_must_copy */
+                                                &moved_vec) );
+    EXPECT_TRUE(plain_core.make_screen_vertices(Analysis::Recipe::Eye::LEFT,
+                                                true, /* in_is_presented */
+                                                640.0f,
+                                                vertex_vec.data(),
+                                                4 * sizeof(float),
+                                                3,
+                                                nullptr,
+                                                0,
+                                                true, /* in_must_copy */
+                                               &moved_vec) );
+}
+
 TEST_F(StereoCoreTest, ADrawIsAttachedToTheCameraByHowFarInFrontOfItItsOriginIsUnlessItsVerticesAreInTheSpaceOfTheEye)
 {
     /* The nearest 5 percent of the distance of convergence (100) is attached to the camera. */

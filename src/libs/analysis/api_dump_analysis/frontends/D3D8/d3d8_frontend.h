@@ -40,6 +40,10 @@ namespace Analysis
                  */
 
 
+                /* How many vertices the primitives of a draw use: a list takes new vertices for every primitive, a strip or a fan one for every primitive after the first. */
+                static uint32_t get_vertex_count(const Interception::Hooks::D3D8::D3DPRIMITIVETYPE& in_type,
+                                                 const uint32_t&                                    in_n_primitives);
+
                 void on_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                              const Capture::APIDumpLoader::Workload&      in_workload) override;
 
@@ -120,8 +124,6 @@ namespace Analysis
                 static DescribeFuncPtr get_describe_func_ptr(const APIInterceptor::APIFunction& in_function);
 
                 static Analysis::APIDumpAnalysis::PrimitiveTopology get_primitive_topology(const Interception::Hooks::D3D8::D3DPRIMITIVETYPE& in_type);
-                static uint32_t                                     get_vertex_count      (const Interception::Hooks::D3D8::D3DPRIMITIVETYPE& in_type,
-                                                                                           const uint32_t&                                    in_n_primitives);
 
                 /* True for the methods which set the state of the device. */
                 static bool is_state_function(const APIInterceptor::APIFunction& in_function);

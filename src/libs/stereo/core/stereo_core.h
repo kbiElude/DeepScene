@@ -91,6 +91,22 @@ namespace Stereo
              */
             bool is_last_draw_attached_to_camera(const float& in_origin_depth) const;
 
+            /* Moves for the eye the vertices of the draw that classify_draw() last classified, which are positioned in pixels (see ScreenParallax), as every API that has them
+             * does: tells from the vertices whether the draw reaches both sides of the picture, asks plan_screen_shift(), and moves a copy. The vertices of the application are not touched.
+             * Returns true if the vector holds the vertices to draw with: they were moved, or the caller asked for a copy (to change them further). The indices (16 bits, or none) say which
+             * of the vertices are used.
+             */
+            bool make_screen_vertices(const Analysis::Recipe::Eye& in_eye,
+                                      const bool&                  in_is_presented,
+                                      const float&                 in_picture_width,
+                                      const uint8_t*               in_vertex_ptr,
+                                      const uint32_t&              in_vertex_n_bytes,
+                                      const size_t&                in_n_vertices,
+                                      const uint16_t*              in_index_ptr,
+                                      const size_t&                in_n_indices,
+                                      const bool&                  in_must_copy,
+                                      std::vector<uint8_t>*        out_vertex_vec_ptr) const;
+
             /* How near the camera a draw is to be taken for attached to it, as a part of the distance at which the eyes converge (see Comfort::camera_attached_depth); 0: none. */
             float get_camera_attached_depth() const;
 
