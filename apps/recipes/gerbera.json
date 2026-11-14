@@ -4,9 +4,15 @@
     "balance_convergence": true,
     "camera_attached_depth": 0.05,
     "eye_space_cover_keys": [
+      "0x314e721b5b34f4bd",
+      "0x37d2a5331622264f",
+      "0x46708b93555c67b5",
       "0x516c3d10ffe88a06",
       "0x5177c8a9f7b18c9d",
-      "0x62f7c76a5f7d85e7"
+      "0x550affb8501d890e",
+      "0x62f7c76a5f7d85e7",
+      "0x77a048a5ff16e026",
+      "0x98021a5cf5cb6869"
     ],
     "max_far_parallax": 0.0135869565,
     "max_near_parallax": 0.0203804348,
