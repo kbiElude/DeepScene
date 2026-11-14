@@ -78,7 +78,8 @@
   "key_scheme_version": 1,
   "pushed": {
     "cover_keys": [
-      "0x62f335887c4d7a18"
+      "0x62f335887c4d7a18",
+      "0xe4ae83af9b7a26bd"
     ],
     "draw_keys": [
       "0x012a68792b570391",
@@ -354,6 +355,62 @@
       {
         "draw_key": "0xed7fa8a8e1b12d39",
         "pass_key": "0xf5b9765bc8642459"
+      },
+      {
+        "draw_key": "0x5b267f5a1663c371",
+        "pass_key": "0xb07a5c818557ec37"
+      },
+      {
+        "draw_key": "0x75652f4da63c95cb",
+        "pass_key": "0x744bf8175b88427d"
+      },
+      {
+        "draw_key": "0x5b267f5a1663c371",
+        "pass_key": "0x836e412c038ddaa3"
+      },
+      {
+        "draw_key": "0x5b267f5a1663c371",
+        "pass_key": "0x5e0ba063b9d2c786"
+      },
+      {
+        "draw_key": "0x75652f4da63c95cb",
+        "pass_key": "0x9156838d18ad0d98"
+      },
+      {
+        "draw_key": "0x75652f4da63c95cb",
+        "pass_key": "0xbc80133d9736d17f"
+      },
+      {
+        "draw_key": "0x75652f4da63c95cb",
+        "pass_key": "0x64230f8ba99d4765"
+      },
+      {
+        "draw_key": "0x5b267f5a1663c371",
+        "pass_key": "0xfb226721ba328f62"
+      },
+      {
+        "draw_key": "0x75652f4da63c95cb",
+        "pass_key": "0x927198804a38a8dd"
+      },
+      {
+        "draw_key": "0x75652f4da63c95cb",
+        "pass_key": "0xc008a7988c5ac1c2"
+      },
+      {
+        "draw_key": "0x5b267f5a1663c371",
+        "pass_key": "0xa2e8353fb7da7e4d"
+      },
+      {
+        "draw_key": "0x5b267f5a1663c371",
+        "pass_key": "0x7ed6968f16644819"
+      },
+      {
+        "draw_key": "0x5b267f5a1663c371",
+        "pass_key": "0x76306720e5458cb4"
+      },
+      {
+        "draw_key": "0x5b267f5a1663c371",
+        "pass_key": "0xe09ca43ef760ba22"
       }
     ]
   },
@@ -743,10 +800,6 @@
         "distance": 899.201111
       },
       {
-        "signature": "0x095b368024364edd",
-        "distance": 899.201111
-      },
-      {
         "signature": "0x0a5510c0d86025c3",
         "distance": 899.201111
       },
@@ -1040,10 +1093,6 @@
       },
       {
         "signature": "0x9e74adc41fa22730",
-        "distance": 899.201111
-      },
-      {
-        "signature": "0x9f9df3dda2024a26",
         "distance": 899.201111
       },
       {
@@ -2070,6 +2119,10 @@
         "pushed": true
       },
       {
+        "signature": "0x095b368024364edd",
+        "class": "unaffected"
+      },
+      {
         "signature": "0x0aa025d711b2fb46",
         "class": "unaffected"
       },
@@ -2205,6 +2258,10 @@
       },
       {
         "signature": "0x9f00e5defb93b005",
+        "class": "unaffected"
+      },
+      {
+        "signature": "0x9f9df3dda2024a26",
         "class": "unaffected"
       },
       {
