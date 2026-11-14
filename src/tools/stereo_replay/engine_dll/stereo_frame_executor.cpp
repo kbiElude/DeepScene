@@ -841,7 +841,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_view_anchor_call(co
 
     if (result)
     {
-        Capture::APIDumpLoader::DataChunk shift_chunk(sizeof(loaded) );
+        Capture::APIDumpLoader::DataChunk shift_chunk(sizeof(loaded));
 
         ::memcpy(shift_chunk.data(),
                  loaded.data(),
@@ -863,10 +863,10 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_view_anchor_call(co
     return result;
 }
 
-bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_viewport_call(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
-                                                                            const Analysis::APIDumpAnalysis::Viewport&     in_viewport,
-                                                                            const float&                                   in_shift_pixels,
-                                                                            const bool&                                    in_is_side_reaching)
+bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_viewport_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                           const Analysis::APIDumpAnalysis::Viewport&   in_viewport,
+                                                                           const float&                                 in_shift_pixels,
+                                                                           const bool&                                  in_is_side_reaching)
 {
     const auto pushed_viewport = Stereo::Core::PushShiftPlanner::make_viewport(static_cast<int32_t>(::lroundf(in_viewport.x) ),
                                                                                static_cast<int32_t>(::lroundf(in_viewport.width) ),
@@ -1146,9 +1146,9 @@ float Stereo::Replay::EngineDLL::StereoFrameExecutor::get_eye_separation() const
 }
 
 float Stereo::Replay::EngineDLL::StereoFrameExecutor::get_push_shift_pixels(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
-                                                                          const Analysis::APIDumpAnalysis::DrawInstance&   in_draw,
-                                                                          const Analysis::Recipe::Eye&                     in_eye,
-                                                                          const Analysis::APIDumpAnalysis::Viewport**      out_viewport_ptr_ptr) const
+                                                                            const Analysis::APIDumpAnalysis::DrawInstance&   in_draw,
+                                                                            const Analysis::Recipe::Eye&                     in_eye,
+                                                                            const Analysis::APIDumpAnalysis::Viewport**      out_viewport_ptr_ptr) const
 {
     const uint64_t pass_key          = in_frame.pass_key_vec.at(in_draw.pass_index);
     const uint32_t pass_structure_id = in_frame.pass_instance_vec.at(in_draw.pass_index).structure_id;

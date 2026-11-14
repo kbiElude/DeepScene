@@ -26,9 +26,9 @@ float Stereo::Core::PushShiftPlanner::get_screen_layer_parallax(const bool&  in_
 }
 
 Stereo::Core::PushShiftPlanner::PushedViewport Stereo::Core::PushShiftPlanner::make_viewport(const int32_t& in_x,
-                                                                                            const int32_t& in_width,
-                                                                                            const float&   in_shift_pixels,
-                                                                                            const bool&    in_is_side_reaching)
+                                                                                             const int32_t& in_width,
+                                                                                             const float&   in_shift_pixels,
+                                                                                             const bool&    in_is_side_reaching)
 {
     /* Toward zero, so that the shift never goes past what the planner allowed. */
     const int32_t shift_pixels = static_cast<int32_t>(in_shift_pixels);

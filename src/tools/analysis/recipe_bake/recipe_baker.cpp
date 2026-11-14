@@ -899,7 +899,7 @@ end:
 }
 
 std::vector<Analysis::RecipeBake::SceneMeasure> Analysis::RecipeBake::RecipeBaker::measure_scenes(const Analysis::Recipe::Recipe&                  in_recipe,
-                                                                                                    const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
+                                                                                                  const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
 {
     constexpr double FRACTION_MEDIAN = 0.5;
 

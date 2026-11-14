@@ -1636,9 +1636,9 @@ std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDu
 }
 
 std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::sample_user_pointer_geometry(const CallView& in_view,
-                                                                                                                                                 const bool&     in_is_indexed,
-                                                                                                                                                 const uint32_t& in_vertex_count,
-                                                                                                                                                 const uint32_t& in_stride)
+                                                                                                                                                  const bool&     in_is_indexed,
+                                                                                                                                                  const uint32_t& in_vertex_count,
+                                                                                                                                                  const uint32_t& in_stride)
 {
     /* What the dumper stored with the call follows its arguments: the indices, if the draw has them, and then the vertices. DrawIndexedPrimitiveUP has the
      * format of the indices as its seventh argument.

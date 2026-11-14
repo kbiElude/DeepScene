@@ -60,7 +60,8 @@ uint32_t Stereo::Core::StereoCore::bind_matrices(const Analysis::Recipe::DrawCla
 Analysis::Recipe::DrawClass Stereo::Core::StereoCore::classify_draw(const uint64_t& in_signature_key,
                                                                     const uint64_t& in_cover_key)
 {
-    const bool is_cover_pushed = m_applier.is_cover_pushed(in_cover_key);
+    const bool is_cover_flat   = m_applier.is_cover_flat_layer(in_cover_key);
+    const bool is_cover_pushed = m_applier.is_cover_pushed    (in_cover_key);
 
     if (m_applier.is_signature_known(in_signature_key) == false)
     {
@@ -86,8 +87,11 @@ Analysis::Recipe::DrawClass Stereo::Core::StereoCore::classify_draw(const uint64
     }
 
     /* A draw that is named by its size as pushed is flat: the parts of an object that are drawn alike, one of them a protruding part, have no depth of their own to show. */
+    const bool is_cover_held = (is_cover_flat ||
+                                is_cover_pushed);
+
     if (m_last_draw_class == Analysis::Recipe::DrawClass::AFFECTED &&
-        (is_cover_pushed || m_applier.is_cover_flat_layer(in_cover_key) ) )
+        is_cover_held)
     {
         m_last_draw_class = Analysis::Recipe::DrawClass::UNAFFECTED;
     }

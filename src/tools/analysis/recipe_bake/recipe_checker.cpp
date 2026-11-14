@@ -157,17 +157,17 @@ Analysis::RecipeBake::CoverageReport Analysis::RecipeBake::RecipeChecker::check(
 
 bool Analysis::RecipeBake::RecipeChecker::is_mixed(const Analysis::APIDumpAnalysis::DrawFacts& in_facts)
 {
-    const bool is_flat_in_some    = (in_facts.n_draws_flat_layer != 0                  &&
-                                     in_facts.n_draws_flat_layer != in_facts.n_draws);
-    const bool is_over_3d_in_some = (in_facts.n_draws_flat_layer     == in_facts.n_draws &&
-                                     in_facts.n_draws_after_3d_draw  != 0                &&
-                                     in_facts.n_draws_after_3d_draw  != in_facts.n_draws);
     const bool is_eye_space_in_some = (in_facts.n_draws_eye_space != 0                             &&
                                        in_facts.n_draws_eye_space != in_facts.n_draws_with_footprint);
+    const bool is_flat_in_some      = (in_facts.n_draws_flat_layer != 0                  &&
+                                       in_facts.n_draws_flat_layer != in_facts.n_draws);
+    const bool is_over_3d_in_some   = (in_facts.n_draws_flat_layer    == in_facts.n_draws &&
+                                       in_facts.n_draws_after_3d_draw != 0                &&
+                                       in_facts.n_draws_after_3d_draw != in_facts.n_draws);
 
-    return (is_flat_in_some      ||
-            is_over_3d_in_some   ||
-            is_eye_space_in_some);
+    return (is_eye_space_in_some ||
+            is_flat_in_some      ||
+            is_over_3d_in_some);
 }
 
 Analysis::RecipeBake::UnaffectedWarning Analysis::RecipeBake::RecipeChecker::make_warning(const OverlayCandidate&      in_candidate,

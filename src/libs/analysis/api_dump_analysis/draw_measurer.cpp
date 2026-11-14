@@ -38,7 +38,7 @@ std::array<float, 12> Analysis::APIDumpAnalysis::DrawMeasurer::compute_model_vie
 }
 
 bool Analysis::APIDumpAnalysis::DrawMeasurer::find_draw_matrices(const ConstantStateMap& in_constant_state_map,
-                                                                 DrawMatrices*          out_matrices_ptr)
+                                                                 DrawMatrices*           out_matrices_ptr)
 {
     constexpr size_t N_MATRIX_ELEMENTS = 16;
     constexpr size_t PROJECTION_WW     = 15; /* the last element: 1 in an orthographic projection, 0 in a perspective one */
@@ -199,7 +199,9 @@ void Analysis::APIDumpAnalysis::DrawMeasurer::record_draw_facts(const DrawDescri
                                                                 bool*                       inout_has_seen_3d_draw_ptr,
                                                                 DrawFacts*                  inout_facts_ptr)
 {
+    constexpr size_t DEPTH_COLUMN   = 2;
     constexpr size_t N_VIEW_COLUMNS = 3; /* x, y and the depth */
+    constexpr size_t ORIGIN_ROW     = 3; /* the translation of a matrix is its last row */
 
     DrawFacts&   facts             = *inout_facts_ptr;
     bool         has_place         = false;
@@ -288,9 +290,11 @@ void Analysis::APIDumpAnalysis::DrawMeasurer::record_draw_facts(const DrawDescri
             const auto   model_view_f32mat = compute_model_view(matrices);
             const float* projection        = matrices.projection_f32mat.data();
 
-            /* The origin of the object, in the space of the camera: the translation of the model-view matrix. */
-            origin_depth = (in_draw.is_camera_right_handed) ? -model_view_f32mat.at(3 * N_VIEW_COLUMNS + 2)
-                                                            :  model_view_f32mat.at(3 * N_VIEW_COLUMNS + 2);
+            /* The origin of the object, in the space of the camera: the translation of the model-view matrix (its last row), and its depth is the third column. */
+            const float origin_view_z = model_view_f32mat.at(ORIGIN_ROW * N_VIEW_COLUMNS + DEPTH_COLUMN);
+
+            origin_depth = (in_draw.is_camera_right_handed) ? -origin_view_z
+                                                            :  origin_view_z;
             is_3d        = matrices.is_perspective;
 
             for (const auto& position : in_draw.geometry_ptr->position_vec)
@@ -531,7 +535,7 @@ Analysis::APIDumpAnalysis::ViewCoverage Analysis::APIDumpAnalysis::DrawMeasurer:
 
 Analysis::APIDumpAnalysis::ViewCoverage Analysis::APIDumpAnalysis::DrawMeasurer::record_screen_depth(const DrawDescription& in_draw,
                                                                                                      const Viewport&        in_viewport,
-                                                                                                     PassDepth*            inout_depth_ptr)
+                                                                                                     PassDepth*             inout_depth_ptr)
 {
     /* How near to an edge of the viewport a vertex has to be for the draw to reach it, as a part of the size of the viewport. */
     constexpr float EDGE_REACH = 0.005f;

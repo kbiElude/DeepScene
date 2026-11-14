@@ -438,7 +438,7 @@ std::map<uint64_t, Analysis::APIDumpAnalysis::DrawFacts> Analysis::RecipeBake::O
 }
 
 Analysis::APIDumpAnalysis::DrawFacts Analysis::RecipeBake::OverlayCandidateFinder::merge_draw_facts(const Analysis::APIDumpAnalysis::DrawFacts& in_a,
-                                                                                                   const Analysis::APIDumpAnalysis::DrawFacts& in_b)
+                                                                                                    const Analysis::APIDumpAnalysis::DrawFacts& in_b)
 {
     Analysis::APIDumpAnalysis::DrawFacts result = in_a;
 

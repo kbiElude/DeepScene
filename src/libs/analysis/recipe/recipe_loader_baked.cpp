@@ -90,14 +90,14 @@ bool Analysis::Recipe::RecipeLoader::parse_baked(const Utils::Json::JsonValue& i
 {
     const auto* convergence_ptr              = in_baked.find_ptr("convergence");
     const auto* covering_draws_ptr           = in_baked.find_ptr("covering_draws");
+    const auto* eye_space_draws_ptr          = in_baked.find_ptr("eye_space_draws");
+    const auto* flat_layer_draws_ptr         = in_baked.find_ptr("flat_layer_draws");
     const auto* known_signatures_ptr         = in_baked.find_ptr("known_signatures");
+    const auto* overlay_draws_ptr            = in_baked.find_ptr("overlay_draws");
     const auto* per_eye_textures_ptr         = in_baked.find_ptr("per_eye_textures");
     bool        result                       = false;
     const auto* rule_array_ptr               = in_baked.find_ptr("draw_rules");
-    const auto* eye_space_draws_ptr          = in_baked.find_ptr("eye_space_draws");
-    const auto* flat_layer_draws_ptr         = in_baked.find_ptr("flat_layer_draws");
-    const auto* overlay_draws_ptr            = in_baked.find_ptr("overlay_draws");
-    const auto* scene_convergence_ptr       = in_baked.find_ptr("scene_convergence");
+    const auto* scene_convergence_ptr        = in_baked.find_ptr("scene_convergence");
     const auto* scene_max_separation_ptr     = in_baked.find_ptr("scene_max_separation");
     const auto* side_reaching_draws_ptr      = in_baked.find_ptr("side_reaching_draws");
     uint32_t    signature_scheme_version     = 0;

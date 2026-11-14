@@ -530,7 +530,7 @@ bool Analysis::Recipe::RecipeApplier::is_draw_covering(const uint64_t& in_cover_
 }
 
 bool Analysis::Recipe::RecipeApplier::is_draw_pushed(const uint64_t& in_pass_key,
-                                                      const uint64_t& in_draw_key) const
+                                                     const uint64_t& in_draw_key) const
 {
     const PassDrawKey pass_draw_key(in_pass_key,
                                     in_draw_key);
@@ -674,8 +674,8 @@ std::array<float, 16> Analysis::Recipe::RecipeApplier::make_eye_offset_matrix(co
 }
 
 std::array<float, 16> Analysis::Recipe::RecipeApplier::make_view_anchor_matrix(const Analysis::Recipe::Eye& in_eye,
-                                                                                 const float&                 in_eye_separation,
-                                                                                 const uint64_t&              in_shape_key) const
+                                                                               const float&                 in_eye_separation,
+                                                                               const uint64_t&              in_shape_key) const
 {
     constexpr float HALF = 0.5f;
 

@@ -62,20 +62,20 @@ namespace Stereo
             void forget_matrices();
 
             /* What was set (see set_convergence_distance()); 0 if the recipe's distances are in use. */
-            float                        get_convergence_distance() const;
-            float                        get_depth_strength      () const;
+            float                        get_convergence_distance          () const;
+            float                        get_depth_strength                () const;
             float                        get_effective_convergence_distance() const;
             float                        get_effective_eye_separation      () const;
-            float                        get_eye_separation      () const;
-            float                        get_ipd_scale           () const;
-            bool                         get_is_last_draw_eye_space() const;
-            bool                         get_is_last_draw_part   () const;
-            bool                         get_is_last_draw_pushed () const;
-            bool                         get_is_last_draw_side_reaching() const;
-            bool                         get_is_overlay_pushed   () const;
-            uint64_t                     get_n_unknown_draws     () const;
-            uint64_t                     get_n_unknown_frames    () const;
-            const std::array<float, 16>& get_view_matrix         () const;
+            float                        get_eye_separation                () const;
+            float                        get_ipd_scale                     () const;
+            bool                         get_is_last_draw_eye_space        () const;
+            bool                         get_is_last_draw_part             () const;
+            bool                         get_is_last_draw_pushed           () const;
+            bool                         get_is_last_draw_side_reaching    () const;
+            bool                         get_is_overlay_pushed             () const;
+            uint64_t                     get_n_unknown_draws               () const;
+            uint64_t                     get_n_unknown_frames              () const;
+            const std::array<float, 16>& get_view_matrix                   () const;
 
             /* The matrix that is put in front of the camera of a draw for the eye, as OpenGL has matrices (the columns one after the other): the
              * camera is moved half the eye separation to the side (the left eye is to the left) and the scene shears by the depth, so that what is at
