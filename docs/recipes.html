@@ -30,7 +30,18 @@
   <li><a href="#what">What a recipe holds</a></li>
   <li><a href="#baking">Baking: from what is known offline to what is known live</a></li>
   <li><a href="#making">How one is made</a></li>
-  <li><a href="#format">The format</a></li>
+  <li><a href="#format">The format</a>
+    <ul>
+      <li><a href="#format-small">A small recipe</a></li>
+      <li><a href="#format-top">The top of the file</a></li>
+      <li><a href="#format-draws">Naming draws</a></li>
+      <li><a href="#format-comfort">Comfort</a></li>
+      <li><a href="#format-pixels">Vertices already in pixels</a></li>
+      <li><a href="#format-opengl">The camera of an OpenGL program</a></li>
+      <li><a href="#format-rules">Rules for matrices</a></li>
+      <li><a href="#format-baked">The baked section</a></li>
+    </ul>
+  </li>
 </ol>
 
 <h2 id="what">What a recipe holds</h2>
@@ -70,9 +81,17 @@
 </svg>
 <figcaption>Rules by pass or by frame shape work only offline. A recipe that needs one for a live run is refused by the converter at once, with a message, rather than drawing wrong images.</figcaption>
 </figure>
-<p><code>RecipeBake recipe.json file.passes [--deps file.deps] [-o baked.json]</code> bakes: it writes the <code>baked</code> section into the recipe (or into the file <code>-o</code> names) and prints what it found. Its exit codes are 0 (done), 1 (bad arguments), 2 (a file cannot be read), 3 (the recipe cannot be baked), 4 (the file cannot be written), 5 and 6 (see <code>--check</code> below). Without <code>--deps</code> a texture that frames use by turns is missed, so <code>per_eye_textures</code> comes from the totals of the analysis only.</p>
-<p><code>RecipeBake --scenes recipe passes [--screen-degrees N]</code> (default 90) prints, for each scene (kind of frame): where its frames are in the run (the cuts), how deep it is, where the eyes converge, how far apart they may be, and the parallax of its nearest and farthest surfaces as a part of the picture width and as an angle on a screen of N degrees (73.6 on the headset that the recipe of Gerbera is made for: its limits are the widths that make 1.5 and 1 degrees; a recipe made for one width is weaker or stronger on another). Keep the near limit at about 1.5 degrees and the far limit at about 1, check the scenes that are flattest, and set what a cut needs in <code>scene_overrides</code>. The converter can write frames of each scene to look at (<code>APISTEREO_DUMP_SCENES</code>; see <a href="live-conversion.html#log">Live conversion</a>).</p>
-<p><code>RecipeBake</code> also checks a recipe without writing anything: <code>--check</code> lists the frame shapes and draw signatures of a capture that the recipe does not know (exit code 5), and a pass left alone whose vertices are at many depths, which is a 3D scene seen from one place and not an overlay, or one that a replay leaves alone and the converter inside the program does not (exit code 6). It also lists the kinds of draws (signature and size) whose draws are not all of one kind by what the analysis saw them do (some in the space of the picture and others not, some over a 3D scene and others not, some in the space of the eye and others not). The automatic layers leave those out; name them in the recipe if each is one thing. Informational: no exit code. <code>--overlays</code> prints the draws that may be 2D overlays, by the recipe and by the hint of the analysis, and where the two disagree.</p>
+<p><code>RecipeBake</code> has four modes. Only the first writes anything.</p>
+<table>
+<tr><th>Command</th><th>What it does</th></tr>
+<tr><td><code>RecipeBake recipe.json file.passes [--deps file.deps] [-o baked.json]</code></td><td>Bakes: writes the <code>baked</code> section into the recipe (or into the file <code>-o</code> names) and prints what it found. Without <code>--deps</code> a texture that frames use by turns is missed, so <code>per_eye_textures</code> comes from the totals of the analysis only.</td></tr>
+<tr><td><code>RecipeBake --check recipe passes</code></td><td>Checks a recipe against a capture, and writes nothing. Lists the frame shapes and draw signatures that the recipe does not know (exit 5), and a pass left alone whose vertices are at many depths, which is a 3D scene seen from one place and not an overlay, or one that a replay leaves alone and the converter inside the program does not (exit 6). It also lists the kinds of draws (signature and size) whose draws are not all of one kind by what the analysis saw them do (some in the space of the picture and others not, some over a 3D scene and others not, some in the space of the eye and others not). The automatic layers leave those out; name them in the recipe if each is one thing. That part is informational and changes no exit code.</td></tr>
+<tr><td><code>RecipeBake --overlays recipe passes</code></td><td>Prints the draws that may be 2D overlays, by the recipe and by the hint of the analysis, and where the two disagree.</td></tr>
+<tr><td><code>RecipeBake --scenes recipe passes [--screen-degrees N]</code></td><td>Prints, for each scene (kind of frame): where its frames are in the run (the cuts), how deep it is, where the eyes converge, how far apart they may be, and the parallax of its nearest and farthest surfaces as a part of the picture width and as an angle on a screen of N degrees (default 90).</td></tr>
+</table>
+<p>The exit codes are 0 (done), 1 (bad arguments), 2 (a file cannot be read), 3 (the recipe cannot be baked), 4 (the file cannot be written), and 5 and 6 from <code>--check</code>.</p>
+<h3>Tuning comfort with <code>--scenes</code></h3>
+<p>The screen of the headset that the recipe of Gerbera is made for is 73.6 degrees wide, so pass <code>--screen-degrees 73.6</code> for it: its limits are the widths that make 1.5 and 1 degrees. The limits of a recipe are parts of the width of the picture, so a recipe made for one width is weaker or stronger on another. Keep the near limit at about 1.5 degrees and the far limit at about 1, check the scenes that are flattest, and set what a cut needs in <code>scene_overrides</code>. The converter can write frames of each scene to look at (<code>APISTEREO_DUMP_SCENES</code>; see <a href="live-conversion.html#log">Live conversion</a>).</p>
 
 <h2 id="making">How one is made</h2>
 <p>The steps are captured in <a href="adding-an-app.html">Adding an app</a>: capture, extract, investigate the analysis (an LLM reading the query tool's JSON is good at this), draft the rules, bake, check offline with the <a href="replay.html">replay tools</a>, try live. The recipes that ship are in <code>apps/recipes</code>:</p>
@@ -84,170 +103,183 @@
 </table>
 
 <h2 id="format">The format</h2>
-<p><code>RecipeLoader</code> checks everything that needs no program: names, numbers and keys are valid (keys are the strings <code>APIDumpAnalysisQuery</code> prints), and no unknown field is left. The keys and the <code>baked</code> section do not depend on the API. The <code>rules</code> section does: a rule names the call it applies to (and the state of that call) in the terms of its API. A rule can name <code>IDirect3DDevice8::SetTransform</code> or <code>IDirect3DDevice7::SetTransform</code> (the table is in <code>recipe_loader_rules.cpp</code>); the example is Direct3D 8, and a recipe for another API would name that API's calls. A recipe for OpenGL has no rules (<code>"rules": []</code>, which must still be there): its eyes come from <code>view_anchor_shift</code>. The three fields a recipe cannot leave out are <code>recipe_version</code> (0), <code>key_scheme_version</code> and <code>rules</code>.</p>
-<pre><code>  {
-    "recipe_version": 0,
-    "key_scheme_version": 1,                       must equal this build's, or the keys would not match
-    "target": { "name": "fr08", "description": "text for people" },                                     (optional)
-    "known_shape_keys": [ "0x0123456789abcdef" ],  the frame shapes the recipe was made for              (optional)
-    "on_unknown_frame": "mono",                    for a frame not in known_shape_keys: mono (default), skip or fail
-    "cache_pixel_reads": true,                     OpenGL: the reads of one pixel that the program makes in a row (a grid of them, a thousand in a frame, each a wait
-                                                   for the graphics card) are given from a picture of the left eye that is read once (optional, off)
-    "comfort": {                                    how much the eyes can be asked to do; without it, no scene has a limit
-      "max_near_parallax": 0.03,                   how far apart the pictures of the eyes may be at the nearest surface of a
-                                                   scene, as a part of the width of the picture (above 0, up to 1)
-      "max_far_parallax": 0.01,                    the same at the farthest surface (above 0, up to 1): with a screen two metres away
-                                                   the pictures of what is at infinity may be no further apart than the eyes of a person
-                                                   (65 mm is 0.014 of a width of 4.7 m); the narrower the angle of view, the sooner it matters
-      "automatic_layers": true,                    the recipe also uses the layers that the baker finds (flat_layer_draws, overlay_draws and eye_space_draws, under "baked");
-                                                   off by default: the recipe plays as it names its draws
-      "balance_convergence": true,                 with both limits, the eyes converge where the whole depth of a scene fits them best (the
-                                                   nearest surface has all of the near limit and the farthest all of the far one), and not at
-                                                   the median depth of its vertices
-      "camera_attached_depth": 0.05,               (above 0, below 1) a draw whose origin is nearer the camera than this part of the distance of convergence
-                                                   (an interface or a sky drawn with a perspective projection) is made as it is for both eyes
-      "eye_space_cover_keys": ["0x..."],           draws (by signature and size, as in "pushed") that the application makes with a model-view of the identity because it has put
-                                                   their vertices in the space of the eye (the knobs of a control panel): not taken for attached to the camera whatever their origin says,
-                                                   they are given the parallax of the depth of their vertices
-      "measure_depth": true,                       OpenGL: the converter reads the depth buffer before each pass is cleared and takes the
-                                                   nearest and farthest surfaces of the frame from it (a frame later: the read is not waited for), in place of what was baked for the scene
-                                                   (which cannot see display lists, nor a camera that flies past a near surface)
-      "scene_overrides": [                         what is said of single scenes (cuts), by the shape key of their frames: any of
-        { "shape": "0x...",                        convergence_distance, max_far_parallax, max_near_parallax and max_separation (the
-          "max_separation": 4.0 }                  last two win over the limits of the recipe; the distance wins over the balance)
-      ],
-      "near_fraction": 0.001,                      which part of the surfaces of a scene (by vertices) is its nearest: the
-                                                   nearest thousandth (above 0, below 1; default 0.001)
-      "overlay_parallax": 0.04,                    how far toward the viewer the draws that are left alone (unaffected) can be pushed, if
-                                                   they are made to what is presented: the two pictures of them are that far apart,
-                                                   as a part of the width of the picture (0 to 0.5). What the application wants: VR Player
-                                                   pushes by it, with no control to turn it off; 0 or left out: the application wants none.
-                                                   Draws of pre-transformed vertices are pushed the same way (every x moved by half the
-                                                   amount, in pixels, the other way for each eye), unless they cover the whole view
-      "part_parallax": 0.006                       (optional) the same for the parts of an object that protrude from it and are named in pushed.part_cover_keys (the
-                                                   eyes of a robot): they are nearer than the rest of the object by little, so less (0 or left out: as much as overlay_parallax)
-    },
-    "screen_parallax": {                           for an application whose vertices are already in the space of the picture (pre-transformed:
-                                                   Direct3D's x and y in pixels, and the reciprocal of the depth), which no matrix moves;
-                                                   without it, such vertices are left as they are
-      "convergence_distance": 5.0,                 the distance at which the eyes converge, in the units of the camera of the application; what
-                                                   is at it is not moved. For a scene which the analysis found nothing in; the others converge at
-                                                   the distance that RecipeBake baked (scene_convergence), and are no further apart than its limit
-                                                   (scene_max_separation: from comfort and the nearest surfaces). Above 0; it must be said
-      "field_of_view_degrees": 90.0                the angle of view of the width of the picture (above 0, below 180; default 90): there is no
-                                                   projection to read it from
-    },
-    "view_anchor_shift": {                         for OpenGL, whose camera is not set by a call of one matrix but built by calls on the model-view matrix (loads, multiplies, pushes
-                                                   and pops): the call that loads the matrix a draw comes from (a glLoadIdentity or a glLoadMatrix) loads the shift of the eye
-                                                   on top of what it loads, so that everything the program does next is on top of it (x + h + (h / d) * z in the space of the camera,
-                                                   with h half of the eye separation): a camera moved to the side, with what is at d not apart
-      "convergence_distance": 600.0,               where the eyes converge for a scene that has no distance of its own (scene_convergence), in the units of the camera of the
-                                                   application; left out: the eyes are moved apart and do not converge
-      "draws_without_anchor": "fail"               what a draw that the recipe affects and whose camera no call begins is (an interface drawn with an identity
-                                                   projection): "fail" stops the replay, and says the keys of the draws, so that the recipe can leave them alone
-                                                   (default); "leave" plays them as they are
-    },
-    "unaffected": {                                draws which the rules leave alone (a 2D overlay): all others are affected
-      "pass_keys": [ "0x..." ],                    every draw of these passes
-      "draw_keys": [ "0x..." ],                    these draws, wherever they are
-      "pass_draws": [ { "pass_key": "0x...", "draw_key": "0x..." } ]   this draw in this pass only: a draw structure is often in several passes (a scene and
-                                                   the pass that draws over it), and a converter that plays the application as it runs does not know the
-                                                   passes, so it cannot tell this from the draw
-    },
-    "affected": { "draw_keys": [ "0x..." ] },      draws which are affected inside an unaffected pass (a draw in a pass beats a draw key, which beats a pass key)
-    "baked": {                                     made from the lists above by RecipeBake; do not edit
-      "signature_scheme_version": 1,               must equal this build's, or the signatures would not match
-      "known_signatures": [ "0x..." ],             the signatures the analysis saw; a draw of another is one the recipe knows nothing of
-      "covering_draws": [ "0x..." ],               the keys (signature and size) of the draws that cover the whole of the view (a flash, a
-                                                   fade): found by the analysis, and not pushed toward the viewer, since moving them would
-                                                   leave a strip bare
-      "side_reaching_draws": [ "0x..." ],          the keys (signature and size) of the flat draws that reach from the left edge of the picture to the right one (a bar,
-                                                   a scroller): found by the analysis from where their vertices were, and pushed with the picture made wider by the
-                                                   push, so that neither edge is bare
-      "flat_layer_draws": [ "0x..." ],             only with comfort.automatic_layers: the keys of the draws that are made in the space of the picture (vertices in pixels, or an
-                                                   orthographic projection) and not always over a 3D scene, or that work on a copy of the picture: left as they are
-      "overlay_draws": [ "0x..." ],                only with comfort.automatic_layers: the keys of the draws that are made in the space of the picture and, in every frame they
-                                                   are in, after a draw with a perspective projection: left as they are and pushed toward the viewer by overlay_parallax
-      "eye_space_draws": [ "0x..." ],              only with comfort.automatic_layers: the keys of the draws whose object is at the camera (the origin is at the depth of 0)
-                                                   and whose vertices are all in front of it, at a real depth: their vertices are in the space of the eye, so they are given the
-                                                   parallax of their depth and are not taken for attached to the camera (a sky around the camera has vertices behind it, and is not one)
-      "per_eye_textures": [                        the textures that are rendered to and that a frame uses what an earlier frame left in (see the dependencies; RecipeBake --deps), which
-        { "description_key": "0x...", "ordinal": 1 }   each eye has a copy of: told by the key of how the texture was made and by the number
-      ],                                           of the textures made like it before it, so that a replay knows when the application makes it
-      "scene_convergence": [                       the distance at which the eyes converge in a kind of frame (a scene), by the shape
-        { "shape": "0x...", "distance": 12.5 }     key of its frames; the converter follows the frame before, and uses the distance
-      ],                                           of the draw (below) for a shape that is not listed
-      "scene_max_separation": [                    how far apart the eyes may be in a scene, in the units of the camera,
-        { "shape": "0x...", "separation": 0.5 }    by the shape key of its frames: baked from comfort and the nearest surfaces
-      ],                                           of the scene; a scene that is not listed has no limit
-      "convergence": [                             the distance at which the eyes converge, for the draws of a signature
-        { "signature": "0x...", "distance": 12.5 } measured from how deep the passes that draw it are; in the units of the camera
-      ],
-      "draw_rules": [                              what a draw is, by what is known when it is issued; tried in order, and a
-        {                                          draw which none applies to is affected
-          "signature": "0x...",
-          "class": "unaffected",                   affected, skipped or unaffected
-          "pushed": true,                          the draw is moved toward the viewer (see "pushed" below)      (optional)
-          "when": {                                                                                    (optional)
-            "constant": "view_matrix",             the only constant a rule can name
-            "equals_any": [ [ 16 numbers ] ]       the rule applies while the constant has one of these values
-          }
-        }
-      ]
-    },
-    "pushed": {                                    draws which are moved toward the viewer by comfort.overlay_parallax, whatever else they are (the draws that
-                                                   have content of their own: text, logos, sprites, as against a fade, a wipe or a filter that works on the
-                                                   picture below it, which stay as they are); named as the skipped ones are
-      "pass_keys": [ "0x..." ],                    every draw of these passes
-      "draw_keys": [ "0x..." ],                    these draws, wherever they are
-      "cover_keys": [ "0x..." ],                   draws of this key and size (the cover key of a draw: its structure and its vertex count): the parts of an
-                                                   object that are drawn alike, of which only some are to be moved. Drawn once for both eyes and pushed by the whole of
-                                                   comfort.overlay_parallax; the replay keeps the rules for such a draw whose camera it shares with a draw that the rules
-                                                   affect; the converter in the application does not
-      "part_cover_keys": [ "0x..." ],              like cover_keys, for the parts of an object that protrude from it: pushed by comfort.part_parallax
-                                                   and moved by the depth of their origin (as the eyes would move it), held to the nearest and the farthest parallax of the scene
-      "pass_draws": [ { "pass_key": "0x...", "draw_key": "0x..." } ]   this draw in this pass only
-    },
-    "skipped": {                                   draws which are not played, in either eye (the calls which set their state are)
-      "pass_keys": [ "0x..." ],                    every draw of these passes
-      "draw_keys": [ "0x..." ],                    these draws, wherever they are
-      "pass_draws": [ { "pass_key": "0x...", "draw_key": "0x..." } ]   this draw in this pass only (what the overlay report leaves out)
-    },
-    "rules": [
-      {
-        "name": "scene camera",                                                                     (optional)
-        "call": "IDirect3DDevice8::SetTransform",
-        "when": {                                                                                      (optional)
-          "state": "D3DTS_VIEW",                   a D3DTS_* name (D3DTRANSFORMSTATE_* for Direct3D 7), or a number
-          "matrix": "perspective",                 any (default), perspective or orthographic
-          "pass_keys": [ "0x..." ],                the call is in one of these pass structures
-          "shape_keys": [ "0x..." ]                the frame is one of these shapes
-        },
-        "action": {
-          "type": "multiply",                      multiply, replace, eye_offset or eye_convergence
-          "order": "post",                         post (M * X) or pre (X * M); multiply and eye_offset only
-          "left":  [ 16 numbers, row by row ],     X for the left eye                  (multiply and replace)
-          "right": [ 16 numbers, row by row ]      X for the right eye                 (multiply and replace)
-        }
-        for eye_offset, X is a translation along "axis" ("x", "y" or "z") by half of the eye separation, which is a setting of
-        the replay (a command-line option, the depth choice), not a part of the recipe:
-        "action": {
-          "type": "eye_offset",
-          "order": "post",
-          "axis": "x"
-        }
-        eye_convergence takes nothing: for a rule about the perspective projection (D3DTS_PROJECTION), the projection of each eye is
-        sheared so that what is at the convergence distance is at the same place in both eyes (it
-        seems to be at the screen). The distance of a draw is the one the baked section has for its signature (measured, see
-        "convergence" above), unless the replay sets one for all; with neither, the rule changes nothing. The rule for the view has
-        to be eye_offset.
-        "action": {
-          "type": "eye_convergence"
-        }
-      }
-    ]
-  }</code></pre>
-<p>(<code>pass_keys</code> and <code>pass_draws</code> are for the replay, which knows the pass of a draw. A converter that plays the application as it runs does not, and leaves them out: it writes a warning to its log for each such list.)</p>
+<p><code>RecipeLoader</code> checks everything that needs no program: names, numbers and keys are valid (keys are the strings <code>APIDumpAnalysisQuery</code> prints), and no unknown field is left. The keys and the <code>baked</code> section do not depend on the API. The <code>rules</code> section does: a rule names the call it applies to (and the state of that call) in the terms of its API.</p>
+<p>Three fields cannot be left out: <code>recipe_version</code> (0), <code>key_scheme_version</code> and <code>rules</code>. A section that a recipe does not need is left out; the sections below say what that means.</p>
+
+<h3 id="format-small">A small recipe</h3>
+<p>This is the whole hand-written part of <code>apps/recipes/kasparov.json</code>, a Direct3D 7 program whose vertices are in pixels (the baked section is added after it):</p>
+<pre><code>{
+  "recipe_version": 0,
+  "key_scheme_version": 1,
+  "target": {
+    "name": "Kasparov",
+    "description": "Elitegroup, 1999 (the PC demo of The Party 1999)"
+  },
+  "comfort": {
+    "max_near_parallax": 0.03,
+    "overlay_parallax": 0.05
+  },
+  "screen_parallax": {
+    "convergence_distance": 5,
+    "field_of_view_degrees": 90
+  },
+  "rules": []
+}</code></pre>
+<p>A recipe for Direct3D 8 (fr08) has <code>rules</code> that change matrices instead, and an <code>unaffected</code> list of the passes that are the interface. A recipe for OpenGL has <code>"rules": []</code>, which must still be there, and gets its eyes from <code>view_anchor_shift</code>. The sections follow, in the order a recipe is usually written.</p>
+
+<h3 id="format-top">The top of the file</h3>
+<table>
+<tr><th>Field</th><th>Meaning</th></tr>
+<tr><td><code>recipe_version</code></td><td>0. Required.</td></tr>
+<tr><td><code>key_scheme_version</code></td><td>Must equal that of the build that reads the file, or the keys would not match. Required.</td></tr>
+<tr><td><code>target</code></td><td>Optional. <code>name</code> and <code>description</code>, text for people.</td></tr>
+<tr><td><code>known_shape_keys</code></td><td>Optional. The frame shapes the recipe was made for. Left out: no frame is unknown.</td></tr>
+<tr><td><code>on_unknown_frame</code></td><td>What to do with a frame that is not in <code>known_shape_keys</code>: <code>mono</code> (default), <code>skip</code> or <code>fail</code>.</td></tr>
+<tr><td><code>cache_pixel_reads</code></td><td>Optional, off by default. OpenGL: the reads of one pixel that the program makes in a row (a grid of them, a thousand in a frame, each a wait for the graphics card) are given from a picture of the left eye that is read once.</td></tr>
+<tr><td><code>rules</code></td><td>The rules for matrices (<a href="#format-rules">below</a>). Required; may be empty.</td></tr>
+</table>
+
+<h3 id="format-draws">Naming draws</h3>
+<p>Four sections name draws: <code>unaffected</code>, <code>affected</code>, <code>skipped</code> and <code>pushed</code>. They share a vocabulary of keys (the strings the analysis tools print), and a draw can be in more than one section: a draw can be both affected and pushed.</p>
+<table>
+<tr><th>Section</th><th>What it says about the draws it names</th></tr>
+<tr><td><code>unaffected</code></td><td>The rules leave them alone: a 2D overlay. All other draws are affected.</td></tr>
+<tr><td><code>affected</code></td><td>Affected, inside an unaffected pass. It only has <code>draw_keys</code>.</td></tr>
+<tr><td><code>skipped</code></td><td>Not played, in either eye. The calls that set their state are.</td></tr>
+<tr><td><code>pushed</code></td><td>Moved toward the viewer by <code>comfort.overlay_parallax</code>, whatever else they are: the draws that have content of their own (text, logos, sprites), as against a fade, a wipe or a filter that works on the picture below it, which stay as they are.</td></tr>
+</table>
+<p>The lists a section can have:</p>
+<table>
+<tr><th>List</th><th>Names</th><th>In</th></tr>
+<tr><td><code>pass_keys</code></td><td>Every draw of these passes.</td><td>unaffected, skipped, pushed</td></tr>
+<tr><td><code>draw_keys</code></td><td>These draws, wherever they are.</td><td>all four</td></tr>
+<tr><td><code>pass_draws</code></td><td>This draw in this pass only: <code>{ "pass_key": "0x...", "draw_key": "0x..." }</code>. A draw structure is often in several passes (a scene, and the pass that draws over it), and a converter that plays the application as it runs does not know the passes, so it cannot tell this from the draw.</td><td>unaffected, skipped, pushed</td></tr>
+<tr><td><code>cover_keys</code></td><td>Draws of this key and size (the cover key of a draw: its structure and its vertex count): the parts of an object that are drawn alike, of which only some are to be moved. They are drawn once for both eyes and pushed by the whole of <code>comfort.overlay_parallax</code>. The replay keeps the rules for such a draw whose camera it shares with a draw that the rules affect; the converter in the application does not.</td><td>pushed</td></tr>
+<tr><td><code>part_cover_keys</code></td><td>Like <code>cover_keys</code>, for the parts of an object that protrude from it (the eyes of a robot): pushed by <code>comfort.part_parallax</code>, moved by the depth of their origin (as the eyes would move it), and held to the nearest and the farthest parallax of the scene.</td><td>pushed</td></tr>
+</table>
+<p><code>pass_keys</code> and <code>pass_draws</code> are for the replay, which knows the pass of a draw. A converter that plays the application as it runs does not, and leaves them out: it writes a warning to its log for each such list.</p>
+<h4>Which name wins</h4>
+<p>When a draw is named in <code>unaffected</code> and in <code>affected</code> at different levels, the most specific name wins.</p>
+<figure>
+<svg viewBox="0 0 900 230" role="img" aria-label="The most specific name wins: a draw in a pass, then a draw key, then a pass key">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <text class="title" x="10" y="22">Is this draw affected? The first name that matches decides.</text>
+  <rect class="box4" x="10" y="40" width="250" height="60" rx="6"/><text x="135" y="64" text-anchor="middle">1. this draw in this pass</text><text class="small" x="135" y="82" text-anchor="middle">pass_draws</text>
+  <rect class="box4" x="320" y="40" width="250" height="60" rx="6"/><text x="445" y="64" text-anchor="middle">2. this draw, anywhere</text><text class="small" x="445" y="82" text-anchor="middle">draw_keys</text>
+  <rect class="box4" x="630" y="40" width="250" height="60" rx="6"/><text x="755" y="64" text-anchor="middle">3. every draw of its pass</text><text class="small" x="755" y="82" text-anchor="middle">pass_keys</text>
+  <path class="arrow" d="M260 70H318"/><path class="arrow" d="M570 70H628"/>
+  <text class="small" x="289" y="62" text-anchor="middle">else</text><text class="small" x="599" y="62" text-anchor="middle">else</text>
+  <rect class="box2" x="10" y="130" width="250" height="60" rx="6"/><text x="135" y="154" text-anchor="middle">named in affected: affected</text><text class="small" x="135" y="172" text-anchor="middle">(at a level, affected is looked at first)</text>
+  <rect class="box3" x="320" y="130" width="250" height="60" rx="6"/><text x="445" y="154" text-anchor="middle">named in unaffected: left alone</text><text class="small" x="445" y="172" text-anchor="middle">(only lists that have the level)</text>
+  <rect class="box" x="630" y="130" width="250" height="60" rx="6"/><text x="755" y="154" text-anchor="middle">named nowhere: affected</text><text class="small" x="755" y="172" text-anchor="middle">the default</text>
+  <path class="arrow" d="M135 100V128"/><path class="arrow" d="M445 100V128"/><path class="arrow" d="M755 100V128"/>
+</svg>
+<figcaption>So <code>affected.draw_keys</code> can make one draw of an unaffected pass scene again, and a <code>pass_draws</code> entry beats a <code>draw_keys</code> entry. <code>skipped</code> and <code>pushed</code> are decided on their own: a skipped draw is not played at all.</figcaption>
+</figure>
+
+<h3 id="format-comfort">Comfort</h3>
+<p>The <code>comfort</code> section says how much the eyes can be asked to do. Without it, no scene has a limit. All parallax numbers are parts of the width of the picture. <a href="stereo.html#convergence">Stereo</a> explains how they are used.</p>
+<figure>
+<svg viewBox="0 0 900 200" role="img" aria-label="The comfort limits bound the parallax of the nearest and the farthest surface of a scene">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <text class="title" x="10" y="22">One scene, seen from above</text>
+  <path class="arrow" d="M20 110H880"/><text class="small" x="880" y="128" text-anchor="end">depth</text>
+  <rect class="box4" x="20" y="95" width="44" height="30" rx="4"/><text class="small" x="42" y="114" text-anchor="middle">eyes</text>
+  <rect class="box3" x="250" y="60" width="30" height="100" rx="4"/><text class="small" x="265" y="52" text-anchor="middle">nearest surface</text><text class="small" x="265" y="178" text-anchor="middle">max_near_parallax</text>
+  <path class="screen" d="M470 50V170"/><text class="small" x="470" y="42" text-anchor="middle">the screen: the eyes converge here</text><text class="small" x="470" y="188" text-anchor="middle">convergence distance</text>
+  <rect class="box2" x="700" y="60" width="30" height="100" rx="4"/><text class="small" x="715" y="52" text-anchor="middle">farthest surface</text><text class="small" x="715" y="178" text-anchor="middle">max_far_parallax</text>
+  <text class="small" x="150" y="86" text-anchor="middle">in front of the screen</text><text class="small" x="590" y="86" text-anchor="middle">behind it</text>
+</svg>
+<figcaption>The recipe bounds how far apart the two pictures of the nearest surface may be (<code>max_near_parallax</code>), and of the farthest (<code>max_far_parallax</code>). <code>near_fraction</code> says which part of the surfaces counts as the nearest.</figcaption>
+</figure>
+<h4>Limits</h4>
+<table>
+<tr><th>Field</th><th>Meaning</th></tr>
+<tr><td><code>max_near_parallax</code></td><td>How far apart the pictures of the eyes may be at the nearest surface of a scene, as a part of the width of the picture (above 0, up to 1).</td></tr>
+<tr><td><code>max_far_parallax</code></td><td>The same at the farthest surface (above 0, up to 1). With a screen two metres away, the pictures of what is at infinity may be no further apart than the eyes of a person (65 mm is 0.014 of a width of 4.7 m); the narrower the angle of view, the sooner it matters.</td></tr>
+<tr><td><code>near_fraction</code></td><td>Which part of the surfaces of a scene (by vertices) is its nearest. Above 0, below 1; default 0.001, the nearest thousandth.</td></tr>
+<tr><td><code>balance_convergence</code></td><td>With both limits, the eyes converge where the whole depth of a scene fits them best (the nearest surface has all of the near limit and the farthest all of the far one), and not at the median depth of its vertices.</td></tr>
+<tr><td><code>scene_overrides</code></td><td>What is said of single scenes (cuts), by the shape key of their frames: <code>{ "shape": "0x...", "max_separation": 4.0 }</code> with any of <code>convergence_distance</code>, <code>max_far_parallax</code>, <code>max_near_parallax</code> and <code>max_separation</code>. The last two win over the limits of the recipe; the distance wins over the balance.</td></tr>
+<tr><td><code>measure_depth</code></td><td>OpenGL. The converter reads the depth buffer before each pass is cleared and takes the nearest and farthest surfaces of the frame from it (a frame later: the read is not waited for), in place of what was baked for the scene. The baked values cannot see display lists, nor a camera that flies past a near surface.</td></tr>
+</table>
+<h4>Pushing the interface</h4>
+<table>
+<tr><th>Field</th><th>Meaning</th></tr>
+<tr><td><code>overlay_parallax</code></td><td>How far toward the viewer the draws that are left alone (unaffected) can be pushed, if they are made to what is presented: the two pictures of them are that far apart, as a part of the width of the picture (0 to 0.5). This is what the application wants: VR Player pushes by it, with no control to turn it off. 0 or left out: the application wants none. Draws of pre-transformed vertices are pushed the same way (every x moved by half the amount, in pixels, the other way for each eye), unless they cover the whole view.</td></tr>
+<tr><td><code>part_parallax</code></td><td>Optional. The same for the parts of an object that protrude from it and are named in <code>pushed.part_cover_keys</code> (the eyes of a robot): they are nearer than the rest of the object by little, so less. 0 or left out: as much as <code>overlay_parallax</code>.</td></tr>
+</table>
+<h4>Draws that are attached to the camera</h4>
+<table>
+<tr><th>Field</th><th>Meaning</th></tr>
+<tr><td><code>camera_attached_depth</code></td><td>Above 0, below 1. A draw whose origin is nearer the camera than this part of the distance of convergence (an interface or a sky drawn with a perspective projection) is made as it is for both eyes.</td></tr>
+<tr><td><code>eye_space_cover_keys</code></td><td>Draws (by signature and size, as in <code>pushed</code>) that the application makes with a model-view of the identity because it has put their vertices in the space of the eye (the knobs of a control panel). They are not taken for attached to the camera whatever their origin says, and are given the parallax of the depth of their vertices.</td></tr>
+<tr><td><code>automatic_layers</code></td><td>The recipe also uses the layers that the baker finds (<code>flat_layer_draws</code>, <code>overlay_draws</code> and <code>eye_space_draws</code>, under <code>baked</code>). Off by default: the recipe plays as it names its draws.</td></tr>
+</table>
+
+<h3 id="format-pixels">Vertices already in pixels</h3>
+<p>A program whose vertices are pre-transformed (Direct3D's x and y in pixels, and the reciprocal of the depth) has no matrix to change. The <code>screen_parallax</code> section is for it; without it, such vertices are left as they are.</p>
+<table>
+<tr><th>Field</th><th>Meaning</th></tr>
+<tr><td><code>convergence_distance</code></td><td>The distance at which the eyes converge, in the units of the camera of the application; what is at it is not moved. It is used for a scene that the analysis found nothing in. The others converge at the distance that <code>RecipeBake</code> baked (<code>scene_convergence</code>), and are no further apart than its limit (<code>scene_max_separation</code>: from comfort and the nearest surfaces). Above 0; it must be said.</td></tr>
+<tr><td><code>field_of_view_degrees</code></td><td>The angle of view of the width of the picture (above 0, below 180; default 90). There is no projection to read it from.</td></tr>
+</table>
+
+<h3 id="format-opengl">The camera of an OpenGL program</h3>
+<p>An OpenGL program does not set its camera with a call of one matrix: it builds it with calls on the model-view matrix (loads, multiplies, pushes and pops). The call that loads the matrix a draw comes from (a <code>glLoadIdentity</code> or a <code>glLoadMatrix</code>) loads the shift of the eye on top of what it loads, so everything the program does next is on top of it. The <code>view_anchor_shift</code> section turns that on.</p>
+<div class="math">x + h + (h / d) * z
+<span class="why">in the space of the camera, with h half of the eye separation and d the convergence distance: a camera moved to the side, with what is at d not apart.</span></div>
+<table>
+<tr><th>Field</th><th>Meaning</th></tr>
+<tr><td><code>convergence_distance</code></td><td>Where the eyes converge for a scene that has no distance of its own (<code>scene_convergence</code>), in the units of the camera of the application. Left out: the eyes are moved apart and do not converge.</td></tr>
+<tr><td><code>draws_without_anchor</code></td><td>What to do with a draw that the recipe affects and whose camera no call begins (an interface drawn with an identity projection). <code>"fail"</code> (default) stops the replay and says the keys of the draws, so that the recipe can leave them alone; <code>"leave"</code> plays them as they are.</td></tr>
+</table>
+
+<h3 id="format-rules">Rules for matrices</h3>
+<p>A rule changes a matrix that the program sets. It names the call in the terms of its API: <code>IDirect3DDevice8::SetTransform</code> or <code>IDirect3DDevice7::SetTransform</code> (the table is in <code>recipe_loader_rules.cpp</code>). The example is Direct3D 8; a recipe for another API names that API's calls.</p>
+<pre><code>"rules": [
+  {
+    "name": "scene camera",
+    "call": "IDirect3DDevice8::SetTransform",
+    "when": { "state": "D3DTS_VIEW", "matrix": "perspective" },
+    "action": { "type": "eye_offset", "order": "post", "axis": "x" }
+  }
+]</code></pre>
+<h4>When a rule applies</h4>
+<table>
+<tr><th>Field</th><th>Meaning</th></tr>
+<tr><td><code>name</code></td><td>Optional.</td></tr>
+<tr><td><code>call</code></td><td>The function the rule is about.</td></tr>
+<tr><td><code>when.state</code></td><td>A <code>D3DTS_*</code> name (<code>D3DTRANSFORMSTATE_*</code> for Direct3D 7), or a number.</td></tr>
+<tr><td><code>when.matrix</code></td><td><code>any</code> (default), <code>perspective</code> or <code>orthographic</code>.</td></tr>
+<tr><td><code>when.pass_keys</code></td><td>The call is in one of these pass structures.</td></tr>
+<tr><td><code>when.shape_keys</code></td><td>The frame is one of these shapes.</td></tr>
+</table>
+<h4>What a rule does</h4>
+<table>
+<tr><th><code>action.type</code></th><th>What it does</th></tr>
+<tr><td><code>multiply</code></td><td>Multiplies the matrix of the program by <code>left</code> or <code>right</code> (16 numbers, row by row) for each eye. <code>order</code> is <code>post</code> (M * X) or <code>pre</code> (X * M).</td></tr>
+<tr><td><code>replace</code></td><td>Puts <code>left</code> or <code>right</code> in place of the matrix.</td></tr>
+<tr><td><code>eye_offset</code></td><td>Multiplies by a translation along <code>axis</code> (<code>x</code>, <code>y</code> or <code>z</code>) of half the eye separation. The separation is a setting of the replay (a command-line option, the depth choice), not a part of the recipe. <code>order</code> as for <code>multiply</code>.</td></tr>
+<tr><td><code>eye_convergence</code></td><td>Takes nothing. For a rule about the perspective projection (<code>D3DTS_PROJECTION</code>), the projection of each eye is sheared so that what is at the convergence distance is at the same place in both eyes: it seems to be at the screen. The distance of a draw is the one the baked section has for its signature (<code>convergence</code>), unless the replay sets one for all; with neither, the rule changes nothing. The rule for the view has to be <code>eye_offset</code>.</td></tr>
+</table>
+
+<h3 id="format-baked">The baked section</h3>
+<p>Made from the sections above by <code>RecipeBake</code>; do not edit it. It has no API in it.</p>
+<table>
+<tr><th>Entry</th><th>What it holds</th></tr>
+<tr><td><code>signature_scheme_version</code></td><td>Must equal this build's, or the signatures would not match.</td></tr>
+<tr><td><code>known_signatures</code></td><td>The signatures the analysis saw. A draw of another is one the recipe knows nothing of.</td></tr>
+<tr><td><code>draw_rules</code></td><td>What a draw is, by what is known when it is issued. Each is <code>{ "signature", "class", "pushed", "when" }</code>: <code>class</code> is <code>affected</code>, <code>skipped</code> or <code>unaffected</code>; <code>pushed</code> (optional) says the draw is moved toward the viewer; <code>when</code> (optional) is <code>{ "constant": "view_matrix", "equals_any": [ [16 numbers] ] }</code>, the only constant a rule can name, and applies while the constant has one of those values. Rules are tried in order, and a draw that none applies to is affected.</td></tr>
+<tr><td><code>scene_convergence</code></td><td><code>{ "shape", "distance" }</code>: the distance at which the eyes converge in a kind of frame, by the shape key of its frames. The converter follows the frame before, and uses the distance of the draw (<code>convergence</code>) for a shape that is not listed.</td></tr>
+<tr><td><code>scene_max_separation</code></td><td><code>{ "shape", "separation" }</code>: how far apart the eyes may be in a scene, in the units of the camera, baked from comfort and the nearest surfaces. A scene that is not listed has no limit.</td></tr>
+<tr><td><code>convergence</code></td><td><code>{ "signature", "distance" }</code>: where the eyes converge for the draws of a signature, measured from how deep the passes that draw it are, in the units of the camera.</td></tr>
+<tr><td><code>per_eye_textures</code></td><td><code>{ "description_key", "ordinal" }</code>: the textures that are rendered to and that a frame uses what an earlier frame left in (see the dependencies; <code>RecipeBake --deps</code>), which each eye has a copy of. Told by the key of how the texture was made and by the number of the textures made like it before it, so a replay knows when the application makes it.</td></tr>
+<tr><td><code>covering_draws</code></td><td>The keys (signature and size) of the draws that cover the whole of the view (a flash, a fade). Found by the analysis, and not pushed toward the viewer, since moving them would leave a strip bare.</td></tr>
+<tr><td><code>side_reaching_draws</code></td><td>The keys (signature and size) of the flat draws that reach from the left edge of the picture to the right one (a bar, a scroller). Found by the analysis from where their vertices were, and pushed with the picture made wider by the push, so that neither edge is bare.</td></tr>
+<tr><td><code>flat_layer_draws</code></td><td>Only with <code>comfort.automatic_layers</code>. The keys of the draws made in the space of the picture (vertices in pixels, or an orthographic projection) and not always over a 3D scene, or that work on a copy of the picture: left as they are.</td></tr>
+<tr><td><code>overlay_draws</code></td><td>Only with <code>comfort.automatic_layers</code>. The keys of the draws made in the space of the picture and, in every frame they are in, after a draw with a perspective projection: left as they are and pushed toward the viewer by <code>overlay_parallax</code>.</td></tr>
+<tr><td><code>eye_space_draws</code></td><td>Only with <code>comfort.automatic_layers</code>. The keys of the draws whose object is at the camera (the origin is at the depth of 0) and whose vertices are all in front of it, at a real depth: their vertices are in the space of the eye, so they are given the parallax of their depth and are not taken for attached to the camera. A sky around the camera has vertices behind it, and is not one.</td></tr>
+</table>
 </main>
 </body>
 </html>
