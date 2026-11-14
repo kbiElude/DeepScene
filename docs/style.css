@@ -142,3 +142,11 @@ svg text.r { fill: var(--eye-right); }
 header.site .break { flex-basis: 100%; height: 0; }
 header.site .label { margin-left: auto; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); opacity: 0.7; }
 header.site .break + .label ~ a { font-size: 0.9rem; }
+
+/* a chapter opens with a short story, and keeps the reference in details */
+.story { border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: 0 8px 8px 0; padding: 0.7rem 1rem; margin: 1rem 0 1.25rem; }
+.story p { margin: 0.4rem 0; }
+details { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 0.5rem 1rem; margin: 1rem 0; }
+details > summary { cursor: pointer; font-weight: 600; color: var(--accent); }
+details[open] > summary { margin-bottom: 0.5rem; }
+h2 .no { color: var(--muted); font-weight: 400; margin-right: 0.4rem; }
