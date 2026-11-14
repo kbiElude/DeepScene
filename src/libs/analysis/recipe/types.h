@@ -134,6 +134,12 @@ namespace Analysis
              */
             float camera_attached_depth = 0.0f;
 
+            /* Draws by signature and size (KeyBuilder::compute_draw_cover_key) that the application makes with a model-view of the identity because it has put their vertices in the space
+             * of the eye already (the knobs of the control panel of a robot): the origin says nothing of where they are, so they are not taken for attached to the camera, and are given
+             * the parallax of the depth of their vertices like any other draw. Without them, the draws of that kind are attached whatever their depth.
+             */
+            std::vector<uint64_t> eye_space_cover_key_vec;
+
             /* How far apart the pictures of the eyes may be at the farthest surface of a scene, as a part of the width of the picture: what is beyond the
              * distance at which the eyes converge is seen with eyes that turn toward each other less than at the screen, and at the width that is the distance
              * between the eyes of a person on the screen they would have to turn away from each other, which no eyes do. 0: no limit.

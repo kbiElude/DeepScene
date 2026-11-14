@@ -12,6 +12,7 @@ Stereo::Core::StereoCore::StereoCore(const Analysis::Recipe::Recipe& in_recipe,
      m_fail_func             (in_fail_func),
      m_frame_interval_seconds(ConvergenceModel::get_reference_frame_seconds() ),
      m_is_last_draw_covering (false),
+     m_is_last_draw_eye_space(false),
      m_is_last_draw_part     (false),
      m_is_last_draw_pushed   (false),
      m_is_overlay_pushed     (false),
@@ -66,8 +67,10 @@ Analysis::Recipe::DrawClass Stereo::Core::StereoCore::classify_draw(const uint64
 
     m_convergence_model.set_draw_convergence_distance(m_applier.get_convergence_distance(in_signature_key) );
 
-    m_is_last_draw_covering = m_applier.is_draw_covering(in_cover_key);
-    m_is_last_draw_part     = m_applier.is_part_cover   (in_cover_key);
+    m_is_last_draw_covering  = m_applier.is_draw_covering  (in_cover_key);
+    m_is_last_draw_eye_space = m_applier.is_eye_space_cover(in_cover_key);
+    m_is_last_draw_part      = m_applier.is_part_cover     (in_cover_key);
+
     m_last_draw_class       = m_applier.classify_draw    (in_signature_key,
                                                           m_view_matrix_fp32vec16);
     m_last_draw_cover_key   = in_cover_key;
@@ -144,6 +147,11 @@ float Stereo::Core::StereoCore::get_eye_separation() const
 float Stereo::Core::StereoCore::get_ipd_scale() const
 {
     return m_convergence_model.get_ipd_scale();
+}
+
+bool Stereo::Core::StereoCore::get_is_last_draw_eye_space() const
+{
+    return m_is_last_draw_eye_space;
 }
 
 bool Stereo::Core::StereoCore::get_is_last_draw_part() const

@@ -103,6 +103,9 @@
                                                    the median depth of its vertices
       "camera_attached_depth": 0.05,               (above 0, below 1) OpenGL: a draw whose origin is nearer the camera than this part of the distance of convergence
                                                    (an interface or a sky drawn with a perspective projection) is made as it is for both eyes
+      "eye_space_cover_keys": ["0x..."],           OpenGL: draws (by signature and size, as in "pushed") that the application makes with a model-view of the identity because it has put
+                                                   their vertices in the space of the eye (the knobs of a control panel): not taken for attached to the camera whatever their origin says,
+                                                   they are given the parallax of the depth of their vertices
       "measure_depth": true,                       OpenGL: the converter reads the depth buffer before each pass is cleared and takes the
                                                    nearest and farthest surfaces of the frame from it (a frame later: the read is not waited for), in place of what was baked for the scene
                                                    (which cannot see display lists, nor a camera that flies past a near surface)

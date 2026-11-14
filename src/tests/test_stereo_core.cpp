@@ -309,6 +309,23 @@ TEST_F(StereoCoreTest, ADrawThatIsNamedBySizeAsPushedIsFlatAndPushed)
     EXPECT_FALSE(core.get_is_last_draw_pushed() );
 }
 
+TEST_F(StereoCoreTest, ADrawWhoseVerticesAreInTheSpaceOfTheEyeIsToldByItsSignatureAndSize)
+{
+    Stereo::Core::StereoCore core(make_recipe(std::string("\"comfort\": {\"eye_space_cover_keys\": [\"0x0000000000000005\"]}, ") +
+                                              get_baked_text(""),
+                                              get_view_rule_text() ),
+                                  Stereo::Core::FailFunc() );
+
+    /* The same signature: the draw of that size is in the space of the eye, the others are not. */
+    core.classify_draw(1, 5);
+
+    EXPECT_TRUE(core.get_is_last_draw_eye_space() );
+
+    core.classify_draw(1, 6);
+
+    EXPECT_FALSE(core.get_is_last_draw_eye_space() );
+}
+
 TEST_F(StereoCoreTest, APartThatProtrudesFollowsTheDepthOfItsOriginAndOthersDoNot)
 {
     Stereo::Core::StereoCore core(make_recipe("\"pushed\": {\"part_cover_keys\": [\"0x0000000000000005\"], \"cover_keys\": [\"0x0000000000000007\"]}, " + get_baked_text(""),

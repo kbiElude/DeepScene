@@ -130,6 +130,11 @@ namespace Analysis
             bool is_draw_skipped(const uint64_t& in_pass_key,
                                  const uint64_t& in_draw_key) const;
 
+            /* Whether a draw of the key (see KeyBuilder::compute_draw_cover_key()) has its vertices in the space of the eye, so that it is not taken for attached to the camera
+             * (see Comfort::eye_space_cover_key_vec).
+             */
+            bool is_eye_space_cover(const uint64_t& in_cover_key) const;
+
             /* True if the frame is one the recipe was made for: its shape is listed, or no shape is. */
             bool is_frame_known(const uint64_t& in_shape_key) const;
 
@@ -209,6 +214,7 @@ namespace Analysis
             std::map<uint64_t, float>             m_convergence_distance_map;
             DrawRuleIndexMap                      m_draw_rule_index_map;
             std::set<uint64_t>                    m_covering_draw_key_set;
+            std::set<uint64_t>                    m_eye_space_cover_key_set;
             std::set<uint64_t>                    m_known_signature_key_set;
             Analysis::Recipe::Recipe              m_recipe;
             std::set<APIInterceptor::APIFunction> m_rule_function_set;

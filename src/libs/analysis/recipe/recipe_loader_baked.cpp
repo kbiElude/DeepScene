@@ -316,7 +316,7 @@ bool Analysis::Recipe::RecipeLoader::parse_comfort(const Utils::Json::JsonValue&
     }
 
     if (check_keys(in_value,
-                   {"balance_convergence", "camera_attached_depth", "max_far_parallax", "max_near_parallax", "measure_depth", "near_fraction", "overlay_parallax", "part_parallax", "scene_overrides"},
+                   {"balance_convergence", "camera_attached_depth", "eye_space_cover_keys", "max_far_parallax", "max_near_parallax", "measure_depth", "near_fraction", "overlay_parallax", "part_parallax", "scene_overrides"},
                    in_path,
                    out_error_ptr) == false)
     {
@@ -374,6 +374,19 @@ bool Analysis::Recipe::RecipeLoader::parse_comfort(const Utils::Json::JsonValue&
             }
 
             out_comfort_ptr->camera_attached_depth = static_cast<float>(attached_ptr->number_value);
+        }
+
+        const auto* eye_space_ptr = in_value.find_ptr("eye_space_cover_keys");
+
+        if (eye_space_ptr != nullptr)
+        {
+            if (parse_hex_key_array(*eye_space_ptr,
+                                    in_path + ".eye_space_cover_keys",
+                                   &out_comfort_ptr->eye_space_cover_key_vec,
+                                    out_error_ptr) == false)
+            {
+                goto end;
+            }
         }
 
         const auto* measure_ptr = in_value.find_ptr("measure_depth");

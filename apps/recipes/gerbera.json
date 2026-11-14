@@ -3,6 +3,11 @@
   "comfort": {
     "balance_convergence": true,
     "camera_attached_depth": 0.05,
+    "eye_space_cover_keys": [
+      "0x516c3d10ffe88a06",
+      "0x5177c8a9f7b18c9d",
+      "0x62f7c76a5f7d85e7"
+    ],
     "max_far_parallax": 0.0135869565,
     "max_near_parallax": 0.0203804348,
     "measure_depth": true,

@@ -1069,8 +1069,12 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
         const float attached_depth = m_core_ptr->get_camera_attached_depth() * m_core_ptr->get_effective_convergence_distance();
         const float origin_depth   = -saved_matrix.at(MATRIX_Z_TRANSLATION);
 
-        if (attached_depth > 0.0f         &&
-            origin_depth   < attached_depth)
+        /* A draw that the recipe says has its vertices in the space of the eye (its model-view is the identity, so its origin says nothing) is given the parallax of their depth. */
+        const bool is_in_eye_space = m_core_ptr->get_is_last_draw_eye_space();
+
+        if (attached_depth  >  0.0f           &&
+            origin_depth    <  attached_depth &&
+            is_in_eye_space == false)
         {
             is_affected = false;
 

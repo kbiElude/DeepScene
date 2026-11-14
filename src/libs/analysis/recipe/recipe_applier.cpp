@@ -67,6 +67,8 @@ Analysis::Recipe::RecipeApplier::RecipeApplier(const Analysis::Recipe::Recipe& i
 
     m_covering_draw_key_set.insert  (m_recipe.covering_draw_key_vec.begin  (),
                                      m_recipe.covering_draw_key_vec.end    () );
+    m_eye_space_cover_key_set.insert(m_recipe.comfort.eye_space_cover_key_vec.begin(),
+                                     m_recipe.comfort.eye_space_cover_key_vec.end  () );
     m_known_signature_key_set.insert(m_recipe.known_signature_key_vec.begin(),
                                      m_recipe.known_signature_key_vec.end  () );
     m_pushed_cover_key_set.insert   (m_recipe.pushed.cover_key_vec.begin   (),
@@ -533,6 +535,11 @@ bool Analysis::Recipe::RecipeApplier::is_draw_skipped(const uint64_t& in_pass_ke
     return (n_pass_draw_skips != 0 ||
             n_draw_skips      != 0 ||
             n_pass_skips      != 0);
+}
+
+bool Analysis::Recipe::RecipeApplier::is_eye_space_cover(const uint64_t& in_cover_key) const
+{
+    return (m_eye_space_cover_key_set.count(in_cover_key) != 0);
 }
 
 bool Analysis::Recipe::RecipeApplier::is_frame_known(const uint64_t& in_shape_key) const

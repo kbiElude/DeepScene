@@ -68,6 +68,7 @@ namespace Stereo
             float                        get_effective_eye_separation      () const;
             float                        get_eye_separation      () const;
             float                        get_ipd_scale           () const;
+            bool                         get_is_last_draw_eye_space() const;
             bool                         get_is_last_draw_part   () const;
             bool                         get_is_last_draw_pushed () const;
             bool                         get_is_overlay_pushed   () const;
@@ -220,6 +221,7 @@ namespace Stereo
             FailFunc                        m_fail_func;
             float                           m_frame_interval_seconds; /* the time of the frame that was completed last */
             bool                            m_is_last_draw_covering; /* the draw that was classified last covers the whole of the view */
+            bool                            m_is_last_draw_eye_space; /* the recipe says its vertices are in the space of the eye (Comfort::eye_space_cover_key_vec) */
             bool                            m_is_last_draw_part;     /* the draw that was classified last is a part that protrudes        */
             bool                            m_is_last_draw_pushed;   /* the recipe pushes the draw that was classified last              */
             bool                            m_is_overlay_pushed;     /* the person asks for the overlay to be pushed                    */

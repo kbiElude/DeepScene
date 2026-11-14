@@ -1359,6 +1359,38 @@ TEST_F(RecipeLoaderTest, TheComfortOfTheRecipeSaysWhatIsAttachedToTheCameraAndWh
                    "comfort.measure_depth");
 }
 
+TEST_F(RecipeLoaderTest, TheComfortOfTheRecipeNamesTheDrawsWhoseVerticesAreInTheSpaceOfTheEye)
+{
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"comfort\": {\"eye_space_cover_keys\": [\"0x0000000000000005\", \"0x00000000000000a7\"]},",
+                                                                       ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    ASSERT_EQ(recipe.comfort.eye_space_cover_key_vec.size(),
+              2u);
+    EXPECT_EQ(recipe.comfort.eye_space_cover_key_vec.at(0),
+              0x5u);
+    EXPECT_EQ(recipe.comfort.eye_space_cover_key_vec.at(1),
+              0xa7u);
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"comfort\": {\"max_near_parallax\": 0.03},",
+                                                                       ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_TRUE(recipe.comfort.eye_space_cover_key_vec.empty() );
+
+    expect_refused(get_recipe_text("\"comfort\": {\"eye_space_cover_keys\": 5},",
+                                   ""),
+                   "comfort.eye_space_cover_keys");
+    expect_refused(get_recipe_text("\"comfort\": {\"eye_space_cover_keys\": [\"nope\"]},",
+                                   ""),
+                   "comfort.eye_space_cover_keys[0]");
+}
+
 TEST_F(RecipeLoaderTest, ThePixelReadsOfTheApplicationAreCachedOnlyIfTheRecipeAsksForIt)
 {
     std::string              error;
