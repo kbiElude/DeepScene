@@ -112,7 +112,13 @@ namespace Analysis
             bool is_draw_affected(const uint64_t& in_pass_key,
                                   const uint64_t& in_draw_key) const;
 
-            /* Whether a draw of the key (its signature and size; see KeyBuilder::compute_draw_cover_key()) is pushed toward the viewer (see DrawSelector::cover_key_vec); a
+            /* Whether a draw of the key (its signature and size; see KeyBuilder::compute_draw_cover_key()) is made in the space of the picture and not over a 3D scene, which the
+             * baker found (see Recipe::flat_layer_draw_key_vec): it is left as the application makes it. False unless Comfort::uses_automatic_layers.
+             */
+            bool is_cover_flat_layer(const uint64_t& in_cover_key) const;
+
+            /* Whether a draw of the key (its signature and size; see KeyBuilder::compute_draw_cover_key()) is pushed toward the viewer (see DrawSelector::cover_key_vec, and
+             * Recipe::overlay_draw_key_vec with Comfort::uses_automatic_layers); a
              * draw can be pushed by that and by the other names too.
              */
             bool is_cover_pushed(const uint64_t& in_cover_key) const;
@@ -216,6 +222,8 @@ namespace Analysis
             std::set<uint64_t>                    m_affected_draw_key_set;
             std::set<PassDrawKey>                 m_affected_pass_draw_set;
             std::set<uint64_t>                    m_affected_pass_key_set;
+            std::set<uint64_t>                    m_automatic_flat_layer_cover_key_set;
+            std::set<uint64_t>                    m_automatic_overlay_cover_key_set;
             std::map<uint64_t, float>             m_convergence_distance_map;
             DrawRuleIndexMap                      m_draw_rule_index_map;
             std::set<uint64_t>                    m_covering_draw_key_set;

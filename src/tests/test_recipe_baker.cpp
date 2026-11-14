@@ -428,6 +428,146 @@ TEST_F(RecipeBakerTest, TheDrawsThatAreFlatAndReachFromOneSideOfThePictureToTheO
               0xa1u);
 }
 
+TEST_F(RecipeBakerTest, TheDrawsAreToldApartIntoLayersOverlaysAndDrawsInTheSpaceOfTheEyeByWhatTheyDid)
+{
+    Analysis::APIDumpAnalysis::AnalysisResult analysis;
+    Analysis::APIDumpAnalysis::DrawFacts      background;
+    Analysis::APIDumpAnalysis::DrawFacts      copy_reader;
+    Analysis::APIDumpAnalysis::DrawFacts      eye_space;
+    Analysis::APIDumpAnalysis::DrawFacts      mixed;
+    Analysis::APIDumpAnalysis::DrawFacts      overlay;
+    Analysis::APIDumpAnalysis::DrawFacts      scenery;
+
+    /* Made in the space of the picture, and before any 3D draw of the frame (a menu, a backdrop): a layer, left as it is. */
+    background.n_draws            = 4;
+    background.n_draws_flat_layer = 4;
+
+    /* Made in the space of the picture, over a 3D scene, on its own: an overlay. */
+    overlay.n_draws                = 6;
+    overlay.n_draws_after_3d_draw  = 6;
+    overlay.n_draws_flat_layer     = 6;
+
+    /* The same, but it samples a copy of the picture: it works on the picture, so it is a layer and no overlay. */
+    copy_reader                               = overlay;
+    copy_reader.n_draws_sampling_copied_color = 6;
+
+    /* Over a 3D scene in some draws only: not all of them are overlays, so it is a layer. */
+    mixed                         = overlay;
+    mixed.n_draws_after_3d_draw   = 5;
+
+    /* Every draw has its object at the camera and its vertices in front of it. */
+    eye_space.n_draws                = 3;
+    eye_space.n_draws_eye_space      = 3;
+    eye_space.n_draws_with_footprint = 3;
+
+    /* The 3D scene: some of its draws have the origin at the camera, and the others do not. */
+    scenery.n_draws                = 3;
+    scenery.n_draws_eye_space      = 1;
+    scenery.n_draws_with_footprint = 3;
+
+    analysis.model.draw_facts_map[Analysis::APIDumpAnalysis::DrawFactsKey(0x1, 0xa1)] = background;
+    analysis.model.draw_facts_map[Analysis::APIDumpAnalysis::DrawFactsKey(0x1, 0xb2)] = overlay;
+    analysis.model.draw_facts_map[Analysis::APIDumpAnalysis::DrawFactsKey(0x1, 0xc3)] = copy_reader;
+    analysis.model.draw_facts_map[Analysis::APIDumpAnalysis::DrawFactsKey(0x1, 0xd4)] = mixed;
+    analysis.model.draw_facts_map[Analysis::APIDumpAnalysis::DrawFactsKey(0x1, 0xe5)] = eye_space;
+    analysis.model.draw_facts_map[Analysis::APIDumpAnalysis::DrawFactsKey(0x1, 0xf6)] = scenery;
+
+    Analysis::RecipeBake::BakeReport report;
+    std::string                      error;
+    uint64_t                         second_pass_key = 0;
+    std::string                      text;
+    Analysis::Recipe::Recipe         recipe;
+
+    /* The facts that the analysis of the test has are kept, and the draws are those of a two pass analysis. */
+    auto               pass_analysis = make_two_pass_analysis(1, 1,
+                                                              1, 2,
+                                                              false,
+                                                             &second_pass_key);
+    const std::string  recipe_text   = "{\"recipe_version\": 0, \"key_scheme_version\": 1, \"target\": {\"name\": \"test\", \"description\": \"a test\"},"
+                                       "\"comfort\": {\"automatic_layers\": true},"
+                                       "\"unaffected\": {\"pass_keys\": [\"" + make_key_text(second_pass_key) + "\"]}, \"rules\": []}";
+
+    pass_analysis.model.draw_facts_map = analysis.model.draw_facts_map;
+
+    ASSERT_TRUE(Analysis::RecipeBake::RecipeBaker::bake(recipe_text,
+                                                        pass_analysis,
+                                                       &text,
+                                                       &report,
+                                                       &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(text,
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    ASSERT_EQ(recipe.eye_space_draw_key_vec.size(),
+              1u);
+    EXPECT_EQ(recipe.eye_space_draw_key_vec.at(0),
+              0xe5u);
+    ASSERT_EQ(recipe.flat_layer_draw_key_vec.size(),
+              3u);
+    EXPECT_EQ(recipe.flat_layer_draw_key_vec.at(0),
+              0xa1u);
+    EXPECT_EQ(recipe.flat_layer_draw_key_vec.at(1),
+              0xc3u);
+    EXPECT_EQ(recipe.flat_layer_draw_key_vec.at(2),
+              0xd4u);
+    ASSERT_EQ(recipe.overlay_draw_key_vec.size(),
+              1u);
+    EXPECT_EQ(recipe.overlay_draw_key_vec.at(0),
+              0xb2u);
+}
+
+TEST_F(RecipeBakerTest, TheListsOfLayersAreBakedOnlyForARecipeThatAsksForThem)
+{
+    Analysis::RecipeBake::BakeReport report;
+    std::string                      error;
+    uint64_t                         second_pass_key = 0;
+    auto                             analysis        = make_two_pass_analysis(1, 1,
+                                                                            1, 2,
+                                                                            false,
+                                                                           &second_pass_key);
+    std::string                      asking_text;
+    Analysis::Recipe::Recipe         asking_recipe;
+    std::string                      other_text;
+    Analysis::Recipe::Recipe         other_recipe;
+    Analysis::APIDumpAnalysis::DrawFacts overlay;
+
+    overlay.n_draws               = 2;
+    overlay.n_draws_after_3d_draw = 2;
+    overlay.n_draws_flat_layer    = 2;
+
+    analysis.model.draw_facts_map[Analysis::APIDumpAnalysis::DrawFactsKey(0x1, 0xb2)] = overlay;
+
+    const std::string asking_recipe_text = "{\"recipe_version\": 0, \"key_scheme_version\": 1, \"target\": {\"name\": \"test\", \"description\": \"a test\"},"
+                                           "\"comfort\": {\"automatic_layers\": true},"
+                                           "\"unaffected\": {\"pass_keys\": [\"" + make_key_text(second_pass_key) + "\"]}, \"rules\": []}";
+
+    ASSERT_TRUE(Analysis::RecipeBake::RecipeBaker::bake(asking_recipe_text,
+                                                        analysis,
+                                                       &asking_text,
+                                                       &report,
+                                                       &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(asking_text,
+                                                      &asking_recipe,
+                                                      &error) ) << error;
+    ASSERT_TRUE(Analysis::RecipeBake::RecipeBaker::bake(make_recipe_text(second_pass_key),
+                                                        analysis,
+                                                       &other_text,
+                                                       &report,
+                                                       &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(other_text,
+                                                      &other_recipe,
+                                                      &error) ) << error;
+
+    EXPECT_TRUE(asking_recipe.comfort.uses_automatic_layers);
+    ASSERT_EQ(asking_recipe.overlay_draw_key_vec.size(),
+              1u);
+    EXPECT_EQ(asking_recipe.overlay_draw_key_vec.at(0),
+              0xb2u);
+    EXPECT_TRUE(other_recipe.overlay_draw_key_vec.empty() );
+    EXPECT_EQ(other_text.find("overlay_draws"),
+              std::string::npos);
+}
+
 TEST_F(RecipeBakerTest, AnAffectedSignatureGetsTheMedianDepthOfItsPassesAndAnUnaffectedOneGetsNone)
 {
     constexpr size_t N_FLOATS_PER_MATRIX = 16;

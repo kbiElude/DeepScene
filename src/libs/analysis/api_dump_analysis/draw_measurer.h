@@ -38,6 +38,7 @@ namespace Analysis
                                           const bool&                 in_keeps_history,
                                           const ConstantStateMap&     in_constant_state_map,
                                           const Viewport&             in_viewport,
+                                          bool*                       inout_has_seen_3d_draw_ptr,
                                           DrawFacts*                  inout_facts_ptr);
 
             /* Counts the draw by the depth of the vertices of its sample (see DrawDescription::geometry_ptr), those in front of the camera and in view, each for its

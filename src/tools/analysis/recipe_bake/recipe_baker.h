@@ -107,6 +107,13 @@ namespace Analysis
                                                   SceneSeparationVector*                           out_scene_separation_vec_ptr,
                                                   BakeReport*                                      out_report_ptr);
 
+            /* Tells the draws by what the analysis saw them do (see DrawFacts), without anything of the API of the application (fills the three layer lists of the result): the ones made in the space of the picture (vertices in
+             * pixels, or an orthographic projection) are layers of the picture, and those that were always made after a 3D draw of the same frame are overlays; the ones whose
+             * object is at the camera and whose vertices are not (see DrawFacts::n_draws_eye_space) are in the space of the eye. A draw that samples a copy of the picture works on
+             * the picture and is no overlay. A key that the facts of its structures do not agree on is left out.
+             */
+            static DrawKeyLists get_automatic_layers(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis);
+
             /* The keys of the draws that cover the whole of the view, in the passes that the recipe leaves alone: only those are moved by the
              * overlay, and the mesh of a scene can have the same key.
              */
@@ -147,14 +154,13 @@ namespace Analysis
                                             MatrixVector*                                    out_matrix_vec_ptr,
                                             std::string*                                     out_reason_ptr);
 
-            static void write_baked(const std::vector<uint64_t>&  in_covering_draw_key_vec,
+            static void write_baked(const DrawKeyLists&           in_draw_key_lists,
                                     const ConvergenceVector&      in_convergence_vec,
                                     const std::vector<uint64_t>&  in_known_signature_key_vec,
                                     const PerEyeTextureVector&    in_per_eye_texture_vec,
                                     const RuleVector&             in_rule_vec,
                                     const SceneConvergenceVector& in_scene_convergence_vec,
                                     const SceneSeparationVector&  in_scene_separation_vec,
-                                    const std::vector<uint64_t>&  in_side_reaching_draw_key_vec,
                                     Utils::Json::JsonWriter*      inout_writer_ptr);
             static void write_value(const Utils::Json::JsonValue& in_value,
                                     Utils::Json::JsonWriter*      inout_writer_ptr);

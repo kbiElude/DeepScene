@@ -98,6 +98,10 @@
       "max_far_parallax": 0.01,                    the same at the farthest surface (above 0, up to 1): with a screen two metres away
                                                    the pictures of what is at infinity may be no further apart than the eyes of a person
                                                    (65 mm is 0.014 of a width of 4.7 m); the narrower the angle of view, the sooner it matters
+      "automatic_layers": true,                    the recipe uses the layers that the baker finds by itself (see "baked" below) in addition to the draws it names: draws made in the
+                                                   space of the picture are left as the application makes them, those made over a 3D scene are pushed by overlay_parallax as
+                                                   well, and draws whose vertices are in the space of the eye are not taken for attached to the camera. Without it the lists
+                                                   are not baked, and a recipe plays as it names its draws
       "balance_convergence": true,                 with both limits, the eyes converge where the whole depth of a scene fits them best (the
                                                    nearest surface has all of the near limit and the farthest all of the far one), and not at
                                                    the median depth of its vertices
@@ -161,6 +165,13 @@
       "side_reaching_draws": [ "0x..." ],   the keys (signature and size) of the flat draws that reach from the left edge of the picture to the right one (a bar,
                                                    a scroller): found by the analysis from where their vertices were, and pushed with the picture made wider by the
                                                    push, so that neither edge is bare
+      "flat_layer_draws": [ "0x..." ],      only with comfort.automatic_layers: the keys of the draws that are made in the space of the picture (vertices in pixels, or an
+                                                   orthographic projection) and not always over a 3D scene, or that work on a copy of the picture: left as they are
+      "overlay_draws": [ "0x..." ],         only with comfort.automatic_layers: the keys of the draws that are made in the space of the picture and, in every frame they
+                                                   are in, after a draw with a perspective projection: left as they are and pushed toward the viewer by overlay_parallax
+      "eye_space_draws": [ "0x..." ],       only with comfort.automatic_layers: the keys of the draws whose object is at the camera (the origin is at the depth of 0)
+                                                   and whose vertices are all in front of it, at a real depth: their vertices are in the space of the eye, so they are given the
+                                                   parallax of their depth and are not taken for attached to the camera (a sky around the camera has vertices behind it, and is not one)
       "per_eye_textures": [                        the textures that are rendered to and that a frame uses what an earlier frame left in (see the dependencies; RecipeBake --deps), which
         { "description_key": "0x...", "ordinal": 1 }   each eye has a copy of: told by the key of how the texture was made and by the number
       ],                                           of the textures made like it before it, so that a replay knows when the application makes it

@@ -69,6 +69,16 @@ Analysis::Recipe::RecipeApplier::RecipeApplier(const Analysis::Recipe::Recipe& i
                                      m_recipe.covering_draw_key_vec.end    () );
     m_eye_space_cover_key_set.insert(m_recipe.comfort.eye_space_cover_key_vec.begin(),
                                      m_recipe.comfort.eye_space_cover_key_vec.end  () );
+    if (m_recipe.comfort.uses_automatic_layers)
+    {
+        m_automatic_flat_layer_cover_key_set.insert(m_recipe.flat_layer_draw_key_vec.begin(),
+                                                    m_recipe.flat_layer_draw_key_vec.end  () );
+        m_automatic_overlay_cover_key_set.insert   (m_recipe.overlay_draw_key_vec.begin(),
+                                                    m_recipe.overlay_draw_key_vec.end  () );
+        m_eye_space_cover_key_set.insert           (m_recipe.eye_space_draw_key_vec.begin(),
+                                                    m_recipe.eye_space_draw_key_vec.end  () );
+    }
+
     m_known_signature_key_set.insert(m_recipe.known_signature_key_vec.begin(),
                                      m_recipe.known_signature_key_vec.end  () );
     m_pushed_cover_key_set.insert   (m_recipe.pushed.cover_key_vec.begin   (),
@@ -461,10 +471,16 @@ bool Analysis::Recipe::RecipeApplier::has_view_anchor_shift() const
     return m_recipe.view_anchor_shift.is_enabled;
 }
 
+bool Analysis::Recipe::RecipeApplier::is_cover_flat_layer(const uint64_t& in_cover_key) const
+{
+    return (m_automatic_flat_layer_cover_key_set.count(in_cover_key) != 0);
+}
+
 bool Analysis::Recipe::RecipeApplier::is_cover_pushed(const uint64_t& in_cover_key) const
 {
-    return (m_pushed_cover_key_set.count     (in_cover_key) != 0 ||
-            m_pushed_part_cover_key_set.count(in_cover_key) != 0);
+    return (m_pushed_cover_key_set.count           (in_cover_key) != 0 ||
+            m_pushed_part_cover_key_set.count      (in_cover_key) != 0 ||
+            m_automatic_overlay_cover_key_set.count(in_cover_key) != 0);
 }
 
 bool Analysis::Recipe::RecipeApplier::is_draw_affected(const uint64_t& in_pass_key,

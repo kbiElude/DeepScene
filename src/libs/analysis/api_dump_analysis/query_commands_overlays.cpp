@@ -523,6 +523,12 @@ void Analysis::APIDumpAnalysis::QueryCommands::write_draw_facts(const DrawFacts&
     inout_writer_ptr->write_u64(in_facts.n_draws);
     inout_writer_ptr->write_key("n_blended_draws");
     inout_writer_ptr->write_u64(in_facts.n_blended_draws);
+    inout_writer_ptr->write_key("n_draws_after_3d_draw");
+    inout_writer_ptr->write_u64(in_facts.n_draws_after_3d_draw);
+    inout_writer_ptr->write_key("n_draws_eye_space");
+    inout_writer_ptr->write_u64(in_facts.n_draws_eye_space);
+    inout_writer_ptr->write_key("n_draws_flat_layer");
+    inout_writer_ptr->write_u64(in_facts.n_draws_flat_layer);
     inout_writer_ptr->write_key("n_draws_sampling_copied_color");
     inout_writer_ptr->write_u64(in_facts.n_draws_sampling_copied_color);
     inout_writer_ptr->write_key("n_draws_with_footprint");

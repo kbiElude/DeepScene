@@ -137,23 +137,26 @@ bool Analysis::RecipeBake::RecipeBaker::bake(const std::string&                 
 
         writer.write_key("baked");
 
-        const std::vector<uint64_t> covering_draw_key_vec      = get_covering_draw_key_vec     (recipe,
-                                                                                                in_analysis);
-        const PerEyeTextureVector   per_eye_texture_vec        = get_per_eye_texture_vec       (in_analysis,
-                                                                                                in_dependencies_ptr);
-        const std::vector<uint64_t> side_reaching_draw_key_vec = get_side_reaching_draw_key_vec(in_analysis);
+        const PerEyeTextureVector per_eye_texture_vec = get_per_eye_texture_vec(in_analysis,
+                                                                                in_dependencies_ptr);
+        DrawKeyLists              draw_key_lists      = get_automatic_layers   (in_analysis);
+
+        /* Only a recipe that asks for the layers has them in its baked section, so that the others are baked as they were. */
+        draw_key_lists.covering_draw_key_vec      = get_covering_draw_key_vec     (recipe,
+                                                                                   in_analysis);
+        draw_key_lists.has_automatic_layers       = recipe.comfort.uses_automatic_layers;
+        draw_key_lists.side_reaching_draw_key_vec = get_side_reaching_draw_key_vec(in_analysis);
 
         out_report_ptr->n_per_eye_textures = static_cast<uint32_t>(per_eye_texture_vec.size() );
         out_report_ptr->uses_dependencies  = (in_dependencies_ptr != nullptr);
 
-        write_baked(covering_draw_key_vec,
+        write_baked(draw_key_lists,
                     convergence_vec,
                     known_signature_key_vec,
                     per_eye_texture_vec,
                     rule_vec,
                     scene_convergence_vec,
                     scene_separation_vec,
-                    side_reaching_draw_key_vec,
                    &writer);
 
         writer.end_object();
@@ -543,6 +546,67 @@ void Analysis::RecipeBake::RecipeBaker::compute_scene_convergence(const Analysis
 
     out_report_ptr->n_scene_distances = static_cast<uint32_t>(out_scene_convergence_vec_ptr->size() );
     out_report_ptr->n_scene_limits    = static_cast<uint32_t>(out_scene_separation_vec_ptr->size() );
+}
+
+Analysis::RecipeBake::DrawKeyLists Analysis::RecipeBake::RecipeBaker::get_automatic_layers(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
+{
+    /* What the draws of one key did, in all the structures that have it. */
+    struct CoverTotal
+    {
+        uint64_t n_draws                       = 0;
+        uint64_t n_draws_after_3d_draw         = 0;
+        uint64_t n_draws_eye_space             = 0;
+        uint64_t n_draws_flat_layer            = 0;
+        uint64_t n_draws_sampling_copied_color = 0;
+        uint64_t n_draws_with_footprint        = 0;
+    };
+
+    std::map<uint64_t, CoverTotal> total_map;
+    DrawKeyLists                   result;
+
+    for (const auto& facts_pair : in_analysis.model.draw_facts_map)
+    {
+        const auto& facts = facts_pair.second;
+        auto&       total = total_map[facts_pair.first.second];
+
+        total.n_draws                       += facts.n_draws;
+        total.n_draws_after_3d_draw         += facts.n_draws_after_3d_draw;
+        total.n_draws_eye_space             += facts.n_draws_eye_space;
+        total.n_draws_flat_layer            += facts.n_draws_flat_layer;
+        total.n_draws_sampling_copied_color += facts.n_draws_sampling_copied_color;
+        total.n_draws_with_footprint        += facts.n_draws_with_footprint;
+    }
+
+    for (const auto& total_pair : total_map)
+    {
+        const auto& total         = total_pair.second;
+        const bool  is_flat_layer = (total.n_draws != 0 &&
+                                     total.n_draws_flat_layer == total.n_draws);
+
+        if (is_flat_layer)
+        {
+            const bool is_over_3d   = (total.n_draws_after_3d_draw == total.n_draws);
+            const bool is_on_a_copy = (total.n_draws_sampling_copied_color != 0);
+
+            if (is_over_3d    &&
+                is_on_a_copy == false)
+            {
+                result.overlay_draw_key_vec.push_back(total_pair.first);
+            }
+            else
+            {
+                result.flat_layer_draw_key_vec.push_back(total_pair.first);
+            }
+        }
+        else
+        if (total.n_draws_with_footprint != 0                        &&
+            total.n_draws_eye_space      == total.n_draws_with_footprint)
+        {
+            result.eye_space_draw_key_vec.push_back(total_pair.first);
+        }
+    }
+
+    return result;
 }
 
 std::string Analysis::RecipeBake::RecipeBaker::get_class_key_text(const ClassKey& in_class_key)
@@ -998,14 +1062,13 @@ Analysis::RecipeBake::SceneLimits Analysis::RecipeBake::RecipeBaker::resolve_sce
     return result;
 }
 
-void Analysis::RecipeBake::RecipeBaker::write_baked(const std::vector<uint64_t>&  in_covering_draw_key_vec,
+void Analysis::RecipeBake::RecipeBaker::write_baked(const DrawKeyLists&           in_draw_key_lists,
                                                     const ConvergenceVector&      in_convergence_vec,
                                                     const std::vector<uint64_t>&  in_known_signature_key_vec,
                                                     const PerEyeTextureVector&    in_per_eye_texture_vec,
                                                     const RuleVector&             in_rule_vec,
                                                     const SceneConvergenceVector& in_scene_convergence_vec,
                                                     const SceneSeparationVector&  in_scene_separation_vec,
-                                                    const std::vector<uint64_t>&  in_side_reaching_draw_key_vec,
                                                     Utils::Json::JsonWriter*      inout_writer_ptr)
 {
     inout_writer_ptr->begin_object();
@@ -1037,7 +1100,7 @@ void Analysis::RecipeBake::RecipeBaker::write_baked(const std::vector<uint64_t>&
     inout_writer_ptr->write_key   ("covering_draws");
     inout_writer_ptr->begin_array ();
 
-    for (const auto& signature_key : in_covering_draw_key_vec)
+    for (const auto& signature_key : in_draw_key_lists.covering_draw_key_vec)
     {
         inout_writer_ptr->write_hex_u64(signature_key);
     }
@@ -1046,12 +1109,36 @@ void Analysis::RecipeBake::RecipeBaker::write_baked(const std::vector<uint64_t>&
     inout_writer_ptr->write_key   ("side_reaching_draws");
     inout_writer_ptr->begin_array ();
 
-    for (const auto& cover_key : in_side_reaching_draw_key_vec)
+    for (const auto& cover_key : in_draw_key_lists.side_reaching_draw_key_vec)
     {
         inout_writer_ptr->write_hex_u64(cover_key);
     }
 
     inout_writer_ptr->end_array();
+
+    if (in_draw_key_lists.has_automatic_layers)
+    {
+        const std::pair<const char*, const std::vector<uint64_t>*> list_array[] =
+        {
+            {"eye_space_draws",  &in_draw_key_lists.eye_space_draw_key_vec },
+            {"flat_layer_draws", &in_draw_key_lists.flat_layer_draw_key_vec},
+            {"overlay_draws",    &in_draw_key_lists.overlay_draw_key_vec   }
+        };
+
+        for (const auto& list : list_array)
+        {
+            inout_writer_ptr->write_key   (list.first);
+            inout_writer_ptr->begin_array ();
+
+            for (const auto& cover_key : *list.second)
+            {
+                inout_writer_ptr->write_hex_u64(cover_key);
+            }
+
+            inout_writer_ptr->end_array();
+        }
+    }
+
     inout_writer_ptr->write_key("convergence");
     inout_writer_ptr->begin_array();
 

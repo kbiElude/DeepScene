@@ -27,7 +27,7 @@ const Analysis::APIDumpAnalysis::SectionInfo Analysis::APIDumpAnalysis::PassesFi
     {PassesFormat::TAG_SURF, 1},
     {PassesFormat::TAG_PROJ, 1},
     {PassesFormat::TAG_COVR, 1},
-    {PassesFormat::TAG_FACT, 1}
+    {PassesFormat::TAG_FACT, 2}
 };
 
 const size_t Analysis::APIDumpAnalysis::PassesFile::N_SECTIONS = sizeof(SECTION_INFO_ARRAY) / sizeof(SECTION_INFO_ARRAY[0]);

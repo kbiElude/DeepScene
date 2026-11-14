@@ -562,6 +562,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_draw(const DrawDescription& in_
                                         m_keeps_history,
                                         m_constant_state_map,
                                         m_viewport,
+                                       &m_frame.has_seen_3d_draw,
                                        &draw_facts);
 
         if (coverage == ViewCoverage::COVERING)
@@ -712,7 +713,8 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_frame_presented()
     m_frame.transfer_record_vec.clear        ();
     m_pending_forget_vec.clear       ();
 
-    m_frame.has_calls = false;
+    m_frame.has_calls        = false;
+    m_frame.has_seen_3d_draw = false;
 
     if (m_access_sink_ptr != nullptr)
     {

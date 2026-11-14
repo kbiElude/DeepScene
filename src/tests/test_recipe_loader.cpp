@@ -1537,6 +1537,48 @@ TEST_F(RecipeLoaderTest, BakedSideReachingDrawsAreReadAndWhatIsWrongInThemIsRefu
                    "side_reaching_draws");
 }
 
+TEST_F(RecipeLoaderTest, TheLayersTheBakerFoundAndTheFlagThatUsesThemAreReadAndWhatIsWrongInThemIsRefused)
+{
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"comfort\": {\"automatic_layers\": true}, \"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": [],"
+                                                                      " \"eye_space_draws\": [\"0x0000000000000001\"], \"flat_layer_draws\": [\"0x0000000000000002\", \"0x0000000000000003\"],"
+                                                                      " \"overlay_draws\": [\"0x0000000000000004\"]},",
+                                                                      ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_TRUE(recipe.comfort.uses_automatic_layers);
+    ASSERT_EQ(recipe.eye_space_draw_key_vec.size(),
+              1u);
+    EXPECT_EQ(recipe.eye_space_draw_key_vec.at(0),
+              1u);
+    ASSERT_EQ(recipe.flat_layer_draw_key_vec.size(),
+              2u);
+    EXPECT_EQ(recipe.flat_layer_draw_key_vec.at(1),
+              3u);
+    ASSERT_EQ(recipe.overlay_draw_key_vec.size(),
+              1u);
+    EXPECT_EQ(recipe.overlay_draw_key_vec.at(0),
+              4u);
+
+    /* Not asked for: the recipe does not use them. */
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": []},",
+                                                                      ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_FALSE(recipe.comfort.uses_automatic_layers);
+
+    expect_refused(get_recipe_text("\"comfort\": {\"automatic_layers\": 1}, \"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": []},",
+                                   ""),
+                   "automatic_layers");
+    expect_refused(get_recipe_text("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": [], \"overlay_draws\": 5},",
+                                   ""),
+                   "overlay_draws");
+}
+
 TEST_F(RecipeLoaderTest, PerEyeTexturesAreReadAndWhatIsWrongInThemIsRefused)
 {
     std::string              error;

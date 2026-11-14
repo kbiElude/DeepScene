@@ -1641,6 +1641,139 @@ TEST(ModelBuilder, TheFactsOfADrawSayWhereItDrawsAndHowMuchOfThePictureItCovers)
                 1.0e-4f);
 }
 
+TEST(ModelBuilder, TheFactsOfADrawSayWhetherItIsMadeInTheSpaceOfThePictureAndWhetherItIsOverA3DDraw)
+{
+    constexpr size_t N_FLOATS_PER_MATRIX = 16;
+
+    Tests::ModelTestHelper                 helper;
+    const auto                             swapchain_image  = helper.create_swapchain_image();
+    std::array<float, N_FLOATS_PER_MATRIX> projection_f32mat = {1, 0, 0,     0,
+                                                                0, 1, 0,     0,
+                                                                0, 0, 1,     1,
+                                                                0, 0, -0.1f, 0}; /* what is far is smaller */
+    std::array<float, N_FLOATS_PER_MATRIX> view_f32mat       = {1, 0, 0, 0,
+                                                                0, 1, 0, 0,
+                                                                0, 0, 1, 0,
+                                                                0, 0, 0, 1};
+
+    helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::PROJECTION_MATRIX,
+                      192,
+                      projection_f32mat);
+    helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::VIEW_MATRIX,
+                      128,
+                      view_f32mat);
+    helper.bind        (swapchain_image);
+    helper.set_viewport(0, 0, 640, 480);
+
+    /* A draw in the space of the picture, then one in the 3D scene, then one in the space of the picture again. */
+    helper.draw_with_screen_geometry({{100.0f, 100.0f, 0.2f},
+                                      {540.0f, 380.0f, 0.2f}},
+                                     4);
+    helper.draw_with_geometry({{0.0f, 0.0f, 5.0f},
+                               {1.0f, 0.0f, 9.0f}},
+                              3);
+    helper.draw_with_screen_geometry({{100.0f, 100.0f, 0.2f},
+                                      {540.0f, 380.0f, 0.2f}},
+                                     6);
+    helper.end_frame();
+
+    uint64_t n_after_3d_draws = 0;
+    uint64_t n_flat_layers    = 0;
+
+    for (const auto& facts_pair : helper.get_model().draw_facts_map)
+    {
+        n_after_3d_draws += facts_pair.second.n_draws_after_3d_draw;
+        n_flat_layers    += facts_pair.second.n_draws_flat_layer;
+    }
+
+    EXPECT_EQ(n_flat_layers,
+              2u);
+    EXPECT_EQ(n_after_3d_draws,
+              1u);
+
+    /* The next frame begins without a 3D draw. */
+    helper.bind(swapchain_image);
+    helper.draw_with_screen_geometry({{100.0f, 100.0f, 0.2f},
+                                      {540.0f, 380.0f, 0.2f}},
+                                     4);
+    helper.end_frame();
+
+    n_after_3d_draws = 0;
+
+    for (const auto& facts_pair : helper.get_model().draw_facts_map)
+    {
+        n_after_3d_draws += facts_pair.second.n_draws_after_3d_draw;
+    }
+
+    EXPECT_EQ(n_after_3d_draws,
+              1u);
+}
+
+TEST(ModelBuilder, TheFactsOfADrawSayWhetherItsObjectIsAtTheCameraAndItsVerticesAreInFrontOfIt)
+{
+    constexpr size_t N_FLOATS_PER_MATRIX = 16;
+
+    std::array<float, N_FLOATS_PER_MATRIX> projection_f32mat = {1, 0, 0,     0,
+                                                                0, 1, 0,     0,
+                                                                0, 0, 1,     1,
+                                                                0, 0, -0.1f, 0};
+    std::array<float, N_FLOATS_PER_MATRIX> view_f32mat       = {1, 0, 0, 0,
+                                                                0, 1, 0, 0,
+                                                                0, 0, 1, 0,
+                                                                0, 0, 0, 1};
+    std::array<float, N_FLOATS_PER_MATRIX> world_f32mat      = {1, 0, 0, 0,
+                                                                0, 1, 0, 0,
+                                                                0, 0, 1, 0,
+                                                                0, 0, 6, 1};
+
+    const auto count_eye_space_draws = [&](const std::array<float, N_FLOATS_PER_MATRIX>& in_model_f32mat,
+                                           const std::vector<std::array<float, 3> >&     in_position_vec)
+    {
+        Tests::ModelTestHelper helper;
+
+        helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::PROJECTION_MATRIX,
+                          192,
+                          projection_f32mat);
+        helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::VIEW_MATRIX,
+                          128,
+                          view_f32mat);
+        helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::MODEL_MATRIX,
+                          16384,
+                          in_model_f32mat);
+        helper.bind(helper.create_swapchain_image() );
+        helper.draw_with_geometry(in_position_vec,
+                                  30);
+        helper.end_frame();
+
+        uint64_t result = 0;
+
+        for (const auto& facts_pair : helper.get_model().draw_facts_map)
+        {
+            result += facts_pair.second.n_draws_eye_space;
+        }
+
+        return result;
+    };
+
+    /* The vertices are given in the space of the eye: the model matrix is the identity, and they are 5 and 8 away. */
+    EXPECT_EQ(count_eye_space_draws(view_f32mat,
+                                    {{0.0f, 0.0f, 5.0f},
+                                     {1.0f, 0.0f, 8.0f}}),
+              1u);
+
+    /* An object that is placed in the world: its origin is where it is. */
+    EXPECT_EQ(count_eye_space_draws(world_f32mat,
+                                    {{0.0f, 0.0f, 5.0f},
+                                     {1.0f, 0.0f, 8.0f}}),
+              0u);
+
+    /* A sky around the camera has vertices behind it too. */
+    EXPECT_EQ(count_eye_space_draws(view_f32mat,
+                                    {{0.0f, 0.0f, 5.0f},
+                                     {0.0f, 0.0f, -5.0f}}),
+              0u);
+}
+
 TEST(ModelBuilder, TheFactsOfADrawSayWhetherItBlends)
 {
     Tests::ModelTestHelper helper;

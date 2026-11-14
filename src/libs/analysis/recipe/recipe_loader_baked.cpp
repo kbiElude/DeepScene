@@ -94,7 +94,10 @@ bool Analysis::Recipe::RecipeLoader::parse_baked(const Utils::Json::JsonValue& i
     const auto* per_eye_textures_ptr         = in_baked.find_ptr("per_eye_textures");
     bool        result                       = false;
     const auto* rule_array_ptr               = in_baked.find_ptr("draw_rules");
-    const auto* scene_convergence_ptr        = in_baked.find_ptr("scene_convergence");
+    const auto* eye_space_draws_ptr          = in_baked.find_ptr("eye_space_draws");
+    const auto* flat_layer_draws_ptr         = in_baked.find_ptr("flat_layer_draws");
+    const auto* overlay_draws_ptr            = in_baked.find_ptr("overlay_draws");
+    const auto* scene_convergence_ptr       = in_baked.find_ptr("scene_convergence");
     const auto* scene_max_separation_ptr     = in_baked.find_ptr("scene_max_separation");
     const auto* side_reaching_draws_ptr      = in_baked.find_ptr("side_reaching_draws");
     uint32_t    signature_scheme_version     = 0;
@@ -108,7 +111,7 @@ bool Analysis::Recipe::RecipeLoader::parse_baked(const Utils::Json::JsonValue& i
     }
 
     if (check_keys(in_baked,
-                   {"convergence", "covering_draws", "draw_rules", "known_signatures", "per_eye_textures", "scene_convergence", "scene_max_separation", "side_reaching_draws", "signature_scheme_version"},
+                   {"convergence", "covering_draws", "draw_rules", "eye_space_draws", "flat_layer_draws", "known_signatures", "overlay_draws", "per_eye_textures", "scene_convergence", "scene_max_separation", "side_reaching_draws", "signature_scheme_version"},
                    in_path,
                    out_error_ptr) == false)
     {
@@ -273,6 +276,39 @@ bool Analysis::Recipe::RecipeLoader::parse_baked(const Utils::Json::JsonValue& i
         }
     }
 
+    if (eye_space_draws_ptr != nullptr)
+    {
+        if (parse_hex_key_array(*eye_space_draws_ptr,
+                                in_path + ".eye_space_draws",
+                               &inout_recipe_ptr->eye_space_draw_key_vec,
+                                out_error_ptr) == false)
+        {
+            goto end;
+        }
+    }
+
+    if (flat_layer_draws_ptr != nullptr)
+    {
+        if (parse_hex_key_array(*flat_layer_draws_ptr,
+                                in_path + ".flat_layer_draws",
+                               &inout_recipe_ptr->flat_layer_draw_key_vec,
+                                out_error_ptr) == false)
+        {
+            goto end;
+        }
+    }
+
+    if (overlay_draws_ptr != nullptr)
+    {
+        if (parse_hex_key_array(*overlay_draws_ptr,
+                                in_path + ".overlay_draws",
+                               &inout_recipe_ptr->overlay_draw_key_vec,
+                                out_error_ptr) == false)
+        {
+            goto end;
+        }
+    }
+
     if (side_reaching_draws_ptr != nullptr)
     {
         if (parse_hex_key_array(*side_reaching_draws_ptr,
@@ -328,7 +364,7 @@ bool Analysis::Recipe::RecipeLoader::parse_comfort(const Utils::Json::JsonValue&
     }
 
     if (check_keys(in_value,
-                   {"balance_convergence", "camera_attached_depth", "eye_space_cover_keys", "max_far_parallax", "max_near_parallax", "measure_depth", "near_fraction", "overlay_parallax", "part_parallax", "scene_overrides"},
+                   {"automatic_layers", "balance_convergence", "camera_attached_depth", "eye_space_cover_keys", "max_far_parallax", "max_near_parallax", "measure_depth", "near_fraction", "overlay_parallax", "part_parallax", "scene_overrides"},
                    in_path,
                    out_error_ptr) == false)
     {
@@ -353,6 +389,20 @@ bool Analysis::Recipe::RecipeLoader::parse_comfort(const Utils::Json::JsonValue&
             }
 
             out_comfort_ptr->max_near_parallax = static_cast<float>(parallax_ptr->number_value);
+        }
+
+        const auto* automatic_ptr = in_value.find_ptr("automatic_layers");
+
+        if (automatic_ptr != nullptr)
+        {
+            if (automatic_ptr->type != Utils::Json::JsonValueType::BOOL)
+            {
+                *out_error_ptr = in_path + ".automatic_layers: expected true or false";
+
+                goto end;
+            }
+
+            out_comfort_ptr->uses_automatic_layers = automatic_ptr->bool_value;
         }
 
         const auto* balance_ptr = in_value.find_ptr("balance_convergence");

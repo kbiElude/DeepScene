@@ -121,6 +121,9 @@ bool Analysis::APIDumpAnalysis::DrawMeasurer::find_draw_matrices(const ConstantS
     const auto& projection_f32mat = out_matrices_ptr->projection_f32mat;
 
     out_matrices_ptr->has_view        = has_view;
+    out_matrices_ptr->is_perspective  = (out_matrices_ptr->has_projection         &&
+                                         projection_f32mat.at(11)            != 0.0f &&
+                                         projection_f32mat.at(PROJECTION_WW) == 0.0f);
     out_matrices_ptr->is_orthographic = (out_matrices_ptr->has_projection &&
                                          projection_f32mat.at(3)  == 0.0f &&
                                          projection_f32mat.at(7)  == 0.0f &&
@@ -185,22 +188,33 @@ void Analysis::APIDumpAnalysis::DrawMeasurer::record_draw_facts(const DrawDescri
                                                                 const bool&                 in_keeps_history,
                                                                 const ConstantStateMap&     in_constant_state_map,
                                                                 const Viewport&             in_viewport,
+                                                                bool*                       inout_has_seen_3d_draw_ptr,
                                                                 DrawFacts*                  inout_facts_ptr)
 {
     constexpr size_t N_VIEW_COLUMNS = 3; /* x, y and the depth */
 
-    DrawFacts&   facts       = *inout_facts_ptr;
+    DrawFacts&   facts             = *inout_facts_ptr;
+    bool         has_place         = false;
+    bool         has_vertex_behind = false; /* a vertex of the sample is not in front of the camera: geometry that surrounds it (a sky) */
+    bool         is_3d             = false;
+    bool         is_eye_space      = false;
+    bool         is_flat_layer     = false;
     DrawMatrices matrices;
-    bool         has_place   = false;
-    float        view_depth  = 0.0f;
-    float        x_max       = -1.0e30f;
-    float        x_min       = 1.0e30f;
-    float        y_max       = -1.0e30f;
-    float        y_min       = 1.0e30f;
-    float        z_max       = -1.0e30f;
-    float        z_min       = 1.0e30f;
+    float        origin_depth      = 0.0f;
+    float        view_depth        = 0.0f;
+    float        x_max             = -1.0e30f;
+    float        x_min             = 1.0e30f;
+    float        y_max             = -1.0e30f;
+    float        y_min             = 1.0e30f;
+    float        z_max             = -1.0e30f;
+    float        z_min             = 1.0e30f;
 
     facts.n_draws += 1;
+
+    if (*inout_has_seen_3d_draw_ptr)
+    {
+        facts.n_draws_after_3d_draw += 1;
+    }
 
     if (in_draw.reads_color_attachments)
     {
@@ -226,6 +240,8 @@ void Analysis::APIDumpAnalysis::DrawMeasurer::record_draw_facts(const DrawDescri
 
     if (in_draw.geometry_ptr->is_pre_transformed)
     {
+        is_flat_layer = true;
+
         /* The positions are in pixels, and the third coordinate is the reciprocal of the depth. */
         if (in_viewport.width  > 0.0f &&
             in_viewport.height > 0.0f)
@@ -256,11 +272,18 @@ void Analysis::APIDumpAnalysis::DrawMeasurer::record_draw_facts(const DrawDescri
         find_draw_matrices(in_constant_state_map,
                            &matrices);
 
+        is_flat_layer = matrices.is_orthographic;
+
         if (matrices.has_projection &&
             matrices.has_view)
         {
             const auto   model_view_f32mat = compute_model_view(matrices);
             const float* projection        = matrices.projection_f32mat.data();
+
+            /* The origin of the object, in the space of the camera: the translation of the model-view matrix. */
+            origin_depth = (in_draw.is_camera_right_handed) ? -model_view_f32mat.at(3 * N_VIEW_COLUMNS + 2)
+                                                            :  model_view_f32mat.at(3 * N_VIEW_COLUMNS + 2);
+            is_3d        = matrices.is_perspective;
 
             for (const auto& position : in_draw.geometry_ptr->position_vec)
             {
@@ -299,13 +322,29 @@ void Analysis::APIDumpAnalysis::DrawMeasurer::record_draw_facts(const DrawDescri
 
                     has_place = true;
                 }
+                else
+                {
+                    has_vertex_behind = true;
+                }
             }
         }
     }
 
+    if (is_flat_layer)
+    {
+        facts.n_draws_flat_layer += 1;
+    }
+
     if (has_place)
     {
-        constexpr float PICTURE_EXTENT = 2.0f; /* the edges of the picture are at -1 and 1 */
+        constexpr float EYE_SPACE_DEPTH_RATIO = 20.0f; /* how many times nearer to the camera than its vertices the origin of an object in eye space is, at the most */
+        constexpr float PICTURE_EXTENT        = 2.0f;  /* the edges of the picture are at -1 and 1                                                                         */
+
+        /* The object is at the camera and its vertices are not: they are given in the space of the eye, not in that of the world. */
+        is_eye_space = (is_3d                                                 &&
+                        has_vertex_behind                             == false &&
+                        z_min                                          > 0.0f &&
+                        ::fabsf(origin_depth) * EYE_SPACE_DEPTH_RATIO < z_min);
 
         /* The part of the picture that the box covers: what is outside of the edges is not of the picture. */
         const float x_inside_max = std::min(x_max,
@@ -342,6 +381,16 @@ void Analysis::APIDumpAnalysis::DrawMeasurer::record_draw_facts(const DrawDescri
                                                                                    : facts.y_min;
 
         facts.n_draws_with_footprint += 1;
+
+        if (is_eye_space)
+        {
+            facts.n_draws_eye_space += 1;
+        }
+
+        if (is_3d)
+        {
+            *inout_has_seen_3d_draw_ptr = true;
+        }
     }
 
 end:

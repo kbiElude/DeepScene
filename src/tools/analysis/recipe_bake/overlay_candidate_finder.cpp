@@ -420,6 +420,9 @@ Analysis::APIDumpAnalysis::DrawFacts Analysis::RecipeBake::OverlayCandidateFinde
 
     result.n_blended_draws               += in_b.n_blended_draws;
     result.n_draws                       += in_b.n_draws;
+    result.n_draws_after_3d_draw         += in_b.n_draws_after_3d_draw;
+    result.n_draws_eye_space             += in_b.n_draws_eye_space;
+    result.n_draws_flat_layer            += in_b.n_draws_flat_layer;
     result.n_draws_sampling_copied_color += in_b.n_draws_sampling_copied_color;
 
     if (in_b.n_draws_with_footprint != 0)

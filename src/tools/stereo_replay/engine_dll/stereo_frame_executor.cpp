@@ -985,12 +985,14 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::find_view_anchor_calls(cons
                 const bool is_affected    = m_recipe_applier_ptr->is_draw_affected(pass_key,
                                                                                    draw.structure_key);
                 const bool is_cover_pushed = m_recipe_applier_ptr->is_cover_pushed (draw.cover_key);
+                const bool is_flat_layer   = m_recipe_applier_ptr->is_cover_flat_layer(draw.cover_key);
                 const bool is_skipped     = is_draw_skipped_here(pass_key,
                                                                  draw.structure_key);
 
                 if (is_skipped == false &&
                     is_affected         &&
-                    is_cover_pushed == false)
+                    is_cover_pushed == false &&
+                    is_flat_layer   == false)
                 {
                     shared_anchor_set.insert(draw.view_anchor_call_index);
                 }
@@ -1223,8 +1225,12 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::is_draw_affected_here(const
     const bool is_flat = (m_recipe_applier_ptr->is_cover_pushed(in_draw.cover_key) &&
                           m_unflattened_draw_call_set.count(in_draw.call_index) == 0);
 
+    /* What the baker found to be a layer of the picture is left alone by its key, whatever its structure is named in the passes. */
+    const bool is_flat_layer = m_recipe_applier_ptr->is_cover_flat_layer(in_draw.cover_key);
+
     return (is_affected_by_recipe &&
-            is_flat == false);
+            is_flat       == false &&
+            is_flat_layer == false);
 }
 
 bool Stereo::Replay::EngineDLL::StereoFrameExecutor::is_draw_pushed_here(const uint64_t&                                in_pass_key,

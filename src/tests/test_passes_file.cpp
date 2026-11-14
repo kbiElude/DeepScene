@@ -864,6 +864,9 @@ TEST(PassesFile, TheFactsOfTheDrawsAreReadBack)
     facts.area_fraction_min             = 0.125f;
     facts.n_blended_draws               = 3;
     facts.n_draws                       = 5;
+    facts.n_draws_after_3d_draw         = 4;
+    facts.n_draws_eye_space             = 1;
+    facts.n_draws_flat_layer            = 3;
     facts.n_draws_sampling_copied_color = 2;
     facts.n_draws_with_footprint        = 4;
     facts.view_depth_max                = 9.0f;
@@ -890,6 +893,12 @@ TEST(PassesFile, TheFactsOfTheDrawsAreReadBack)
               read.model.draw_facts_map.end() );
     EXPECT_EQ(read_iterator->second.n_draws,
               facts.n_draws);
+    EXPECT_EQ(read_iterator->second.n_draws_after_3d_draw,
+              facts.n_draws_after_3d_draw);
+    EXPECT_EQ(read_iterator->second.n_draws_eye_space,
+              facts.n_draws_eye_space);
+    EXPECT_EQ(read_iterator->second.n_draws_flat_layer,
+              facts.n_draws_flat_layer);
     EXPECT_EQ(read_iterator->second.n_draws_sampling_copied_color,
               facts.n_draws_sampling_copied_color);
     EXPECT_EQ(read_iterator->second.n_draws_with_footprint,

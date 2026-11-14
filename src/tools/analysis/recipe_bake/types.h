@@ -15,6 +15,17 @@ namespace Analysis
 {
     namespace RecipeBake
     {
+        /* The keys of the draws that the baker lists in the baked section, by signature and size (the cover key); a draw is in one of the layer lists at the most. */
+        struct DrawKeyLists
+        {
+            std::vector<uint64_t> covering_draw_key_vec;      /* cover the whole of the view                                                                           */
+            std::vector<uint64_t> eye_space_draw_key_vec;     /* the object is at the camera and the vertices are in front of it, at a real depth                      */
+            std::vector<uint64_t> flat_layer_draw_key_vec;    /* made in the space of the picture, and not always over a 3D scene                                      */
+            bool                  has_automatic_layers = false; /* whether the layer lists are written: only for a recipe that asks (Comfort::uses_automatic_layers)  */
+            std::vector<uint64_t> overlay_draw_key_vec;       /* made in the space of the picture, always over a 3D scene, and not on a copy of the picture         */
+            std::vector<uint64_t> side_reaching_draw_key_vec; /* flat, and reach from the left edge of the picture to the right one                                   */
+        };
+
         /* What baking found, for the person who bakes. */
         struct BakeReport
         {

@@ -66,7 +66,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_draw_facts(const s
                                                                          Model*                      out_model_ptr)
 {
     /* The keys of the structure and of the size, the areas, the four counts and the six extents. */
-    constexpr size_t MIN_ENTRY_N_BYTES = 2 * sizeof(uint64_t) + 2 * sizeof(float) + 4 * sizeof(uint64_t) + 6 * sizeof(float);
+    constexpr size_t MIN_ENTRY_N_BYTES = 2 * sizeof(uint64_t) + 2 * sizeof(float) + 7 * sizeof(uint64_t) + 6 * sizeof(float);
 
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
                                        in_byte_vec.size());
@@ -85,6 +85,9 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_draw_facts(const s
         facts.area_fraction_min             = reader.read_f32();
         facts.n_blended_draws              = reader.read_u64();
         facts.n_draws                       = reader.read_u64();
+        facts.n_draws_after_3d_draw         = reader.read_u64();
+        facts.n_draws_eye_space             = reader.read_u64();
+        facts.n_draws_flat_layer            = reader.read_u64();
         facts.n_draws_sampling_copied_color = reader.read_u64();
         facts.n_draws_with_footprint        = reader.read_u64();
         facts.view_depth_max                = reader.read_f32();
@@ -996,6 +999,9 @@ std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesSerializer::serialize_draw
         writer.write_f32(facts.area_fraction_min);
         writer.write_u64(facts.n_blended_draws);
         writer.write_u64(facts.n_draws);
+        writer.write_u64(facts.n_draws_after_3d_draw);
+        writer.write_u64(facts.n_draws_eye_space);
+        writer.write_u64(facts.n_draws_flat_layer);
         writer.write_u64(facts.n_draws_sampling_copied_color);
         writer.write_u64(facts.n_draws_with_footprint);
         writer.write_f32(facts.view_depth_max);

@@ -504,6 +504,7 @@ namespace Analysis
             bool                  has_projection   = false;
             bool                  has_view         = false;
             bool                  is_orthographic  = false; /* what is far is not smaller in the projection */
+            bool                  is_perspective   = false; /* what is far is smaller: the projection divides by the depth */
             std::array<float, 16> model_f32mat     = {1.0f, 0.0f, 0.0f, 0.0f,
                                                       0.0f, 1.0f, 0.0f, 0.0f,
                                                       0.0f, 0.0f, 1.0f, 0.0f,
@@ -544,6 +545,9 @@ namespace Analysis
             float    area_fraction_min              = 0.0f; /* the least: a structure that is a sprite in some draws and a backdrop in others differs                   */
             uint64_t n_blended_draws                = 0;    /* the draws that read the color that is there (blending)                                      */
             uint64_t n_draws                        = 0;
+            uint64_t n_draws_after_3d_draw          = 0;    /* the draws made after a draw with a perspective projection in the same frame: what is drawn over the 3D scene */
+            uint64_t n_draws_eye_space              = 0;    /* the draws whose object is at the camera (the origin is at the depth of 0) and whose vertices are all at a real depth */
+            uint64_t n_draws_flat_layer             = 0;    /* the draws that are made in the space of the picture: vertices in pixels, or an orthographic projection              */
             uint64_t n_draws_sampling_copied_color  = 0;    /* the draws that sample a resource that a copy of the picture filled                          */
             uint64_t n_draws_with_footprint         = 0;    /* the draws whose vertices were sampled and could be placed in the picture                    */
             float    view_depth_max                 = 0.0f;
@@ -669,6 +673,7 @@ namespace Analysis
             std::vector<DrawInstance>    draw_instance_vec;
             uint64_t                     first_call_index    = 0;
             bool                         has_calls           = false; /* a call has been told since the last present */
+            bool                         has_seen_3d_draw    = false; /* a draw with a perspective projection and a camera was made since the last present */
             std::vector<PassInstance>    pass_instance_vec;
             std::vector<bool>            pass_is_presented_vec;
             std::vector<ProjectionScale> projection_scale_vec;

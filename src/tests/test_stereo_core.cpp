@@ -326,6 +326,55 @@ TEST_F(StereoCoreTest, ADrawWhoseVerticesAreInTheSpaceOfTheEyeIsToldByItsSignatu
     EXPECT_FALSE(core.get_is_last_draw_eye_space() );
 }
 
+TEST_F(StereoCoreTest, TheLayersThatTheBakerFoundAreUsedOnlyForARecipeThatAsksForThem)
+{
+    const std::string baked_text = std::string("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": [], \"known_signatures\": [\"0x0000000000000001\"], ") +
+                                   "\"eye_space_draws\": [\"0x0000000000000005\"], \"flat_layer_draws\": [\"0x0000000000000006\"], \"overlay_draws\": [\"0x0000000000000007\"]},";
+
+    /* Without the flag the lists are read and left alone: the recipe plays as it did. */
+    {
+        Stereo::Core::StereoCore core(make_recipe(baked_text,
+                                                  get_view_rule_text() ),
+                                      Stereo::Core::FailFunc() );
+
+        EXPECT_EQ(core.classify_draw(1, 6),
+                  Analysis::Recipe::DrawClass::AFFECTED);
+        EXPECT_FALSE(core.get_is_last_draw_pushed() );
+
+        core.classify_draw(1, 7);
+
+        EXPECT_FALSE(core.get_is_last_draw_pushed() );
+
+        core.classify_draw(1, 5);
+
+        EXPECT_FALSE(core.get_is_last_draw_eye_space() );
+    }
+
+    /* With it: a layer is left as it is, an overlay is as well and is pushed, and a draw in the space of the eye is told so. */
+    {
+        Stereo::Core::StereoCore core(make_recipe("\"comfort\": {\"automatic_layers\": true}, " + baked_text,
+                                                  get_view_rule_text() ),
+                                      Stereo::Core::FailFunc() );
+
+        EXPECT_EQ(core.classify_draw(1, 6),
+                  Analysis::Recipe::DrawClass::UNAFFECTED);
+        EXPECT_FALSE(core.get_is_last_draw_pushed() );
+        EXPECT_EQ(core.classify_draw(1, 7),
+                  Analysis::Recipe::DrawClass::UNAFFECTED);
+        EXPECT_TRUE(core.get_is_last_draw_pushed() );
+
+        core.classify_draw(1, 5);
+
+        EXPECT_TRUE(core.get_is_last_draw_eye_space() );
+
+        /* A draw of another size is as the rules say. */
+        EXPECT_EQ(core.classify_draw(1, 8),
+                  Analysis::Recipe::DrawClass::AFFECTED);
+        EXPECT_FALSE(core.get_is_last_draw_pushed() );
+        EXPECT_FALSE(core.get_is_last_draw_eye_space() );
+    }
+}
+
 TEST_F(StereoCoreTest, ADrawThatIsMadeAsItIsGetsTheWholeOfThePushAndOneTheEyesMoveGetsWhatIsLeft)
 {
     /* The recipe pushes the signature 1 by 0.015 of the width (the nearest surfaces may have 0.02), and has it affected. */
