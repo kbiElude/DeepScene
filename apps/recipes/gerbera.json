@@ -70,6 +70,11 @@
         "shape": "0xc32826c3be6d1394"
       },
       {
+        "convergence_distance": 274,
+        "max_separation": 9.6,
+        "shape": "0xc444f0ba0f3b8dfc"
+      },
+      {
         "max_near_parallax": 0.0135869565,
         "shape": "0xdc5ba53ba016c48b"
       }
@@ -1651,7 +1656,7 @@
       },
       {
         "shape": "0xc444f0ba0f3b8dfc",
-        "distance": 114.873108
+        "distance": 274
       },
       {
         "shape": "0xab8def168a884850",
@@ -2061,7 +2066,7 @@
       },
       {
         "shape": "0xc444f0ba0f3b8dfc",
-        "separation": 1.90814185
+        "separation": 9.60000038
       },
       {
         "shape": "0xab8def168a884850",
