@@ -27,6 +27,9 @@
 <h1>VR player</h1>
 <p class="lead">The front end: pick a program from the catalog, pick an output, choose the depth and the image quality, press Launch.</p>
 
+<h2 id="window">The window</h2>
+<p>The catalog programs are listed on the left, alphabetically by name; a card shows the name, the description, and the reason when the program cannot be launched. For the selected program the right pane shows its name, the reason if it is unavailable, the download size if it has to be downloaded, the description, the VR settings and, at the bottom, the Launch button (Cancel while a download runs). Above the button the pane shows the download progress, or an error in a table, or the hint <em>Pick an application which is available.</em> when nothing can be launched.</p>
+
 <h2 id="start">Starting it</h2>
 <pre><code>VRPlayer.exe [--catalog file.json] [--log]</code></pre>
 <p>Without <code>--catalog</code> the catalog is the first <code>apps.json</code> found next to <code>VRPlayer.exe</code>, in an <code>apps\</code> next to it, or in the <code>apps\</code> of the folder above. A catalog that cannot be read is shown in the window, with the reason. An entry whose recipe cannot be found or is not valid, whose program cannot be found (and which has no download), or which says <code>unavailable_reason</code>, is listed with the reason and cannot be launched. The programs it starts (<code>StereoLauncher_x86.exe</code> or <code>_x64</code> by the architecture of the application, and <code>StereoPresenter_x64.exe</code>) are looked for in <code>runtime\</code> beside it, and beside it when there is no such folder. <code>--log</code> is passed on to both; see <a href="#logs">Logs</a>.</p>
@@ -71,8 +74,8 @@
   <text class="small" x="380" y="195">VR player controls (depth, IPD scale, overlay push, eye size, pace) travel through the frame channel</text>
 </svg>
 <figcaption>The presenter shows the preview window; when a headset is chosen the headset sink reads the frames instead (the channel has room for one reader), and the window says so.</figcaption>
-<p>While the headset is shown, the window says <em>Frame N</em> (the presents of the application, counted from 0 by the converter, as the replay counts frames) and <em>t</em> (seconds since the converter started, which is about the first call of the application). They travel with each frame through the channel, so a glitch can be named by frame and time; <em>t</em> is close to the times of the analysis timelines for a run of the same demo, but not equal, since the two runs differ in what they wait for.</p>
 </figure>
+<p>While the headset is shown, the window says <em>Frame N</em> (the presents of the application, counted from 0 by the converter, as the replay counts frames) and <em>t</em> (seconds since the converter started, which is about the first call of the application). They travel with each frame through the channel, so a glitch can be named by frame and time; <em>t</em> is close to the times of the analysis timelines for a run of the same demo, but not equal, since the two runs differ in what they wait for.</p>
 
 <h2>Controls</h2>
 <table>

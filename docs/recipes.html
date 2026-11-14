@@ -36,20 +36,21 @@
 <h2 id="what">What a recipe holds</h2>
 <p>A recipe is JSON, in two kinds of parts. A person (often with an LLM reading the analysis) writes the <em>decisions</em>; <code>RecipeBake</code> adds the <em>measurements</em> in a section called <code>baked</code> and never touches the rest.</p>
 <figure>
-<svg viewBox="0 0 900 330" role="img" aria-label="The parts of a recipe: written by hand and baked">
+<svg viewBox="0 0 900 384" role="img" aria-label="The parts of a recipe: written by hand and baked">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
-  <rect class="group" x="10" y="10" width="430" height="310" rx="10"/><text class="title" x="24" y="32">Written by a person</text>
+  <rect class="group" x="10" y="10" width="430" height="364" rx="10"/><text class="title" x="24" y="32">Written by a person</text>
   <rect class="box" x="30" y="48" width="390" height="46" rx="6"/><text x="225" y="68" text-anchor="middle"><tspan font-weight="bold">unaffected / affected / skipped</tspan></text><text class="small" x="225" y="84" text-anchor="middle">which passes and draws are flat, which are scene, which are not played</text>
   <rect class="box" x="30" y="102" width="390" height="46" rx="6"/><text x="225" y="122" text-anchor="middle"><tspan font-weight="bold">rules</tspan></text><text class="small" x="225" y="138" text-anchor="middle">which matrix to change for each eye (eye_offset, eye_convergence)</text>
   <rect class="box" x="30" y="156" width="390" height="46" rx="6"/><text x="225" y="176" text-anchor="middle"><tspan font-weight="bold">comfort</tspan></text><text class="small" x="225" y="192" text-anchor="middle">how much parallax is acceptable; how far to push the interface</text>
   <rect class="box" x="30" y="210" width="390" height="46" rx="6"/><text x="225" y="230" text-anchor="middle"><tspan font-weight="bold">screen_parallax</tspan></text><text class="small" x="225" y="246" text-anchor="middle">convergence and field of view, for vertices already in pixels</text>
   <rect class="box" x="30" y="264" width="390" height="46" rx="6"/><text x="225" y="284" text-anchor="middle"><tspan font-weight="bold">known_shape_keys, on_unknown_frame</tspan></text><text class="small" x="225" y="300" text-anchor="middle">what the recipe was made for, and what to do with any other frame</text>
-  <rect class="group" x="460" y="10" width="430" height="310" rx="10"/><text class="title" x="474" y="32">Baked by RecipeBake from the analysis</text>
+  <rect class="group" x="460" y="10" width="430" height="364" rx="10"/><text class="title" x="474" y="32">Baked by RecipeBake from the analysis</text>
   <rect class="box3" x="480" y="48" width="390" height="46" rx="6"/><text x="675" y="68" text-anchor="middle"><tspan font-weight="bold">draw_rules, known_signatures</tspan></text><text class="small" x="675" y="84" text-anchor="middle">the decisions above, by draw signature, which a live converter can match</text>
   <rect class="box3" x="480" y="102" width="390" height="46" rx="6"/><text x="675" y="122" text-anchor="middle"><tspan font-weight="bold">scene_convergence, convergence</tspan></text><text class="small" x="675" y="138" text-anchor="middle">the median depth, by vertices, per kind of frame and per signature</text>
   <rect class="box3" x="480" y="156" width="390" height="46" rx="6"/><text x="675" y="176" text-anchor="middle"><tspan font-weight="bold">scene_max_separation</tspan></text><text class="small" x="675" y="192" text-anchor="middle">the ceiling of the eye separation per kind of frame, from comfort</text>
   <rect class="box3" x="480" y="210" width="390" height="46" rx="6"/><text x="675" y="230" text-anchor="middle"><tspan font-weight="bold">per_eye_textures</tspan></text><text class="small" x="675" y="246" text-anchor="middle">the textures each eye needs its own copy of (from the .deps)</text>
   <rect class="box3" x="480" y="264" width="390" height="46" rx="6"/><text x="675" y="284" text-anchor="middle"><tspan font-weight="bold">covering_draws, side_reaching_draws</tspan></text><text class="small" x="675" y="300" text-anchor="middle">cover the whole view (never pushed), or span it side to side</text>
+  <rect class="box3" x="480" y="318" width="390" height="46" rx="6"/><text x="675" y="338" text-anchor="middle"><tspan font-weight="bold">flat_layer_draws, overlay_draws, eye_space_draws</tspan></text><text class="small" x="675" y="354" text-anchor="middle">only with comfort.automatic_layers</text>
   <path class="arrow" d="M420 140H478"/>
 </svg>
 <figcaption>The left side is the judgement, the right side is arithmetic over the analysis. Bake again whenever the capture changes; do not edit the baked part.</figcaption>
@@ -83,7 +84,7 @@
 </table>
 
 <h2 id="format">The format</h2>
-<p><code>RecipeLoader</code> checks everything that needs no program: names, numbers and keys are valid, and no unknown field is left. The keys and the <code>baked</code> section do not depend on the API. The <code>rules</code> section does: a rule names the call it applies to (and the state of that call) in the terms of its API. A rule can name <code>IDirect3DDevice8::SetTransform</code> or <code>IDirect3DDevice7::SetTransform</code> (the table is in <code>recipe_loader_rules.cpp</code>); the example is Direct3D 8, and a recipe for another API would name that API's calls. A recipe for OpenGL has no rules (<code>"rules": []</code>, which must still be there): its eyes come from <code>view_anchor_shift</code>. The three fields a recipe cannot leave out are <code>recipe_version</code> (0), <code>key_scheme_version</code> and <code>rules</code>.</p>
+<p><code>RecipeLoader</code> checks everything that needs no program: names, numbers and keys are valid (keys are the strings <code>APIDumpAnalysisQuery</code> prints), and no unknown field is left. The keys and the <code>baked</code> section do not depend on the API. The <code>rules</code> section does: a rule names the call it applies to (and the state of that call) in the terms of its API. A rule can name <code>IDirect3DDevice8::SetTransform</code> or <code>IDirect3DDevice7::SetTransform</code> (the table is in <code>recipe_loader_rules.cpp</code>); the example is Direct3D 8, and a recipe for another API would name that API's calls. A recipe for OpenGL has no rules (<code>"rules": []</code>, which must still be there): its eyes come from <code>view_anchor_shift</code>. The three fields a recipe cannot leave out are <code>recipe_version</code> (0), <code>key_scheme_version</code> and <code>rules</code>.</p>
 <pre><code>  {
     "recipe_version": 0,
     "key_scheme_version": 1,                       must equal this build's, or the keys would not match
@@ -157,17 +158,17 @@
     "baked": {                                     made from the lists above by RecipeBake; do not edit
       "signature_scheme_version": 1,               must equal this build's, or the signatures would not match
       "known_signatures": [ "0x..." ],             the signatures the analysis saw; a draw of another is one the recipe knows nothing of
-      "covering_draws": [ "0x..." ],        the keys (signature and size) of the draws that cover the whole of the view (a flash, a
+      "covering_draws": [ "0x..." ],               the keys (signature and size) of the draws that cover the whole of the view (a flash, a
                                                    fade): found by the analysis, and not pushed toward the viewer, since moving them would
                                                    leave a strip bare
-      "side_reaching_draws": [ "0x..." ],   the keys (signature and size) of the flat draws that reach from the left edge of the picture to the right one (a bar,
+      "side_reaching_draws": [ "0x..." ],          the keys (signature and size) of the flat draws that reach from the left edge of the picture to the right one (a bar,
                                                    a scroller): found by the analysis from where their vertices were, and pushed with the picture made wider by the
                                                    push, so that neither edge is bare
-      "flat_layer_draws": [ "0x..." ],      only with comfort.automatic_layers: the keys of the draws that are made in the space of the picture (vertices in pixels, or an
+      "flat_layer_draws": [ "0x..." ],             only with comfort.automatic_layers: the keys of the draws that are made in the space of the picture (vertices in pixels, or an
                                                    orthographic projection) and not always over a 3D scene, or that work on a copy of the picture: left as they are
-      "overlay_draws": [ "0x..." ],         only with comfort.automatic_layers: the keys of the draws that are made in the space of the picture and, in every frame they
+      "overlay_draws": [ "0x..." ],                only with comfort.automatic_layers: the keys of the draws that are made in the space of the picture and, in every frame they
                                                    are in, after a draw with a perspective projection: left as they are and pushed toward the viewer by overlay_parallax
-      "eye_space_draws": [ "0x..." ],       only with comfort.automatic_layers: the keys of the draws whose object is at the camera (the origin is at the depth of 0)
+      "eye_space_draws": [ "0x..." ],              only with comfort.automatic_layers: the keys of the draws whose object is at the camera (the origin is at the depth of 0)
                                                    and whose vertices are all in front of it, at a real depth: their vertices are in the space of the eye, so they are given the
                                                    parallax of their depth and are not taken for attached to the camera (a sky around the camera has vertices behind it, and is not one)
       "per_eye_textures": [                        the textures that are rendered to and that a frame uses what an earlier frame left in (see the dependencies; RecipeBake --deps), which
@@ -212,8 +213,6 @@
       "draw_keys": [ "0x..." ],                    these draws, wherever they are
       "pass_draws": [ { "pass_key": "0x...", "draw_key": "0x..." } ]   this draw in this pass only (what the overlay report leaves out)
     },
-    (pass_keys and pass_draws are for the replay, which knows the pass of a draw. A converter that plays the application as it runs does
-     not, and leaves them out: it writes a warning to its log for each such list.)
     "rules": [
       {
         "name": "scene camera",                                                                     (optional)
@@ -248,7 +247,7 @@
       }
     ]
   }</code></pre>
-<p>Keys are the strings <code>APIDumpAnalysisQuery</code> prints.</p>
+<p>(<code>pass_keys</code> and <code>pass_draws</code> are for the replay, which knows the pass of a draw. A converter that plays the application as it runs does not, and leaves them out: it writes a warning to its log for each such list.)</p>
 </main>
 </body>
 </html>

@@ -85,6 +85,7 @@
 <tr><td><code>runtime/launcher</code>, <code>converter_dll</code>, <code>presenter</code></td><td><code>runtime\StereoLauncher_x86.exe</code>, <code>StereoConverterDLL_x86.dll</code>, <code>StereoPresenter_x64.exe</code> (and the <code>_x64</code> ones)</td><td>What VRPlayer starts.</td></tr>
 <tr><td><code>tools/analysis/*</code></td><td><code>tools\analysis\*_x64.exe</code></td><td>Extractors and query tools, the slicer, <code>RecipeBake</code>.</td></tr>
 <tr><td><code>tools/stereo_replay/*</code></td><td><code>tools\stereo_replay\StereoReplay*_x86.exe</code> (and <code>_x64</code>)</td><td>The replay engine, player and checker.</td></tr>
+<tr><td><code>scripts/</code> (repository root)</td><td>not released</td><td><code>analyze_capture.ps1</code> analyses a capture and bakes a recipe into a folder of its own, with the tools of <code>build_final\tools\analysis</code>.</td></tr>
 <tr><td>(from the submodule)</td><td><code>tools\api_dumper\</code></td><td>The dumper and the printer.</td></tr>
 <tr><td><code>apps/</code> in the repository</td><td><code>apps\</code></td><td>The catalog and the recipes; applications are downloaded into it on first launch.</td></tr>
 </table>
@@ -146,6 +147,7 @@
 <tr><td>How a capture is replayed for two eyes</td><td><code>tools/stereo_replay/engine_dll</code></td></tr>
 <tr><td>How an image reaches a headset</td><td><code>libs/headset/xr</code>, <code>runtime/presenter</code></td></tr>
 <tr><td>The catalog and the downloading of programs</td><td><code>libs/vr_player</code>, <code>apps/</code></td></tr>
+<tr><td>Analysing a capture and baking its recipe in one command</td><td><code>scripts/analyze_capture.ps1</code></td></tr>
 <tr><td>A helper that is not about any of these</td><td><code>libs/utils</code> (and nothing in it may use another library)</td></tr>
 </table>
 </main>
