@@ -222,7 +222,7 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse(const std::string& in_text,
         out_catalog_ptr->app_vec.push_back(app);
     }
 
-    /* The applications are listed by name, whatever the order of the file is: letters of either case count alike, and the id tells those that are named alike apart. */
+    /* Listed by name, letters of either case alike, then by id. */
     {
         const auto is_listed_before_func = [](const AppEntry& in_a,
                                               const AppEntry& in_b)

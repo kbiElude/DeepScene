@@ -136,8 +136,8 @@ bool Analysis::APIDumpAnalysis::DrawMeasurer::find_draw_matrices(const ConstantS
 
 bool Analysis::APIDumpAnalysis::DrawMeasurer::is_perspective_projection(const std::array<float, 16>& in_projection_f32mat)
 {
-    constexpr size_t PROJECTION_WW = 15; /* the last element: 1 in an orthographic projection, 0 in a perspective one */
-    constexpr size_t PROJECTION_WZ = 11; /* w from z: 1 or -1 in a perspective projection, 0 in an orthographic one   */
+    constexpr size_t PROJECTION_WW = 15; /* 1: orthographic, 0: perspective */
+    constexpr size_t PROJECTION_WZ = 11; /* nonzero (1 or -1): perspective */
 
     return (in_projection_f32mat.at(PROJECTION_WZ) != 0.0f &&
             in_projection_f32mat.at(PROJECTION_WW) == 0.0f);
@@ -201,11 +201,11 @@ void Analysis::APIDumpAnalysis::DrawMeasurer::record_draw_facts(const DrawDescri
 {
     constexpr size_t DEPTH_COLUMN   = 2;
     constexpr size_t N_VIEW_COLUMNS = 3; /* x, y and the depth */
-    constexpr size_t ORIGIN_ROW     = 3; /* the translation of a matrix is its last row */
+    constexpr size_t ORIGIN_ROW     = 3; /* the translation is the last row */
 
     DrawFacts&   facts             = *inout_facts_ptr;
     bool         has_place         = false;
-    bool         has_vertex_behind = false; /* a vertex of the sample is not in front of the camera: geometry that surrounds it (a sky) */
+    bool         has_vertex_behind = false; /* a vertex is behind the camera: a sky, not eye space */
     bool         is_3d             = false;
     bool         is_eye_space      = false;
     bool         is_flat_layer     = false;
@@ -290,7 +290,7 @@ void Analysis::APIDumpAnalysis::DrawMeasurer::record_draw_facts(const DrawDescri
             const auto   model_view_f32mat = compute_model_view(matrices);
             const float* projection        = matrices.projection_f32mat.data();
 
-            /* The origin of the object, in the space of the camera: the translation of the model-view matrix (its last row), and its depth is the third column. */
+            /* Origin depth: the z of the model-view translation. */
             const float origin_view_z = model_view_f32mat.at(ORIGIN_ROW * N_VIEW_COLUMNS + DEPTH_COLUMN);
 
             origin_depth = (in_draw.is_camera_right_handed) ? -origin_view_z
@@ -349,10 +349,10 @@ void Analysis::APIDumpAnalysis::DrawMeasurer::record_draw_facts(const DrawDescri
 
     if (has_place)
     {
-        constexpr float EYE_SPACE_DEPTH_RATIO = 20.0f; /* how many times nearer to the camera than its vertices the origin of an object in eye space is, at the most */
-        constexpr float PICTURE_EXTENT        = 2.0f;  /* the edges of the picture are at -1 and 1                                                                         */
+        constexpr float EYE_SPACE_DEPTH_RATIO = 20.0f; /* origin depth must be this many times below vertex depth */
+        constexpr float PICTURE_EXTENT        = 2.0f;  /* edges are at -1 and 1 */
 
-        /* The object is at the camera and its vertices are not: they are given in the space of the eye, not in that of the world. */
+        /* Eye space: the object is at the camera, its vertices are not. */
         is_eye_space = (is_3d                                                 &&
                         has_vertex_behind                             == false &&
                         z_min                                          > 0.0f &&

@@ -533,7 +533,7 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
             }
             else
             {
-                /* The scene is told too: the clamp of a part (see StereoCore::plan_part_shift) is the limit of the scene that the draws are in. */
+                /* The scene too: a part's clamp is the limit of its scene. */
                 this_ptr->m_live_state.core_ptr->set_scene_shape_key(shape_key);
 
                 this_ptr->m_live_state.last_depth_range       = depth_range;

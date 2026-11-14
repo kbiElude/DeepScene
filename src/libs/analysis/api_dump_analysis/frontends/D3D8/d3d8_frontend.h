@@ -40,11 +40,11 @@ namespace Analysis
                  */
 
 
-                /* How many vertices the primitives of a draw use: a list takes new vertices for every primitive, a strip or a fan one for every primitive after the first. */
+                /* Vertices the primitives use: a list takes new ones per primitive, a strip or fan one per primitive after the first. */
                 static uint32_t get_vertex_count(const Interception::Hooks::D3D8::D3DPRIMITIVETYPE& in_type,
                                                  const uint32_t&                                    in_n_primitives);
 
-                /* Whether what SetVertexShader was given has the positions of the vertices in pixels: it is a vertex format (a handle of a shader has the top bit set) with D3DFVF_XYZRHW. */
+                /* Whether the vertex shader value is a format (no handle bit) with XYZRHW positions. */
                 static bool is_pre_transformed_vertex_shader(const uint32_t& in_vertex_shader);
 
                 void on_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,

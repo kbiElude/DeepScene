@@ -1045,7 +1045,7 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
         GLDriverFunctions::get().get_floatv_func_ptr(PROJECTION_MATRIX,
                                                      m_pass_projection_f32mat.data() );
 
-        /* A projection that is not a perspective one says nothing of depth. */
+        /* A projection that is not perspective says nothing of depth. */
         m_pass_has_affected_draws = Analysis::APIDumpAnalysis::DrawMeasurer::is_perspective_projection(m_pass_projection_f32mat);
     }
 
@@ -1064,7 +1064,7 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
         GLDriverFunctions::get().get_floatv_func_ptr(GL_MODELVIEW_MATRIX,
                                                      saved_matrix.data() );
 
-        /* A camera that looks down minus z has what it sees at a negative z of the model-view: the core is told how far in front of the camera the origin is, and decides. */
+        /* The core decides from how far in front of the camera the origin is. */
         const float origin_depth = -saved_matrix.at(MATRIX_Z_TRANSLATION);
 
         if (m_core_ptr->is_last_draw_attached_to_camera(origin_depth) )
@@ -1075,8 +1075,8 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
         }
     }
 
-    /* What the eyes move the draw apart by, which the push leaves room for: a draw that is made as it is (attached to the camera, 2D) is not moved by them, and the whole of its parallax
-     * is the push; one that the eyes move is by the depth of its origin and the projection it is drawn with.
+    /* What the eyes already move the draw by, which the push leaves room for: none for a draw made as it is, else the parallax of its origin depth
+     * and projection.
      */
     float layer_parallax = 0.0f;
 
@@ -1124,7 +1124,7 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
                                                            Analysis::APIDumpAnalysis::DrawMeasurer::is_perspective_projection(part_projection) );
             }
 
-            /* Toward zero, so that the shift never goes past what the planner allowed; a flat overlay that reaches both sides of the picture is made wider by it, so that no edge is bare. */
+            /* Toward zero, so the shift stays within the plan; a side-reaching overlay is widened so no edge is bare. */
             const auto pushed_viewport = Stereo::Core::PushShiftPlanner::make_viewport(saved_viewport.at(VIEWPORT_X),
                                                                                        saved_viewport.at(VIEWPORT_WIDTH),
                                                                                        shift_pixels,

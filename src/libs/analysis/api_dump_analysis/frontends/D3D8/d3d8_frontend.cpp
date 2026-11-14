@@ -1102,7 +1102,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_update_texture(c
 
 bool Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::is_pre_transformed_vertex_shader(const uint32_t& in_vertex_shader)
 {
-    constexpr uint32_t HANDLE_BIT = 0x80000000u; /* a handle of a vertex shader has it set, a vertex format has not */
+    constexpr uint32_t HANDLE_BIT = 0x80000000u; /* set in a shader handle, not in a format */
 
     return ((in_vertex_shader & HANDLE_BIT) == 0 &&
             FixedFunctionVertexFormat::is_pre_transformed(in_vertex_shader) );

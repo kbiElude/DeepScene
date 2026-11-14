@@ -142,7 +142,7 @@ bool Analysis::RecipeBake::RecipeBaker::bake(const std::string&                 
                                                                                 in_dependencies_ptr);
         DrawKeyLists              draw_key_lists      = get_automatic_layers   (in_analysis);
 
-        /* Only a recipe that asks for the layers has them in its baked section, so that the others are baked as they were. */
+        /* Only a recipe that asks gets the layers, so others bake as before. */
         draw_key_lists.covering_draw_key_vec      = get_covering_draw_key_vec     (recipe,
                                                                                    in_analysis);
         draw_key_lists.has_automatic_layers       = recipe.comfort.uses_automatic_layers;
@@ -551,7 +551,7 @@ void Analysis::RecipeBake::RecipeBaker::compute_scene_convergence(const Analysis
 
 Analysis::RecipeBake::DrawKeyLists Analysis::RecipeBake::RecipeBaker::get_automatic_layers(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
 {
-    /* What the draws of one key did, in all the structures that have it. */
+    /* The draws of each key, merged over all structures that have it. */
     const auto   total_map = OverlayCandidateFinder::get_facts_by_cover_key(in_analysis);
     DrawKeyLists result;
 
@@ -789,10 +789,10 @@ float Analysis::RecipeBake::RecipeBaker::get_projection_scale(const Analysis::AP
 
 std::vector<uint64_t> Analysis::RecipeBake::RecipeBaker::get_side_reaching_draw_key_vec(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
 {
-    /* How near to an edge of the picture a vertex has to be for the draw to reach it (the edges are at -1 and 1). */
+    /* How near an edge (-1 or 1) a vertex must be to reach it. */
     constexpr float EDGE_REACH = 0.99f;
 
-    /* How much the depth may differ across a draw for it to be flat, as a part of it (an overlay is at one depth, a floor that goes from side to side is not). */
+    /* How much depth may vary across a flat draw, as a part of it. */
     constexpr float FLAT_DEPTH_SPREAD = 0.001f;
 
     std::set<uint64_t> key_set;

@@ -107,10 +107,9 @@ namespace Analysis
                                                   SceneSeparationVector*                           out_scene_separation_vec_ptr,
                                                   BakeReport*                                      out_report_ptr);
 
-            /* Tells the draws by what the analysis saw them do (see DrawFacts), without anything of the API of the application (fills the three layer lists of the result): the ones made in the space of the picture (vertices in
-             * pixels, or an orthographic projection) are layers of the picture, and those that were always made after a 3D draw of the same frame are overlays; the ones whose
-             * object is at the camera and whose vertices are not (see DrawFacts::n_draws_eye_space) are in the space of the eye. A draw that samples a copy of the picture works on
-             * the picture and is no overlay. A key that the facts of its structures do not agree on is left out.
+            /* Tells draws apart by what the analysis saw them do, whatever the API: pixel-space draws are layers, those always after a 3D draw are
+             * overlays, those at the camera with vertices in front are in eye space. A draw that samples a copy of the picture is no overlay; keys
+             * whose draws disagree are left out.
              */
             static DrawKeyLists get_automatic_layers(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis);
 
@@ -143,9 +142,7 @@ namespace Analysis
             static float get_projection_scale(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis,
                                               const uint32_t&                                  in_pass_id);
 
-            /* The keys of the draws that are flat and reach from the left edge of the picture to the right one, from where the vertices of the draws were (see DrawFacts): the 2D overlays that
-             * span the picture, which a push moves with the picture made wider by it, so that no edge is bare.
-             */
+            /* Keys of flat draws that reach from the left edge to the right one (see DrawFacts): a push widens their viewport so no edge is bare. */
             static std::vector<uint64_t> get_side_reaching_draw_key_vec(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis);
 
             /* The values the view matrix of a pass took. Returns false, and says why, if the pass cannot say. */

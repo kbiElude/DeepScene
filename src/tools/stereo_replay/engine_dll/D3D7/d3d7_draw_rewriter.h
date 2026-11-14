@@ -18,9 +18,8 @@ namespace Stereo
     {
         namespace EngineDLL
         {
-            /* Gives the draws of a dumped Direct3D 7 call parallax for an eye, when the vertices of the draw are already in the space of the
-             * picture: the call is copied with its vertices moved (see Stereo::Core::ScreenParallax for how, and why), in a chunk of the
-             * overlay.
+            /* Gives a dumped Direct3D 7 draw parallax for an eye when its vertices are in pixels: the call is copied with moved vertices (see
+             * Stereo::Core::ScreenParallax).
              */
             class D3D7DrawRewriter
             {

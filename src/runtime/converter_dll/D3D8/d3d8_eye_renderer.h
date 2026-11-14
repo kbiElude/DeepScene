@@ -26,12 +26,11 @@ namespace Stereo
          * made again with the twins in place of what the application has set. The device is called through its virtual table, so what
          * is done inside the callbacks of the interceptor is not seen by anything that watches the device.
          *
-         * The vertices that the application gives in the call, positioned in pixels (a vertex format with D3DFVF_XYZRHW, as a HUD or text
-         * has), are moved for each eye by what the core plans (see ScreenParallaxPlanner), and the draw is made by the renderer for both eyes.
-         *
-         * What the application does that the renderer cannot follow (it locks a render target, it resets the device, it renders to a
-         * surface that was not seen made, it draws vertices from a vertex buffer that are positioned in pixels) ends the application,
-         * through the core or by an assertion, rather than show wrong images.
+          * Vertices in pixels (D3DFVF_XYZRHW) that the call carries are moved for each eye by the core's plan, and the renderer makes the draw for
+          * both eyes.
+          *
+          * What it cannot follow (locking a render target, resetting the device, an unseen render target, XYZRHW vertices from a vertex buffer) ends
+          * the application rather than show wrong images.
          *
          * Not thread-safe: the caller serializes the calls, and the device is the one thread's.
          */
@@ -60,8 +59,8 @@ namespace Stereo
                         const uint32_t&                            in_n_arguments,
                         const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
 
-            /* A draw of the class is about to be made: puts in the device the matrices for the left eye. Returns false if it is not to be: it is skipped, or it has vertices in
-             * pixels, which the renderer has made for both eyes. The picture width is that of the viewport that the application draws with, in the pixels it asked for.
+            /* A draw is about to be made: puts the left eye's matrices in the device. Returns false if it is not to be: skipped, or made for both
+             * eyes by the renderer (vertices in pixels). The picture width is the application's viewport width.
              */
             bool on_pre_draw(const Analysis::Recipe::DrawClass&         in_draw_class,
                              const APIInterceptor::APIFunction&         in_function,
@@ -115,11 +114,11 @@ namespace Stereo
             Stereo::Core::StereoCore*               m_core_ptr;
             void*                                   m_device_ptr;
             Analysis::Recipe::DrawClass             m_draw_class;
-            bool                                    m_is_draw_handled; /* the renderer made the draw for both eyes in on_pre_draw() */
+            bool                                    m_is_draw_handled; /* made for both eyes in on_pre_draw() */
             DeviceMirror                            m_mirror;
             uint64_t                                m_n_failed_twins;
             std::map<void*, void*>                  m_twin_map;   /* the application's -> its twin */
-            std::vector<uint8_t>                    m_vertex_vec; /* the vertices of a draw, moved for an eye */
+            std::vector<uint8_t>                    m_vertex_vec; /* the draw's vertices, moved for an eye */
         };
     }
 }

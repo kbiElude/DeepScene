@@ -1021,7 +1021,7 @@ void VRPlayer::VrPlayerWindow::update_session()
 
         if (current_state != previous_state)
         {
-            /* Only a failure is said: that an application has ended is what the person who closed it knows. */
+            /* Only a failure is said. */
             m_is_status_error = (current_state == SessionState::FAILED);
 
             if (m_is_status_error)

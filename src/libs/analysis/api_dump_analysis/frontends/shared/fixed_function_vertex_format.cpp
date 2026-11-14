@@ -6,7 +6,7 @@
 #include "interception/core/D3D7Utils/constants.h"
 #include "interception/hooks/D3D8/types.h"
 
-/* The two APIs say the same by the same bits: the one answer below is the answer for both. */
+/* Direct3D 7 and 8 use the same bits. */
 static_assert(Interception::Core::D3D7Utils::D3DFVF_POSITION_MASK == Interception::Hooks::D3D8::D3DFVF_POSITION_MASK,
               "Direct3D 7 and 8 must mask the position of a vertex format alike");
 static_assert(Interception::Core::D3D7Utils::D3DFVF_XYZRHW == Interception::Hooks::D3D8::D3DFVF_XYZRHW,

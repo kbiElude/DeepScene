@@ -114,9 +114,8 @@ namespace Stereo
                 bool execute_view_anchor_call(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
                                               const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
                                               const Analysis::Recipe::Eye&                   in_eye);
-                /* Sets the viewport (OpenGL) to the one of the pass moved to the right by the pixels, with the call of a draw as the call to make a copy of; with 0 it is the viewport as it was. A draw that the
-                 * recipe pushes (see Recipe::pushed) is made between the two, so that its picture is moved sideways whatever its projection is. One that reaches both sides of the
-                 * picture (see Recipe::side_reaching_draw_key_vec) is made wider by the shift on each side, so that no edge is bare (see PushShiftPlanner::make_viewport()).
+                /* Sets the OpenGL viewport to the pass's, moved right by the pixels (0: as it was), with the draw's call as the call to copy. A
+                 * pushed draw is made between the two; a side-reaching one is widened (see PushShiftPlanner::make_viewport()).
                  */
                 bool execute_viewport_call(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
                                            const Analysis::APIDumpAnalysis::Viewport&     in_viewport,

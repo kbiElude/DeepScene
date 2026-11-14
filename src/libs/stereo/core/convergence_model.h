@@ -19,16 +19,14 @@ namespace Stereo
         public:
             ConvergenceModel();
 
-            /* The frame that was completed has a distance of its scene: the distance goes toward it by the fraction of the way that is given (see
-             * get_fraction_of_the_way()), which keeps a scene that is made of frames of slightly different shapes from pulsing, and is it at once the first
-             * time. A target that is more than twice, or less than half, of the one of the frame before is a cut to another scene, and is taken at once as well: the picture
-             * jumps there anyway, and easing the eyes across it would only show as the depth sliding for as long as it takes. Returns false, and leaves it as it was, if there is none (0).
+            /* The completed frame has a scene distance: the distance eases toward it by the given fraction, and takes it at once the first time or
+             * at a cut (a target more than twice or less than half of the previous one). Returns false, and changes nothing, if there is none (0).
              */
             bool follow_scene_convergence_distance(const float& in_target,
                                                    const float& in_fraction_of_the_way);
 
-            /* The frame that was completed has a limit of how far apart the eyes may be in its scene (see SceneSeparation): the limit goes
-             * toward it as the distance does, along the logarithm, and is at once at a cut (see follow_scene_convergence_distance()). A scene with none (0) lifts the limit at once.
+            /* The completed frame has a scene limit of the eye separation: it eases as the distance does and snaps at a cut. None (0) lifts the
+             * limit at once.
              */
             void follow_scene_max_separation(const float& in_target,
                                              const float& in_fraction_of_the_way);
@@ -77,7 +75,7 @@ namespace Stereo
                                          const float& in_target,
                                          const float& in_fraction_of_the_way);
 
-            /* Whether the target is far enough from the one before (more than twice, or less than half) for the frame to be a cut to another scene; false if there is no target before. */
+            /* Whether the target is a cut from the previous one (more than twice or less than half); false if there is none. */
             static bool is_cut(const float& in_previous_target,
                                const float& in_target);
 
@@ -86,7 +84,7 @@ namespace Stereo
             float m_draw_convergence_distance;
             float m_eye_separation;
             float m_ipd_scale;
-            float m_previous_scene_convergence_target; /* what the frame before said; 0: nothing yet */
+            float m_previous_scene_convergence_target; /* the previous frame's target; 0: none */
             float m_previous_scene_max_separation_target;
             float m_scene_convergence_distance; /* eased toward the recipe's for the shape of the last frame */
             float m_scene_max_separation;       /* the same, for the limit of the eyes; 0: none                */

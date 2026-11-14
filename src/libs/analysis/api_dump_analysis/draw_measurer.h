@@ -25,8 +25,8 @@ namespace Analysis
             static bool find_draw_matrices(const ConstantStateMap& in_constant_state_map,
                                            DrawMatrices*           out_matrices_ptr);
 
-            /* Whether the projection makes what is far smaller: it divides by the depth, so its last column has w taken from z (the element is 1 for a camera that looks down plus z,
-             * -1 for one that looks down minus z) and no translation of w. An orthographic projection and the identity are not one.
+            /* Whether the projection divides by the depth: w comes from z (1 or -1 by handedness), with no w translation. Neither orthographic nor
+             * identity.
              */
             static bool is_perspective_projection(const std::array<float, 16>& in_projection_f32mat);
 

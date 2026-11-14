@@ -112,15 +112,10 @@ namespace Analysis
             bool is_draw_affected(const uint64_t& in_pass_key,
                                   const uint64_t& in_draw_key) const;
 
-            /* Whether a draw of the key (its signature and size; see KeyBuilder::compute_draw_cover_key()) is made in the space of the picture and not over a 3D scene, which the
-             * baker found (see Recipe::flat_layer_draw_key_vec): it is left as the application makes it. False unless Comfort::uses_automatic_layers.
-             */
+            /* Whether the draw is an automatic flat layer, left as the application makes it (see Recipe::flat_layer_draw_key_vec). */
             bool is_cover_flat_layer(const uint64_t& in_cover_key) const;
 
-            /* Whether a draw of the key (its signature and size; see KeyBuilder::compute_draw_cover_key()) is pushed toward the viewer (see DrawSelector::cover_key_vec, and
-             * Recipe::overlay_draw_key_vec with Comfort::uses_automatic_layers); a
-             * draw can be pushed by that and by the other names too.
-             */
+            /* Whether the draw is pushed toward the viewer by its key (DrawSelector::cover_key_vec, or Recipe::overlay_draw_key_vec). */
             bool is_cover_pushed(const uint64_t& in_cover_key) const;
 
             /* Whether a draw of the key (its signature and size; see KeyBuilder::compute_draw_cover_key()) covers the whole of the view, as a
@@ -136,9 +131,7 @@ namespace Analysis
             bool is_draw_skipped(const uint64_t& in_pass_key,
                                  const uint64_t& in_draw_key) const;
 
-            /* Whether a draw of the key (see KeyBuilder::compute_draw_cover_key()) has its vertices in the space of the eye, so that it is not taken for attached to the camera
-             * (see Comfort::eye_space_cover_key_vec).
-             */
+            /* Whether the draw has its vertices in the space of the eye, so it is not taken for attached to the camera. */
             bool is_eye_space_cover(const uint64_t& in_cover_key) const;
 
             /* True if the frame is one the recipe was made for: its shape is listed, or no shape is. */
@@ -150,9 +143,7 @@ namespace Analysis
             /* True if the recipe says that each eye has a copy of the texture (see PerEyeTexture). */
             bool is_per_eye_texture(const Analysis::APIDumpAnalysis::ResourceIdentity& in_identity) const;
 
-            /* Whether a draw of the key (see KeyBuilder::compute_draw_cover_key()) is a flat overlay that reaches from the left edge of the picture to the right one (see
-             * Recipe::side_reaching_draw_key_vec): moved sideways, it is made with the picture wider by the shift, so that no edge is bare.
-             */
+            /* Whether the draw is a flat overlay from the left edge to the right one: a push widens its viewport so no edge is bare. */
             bool is_side_reaching(const uint64_t& in_cover_key) const;
 
             /* True if the recipe knows the signature of a draw: the analysis it was baked from saw it, or the recipe lists none. A draw of

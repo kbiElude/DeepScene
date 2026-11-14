@@ -364,8 +364,8 @@ float Stereo::Core::StereoCore::get_eye_parallax(const float& in_origin_depth,
     if (in_origin_depth < 0.0f &&
         distance        > 0.0f)
     {
-        /* What make_eye_shift_matrix() does to a point at the depth, for the left eye: the half of the separation, less what the convergence takes back (in front of the camera, the depth
-         * is below 0). The picture is 2 wide in the units of the projection, so that is the part of its width.
+        /* The left eye's parallax of a point at the depth, as a part of the picture width: half the separation less what the convergence takes
+         * back.
          */
         const float shift_in_units = separation * HALF * (1.0f + in_origin_depth / distance);
 
@@ -388,7 +388,7 @@ float Stereo::Core::StereoCore::plan_follow_shift(const Analysis::Recipe::Eye& i
 
     if (m_is_last_draw_part)
     {
-        /* The left eye is moved to the right by the parallax of the draw over two, and the right one to the left. */
+        /* The left eye moves right by the parallax over two, the right eye left. */
         const float shift_in_ndc = get_eye_parallax(in_origin_depth,
                                                     in_projection_x_scale,
                                                     in_is_perspective);

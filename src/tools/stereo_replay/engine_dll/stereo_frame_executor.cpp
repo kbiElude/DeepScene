@@ -1217,7 +1217,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::is_draw_affected_here(const
     const bool is_flat = (m_recipe_applier_ptr->is_cover_pushed(in_draw.cover_key) &&
                           m_unflattened_draw_call_set.count(in_draw.call_index) == 0);
 
-    /* What the baker found to be a layer of the picture is left alone by its key, whatever its structure is named in the passes. */
+    /* A baked flat layer is left alone by its key, whatever its structure is named in the passes. */
     const bool is_flat_layer = m_recipe_applier_ptr->is_cover_flat_layer(in_draw.cover_key);
 
     return (is_affected_by_recipe &&

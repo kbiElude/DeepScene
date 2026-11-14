@@ -106,7 +106,7 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::draw_pre_transformed(const APIInterc
                                                                  const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
                                                                  const float&                               in_picture_width)
 {
-    /* Where what a draw is made of is in the arguments of the two draws that have the vertices in them. */
+    /* Where the draws that carry vertices keep their arguments. */
     constexpr size_t INDEXED_INDICES_ARGUMENT     = 5;
     constexpr size_t INDEXED_INDEX_FORMAT_ARGUMENT = 6;
     constexpr size_t INDEXED_MIN_INDEX_ARGUMENT   = 2;
@@ -139,14 +139,14 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::draw_pre_transformed(const APIInterc
     uint32_t        n_indices        = 0;
     uint32_t        n_vertices       = 0;
 
-    /* The vertices that the indices of an indexed draw name are counted from the first of the array. */
+    /* Indices name vertices counted from the first of the array. */
     if (is_indexed)
     {
         const uint32_t index_format = in_arguments_ptr[INDEXED_INDEX_FORMAT_ARGUMENT].get_u32();
 
         n_vertices = in_arguments_ptr[INDEXED_MIN_INDEX_ARGUMENT].get_u32() + in_arguments_ptr[INDEXED_N_INDICES_ARGUMENT].get_u32();
 
-        /* Indices of 32 bits do not fit what says which vertices are used: all of the array is told of. */
+        /* With 32-bit indices the whole array is considered. */
         if (index_format == Interception::Hooks::D3D8::D3DFMT_INDEX16)
         {
             indices_ptr = static_cast<const uint16_t*>(in_arguments_ptr[INDEXED_INDICES_ARGUMENT].get_ptr() );
@@ -165,7 +165,7 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::draw_pre_transformed(const APIInterc
                                vertex_n_bytes >= 4 * sizeof(float) &&
                                n_vertices     != 0);
 
-    /* The vertices of the application are not touched: the draw is made with a copy. */
+    /* The application's vertices are not touched: the draw uses a copy. */
     const auto draw_eye_func = [&](const Analysis::Recipe::Eye& in_eye)
     {
         const bool has_copy = (is_movable &&
@@ -560,7 +560,7 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::on_post(const APIInterceptor::APIFun
 
             if (is_draw)
             {
-                /* A draw that the renderer made for both eyes when it was about to be made is not made again. */
+                /* Not made again: the renderer made it for both eyes in on_pre_draw(). */
                 if (m_draw_class      != Analysis::Recipe::DrawClass::SKIPPED &&
                     m_is_draw_handled == false)
                 {
@@ -682,9 +682,7 @@ bool Stereo::ConverterDLL::D3D8EyeRenderer::on_pre_draw(const Analysis::Recipe::
 
     if (in_draw_class != Analysis::Recipe::DrawClass::SKIPPED)
     {
-        /* The vertices of a draw whose vertex format is XYZRHW are positioned in pixels: no matrix moves them, and the second eye needs them moved. The renderer makes
-         * the draw for both eyes with the vertices moved by what the core plans.
-         */
+        /* XYZRHW vertices are in pixels, so no matrix moves them: the renderer makes the draw for both eyes with them moved by the core's plan. */
         const bool is_pre_transformed = Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::is_pre_transformed_vertex_shader(m_mirror.vertex_shader);
 
         if (is_pre_transformed)

@@ -15,21 +15,18 @@ namespace Analysis
 {
     namespace RecipeBake
     {
-        /* The keys of the draws that the baker lists in the baked section, by signature and size (the cover key); a draw is in one of the layer lists at the most. */
+        /* The keys (signature and size) that the baker lists in the baked section; a key is in one layer list at most. */
         struct DrawKeyLists
         {
-            std::vector<uint64_t> covering_draw_key_vec;      /* cover the whole of the view                                                                           */
-            std::vector<uint64_t> eye_space_draw_key_vec;     /* the object is at the camera and the vertices are in front of it, at a real depth                      */
-            std::vector<uint64_t> flat_layer_draw_key_vec;    /* made in the space of the picture, and not always over a 3D scene                                      */
-            bool                  has_automatic_layers = false; /* whether the layer lists are written: only for a recipe that asks (Comfort::uses_automatic_layers)  */
-            std::vector<uint64_t> overlay_draw_key_vec;       /* made in the space of the picture, always over a 3D scene, and not on a copy of the picture         */
-            std::vector<uint64_t> side_reaching_draw_key_vec; /* flat, and reach from the left edge of the picture to the right one                                   */
+            std::vector<uint64_t> covering_draw_key_vec;      /* cover the whole view */
+            std::vector<uint64_t> eye_space_draw_key_vec;     /* at the camera, vertices in front of it */
+            std::vector<uint64_t> flat_layer_draw_key_vec;    /* in the space of the picture, not always over a 3D scene */
+            bool                  has_automatic_layers = false; /* the layer lists are written (Comfort::uses_automatic_layers) */
+            std::vector<uint64_t> overlay_draw_key_vec;       /* in the space of the picture, always over a 3D scene, not on a copy of it */
+            std::vector<uint64_t> side_reaching_draw_key_vec; /* flat, from the left edge to the right one */
         };
 
-        /* A kind of draw (a signature and a size) whose draws are not all of one kind by the facts of the analysis: some are made in the space of the picture and others are
-         * not, some are over a 3D scene and others are not, or some have their vertices in the space of the eye and others have not. The automatic layers (see
-         * RecipeBaker::get_automatic_layers()) leave such a key out, so the recipe has to say what it is, if it has to be one thing.
-         */
+        /* A key whose draws are not all of one kind. The automatic layers leave it out, so the recipe names it if it is one thing. */
         struct MixedDraw
         {
             uint64_t                             cover_key = 0;

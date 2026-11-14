@@ -153,7 +153,7 @@ float Stereo::Core::ConvergenceModel::get_reference_frame_seconds()
 bool Stereo::Core::ConvergenceModel::is_cut(const float& in_previous_target,
                                             const float& in_target)
 {
-    /* Frames of one scene say targets that are near each other; a cut says one that is a long way off. */
+    /* Frames of one scene have near targets; a cut has a far one. */
     constexpr float CUT_RATIO = 2.0f;
 
     bool result = false;

@@ -84,17 +84,14 @@ namespace Stereo
              */
             std::array<float, 16> make_eye_shift_matrix(const Analysis::Recipe::Eye& in_eye) const;
 
-            /* Whether the draw that was last classified is attached to the camera (an interface or a sky drawn with a perspective projection, a weapon) and is to be made as it is for
-             * both eyes: its origin is in front of the camera, nearer than the part of the distance of convergence that the recipe says (Comfort::camera_attached_depth), and it is
-             * not one whose vertices the recipe says are in the space of the eye. The origin depth is how far in front of the camera the origin of the object is, in the units of the
-             * application, whatever the handedness of its camera is: the front end turns its matrix into it.
+            /* Whether the last draw is attached to the camera and made as it is for both eyes: its origin depth (in front of the camera, whatever
+             * the handedness) is below Comfort::camera_attached_depth of the convergence distance, and it is not in eye space.
              */
             bool is_last_draw_attached_to_camera(const float& in_origin_depth) const;
 
-            /* Moves for the eye the vertices of the draw that classify_draw() last classified, which are positioned in pixels (see ScreenParallax), as every API that has them
-             * does: tells from the vertices whether the draw reaches both sides of the picture, asks plan_screen_shift(), and moves a copy. The vertices of the application are not touched.
-             * Returns true if the vector holds the vertices to draw with: they were moved, or the caller asked for a copy (to change them further). The indices (16 bits, or none) say which
-             * of the vertices are used.
+            /* Moves a copy of the last draw's vertices (in pixels, see ScreenParallax) for the eye: asks plan_screen_shift() and leaves the
+             * application's vertices alone. Returns true if the vector holds the vertices to draw, because they were moved or a copy was asked
+             * for.
              */
             bool make_screen_vertices(const Analysis::Recipe::Eye& in_eye,
                                       const bool&                  in_is_presented,
@@ -147,9 +144,8 @@ namespace Stereo
             /* The application set the view matrix, which the rules of draws may be about. Besides on_matrix_call(), if that is a call. */
             void on_view_matrix_set(const std::array<float, 16>& in_matrix);
 
-            /* How far apart the eyes move a point at the depth of the origin of a draw in the eye space (a negative number, the z of the translation of its model-view matrix), as a part
-             * of the width of the picture, for the projection it is drawn with (its x scale, and whether it is a perspective one): positive in front of the distance at which the eyes
-             * converge, negative behind it, 0 for a draw that is not in front of the camera. What the eyes give a draw by its depth, which a push has to leave room for.
+            /* How far apart the eyes move a point at the given origin depth (negative in front of the camera), as a part of the picture width:
+             * positive in front of the convergence distance, negative behind, 0 if not in front of the camera.
              */
             float get_eye_parallax(const float& in_origin_depth,
                                    const float& in_projection_x_scale,
@@ -184,17 +180,14 @@ namespace Stereo
             float plan_push_shift(const Analysis::Recipe::Eye& in_eye,
                                   const float&                 in_picture_width_pixels) const;
 
-            /* The same, for a draw that the adapter says is moved apart by the eyes or not (the class of the draw is what the recipe said of it: an adapter that makes a draw as it is,
-             * as the converter does one that is attached to the camera or has an identity model-view under a projection that is not a perspective one, moves nothing by the eyes, and the
-             * whole of the push is its parallax).
+            /* The same, for an adapter that says whether the eyes move the draw: one made as it is (attached to the camera, 2D) gets the whole
+             * push.
              */
             float plan_push_shift(const Analysis::Recipe::Eye& in_eye,
                                   const float&                 in_picture_width_pixels,
                                   const bool&                  in_is_moved_by_eyes) const;
 
-            /* The same, for a draw that the eyes move apart by the given part of the width of the picture (see get_eye_parallax(); 0 if they do not move it): an adapter that knows the depth
-             * of the draw says it, in place of the separation over the width, which is the layer of a pass whose units are pixels.
-             */
+            /* The same, for a draw the eyes move apart by the given part of the picture width (see get_eye_parallax(); 0 if they do not). */
             float plan_push_shift_with_layer(const Analysis::Recipe::Eye& in_eye,
                                              const float&                 in_picture_width_pixels,
                                              const float&                 in_layer_parallax) const;
@@ -254,9 +247,7 @@ namespace Stereo
              */
             void set_is_overlay_pushed(const bool& in_is_pushed);
 
-            /* The shape of the frame that was completed last, which is the scene the draws from now on are in. on_frame_completed() says it too; a frame whose depth was
-             * measured is told with on_frame_depth(), which does not, so the converter says it with this.
-             */
+            /* The shape of the last completed frame, the scene of the draws that follow. on_frame_depth() does not set it, so the converter does. */
             void set_scene_shape_key(const uint64_t& in_shape_key);
 
         private:
@@ -268,10 +259,10 @@ namespace Stereo
             FailFunc                        m_fail_func;
             float                           m_frame_interval_seconds; /* the time of the frame that was completed last */
             bool                            m_is_last_draw_covering; /* the draw that was classified last covers the whole of the view */
-            bool                            m_is_last_draw_eye_space; /* the recipe says its vertices are in the space of the eye (Comfort::eye_space_cover_key_vec) */
+            bool                            m_is_last_draw_eye_space; /* the recipe says its vertices are in eye space */
             bool                            m_is_last_draw_part;     /* the draw that was classified last is a part that protrudes        */
             bool                            m_is_last_draw_pushed;   /* the recipe pushes the draw that was classified last              */
-            bool                            m_is_last_draw_side_reaching; /* a flat overlay that reaches both sides (Recipe::side_reaching_draw_key_vec) */
+            bool                            m_is_last_draw_side_reaching; /* a flat overlay from edge to edge */
             bool                            m_is_overlay_pushed;     /* the person asks for the overlay to be pushed                    */
             Analysis::Recipe::DrawClass     m_last_draw_class;       /* of the draw that was classified last                            */
             uint64_t                        m_last_draw_cover_key;   /* the same                                                         */

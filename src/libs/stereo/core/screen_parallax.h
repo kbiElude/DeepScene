@@ -41,9 +41,7 @@ namespace Stereo
                 float max_reciprocal         = 1.0f;
             };
 
-            /* Moves the vertices of the array as the plan says (see ScreenParallaxPlanner), the way every API does it: per vertex by the depth, or all by one shift. Returns whether
-             * they were moved: not for a plan that says none, nor for one whose parameters a shift cannot be made with.
-             */
+            /* Moves the vertices as the plan says, per vertex by depth or all by one shift. Returns whether they were moved. */
             static bool apply_plan(const ScreenShiftPlan& in_plan,
                                    const uint32_t&        in_vertex_n_bytes,
                                    const size_t&          in_n_vertices,
@@ -58,7 +56,7 @@ namespace Stereo
             /* Whether the parameters are ones a shift can be made with. */
             static bool is_valid(const Parameters& in_parameters);
 
-            /* The parameters of a plan that moves the vertices by their depth. */
+            /* The parameters of a per-vertex plan. */
             static Parameters make_parameters(const ScreenShiftPlan& in_plan);
 
             static ShiftFactors make_shift_factors(const Parameters& in_parameters);

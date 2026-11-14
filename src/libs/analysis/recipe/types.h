@@ -121,10 +121,8 @@ namespace Analysis
          */
         struct Comfort
         {
-            /* Whether the recipe uses the layers that the baker found by itself (Recipe::flat_layer_draw_key_vec, overlay_draw_key_vec and eye_space_draw_key_vec), and not only the
-             * draws it names: a draw made in the space of the picture is left as the application makes it, and if it is made over a 3D scene it is pushed toward the viewer as well;
-             * a draw whose vertices are in the space of the eye is not taken for attached to the camera. The names in the recipe (pushed, unaffected, eye_space_cover_keys) are added to
-             * them and are not taken back. Off unless the recipe asks, so that a recipe plays as it did before.
+            /* Use the layers the baker found (flat_layer_, overlay_ and eye_space_draw_key_vec) in addition to the names in the recipe. Off by
+             * default.
              */
             bool uses_automatic_layers = false;
 
@@ -141,9 +139,8 @@ namespace Analysis
              */
             float camera_attached_depth = 0.0f;
 
-            /* Draws by signature and size (KeyBuilder::compute_draw_cover_key) that the application makes with a model-view of the identity because it has put their vertices in the space
-             * of the eye already (the knobs of the control panel of a robot): the origin says nothing of where they are, so they are not taken for attached to the camera, and are given
-             * the parallax of the depth of their vertices like any other draw. Without them, the draws of that kind are attached whatever their depth.
+            /* Draws (signature and size) whose vertices are already in eye space (a model-view of the identity): not taken for attached to the
+             * camera, and given the parallax of their vertices' depth.
              */
             std::vector<uint64_t> eye_space_cover_key_vec;
 
@@ -318,21 +315,21 @@ namespace Analysis
             Comfort                       comfort;                         /* what the person says; see Comfort           */
             std::vector<DrawConvergence>  convergence_vec;                 /* from "baked"; see DrawConvergence          */
             std::vector<DrawRule>         draw_rule_vec;                   /* from "baked"; see DrawRule                 */
-            std::vector<uint64_t>         eye_space_draw_key_vec;          /* from "baked"; keys (signature and size) of draws whose vertices are in the space of the eye, found from the matrices they were made with (see Comfort::uses_automatic_layers) */
-            std::vector<uint64_t>         flat_layer_draw_key_vec;         /* from "baked"; keys of draws that are made in the space of the picture and never over a 3D scene: left as they are (see Comfort::uses_automatic_layers) */
+            std::vector<uint64_t>         eye_space_draw_key_vec;          /* from "baked": vertices in eye space (see Comfort::uses_automatic_layers) */
+            std::vector<uint64_t>         flat_layer_draw_key_vec;         /* from "baked": in the space of the picture, never over a 3D scene: left as made */
             bool                          is_baked                = false; /* whether the file has draw rules, even none */
             std::vector<uint64_t>         known_shape_key_vec;             /* if empty, no frame is unknown              */
             std::vector<uint64_t>         covering_draw_key_vec;      /* from "baked"; keys (signature and size) of draws that cover the whole of the view: not to be moved sideways */
             std::vector<uint64_t>         known_signature_key_vec;         /* from "baked"; if empty, no draw is unknown */
             uint32_t                      key_scheme_version      = 0;
-            std::vector<uint64_t>         overlay_draw_key_vec;            /* from "baked"; keys of draws that are made in the space of the picture over a 3D scene: left as they are and pushed toward the viewer (see Comfort::uses_automatic_layers) */
+            std::vector<uint64_t>         overlay_draw_key_vec;            /* from "baked": in the space of the picture over a 3D scene: left as made and pushed */
             std::vector<PerEyeTexture>    per_eye_texture_vec;             /* from "baked"; see PerEyeTexture             */
             DrawSelector                  pushed;                          /* draws which are pushed toward the viewer by comfort.overlay_parallax, whatever else they are */
             std::vector<Rule>             rule_vec;
             std::vector<SceneConvergence> scene_convergence_vec;
             ScreenParallax                screen_parallax;                 /* see ScreenParallax; not enabled unless the recipe has it */
             std::vector<SceneSeparation>  scene_separation_vec;            /* from "baked"; see SceneSeparation           */
-            std::vector<uint64_t>         side_reaching_draw_key_vec;      /* from "baked"; keys (signature and size) of flat draws, a 2D overlay, that reach from the left edge of the picture to the right one: a push moves them with the picture made wider by it, so that neither edge is bare */
+            std::vector<uint64_t>         side_reaching_draw_key_vec;      /* from "baked": flat draws from the left edge to the right one: a push widens their viewport */
             DrawSelector                  skipped;                         /* draws which are not played                 */
             std::string                   target_description;              /* of the application; for people             */
             std::string                   target_name;

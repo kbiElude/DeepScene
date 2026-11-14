@@ -37,7 +37,7 @@ namespace Analysis
                                    const Analysis::Recipe::Recipe&      in_recipe,
                                    Utils::Json::JsonWriter*             inout_writer_ptr);
 
-            /* The facts of the draws of each key (signature and size), in all the structures that have it, as if they were one group. */
+            /* The facts of each key's draws, merged over all structures that have it. */
             static std::map<uint64_t, Analysis::APIDumpAnalysis::DrawFacts> get_facts_by_cover_key(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis);
 
             /* The frames of a draw to look at it in, from all the frames it is in: the first, the middle one and the last (one frame, or two, if that is all there are). */

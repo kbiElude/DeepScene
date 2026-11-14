@@ -205,7 +205,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::Recipe:
         /* The positions are in the pixels of the application, which a larger back buffer is not made of. */
         scale = get_render_scale();
 
-        /* The vertices of the application are not touched: the draw is made with a copy. */
+        /* The application's vertices are not touched: the draw uses a copy. */
         const bool has_copy = m_core_ptr->make_screen_vertices(in_eye,
                                                                is_presented,
                                                                in_picture_width,
