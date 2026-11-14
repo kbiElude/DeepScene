@@ -381,12 +381,21 @@ float Stereo::Core::StereoCore::plan_part_shift(const Analysis::Recipe::Eye& in_
 float Stereo::Core::StereoCore::plan_push_shift(const Analysis::Recipe::Eye& in_eye,
                                                 const float&                 in_picture_width_pixels) const
 {
+    return plan_push_shift(in_eye,
+                           in_picture_width_pixels,
+                           (m_last_draw_class == Analysis::Recipe::DrawClass::AFFECTED) );
+}
+
+float Stereo::Core::StereoCore::plan_push_shift(const Analysis::Recipe::Eye& in_eye,
+                                                const float&                 in_picture_width_pixels,
+                                                const bool&                  in_is_moved_by_eyes) const
+{
     const float in_parallax = m_applier.get_cover_push_parallax(m_last_draw_cover_key);
 
     return PushShiftPlanner::plan(m_applier,
                                   in_eye,
                                   in_parallax,
-                                  (m_last_draw_class == Analysis::Recipe::DrawClass::AFFECTED),
+                                  in_is_moved_by_eyes,
                                   in_picture_width_pixels,
                                   m_convergence_model.get_effective_eye_separation(),
                                   0.0f /* the effective separation is within the limit of the scene */);

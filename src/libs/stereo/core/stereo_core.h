@@ -153,6 +153,14 @@ namespace Stereo
             float plan_push_shift(const Analysis::Recipe::Eye& in_eye,
                                   const float&                 in_picture_width_pixels) const;
 
+            /* The same, for a draw that the adapter says is moved apart by the eyes or not (the class of the draw is what the recipe said of it: an adapter that makes a draw as it is,
+             * as the converter does one that is attached to the camera or has an identity model-view under a projection that is not a perspective one, moves nothing by the eyes, and the
+             * whole of the push is its parallax).
+             */
+            float plan_push_shift(const Analysis::Recipe::Eye& in_eye,
+                                  const float&                 in_picture_width_pixels,
+                                  const bool&                  in_is_moved_by_eyes) const;
+
             /* What is to be done to the vertices of the draw that classify_draw() last classified, for the eye, if they are in the space of the
              * picture (see ScreenParallaxPlanner): by the distances the core has now, which are the ones of the scene and the person. The
              * picture width is that of the viewport the draw is made with, and the draw is presented if it is made to what the application

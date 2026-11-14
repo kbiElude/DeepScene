@@ -326,6 +326,36 @@ TEST_F(StereoCoreTest, ADrawWhoseVerticesAreInTheSpaceOfTheEyeIsToldByItsSignatu
     EXPECT_FALSE(core.get_is_last_draw_eye_space() );
 }
 
+TEST_F(StereoCoreTest, ADrawThatIsMadeAsItIsGetsTheWholeOfThePushAndOneTheEyesMoveGetsWhatIsLeft)
+{
+    /* The recipe pushes the signature 1 by 0.015 of the width (the nearest surfaces may have 0.02), and has it affected. */
+    Stereo::Core::StereoCore core(make_recipe(std::string("\"comfort\": {\"max_near_parallax\": 0.02, \"overlay_parallax\": 0.015}, ") +
+                                              "\"pushed\": {\"draw_keys\": [\"0x0000000000000001\"]}, " +
+                                              get_baked_text("{\"signature\": \"0x0000000000000001\", \"class\": \"affected\", \"pushed\": true}"),
+                                              get_view_rule_text() ),
+                                  Stereo::Core::FailFunc() );
+
+    core.set_convergence_distance(100.0f);
+    core.set_depth_strength      (1.0f);
+    core.classify_draw(1, 0);
+
+    EXPECT_TRUE(core.get_is_last_draw_pushed() );
+
+    /* Made as it is (held, as the converter does a draw whose origin is at the camera): the picture is moved by the push alone, 0.015 of 640 pixels, half to each eye. */
+    EXPECT_FLOAT_EQ(core.plan_push_shift(Analysis::Recipe::Eye::LEFT, 640.0f, false),
+                    4.8f);
+    EXPECT_FLOAT_EQ(core.plan_push_shift(Analysis::Recipe::Eye::RIGHT, 640.0f, false),
+                    -4.8f);
+
+    /* Moved by the eyes (its class is affected): the eyes move it by the separation over the width, and the push is what is left of the nearest parallax, which is less. */
+    EXPECT_LT(core.plan_push_shift(Analysis::Recipe::Eye::LEFT, 640.0f, true),
+              core.plan_push_shift(Analysis::Recipe::Eye::LEFT, 640.0f, false) );
+
+    /* Without the flag, the class that the recipe gave decides, as it did. */
+    EXPECT_FLOAT_EQ(core.plan_push_shift(Analysis::Recipe::Eye::LEFT, 640.0f),
+                    core.plan_push_shift(Analysis::Recipe::Eye::LEFT, 640.0f, true) );
+}
+
 TEST_F(StereoCoreTest, ADrawThatReachesBothSidesOfThePictureIsToldByItsSignatureAndSize)
 {
     Stereo::Core::StereoCore core(make_recipe(std::string("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": [], \"known_signatures\": [\"0x0000000000000001\", \"0x0000000000000002\"], ") +

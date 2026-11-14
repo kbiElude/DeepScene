@@ -1102,7 +1102,8 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
         {
             const float picture_width_pixels = static_cast<float>(saved_viewport.at(VIEWPORT_WIDTH) );
             float       shift_pixels         = m_core_ptr->plan_push_shift(eye,
-                                                                           picture_width_pixels);
+                                                                           picture_width_pixels,
+                                                                           is_affected /* what is made as it is (attached to the camera, 2D) is not moved by the eyes: its whole parallax is the push */);
 
             if (is_part)
             {
