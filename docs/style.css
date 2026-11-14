@@ -128,7 +128,6 @@ svg marker path { fill: var(--muted); }
 div.math { font: 0.95em/1.6 ui-monospace, "Cascadia Mono", Consolas, monospace; background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 0.6rem 1rem; margin: 1rem 0; overflow-x: auto; }
 div.math .why { display: block; color: var(--muted); font: 0.85rem/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; margin-top: 0.3rem; }
 ul.tight li { margin: 0.15rem 0; }
-.pill { display: inline-block; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 0 0.6rem; font-size: 0.85rem; }
 
 /* eyes in diagrams */
 svg .eyeL { fill: var(--eye-left); stroke: var(--eye-left); stroke-width: 1.5; }

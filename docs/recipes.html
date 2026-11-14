@@ -49,7 +49,7 @@
   <rect class="box3" x="480" y="102" width="390" height="46" rx="6"/><text x="675" y="122" text-anchor="middle"><tspan font-weight="bold">scene_convergence, convergence</tspan></text><text class="small" x="675" y="138" text-anchor="middle">the median depth, by vertices, per kind of frame and per signature</text>
   <rect class="box3" x="480" y="156" width="390" height="46" rx="6"/><text x="675" y="176" text-anchor="middle"><tspan font-weight="bold">scene_max_separation</tspan></text><text class="small" x="675" y="192" text-anchor="middle">the ceiling of the eye separation per kind of frame, from comfort</text>
   <rect class="box3" x="480" y="210" width="390" height="46" rx="6"/><text x="675" y="230" text-anchor="middle"><tspan font-weight="bold">per_eye_textures</tspan></text><text class="small" x="675" y="246" text-anchor="middle">the textures each eye needs its own copy of (from the .deps)</text>
-  <rect class="box3" x="480" y="264" width="390" height="46" rx="6"/><text x="675" y="284" text-anchor="middle"><tspan font-weight="bold">covering_draws</tspan></text><text class="small" x="675" y="300" text-anchor="middle">draws that cover the whole view: never pushed sideways</text>
+  <rect class="box3" x="480" y="264" width="390" height="46" rx="6"/><text x="675" y="284" text-anchor="middle"><tspan font-weight="bold">covering_draws, side_reaching_draws</tspan></text><text class="small" x="675" y="300" text-anchor="middle">cover the whole view (never pushed), or span it side to side</text>
   <path class="arrow" d="M420 140H478"/>
 </svg>
 <figcaption>The left side is the judgement, the right side is arithmetic over the analysis. Bake again whenever the capture changes; do not edit the baked part.</figcaption>
@@ -70,16 +70,16 @@
 <figcaption>Rules by pass or by frame shape work only offline. A recipe that needs one for a live run is refused by the converter at once, with a message, rather than drawing wrong images.</figcaption>
 </figure>
 <p><code>RecipeBake recipe.json file.passes [--deps file.deps] [-o baked.json]</code> bakes: it writes the <code>baked</code> section into the recipe (or into the file <code>-o</code> names) and prints what it found. Its exit codes are 0 (done), 1 (bad arguments), 2 (a file cannot be read), 3 (the recipe cannot be baked), 4 (the file cannot be written), 5 and 6 (see <code>--check</code> below). Without <code>--deps</code> a texture that frames use by turns is missed, so <code>per_eye_textures</code> comes from the totals of the analysis only.</p>
-<p><code>RecipeBake --scenes recipe passes [--screen-degrees 73.6]</code> (the default is 90) is for tuning comfort: for each scene (kind of frame) it prints where its frames are in the run (the cuts), how deep it is, where the eyes converge and how far apart they may be with the recipe as it is, and what that makes of the parallax of its nearest and farthest surfaces as a part of the width of the picture and as an angle on a screen of that width (the log of the headset says how wide the screen is: 73.6 degrees on the headset that the recipe of Gerbera is made for, whose limits are the fractions of that width that make 1.5 and 1 degrees; the limits of a recipe are parts of the width of the picture, so a recipe made for one width is weaker or stronger on another). A person keeps the near limit at about 1.5 degrees and the far limit at about 1 degree, looks at the scenes that the numbers say are flattest, and says what a cut needs in <code>scene_overrides</code>. In the OpenGL converter, <code>APISTEREO_DUMP_SCENES</code> writes up to sixty frames of each scene to the temporary directory: the first, when the scene has lasted a second and a half (the eyes have come to it by then, whatever the frames per second are), to <code>apistereo_scene_&lt;key&gt;.bmp</code>, and the others half a second of the demo apart, to <code>apistereo_scene_&lt;key&gt;_1.bmp</code> and on (a scene is not one picture: what the camera shows moves with the time of the demo, and the frames per second of a run without the program that shows the images say nothing of it). The log has the key and the number of the frame of the scene, with where the eyes converged and how far apart they were. A scene is judged by the worst of its frames, and the eyes of the converter go toward the scene by the time that passes, so at any number of frames a second they are about a quarter of a second behind a camera that flies past a near surface. A run for it need not be held to the rate of the screen; <code>APISTEREO_FRAME_RATE=72</code> does that for an application whose own time (its music) depends on the frames.</p>
-<p><code>RecipeBake</code> also checks a recipe without writing anything: <code>--check</code> lists the frame shapes and draw signatures of a capture that the recipe does not know (exit code 5), and a pass left alone whose vertices are at many depths, which is a 3D scene seen from one place and not an overlay, or one that a replay leaves alone and the converter inside the program does not (exit code 6). It also lists the kinds of draws (signature and size) whose draws are not all of one kind by what the analysis saw them do (some in the space of the picture and others not, some over a 3D scene and others not, some in the space of the eye and others not): the automatic layers leave those out, so the recipe names them if each is one thing; this is informational and changes no exit code. <code>--overlays</code> prints the draws that may be 2D overlays, by the recipe and by the hint of the analysis, and where the two disagree.</p>
+<p><code>RecipeBake --scenes recipe passes [--screen-degrees N]</code> (default 90) prints, for each scene (kind of frame): where its frames are in the run (the cuts), how deep it is, where the eyes converge, how far apart they may be, and the parallax of its nearest and farthest surfaces as a part of the picture width and as an angle on a screen of N degrees (73.6 on the headset that the recipe of Gerbera is made for: its limits are the widths that make 1.5 and 1 degrees; a recipe made for one width is weaker or stronger on another). Keep the near limit at about 1.5 degrees and the far limit at about 1, check the scenes that are flattest, and set what a cut needs in <code>scene_overrides</code>. The converter can write frames of each scene to look at (<code>APISTEREO_DUMP_SCENES</code>; see <a href="live-conversion.html#log">Live conversion</a>).</p>
+<p><code>RecipeBake</code> also checks a recipe without writing anything: <code>--check</code> lists the frame shapes and draw signatures of a capture that the recipe does not know (exit code 5), and a pass left alone whose vertices are at many depths, which is a 3D scene seen from one place and not an overlay, or one that a replay leaves alone and the converter inside the program does not (exit code 6). It also lists the kinds of draws (signature and size) whose draws are not all of one kind by what the analysis saw them do (some in the space of the picture and others not, some over a 3D scene and others not, some in the space of the eye and others not). The automatic layers leave those out; name them in the recipe if each is one thing. Informational: no exit code. <code>--overlays</code> prints the draws that may be 2D overlays, by the recipe and by the hint of the analysis, and where the two disagree.</p>
 
 <h2 id="making">How one is made</h2>
 <p>The steps are captured in <a href="adding-an-app.html">Adding an app</a>: capture, extract, investigate the analysis (an LLM reading the query tool's JSON is good at this), draft the rules, bake, check offline with the <a href="replay.html">replay tools</a>, try live. The recipes that ship are in <code>apps/recipes</code>:</p>
 <table>
 <tr><th>Recipe</th><th>Program</th><th>What it uses</th></tr>
-<tr><td><code>fr08.json</code></td><td>fr08 (Direct3D 8)</td><td>rules for <code>SetTransform</code>, <code>comfort</code>, an <code>unaffected</code> list.</td></tr>
-<tr><td><code>kasparov.json</code></td><td>Kasparov (DirectDraw 7 and Direct3D 7)</td><td>rules for <code>SetTransform</code>, <code>comfort</code>, <code>screen_parallax</code> for its pre-transformed vertices.</td></tr>
-<tr><td><code>gerbera.json</code></td><td>Gerbera (OpenGL)</td><td>no rules; <code>view_anchor_shift</code>, <code>cache_pixel_reads</code>, <code>pushed</code>, <code>comfort</code> with <code>measure_depth</code>, <code>balance_convergence</code> and per-scene overrides.</td></tr>
+<tr><td><code>fr08.json</code></td><td>fr08 (Direct3D 8)</td><td><code>eye_offset</code> and <code>eye_convergence</code> rules on <code>SetTransform</code>, <code>comfort</code>, an <code>unaffected</code> list.</td></tr>
+<tr><td><code>kasparov.json</code></td><td>Kasparov (DirectDraw 7 and Direct3D 7)</td><td>no rules; <code>comfort</code>, <code>screen_parallax</code> for its pre-transformed vertices.</td></tr>
+<tr><td><code>gerbera.json</code></td><td>Gerbera (OpenGL)</td><td>no rules; <code>view_anchor_shift</code>, <code>cache_pixel_reads</code>, <code>pushed</code> (with <code>part_cover_keys</code>), <code>unaffected</code>, <code>comfort</code> with <code>measure_depth</code>, <code>balance_convergence</code>, <code>camera_attached_depth</code>, <code>eye_space_cover_keys</code>, <code>part_parallax</code> and <code>scene_overrides</code>.</td></tr>
 </table>
 
 <h2 id="format">The format</h2>
@@ -98,16 +98,14 @@
       "max_far_parallax": 0.01,                    the same at the farthest surface (above 0, up to 1): with a screen two metres away
                                                    the pictures of what is at infinity may be no further apart than the eyes of a person
                                                    (65 mm is 0.014 of a width of 4.7 m); the narrower the angle of view, the sooner it matters
-      "automatic_layers": true,                    the recipe uses the layers that the baker finds by itself (see "baked" below) in addition to the draws it names: draws made in the
-                                                   space of the picture are left as the application makes them, those made over a 3D scene are pushed by overlay_parallax as
-                                                   well, and draws whose vertices are in the space of the eye are not taken for attached to the camera. Without it the lists
-                                                   are not baked, and a recipe plays as it names its draws
+      "automatic_layers": true,                    the recipe also uses the layers that the baker finds (flat_layer_draws, overlay_draws and eye_space_draws, under "baked");
+                                                   off by default: the recipe plays as it names its draws
       "balance_convergence": true,                 with both limits, the eyes converge where the whole depth of a scene fits them best (the
                                                    nearest surface has all of the near limit and the farthest all of the far one), and not at
                                                    the median depth of its vertices
       "camera_attached_depth": 0.05,               (above 0, below 1) a draw whose origin is nearer the camera than this part of the distance of convergence
                                                    (an interface or a sky drawn with a perspective projection) is made as it is for both eyes
-      "eye_space_cover_keys": ["0x..."],           OpenGL: draws (by signature and size, as in "pushed") that the application makes with a model-view of the identity because it has put
+      "eye_space_cover_keys": ["0x..."],           draws (by signature and size, as in "pushed") that the application makes with a model-view of the identity because it has put
                                                    their vertices in the space of the eye (the knobs of a control panel): not taken for attached to the camera whatever their origin says,
                                                    they are given the parallax of the depth of their vertices
       "measure_depth": true,                       OpenGL: the converter reads the depth buffer before each pass is cleared and takes the
@@ -119,14 +117,14 @@
       ],
       "near_fraction": 0.001,                      which part of the surfaces of a scene (by vertices) is its nearest: the
                                                    nearest thousandth (above 0, below 1; default 0.001)
-      "overlay_parallax": 0.04                     how far toward the viewer the draws that are left alone (unaffected) can be pushed, if
-                                                   "part_parallax": 0.006 (optional) the same for the parts of an object that protrude from it and are named in pushed.part_cover_keys (the
-                                                   eyes of a robot): they are nearer than the rest of the object by little, so less (0 or left out: as much as overlay_parallax).
+      "overlay_parallax": 0.04,                    how far toward the viewer the draws that are left alone (unaffected) can be pushed, if
                                                    they are made to what is presented: the two pictures of them are that far apart,
                                                    as a part of the width of the picture (0 to 0.5). What the application wants: VR Player
                                                    pushes by it, with no control to turn it off; 0 or left out: the application wants none.
                                                    Draws of pre-transformed vertices are pushed the same way (every x moved by half the
                                                    amount, in pixels, the other way for each eye), unless they cover the whole view
+      "part_parallax": 0.006                       (optional) the same for the parts of an object that protrude from it and are named in pushed.part_cover_keys (the
+                                                   eyes of a robot): they are nearer than the rest of the object by little, so less (0 or left out: as much as overlay_parallax)
     },
     "screen_parallax": {                           for an application whose vertices are already in the space of the picture (pre-transformed:
                                                    Direct3D's x and y in pixels, and the reciprocal of the depth), which no matrix moves;
@@ -201,11 +199,10 @@
                                                    picture below it, which stay as they are); named as the skipped ones are
       "pass_keys": [ "0x..." ],                    every draw of these passes
       "draw_keys": [ "0x..." ],                    these draws, wherever they are
-      "cover_keys": [ "0x..." ],                   draws of this key and size (the cover key of a draw: its structure and its vertex count; only here, not in the other lists): the parts of an
-                                                   object that are drawn alike, of which only some are to be moved. They are flat as well: drawn once for both eyes, as a draw that the
-                                                   rules leave alone is, and pushed by the whole of comfort.overlay_parallax (a part that is drawn for each eye and pushed has two depths
-                                                   that disagree, and the environment mapping of its shading differs between the eyes). The replay keeps the rules for such a draw whose
-                                                   camera it shares with a draw that the rules affect; the converter in the application does not
+      "cover_keys": [ "0x..." ],                   draws of this key and size (the cover key of a draw: its structure and its vertex count): the parts of an
+                                                   object that are drawn alike, of which only some are to be moved. Drawn once for both eyes and pushed by the whole of
+                                                   comfort.overlay_parallax; the replay keeps the rules for such a draw whose camera it shares with a draw that the rules
+                                                   affect; the converter in the application does not
       "part_cover_keys": [ "0x..." ],              like cover_keys, for the parts of an object that protrude from it: pushed by comfort.part_parallax
                                                    and moved by the depth of their origin (as the eyes would move it), held to the nearest and the farthest parallax of the scene
       "pass_draws": [ { "pass_key": "0x...", "draw_key": "0x..." } ]   this draw in this pass only
