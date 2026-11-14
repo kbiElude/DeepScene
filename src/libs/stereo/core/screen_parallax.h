@@ -2,18 +2,19 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#ifndef STEREO_D3D7_SCREEN_PARALLAX_H
-#define STEREO_D3D7_SCREEN_PARALLAX_H
+#ifndef STEREO_CORE_SCREEN_PARALLAX_H
+#define STEREO_CORE_SCREEN_PARALLAX_H
 
 #include "analysis/recipe/types.h"
+#include "stereo/core/screen_parallax_planner.h"
 #include <stddef.h>
 #include <stdint.h>
 
 namespace Stereo
 {
-    namespace D3D7
+    namespace Core
     {
-        /* Gives the vertices of a Direct3D 7 draw parallax for an eye, when the vertices are already in the space of the picture (the
+        /* Gives the vertices of a draw parallax for an eye, when the vertices are already in the space of the picture (the
          * position of a vertex is in pixels, with the reciprocal of its depth: no matrix moves it, so the matrix of the eye cannot). See
          * Analysis::Recipe::ScreenParallax for what is done to a vertex, and why. This is what is done to the bytes of the vertices,
          * whoever holds them: a dump that is replayed, or an application that runs.
@@ -40,6 +41,14 @@ namespace Stereo
                 float max_reciprocal         = 1.0f;
             };
 
+            /* Moves the vertices of the array as the plan says (see ScreenParallaxPlanner), the way every API does it: per vertex by the depth, or all by one shift. Returns whether
+             * they were moved: not for a plan that says none, nor for one whose parameters a shift cannot be made with.
+             */
+            static bool apply_plan(const ScreenShiftPlan& in_plan,
+                                   const uint32_t&        in_vertex_n_bytes,
+                                   const size_t&          in_n_vertices,
+                                   uint8_t*               inout_vertex_ptr);
+
             /* How far a vertex of the reciprocal of the depth is moved sideways for the eye, in pixels: positive to the right. */
             static float get_shift(const Parameters&   in_parameters,
                                    const float&        in_reciprocal_depth);
@@ -48,6 +57,9 @@ namespace Stereo
 
             /* Whether the parameters are ones a shift can be made with. */
             static bool is_valid(const Parameters& in_parameters);
+
+            /* The parameters of a plan that moves the vertices by their depth. */
+            static Parameters make_parameters(const ScreenShiftPlan& in_plan);
 
             static ShiftFactors make_shift_factors(const Parameters& in_parameters);
 
@@ -92,4 +104,4 @@ namespace Stereo
     }
 }
 
-#endif /* STEREO_D3D7_SCREEN_PARALLAX_H */
+#endif /* STEREO_CORE_SCREEN_PARALLAX_H */

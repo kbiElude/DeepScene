@@ -21,9 +21,9 @@ namespace
     constexpr uint32_t FVF_TRANSFORMED_BY_MATRIX = 0x142; /* XYZ, a diffuse color, one set of texture coordinates */
     constexpr size_t   VERTEX_N_BYTES     = 32;
 
-    Stereo::D3D7::ScreenParallax::Parameters make_parameters(const Analysis::Recipe::Eye& in_eye)
+    Stereo::Core::ScreenParallax::Parameters make_parameters(const Analysis::Recipe::Eye& in_eye)
     {
-        Stereo::D3D7::ScreenParallax::Parameters result;
+        Stereo::Core::ScreenParallax::Parameters result;
 
         result.convergence_distance  = 5.0f;
         result.eye                   = in_eye;
@@ -101,31 +101,31 @@ TEST(D3D7ScreenParallax, AVertexAtTheConvergenceDistanceIsNotMovedAndThoseNearer
 
     const float convergence_reciprocal = 1.0f / 5.0f;
 
-    EXPECT_FLOAT_EQ(Stereo::D3D7::ScreenParallax::get_shift(left,
+    EXPECT_FLOAT_EQ(Stereo::Core::ScreenParallax::get_shift(left,
                                                   convergence_reciprocal),
                     0.0f);
-    EXPECT_FLOAT_EQ(Stereo::D3D7::ScreenParallax::get_shift(right,
+    EXPECT_FLOAT_EQ(Stereo::Core::ScreenParallax::get_shift(right,
                                                   convergence_reciprocal),
                     0.0f);
 
     /* Nearer: the left eye sees it further to the right (it is moved to the left), the right eye further to the left. */
     const float near_reciprocal = 1.0f;
 
-    EXPECT_GT(Stereo::D3D7::ScreenParallax::get_shift(left,
+    EXPECT_GT(Stereo::Core::ScreenParallax::get_shift(left,
                                             near_reciprocal),
               0.0f);
-    EXPECT_FLOAT_EQ(Stereo::D3D7::ScreenParallax::get_shift(right,
+    EXPECT_FLOAT_EQ(Stereo::Core::ScreenParallax::get_shift(right,
                                                   near_reciprocal),
-                    -Stereo::D3D7::ScreenParallax::get_shift(left,
+                    -Stereo::Core::ScreenParallax::get_shift(left,
                                                    near_reciprocal) );
 
     /* Further away: the other way. */
     const float far_reciprocal = 0.01f;
 
-    EXPECT_LT(Stereo::D3D7::ScreenParallax::get_shift(left,
+    EXPECT_LT(Stereo::Core::ScreenParallax::get_shift(left,
                                             far_reciprocal),
               0.0f);
-    EXPECT_GT(Stereo::D3D7::ScreenParallax::get_shift(right,
+    EXPECT_GT(Stereo::Core::ScreenParallax::get_shift(right,
                                             far_reciprocal),
               0.0f);
 }
@@ -137,7 +137,7 @@ TEST(D3D7ScreenParallax, TheShiftIsThatOfACameraMovedHalfTheSeparationToTheSide)
 const float focal_length    = 320.0f / tanf(45.0f * 3.14159265358979f / 180.0f); /* half the width, over the tangent of half the angle of view */
 const float expected_shift  = focal_length * (2.0f / 2.0f) * (reciprocal - 0.2f);
 
-    EXPECT_NEAR(Stereo::D3D7::ScreenParallax::get_shift(left,
+    EXPECT_NEAR(Stereo::Core::ScreenParallax::get_shift(left,
                                               reciprocal),
                 expected_shift,
                 0.001f);
@@ -147,7 +147,7 @@ const float expected_shift  = focal_length * (2.0f / 2.0f) * (reciprocal - 0.2f)
 
     twice_apart.eye_separation = 4.0f;
 
-    EXPECT_NEAR(Stereo::D3D7::ScreenParallax::get_shift(twice_apart,
+    EXPECT_NEAR(Stereo::Core::ScreenParallax::get_shift(twice_apart,
                                               reciprocal),
                 2.0f * expected_shift,
                 0.001f);
@@ -156,7 +156,7 @@ const float expected_shift  = focal_length * (2.0f / 2.0f) * (reciprocal - 0.2f)
 
     narrow.field_of_view_degrees = 45.0f;
 
-    EXPECT_GT(Stereo::D3D7::ScreenParallax::get_shift(narrow,
+    EXPECT_GT(Stereo::Core::ScreenParallax::get_shift(narrow,
                                             reciprocal),
               expected_shift);
 }
@@ -166,21 +166,21 @@ TEST(D3D7ScreenParallax, WhatIsBehindTheCameraOrNotANumberIsPutWhereItCannotGoWr
     const auto left = make_parameters(Analysis::Recipe::Eye::LEFT);
 
     /* No depth, or a negative one, is the same as the furthest there is. */
-    EXPECT_FLOAT_EQ(Stereo::D3D7::ScreenParallax::get_shift(left,
+    EXPECT_FLOAT_EQ(Stereo::Core::ScreenParallax::get_shift(left,
                                                   -7.0f),
-                    Stereo::D3D7::ScreenParallax::get_shift(left,
+                    Stereo::Core::ScreenParallax::get_shift(left,
                                                   0.0f) );
-    EXPECT_FLOAT_EQ(Stereo::D3D7::ScreenParallax::get_shift(left,
+    EXPECT_FLOAT_EQ(Stereo::Core::ScreenParallax::get_shift(left,
                                                   nanf("") ),
-                    Stereo::D3D7::ScreenParallax::get_shift(left,
+                    Stereo::Core::ScreenParallax::get_shift(left,
                                                   0.0f) );
 
     /* And what is too near is where the nearest allowed is: a tenth of the convergence distance. */
-    EXPECT_FLOAT_EQ(Stereo::D3D7::ScreenParallax::get_shift(left,
+    EXPECT_FLOAT_EQ(Stereo::Core::ScreenParallax::get_shift(left,
                                                   1.0e9f),
-                    Stereo::D3D7::ScreenParallax::get_shift(left,
+                    Stereo::Core::ScreenParallax::get_shift(left,
                                                   2.0f) ); /* the reciprocal of a depth of 0.5 */
-    EXPECT_TRUE(isfinite(Stereo::D3D7::ScreenParallax::get_shift(left,
+    EXPECT_TRUE(isfinite(Stereo::Core::ScreenParallax::get_shift(left,
                                                        INFINITY) ) );
 }
 
@@ -191,19 +191,19 @@ TEST(D3D7ScreenParallax, DrawsReachBothSidesOnlyByTheVerticesTheyUse)
                                                                 {1.0f, 1.0f,   1.0f});
     const std::vector<uint16_t> whole_index_vec = {0, 1, 2};
 
-    EXPECT_TRUE(Stereo::D3D7::ScreenParallax::reaches_both_sides(vertices.data(),
+    EXPECT_TRUE(Stereo::Core::ScreenParallax::reaches_both_sides(vertices.data(),
                                                                  VERTEX_N_BYTES,
                                                                  3,
                                                                  nullptr,
                                                                  0,
                                                                  640.0f) );
-    EXPECT_TRUE(Stereo::D3D7::ScreenParallax::reaches_both_sides(vertices.data(),
+    EXPECT_TRUE(Stereo::Core::ScreenParallax::reaches_both_sides(vertices.data(),
                                                                  VERTEX_N_BYTES,
                                                                  3,
                                                                  whole_index_vec.data(),
                                                                  whole_index_vec.size(),
                                                                  640.0f) );
-    EXPECT_FALSE(Stereo::D3D7::ScreenParallax::reaches_both_sides(vertices.data(),
+    EXPECT_FALSE(Stereo::Core::ScreenParallax::reaches_both_sides(vertices.data(),
                                                                   VERTEX_N_BYTES,
                                                                   3,
                                                                   left_index_vec.data(),
@@ -217,7 +217,7 @@ TEST(D3D7ScreenParallax, OnlyTheXOfEachVertexIsMoved)
                                                {1.0f, 0.2f, 0.01f});
     auto       vertices        = vertices_before;
 
-    Stereo::D3D7::ScreenParallax::shift_vertices(make_parameters(Analysis::Recipe::Eye::LEFT),
+    Stereo::Core::ScreenParallax::shift_vertices(make_parameters(Analysis::Recipe::Eye::LEFT),
                                        VERTEX_N_BYTES,
                                        3,
                                        vertices.data() );
@@ -249,7 +249,7 @@ TEST(D3D7ScreenParallax, ScalingMovesTheXAndTheYAndLeavesTheDepthAndWhatIsAfterI
     auto vertices = make_vertices({10.0f, 20.0f},
                                   {0.5f,  0.25f});
 
-    Stereo::D3D7::ScreenParallax::scale_vertices(2.0f,
+    Stereo::Core::ScreenParallax::scale_vertices(2.0f,
                                                  VERTEX_N_BYTES,
                                                  2,
                                                  vertices.data() );
@@ -518,7 +518,7 @@ TEST(D3D7ScreenParallax, AVertexAtAnEdgeIsNotMovedFromItAndMovesAsAnyOtherWhereT
         auto              vertices    = make_vertices(x_vec,
                                                       reciprocal_vec);
 
-        Stereo::D3D7::ScreenParallax::shift_vertices(make_parameters(eye),
+        Stereo::Core::ScreenParallax::shift_vertices(make_parameters(eye),
                                                      VERTEX_N_BYTES,
                                                      x_vec.size(),
                                                      vertices.data() );
@@ -544,4 +544,65 @@ TEST(D3D7ScreenParallax, AVertexAtAnEdgeIsNotMovedFromItAndMovesAsAnyOtherWhereT
             }
         }
     }
+}
+
+TEST(ScreenParallax, APlanMovesTheVerticesTheWayItsKindSaysAndReportsWhetherItDid)
+{
+    const auto vertices_before = make_vertices({10.0f, 200.0f, 300.0f},
+                                               {1.0f, 0.2f, 0.01f});
+    auto       vertices        = vertices_before;
+    Stereo::Core::ScreenShiftPlan plan;
+
+    /* None: nothing is moved. */
+    EXPECT_FALSE(Stereo::Core::ScreenParallax::apply_plan(plan,
+                                                          VERTEX_N_BYTES,
+                                                          3,
+                                                          vertices.data() ) );
+    EXPECT_EQ(vertices,
+              vertices_before);
+
+    /* By depth: the same as the shift the parameters of the plan give. */
+    plan.convergence_distance  = 5.0f;
+    plan.eye                   = Analysis::Recipe::Eye::LEFT;
+    plan.eye_separation        = 2.0f;
+    plan.field_of_view_degrees = 90.0f;
+    plan.kind                  = Stereo::Core::ScreenShiftKind::PER_VERTEX;
+    plan.picture_width         = 640.0f;
+
+    auto expected = vertices_before;
+
+    Stereo::Core::ScreenParallax::shift_vertices(make_parameters(Analysis::Recipe::Eye::LEFT),
+                                                 VERTEX_N_BYTES,
+                                                 3,
+                                                 expected.data() );
+
+    EXPECT_TRUE(Stereo::Core::ScreenParallax::apply_plan(plan,
+                                                         VERTEX_N_BYTES,
+                                                         3,
+                                                         vertices.data() ) );
+    EXPECT_EQ(vertices,
+              expected);
+
+    /* Parameters that a shift cannot be made with (no picture): nothing is moved. */
+    vertices             = vertices_before;
+    plan.picture_width   = 0.0f;
+
+    EXPECT_FALSE(Stereo::Core::ScreenParallax::apply_plan(plan,
+                                                          VERTEX_N_BYTES,
+                                                          3,
+                                                          vertices.data() ) );
+    EXPECT_EQ(vertices,
+              vertices_before);
+
+    /* All by one shift. */
+    plan.kind                 = Stereo::Core::ScreenShiftKind::UNIFORM;
+    plan.uniform_shift_pixels = 4.0f;
+
+    EXPECT_TRUE(Stereo::Core::ScreenParallax::apply_plan(plan,
+                                                         VERTEX_N_BYTES,
+                                                         3,
+                                                         vertices.data() ) );
+    EXPECT_FLOAT_EQ(get_x(vertices,
+                          1),
+                    204.0f);
 }

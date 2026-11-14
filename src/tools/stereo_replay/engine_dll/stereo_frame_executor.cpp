@@ -513,17 +513,9 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_draw_call(const Cap
 
         case Stereo::Core::ScreenShiftKind::PER_VERTEX:
         {
-            Stereo::D3D7::ScreenParallax::Parameters parameters;
-
-            parameters.convergence_distance  = plan.convergence_distance;
-            parameters.eye                   = plan.eye;
-            parameters.eye_separation        = plan.eye_separation;
-            parameters.field_of_view_degrees = plan.field_of_view_degrees;
-            parameters.picture_width         = plan.picture_width;
-
             is_moved = D3D7DrawRewriter::rewrite(in_call,
                                                    in_chunk_source,
-                                                   parameters,
+                                                   Stereo::Core::ScreenParallax::make_parameters(plan),
                                                   &overlay,
                                                   &rewritten);
 

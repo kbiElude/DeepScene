@@ -821,6 +821,8 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
                                             true); /* in_is_enabled */
 
                 *out_should_pass_through_ptr = m_live_state.d3d8_renderer_ptr->on_pre_draw(draw_class,
+                                                                                           in_api_func,
+                                                                                           m_live_state.feeder.get_viewport().width,
                                                                                            in_arguments_ptr);
             }
             else

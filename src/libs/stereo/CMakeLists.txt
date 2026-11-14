@@ -1,4 +1,4 @@
-# Stereo: what a converter decides, whatever the API is (Core), what is done to the vertices of a Direct3D 7 draw for an eye (D3D7), how the
+# Stereo: what a converter decides, whatever the API is (Core), what is done to the vertices of a draw whose vertices are in pixels, for an eye (also in Core), how the
 # launcher hands a playback over to the converter (Session), and the images which go from the application to the program which shows them
 # (Transport).
 file(GLOB_RECURSE Sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"

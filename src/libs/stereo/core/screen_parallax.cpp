@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "stereo/D3D7/screen_parallax.h"
+#include "stereo/core/screen_parallax.h"
 #include <algorithm>
 #include <math.h>
 #include <string.h>
@@ -10,7 +10,54 @@
 /* How near to an edge of the picture a vertex has to be to be at it, as a part of the width: what the analysis counts as reaching it. */
 static constexpr float EDGE_REACH = 0.005f;
 
-float Stereo::D3D7::ScreenParallax::get_shift(const Parameters& in_parameters,
+bool Stereo::Core::ScreenParallax::apply_plan(const ScreenShiftPlan& in_plan,
+                                              const uint32_t&        in_vertex_n_bytes,
+                                              const size_t&          in_n_vertices,
+                                              uint8_t*               inout_vertex_ptr)
+{
+    bool result = false;
+
+    switch (in_plan.kind)
+    {
+        case ScreenShiftKind::PER_VERTEX:
+        {
+            const Parameters parameters = make_parameters(in_plan);
+
+            if (is_valid(parameters) )
+            {
+                shift_vertices(parameters,
+                               in_vertex_n_bytes,
+                               in_n_vertices,
+                               inout_vertex_ptr);
+
+                result = true;
+            }
+
+            break;
+        }
+
+        case ScreenShiftKind::UNIFORM:
+        {
+            shift_vertices_by(in_plan.uniform_shift_pixels,
+                              in_vertex_n_bytes,
+                              in_n_vertices,
+                              inout_vertex_ptr);
+
+            result = true;
+
+            break;
+        }
+
+        default:
+        {
+            break;
+        }
+    }
+
+    return result;
+}
+
+float Stereo::Core::ScreenParallax::get_shift(const Parameters& in_parameters,
                                               const float&      in_reciprocal_depth)
 {
     const ShiftFactors factors = make_shift_factors(in_parameters);
@@ -19,7 +66,7 @@ float Stereo::D3D7::ScreenParallax::get_shift(const Parameters& in_parameters,
                      in_reciprocal_depth);
 }
 
-float Stereo::D3D7::ScreenParallax::get_shift(const ShiftFactors& in_factors,
+float Stereo::Core::ScreenParallax::get_shift(const ShiftFactors& in_factors,
                                               const float&        in_reciprocal_depth)
 {
     /* A vertex behind the camera (a reciprocal of the depth that is not above zero) is no place to have a picture of, and neither is one at the
@@ -38,14 +85,27 @@ float Stereo::D3D7::ScreenParallax::get_shift(const ShiftFactors& in_factors,
                                 : -magnitude;
 }
 
-bool Stereo::D3D7::ScreenParallax::is_valid(const Parameters& in_parameters)
+bool Stereo::Core::ScreenParallax::is_valid(const Parameters& in_parameters)
 {
     return (in_parameters.convergence_distance >  0.0f &&
             in_parameters.eye_separation       != 0.0f &&
             in_parameters.picture_width        >  0.0f);
 }
 
-Stereo::D3D7::ScreenParallax::ShiftFactors Stereo::D3D7::ScreenParallax::make_shift_factors(const Parameters& in_parameters)
+Stereo::Core::ScreenParallax::Parameters Stereo::Core::ScreenParallax::make_parameters(const ScreenShiftPlan& in_plan)
+{
+    Parameters result;
+
+    result.convergence_distance  = in_plan.convergence_distance;
+    result.eye                   = in_plan.eye;
+    result.eye_separation        = in_plan.eye_separation;
+    result.field_of_view_degrees = in_plan.field_of_view_degrees;
+    result.picture_width         = in_plan.picture_width;
+
+    return result;
+}
+
+Stereo::Core::ScreenParallax::ShiftFactors Stereo::Core::ScreenParallax::make_shift_factors(const Parameters& in_parameters)
 {
     constexpr float DEGREES_TO_RADIANS = 3.14159265358979323846f / 180.0f;
     constexpr float MAX_DEPTH_FRACTION = 0.1f;
@@ -63,7 +123,7 @@ Stereo::D3D7::ScreenParallax::ShiftFactors Stereo::D3D7::ScreenParallax::make_sh
     return result;
 }
 
-bool Stereo::D3D7::ScreenParallax::reaches_both_sides(const uint8_t*  in_vertex_ptr,
+bool Stereo::Core::ScreenParallax::reaches_both_sides(const uint8_t*  in_vertex_ptr,
                                                       const uint32_t& in_vertex_n_bytes,
                                                       const size_t&   in_n_vertices,
                                                       const uint16_t* in_index_ptr,
@@ -105,7 +165,7 @@ bool Stereo::D3D7::ScreenParallax::reaches_both_sides(const uint8_t*  in_vertex_
             x_max    >= (1.0f - EDGE_REACH) * in_picture_width);
 }
 
-void Stereo::D3D7::ScreenParallax::scale_vertices(const float&    in_scale,
+void Stereo::Core::ScreenParallax::scale_vertices(const float&    in_scale,
                                                   const uint32_t& in_vertex_n_bytes,
                                                   const size_t&   in_n_vertices,
                                                   uint8_t*        inout_vertex_ptr)
@@ -137,7 +197,7 @@ void Stereo::D3D7::ScreenParallax::scale_vertices(const float&    in_scale,
     }
 }
 
-void Stereo::D3D7::ScreenParallax::shift_vertices(const Parameters& in_parameters,
+void Stereo::Core::ScreenParallax::shift_vertices(const Parameters& in_parameters,
                                                   const uint32_t&   in_vertex_n_bytes,
                                                   const size_t&     in_n_vertices,
                                                   uint8_t*          inout_vertex_ptr)
@@ -188,7 +248,7 @@ void Stereo::D3D7::ScreenParallax::shift_vertices(const Parameters& in_parameter
     }
 }
 
-void Stereo::D3D7::ScreenParallax::shift_vertices_by(const float&    in_shift,
+void Stereo::Core::ScreenParallax::shift_vertices_by(const float&    in_shift,
                                                      const uint32_t& in_vertex_n_bytes,
                                                      const size_t&   in_n_vertices,
                                                      uint8_t*        inout_vertex_ptr)

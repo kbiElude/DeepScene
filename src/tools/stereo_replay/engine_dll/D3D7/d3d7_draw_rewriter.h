@@ -6,7 +6,7 @@
 #define STEREO_REPLAY_ENGINEDLL_D3D7_DRAW_REWRITER_H
 
 #include "capture/api_dump_loader/api_dump_loader.h"
-#include "stereo/D3D7/screen_parallax.h"
+#include "stereo/core/screen_parallax.h"
 #include "overlay_chunk_source.h"
 #include <functional>
 #include <stddef.h>
@@ -19,7 +19,7 @@ namespace Stereo
         namespace EngineDLL
         {
             /* Gives the draws of a dumped Direct3D 7 call parallax for an eye, when the vertices of the draw are already in the space of the
-             * picture: the call is copied with its vertices moved (see Stereo::D3D7::ScreenParallax for how, and why), in a chunk of the
+             * picture: the call is copied with its vertices moved (see Stereo::Core::ScreenParallax for how, and why), in a chunk of the
              * overlay.
              */
             class D3D7DrawRewriter
@@ -31,7 +31,7 @@ namespace Stereo
                  */
                 static bool rewrite(const Capture::APIDumpLoader::DumpedAPICall&    in_call,
                                     const ::Replay::ReplayEngineDLL::IChunkSource&  in_chunk_source,
-                                    const Stereo::D3D7::ScreenParallax::Parameters& in_parameters,
+                                    const Stereo::Core::ScreenParallax::Parameters& in_parameters,
                                     OverlayChunkSource*                             inout_overlay_ptr,
                                     Capture::APIDumpLoader::DumpedAPICall*          out_call_ptr);
 

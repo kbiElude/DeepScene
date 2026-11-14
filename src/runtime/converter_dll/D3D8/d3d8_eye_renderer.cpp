@@ -6,6 +6,7 @@
 #include "common/vtable.h"
 #include "call_feeder.h"
 #include "d3d8_eye_renderer.h"
+#include "stereo/core/screen_parallax.h"
 
 namespace
 {
@@ -13,6 +14,59 @@ namespace
     void* get_pointer_argument(const APIInterceptor::APIFunctionArgument& in_argument)
     {
         return const_cast<void*>(in_argument.get_ptr() );
+    }
+
+    /* How many vertices the primitives of a draw use, by what they are and how many there are. */
+    uint32_t get_n_primitive_vertices(const uint32_t& in_primitive_type,
+                                      const uint32_t& in_n_primitives)
+    {
+        uint32_t result = 0;
+
+        switch (in_primitive_type)
+        {
+            case Interception::Hooks::D3D8::D3DPT_POINTLIST:
+            {
+                result = in_n_primitives;
+
+                break;
+            }
+
+            case Interception::Hooks::D3D8::D3DPT_LINELIST:
+            {
+                result = 2 * in_n_primitives;
+
+                break;
+            }
+
+            case Interception::Hooks::D3D8::D3DPT_LINESTRIP:
+            {
+                result = in_n_primitives + 1;
+
+                break;
+            }
+
+            case Interception::Hooks::D3D8::D3DPT_TRIANGLELIST:
+            {
+                result = 3 * in_n_primitives;
+
+                break;
+            }
+
+            case Interception::Hooks::D3D8::D3DPT_TRIANGLEFAN:
+            case Interception::Hooks::D3D8::D3DPT_TRIANGLESTRIP:
+            {
+                result = in_n_primitives + 2;
+
+                break;
+            }
+
+            default:
+            {
+                AI_FAIL_UNSUPPORTED(in_primitive_type);
+            }
+        }
+
+        return result;
     }
 
     /* Whether what SetVertexShader was given is a vertex format (not the handle of a shader) whose positions are in pixels. */
@@ -29,6 +83,7 @@ Stereo::ConverterDLL::D3D8EyeRenderer::D3D8EyeRenderer(Stereo::Core::StereoCore*
     :m_core_ptr      (in_core_ptr),
      m_device_ptr    (nullptr),
      m_draw_class    (Analysis::Recipe::DrawClass::AFFECTED),
+     m_is_draw_handled(false),
      m_n_failed_twins(0)
 {
     /* Stub */
@@ -105,6 +160,147 @@ void* Stereo::ConverterDLL::D3D8EyeRenderer::get_twin_ptr(void* in_object_ptr) c
 
     return (twin_iterator != m_twin_map.end() ) ? twin_iterator->second
                                                 : nullptr;
+}
+
+void Stereo::ConverterDLL::D3D8EyeRenderer::draw_pre_transformed(const APIInterceptor::APIFunction&         in_function,
+                                                                 const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
+                                                                 const float&                               in_picture_width)
+{
+    /* Where what a draw is made of is in the arguments of the two draws that have the vertices in them. */
+    constexpr size_t INDEXED_INDICES_ARGUMENT     = 5;
+    constexpr size_t INDEXED_INDEX_FORMAT_ARGUMENT = 6;
+    constexpr size_t INDEXED_MIN_INDEX_ARGUMENT   = 2;
+    constexpr size_t INDEXED_N_INDICES_ARGUMENT   = 3;
+    constexpr size_t INDEXED_N_PRIMITIVES_ARGUMENT = 4;
+    constexpr size_t INDEXED_STRIDE_ARGUMENT      = 8;
+    constexpr size_t INDEXED_VERTICES_ARGUMENT    = 7;
+    constexpr size_t PLAIN_N_PRIMITIVES_ARGUMENT  = 2;
+    constexpr size_t PLAIN_STRIDE_ARGUMENT        = 4;
+    constexpr size_t PLAIN_VERTICES_ARGUMENT      = 3;
+    constexpr size_t PRIMITIVE_TYPE_ARGUMENT      = 1;
+
+    const bool is_indexed = (in_function == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_DRAWINDEXEDPRIMITIVEUP);
+    const bool has_vertices = (is_indexed ||
+                               in_function == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_DRAWPRIMITIVEUP);
+
+    AI_ASSERT_ALWAYS(has_vertices,
+                     "The application draws vertices that are positioned in pixels (a vertex format with D3DFVF_XYZRHW, as a HUD or text uses) from a vertex buffer, "
+                     "and the converter moves them for the second eye of Direct3D 8 only when the application gives them in the call (DrawPrimitiveUP, DrawIndexedPrimitiveUP).");
+
+    void* const    device_ptr        = get_pointer_argument(in_arguments_ptr[0]);
+    const uint32_t primitive_type    = in_arguments_ptr[PRIMITIVE_TYPE_ARGUMENT].get_u32();
+    const uint32_t n_primitives      = (is_indexed) ? in_arguments_ptr[INDEXED_N_PRIMITIVES_ARGUMENT].get_u32()
+                                                    : in_arguments_ptr[PLAIN_N_PRIMITIVES_ARGUMENT].get_u32  ();
+    const uint32_t vertex_n_bytes    = (is_indexed) ? in_arguments_ptr[INDEXED_STRIDE_ARGUMENT].get_u32()
+                                                    : in_arguments_ptr[PLAIN_STRIDE_ARGUMENT].get_u32  ();
+    const uint8_t* vertices_ptr      = static_cast<const uint8_t*>((is_indexed) ? in_arguments_ptr[INDEXED_VERTICES_ARGUMENT].get_ptr()
+                                                                                : in_arguments_ptr[PLAIN_VERTICES_ARGUMENT].get_ptr  () );
+    const uint16_t* indices_ptr      = nullptr;
+    uint32_t        n_indices        = 0;
+    uint32_t        n_vertices       = 0;
+
+    /* The vertices that the indices of an indexed draw name are counted from the first of the array. */
+    if (is_indexed)
+    {
+        const uint32_t index_format = in_arguments_ptr[INDEXED_INDEX_FORMAT_ARGUMENT].get_u32();
+
+        n_vertices = in_arguments_ptr[INDEXED_MIN_INDEX_ARGUMENT].get_u32() + in_arguments_ptr[INDEXED_N_INDICES_ARGUMENT].get_u32();
+
+        /* Indices of 32 bits do not fit what says which vertices are used: all of the array is told of. */
+        if (index_format == Interception::Hooks::D3D8::D3DFMT_INDEX16)
+        {
+            indices_ptr = static_cast<const uint16_t*>(in_arguments_ptr[INDEXED_INDICES_ARGUMENT].get_ptr() );
+            n_indices   = get_n_primitive_vertices(primitive_type,
+                                                   n_primitives);
+        }
+    }
+    else
+    {
+        n_vertices = get_n_primitive_vertices(primitive_type,
+                                              n_primitives);
+    }
+
+    const bool is_presented       = (m_mirror.render_target_ptr == m_mirror.back_buffer_ptr);
+    const bool is_movable         = (vertices_ptr  != nullptr &&
+                                     vertex_n_bytes >= 4 * sizeof(float) &&
+                                     n_vertices    != 0);
+    const bool reaches_both_sides = (is_movable &&
+                                     Stereo::Core::ScreenParallax::reaches_both_sides(vertices_ptr,
+                                                                                      vertex_n_bytes,
+                                                                                      n_vertices,
+                                                                                      indices_ptr,
+                                                                                      n_indices,
+                                                                                      in_picture_width) );
+
+    /* The vertices of the application are not touched: the draw is made with a copy. */
+    const auto draw_eye_func = [&](const Analysis::Recipe::Eye& in_eye)
+    {
+        bool is_shifted = false;
+
+        if (is_movable)
+        {
+            const auto plan = m_core_ptr->plan_screen_shift(in_eye,
+                                                            true, /* in_has_extent */
+                                                            is_presented,
+                                                            in_picture_width,
+                                                            reaches_both_sides);
+
+            m_vertex_vec.assign(vertices_ptr,
+                                vertices_ptr + static_cast<size_t>(n_vertices) * vertex_n_bytes);
+
+            is_shifted = Stereo::Core::ScreenParallax::apply_plan(plan,
+                                                                  vertex_n_bytes,
+                                                                  n_vertices,
+                                                                  m_vertex_vec.data() );
+        }
+
+        draw_with_vertices(in_function,
+                           in_arguments_ptr,
+                           (is_shifted) ? m_vertex_vec.data()
+                                        : vertices_ptr);
+    };
+
+    const auto draw_right_eye_func = [&draw_eye_func]()
+    {
+        draw_eye_func(Analysis::Recipe::Eye::RIGHT);
+    };
+
+    draw_eye_func(Analysis::Recipe::Eye::LEFT);
+
+    play_right_eye(device_ptr,
+                   draw_right_eye_func);
+}
+
+void Stereo::ConverterDLL::D3D8EyeRenderer::draw_with_vertices(const APIInterceptor::APIFunction&         in_function,
+                                                               const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
+                                                               const uint8_t*                             in_vertices_ptr) const
+{
+    void* const                                  device_ptr = get_pointer_argument(in_arguments_ptr[0]);
+    Interception::Hooks::D3D8::IDirect3DDevice8* device     = static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(device_ptr);
+    void* const                                  vertex_ptr = const_cast<uint8_t*>(in_vertices_ptr);
+
+    if (in_function == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_DRAWINDEXEDPRIMITIVEUP)
+    {
+        APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_DRAWINDEXEDPRIMITIVEUP>(device_ptr,
+                                                                                                               Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_DRAWINDEXEDPRIMITIVEUP)(device,
+                                                                                                                                                                                                static_cast<Interception::Hooks::D3D8::D3DPRIMITIVETYPE>(in_arguments_ptr[1].get_u32() ),
+                                                                                                                                                                                                in_arguments_ptr[2].get_u32                             (),
+                                                                                                                                                                                                in_arguments_ptr[3].get_u32                             (),
+                                                                                                                                                                                                in_arguments_ptr[4].get_u32                             (),
+                                                                                                                                                                                                in_arguments_ptr[5].get_ptr                             (),
+                                                                                                                                                                                                static_cast<Interception::Hooks::D3D8::D3DFORMAT>       (in_arguments_ptr[6].get_u32() ),
+                                                                                                                                                                                                vertex_ptr,
+                                                                                                                                                                                                in_arguments_ptr[8].get_u32                             () );
+    }
+    else
+    {
+        APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_DRAWPRIMITIVEUP>(device_ptr,
+                                                                                                        Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_DRAWPRIMITIVEUP)(device,
+                                                                                                                                                                                  static_cast<Interception::Hooks::D3D8::D3DPRIMITIVETYPE>(in_arguments_ptr[1].get_u32() ),
+                                                                                                                                                                                  in_arguments_ptr[2].get_u32                             (),
+                                                                                                                                                                                  vertex_ptr,
+                                                                                                                                                                                  in_arguments_ptr[4].get_u32                             () );
+    }
 }
 
 void Stereo::ConverterDLL::D3D8EyeRenderer::handle_copy_rects(const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
@@ -438,7 +634,9 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::on_post(const APIInterceptor::APIFun
 
             if (is_draw)
             {
-                if (m_draw_class != Analysis::Recipe::DrawClass::SKIPPED)
+                /* A draw that the renderer made for both eyes when it was about to be made is not made again. */
+                if (m_draw_class      != Analysis::Recipe::DrawClass::SKIPPED &&
+                    m_is_draw_handled == false)
                 {
                     play_right_eye(in_function,
                                    in_arguments_ptr);
@@ -547,39 +745,65 @@ bool Stereo::ConverterDLL::D3D8EyeRenderer::on_pre(const APIInterceptor::APIFunc
 }
 
 bool Stereo::ConverterDLL::D3D8EyeRenderer::on_pre_draw(const Analysis::Recipe::DrawClass&         in_draw_class,
+                                                        const APIInterceptor::APIFunction&         in_function,
+                                                        const float&                               in_picture_width,
                                                         const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
 {
-    m_draw_class = in_draw_class;
+    bool result = (in_draw_class != Analysis::Recipe::DrawClass::SKIPPED);
+
+    m_draw_class      = in_draw_class;
+    m_is_draw_handled = false;
 
     if (in_draw_class != Analysis::Recipe::DrawClass::SKIPPED)
     {
-        /* The vertices of a draw whose vertex format is XYZRHW are positioned in pixels: no matrix moves them, and the second eye needs them moved, which the converter
-         * does not do for Direct3D 8. Drawing them as they are would show the picture of the application flat.
+        /* The vertices of a draw whose vertex format is XYZRHW are positioned in pixels: no matrix moves them, and the second eye needs them moved. The renderer makes
+         * the draw for both eyes with the vertices moved by what the core plans.
          */
         const bool is_pre_transformed = is_pre_transformed_format(m_mirror.vertex_shader);
 
-        AI_ASSERT_ALWAYS(is_pre_transformed == false,
-                         "The application draws vertices that are positioned in pixels (a vertex format with D3DFVF_XYZRHW, as a HUD or text uses), "
-                         "and the converter does not move them for the second eye of Direct3D 8: that feature has not been implemented yet.");
+        if (is_pre_transformed)
+        {
+            draw_pre_transformed(in_function,
+                                 in_arguments_ptr,
+                                 in_picture_width);
 
-        void* const    device_ptr      = get_pointer_argument(in_arguments_ptr[0]);
-        const bool     is_final_target = (m_mirror.render_target_ptr == m_mirror.back_buffer_ptr);
-        const uint32_t n_changes       = m_core_ptr->bind_matrices(in_draw_class,
-                                                                   Analysis::Recipe::Eye::LEFT,
-                                                                  &m_change_vec,
-                                                                   is_final_target);
+            m_is_draw_handled = true;
+            result            = false;
+        }
+        else
+        {
+            void* const    device_ptr      = get_pointer_argument(in_arguments_ptr[0]);
+            const bool     is_final_target = (m_mirror.render_target_ptr == m_mirror.back_buffer_ptr);
+            const uint32_t n_changes       = m_core_ptr->bind_matrices(in_draw_class,
+                                                                       Analysis::Recipe::Eye::LEFT,
+                                                                      &m_change_vec,
+                                                                       is_final_target);
 
-        apply_matrices(device_ptr,
-                       n_changes);
+            apply_matrices(device_ptr,
+                           n_changes);
+        }
     }
 
-    return (in_draw_class != Analysis::Recipe::DrawClass::SKIPPED);
+    return result;
 }
 
 void Stereo::ConverterDLL::D3D8EyeRenderer::play_right_eye(const APIInterceptor::APIFunction&         in_function,
                                                            const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
 {
-    void* const                                  device_ptr         = get_pointer_argument(in_arguments_ptr[0]);
+    const auto draw_func = [this, &in_function, in_arguments_ptr]()
+    {
+        repeat_call(in_function,
+                    in_arguments_ptr);
+    };
+
+    play_right_eye(get_pointer_argument(in_arguments_ptr[0]),
+                   draw_func);
+}
+
+void Stereo::ConverterDLL::D3D8EyeRenderer::play_right_eye(void*                        in_device_ptr,
+                                                           const std::function<void()>& in_draw_func)
+{
+    void* const                                  device_ptr         = in_device_ptr;
     Interception::Hooks::D3D8::IDirect3DDevice8* device             = static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(device_ptr);
     std::array<bool, N_TEXTURE_STAGES>           is_texture_swapped = {};
     void*                                        twin_depth_ptr     = nullptr;
@@ -644,8 +868,7 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::play_right_eye(const APIInterceptor:
                            n_changes);
         }
 
-        repeat_call(in_function,
-                    in_arguments_ptr);
+        in_draw_func();
 
         /* What the application set is in the device again. */
         set_render_target_func(device,

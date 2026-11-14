@@ -10,7 +10,7 @@
 #include "interception/core/D3D7Utils/methods.h"
 #include "interception/core/D3D7Utils/strided_layout.h"
 #include "interception/core/D3D7Utils/vertex_format.h"
-#include "stereo/D3D7/screen_parallax.h"
+#include "stereo/core/screen_parallax.h"
 #include "d3d7_eye_renderer.h"
 #include "environment.h"
 #include "own_call_scope.h"
@@ -184,11 +184,10 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::Recipe:
                                                          const float&                 in_picture_width,
                                                          const bool&                  in_must_draw)
 {
-    Stereo::D3D7::ScreenParallax::Parameters parameters;
-    Stereo::Core::ScreenShiftPlan            plan;
-    bool                                     result         = false;
-    float                                    scale          = 1.0f;
-    uint32_t                                 vertex_n_bytes = 0;
+    Stereo::Core::ScreenShiftPlan plan;
+    bool                          result         = false;
+    float                         scale          = 1.0f;
+    uint32_t                      vertex_n_bytes = 0;
 
     /* Vertices which a matrix moves are the matrix's. */
     if ((in_draw_arguments.fvf & Interception::Core::D3D7Utils::D3DFVF_POSITION_MASK) == Interception::Core::D3D7Utils::D3DFVF_XYZRHW)
@@ -201,7 +200,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::Recipe:
         in_draw_arguments.vertices_ptr != nullptr)
     {
         const bool is_presented       = m_surface_twins.is_back_buffer                  (m_mirror.render_target_ptr);
-        const bool reaches_both_sides = Stereo::D3D7::ScreenParallax::reaches_both_sides(static_cast<const uint8_t*>(in_draw_arguments.vertices_ptr),
+        const bool reaches_both_sides = Stereo::Core::ScreenParallax::reaches_both_sides(static_cast<const uint8_t*>(in_draw_arguments.vertices_ptr),
                                                                                          vertex_n_bytes,
                                                                                          in_draw_arguments.n_vertices,
                                                                                          static_cast<const uint16_t*>(in_draw_arguments.indices_ptr),
@@ -217,40 +216,6 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::Recipe:
         /* The positions are in the pixels of the application, which a larger back buffer is not made of. */
         scale = get_render_scale();
 
-        switch (plan.kind)
-        {
-            case Stereo::Core::ScreenShiftKind::NONE:
-            {
-                break;
-            }
-
-            case Stereo::Core::ScreenShiftKind::PER_VERTEX:
-            {
-                parameters.convergence_distance  = plan.convergence_distance;
-                parameters.eye                   = plan.eye;
-                parameters.eye_separation        = plan.eye_separation;
-                parameters.field_of_view_degrees = plan.field_of_view_degrees;
-                parameters.picture_width         = plan.picture_width;
-
-                if (Stereo::D3D7::ScreenParallax::is_valid(parameters) == false)
-                {
-                    plan.kind = Stereo::Core::ScreenShiftKind::NONE;
-                }
-
-                break;
-            }
-
-            case Stereo::Core::ScreenShiftKind::UNIFORM:
-            {
-                break;
-            }
-
-            default:
-            {
-                AI_FAIL_UNSUPPORTED(plan.kind);
-            }
-        }
-
         if (plan.kind != Stereo::Core::ScreenShiftKind::NONE ||
             scale     != 1.0f)
         {
@@ -258,34 +223,27 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::Recipe:
             m_vertex_vec.assign(static_cast<const uint8_t*>(in_draw_arguments.vertices_ptr),
                                 static_cast<const uint8_t*>(in_draw_arguments.vertices_ptr) + static_cast<size_t>(in_draw_arguments.n_vertices) * vertex_n_bytes);
 
-            if (plan.kind == Stereo::Core::ScreenShiftKind::PER_VERTEX)
-            {
-                Stereo::D3D7::ScreenParallax::shift_vertices(parameters,
-                                                             vertex_n_bytes,
-                                                             in_draw_arguments.n_vertices,
-                                                             m_vertex_vec.data() );
-            }
-            else
-            if (plan.kind == Stereo::Core::ScreenShiftKind::UNIFORM)
-            {
-                Stereo::D3D7::ScreenParallax::shift_vertices_by(plan.uniform_shift_pixels,
-                                                                vertex_n_bytes,
-                                                                in_draw_arguments.n_vertices,
-                                                                m_vertex_vec.data() );
-            }
+            const bool is_shifted = Stereo::Core::ScreenParallax::apply_plan(plan,
+                                                                             vertex_n_bytes,
+                                                                             in_draw_arguments.n_vertices,
+                                                                             m_vertex_vec.data() );
 
             if (scale != 1.0f)
             {
-                Stereo::D3D7::ScreenParallax::scale_vertices(scale,
+                Stereo::Core::ScreenParallax::scale_vertices(scale,
                                                              vertex_n_bytes,
                                                              in_draw_arguments.n_vertices,
                                                              m_vertex_vec.data() );
             }
 
-            draw(in_draw_arguments,
-                 m_vertex_vec.data() );
+            if (is_shifted ||
+                scale != 1.0f)
+            {
+                draw(in_draw_arguments,
+                     m_vertex_vec.data() );
 
-            result = true;
+                result = true;
+            }
         }
     }
 

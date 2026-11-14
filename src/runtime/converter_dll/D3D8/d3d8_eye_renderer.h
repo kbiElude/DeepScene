@@ -11,6 +11,7 @@
 #include "interception/hooks/D3D8/types.h"
 #include "stereo/core/stereo_core.h"
 #include <array>
+#include <functional>
 #include <map>
 #include <stdint.h>
 #include <vector>
@@ -25,9 +26,12 @@ namespace Stereo
          * made again with the twins in place of what the application has set. The device is called through its virtual table, so what
          * is done inside the callbacks of the interceptor is not seen by anything that watches the device.
          *
+         * The vertices that the application gives in the call, positioned in pixels (a vertex format with D3DFVF_XYZRHW, as a HUD or text
+         * has), are moved for each eye by what the core plans (see ScreenParallaxPlanner), and the draw is made by the renderer for both eyes.
+         *
          * What the application does that the renderer cannot follow (it locks a render target, it resets the device, it renders to a
-         * surface that was not seen made, it draws vertices that are positioned in pixels) ends the application, through the core or by an
-         * assertion, rather than show wrong images.
+         * surface that was not seen made, it draws vertices from a vertex buffer that are positioned in pixels) ends the application,
+         * through the core or by an assertion, rather than show wrong images.
          *
          * Not thread-safe: the caller serializes the calls, and the device is the one thread's.
          */
@@ -56,8 +60,12 @@ namespace Stereo
                         const uint32_t&                            in_n_arguments,
                         const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
 
-            /* A draw of the class is about to be made: puts in the device the matrices for the left eye. Returns false if it is not to be. */
+            /* A draw of the class is about to be made: puts in the device the matrices for the left eye. Returns false if it is not to be: it is skipped, or it has vertices in
+             * pixels, which the renderer has made for both eyes. The picture width is that of the viewport that the application draws with, in the pixels it asked for.
+             */
             bool on_pre_draw(const Analysis::Recipe::DrawClass&         in_draw_class,
+                             const APIInterceptor::APIFunction&         in_function,
+                             const float&                               in_picture_width,
                              const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
 
         private:
@@ -75,6 +83,12 @@ namespace Stereo
 
             void  apply_matrices          (void*                                      in_device_ptr,
                                            const uint32_t&                            in_n_changes) const;
+            void  draw_pre_transformed    (const APIInterceptor::APIFunction&         in_function,
+                                           const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
+                                           const float&                               in_picture_width);
+            void  draw_with_vertices      (const APIInterceptor::APIFunction&         in_function,
+                                           const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
+                                           const uint8_t*                             in_vertices_ptr) const;
             void  handle_copy_rects       (const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
             void  handle_create_device    (const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
             void  handle_create_texture   (const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
@@ -85,6 +99,8 @@ namespace Stereo
                                            void*                                      in_surface_ptr);
             void  play_right_eye          (const APIInterceptor::APIFunction&         in_function,
                                            const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
+            void  play_right_eye          (void*                                      in_device_ptr,
+                                           const std::function<void()>&               in_draw_func);
             void  repeat_call             (const APIInterceptor::APIFunction&         in_function,
                                            const APIInterceptor::APIFunctionArgument* in_arguments_ptr) const;
 
@@ -99,9 +115,11 @@ namespace Stereo
             Stereo::Core::StereoCore*               m_core_ptr;
             void*                                   m_device_ptr;
             Analysis::Recipe::DrawClass             m_draw_class;
+            bool                                    m_is_draw_handled; /* the renderer made the draw for both eyes in on_pre_draw() */
             DeviceMirror                            m_mirror;
             uint64_t                                m_n_failed_twins;
             std::map<void*, void*>                  m_twin_map;   /* the application's -> its twin */
+            std::vector<uint8_t>                    m_vertex_vec; /* the vertices of a draw, moved for an eye */
         };
     }
 }

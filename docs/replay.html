@@ -79,7 +79,7 @@
 <ul>
   <li><strong>The state put back.</strong> <code>save_state</code> and <code>restore_state</code> are a state block in Direct3D 8; Direct3D 7 has none, so what the replayed calls set is kept.</li>
   <li><strong>Per-eye textures.</strong> A texture that is rendered to, and that a frame uses what an earlier frame left in (<code>per_eye_textures</code> of the recipe), has a copy for each eye: the executor makes it twice when the application makes it, sets the copy up with the same calls, and plays the calls of each eye on its own copy, so what an eye's frame renders is what that eye's next frame reads.</li>
-  <li><strong>Vertices in pixels.</strong> A program whose vertices no matrix moves (Kasparov) has no matrix to give the eyes; the engine moves the x of each vertex of an affected Direct3D 7 draw before it is played (<code>D3D7DrawRewriter</code>, using <code>Stereo::D3D7::ScreenParallax</code>), by the <a href="stereo.html#screen">screen-space formula</a>. A draw into a texture is moved like any other, so the texture is the picture of the eye; the quad that draws the texture to the screen is flat and stays.</li>
+  <li><strong>Vertices in pixels.</strong> A program whose vertices no matrix moves (Kasparov) has no matrix to give the eyes; the engine moves the x of each vertex of an affected Direct3D 7 draw before it is played (<code>D3D7DrawRewriter</code>, using <code>Stereo::Core::ScreenParallax</code>), by the <a href="stereo.html#screen">screen-space formula</a>. A draw into a texture is moved like any other, so the texture is the picture of the eye; the quad that draws the texture to the screen is flat and stays.</li>
 </ul>
 
 <h2 id="seek">Seeking</h2>

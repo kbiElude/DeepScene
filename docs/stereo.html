@@ -109,7 +109,7 @@ x<sub>ndc</sub> = P<sub>00</sub> · (x + h) / z + P<sub>20</sub>
 <p>The same formula, in pixels, with the shift applied directly to the vertex <code>x</code>:</p>
 <div class="math">shift(left eye) = (W / 2) / tan(fov / 2) · (s / 2) · (rhw − 1/d)        pixels, positive to the right
 shift(right eye) = −shift(left eye)
-<span class="why"><code>Stereo::D3D7::ScreenParallax::get_shift</code>. <code>W</code> is the picture width in pixels. Because the vertex already carries <code>rhw = 1/z</code>, the shift is a single multiply-add per vertex.</span></div>
+<span class="why"><code>Stereo::Core::ScreenParallax::get_shift</code>. <code>W</code> is the picture width in pixels. Because the vertex already carries <code>rhw = 1/z</code>, the shift is a single multiply-add per vertex.</span></div>
 <figure>
 <svg viewBox="0 0 900 270" role="img" aria-label="Shift in pixels against the reciprocal of the depth for each eye">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>

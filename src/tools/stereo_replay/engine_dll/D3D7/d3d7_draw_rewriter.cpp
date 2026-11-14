@@ -110,7 +110,7 @@ bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::find_extent(const Capture::API
         }
     }
 
-    *out_reaches_both_sides_ptr = Stereo::D3D7::ScreenParallax::reaches_both_sides(vertex_chunk_ptr->data(),
+    *out_reaches_both_sides_ptr = Stereo::Core::ScreenParallax::reaches_both_sides(vertex_chunk_ptr->data(),
                                                                                    vertex_n_bytes,
                                                                                    n_vertices,
                                                                                    (index_chunk_ptr != nullptr) ? reinterpret_cast<const uint16_t*>(index_chunk_ptr->data() )
@@ -125,19 +125,19 @@ end:
 
 bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::rewrite(const Capture::APIDumpLoader::DumpedAPICall&    in_call,
                                                           const ::Replay::ReplayEngineDLL::IChunkSource&  in_chunk_source,
-                                                          const Stereo::D3D7::ScreenParallax::Parameters& in_parameters,
+                                                          const Stereo::Core::ScreenParallax::Parameters& in_parameters,
                                                           OverlayChunkSource*                             inout_overlay_ptr,
                                                           Capture::APIDumpLoader::DumpedAPICall*          out_call_ptr)
 {
     bool result = false;
 
-    if (Stereo::D3D7::ScreenParallax::is_valid(in_parameters) )
+    if (Stereo::Core::ScreenParallax::is_valid(in_parameters) )
     {
         const auto shift_vertices_func = [&in_parameters](const uint32_t& in_vertex_n_bytes,
                                                           const size_t&   in_n_vertices,
                                                           uint8_t*        inout_vertex_ptr)
         {
-            Stereo::D3D7::ScreenParallax::shift_vertices(in_parameters,
+            Stereo::Core::ScreenParallax::shift_vertices(in_parameters,
                                                          in_vertex_n_bytes,
                                                          in_n_vertices,
                                                          inout_vertex_ptr);
@@ -167,7 +167,7 @@ bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::rewrite_by(const Capture::APID
                                                        const size_t&   in_n_vertices,
                                                        uint8_t*        inout_vertex_ptr)
         {
-            Stereo::D3D7::ScreenParallax::shift_vertices_by(in_shift,
+            Stereo::Core::ScreenParallax::shift_vertices_by(in_shift,
                                                             in_vertex_n_bytes,
                                                             in_n_vertices,
                                                             inout_vertex_ptr);
