@@ -25,6 +25,11 @@ namespace Analysis
             static bool find_draw_matrices(const ConstantStateMap& in_constant_state_map,
                                            DrawMatrices*           out_matrices_ptr);
 
+            /* Whether the projection makes what is far smaller: it divides by the depth, so its last column has w taken from z (the element is 1 for a camera that looks down plus z,
+             * -1 for one that looks down minus z) and no translation of w. An orthographic projection and the identity are not one.
+             */
+            static bool is_perspective_projection(const std::array<float, 16>& in_projection_f32mat);
+
             /* Counts the draw at the depth of the origin of its object, as the camera of the pass sees it. */
             static void record_draw_depth(const DrawDescription&  in_draw,
                                           const ConstantStateMap& in_constant_state_map,

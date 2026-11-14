@@ -326,6 +326,28 @@ TEST_F(StereoCoreTest, ADrawWhoseVerticesAreInTheSpaceOfTheEyeIsToldByItsSignatu
     EXPECT_FALSE(core.get_is_last_draw_eye_space() );
 }
 
+TEST_F(StereoCoreTest, ADrawIsAttachedToTheCameraByHowFarInFrontOfItItsOriginIsUnlessItsVerticesAreInTheSpaceOfTheEye)
+{
+    /* The nearest 5 percent of the distance of convergence (100) is attached to the camera. */
+    Stereo::Core::StereoCore core(make_recipe(std::string("\"comfort\": {\"camera_attached_depth\": 0.05, \"eye_space_cover_keys\": [\"0x0000000000000005\"]}, ") +
+                                              get_baked_text(""),
+                                              get_view_rule_text() ),
+                                  Stereo::Core::FailFunc() );
+
+    core.set_convergence_distance(100.0f);
+    core.set_depth_strength      (1.0f);
+    core.classify_draw(1, 6);
+
+    EXPECT_TRUE(core.is_last_draw_attached_to_camera(0.0f) );
+    EXPECT_TRUE(core.is_last_draw_attached_to_camera(4.9f) );
+    EXPECT_FALSE(core.is_last_draw_attached_to_camera(5.1f) );
+
+    /* The vertices are in the space of the eye: the origin says nothing. */
+    core.classify_draw(1, 5);
+
+    EXPECT_FALSE(core.is_last_draw_attached_to_camera(0.0f) );
+}
+
 TEST_F(StereoCoreTest, TheLayersThatTheBakerFoundAreUsedOnlyForARecipeThatAsksForThem)
 {
     const std::string baked_text = std::string("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": [], \"known_signatures\": [\"0x0000000000000001\"], ") +

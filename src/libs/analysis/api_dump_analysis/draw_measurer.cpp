@@ -121,9 +121,8 @@ bool Analysis::APIDumpAnalysis::DrawMeasurer::find_draw_matrices(const ConstantS
     const auto& projection_f32mat = out_matrices_ptr->projection_f32mat;
 
     out_matrices_ptr->has_view        = has_view;
-    out_matrices_ptr->is_perspective  = (out_matrices_ptr->has_projection         &&
-                                         projection_f32mat.at(11)            != 0.0f &&
-                                         projection_f32mat.at(PROJECTION_WW) == 0.0f);
+    out_matrices_ptr->is_perspective  = (out_matrices_ptr->has_projection &&
+                                         is_perspective_projection(projection_f32mat) );
     out_matrices_ptr->is_orthographic = (out_matrices_ptr->has_projection &&
                                          projection_f32mat.at(3)  == 0.0f &&
                                          projection_f32mat.at(7)  == 0.0f &&
@@ -133,6 +132,15 @@ bool Analysis::APIDumpAnalysis::DrawMeasurer::find_draw_matrices(const ConstantS
 
     return (has_view        &&
             is_orthographic == false);
+}
+
+bool Analysis::APIDumpAnalysis::DrawMeasurer::is_perspective_projection(const std::array<float, 16>& in_projection_f32mat)
+{
+    constexpr size_t PROJECTION_WW = 15; /* the last element: 1 in an orthographic projection, 0 in a perspective one */
+    constexpr size_t PROJECTION_WZ = 11; /* w from z: 1 or -1 in a perspective projection, 0 in an orthographic one   */
+
+    return (in_projection_f32mat.at(PROJECTION_WZ) != 0.0f &&
+            in_projection_f32mat.at(PROJECTION_WW) == 0.0f);
 }
 
 void Analysis::APIDumpAnalysis::DrawMeasurer::record_draw_depth(const DrawDescription&  in_draw,

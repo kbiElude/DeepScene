@@ -201,6 +201,15 @@ const std::array<float, 16>& Stereo::Core::StereoCore::get_view_matrix() const
     return m_view_matrix_fp32vec16;
 }
 
+bool Stereo::Core::StereoCore::is_last_draw_attached_to_camera(const float& in_origin_depth) const
+{
+    const float attached_depth = get_camera_attached_depth() * get_effective_convergence_distance();
+
+    return (attached_depth            >  0.0f           &&
+            in_origin_depth           <  attached_depth &&
+            m_is_last_draw_eye_space == false);
+}
+
 std::array<float, 16> Stereo::Core::StereoCore::make_eye_shift_matrix(const Analysis::Recipe::Eye& in_eye) const
 {
     constexpr float HALF = 0.5f;

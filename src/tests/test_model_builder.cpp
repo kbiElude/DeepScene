@@ -6,6 +6,7 @@
  * depend on.
  */
 #include <gtest/gtest.h>
+#include "analysis/api_dump_analysis/draw_measurer.h"
 #include "analysis/api_dump_analysis/resource_access_tracker.h"
 #include "model_test_helper.h"
 #include <algorithm>
@@ -1772,6 +1773,34 @@ TEST(ModelBuilder, TheFactsOfADrawSayWhetherItsObjectIsAtTheCameraAndItsVertices
                                     {{0.0f, 0.0f, 5.0f},
                                      {0.0f, 0.0f, -5.0f}}),
               0u);
+}
+
+TEST(ModelBuilder, AProjectionIsAPerspectiveOneWhateverTheHandednessOfTheCameraIs)
+{
+
+    std::array<float, 16> orthographic_f32mat = {1, 0, 0, 0,
+                                                 0, 1, 0, 0,
+                                                 0, 0, 1, 0,
+                                                 0, 0, 0, 1};
+    std::array<float, 16> perspective_f32mat  = {1, 0, 0,     0,
+                                                 0, 1, 0,     0,
+                                                 0, 0, 1,     1,
+                                                 0, 0, -0.1f, 0};
+
+    /* A camera that looks down plus z has a 1 where one that looks down minus z has a -1. */
+    EXPECT_TRUE(Analysis::APIDumpAnalysis::DrawMeasurer::is_perspective_projection(perspective_f32mat) );
+
+    perspective_f32mat.at(11) = -1.0f;
+
+    EXPECT_TRUE(Analysis::APIDumpAnalysis::DrawMeasurer::is_perspective_projection(perspective_f32mat) );
+
+    /* The identity, and an orthographic projection, which has w of 1. */
+    EXPECT_FALSE(Analysis::APIDumpAnalysis::DrawMeasurer::is_perspective_projection(orthographic_f32mat) );
+
+    orthographic_f32mat.at(10) = 0.5f;
+    orthographic_f32mat.at(14) = -0.2f;
+
+    EXPECT_FALSE(Analysis::APIDumpAnalysis::DrawMeasurer::is_perspective_projection(orthographic_f32mat) );
 }
 
 TEST(ModelBuilder, TheFactsOfADrawSayWhetherItBlends)

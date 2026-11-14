@@ -84,6 +84,13 @@ namespace Stereo
              */
             std::array<float, 16> make_eye_shift_matrix(const Analysis::Recipe::Eye& in_eye) const;
 
+            /* Whether the draw that was last classified is attached to the camera (an interface or a sky drawn with a perspective projection, a weapon) and is to be made as it is for
+             * both eyes: its origin is in front of the camera, nearer than the part of the distance of convergence that the recipe says (Comfort::camera_attached_depth), and it is
+             * not one whose vertices the recipe says are in the space of the eye. The origin depth is how far in front of the camera the origin of the object is, in the units of the
+             * application, whatever the handedness of its camera is: the front end turns its matrix into it.
+             */
+            bool is_last_draw_attached_to_camera(const float& in_origin_depth) const;
+
             /* How near the camera a draw is to be taken for attached to it, as a part of the distance at which the eyes converge (see Comfort::camera_attached_depth); 0: none. */
             float get_camera_attached_depth() const;
 

@@ -6,6 +6,7 @@
 #include "common/callbacks.h"
 #include "gl_eye_renderer.h"
 #include "gl_driver_functions.h"
+#include "analysis/api_dump_analysis/draw_measurer.h"
 #include "own_call_scope.h"
 #include "stereo/core/push_shift_planner.h"
 #include <algorithm>
@@ -998,11 +999,8 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
                                                     const bool&                        in_is_pushed)
 {
     /* Where the numbers that are looked for are in a matrix (the columns one after the other) and in a viewport. */
-    constexpr size_t MATRIX_PERSPECTIVE_W_FROM_Z = 11;
-    constexpr size_t MATRIX_W_TRANSLATION        = 15;
     constexpr size_t MATRIX_X_SCALE              = 0;
     constexpr size_t MATRIX_Z_TRANSLATION        = 14;
-    constexpr float  PERSPECTIVE_W_FROM_Z        = -1.0f; /* what a perspective projection has there: w is the distance in front of the camera */
     constexpr GLenum PROJECTION_MATRIX           = 0x0BA7;
     constexpr size_t VIEWPORT_HEIGHT             = 3;
     constexpr size_t VIEWPORT_WIDTH              = 2;
@@ -1047,9 +1045,8 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
         GLDriverFunctions::get().get_floatv_func_ptr(PROJECTION_MATRIX,
                                                      m_pass_projection_f32mat.data() );
 
-        /* A projection that is not a perspective one (the last element is 0 in it, and the one before it is -1) says nothing of depth. */
-        m_pass_has_affected_draws = (m_pass_projection_f32mat.at(MATRIX_W_TRANSLATION)        == 0.0f &&
-                                     m_pass_projection_f32mat.at(MATRIX_PERSPECTIVE_W_FROM_Z) == PERSPECTIVE_W_FROM_Z);
+        /* A projection that is not a perspective one says nothing of depth. */
+        m_pass_has_affected_draws = Analysis::APIDumpAnalysis::DrawMeasurer::is_perspective_projection(m_pass_projection_f32mat);
     }
 
     if (is_affected)
@@ -1067,16 +1064,10 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
         GLDriverFunctions::get().get_floatv_func_ptr(GL_MODELVIEW_MATRIX,
                                                      saved_matrix.data() );
 
-        /* A draw that is attached to the camera is made as it is: its origin is in front of the camera, and nearer than the part of the distance of convergence that the recipe says. */
-        const float attached_depth = m_core_ptr->get_camera_attached_depth() * m_core_ptr->get_effective_convergence_distance();
-        const float origin_depth   = -saved_matrix.at(MATRIX_Z_TRANSLATION);
+        /* A camera that looks down minus z has what it sees at a negative z of the model-view: the core is told how far in front of the camera the origin is, and decides. */
+        const float origin_depth = -saved_matrix.at(MATRIX_Z_TRANSLATION);
 
-        /* A draw that the recipe says has its vertices in the space of the eye (its model-view is the identity, so its origin says nothing) is given the parallax of their depth. */
-        const bool is_in_eye_space = m_core_ptr->get_is_last_draw_eye_space();
-
-        if (attached_depth  >  0.0f           &&
-            origin_depth    <  attached_depth &&
-            is_in_eye_space == false)
+        if (m_core_ptr->is_last_draw_attached_to_camera(origin_depth) )
         {
             is_affected = false;
 
@@ -1112,7 +1103,7 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
                                                            picture_width_pixels,
                                                            part_matrix.at(MATRIX_Z_TRANSLATION),
                                                            part_projection.at(MATRIX_X_SCALE),
-                                                           (part_projection.at(MATRIX_PERSPECTIVE_W_FROM_Z) == PERSPECTIVE_W_FROM_Z) );
+                                                           Analysis::APIDumpAnalysis::DrawMeasurer::is_perspective_projection(part_projection) );
             }
 
             /* Toward zero, so that the shift never goes past what the planner allowed; a flat overlay that reaches both sides of the picture is made wider by it, so that no edge is bare. */
