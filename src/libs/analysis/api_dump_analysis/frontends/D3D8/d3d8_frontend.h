@@ -44,6 +44,9 @@ namespace Analysis
                 static uint32_t get_vertex_count(const Interception::Hooks::D3D8::D3DPRIMITIVETYPE& in_type,
                                                  const uint32_t&                                    in_n_primitives);
 
+                /* Whether what SetVertexShader was given has the positions of the vertices in pixels: it is a vertex format (a handle of a shader has the top bit set) with D3DFVF_XYZRHW. */
+                static bool is_pre_transformed_vertex_shader(const uint32_t& in_vertex_shader);
+
                 void on_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                              const Capture::APIDumpLoader::Workload&      in_workload) override;
 

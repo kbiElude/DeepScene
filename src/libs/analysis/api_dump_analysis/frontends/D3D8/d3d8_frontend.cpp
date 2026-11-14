@@ -4,6 +4,7 @@
  */
 #include "analysis/api_dump_analysis/frontends/D3D8/d3d8_frontend.h"
 #include "analysis/api_dump_analysis/frontends/shared/clear_operation_factory.h"
+#include "analysis/api_dump_analysis/frontends/shared/fixed_function_vertex_format.h"
 #include "analysis/api_dump_analysis/frontends/D3D8/d3d8_function_policy.h"
 #include "analysis/api_dump_analysis/frontends/D3D8/d3d8_resolution_hazards.h"
 #include "analysis/api_dump_analysis/frontends/D3D8/d3d8_resource_describer.h"
@@ -1097,6 +1098,14 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_update_texture(c
         m_builder_ptr->on_copy(source_ptr->view,
                                destination_ptr->view);
     }
+}
+
+bool Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::is_pre_transformed_vertex_shader(const uint32_t& in_vertex_shader)
+{
+    constexpr uint32_t HANDLE_BIT = 0x80000000u; /* a handle of a vertex shader has it set, a vertex format has not */
+
+    return ((in_vertex_shader & HANDLE_BIT) == 0 &&
+            FixedFunctionVertexFormat::is_pre_transformed(in_vertex_shader) );
 }
 
 bool Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::is_state_function(const APIInterceptor::APIFunction& in_function)

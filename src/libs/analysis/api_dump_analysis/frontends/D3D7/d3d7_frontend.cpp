@@ -4,6 +4,7 @@
  */
 #include "analysis/api_dump_analysis/frontends/D3D7/d3d7_frontend.h"
 #include "analysis/api_dump_analysis/frontends/shared/clear_operation_factory.h"
+#include "analysis/api_dump_analysis/frontends/shared/fixed_function_vertex_format.h"
 #include "analysis/api_dump_analysis/frontends/D3D7/d3d7_function_policy.h"
 #include "analysis/api_dump_analysis/frontends/D3D7/d3d7_resource_describer.h"
 #include "analysis/api_dump_analysis/frontends/shared/unsupported_use.h"
@@ -498,7 +499,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_draw(const CallV
         }
     }
 
-    if ( (fvf & Interception::Core::D3D7Utils::D3DFVF_POSITION_MASK) == Interception::Core::D3D7Utils::D3DFVF_XYZRHW)
+    if (FixedFunctionVertexFormat::is_pre_transformed(fvf) )
     {
         m_resolution_hazard_counter.count(Analysis::APIDumpAnalysis::ResolutionHazard::SCREEN_SPACE_VERTICES);
     }
@@ -1063,7 +1064,7 @@ std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDu
     const Capture::APIDumpLoader::DataChunk* vertices_ptr     = in_view.get_extra_chunk_ptr(n_vertices_extra);
     bool                                     is_source_found  = false;
 
-    range.is_pre_transformed = (position_mask == Interception::Core::D3D7Utils::D3DFVF_XYZRHW);
+    range.is_pre_transformed = FixedFunctionVertexFormat::is_pre_transformed(in_fvf);
     range.vertex_count       = in_view.get_u32(in_layout.count_argument);
 
     if (indices_ptr != nullptr)

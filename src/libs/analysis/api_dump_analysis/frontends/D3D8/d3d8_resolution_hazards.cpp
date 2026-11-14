@@ -2,6 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
+#include "analysis/api_dump_analysis/frontends/D3D8/d3d8_frontend.h"
 #include "analysis/api_dump_analysis/frontends/D3D8/d3d8_resolution_hazards.h"
 #include "interception/hooks/D3D8/types.h"
 
@@ -11,7 +12,6 @@ bool Analysis::APIDumpAnalysis::Frontends::D3D8ResolutionHazards::classify(const
                                                                            ResolutionHazard*                          out_hazard_ptr)
 {
     constexpr uint32_t CLEAR_N_RECTS_ARGUMENT_INDEX = 1;
-    constexpr uint32_t HANDLE_BIT                   = 0x80000000u; /* a vertex shader handle has it set; what has not is a vertex format */
     constexpr uint32_t RENDER_STATE_ARGUMENT_INDEX  = 1;
     constexpr uint32_t VERTEX_SHADER_ARGUMENT_INDEX = 1;
 
@@ -89,8 +89,7 @@ bool Analysis::APIDumpAnalysis::Frontends::D3D8ResolutionHazards::classify(const
                                                                                     : 0;
 
             /* Positions in pixels are a vertex format, not a shader. */
-            if ((shader & HANDLE_BIT)                                      == 0 &&
-                (shader & Interception::Hooks::D3D8::D3DFVF_POSITION_MASK) == Interception::Hooks::D3D8::D3DFVF_XYZRHW)
+            if (D3D8Frontend::is_pre_transformed_vertex_shader(shader) )
             {
                 *out_hazard_ptr = ResolutionHazard::SCREEN_SPACE_VERTICES;
                 result          = true;

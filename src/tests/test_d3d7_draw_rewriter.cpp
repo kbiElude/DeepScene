@@ -6,6 +6,8 @@
  * vertices is the only call that is changed.
  */
 #include <gtest/gtest.h>
+#include "analysis/api_dump_analysis/frontends/D3D8/d3d8_frontend.h"
+#include "analysis/api_dump_analysis/frontends/shared/fixed_function_vertex_format.h"
 #include "D3D7/d3d7_draw_rewriter.h"
 #include "map_chunk_source.h"
 #include <map>
@@ -605,4 +607,17 @@ TEST(ScreenParallax, APlanMovesTheVerticesTheWayItsKindSaysAndReportsWhetherItDi
     EXPECT_FLOAT_EQ(get_x(vertices,
                           1),
                     204.0f);
+}
+
+TEST(FixedFunctionVertexFormat, VerticesInPixelsAreToldByTheSameBitsForEveryAPI)
+{
+    /* XYZRHW with a diffuse and a specular color and texture coordinates, and XYZ with a diffuse color and texture coordinates. */
+    EXPECT_TRUE(Analysis::APIDumpAnalysis::Frontends::FixedFunctionVertexFormat::is_pre_transformed(FVF_PRETRANSFORMED) );
+    EXPECT_FALSE(Analysis::APIDumpAnalysis::Frontends::FixedFunctionVertexFormat::is_pre_transformed(FVF_TRANSFORMED_BY_MATRIX) );
+    EXPECT_FALSE(Analysis::APIDumpAnalysis::Frontends::FixedFunctionVertexFormat::is_pre_transformed(0) );
+
+    /* Direct3D 8 gives a vertex format or the handle of a shader (which has the top bit set, and whose other bits are not a format). */
+    EXPECT_TRUE(Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::is_pre_transformed_vertex_shader(FVF_PRETRANSFORMED) );
+    EXPECT_FALSE(Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::is_pre_transformed_vertex_shader(FVF_TRANSFORMED_BY_MATRIX) );
+    EXPECT_FALSE(Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::is_pre_transformed_vertex_shader(0x80000000u | FVF_PRETRANSFORMED) );
 }

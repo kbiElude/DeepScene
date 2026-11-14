@@ -17,14 +17,6 @@ namespace
         return const_cast<void*>(in_argument.get_ptr() );
     }
 
-    /* Whether what SetVertexShader was given is a vertex format (not the handle of a shader) whose positions are in pixels. */
-    bool is_pre_transformed_format(const uint32_t& in_vertex_shader)
-    {
-        constexpr uint32_t HANDLE_BIT = 0x80000000u; /* a handle of a vertex shader has it set, a vertex format has not */
-
-        return ((in_vertex_shader & HANDLE_BIT)                                      == 0 &&
-                (in_vertex_shader & Interception::Hooks::D3D8::D3DFVF_POSITION_MASK) == Interception::Hooks::D3D8::D3DFVF_XYZRHW);
-    }
 }
 
 Stereo::ConverterDLL::D3D8EyeRenderer::D3D8EyeRenderer(Stereo::Core::StereoCore* in_core_ptr)
@@ -693,7 +685,7 @@ bool Stereo::ConverterDLL::D3D8EyeRenderer::on_pre_draw(const Analysis::Recipe::
         /* The vertices of a draw whose vertex format is XYZRHW are positioned in pixels: no matrix moves them, and the second eye needs them moved. The renderer makes
          * the draw for both eyes with the vertices moved by what the core plans.
          */
-        const bool is_pre_transformed = is_pre_transformed_format(m_mirror.vertex_shader);
+        const bool is_pre_transformed = Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::is_pre_transformed_vertex_shader(m_mirror.vertex_shader);
 
         if (is_pre_transformed)
         {

@@ -2,6 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
+#include "analysis/api_dump_analysis/frontends/shared/fixed_function_vertex_format.h"
 #include "interception/core/D3D7Utils/constants.h"
 #include "interception/core/D3D7Utils/vertex_format.h"
 #include "call_context.h"
@@ -53,7 +54,8 @@ bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::find_extent(const Capture::API
         }
     }
 
-    if ((fvf & Interception::Core::D3D7Utils::D3DFVF_POSITION_MASK) != Interception::Core::D3D7Utils::D3DFVF_XYZRHW)
+    if (Analysis::APIDumpAnalysis::Frontends::FixedFunctionVertexFormat::is_pre_transformed(fvf) == false)
+
     {
         goto end;
     }
@@ -230,7 +232,8 @@ bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::rewrite_vertices(const Capture
     }
 
     /* Vertices which a matrix moves are the matrix's. */
-    if ((fvf & Interception::Core::D3D7Utils::D3DFVF_POSITION_MASK) != Interception::Core::D3D7Utils::D3DFVF_XYZRHW)
+    if (Analysis::APIDumpAnalysis::Frontends::FixedFunctionVertexFormat::is_pre_transformed(fvf) == false)
+
     {
         goto end;
     }

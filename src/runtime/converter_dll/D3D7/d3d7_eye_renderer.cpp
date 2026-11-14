@@ -6,6 +6,7 @@
 #include "common/callbacks.h"
 #include "common/macros.h"
 #include "common/vtable.h"
+#include "analysis/api_dump_analysis/frontends/shared/fixed_function_vertex_format.h"
 #include "interception/core/D3D7Utils/constants.h"
 #include "interception/core/D3D7Utils/methods.h"
 #include "interception/core/D3D7Utils/strided_layout.h"
@@ -189,7 +190,8 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::Recipe:
     uint32_t vertex_n_bytes = 0;
 
     /* Vertices which a matrix moves are the matrix's. */
-    if ((in_draw_arguments.fvf & Interception::Core::D3D7Utils::D3DFVF_POSITION_MASK) == Interception::Core::D3D7Utils::D3DFVF_XYZRHW)
+    if (Analysis::APIDumpAnalysis::Frontends::FixedFunctionVertexFormat::is_pre_transformed(in_draw_arguments.fvf) )
+
     {
         vertex_n_bytes = Interception::Core::D3D7Utils::VertexFormat::get_n_vertex_bytes(in_draw_arguments.fvf);
     }
