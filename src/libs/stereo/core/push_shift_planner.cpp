@@ -5,6 +5,26 @@
 #include "stereo/core/push_shift_planner.h"
 #include <algorithm>
 
+float Stereo::Core::PushShiftPlanner::get_screen_layer_parallax(const bool&  in_is_affected,
+                                                                const float& in_picture_width_pixels,
+                                                                const float& in_eye_separation,
+                                                                const float& in_separation_limit)
+{
+    float result = 0.0f;
+
+    if (in_is_affected &&
+        in_picture_width_pixels > 0.0f)
+    {
+        const float separation = (in_separation_limit > 0.0f             &&
+                                  in_eye_separation   > in_separation_limit) ? in_separation_limit
+                                                                             : in_eye_separation;
+
+        result = separation / in_picture_width_pixels;
+    }
+
+    return result;
+}
+
 Stereo::Core::PushShiftPlanner::PushedViewport Stereo::Core::PushShiftPlanner::make_viewport(const int32_t& in_x,
                                                                                             const int32_t& in_width,
                                                                                             const float&   in_shift_pixels,
@@ -30,6 +50,22 @@ float Stereo::Core::PushShiftPlanner::plan(const Analysis::Recipe::RecipeApplier
                                            const float&                           in_eye_separation,
                                            const float&                           in_separation_limit)
 {
+    return plan_with_layer(in_applier,
+                           in_eye,
+                           in_parallax,
+                           get_screen_layer_parallax(in_is_affected,
+                                                     in_picture_width_pixels,
+                                                     in_eye_separation,
+                                                     in_separation_limit),
+                           in_picture_width_pixels);
+}
+
+float Stereo::Core::PushShiftPlanner::plan_with_layer(const Analysis::Recipe::RecipeApplier& in_applier,
+                                                      const Analysis::Recipe::Eye&           in_eye,
+                                                      const float&                           in_parallax,
+                                                      const float&                           in_layer_parallax,
+                                                      const float&                           in_picture_width_pixels)
+{
     constexpr float HALF = 0.5f;
 
     const auto& comfort  = in_applier.get_comfort();
@@ -44,19 +80,8 @@ float Stereo::Core::PushShiftPlanner::plan(const Analysis::Recipe::RecipeApplier
 
     if (comfort.max_near_parallax > 0.0f)
     {
-        float layer_parallax = 0.0f;
-
-        if (in_is_affected)
-        {
-            const float separation = (in_separation_limit > 0.0f             &&
-                                      in_eye_separation   > in_separation_limit) ? in_separation_limit
-                                                                                 : in_eye_separation;
-
-            layer_parallax = separation / in_picture_width_pixels;
-        }
-
         parallax = std::min(parallax,
-                            comfort.max_near_parallax - layer_parallax);
+                            comfort.max_near_parallax - in_layer_parallax);
     }
 
     if (parallax <= 0.0f)

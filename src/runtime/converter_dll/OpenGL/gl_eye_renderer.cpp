@@ -1075,6 +1075,24 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
         }
     }
 
+    /* What the eyes move the draw apart by, which the push leaves room for: a draw that is made as it is (attached to the camera, 2D) is not moved by them, and the whole of its parallax
+     * is the push; one that the eyes move is by the depth of its origin and the projection it is drawn with.
+     */
+    float layer_parallax = 0.0f;
+
+    if (in_is_pushed &&
+        is_affected)
+    {
+        std::array<float, 16> projection_f32mat;
+
+        GLDriverFunctions::get().get_floatv_func_ptr(PROJECTION_MATRIX,
+                                                     projection_f32mat.data() );
+
+        layer_parallax = m_core_ptr->get_eye_parallax(-saved_matrix.at(MATRIX_Z_TRANSLATION),
+                                                      projection_f32mat.at(MATRIX_X_SCALE),
+                                                      Analysis::APIDumpAnalysis::DrawMeasurer::is_perspective_projection(projection_f32mat) );
+    }
+
     for (const auto eye : {Analysis::Recipe::Eye::RIGHT, Analysis::Recipe::Eye::LEFT})
     {
         m_targets.bind_eye(eye);
@@ -1092,9 +1110,9 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
         if (in_is_pushed)
         {
             const float picture_width_pixels = static_cast<float>(saved_viewport.at(VIEWPORT_WIDTH) );
-            float       shift_pixels         = m_core_ptr->plan_push_shift(eye,
-                                                                           picture_width_pixels,
-                                                                           is_affected /* what is made as it is (attached to the camera, 2D) is not moved by the eyes: its whole parallax is the push */);
+            float       shift_pixels         = m_core_ptr->plan_push_shift_with_layer(eye,
+                                                                                          picture_width_pixels,
+                                                                                          layer_parallax);
 
             if (is_part)
             {

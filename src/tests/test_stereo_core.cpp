@@ -1448,3 +1448,27 @@ TEST_F(StereoCoreTest, WhatTheRecipeSaysOfAKindOfFrameWinsOverTheDepthThatWasMea
     EXPECT_FLOAT_EQ(core.get_effective_convergence_distance(),
                     250.0f);
 }
+
+TEST_F(StereoCoreTest, TheEyesGiveADrawAParallaxByItsDepthThatTheDistanceOfConvergenceTakesBack)
+{
+    Stereo::Core::StereoCore core(make_recipe(get_baked_text(""),
+                                              get_view_rule_text() ),
+                                  Stereo::Core::FailFunc() );
+
+    core.set_convergence_distance(10.0f);
+    core.set_eye_separation      (1.0f);
+
+    /* A perspective projection with an x scale of 1 (a right angle of view...): at the distance of convergence there is none, nearer there is some, farther there is less than none. */
+    EXPECT_NEAR(core.get_eye_parallax(-10.0f, 1.0f, true), 0.0f,  1.0e-6f);
+    EXPECT_GT  (core.get_eye_parallax(-5.0f,  1.0f, true), 0.0f);
+    EXPECT_LT  (core.get_eye_parallax(-40.0f, 1.0f, true), 0.0f);
+
+    /* Half the separation, less what the convergence takes back, in the part of the width: (0.5 * (1 - 5 / 10)) * 1 / 5 of the 2 that the picture is wide. */
+    EXPECT_NEAR(core.get_eye_parallax(-5.0f, 1.0f, true),
+                0.5f * (1.0f - 5.0f / 10.0f) / 5.0f,
+                1.0e-5f);
+
+    /* Not in front of the camera: none. */
+    EXPECT_FLOAT_EQ(core.get_eye_parallax(1.0f, 1.0f, true),
+                    0.0f);
+}

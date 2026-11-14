@@ -27,6 +27,15 @@ namespace Stereo
                 int32_t x     = 0;
             };
 
+            /* How far apart the eyes move a draw that the recipe affects in a pass whose units are pixels, as a part of the width of the picture: the separation (held to the limit of the
+             * scene, if there is one) over the width; 0 for a draw that the eyes do not move. A draw of a 3D pass is moved by its depth instead, which only the adapter knows (see
+             * StereoCore::get_eye_parallax()).
+             */
+            static float get_screen_layer_parallax(const bool&  in_is_affected,
+                                                   const float& in_picture_width_pixels,
+                                                   const float& in_eye_separation,
+                                                   const float& in_separation_limit);
+
             /* The viewport that a draw is made with when it is pushed by the shift (positive to the right), for the viewport that it is made with otherwise: moved by the shift, which is
              * taken toward zero to whole pixels. A draw that reaches from one side of the picture to the other (a 2D overlay, see RecipeApplier::is_side_reaching()) would leave the
              * side that it moves away from bare, so its picture is made as much wider as the shift, on each side: its edge that the shift would expose stays where it was, and the
@@ -50,6 +59,15 @@ namespace Stereo
                               const float&                           in_picture_width_pixels,
                               const float&                           in_eye_separation,
                               const float&                           in_separation_limit);
+
+            /* The same, for a draw that the eyes move apart by the given part of the width of the picture (positive for a draw in front of the screen, negative behind it, 0 if they do
+             * not move it): what the adapter knows of the draw, which plan() works out for a pass whose units are pixels.
+             */
+            static float plan_with_layer(const Analysis::Recipe::RecipeApplier& in_applier,
+                                         const Analysis::Recipe::Eye&           in_eye,
+                                         const float&                           in_parallax,
+                                         const float&                           in_layer_parallax,
+                                         const float&                           in_picture_width_pixels);
         };
     }
 }

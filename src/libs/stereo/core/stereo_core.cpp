@@ -347,6 +347,31 @@ void Stereo::Core::StereoCore::on_view_matrix_set(const std::array<float, 16>& i
     m_view_matrix_fp32vec16 = in_matrix;
 }
 
+float Stereo::Core::StereoCore::get_eye_parallax(const float& in_origin_depth,
+                                                 const float& in_projection_x_scale,
+                                                 const bool&  in_is_perspective) const
+{
+    constexpr float HALF = 0.5f;
+
+    const float distance   = m_convergence_model.get_effective_convergence_distance();
+    const float separation = m_convergence_model.get_effective_eye_separation      ();
+    float       result     = 0.0f;
+
+    if (in_origin_depth < 0.0f &&
+        distance        > 0.0f)
+    {
+        /* What make_eye_shift_matrix() does to a point at the depth, for the left eye: the half of the separation, less what the convergence takes back (in front of the camera, the depth
+         * is below 0). The picture is 2 wide in the units of the projection, so that is the part of its width.
+         */
+        const float shift_in_units = separation * HALF * (1.0f + in_origin_depth / distance);
+
+        result = (in_is_perspective) ? shift_in_units * in_projection_x_scale / -in_origin_depth
+                                     : shift_in_units * in_projection_x_scale;
+    }
+
+    return result;
+}
+
 float Stereo::Core::StereoCore::plan_follow_shift(const Analysis::Recipe::Eye& in_eye,
                                                   const float&                 in_picture_width_pixels,
                                                   const float&                 in_origin_depth,
@@ -355,29 +380,19 @@ float Stereo::Core::StereoCore::plan_follow_shift(const Analysis::Recipe::Eye& i
 {
     constexpr float HALF = 0.5f;
 
-    const float distance   = m_convergence_model.get_effective_convergence_distance();
-    const float separation = m_convergence_model.get_effective_eye_separation      ();
-    float       result     = 0.0f;
+    float result = 0.0f;
 
-    if (m_is_last_draw_part == false ||
-        in_origin_depth     >= 0.0f  ||
-        distance            <= 0.0f)
+    if (m_is_last_draw_part)
     {
-        goto end;
+        /* The left eye is moved to the right by the parallax of the draw over two, and the right one to the left. */
+        const float shift_in_ndc = get_eye_parallax(in_origin_depth,
+                                                    in_projection_x_scale,
+                                                    in_is_perspective);
+
+        result = ((in_eye == Analysis::Recipe::Eye::LEFT) ? shift_in_ndc
+                                                          : -shift_in_ndc) * in_picture_width_pixels * HALF;
     }
 
-    {
-        /* What make_eye_shift_matrix() does to a point at the depth: the half of the separation, less what the convergence takes back (in front of the camera, the depth is below 0). */
-        const float half_shift     = (in_eye == Analysis::Recipe::Eye::LEFT) ? separation * HALF
-                                                                             : -separation * HALF;
-        const float shift_in_units = half_shift * (1.0f + in_origin_depth / distance);
-        const float shift_in_ndc   = (in_is_perspective) ? shift_in_units * in_projection_x_scale / -in_origin_depth
-                                                         : shift_in_units * in_projection_x_scale;
-
-        result = shift_in_ndc * in_picture_width_pixels * HALF;
-    }
-
-end:
     return result;
 }
 
@@ -436,6 +451,17 @@ float Stereo::Core::StereoCore::plan_push_shift(const Analysis::Recipe::Eye& in_
     return plan_push_shift(in_eye,
                            in_picture_width_pixels,
                            (m_last_draw_class == Analysis::Recipe::DrawClass::AFFECTED) );
+}
+
+float Stereo::Core::StereoCore::plan_push_shift_with_layer(const Analysis::Recipe::Eye& in_eye,
+                                                           const float&                 in_picture_width_pixels,
+                                                           const float&                 in_layer_parallax) const
+{
+    return PushShiftPlanner::plan_with_layer(m_applier,
+                                             in_eye,
+                                             m_applier.get_cover_push_parallax(m_last_draw_cover_key),
+                                             in_layer_parallax,
+                                             in_picture_width_pixels);
 }
 
 float Stereo::Core::StereoCore::plan_push_shift(const Analysis::Recipe::Eye& in_eye,

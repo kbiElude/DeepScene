@@ -194,3 +194,51 @@ TEST(PushShiftPlanner, AnOverlayThatReachesBothSidesIsMadeAsMuchWiderAsTheShiftO
     EXPECT_EQ(none.x,     0);
     EXPECT_EQ(none.width, 640);
 }
+
+TEST(PushShiftPlanner, ADrawThatTheEyesMoveByItsDepthIsGivenWhatIsLeftAfterTheParallaxItHas)
+{
+    const Analysis::Recipe::RecipeApplier applier(make_recipe(0.02f,
+                                                              0.02f) );
+
+    /* A draw in front of the screen that has 0.01 of the width from the eyes keeps 0.01 of the push: half of it is 3.2 pixels for the left eye of 640. */
+    EXPECT_NEAR(Stereo::Core::PushShiftPlanner::plan_with_layer(applier,
+                                                                Analysis::Recipe::Eye::LEFT,
+                                                                applier.get_overlay_parallax(),
+                                                                0.01f,
+                                                                640.0f),
+                3.2f,
+                1.0e-4f);
+
+    /* Behind the screen the eyes move it the other way, which gives the push more room, up to the parallax asked for. */
+    EXPECT_NEAR(Stereo::Core::PushShiftPlanner::plan_with_layer(applier,
+                                                                Analysis::Recipe::Eye::LEFT,
+                                                                applier.get_overlay_parallax(),
+                                                                -0.01f,
+                                                                640.0f),
+                6.4f,
+                1.0e-4f);
+
+    /* Not moved by the eyes: the whole of the push; and plan() for a pass of pixels is the same as the layer it works out. */
+    EXPECT_NEAR(Stereo::Core::PushShiftPlanner::plan_with_layer(applier,
+                                                                Analysis::Recipe::Eye::LEFT,
+                                                                applier.get_overlay_parallax(),
+                                                                0.0f,
+                                                                640.0f),
+                6.4f,
+                1.0e-4f);
+    EXPECT_FLOAT_EQ(Stereo::Core::PushShiftPlanner::plan(applier,
+                                                         Analysis::Recipe::Eye::LEFT,
+                                                         applier.get_overlay_parallax(),
+                                                         true, /* in_is_affected */
+                                                         640.0f,
+                                                         6.4f,
+                                                         0.0f),
+                    Stereo::Core::PushShiftPlanner::plan_with_layer(applier,
+                                                                    Analysis::Recipe::Eye::LEFT,
+                                                                    applier.get_overlay_parallax(),
+                                                                    Stereo::Core::PushShiftPlanner::get_screen_layer_parallax(true, /* in_is_affected */
+                                                                                                                              640.0f,
+                                                                                                                              6.4f,
+                                                                                                                              0.0f),
+                                                                    640.0f) );
+}

@@ -147,6 +147,14 @@ namespace Stereo
             /* The application set the view matrix, which the rules of draws may be about. Besides on_matrix_call(), if that is a call. */
             void on_view_matrix_set(const std::array<float, 16>& in_matrix);
 
+            /* How far apart the eyes move a point at the depth of the origin of a draw in the eye space (a negative number, the z of the translation of its model-view matrix), as a part
+             * of the width of the picture, for the projection it is drawn with (its x scale, and whether it is a perspective one): positive in front of the distance at which the eyes
+             * converge, negative behind it, 0 for a draw that is not in front of the camera. What the eyes give a draw by its depth, which a push has to leave room for.
+             */
+            float get_eye_parallax(const float& in_origin_depth,
+                                   const float& in_projection_x_scale,
+                                   const bool&  in_is_perspective) const;
+
             /* How far the draw that classify_draw() last classified, if it is a part that protrudes (get_is_last_draw_part()), is moved sideways for the eye, in
              * pixels, to be where the eyes would have put it if it were drawn for each: the shift that the affected draws get, for the depth of its origin in the
              * eye space (a negative number, the z of the translation of its model-view matrix) and the projection it is drawn with (its x scale, and whether it is a
@@ -183,6 +191,13 @@ namespace Stereo
             float plan_push_shift(const Analysis::Recipe::Eye& in_eye,
                                   const float&                 in_picture_width_pixels,
                                   const bool&                  in_is_moved_by_eyes) const;
+
+            /* The same, for a draw that the eyes move apart by the given part of the width of the picture (see get_eye_parallax(); 0 if they do not move it): an adapter that knows the depth
+             * of the draw says it, in place of the separation over the width, which is the layer of a pass whose units are pixels.
+             */
+            float plan_push_shift_with_layer(const Analysis::Recipe::Eye& in_eye,
+                                             const float&                 in_picture_width_pixels,
+                                             const float&                 in_layer_parallax) const;
 
             /* What is to be done to the vertices of the draw that classify_draw() last classified, for the eye, if they are in the space of the
              * picture (see ScreenParallaxPlanner): by the distances the core has now, which are the ones of the scene and the person. The
