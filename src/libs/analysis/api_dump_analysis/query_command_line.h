@@ -51,6 +51,16 @@ namespace Analysis
                                                        QueryOptions*                         out_options_ptr,
                                                        QueryPositionals*                     out_positionals_ptr,
                                                        std::string*                          out_error_ptr);
+
+        private:
+            /* Handles the argument if it is one of the options that every query program has. */
+            static bool parse_common_option(const std::string& in_argument,
+                                            const bool&        in_has_next,
+                                            const std::string& in_next_argument,
+                                            QueryOptions*      out_options_ptr,
+                                            bool*              out_is_known_ptr,
+                                            bool*              out_uses_next_ptr,
+                                            std::string*       out_error_ptr);
         };
     }
 }

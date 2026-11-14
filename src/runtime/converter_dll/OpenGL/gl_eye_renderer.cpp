@@ -12,23 +12,6 @@
 #include <algorithm>
 #include <cstring>
 
-
-namespace
-{
-    constexpr GLenum  COMPILE_AND_EXECUTE = 0x1301;
-    constexpr GLenum  MODELVIEW           = 0x1700;
-    constexpr GLenum  TEXTURE0            = 0x84C0;
-    constexpr GLenum  TEXTURE_MAG_FILTER  = 0x2800;
-    constexpr GLenum  TEXTURE_MIN_FILTER  = 0x2801;
-    constexpr GLenum  TEXTURE_WRAP_S      = 0x2802;
-    constexpr GLenum  TEXTURE_WRAP_T      = 0x2803;
-    constexpr GLenum  TEXTURE_HEIGHT      = 0x1001;
-    constexpr GLenum  TEXTURE_INTERNAL_FORMAT = 0x1003;
-    constexpr GLenum  TEXTURE_WIDTH       = 0x1000;
-    constexpr GLenum  VIEWPORT            = 0x0BA2;
-
-}
-
 Stereo::ConverterDLL::GLEyeRenderer::GLEyeRenderer(Stereo::Core::StereoCore* in_core_ptr,
                                                    const bool&               in_is_shown_elsewhere,
                                                    const uint32_t&           in_target_width,
@@ -139,6 +122,14 @@ bool Stereo::ConverterDLL::GLEyeRenderer::make_twin(const uint32_t& in_texture,
                                                     const bool&     in_has_level_size,
                                                     const int32_t&  in_level)
 {
+    constexpr GLenum TEXTURE_HEIGHT          = 0x1001;
+    constexpr GLenum TEXTURE_INTERNAL_FORMAT = 0x1003;
+    constexpr GLenum TEXTURE_MAG_FILTER      = 0x2800;
+    constexpr GLenum TEXTURE_MIN_FILTER      = 0x2801;
+    constexpr GLenum TEXTURE_WIDTH           = 0x1000;
+    constexpr GLenum TEXTURE_WRAP_S          = 0x2802;
+    constexpr GLenum TEXTURE_WRAP_T          = 0x2803;
+
     const OwnCallScope own_call_scope;
     GLuint             twin    = 0;
     bool               result  = false;
@@ -581,6 +572,9 @@ bool Stereo::ConverterDLL::GLEyeRenderer::on_pre(const APIInterceptor::APIFuncti
                                                  const Analysis::Recipe::DrawClass&         in_draw_class,
                                                  const bool&                                in_is_pushed)
 {
+    constexpr GLenum COMPILE_AND_EXECUTE = 0x1301;
+    constexpr GLenum TEXTURE0            = 0x84C0;
+
     bool result            = true;
     bool is_made_scaled    = false;
     bool is_read_served    = false;
@@ -1001,7 +995,9 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
     /* Where the numbers that are looked for are in a matrix (the columns one after the other) and in a viewport. */
     constexpr size_t MATRIX_X_SCALE              = 0;
     constexpr size_t MATRIX_Z_TRANSLATION        = 14;
+    constexpr GLenum MODELVIEW                   = 0x1700;
     constexpr GLenum PROJECTION_MATRIX           = 0x0BA7;
+    constexpr GLenum VIEWPORT                    = 0x0BA2;
     constexpr size_t VIEWPORT_HEIGHT             = 3;
     constexpr size_t VIEWPORT_WIDTH              = 2;
     constexpr size_t VIEWPORT_X                  = 0;

@@ -58,10 +58,10 @@ namespace Stereo
                 uint64_t get_n_neutral_frames() const;
 
                 /* The dead frames that had calls; those of them whose pushes and pops of attributes and of matrices balance; and the calls outside the pushes. */
-                uint64_t get_n_balanced_frames() const;
-                uint64_t get_n_dead_frames_with_calls() const;
+                uint64_t get_n_balanced_frames            () const;
+                uint64_t get_n_dead_frames_with_calls     () const;
                 uint64_t get_n_matrix_calls_outside_pushes() const;
-                uint64_t get_n_state_calls_outside_pushes() const;
+                uint64_t get_n_state_calls_outside_pushes () const;
 
                 /* The masks of the pushes of attributes in the dead frames, and how many of each. */
                 const std::map<uint64_t, uint64_t>& get_push_mask_count_map() const;
@@ -127,6 +127,13 @@ namespace Stereo
                 void follow_frame(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                   const char*                                  in_name_ptr,
                                   const ClassifiedCall&                        in_classified);
+
+                static bool has_prefix (const char*        in_name_ptr,
+                                        const char*        in_prefix_ptr);
+                static bool is_one_of  (const char* const* in_name_ptr_array,
+                                        const size_t&      in_n_names,
+                                        const char*        in_name_ptr);
+                static bool takes_array(const char*        in_name_ptr);
 
                 uint32_t                                             m_active_unit;
                 int64_t                                              m_attribute_depth;            /* of the frame that was last seen: the pushes of attributes not yet popped */

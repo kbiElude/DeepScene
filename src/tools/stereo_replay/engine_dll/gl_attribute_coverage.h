@@ -29,6 +29,15 @@ namespace Stereo
                 /* True if a push of the mask saves all that the call sets. */
                 static bool is_undone_by_pop(const uint32_t&                    in_mask,
                                              const APIInterceptor::APIFunction& in_function);
+
+            private:
+                static uint32_t get_bits_of_name(const char* in_name_ptr);
+                static bool     has_prefix      (const char* in_name_ptr,
+                                                 const char* in_prefix_ptr);
+                static bool     is_digit_after  (const char* in_name_ptr,
+                                                 const char* in_prefix_ptr);
+                static bool     is_name         (const char* in_name_ptr,
+                                                 const char* in_other_ptr);
             };
         }
     }

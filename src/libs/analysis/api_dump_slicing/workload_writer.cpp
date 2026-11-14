@@ -6,92 +6,6 @@
 #include "capture/api_dumper_dll/zstd_file_writer.h"
 #include <string.h>
 
-namespace
-{
-    constexpr int      COMPRESSION_LEVEL        = 3; /* the dumper's: it keeps up with a running program */
-    constexpr size_t   N_SEGMENT_COUNTS         = 3; /* API calls, data chunks, surfaces                 */
-    constexpr size_t   N_SURFACE_HEADER_FIELDS  = 3; /* width, height, n bytes                           */
-
-    /* Appends the 32-bit values. */
-    void append_u32_values(std::vector<uint8_t>*       inout_u8_vec_ptr,
-                           const uint32_t*             in_value_ptr,
-                           const size_t&               in_n_values)
-    {
-        const size_t n_bytes_before = inout_u8_vec_ptr->size();
-
-        inout_u8_vec_ptr->resize(n_bytes_before + in_n_values * sizeof(uint32_t) );
-
-        ::memcpy(inout_u8_vec_ptr->data() + n_bytes_before,
-                 in_value_ptr,
-                 in_n_values * sizeof(uint32_t) );
-    }
-
-    /* Appends the call as the dumper writes it: the header, the arguments, the results, and the returned value (which a call that has none has as an
-     * argument of no type).
-     */
-    void serialize_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                        std::vector<uint8_t>*                        inout_u8_vec_ptr)
-    {
-        const size_t                       n_bytes_before = inout_u8_vec_ptr->size();
-        uint8_t*                           header_u8_ptr  = nullptr;
-        APIInterceptor::APIFunctionArgument no_value;
-
-        no_value.type = APIInterceptor::APIFunctionArgumentType::UNKNOWN;
-
-        inout_u8_vec_ptr->resize(n_bytes_before + APIInterceptor::WorkloadFormat::CALL_HEADER_N_BYTES);
-
-        header_u8_ptr = inout_u8_vec_ptr->data() + n_bytes_before;
-
-        {
-            const uint32_t n_arguments_in  = static_cast<uint32_t>(in_call.arg_in_vec.size() );
-            const uint32_t n_arguments_out = static_cast<uint32_t>(in_call.arg_out_vec.size() );
-
-            ::memcpy(header_u8_ptr,
-                     &in_call.func,
-                     sizeof(APIInterceptor::APIFunction) );
-            header_u8_ptr += sizeof(APIInterceptor::APIFunction);
-
-            ::memcpy(header_u8_ptr,
-                     &n_arguments_in,
-                     sizeof(uint32_t) );
-            header_u8_ptr += sizeof(uint32_t);
-
-            ::memcpy(header_u8_ptr,
-                     &n_arguments_out,
-                     sizeof(uint32_t) );
-            header_u8_ptr += sizeof(uint32_t);
-
-            ::memcpy(header_u8_ptr,
-                     &in_call.thread_id,
-                     sizeof(uint32_t) );
-            header_u8_ptr += sizeof(uint32_t);
-
-            ::memcpy(header_u8_ptr,
-                     &in_call.timestamp_qpc,
-                     sizeof(uint64_t) );
-        }
-
-        for (const auto& argument : in_call.arg_in_vec)
-        {
-            argument.serialize_to_u8_vec(inout_u8_vec_ptr);
-        }
-
-        for (const auto& argument : in_call.arg_out_vec)
-        {
-            argument.serialize_to_u8_vec(inout_u8_vec_ptr);
-        }
-
-        if (in_call.returned_value_ptr != nullptr)
-        {
-            in_call.returned_value_ptr->serialize_to_u8_vec(inout_u8_vec_ptr);
-        }
-        else
-        {
-            no_value.serialize_to_u8_vec(inout_u8_vec_ptr);
-        }
-    }
-}
-
 Analysis::APIDumpSlicing::WorkloadWriter::WorkloadWriter()
     :m_file_handle    (nullptr),
      m_n_bytes_written(0)
@@ -102,6 +16,19 @@ Analysis::APIDumpSlicing::WorkloadWriter::WorkloadWriter()
 Analysis::APIDumpSlicing::WorkloadWriter::~WorkloadWriter()
 {
     close();
+}
+
+void Analysis::APIDumpSlicing::WorkloadWriter::append_u32_values(std::vector<uint8_t>* inout_u8_vec_ptr,
+                                                                 const uint32_t*       in_value_ptr,
+                                                                 const size_t&         in_n_values)
+{
+    const size_t n_bytes_before = inout_u8_vec_ptr->size();
+
+    inout_u8_vec_ptr->resize(n_bytes_before + in_n_values * sizeof(uint32_t) );
+
+    ::memcpy(inout_u8_vec_ptr->data() + n_bytes_before,
+             in_value_ptr,
+             in_n_values * sizeof(uint32_t) );
 }
 
 bool Analysis::APIDumpSlicing::WorkloadWriter::close()
@@ -158,6 +85,68 @@ uint64_t Analysis::APIDumpSlicing::WorkloadWriter::get_n_bytes_written() const
     return m_n_bytes_written;
 }
 
+void Analysis::APIDumpSlicing::WorkloadWriter::serialize_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                              std::vector<uint8_t>*                        inout_u8_vec_ptr)
+{
+    const size_t                        n_bytes_before = inout_u8_vec_ptr->size();
+    uint8_t*                            header_u8_ptr  = nullptr;
+    APIInterceptor::APIFunctionArgument no_value;
+
+    no_value.type = APIInterceptor::APIFunctionArgumentType::UNKNOWN;
+
+    inout_u8_vec_ptr->resize(n_bytes_before + APIInterceptor::WorkloadFormat::CALL_HEADER_N_BYTES);
+
+    header_u8_ptr = inout_u8_vec_ptr->data() + n_bytes_before;
+
+    {
+        const uint32_t n_arguments_in  = static_cast<uint32_t>(in_call.arg_in_vec.size() );
+        const uint32_t n_arguments_out = static_cast<uint32_t>(in_call.arg_out_vec.size() );
+
+        ::memcpy(header_u8_ptr,
+                 &in_call.func,
+                 sizeof(APIInterceptor::APIFunction) );
+        header_u8_ptr += sizeof(APIInterceptor::APIFunction);
+
+        ::memcpy(header_u8_ptr,
+                 &n_arguments_in,
+                 sizeof(uint32_t) );
+        header_u8_ptr += sizeof(uint32_t);
+
+        ::memcpy(header_u8_ptr,
+                 &n_arguments_out,
+                 sizeof(uint32_t) );
+        header_u8_ptr += sizeof(uint32_t);
+
+        ::memcpy(header_u8_ptr,
+                 &in_call.thread_id,
+                 sizeof(uint32_t) );
+        header_u8_ptr += sizeof(uint32_t);
+
+        ::memcpy(header_u8_ptr,
+                 &in_call.timestamp_qpc,
+                 sizeof(uint64_t) );
+    }
+
+    for (const auto& argument : in_call.arg_in_vec)
+    {
+        argument.serialize_to_u8_vec(inout_u8_vec_ptr);
+    }
+
+    for (const auto& argument : in_call.arg_out_vec)
+    {
+        argument.serialize_to_u8_vec(inout_u8_vec_ptr);
+    }
+
+    if (in_call.returned_value_ptr != nullptr)
+    {
+        in_call.returned_value_ptr->serialize_to_u8_vec(inout_u8_vec_ptr);
+    }
+    else
+    {
+        no_value.serialize_to_u8_vec(inout_u8_vec_ptr);
+    }
+}
+
 bool Analysis::APIDumpSlicing::WorkloadWriter::write_compressed_segment(const uint8_t* in_data_ptr,
                                                                         const size_t&  in_n_bytes)
 {
@@ -183,6 +172,10 @@ bool Analysis::APIDumpSlicing::WorkloadWriter::write_compressed_segment(const ui
 
 bool Analysis::APIDumpSlicing::WorkloadWriter::write_segment(const Capture::APIDumpLoader::Workload& in_segment)
 {
+    constexpr int    COMPRESSION_LEVEL       = 3; /* the dumper's: it keeps up with a running program */
+    constexpr size_t N_SEGMENT_COUNTS        = 3; /* API calls, data chunks, surfaces                 */
+    constexpr size_t N_SURFACE_HEADER_FIELDS = 3; /* width, height, n bytes                           */
+
     const uint32_t counts_u32vec3[N_SEGMENT_COUNTS] =
     {
         static_cast<uint32_t>(in_segment.dumped_api_call_vec_ptr->size() ),

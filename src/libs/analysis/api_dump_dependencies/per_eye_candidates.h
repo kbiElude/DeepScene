@@ -58,6 +58,10 @@ namespace Analysis
              * more frames, and which no frame writes twice in a row (a turn of one is followed by a turn of another).
              */
             static std::vector<RotationGroup> find_rotation_groups(const DependencyAnalysis& in_analysis);
+
+        private:
+            /* Whether the resource is one that a frame renders to, and which is not the image of a swap chain. */
+            static bool is_rendered_to_by_frames(const Analysis::APIDumpAnalysis::Resource& in_resource);
         };
     }
 }

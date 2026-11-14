@@ -33,13 +33,22 @@ namespace Stereo
                 bool execute              (const Capture::APIDumpLoader::DumpedAPICall&   in_call,
                                            const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
                                            std::string*                                   out_error_ptr) override;
-                void reset                ()                                                             override;
-                void restore_state        ()                                                             override;
-                void set_eye              (const Analysis::Recipe::Eye&                   in_eye)        override;
+                void reset                ()                                                               override;
+                void restore_state        ()                                                               override;
+                void set_eye              (const Analysis::Recipe::Eye&                   in_eye)          override;
                 void set_n_executions     (const uint32_t&                                in_n_executions) override;
-                void set_per_eye_predicate(const PerEyePredicate&                         in_predicate)  override;
+                void set_per_eye_predicate(const PerEyePredicate&                         in_predicate)    override;
 
             private:
+                typedef void         (APIENTRY* PFNACTIVETEXTUREPROC)  (unsigned int);
+                typedef void         (APIENTRY* PFNBINDTEXTUREPROC)    (unsigned int, unsigned int);
+                typedef void         (APIENTRY* PFNDELETETEXTURESPROC) (int, const unsigned int*);
+                typedef unsigned int (APIENTRY* PFNGETERRORPROC)       ();
+                typedef void         (APIENTRY* PFNGENTEXTURESPROC)    (int, unsigned int*);
+                typedef void         (APIENTRY* PFNGETINTEGERVPROC)    (unsigned int, int*);
+                typedef void         (APIENTRY* PFNGETTEXPARAMETERIVPROC)(unsigned int, unsigned int, int*);
+                typedef void         (APIENTRY* PFNTEXPARAMETERIPROC)  (unsigned int, unsigned int, int);
+
                 /* The two copies of a texture that each eye has a copy of, by the names of GL. */
                 struct TextureTwin
                 {
@@ -64,6 +73,9 @@ namespace Stereo
 
                 /* True if the call changes the texture that is bound to the target of the active unit (the pixels, the parameters, the levels). */
                 static bool changes_bound_texture(const APIInterceptor::APIFunction& in_function);
+
+                static const unsigned int TEXTURE_2D;
+                static const unsigned int TEXTURE_BINDING_2D;
 
                 Analysis::Recipe::Eye                    m_eye;
                 bool                                     m_is_replicating;   /* the call is being made again for the other eye */

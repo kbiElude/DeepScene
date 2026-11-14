@@ -47,6 +47,9 @@ namespace Stereo
                                           const std::string&   in_path);
 
         private:
+            static const uint32_t BYTES_PER_PIXEL;
+            static const uint32_t N_EYES;
+
             /* What the thread is to copy. */
             struct Job
             {
@@ -57,6 +60,17 @@ namespace Stereo
 
             /* What the thread does for a frame: copies the rows of the images of the job to the channel. */
             void write_job();
+
+            /* Puts the rows of an image of an eye (B, G, R, A of 8 bits, from the bottom up as OpenGL gives them) into the image of both eyes, where the eye is the place of the
+             * image across; the top row of the destination is the last of the source if the rows are turned over, and the first if not.
+             */
+            static void write_eye_rows(const uint8_t*  in_bgra_ptr,
+                                       const uint32_t& in_width,
+                                       const uint32_t& in_height,
+                                       const uint32_t& in_eye,
+                                       const bool&     in_is_turned_over,
+                                       uint8_t*        out_destination_ptr,
+                                       const uint32_t& in_pitch);
 
             Job                                         m_job;
             std::unique_ptr<Utils::Parallel::JobThread> m_job_thread_ptr;

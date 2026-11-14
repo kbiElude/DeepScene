@@ -12,136 +12,118 @@
 #include <string.h>
 #include <vector>
 
-namespace
+uint64_t Analysis::APIDumpSlicing::HeadSlicer::count_frame_ends(const Capture::APIDumpLoader::Workload& in_segment)
 {
-    /* Where the slice ends: the segment that has the end of the last frame (or the end of the workload, if that frame is still going on there), and how
-     * many of its calls the slice has.
-     */
-    struct SliceEnd
-    {
-        size_t   n_calls_in_segment = 0; /* 0: all of them */
-        size_t   n_segment          = 0;
-    };
+    uint64_t result = 0;
 
-    /* Leaves the calls up to the one that ends the frame (inclusive) in the segment, and the data chunks which they refer to; returns how many calls are
-     * left. The segment starts the frames at in_first_frame_index; a frame which ends nowhere in it (the last of the workload, still going on) keeps
-     * all of its calls.
-     */
-    size_t cut_segment(const uint64_t&                  in_first_frame_index,
-                       const uint64_t&                  in_last_frame,
-                       Capture::APIDumpLoader::Workload* inout_segment_ptr)
+    for (const auto& call : *in_segment.dumped_api_call_vec_ptr)
     {
-        auto&          call_vec          = *inout_segment_ptr->dumped_api_call_vec_ptr;
-        const uint64_t n_frames_to_end   = in_last_frame - in_first_frame_index + 1;
-        uint64_t       n_frames_ended    = 0;
-        size_t         n_calls_kept      = call_vec.size();
-        size_t         n_chunks_kept     = 0;
-
-        for (size_t n_call = 0;
-                    n_call < call_vec.size();
-                  ++n_call)
+        if (Capture::APIDumpLoader::is_frame_boundary(call) )
         {
-            if (Capture::APIDumpLoader::is_frame_boundary(call_vec.at(n_call) ) == false)
-            {
-                continue;
-            }
+            result++;
+        }
+    }
 
-            n_frames_ended++;
+    return result;
+}
 
-            if (n_frames_ended == n_frames_to_end)
-            {
-                n_calls_kept = n_call + 1;
+size_t Analysis::APIDumpSlicing::HeadSlicer::cut_segment(const uint64_t&                   in_first_frame_index,
+                                                         const uint64_t&                   in_last_frame,
+                                                         Capture::APIDumpLoader::Workload* inout_segment_ptr)
+{
+    auto&          call_vec          = *inout_segment_ptr->dumped_api_call_vec_ptr;
+    const uint64_t n_frames_to_end   = in_last_frame - in_first_frame_index + 1;
+    uint64_t       n_frames_ended    = 0;
+    size_t         n_calls_kept      = call_vec.size();
+    size_t         n_chunks_kept     = 0;
 
-                break;
-            }
+    for (size_t n_call = 0;
+                n_call < call_vec.size();
+              ++n_call)
+    {
+        if (Capture::APIDumpLoader::is_frame_boundary(call_vec.at(n_call) ) == false)
+        {
+            continue;
         }
 
-        call_vec.resize(n_calls_kept);
+        n_frames_ended++;
 
-        /* A call which was made later has a chunk which is numbered after the ones of the calls before it. */
-        for (const auto& call : call_vec)
+        if (n_frames_ended == n_frames_to_end)
         {
-            for (const auto* argument_vec_ptr : {&call.arg_in_vec, &call.arg_out_vec})
-            {
-                for (const auto& argument : *argument_vec_ptr)
-                {
-                    if (argument.type != APIInterceptor::ARGTYPE_DATA_CHUNK_ID)
-                    {
-                        continue;
-                    }
+            n_calls_kept = n_call + 1;
 
-                    if (argument.get_data_chunk_id() >= inout_segment_ptr->first_data_chunk_id)
-                    {
-                        n_chunks_kept = std::max<size_t>(n_chunks_kept,
-                                                         argument.get_data_chunk_id() - inout_segment_ptr->first_data_chunk_id + 1);
-                    }
+            break;
+        }
+    }
+
+    call_vec.resize(n_calls_kept);
+
+    /* A call which was made later has a chunk which is numbered after the ones of the calls before it. */
+    for (const auto& call : call_vec)
+    {
+        for (const auto* argument_vec_ptr : {&call.arg_in_vec, &call.arg_out_vec})
+        {
+            for (const auto& argument : *argument_vec_ptr)
+            {
+                if (argument.type != APIInterceptor::ARGTYPE_DATA_CHUNK_ID)
+                {
+                    continue;
+                }
+
+                if (argument.get_data_chunk_id() >= inout_segment_ptr->first_data_chunk_id)
+                {
+                    n_chunks_kept = std::max<size_t>(n_chunks_kept,
+                                                     argument.get_data_chunk_id() - inout_segment_ptr->first_data_chunk_id + 1);
                 }
             }
         }
-
-        if (n_chunks_kept < inout_segment_ptr->data_chunk_ptr_vec.size() )
-        {
-            inout_segment_ptr->data_chunk_ptr_vec.resize(n_chunks_kept);
-        }
-
-        return n_calls_kept;
     }
 
-    /* The calls of the segment which end a frame. */
-    uint64_t count_frame_ends(const Capture::APIDumpLoader::Workload& in_segment)
+    if (n_chunks_kept < inout_segment_ptr->data_chunk_ptr_vec.size() )
     {
-        uint64_t result = 0;
-
-        for (const auto& call : *in_segment.dumped_api_call_vec_ptr)
-        {
-            if (Capture::APIDumpLoader::is_frame_boundary(call) )
-            {
-                result++;
-            }
-        }
-
-        return result;
+        inout_segment_ptr->data_chunk_ptr_vec.resize(n_chunks_kept);
     }
 
-    /* False if the workload has no such frame. */
-    bool find_slice_end(const Capture::APIDumpLoader::WorkloadIndex& in_index,
-                        const uint64_t&                              in_last_frame,
-                        SliceEnd*                                    out_end_ptr)
+    return n_calls_kept;
+}
+
+bool Analysis::APIDumpSlicing::HeadSlicer::find_slice_end(const Capture::APIDumpLoader::WorkloadIndex& in_index,
+                                                          const uint64_t&                              in_last_frame,
+                                                          SliceEnd*                                    out_end_ptr)
+{
+    const auto& segment_vec = in_index.get_segment_vec();
+    bool        result      = false;
+
+    *out_end_ptr = SliceEnd();
+
+    if (in_last_frame >= in_index.get_n_frames() )
     {
-        const auto& segment_vec = in_index.get_segment_vec();
-        bool        result      = false;
+        goto end;
+    }
 
-        *out_end_ptr = SliceEnd();
+    for (size_t n_segment = 0;
+                n_segment < segment_vec.size();
+              ++n_segment)
+    {
+        const auto& entry = segment_vec.at(n_segment);
 
-        if (in_last_frame >= in_index.get_n_frames() )
+        /* The end of the frame is the call of a segment that ends the (last - first + 1)th of the frames which end in it. */
+        if (in_last_frame < entry.first_frame_index + entry.n_frames_ended)
         {
+            out_end_ptr->n_segment = n_segment;
+
+            result = true;
+
             goto end;
         }
-
-        for (size_t n_segment = 0;
-                    n_segment < segment_vec.size();
-                  ++n_segment)
-        {
-            const auto& entry = segment_vec.at(n_segment);
-
-            /* The end of the frame is the call of a segment that ends the (last - first + 1)th of the frames which end in it. */
-            if (in_last_frame < entry.first_frame_index + entry.n_frames_ended)
-            {
-                out_end_ptr->n_segment = n_segment;
-
-                result = true;
-
-                goto end;
-            }
-        }
-
-        /* The last frame has not ended: the workload goes on to its end in it. */
-        out_end_ptr->n_segment = segment_vec.size() - 1;
-
-        result = true;
-end:
-        return result;
     }
+
+    /* The last frame has not ended: the workload goes on to its end in it. */
+    out_end_ptr->n_segment = segment_vec.size() - 1;
+
+    result = true;
+end:
+    return result;
 }
 
 bool Analysis::APIDumpSlicing::HeadSlicer::slice(const std::string&  in_workload_filename,

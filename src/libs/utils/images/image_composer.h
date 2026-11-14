@@ -37,6 +37,12 @@ namespace Utils
                                       const Image&   in_left_image,
                                       const Image&   in_right_image,
                                       Image*         out_image_ptr);
+
+        private:
+            static const size_t N_BYTES_PER_PIXEL;
+
+            /* True if the image has the pixels its size says, and some. */
+            static bool is_usable(const Image& in_image);
         };
     }
 }

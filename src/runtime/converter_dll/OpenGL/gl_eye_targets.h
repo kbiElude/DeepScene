@@ -89,8 +89,8 @@ namespace Stereo
              * that is made once and kept (it is made again when the size changes), and it is read from that, once. False if the blit is missing, the target cannot be made, or the
              * application has set the way pixels are packed (or a buffer that they go to) so that what is read here would not be what its own read gives. The left eye is current afterward.
              */
-            bool read_picture(const uint32_t&      in_width,
-                              const uint32_t&      in_height,
+            bool read_picture(const uint32_t&       in_width,
+                              const uint32_t&       in_height,
                               std::vector<uint8_t>* out_rgba_u8_vec_ptr);
 
         private:
@@ -120,8 +120,16 @@ namespace Stereo
             /* Whether the application packs pixels as it does when it has set nothing (no offset, no row length, no swap of bytes) and has no buffer bound for them. */
             static bool are_pack_modes_default();
 
+            static const GLbitfield COLOR_BUFFER_BIT;
+            static const GLbitfield DEPTH_BUFFER_BIT;
+            static const GLenum     FRAMEBUFFER;
+
             /* How many reads of the depth can be on their way at once: a pass of a frame is one, and the frame before is still on its way. */
             static constexpr size_t N_DEPTH_READ_SLOTS = 16;
+
+            static const GLenum PACK_ALIGNMENT;
+            static const GLenum PIXEL_PACK_BUFFER;
+            static const GLenum PIXEL_PACK_BUFFER_BINDING;
 
             const void*                              m_context_ptr;
             std::array<uint32_t, N_DEPTH_READ_SLOTS> m_depth_buffer_array;         /* the buffers of the graphics card that the depth is read to; made when they are first used */

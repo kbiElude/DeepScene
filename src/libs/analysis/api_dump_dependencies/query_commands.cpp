@@ -11,12 +11,6 @@
 #include <algorithm>
 #include <map>
 
-namespace
-{
-    using Utils::Json::JsonWriter;
-    using Analysis::APIDumpAnalysis::QueryStatus;
-}
-
 const Analysis::APIDumpDependencies::ResourceVersion* Analysis::APIDumpDependencies::QueryCommands::find_consumed_version_ptr(const ResourceDependencies& in_dependencies,
                                                                                                                               const uint64_t&             in_frame_index)
 {
@@ -177,13 +171,13 @@ bool Analysis::APIDumpDependencies::QueryCommands::parse_dependency_class(const 
     return (class_iterator != class_map.end() );
 }
 
-QueryStatus Analysis::APIDumpDependencies::QueryCommands::run(const std::string&        in_command,
-                                                              const DependencyAnalysis& in_analysis,
-                                                              const QueryArguments&     in_arguments,
-                                                              JsonWriter*               inout_writer_ptr,
-                                                              std::string*              out_error_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryCommands::run(const std::string&        in_command,
+                                                                                         const DependencyAnalysis& in_analysis,
+                                                                                         const QueryArguments&     in_arguments,
+                                                                                         Utils::Json::JsonWriter*  inout_writer_ptr,
+                                                                                         std::string*              out_error_ptr)
 {
-    QueryStatus result = QueryStatus::BAD_ARGUMENTS;
+    Analysis::APIDumpAnalysis::QueryStatus result = Analysis::APIDumpAnalysis::QueryStatus::BAD_ARGUMENTS;
 
     if (in_command == "carries")
     {
@@ -244,10 +238,10 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run(const std::string&
     return result;
 }
 
-QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_carries(const DependencyAnalysis& in_analysis,
-                                                                      const QueryArguments&     in_arguments,
-                                                                      JsonWriter*               inout_writer_ptr,
-                                                                      std::string*              out_error_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_carries(const DependencyAnalysis& in_analysis,
+                                                                                                 const QueryArguments&     in_arguments,
+                                                                                                 Utils::Json::JsonWriter*  inout_writer_ptr,
+                                                                                                 std::string*              out_error_ptr)
 {
     return run_frame(in_analysis,
                      in_arguments,
@@ -256,13 +250,14 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_carries(const Depe
                      out_error_ptr);
 }
 
-QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_frame(const DependencyAnalysis& in_analysis,
-                                                                    const QueryArguments&     in_arguments,
-                                                                    const bool&               in_is_carries_only,
-                                                                    JsonWriter*               inout_writer_ptr,
-                                                                    std::string*              out_error_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_frame(const DependencyAnalysis& in_analysis,
+                                                                                               const QueryArguments&     in_arguments,
+                                                                                               const bool&               in_is_carries_only,
+                                                                                               Utils::Json::JsonWriter*  inout_writer_ptr,
+                                                                                               std::string*              out_error_ptr)
 {
     typedef Analysis::APIDumpAnalysis::QueryArguments PagingArguments;
+    typedef Analysis::APIDumpAnalysis::QueryStatus    QueryStatus;
 
     std::vector<size_t>   n_resource_vec;
     const PagingArguments paging         = get_paging(in_arguments);
@@ -401,8 +396,8 @@ end:
     return result;
 }
 
-QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_info(const DependencyAnalysis& in_analysis,
-                                                                   JsonWriter*               inout_writer_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_info(const DependencyAnalysis& in_analysis,
+                                                                                              Utils::Json::JsonWriter*  inout_writer_ptr)
 {
     std::map<DependencyClass, uint64_t> n_resources_by_class_map;
 
@@ -478,11 +473,11 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_info(const Depende
 
     inout_writer_ptr->end_object();
 
-    return QueryStatus::OK;
+    return Analysis::APIDumpAnalysis::QueryStatus::OK;
 }
 
-QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_per_eye(const DependencyAnalysis& in_analysis,
-                                                                      JsonWriter*               inout_writer_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_per_eye(const DependencyAnalysis& in_analysis,
+                                                                                                 Utils::Json::JsonWriter*  inout_writer_ptr)
 {
     inout_writer_ptr->begin_object();
     inout_writer_ptr->write_key   ("note");
@@ -551,15 +546,16 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_per_eye(const Depe
     inout_writer_ptr->end_array ();
     inout_writer_ptr->end_object();
 
-    return QueryStatus::OK;
+    return Analysis::APIDumpAnalysis::QueryStatus::OK;
 }
 
-QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_resource(const DependencyAnalysis& in_analysis,
-                                                                       const QueryArguments&     in_arguments,
-                                                                       JsonWriter*               inout_writer_ptr,
-                                                                       std::string*              out_error_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_resource(const DependencyAnalysis& in_analysis,
+                                                                                                  const QueryArguments&     in_arguments,
+                                                                                                  Utils::Json::JsonWriter*  inout_writer_ptr,
+                                                                                                  std::string*              out_error_ptr)
 {
     typedef Analysis::APIDumpAnalysis::QueryArguments PagingArguments;
+    typedef Analysis::APIDumpAnalysis::QueryStatus    QueryStatus;
 
     const PagingArguments paging = get_paging(in_arguments);
     QueryStatus           result = QueryStatus::BAD_ARGUMENTS;
@@ -725,9 +721,9 @@ end:
     return result;
 }
 
-QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_resources(const DependencyAnalysis& in_analysis,
-                                                                        const QueryArguments&     in_arguments,
-                                                                        JsonWriter*               inout_writer_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_resources(const DependencyAnalysis& in_analysis,
+                                                                                                   const QueryArguments&     in_arguments,
+                                                                                                   Utils::Json::JsonWriter*  inout_writer_ptr)
 {
     typedef Analysis::APIDumpAnalysis::QueryArguments PagingArguments;
 
@@ -778,14 +774,16 @@ QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_resources(const De
     inout_writer_ptr->end_object();
     inout_writer_ptr->end_object();
 
-    return QueryStatus::OK;
+    return Analysis::APIDumpAnalysis::QueryStatus::OK;
 }
 
-QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_slice(const DependencyAnalysis& in_analysis,
-                                                                    const QueryArguments&     in_arguments,
-                                                                    JsonWriter*               inout_writer_ptr,
-                                                                    std::string*              out_error_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_slice(const DependencyAnalysis& in_analysis,
+                                                                                               const QueryArguments&     in_arguments,
+                                                                                               Utils::Json::JsonWriter*  inout_writer_ptr,
+                                                                                               std::string*              out_error_ptr)
 {
+    typedef Analysis::APIDumpAnalysis::QueryStatus QueryStatus;
+
     FrameSlice  slice;
     QueryStatus result = QueryStatus::BAD_ARGUMENTS;
 
@@ -901,7 +899,7 @@ end:
 
 void Analysis::APIDumpDependencies::QueryCommands::write_resource_head(const DependencyAnalysis& in_analysis,
                                                                        const size_t&             in_n_resource,
-                                                                       JsonWriter*               inout_writer_ptr)
+                                                                       Utils::Json::JsonWriter*  inout_writer_ptr)
 {
     const auto&                                 resource = in_analysis.resource_vec.at(in_n_resource);
     Analysis::APIDumpAnalysis::ResourceIdentity identity;
@@ -932,8 +930,8 @@ void Analysis::APIDumpDependencies::QueryCommands::write_resource_head(const Dep
     inout_writer_ptr->write_u64    (resource.created_at_call_index);
 }
 
-void Analysis::APIDumpDependencies::QueryCommands::write_summary(const ResourceSummary& in_summary,
-                                                                 JsonWriter*            inout_writer_ptr)
+void Analysis::APIDumpDependencies::QueryCommands::write_summary(const ResourceSummary&   in_summary,
+                                                                 Utils::Json::JsonWriter* inout_writer_ptr)
 {
     inout_writer_ptr->write_key   ("class");
     inout_writer_ptr->write_string(get_dependency_class_name(in_summary.dependency_class) );

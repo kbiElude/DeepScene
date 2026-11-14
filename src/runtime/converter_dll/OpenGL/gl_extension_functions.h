@@ -55,6 +55,12 @@ namespace Stereo
 
             /* Finds the functions (the ones of the extension if the context has not got the ones of the version); false if the ones that are needed are missing. */
             bool load();
+
+        private:
+            /* wglGetProcAddress says that a function is not there by a few small values as well as by zero. */
+            template<typename FuncType>
+            static bool find_function(const char* in_name_ptr,
+                                      FuncType*   out_func_ptr_ptr);
         };
     }
 }

@@ -7,11 +7,7 @@
 #include "utils/hashing/hasher.h"
 #include "zstd.h"
 
-namespace
-{
-    constexpr int    COMPRESSION_LEVEL = 9;
-    constexpr size_t PLANE_STRIDE      = 4;
-}
+const size_t Analysis::APIDumpTextures::TextureBlobCodec::PLANE_STRIDE = 4;
 
 std::vector<uint8_t> Analysis::APIDumpTextures::TextureBlobCodec::apply_filter(const uint8_t*    in_data_ptr,
                                                                                const size_t&     in_n_bytes,
@@ -73,6 +69,8 @@ bool Analysis::APIDumpTextures::TextureBlobCodec::pack(const void*           in_
                                                        const BlobFilter&     in_filter,
                                                        std::vector<uint8_t>* out_stored_byte_vec_ptr)
 {
+    constexpr int COMPRESSION_LEVEL = 9;
+
     const std::vector<uint8_t> filtered_byte_vec = apply_filter(static_cast<const uint8_t*>(in_data_ptr),
                                                                 in_n_bytes,
                                                                 in_filter);
@@ -151,11 +149,11 @@ void Analysis::APIDumpTextures::TextureBlobCodec::revert_filter(const BlobFilter
     }
 }
 
-bool Analysis::APIDumpTextures::TextureBlobCodec::unpack(const uint8_t*         in_stored_ptr,
-                                                         const size_t&          in_n_stored_bytes,
-                                                         const BlobEntry&       in_entry,
-                                                         std::vector<uint8_t>*  out_raw_byte_vec_ptr,
-                                                         std::string*           out_error_ptr)
+bool Analysis::APIDumpTextures::TextureBlobCodec::unpack(const uint8_t*        in_stored_ptr,
+                                                         const size_t&         in_n_stored_bytes,
+                                                         const BlobEntry&      in_entry,
+                                                         std::vector<uint8_t>* out_raw_byte_vec_ptr,
+                                                         std::string*          out_error_ptr)
 {
     uint64_t content_hash = 0;
     uint64_t length_hash  = 0;

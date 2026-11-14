@@ -35,6 +35,10 @@ namespace Analysis
 
                 /* True for the methods that ask for something and change nothing: those whose names start with Get, Enum, Check or Is. */
                 static bool is_query(const APIInterceptor::APIFunction& in_function);
+
+            private:
+                /* The name of the method, without the name of its interface. */
+                static const char* get_method_name_ptr(const char* in_full_name_ptr);
             };
         }
     }

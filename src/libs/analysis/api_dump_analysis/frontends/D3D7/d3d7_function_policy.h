@@ -29,6 +29,10 @@ namespace Analysis
                  * changes how a draw looks and not what it writes, and the calls whose data is stored with a call that is followed. False for every other.
                  */
                 static bool is_left_out_by_design(const APIInterceptor::APIFunction& in_function);
+
+            private:
+                /* Shared by both tables. */
+                static const char PALETTES[];
             };
         }
     }

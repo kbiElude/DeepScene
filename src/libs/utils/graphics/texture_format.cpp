@@ -4,32 +4,20 @@
  */
 #include "utils/graphics/texture_format.h"
 
-namespace
+Utils::Graphics::TextureFormatInfo Utils::Graphics::TextureFormats::get_info(const TextureFormat& in_format)
 {
     typedef Utils::Graphics::TextureFormat     Format;
     typedef Utils::Graphics::TextureFormatInfo Info;
 
-    /* Block width, block height, depth, stencil, compressed, sRGB, name, bytes of a block. */
+    /* A format and what it says of itself. */
     struct Row
     {
         Format format;
         Info   info;
     };
 
-    constexpr Info make_info(const uint32_t& in_block_width,
-                             const uint32_t& in_block_height,
-                             const bool&     in_has_depth,
-                             const bool&     in_has_stencil,
-                             const bool&     in_is_compressed,
-                             const bool&     in_is_srgb,
-                             const char*     in_name_ptr,
-                             const uint32_t& in_n_bytes)
-    {
-        return Info{in_block_height, in_block_width, in_has_depth, in_has_stencil, in_is_compressed, in_is_srgb, in_name_ptr, in_n_bytes};
-    }
-
     /* In the order of the values, so that a format is its place in the table (the tests check it). */
-    const Row ROW_ARRAY[] =
+    static const Row ROW_ARRAY[] =
     {
         {Format::UNKNOWN,             make_info(1, 1, false, false, false, false, "UNKNOWN",             0)},
         {Format::R8_UNORM,            make_info(1, 1, false, false, false, false, "R8_UNORM",            1)},
@@ -79,10 +67,7 @@ namespace
 
     static_assert(N_ROWS == static_cast<size_t>(Utils::Graphics::LAST_TEXTURE_FORMAT_VALUE) + 1,
                   "The table has a row for each format");
-}
 
-Utils::Graphics::TextureFormatInfo Utils::Graphics::TextureFormats::get_info(const TextureFormat& in_format)
-{
     const size_t n_row = static_cast<size_t>(in_format);
 
     return (n_row < N_ROWS) ? ROW_ARRAY[n_row].info
@@ -105,4 +90,16 @@ uint64_t Utils::Graphics::TextureFormats::get_n_bytes(const TextureFormat& in_fo
 bool Utils::Graphics::TextureFormats::is_format_value(const uint32_t& in_value)
 {
     return (in_value <= LAST_TEXTURE_FORMAT_VALUE);
+}
+
+Utils::Graphics::TextureFormatInfo Utils::Graphics::TextureFormats::make_info(const uint32_t& in_block_width,
+                                                                              const uint32_t& in_block_height,
+                                                                              const bool&     in_has_depth,
+                                                                              const bool&     in_has_stencil,
+                                                                              const bool&     in_is_compressed,
+                                                                              const bool&     in_is_srgb,
+                                                                              const char*     in_name_ptr,
+                                                                              const uint32_t& in_n_bytes)
+{
+    return TextureFormatInfo{in_block_height, in_block_width, in_has_depth, in_has_stencil, in_is_compressed, in_is_srgb, in_name_ptr, in_n_bytes};
 }

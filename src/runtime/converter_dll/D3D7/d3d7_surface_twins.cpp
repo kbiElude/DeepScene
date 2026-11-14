@@ -6,42 +6,6 @@
 #include "interception/core/D3D7Utils/constants.h"
 #include "d3d7_surface_twins.h"
 
-namespace
-{
-    /* Whether the call that gave the argument succeeded; a call with no returned value is taken to have. */
-    bool has_succeeded(const APIInterceptor::APIFunctionArgument* in_returned_value_ptr)
-    {
-        bool result = true;
-
-        if (in_returned_value_ptr != nullptr)
-        {
-            switch (in_returned_value_ptr->type)
-            {
-                case APIInterceptor::ARGTYPE_I32:
-                {
-                    result = (in_returned_value_ptr->get_i32() >= 0);
-
-                    break;
-                }
-
-                case APIInterceptor::ARGTYPE_U32:
-                {
-                    result = (static_cast<int32_t>(in_returned_value_ptr->get_u32() ) >= 0);
-
-                    break;
-                }
-
-                default:
-                {
-                    break;
-                }
-            }
-        }
-
-        return result;
-    }
-}
-
 Stereo::ConverterDLL::D3D7SurfaceTwins::D3D7SurfaceTwins()
     :m_back_buffer_ptr(nullptr),
      m_direct_draw_ptr(nullptr),
@@ -256,6 +220,38 @@ void Stereo::ConverterDLL::D3D7SurfaceTwins::handle_release(const APIInterceptor
             }
         }
     }
+}
+
+bool Stereo::ConverterDLL::D3D7SurfaceTwins::has_succeeded(const APIInterceptor::APIFunctionArgument* in_returned_value_ptr)
+{
+    bool result = true;
+
+    if (in_returned_value_ptr != nullptr)
+    {
+        switch (in_returned_value_ptr->type)
+        {
+            case APIInterceptor::ARGTYPE_I32:
+            {
+                result = (in_returned_value_ptr->get_i32() >= 0);
+
+                break;
+            }
+
+            case APIInterceptor::ARGTYPE_U32:
+            {
+                result = (static_cast<int32_t>(in_returned_value_ptr->get_u32() ) >= 0);
+
+                break;
+            }
+
+            default:
+            {
+                break;
+            }
+        }
+    }
+
+    return result;
 }
 
 bool Stereo::ConverterDLL::D3D7SurfaceTwins::is_back_buffer(void* in_surface_ptr) const

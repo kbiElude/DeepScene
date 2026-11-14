@@ -6,12 +6,7 @@
 #include "own_call_scope.h"
 #include <thread>
 
-namespace
-{
-    constexpr GLenum PIXEL_PACK_BUFFER = 0x88EB;
-    constexpr GLenum READ_ONLY         = 0x88B8;
-    constexpr GLenum STREAM_READ       = 0x88E1;
-}
+const GLenum Stereo::ConverterDLL::GLFrameReader::PIXEL_PACK_BUFFER = 0x88EB;
 
 Stereo::ConverterDLL::GLFrameReader::GLFrameReader()
     :m_n_reads(0)
@@ -51,6 +46,9 @@ void Stereo::ConverterDLL::GLFrameReader::finish_set(const GLEyeTargets& in_targ
 bool Stereo::ConverterDLL::GLFrameReader::read(GLEyeTargets*  inout_targets_ptr,
                                                GLFrameImages* out_images_ptr)
 {
+    constexpr GLenum READ_ONLY   = 0x88B8;
+    constexpr GLenum STREAM_READ = 0x88E1;
+
     const OwnCallScope own_call_scope;
     const auto&        functions   = inout_targets_ptr->get_functions();
     const bool         has_buffers = (functions.bind_buffer_func_ptr != nullptr);

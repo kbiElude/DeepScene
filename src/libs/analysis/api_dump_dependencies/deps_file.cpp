@@ -9,27 +9,22 @@
 #include <future>
 #include <string.h>
 
-namespace
+const Analysis::APIDumpAnalysis::AnalysisFileKind Analysis::APIDumpDependencies::DepsFile::FILE_KIND =
 {
-    /* The sections of the file, in its order. */
-    const Analysis::APIDumpAnalysis::SectionInfo SECTION_INFO_ARRAY[] =
-    {
-        {Analysis::APIDumpDependencies::DepsFormat::TAG_META, 1},
-        {Analysis::APIDumpDependencies::DepsFormat::TAG_RSRC, 1},
-        {Analysis::APIDumpDependencies::DepsFormat::TAG_FCAL, 1},
-        {Analysis::APIDumpDependencies::DepsFormat::TAG_RDEP, 1}
-    };
+    Analysis::APIDumpDependencies::DepsFormat::ANALYSIS_VERSION,
+    ".deps",
+    Analysis::APIDumpDependencies::DepsFormat::FILE_VERSION,
+    Analysis::APIDumpDependencies::DepsFormat::MAGIC
+};
 
-    const Analysis::APIDumpAnalysis::AnalysisFileKind FILE_KIND =
-    {
-        Analysis::APIDumpDependencies::DepsFormat::ANALYSIS_VERSION,
-        ".deps",
-        Analysis::APIDumpDependencies::DepsFormat::FILE_VERSION,
-        Analysis::APIDumpDependencies::DepsFormat::MAGIC
-    };
-
-    constexpr size_t N_SECTIONS = sizeof(SECTION_INFO_ARRAY) / sizeof(SECTION_INFO_ARRAY[0]);
-}
+/* The sections of the file, in its order. */
+const Analysis::APIDumpAnalysis::SectionInfo Analysis::APIDumpDependencies::DepsFile::SECTION_INFO_ARRAY[4] =
+{
+    {Analysis::APIDumpDependencies::DepsFormat::TAG_META, 1},
+    {Analysis::APIDumpDependencies::DepsFormat::TAG_RSRC, 1},
+    {Analysis::APIDumpDependencies::DepsFormat::TAG_FCAL, 1},
+    {Analysis::APIDumpDependencies::DepsFormat::TAG_RDEP, 1}
+};
 
 bool Analysis::APIDumpDependencies::DepsFile::read(const std::string&  in_filename,
                                                    DependencyAnalysis* out_analysis_ptr,
@@ -57,6 +52,8 @@ bool Analysis::APIDumpDependencies::DepsFile::read_bytes(const std::vector<uint8
                                                          DependencyAnalysis*         out_analysis_ptr,
                                                          std::string*                out_error_ptr)
 {
+    constexpr size_t N_SECTIONS = sizeof(SECTION_INFO_ARRAY) / sizeof(SECTION_INFO_ARRAY[0]);
+
     bool result = false;
 
     *out_analysis_ptr = DependencyAnalysis();

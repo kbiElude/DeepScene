@@ -62,45 +62,6 @@ constexpr uint64_t SLOT_N_BYTES    = static_cast<uint64_t>(MAX_WIDTH) * BYTES_PE
 static_assert(SLOT_N_BYTES % 65536 == 0,
               "A slot has to start where a GPU places a buffer");
 
-namespace
-{
-    /* A value that the other process may not have set yet: the flag says whether there is one, and the bits are those of the float. False if there is none. */
-    bool read_float(const volatile LONG& in_has_value,
-                    const volatile LONG& in_value_bits,
-                    float*               out_value_ptr)
-    {
-        const bool result = (in_has_value != 0);
-
-        if (result)
-        {
-            const LONG bits = in_value_bits;
-
-            ::memcpy(out_value_ptr,
-                     &bits,
-                     sizeof(float) );
-        }
-
-        return result;
-    }
-
-    void write_float(const float&   in_value,
-                     volatile LONG* out_value_bits_ptr,
-                     volatile LONG* out_has_value_ptr)
-    {
-        LONG bits = 0;
-
-        ::memcpy(&bits,
-                 &in_value,
-                 sizeof(float) );
-
-        /* The value first, then the flag that says that there is one. */
-        ::InterlockedExchange(out_value_bits_ptr,
-                              bits);
-        ::InterlockedExchange(out_has_value_ptr,
-                              1);
-    }
-}
-
 Stereo::Transport::FrameChannel::FrameChannel(const HANDLE& in_mapping,
                                               const HANDLE& in_pace_event,
                                               Header*       in_header_ptr)
@@ -422,6 +383,24 @@ end:
     return result_ptr;
 }
 
+bool Stereo::Transport::FrameChannel::read_float(const volatile LONG& in_has_value,
+                                                 const volatile LONG& in_value_bits,
+                                                 float*               out_value_ptr)
+{
+    const bool result = (in_has_value != 0);
+
+    if (result)
+    {
+        const LONG bits = in_value_bits;
+
+        ::memcpy(out_value_ptr,
+                 &bits,
+                 sizeof(float) );
+    }
+
+    return result;
+}
+
 void Stereo::Transport::FrameChannel::set_accepted_kinds(const TransportKindMask& in_kinds)
 {
     ::InterlockedExchange(&m_header_ptr->consumer_accepted_kinds,
@@ -597,4 +576,21 @@ void Stereo::Transport::FrameChannel::wait_until(const LONGLONG& in_target_qpc,
         ::QueryPerformanceCounter(&now);
     }
     while (now.QuadPart < in_target_qpc);
+}
+
+void Stereo::Transport::FrameChannel::write_float(const float&   in_value,
+                                                  volatile LONG* out_value_bits_ptr,
+                                                  volatile LONG* out_has_value_ptr)
+{
+    LONG bits = 0;
+
+    ::memcpy(&bits,
+             &in_value,
+             sizeof(float) );
+
+    /* The value first, then the flag that says that there is one. */
+    ::InterlockedExchange(out_value_bits_ptr,
+                          bits);
+    ::InterlockedExchange(out_has_value_ptr,
+                          1);
 }

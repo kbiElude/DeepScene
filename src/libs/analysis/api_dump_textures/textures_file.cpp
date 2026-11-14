@@ -8,27 +8,22 @@
 #include <fstream>
 #include <string.h>
 
-namespace
+const Analysis::APIDumpAnalysis::AnalysisFileKind Analysis::APIDumpTextures::TexturesFile::FILE_KIND =
 {
-    /* The sections of the file, in its order. */
-    const Analysis::APIDumpAnalysis::SectionInfo SECTION_INFO_ARRAY[] =
-    {
-        {Analysis::APIDumpTextures::TexturesFormat::TAG_META, 1},
-        {Analysis::APIDumpTextures::TexturesFormat::TAG_RSRC, 1},
-        {Analysis::APIDumpTextures::TexturesFormat::TAG_BLOB, 1},
-        {Analysis::APIDumpTextures::TexturesFormat::TAG_EVNT, 1}
-    };
+    Analysis::APIDumpTextures::TexturesFormat::ANALYSIS_VERSION,
+    ".textures",
+    Analysis::APIDumpTextures::TexturesFormat::FILE_VERSION,
+    Analysis::APIDumpTextures::TexturesFormat::MAGIC
+};
 
-    const Analysis::APIDumpAnalysis::AnalysisFileKind FILE_KIND =
-    {
-        Analysis::APIDumpTextures::TexturesFormat::ANALYSIS_VERSION,
-        ".textures",
-        Analysis::APIDumpTextures::TexturesFormat::FILE_VERSION,
-        Analysis::APIDumpTextures::TexturesFormat::MAGIC
-    };
-
-    constexpr size_t N_SECTIONS = sizeof(SECTION_INFO_ARRAY) / sizeof(SECTION_INFO_ARRAY[0]);
-}
+/* The sections of the file, in its order. */
+const Analysis::APIDumpAnalysis::SectionInfo Analysis::APIDumpTextures::TexturesFile::SECTION_INFO_ARRAY[] =
+{
+    {Analysis::APIDumpTextures::TexturesFormat::TAG_META, 1},
+    {Analysis::APIDumpTextures::TexturesFormat::TAG_RSRC, 1},
+    {Analysis::APIDumpTextures::TexturesFormat::TAG_BLOB, 1},
+    {Analysis::APIDumpTextures::TexturesFormat::TAG_EVNT, 1}
+};
 
 std::string Analysis::APIDumpTextures::TexturesFile::get_blob_filename(const std::string& in_textures_filename)
 {
@@ -61,6 +56,8 @@ bool Analysis::APIDumpTextures::TexturesFile::read_bytes(const std::vector<uint8
                                                          TextureTimeline*            out_timeline_ptr,
                                                          std::string*                out_error_ptr)
 {
+    constexpr size_t N_SECTIONS = sizeof(SECTION_INFO_ARRAY) / sizeof(SECTION_INFO_ARRAY[0]);
+
     bool result = false;
 
     *out_timeline_ptr = TextureTimeline();

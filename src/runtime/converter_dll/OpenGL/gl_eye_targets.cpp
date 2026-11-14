@@ -8,33 +8,12 @@
 #include <algorithm>
 #include <array>
 
-namespace
-{
-    constexpr GLenum     COLOR_ATTACHMENT0           = 0x8CE0;
-    constexpr GLbitfield COLOR_BUFFER_BIT            = 0x00004000;
-    constexpr GLenum     DEPTH24_STENCIL8            = 0x88F0;
-    constexpr GLbitfield DEPTH_BUFFER_BIT            = 0x00000100;
-    constexpr GLenum     DEPTH_STENCIL_ATTACHMENT    = 0x821A;
-    constexpr GLenum     DRAW_FRAMEBUFFER            = 0x8CA9;
-    constexpr GLenum     FRAMEBUFFER                 = 0x8D40;
-    constexpr GLenum     FRAMEBUFFER_COMPLETE        = 0x8CD5;
-    constexpr GLenum     PACK_ALIGNMENT              = 0x0D05;
-    constexpr GLenum     PACK_LSB_FIRST              = 0x0D01;
-    constexpr GLenum     PACK_ROW_LENGTH             = 0x0D02;
-    constexpr GLenum     PACK_SKIP_PIXELS            = 0x0D04;
-    constexpr GLenum     PACK_SKIP_ROWS              = 0x0D03;
-    constexpr GLenum     PACK_SWAP_BYTES             = 0x0D00;
-    constexpr GLenum     PIXEL_PACK_BUFFER           = 0x88EB;
-    constexpr GLenum     PIXEL_PACK_BUFFER_BINDING   = 0x88ED;
-    constexpr GLenum     READ_FRAMEBUFFER            = 0x8CA8;
-    constexpr GLenum     READ_ONLY                   = 0x88B8;
-    constexpr GLenum     RENDERBUFFER                = 0x8D41;
-    constexpr GLenum     SCISSOR_TEST                = 0x0C11;
-    constexpr GLenum     STREAM_READ                 = 0x88E1;
-
-    /* A depth is read for how deep the scene is, and a copy of it this wide says that. */
-    constexpr uint32_t DEPTH_PROBE_WIDTH = 320;
-}
+const GLbitfield Stereo::ConverterDLL::GLEyeTargets::COLOR_BUFFER_BIT          = 0x00004000;
+const GLbitfield Stereo::ConverterDLL::GLEyeTargets::DEPTH_BUFFER_BIT          = 0x00000100;
+const GLenum     Stereo::ConverterDLL::GLEyeTargets::FRAMEBUFFER               = 0x8D40;
+const GLenum     Stereo::ConverterDLL::GLEyeTargets::PACK_ALIGNMENT            = 0x0D05;
+const GLenum     Stereo::ConverterDLL::GLEyeTargets::PIXEL_PACK_BUFFER         = 0x88EB;
+const GLenum     Stereo::ConverterDLL::GLEyeTargets::PIXEL_PACK_BUFFER_BINDING = 0x88ED;
 
 Stereo::ConverterDLL::GLEyeTargets::GLEyeTargets()
     :m_context_ptr               (nullptr),
@@ -57,6 +36,12 @@ Stereo::ConverterDLL::GLEyeTargets::GLEyeTargets()
 
 bool Stereo::ConverterDLL::GLEyeTargets::are_pack_modes_default()
 {
+    constexpr GLenum PACK_LSB_FIRST   = 0x0D01;
+    constexpr GLenum PACK_ROW_LENGTH  = 0x0D02;
+    constexpr GLenum PACK_SKIP_PIXELS = 0x0D04;
+    constexpr GLenum PACK_SKIP_ROWS   = 0x0D03;
+    constexpr GLenum PACK_SWAP_BYTES  = 0x0D00;
+
     constexpr std::array<GLenum, 5> MODE_ARRAY = {PACK_LSB_FIRST,
                                                   PACK_ROW_LENGTH,
                                                   PACK_SKIP_PIXELS,
@@ -87,6 +72,7 @@ bool Stereo::ConverterDLL::GLEyeTargets::are_pack_modes_default()
 bool Stereo::ConverterDLL::GLEyeTargets::begin_depth_read(uint32_t* out_slot_ptr)
 {
     constexpr size_t N_BYTES_PER_DEPTH = sizeof(float);
+    constexpr GLenum STREAM_READ       = 0x88E1;
 
     const OwnCallScope own_call_scope;
     bool               result = false;
@@ -188,6 +174,10 @@ void Stereo::ConverterDLL::GLEyeTargets::blit_left_eye(const uint32_t&   in_dest
                                                        const uint32_t&   in_destination_height,
                                                        const GLbitfield& in_mask)
 {
+    constexpr GLenum DRAW_FRAMEBUFFER = 0x8CA9;
+    constexpr GLenum READ_FRAMEBUFFER = 0x8CA8;
+    constexpr GLenum SCISSOR_TEST     = 0x0C11;
+
     /* A blit is cut to the scissor box if the test is on, which the application has made the box of something else. */
     const bool is_scissor_on = (GLDriverFunctions::get().is_enabled_func_ptr(SCISSOR_TEST) != GL_FALSE);
 
@@ -238,6 +228,9 @@ bool Stereo::ConverterDLL::GLEyeTargets::ensure(const void*     in_context_ptr,
                                                 const uint32_t& in_width,
                                                 const uint32_t& in_height)
 {
+    /* A depth is read for how deep the scene is, and a copy of it this wide says that. */
+    constexpr uint32_t DEPTH_PROBE_WIDTH = 320;
+
     const OwnCallScope own_call_scope;
 
     if (m_is_ready                      &&
@@ -316,6 +309,8 @@ end:
 bool Stereo::ConverterDLL::GLEyeTargets::finish_depth_read(const uint32_t&  in_slot,
                                                            const DepthFunc& in_depth_func)
 {
+    constexpr GLenum READ_ONLY = 0x88B8;
+
     const OwnCallScope own_call_scope;
     bool               result = false;
 
@@ -402,6 +397,12 @@ bool Stereo::ConverterDLL::GLEyeTargets::make_target(const uint32_t& in_width,
                                                      const uint32_t& in_height,
                                                      EyeTarget*      out_target_ptr)
 {
+    constexpr GLenum COLOR_ATTACHMENT0        = 0x8CE0;
+    constexpr GLenum DEPTH24_STENCIL8         = 0x88F0;
+    constexpr GLenum DEPTH_STENCIL_ATTACHMENT = 0x821A;
+    constexpr GLenum FRAMEBUFFER_COMPLETE     = 0x8CD5;
+    constexpr GLenum RENDERBUFFER             = 0x8D41;
+
     m_functions.gen_renderbuffers_func_ptr(1,
                                           &out_target_ptr->color_renderbuffer);
     m_functions.gen_renderbuffers_func_ptr(1,

@@ -34,6 +34,10 @@ namespace Utils
                                    const uint32_t&           in_frame_delay_n_milliseconds);
 
         private:
+            /* A 16-bit value, the low byte first. */
+            static void append_u16(const uint32_t&       in_value,
+                                   std::vector<uint8_t>* inout_byte_vec_ptr);
+
             /* The bytes of the colour indices of a frame as a GIF holds them: the smallest code size, the blocks of the compressed codes, and the end of them. */
             static void compress_lzw(const std::vector<uint8_t>& in_index_u8_vec,
                                      std::vector<uint8_t>*       inout_file_u8_vec_ptr);

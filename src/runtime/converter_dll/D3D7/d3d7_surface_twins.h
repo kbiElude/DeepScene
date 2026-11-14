@@ -50,6 +50,9 @@ namespace Stereo
             static bool get_caps(void*     in_surface_ptr,
                                  uint32_t* out_caps_ptr);
 
+            /* Whether the call that gave the argument succeeded; a call with no returned value is taken to have. */
+            static bool has_succeeded(const APIInterceptor::APIFunctionArgument* in_returned_value_ptr);
+
             void handle_add_attached_surface(const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
             void handle_create_surface      (const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
             void handle_get_attached_surface(const APIInterceptor::APIFunctionArgument* in_arguments_ptr);

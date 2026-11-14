@@ -108,6 +108,17 @@ namespace Utils
 
             /* Whether the value is that of a format (the UNKNOWN is). For what is read from a file. */
             static bool is_format_value(const uint32_t& in_value);
+
+        private:
+            /* The info of a table row: block width, block height, depth, stencil, compressed, sRGB, name, bytes of a block. */
+            static TextureFormatInfo make_info(const uint32_t& in_block_width,
+                                               const uint32_t& in_block_height,
+                                               const bool&     in_has_depth,
+                                               const bool&     in_has_stencil,
+                                               const bool&     in_is_compressed,
+                                               const bool&     in_is_srgb,
+                                               const char*     in_name_ptr,
+                                               const uint32_t& in_n_bytes);
         };
     }
 }

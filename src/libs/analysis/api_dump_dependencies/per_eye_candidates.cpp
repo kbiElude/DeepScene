@@ -7,16 +7,6 @@
 #include <map>
 #include <utility>
 
-namespace
-{
-    /* Whether the resource is one that a frame renders to, and which is not the image of a swap chain. */
-    bool is_rendered_to_by_frames(const Analysis::APIDumpAnalysis::Resource& in_resource)
-    {
-        return ((in_resource.description.is_render_target || in_resource.description.is_depth_stencil) &&
-                in_resource.description.kind != Analysis::APIDumpAnalysis::ResourceKind::SWAP_CHAIN_IMAGE);
-    }
-}
-
 std::vector<Analysis::APIDumpDependencies::PerEyeCandidate> Analysis::APIDumpDependencies::PerEyeCandidates::find(const DependencyAnalysis& in_analysis)
 {
     const auto                   group_vec = find_rotation_groups(in_analysis);
@@ -232,4 +222,10 @@ std::vector<Analysis::APIDumpDependencies::RotationGroup> Analysis::APIDumpDepen
               is_group_less_func);
 
     return result_vec;
+}
+
+bool Analysis::APIDumpDependencies::PerEyeCandidates::is_rendered_to_by_frames(const Analysis::APIDumpAnalysis::Resource& in_resource)
+{
+    return ((in_resource.description.is_render_target || in_resource.description.is_depth_stencil) &&
+            in_resource.description.kind != Analysis::APIDumpAnalysis::ResourceKind::SWAP_CHAIN_IMAGE);
 }

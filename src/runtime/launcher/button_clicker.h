@@ -30,6 +30,14 @@ namespace Stereo
             static std::string get_normalized_text(const std::string& in_text);
 
         private:
+            /* What the enumeration of the windows looks for, and what it found. */
+            struct Search
+            {
+                HWND        button      = nullptr;
+                std::string button_text; /* normalized */
+                DWORD       process_id  = 0;
+            };
+
             static bool click_once(const DWORD&       in_process_id,
                                    const std::string& in_button_text);
 

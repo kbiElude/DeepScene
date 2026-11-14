@@ -17,6 +17,9 @@
 #include "analysis/api_dump_analysis/types.h"
 #include "analysis/api_dump_textures/types.h"
 #include "utils/json/json_writer.h"
+#include <array>
+#include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -53,6 +56,20 @@ namespace Analysis
                                                               std::string*             out_error_ptr);
 
         private:
+            typedef Analysis::APIDumpAnalysis::QueryStatus QueryStatus;
+
+            /* Event kinds are counted in arrays of this size (the value is needed here for ResourceUse). */
+            static constexpr size_t N_EVENT_KINDS = 4;
+
+            /* What a texture has had happen to it, for the lists. */
+            struct ResourceUse
+            {
+                uint64_t                            first_frame   = UINT64_MAX;
+                uint64_t                            last_frame    = 0;
+                std::set<uint32_t>                  level_set;
+                std::array<uint64_t, N_EVENT_KINDS> n_event_array = {};
+            };
+
             /* The resource with the id (from 1): nullptr if the file has none. */
             static const Analysis::APIDumpAnalysis::Resource* find_resource_ptr(const TextureTimeline& in_timeline,
                                                                                 const uint64_t&        in_resource_id);
@@ -61,6 +78,9 @@ namespace Analysis
 
             /* The paging of a list: the arguments of the other files of the analysis. */
             static Analysis::APIDumpAnalysis::QueryArguments get_paging(const QueryArguments& in_arguments);
+
+            /* The uses of every texture that has events, by its resource id (from 1). */
+            static std::map<uint64_t, ResourceUse> get_resource_use_map(const TextureTimeline& in_timeline);
 
             static Analysis::APIDumpAnalysis::QueryStatus run_at       (const TextureTimeline&   in_timeline,
                                                                         const QueryArguments&    in_arguments,
@@ -86,12 +106,15 @@ namespace Analysis
                                     const uint32_t&          in_event_index,
                                     Utils::Json::JsonWriter* inout_writer_ptr);
 
+            static void write_event_counts(const std::array<uint64_t, N_EVENT_KINDS>& in_n_event_array,
+                                           Utils::Json::JsonWriter*                   inout_writer_ptr);
+
             /* The size and the format of a level, in the members of an object that is open. */
-            static void write_level_size(const uint32_t&                      in_width,
-                                         const uint32_t&                      in_height,
-                                         const uint32_t&                      in_depth_or_layer_count,
+            static void write_level_size(const uint32_t&                       in_width,
+                                         const uint32_t&                       in_height,
+                                         const uint32_t&                       in_depth_or_layer_count,
                                          const Utils::Graphics::TextureFormat& in_format,
-                                         Utils::Json::JsonWriter*             inout_writer_ptr);
+                                         Utils::Json::JsonWriter*              inout_writer_ptr);
 
             /* A resource: what it is, in the members of an object that is open. */
             static void write_resource_head(const Analysis::APIDumpAnalysis::Resource& in_resource,

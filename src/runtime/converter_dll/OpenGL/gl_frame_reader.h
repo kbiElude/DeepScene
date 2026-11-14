@@ -36,6 +36,8 @@ namespace Stereo
             static constexpr size_t N_EYES = 2;
             static constexpr size_t N_SETS = 2;
 
+            static const GLenum PIXEL_PACK_BUFFER;
+
             /* What a frame is read into. */
             struct Set
             {

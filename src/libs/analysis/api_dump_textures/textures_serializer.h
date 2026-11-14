@@ -10,6 +10,8 @@
 #define APIDUMPTEXTURES_TEXTURES_SERIALIZER_H
 
 #include "analysis/api_dump_textures/types.h"
+#include "utils/binary_io/byte_reader.h"
+#include "utils/binary_io/byte_writer.h"
 #include <stdint.h>
 #include <vector>
 
@@ -32,6 +34,28 @@ namespace Analysis
             static std::vector<uint8_t> serialize_events     (const TextureTimeline&      in_timeline);
             static std::vector<uint8_t> serialize_meta       (const TextureTimeline&      in_timeline);
             static std::vector<uint8_t> serialize_resources  (const TextureTimeline&      in_timeline);
+
+        private:
+            /* Whether the values of an entry, as they were read, say what can be. */
+            static bool is_entry_valid(const uint8_t&   in_filter,
+                                       const uint8_t&   in_location,
+                                       const BlobEntry& in_entry);
+
+            /* Whether an event, as it was read, says what can be. */
+            static bool is_event_valid(const TextureEvent&                                     in_event,
+                                       const uint8_t&                                          in_kind,
+                                       const uint32_t&                                         in_level_format_value,
+                                       const uint64_t&                                         in_last_call_index,
+                                       const size_t&                                           in_n_blobs,
+                                       const std::vector<Analysis::APIDumpAnalysis::Resource>& in_resource_vec);
+
+            /* Whether a region is on the blocks of its format. */
+            static bool is_region_on_blocks(const TextureEvent& in_event);
+
+            static Analysis::APIDumpAnalysis::ResourceView read_view(Utils::BinaryIO::ByteReader* inout_reader_ptr);
+
+            static void write_view(Utils::BinaryIO::ByteWriter*                   inout_writer_ptr,
+                                   const Analysis::APIDumpAnalysis::ResourceView& in_view);
         };
     }
 }

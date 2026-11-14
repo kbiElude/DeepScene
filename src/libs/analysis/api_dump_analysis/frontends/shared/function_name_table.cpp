@@ -6,19 +6,6 @@
 #include "capture/api_dump_names/function_names.h"
 #include <string.h>
 
-namespace
-{
-    /* The name of the method, without the name of its interface. */
-    const char* get_method_name_ptr(const char* in_full_name_ptr)
-    {
-        const char* separator_ptr = ::strstr(in_full_name_ptr,
-                                             "::");
-
-        return (separator_ptr != nullptr) ? separator_ptr + 2
-                                          : in_full_name_ptr;
-    }
-}
-
 const char* Analysis::APIDumpAnalysis::Frontends::FunctionNameTable::find_reason_ptr(const Entry*                       in_entry_ptr,
                                                                                      const size_t&                      in_n_entries,
                                                                                      const APIInterceptor::APIFunction& in_function)
@@ -50,6 +37,15 @@ const char* Analysis::APIDumpAnalysis::Frontends::FunctionNameTable::find_reason
     }
 
     return result_ptr;
+}
+
+const char* Analysis::APIDumpAnalysis::Frontends::FunctionNameTable::get_method_name_ptr(const char* in_full_name_ptr)
+{
+    const char* separator_ptr = ::strstr(in_full_name_ptr,
+                                         "::");
+
+    return (separator_ptr != nullptr) ? separator_ptr + 2
+                                      : in_full_name_ptr;
 }
 
 bool Analysis::APIDumpAnalysis::Frontends::FunctionNameTable::is_query(const APIInterceptor::APIFunction& in_function)

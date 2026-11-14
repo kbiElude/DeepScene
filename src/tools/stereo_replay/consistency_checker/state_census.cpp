@@ -8,51 +8,6 @@
 #include <algorithm>
 #include <string.h>
 
-namespace
-{
-    constexpr uint32_t TEXTURE0                = 0x84C0; /* GL_TEXTURE0 */
-    constexpr uint32_t TEXTURE_COORD_ARRAY     = 0x8078; /* GL_TEXTURE_COORD_ARRAY */
-
-    bool has_prefix(const char* in_name_ptr,
-                    const char* in_prefix_ptr)
-    {
-        return (::strncmp(in_name_ptr,
-                          in_prefix_ptr,
-                          ::strlen(in_prefix_ptr) ) == 0);
-    }
-
-    bool is_one_of(const char* const*  in_name_ptr_array,
-                   const size_t&       in_n_names,
-                   const char*         in_name_ptr)
-    {
-        bool result = false;
-
-        for (size_t n_name = 0;
-                    n_name < in_n_names;
-                  ++n_name)
-        {
-            if (::strcmp(in_name_ptr_array[n_name],
-                         in_name_ptr) == 0)
-            {
-                result = true;
-
-                break;
-            }
-        }
-
-        return result;
-    }
-
-    /* A function that takes an array says so by its last letter (glMaterialfv, glTexEnviv, glColor3fv). */
-    bool takes_array(const char* in_name_ptr)
-    {
-        const size_t n_characters = ::strlen(in_name_ptr);
-
-        return (n_characters > 0 &&
-                in_name_ptr[n_characters - 1] == 'v');
-    }
-}
-
 Stereo::Replay::ConsistencyChecker::StateCensus::StateCensus(const std::vector<bool>& in_is_live_vec)
     :m_active_unit              (0),
      m_attribute_depth          (0),
@@ -80,6 +35,8 @@ Stereo::Replay::ConsistencyChecker::StateCensus::StateCensus(const std::vector<b
 Stereo::Replay::ConsistencyChecker::StateCensus::ClassifiedCall Stereo::Replay::ConsistencyChecker::StateCensus::classify(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                                                                           const char*                                  in_name_ptr) const
 {
+    constexpr uint32_t TEXTURE_COORD_ARRAY = 0x8078; /* GL_TEXTURE_COORD_ARRAY */
+
     static const char* const BARRIER_NAME_ARRAY[] =
     {
         "glCallList", "glCallLists", "glDeleteLists", "glDeleteTextures", "glEndList", "glFinish", "glFlush", "glNewList", "glPopAttrib", "glPopClientAttrib",
@@ -536,10 +493,42 @@ uint64_t Stereo::Replay::ConsistencyChecker::StateCensus::get_n_unchanged_keys()
     return m_n_runs_unchanged_keys;
 }
 
+bool Stereo::Replay::ConsistencyChecker::StateCensus::has_prefix(const char* in_name_ptr,
+                                                                 const char* in_prefix_ptr)
+{
+    return (::strncmp(in_name_ptr,
+                      in_prefix_ptr,
+                      ::strlen(in_prefix_ptr) ) == 0);
+}
+
+bool Stereo::Replay::ConsistencyChecker::StateCensus::is_one_of(const char* const* in_name_ptr_array,
+                                                                const size_t&      in_n_names,
+                                                                const char*        in_name_ptr)
+{
+    bool result = false;
+
+    for (size_t n_name = 0;
+                n_name < in_n_names;
+              ++n_name)
+    {
+        if (::strcmp(in_name_ptr_array[n_name],
+                     in_name_ptr) == 0)
+        {
+            result = true;
+
+            break;
+        }
+    }
+
+    return result;
+}
+
 void Stereo::Replay::ConsistencyChecker::StateCensus::on_call_replayed(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                        const uint32_t&                              in_n_frame,
                                                                        const bool&                                  in_was_executed)
 {
+    constexpr uint32_t TEXTURE0 = 0x84C0; /* GL_TEXTURE0 */
+
     const char* name_ptr = Capture::APIDumpNames::get_function_name(in_call.func);
 
     if (name_ptr != nullptr)
@@ -808,4 +797,13 @@ bool Stereo::Replay::ConsistencyChecker::StateCensus::should_execute_call(const 
     (void) in_n_frame;
 
     return true;
+}
+
+/* A function that takes an array says so by its last letter (glMaterialfv, glTexEnviv, glColor3fv). */
+bool Stereo::Replay::ConsistencyChecker::StateCensus::takes_array(const char* in_name_ptr)
+{
+    const size_t n_characters = ::strlen(in_name_ptr);
+
+    return (n_characters > 0 &&
+            in_name_ptr[n_characters - 1] == 'v');
 }

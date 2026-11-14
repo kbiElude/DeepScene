@@ -41,6 +41,11 @@ namespace Stereo
 
             /* The last line of statistics of the log, if it has one. */
             static LogSummary summarize(const std::vector<std::string>& in_log_line_vec);
+
+        private:
+            /* The number that comes right before the text in the line, 0 if the text or a number before it is not there. */
+            static uint64_t get_number_before(const std::string& in_line,
+                                              const char*        in_text_ptr);
         };
     }
 }

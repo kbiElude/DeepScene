@@ -26,6 +26,13 @@ namespace Utils
             static bool make_difference_image(const Image& in_first_image,
                                               const Image& in_second_image,
                                               Image*       out_image_ptr);
+
+        private:
+            static const size_t N_BYTES_PER_PIXEL;
+
+            /* True if both images have the pixels their size says. */
+            static bool are_comparable(const Image& in_first_image,
+                                       const Image& in_second_image);
         };
     }
 }

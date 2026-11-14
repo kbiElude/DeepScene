@@ -8,23 +8,55 @@
 #include "analysis/api_dump_analysis/frontends/shared/function_name_table.h"
 #include <iterator>
 
-namespace
+const char* Analysis::APIDumpAnalysis::Frontends::D3D8FunctionPolicy::get_unsupported_reason_ptr(const APIInterceptor::APIFunction& in_function)
 {
-    typedef Analysis::APIDumpAnalysis::Frontends::FunctionNameTable FunctionNameTable;
-
-    constexpr char DISPLAY_ONLY[]     = "only changes how the display shows the screen, and no surface";
-    constexpr char DRIVER_HINT[]      = "is a hint of where the driver keeps a resource, and changes no content";
-    constexpr char LOOKS_ONLY[]       = "changes how a draw looks, and not which surface it writes";
-    constexpr char PALETTES[]         = "makes or changes a palette, which gives the colors of the pixels of a texture, and the front end follows no palette";
-    constexpr char PATCHES[]          = "draws or deletes a patch, whose triangles the driver makes, and the front end does not follow them";
-    constexpr char PRIVATE_DATA[]     = "is data that the application keeps for itself";
-    constexpr char SHADER_CONSTANTS[] = "sets constants that shaders read, which can be the matrices that a replay for the other eye has to change, and the front end follows no constant";
-    constexpr char STATE_BLOCKS[]     = "records or plays back state blocks, which are calls that the front end does not follow";
-    constexpr char STORED_ELSEWHERE[] = "is not where the data of what the application writes is stored: it is with the Unlock that follows";
-    constexpr char VOLUME_WRITES[]    = "writes the texels of a volume, which the front end does not follow";
+    static constexpr char PALETTES[]         = "makes or changes a palette, which gives the colors of the pixels of a texture, and the front end follows no palette";
+    static constexpr char PATCHES[]          = "draws or deletes a patch, whose triangles the driver makes, and the front end does not follow them";
+    static constexpr char SHADER_CONSTANTS[] = "sets constants that shaders read, which can be the matrices that a replay for the other eye has to change, and the front end follows no constant";
+    static constexpr char STATE_BLOCKS[]     = "records or plays back state blocks, which are calls that the front end does not follow";
+    static constexpr char VOLUME_WRITES[]    = "writes the texels of a volume, which the front end does not follow";
 
     /* Sorted by name. */
-    const FunctionNameTable::Entry left_out_entry_array[] =
+    static const FunctionNameTable::Entry unsupported_entry_array[] =
+    {
+        {"ApplyStateBlock",                    STATE_BLOCKS},
+        {"BeginStateBlock",                    STATE_BLOCKS},
+        {"CaptureStateBlock",                  STATE_BLOCKS},
+        {"CreateAdditionalSwapChain",          "makes a swap chain, whose frames the front end does not follow"},
+        {"CreateStateBlock",                   STATE_BLOCKS},
+        {"DeletePatch",                        PATCHES},
+        {"DeleteStateBlock",                   STATE_BLOCKS},
+        {"DrawRectPatch",                      PATCHES},
+        {"DrawTriPatch",                       PATCHES},
+        {"EndStateBlock",                      STATE_BLOCKS},
+        {"GetFrontBuffer",                     "copies the screen into a surface, with what no call of the workload made"},
+        {"IDirect3D8::RegisterSoftwareDevice", "adds a rasterizer that the workload does not carry"},
+        {"IDirect3DSwapChain8::Present",       "presents a swap chain, whose frames the front end does not follow"},
+        {"IDirect3DVolume8::UnlockBox",        VOLUME_WRITES},
+        {"IDirect3DVolumeTexture8::UnlockBox", VOLUME_WRITES},
+        {"MultiplyTransform",                  "multiplies a transform into the current one, and the front end follows only the matrices that are set"},
+        {"ProcessVertices",                    "transforms vertices into a buffer, which is then in no call of the workload"},
+        {"SetCurrentTexturePalette",           PALETTES},
+        {"SetPaletteEntries",                  PALETTES},
+        {"SetPixelShaderConstant",             SHADER_CONSTANTS},
+        {"SetVertexShaderConstant",            SHADER_CONSTANTS}
+    };
+
+    return FunctionNameTable::find_reason_ptr(unsupported_entry_array,
+                                              std::size(unsupported_entry_array),
+                                              in_function);
+}
+
+bool Analysis::APIDumpAnalysis::Frontends::D3D8FunctionPolicy::is_left_out_by_design(const APIInterceptor::APIFunction& in_function)
+{
+    static constexpr char DISPLAY_ONLY[]     = "only changes how the display shows the screen, and no surface";
+    static constexpr char DRIVER_HINT[]      = "is a hint of where the driver keeps a resource, and changes no content";
+    static constexpr char LOOKS_ONLY[]       = "changes how a draw looks, and not which surface it writes";
+    static constexpr char PRIVATE_DATA[]     = "is data that the application keeps for itself";
+    static constexpr char STORED_ELSEWHERE[] = "is not where the data of what the application writes is stored: it is with the Unlock that follows";
+
+    /* Sorted by name. */
+    static const FunctionNameTable::Entry left_out_entry_array[] =
     {
         {"AddDirtyBox",                 "tells the driver which part of a managed texture changed, and its data is with the Unlock"},
         {"AddDirtyRect",                "tells the driver which part of a managed texture changed, and its data is with the Unlock"},
@@ -53,42 +85,6 @@ namespace
         {"ValidateDevice",              "asks whether a draw can be made, and changes nothing"}
     };
 
-    /* Sorted by name. */
-    const FunctionNameTable::Entry unsupported_entry_array[] =
-    {
-        {"ApplyStateBlock",                    STATE_BLOCKS},
-        {"BeginStateBlock",                    STATE_BLOCKS},
-        {"CaptureStateBlock",                  STATE_BLOCKS},
-        {"CreateAdditionalSwapChain",          "makes a swap chain, whose frames the front end does not follow"},
-        {"CreateStateBlock",                   STATE_BLOCKS},
-        {"DeletePatch",                        PATCHES},
-        {"DeleteStateBlock",                   STATE_BLOCKS},
-        {"DrawRectPatch",                      PATCHES},
-        {"DrawTriPatch",                       PATCHES},
-        {"EndStateBlock",                      STATE_BLOCKS},
-        {"GetFrontBuffer",                     "copies the screen into a surface, with what no call of the workload made"},
-        {"IDirect3D8::RegisterSoftwareDevice", "adds a rasterizer that the workload does not carry"},
-        {"IDirect3DSwapChain8::Present",       "presents a swap chain, whose frames the front end does not follow"},
-        {"IDirect3DVolume8::UnlockBox",        VOLUME_WRITES},
-        {"IDirect3DVolumeTexture8::UnlockBox", VOLUME_WRITES},
-        {"MultiplyTransform",                  "multiplies a transform into the current one, and the front end follows only the matrices that are set"},
-        {"ProcessVertices",                    "transforms vertices into a buffer, which is then in no call of the workload"},
-        {"SetCurrentTexturePalette",           PALETTES},
-        {"SetPaletteEntries",                  PALETTES},
-        {"SetPixelShaderConstant",             SHADER_CONSTANTS},
-        {"SetVertexShaderConstant",            SHADER_CONSTANTS}
-    };
-}
-
-const char* Analysis::APIDumpAnalysis::Frontends::D3D8FunctionPolicy::get_unsupported_reason_ptr(const APIInterceptor::APIFunction& in_function)
-{
-    return FunctionNameTable::find_reason_ptr(unsupported_entry_array,
-                                              std::size(unsupported_entry_array),
-                                              in_function);
-}
-
-bool Analysis::APIDumpAnalysis::Frontends::D3D8FunctionPolicy::is_left_out_by_design(const APIInterceptor::APIFunction& in_function)
-{
     const char* reason_ptr = FunctionNameTable::find_reason_ptr(left_out_entry_array,
                                                                 std::size(left_out_entry_array),
                                                                 in_function);

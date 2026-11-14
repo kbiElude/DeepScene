@@ -109,6 +109,8 @@ namespace Stereo
             /* The twin of a surface or a texture; nullptr if it has none. */
             void* get_twin_ptr(void* in_object_ptr) const;
 
+            /* What the argument of a call points at, which the call holds as a pointer to what it does not change, but the device is called with as it is. */
+            static void* get_pointer_argument(const APIInterceptor::APIFunctionArgument& in_argument);
 
             std::vector<Stereo::Core::MatrixChange> m_change_vec; /* of the draw being made: its entries are used again */
             Stereo::Core::StereoCore*               m_core_ptr;

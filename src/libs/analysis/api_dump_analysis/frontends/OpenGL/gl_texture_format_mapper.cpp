@@ -4,20 +4,13 @@
  */
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_texture_format_mapper.h"
 
-namespace
+uint32_t Analysis::APIDumpAnalysis::Frontends::GLTextureFormatMapper::get_n_bytes_per_texel(const uint32_t& in_format,
+                                                                                            const uint32_t& in_type)
 {
-    typedef Utils::Graphics::TextureFormat Format;
-
     struct ComponentRow
     {
         uint32_t format;
         uint32_t n_components;
-    };
-
-    struct InternalFormatRow
-    {
-        uint32_t internal_format;
-        Format   texture_format;
     };
 
     struct TypeRow
@@ -27,7 +20,7 @@ namespace
         uint32_t type;
     };
 
-    const ComponentRow COMPONENT_ROW_ARRAY[] =
+    static const ComponentRow COMPONENT_ROW_ARRAY[] =
     {
         {0x1901, 1}, /* GL_STENCIL_INDEX    */
         {0x1902, 1}, /* GL_DEPTH_COMPONENT  */
@@ -41,8 +34,64 @@ namespace
         {0x80E1, 4}  /* GL_BGRA             */
     };
 
+    static const TypeRow TYPE_ROW_ARRAY[] =
+    {
+        {1, false, 0x1400}, /* GL_BYTE                       */
+        {1, false, 0x1401}, /* GL_UNSIGNED_BYTE              */
+        {2, false, 0x1402}, /* GL_SHORT                      */
+        {2, false, 0x1403}, /* GL_UNSIGNED_SHORT             */
+        {4, false, 0x1404}, /* GL_INT                        */
+        {4, false, 0x1405}, /* GL_UNSIGNED_INT               */
+        {4, false, 0x1406}, /* GL_FLOAT                      */
+        {1, true,  0x8032}, /* GL_UNSIGNED_BYTE_3_3_2        */
+        {2, true,  0x8033}, /* GL_UNSIGNED_SHORT_4_4_4_4     */
+        {2, true,  0x8034}, /* GL_UNSIGNED_SHORT_5_5_5_1     */
+        {4, true,  0x8035}, /* GL_UNSIGNED_INT_8_8_8_8       */
+        {4, true,  0x8036}, /* GL_UNSIGNED_INT_10_10_10_2    */
+        {2, true,  0x8363}, /* GL_UNSIGNED_SHORT_5_6_5       */
+        {2, true,  0x8364}, /* GL_UNSIGNED_SHORT_5_6_5_REV   */
+        {2, true,  0x8365}, /* GL_UNSIGNED_SHORT_4_4_4_4_REV */
+        {2, true,  0x8366}, /* GL_UNSIGNED_SHORT_1_5_5_5_REV */
+        {4, true,  0x8367}, /* GL_UNSIGNED_INT_8_8_8_8_REV   */
+        {4, true,  0x8368}  /* GL_UNSIGNED_INT_2_10_10_10_REV */
+    };
+
+    uint32_t n_components = 0;
+    uint32_t result       = 0;
+
+    for (const auto& row : COMPONENT_ROW_ARRAY)
+    {
+        if (row.format == in_format)
+        {
+            n_components = row.n_components;
+        }
+    }
+
+    for (const auto& row : TYPE_ROW_ARRAY)
+    {
+        if (row.type == in_type &&
+            n_components != 0)
+        {
+            result = row.is_packed ? row.n_bytes
+                                   : row.n_bytes * n_components;
+        }
+    }
+
+    return result;
+}
+
+Utils::Graphics::TextureFormat Analysis::APIDumpAnalysis::Frontends::GLTextureFormatMapper::get_texture_format(const uint32_t& in_internal_format)
+{
+    typedef Utils::Graphics::TextureFormat Format;
+
+    struct InternalFormatRow
+    {
+        uint32_t internal_format;
+        Format   texture_format;
+    };
+
     /* The unsized ones are what the drivers make of them. */
-    const InternalFormatRow INTERNAL_FORMAT_ROW_ARRAY[] =
+    static const InternalFormatRow INTERNAL_FORMAT_ROW_ARRAY[] =
     {
         {0x1902, Format::D24_UNORM_X8},          /* GL_DEPTH_COMPONENT              */
         {0x1906, Format::A8_UNORM},              /* GL_ALPHA                        */
@@ -79,58 +128,6 @@ namespace
         {0x8D62, Format::R5G6B5_UNORM}           /* GL_RGB565                       */
     };
 
-    const TypeRow TYPE_ROW_ARRAY[] =
-    {
-        {1, false, 0x1400}, /* GL_BYTE                       */
-        {1, false, 0x1401}, /* GL_UNSIGNED_BYTE              */
-        {2, false, 0x1402}, /* GL_SHORT                      */
-        {2, false, 0x1403}, /* GL_UNSIGNED_SHORT             */
-        {4, false, 0x1404}, /* GL_INT                        */
-        {4, false, 0x1405}, /* GL_UNSIGNED_INT               */
-        {4, false, 0x1406}, /* GL_FLOAT                      */
-        {1, true,  0x8032}, /* GL_UNSIGNED_BYTE_3_3_2        */
-        {2, true,  0x8033}, /* GL_UNSIGNED_SHORT_4_4_4_4     */
-        {2, true,  0x8034}, /* GL_UNSIGNED_SHORT_5_5_5_1     */
-        {4, true,  0x8035}, /* GL_UNSIGNED_INT_8_8_8_8       */
-        {4, true,  0x8036}, /* GL_UNSIGNED_INT_10_10_10_2    */
-        {2, true,  0x8363}, /* GL_UNSIGNED_SHORT_5_6_5       */
-        {2, true,  0x8364}, /* GL_UNSIGNED_SHORT_5_6_5_REV   */
-        {2, true,  0x8365}, /* GL_UNSIGNED_SHORT_4_4_4_4_REV */
-        {2, true,  0x8366}, /* GL_UNSIGNED_SHORT_1_5_5_5_REV */
-        {4, true,  0x8367}, /* GL_UNSIGNED_INT_8_8_8_8_REV   */
-        {4, true,  0x8368}  /* GL_UNSIGNED_INT_2_10_10_10_REV */
-    };
-}
-
-uint32_t Analysis::APIDumpAnalysis::Frontends::GLTextureFormatMapper::get_n_bytes_per_texel(const uint32_t& in_format,
-                                                                                            const uint32_t& in_type)
-{
-    uint32_t n_components = 0;
-    uint32_t result       = 0;
-
-    for (const auto& row : COMPONENT_ROW_ARRAY)
-    {
-        if (row.format == in_format)
-        {
-            n_components = row.n_components;
-        }
-    }
-
-    for (const auto& row : TYPE_ROW_ARRAY)
-    {
-        if (row.type == in_type &&
-            n_components != 0)
-        {
-            result = row.is_packed ? row.n_bytes
-                                   : row.n_bytes * n_components;
-        }
-    }
-
-    return result;
-}
-
-Utils::Graphics::TextureFormat Analysis::APIDumpAnalysis::Frontends::GLTextureFormatMapper::get_texture_format(const uint32_t& in_internal_format)
-{
     Format result = Format::UNKNOWN;
 
     for (const auto& row : INTERNAL_FORMAT_ROW_ARRAY)

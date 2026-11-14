@@ -9,16 +9,6 @@
 #include "d3d8_eye_renderer.h"
 #include "stereo/core/screen_parallax.h"
 
-namespace
-{
-    /* What the argument of a call points at, which the call holds as a pointer to what it does not change, but the device is called with as it is. */
-    void* get_pointer_argument(const APIInterceptor::APIFunctionArgument& in_argument)
-    {
-        return const_cast<void*>(in_argument.get_ptr() );
-    }
-
-}
-
 Stereo::ConverterDLL::D3D8EyeRenderer::D3D8EyeRenderer(Stereo::Core::StereoCore* in_core_ptr)
     :m_core_ptr      (in_core_ptr),
      m_device_ptr    (nullptr),
@@ -79,6 +69,11 @@ uint64_t Stereo::ConverterDLL::D3D8EyeRenderer::get_n_failed_twins() const
 uint64_t Stereo::ConverterDLL::D3D8EyeRenderer::get_n_twins() const
 {
     return m_twin_map.size();
+}
+
+void* Stereo::ConverterDLL::D3D8EyeRenderer::get_pointer_argument(const APIInterceptor::APIFunctionArgument& in_argument)
+{
+    return const_cast<void*>(in_argument.get_ptr() );
 }
 
 void* Stereo::ConverterDLL::D3D8EyeRenderer::get_render_target_ptr() const

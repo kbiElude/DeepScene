@@ -8,20 +8,61 @@
 #include "analysis/api_dump_analysis/frontends/shared/function_name_table.h"
 #include <iterator>
 
-namespace
-{
-    typedef Analysis::APIDumpAnalysis::Frontends::FunctionNameTable FunctionNameTable;
+const char Analysis::APIDumpAnalysis::Frontends::D3D7FunctionPolicy::PALETTES[] = "makes or changes a palette, which gives the colors of the pixels of a surface, and the front end follows no palette";
 
-    constexpr char DISPLAY_ONLY[]     = "only changes how the display shows the primary surface, and no surface";
-    constexpr char DRIVER_HINT[]      = "is a hint of where the driver keeps a resource, and changes no content";
-    constexpr char LOOKS_ONLY[]       = "changes how a draw looks, and not which surface it writes";
-    constexpr char NO_SURFACE_DATA[]  = "makes or changes a surface, a buffer or the screen in a way that no data of the workload tells";
-    constexpr char PALETTES[]         = "makes or changes a palette, which gives the colors of the pixels of a surface, and the front end follows no palette";
-    constexpr char STATE_BLOCKS[]     = "records or plays back state blocks, which are calls that the front end does not follow";
-    constexpr char STORED_ELSEWHERE[] = "is not where the data of what the application writes is stored: it is with the Unlock that follows";
+const char* Analysis::APIDumpAnalysis::Frontends::D3D7FunctionPolicy::get_unsupported_reason_ptr(const APIInterceptor::APIFunction& in_function)
+{
+    static constexpr char NO_SURFACE_DATA[] = "makes or changes a surface, a buffer or the screen in a way that no data of the workload tells";
+    static constexpr char STATE_BLOCKS[]    = "records or plays back state blocks, which are calls that the front end does not follow";
 
     /* Sorted by name. */
-    const FunctionNameTable::Entry left_out_entry_array[] =
+    static const FunctionNameTable::Entry unsupported_entry_array[] =
+    {
+        {"ApplyStateBlock",                          STATE_BLOCKS},
+        {"BeginStateBlock",                          STATE_BLOCKS},
+        {"BltBatch",                                 NO_SURFACE_DATA},
+        {"CaptureStateBlock",                        STATE_BLOCKS},
+        {"CreateStateBlock",                         STATE_BLOCKS},
+        {"DeleteAttachedSurface",                    "takes a surface off another, which can be the depth buffer that a render target is drawn with, and the front end does not follow it"},
+        {"DeleteStateBlock",                         STATE_BLOCKS},
+        {"EndStateBlock",                            STATE_BLOCKS},
+        {"EvaluateMode",                             "tries a display mode, which changes the screen"},
+        {"FlipToGDISurface",                         "shows the surface that GDI draws on, which holds what no call of the workload made"},
+        {"IDirectDraw7::CreatePalette",              PALETTES},
+        {"IDirectDrawPalette::SetEntries",           PALETTES},
+        {"IDirectDrawSurface7::AddOverlayDirtyRect", "is about overlays, which the display puts over the screen with what no call of the workload made"},
+        {"IDirectDrawSurface7::GetDC",               "gives GDI a way to write the surface, with calls that are not in the workload"},
+        {"IDirectDrawSurface7::ReleaseDC",           "ends what GDI wrote to the surface, with calls that are not in the workload"},
+        {"IDirectDrawSurface7::SetOverlayPosition",  "is about overlays, which the display puts over the screen with what no call of the workload made"},
+        {"IDirectDrawSurface7::SetPalette",          PALETTES},
+        {"MultiplyTransform",                        "multiplies a transform into the current one, and the front end follows only the matrices that are set"},
+        {"ProcessVertices",                          "transforms vertices into a buffer, which is then in no call of the workload"},
+        {"ProcessVerticesStrided",                   "transforms vertices into a buffer, which is then in no call of the workload"},
+        {"Restore",                                  "gives a surface back its memory, and what it held is lost"},
+        {"RestoreAllSurfaces",                       "gives the surfaces back their memory, and what they held is lost"},
+        {"RestoreDisplayMode",                       "changes the display mode, which changes the screen"},
+        {"SetColorKey",                              "decides which pixels a blit or a draw leaves, which the front end does not follow"},
+        {"SetSurfaceDesc",                           NO_SURFACE_DATA},
+        {"StartModeTest",                            "tries display modes, which changes the screen"},
+        {"UpdateOverlay",                            "is about overlays, which the display puts over the screen with what no call of the workload made"},
+        {"UpdateOverlayDisplay",                     "is about overlays, which the display puts over the screen with what no call of the workload made"},
+        {"UpdateOverlayZOrder",                      "is about overlays, which the display puts over the screen with what no call of the workload made"}
+    };
+
+    return FunctionNameTable::find_reason_ptr(unsupported_entry_array,
+                                              std::size(unsupported_entry_array),
+                                              in_function);
+}
+
+bool Analysis::APIDumpAnalysis::Frontends::D3D7FunctionPolicy::is_left_out_by_design(const APIInterceptor::APIFunction& in_function)
+{
+    static constexpr char DISPLAY_ONLY[]     = "only changes how the display shows the primary surface, and no surface";
+    static constexpr char DRIVER_HINT[]      = "is a hint of where the driver keeps a resource, and changes no content";
+    static constexpr char LOOKS_ONLY[]       = "changes how a draw looks, and not which surface it writes";
+    static constexpr char STORED_ELSEWHERE[] = "is not where the data of what the application writes is stored: it is with the Unlock that follows";
+
+    /* Sorted by name. */
+    static const FunctionNameTable::Entry left_out_entry_array[] =
     {
         {"AddRef",                          "counts references to an object"},
         {"BeginScene",                      "brackets the calls of a frame, and writes nothing"},
@@ -67,50 +108,6 @@ namespace
         {"WaitForVerticalBlank",            "is about when, and writes nothing"}
     };
 
-    /* Sorted by name. */
-    const FunctionNameTable::Entry unsupported_entry_array[] =
-    {
-        {"ApplyStateBlock",                          STATE_BLOCKS},
-        {"BeginStateBlock",                          STATE_BLOCKS},
-        {"BltBatch",                                 NO_SURFACE_DATA},
-        {"CaptureStateBlock",                        STATE_BLOCKS},
-        {"CreateStateBlock",                         STATE_BLOCKS},
-        {"DeleteAttachedSurface",                    "takes a surface off another, which can be the depth buffer that a render target is drawn with, and the front end does not follow it"},
-        {"DeleteStateBlock",                         STATE_BLOCKS},
-        {"EndStateBlock",                            STATE_BLOCKS},
-        {"EvaluateMode",                             "tries a display mode, which changes the screen"},
-        {"FlipToGDISurface",                         "shows the surface that GDI draws on, which holds what no call of the workload made"},
-        {"IDirectDraw7::CreatePalette",              PALETTES},
-        {"IDirectDrawPalette::SetEntries",           PALETTES},
-        {"IDirectDrawSurface7::AddOverlayDirtyRect", "is about overlays, which the display puts over the screen with what no call of the workload made"},
-        {"IDirectDrawSurface7::GetDC",               "gives GDI a way to write the surface, with calls that are not in the workload"},
-        {"IDirectDrawSurface7::ReleaseDC",           "ends what GDI wrote to the surface, with calls that are not in the workload"},
-        {"IDirectDrawSurface7::SetOverlayPosition",  "is about overlays, which the display puts over the screen with what no call of the workload made"},
-        {"IDirectDrawSurface7::SetPalette",          PALETTES},
-        {"MultiplyTransform",                        "multiplies a transform into the current one, and the front end follows only the matrices that are set"},
-        {"ProcessVertices",                          "transforms vertices into a buffer, which is then in no call of the workload"},
-        {"ProcessVerticesStrided",                   "transforms vertices into a buffer, which is then in no call of the workload"},
-        {"Restore",                                  "gives a surface back its memory, and what it held is lost"},
-        {"RestoreAllSurfaces",                       "gives the surfaces back their memory, and what they held is lost"},
-        {"RestoreDisplayMode",                       "changes the display mode, which changes the screen"},
-        {"SetColorKey",                              "decides which pixels a blit or a draw leaves, which the front end does not follow"},
-        {"SetSurfaceDesc",                           NO_SURFACE_DATA},
-        {"StartModeTest",                            "tries display modes, which changes the screen"},
-        {"UpdateOverlay",                            "is about overlays, which the display puts over the screen with what no call of the workload made"},
-        {"UpdateOverlayDisplay",                     "is about overlays, which the display puts over the screen with what no call of the workload made"},
-        {"UpdateOverlayZOrder",                      "is about overlays, which the display puts over the screen with what no call of the workload made"}
-    };
-}
-
-const char* Analysis::APIDumpAnalysis::Frontends::D3D7FunctionPolicy::get_unsupported_reason_ptr(const APIInterceptor::APIFunction& in_function)
-{
-    return FunctionNameTable::find_reason_ptr(unsupported_entry_array,
-                                              std::size(unsupported_entry_array),
-                                              in_function);
-}
-
-bool Analysis::APIDumpAnalysis::Frontends::D3D7FunctionPolicy::is_left_out_by_design(const APIInterceptor::APIFunction& in_function)
-{
     const char* reason_ptr = FunctionNameTable::find_reason_ptr(left_out_entry_array,
                                                                 std::size(left_out_entry_array),
                                                                 in_function);

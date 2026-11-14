@@ -40,6 +40,17 @@ namespace Analysis
             template<typename Enum>
             static Enum read_enum(Utils::BinaryIO::ByteReader* inout_reader_ptr,
                                   const Enum&                  in_last_value);
+
+            static const size_t  MIN_RANGE_N_BYTES;
+            static const uint8_t USE_FLAG_ALL;
+            static const uint8_t USE_FLAG_FULLY_WRITTEN;
+            static const uint8_t USE_FLAG_READ;
+            static const uint8_t USE_FLAG_SELF_SAMPLED;
+            static const uint8_t USE_FLAG_WRITTEN;
+            static const uint8_t VERSION_FLAG_ALL;
+            static const uint8_t VERSION_FLAG_HAS_INPUTS;
+            static const uint8_t VERSION_FLAG_HAS_WRITER;
+            static const uint8_t VERSION_FLAG_KEEPS_EARLIER_CONTENT;
         };
     }
 }

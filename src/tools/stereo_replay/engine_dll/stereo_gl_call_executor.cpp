@@ -12,26 +12,8 @@
 #include <vector>
 #include <Windows.h>
 
-namespace
-{
-    typedef void         (APIENTRY* PFNACTIVETEXTUREPROC)  (unsigned int);
-    typedef void         (APIENTRY* PFNBINDTEXTUREPROC)    (unsigned int, unsigned int);
-    typedef void         (APIENTRY* PFNDELETETEXTURESPROC) (int, const unsigned int*);
-    typedef unsigned int (APIENTRY* PFNGETERRORPROC)       ();
-    typedef void         (APIENTRY* PFNGENTEXTURESPROC)    (int, unsigned int*);
-    typedef void         (APIENTRY* PFNGETINTEGERVPROC)    (unsigned int, int*);
-    typedef void         (APIENTRY* PFNGETTEXPARAMETERIVPROC)(unsigned int, unsigned int, int*);
-    typedef void         (APIENTRY* PFNTEXPARAMETERIPROC)  (unsigned int, unsigned int, int);
-
-    constexpr unsigned int ACTIVE_TEXTURE       = 0x84E0;
-    constexpr unsigned int MAX_TEXTURE_UNITS    = 0x84E2;
-    constexpr unsigned int TEXTURE0             = 0x84C0;
-    constexpr unsigned int TEXTURE_2D           = 0x0DE1;
-    constexpr unsigned int TEXTURE_BINDING_2D   = 0x8069;
-
-    /* More units than this are not looked at: a program of the age of fixed-function GL does not use them. */
-    constexpr int MAX_N_UNITS = 8;
-}
+const unsigned int Stereo::Replay::EngineDLL::StereoGLCallExecutor::TEXTURE_2D         = 0x0DE1;
+const unsigned int Stereo::Replay::EngineDLL::StereoGLCallExecutor::TEXTURE_BINDING_2D = 0x8069;
 
 Stereo::Replay::EngineDLL::StereoGLCallExecutor::StereoGLCallExecutor(::Replay::ReplayEngineDLL::ObjectRemapper* in_remapper_ptr)
     :GLCallExecutor  (in_remapper_ptr),
@@ -45,6 +27,13 @@ Stereo::Replay::EngineDLL::StereoGLCallExecutor::StereoGLCallExecutor(::Replay::
 
 void Stereo::Replay::EngineDLL::StereoGLCallExecutor::apply_eye()
 {
+    constexpr unsigned int ACTIVE_TEXTURE    = 0x84E0;
+    constexpr unsigned int MAX_TEXTURE_UNITS = 0x84E2;
+    constexpr unsigned int TEXTURE0          = 0x84C0;
+
+    /* More units than this are not looked at: a program of the age of fixed-function GL does not use them. */
+    constexpr int MAX_N_UNITS = 8;
+
     const auto active_texture_func_ptr = reinterpret_cast<PFNACTIVETEXTUREPROC>(get_proc_ptr("glActiveTexture") );
     const auto bind_func_ptr           = reinterpret_cast<PFNBINDTEXTUREPROC>   (get_proc_ptr("glBindTexture") );
     const auto get_integerv_func_ptr   = reinterpret_cast<PFNGETINTEGERVPROC>   (get_proc_ptr("glGetIntegerv") );

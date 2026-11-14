@@ -5,21 +5,17 @@
 #include "utils/images/image_comparer.h"
 #include <algorithm>
 
-namespace
+const size_t Utils::Images::ImageComparer::N_BYTES_PER_PIXEL = 4; /* B, G, R, A */
+
+bool Utils::Images::ImageComparer::are_comparable(const Image& in_first_image,
+                                                  const Image& in_second_image)
 {
-    constexpr size_t N_BYTES_PER_PIXEL = 4; /* B, G, R, A */
+    const size_t n_bytes = static_cast<size_t>(in_first_image.width) * in_first_image.height * N_BYTES_PER_PIXEL;
 
-    /* True if both images have the pixels their size says. */
-    bool are_comparable(const Utils::Images::Image& in_first_image,
-                        const Utils::Images::Image& in_second_image)
-    {
-        const size_t n_bytes = static_cast<size_t>(in_first_image.width) * in_first_image.height * N_BYTES_PER_PIXEL;
-
-        return (in_first_image.width                == in_second_image.width  &&
-                in_first_image.height               == in_second_image.height &&
-                in_first_image.pixel_u8_vec.size () >= n_bytes                &&
-                in_second_image.pixel_u8_vec.size() >= n_bytes);
-    }
+    return (in_first_image.width                == in_second_image.width  &&
+            in_first_image.height               == in_second_image.height &&
+            in_first_image.pixel_u8_vec.size () >= n_bytes                &&
+            in_second_image.pixel_u8_vec.size() >= n_bytes);
 }
 
 Utils::Images::ImageDifference Utils::Images::ImageComparer::compare(const Image& in_first_image,

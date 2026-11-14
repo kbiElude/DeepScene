@@ -6,17 +6,6 @@
 #include <algorithm>
 #include <cctype>
 
-namespace
-{
-    /* What the enumeration of the windows looks for, and what it found. */
-    struct Search
-    {
-        HWND        button      = nullptr;
-        std::string button_text; /* normalized */
-        DWORD       process_id  = 0;
-    };
-}
-
 bool Stereo::Launcher::ButtonClicker::click_once(const DWORD&       in_process_id,
                                                  const std::string& in_button_text)
 {

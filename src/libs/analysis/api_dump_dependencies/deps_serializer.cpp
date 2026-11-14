@@ -6,32 +6,31 @@
 #include "analysis/api_dump_analysis/passes_serializer.h"
 #include "analysis/api_dump_dependencies/deps_serializer.h"
 
-namespace
-{
-    /* The bits of what a frame does to a resource, as it is stored. */
-    constexpr uint8_t USE_FLAG_FULLY_WRITTEN = 1 << 0;
-    constexpr uint8_t USE_FLAG_READ          = 1 << 1;
-    constexpr uint8_t USE_FLAG_SELF_SAMPLED  = 1 << 2;
-    constexpr uint8_t USE_FLAG_WRITTEN       = 1 << 3;
-    constexpr uint8_t USE_FLAG_ALL           = USE_FLAG_FULLY_WRITTEN | USE_FLAG_READ | USE_FLAG_SELF_SAMPLED | USE_FLAG_WRITTEN;
+/* The bits of what a frame does to a resource, as it is stored. */
+const uint8_t Analysis::APIDumpDependencies::DepsSerializer::USE_FLAG_FULLY_WRITTEN = 1 << 0;
+const uint8_t Analysis::APIDumpDependencies::DepsSerializer::USE_FLAG_READ          = 1 << 1;
+const uint8_t Analysis::APIDumpDependencies::DepsSerializer::USE_FLAG_SELF_SAMPLED  = 1 << 2;
+const uint8_t Analysis::APIDumpDependencies::DepsSerializer::USE_FLAG_WRITTEN       = 1 << 3;
+const uint8_t Analysis::APIDumpDependencies::DepsSerializer::USE_FLAG_ALL           = USE_FLAG_FULLY_WRITTEN | USE_FLAG_READ | USE_FLAG_SELF_SAMPLED | USE_FLAG_WRITTEN;
 
-    /* The bits of what a version is. */
-    constexpr uint8_t VERSION_FLAG_HAS_INPUTS            = 1 << 2;
-    constexpr uint8_t VERSION_FLAG_HAS_WRITER            = 1 << 0;
-    constexpr uint8_t VERSION_FLAG_KEEPS_EARLIER_CONTENT = 1 << 1;
-    constexpr uint8_t VERSION_FLAG_ALL                   = VERSION_FLAG_HAS_INPUTS | VERSION_FLAG_HAS_WRITER | VERSION_FLAG_KEEPS_EARLIER_CONTENT;
+/* The bits of what a version is. */
+const uint8_t Analysis::APIDumpDependencies::DepsSerializer::VERSION_FLAG_HAS_INPUTS            = 1 << 2;
+const uint8_t Analysis::APIDumpDependencies::DepsSerializer::VERSION_FLAG_HAS_WRITER            = 1 << 0;
+const uint8_t Analysis::APIDumpDependencies::DepsSerializer::VERSION_FLAG_KEEPS_EARLIER_CONTENT = 1 << 1;
+const uint8_t Analysis::APIDumpDependencies::DepsSerializer::VERSION_FLAG_ALL                   = VERSION_FLAG_HAS_INPUTS | VERSION_FLAG_HAS_WRITER | VERSION_FLAG_KEEPS_EARLIER_CONTENT;
 
-    /* Fields of a resource's totals, a use run, a version and a range of frames, with nothing in the variable parts. */
-    constexpr size_t MIN_RANGE_N_BYTES     = 2 * sizeof(uint64_t);
-    constexpr size_t MIN_RECTANGLE_N_BYTES = 4 * sizeof(uint32_t);
-    constexpr size_t MIN_RESOURCE_N_BYTES  = 2 * sizeof(uint8_t) + 10 * sizeof(uint64_t) + 2 * sizeof(uint32_t);
-    constexpr size_t MIN_RUN_N_BYTES       = 2 * sizeof(uint64_t) + 2 * sizeof(uint8_t);
-    constexpr size_t MIN_VERSION_N_BYTES   = sizeof(uint8_t) + 3 * sizeof(uint64_t) + 3 * sizeof(uint32_t);
-}
+/* The fields of a range of frames, with nothing in the variable parts. */
+const size_t Analysis::APIDumpDependencies::DepsSerializer::MIN_RANGE_N_BYTES = 2 * sizeof(uint64_t);
 
 bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_dependencies(const std::vector<uint8_t>& in_byte_vec,
                                                                              DependencyAnalysis*         inout_analysis_ptr)
 {
+    /* The fields of a resource's totals, a use run, a version and a rectangle, with nothing in the variable parts. */
+    constexpr size_t MIN_RECTANGLE_N_BYTES = 4 * sizeof(uint32_t);
+    constexpr size_t MIN_RESOURCE_N_BYTES  = 2 * sizeof(uint8_t) + 10 * sizeof(uint64_t) + 2 * sizeof(uint32_t);
+    constexpr size_t MIN_RUN_N_BYTES       = 2 * sizeof(uint64_t) + 2 * sizeof(uint8_t);
+    constexpr size_t MIN_VERSION_N_BYTES   = sizeof(uint8_t) + 3 * sizeof(uint64_t) + 3 * sizeof(uint32_t);
+
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
                                        in_byte_vec.size());
 

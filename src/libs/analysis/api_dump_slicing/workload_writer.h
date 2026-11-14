@@ -13,6 +13,7 @@
 #include <memory>
 #include <stdio.h>
 #include <string>
+#include <vector>
 
 namespace Analysis
 {
@@ -52,6 +53,17 @@ namespace Analysis
 
             FILE*    m_file_handle;
             uint64_t m_n_bytes_written;
+
+            /* Appends the 32-bit values. */
+            static void append_u32_values(std::vector<uint8_t>* inout_u8_vec_ptr,
+                                          const uint32_t*       in_value_ptr,
+                                          const size_t&         in_n_values);
+
+            /* Appends the call as the dumper writes it: the header, the arguments, the results, and the returned value (which a call that has none has as an
+             * argument of no type).
+             */
+            static void serialize_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                       std::vector<uint8_t>*                        inout_u8_vec_ptr);
         };
     }
 }

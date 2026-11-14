@@ -8,6 +8,7 @@
 #ifndef APIDUMPTEXTURES_TEXTURES_FILE_H
 #define APIDUMPTEXTURES_TEXTURES_FILE_H
 
+#include "analysis/api_dump_analysis/sectioned_file.h"
 #include "analysis/api_dump_textures/types.h"
 #include <stdint.h>
 #include <string>
@@ -35,6 +36,10 @@ namespace Analysis
                                                     const TextureTimeline&      in_timeline,
                                                     std::string*                out_error_ptr);
             static std::vector<uint8_t> write_bytes(const TextureTimeline&      in_timeline);
+
+        private:
+            static const Analysis::APIDumpAnalysis::AnalysisFileKind FILE_KIND;
+            static const Analysis::APIDumpAnalysis::SectionInfo      SECTION_INFO_ARRAY[];
         };
     }
 }

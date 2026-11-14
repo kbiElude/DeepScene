@@ -8,10 +8,7 @@
 #include "analysis/api_dump_analysis/frontends/shared/call_view.h"
 #include "analysis/api_dump_analysis/frontends/shared/unsupported_use.h"
 
-namespace
-{
-    constexpr uint32_t MODELVIEW_MODE = 0x1700; /* GL_MODELVIEW, the matrix mode */
-}
+const uint32_t Analysis::APIDumpAnalysis::Frontends::GLMatrixHandler::MODELVIEW_MODE = 0x1700;
 
 Analysis::APIDumpAnalysis::Frontends::GLMatrixHandler::GLMatrixHandler(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr)
     :m_builder_ptr       (in_builder_ptr),
@@ -168,9 +165,9 @@ bool Analysis::APIDumpAnalysis::Frontends::GLMatrixHandler::read_matrix_chunk(co
 {
     constexpr size_t MATRIX_ARGUMENT = 0;
 
-    const CallView                           view(in_call,
-                                                  in_workload,
-                                                  in_call.arg_in_vec.size() );
+    const CallView view(in_call,
+                        in_workload,
+                        in_call.arg_in_vec.size());
     const Capture::APIDumpLoader::DataChunk* chunk_ptr = view.get_chunk_ptr(MATRIX_ARGUMENT);
     bool                                     result    = false;
 

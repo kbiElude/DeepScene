@@ -7,6 +7,7 @@
 #ifndef APIDUMPDEPENDENCIES_DEPS_FILE_H
 #define APIDUMPDEPENDENCIES_DEPS_FILE_H
 
+#include "analysis/api_dump_analysis/sectioned_file.h"
 #include "analysis/api_dump_dependencies/types.h"
 #include <stdint.h>
 #include <string>
@@ -31,6 +32,10 @@ namespace Analysis
                                                     const DependencyAnalysis&   in_analysis,
                                                     std::string*                out_error_ptr);
             static std::vector<uint8_t> write_bytes(const DependencyAnalysis&   in_analysis);
+
+        private:
+            static const Analysis::APIDumpAnalysis::AnalysisFileKind FILE_KIND;
+            static const Analysis::APIDumpAnalysis::SectionInfo      SECTION_INFO_ARRAY[4];
         };
     }
 }

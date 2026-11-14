@@ -7,21 +7,11 @@
 #include <stdio.h>
 #include <string.h>
 
-namespace
+void Utils::Images::GifWriter::append_u16(const uint32_t&       in_value,
+                                          std::vector<uint8_t>* inout_byte_vec_ptr)
 {
-    /* A box of the median cut: the colours it holds (as 15 bits: 5 of each of R, G and B), and how many pixels have them. */
-    struct ColorBox
-    {
-        std::vector<uint16_t> color_vec;
-        uint64_t              n_pixels  = 0;
-    };
-
-    void append_u16(const uint32_t&       in_value,
-                    std::vector<uint8_t>* inout_byte_vec_ptr)
-    {
-        inout_byte_vec_ptr->push_back(static_cast<uint8_t>(in_value & 0xFF) );
-        inout_byte_vec_ptr->push_back(static_cast<uint8_t>((in_value >> 8) & 0xFF) );
-    }
+    inout_byte_vec_ptr->push_back(static_cast<uint8_t>(in_value & 0xFF) );
+    inout_byte_vec_ptr->push_back(static_cast<uint8_t>((in_value >> 8) & 0xFF) );
 }
 
 void Utils::Images::GifWriter::compress_lzw(const std::vector<uint8_t>& in_index_u8_vec,
@@ -274,7 +264,14 @@ void Utils::Images::GifWriter::quantize(const Image&              in_image,
     constexpr uint32_t BIN_SHIFT         = 3; /* 8 bits to 5 */
     constexpr uint32_t CHANNEL_MASK      = 31;
 
-    const size_t                n_pixels = static_cast<size_t>(in_image.width) * in_image.height;
+    /* A box of the median cut: the colours it holds (as 15 bits: 5 of each of R, G and B), and how many pixels have them. */
+    struct ColorBox
+    {
+        std::vector<uint16_t> color_vec;
+        uint64_t              n_pixels  = 0;
+    };
+
+    const size_t               n_pixels = static_cast<size_t>(in_image.width) * in_image.height;
     std::vector<uint8_t>  box_of_bin_u8_vec(N_BINS,
                                             0);
     std::vector<ColorBox> box_vec          (1);

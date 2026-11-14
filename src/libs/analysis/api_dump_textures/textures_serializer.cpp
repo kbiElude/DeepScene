@@ -7,121 +7,14 @@
 #include "utils/binary_io/byte_reader.h"
 #include "utils/binary_io/byte_writer.h"
 
-namespace
-{
-    /* The bytes of an entry of the table of blobs, and of an event: what is the least that a count of them can take. */
-    constexpr size_t BLOB_ENTRY_N_BYTES = sizeof(uint64_t) * 5 + sizeof(uint8_t) * 2 + sizeof(uint32_t);
-    constexpr size_t EVENT_N_BYTES      = sizeof(uint8_t) + sizeof(uint64_t) * 2 + sizeof(uint32_t) * 22;
-
-    /* Whether the values of an entry, as they were read, say what can be: values of an enumeration that there are, and for a content that is left in the workload no
-     * stored bytes and no filter (it has nothing of the file of blobs).
-     */
-    bool is_entry_valid(const uint8_t&                              in_filter,
-                        const uint8_t&                              in_location,
-                        const Analysis::APIDumpTextures::BlobEntry& in_entry)
-    {
-        const bool is_filter_known   = (in_filter   <= static_cast<uint8_t>(Analysis::APIDumpTextures::BlobFilter::BYTE_PLANES_OF_4) );
-        const bool is_location_known = (in_location <= static_cast<uint8_t>(Analysis::APIDumpTextures::BlobLocation::WORKLOAD_CHUNK) );
-        const bool is_in_workload    = (in_location == static_cast<uint8_t>(Analysis::APIDumpTextures::BlobLocation::WORKLOAD_CHUNK) );
-        const bool has_stored_values = (in_filter                      != static_cast<uint8_t>(Analysis::APIDumpTextures::BlobFilter::NONE) ||
-                                        in_entry.file_offset_n_bytes   != 0                                                                 ||
-                                        in_entry.n_stored_bytes        != 0);
-
-        return (is_filter_known   &&
-                is_location_known &&
-                (is_in_workload == false ||
-                 has_stored_values == false) );
-    }
-
-    /* Whether a region is on the blocks of its format: it starts on a block, and ends on one or at the edge of the level, in each direction. A format of blocks of
-     * one texel has every region on them.
-     */
-    bool is_region_on_blocks(const Analysis::APIDumpTextures::TextureEvent& in_event)
-    {
-        const Utils::Graphics::TextureFormatInfo block = Utils::Graphics::TextureFormats::get_info(in_event.level_format);
-
-        const bool is_x_ok = (in_event.x % block.block_width_in_texels == 0 &&
-                              (in_event.width % block.block_width_in_texels == 0 ||
-                               static_cast<uint64_t>(in_event.x) + in_event.width == in_event.level_width) );
-        const bool is_y_ok = (in_event.y % block.block_height_in_texels == 0 &&
-                              (in_event.height % block.block_height_in_texels == 0 ||
-                               static_cast<uint64_t>(in_event.y) + in_event.height == in_event.level_height) );
-
-        return (is_x_ok &&
-                is_y_ok);
-    }
-
-    /* Whether an event, as it was read, says what can be: values of the enumerations that there are, resources that are there (they are numbered from 1; the
-     * window, which is no resource, may be the source), calls in order, a blob that is in the table, at least one layer, for a multisampled texture a sample
-     * that it has, and a format that there is with a region on its blocks.
-     */
-    bool is_event_valid(const Analysis::APIDumpTextures::TextureEvent&              in_event,
-                        const uint8_t&                                              in_kind,
-                        const uint32_t&                                             in_level_format_value,
-                        const uint64_t&                                             in_last_call_index,
-                        const size_t&                                               in_n_blobs,
-                        const std::vector<Analysis::APIDumpAnalysis::Resource>&     in_resource_vec)
-    {
-        const size_t   n_resources       = in_resource_vec.size();
-        const uint32_t destination_index = static_cast<uint32_t>(in_event.destination.resource_id);
-        const uint32_t source_index      = static_cast<uint32_t>(in_event.source.resource_id);
-        const bool     are_resources_ok  = (destination_index != 0            &&
-                                            destination_index <= n_resources  &&
-                                            source_index      <= n_resources);
-        bool           is_sample_ok      = false;
-
-        if (are_resources_ok)
-        {
-            const uint32_t sample_count = in_resource_vec.at(destination_index - 1).description.sample_count;
-
-            is_sample_ok = (in_event.sample_index == Analysis::APIDumpTextures::ALL_SAMPLES ||
-                            in_event.sample_index <  (sample_count > 0 ? sample_count : 1) );
-        }
-
-        const bool are_enums_ok  = (Utils::Graphics::TextureFormats::is_format_value(in_level_format_value) &&
-                                    in_kind <= static_cast<uint8_t>(Analysis::APIDumpTextures::TextureEventKind::SNAPSHOT) );
-        const bool is_blob_ok    = (in_event.blob_index == Analysis::APIDumpTextures::NO_BLOB ||
-                                    in_event.blob_index <  in_n_blobs);
-        const bool are_layers_ok = (in_event.layer_count                >= 1                                                       &&
-                                    in_event.level_depth_or_layer_count >= 1                                                       &&
-                                    in_event.layer_count                <= UINT32_MAX - in_event.destination.layer);
-
-        const bool is_region_ok = is_region_on_blocks(in_event);
-
-        return (are_enums_ok               &&
-                are_layers_ok              &&
-                are_resources_ok           &&
-                is_blob_ok                 &&
-                is_region_ok               &&
-                is_sample_ok               &&
-                in_event.call_index >= in_last_call_index);
-    }
-
-    void write_view(Utils::BinaryIO::ByteWriter*                    inout_writer_ptr,
-                    const Analysis::APIDumpAnalysis::ResourceView&  in_view)
-    {
-        inout_writer_ptr->write_u32(static_cast<uint32_t>(in_view.resource_id) );
-        inout_writer_ptr->write_u32(in_view.mip_level);
-        inout_writer_ptr->write_u32(in_view.layer);
-    }
-
-    Analysis::APIDumpAnalysis::ResourceView read_view(Utils::BinaryIO::ByteReader* inout_reader_ptr)
-    {
-        Analysis::APIDumpAnalysis::ResourceView result;
-
-        result.resource_id = static_cast<Analysis::APIDumpAnalysis::ResourceId>(inout_reader_ptr->read_u32() );
-        result.mip_level   = inout_reader_ptr->read_u32();
-        result.layer       = inout_reader_ptr->read_u32();
-
-        return result;
-    }
-}
-
 bool Analysis::APIDumpTextures::TexturesSerializer::deserialize_blobs(const std::vector<uint8_t>& in_byte_vec,
                                                                       TextureTimeline*            inout_timeline_ptr)
 {
+    /* The bytes of an entry of the table of blobs: what is the least that a count of them can take. */
+    constexpr size_t BLOB_ENTRY_N_BYTES = sizeof(uint64_t) * 5 + sizeof(uint8_t) * 2 + sizeof(uint32_t);
+
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
-                                       in_byte_vec.size() );
+                                       in_byte_vec.size());
     bool                        is_valid = true;
 
     inout_timeline_ptr->blob_vec.clear();
@@ -171,8 +64,11 @@ bool Analysis::APIDumpTextures::TexturesSerializer::deserialize_blobs(const std:
 bool Analysis::APIDumpTextures::TexturesSerializer::deserialize_events(const std::vector<uint8_t>& in_byte_vec,
                                                                        TextureTimeline*            inout_timeline_ptr)
 {
+    /* The bytes of an event: what is the least that a count of them can take. */
+    constexpr size_t EVENT_N_BYTES = sizeof(uint8_t) + sizeof(uint64_t) * 2 + sizeof(uint32_t) * 22;
+
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
-                                       in_byte_vec.size() );
+                                       in_byte_vec.size());
     bool                        is_valid        = true;
     uint64_t                    last_call_index = 0;
 
@@ -251,7 +147,7 @@ bool Analysis::APIDumpTextures::TexturesSerializer::deserialize_meta(const std::
                                                                      TextureTimeline*            out_timeline_ptr)
 {
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
-                                       in_byte_vec.size() );
+                                       in_byte_vec.size());
 
     *out_timeline_ptr = TextureTimeline();
 
@@ -279,6 +175,101 @@ bool Analysis::APIDumpTextures::TexturesSerializer::deserialize_resources(const 
                                                                                                                &model);
 
     inout_timeline_ptr->resource_vec = std::move(model.resource_vec);
+
+    return result;
+}
+
+/* Whether the values of an entry, as they were read, say what can be: values of an enumeration that there are, and for a content that is left in the workload no
+ * stored bytes and no filter (it has nothing of the file of blobs).
+ */
+bool Analysis::APIDumpTextures::TexturesSerializer::is_entry_valid(const uint8_t&   in_filter,
+                                                                   const uint8_t&   in_location,
+                                                                   const BlobEntry& in_entry)
+{
+    const bool is_filter_known   = (in_filter   <= static_cast<uint8_t>(BlobFilter::BYTE_PLANES_OF_4) );
+    const bool is_location_known = (in_location <= static_cast<uint8_t>(BlobLocation::WORKLOAD_CHUNK) );
+    const bool is_in_workload    = (in_location == static_cast<uint8_t>(BlobLocation::WORKLOAD_CHUNK) );
+    const bool has_stored_values = (in_filter                      != static_cast<uint8_t>(BlobFilter::NONE) ||
+                                    in_entry.file_offset_n_bytes   != 0                                      ||
+                                    in_entry.n_stored_bytes        != 0);
+
+    return (is_filter_known   &&
+            is_location_known &&
+            (is_in_workload == false ||
+             has_stored_values == false) );
+}
+
+/* Whether an event, as it was read, says what can be: values of the enumerations that there are, resources that are there (they are numbered from 1; the
+ * window, which is no resource, may be the source), calls in order, a blob that is in the table, at least one layer, for a multisampled texture a sample
+ * that it has, and a format that there is with a region on its blocks.
+ */
+bool Analysis::APIDumpTextures::TexturesSerializer::is_event_valid(const TextureEvent&                                     in_event,
+                                                                   const uint8_t&                                          in_kind,
+                                                                   const uint32_t&                                         in_level_format_value,
+                                                                   const uint64_t&                                         in_last_call_index,
+                                                                   const size_t&                                           in_n_blobs,
+                                                                   const std::vector<Analysis::APIDumpAnalysis::Resource>& in_resource_vec)
+{
+    const size_t   n_resources       = in_resource_vec.size();
+    const uint32_t destination_index = static_cast<uint32_t>(in_event.destination.resource_id);
+    const uint32_t source_index      = static_cast<uint32_t>(in_event.source.resource_id);
+    const bool     are_resources_ok  = (destination_index != 0            &&
+                                        destination_index <= n_resources  &&
+                                        source_index      <= n_resources);
+    bool           is_sample_ok      = false;
+
+    if (are_resources_ok)
+    {
+        const uint32_t sample_count = in_resource_vec.at(destination_index - 1).description.sample_count;
+
+        is_sample_ok = (in_event.sample_index == ALL_SAMPLES ||
+                        in_event.sample_index <  (sample_count > 0 ? sample_count : 1) );
+    }
+
+    const bool are_enums_ok  = (Utils::Graphics::TextureFormats::is_format_value(in_level_format_value) &&
+                                in_kind <= static_cast<uint8_t>(TextureEventKind::SNAPSHOT) );
+    const bool is_blob_ok    = (in_event.blob_index == NO_BLOB ||
+                                in_event.blob_index <  in_n_blobs);
+    const bool are_layers_ok = (in_event.layer_count                >= 1                                                       &&
+                                in_event.level_depth_or_layer_count >= 1                                                       &&
+                                in_event.layer_count                <= UINT32_MAX - in_event.destination.layer);
+
+    const bool is_region_ok = is_region_on_blocks(in_event);
+
+    return (are_enums_ok               &&
+            are_layers_ok              &&
+            are_resources_ok           &&
+            is_blob_ok                 &&
+            is_region_ok               &&
+            is_sample_ok               &&
+            in_event.call_index >= in_last_call_index);
+}
+
+/* Whether a region is on the blocks of its format: it starts on a block, and ends on one or at the edge of the level, in each direction. A format of blocks of
+ * one texel has every region on them.
+ */
+bool Analysis::APIDumpTextures::TexturesSerializer::is_region_on_blocks(const TextureEvent& in_event)
+{
+    const Utils::Graphics::TextureFormatInfo block = Utils::Graphics::TextureFormats::get_info(in_event.level_format);
+
+    const bool is_x_ok = (in_event.x % block.block_width_in_texels == 0 &&
+                          (in_event.width % block.block_width_in_texels == 0 ||
+                           static_cast<uint64_t>(in_event.x) + in_event.width == in_event.level_width) );
+    const bool is_y_ok = (in_event.y % block.block_height_in_texels == 0 &&
+                          (in_event.height % block.block_height_in_texels == 0 ||
+                           static_cast<uint64_t>(in_event.y) + in_event.height == in_event.level_height) );
+
+    return (is_x_ok &&
+            is_y_ok);
+}
+
+Analysis::APIDumpAnalysis::ResourceView Analysis::APIDumpTextures::TexturesSerializer::read_view(Utils::BinaryIO::ByteReader* inout_reader_ptr)
+{
+    Analysis::APIDumpAnalysis::ResourceView result;
+
+    result.resource_id = static_cast<Analysis::APIDumpAnalysis::ResourceId>(inout_reader_ptr->read_u32() );
+    result.mip_level   = inout_reader_ptr->read_u32();
+    result.layer       = inout_reader_ptr->read_u32();
 
     return result;
 }
@@ -369,4 +360,12 @@ std::vector<uint8_t> Analysis::APIDumpTextures::TexturesSerializer::serialize_re
     model.resource_vec = in_timeline.resource_vec;
 
     return Analysis::APIDumpAnalysis::PassesSerializer::serialize_resources(model);
+}
+
+void Analysis::APIDumpTextures::TexturesSerializer::write_view(Utils::BinaryIO::ByteWriter*                   inout_writer_ptr,
+                                                               const Analysis::APIDumpAnalysis::ResourceView& in_view)
+{
+    inout_writer_ptr->write_u32(static_cast<uint32_t>(in_view.resource_id) );
+    inout_writer_ptr->write_u32(in_view.mip_level);
+    inout_writer_ptr->write_u32(in_view.layer);
 }

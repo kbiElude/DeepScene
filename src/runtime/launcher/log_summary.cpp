@@ -5,45 +5,41 @@
 #include "log_summary.h"
 #include <stdlib.h>
 
-namespace
+uint64_t Stereo::Launcher::LogSummarizer::get_number_before(const std::string& in_line,
+                                                            const char*        in_text_ptr)
 {
-    /* The number that comes right before the text in the line, 0 if the text or a number before it is not there. */
-    uint64_t get_number_before(const std::string& in_line,
-                               const char*        in_text_ptr)
+    const size_t text_position = in_line.find(in_text_ptr);
+    uint64_t     result        = 0;
+    size_t       n_digit_end   = 0;
+    size_t       n_digit_start = 0;
+
+    if (text_position == std::string::npos)
     {
-        const size_t text_position = in_line.find(in_text_ptr);
-        uint64_t     result        = 0;
-        size_t       n_digit_end   = 0;
-        size_t       n_digit_start = 0;
+        goto end;
+    }
 
-        if (text_position == std::string::npos)
-        {
-            goto end;
-        }
+    n_digit_end   = text_position;
+    n_digit_start = n_digit_end;
 
-        n_digit_end   = text_position;
-        n_digit_start = n_digit_end;
+    while (n_digit_start                 >  0   &&
+           in_line.at(n_digit_start - 1) >= '0' &&
+           in_line.at(n_digit_start - 1) <= '9')
+    {
+        n_digit_start--;
+    }
 
-        while (n_digit_start                 >  0   &&
-               in_line.at(n_digit_start - 1) >= '0' &&
-               in_line.at(n_digit_start - 1) <= '9')
-        {
-            n_digit_start--;
-        }
+    if (n_digit_start != n_digit_end)
+    {
+        const std::string digit_text = in_line.substr(n_digit_start,
+                                                      n_digit_end - n_digit_start);
 
-        if (n_digit_start != n_digit_end)
-        {
-            const std::string digit_text = in_line.substr(n_digit_start,
-                                                          n_digit_end - n_digit_start);
-
-            result = ::strtoull(digit_text.c_str(),
-                                nullptr,
-                                10);
-        }
+        result = ::strtoull(digit_text.c_str(),
+                            nullptr,
+                            10);
+    }
 
 end:
-        return result;
-    }
+    return result;
 }
 
 std::vector<std::string> Stereo::Launcher::LogSummarizer::make_report_lines(const LogSummary& in_summary)

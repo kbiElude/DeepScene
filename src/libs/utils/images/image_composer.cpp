@@ -6,18 +6,13 @@
 #include <algorithm>
 #include <string.h>
 
-namespace
-{
-    constexpr size_t  N_BYTES_PER_PIXEL = 4; /* B, G, R, A */
-    constexpr uint8_t OPAQUE_ALPHA      = 255;
+const size_t Utils::Images::ImageComposer::N_BYTES_PER_PIXEL = 4; /* B, G, R, A */
 
-    /* True if the image has the pixels its size says, and some. */
-    bool is_usable(const Utils::Images::Image& in_image)
-    {
-        return (in_image.width               != 0                                                                          &&
-                in_image.height              != 0                                                                          &&
-                in_image.pixel_u8_vec.size() >= static_cast<size_t>(in_image.width) * in_image.height * N_BYTES_PER_PIXEL);
-    }
+bool Utils::Images::ImageComposer::is_usable(const Image& in_image)
+{
+    return (in_image.width               != 0                                                                          &&
+            in_image.height              != 0                                                                          &&
+            in_image.pixel_u8_vec.size() >= static_cast<size_t>(in_image.width) * in_image.height * N_BYTES_PER_PIXEL);
 }
 
 bool Utils::Images::ImageComposer::make_anaglyph(const Image& in_left_image,
@@ -69,6 +64,7 @@ bool Utils::Images::ImageComposer::make_contact_sheet(const std::vector<Image>& 
 {
     constexpr uint32_t GAP_N_PIXELS = 4;
     constexpr uint8_t  BACKGROUND   = 40;
+    constexpr uint8_t  OPAQUE_ALPHA = 255;
 
     uint32_t cell_height = 0;
     uint32_t cell_width  = 0;

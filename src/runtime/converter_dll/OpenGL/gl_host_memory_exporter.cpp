@@ -9,37 +9,8 @@
 #include <string.h>
 #include <vector>
 
-namespace
-{
-    constexpr uint32_t BYTES_PER_PIXEL = 4;
-    constexpr uint32_t N_EYES          = 2;
-
-    /* Puts the rows of an image of an eye (B, G, R, A of 8 bits, from the bottom up as OpenGL gives them) into the image of both eyes, where the eye is the place of the
-     * image across; the top row of the destination is the last of the source if the rows are turned over, and the first if not.
-     */
-    void write_eye_rows(const uint8_t*  in_bgra_ptr,
-                        const uint32_t& in_width,
-                        const uint32_t& in_height,
-                        const uint32_t& in_eye,
-                        const bool&     in_is_turned_over,
-                        uint8_t*        out_destination_ptr,
-                        const uint32_t& in_pitch)
-    {
-        const size_t row_n_bytes = static_cast<size_t>(in_width) * BYTES_PER_PIXEL;
-
-        for (uint32_t n_row = 0;
-                      n_row < in_height;
-                    ++n_row)
-        {
-            const uint32_t destination_row = (in_is_turned_over) ? (in_height - 1 - n_row)
-                                                                 : n_row;
-
-            ::memcpy(out_destination_ptr + static_cast<size_t>(destination_row) * in_pitch + static_cast<size_t>(in_eye) * row_n_bytes,
-                     in_bgra_ptr         + static_cast<size_t>(n_row)           * row_n_bytes,
-                     row_n_bytes);
-        }
-    }
-}
+const uint32_t Stereo::ConverterDLL::GLHostMemoryExporter::BYTES_PER_PIXEL = 4;
+const uint32_t Stereo::ConverterDLL::GLHostMemoryExporter::N_EYES          = 2;
 
 Stereo::ConverterDLL::GLHostMemoryExporter::GLHostMemoryExporter(Stereo::Transport::FrameChannel* inout_channel_ptr)
     :HostMemoryExporter   (inout_channel_ptr),
@@ -204,6 +175,29 @@ bool Stereo::ConverterDLL::GLHostMemoryExporter::write_debug_image(const GLFrame
     }
 
     return result;
+}
+
+void Stereo::ConverterDLL::GLHostMemoryExporter::write_eye_rows(const uint8_t*  in_bgra_ptr,
+                                                                const uint32_t& in_width,
+                                                                const uint32_t& in_height,
+                                                                const uint32_t& in_eye,
+                                                                const bool&     in_is_turned_over,
+                                                                uint8_t*        out_destination_ptr,
+                                                                const uint32_t& in_pitch)
+{
+    const size_t row_n_bytes = static_cast<size_t>(in_width) * BYTES_PER_PIXEL;
+
+    for (uint32_t n_row = 0;
+                  n_row < in_height;
+                ++n_row)
+    {
+        const uint32_t destination_row = (in_is_turned_over) ? (in_height - 1 - n_row)
+                                                             : n_row;
+
+        ::memcpy(out_destination_ptr + static_cast<size_t>(destination_row) * in_pitch + static_cast<size_t>(in_eye) * row_n_bytes,
+                 in_bgra_ptr         + static_cast<size_t>(n_row)           * row_n_bytes,
+                 row_n_bytes);
+    }
 }
 
 void Stereo::ConverterDLL::GLHostMemoryExporter::write_job()

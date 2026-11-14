@@ -6,84 +6,6 @@
 #include "utils/command_line/argument_walker.h"
 #include "utils/command_line/number_parser.h"
 
-namespace
-{
-    /* Handles the argument if it is one of the options that every query program has. */
-    bool parse_common_option(const std::string&                       in_argument,
-                             const bool&                              in_has_next,
-                             const std::string&                       in_next_argument,
-                             Analysis::APIDumpAnalysis::QueryOptions* out_options_ptr,
-                             bool*                                    out_is_known_ptr,
-                             bool*                                    out_uses_next_ptr,
-                             std::string*                             out_error_ptr)
-    {
-        bool result = true;
-
-        *out_is_known_ptr  = true;
-        *out_uses_next_ptr = false;
-
-        if (in_argument == "--compact")
-        {
-            out_options_ptr->is_compact = true;
-        }
-        else
-        if (in_argument == "--no-verify")
-        {
-            out_options_ptr->is_verify_off = true;
-        }
-        else
-        if (in_argument == "--workload")
-        {
-            if (in_has_next == false)
-            {
-                *out_error_ptr = "--workload needs the path of the workload";
-                result         = false;
-
-                goto end;
-            }
-
-            out_options_ptr->workload_filename = in_next_argument;
-            *out_uses_next_ptr                 = true;
-        }
-        else
-        if (in_argument == "--limit" ||
-            in_argument == "--offset")
-        {
-            uint64_t value = 0;
-
-            if (Utils::CommandLine::NumberParser::parse_option_unsigned(in_argument,
-                                                                        in_has_next,
-                                                                        in_next_argument,
-                                                                        UINT64_MAX,
-                                                                       &value,
-                                                                        out_error_ptr) == false)
-            {
-                result = false;
-
-                goto end;
-            }
-
-            if (in_argument == "--limit")
-            {
-                out_options_ptr->limit = value;
-            }
-            else
-            {
-                out_options_ptr->offset = value;
-            }
-
-            *out_uses_next_ptr = true;
-        }
-        else
-        {
-            *out_is_known_ptr = false;
-        }
-
-    end:
-        return result;
-    }
-}
-
 bool Analysis::APIDumpAnalysis::QueryCommandLine::parse(const int&                            in_argc,
                                                         char*                                 in_argv[],
                                                         const std::vector<QueryNumberOption>& in_number_option_vec,
@@ -176,6 +98,80 @@ bool Analysis::APIDumpAnalysis::QueryCommandLine::parse(const int&              
                                                     in_argv,
                                                     parse_argument_func,
                                                     out_error_ptr);
+}
+
+bool Analysis::APIDumpAnalysis::QueryCommandLine::parse_common_option(const std::string& in_argument,
+                                                                      const bool&        in_has_next,
+                                                                      const std::string& in_next_argument,
+                                                                      QueryOptions*      out_options_ptr,
+                                                                      bool*              out_is_known_ptr,
+                                                                      bool*              out_uses_next_ptr,
+                                                                      std::string*       out_error_ptr)
+{
+    bool result = true;
+
+    *out_is_known_ptr  = true;
+    *out_uses_next_ptr = false;
+
+    if (in_argument == "--compact")
+    {
+        out_options_ptr->is_compact = true;
+    }
+    else
+    if (in_argument == "--no-verify")
+    {
+        out_options_ptr->is_verify_off = true;
+    }
+    else
+    if (in_argument == "--workload")
+    {
+        if (in_has_next == false)
+        {
+            *out_error_ptr = "--workload needs the path of the workload";
+            result         = false;
+
+            goto end;
+        }
+
+        out_options_ptr->workload_filename = in_next_argument;
+        *out_uses_next_ptr                 = true;
+    }
+    else
+    if (in_argument == "--limit" ||
+        in_argument == "--offset")
+    {
+        uint64_t value = 0;
+
+        if (Utils::CommandLine::NumberParser::parse_option_unsigned(in_argument,
+                                                                    in_has_next,
+                                                                    in_next_argument,
+                                                                    UINT64_MAX,
+                                                                   &value,
+                                                                    out_error_ptr) == false)
+        {
+            result = false;
+
+            goto end;
+        }
+
+        if (in_argument == "--limit")
+        {
+            out_options_ptr->limit = value;
+        }
+        else
+        {
+            out_options_ptr->offset = value;
+        }
+
+        *out_uses_next_ptr = true;
+    }
+    else
+    {
+        *out_is_known_ptr = false;
+    }
+
+end:
+    return result;
 }
 
 bool Analysis::APIDumpAnalysis::QueryCommandLine::parse_file_command_and_numbers(const int&                            in_argc,

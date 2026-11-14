@@ -165,6 +165,15 @@ namespace Stereo
             void wait_until(const LONGLONG& in_target_qpc,
                             const LONGLONG& in_frequency);
 
+            /* A value that the other process may not have set yet: the flag says whether there is one, and the bits are those of the float. False if there is none. */
+            static bool read_float(const volatile LONG& in_has_value,
+                                   const volatile LONG& in_value_bits,
+                                   float*               out_value_ptr);
+
+            static void write_float(const float&   in_value,
+                                    volatile LONG* out_value_bits_ptr,
+                                    volatile LONG* out_has_value_ptr);
+
 
             Header*  m_header_ptr;
             HANDLE   m_mapping;

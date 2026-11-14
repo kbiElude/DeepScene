@@ -63,6 +63,9 @@ namespace Analysis
                                                 const Capture::APIDumpLoader::Workload&      in_workload,
                                                 GLMatrix*                                    out_matrix_f32mat_ptr);
 
+                /* GL_MODELVIEW, the matrix mode. */
+                static const uint32_t MODELVIEW_MODE;
+
                 Analysis::APIDumpAnalysis::ModelBuilder* m_builder_ptr;
                 uint64_t                                 m_n_unfollowed_calls;
                 GLReportedMatrix                         m_reported_modelview;

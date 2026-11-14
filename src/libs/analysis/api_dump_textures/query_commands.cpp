@@ -10,58 +10,6 @@
 #include <map>
 #include <set>
 
-namespace
-{
-    typedef Analysis::APIDumpAnalysis::QueryStatus QueryStatus;
-    typedef Utils::Json::JsonWriter                JsonWriter;
-
-    constexpr size_t N_EVENT_KINDS = 4;
-
-    /* What a texture has had happen to it, for the lists. */
-    struct ResourceUse
-    {
-        uint64_t                           first_frame  = UINT64_MAX;
-        uint64_t                           last_frame   = 0;
-        std::set<uint32_t>                 level_set;
-        std::array<uint64_t, N_EVENT_KINDS> n_event_array = {};
-    };
-
-    /* The uses of every texture that has events, by its resource id (from 1). */
-    std::map<uint64_t, ResourceUse> get_resource_use_map(const Analysis::APIDumpTextures::TextureTimeline& in_timeline)
-    {
-        std::map<uint64_t, ResourceUse> result;
-
-        for (const auto& event : in_timeline.event_vec)
-        {
-            ResourceUse& use = result[Analysis::APIDumpAnalysis::get_resource_id_value(event.destination.resource_id)];
-
-            use.first_frame = (event.frame_index < use.first_frame) ? event.frame_index
-                                                                    : use.first_frame;
-            use.last_frame  = (event.frame_index > use.last_frame)  ? event.frame_index
-                                                                    : use.last_frame;
-
-            use.level_set.insert(event.destination.mip_level);
-
-            use.n_event_array.at(static_cast<size_t>(event.kind) )++;
-        }
-
-        return result;
-    }
-
-    void write_event_counts(const std::array<uint64_t, N_EVENT_KINDS>& in_n_event_array,
-                            JsonWriter*                                inout_writer_ptr)
-    {
-        inout_writer_ptr->write_key("n_uploads");
-        inout_writer_ptr->write_u64(in_n_event_array.at(static_cast<size_t>(Analysis::APIDumpTextures::TextureEventKind::UPLOAD) ) );
-        inout_writer_ptr->write_key("n_render_writes");
-        inout_writer_ptr->write_u64(in_n_event_array.at(static_cast<size_t>(Analysis::APIDumpTextures::TextureEventKind::RENDER_WRITE) ) );
-        inout_writer_ptr->write_key("n_generated_levels");
-        inout_writer_ptr->write_u64(in_n_event_array.at(static_cast<size_t>(Analysis::APIDumpTextures::TextureEventKind::GENERATE_MIPS) ) );
-        inout_writer_ptr->write_key("n_snapshots");
-        inout_writer_ptr->write_u64(in_n_event_array.at(static_cast<size_t>(Analysis::APIDumpTextures::TextureEventKind::SNAPSHOT) ) );
-    }
-}
-
 const Analysis::APIDumpAnalysis::Resource* Analysis::APIDumpTextures::QueryCommands::find_resource_ptr(const TextureTimeline& in_timeline,
                                                                                                        const uint64_t&        in_resource_id)
 {
@@ -146,11 +94,32 @@ Analysis::APIDumpAnalysis::QueryArguments Analysis::APIDumpTextures::QueryComman
     return result;
 }
 
-QueryStatus Analysis::APIDumpTextures::QueryCommands::run(const std::string&       in_command,
-                                                          const TextureTimeline&   in_timeline,
-                                                          const QueryArguments&    in_arguments,
-                                                          Utils::Json::JsonWriter* inout_writer_ptr,
-                                                          std::string*             out_error_ptr)
+std::map<uint64_t, Analysis::APIDumpTextures::QueryCommands::ResourceUse> Analysis::APIDumpTextures::QueryCommands::get_resource_use_map(const TextureTimeline& in_timeline)
+{
+    std::map<uint64_t, ResourceUse> result;
+
+    for (const auto& event : in_timeline.event_vec)
+    {
+        ResourceUse& use = result[Analysis::APIDumpAnalysis::get_resource_id_value(event.destination.resource_id)];
+
+        use.first_frame = (event.frame_index < use.first_frame) ? event.frame_index
+                                                                : use.first_frame;
+        use.last_frame  = (event.frame_index > use.last_frame)  ? event.frame_index
+                                                                : use.last_frame;
+
+        use.level_set.insert(event.destination.mip_level);
+
+        use.n_event_array.at(static_cast<size_t>(event.kind) )++;
+    }
+
+    return result;
+}
+
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpTextures::QueryCommands::run(const std::string&       in_command,
+                                                                                     const TextureTimeline&   in_timeline,
+                                                                                     const QueryArguments&    in_arguments,
+                                                                                     Utils::Json::JsonWriter* inout_writer_ptr,
+                                                                                     std::string*             out_error_ptr)
 {
     QueryStatus result = QueryStatus::BAD_ARGUMENTS;
 
@@ -190,10 +159,10 @@ QueryStatus Analysis::APIDumpTextures::QueryCommands::run(const std::string&    
     return result;
 }
 
-QueryStatus Analysis::APIDumpTextures::QueryCommands::run_at(const TextureTimeline&   in_timeline,
-                                                             const QueryArguments&    in_arguments,
-                                                             Utils::Json::JsonWriter* inout_writer_ptr,
-                                                             std::string*             out_error_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpTextures::QueryCommands::run_at(const TextureTimeline&   in_timeline,
+                                                                                        const QueryArguments&    in_arguments,
+                                                                                        Utils::Json::JsonWriter* inout_writer_ptr,
+                                                                                        std::string*             out_error_ptr)
 {
     LevelContent                               content;
     LevelCut                                   cut;
@@ -336,8 +305,8 @@ end:
     return result;
 }
 
-QueryStatus Analysis::APIDumpTextures::QueryCommands::run_info(const TextureTimeline&   in_timeline,
-                                                               Utils::Json::JsonWriter* inout_writer_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpTextures::QueryCommands::run_info(const TextureTimeline&   in_timeline,
+                                                                                          Utils::Json::JsonWriter* inout_writer_ptr)
 {
     std::array<uint64_t, N_EVENT_KINDS> n_event_array     = {};
     uint64_t                            n_stored_raw      = 0;
@@ -401,10 +370,10 @@ QueryStatus Analysis::APIDumpTextures::QueryCommands::run_info(const TextureTime
     return QueryStatus::OK;
 }
 
-QueryStatus Analysis::APIDumpTextures::QueryCommands::run_resource(const TextureTimeline&   in_timeline,
-                                                                   const QueryArguments&    in_arguments,
-                                                                   Utils::Json::JsonWriter* inout_writer_ptr,
-                                                                   std::string*             out_error_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpTextures::QueryCommands::run_resource(const TextureTimeline&   in_timeline,
+                                                                                              const QueryArguments&    in_arguments,
+                                                                                              Utils::Json::JsonWriter* inout_writer_ptr,
+                                                                                              std::string*             out_error_ptr)
 {
     typedef Analysis::APIDumpAnalysis::QueryArguments PagingArguments;
 
@@ -531,9 +500,9 @@ end:
     return result;
 }
 
-QueryStatus Analysis::APIDumpTextures::QueryCommands::run_resources(const TextureTimeline&   in_timeline,
-                                                                    const QueryArguments&    in_arguments,
-                                                                    Utils::Json::JsonWriter* inout_writer_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpTextures::QueryCommands::run_resources(const TextureTimeline&   in_timeline,
+                                                                                               const QueryArguments&    in_arguments,
+                                                                                               Utils::Json::JsonWriter* inout_writer_ptr)
 {
     typedef Analysis::APIDumpAnalysis::QueryArguments PagingArguments;
 
@@ -705,6 +674,19 @@ void Analysis::APIDumpTextures::QueryCommands::write_event(const TextureTimeline
     write_blob(in_timeline,
                event.blob_index,
                inout_writer_ptr);
+}
+
+void Analysis::APIDumpTextures::QueryCommands::write_event_counts(const std::array<uint64_t, N_EVENT_KINDS>& in_n_event_array,
+                                                                  Utils::Json::JsonWriter*                   inout_writer_ptr)
+{
+    inout_writer_ptr->write_key("n_uploads");
+    inout_writer_ptr->write_u64(in_n_event_array.at(static_cast<size_t>(Analysis::APIDumpTextures::TextureEventKind::UPLOAD) ) );
+    inout_writer_ptr->write_key("n_render_writes");
+    inout_writer_ptr->write_u64(in_n_event_array.at(static_cast<size_t>(Analysis::APIDumpTextures::TextureEventKind::RENDER_WRITE) ) );
+    inout_writer_ptr->write_key("n_generated_levels");
+    inout_writer_ptr->write_u64(in_n_event_array.at(static_cast<size_t>(Analysis::APIDumpTextures::TextureEventKind::GENERATE_MIPS) ) );
+    inout_writer_ptr->write_key("n_snapshots");
+    inout_writer_ptr->write_u64(in_n_event_array.at(static_cast<size_t>(Analysis::APIDumpTextures::TextureEventKind::SNAPSHOT) ) );
 }
 
 void Analysis::APIDumpTextures::QueryCommands::write_level_size(const uint32_t&                       in_width,
