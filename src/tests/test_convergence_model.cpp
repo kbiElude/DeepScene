@@ -90,7 +90,7 @@ TEST(ConvergenceModel, TheLimitIsTakenAtOnceAtFirstAndThenEasedTowardTheNextOneA
     EXPECT_FLOAT_EQ(model.get_effective_eye_separation(),
                     1.0f);
 
-    model.follow_scene_max_separation(4.0f, FRACTION_PER_FRAME);
+    model.follow_scene_max_separation(1.8f, FRACTION_PER_FRAME);
 
     const float after_one_frame = model.get_effective_eye_separation();
 
@@ -103,11 +103,70 @@ TEST(ConvergenceModel, TheLimitIsTakenAtOnceAtFirstAndThenEasedTowardTheNextOneA
              n_frame < 400;
            ++n_frame)
     {
-        model.follow_scene_max_separation(4.0f, FRACTION_PER_FRAME);
+        model.follow_scene_max_separation(1.8f, FRACTION_PER_FRAME);
     }
 
     EXPECT_FLOAT_EQ(model.get_effective_eye_separation(),
-                    4.0f);
+                    1.8f);
+}
+
+TEST(ConvergenceModel, ATargetMoreThanTwiceOrLessThanHalfTheOneBeforeIsACutAndIsTakenAtOnce)
+{
+    Stereo::Core::ConvergenceModel model;
+
+    model.set_depth_strength(1.0f);
+    model.follow_scene_convergence_distance(300.0f, FRACTION_PER_FRAME);
+    model.follow_scene_max_separation      (1.0f,   FRACTION_PER_FRAME);
+
+    /* A step that is not a cut is eased: the target is a long way off after a frame. */
+    model.follow_scene_convergence_distance(500.0f, FRACTION_PER_FRAME);
+    model.follow_scene_max_separation      (1.8f,   FRACTION_PER_FRAME);
+
+    EXPECT_LT(model.get_effective_convergence_distance(),
+              400.0f);
+    EXPECT_LT(model.get_effective_eye_separation(),
+              1.5f);
+
+    /* A target of more than twice the one before is taken at once, and so is one of less than half of it. */
+    model.follow_scene_convergence_distance(1500.0f, FRACTION_PER_FRAME);
+    model.follow_scene_max_separation      (6.0f,    FRACTION_PER_FRAME);
+
+    EXPECT_FLOAT_EQ(model.get_effective_convergence_distance(),
+                    1500.0f);
+    EXPECT_FLOAT_EQ(model.get_effective_eye_separation(),
+                    6.0f);
+
+    model.follow_scene_convergence_distance(300.0f, FRACTION_PER_FRAME);
+    model.follow_scene_max_separation      (0.5f,   FRACTION_PER_FRAME);
+
+    EXPECT_FLOAT_EQ(model.get_effective_convergence_distance(),
+                    300.0f);
+    EXPECT_FLOAT_EQ(model.get_effective_eye_separation(),
+                    0.5f);
+}
+
+TEST(ConvergenceModel, ACutIsMeasuredAgainstTheTargetOfTheFrameBeforeAndNotAgainstWhereTheEyesAre)
+{
+    Stereo::Core::ConvergenceModel model;
+
+    model.set_convergence_distance(30000.0f); /* the natural separation is far above the limit */
+    model.set_depth_strength      (1.0f);
+    model.follow_scene_max_separation(1.0f, FRACTION_PER_FRAME);
+
+    /* A target that creeps up by a step that is no cut each frame is never a cut, however far the eyes lag behind it. */
+    float target = 1.0f;
+
+    for (int n_frame = 0;
+             n_frame < 30;
+           ++n_frame)
+    {
+        target *= 1.5f;
+
+        model.follow_scene_max_separation(target, FRACTION_PER_FRAME);
+    }
+
+    EXPECT_LT(model.get_effective_eye_separation(),
+              target / 10.0f);
 }
 
 TEST(ConvergenceModel, TheLimitDoesNotApplyToASeparationThatWasSet)

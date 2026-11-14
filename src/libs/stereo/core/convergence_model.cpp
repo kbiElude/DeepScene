@@ -7,13 +7,15 @@
 #include <math.h>
 
 Stereo::Core::ConvergenceModel::ConvergenceModel()
-    :m_convergence_distance      (0.0f),
-     m_depth_strength            (0.0f),
-     m_draw_convergence_distance (0.0f),
-     m_eye_separation            (0.0f),
-     m_ipd_scale                 (1.0f),
-     m_scene_convergence_distance(0.0f),
-     m_scene_max_separation      (0.0f)
+    :m_convergence_distance                (0.0f),
+     m_depth_strength                      (0.0f),
+     m_draw_convergence_distance           (0.0f),
+     m_eye_separation                      (0.0f),
+     m_ipd_scale                           (1.0f),
+     m_previous_scene_convergence_target   (0.0f),
+     m_previous_scene_max_separation_target(0.0f),
+     m_scene_convergence_distance          (0.0f),
+     m_scene_max_separation                (0.0f)
 {
     /* Stub */
 }
@@ -25,9 +27,14 @@ bool Stereo::Core::ConvergenceModel::follow_scene_convergence_distance(const flo
 
     if (result)
     {
-        m_scene_convergence_distance = get_eased_value(m_scene_convergence_distance,
-                                                       in_target,
-                                                       in_fraction_of_the_way);
+        const bool is_at_cut = is_cut(m_previous_scene_convergence_target,
+                                      in_target);
+
+        m_scene_convergence_distance        = (is_at_cut) ? in_target
+                                                          : get_eased_value(m_scene_convergence_distance,
+                                                                            in_target,
+                                                                            in_fraction_of_the_way);
+        m_previous_scene_convergence_target = in_target;
     }
 
     return result;
@@ -36,10 +43,15 @@ bool Stereo::Core::ConvergenceModel::follow_scene_convergence_distance(const flo
 void Stereo::Core::ConvergenceModel::follow_scene_max_separation(const float& in_target,
                                                             const float& in_fraction_of_the_way)
 {
-    m_scene_max_separation = (in_target > 0.0f) ? get_eased_value(m_scene_max_separation,
-                                                                   in_target,
-                                                                   in_fraction_of_the_way)
-                                                : 0.0f;
+    const bool is_at_cut = is_cut(m_previous_scene_max_separation_target,
+                                  in_target);
+
+    m_scene_max_separation                 = (in_target <= 0.0f) ? 0.0f
+                                           : (is_at_cut)         ? in_target
+                                                                 : get_eased_value(m_scene_max_separation,
+                                                                                   in_target,
+                                                                                   in_fraction_of_the_way);
+    m_previous_scene_max_separation_target = in_target;
 }
 
 float Stereo::Core::ConvergenceModel::get_convergence_distance() const
@@ -136,6 +148,26 @@ float Stereo::Core::ConvergenceModel::get_reference_frame_seconds()
     constexpr float REFERENCE_FRAMES_PER_SECOND = 72.0f; /* the rate of the headset */
 
     return 1.0f / REFERENCE_FRAMES_PER_SECOND;
+}
+
+bool Stereo::Core::ConvergenceModel::is_cut(const float& in_previous_target,
+                                            const float& in_target)
+{
+    /* Frames of one scene say targets that are near each other; a cut says one that is a long way off. */
+    constexpr float CUT_RATIO = 2.0f;
+
+    bool result = false;
+
+    if (in_previous_target > 0.0f &&
+        in_target          > 0.0f)
+    {
+        const float ratio = (in_target > in_previous_target) ? in_target / in_previous_target
+                                                             : in_previous_target / in_target;
+
+        result = (ratio > CUT_RATIO);
+    }
+
+    return result;
 }
 
 bool Stereo::Core::ConvergenceModel::set_convergence_distance(const float& in_convergence_distance)

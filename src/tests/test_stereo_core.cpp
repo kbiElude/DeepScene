@@ -613,7 +613,7 @@ TEST_F(StereoCoreTest, TheEyesGoTowardASceneByTheTimeThatTheFrameTookAndNotByThe
                               "");
 
     recipe.scene_convergence_vec.push_back({10.0f, 100});
-    recipe.scene_convergence_vec.push_back({40.0f, 200});
+    recipe.scene_convergence_vec.push_back({18.0f, 200});
 
     /* The distance after one frame of the second scene that took this long, from the first scene taken at once. */
     const auto get_distance_func = [&recipe](const float& in_frame_seconds)
@@ -632,20 +632,20 @@ TEST_F(StereoCoreTest, TheEyesGoTowardASceneByTheTimeThatTheFrameTookAndNotByThe
 
     const float reference_seconds = Stereo::Core::ConvergenceModel::get_reference_frame_seconds();
 
-    /* A twentieth of the way along the logarithm for a frame of 72 Hz: 10 * 4 ^ 0.05. */
+    /* A twentieth of the way along the logarithm for a frame of 72 Hz: 10 * 1.8 ^ 0.05 (a step of more than twice would be a cut, taken at once). */
     EXPECT_NEAR(get_distance_func(reference_seconds),
-                10.0f * ::powf(4.0f, 0.05f),
+                10.0f * ::powf(1.8f, 0.05f),
                 0.001f);
 
     /* A frame of twice the time goes further, and one of a thousandth of a second hardly moves. */
     EXPECT_GT(get_distance_func(2.0f * reference_seconds),
-              get_distance_func(reference_seconds) + 0.5f);
+              get_distance_func(reference_seconds) + 0.2f);
     EXPECT_LT(get_distance_func(0.001f),
               10.1f);
 
     /* A stall of seconds puts the eyes at the distance of the scene. */
     EXPECT_NEAR(get_distance_func(5.0f),
-                40.0f,
+                18.0f,
                 0.1f);
 }
 
@@ -664,7 +664,7 @@ TEST_F(StereoCoreTest, TheDistanceOfTheSceneIsTakenAtOnceAtFirstAndThenEasedTowa
     /* Two scenes, with the shape keys 100 and 200; the signature 1 converges at 5, and the draw is told of it until a scene is known. */
     recipe.convergence_vec.push_back({5.0f, 1});
     recipe.scene_convergence_vec.push_back({10.0f, 100});
-    recipe.scene_convergence_vec.push_back({40.0f, 200});
+    recipe.scene_convergence_vec.push_back({18.0f, 200});
 
     Stereo::Core::StereoCore core(recipe,
                                   [&message_vec](const std::string& in_message)
@@ -706,7 +706,7 @@ TEST_F(StereoCoreTest, TheDistanceOfTheSceneIsTakenAtOnceAtFirstAndThenEasedTowa
     const float eased = get_shear_func();
 
     EXPECT_LT(eased,
-              -0.1f / 40.0f);
+              -0.1f / 18.0f);
     EXPECT_GT(eased,
               -0.1f / 10.0f);
 
@@ -723,7 +723,7 @@ TEST_F(StereoCoreTest, TheDistanceOfTheSceneIsTakenAtOnceAtFirstAndThenEasedTowa
     }
 
     EXPECT_FLOAT_EQ(get_shear_func(),
-                    -0.1f / 40.0f);
+                    -0.1f / 18.0f);
 
     /* A distance that is set is for every draw. */
     core.set_convergence_distance(2.0f);
@@ -731,6 +731,32 @@ TEST_F(StereoCoreTest, TheDistanceOfTheSceneIsTakenAtOnceAtFirstAndThenEasedTowa
     EXPECT_FLOAT_EQ(get_shear_func(),
                     -0.1f / 2.0f);
     EXPECT_TRUE(message_vec.empty() );
+}
+
+TEST_F(StereoCoreTest, ACutToASceneAtAnotherDistanceIsTakenAtOnce)
+{
+    auto recipe = make_recipe(get_baked_text(""),
+                              "");
+
+    recipe.scene_convergence_vec.push_back({10.0f, 100});
+    recipe.scene_convergence_vec.push_back({40.0f, 200});
+
+    Stereo::Core::StereoCore core(recipe,
+                                  [](const std::string&)
+                                  {
+                                  });
+
+    core.on_frame_completed(100);
+
+    EXPECT_FLOAT_EQ(core.get_effective_convergence_distance(),
+                    10.0f);
+
+    /* 40 is four times 10, so the frame is a cut and the eyes do not slide there, however short the frame was. */
+    core.set_frame_interval_seconds(0.001f);
+    core.on_frame_completed(200);
+
+    EXPECT_FLOAT_EQ(core.get_effective_convergence_distance(),
+                    40.0f);
 }
 
 TEST_F(StereoCoreTest, TheStrengthOfThe3DMakesTheDistanceBetweenTheEyesAThirtiethOfTheDistanceTheyConvergeAtTimesIt)
