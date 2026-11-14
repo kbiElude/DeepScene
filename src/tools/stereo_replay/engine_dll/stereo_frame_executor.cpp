@@ -641,9 +641,12 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_rewritten_call(cons
 
         if (shift_pixels != 0.0f)
         {
+            const uint64_t pushed_cover_key = frame.draw_instance_vec.at(pushed_iterator->second).cover_key;
+
             has_pushed_viewport = execute_viewport_call(in_call,
                                                         *viewport_ptr,
-                                                        shift_pixels);
+                                                        shift_pixels,
+                                                        m_recipe_applier_ptr->is_side_reaching(pushed_cover_key) );
         }
     }
 
@@ -712,7 +715,8 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_rewritten_call(cons
                 {
                     result = execute_viewport_call(in_call,
                                                    *viewport_ptr,
-                                                   0.0f);
+                                                   0.0f,
+                                                   false /* in_is_side_reaching */);
                 }
             }
         }
@@ -869,8 +873,14 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_view_anchor_call(co
 
 bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_viewport_call(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
                                                                             const Analysis::APIDumpAnalysis::Viewport&     in_viewport,
-                                                                            const float&                                   in_shift_pixels)
+                                                                            const float&                                   in_shift_pixels,
+                                                                            const bool&                                    in_is_side_reaching)
 {
+    const auto pushed_viewport = Stereo::Core::PushShiftPlanner::make_viewport(static_cast<int32_t>(::lroundf(in_viewport.x) ),
+                                                                               static_cast<int32_t>(::lroundf(in_viewport.width) ),
+                                                                               in_shift_pixels,
+                                                                               in_is_side_reaching);
+
     Capture::APIDumpLoader::DumpedAPICall rewritten = FrameBuffer::copy_call(in_call);
 
     rewritten.func = APIInterceptor::APIFUNCTION_GL_GLVIEWPORT;
@@ -879,9 +889,9 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_viewport_call(const
     rewritten.arg_out_vec.clear();
     rewritten.returned_value_ptr.reset();
 
-    rewritten.arg_in_vec.push_back(APIInterceptor::APIFunctionArgument::create_i32(static_cast<int32_t>(::lroundf(in_viewport.x) + static_cast<int32_t>(::truncf(in_shift_pixels) ) ) ) );
+    rewritten.arg_in_vec.push_back(APIInterceptor::APIFunctionArgument::create_i32(pushed_viewport.x) );
     rewritten.arg_in_vec.push_back(APIInterceptor::APIFunctionArgument::create_i32(static_cast<int32_t>(::lroundf(in_viewport.y) ) ) );
-    rewritten.arg_in_vec.push_back(APIInterceptor::APIFunctionArgument::create_i32(static_cast<int32_t>(::lroundf(in_viewport.width) ) ) );
+    rewritten.arg_in_vec.push_back(APIInterceptor::APIFunctionArgument::create_i32(pushed_viewport.width) );
     rewritten.arg_in_vec.push_back(APIInterceptor::APIFunctionArgument::create_i32(static_cast<int32_t>(::lroundf(in_viewport.height) ) ) );
 
     return m_host_ptr->execute_call(rewritten,

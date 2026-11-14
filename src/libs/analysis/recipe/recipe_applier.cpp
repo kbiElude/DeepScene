@@ -79,6 +79,8 @@ Analysis::Recipe::RecipeApplier::RecipeApplier(const Analysis::Recipe::Recipe& i
                                      m_recipe.pushed.draw_key_vec.end      () );
     m_pushed_pass_key_set.insert    (m_recipe.pushed.pass_key_vec.begin    (),
                                      m_recipe.pushed.pass_key_vec.end      () );
+    m_side_reaching_draw_key_set.insert(m_recipe.side_reaching_draw_key_vec.begin(),
+                                        m_recipe.side_reaching_draw_key_vec.end  () );
     m_skipped_draw_key_set.insert   (m_recipe.skipped.draw_key_vec.begin   (),
                                      m_recipe.skipped.draw_key_vec.end     () );
     m_skipped_pass_key_set.insert   (m_recipe.skipped.pass_key_vec.begin   (),
@@ -610,6 +612,11 @@ bool Analysis::Recipe::RecipeApplier::is_per_eye_texture(const Analysis::APIDump
     }
 
     return result;
+}
+
+bool Analysis::Recipe::RecipeApplier::is_side_reaching(const uint64_t& in_cover_key) const
+{
+    return (m_side_reaching_draw_key_set.count(in_cover_key) != 0);
 }
 
 bool Analysis::Recipe::RecipeApplier::is_signature_known(const uint64_t& in_signature_key) const

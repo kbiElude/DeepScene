@@ -5,6 +5,23 @@
 #include "stereo/core/push_shift_planner.h"
 #include <algorithm>
 
+Stereo::Core::PushShiftPlanner::PushedViewport Stereo::Core::PushShiftPlanner::make_viewport(const int32_t& in_x,
+                                                                                            const int32_t& in_width,
+                                                                                            const float&   in_shift_pixels,
+                                                                                            const bool&    in_is_side_reaching)
+{
+    /* Toward zero, so that the shift never goes past what the planner allowed. */
+    const int32_t shift_pixels = static_cast<int32_t>(in_shift_pixels);
+    const int32_t widening     = (in_is_side_reaching) ? ((shift_pixels < 0) ? -shift_pixels : shift_pixels)
+                                                       : 0;
+    PushedViewport result;
+
+    result.width = in_width + 2 * widening;
+    result.x     = in_x + shift_pixels - widening;
+
+    return result;
+}
+
 float Stereo::Core::PushShiftPlanner::plan(const Analysis::Recipe::RecipeApplier& in_applier,
                                            const Analysis::Recipe::Eye&           in_eye,
                                            const float&                           in_parallax,

@@ -7,6 +7,7 @@
 #include "gl_eye_renderer.h"
 #include "gl_driver_functions.h"
 #include "own_call_scope.h"
+#include "stereo/core/push_shift_planner.h"
 #include <algorithm>
 #include <cstring>
 
@@ -1013,6 +1014,7 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
     bool                  is_affected        = (in_draw_class == Analysis::Recipe::DrawClass::AFFECTED);
     const bool            is_last_draw_part  = m_core_ptr->get_is_last_draw_part();
     bool                  is_part            = false;
+    const bool            is_side_reaching   = m_core_ptr->get_is_last_draw_side_reaching();
     GLint                 matrix_mode        = MODELVIEW;
     std::array<float, 16> part_matrix;
     std::array<float, 16> part_projection;
@@ -1112,10 +1114,15 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
                                                            (part_projection.at(MATRIX_PERSPECTIVE_W_FROM_Z) == PERSPECTIVE_W_FROM_Z) );
             }
 
-            /* Toward zero, so that the shift never goes past what the planner allowed. */
-            GLDriverFunctions::get().viewport_func_ptr(saved_viewport.at(VIEWPORT_X) + static_cast<GLint>(shift_pixels),
+            /* Toward zero, so that the shift never goes past what the planner allowed; a flat overlay that reaches both sides of the picture is made wider by it, so that no edge is bare. */
+            const auto pushed_viewport = Stereo::Core::PushShiftPlanner::make_viewport(saved_viewport.at(VIEWPORT_X),
+                                                                                       saved_viewport.at(VIEWPORT_WIDTH),
+                                                                                       shift_pixels,
+                                                                                       (is_part == false && is_side_reaching) );
+
+            GLDriverFunctions::get().viewport_func_ptr(pushed_viewport.x,
                                                        saved_viewport.at(VIEWPORT_Y),
-                                                       saved_viewport.at(VIEWPORT_WIDTH),
+                                                       pushed_viewport.width,
                                                        saved_viewport.at(VIEWPORT_HEIGHT) );
         }
 

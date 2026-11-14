@@ -326,6 +326,23 @@ TEST_F(StereoCoreTest, ADrawWhoseVerticesAreInTheSpaceOfTheEyeIsToldByItsSignatu
     EXPECT_FALSE(core.get_is_last_draw_eye_space() );
 }
 
+TEST_F(StereoCoreTest, ADrawThatReachesBothSidesOfThePictureIsToldByItsSignatureAndSize)
+{
+    Stereo::Core::StereoCore core(make_recipe(std::string("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": [], \"known_signatures\": [\"0x0000000000000001\", \"0x0000000000000002\"], ") +
+                                              "\"side_reaching_draws\": [\"0x0000000000000009\"]},",
+                                              get_view_rule_text() ),
+                                  Stereo::Core::FailFunc() );
+
+    /* The same signature: the draw of that size is a flat overlay that spans the picture, the others are not. */
+    core.classify_draw(1, 9);
+
+    EXPECT_TRUE(core.get_is_last_draw_side_reaching() );
+
+    core.classify_draw(1, 10);
+
+    EXPECT_FALSE(core.get_is_last_draw_side_reaching() );
+}
+
 TEST_F(StereoCoreTest, APartThatProtrudesFollowsTheDepthOfItsOriginAndOthersDoNot)
 {
     Stereo::Core::StereoCore core(make_recipe("\"pushed\": {\"part_cover_keys\": [\"0x0000000000000005\"], \"cover_keys\": [\"0x0000000000000007\"]}, " + get_baked_text(""),

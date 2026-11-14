@@ -115,11 +115,13 @@ namespace Stereo
                                               const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
                                               const Analysis::Recipe::Eye&                   in_eye);
                 /* Sets the viewport (OpenGL) to the one of the pass moved to the right by the pixels, with the call of a draw as the call to make a copy of; with 0 it is the viewport as it was. A draw that the
-                 * recipe pushes (see Recipe::pushed) is made between the two, so that its picture is moved sideways whatever its projection is.
+                 * recipe pushes (see Recipe::pushed) is made between the two, so that its picture is moved sideways whatever its projection is. One that reaches both sides of the
+                 * picture (see Recipe::side_reaching_draw_key_vec) is made wider by the shift on each side, so that no edge is bare (see PushShiftPlanner::make_viewport()).
                  */
                 bool execute_viewport_call(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
                                            const Analysis::APIDumpAnalysis::Viewport&     in_viewport,
-                                           const float&                                   in_shift_pixels);
+                                           const float&                                   in_shift_pixels,
+                                           const bool&                                    in_is_side_reaching);
 
                 /* The calls of the draws that the recipe leaves out and which come before the call of the draw (the glBegin and the vertices of a block that a
                  * glEnd makes a draw of) are left out with it: a primitive is drawn as its vertices are given, and a draw that only loses its glEnd is still seen.

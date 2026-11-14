@@ -71,6 +71,7 @@ namespace Stereo
             bool                         get_is_last_draw_eye_space() const;
             bool                         get_is_last_draw_part   () const;
             bool                         get_is_last_draw_pushed () const;
+            bool                         get_is_last_draw_side_reaching() const;
             bool                         get_is_overlay_pushed   () const;
             uint64_t                     get_n_unknown_draws     () const;
             uint64_t                     get_n_unknown_frames    () const;
@@ -224,6 +225,7 @@ namespace Stereo
             bool                            m_is_last_draw_eye_space; /* the recipe says its vertices are in the space of the eye (Comfort::eye_space_cover_key_vec) */
             bool                            m_is_last_draw_part;     /* the draw that was classified last is a part that protrudes        */
             bool                            m_is_last_draw_pushed;   /* the recipe pushes the draw that was classified last              */
+            bool                            m_is_last_draw_side_reaching; /* a flat overlay that reaches both sides (Recipe::side_reaching_draw_key_vec) */
             bool                            m_is_overlay_pushed;     /* the person asks for the overlay to be pushed                    */
             Analysis::Recipe::DrawClass     m_last_draw_class;       /* of the draw that was classified last                            */
             uint64_t                        m_last_draw_cover_key;   /* the same                                                         */

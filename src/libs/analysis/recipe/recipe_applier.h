@@ -144,6 +144,11 @@ namespace Analysis
             /* True if the recipe says that each eye has a copy of the texture (see PerEyeTexture). */
             bool is_per_eye_texture(const Analysis::APIDumpAnalysis::ResourceIdentity& in_identity) const;
 
+            /* Whether a draw of the key (see KeyBuilder::compute_draw_cover_key()) is a flat overlay that reaches from the left edge of the picture to the right one (see
+             * Recipe::side_reaching_draw_key_vec): moved sideways, it is made with the picture wider by the shift, so that no edge is bare.
+             */
+            bool is_side_reaching(const uint64_t& in_cover_key) const;
+
             /* True if the recipe knows the signature of a draw: the analysis it was baked from saw it, or the recipe lists none. A draw of
              * an unknown signature is affected, like any draw which no rule applies to, but the recipe was not made for it.
              */
@@ -225,6 +230,7 @@ namespace Analysis
             std::set<uint64_t>                    m_pushed_pass_key_set;
             std::map<uint64_t, float>             m_scene_convergence_distance_map;
             std::map<uint64_t, float>             m_scene_max_separation_map;
+            std::set<uint64_t>                    m_side_reaching_draw_key_set;
             std::set<uint64_t>                    m_skipped_draw_key_set;
             std::set<PassDrawKey>                 m_skipped_pass_draw_set;
             std::set<uint64_t>                    m_skipped_pass_key_set;

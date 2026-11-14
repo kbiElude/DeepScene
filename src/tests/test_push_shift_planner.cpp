@@ -127,3 +127,70 @@ TEST(PushShiftPlanner, ADrawWhoseLayerHasMoreThanTheNearestParallaxIsNotMoved)
                                                          0.0f),
                     0.0f);
 }
+
+TEST(PushShiftPlanner, ADrawThatIsPushedIsMadeWithTheViewportMovedByTheShiftTakenTowardZero)
+{
+    const auto right = Stereo::Core::PushShiftPlanner::make_viewport(0,
+                                                                     640,
+                                                                     6.19f,
+                                                                     false);
+    const auto left  = Stereo::Core::PushShiftPlanner::make_viewport(0,
+                                                                     640,
+                                                                     -6.19f,
+                                                                     false);
+    const auto none  = Stereo::Core::PushShiftPlanner::make_viewport(10,
+                                                                     640,
+                                                                     0.0f,
+                                                                     false);
+
+    EXPECT_EQ(right.x,     6);
+    EXPECT_EQ(right.width, 640);
+    EXPECT_EQ(left.x,      -6);
+    EXPECT_EQ(left.width,  640);
+    EXPECT_EQ(none.x,      10);
+    EXPECT_EQ(none.width,  640);
+}
+
+TEST(PushShiftPlanner, AnOverlayThatReachesBothSidesIsMadeAsMuchWiderAsTheShiftOnEachSideSoNoEdgeIsBare)
+{
+    /* Moved to the right by 6, the picture would leave the 6 pixels at the left edge bare: it starts at the edge and goes 12 pixels further instead, so that its middle is where it was moved to. */
+    const auto right = Stereo::Core::PushShiftPlanner::make_viewport(0,
+                                                                     640,
+                                                                     6.19f,
+                                                                     true);
+
+    EXPECT_EQ(right.x,     0);
+    EXPECT_EQ(right.width, 652);
+    EXPECT_EQ(right.x + right.width / 2,
+              6 + 640 / 2);
+
+    /* Moved to the left, it ends at the right edge. */
+    const auto left = Stereo::Core::PushShiftPlanner::make_viewport(0,
+                                                                    640,
+                                                                    -6.19f,
+                                                                    true);
+
+    EXPECT_EQ(left.x,     -12);
+    EXPECT_EQ(left.x + left.width,
+              640);
+    EXPECT_EQ(left.x + left.width / 2,
+              -6 + 640 / 2);
+
+    /* Both edges stay covered, whichever way it is moved, and a shift of nothing changes nothing. */
+    EXPECT_LE(right.x,
+              0);
+    EXPECT_GE(right.x + right.width,
+              640);
+    EXPECT_LE(left.x,
+              0);
+    EXPECT_GE(left.x + left.width,
+              640);
+
+    const auto none = Stereo::Core::PushShiftPlanner::make_viewport(0,
+                                                                    640,
+                                                                    0.0f,
+                                                                    true);
+
+    EXPECT_EQ(none.x,     0);
+    EXPECT_EQ(none.width, 640);
+}

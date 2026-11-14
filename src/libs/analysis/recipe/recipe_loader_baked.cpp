@@ -96,6 +96,7 @@ bool Analysis::Recipe::RecipeLoader::parse_baked(const Utils::Json::JsonValue& i
     const auto* rule_array_ptr               = in_baked.find_ptr("draw_rules");
     const auto* scene_convergence_ptr        = in_baked.find_ptr("scene_convergence");
     const auto* scene_max_separation_ptr     = in_baked.find_ptr("scene_max_separation");
+    const auto* side_reaching_draws_ptr      = in_baked.find_ptr("side_reaching_draws");
     uint32_t    signature_scheme_version     = 0;
     const auto* signature_scheme_version_ptr = in_baked.find_ptr("signature_scheme_version");
 
@@ -107,7 +108,7 @@ bool Analysis::Recipe::RecipeLoader::parse_baked(const Utils::Json::JsonValue& i
     }
 
     if (check_keys(in_baked,
-                   {"convergence", "covering_draws", "draw_rules", "known_signatures", "per_eye_textures", "scene_convergence", "scene_max_separation", "signature_scheme_version"},
+                   {"convergence", "covering_draws", "draw_rules", "known_signatures", "per_eye_textures", "scene_convergence", "scene_max_separation", "side_reaching_draws", "signature_scheme_version"},
                    in_path,
                    out_error_ptr) == false)
     {
@@ -266,6 +267,17 @@ bool Analysis::Recipe::RecipeLoader::parse_baked(const Utils::Json::JsonValue& i
         if (parse_hex_key_array(*covering_draws_ptr,
                                 in_path + ".covering_draws",
                                &inout_recipe_ptr->covering_draw_key_vec,
+                                out_error_ptr) == false)
+        {
+            goto end;
+        }
+    }
+
+    if (side_reaching_draws_ptr != nullptr)
+    {
+        if (parse_hex_key_array(*side_reaching_draws_ptr,
+                                in_path + ".side_reaching_draws",
+                               &inout_recipe_ptr->side_reaching_draw_key_vec,
                                 out_error_ptr) == false)
         {
             goto end;

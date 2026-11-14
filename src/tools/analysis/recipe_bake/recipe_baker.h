@@ -136,6 +136,11 @@ namespace Analysis
             static float get_projection_scale(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis,
                                               const uint32_t&                                  in_pass_id);
 
+            /* The keys of the draws that are flat and reach from the left edge of the picture to the right one, from where the vertices of the draws were (see DrawFacts): the 2D overlays that
+             * span the picture, which a push moves with the picture made wider by it, so that no edge is bare.
+             */
+            static std::vector<uint64_t> get_side_reaching_draw_key_vec(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis);
+
             /* The values the view matrix of a pass took. Returns false, and says why, if the pass cannot say. */
             static bool get_view_matrix_vec(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis,
                                             const uint32_t&                                  in_pass_id,
@@ -149,6 +154,7 @@ namespace Analysis
                                     const RuleVector&             in_rule_vec,
                                     const SceneConvergenceVector& in_scene_convergence_vec,
                                     const SceneSeparationVector&  in_scene_separation_vec,
+                                    const std::vector<uint64_t>&  in_side_reaching_draw_key_vec,
                                     Utils::Json::JsonWriter*      inout_writer_ptr);
             static void write_value(const Utils::Json::JsonValue& in_value,
                                     Utils::Json::JsonWriter*      inout_writer_ptr);

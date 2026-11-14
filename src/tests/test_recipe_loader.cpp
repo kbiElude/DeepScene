@@ -1514,6 +1514,29 @@ TEST_F(RecipeLoaderTest, BakedCoveringSignaturesAreRead)
               0xcdu);
 }
 
+TEST_F(RecipeLoaderTest, BakedSideReachingDrawsAreReadAndWhatIsWrongInThemIsRefused)
+{
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": [],"
+                                                                      " \"side_reaching_draws\": [\"0x00000000000000ab\", \"0x00000000000000cd\"]},",
+                                                                      ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    ASSERT_EQ(recipe.side_reaching_draw_key_vec.size(),
+              2u);
+    EXPECT_EQ(recipe.side_reaching_draw_key_vec.at(0),
+              0xabu);
+    EXPECT_EQ(recipe.side_reaching_draw_key_vec.at(1),
+              0xcdu);
+
+    expect_refused(get_recipe_text("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": [], \"side_reaching_draws\": 5},",
+                                   ""),
+                   "side_reaching_draws");
+}
+
 TEST_F(RecipeLoaderTest, PerEyeTexturesAreReadAndWhatIsWrongInThemIsRefused)
 {
     std::string              error;

@@ -378,6 +378,56 @@ TEST_F(RecipeBakerTest, EverySignatureTheAnalysisSawIsListedAsKnown)
                                recipe.known_signature_key_vec.end() ));
 }
 
+TEST_F(RecipeBakerTest, TheDrawsThatAreFlatAndReachFromOneSideOfThePictureToTheOtherAreListedAsSideReaching)
+{
+    Analysis::RecipeBake::BakeReport report;
+    std::string                      error;
+    uint64_t                         second_pass_key = 0;
+    auto                             analysis        = make_two_pass_analysis(1, 1,
+                                                                            1, 2,
+                                                                            false,
+                                                                           &second_pass_key);
+    std::string                      text;
+    Analysis::Recipe::Recipe         recipe;
+
+    /* The edges of the picture are at -1 and 1: a bar from one to the other at one depth is an overlay that spans it. */
+    Analysis::APIDumpAnalysis::DrawFacts bar;
+    Analysis::APIDumpAnalysis::DrawFacts short_bar;
+    Analysis::APIDumpAnalysis::DrawFacts floor;
+
+    bar.n_draws_with_footprint = 1;
+    bar.x_min                  = -1.0f;
+    bar.x_max                  =  1.0f;
+
+    short_bar.n_draws_with_footprint = 1;
+    short_bar.x_min                  = -1.0f;
+    short_bar.x_max                  =  0.5f;
+
+    floor.n_draws_with_footprint = 1;
+    floor.view_depth_max         = 100.0f;
+    floor.view_depth_min         = 1.0f;
+    floor.x_min                  = -1.0f;
+    floor.x_max                  =  1.0f;
+
+    analysis.model.draw_facts_map[Analysis::APIDumpAnalysis::DrawFactsKey(0x1, 0xa1)] = bar;
+    analysis.model.draw_facts_map[Analysis::APIDumpAnalysis::DrawFactsKey(0x1, 0xb2)] = short_bar;
+    analysis.model.draw_facts_map[Analysis::APIDumpAnalysis::DrawFactsKey(0x1, 0xc3)] = floor;
+
+    ASSERT_TRUE(Analysis::RecipeBake::RecipeBaker::bake(make_recipe_text(second_pass_key),
+                                                        analysis,
+                                                       &text,
+                                                       &report,
+                                                       &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(text,
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    ASSERT_EQ(recipe.side_reaching_draw_key_vec.size(),
+              1u);
+    EXPECT_EQ(recipe.side_reaching_draw_key_vec.at(0),
+              0xa1u);
+}
+
 TEST_F(RecipeBakerTest, AnAffectedSignatureGetsTheMedianDepthOfItsPassesAndAnUnaffectedOneGetsNone)
 {
     constexpr size_t N_FLOATS_PER_MATRIX = 16;

@@ -322,6 +322,7 @@ namespace Analysis
             std::vector<SceneConvergence> scene_convergence_vec;
             ScreenParallax                screen_parallax;                 /* see ScreenParallax; not enabled unless the recipe has it */
             std::vector<SceneSeparation>  scene_separation_vec;            /* from "baked"; see SceneSeparation           */
+            std::vector<uint64_t>         side_reaching_draw_key_vec;      /* from "baked"; keys (signature and size) of flat draws, a 2D overlay, that reach from the left edge of the picture to the right one: a push moves them with the picture made wider by it, so that neither edge is bare */
             DrawSelector                  skipped;                         /* draws which are not played                 */
             std::string                   target_description;              /* of the application; for people             */
             std::string                   target_name;

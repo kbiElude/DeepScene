@@ -137,10 +137,11 @@ bool Analysis::RecipeBake::RecipeBaker::bake(const std::string&                 
 
         writer.write_key("baked");
 
-        const std::vector<uint64_t> covering_draw_key_vec = get_covering_draw_key_vec(recipe,
-                                                                                      in_analysis);
-        const PerEyeTextureVector   per_eye_texture_vec   = get_per_eye_texture_vec  (in_analysis,
-                                                                                      in_dependencies_ptr);
+        const std::vector<uint64_t> covering_draw_key_vec      = get_covering_draw_key_vec     (recipe,
+                                                                                                in_analysis);
+        const PerEyeTextureVector   per_eye_texture_vec        = get_per_eye_texture_vec       (in_analysis,
+                                                                                                in_dependencies_ptr);
+        const std::vector<uint64_t> side_reaching_draw_key_vec = get_side_reaching_draw_key_vec(in_analysis);
 
         out_report_ptr->n_per_eye_textures = static_cast<uint32_t>(per_eye_texture_vec.size() );
         out_report_ptr->uses_dependencies  = (in_dependencies_ptr != nullptr);
@@ -152,6 +153,7 @@ bool Analysis::RecipeBake::RecipeBaker::bake(const std::string&                 
                     rule_vec,
                     scene_convergence_vec,
                     scene_separation_vec,
+                    side_reaching_draw_key_vec,
                    &writer);
 
         writer.end_object();
@@ -743,6 +745,41 @@ float Analysis::RecipeBake::RecipeBaker::get_projection_scale(const Analysis::AP
     return result;
 }
 
+std::vector<uint64_t> Analysis::RecipeBake::RecipeBaker::get_side_reaching_draw_key_vec(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
+{
+    /* How near to an edge of the picture a vertex has to be for the draw to reach it (the edges are at -1 and 1). */
+    constexpr float EDGE_REACH = 0.99f;
+
+    /* How much the depth may differ across a draw for it to be flat, as a part of it (an overlay is at one depth, a floor that goes from side to side is not). */
+    constexpr float FLAT_DEPTH_SPREAD = 0.001f;
+
+    std::set<uint64_t> key_set;
+
+    for (const auto& facts_pair : in_analysis.model.draw_facts_map)
+    {
+        const auto& facts = facts_pair.second;
+
+        if (facts.n_draws_with_footprint == 0)
+        {
+            continue;
+        }
+
+        const float depth_spread = facts.view_depth_max - facts.view_depth_min;
+        const float depth_scale  = std::max(::fabsf(facts.view_depth_max),
+                                            1.0f);
+
+        if (facts.x_min       <= -EDGE_REACH                      &&
+            facts.x_max       >=  EDGE_REACH                      &&
+            depth_spread      <= FLAT_DEPTH_SPREAD * depth_scale)
+        {
+            key_set.insert(facts_pair.first.second);
+        }
+    }
+
+    return std::vector<uint64_t>(key_set.begin(),
+                                 key_set.end  () );
+}
+
 bool Analysis::RecipeBake::RecipeBaker::get_view_matrix_vec(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis,
                                                             const uint32_t&                                  in_pass_id,
                                                             MatrixVector*                                    out_matrix_vec_ptr,
@@ -968,6 +1005,7 @@ void Analysis::RecipeBake::RecipeBaker::write_baked(const std::vector<uint64_t>&
                                                     const RuleVector&             in_rule_vec,
                                                     const SceneConvergenceVector& in_scene_convergence_vec,
                                                     const SceneSeparationVector&  in_scene_separation_vec,
+                                                    const std::vector<uint64_t>&  in_side_reaching_draw_key_vec,
                                                     Utils::Json::JsonWriter*      inout_writer_ptr)
 {
     inout_writer_ptr->begin_object();
@@ -1002,6 +1040,15 @@ void Analysis::RecipeBake::RecipeBaker::write_baked(const std::vector<uint64_t>&
     for (const auto& signature_key : in_covering_draw_key_vec)
     {
         inout_writer_ptr->write_hex_u64(signature_key);
+    }
+
+    inout_writer_ptr->end_array();
+    inout_writer_ptr->write_key   ("side_reaching_draws");
+    inout_writer_ptr->begin_array ();
+
+    for (const auto& cover_key : in_side_reaching_draw_key_vec)
+    {
+        inout_writer_ptr->write_hex_u64(cover_key);
     }
 
     inout_writer_ptr->end_array();

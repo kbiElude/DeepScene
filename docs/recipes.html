@@ -158,6 +158,9 @@
       "covering_draws": [ "0x..." ],        the keys (signature and size) of the draws that cover the whole of the view (a flash, a
                                                    fade): found by the analysis, and not pushed toward the viewer, since moving them would
                                                    leave a strip bare
+      "side_reaching_draws": [ "0x..." ],   the keys (signature and size) of the flat draws that reach from the left edge of the picture to the right one (a bar,
+                                                   a scroller): found by the analysis from where their vertices were, and pushed with the picture made wider by the
+                                                   push, so that neither edge is bare
       "per_eye_textures": [                        the textures that are rendered to and that a frame uses what an earlier frame left in (see the dependencies; RecipeBake --deps), which
         { "description_key": "0x...", "ordinal": 1 }   each eye has a copy of: told by the key of how the texture was made and by the number
       ],                                           of the textures made like it before it, so that a replay knows when the application makes it

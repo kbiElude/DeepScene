@@ -8,20 +8,21 @@
 
 Stereo::Core::StereoCore::StereoCore(const Analysis::Recipe::Recipe& in_recipe,
                                      const FailFunc&                 in_fail_func)
-    :m_applier               (in_recipe),
-     m_fail_func             (in_fail_func),
-     m_frame_interval_seconds(ConvergenceModel::get_reference_frame_seconds() ),
-     m_is_last_draw_covering (false),
-     m_is_last_draw_eye_space(false),
-     m_is_last_draw_part     (false),
-     m_is_last_draw_pushed   (false),
-     m_is_overlay_pushed     (false),
-     m_last_draw_class       (Analysis::Recipe::DrawClass::AFFECTED),
-     m_last_draw_cover_key   (0),
-     m_n_unknown_draws       (0),
-     m_n_unknown_frames      (0),
-     m_scene_shape_key       (0),
-     m_view_matrix_fp32vec16 ()
+    :m_applier                   (in_recipe),
+     m_fail_func                 (in_fail_func),
+     m_frame_interval_seconds    (ConvergenceModel::get_reference_frame_seconds() ),
+     m_is_last_draw_covering     (false),
+     m_is_last_draw_eye_space    (false),
+     m_is_last_draw_part         (false),
+     m_is_last_draw_pushed       (false),
+     m_is_last_draw_side_reaching(false),
+     m_is_overlay_pushed         (false),
+     m_last_draw_class           (Analysis::Recipe::DrawClass::AFFECTED),
+     m_last_draw_cover_key       (0),
+     m_n_unknown_draws           (0),
+     m_n_unknown_frames          (0),
+     m_scene_shape_key           (0),
+     m_view_matrix_fp32vec16     ()
 {
     m_view_matrix_fp32vec16 = {1.0f, 0.0f, 0.0f, 0.0f,
                                0.0f, 1.0f, 0.0f, 0.0f,
@@ -67,9 +68,10 @@ Analysis::Recipe::DrawClass Stereo::Core::StereoCore::classify_draw(const uint64
 
     m_convergence_model.set_draw_convergence_distance(m_applier.get_convergence_distance(in_signature_key) );
 
-    m_is_last_draw_covering  = m_applier.is_draw_covering  (in_cover_key);
-    m_is_last_draw_eye_space = m_applier.is_eye_space_cover(in_cover_key);
-    m_is_last_draw_part      = m_applier.is_part_cover     (in_cover_key);
+    m_is_last_draw_covering      = m_applier.is_draw_covering  (in_cover_key);
+    m_is_last_draw_eye_space     = m_applier.is_eye_space_cover(in_cover_key);
+    m_is_last_draw_part          = m_applier.is_part_cover     (in_cover_key);
+    m_is_last_draw_side_reaching = m_applier.is_side_reaching  (in_cover_key);
 
     m_last_draw_class       = m_applier.classify_draw    (in_signature_key,
                                                           m_view_matrix_fp32vec16);
@@ -162,6 +164,11 @@ bool Stereo::Core::StereoCore::get_is_last_draw_part() const
 bool Stereo::Core::StereoCore::get_is_last_draw_pushed() const
 {
     return m_is_last_draw_pushed;
+}
+
+bool Stereo::Core::StereoCore::get_is_last_draw_side_reaching() const
+{
+    return m_is_last_draw_side_reaching;
 }
 
 bool Stereo::Core::StereoCore::get_is_overlay_pushed() const
