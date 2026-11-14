@@ -413,6 +413,30 @@ std::vector<uint64_t> Analysis::RecipeBake::OverlayCandidateFinder::get_sample_f
     return result_vec;
 }
 
+std::map<uint64_t, Analysis::APIDumpAnalysis::DrawFacts> Analysis::RecipeBake::OverlayCandidateFinder::get_facts_by_cover_key(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
+{
+    std::map<uint64_t, Analysis::APIDumpAnalysis::DrawFacts> result;
+
+    for (const auto& facts_pair : in_analysis.model.draw_facts_map)
+    {
+        const uint64_t cover_key = facts_pair.first.second;
+        const auto     found     = result.find(cover_key);
+
+        if (found == result.end() )
+        {
+            result.emplace(cover_key,
+                           facts_pair.second);
+        }
+        else
+        {
+            found->second = merge_draw_facts(found->second,
+                                             facts_pair.second);
+        }
+    }
+
+    return result;
+}
+
 Analysis::APIDumpAnalysis::DrawFacts Analysis::RecipeBake::OverlayCandidateFinder::merge_draw_facts(const Analysis::APIDumpAnalysis::DrawFacts& in_a,
                                                                                                    const Analysis::APIDumpAnalysis::DrawFacts& in_b)
 {

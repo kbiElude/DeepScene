@@ -26,6 +26,16 @@ namespace Analysis
             std::vector<uint64_t> side_reaching_draw_key_vec; /* flat, and reach from the left edge of the picture to the right one                                   */
         };
 
+        /* A kind of draw (a signature and a size) whose draws are not all of one kind by the facts of the analysis: some are made in the space of the picture and others are
+         * not, some are over a 3D scene and others are not, or some have their vertices in the space of the eye and others have not. The automatic layers (see
+         * RecipeBaker::get_automatic_layers()) leave such a key out, so the recipe has to say what it is, if it has to be one thing.
+         */
+        struct MixedDraw
+        {
+            uint64_t                             cover_key = 0;
+            Analysis::APIDumpAnalysis::DrawFacts facts;
+        };
+
         /* What baking found, for the person who bakes. */
         struct BakeReport
         {
@@ -143,6 +153,7 @@ namespace Analysis
             uint64_t                       n_frames_of_unknown_shapes = 0;
             uint64_t                       n_shapes                   = 0;
             uint64_t                       n_signatures               = 0;
+            std::vector<MixedDraw>         mixed_draw_vec;
             std::vector<UnaffectedWarning> unaffected_warning_vec;
             std::vector<UnknownShape>      unknown_shape_vec;
             std::vector<UnknownSignature>  unknown_signature_vec;

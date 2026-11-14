@@ -38,6 +38,11 @@ namespace Analysis
                                      const Analysis::Recipe::Recipe& in_recipe);
 
         private:
+            /* Whether the draws of a key are not all of one kind by the facts: some are in the space of the picture and others are not, some are over a 3D scene and others are
+             * not (of those in the space of the picture), or some have their vertices in the space of the eye and others (that could be placed in the picture) have not.
+             */
+            static bool is_mixed(const Analysis::APIDumpAnalysis::DrawFacts& in_facts);
+
             static UnaffectedWarning make_warning(const OverlayCandidate&      in_candidate,
                                                   const UnaffectedWarningKind& in_kind);
         };

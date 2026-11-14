@@ -15,6 +15,7 @@
 #include "analysis/recipe/recipe_applier.h"
 #include "types.h"
 #include "analysis/recipe/types.h"
+#include <map>
 #include <vector>
 
 namespace Analysis
@@ -35,6 +36,9 @@ namespace Analysis
             static void write_json(const std::vector<OverlayCandidate>& in_candidate_vec,
                                    const Analysis::Recipe::Recipe&      in_recipe,
                                    Utils::Json::JsonWriter*             inout_writer_ptr);
+
+            /* The facts of the draws of each key (signature and size), in all the structures that have it, as if they were one group. */
+            static std::map<uint64_t, Analysis::APIDumpAnalysis::DrawFacts> get_facts_by_cover_key(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis);
 
             /* The frames of a draw to look at it in, from all the frames it is in: the first, the middle one and the last (one frame, or two, if that is all there are). */
             static std::vector<uint64_t> get_sample_frame_index_vec(const std::vector<uint64_t>& in_frame_index_vec);

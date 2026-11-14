@@ -39,6 +39,19 @@ Analysis::RecipeBake::CoverageReport Analysis::RecipeBake::RecipeChecker::check(
     result.n_frames = model_ref.frame_record_vec.size();
     result.n_shapes = shape_map.size();
 
+    for (const auto& facts_pair : OverlayCandidateFinder::get_facts_by_cover_key(in_analysis) )
+    {
+        if (is_mixed(facts_pair.second) )
+        {
+            MixedDraw mixed_draw;
+
+            mixed_draw.cover_key = facts_pair.first;
+            mixed_draw.facts     = facts_pair.second;
+
+            result.mixed_draw_vec.push_back(mixed_draw);
+        }
+    }
+
     for (auto& shape_pair : shape_map)
     {
         shape_pair.second.shape_key = Analysis::APIDumpAnalysis::ModelBuilder::compute_shape_key(model_ref,
@@ -140,6 +153,21 @@ Analysis::RecipeBake::CoverageReport Analysis::RecipeBake::RecipeChecker::check(
     }
 
     return result;
+}
+
+bool Analysis::RecipeBake::RecipeChecker::is_mixed(const Analysis::APIDumpAnalysis::DrawFacts& in_facts)
+{
+    const bool is_flat_in_some    = (in_facts.n_draws_flat_layer != 0                  &&
+                                     in_facts.n_draws_flat_layer != in_facts.n_draws);
+    const bool is_over_3d_in_some = (in_facts.n_draws_flat_layer     == in_facts.n_draws &&
+                                     in_facts.n_draws_after_3d_draw  != 0                &&
+                                     in_facts.n_draws_after_3d_draw  != in_facts.n_draws);
+    const bool is_eye_space_in_some = (in_facts.n_draws_eye_space != 0                             &&
+                                       in_facts.n_draws_eye_space != in_facts.n_draws_with_footprint);
+
+    return (is_flat_in_some      ||
+            is_over_3d_in_some   ||
+            is_eye_space_in_some);
 }
 
 Analysis::RecipeBake::UnaffectedWarning Analysis::RecipeBake::RecipeChecker::make_warning(const OverlayCandidate&      in_candidate,
@@ -291,6 +319,34 @@ void Analysis::RecipeBake::RecipeChecker::print_report(FILE*                    
                         static_cast<unsigned long long>(warning.n_frames),
                         static_cast<unsigned long long>(warning.first_frame_index) );
             }
+        }
+    }
+
+    if (in_report.mixed_draw_vec.empty() )
+    {
+        fprintf(in_file_handle,
+                "Every kind of draw (signature and size) is of one kind by what the analysis saw it do.\n");
+    }
+    else
+    {
+        fprintf(in_file_handle,
+                "%zu kinds of draws are not of one kind by what the analysis saw them do (the automatic layers leave them out, so the recipe names them if they are one thing):\n",
+                in_report.mixed_draw_vec.size() );
+
+        for (size_t n_draw = 0;
+                    n_draw < in_report.mixed_draw_vec.size() && n_draw < N_ENTRIES_LISTED;
+                  ++n_draw)
+        {
+            const auto& facts = in_report.mixed_draw_vec.at(n_draw).facts;
+
+            fprintf(in_file_handle,
+                    "  draw 0x%016llx: %llu draws, %llu in the space of the picture, %llu over a 3D scene, %llu in the space of the eye (of %llu that could be placed)\n",
+                    static_cast<unsigned long long>(in_report.mixed_draw_vec.at(n_draw).cover_key),
+                    static_cast<unsigned long long>(facts.n_draws),
+                    static_cast<unsigned long long>(facts.n_draws_flat_layer),
+                    static_cast<unsigned long long>(facts.n_draws_after_3d_draw),
+                    static_cast<unsigned long long>(facts.n_draws_eye_space),
+                    static_cast<unsigned long long>(facts.n_draws_with_footprint) );
         }
     }
 }

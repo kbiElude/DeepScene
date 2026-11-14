@@ -203,3 +203,61 @@ TEST(RecipeChecker, ADrawKeyOfAnOverlayThatBothWaysOfPlayingLeaveAloneIsNotSaidT
 
     EXPECT_TRUE(report.unaffected_warning_vec.empty() );
 }
+
+TEST(RecipeChecker, AKindOfDrawWhoseDrawsAreNotAllOfOneKindIsListedWithWhatTheyDid)
+{
+    uint64_t first_shape_key  = 0;
+    uint64_t second_shape_key = 0;
+    auto     analysis         = make_analysis(&first_shape_key,
+                                              &second_shape_key);
+    const Analysis::Recipe::Recipe recipe;
+
+    Analysis::APIDumpAnalysis::DrawFacts all_flat;
+    Analysis::APIDumpAnalysis::DrawFacts some_flat;
+    Analysis::APIDumpAnalysis::DrawFacts some_over_3d;
+    Analysis::APIDumpAnalysis::DrawFacts some_eye_space;
+    Analysis::APIDumpAnalysis::DrawFacts scenery;
+
+    /* All in the space of the picture and all over a 3D scene: one kind. */
+    all_flat.n_draws               = 4;
+    all_flat.n_draws_after_3d_draw = 4;
+    all_flat.n_draws_flat_layer    = 4;
+
+    /* Some in the space of the picture and some in the world. */
+    some_flat.n_draws            = 4;
+    some_flat.n_draws_flat_layer = 1;
+
+    /* All in the space of the picture, over a 3D scene in some. */
+    some_over_3d.n_draws               = 4;
+    some_over_3d.n_draws_after_3d_draw = 2;
+    some_over_3d.n_draws_flat_layer    = 4;
+
+    /* At the camera in some of the draws that could be placed. */
+    some_eye_space.n_draws                = 4;
+    some_eye_space.n_draws_eye_space      = 1;
+    some_eye_space.n_draws_with_footprint = 4;
+
+    /* In the world, none at the camera. */
+    scenery.n_draws                = 4;
+    scenery.n_draws_with_footprint = 4;
+
+    analysis.model.draw_facts_map[Analysis::APIDumpAnalysis::DrawFactsKey(0x1, 0xa1)] = all_flat;
+    analysis.model.draw_facts_map[Analysis::APIDumpAnalysis::DrawFactsKey(0x1, 0xb2)] = some_flat;
+    analysis.model.draw_facts_map[Analysis::APIDumpAnalysis::DrawFactsKey(0x1, 0xc3)] = some_over_3d;
+    analysis.model.draw_facts_map[Analysis::APIDumpAnalysis::DrawFactsKey(0x1, 0xd4)] = some_eye_space;
+    analysis.model.draw_facts_map[Analysis::APIDumpAnalysis::DrawFactsKey(0x1, 0xe5)] = scenery;
+
+    const auto report = Analysis::RecipeBake::RecipeChecker::check(recipe,
+                                                                   analysis);
+
+    ASSERT_EQ(report.mixed_draw_vec.size(),
+              3u);
+    EXPECT_EQ(report.mixed_draw_vec.at(0).cover_key,
+              0xb2u);
+    EXPECT_EQ(report.mixed_draw_vec.at(1).cover_key,
+              0xc3u);
+    EXPECT_EQ(report.mixed_draw_vec.at(2).cover_key,
+              0xd4u);
+    EXPECT_EQ(report.mixed_draw_vec.at(2).facts.n_draws_eye_space,
+              1u);
+}

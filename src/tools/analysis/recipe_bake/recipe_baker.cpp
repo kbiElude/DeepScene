@@ -11,6 +11,7 @@
 #include "analysis/recipe/recipe_applier.h"
 #include "recipe_baker.h"
 #include "analysis/recipe/recipe_loader.h"
+#include "overlay_candidate_finder.h"
 #include <algorithm>
 #include <map>
 #include <math.h>
@@ -551,31 +552,8 @@ void Analysis::RecipeBake::RecipeBaker::compute_scene_convergence(const Analysis
 Analysis::RecipeBake::DrawKeyLists Analysis::RecipeBake::RecipeBaker::get_automatic_layers(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
 {
     /* What the draws of one key did, in all the structures that have it. */
-    struct CoverTotal
-    {
-        uint64_t n_draws                       = 0;
-        uint64_t n_draws_after_3d_draw         = 0;
-        uint64_t n_draws_eye_space             = 0;
-        uint64_t n_draws_flat_layer            = 0;
-        uint64_t n_draws_sampling_copied_color = 0;
-        uint64_t n_draws_with_footprint        = 0;
-    };
-
-    std::map<uint64_t, CoverTotal> total_map;
-    DrawKeyLists                   result;
-
-    for (const auto& facts_pair : in_analysis.model.draw_facts_map)
-    {
-        const auto& facts = facts_pair.second;
-        auto&       total = total_map[facts_pair.first.second];
-
-        total.n_draws                       += facts.n_draws;
-        total.n_draws_after_3d_draw         += facts.n_draws_after_3d_draw;
-        total.n_draws_eye_space             += facts.n_draws_eye_space;
-        total.n_draws_flat_layer            += facts.n_draws_flat_layer;
-        total.n_draws_sampling_copied_color += facts.n_draws_sampling_copied_color;
-        total.n_draws_with_footprint        += facts.n_draws_with_footprint;
-    }
+    const auto   total_map = OverlayCandidateFinder::get_facts_by_cover_key(in_analysis);
+    DrawKeyLists result;
 
     for (const auto& total_pair : total_map)
     {
