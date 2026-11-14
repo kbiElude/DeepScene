@@ -128,7 +128,7 @@
   "recipe_version": 0,
   "rules": [],
   "target": {
-    "description": "Assembly 2001, by Moppi Productions: OpenGL",
+    "description": "Assembly 2001, by Moppi Productions",
     "name": "Gerbera"
   },
   "unaffected": {

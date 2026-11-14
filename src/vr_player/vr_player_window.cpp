@@ -592,11 +592,6 @@ void VRPlayer::VrPlayerWindow::draw_launch_area()
                            progress_text.c_str() );
     }
     else
-    if (m_status.empty() == false)
-    {
-        ImGui::TextUnformatted(m_status.c_str() );
-    }
-    else
     if (is_possible == false)
     {
         ImGui::TextUnformatted("Pick an application which is available.");
@@ -916,7 +911,8 @@ void VRPlayer::VrPlayerWindow::start_app(const size_t& in_n_app)
         m_session.set_depth_strength(m_depth_strength);
 
         m_running_app_name = app.name;
-        m_status           = app.name + " is running.";
+
+        m_status.clear();
     }
 }
 
@@ -981,7 +977,8 @@ void VRPlayer::VrPlayerWindow::update_install()
             {
                 m_installing_app  = -1;
                 m_is_status_error = false;
-                m_status          = "The download was cancelled.";
+
+                m_status.clear();
 
                 break;
             }
@@ -1024,9 +1021,17 @@ void VRPlayer::VrPlayerWindow::update_session()
 
         if (current_state != previous_state)
         {
+            /* Only a failure is said: that an application has ended is what the person who closed it knows. */
             m_is_status_error = (current_state == SessionState::FAILED);
-            m_status          = (m_is_status_error) ? m_session.get_message()
-                                                    : m_running_app_name + " has ended.";
+
+            if (m_is_status_error)
+            {
+                m_status = m_session.get_message();
+            }
+            else
+            {
+                m_status.clear();
+            }
         }
     }
 }
