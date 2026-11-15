@@ -20,13 +20,13 @@ namespace Stereo
             ConvergenceModel();
 
             /* Called when a completed frame has a scene convergence distance (in_target). The stored scene distance moves toward in_target by
-             * in_fraction_of_the_way. It jumps to in_target on the first call and at a cut (a target more than twice or less than half of the
-             * previous one). Returns false and changes nothing if in_target is not above 0.
+             * in_fraction_of_the_way. It jumps to in_target on the first call, and at a cut (a target more than twice or less than half of the
+             * previous one) if set_snaps_at_cuts() was called with true. Returns false and changes nothing if in_target is not above 0.
              */
             bool follow_scene_convergence_distance(const float& in_target,
                                                    const float& in_fraction_of_the_way);
 
-            /* Called when a completed frame has a scene limit for the eye separation (in_target). The limit eases and snaps at a cut like the
+            /* Called when a completed frame has a scene limit for the eye separation (in_target). The limit eases, and snaps at a cut, like the
              * scene distance does. A target of 0 or less removes the limit at once.
              */
             void follow_scene_max_separation(const float& in_target,
@@ -64,12 +64,23 @@ namespace Stereo
             /* The convergence distance that the recipe gives for the draw classified last; 0 if it gives none. */
             void set_draw_convergence_distance(const float& in_draw_convergence_distance);
 
+            /* Whether the scene distance and limit jump to the target at a cut (see follow_scene_convergence_distance()) instead of easing across
+             * it. Off until it is set.
+             */
+            void set_snaps_at_cuts(const bool& in_snaps_at_cuts);
+
             /* The fraction of the way to its target that a value covers in in_elapsed_seconds. It is 0 for no time and 0.05 for one frame at 72 Hz
              * (the headset rate that the easing was tuned for). The movement depends only on elapsed time: two frames of half the length cover as
              * much as one full frame, so a run at 1000 frames per second looks the same as a run at 72. After a long stall it is close to 1, so
              * the eyes are at the target.
              */
             static float get_fraction_of_the_way(const float& in_elapsed_seconds);
+
+            /* The fraction of the way to its target that a value covers in one frame, whatever the frame takes: 0.05, the same as
+             * get_fraction_of_the_way() for a frame at 72 Hz. The eyes then move by the same part of the way in each frame, so a long frame
+             * does not make them jump.
+             */
+            static float get_fraction_per_frame();
 
             /* The duration of one frame at 72 Hz. get_fraction_of_the_way() returns 0.05 for it. */
             static float get_reference_frame_seconds();
@@ -95,6 +106,7 @@ namespace Stereo
             float m_previous_scene_max_separation_target;
             float m_scene_convergence_distance; /* eased toward the recipe's scene distance                    */
             float m_scene_max_separation;       /* the same, for the eye separation limit; 0: none             */
+            bool  m_snaps_at_cuts;              /* see set_snaps_at_cuts()                                     */
         };
     }
 }

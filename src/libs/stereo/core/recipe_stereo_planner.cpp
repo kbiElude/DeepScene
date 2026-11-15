@@ -30,6 +30,8 @@ Stereo::Core::RecipeStereoPlanner::RecipeStereoPlanner(const Analysis::Recipe::R
                                0.0f, 0.0f, 1.0f, 0.0f,
                                0.0f, 0.0f, 0.0f, 1.0f};
 
+    m_convergence_model.set_snaps_at_cuts(in_recipe.comfort.snaps_at_cuts);
+
     require_fast_path(in_recipe.is_baked,
                       "The recipe is not baked, so nothing tells the converter what the draws of the application are");
 
@@ -137,6 +139,12 @@ float Stereo::Core::RecipeStereoPlanner::get_effective_eye_separation() const
 float Stereo::Core::RecipeStereoPlanner::get_eye_separation() const
 {
     return m_convergence_model.get_eye_separation();
+}
+
+float Stereo::Core::RecipeStereoPlanner::get_fraction_of_the_way() const
+{
+    return (m_applier.get_comfort().eases_by_time) ? ConvergenceModel::get_fraction_of_the_way(m_frame_interval_seconds)
+                                                   : ConvergenceModel::get_fraction_per_frame();
 }
 
 float Stereo::Core::RecipeStereoPlanner::get_ipd_scale() const
@@ -276,7 +284,7 @@ std::array<float, 16> Stereo::Core::RecipeStereoPlanner::make_eye_shift_matrix(c
 
 void Stereo::Core::RecipeStereoPlanner::on_frame_completed(const uint64_t& in_shape_key)
 {
-    const float fraction_of_the_way = ConvergenceModel::get_fraction_of_the_way(m_frame_interval_seconds);
+    const float fraction_of_the_way = get_fraction_of_the_way();
     const float scene_distance      = m_applier.get_scene_convergence_distance (in_shape_key);
 
     m_scene_shape_key = in_shape_key;
@@ -313,7 +321,7 @@ bool Stereo::Core::RecipeStereoPlanner::on_frame_depth(const uint64_t&   in_shap
                                                                                 in_depth_range.far_depth,
                                                                                 in_projection_scale);
 
-        const float fraction_of_the_way = ConvergenceModel::get_fraction_of_the_way(m_frame_interval_seconds);
+        const float fraction_of_the_way = get_fraction_of_the_way();
 
         m_convergence_model.follow_scene_convergence_distance(limits.distance,
                                                               fraction_of_the_way);

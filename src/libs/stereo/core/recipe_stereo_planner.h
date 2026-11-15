@@ -275,7 +275,12 @@ namespace Stereo
             void set_scene_shape_key(const uint64_t& in_shape_key);
 
         private:
-            void fail(const std::string& in_message) const;
+            void  fail(const std::string& in_message) const;
+
+            /* The fraction of the way to a scene's distance and limit that the eyes go after a frame: by the time the frame took if the recipe
+             * has comfort.ease_by_time, else the same part of the way for every frame (see ConvergenceModel).
+             */
+            float get_fraction_of_the_way() const;
 
 
             Analysis::Recipe::RecipeApplier m_applier;

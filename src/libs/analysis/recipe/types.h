@@ -141,6 +141,11 @@ namespace Analysis
              */
             float camera_attached_depth = 0.0f;
 
+            /* Whether a converter eases the eyes toward the scene by the time that goes (the same movement in the same time at any frame rate, so
+             * a long frame moves them a long way in one step), instead of by the same part of the way in each frame. Off by default: by frame.
+             */
+            bool eases_by_time = false;
+
             /* Keys of draws (signature and size) whose vertices are already in eye space (the model-view matrix is the identity). They are not
              * treated as attached to the camera, and they get the parallax of the depth of their vertices.
              */
@@ -185,6 +190,11 @@ namespace Analysis
 
             /* What the recipe says about single scenes, identified by their shape keys. */
             std::vector<SceneComfort> scene_override_vec;
+
+            /* Whether a converter puts the eyes at the distance and the limit of a scene at once when the scene is cut to another one far from it
+             * (a target more than twice or less than half of the one before), instead of easing the eyes across the cut. Off by default.
+             */
+            bool snaps_at_cuts = false;
         };
 
         /* How the eyes get parallax in an application whose vertices are already in the space of the picture (pre-transformed, as Direct3D calls

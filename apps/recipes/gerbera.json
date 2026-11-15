@@ -3,6 +3,7 @@
   "comfort": {
     "balance_convergence": true,
     "camera_attached_depth": 0.05,
+    "ease_by_time": true,
     "eye_space_cover_keys": [
       "0x314e721b5b34f4bd",
       "0x37d2a5331622264f",
@@ -78,7 +79,8 @@
         "max_near_parallax": 0.0135869565,
         "shape": "0xdc5ba53ba016c48b"
       }
-    ]
+    ],
+    "snap_at_cuts": true
   },
   "key_scheme_version": 1,
   "pushed": {

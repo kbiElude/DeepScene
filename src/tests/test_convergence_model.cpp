@@ -110,10 +110,24 @@ TEST(ConvergenceModel, TheLimitIsTakenAtOnceAtFirstAndThenEasedTowardTheNextOneA
                     1.8f);
 }
 
-TEST(ConvergenceModel, ATargetMoreThanTwiceOrLessThanHalfTheOneBeforeIsACutAndIsTakenAtOnce)
+TEST(ConvergenceModel, ACutIsEasedAcrossUnlessTheModelIsToSnapAtCuts)
 {
     Stereo::Core::ConvergenceModel model;
 
+    model.follow_scene_convergence_distance(300.0f, FRACTION_PER_FRAME);
+    model.follow_scene_convergence_distance(1500.0f, FRACTION_PER_FRAME);
+
+    /* A twentieth of the way along the logarithm: 300 * 5 ^ 0.05. */
+    EXPECT_NEAR(model.get_effective_convergence_distance(),
+                300.0f * ::powf(5.0f, 0.05f),
+                0.01f);
+}
+
+TEST(ConvergenceModel, ATargetMoreThanTwiceOrLessThanHalfTheOneBeforeIsACutAndIsTakenAtOnceIfTheModelSnapsAtCuts)
+{
+    Stereo::Core::ConvergenceModel model;
+
+    model.set_snaps_at_cuts(true);
     model.set_depth_strength(1.0f);
     model.follow_scene_convergence_distance(300.0f, FRACTION_PER_FRAME);
     model.follow_scene_max_separation      (1.0f,   FRACTION_PER_FRAME);
@@ -148,6 +162,8 @@ TEST(ConvergenceModel, ATargetMoreThanTwiceOrLessThanHalfTheOneBeforeIsACutAndIs
 TEST(ConvergenceModel, ACutIsMeasuredAgainstTheTargetOfTheFrameBeforeAndNotAgainstWhereTheEyesAre)
 {
     Stereo::Core::ConvergenceModel model;
+
+    model.set_snaps_at_cuts(true);
 
     model.set_convergence_distance(30000.0f); /* the natural separation is far above the limit */
     model.set_depth_strength      (1.0f);

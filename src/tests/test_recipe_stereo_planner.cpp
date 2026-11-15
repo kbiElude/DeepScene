@@ -806,11 +806,46 @@ TEST_F(StereoCoreTest, TheDistanceOfTheRecipeIsFollowedForEachDrawUnlessOneIsSet
     EXPECT_TRUE(message_vec.empty() );
 }
 
-TEST_F(StereoCoreTest, TheEyesGoTowardASceneByTheTimeThatTheFrameTookAndNotByTheNumberOfFrames)
+TEST_F(StereoCoreTest, TheEyesGoTheSamePartOfTheWayInEveryFrameUnlessTheRecipeEasesByTime)
 {
     auto recipe = make_recipe(get_baked_text(""),
                               "");
 
+    recipe.scene_convergence_vec.push_back({10.0f, 100});
+    recipe.scene_convergence_vec.push_back({18.0f, 200});
+
+    const auto get_distance_func = [&recipe](const float& in_frame_seconds)
+    {
+        Stereo::Core::RecipeStereoPlanner core(recipe,
+                                               [](const std::string&)
+                                               {
+                                               });
+
+        core.on_frame_completed(100);
+        core.set_frame_interval_seconds(in_frame_seconds);
+        core.on_frame_completed(200);
+
+        return core.get_effective_convergence_distance();
+    };
+
+    /* A twentieth of the way along the logarithm, however long the frame took: a stall does not make the eyes jump. */
+    EXPECT_NEAR(get_distance_func(0.001f),
+                10.0f * ::powf(1.8f, 0.05f),
+                0.001f);
+    EXPECT_NEAR(get_distance_func(0.2f),
+                10.0f * ::powf(1.8f, 0.05f),
+                0.001f);
+    EXPECT_NEAR(get_distance_func(5.0f),
+                10.0f * ::powf(1.8f, 0.05f),
+                0.001f);
+}
+
+TEST_F(StereoCoreTest, TheEyesGoTowardASceneByTheTimeThatTheFrameTookAndNotByTheNumberOfFramesIfTheRecipeEasesByTime)
+{
+    auto recipe = make_recipe(get_baked_text(""),
+                              "");
+
+    recipe.comfort.eases_by_time = true;
     recipe.scene_convergence_vec.push_back({10.0f, 100});
     recipe.scene_convergence_vec.push_back({18.0f, 200});
 
@@ -932,11 +967,34 @@ TEST_F(StereoCoreTest, TheDistanceOfTheSceneIsTakenAtOnceAtFirstAndThenEasedTowa
     EXPECT_TRUE(message_vec.empty() );
 }
 
-TEST_F(StereoCoreTest, ACutToASceneAtAnotherDistanceIsTakenAtOnce)
+TEST_F(StereoCoreTest, ACutToASceneAtAnotherDistanceIsEasedAcrossUnlessTheRecipeSnapsAtCuts)
 {
     auto recipe = make_recipe(get_baked_text(""),
                               "");
 
+    recipe.scene_convergence_vec.push_back({10.0f, 100});
+    recipe.scene_convergence_vec.push_back({40.0f, 200});
+
+    Stereo::Core::RecipeStereoPlanner core(recipe,
+                                           [](const std::string&)
+                                           {
+                                           });
+
+    core.on_frame_completed(100);
+    core.on_frame_completed(200);
+
+    /* 40 is four times 10, and the recipe does not snap: the eyes are a twentieth of the way there. */
+    EXPECT_NEAR(core.get_effective_convergence_distance(),
+                10.0f * ::powf(4.0f, 0.05f),
+                0.001f);
+}
+
+TEST_F(StereoCoreTest, ACutToASceneAtAnotherDistanceIsTakenAtOnceIfTheRecipeSnapsAtCuts)
+{
+    auto recipe = make_recipe(get_baked_text(""),
+                              "");
+
+    recipe.comfort.snaps_at_cuts = true;
     recipe.scene_convergence_vec.push_back({10.0f, 100});
     recipe.scene_convergence_vec.push_back({40.0f, 200});
 

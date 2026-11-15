@@ -469,7 +469,7 @@
 <h4>Convergence by time</h4>
 <ul>
   <li>The nearest and farthest of the passes go to <code>RecipeStereoPlanner::on_frame_depth()</code>, which has the eyes converge and the separation limited as <code>RecipeApplier::get_comfort_limits()</code> says (the function that bakes the limits of a scene).</li>
-  <li>The eyes follow that by the time that goes (<code>ConvergenceModel::get_fraction_of_the_way</code>: 5 percent of the way in the time of a frame at 72 Hz, a time constant of about 0.27 s, the same at any rate; the converter measures how long each frame took), so a run that is not held to a rate sees the same adaptation as the headset does.</li>
+  <li>The eyes follow that by 5 percent of the way in each frame, or, with <code>comfort.ease_by_time</code>, by the time that goes (<code>ConvergenceModel::get_fraction_of_the_way</code>: 5 percent of the way in the time of a frame at 72 Hz, a time constant of about 0.27 s, the same at any rate; the converter measures how long each frame took), so that a run that is not held to a rate sees the same adaptation as the headset does.</li>
   <li>The scene dump counts frames, so a run that writes scenes is held to a rate (see <a href="#log">the switches</a>).</li>
 </ul>
 

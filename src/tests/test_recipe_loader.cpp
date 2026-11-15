@@ -1252,6 +1252,36 @@ TEST_F(RecipeLoaderTest, TheComfortOfARecipeIsReadAndWhatIsWrongInItIsRefused)
                    "comfort: expected an object");
 }
 
+TEST_F(RecipeLoaderTest, TheComfortOfTheRecipeSaysWhetherTheEyesEaseByTimeAndSnapAtCuts)
+{
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"comfort\": {\"ease_by_time\": true, \"snap_at_cuts\": true},",
+                                                                       ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_TRUE(recipe.comfort.eases_by_time);
+    EXPECT_TRUE(recipe.comfort.snaps_at_cuts);
+
+    /* Neither is on unless the recipe says so. */
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"comfort\": {},",
+                                                                       ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_FALSE(recipe.comfort.eases_by_time);
+    EXPECT_FALSE(recipe.comfort.snaps_at_cuts);
+
+    expect_refused(get_recipe_text("\"comfort\": {\"ease_by_time\": 1},",
+                                   ""),
+                   "comfort.ease_by_time");
+    expect_refused(get_recipe_text("\"comfort\": {\"snap_at_cuts\": \"yes\"},",
+                                   ""),
+                   "comfort.snap_at_cuts");
+}
+
 TEST_F(RecipeLoaderTest, TheComfortOfTheRecipeHasAFarLimitTheBalanceOfTheConvergenceAndWhatIsSaidOfSingleScenes)
 {
     std::string              error;

@@ -223,7 +223,7 @@ shift(right eye) = −shift(left eye)
 </table>
 <p>The balanced distance solves <code>1/d = 1/z<sub>near</sub> − (1/z<sub>near</sub> − 1/z<sub>far</sub>) · near / (near + far)</code>, where <code>near</code> and <code>far</code> are the two parallax limits.</p>
 <h3>Easing</h3>
-<p>The distance eases toward the target of the last frame along the logarithm, since a depth is felt in proportion to itself. A cut is taken at once.</p>
+<p>The distance eases toward the target of the last frame along the logarithm, since a depth is felt in proportion to itself: 5% of the way in each frame. Two comfort options of the recipe change that, and both are off unless it asks for them: <code>ease_by_time</code> makes the step depend on the time the frame took, and <code>snap_at_cuts</code> takes a cut at once.</p>
 <figure>
 <svg viewBox="0 0 900 220" role="img" aria-label="The convergence distance follows its target slowly, and jumps at a cut">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
@@ -231,17 +231,18 @@ shift(right eye) = −shift(left eye)
   <text class="small" x="860" y="208" text-anchor="end">time</text><text class="small" x="80" y="26">distance</text>
   <path class="dashed" d="M80 150H400V70H620V120H840"/><text class="small" x="90" y="170">target</text>
   <path class="rayL" d="M80 150H400V70H620Q665 118 720 120H840" stroke-width="2.5"/><text class="small l" x="760" y="108">used</text>
-  <path class="dashed" d="M400 70V190"/><text class="small" x="408" y="186">cut: a target over twice or under half of the one before; taken at once</text>
-  <text class="small" x="540" y="60">a smaller change eases in: 5% of the way per 1/72 s</text>
+  <path class="dashed" d="M400 70V190"/><text class="small" x="408" y="186">snap_at_cuts: a target over twice or under half of the one before is taken at once</text>
+  <text class="small" x="540" y="60">otherwise it eases: 5% of the way in each frame</text>
   <path class="dashed" d="M620 120V190"/>
 </svg>
 <figcaption>The first value of a scene is also taken at once. The first frame of a new scene is drawn with the values of the scene before, since its own is known only when it has been completed (a measured depth, a frame later), so a cut shows one or two frames of the old values.</figcaption>
 </figure>
 <table>
 <tr><th>Constant</th><th>Value</th><th>Meaning</th></tr>
-<tr><td><code>ConvergenceModel::get_fraction_of_the_way</code></td><td>5% per 1/72 s</td><td>The step is by time, not by frames (the converter tells the core the frame time with <code>RecipeStereoPlanner::set_frame_interval_seconds</code>): a time constant of about 0.27 s at any frame rate.</td></tr>
+<tr><td><code>ConvergenceModel::get_fraction_per_frame</code></td><td>5% per frame</td><td>The step of every frame, however long it took: a stall does not make the eyes jump.</td></tr>
+<tr><td><code>ConvergenceModel::get_fraction_of_the_way</code></td><td>5% per 1/72 s</td><td>With <code>comfort.ease_by_time</code>. The step is by time, not by frames (the converter tells the core the frame time with <code>RecipeStereoPlanner::set_frame_interval_seconds</code>): a time constant of about 0.27 s at any frame rate, and a long frame is a long step.</td></tr>
 <tr><td><code>SNAP_FRACTION</code> (<code>ConvergenceModel::get_eased_value</code>)</td><td>0.001</td><td>Within this part of the target the value snaps to it.</td></tr>
-<tr><td><code>CUT_RATIO</code> (<code>ConvergenceModel::is_cut</code>)</td><td>2</td><td>A target more than twice or less than half of the one of the frame before is a cut. The same holds for the limit of the eyes.</td></tr>
+<tr><td><code>CUT_RATIO</code> (<code>ConvergenceModel::is_cut</code>)</td><td>2</td><td>With <code>comfort.snap_at_cuts</code>: a target more than twice or less than half of the one of the frame before is a cut, taken at once. The same holds for the limit of the eyes.</td></tr>
 </table>
 
 <h2 id="comfort">The comfort limit</h2>

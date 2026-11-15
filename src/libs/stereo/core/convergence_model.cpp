@@ -6,6 +6,9 @@
 #include <algorithm>
 #include <math.h>
 
+/* The fraction of the way to its target that a value covers in one frame at 72 Hz (the headset rate the easing was tuned for). */
+constexpr float FRACTION_PER_REFERENCE_FRAME = 0.05f;
+
 Stereo::Core::ConvergenceModel::ConvergenceModel()
     :m_convergence_distance                (0.0f),
      m_depth_strength                      (0.0f),
@@ -15,7 +18,8 @@ Stereo::Core::ConvergenceModel::ConvergenceModel()
      m_previous_scene_convergence_target   (0.0f),
      m_previous_scene_max_separation_target(0.0f),
      m_scene_convergence_distance          (0.0f),
-     m_scene_max_separation                (0.0f)
+     m_scene_max_separation                (0.0f),
+     m_snaps_at_cuts                       (false)
 {
     /* Stub */
 }
@@ -27,8 +31,10 @@ bool Stereo::Core::ConvergenceModel::follow_scene_convergence_distance(const flo
 
     if (result)
     {
-        const bool is_at_cut = is_cut(m_previous_scene_convergence_target,
-                                      in_target);
+        const bool is_target_cut = is_cut(m_previous_scene_convergence_target,
+                                          in_target);
+        const bool is_at_cut     = (m_snaps_at_cuts &&
+                                    is_target_cut);
 
         m_scene_convergence_distance        = (is_at_cut) ? in_target
                                                           : get_eased_value(m_scene_convergence_distance,
@@ -43,8 +49,10 @@ bool Stereo::Core::ConvergenceModel::follow_scene_convergence_distance(const flo
 void Stereo::Core::ConvergenceModel::follow_scene_max_separation(const float& in_target,
                                                             const float& in_fraction_of_the_way)
 {
-    const bool is_at_cut = is_cut(m_previous_scene_max_separation_target,
-                                  in_target);
+    const bool is_target_cut = is_cut(m_previous_scene_max_separation_target,
+                                      in_target);
+    const bool is_at_cut     = (m_snaps_at_cuts &&
+                                is_target_cut);
 
     m_scene_max_separation                 = (in_target <= 0.0f) ? 0.0f
                                            : (is_at_cut)         ? in_target
@@ -122,9 +130,6 @@ float Stereo::Core::ConvergenceModel::get_eye_separation() const
 
 float Stereo::Core::ConvergenceModel::get_fraction_of_the_way(const float& in_elapsed_seconds)
 {
-    /* The fraction of the way covered during one reference frame. */
-    constexpr float FRACTION_PER_REFERENCE_FRAME = 0.05f;
-
     float result = 0.0f;
 
     if (in_elapsed_seconds > 0.0f)
@@ -136,6 +141,11 @@ float Stereo::Core::ConvergenceModel::get_fraction_of_the_way(const float& in_el
     }
 
     return result;
+}
+
+float Stereo::Core::ConvergenceModel::get_fraction_per_frame()
+{
+    return FRACTION_PER_REFERENCE_FRAME;
 }
 
 float Stereo::Core::ConvergenceModel::get_ipd_scale() const
@@ -229,4 +239,9 @@ bool Stereo::Core::ConvergenceModel::set_ipd_scale(const float& in_ipd_scale)
     }
 
     return result;
+}
+
+void Stereo::Core::ConvergenceModel::set_snaps_at_cuts(const bool& in_snaps_at_cuts)
+{
+    m_snaps_at_cuts = in_snaps_at_cuts;
 }
