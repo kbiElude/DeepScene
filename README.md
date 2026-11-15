@@ -2,11 +2,19 @@
 
 A set of tools that turns a plain 3D demo into stereo 3D, live, on a monitor or in a VR headset (OpenXR), without changing the demo.
 
+![Gerbera in the preview window, one picture for each eye](docs/example_preview.jpg)
+
+*A 2001 demo, converted while it runs: the picture of the left eye is on the left, and the one of the right eye on the right. The same two pictures go to a headset.*
+
 It works in three steps:
 
 1. **Capture** the program: every graphics API call is recorded, with its data, into a `.workload` file. This is done by [API Interceptor](deps/APIInterceptor), which this project has as a submodule.
 2. **Process** the capture: the analysis tells what each draw of the program is (the scene, the interface, the post-processing), and a **recipe** says how each draw is to be treated for stereo.
 3. **Play** it in 3D: a converter is injected into the running program, renders the two eyes from what the program draws, and passes the images on to a window or a headset. `VRPlayer` is the front end that lists the programs and starts them.
+
+![The VR player: the list of programs, and the device, depth and image quality of the one that is picked](docs/welcome.png)
+
+*The window of `VRPlayer`: the programs of the catalog on the left; the output, the depth and the image quality of the picked one on the right.*
 
 Three graphics APIs are supported: Direct3D 8, Direct3D 7 (for programs whose vertices are already in pixels) and OpenGL (the fixed function). The demos are what drove the work: one for each API is in the catalog.
 
@@ -46,7 +54,7 @@ Start `VRPlayer.exe` (from `build_final\`) and you are done: it is the front end
 1. Pick a program from the list. The first time, a program that is not on the computer is downloaded first, so you need internet that time.
 2. Pick the device: your headset, or just the preview window on the monitor.
 3. Set the depth and, for a headset, the image quality.
-4. Press **Launch**. The program starts with the converter inside it, and the two eyes go to the headset (or the window). The depth can be changed while it runs.
+4. Press **Launch** (**Download & launch** when the program is not on the computer yet). The program starts with the converter inside it, and the two eyes go to the headset (or the window). The depth can be changed while it runs.
 
 For a headset, the PC has to see it through an active OpenXR runtime. Without one, the preview window still works.
 
