@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#ifndef UTILS_UIHOST_I_IMGUI_WINDOW_HOST_H
-#define UTILS_UIHOST_I_IMGUI_WINDOW_HOST_H
+#ifndef UTILS_UIHOST_IMGUI_PLAYER_WINDOW_BASE_H
+#define UTILS_UIHOST_IMGUI_PLAYER_WINDOW_BASE_H
 
 #include "utils/ui_host/types.h"
 #include <string>
@@ -21,11 +21,11 @@ namespace Utils
         /* A window drawn with ImGui on its own Direct3D 11 device. This class owns the device, the swap chain, the message loop and the monitor
          * scale. What the window shows is implemented by the derived class. The window lives on the thread that runs it.
          */
-        class IImGuiWindowHost
+        class ImGuiPlayerWindowBase
         {
         public:
-            explicit IImGuiWindowHost (const WindowOptions& in_options);
-            virtual  ~IImGuiWindowHost();
+            explicit ImGuiPlayerWindowBase (const WindowOptions& in_options);
+            virtual  ~ImGuiPlayerWindowBase();
 
             /* Creates the window and the device. Returns false and sets the error on failure. */
             bool create(std::string* out_error_ptr);
@@ -98,4 +98,4 @@ namespace Utils
     }
 }
 
-#endif /* UTILS_UIHOST_I_IMGUI_WINDOW_HOST_H */
+#endif /* UTILS_UIHOST_IMGUI_PLAYER_WINDOW_BASE_H */

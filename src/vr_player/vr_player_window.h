@@ -7,7 +7,7 @@
 
 #include "vr_player/app_installer/app_installer.h"
 #include "utils/files/http_downloader.h"
-#include "utils/ui_host/i_imgui_window_host.h"
+#include "utils/ui_host/imgui_player_window_base.h"
 #include "app_session.h"
 #include "types.h"
 #include <string>
@@ -18,7 +18,7 @@ namespace VRPlayer
      * application with the converter in it. The depth strength and the overlay setting are passed on while the application plays. The device
      * and the quality are chosen before it starts.
      */
-    class VrPlayerWindow : public Utils::UIHost::IImGuiWindowHost
+    class VrPlayerWindow : public Utils::UIHost::ImGuiPlayerWindowBase
     {
     public:
         explicit VrPlayerWindow(const WindowContent& in_content);

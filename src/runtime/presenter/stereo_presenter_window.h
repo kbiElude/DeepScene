@@ -9,7 +9,7 @@
 #include "headset_sink.h"
 #include "i_eye_sink.h"
 #include "preview_sink.h"
-#include "utils/ui_host/i_imgui_window_host.h"
+#include "utils/ui_host/imgui_player_window_base.h"
 #include <memory>
 #include <string>
 
@@ -21,7 +21,7 @@ namespace Stereo
          * kept. A stereo image has the two eyes side by side. The frames come from an importer, and the window shows them through a sink
          * (see PreviewSink), as the headset does through its own sink (see HeadsetSink).
          */
-        class StereoPresenterWindow : public Utils::UIHost::IImGuiWindowHost
+        class StereoPresenterWindow : public Utils::UIHost::ImGuiPlayerWindowBase
         {
         public:
             StereoPresenterWindow(std::unique_ptr<Stereo::Transport::IFrameImporter> in_importer_ptr,
