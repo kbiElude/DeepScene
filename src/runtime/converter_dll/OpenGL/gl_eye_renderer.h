@@ -15,7 +15,7 @@
 #include "gl_eye_targets.h"
 #include "gl_frame_reader.h"
 #include "gl_resolution_scaler.h"
-#include "invisible_windows.h"
+#include "invisible_window_manager.h"
 #include "types.h"
 #include <array>
 #include <functional>
@@ -216,7 +216,7 @@ namespace Stereo
             GLFrameReader                         m_frame_reader;
             GetChunkFunc                          m_get_chunk_func;
             bool                                  m_has_failed;
-            InvisibleWindows                      m_invisible_windows;
+            InvisibleWindowManager                m_invisible_window_manager;
             bool                                  m_is_in_app_list;
             bool                                  m_is_in_block;
             bool                                  m_is_shown_elsewhere;

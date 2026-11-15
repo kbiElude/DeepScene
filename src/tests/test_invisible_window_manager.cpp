@@ -2,10 +2,10 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Tests for InvisibleWindows: a window is told to its application as active, whatever the system says.
+ * Tests for InvisibleWindowManager: a window is told to its application as active, whatever the system says.
  */
 #include <gtest/gtest.h>
-#include "invisible_windows.h"
+#include "invisible_window_manager.h"
 #include <Windows.h>
 
 namespace
@@ -74,7 +74,7 @@ namespace
 
         window_class.hInstance     = ::GetModuleHandleW(nullptr);
         window_class.lpfnWndProc   = application_procedure;
-        window_class.lpszClassName = L"InvisibleWindowsTestWindow";
+        window_class.lpszClassName = L"InvisibleWindowManagerTestWindow";
 
         ::RegisterClassW(&window_class);
 
@@ -107,9 +107,9 @@ namespace
     }
 }
 
-TEST(InvisibleWindows, TheApplicationIsToldItsWindowIsActiveWhenTheWindowIsAdded)
+TEST(InvisibleWindowManager, TheApplicationIsToldItsWindowIsActiveWhenTheWindowIsAdded)
 {
-    Stereo::ConverterDLL::InvisibleWindows windows;
+    Stereo::ConverterDLL::InvisibleWindowManager windows;
     const HWND                             window = make_window();
 
     ASSERT_NE(window,
@@ -129,9 +129,9 @@ TEST(InvisibleWindows, TheApplicationIsToldItsWindowIsActiveWhenTheWindowIsAdded
     ::DestroyWindow(window);
 }
 
-TEST(InvisibleWindows, AMessageThatSaysTheWindowIsNotActiveIsPassedOnAsOneThatSaysItIs)
+TEST(InvisibleWindowManager, AMessageThatSaysTheWindowIsNotActiveIsPassedOnAsOneThatSaysItIs)
 {
-    Stereo::ConverterDLL::InvisibleWindows windows;
+    Stereo::ConverterDLL::InvisibleWindowManager windows;
     const HWND                             window = make_window();
 
     ASSERT_NE(window,
@@ -171,9 +171,9 @@ TEST(InvisibleWindows, AMessageThatSaysTheWindowIsNotActiveIsPassedOnAsOneThatSa
     ::DestroyWindow(window);
 }
 
-TEST(InvisibleWindows, AWindowIsMadeTransparentAndClickThroughAndIsNotHidden)
+TEST(InvisibleWindowManager, AWindowIsMadeTransparentAndClickThroughAndIsNotHidden)
 {
-    Stereo::ConverterDLL::InvisibleWindows windows;
+    Stereo::ConverterDLL::InvisibleWindowManager windows;
     const HWND                             window = make_window();
 
     ASSERT_NE(window,

@@ -17,7 +17,7 @@ Stereo::ConverterDLL::D3D8WindowedMode::~D3D8WindowedMode()
 
 void Stereo::ConverterDLL::D3D8WindowedMode::keep_windows_invisible()
 {
-    m_invisible_windows.keep_invisible();
+    m_invisible_window_manager.keep_invisible();
 }
 
 void Stereo::ConverterDLL::D3D8WindowedMode::on_create_device(Interception::Hooks::D3D8::IDirect3D8*            in_direct3d_ptr,
@@ -51,7 +51,7 @@ void Stereo::ConverterDLL::D3D8WindowedMode::on_create_device(Interception::Hook
                                                                                                                                                        : Interception::Hooks::D3D8::D3DSWAPEFFECT_COPY;
     inout_parameters_ptr->Windowed                         = TRUE;
 
-    m_invisible_windows.add(window);
-    m_invisible_windows.add(in_focus_window);
+    m_invisible_window_manager.add(window);
+    m_invisible_window_manager.add(in_focus_window);
 }
 

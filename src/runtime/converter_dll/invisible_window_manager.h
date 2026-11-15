@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#ifndef STEREO_CONVERTERDLL_INVISIBLE_WINDOWS_H
-#define STEREO_CONVERTERDLL_INVISIBLE_WINDOWS_H
+#ifndef STEREO_CONVERTERDLL_INVISIBLE_WINDOW_MANAGER_H
+#define STEREO_CONVERTERDLL_INVISIBLE_WINDOW_MANAGER_H
 
 #include <map>
 #include <mutex>
@@ -22,7 +22,7 @@ namespace Stereo
          * forever for the activation if the window of the viewer comes to the front first). So the application is always told that its window is
          * active (see handle_message()).
          */
-        class InvisibleWindows
+        class InvisibleWindowManager
         {
         public:
             /* Makes the window invisible and keeps it invisible (see keep_invisible()). The application is told that its window is active, and it is
@@ -61,4 +61,4 @@ namespace Stereo
     }
 }
 
-#endif /* STEREO_CONVERTERDLL_INVISIBLE_WINDOWS_H */
+#endif /* STEREO_CONVERTERDLL_INVISIBLE_WINDOW_MANAGER_H */

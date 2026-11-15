@@ -328,7 +328,7 @@
   <li>The back buffer the program gets is a surface of the converter's own, the size of the display mode times the render scale.</li>
   <li>The hooks cannot change an argument of Direct3D 7 in place, so the call is not made and the converter makes its own and writes the result where the program is to get it.</li>
   <li>A flip shows nothing.</li>
-  <li>The window is made fully transparent and click-through by <code>InvisibleWindows</code> (not hidden, since some programs pause while their window is hidden), which also tells the program it is always active, since some programs pause while their window is not.</li>
+  <li>The window is made fully transparent and click-through by <code>InvisibleWindowManager</code> (not hidden, since some programs pause while their window is hidden), which also tells the program it is always active, since some programs pause while their window is not.</li>
 </ul>
 
 <h3>The resolution</h3>

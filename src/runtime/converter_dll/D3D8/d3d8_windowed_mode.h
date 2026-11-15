@@ -6,7 +6,7 @@
 #define STEREO_CONVERTERDLL_D3D8_WINDOWED_MODE_H
 
 #include "interception/hooks/D3D8/argument_modifier.h"
-#include "invisible_windows.h"
+#include "invisible_window_manager.h"
 #include <Windows.h>
 
 namespace Stereo
@@ -40,7 +40,7 @@ namespace Stereo
                                   Interception::Hooks::D3D8::D3DPRESENT_PARAMETERS* inout_parameters_ptr) override;
 
         private:
-            InvisibleWindows m_invisible_windows;
+            InvisibleWindowManager m_invisible_window_manager;
         };
     }
 }

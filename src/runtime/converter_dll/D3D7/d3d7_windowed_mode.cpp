@@ -242,7 +242,7 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_set_cooperative_level(const 
         window = reinterpret_cast<HWND>(static_cast<uintptr_t>(in_arguments_ptr[WINDOW_ARGUMENT].get_u64() ));
     }
 
-    m_invisible_windows.add(window);
+    m_invisible_window_manager.add(window);
 
     APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAW7_SETCOOPERATIVELEVEL>(vtable,
                                                                                                     Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAW7_SETCOOPERATIVELEVEL)(static_cast<Interception::Hooks::D3D7::IDirectDraw7*>(direct_draw_ptr),
@@ -341,7 +341,7 @@ end:
 
 void Stereo::ConverterDLL::D3D7WindowedMode::keep_windows_invisible()
 {
-    m_invisible_windows.keep_invisible();
+    m_invisible_window_manager.keep_invisible();
 }
 
 bool Stereo::ConverterDLL::D3D7WindowedMode::on_pre(const APIInterceptor::APIFunction&         in_function,

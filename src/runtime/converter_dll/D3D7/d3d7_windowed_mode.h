@@ -9,7 +9,7 @@
 #include "common/types.h"
 #include "interception/hooks/D3D7/types.h"
 #include "stereo/core/resolution_policy.h"
-#include "invisible_windows.h"
+#include "invisible_window_manager.h"
 #include <stdint.h>
 
 namespace Stereo
@@ -97,7 +97,7 @@ namespace Stereo
             void*                          m_back_buffer_ptr;
             uint32_t                       m_display_height;
             uint32_t                       m_display_width;
-            InvisibleWindows               m_invisible_windows;
+            InvisibleWindowManager         m_invisible_window_manager;
             bool                           m_is_enabled;
             Stereo::Core::ResolutionPolicy m_policy;
             void*                          m_primary_ptr;

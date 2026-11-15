@@ -2,9 +2,9 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "invisible_windows.h"
+#include "invisible_window_manager.h"
 
-void Stereo::ConverterDLL::InvisibleWindows::add(const HWND& in_window)
+void Stereo::ConverterDLL::InvisibleWindowManager::add(const HWND& in_window)
 {
     if (in_window != nullptr)
     {
@@ -15,14 +15,14 @@ void Stereo::ConverterDLL::InvisibleWindows::add(const HWND& in_window)
     }
 }
 
-Stereo::ConverterDLL::InvisibleWindows::Subclasses& Stereo::ConverterDLL::InvisibleWindows::get_subclasses()
+Stereo::ConverterDLL::InvisibleWindowManager::Subclasses& Stereo::ConverterDLL::InvisibleWindowManager::get_subclasses()
 {
     static Subclasses result;
 
     return result;
 }
 
-LRESULT CALLBACK Stereo::ConverterDLL::InvisibleWindows::handle_message(HWND   in_window,
+LRESULT CALLBACK Stereo::ConverterDLL::InvisibleWindowManager::handle_message(HWND   in_window,
                                                                         UINT   in_message,
                                                                         WPARAM in_w_param,
                                                                         LPARAM in_l_param)
@@ -102,7 +102,7 @@ end:
     return result;
 }
 
-void Stereo::ConverterDLL::InvisibleWindows::keep_active(const HWND& in_window)
+void Stereo::ConverterDLL::InvisibleWindowManager::keep_active(const HWND& in_window)
 {
     auto& subclasses = get_subclasses();
     bool  is_new     = false;
@@ -146,7 +146,7 @@ void Stereo::ConverterDLL::InvisibleWindows::keep_active(const HWND& in_window)
     }
 }
 
-void Stereo::ConverterDLL::InvisibleWindows::keep_invisible()
+void Stereo::ConverterDLL::InvisibleWindowManager::keep_invisible()
 {
     for (const auto& window : m_window_set)
     {
@@ -154,7 +154,7 @@ void Stereo::ConverterDLL::InvisibleWindows::keep_invisible()
     }
 }
 
-void Stereo::ConverterDLL::InvisibleWindows::make_invisible(const HWND& in_window)
+void Stereo::ConverterDLL::InvisibleWindowManager::make_invisible(const HWND& in_window)
 {
     const LONG_PTR style  = ::GetWindowLongPtrW(in_window,
                                                 GWL_EXSTYLE);

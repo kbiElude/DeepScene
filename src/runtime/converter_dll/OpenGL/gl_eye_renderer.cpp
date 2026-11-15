@@ -488,7 +488,7 @@ bool Stereo::ConverterDLL::GLEyeRenderer::on_frame_ending(GLFrameImages* out_ima
             m_targets.blit_left_to_window();
         }
 
-        m_invisible_windows.keep_invisible();
+        m_invisible_window_manager.keep_invisible();
     }
 
 end:
@@ -1409,7 +1409,7 @@ void Stereo::ConverterDLL::GLEyeRenderer::try_to_prepare()
 
             if (m_is_shown_elsewhere)
             {
-                m_invisible_windows.add(window);
+                m_invisible_window_manager.add(window);
             }
         }
         else
