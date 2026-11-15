@@ -47,9 +47,6 @@ namespace Headset
          * Two threads use it: one runs the frames of the compositor (run_frame(), which waits for the compositor), and one gives it the
          * images of the eyes (acquire_eye_textures(), release_eye_textures()). The images of the eyes are textures of the device of the
          * session, which the images are copied to by whatever has the queue of the session.
-         *
-         * It is implemented in four files: headset_session.cpp (the interface), headset_session_setup.cpp (the runtime, the device, the
-         * session), headset_session_swapchains.cpp (the images of the eyes) and headset_session_frame.cpp (the frames of the compositor).
          */
         class HeadsetSession
         {

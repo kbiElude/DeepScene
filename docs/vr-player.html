@@ -213,11 +213,7 @@
 <h2 id="code-map">Code map</h2>
 <table>
 <tr><th>Where</th><th>What</th></tr>
-<tr><td><code>HeadsetSession</code></td><td>Is implemented in four files: the interface, the runtime and session setup, the swap chains of the eyes, and the frames of the compositor.</td></tr>
-<tr><td><code>headset_session.cpp</code></td><td>Interface, logging.</td></tr>
-<tr><td><code>headset_session_setup.cpp</code></td><td>Runtime, device, session, spaces, swap chain format, recenter action.</td></tr>
-<tr><td><code>headset_session_swapchains.cpp</code></td><td>The images of the eyes.</td></tr>
-<tr><td><code>headset_session_frame.cpp</code></td><td>Events and the frames of the compositor, the screen layers.</td></tr>
+<tr><td><code>libs/headset/xr/headset_session.cpp</code></td><td><code>HeadsetSession</code>: the runtime, the device, the session, the images of the eyes and the frames of the compositor.</td></tr>
 <tr><td><code>src/vr_player</code></td><td>The window and <code>AppSession</code> (which starts the launcher and the presenter): the program.</td></tr>
 <tr><td><code>libs/vr_player</code> (target <code>VRPlayerBackend</code>)</td><td>What does not draw, in the namespace <code>VRPlayer</code> as the program is: <code>AppCatalog</code> reads the catalog, and <code>AppInstaller</code> installs a program that is not on the computer, with the download, the hash and the unpacking of <code>Utils::Files</code>.</td></tr>
 <tr><td><code>libs/utils/ui_host</code></td><td>The window is an <code>IImGuiWindowHost</code> (<code>Utils::UIHost</code>), which the presenter and the replay player use too.</td></tr>
