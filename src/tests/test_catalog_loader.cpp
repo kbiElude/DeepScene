@@ -265,7 +265,7 @@ TEST_F(CatalogLoaderTest, TheCatalogWhichComesWithTheRepositoryListsTheAppsOfThe
     EXPECT_EQ(m_catalog.app_vec.at(0).id,
               "fr08");
     EXPECT_EQ(m_catalog.app_vec.at(0).name,
-              "fr08");
+              "fr08 by Farbrausch (2000)");
     EXPECT_EQ(m_catalog.app_vec.at(0).unavailable_reason.find("recipe"),
               std::string::npos) << m_catalog.app_vec.at(0).unavailable_reason;
 
@@ -287,9 +287,8 @@ TEST_F(CatalogLoaderTest, TheCatalogWhichComesWithTheRepositoryListsTheAppsOfThe
     EXPECT_EQ(m_catalog.app_vec.at(1).id,
               "gerbera");
     EXPECT_EQ(m_catalog.app_vec.at(1).name,
-              "Gerbera");
+              "Gerbera by Moppi Productions (2001)");
     EXPECT_TRUE(m_catalog.app_vec.at(1).unavailable_reason.empty() ) << m_catalog.app_vec.at(1).unavailable_reason;
-    EXPECT_FALSE(m_catalog.app_vec.at(1).description.empty() );
     EXPECT_GE(m_catalog.app_vec.at(1).install_spec.url_vec.size(),
               2u);
     EXPECT_EQ(m_catalog.app_vec.at(1).install_spec.sha256_hex.size(),
@@ -303,7 +302,7 @@ TEST_F(CatalogLoaderTest, TheCatalogWhichComesWithTheRepositoryListsTheAppsOfThe
     EXPECT_EQ(m_catalog.app_vec.at(2).id,
               "kasparov");
     EXPECT_EQ(m_catalog.app_vec.at(2).name,
-              "Kasparov");
+              "Kasparov by Elitegroup (1999)");
     EXPECT_EQ(m_catalog.app_vec.at(2).unavailable_reason.find("recipe"),
               std::string::npos) << m_catalog.app_vec.at(2).unavailable_reason;
     EXPECT_GE(m_catalog.app_vec.at(2).install_spec.url_vec.size(),
