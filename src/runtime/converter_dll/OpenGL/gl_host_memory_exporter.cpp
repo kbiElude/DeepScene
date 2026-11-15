@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "gl_host_memory_exporter.h"
-#include "environment.h"
+#include "environment_variable_reader.h"
 #include <mmsystem.h>
 #include <stdio.h>
 #include <string.h>
@@ -21,8 +21,8 @@ Stereo::ConverterDLL::GLHostMemoryExporter::GLHostMemoryExporter(Stereo::Transpo
      * thousand frames a second.
      */
     float      n_frames_per_second = 0.0f;
-    const bool is_rate_set         = Environment::get_number("APISTEREO_FRAME_RATE",
-                                                            &n_frames_per_second);
+    const bool is_rate_set         = EnvironmentVariableReader::get_number("APISTEREO_FRAME_RATE",
+                                                                          &n_frames_per_second);
 
     if (is_rate_set                      &&
         n_frames_per_second >= 1.0f)

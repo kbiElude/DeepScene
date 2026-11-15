@@ -18,7 +18,7 @@ if (DEMOVRPLAYER_BUILD_TESTS)
                                      "${DemoVRPlayer_SOURCE_DIR}/src/runtime/converter_dll/D3D7/d3d7_surface_twins.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/runtime/converter_dll/D3D7/d3d7_windowed_mode.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/runtime/converter_dll/call_feeder.cpp"
-                                     "${DemoVRPlayer_SOURCE_DIR}/src/runtime/converter_dll/environment.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/runtime/converter_dll/environment_variable_reader.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/runtime/converter_dll/eye_image_limits.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/runtime/converter_dll/invisible_window_manager.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/runtime/converter_dll/own_call_scope.cpp"

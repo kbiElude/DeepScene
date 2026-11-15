@@ -321,7 +321,7 @@
 <figure>
 <svg viewBox="0 0 900 370" role="img" aria-label="Parts of the converter DLL">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
-  <rect class="box3" x="330" y="10" width="240" height="50" rx="6"/><text x="450" y="32" text-anchor="middle">Converter</text><text class="small" x="450" y="48" text-anchor="middle">orders the work of each call</text>
+  <rect class="box3" x="330" y="10" width="240" height="50" rx="6"/><text x="450" y="32" text-anchor="middle">LiveStereoConverter</text><text class="small" x="450" y="48" text-anchor="middle">orders the work of each call</text>
   <rect class="box" x="10" y="10" width="250" height="50" rx="6"/><text x="135" y="32" text-anchor="middle">CallFeeder</text><text class="small" x="135" y="48" text-anchor="middle">gives the analysis the calls as a dump would</text>
   <rect class="box4" x="640" y="10" width="250" height="50" rx="6"/><text x="765" y="32" text-anchor="middle">FramePasser, SessionLog</text><text class="small" x="765" y="48" text-anchor="middle">pass frames on, log the session</text>
   <rect class="box4" x="10" y="100" width="280" height="160" rx="8"/><text class="title" x="150" y="122" text-anchor="middle">D3D8/</text>
@@ -333,11 +333,11 @@
   <rect class="box2" x="10" y="290" width="880" height="70" rx="8"/><text class="title" x="450" y="312" text-anchor="middle">Helpers the adapters share</text><text class="small" x="450" y="334" text-anchor="middle">RenderScalePlanner, ResolutionHazardGate (decide the scale) · EyeImageLimits · PixelRowWriter</text><text class="small" x="450" y="350" text-anchor="middle">InvisibleWindowManager (hides the application's windows) · OwnCallScope (keeps the converter's own calls apart)</text>
   <path class="arrow" d="M330 35H262"/><path class="arrow" d="M400 60L200 98"/><path class="arrow" d="M450 60V98"/><path class="arrow" d="M500 60L700 98"/><path class="arrow" d="M570 35H638"/><path class="arrow" d="M450 260V288"/>
 </svg>
-<figcaption><code>Converter</code> gives each call to the adapter of its API; the adapters use the shared helpers.</figcaption>
+<figcaption><code>LiveStereoConverter</code> gives each call to the adapter of its API; the adapters use the shared helpers.</figcaption>
 </figure>
 <table>
 <tr><th>Group</th><th>Class</th><th>What it does</th></tr>
-<tr><td rowspan="2">Core</td><td><code>Converter</code></td><td>Orders the work of each call.</td></tr>
+<tr><td rowspan="2">Core</td><td><code>LiveStereoConverter</code></td><td>Orders the work of each call.</td></tr>
 <tr><td><code>CallFeeder</code></td><td>Gives the analysis the calls as a dump would.</td></tr>
 <tr><td rowspan="4">Direct3D 8 adapter (<code>D3D8/</code>)</td><td><code>D3D8EyeRenderer</code></td><td>Renders the second eye; also makes the draws of vertices in pixels that the call carries for both eyes.</td></tr>
 <tr><td><code>D3D8ResolutionScaler</code></td><td>Scales the resolution.</td></tr>

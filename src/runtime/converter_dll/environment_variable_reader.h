@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#ifndef STEREO_CONVERTERDLL_ENVIRONMENT_H
-#define STEREO_CONVERTERDLL_ENVIRONMENT_H
+#ifndef STEREO_CONVERTERDLL_ENVIRONMENT_VARIABLE_READER_H
+#define STEREO_CONVERTERDLL_ENVIRONMENT_VARIABLE_READER_H
 
 namespace Stereo
 {
@@ -12,7 +12,7 @@ namespace Stereo
         /* Reads the environment variables of the process. The converter uses them as switches for a run without the viewer (the program that shows
          * the images) and for measuring (see the page of the live conversion).
          */
-        class Environment
+        class EnvironmentVariableReader
         {
         public:
             /* Reads a number into out_value_ptr. Returns false if the variable does not exist or its text is too long to be a number. */
@@ -25,4 +25,4 @@ namespace Stereo
     }
 }
 
-#endif /* STEREO_CONVERTERDLL_ENVIRONMENT_H */
+#endif /* STEREO_CONVERTERDLL_ENVIRONMENT_VARIABLE_READER_H */

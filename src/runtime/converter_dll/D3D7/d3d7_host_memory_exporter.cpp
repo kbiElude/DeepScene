@@ -6,7 +6,7 @@
 #include "interception/core/D3D7Utils/constants.h"
 #include "interception/hooks/D3D8/types.h"
 #include "d3d7_host_memory_exporter.h"
-#include "environment.h"
+#include "environment_variable_reader.h"
 #include "pixel_row_writer.h"
 #include <mmsystem.h>
 #include <stdio.h>
@@ -225,7 +225,7 @@ void Stereo::ConverterDLL::D3D7HostMemoryExporter::wait_for_pace()
 
     if (is_paced_by_screen == false)
     {
-        const bool is_limiter_disabled = Environment::is_set("APISTEREO_NO_FRAME_LIMIT"); /* a debugging aid: measures the cost of a frame without waiting
+        const bool is_limiter_disabled = EnvironmentVariableReader::is_set("APISTEREO_NO_FRAME_LIMIT"); /* a debugging aid: measures the cost of a frame without waiting
  */
 
         if (is_limiter_disabled == false)

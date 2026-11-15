@@ -47,7 +47,7 @@
   <rect class="box" x="200" y="60" width="130" height="50" rx="6"/><text x="265" y="82" text-anchor="middle">hooks</text><text class="small" x="265" y="98" text-anchor="middle">pre / post callbacks</text>
   <rect class="box" x="380" y="48" width="260" height="40" rx="6"/><text x="510" y="73" text-anchor="middle">CallFeeder → AnalysisSession</text>
   <rect class="box" x="380" y="100" width="260" height="40" rx="6"/><text x="510" y="125" text-anchor="middle">StereoCore: what to do with this draw</text>
-  <rect class="box" x="380" y="152" width="260" height="40" rx="6"/><text x="510" y="177" text-anchor="middle">Converter: order of the work of each call</text>
+  <rect class="box" x="380" y="152" width="260" height="40" rx="6"/><text x="510" y="177" text-anchor="middle">LiveStereoConverter: orders each call</text>
   <rect class="box2" x="380" y="204" width="260" height="40" rx="6"/><text x="510" y="229" text-anchor="middle">adapter (D3D7, D3D8, OpenGL): the second eye</text>
   <rect class="box3" x="30" y="204" width="130" height="50" rx="6"/><text x="95" y="226" text-anchor="middle">recipe</text><text class="small" x="95" y="242" text-anchor="middle">read at start</text>
   <rect class="box3" x="200" y="278" width="440" height="36" rx="6"/><text x="420" y="301" text-anchor="middle">exporter of the adapter → frame channel</text>
@@ -67,7 +67,7 @@
 <h3>The pieces</h3>
 <table>
 <tr><th>Piece</th><th>Job</th></tr>
-<tr><td><code>Converter</code></td><td>Registers the callbacks and orders the work of each call: feed the analysis, keep matrices, classify and render draws, take the settings the VR player changed.</td></tr>
+<tr><td><code>LiveStereoConverter</code></td><td>Registers the callbacks and orders the work of each call: feed the analysis, keep matrices, classify and render draws, take the settings the VR player changed.</td></tr>
 <tr><td><code>CallFeeder</code></td><td>Gives the analysis each call as a dump would, for Direct3D 7, Direct3D 8 and OpenGL alike; keeps the calls that wait for results in per-thread pools, which hand their vectors back to the next call.</td></tr>
 <tr><td><code>StereoCore</code></td><td>The decisions: the class of a draw from the recipe and the view matrix, unknown draws and frames. Owns <code>ConvergenceModel</code> (where the eyes converge and how far apart they are) and <code>MatrixSlots</code> (the matrices a rule is about, and which to put in before a draw).</td></tr>
 <tr><td>The adapter for an API</td><td>Renders the second eye, scales the resolution, shows the program in a window or hides it, and exports the frames. The classes are listed below.</td></tr>
@@ -76,7 +76,7 @@
 
 <h3>Details of the converter and the feeder</h3>
 <ul>
-  <li><code>Converter</code> keeps what it knows of the running program (the core, the feeder, the renderers, the counters) in one struct behind one lock (<code>Utils::Parallel::SrwMutex</code>), and no other lock is taken while it is held.</li>
+  <li><code>LiveStereoConverter</code> keeps what it knows of the running program (the core, the feeder, the renderers, the counters) in one struct behind one lock (<code>Utils::Parallel::SrwMutex</code>), and no other lock is taken while it is held.</li>
   <li>Callback times are sampled, one call in 61.</li>
   <li><code>CallFeeder</code> takes the data chunks of a call out of the interceptor in one go, into vectors from a pool (<code>APIInterceptor::ChunkPool</code>) which the next call gets back, so that a chunk is not an allocation.</li>
   <li>The calls it makes carry no timestamp (<code>timestamp_qpc</code> is 0): nothing in the converter looks at when a call was made.</li>

@@ -8,7 +8,7 @@ file(GLOB_RECURSE Sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
 add_library(StereoConverterDLL SHARED ${Sources}
                                       "${APIInterceptor_SOURCE_DIR}/src/replay/replay_engine_dll/pixel_converter.cpp")
 
-# Shared files are included by their own name ("environment.h"); files of an API folder with the folder in front ("D3D7/d3d7_eye_renderer.h").
+# Shared files are included by their own name ("environment_variable_reader.h"); files of an API folder with the folder in front ("D3D7/d3d7_eye_renderer.h").
 target_include_directories(StereoConverterDLL PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}"
                                                       "${APIInterceptor_SOURCE_DIR}/src/replay/replay_engine_dll")
 

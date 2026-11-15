@@ -8,8 +8,8 @@
 #include "common/vtable.h"
 #include "interception/hooks/D3D8/types.h"
 #include "stereo/session/session_environment.h"
-#include "converter.h"
-#include "environment.h"
+#include "live_stereo_converter.h"
+#include "environment_variable_reader.h"
 #include "own_call_scope.h"
 #include "scoped_tick_adder.h"
 #include <array>
@@ -18,9 +18,9 @@
 #include <string.h>
 #include <Windows.h>
 
-Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&              in_session_info,
-                                           const Analysis::Recipe::Recipe&                  in_recipe,
-                                           std::unique_ptr<Stereo::Transport::FrameChannel> in_channel_ptr)
+Stereo::ConverterDLL::LiveStereoConverter::LiveStereoConverter(const Stereo::Session::SessionInfo&              in_session_info,
+                                                               const Analysis::Recipe::Recipe&                  in_recipe,
+                                                               std::unique_ptr<Stereo::Transport::FrameChannel> in_channel_ptr)
     :m_channel_ptr(std::move(in_channel_ptr) ),
      m_log        (in_session_info)
 {
@@ -48,10 +48,10 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
         if (CallFeeder::is_followed(function) )
         {
             APIInterceptor::register_for_post_callback(function,
-                                                      &Converter::on_post_callback,
+                                                      &LiveStereoConverter::on_post_callback,
                                                        this);
             APIInterceptor::register_for_pre_callback (function,
-                                                      &Converter::on_pre_callback,
+                                                      &LiveStereoConverter::on_pre_callback,
                                                        this);
         }
     }
@@ -60,8 +60,8 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
     {
         float value = 0.0f;
 
-        if (Environment::get_number("APISTEREO_EYE_SEPARATION",
-                                    &value) )
+        if (EnvironmentVariableReader::get_number("APISTEREO_EYE_SEPARATION",
+                                                  &value) )
         {
             m_live_state.core_ptr->set_eye_separation(value);
 
@@ -70,8 +70,8 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
                         ", from APISTEREO_EYE_SEPARATION");
         }
 
-        if (Environment::get_number("APISTEREO_DEPTH_STRENGTH",
-                                    &value) )
+        if (EnvironmentVariableReader::get_number("APISTEREO_DEPTH_STRENGTH",
+                                                  &value) )
         {
             m_live_state.core_ptr->set_depth_strength(value);
 
@@ -80,8 +80,8 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
                         ", from APISTEREO_DEPTH_STRENGTH");
         }
 
-        if (Environment::get_number("APISTEREO_PUSH_OVERLAY",
-                                    &value) )
+        if (EnvironmentVariableReader::get_number("APISTEREO_PUSH_OVERLAY",
+                                                  &value) )
         {
             m_live_state.core_ptr->set_is_overlay_pushed(value != 0.0f);
 
@@ -92,25 +92,25 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
                         ", from APISTEREO_PUSH_OVERLAY");
         }
 
-        if (Environment::get_number("APISTEREO_DUMP_EVERY",
-                                    &value) )
+        if (EnvironmentVariableReader::get_number("APISTEREO_DUMP_EVERY",
+                                                  &value) )
         {
             m_live_state.dump_every = static_cast<uint64_t>(value);
         }
 
-        if (Environment::get_number("APISTEREO_DUMP_FIRST_FRAME",
-                                    &value) )
+        if (EnvironmentVariableReader::get_number("APISTEREO_DUMP_FIRST_FRAME",
+                                                  &value) )
         {
             m_live_state.dump_first_frame = static_cast<uint64_t>(value);
         }
 
-        if (Environment::get_number("APISTEREO_DUMP_FRAME",
-                                    &value) )
+        if (EnvironmentVariableReader::get_number("APISTEREO_DUMP_FRAME",
+                                                  &value) )
         {
             m_live_state.dump_frame = static_cast<uint64_t>(value);
         }
 
-        m_live_state.is_scene_dump_enabled = Environment::is_set("APISTEREO_DUMP_SCENES");
+        m_live_state.is_scene_dump_enabled = EnvironmentVariableReader::is_set("APISTEREO_DUMP_SCENES");
     }
 
     m_live_state.d3d7_renderer_ptr.reset(new D3D7EyeRenderer(m_live_state.core_ptr.get(),
@@ -142,13 +142,13 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
 
             if (is_shown_elsewhere == false)
             {
-                const bool has_width = Environment::get_number("APISTEREO_TARGET_EYE_WIDTH",
-                                                               &width);
+                const bool has_width = EnvironmentVariableReader::get_number("APISTEREO_TARGET_EYE_WIDTH",
+                                                                             &width);
 
                 if (has_width)
                 {
-                    const bool has_height = Environment::get_number("APISTEREO_TARGET_EYE_HEIGHT",
-                                                                    &height);
+                    const bool has_height = EnvironmentVariableReader::get_number("APISTEREO_TARGET_EYE_HEIGHT",
+                                                                                  &height);
 
                     if (has_height)
                     {
@@ -228,12 +228,12 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
     m_log.write("The converter is loaded");
 }
 
-Stereo::ConverterDLL::Converter::~Converter()
+Stereo::ConverterDLL::LiveStereoConverter::~LiveStereoConverter()
 {
     m_log.write("The converter is removed");
 }
 
-void Stereo::ConverterDLL::Converter::count_draw(const Analysis::Recipe::DrawClass& in_draw_class)
+void Stereo::ConverterDLL::LiveStereoConverter::count_draw(const Analysis::Recipe::DrawClass& in_draw_class)
 {
     switch (in_draw_class)
     {
@@ -261,7 +261,7 @@ void Stereo::ConverterDLL::Converter::count_draw(const Analysis::Recipe::DrawCla
     }
 }
 
-void Stereo::ConverterDLL::Converter::count_frame(std::vector<std::string>* out_log_line_vec_ptr)
+void Stereo::ConverterDLL::LiveStereoConverter::count_frame(std::vector<std::string>* out_log_line_vec_ptr)
 {
     constexpr uint64_t N_FRAMES_BETWEEN_STATISTICS = 600;
 
@@ -282,10 +282,10 @@ void Stereo::ConverterDLL::Converter::count_frame(std::vector<std::string>* out_
     read_channel_settings(out_log_line_vec_ptr);
 }
 
-std::unique_ptr<Stereo::ConverterDLL::Converter> Stereo::ConverterDLL::Converter::create_ptr()
+std::unique_ptr<Stereo::ConverterDLL::LiveStereoConverter> Stereo::ConverterDLL::LiveStereoConverter::create_ptr()
 {
     std::string                  error;
-    std::unique_ptr<Converter>   result_ptr;
+    std::unique_ptr<LiveStereoConverter>   result_ptr;
     Stereo::Session::SessionInfo session_info;
 
     if (Stereo::Session::SessionEnvironment::read(&session_info) )
@@ -302,9 +302,9 @@ std::unique_ptr<Stereo::ConverterDLL::Converter> Stereo::ConverterDLL::Converter
 
             if (is_recipe_loaded)
             {
-                result_ptr.reset(new Converter(session_info,
-                                               recipe,
-                                               std::move(channel_ptr) ));
+                result_ptr.reset(new LiveStereoConverter(session_info,
+                                                         recipe,
+                                                         std::move(channel_ptr) ));
             }
         }
     }
@@ -312,7 +312,7 @@ std::unique_ptr<Stereo::ConverterDLL::Converter> Stereo::ConverterDLL::Converter
     return result_ptr;
 }
 
-std::string Stereo::ConverterDLL::Converter::make_statistics_line() const
+std::string Stereo::ConverterDLL::LiveStereoConverter::make_statistics_line() const
 {
     /* The application uses one API, so only one of the two renderers has twins. */
     const uint64_t n_failed_twins = m_live_state.d3d7_renderer_ptr->get_n_failed_twins() + m_live_state.d3d8_renderer_ptr->get_n_failed_twins();
@@ -381,9 +381,9 @@ std::string Stereo::ConverterDLL::Converter::make_statistics_line() const
            cost_text;
 }
 
-void Stereo::ConverterDLL::Converter::on_d3d7_frame_ending(const APIInterceptor::APIFunction&         in_api_func,
-                                                           const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
-                                                           std::vector<std::string>*                  out_log_line_vec_ptr)
+void Stereo::ConverterDLL::LiveStereoConverter::on_d3d7_frame_ending(const APIInterceptor::APIFunction&         in_api_func,
+                                                                     const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
+                                                                     std::vector<std::string>*                  out_log_line_vec_ptr)
 {
     /* The frame that a flip is about to show is in the back buffer of the surface that the flip is called for. */
     if (in_api_func == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_FLIP)
@@ -415,9 +415,9 @@ void Stereo::ConverterDLL::Converter::on_d3d7_frame_ending(const APIInterceptor:
     count_frame(out_log_line_vec_ptr);
 }
 
-bool Stereo::ConverterDLL::Converter::on_gl_draws(Analysis::Recipe::DrawClass* out_draw_class_ptr,
-                                                  bool*                        out_is_pushed_ptr,
-                                                  std::vector<std::string>*    out_log_line_vec_ptr)
+bool Stereo::ConverterDLL::LiveStereoConverter::on_gl_draws(Analysis::Recipe::DrawClass* out_draw_class_ptr,
+                                                            bool*                        out_is_pushed_ptr,
+                                                            std::vector<std::string>*    out_log_line_vec_ptr)
 {
     std::set<Analysis::Recipe::DrawClass> class_set;
     bool                                  is_every_draw_pushed = true;
@@ -469,13 +469,13 @@ bool Stereo::ConverterDLL::Converter::on_gl_draws(Analysis::Recipe::DrawClass* o
     return (class_set.empty() == false);
 }
 
-void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFunction                in_api_func,
-                                                       void*                                      in_user_arg_ptr,
-                                                       uint32_t                                   in_n_arguments_out,
-                                                       const APIInterceptor::APIFunctionArgument* in_arguments_out_ptr,
-                                                       const APIInterceptor::APIFunctionArgument* in_returned_value_ptr)
+void Stereo::ConverterDLL::LiveStereoConverter::on_post_callback(APIInterceptor::APIFunction                in_api_func,
+                                                                 void*                                      in_user_arg_ptr,
+                                                                 uint32_t                                   in_n_arguments_out,
+                                                                 const APIInterceptor::APIFunctionArgument* in_arguments_out_ptr,
+                                                                 const APIInterceptor::APIFunctionArgument* in_returned_value_ptr)
 {
-    auto* this_ptr = static_cast<Converter*>(in_user_arg_ptr);
+    auto* this_ptr = static_cast<LiveStereoConverter*>(in_user_arg_ptr);
 
     if (OwnCallScope::is_active() == false)
     {
@@ -689,10 +689,10 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
     }
 }
 
-void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction&         in_api_func,
-                                             const uint32_t&                            in_n_arguments,
-                                             const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
-                                             bool*                                      out_should_pass_through_ptr)
+void Stereo::ConverterDLL::LiveStereoConverter::on_pre(const APIInterceptor::APIFunction&         in_api_func,
+                                                       const uint32_t&                            in_n_arguments,
+                                                       const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
+                                                       bool*                                      out_should_pass_through_ptr)
 {
     const bool               is_present        = (in_api_func    == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_PRESENT &&
                                                   in_n_arguments >  0);
@@ -875,11 +875,11 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
     }
 }
 
-void Stereo::ConverterDLL::Converter::on_pre_callback(APIInterceptor::APIFunction                in_api_func,
-                                                      uint32_t                                   in_n_arguments,
-                                                      const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
-                                                      void*                                      in_user_arg_ptr,
-                                                      bool*                                      out_should_pass_through_ptr)
+void Stereo::ConverterDLL::LiveStereoConverter::on_pre_callback(APIInterceptor::APIFunction                in_api_func,
+                                                                uint32_t                                   in_n_arguments,
+                                                                const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
+                                                                void*                                      in_user_arg_ptr,
+                                                                bool*                                      out_should_pass_through_ptr)
 {
     /* The log reports how much time the callbacks take. Reading the clock costs about as much as a call that is only noted, so only one call in N_CALLS_PER_TIMING
      * of a thread is timed, and the time is counted that many times. The number is prime so that it does not line up with a short cycle of calls that the application
@@ -902,23 +902,23 @@ void Stereo::ConverterDLL::Converter::on_pre_callback(APIInterceptor::APIFunctio
             ::QueryPerformanceCounter(&start_qpc);
         }
 
-        static_cast<Converter*>(in_user_arg_ptr)->on_pre(in_api_func,
-                                                         in_n_arguments,
-                                                         in_arguments_ptr,
-                                                         out_should_pass_through_ptr);
+        static_cast<LiveStereoConverter*>(in_user_arg_ptr)->on_pre(in_api_func,
+                                                                   in_n_arguments,
+                                                                   in_arguments_ptr,
+                                                                   out_should_pass_through_ptr);
 
         if (is_timed)
         {
             ::QueryPerformanceCounter(&end_qpc);
 
-            static_cast<Converter*>(in_user_arg_ptr)->m_live_state.n_callback_ticks += (end_qpc.QuadPart - start_qpc.QuadPart) * N_CALLS_PER_TIMING;
+            static_cast<LiveStereoConverter*>(in_user_arg_ptr)->m_live_state.n_callback_ticks += (end_qpc.QuadPart - start_qpc.QuadPart) * N_CALLS_PER_TIMING;
         }
     }
 }
 
-void Stereo::ConverterDLL::Converter::on_present_starting(const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
-                                                          void**                                     out_right_surface_ptr_ptr,
-                                                          std::vector<std::string>*                  out_log_line_vec_ptr)
+void Stereo::ConverterDLL::LiveStereoConverter::on_present_starting(const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
+                                                                    void**                                     out_right_surface_ptr_ptr,
+                                                                    std::vector<std::string>*                  out_log_line_vec_ptr)
 {
     *out_right_surface_ptr_ptr = m_live_state.d3d8_renderer_ptr->get_back_buffer_twin_ptr(const_cast<void*>(in_arguments_ptr[0].get_ptr() ));
 
@@ -928,8 +928,8 @@ void Stereo::ConverterDLL::Converter::on_present_starting(const APIInterceptor::
     count_frame(out_log_line_vec_ptr);
 }
 
-bool Stereo::ConverterDLL::Converter::on_set_transform(const uint32_t&                            in_n_arguments,
-                                                       const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
+bool Stereo::ConverterDLL::LiveStereoConverter::on_set_transform(const uint32_t&                            in_n_arguments,
+                                                                 const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
 {
     constexpr uint32_t MATRIX_ARGUMENT_INDEX = 2;
     constexpr uint32_t STATE_ARGUMENT_INDEX  = 1;
@@ -975,8 +975,8 @@ bool Stereo::ConverterDLL::Converter::on_set_transform(const uint32_t&          
     return result;
 }
 
-void Stereo::ConverterDLL::Converter::pass_d3d7_frame(void* in_primary_surface_ptr,
-                                                      void* in_back_buffer_ptr)
+void Stereo::ConverterDLL::LiveStereoConverter::pass_d3d7_frame(void* in_primary_surface_ptr,
+                                                                void* in_back_buffer_ptr)
 {
     constexpr uint32_t BACK_BUFFER_CAPS = 0x00000004; /* DDSCAPS_BACKBUFFER */
 
@@ -1047,7 +1047,7 @@ void Stereo::ConverterDLL::Converter::pass_d3d7_frame(void* in_primary_surface_p
     }
 }
 
-void Stereo::ConverterDLL::Converter::pass_gl_frame(const GLFrameImages& in_images)
+void Stereo::ConverterDLL::LiveStereoConverter::pass_gl_frame(const GLFrameImages& in_images)
 {
     /* A debugging aid: writes the eye images of one frame to a file (the same environment variables as for Direct3D 7). */
     if ( (m_live_state.dump_frame                           != 0                             &&
@@ -1078,7 +1078,7 @@ void Stereo::ConverterDLL::Converter::pass_gl_frame(const GLFrameImages& in_imag
                                       const_cast<GLFrameImages*>(&in_images) );
 }
 
-void Stereo::ConverterDLL::Converter::read_channel_settings(std::vector<std::string>* out_log_line_vec_ptr)
+void Stereo::ConverterDLL::LiveStereoConverter::read_channel_settings(std::vector<std::string>* out_log_line_vec_ptr)
 {
     float convergence_distance = 0.0f;
     float depth_strength       = 0.0f;

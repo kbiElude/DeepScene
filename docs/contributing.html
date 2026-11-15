@@ -247,7 +247,7 @@
 <tr><td>Off-screen rendering</td><td>A way to have the program render to something that is not shown, at the size of the headset's image (a windowed mode for Direct3D, the eye targets and the scaler for OpenGL).</td></tr>
 <tr><td>Exporter</td><td>Passes the finished frame to the frame channel.</td></tr>
 </table>
-<p><code>Converter</code> holds the adapters and gives each call to the one of its API. Anything the adapter cannot follow it must refuse at once and say so, not render something wrong (<a href="live-conversion.html#adapters">Decisions and adapters</a>).</p>
+<p><code>LiveStereoConverter</code> holds the adapters and gives each call to the one of its API. Anything the adapter cannot follow it must refuse at once and say so, not render something wrong (<a href="live-conversion.html#adapters">Decisions and adapters</a>).</p>
 
 <h3>5. The edges</h3>
 <p>Add the API to the table of <a href="index.html#api">What is supported</a>, and its limits to the pages whose limits it changes. Check that both builds and both test programs are green.</p>

@@ -13,7 +13,7 @@
 #include "interception/core/D3D7Utils/vertex_format.h"
 #include "stereo/core/screen_parallax.h"
 #include "d3d7_eye_renderer.h"
-#include "environment.h"
+#include "environment_variable_reader.h"
 #include "own_call_scope.h"
 #include <string.h>
 
@@ -27,7 +27,7 @@ Stereo::ConverterDLL::D3D7EyeRenderer::D3D7EyeRenderer(Stereo::Core::StereoCore*
      m_windowed_mode_ptr (in_windowed_mode_ptr)
 {
     /* A debugging aid: skips the right eye, to measure what it costs. */
-    m_is_right_eye_off = Environment::is_set("APISTEREO_NO_RIGHT_EYE");
+    m_is_right_eye_off = EnvironmentVariableReader::is_set("APISTEREO_NO_RIGHT_EYE");
 }
 
 void Stereo::ConverterDLL::D3D7EyeRenderer::copy_pixel_write_to_both_eyes(void* in_back_buffer_ptr) const

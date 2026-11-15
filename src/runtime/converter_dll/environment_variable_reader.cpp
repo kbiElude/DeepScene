@@ -2,12 +2,12 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "environment.h"
+#include "environment_variable_reader.h"
 #include <stdlib.h>
 #include <Windows.h>
 
-bool Stereo::ConverterDLL::Environment::get_number(const char* in_name_ptr,
-                                                   float*      out_value_ptr)
+bool Stereo::ConverterDLL::EnvironmentVariableReader::get_number(const char* in_name_ptr,
+                                                                 float*      out_value_ptr)
 {
     char                value_i8vec32[32] = {};
     const unsigned long n_chars           = ::GetEnvironmentVariableA(in_name_ptr,
@@ -24,7 +24,7 @@ bool Stereo::ConverterDLL::Environment::get_number(const char* in_name_ptr,
     return result;
 }
 
-bool Stereo::ConverterDLL::Environment::is_set(const char* in_name_ptr)
+bool Stereo::ConverterDLL::EnvironmentVariableReader::is_set(const char* in_name_ptr)
 {
     return (::GetEnvironmentVariableA(in_name_ptr,
                                       nullptr,

@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#ifndef STEREO_CONVERTERDLL_CONVERTER_H
-#define STEREO_CONVERTERDLL_CONVERTER_H
+#ifndef STEREO_CONVERTERDLL_LIVE_STEREO_CONVERTER_H
+#define STEREO_CONVERTERDLL_LIVE_STEREO_CONVERTER_H
 
 #include "analysis/recipe/types.h"
 #include "common/callbacks.h"
@@ -41,18 +41,18 @@ namespace Stereo
          * is about to present, unchanged, to the viewer, the program that shows the images. The session log (see SessionLog) records what the
          * converter did.
          */
-        class Converter
+        class LiveStereoConverter
         {
         public:
             /* Returns nullptr if the launcher did not start the process, or if the recipe or the frame channel cannot be opened. */
-            static std::unique_ptr<Converter> create_ptr();
+            static std::unique_ptr<LiveStereoConverter> create_ptr();
 
-            ~Converter();
+            ~LiveStereoConverter();
 
         private:
-            Converter(const Stereo::Session::SessionInfo&              in_session_info,
-                      const Analysis::Recipe::Recipe&                  in_recipe,
-                      std::unique_ptr<Stereo::Transport::FrameChannel> in_channel_ptr);
+            LiveStereoConverter(const Stereo::Session::SessionInfo&              in_session_info,
+                                const Analysis::Recipe::Recipe&                  in_recipe,
+                                std::unique_ptr<Stereo::Transport::FrameChannel> in_channel_ptr);
 
             /* Counts a draw under the class that the recipe assigned to it. */
             void count_draw(const Analysis::Recipe::DrawClass& in_draw_class);
@@ -182,4 +182,4 @@ namespace Stereo
     }
 }
 
-#endif /* STEREO_CONVERTERDLL_CONVERTER_H */
+#endif /* STEREO_CONVERTERDLL_LIVE_STEREO_CONVERTER_H */
