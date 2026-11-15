@@ -70,7 +70,18 @@
 <p>Everything else on this page follows from one formula. With cameras a separation <code>s</code> apart converging at <code>d</code>, a point at depth <code>z</code> (measured along the way the camera looks, not the straight-line distance) has, between the two pictures, a horizontal difference of</p>
 <div class="math">parallax(z) = s · Px · (1/z − 1/d) / 2        (as a part of the width of the picture)
 <span class="why"><code>Px</code> is the x scale of the projection: cot(field of view / 2) of the width. Zero at <code>z = d</code>, positive for nearer, negative for farther. It is linear in <code>1/z</code>, not in <code>z</code>: a thing that is twice as near has twice the parallax, however near it is already.</span></div>
-<p>Two paths of the code produce it, because programs come in two kinds: ones whose geometry goes through matrices that we can change (Direct3D 8, OpenGL), and ones that hand over vertices already in pixels (the Direct3D 7 demo Kasparov, and the XYZRHW vertices that a Direct3D 8 program gives in a <code>DrawPrimitiveUP</code> or <code>DrawIndexedPrimitiveUP</code> call).</p>
+<p>Two paths of the code produce it, because programs come in two kinds: ones whose geometry goes through matrices that we can change (Direct3D 8, OpenGL), and ones that hand over vertices already in pixels (Direct3D 7, and the XYZRHW vertices that a Direct3D 8 program gives in a <code>DrawPrimitiveUP</code> or <code>DrawIndexedPrimitiveUP</code> call).</p>
+<figure>
+<svg viewBox="0 0 900 200" role="img" aria-label="The two paths from a program's draw to the two pictures">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="box4" x="10" y="75" width="150" height="50" rx="6"/><text x="85" y="104" text-anchor="middle">a draw</text>
+  <rect class="box" x="260" y="20" width="300" height="60" rx="6"/><text x="410" y="45" text-anchor="middle" font-weight="bold">Geometry goes through matrices</text><text class="small" x="410" y="64" text-anchor="middle">change the view and the projection per eye</text>
+  <rect class="box3" x="260" y="120" width="300" height="60" rx="6"/><text x="410" y="145" text-anchor="middle" font-weight="bold">Vertices are already in pixels</text><text class="small" x="410" y="164" text-anchor="middle">move each vertex sideways per eye</text>
+  <rect class="box2" x="660" y="75" width="220" height="50" rx="6"/><text x="770" y="104" text-anchor="middle">left and right pictures</text>
+  <path class="arrow" d="M160 90L258 55"/><path class="arrow" d="M160 110L258 145"/><path class="arrow" d="M560 50L658 90"/><path class="arrow" d="M560 150L658 110"/>
+</svg>
+<figcaption>Both paths implement the same formula. <a href="#matrices">With matrices</a> and <a href="#screen">in pixels</a> follow.</figcaption>
+</figure>
 
 <h2 id="matrices">With matrices: the view and the projection</h2>
 <p>Most programs set a view matrix and a projection matrix and then draw model-space vertices. We change those two matrices and nothing else; the program's vertices, shaders and draw calls are untouched. Direct3D uses row vectors (<code>v · M</code>), and the recipe holds two rules, one for each matrix.</p>
@@ -105,7 +116,7 @@ x<sub>ndc</sub> = P<sub>00</sub> · (x + h) / z + P<sub>20</sub>
 <p>In the code: <code>RecipeApplier::apply_rule</code> (<code>libs/analysis/recipe</code>), which <code>StereoCore::bind_matrices</code> reaches through <code>MatrixSlots</code> (<code>libs/stereo/core</code>) when a scene draw is about to be made. The program's own calls that set the two matrices are not executed; the converter keeps them and puts the matrices of the eye in the device before each draw (see <a href="#second-eye">Making the second picture</a>).</p>
 
 <h2 id="screen">Without matrices: vertices in pixels</h2>
-<p>Some programs (the Direct3D 7 demo Kasparov is one), or some draws of a Direct3D 8 program, use <em>pre-transformed</em> vertices: a position in pixels and the reciprocal of the depth (<code>rhw</code>). No matrix moves them, so the two matrix rules have nothing to change. There is also no projection to read the angle of view from, and no camera to measure the depth of surfaces in. The recipe gives both: a <code>screen_parallax</code> section with the convergence distance and the field of view.</p>
+<p>Some programs (Direct3D 7 ones), or some draws of a Direct3D 8 program, use <em>pre-transformed</em> vertices: a position in pixels and the reciprocal of the depth (<code>rhw</code>). No matrix moves them, so the two matrix rules have nothing to change. There is also no projection to read the angle of view from, and no camera to measure the depth of surfaces in. The recipe gives both: a <code>screen_parallax</code> section with the convergence distance and the field of view.</p>
 <p>The same formula, in pixels, with the shift applied directly to the vertex <code>x</code>:</p>
 <div class="math">shift(left eye) = (W / 2) / tan(fov / 2) · (s / 2) · (rhw − 1/d)        pixels, positive to the right
 shift(right eye) = −shift(left eye)
@@ -154,42 +165,147 @@ shift(right eye) = −shift(left eye)
   <li>With no strength set (an offline replay with <code>--eye-separation</code>, or a test), the separation is the number that was set and nothing is scaled.</li>
 </ul>
 
+
 <h2 id="convergence">Where the eyes converge</h2>
-<p>The convergence distance is a property of the scene, so the analysis measures it rather than asking anyone. For every pass it counts how deep what it draws is, and keeps the count as a <strong>depth histogram</strong>: a row of logarithmic bins (eight to each doubling of the distance), each holding how many vertices were drawn in that range. <em>Depth</em> is where the origin of the object is along the way the camera looks (the translation of its model matrix, through the view matrix); it is only worked out for a perspective camera.</p>
-<ul>
-  <li><strong>Per scene.</strong> The baker merges the histograms of the passes the recipe affects, for each frame shape, and takes the <em>median</em> by vertices: half of what is drawn is nearer. That is the shape's convergence distance (<code>scene_convergence</code> in the recipe).</li>
-  <li><strong>Per draw signature.</strong> The same median for the passes that draw a signature (<code>convergence</code>), for the draws whose scene is not known when they are issued.</li>
-  <li><strong>At play time</strong> the distance eases toward the shape of the last frame along the logarithm (a depth is felt in proportion to itself). The step is by time, not by frames: 5% of the way per 1/72 s (<code>ConvergenceModel::get_fraction_of_the_way</code>; the converter tells the core the frame time with <code>StereoCore::set_frame_interval_seconds</code>), a time constant of about 0.27 s at any frame rate, and it snaps when it is within a thousandth (<code>ConvergenceModel::get_eased_value</code>, <code>SNAP_FRACTION</code> 0.001). The first value, and a target more than twice or less than half of the one of the frame before (a cut: <code>ConvergenceModel::is_cut</code>, <code>CUT_RATIO</code> 2, for the limit of the eyes as well), is taken at once. The first frame of a new scene is drawn with the values of the scene before (its scene is known when it has been completed, and a measured depth a frame later), so a cut shows one or two frames of the old values. The value the player sets wins over the scene's, which wins over the draw's.</li>
-  <li><strong>Balanced.</strong> With <code>comfort.balance_convergence</code> and both parallax limits (see below), the distance is chosen where the nearest surfaces have all of the near limit and the farthest all of the far one: <code>1/d = 1/z<sub>near</sub> − (1/z<sub>near</sub> − 1/z<sub>far</sub>) · near / (near + far)</code>. A scene with a sky behind a near object is then not made flat. A distance the recipe gives for a scene is kept.</li>
-  <li><strong>Measured live.</strong> With <code>comfort.measure_depth</code>, an OpenGL converter measures the depth buffer of each frame and takes the distance and the limit from it (<code>StereoCore::on_frame_depth</code>), the same way the baker does for a scene.</li>
-</ul>
+<p>The convergence distance is a property of the scene, so the analysis measures it instead of asking anyone. For every pass it counts how deep what the pass draws is, and keeps the count as a <strong>depth histogram</strong>: a row of logarithmic bins (eight to each doubling of the distance), each holding the number of vertices drawn in that range. <em>Depth</em> is where the origin of the object is along the way the camera looks (the translation of its model matrix, through the view matrix); it is only worked out for a perspective camera.</p>
+<figure>
+<svg viewBox="0 0 900 240" role="img" aria-label="A depth histogram with its median marked as the convergence distance">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <text class="title" x="10" y="20">What one scene draws, by depth</text>
+  <path class="arrow" d="M60 190H860"/><text class="small" x="860" y="208" text-anchor="end">depth (logarithmic: each bar is a step of an eighth of a doubling)</text><text class="small" x="62" y="208">near</text>
+  <rect class="box" x="70" y="180" width="38" height="10"/><rect class="box" x="115" y="170" width="38" height="20"/><rect class="box" x="160" y="145" width="38" height="45"/><rect class="box" x="205" y="110" width="38" height="80"/><rect class="box" x="250" y="70" width="38" height="120"/><rect class="box" x="295" y="50" width="38" height="140"/><rect class="box" x="340" y="80" width="29" height="110"/>
+  <rect class="box2" x="369" y="80" width="9" height="110"/><rect class="box2" x="385" y="100" width="38" height="90"/><rect class="box2" x="430" y="130" width="38" height="60"/><rect class="box2" x="475" y="150" width="38" height="40"/><rect class="box2" x="520" y="120" width="38" height="70"/><rect class="box2" x="565" y="90" width="38" height="100"/><rect class="box2" x="610" y="130" width="38" height="60"/><rect class="box2" x="655" y="160" width="38" height="30"/><rect class="box2" x="700" y="175" width="38" height="15"/><rect class="box2" x="745" y="182" width="38" height="8"/>
+  <path class="screen" d="M369 36V190"/><text class="small" x="379" y="44">the median by vertices: the convergence distance</text>
+  <text class="small l" x="150" y="64">half of the vertices are nearer</text><text class="small r" x="640" y="64">and half are farther</text>
+</svg>
+<figcaption>The median, not the mean: a few vertices of a far backdrop do not pull the eyes away from what fills the picture.</figcaption>
+</figure>
+<p>That gives a distance per scene. Where it is used depends on what is known when a draw is made:</p>
+<table>
+<tr><th>Source</th><th>How it is found</th><th>Used for</th></tr>
+<tr><td>Per scene (<code>scene_convergence</code>)</td><td>The baker merges the histograms of the passes that the recipe affects, for each frame shape, and takes the median.</td><td>A frame of a shape that is known.</td></tr>
+<tr><td>Per draw signature (<code>convergence</code>)</td><td>The same median over the passes that draw a signature.</td><td>A draw whose scene is not known when it is issued.</td></tr>
+<tr><td>Balanced</td><td>With <code>comfort.balance_convergence</code> and both parallax limits, the distance goes where the nearest surfaces have all of the near limit and the farthest all of the far one (below).</td><td>A scene with a sky behind a near object, which the median would make flat. A distance that the recipe gives for a scene is kept.</td></tr>
+<tr><td>Measured live</td><td>With <code>comfort.measure_depth</code>, an OpenGL converter measures the depth buffer of each frame (<code>StereoCore::on_frame_depth</code>) and takes the distance and the limit from it, as the baker does for a scene.</td><td>Frames the baked values do not fit.</td></tr>
+<tr><td>Set by the player</td><td>The player's own value.</td><td>Wins over the scene's, which wins over the draw's.</td></tr>
+</table>
+<p>The balanced distance solves <code>1/d = 1/z<sub>near</sub> − (1/z<sub>near</sub> − 1/z<sub>far</sub>) · near / (near + far)</code>, where <code>near</code> and <code>far</code> are the two parallax limits.</p>
+<h3>Easing</h3>
+<p>The distance eases toward the target of the last frame along the logarithm, since a depth is felt in proportion to itself. A cut is taken at once.</p>
+<figure>
+<svg viewBox="0 0 900 220" role="img" aria-label="The convergence distance follows its target slowly, and jumps at a cut">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <path class="arrow" d="M60 190H860"/><path class="arrow" d="M70 200V20"/>
+  <text class="small" x="860" y="208" text-anchor="end">time</text><text class="small" x="80" y="26">distance</text>
+  <path class="dashed" d="M80 150H400V70H620V120H840"/><text class="small" x="90" y="170">target</text>
+  <path class="rayL" d="M80 150H400V70H620Q665 118 720 120H840" stroke-width="2.5"/><text class="small l" x="760" y="108">used</text>
+  <path class="dashed" d="M400 70V190"/><text class="small" x="408" y="186">cut: a target over twice or under half of the one before; taken at once</text>
+  <text class="small" x="540" y="60">a smaller change eases in: 5% of the way per 1/72 s</text>
+  <path class="dashed" d="M620 120V190"/>
+</svg>
+<figcaption>The first value of a scene is also taken at once. The first frame of a new scene is drawn with the values of the scene before, since its own is known only when it has been completed (a measured depth, a frame later), so a cut shows one or two frames of the old values.</figcaption>
+</figure>
+<table>
+<tr><th>Constant</th><th>Value</th><th>Meaning</th></tr>
+<tr><td><code>ConvergenceModel::get_fraction_of_the_way</code></td><td>5% per 1/72 s</td><td>The step is by time, not by frames (the converter tells the core the frame time with <code>StereoCore::set_frame_interval_seconds</code>): a time constant of about 0.27 s at any frame rate.</td></tr>
+<tr><td><code>SNAP_FRACTION</code> (<code>ConvergenceModel::get_eased_value</code>)</td><td>0.001</td><td>Within this part of the target the value snaps to it.</td></tr>
+<tr><td><code>CUT_RATIO</code> (<code>ConvergenceModel::is_cut</code>)</td><td>2</td><td>A target more than twice or less than half of the one of the frame before is a cut. The same holds for the limit of the eyes.</td></tr>
+</table>
 
 <h2 id="comfort">The comfort limit</h2>
-<p>Parallax grows without bound for something near the camera, and a wall at arm's length with the natural separation would be painful. The recipe's <code>comfort</code> section says how much is acceptable, and the baker turns it into a ceiling of the separation for each scene:</p>
-<ul>
-  <li><code>max_near_parallax</code>: the most that the pictures of the eyes may be apart at the nearest surface of a scene, as a part of the width of the picture (0.03 is three in a hundred).</li>
-  <li><code>near_fraction</code>: which part of the surfaces counts as the nearest (0.001: the nearest thousandth by vertices). A scene is rarely near everywhere, and what is very near is often a few large polygons, so it is small.</li>
-  <li><code>max_far_parallax</code>: the same for the farthest surface, which is beyond the convergence distance; the eyes would have to turn away from each other if the pictures were too far apart there. 0 is no limit, as it is for the near one.</li>
-  <li><code>camera_attached_depth</code>: a draw whose origin is nearer the camera than this part of the convergence distance (a weapon, a sky centred on the viewer) is made as it is for both eyes, since it would otherwise take nearly all of the separation. A draw whose model-view is the identity has an origin of 0 whatever its vertices are, so the draws that the application makes with the vertices in the space of the eye are named in <code>eye_space_cover_keys</code> (by signature and size), which keeps them out of this rule: they are given the parallax of the depth of their vertices. The decision is <code>StereoCore::is_last_draw_attached_to_camera()</code>, which takes how far in front of the camera the origin is (the front end turns its matrix into that, whatever the handedness of its camera).</li>
-  <li><code>scene_overrides</code>: the same numbers (and a distance or a ceiling) for single scenes, by their shape keys.</li>
-  <li>Other <code>comfort</code> fields are explained where they act: <code>balance_convergence</code> and <code>measure_depth</code> in <a href="#convergence">Where the eyes converge</a>; <code>overlay_parallax</code>, <code>part_parallax</code> and <code>automatic_layers</code> in <a href="#interface">What is not moved, and what is pushed</a>.</li>
-</ul>
+<p>Parallax grows without bound for something near the camera, and a wall at arm's length with the natural separation would be painful. The recipe's <code>comfort</code> section says how much is acceptable, and the baker turns it into a ceiling of the separation for each scene.</p>
+<figure>
+<svg viewBox="0 0 900 270" role="img" aria-label="The separation is lowered until the nearest surface has the allowed parallax">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <path class="arrow" d="M60 150H860"/><path class="arrow" d="M80 260V20"/>
+  <text class="small" x="860" y="168" text-anchor="end">1/z: farther on the left, nearer on the right</text><text class="small" x="90" y="26">parallax</text>
+  <path class="dashed" d="M330 150V250"/><text class="small" x="334" y="244">1/d: no parallax</text>
+  <path class="dashed" d="M150 150L720 30"/><text class="small" x="540" y="46" text-anchor="end">the natural separation</text>
+  <path class="rayL" d="M150 178L720 90" stroke-width="2.5"/><text class="small l" x="560" y="172" text-anchor="middle">limited so that the nearest surface is at its limit</text>
+  <path class="dashed" d="M80 90H860"/><text class="small" x="860" y="82" text-anchor="end">max_near_parallax</text>
+  <path class="dashed" d="M80 210H860"/><text class="small" x="860" y="226" text-anchor="end">max_far_parallax</text>
+  <circle class="eyeR" cx="720" cy="90" r="5"/><text class="small" x="710" y="78" text-anchor="end">nearest surface</text>
+  <circle class="eyeR" cx="150" cy="178" r="5"/><text class="small" x="160" y="196">farthest surface</text>
+</svg>
+<figcaption>The ceiling is the separation at which the nearer of the two limits is just reached. The other surface then stays inside its own limit.</figcaption>
+</figure>
+<table>
+<tr><th>Field</th><th>Meaning</th></tr>
+<tr><td><code>max_near_parallax</code></td><td>The most that the pictures of the eyes may be apart at the nearest surface of a scene, as a part of the width of the picture (0.03 is three in a hundred).</td></tr>
+<tr><td><code>near_fraction</code></td><td>Which part of the surfaces counts as the nearest (0.001: the nearest thousandth by vertices). A scene is rarely near everywhere, and what is very near is often a few large polygons, so it is small.</td></tr>
+<tr><td><code>max_far_parallax</code></td><td>The same for the farthest surface, which is beyond the convergence distance: the eyes would have to turn away from each other if the pictures were too far apart there. 0 is no limit, as it is for the near one.</td></tr>
+<tr><td><code>scene_overrides</code></td><td>The same numbers (and a distance or a ceiling) for single scenes, by their shape keys.</td></tr>
+</table>
 <p>The nearest depth comes from a second histogram, of the <em>surfaces</em> of the draws (up to 64 vertices sampled from each draw, carried into camera space), because the origin of a large mesh can be far away while its walls are close. The ceiling is the separation at which the disparity formula gives exactly <code>max_near_parallax</code> for that nearest depth <code>z<sub>near</sub></code>:</p>
 <div class="math">s<sub>max</sub> = 2 · max_near_parallax / ( Px · (1/z<sub>near</sub> − 1/d) )        only if z<sub>near</sub> &lt; d
-<span class="why"><code>RecipeApplier::get_comfort_limits</code> works it out (for the farthest surface the same with <code>1/d − 1/z<sub>far</sub></code>, and the smaller of the two is the ceiling); <code>RecipeBake</code> bakes it as <code>scene_max_separation</code> per frame shape. The converter eases toward it as toward the distance (see <a href="#convergence">Where the eyes converge</a>), and lifts it at once for a known scene that has none; a frame of a scene the recipe does not know keeps the ceiling of the one before.</span></div>
+<span class="why"><code>RecipeApplier::get_comfort_limits</code> works it out (for the farthest surface the same with <code>1/d − 1/z<sub>far</sub></code>, and the smaller of the two is the ceiling); <code>RecipeBake</code> bakes it as <code>scene_max_separation</code> per frame shape. The converter eases toward it as toward the distance, and lifts it at once for a known scene that has none; a frame of a scene the recipe does not know keeps the ceiling of the one before.</span></div>
+<h3>Draws attached to the camera</h3>
+<p>A weapon or a sky centred on the viewer is nearer than everything else, and would take nearly all of the separation. A draw whose origin is nearer the camera than <code>comfort.camera_attached_depth</code> (a part of the convergence distance) is made as it is for both eyes.</p>
+<table>
+<tr><th>Field</th><th>Meaning</th></tr>
+<tr><td><code>camera_attached_depth</code></td><td>The part of the convergence distance under which an origin counts as attached to the camera.</td></tr>
+<tr><td><code>eye_space_cover_keys</code></td><td>Draws (by signature and size) whose model-view is the identity because the application has put their vertices in the space of the eye. An identity has an origin of 0 whatever the vertices are, so these are kept out of the rule above and given the parallax of the depth of their vertices.</td></tr>
+</table>
+<p>The decision is <code>StereoCore::is_last_draw_attached_to_camera()</code>. It takes how far in front of the camera the origin is; the front end turns its matrix into that, whatever the handedness of its camera.</p>
+<p>The other <code>comfort</code> fields are explained where they act: <code>balance_convergence</code> and <code>measure_depth</code> in <a href="#convergence">Where the eyes converge</a>; <code>overlay_parallax</code>, <code>part_parallax</code> and <code>automatic_layers</code> in <a href="#interface">What is not moved, and what is pushed</a>.</p>
 
 <h2 id="interface">What is not moved, and what is pushed</h2>
-<p>A draw the recipe leaves alone (an interface: text, a menu) is drawn once, which means with zero parallax: at the screen. That is correct for text, but a scene that comes out in front of it makes the interface seem to sink into the scene. The recipe's <code>comfort.overlay_parallax</code> says how far toward the viewer such draws may be pushed, as a part of the width of the picture (0.04 is four in a hundred), and the VR player pushes by it unless told not to.</p>
-<p>With <code>comfort.automatic_layers</code> RecipeBake also writes <code>flat_layer_draws</code>, <code>overlay_draws</code> and <code>eye_space_draws</code> (draw keys found by the analysis). <code>StereoCore::classify_draw()</code> makes a draw of <code>flat_layer_draws</code> unaffected and one of <code>overlay_draws</code> unaffected and pushed, and the replay asks the same applier (<code>is_cover_flat_layer</code>, <code>is_cover_pushed</code>), so both play them alike without the recipe naming a pass or a draw; the keys of <code>eye_space_draws</code> are read as <code>eye_space_cover_keys</code> are.</p>
-
-<p>A draw the recipe names in <code>pushed</code> is moved whatever else it is, an affected one too, so that text and a logo stand off the layer they are drawn on: OpenGL moves the viewport sideways around the draw (the whole of the calls of it, from its <code>glBegin</code>), by half of the parallax for each eye, whatever the projection of the draw is. A draw that reaches from one side of the picture to the other (a 2D overlay such as a bar or a scroller, named in <code>baked.side_reaching_draws</code>) would leave bare the side that it moves away from, so its viewport is made as much wider as the shift on each side: the edge that the shift would expose stays where it was, and the other one goes past the edge of the view (<code>PushShiftPlanner::make_viewport</code>, the same for the converter and the replay). The converter that plays an application as it runs does the same: the draw rule baked for a pushed signature carries <code>"pushed": true</code>, <code>StereoCore::plan_push_shift()</code> gives the shift from the same planner (with the effective separation of the scene, which is within its limit), and <code>GLEyeRenderer</code> moves the viewport for each eye around the draw, or around the display list of a <code>glBegin</code> block, and puts it back. A call that makes several draws (a display list) is pushed only if all of them are.</p>
-<p>The parallax is <code>overlay_parallax</code>, but no more than is left of <code>max_near_parallax</code> after the layer of the draw: a draw that the recipe affects is already moved apart by the eyes, which for a 2D pass in pixels is the separation (held to the limit of the scene) over the width of the picture, and the push is added to that. For a draw of a 3D pass (OpenGL) the layer is not the separation over the width but what the eyes give the depth of its origin, which the converter reads from the model-view and the projection (<code>StereoCore::get_eye_parallax()</code>, <code>plan_push_shift_with_layer()</code>); the replay uses the separation over the width for a draw it affects, which equals the depth-based value only in a pass of pixels. A draw that the converter makes as it is (an identity model-view under a projection that is not a perspective one, as a 2D layer has, or one attached to the camera) is not moved by the eyes, so its whole parallax is the push.</p>
-<p>A draw that covers the view, or works on a copy of the picture (a blur, a glow), is not named, for moving it would leave a strip bare or move what the eyes of the picture already made. A part of an object that protrudes from it (the eyes of a robot) is pushed by <code>comfort.part_parallax</code> instead, which is less, since the part is only a little nearer than the rest of the object.</p>
-<ul>
-  <li><strong>With matrices</strong> the push is a constant added to the same shear element: <code>P<sub>20</sub> += ±o</code> (plus for the left eye), so the two pictures of the draw are <code>o</code> of the width apart.</li>
-  <li><strong>In pixels</strong> every vertex of the draw is moved by the same <code>o · W / 2</code> pixels (right for the left eye), whatever its depth.</li>
-  <li>Only draws made to what the program <em>presents</em> are pushed. A draw into a texture is left alone, since what it makes is used elsewhere. A draw that covers the whole view is not pushed either, for the strip it would leave bare.</li>
-</ul>
+<p>A draw the recipe leaves alone (an interface: text, a menu) is drawn once, which means with zero parallax: at the screen. That is right for text, but a scene that comes out in front of it makes the interface seem to sink into the scene. The fix is to push such draws toward the viewer by a little parallax of their own.</p>
+<figure>
+<svg viewBox="0 0 900 230" role="img" aria-label="An interface draw at the screen, and the same draw pushed in front of it">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <text class="title" x="10" y="20">Left alone</text><text class="title" x="470" y="20">Pushed by overlay_parallax</text>
+  <circle class="eyeL" cx="30" cy="90" r="8"/><circle class="eyeR" cx="30" cy="130" r="8"/>
+  <path class="screen" d="M250 45V195"/><text class="small" x="250" y="212" text-anchor="middle">the screen</text>
+  <path class="rayL" d="M30 90L250 110"/><path class="rayR" d="M30 130L250 110"/><circle class="box2" cx="250" cy="110" r="5"/>
+  <text class="small" x="270" y="106">one dot: at the screen,</text><text class="small" x="270" y="122">inside the scene</text>
+  <circle class="eyeL" cx="490" cy="90" r="8"/><circle class="eyeR" cx="490" cy="130" r="8"/>
+  <path class="screen" d="M710 45V195"/><text class="small" x="710" y="212" text-anchor="middle">the screen</text>
+  <path class="rayL" d="M490 90L710 140"/><path class="rayR" d="M490 130L710 80"/>
+  <circle class="eyeL" cx="710" cy="140" r="4"/><circle class="eyeR" cx="710" cy="80" r="4"/>
+  <text class="small" x="490" y="175">o: the two dots are a part o of the width apart;</text><text class="small" x="490" y="191">crossed, so the draw stands out of the screen</text>
+  <path class="arrowline" d="M720 80V140"/>
+</svg>
+<figcaption>The same picture of the draw, for each eye, moved sideways by half of <code>o</code> in opposite directions. The VR player pushes by <code>comfort.overlay_parallax</code> unless told not to.</figcaption>
+</figure>
+<h3>Which draws are pushed</h3>
+<table>
+<tr><th>Draw</th><th>What happens</th></tr>
+<tr><td>Left alone, listed in the recipe's <code>pushed</code></td><td>Pushed by <code>overlay_parallax</code>, as a part of the width of the picture (0.04 is four in a hundred).</td></tr>
+<tr><td>Affected, listed in <code>pushed</code></td><td>Pushed too, so that text and a logo stand off the layer they are drawn on.</td></tr>
+<tr><td>A part of an object that protrudes from it (the eyes of a character), in <code>pushed.part_cover_keys</code></td><td>Pushed by <code>part_parallax</code>, which is less, since the part is only a little nearer than the rest of the object.</td></tr>
+<tr><td>With <code>comfort.automatic_layers</code>: the baker's <code>flat_layer_draws</code></td><td>Left alone, not pushed. <code>StereoCore::classify_draw()</code> and the replay's applier (<code>is_cover_flat_layer</code>) agree.</td></tr>
+<tr><td>With <code>comfort.automatic_layers</code>: the baker's <code>overlay_draws</code></td><td>Left alone and pushed (<code>is_cover_pushed</code>), with no pass or draw named in the recipe.</td></tr>
+<tr><td>With <code>comfort.automatic_layers</code>: the baker's <code>eye_space_draws</code></td><td>Read as <code>eye_space_cover_keys</code> are.</td></tr>
+<tr><td>A draw that covers the view, or works on a copy of the picture (a blur, a glow)</td><td>Not pushed: it would leave a strip bare or move what the eyes of the picture already made.</td></tr>
+<tr><td>A draw into a texture</td><td>Not pushed: what it makes is used elsewhere. Only draws made to what the program <em>presents</em> are.</td></tr>
+</table>
+<h3>How a push is made</h3>
+<table>
+<tr><th>Case</th><th>The push</th></tr>
+<tr><td>With matrices</td><td>A constant added to the same shear element: <code>P<sub>20</sub> += ±o</code> (plus for the left eye), so the two pictures of the draw are <code>o</code> of the width apart.</td></tr>
+<tr><td>In pixels</td><td>Every vertex of the draw is moved by the same <code>o · W / 2</code> pixels (right for the left eye), whatever its depth.</td></tr>
+<tr><td>OpenGL</td><td>The viewport is moved sideways around the draw (from its <code>glBegin</code>, the whole of its calls), by half of the parallax for each eye, whatever the projection of the draw is. A call that makes several draws (a display list) is pushed only if all of them are. The shift comes from <code>StereoCore::plan_push_shift()</code>, with the effective separation of the scene, and <code>GLEyeRenderer</code> moves the viewport and puts it back. The draw rule baked for a pushed signature carries <code>"pushed": true</code>.</td></tr>
+</table>
+<h3>Two limits on a push</h3>
+<p>A draw that reaches from one side of the picture to the other (a 2D bar or a scroller, named in <code>baked.side_reaching_draws</code>) would leave bare the side that it moves away from. Its viewport is made as much wider as the shift on each side, so the edge that the shift would expose stays where it was and the other goes past the edge of the view (<code>PushShiftPlanner::make_viewport</code>, the same for the converter and the replay).</p>
+<p>The push is also bounded by the comfort limit. The parallax is <code>overlay_parallax</code>, but no more than what is left of <code>max_near_parallax</code> after the layer of the draw.</p>
+<figure>
+<svg viewBox="0 0 900 130" role="img" aria-label="The push is cut to what is left of the near limit after the layer of the draw">
+  <text class="title" x="10" y="20">One draw, in parts of the width of the picture</text>
+  <rect class="group" x="150" y="40" width="600" height="44" rx="4"/><text class="small" x="450" y="104" text-anchor="middle">max_near_parallax</text>
+  <rect class="box" x="150" y="40" width="270" height="44"/><text x="285" y="67" text-anchor="middle">the layer</text>
+  <rect class="box3" x="420" y="40" width="330" height="44"/><text x="585" y="67" text-anchor="middle">the push, cut to what is left</text>
+  <path class="dashed" d="M750 62H830"/><text class="small" x="835" y="66">wanted</text>
+</svg>
+<figcaption>The layer is what the eyes already give the draw. The push is added to it.</figcaption>
+</figure>
+<table>
+<tr><th>Draw</th><th>Its layer</th></tr>
+<tr><td>2D pass in pixels, affected</td><td>The separation (held to the limit of the scene) over the width of the picture.</td></tr>
+<tr><td>3D pass (OpenGL), affected</td><td>What the eyes give the depth of the origin, which the converter reads from the model-view and the projection (<code>StereoCore::get_eye_parallax()</code>, <code>plan_push_shift_with_layer()</code>). The replay uses the separation over the width, which equals this only in a pass of pixels.</td></tr>
+<tr><td>Made as it is: an identity model-view under a projection that is not a perspective one, as a 2D layer has, or attached to the camera</td><td>None: the eyes do not move it, so its whole parallax is the push.</td></tr>
+</table>
 
 <h2 id="second-eye">Making the second picture</h2>
 <p>The matrices say what each eye should see; something still has to draw it twice. In the running program the converter does it by <strong>twins</strong>: every render target, depth buffer and texture the program renders to gets a copy when the program makes it, and a draw (or a clear, or a copy) is made again with the twins in place of what the program had set. The program's own calls make one eye (the left, for Direct3D 8) and the converter repeats them for the other, except for a draw of vertices in pixels that is moved: that one is made for both eyes from copies.</p>
