@@ -47,7 +47,28 @@
 <h3>Choosing where the scene meets the screen</h3>
 <p>Two parallel cameras alone leave a problem. A thing at distance <code>z</code> is seen <code>s</code> apart in the two pictures, and the nearer it is the more. Only something infinitely far has no difference. Seen on a screen, everything would then float in front of it, and nothing would lie at the screen itself.</p>
 <p>The fix is to slide each picture sideways by a fixed amount, so that one chosen distance <code>d</code> ends up with no difference. That distance is the <strong>convergence distance</strong>. A thing at <code>d</code> appears at the screen, a nearer thing in front of it, and a farther thing behind it.</p>
-<p>Sliding a picture sideways without turning its camera is the same as cutting the picture from an off-centre window in front of the camera, so each camera has an <em>off-axis</em> (asymmetric) frustum. That is the whole technique.</p>
+<h3>Why the frustums are lopsided</h3>
+<p>Both cameras have exactly the same view direction and differ only in position. The easiest way to see what the slide does is to think of the screen as a window that hangs in the world at distance <code>d</code>, centred between the two cameras. Each camera sees the scene through that same window, and the window is what defines its picture.</p>
+<p>The cameras are not in the same place, so neither is in front of the centre of the window: the left camera is half the separation to the left of it, the right camera as far to the right. A camera's <em>frustum</em> is the pyramid from the camera through the edges of its window. An ordinary camera has its window centred on its view direction, so its pyramid is symmetric. Here the window is off-centre for each camera, so the pyramid is <em>off-axis</em> (asymmetric): its left and right sides are at different angles.</p>
+<p>This is the same as sliding the picture. Render the usual symmetric picture from the camera's position, but wider, and keep an off-centre part of it: you get exactly what the off-axis frustum renders directly, without drawing the part that is thrown away. And since both cameras look through the same window, a thing at <code>d</code> lands at the same place in both pictures, which is the no-parallax condition we wanted.</p>
+<figure>
+<svg viewBox="0 0 900 270" role="img" aria-label="Two parallel cameras looking through one shared window at distance d: each pyramid leans toward the window's centre">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <text class="title" x="10" y="20">Seen from above: one window, two cameras</text>
+  <path class="rayL" d="M60 110L470 50"/><path class="rayL" d="M60 110L470 250"/>
+  <path class="rayR" d="M60 190L470 50"/><path class="rayR" d="M60 190L470 250"/>
+  <path class="dashed" d="M60 110H470"/><path class="dashed" d="M60 190H470"/>
+  <circle class="eyeL" cx="60" cy="110" r="8"/><text class="small l" x="40" y="92">left camera</text>
+  <circle class="eyeR" cx="60" cy="190" r="8"/><text class="small r" x="36" y="216">right camera</text>
+  <path class="screen" d="M470 50V250"/><text class="small" x="480" y="60">the window: the screen, at distance d</text>
+  <circle class="box2" cx="470" cy="150" r="4"/><text class="small" x="480" y="154">its centre</text>
+  <text class="small" x="300" y="208" text-anchor="middle">both look straight ahead (dashed)</text>
+  <text class="small" x="490" y="190">The left camera's dashed axis meets the window above its centre,</text>
+  <text class="small" x="490" y="204">the right camera's below it. Each pyramid reaches the same two</text>
+  <text class="small" x="490" y="218">edges of the window, so each is lopsided toward the centre.</text>
+</svg>
+<figcaption>Solid lines are the edges of each camera's frustum; they end at the same window. The cameras never turn.</figcaption>
+</figure>
 <figure>
 <svg viewBox="0 0 900 300" role="img" aria-label="Parallel cameras, a near thing, a thing at the convergence distance and a far thing, and where each eye's line of sight meets the screen">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
