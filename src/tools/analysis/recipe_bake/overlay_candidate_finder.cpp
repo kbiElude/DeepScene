@@ -56,18 +56,15 @@ std::vector<Analysis::RecipeBake::OverlayCandidate> Analysis::RecipeBake::Overla
         for (const auto& draw_signature : structure.draw_signature_vec)
         {
             OverlayCandidate candidate;
-            const bool       is_skipped         = applier.is_draw_skipped (structure.key,
-                                                                           draw_signature.structure_key);
-            const bool       is_replay_affected = applier.is_draw_affected(structure.key,
-                                                                           draw_signature.structure_key);
+            const auto       named_class        = applier.get_named_draw_class(structure.key,
+                                                                              draw_signature.structure_key);
 
             candidate.depth_spread         = depth_spread;
             candidate.first_frame_index    = first_frame_index;
             candidate.sample_frame_index_vec = sample_frame_index_vec;
             candidate.has_first_frame      = has_first_frame;
-            candidate.is_replay_skipped    = is_skipped;
-            candidate.is_replay_unaffected = (is_replay_affected == false &&
-                                              is_skipped         == false);
+            candidate.is_replay_skipped    = (named_class == Analysis::Recipe::DrawClass::SKIPPED);
+            candidate.is_replay_unaffected = (named_class == Analysis::Recipe::DrawClass::UNAFFECTED);
 
             candidate.live_class = get_live_class(applier,
                                                   in_analysis,
@@ -198,7 +195,7 @@ std::vector<Analysis::RecipeBake::OverlayCandidate> Analysis::RecipeBake::Overla
                     candidate.reason_vec.push_back("recipe_rule_unaffected_for_some_cameras");
                 }
 
-                if (is_skipped)
+                if (candidate.is_replay_skipped)
                 {
                     candidate.reason_vec.push_back("recipe_skips_draw");
                 }

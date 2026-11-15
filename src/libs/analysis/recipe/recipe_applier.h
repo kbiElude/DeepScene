@@ -43,6 +43,18 @@ namespace Analysis
             Analysis::Recipe::DrawClass classify_draw(const uint64_t&              in_signature_key,
                                                       const std::array<float, 16>& in_view_matrix) const;
 
+            /* Decides what is done to a draw: whether the rules apply to it, it is left alone, or it is not played, and whether it is pushed toward
+             * the viewer. A replay and a converter that plays an application while it runs both call this, so that they decide alike.
+             *
+             * With a pass (DrawQuery::has_pass) the draw is named by its pass and its structure (see is_draw_skipped(), is_draw_affected() and
+             * is_draw_pushed()). Without one it is classified by its signature and the view matrix (see classify_draw() and
+             * is_signature_pushed()). In both cases the cover key of the draw then applies: a baked flat layer, and a draw that the recipe pushes
+             * by its cover key, are left alone instead of affected, and a draw pushed by its cover key is pushed. A caller whose way of playing
+             * cannot leave a draw alone (a replay applies the shift of an eye where a camera begins, so a draw that shares its camera with an
+             * affected draw has to be affected) sets DrawQuery::is_cover_hold_waived for it. The waiver does not apply to a baked flat layer.
+             */
+            Analysis::Recipe::DrawDecision decide_draw(const Analysis::Recipe::DrawQuery& in_query) const;
+
             /* Returns the distance at which the eyes converge for the draws with this signature (see Recipe::convergence_vec), or 0 if the recipe
              * gives none.
              */
@@ -80,6 +92,13 @@ namespace Analysis
              * object that protrudes (see DrawSelector::part_cover_key_vec) if the recipe sets one, and the overlay parallax otherwise.
              */
             float get_cover_push_parallax(const uint64_t& in_cover_key) const;
+
+            /* Returns the class that the names of a draw and of its pass give it, and nothing else: SKIPPED if the recipe skips it (see
+             * is_draw_skipped()), AFFECTED if the recipe says that the rules apply to it (see is_draw_affected()), UNAFFECTED otherwise.
+             * decide_draw() adds the cover key of the draw to this.
+             */
+            Analysis::Recipe::DrawClass get_named_draw_class(const uint64_t& in_pass_key,
+                                                             const uint64_t& in_draw_key) const;
 
             /* Returns how far toward the viewer the draws that the rules leave alone are pushed (see Comfort::overlay_parallax). 0 means no push. */
             float get_overlay_parallax() const;

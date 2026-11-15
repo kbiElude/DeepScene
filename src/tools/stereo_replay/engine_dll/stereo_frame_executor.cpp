@@ -683,16 +683,17 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_rewritten_call(cons
     {
         const uint64_t pass_key = frame.pass_key_vec.at(draw_iterator->pass_index);
 
+        const auto decision = decide_draw_here(pass_key,
+                                               *draw_iterator);
+
         /* A skipped draw needs nothing on the device, so nothing is executed. */
-        if (is_draw_skipped_here(pass_key,
-                                                  draw_iterator->structure_key) )
+        if (decision.draw_class == Analysis::Recipe::DrawClass::SKIPPED)
         {
             result = true;
         }
         else
         {
-            const bool is_affected = is_draw_affected_here(pass_key,
-                                                           *draw_iterator);
+            const bool is_affected = (decision.draw_class == Analysis::Recipe::DrawClass::AFFECTED);
 
             /* Put the matrices the draw needs on the device first. */
             result = m_matrix_binder_ptr->before_draw(is_affected,
@@ -921,10 +922,10 @@ void Stereo::Replay::EngineDLL::StereoFrameExecutor::find_pushed_draw_calls(cons
         const auto&    draw     = in_frame.draw_instance_vec.at(n_draw);
         const uint64_t pass_key = in_frame.pass_key_vec.at(draw.pass_index);
 
-        const bool is_pushed  = is_draw_pushed_here (pass_key,
-                                                     draw);
-        const bool is_skipped = is_draw_skipped_here(pass_key,
-                                                     draw.structure_key);
+        const auto decision   = decide_draw_here(pass_key,
+                                                 draw);
+        const bool is_pushed  = decision.is_pushed;
+        const bool is_skipped = (decision.draw_class == Analysis::Recipe::DrawClass::SKIPPED);
 
         if (is_pushed &&
             is_skipped == false)
@@ -944,11 +945,12 @@ void Stereo::Replay::EngineDLL::StereoFrameExecutor::find_skipped_call_ranges(co
 
     for (const auto& draw : in_frame.draw_instance_vec)
     {
-        const uint64_t pass_key = in_frame.pass_key_vec.at(draw.pass_index);
+        const uint64_t pass_key   = in_frame.pass_key_vec.at(draw.pass_index);
+        const bool     is_skipped = (decide_draw_here(pass_key,
+                                                      draw).draw_class == Analysis::Recipe::DrawClass::SKIPPED);
 
-        if (draw.first_call_index < draw.call_index                               &&
-            is_draw_skipped_here(pass_key,
-                                                  draw.structure_key) )
+        if (draw.first_call_index < draw.call_index &&
+            is_skipped)
         {
             m_skipped_call_range_vec.push_back({draw.first_call_index,
                                                 draw.call_index - 1});
@@ -997,17 +999,10 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::find_view_anchor_calls(cons
 
             if (draw.view_anchor_call_index != UINT64_MAX)
             {
-                const bool is_affected    = m_recipe_applier_ptr->is_draw_affected(pass_key,
-                                                                                   draw.structure_key);
-                const bool is_cover_pushed = m_recipe_applier_ptr->is_cover_pushed (draw.cover_key);
-                const bool is_flat_layer   = m_recipe_applier_ptr->is_cover_flat_layer(draw.cover_key);
-                const bool is_skipped     = is_draw_skipped_here(pass_key,
-                                                                 draw.structure_key);
+                const auto decision = decide_draw_here(pass_key,
+                                                       draw);
 
-                if (is_skipped == false &&
-                    is_affected         &&
-                    is_cover_pushed == false &&
-                    is_flat_layer   == false)
+                if (decision.draw_class == Analysis::Recipe::DrawClass::AFFECTED)
                 {
                     shared_anchor_set.insert(draw.view_anchor_call_index);
                 }
@@ -1031,15 +1026,16 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::find_view_anchor_calls(cons
     {
         const uint64_t pass_key = in_frame.pass_key_vec.at(draw.pass_index);
 
+        const auto decision = decide_draw_here(pass_key,
+                                               draw);
+
         /* A draw that is left out needs no camera. */
-        if (is_draw_skipped_here(pass_key,
-                                                  draw.structure_key) )
+        if (decision.draw_class == Analysis::Recipe::DrawClass::SKIPPED)
         {
             continue;
         }
 
-        const bool is_affected = is_draw_affected_here(pass_key,
-                                                       draw);
+        const bool is_affected = (decision.draw_class == Analysis::Recipe::DrawClass::AFFECTED);
 
         if (draw.view_anchor_call_index != UINT64_MAX)
         {
@@ -1179,12 +1175,13 @@ float Stereo::Replay::EngineDLL::StereoFrameExecutor::get_push_shift_pixels(cons
 
     *out_viewport_ptr_ptr = &m_session_ptr->get_model().pass_structure_interner.get_structure(pass_structure_id).viewport;
 
-    if (is_draw_pushed_here(pass_key,
-                            in_draw) )
+    const auto decision = decide_draw_here(pass_key,
+                                           in_draw);
+
+    if (decision.is_pushed)
     {
         const float cover_parallax = m_recipe_applier_ptr->get_cover_push_parallax(in_draw.cover_key);
-        const bool  is_affected    = is_draw_affected_here(pass_key,
-                                                           in_draw);
+        const bool  is_affected    = (decision.draw_class == Analysis::Recipe::DrawClass::AFFECTED);
         const float scene_limit    = m_recipe_applier_ptr->get_scene_max_separation(in_frame.shape_key);
 
         result = Stereo::Core::PushShiftPlanner::plan(*m_recipe_applier_ptr,
@@ -1231,42 +1228,40 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::is_call_skipped(const uint6
     return result;
 }
 
-bool Stereo::Replay::EngineDLL::StereoFrameExecutor::is_draw_affected_here(const uint64_t&                                in_pass_key,
-                                                                           const Analysis::APIDumpAnalysis::DrawInstance& in_draw) const
+Analysis::Recipe::DrawDecision Stereo::Replay::EngineDLL::StereoFrameExecutor::decide_draw_here(const uint64_t&                                in_pass_key,
+                                                                                                const Analysis::APIDumpAnalysis::DrawInstance& in_draw) const
 {
-    const bool is_affected_by_recipe = m_recipe_applier_ptr->is_draw_affected(in_pass_key,
-                                                                              in_draw.structure_key);
+    Analysis::Recipe::DrawQuery query;
 
-    const bool is_flat = (m_recipe_applier_ptr->is_cover_pushed(in_draw.cover_key) &&
-                          m_unflattened_draw_call_set.count(in_draw.call_index) == 0);
+    query.cover_key            = in_draw.cover_key;
+    query.draw_key             = in_draw.structure_key;
+    query.has_pass             = true;
+    query.is_cover_hold_waived = (m_unflattened_draw_call_set.count(in_draw.call_index) != 0);
+    query.pass_key             = in_pass_key;
 
-    /* A baked flat layer is left alone because of its cover key, however its structure is named in the passes. */
-    const bool is_flat_layer = m_recipe_applier_ptr->is_cover_flat_layer(in_draw.cover_key);
-
-    return (is_affected_by_recipe &&
-            is_flat       == false &&
-            is_flat_layer == false);
-}
-
-bool Stereo::Replay::EngineDLL::StereoFrameExecutor::is_draw_pushed_here(const uint64_t&                                in_pass_key,
-                                                                         const Analysis::APIDumpAnalysis::DrawInstance& in_draw) const
-{
-    const bool is_pushed_by_name = m_recipe_applier_ptr->is_draw_pushed(in_pass_key,
-                                                                        in_draw.structure_key);
-
-    return (is_pushed_by_name ||
-            m_recipe_applier_ptr->is_cover_pushed(in_draw.cover_key) );
-}
-
-bool Stereo::Replay::EngineDLL::StereoFrameExecutor::is_draw_skipped_here(const uint64_t& in_pass_key,
-                                                                          const uint64_t& in_draw_key) const
-{
-    bool result = m_recipe_applier_ptr->is_draw_skipped(in_pass_key,
-                                                        in_draw_key);
+    Analysis::Recipe::DrawDecision result = m_recipe_applier_ptr->decide_draw(query);
 
     /* Draws that the variant leaves out are skipped as well. */
-    if (result         == false &&
-        m_variant_ptr  != nullptr)
+    if (result.draw_class != Analysis::Recipe::DrawClass::SKIPPED)
+    {
+        const bool is_variant_skip = is_skipped_by_variant(in_pass_key,
+                                                          in_draw.structure_key);
+
+        if (is_variant_skip)
+        {
+            result.draw_class = Analysis::Recipe::DrawClass::SKIPPED;
+        }
+    }
+
+    return result;
+}
+
+bool Stereo::Replay::EngineDLL::StereoFrameExecutor::is_skipped_by_variant(const uint64_t& in_pass_key,
+                                                                           const uint64_t& in_draw_key) const
+{
+    bool result = false;
+
+    if (m_variant_ptr != nullptr)
     {
         result = (std::find(m_variant_ptr->skipped_pass_key_vec.begin(),
                             m_variant_ptr->skipped_pass_key_vec.end  (),

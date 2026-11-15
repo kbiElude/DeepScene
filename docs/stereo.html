@@ -306,8 +306,8 @@ shift(right eye) = −shift(left eye)
 <tr><td>Left alone, listed in the recipe's <code>pushed</code></td><td>Pushed by <code>overlay_parallax</code>, as a part of the width of the picture (0.04 is four in a hundred).</td></tr>
 <tr><td>Affected, listed in <code>pushed</code></td><td>Pushed too, so that text and a logo stand off the layer they are drawn on.</td></tr>
 <tr><td>A part of an object that protrudes from it (the eyes of a character), in <code>pushed.part_cover_keys</code></td><td>Pushed by <code>part_parallax</code>, which is less, since the part is only a little nearer than the rest of the object.</td></tr>
-<tr><td>With <code>comfort.automatic_layers</code>: the baker's <code>flat_layer_draws</code></td><td>Left alone, not pushed. <code>StereoCore::classify_draw()</code> and the replay's applier (<code>is_cover_flat_layer</code>) agree.</td></tr>
-<tr><td>With <code>comfort.automatic_layers</code>: the baker's <code>overlay_draws</code></td><td>Left alone and pushed (<code>is_cover_pushed</code>), with no pass or draw named in the recipe.</td></tr>
+<tr><td>With <code>comfort.automatic_layers</code>: the baker's <code>flat_layer_draws</code></td><td>Left alone, not pushed. The live converter (<code>StereoCore::classify_draw()</code>) and the replay both ask <code>RecipeApplier::decide_draw()</code>, so they agree.</td></tr>
+<tr><td>With <code>comfort.automatic_layers</code>: the baker's <code>overlay_draws</code></td><td>Left alone and pushed (<code>RecipeApplier::decide_draw()</code> checks the cover key), with no pass or draw named in the recipe.</td></tr>
 <tr><td>With <code>comfort.automatic_layers</code>: the baker's <code>eye_space_draws</code></td><td>Read as <code>eye_space_cover_keys</code> are.</td></tr>
 <tr><td>A draw that covers the view, or works on a copy of the picture (a blur, a glow)</td><td>Not pushed: it would leave a strip bare or move what the eyes of the picture already made.</td></tr>
 <tr><td>A draw into a texture</td><td>Not pushed: what it makes is used elsewhere. Only draws made to what the program <em>presents</em> are.</td></tr>

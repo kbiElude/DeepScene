@@ -213,6 +213,28 @@ namespace Analysis
             uint64_t signature_key = 0;
         };
 
+        /* What the recipe decides about one draw (see RecipeApplier::decide_draw). */
+        struct DrawDecision
+        {
+            DrawClass draw_class = DrawClass::AFFECTED;
+            bool      is_pushed  = false; /* the draw is moved toward the viewer */
+        };
+
+        /* What a caller knows about a draw when it asks the recipe to decide. A replay knows the pass of the draw (has_pass), so the recipe can
+         * name the draw in that pass. A converter that plays an application while it runs does not know the pass, so it gives the signature of
+         * the draw and the view matrix in effect instead. The cover key is known in both cases.
+         */
+        struct DrawQuery
+        {
+            uint64_t              cover_key            = 0;
+            uint64_t              draw_key             = 0;     /* of the draw structure; used if has_pass                                              */
+            bool                  has_pass             = false;
+            bool                  is_cover_hold_waived = false; /* the caller cannot leave a draw alone because of its cover key (see decide_draw) */
+            uint64_t              pass_key             = 0;     /* of the pass structure; used if has_pass                                              */
+            uint64_t              signature_key        = 0;     /* used if has_pass is false                                                            */
+            std::array<float, 16> view_matrix          = {};    /* used if has_pass is false                                                            */
+        };
+
         /* A rule that classifies draws by the signature a draw has when it is issued (see KeyBuilder::compute_draw_signature_key). The signature
          * is all that a converter, which plays an application while it runs, knows about a draw, because the pass of the draw is not known until
          * the pass ends. RecipeBake builds the rules from the lists of passes and draws. Rules are tried in order, and a draw that no rule applies

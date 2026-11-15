@@ -214,6 +214,47 @@ Analysis::Recipe::DrawClass Analysis::Recipe::RecipeApplier::classify_draw(const
     return result;
 }
 
+Analysis::Recipe::DrawDecision Analysis::Recipe::RecipeApplier::decide_draw(const Analysis::Recipe::DrawQuery& in_query) const
+{
+    const bool   is_cover_flat      = is_cover_flat_layer(in_query.cover_key);
+    const bool   is_pushed_by_cover = is_cover_pushed(in_query.cover_key);
+    DrawDecision result;
+
+    if (in_query.has_pass)
+    {
+        result.draw_class = get_named_draw_class(in_query.pass_key,
+                                                 in_query.draw_key);
+        result.is_pushed  = is_draw_pushed      (in_query.pass_key,
+                                                 in_query.draw_key);
+    }
+    else
+    {
+        result.draw_class = classify_draw      (in_query.signature_key,
+                                                in_query.view_matrix);
+        result.is_pushed  = is_signature_pushed(in_query.signature_key,
+                                                in_query.view_matrix);
+    }
+
+    /* A baked flat layer is left alone, and so is a draw that the recipe pushes by its cover key (unless the caller waives that): neither has
+     * a depth of its own to show.
+     */
+    const bool is_held = (is_cover_flat ||
+                          (is_pushed_by_cover && in_query.is_cover_hold_waived == false) );
+
+    if (result.draw_class == DrawClass::AFFECTED &&
+        is_held)
+    {
+        result.draw_class = DrawClass::UNAFFECTED;
+    }
+
+    if (is_pushed_by_cover)
+    {
+        result.is_pushed = true;
+    }
+
+    return result;
+}
+
 const Analysis::Recipe::DrawRule* Analysis::Recipe::RecipeApplier::find_draw_rule_ptr(const uint64_t&              in_signature_key,
                                                                                       const std::array<float, 16>& in_view_matrix) const
 {
@@ -427,6 +468,26 @@ std::vector<const Analysis::Recipe::Rule*> Analysis::Recipe::RecipeApplier::get_
     }
 
     return result_vec;
+}
+
+Analysis::Recipe::DrawClass Analysis::Recipe::RecipeApplier::get_named_draw_class(const uint64_t& in_pass_key,
+                                                                                  const uint64_t& in_draw_key) const
+{
+    DrawClass result = DrawClass::UNAFFECTED;
+
+    if (is_draw_skipped(in_pass_key,
+                        in_draw_key) )
+    {
+        result = DrawClass::SKIPPED;
+    }
+    else
+    if (is_draw_affected(in_pass_key,
+                         in_draw_key) )
+    {
+        result = DrawClass::AFFECTED;
+    }
+
+    return result;
 }
 
 float Analysis::Recipe::RecipeApplier::get_overlay_parallax() const

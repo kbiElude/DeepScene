@@ -60,8 +60,13 @@ uint32_t Stereo::Core::StereoCore::bind_matrices(const Analysis::Recipe::DrawCla
 Analysis::Recipe::DrawClass Stereo::Core::StereoCore::classify_draw(const uint64_t& in_signature_key,
                                                                     const uint64_t& in_cover_key)
 {
-    const bool is_cover_flat   = m_applier.is_cover_flat_layer(in_cover_key);
-    const bool is_cover_pushed = m_applier.is_cover_pushed    (in_cover_key);
+    Analysis::Recipe::DrawQuery query;
+
+    query.cover_key     = in_cover_key;
+    query.signature_key = in_signature_key;
+    query.view_matrix   = m_view_matrix_fp32vec16;
+
+    const Analysis::Recipe::DrawDecision decision = m_applier.decide_draw(query);
 
     if (m_applier.is_signature_known(in_signature_key) == false)
     {
@@ -75,28 +80,9 @@ Analysis::Recipe::DrawClass Stereo::Core::StereoCore::classify_draw(const uint64
     m_is_last_draw_part          = m_applier.is_part_cover     (in_cover_key);
     m_is_last_draw_side_reaching = m_applier.is_side_reaching  (in_cover_key);
 
-    m_last_draw_class       = m_applier.classify_draw    (in_signature_key,
-                                                          m_view_matrix_fp32vec16);
-    m_last_draw_cover_key   = in_cover_key;
-    m_is_last_draw_pushed   = m_applier.is_signature_pushed(in_signature_key,
-                                                            m_view_matrix_fp32vec16);
-
-    if (m_is_last_draw_pushed == false)
-    {
-        m_is_last_draw_pushed = is_cover_pushed;
-    }
-
-    /* A draw whose cover key names it as a flat layer or as pushed is unaffected: it has no depth of its own to show. An example is the
-     * parts of an object that are drawn alike, one of them a protruding part.
-     */
-    const bool is_cover_held = (is_cover_flat ||
-                                is_cover_pushed);
-
-    if (m_last_draw_class == Analysis::Recipe::DrawClass::AFFECTED &&
-        is_cover_held)
-    {
-        m_last_draw_class = Analysis::Recipe::DrawClass::UNAFFECTED;
-    }
+    m_last_draw_class     = decision.draw_class;
+    m_last_draw_cover_key = in_cover_key;
+    m_is_last_draw_pushed = decision.is_pushed;
 
     return m_last_draw_class;
 }

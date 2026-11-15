@@ -261,7 +261,7 @@
 <tr><th>Part</th><th>What it does</th><th>Used by</th></tr>
 <tr><td><code>types.h</code></td><td>The recipe as data: rules, draw selectors, convergence, the policy for unknown frames.</td><td>everything below</td></tr>
 <tr><td><code>RecipeLoader</code></td><td>Reads a recipe and checks it.</td><td>everything that only wants to read a recipe: the replay player, the consistency checker, the launcher and the catalog</td></tr>
-<tr><td><code>RecipeApplier</code></td><td>Applies it: given a draw told by its signature and the view matrix, it says whether to render it once, per eye, or not at all, and what its convergence distance is. It also answers which draws are layers by key (<code>is_cover_pushed</code>, <code>is_cover_flat_layer</code>, <code>is_side_reaching</code>), which the baked lists give with <code>comfort.automatic_layers</code>.</td><td>the replay engine and the converter; neither needs to bake</td></tr>
+<tr><td><code>RecipeApplier</code></td><td>Applies it. <code>decide_draw()</code> says whether a draw is rendered once, per eye, or not at all, and whether it is pushed. The replay gives it the pass and the structure of the draw, and the converter gives it the signature and the view matrix; both get one answer. The applier also gives the convergence distance of a draw. It also answers which draws are layers by key (<code>is_cover_pushed</code>, <code>is_cover_flat_layer</code>, <code>is_side_reaching</code>), which the baked lists give with <code>comfort.automatic_layers</code>.</td><td>the replay engine and the converter; neither needs to bake</td></tr>
 </table>
 <p>The applier uses the types and not the loader, so a program which only reads a recipe does not need the applier's headers.</p>
 

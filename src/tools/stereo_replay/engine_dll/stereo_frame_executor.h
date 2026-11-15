@@ -124,17 +124,17 @@ namespace Stereo
                  * call is built from in_call. A pushed draw runs between the shifting call and the restoring call. A draw that reaches the
                  * sides is widened (see PushShiftPlanner::make_viewport()).
                  */
-                bool execute_viewport_call(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
-                                           const Analysis::APIDumpAnalysis::Viewport&     in_viewport,
-                                           const float&                                   in_shift_pixels,
-                                           const bool&                                    in_is_side_reaching);
+                bool execute_viewport_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                           const Analysis::APIDumpAnalysis::Viewport&   in_viewport,
+                                           const float&                                 in_shift_pixels,
+                                           const bool&                                  in_is_side_reaching);
 
                 /* Finds the call after which the frame is cut (see FrameExecutionOptions::truncates_after_draw): the last call of the draws
                  * with the given structure in the given pass.
                  */
-                void find_truncation_call    (const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
-                                              const uint64_t&                                  in_truncate_pass_key,
-                                              const uint64_t&                                  in_truncate_draw_key);
+                void find_truncation_call(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
+                                          const uint64_t&                                  in_truncate_pass_key,
+                                          const uint64_t&                                  in_truncate_draw_key);
 
                 /* Finds the calls that begin the camera of the draws of the frame that the recipe affects (see m_view_anchor_call_index_set).
                  * Returns false, and sets the reason, if an affected draw has no camera that a call begins, or if one call begins the camera
@@ -146,7 +146,7 @@ namespace Stereo
                 /* Finds the draws of the frame that the recipe pushes (see Recipe::pushed) and that are played. Each draw is recorded under
                  * its first call, as its index in the draws of the frame.
                  */
-                void find_pushed_draw_calls  (const Analysis::APIDumpAnalysis::CompletedFrame& in_frame);
+                void find_pushed_draw_calls(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame);
                 /* Finds the calls that belong to a draw that the recipe leaves out and come before the draw's own call (the glBegin and the
                  * vertices of a block that a glEnd turns into a draw). They are left out with the draw: a primitive is drawn as its vertices
                  * are given, so a draw that lost only its glEnd would still be visible.
@@ -159,39 +159,36 @@ namespace Stereo
                 /* Returns how far the viewport moves sideways for the draw, in pixels (see PushShiftPlanner), and the viewport of its pass
                  * through out_viewport_ptr_ptr. Returns 0 if the recipe does not push the draw.
                  */
-                float get_push_shift_pixels  (const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
-                                              const Analysis::APIDumpAnalysis::DrawInstance&   in_draw,
-                                              const Analysis::Recipe::Eye&                     in_eye,
-                                              const Analysis::APIDumpAnalysis::Viewport**      out_viewport_ptr_ptr) const;
+                float get_push_shift_pixels(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
+                                            const Analysis::APIDumpAnalysis::DrawInstance&   in_draw,
+                                            const Analysis::Recipe::Eye&                     in_eye,
+                                            const Analysis::APIDumpAnalysis::Viewport**      out_viewport_ptr_ptr) const;
 
-                /* Whether the rules apply to the draw: the recipe says so, and the draw is not flat. A draw that is pushed by its cover
-                 * key (the key of the draw with its size, see DrawSelector::cover_key_vec) is flat, and so is a baked flat layer.
+                /* What is done to the draw, as RecipeApplier::decide_draw() says, and as the variant the frame is being executed as (see
+                 * FrameVariant) changes it: a draw that the variant leaves out is skipped. The replay applies the shift of an eye where a
+                 * camera begins, so a draw that shares its camera with an affected draw cannot be left alone because of its cover key (see
+                 * find_view_anchor_calls()).
                  */
-                bool is_draw_affected_here   (const uint64_t&                                  in_pass_key,
-                                              const Analysis::APIDumpAnalysis::DrawInstance&   in_draw) const;
+                Analysis::Recipe::DrawDecision decide_draw_here(const uint64_t&                                in_pass_key,
+                                                                const Analysis::APIDumpAnalysis::DrawInstance& in_draw) const;
 
-                /* Whether the recipe pushes the draw: by the keys of its pass and its structure, or by its cover key (the key of the draw
-                 * with its size).
-                 */
-                bool is_draw_pushed_here     (const uint64_t&                                  in_pass_key,
-                                              const Analysis::APIDumpAnalysis::DrawInstance&   in_draw) const;
+                bool is_call_skipped(const uint64_t& in_call_index) const;
 
-                /* Whether a draw is left out, by the recipe or by the variant the frame is being executed as (see FrameVariant). */
-                bool is_draw_skipped_here    (const uint64_t&                                  in_pass_key,
-                                              const uint64_t&                                  in_draw_key) const;
-                bool is_call_skipped         (const uint64_t&                                  in_call_index) const;
+                /* Whether the variant leaves the draw out (see FrameVariant). */
+                bool is_skipped_by_variant(const uint64_t& in_pass_key,
+                                           const uint64_t& in_draw_key) const;
 
                 /* Prepares the frame for execution as the variant (null: as the recipe says). It finds the calls that are left out, where
                  * the frame is cut, and the calls that begin the camera of the draws that are played. Returns false, and sets the reason,
                  * in the cases that find_view_anchor_calls() describes.
                  */
-                bool prepare_variant         (const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
-                                              const FrameVariant*                              in_variant_ptr,
-                                              std::string*                                     out_error_ptr);
-                bool read_back_buffer        (std::vector<uint8_t>*                            out_pixel_u8_vec_ptr,
-                                              FrameImage*                                      out_image_ptr);
-                bool read_next_call          (const Capture::APIDumpLoader::DumpedAPICall**    out_call_ptr_ptr);
-                void set_executors_eye       (const Analysis::Recipe::Eye&                     in_eye);
+                bool prepare_variant  (const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
+                                       const FrameVariant*                              in_variant_ptr,
+                                       std::string*                                     out_error_ptr);
+                bool read_back_buffer (std::vector<uint8_t>*                            out_pixel_u8_vec_ptr,
+                                       FrameImage*                                      out_image_ptr);
+                bool read_next_call   (const Capture::APIDumpLoader::DumpedAPICall**    out_call_ptr_ptr);
+                void set_executors_eye(const Analysis::Recipe::Eye&                     in_eye);
 
                 /* Tells the executors that keep a copy of an object per eye how many times the frame is executed (see
                  * IEyeExecutor::set_n_executions).

@@ -348,9 +348,8 @@ void Analysis::RecipeBake::RecipeBaker::compute_convergence(const Analysis::Reci
 
         for (const auto& draw_signature : structure.draw_signature_vec)
         {
-            if (get_draw_class(applier,
-                               structure.key,
-                               draw_signature.structure_key) == Analysis::Recipe::DrawClass::AFFECTED)
+            if (applier.get_named_draw_class(structure.key,
+                                             draw_signature.structure_key) == Analysis::Recipe::DrawClass::AFFECTED)
             {
                 const auto emplaced = pass_of_signature_map.emplace(draw_signature.signature_key,
                                                                     n_pass);
@@ -439,9 +438,8 @@ bool Analysis::RecipeBake::RecipeBaker::compute_draw_rules(const Analysis::Recip
 
         for (const auto& draw_signature : structure.draw_signature_vec)
         {
-            const auto draw_class = get_draw_class(applier,
-                                                   structure.key,
-                                                   draw_signature.structure_key);
+            const auto draw_class = applier.get_named_draw_class(structure.key,
+                                                                 draw_signature.structure_key);
             const bool is_pushed  = applier.is_draw_pushed(structure.key,
                                                            draw_signature.structure_key);
 
@@ -654,27 +652,6 @@ std::vector<uint64_t> Analysis::RecipeBake::RecipeBaker::get_covering_draw_key_v
 
     return std::vector<uint64_t>(key_set.begin(),
                                  key_set.end  () );
-}
-
-Analysis::Recipe::DrawClass Analysis::RecipeBake::RecipeBaker::get_draw_class(const Analysis::Recipe::RecipeApplier& in_applier,
-                                                                              const uint64_t&                        in_pass_key,
-                                                                              const uint64_t&                        in_structure_key)
-{
-    Analysis::Recipe::DrawClass result = Analysis::Recipe::DrawClass::UNAFFECTED;
-
-    if (in_applier.is_draw_skipped(in_pass_key,
-                                   in_structure_key) )
-    {
-        result = Analysis::Recipe::DrawClass::SKIPPED;
-    }
-    else
-    if (in_applier.is_draw_affected(in_pass_key,
-                                    in_structure_key) )
-    {
-        result = Analysis::Recipe::DrawClass::AFFECTED;
-    }
-
-    return result;
 }
 
 std::string Analysis::RecipeBake::RecipeBaker::get_key_text(const uint64_t& in_key)
@@ -933,9 +910,8 @@ std::vector<Analysis::RecipeBake::SceneMeasure> Analysis::RecipeBake::RecipeBake
             {
                 if (is_affected == false)
                 {
-                    const auto draw_class = get_draw_class(applier,
-                                                           structure.key,
-                                                           draw_signature.structure_key);
+                    const auto draw_class = applier.get_named_draw_class(structure.key,
+                                                                         draw_signature.structure_key);
 
                     is_affected = (draw_class == Analysis::Recipe::DrawClass::AFFECTED);
                 }

@@ -130,10 +130,6 @@ namespace Analysis
 
             static const char* get_class_name(const Analysis::Recipe::DrawClass& in_class);
 
-            static Analysis::Recipe::DrawClass get_draw_class(const Analysis::Recipe::RecipeApplier& in_applier,
-                                                              const uint64_t&                        in_pass_key,
-                                                              const uint64_t&                        in_structure_key);
-
             /* A key as it is written in a recipe. */
             static std::string get_key_text(const uint64_t& in_key);
 

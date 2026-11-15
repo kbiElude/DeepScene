@@ -510,6 +510,120 @@ TEST_F(RecipeApplierTest, ADrawIsPushedByItsSizeIfItsCoverKeyIsNamed)
                                         50) );
 }
 
+TEST_F(RecipeApplierTest, WithAPassADrawIsDecidedByTheNamesOfItsPassAndItsStructure)
+{
+    Analysis::Recipe::DrawQuery query;
+    Analysis::Recipe::Recipe    recipe;
+
+    recipe.pushed.draw_key_vec     = {30};
+    recipe.skipped.draw_key_vec    = {20};
+    recipe.unaffected.pass_key_vec = {10};
+
+    const Analysis::Recipe::RecipeApplier applier(recipe);
+
+    query.has_pass = true;
+
+    query.draw_key = 1;
+    query.pass_key = 10;
+    EXPECT_EQ(applier.decide_draw(query).draw_class, Analysis::Recipe::DrawClass::UNAFFECTED);
+
+    query.draw_key = 20;
+    query.pass_key = 1;
+    EXPECT_EQ(applier.decide_draw(query).draw_class, Analysis::Recipe::DrawClass::SKIPPED);
+
+    query.draw_key = 30;
+    query.pass_key = 1;
+    EXPECT_EQ(applier.decide_draw(query).draw_class, Analysis::Recipe::DrawClass::AFFECTED);
+    EXPECT_TRUE(applier.decide_draw(query).is_pushed);
+
+    query.draw_key = 1;
+    EXPECT_EQ(applier.decide_draw(query).draw_class, Analysis::Recipe::DrawClass::AFFECTED);
+    EXPECT_FALSE(applier.decide_draw(query).is_pushed);
+}
+
+TEST_F(RecipeApplierTest, WithoutAPassADrawIsDecidedByItsSignatureAndItsViewMatrix)
+{
+    Analysis::Recipe::DrawRule  pushed_rule;
+    Analysis::Recipe::DrawQuery query;
+    Analysis::Recipe::Recipe    recipe;
+    Analysis::Recipe::DrawRule  skipped_rule;
+
+    pushed_rule.draw_class    = Analysis::Recipe::DrawClass::UNAFFECTED;
+    pushed_rule.is_pushed     = true;
+    pushed_rule.signature_key = 7;
+
+    skipped_rule.draw_class    = Analysis::Recipe::DrawClass::SKIPPED;
+    skipped_rule.signature_key = 8;
+
+    recipe.draw_rule_vec.push_back(pushed_rule);
+    recipe.draw_rule_vec.push_back(skipped_rule);
+
+    const Analysis::Recipe::RecipeApplier applier(recipe);
+
+    query.view_matrix = make_identity();
+
+    query.signature_key = 7;
+    EXPECT_EQ(applier.decide_draw(query).draw_class, Analysis::Recipe::DrawClass::UNAFFECTED);
+    EXPECT_TRUE(applier.decide_draw(query).is_pushed);
+
+    query.signature_key = 8;
+    EXPECT_EQ(applier.decide_draw(query).draw_class, Analysis::Recipe::DrawClass::SKIPPED);
+    EXPECT_FALSE(applier.decide_draw(query).is_pushed);
+
+    query.signature_key = 9;
+    EXPECT_EQ(applier.decide_draw(query).draw_class, Analysis::Recipe::DrawClass::AFFECTED);
+}
+
+TEST_F(RecipeApplierTest, ADrawPushedByItsCoverKeyIsLeftAloneUnlessTheCallerWaivesThat)
+{
+    Analysis::Recipe::DrawQuery query;
+    Analysis::Recipe::Recipe    recipe;
+
+    recipe.pushed.cover_key_vec = {50};
+
+    const Analysis::Recipe::RecipeApplier applier(recipe);
+
+    query.cover_key     = 50;
+    query.draw_key      = 1;
+    query.has_pass      = true;
+    query.pass_key      = 2;
+    query.signature_key = 3;
+    query.view_matrix   = make_identity();
+
+    /* With a pass or without, the draw is left alone and pushed. */
+    EXPECT_EQ  (applier.decide_draw(query).draw_class, Analysis::Recipe::DrawClass::UNAFFECTED);
+    EXPECT_TRUE(applier.decide_draw(query).is_pushed);
+
+    query.has_pass = false;
+
+    EXPECT_EQ  (applier.decide_draw(query).draw_class, Analysis::Recipe::DrawClass::UNAFFECTED);
+    EXPECT_TRUE(applier.decide_draw(query).is_pushed);
+
+    /* A caller that cannot leave the draw alone gets it affected, and still pushed. */
+    query.is_cover_hold_waived = true;
+
+    EXPECT_EQ  (applier.decide_draw(query).draw_class, Analysis::Recipe::DrawClass::AFFECTED);
+    EXPECT_TRUE(applier.decide_draw(query).is_pushed);
+}
+
+TEST_F(RecipeApplierTest, ABakedFlatLayerIsLeftAloneAndNotPushedEvenIfTheCallerWaivesTheCoverHold)
+{
+    Analysis::Recipe::DrawQuery query;
+    Analysis::Recipe::Recipe    recipe;
+
+    recipe.comfort.uses_automatic_layers = true;
+    recipe.flat_layer_draw_key_vec       = {60};
+
+    const Analysis::Recipe::RecipeApplier applier(recipe);
+
+    query.cover_key            = 60;
+    query.is_cover_hold_waived = true;
+    query.view_matrix          = make_identity();
+
+    EXPECT_EQ   (applier.decide_draw(query).draw_class, Analysis::Recipe::DrawClass::UNAFFECTED);
+    EXPECT_FALSE(applier.decide_draw(query).is_pushed);
+}
+
 TEST_F(RecipeApplierTest, APartThatProtrudesIsPushedByThePartParallaxAndTheOthersByTheOverlayParallax)
 {
     Analysis::Recipe::Recipe recipe;
