@@ -3,7 +3,7 @@
   "key_scheme_version": 1,
   "target": {
     "name": "fr08",
-    "description": "fr-08: .the .product by Farbrausch (The Party 2000)"
+    "description": "Farbrausch"
   },
   "comfort": {
     "max_near_parallax": 0.03,

@@ -3,7 +3,7 @@
   "key_scheme_version": 1,
   "target": {
     "name": "Kasparov",
-    "description": "Elitegroup, 1999 (the PC demo of The Party 1999)"
+    "description": "Elitegroup"
   },
   "comfort": {
     "max_near_parallax": 0.03,
