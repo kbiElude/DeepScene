@@ -41,30 +41,41 @@
 </ol>
 
 <h2 id="goal">What we are after</h2>
-<p>Each eye gets a picture of the same scene from its own camera. The cameras are <strong>parallel</strong> and a separation <code>s</code> apart; they are not turned toward each other (toe-in), since that gives vertical parallax and a keystone that eyes do not forgive. Parallel cameras alone would put everything in front of the screen, so each picture is also shifted sideways until one chosen distance <code>d</code>, the <strong>convergence distance</strong>, has no parallax: what is there appears at the screen, nearer things stand out of it, farther ones lie behind it. A shifted picture from a parallel camera is an <em>off-axis</em> (asymmetric) frustum, and that is the whole technique.</p>
+<p>A stereo picture is two ordinary pictures of one scene, one for each eye. The brain compares them: a thing that sits at a different place in the two pictures is judged to be at a different distance. That horizontal difference between the two pictures is the <strong>parallax</strong>, and producing the right parallax for every part of the scene is the whole job. The rest of this page is about choosing it.</p>
+<h3>Two cameras, side by side</h3>
+<p>The two pictures come from two cameras a distance <code>s</code> apart, the <strong>separation</strong>, like a pair of eyes. The cameras look the same way: they are <strong>parallel</strong>. They are not turned toward each other (toe-in), because a turned camera sees the scene at a slant, which makes the two pictures differ vertically as well, and eyes cannot fuse that.</p>
+<h3>Choosing where the scene meets the screen</h3>
+<p>Two parallel cameras alone leave a problem. A thing at distance <code>z</code> is seen <code>s</code> apart in the two pictures, and the nearer it is the more. Only something infinitely far has no difference. Seen on a screen, everything would then float in front of it, and nothing would lie at the screen itself.</p>
+<p>The fix is to slide each picture sideways by a fixed amount, so that one chosen distance <code>d</code> ends up with no difference. That distance is the <strong>convergence distance</strong>. A thing at <code>d</code> appears at the screen, a nearer thing in front of it, and a farther thing behind it.</p>
+<p>Sliding a picture sideways without turning its camera is the same as cutting the picture from an off-centre window in front of the camera, so each camera has an <em>off-axis</em> (asymmetric) frustum. That is the whole technique.</p>
 <figure>
-<svg viewBox="0 0 900 290" role="img" aria-label="Parallel cameras and the plane of convergence, seen from above">
+<svg viewBox="0 0 900 300" role="img" aria-label="Parallel cameras, a near thing, a thing at the convergence distance and a far thing, and where each eye's line of sight meets the screen">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
-  <text class="title" x="10" y="20">Seen from above: the eyes look to the right</text>
+  <text class="title" x="10" y="20">Seen from above: the viewer looks to the right, the left of the viewer is up</text>
   <circle class="eyeL" cx="60" cy="110" r="8"/><text class="small l" x="40" y="92">left eye</text>
   <circle class="eyeR" cx="60" cy="190" r="8"/><text class="small r" x="36" y="216">right eye</text>
   <path class="arrowline" d="M52 115V185"/><text class="small" x="30" y="154" text-anchor="end">s</text>
-  <path class="screen" d="M470 50V250"/><text class="small" x="470" y="42" text-anchor="middle">plane of convergence: distance d, the screen</text>
-  <rect class="box" x="244" y="144" width="12" height="12" rx="2"/><text class="small" x="250" y="136" text-anchor="middle">near</text>
-  <rect class="box" x="694" y="144" width="12" height="12" rx="2"/><text class="small" x="700" y="136" text-anchor="middle">far</text>
-  <circle class="box2" cx="470" cy="150" r="5"/><text class="small" x="480" y="168">at d</text>
+  <path class="screen" d="M470 50V250"/><text class="small" x="470" y="42" text-anchor="middle">the screen, at distance d</text>
   <path class="rayL" d="M60 110L470 196"/><path class="rayR" d="M60 190L470 104"/>
-  <path class="rayL" d="M60 110L470 136"/><path class="rayR" d="M60 190L470 164"/>
+  <path class="rayL" d="M60 110L700 150"/><path class="rayR" d="M60 190L700 150"/>
   <path class="rayL" d="M60 110L470 150"/><path class="rayR" d="M60 190L470 150"/>
+  <rect class="box" x="244" y="144" width="12" height="12" rx="2"/><path class="dashed" d="M250 160V200"/><text class="small" x="250" y="214" text-anchor="middle">near thing</text>
+  <circle class="box2" cx="470" cy="150" r="5"/><text class="small" x="545" y="154">thing at d</text>
+  <rect class="box" x="694" y="144" width="12" height="12" rx="2"/><text class="small" x="700" y="136" text-anchor="middle">far thing</text>
   <circle class="eyeL" cx="470" cy="196" r="4"/><circle class="eyeR" cx="470" cy="104" r="4"/>
   <circle class="eyeL" cx="470" cy="136" r="4"/><circle class="eyeR" cx="470" cy="164" r="4"/>
-  <text class="small" x="490" y="204">crossed: the left eye's dot is to the right → in front of the screen</text>
-  <text class="small" x="490" y="116">(the right eye's dot is to the left)</text>
-  <text class="small" x="490" y="232">uncrossed (far): behind the screen</text>
-  <text class="small" x="620" y="282" text-anchor="middle">the dots are where each eye's picture of the thing is on the plane</text>
+  <text class="small" x="490" y="76">near thing: the lines cross before the screen, so the</text><text class="small" x="490" y="90">left eye's dot (red) is on the viewer's right: crossed.</text><text class="small" x="490" y="104">The thing appears in front of the screen.</text>
+  <text class="small" x="590" y="226">far thing: the lines cross behind the screen, so the</text><text class="small" x="590" y="240">left eye's dot is on the viewer's left: not crossed.</text><text class="small" x="590" y="254">The thing appears behind the screen.</text>
+  <text class="small" x="450" y="284" text-anchor="middle">Each dot is where one eye's line of sight to the thing meets the screen: the thing's place in that eye's picture.</text>
 </svg>
-<figcaption>The screen's horizontal axis is the vertical axis of the drawing (the left of the viewer is up). A thing at <code>d</code> has both dots in one place, which is what "converge" means.</figcaption>
+<figcaption>The three things lie on the middle line between the eyes. At <code>d</code> the two dots coincide, which is what "converge" means.</figcaption>
 </figure>
+<table>
+<tr><th>Where the thing is</th><th>The two dots on the screen</th><th>It appears</th></tr>
+<tr><td>nearer than <code>d</code></td><td>crossed: each eye's dot is on the other eye's side</td><td>in front of the screen</td></tr>
+<tr><td>at <code>d</code></td><td>one dot</td><td>at the screen</td></tr>
+<tr><td>farther than <code>d</code></td><td>uncrossed: each eye's dot is on its own side</td><td>behind the screen</td></tr>
+</table>
 
 <h2 id="disparity">One formula for the parallax</h2>
 <p>Everything else on this page follows from one formula. With cameras a separation <code>s</code> apart converging at <code>d</code>, a point at depth <code>z</code> (measured along the way the camera looks, not the straight-line distance) has, between the two pictures, a horizontal difference of</p>
