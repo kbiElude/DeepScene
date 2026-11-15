@@ -221,7 +221,7 @@
 <p>A class in <code>frontends/&lt;api&gt;</code> (of <code>libs/analysis/api_dump_analysis</code>) that follows the state of the API and reports through the events of the <a href="analysis.html#frontends">front end contract</a>.</p>
 <table>
 <tr><th>If the API</th><th>Then</th></tr>
-<tr><td>has a fixed-function pipeline</td><td>Derive from <code>IFixedFunctionFrontend</code> in <code>frontends/shared</code>, which already follows the objects and the fixed-function state (the Direct3D 7 and 8 front ends do).</td></tr>
+<tr><td>has a fixed-function pipeline</td><td>Derive from <code>FixedFunctionFrontendBase</code> in <code>frontends/shared</code>, which already follows the objects and the fixed-function state (the Direct3D 7 and 8 front ends do).</td></tr>
 <tr><td>does not use the shared fixed-function front end</td><td>Derive from <code>IAPIFrontend</code> directly and use the other helpers of <code>shared</code> (<code>ObjectTracker</code>, <code>GeometrySampler</code>, <code>MipChain</code>), as the OpenGL front end does.</td></tr>
 </table>
 <ul>

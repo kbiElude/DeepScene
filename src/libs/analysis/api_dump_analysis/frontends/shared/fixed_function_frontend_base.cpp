@@ -2,11 +2,11 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/api_dump_analysis/frontends/shared/i_fixed_function_frontend.h"
+#include "analysis/api_dump_analysis/frontends/shared/fixed_function_frontend_base.h"
 #include <algorithm>
 #include <string.h>
 
-Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::IFixedFunctionFrontend(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr)
+Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontendBase::FixedFunctionFrontendBase(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr)
     :m_builder_ptr        (in_builder_ptr),
      m_n_unfollowed_calls (0),
      m_n_unsupported_calls(0)
@@ -14,7 +14,7 @@ Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::IFixedFunctionFron
     /* Stub */
 }
 
-const Analysis::APIDumpAnalysis::ResourceDescription* Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::find_resource_description_ptr(const Analysis::APIDumpAnalysis::ResourceId& in_id) const
+const Analysis::APIDumpAnalysis::ResourceDescription* Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontendBase::find_resource_description_ptr(const Analysis::APIDumpAnalysis::ResourceId& in_id) const
 {
     const uint32_t                                        index       = Analysis::APIDumpAnalysis::get_resource_id_value(in_id);
     const size_t                                          n_resources = m_builder_ptr->get_model().resource_vec.size();
@@ -29,8 +29,8 @@ const Analysis::APIDumpAnalysis::ResourceDescription* Analysis::APIDumpAnalysis:
     return result_ptr;
 }
 
-bool Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::find_resource_view(const uint64_t&                          in_address,
-                                                                                      Analysis::APIDumpAnalysis::ResourceView* out_view_ptr) const
+bool Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontendBase::find_resource_view(const uint64_t&                          in_address,
+                                                                                         Analysis::APIDumpAnalysis::ResourceView* out_view_ptr) const
 {
     const ObjectTracker::TrackedObject* object_ptr = m_tracker.get_object_ptr(in_address);
     const bool                          result     = (object_ptr != nullptr);
@@ -43,7 +43,7 @@ bool Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::find_resource
     return result;
 }
 
-Analysis::APIDumpAnalysis::Viewport Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::get_full_viewport(const Analysis::APIDumpAnalysis::ResourceView& in_view) const
+Analysis::APIDumpAnalysis::Viewport Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontendBase::get_full_viewport(const Analysis::APIDumpAnalysis::ResourceView& in_view) const
 {
     const Analysis::APIDumpAnalysis::ResourceDescription* description_ptr = find_resource_description_ptr(in_view.resource_id);
     Analysis::APIDumpAnalysis::Viewport                   result;
@@ -60,27 +60,27 @@ Analysis::APIDumpAnalysis::Viewport Analysis::APIDumpAnalysis::Frontends::IFixed
     return result;
 }
 
-const std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t>& Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::get_n_resolution_hazards() const
+const std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t>& Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontendBase::get_n_resolution_hazards() const
 {
     return m_resolution_hazard_counter.get_counts();
 }
 
-uint64_t Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::get_n_unfollowed_calls() const
+uint64_t Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontendBase::get_n_unfollowed_calls() const
 {
     return m_n_unfollowed_calls;
 }
 
-uint64_t Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::get_n_unsupported_calls() const
+uint64_t Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontendBase::get_n_unsupported_calls() const
 {
     return m_n_unsupported_calls;
 }
 
-const Analysis::APIDumpAnalysis::Frontends::ObjectTracker& Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::get_tracker() const
+const Analysis::APIDumpAnalysis::Frontends::ObjectTracker& Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontendBase::get_tracker() const
 {
     return m_tracker;
 }
 
-void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_light_enable(const CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontendBase::handle_light_enable(const CallView& in_view)
 {
     constexpr size_t ENABLE_ARGUMENT = 2;
     constexpr size_t INDEX_ARGUMENT  = 1;
@@ -95,7 +95,7 @@ void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_light_
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_release(const CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontendBase::handle_release(const CallView& in_view)
 {
     constexpr size_t OBJECT_ARGUMENT = 0;
 
@@ -127,7 +127,7 @@ void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_releas
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_set_light(const CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontendBase::handle_set_light(const CallView& in_view)
 {
     constexpr size_t INDEX_ARGUMENT = 1;
     constexpr size_t LIGHT_ARGUMENT = 2;
@@ -157,7 +157,7 @@ void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_set_li
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_set_render_state(const CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontendBase::handle_set_render_state(const CallView& in_view)
 {
     constexpr size_t STATE_ARGUMENT = 1;
     constexpr size_t VALUE_ARGUMENT = 2;
@@ -172,7 +172,7 @@ void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_set_re
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_set_texture(const CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontendBase::handle_set_texture(const CallView& in_view)
 {
     constexpr size_t STAGE_ARGUMENT   = 1;
     constexpr size_t TEXTURE_ARGUMENT = 2;
@@ -205,7 +205,7 @@ void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_set_te
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_set_texture_stage_state(const CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontendBase::handle_set_texture_stage_state(const CallView& in_view)
 {
     constexpr size_t STAGE_ARGUMENT = 1;
     constexpr size_t STATE_ARGUMENT = 2;
@@ -223,7 +223,7 @@ void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_set_te
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_set_transform(const CallView& in_view)
+void Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontendBase::handle_set_transform(const CallView& in_view)
 {
     constexpr size_t MATRIX_ARGUMENT = 2;
     constexpr size_t MATRIX_N_BYTES  = 16 * sizeof(float); /* D3DMATRIX, the same in both APIs */

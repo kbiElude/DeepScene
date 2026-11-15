@@ -22,9 +22,9 @@
 static constexpr size_t NONE_ARGUMENT = static_cast<size_t>(-1);
 
 Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::D3D7Frontend(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr)
-    :IFixedFunctionFrontend(in_builder_ptr),
-     m_screen_height       (0),
-     m_screen_width        (0)
+    :FixedFunctionFrontendBase(in_builder_ptr),
+     m_screen_height          (0),
+     m_screen_width           (0)
 {
     /* Every interface has a Release method. A call to it can mean that the object is gone. */
     #define D3D7_METHOD(INTERFACE_TAG, interface_name, METHOD_TAG, method_name, vtable_index, return_type, parameters) \

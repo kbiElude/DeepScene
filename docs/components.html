@@ -174,7 +174,7 @@
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
   <rect class="box" x="330" y="10" width="240" height="46" rx="6"/><text x="450" y="31" text-anchor="middle">AnalysisSession</text><text class="small" x="450" y="47" text-anchor="middle">routes each call to its front end</text>
   <rect class="box3" x="330" y="86" width="240" height="46" rx="6"/><text x="450" y="107" text-anchor="middle">IAPIFrontend</text><text class="small" x="450" y="123" text-anchor="middle">what all three are</text>
-  <rect class="box3" x="40" y="162" width="250" height="62" rx="6"/><text x="165" y="183" text-anchor="middle">IFixedFunctionFrontend</text><text class="small" x="165" y="201" text-anchor="middle">objects, transforms, lights, render</text><text class="small" x="165" y="215" text-anchor="middle">states, textures; FixedFunctionState</text>
+  <rect class="box3" x="40" y="162" width="250" height="62" rx="6"/><text x="165" y="183" text-anchor="middle">FixedFunctionFrontendBase</text><text class="small" x="165" y="201" text-anchor="middle">objects, transforms, lights, render</text><text class="small" x="165" y="215" text-anchor="middle">states, textures; FixedFunctionState</text>
   <rect class="box" x="40" y="252" width="115" height="46" rx="6"/><text x="97" y="273" text-anchor="middle">Direct3D 7</text><text class="small" x="97" y="289" text-anchor="middle">D3D7/</text>
   <rect class="box" x="175" y="252" width="115" height="46" rx="6"/><text x="232" y="273" text-anchor="middle">Direct3D 8</text><text class="small" x="232" y="289" text-anchor="middle">D3D8/</text>
   <rect class="box" x="330" y="162" width="240" height="62" rx="6"/><text x="450" y="183" text-anchor="middle">OpenGL front end</text><text class="small" x="450" y="201" text-anchor="middle">contexts, threads that have them</text><text class="small" x="450" y="215" text-anchor="middle">current, dispatch of the calls</text>
@@ -183,7 +183,7 @@
   <rect class="box2" x="40" y="330" width="530" height="66" rx="6"/><text x="305" y="352" text-anchor="middle">shared/: used by every front end</text><text class="small" x="305" y="370" text-anchor="middle">ObjectTracker, MipChain, GeometrySampler, FixedFunctionVertexFormat,</text><text class="small" x="305" y="386" text-anchor="middle">ClearOperationFactory, ResolutionHazardCounter</text>
   <path class="arrow" d="M450 56V84"/><path class="arrow" d="M400 132L220 160"/><path class="arrow" d="M450 132V160"/><path class="arrow" d="M97 224V250"/><path class="arrow" d="M232 224V250"/><path class="arrow" d="M572 193H618"/><path class="arrow" d="M165 328V300"/><path class="arrow" d="M450 328V226"/>
 </svg>
-<figcaption>The two Direct3D front ends derive from <code>IFixedFunctionFrontend</code>; the OpenGL one derives from <code>IAPIFrontend</code> and uses classes of its own.</figcaption>
+<figcaption>The two Direct3D front ends derive from <code>FixedFunctionFrontendBase</code>; the OpenGL one derives from <code>IAPIFrontend</code> and uses classes of its own.</figcaption>
 </figure>
 <table>
 <tr><th>Folder</th><th>What is in it</th></tr>
@@ -196,7 +196,7 @@
 <h4>The two Direct3D front ends</h4>
 <table>
 <tr><th>Class</th><th>What it does</th></tr>
-<tr><td><code>IFixedFunctionFrontend</code></td><td>Follows the objects the program makes and the state of the fixed-function pipeline that does not depend on the API: transforms, lights, render states, textures, a release.</td></tr>
+<tr><td><code>FixedFunctionFrontendBase</code></td><td>Follows the objects the program makes and the state of the fixed-function pipeline that does not depend on the API: transforms, lights, render states, textures, a release.</td></tr>
 <tr><td><code>FixedFunctionState</code></td><td>Keeps that state.</td></tr>
 <tr><td>each API's own front end</td><td>Has the resources, the draws and the vertices.</td></tr>
 </table>

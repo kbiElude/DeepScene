@@ -19,9 +19,9 @@
 #include <string>
 
 Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::D3D8Frontend(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr)
-    :IFixedFunctionFrontend (in_builder_ptr),
-     m_auto_depth_stencil_id(Analysis::APIDumpAnalysis::ResourceId::NONE),
-     m_base_vertex_index    (0)
+    :FixedFunctionFrontendBase(in_builder_ptr),
+     m_auto_depth_stencil_id  (Analysis::APIDumpAnalysis::ResourceId::NONE),
+     m_base_vertex_index      (0)
 {
     /* Every interface has a Release method. A call to it can mean that the object is gone. */
     #define D3D8_METHOD(INTERFACE_TAG, interface_name, METHOD_TAG, method_name, vtable_index, return_type, parameters) \

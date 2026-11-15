@@ -6,8 +6,8 @@
  * application creates (see ObjectTracker) and the device state that does not depend on the API (transforms, lights, render states, textures),
  * and counts the calls that it cannot follow. What differs between the APIs (the resources, the draws, the vertices) is left to the front end.
  */
-#ifndef APIDUMPANALYSIS_FRONTENDS_I_FIXED_FUNCTION_FRONTEND_H
-#define APIDUMPANALYSIS_FRONTENDS_I_FIXED_FUNCTION_FRONTEND_H
+#ifndef APIDUMPANALYSIS_FRONTENDS_FIXED_FUNCTION_FRONTEND_BASE_H
+#define APIDUMPANALYSIS_FRONTENDS_FIXED_FUNCTION_FRONTEND_BASE_H
 
 #include "analysis/api_dump_analysis/frontends/shared/call_view.h"
 #include "analysis/api_dump_analysis/frontends/shared/fixed_function_state.h"
@@ -26,11 +26,11 @@ namespace Analysis
     {
         namespace Frontends
         {
-            class IFixedFunctionFrontend : public IAPIFrontend
+            class FixedFunctionFrontendBase : public IAPIFrontend
             {
             public:
                 /* The builder must outlive the front end. */
-                explicit IFixedFunctionFrontend(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr);
+                explicit FixedFunctionFrontendBase(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr);
 
                 bool find_resource_view(const uint64_t&                          in_address,
                                         Analysis::APIDumpAnalysis::ResourceView* out_view_ptr) const override;
@@ -84,4 +84,4 @@ namespace Analysis
     }
 }
 
-#endif /* APIDUMPANALYSIS_FRONTENDS_I_FIXED_FUNCTION_FRONTEND_H */
+#endif /* APIDUMPANALYSIS_FRONTENDS_FIXED_FUNCTION_FRONTEND_BASE_H */
