@@ -2,99 +2,89 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "headset_session_impl.h"
+#include "headset/xr/headset_session.h"
 
-Headset::XR::HeadsetSession::HeadsetSession(std::unique_ptr<Impl> in_impl_ptr)
-    :m_impl_ptr(std::move(in_impl_ptr) )
+Headset::XR::HeadsetSession::HeadsetSession()
 {
     /* Stub */
 }
 
 Headset::XR::HeadsetSession::~HeadsetSession()
 {
-    /* Stub */
-}
-
-Headset::XR::HeadsetSession::Impl::~Impl()
-{
     destroy_swapchains();
 
-    if (action != XR_NULL_HANDLE)
+    if (m_action != XR_NULL_HANDLE)
     {
-        ::xrDestroyAction(action);
+        ::xrDestroyAction(m_action);
     }
 
-    if (action_set != XR_NULL_HANDLE)
+    if (m_action_set != XR_NULL_HANDLE)
     {
-        ::xrDestroyActionSet(action_set);
+        ::xrDestroyActionSet(m_action_set);
     }
 
-    if (view_space != XR_NULL_HANDLE)
+    if (m_view_space != XR_NULL_HANDLE)
     {
-        ::xrDestroySpace(view_space);
+        ::xrDestroySpace(m_view_space);
     }
 
-    if (local_space != XR_NULL_HANDLE)
+    if (m_local_space != XR_NULL_HANDLE)
     {
-        ::xrDestroySpace(local_space);
+        ::xrDestroySpace(m_local_space);
     }
 
-    if (session != XR_NULL_HANDLE)
+    if (m_session != XR_NULL_HANDLE)
     {
-        ::xrDestroySession(session);
+        ::xrDestroySession(m_session);
     }
 
-    if (instance != XR_NULL_HANDLE)
+    if (m_instance != XR_NULL_HANDLE)
     {
-        ::xrDestroyInstance(instance);
+        ::xrDestroyInstance(m_instance);
     }
 }
 
-void Headset::XR::HeadsetSession::Impl::add_log(const std::string& in_text)
+void Headset::XR::HeadsetSession::add_log(const std::string& in_text)
 {
-    std::lock_guard<std::mutex> lock(log_mutex);
+    std::lock_guard<std::mutex> lock(m_log.mutex);
 
-    log_line_vec.push_back(in_text);
+    m_log.line_vec.push_back(in_text);
 }
 
 std::unique_ptr<Headset::XR::HeadsetSession> Headset::XR::HeadsetSession::create_ptr(std::string* out_error_ptr)
 {
-    std::unique_ptr<Impl>           impl_ptr(new Impl());
-    std::unique_ptr<HeadsetSession> result_ptr;
+    std::unique_ptr<HeadsetSession> result_ptr(new HeadsetSession() );
 
-    if (impl_ptr->set_up(out_error_ptr) == false)
+    if (result_ptr->set_up(out_error_ptr) == false)
     {
-        goto end;
+        result_ptr.reset();
     }
 
-    result_ptr.reset(new HeadsetSession(std::move(impl_ptr) ));
-
-end:
     return result_ptr;
 }
 
 ID3D12Device* Headset::XR::HeadsetSession::get_device_ptr() const
 {
-    return m_impl_ptr->device_ptr.Get();
+    return m_device_ptr.Get();
 }
 
 float Headset::XR::HeadsetSession::get_ipd() const
 {
-    return m_impl_ptr->ipd;
+    return m_ipd;
 }
 
-std::string Headset::XR::HeadsetSession::Impl::get_result_text(const XrResult& in_result) const
+std::string Headset::XR::HeadsetSession::get_result_text(const XrResult& in_result) const
 {
     char text_i8vec64[XR_MAX_RESULT_STRING_SIZE] = {};
 
-    ::xrResultToString(instance,
+    ::xrResultToString(m_instance,
                        in_result,
                        text_i8vec64);
 
     return text_i8vec64;
 }
 
-const char* Headset::XR::HeadsetSession::Impl::get_state_name(const XrSessionState& in_state)
+const char* Headset::XR::HeadsetSession::get_state_name(const XrSessionState& in_state)
 {
     const char* result_ptr = "of a state which is not known";
 
@@ -120,12 +110,12 @@ const char* Headset::XR::HeadsetSession::Impl::get_state_name(const XrSessionSta
 
 ID3D12CommandQueue* Headset::XR::HeadsetSession::get_queue_ptr() const
 {
-    return m_impl_ptr->queue_ptr.Get();
+    return m_queue_ptr.Get();
 }
 
 std::string Headset::XR::HeadsetSession::get_system_name() const
 {
-    return m_impl_ptr->system_name;
+    return m_system_name;
 }
 
 D3D12_RESOURCE_STATES Headset::XR::HeadsetSession::get_texture_state()
@@ -136,25 +126,25 @@ D3D12_RESOURCE_STATES Headset::XR::HeadsetSession::get_texture_state()
 bool Headset::XR::HeadsetSession::probe(HeadsetInfo* out_info_ptr,
                                         std::string* out_error_ptr)
 {
-    Impl impl;
-    bool result = false;
+    bool           result = false;
+    HeadsetSession session;
 
-    if (impl.create_instance(out_error_ptr) == false)
+    if (session.create_instance(out_error_ptr) == false)
     {
         goto end;
     }
 
-    if (impl.find_system(out_error_ptr) == false)
+    if (session.find_system(out_error_ptr) == false)
     {
         goto end;
     }
 
-    out_info_ptr->runtime_name = impl.runtime_name;
-    out_info_ptr->system_name  = impl.system_name;
+    out_info_ptr->runtime_name = session.m_runtime_name;
+    out_info_ptr->system_name  = session.m_system_name;
 
     /* The size of the image of an eye that the runtime recommends: what the headset is meant to be rendered at. */
-    impl.read_recommended_eye_size(&out_info_ptr->eye_width,
-                                   &out_info_ptr->eye_height);
+    session.read_recommended_eye_size(&out_info_ptr->eye_width,
+                                      &out_info_ptr->eye_height);
 
     result = true;
 
@@ -164,23 +154,23 @@ end:
 
 void Headset::XR::HeadsetSession::request_exit()
 {
-    m_impl_ptr->is_exit_requested = true;
+    m_is_exit_requested = true;
 
-    ::xrRequestExitSession(m_impl_ptr->session);
+    ::xrRequestExitSession(m_session);
 }
 
 void Headset::XR::HeadsetSession::set_frame_func(const FrameFunc& in_frame_func)
 {
-    m_impl_ptr->frame_func = in_frame_func;
+    m_frame_func = in_frame_func;
 }
 
 std::vector<std::string> Headset::XR::HeadsetSession::take_log_lines()
 {
-    std::lock_guard<std::mutex> lock(m_impl_ptr->log_mutex);
+    std::lock_guard<std::mutex> lock(m_log.mutex);
 
     std::vector<std::string> result_vec;
 
-    result_vec.swap(m_impl_ptr->log_line_vec);
+    result_vec.swap(m_log.line_vec);
 
     return result_vec;
 }

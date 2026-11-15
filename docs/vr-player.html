@@ -213,7 +213,7 @@
 <h2 id="code-map">Code map</h2>
 <table>
 <tr><th>Where</th><th>What</th></tr>
-<tr><td><code>HeadsetSession</code></td><td>Keeps its state in a private <code>Impl</code> (<code>headset_session_impl.h</code>) and is implemented in four files.</td></tr>
+<tr><td><code>HeadsetSession</code></td><td>Is implemented in four files: the interface, the runtime and session setup, the swap chains of the eyes, and the frames of the compositor.</td></tr>
 <tr><td><code>headset_session.cpp</code></td><td>Interface, logging.</td></tr>
 <tr><td><code>headset_session_setup.cpp</code></td><td>Runtime, device, session, spaces, swap chain format, recenter action.</td></tr>
 <tr><td><code>headset_session_swapchains.cpp</code></td><td>The images of the eyes.</td></tr>

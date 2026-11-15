@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "headset_session_impl.h"
+#include "headset/xr/headset_session.h"
 
 bool Headset::XR::HeadsetSession::acquire_eye_textures(const uint32_t&  in_width,
                                                        const uint32_t&  in_height,
@@ -15,39 +15,39 @@ bool Headset::XR::HeadsetSession::acquire_eye_textures(const uint32_t&  in_width
     bool result = false;
 
     {
-        std::lock_guard<std::mutex> lock(m_impl_ptr->mutex);
+        std::lock_guard<std::mutex> lock(m_shared.mutex);
 
-        if (m_impl_ptr->is_running == false)
+        if (m_shared.is_running == false)
         {
             *out_error_ptr = "The session of the headset is not running";
 
             goto end;
         }
 
-        if (in_width  > m_impl_ptr->max_width ||
-            in_height > m_impl_ptr->max_height)
+        if (in_width  > m_max_width ||
+            in_height > m_max_height)
         {
             *out_error_ptr = "An image of an eye ("                 +
                              std::to_string(in_width)               +
                              " x "                                  +
                              std::to_string(in_height)              +
                              ") is larger than the headset takes (" +
-                             std::to_string(m_impl_ptr->max_width)  +
+                             std::to_string(m_max_width)            +
                              " x "                                  +
-                             std::to_string(m_impl_ptr->max_height) +
+                             std::to_string(m_max_height)           +
                              ")";
 
             goto end;
         }
 
-        if (m_impl_ptr->make_swapchains(in_width,
-                                        in_height,
-                                        out_error_ptr) == false)
+        if (make_swapchains(in_width,
+                            in_height,
+                            out_error_ptr) == false)
         {
             goto end;
         }
 
-        for (auto& eye : m_impl_ptr->eye_array)
+        for (auto& eye : m_shared.eye_array)
         {
             XrResult wait_result = XR_SUCCESS;
 
@@ -93,8 +93,8 @@ bool Headset::XR::HeadsetSession::acquire_eye_textures(const uint32_t&  in_width
             }
         }
 
-        *out_left_texture_ptr_ptr  = m_impl_ptr->eye_array.at(0).image_vec.at(m_impl_ptr->eye_array.at(0).acquired_index).texture;
-        *out_right_texture_ptr_ptr = m_impl_ptr->eye_array.at(1).image_vec.at(m_impl_ptr->eye_array.at(1).acquired_index).texture;
+        *out_left_texture_ptr_ptr  = m_shared.eye_array.at(0).image_vec.at(m_shared.eye_array.at(0).acquired_index).texture;
+        *out_right_texture_ptr_ptr = m_shared.eye_array.at(1).image_vec.at(m_shared.eye_array.at(1).acquired_index).texture;
 
         result = true;
     }
@@ -103,28 +103,28 @@ end:
     return result;
 }
 
-bool Headset::XR::HeadsetSession::Impl::clear_swapchain_images(std::string* out_error_ptr)
+bool Headset::XR::HeadsetSession::clear_swapchain_images(std::string* out_error_ptr)
 {
     constexpr int64_t WAIT_N_NANOSECONDS = 100 * 1000 * 1000; /* a swap chain that was just made gives its images back at once */
 
     const D3D12_RESOURCE_STATES texture_state = HeadsetSession::get_texture_state();
-    const DXGI_FORMAT           view_format   = static_cast<DXGI_FORMAT>(format);
+    const DXGI_FORMAT           view_format   = static_cast<DXGI_FORMAT>(m_format);
     bool                        result        = true;
 
-    if (texture_clearer_ptr == nullptr)
+    if (m_texture_clearer_ptr == nullptr)
     {
-        texture_clearer_ptr.reset(new Utils::D3D12::D3D12TextureClearer(device_ptr.Get(),
-                                                                        queue_ptr.Get() ));
+        m_texture_clearer_ptr.reset(new Utils::D3D12::D3D12TextureClearer(m_device_ptr.Get(),
+                                                                          m_queue_ptr.Get() ));
     }
 
-    if (texture_clearer_ptr->is_ok(out_error_ptr) == false)
+    if (m_texture_clearer_ptr->is_ok(out_error_ptr) == false)
     {
         result = false;
 
         goto end;
     }
 
-    for (auto& eye : eye_array)
+    for (auto& eye : m_shared.eye_array)
     {
         for (size_t n_image = 0;
                     n_image < eye.image_vec.size();
@@ -160,10 +160,10 @@ bool Headset::XR::HeadsetSession::Impl::clear_swapchain_images(std::string* out_
             {
                 ID3D12Resource* const texture_ptr = eye.image_vec.at(image_index).texture;
 
-                if (texture_clearer_ptr->clear_to_black(texture_ptr,
-                                                        view_format,
-                                                        texture_state,
-                                                        out_error_ptr) == false)
+                if (m_texture_clearer_ptr->clear_to_black(texture_ptr,
+                                                          view_format,
+                                                          texture_state,
+                                                          out_error_ptr) == false)
                 {
                     result = false;
                 }
@@ -190,9 +190,9 @@ end:
     return result;
 }
 
-void Headset::XR::HeadsetSession::Impl::destroy_swapchains()
+void Headset::XR::HeadsetSession::destroy_swapchains()
 {
-    for (auto& eye : eye_array)
+    for (auto& eye : m_shared.eye_array)
     {
         if (eye.swapchain != XR_NULL_HANDLE)
         {
@@ -202,19 +202,19 @@ void Headset::XR::HeadsetSession::Impl::destroy_swapchains()
         eye = EyeSwapchain();
     }
 
-    swapchain_height = 0;
-    swapchain_width  = 0;
+    m_swapchain_height = 0;
+    m_swapchain_width  = 0;
 }
 
-bool Headset::XR::HeadsetSession::Impl::make_swapchains(const uint32_t& in_width,
-                                                        const uint32_t& in_height,
-                                                        std::string*    out_error_ptr)
+bool Headset::XR::HeadsetSession::make_swapchains(const uint32_t& in_width,
+                                                  const uint32_t& in_height,
+                                                  std::string*    out_error_ptr)
 {
     bool result = false;
 
-    if (swapchain_width  == in_width  &&
-        swapchain_height == in_height &&
-        eye_array.at(0).swapchain != XR_NULL_HANDLE)
+    if (m_swapchain_width  == in_width  &&
+        m_swapchain_height == in_height &&
+        m_shared.eye_array.at(0).swapchain != XR_NULL_HANDLE)
     {
         result = true;
 
@@ -223,21 +223,21 @@ bool Headset::XR::HeadsetSession::Impl::make_swapchains(const uint32_t& in_width
 
     destroy_swapchains();
 
-    for (auto& eye : eye_array)
+    for (auto& eye : m_shared.eye_array)
     {
         XrSwapchainCreateInfo swapchain_info = {XR_TYPE_SWAPCHAIN_CREATE_INFO};
         uint32_t              n_images       = 0;
 
         swapchain_info.arraySize   = 1;
         swapchain_info.faceCount   = 1;
-        swapchain_info.format      = format;
+        swapchain_info.format      = m_format;
         swapchain_info.height      = in_height;
         swapchain_info.mipCount    = 1;
         swapchain_info.sampleCount = 1;
         swapchain_info.usageFlags  = XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT | XR_SWAPCHAIN_USAGE_SAMPLED_BIT;
         swapchain_info.width       = in_width;
 
-        if (XR_FAILED(::xrCreateSwapchain(session,
+        if (XR_FAILED(::xrCreateSwapchain(m_session,
                                          &swapchain_info,
                                          &eye.swapchain) ))
         {
@@ -276,9 +276,9 @@ bool Headset::XR::HeadsetSession::Impl::make_swapchains(const uint32_t& in_width
         }
     }
 
-    swapchain_height  = in_height;
-    swapchain_width   = in_width;
-    has_logged_screen = false;
+    m_swapchain_height  = in_height;
+    m_swapchain_width   = in_width;
+    m_has_logged_screen = false;
     result            = true;
 
     /* What the images hold now is whatever was in the memory; black is shown until the application's first frame is copied. */
@@ -296,7 +296,7 @@ bool Headset::XR::HeadsetSession::Impl::make_swapchains(const uint32_t& in_width
             " x "                              +
             std::to_string(in_height)          +
             ", format "                        +
-            std::to_string(format));
+            std::to_string(m_format));
 
 end:
     return result;
@@ -304,9 +304,9 @@ end:
 
 void Headset::XR::HeadsetSession::release_eye_textures()
 {
-    std::lock_guard<std::mutex> lock(m_impl_ptr->mutex);
+    std::lock_guard<std::mutex> lock(m_shared.mutex);
 
-    for (auto& eye : m_impl_ptr->eye_array)
+    for (auto& eye : m_shared.eye_array)
     {
         if (eye.state == SwapchainImageState::READY)
         {
@@ -321,7 +321,7 @@ void Headset::XR::HeadsetSession::release_eye_textures()
         }
     }
 
-    ++m_impl_ptr->image_serial;
+    ++m_shared.image_serial;
 
-    m_impl_ptr->image_condition.notify_all();
+    m_shared.image_condition.notify_all();
 }

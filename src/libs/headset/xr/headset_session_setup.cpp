@@ -2,10 +2,10 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "headset_session_impl.h"
+#include "headset/xr/headset_session.h"
 #include <string.h>
 
-bool Headset::XR::HeadsetSession::Impl::create_actions(std::string* out_error_ptr)
+bool Headset::XR::HeadsetSession::create_actions(std::string* out_error_ptr)
 {
     /* The button of each hand that every controller has (the simple controller), and the one of a Touch controller which is for the
      * app (the menu button of the left one, A of the right one). A runtime which does not know a profile does not use what is
@@ -45,18 +45,18 @@ bool Headset::XR::HeadsetSession::Impl::create_actions(std::string* out_error_pt
 
     action_info.actionType = XR_ACTION_TYPE_BOOLEAN_INPUT;
 
-    if (XR_FAILED(::xrCreateActionSet(instance,
+    if (XR_FAILED(::xrCreateActionSet(m_instance,
                                      &action_set_info,
-                                     &action_set) ))
+                                     &m_action_set) ))
     {
         *out_error_ptr = "The action to put the screen where the user looks cannot be made";
 
         goto end;
     }
 
-    if (XR_FAILED(::xrCreateAction(action_set,
+    if (XR_FAILED(::xrCreateAction(m_action_set,
                                   &action_info,
-                                  &action) ))
+                                  &m_action) ))
     {
         *out_error_ptr = "The action to put the screen where the user looks cannot be made";
 
@@ -68,24 +68,24 @@ bool Headset::XR::HeadsetSession::Impl::create_actions(std::string* out_error_pt
         XrActionSuggestedBinding             binding_array[2]  = {};
         XrInteractionProfileSuggestedBinding suggested_binding = {XR_TYPE_INTERACTION_PROFILE_SUGGESTED_BINDING};
 
-        binding_array[0].action = action;
-        binding_array[1].action = action;
+        binding_array[0].action = m_action;
+        binding_array[1].action = m_action;
 
-        if (XR_FAILED(::xrStringToPath(instance,
+        if (XR_FAILED(::xrStringToPath(m_instance,
                                        profile_binding.path_a_ptr,
                                       &binding_array[0].binding) ))
         {
             continue;
         }
 
-        if (XR_FAILED(::xrStringToPath(instance,
+        if (XR_FAILED(::xrStringToPath(m_instance,
                                        profile_binding.path_b_ptr,
                                       &binding_array[1].binding) ))
         {
             continue;
         }
 
-        if (XR_FAILED(::xrStringToPath(instance,
+        if (XR_FAILED(::xrStringToPath(m_instance,
                                        profile_binding.interaction_profile_ptr,
                                       &suggested_binding.interactionProfile) ))
         {
@@ -96,14 +96,14 @@ bool Headset::XR::HeadsetSession::Impl::create_actions(std::string* out_error_pt
         suggested_binding.suggestedBindings      = binding_array;
 
         /* Not an error: what a runtime does not know of is not used. */
-        ::xrSuggestInteractionProfileBindings(instance,
+        ::xrSuggestInteractionProfileBindings(m_instance,
                                              &suggested_binding);
     }
 
-    attach_info.actionSets      = &action_set;
+    attach_info.actionSets      = &m_action_set;
     attach_info.countActionSets = 1;
 
-    if (XR_FAILED(::xrAttachSessionActionSets(session,
+    if (XR_FAILED(::xrAttachSessionActionSets(m_session,
                                              &attach_info) ))
     {
         *out_error_ptr = "The action cannot be given to the session";
@@ -117,7 +117,7 @@ end:
     return result;
 }
 
-bool Headset::XR::HeadsetSession::Impl::create_device(std::string* out_error_ptr)
+bool Headset::XR::HeadsetSession::create_device(std::string* out_error_ptr)
 {
     Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter_ptr;
     Microsoft::WRL::ComPtr<IDXGIFactory4> factory_ptr;
@@ -126,7 +126,7 @@ bool Headset::XR::HeadsetSession::Impl::create_device(std::string* out_error_ptr
     XrGraphicsRequirementsD3D12KHR        requirements              = {XR_TYPE_GRAPHICS_REQUIREMENTS_D3D12_KHR};
     bool                                  result                    = false;
 
-    if (XR_FAILED(::xrGetInstanceProcAddr(instance,
+    if (XR_FAILED(::xrGetInstanceProcAddr(m_instance,
                                           "xrGetD3D12GraphicsRequirementsKHR",
                                           reinterpret_cast<PFN_xrVoidFunction*>(&get_requirements_func_ptr) )))
     {
@@ -135,8 +135,8 @@ bool Headset::XR::HeadsetSession::Impl::create_device(std::string* out_error_ptr
         goto end;
     }
 
-    if (XR_FAILED(get_requirements_func_ptr(instance,
-                                            system_id,
+    if (XR_FAILED(get_requirements_func_ptr(m_instance,
+                                            m_system_id,
                                            &requirements) ))
     {
         *out_error_ptr = "The headset does not say which adapter it is on";
@@ -161,7 +161,7 @@ bool Headset::XR::HeadsetSession::Impl::create_device(std::string* out_error_ptr
 
     if (FAILED(::D3D12CreateDevice(adapter_ptr.Get(),
                                    requirements.minFeatureLevel,
-                                   IID_PPV_ARGS(device_ptr.GetAddressOf() ))))
+                                   IID_PPV_ARGS(m_device_ptr.GetAddressOf() ))))
     {
         *out_error_ptr = "The device for the adapter that the headset is on cannot be made";
 
@@ -170,8 +170,8 @@ bool Headset::XR::HeadsetSession::Impl::create_device(std::string* out_error_ptr
 
     queue_desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
-    if (FAILED(device_ptr->CreateCommandQueue(&queue_desc,
-                                              IID_PPV_ARGS(queue_ptr.GetAddressOf() ))))
+    if (FAILED(m_device_ptr->CreateCommandQueue(&queue_desc,
+                                                IID_PPV_ARGS(m_queue_ptr.GetAddressOf() ))))
     {
         *out_error_ptr = "The command queue for the headset cannot be made";
 
@@ -184,7 +184,7 @@ end:
     return result;
 }
 
-bool Headset::XR::HeadsetSession::Impl::create_instance(std::string* out_error_ptr)
+bool Headset::XR::HeadsetSession::create_instance(std::string* out_error_ptr)
 {
     /* What is asked for: the way to give the compositor textures of Direct3D 12, and, if it has it, the curved screen. */
     std::vector<const char*>           enabled_extension_vec = {XR_KHR_D3D12_ENABLE_EXTENSION_NAME};
@@ -210,11 +210,11 @@ bool Headset::XR::HeadsetSession::Impl::create_instance(std::string* out_error_p
     if (XR_FAILED(xr_result) )
     {
         *out_error_ptr = (xr_result == XR_ERROR_RUNTIME_UNAVAILABLE) ? "There is no OpenXR runtime which can be started: none is installed, or the active one cannot be found "
-                                                                       "(for a Quest, set Meta Quest Link as the active OpenXR runtime in its settings; result "                +
-                                                                       std::to_string(static_cast<int>(xr_result))                                                              +
+                                                                       "(for a Quest, set Meta Quest Link as the active OpenXR runtime in its settings; result " +
+                                                                       std::to_string(static_cast<int>(xr_result))                                               +
                                                                        ")"
-                                                                     : "There is no OpenXR runtime (its extensions cannot be listed; result "                                   +
-                                                                       std::to_string(static_cast<int>(xr_result))                                                              +
+                                                                     : "There is no OpenXR runtime (its extensions cannot be listed; result " +
+                                                                       std::to_string(static_cast<int>(xr_result))                            +
                                                                        ")";
 
         goto end;
@@ -228,7 +228,7 @@ bool Headset::XR::HeadsetSession::Impl::create_instance(std::string* out_error_p
                                                  XR_KHR_D3D12_ENABLE_EXTENSION_NAME);
 
         has_d3d12             = (has_d3d12             || d3d12_difference    == 0);
-        is_cylinder_supported = (is_cylinder_supported || cylinder_difference == 0);
+        m_is_cylinder_supported = (m_is_cylinder_supported || cylinder_difference == 0);
     }
 
     if (has_d3d12 == false)
@@ -238,7 +238,7 @@ bool Headset::XR::HeadsetSession::Impl::create_instance(std::string* out_error_p
         goto end;
     }
 
-    if (is_cylinder_supported)
+    if (m_is_cylinder_supported)
     {
         enabled_extension_vec.push_back(XR_KHR_COMPOSITION_LAYER_CYLINDER_EXTENSION_NAME);
     }
@@ -260,7 +260,7 @@ bool Headset::XR::HeadsetSession::Impl::create_instance(std::string* out_error_p
         instance_info.enabledExtensionNames              = enabled_extension_vec.data();
 
         xr_result = ::xrCreateInstance(&instance_info,
-                                       &instance);
+                                       &m_instance);
     }
 
     if (XR_FAILED(xr_result) )
@@ -275,10 +275,10 @@ bool Headset::XR::HeadsetSession::Impl::create_instance(std::string* out_error_p
     {
         XrInstanceProperties instance_properties = {XR_TYPE_INSTANCE_PROPERTIES};
 
-        if (XR_SUCCEEDED(::xrGetInstanceProperties(instance,
+        if (XR_SUCCEEDED(::xrGetInstanceProperties(m_instance,
                                                   &instance_properties) ))
         {
-            runtime_name = instance_properties.runtimeName;
+            m_runtime_name = instance_properties.runtimeName;
         }
     }
 
@@ -288,22 +288,22 @@ end:
     return result;
 }
 
-bool Headset::XR::HeadsetSession::Impl::create_session(std::string* out_error_ptr)
+bool Headset::XR::HeadsetSession::create_session(std::string* out_error_ptr)
 {
     XrGraphicsBindingD3D12KHR binding      = {XR_TYPE_GRAPHICS_BINDING_D3D12_KHR};
     bool                      result       = false;
     XrSessionCreateInfo       session_info = {XR_TYPE_SESSION_CREATE_INFO};
     XrResult                  xr_result    = XR_SUCCESS;
 
-    binding.device = device_ptr.Get();
-    binding.queue  = queue_ptr.Get();
+    binding.device = m_device_ptr.Get();
+    binding.queue  = m_queue_ptr.Get();
 
     session_info.next     = &binding;
-    session_info.systemId = system_id;
+    session_info.systemId = m_system_id;
 
-    xr_result = ::xrCreateSession(instance,
+    xr_result = ::xrCreateSession(m_instance,
                                  &session_info,
-                                 &session);
+                                 &m_session);
 
     if (XR_FAILED(xr_result) )
     {
@@ -318,7 +318,7 @@ end:
     return result;
 }
 
-bool Headset::XR::HeadsetSession::Impl::create_spaces(std::string* out_error_ptr)
+bool Headset::XR::HeadsetSession::create_spaces(std::string* out_error_ptr)
 {
     bool                       result     = false;
     XrReferenceSpaceCreateInfo space_info = {XR_TYPE_REFERENCE_SPACE_CREATE_INFO};
@@ -326,9 +326,9 @@ bool Headset::XR::HeadsetSession::Impl::create_spaces(std::string* out_error_ptr
     space_info.poseInReferenceSpace.orientation.w = 1.0f;
     space_info.referenceSpaceType                 = XR_REFERENCE_SPACE_TYPE_LOCAL;
 
-    if (XR_FAILED(::xrCreateReferenceSpace(session,
+    if (XR_FAILED(::xrCreateReferenceSpace(m_session,
                                           &space_info,
-                                          &local_space) ))
+                                          &m_local_space) ))
     {
         *out_error_ptr = "The space of the room cannot be made";
 
@@ -337,9 +337,9 @@ bool Headset::XR::HeadsetSession::Impl::create_spaces(std::string* out_error_ptr
 
     space_info.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_VIEW;
 
-    if (XR_FAILED(::xrCreateReferenceSpace(session,
+    if (XR_FAILED(::xrCreateReferenceSpace(m_session,
                                           &space_info,
-                                          &view_space) ))
+                                          &m_view_space) ))
     {
         *out_error_ptr = "The space of the head cannot be made";
 
@@ -352,7 +352,7 @@ end:
     return result;
 }
 
-bool Headset::XR::HeadsetSession::Impl::find_system(std::string* out_error_ptr)
+bool Headset::XR::HeadsetSession::find_system(std::string* out_error_ptr)
 {
     bool            result      = false;
     XrSystemGetInfo system_info = {XR_TYPE_SYSTEM_GET_INFO};
@@ -360,9 +360,9 @@ bool Headset::XR::HeadsetSession::Impl::find_system(std::string* out_error_ptr)
 
     system_info.formFactor = XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY;
 
-    xr_result = ::xrGetSystem(instance,
+    xr_result = ::xrGetSystem(m_instance,
                              &system_info,
-                             &system_id);
+                             &m_system_id);
 
     if (XR_FAILED(xr_result) )
     {
@@ -376,8 +376,8 @@ bool Headset::XR::HeadsetSession::Impl::find_system(std::string* out_error_ptr)
     {
         XrSystemProperties system_properties = {XR_TYPE_SYSTEM_PROPERTIES};
 
-        if (XR_FAILED(::xrGetSystemProperties(instance,
-                                              system_id,
+        if (XR_FAILED(::xrGetSystemProperties(m_instance,
+                                              m_system_id,
                                              &system_properties) ))
         {
             *out_error_ptr = "The properties of the headset cannot be read";
@@ -385,9 +385,9 @@ bool Headset::XR::HeadsetSession::Impl::find_system(std::string* out_error_ptr)
             goto end;
         }
 
-        max_height  = system_properties.graphicsProperties.maxSwapchainImageHeight;
-        max_width   = system_properties.graphicsProperties.maxSwapchainImageWidth;
-        system_name = system_properties.systemName;
+        m_max_height  = system_properties.graphicsProperties.maxSwapchainImageHeight;
+        m_max_width   = system_properties.graphicsProperties.maxSwapchainImageWidth;
+        m_system_name = system_properties.systemName;
     }
 
     result = true;
@@ -396,20 +396,20 @@ end:
     return result;
 }
 
-bool Headset::XR::HeadsetSession::Impl::pick_format(std::string* out_error_ptr)
+bool Headset::XR::HeadsetSession::pick_format(std::string* out_error_ptr)
 {
     std::vector<int64_t> format_vec;
     uint32_t             n_formats = 0;
     bool                 result    = false;
 
-    ::xrEnumerateSwapchainFormats(session,
+    ::xrEnumerateSwapchainFormats(m_session,
                                   0,
                                  &n_formats,
                                   nullptr);
 
     format_vec.resize(n_formats);
 
-    ::xrEnumerateSwapchainFormats(session,
+    ::xrEnumerateSwapchainFormats(m_session,
                                   n_formats,
                                  &n_formats,
                                   format_vec.data() );
@@ -421,19 +421,19 @@ bool Headset::XR::HeadsetSession::Impl::pick_format(std::string* out_error_ptr)
     {
         if (candidate_format == DXGI_FORMAT_B8G8R8A8_UNORM_SRGB)
         {
-            format = candidate_format;
+            m_format = candidate_format;
 
             break;
         }
 
         if (candidate_format == DXGI_FORMAT_B8G8R8A8_UNORM &&
-            format           == 0)
+            m_format         == 0)
         {
-            format = candidate_format;
+            m_format = candidate_format;
         }
     }
 
-    if (format == 0)
+    if (m_format == 0)
     {
         *out_error_ptr = "The headset has no swap chain format with the bytes of the images (blue, green, red, alpha)";
 
@@ -446,15 +446,15 @@ end:
     return result;
 }
 
-bool Headset::XR::HeadsetSession::Impl::read_recommended_eye_size(uint32_t* out_width_ptr,
-                                                                  uint32_t* out_height_ptr) const
+bool Headset::XR::HeadsetSession::read_recommended_eye_size(uint32_t* out_width_ptr,
+                                                            uint32_t* out_height_ptr) const
 {
     uint32_t                n_views       = 0;
     bool                    result        = false;
     XrViewConfigurationView view_array[2] = {{XR_TYPE_VIEW_CONFIGURATION_VIEW}, {XR_TYPE_VIEW_CONFIGURATION_VIEW}};
 
-    const XrResult enumerate_result = ::xrEnumerateViewConfigurationViews(instance,
-                                                                          system_id,
+    const XrResult enumerate_result = ::xrEnumerateViewConfigurationViews(m_instance,
+                                                                          m_system_id,
                                                                           XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
                                                                           2,
                                                                          &n_views,
@@ -471,7 +471,7 @@ bool Headset::XR::HeadsetSession::Impl::read_recommended_eye_size(uint32_t* out_
     return result;
 }
 
-bool Headset::XR::HeadsetSession::Impl::set_up(std::string* out_error_ptr)
+bool Headset::XR::HeadsetSession::set_up(std::string* out_error_ptr)
 {
     bool result = false;
 
