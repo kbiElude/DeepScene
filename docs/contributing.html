@@ -36,7 +36,8 @@
 </ol>
 
 <h2 id="build">Build and test</h2>
-<p>The project is built twice, 32-bit and 64-bit, by <code>build.bat</code>; see <a href="building.html">Building &amp; testing</a> for that, the tests and the release. Close <code>VRPlayer</code> before running it, since it empties <code>build_final\</code> (the downloaded applications go with it).</p>
+<p>The project is built twice, 32-bit and 64-bit, by <code>build.bat</code>; see <a href="building.html">Building &amp; testing</a> for that, the tests and the release.</p>
+<div class="note">Close <code>VRPlayer</code> before running <code>build.bat</code>: it empties <code>build_final\</code>, and the downloaded applications go with it.</div>
 
 <h2 id="layout">Where things go</h2>
 <figure>
@@ -70,39 +71,132 @@
 </svg>
 <figcaption>The source tree is the release: the path of a program in <code>src</code> tells where it is installed.</figcaption>
 </figure>
-<p>Put code where its <em>dependencies</em> say it belongs. Something with no knowledge of the rest (files, JSON, windows, hashes) goes into <code>utils</code>; something that knows what a draw is goes into <code>analysis</code> or <code>stereo</code>; something that knows an API's calls goes into an API's folder (<code>libs/analysis/api_dump_analysis/frontends/D3D8</code>, <code>runtime/converter_dll/D3D7</code>, <code>runtime/converter_dll/OpenGL</code>). A program's own folder holds only what that program does. The table of every project and its purpose is the <a href="components.html">Components</a>.</p>
+
+<h3>Put code where its dependencies say</h3>
+<p>Ask what the code has to know. The answer says where it goes.</p>
+<figure>
+<svg viewBox="0 0 900 300" role="img" aria-label="Where new code goes, by what it knows">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="box4" x="10" y="115" width="170" height="70" rx="8"/><text class="title" x="95" y="145" text-anchor="middle">New code</text><text class="small" x="95" y="165" text-anchor="middle">what must it know?</text>
+  <rect class="box2" x="300" y="10" width="290" height="56" rx="6"/><text x="445" y="33" text-anchor="middle">nothing of the project</text><text class="small" x="445" y="51" text-anchor="middle">files, JSON, windows, hashes</text>
+  <rect class="box" x="300" y="86" width="290" height="56" rx="6"/><text x="445" y="109" text-anchor="middle">what a draw is</text><text class="small" x="445" y="127" text-anchor="middle">model, recipe, stereo decisions</text>
+  <rect class="box3" x="300" y="162" width="290" height="56" rx="6"/><text x="445" y="185" text-anchor="middle">the calls of one API</text><text class="small" x="445" y="203" text-anchor="middle">its folder, named after the API</text>
+  <rect class="box4" x="300" y="238" width="290" height="52" rx="6"/><text x="445" y="261" text-anchor="middle">only what one program does</text><text class="small" x="445" y="277" text-anchor="middle">the program's own folder</text>
+  <rect class="box2" x="680" y="10" width="210" height="56" rx="6"/><text x="785" y="42" text-anchor="middle">libs/utils</text>
+  <rect class="box" x="680" y="86" width="210" height="56" rx="6"/><text x="785" y="108" text-anchor="middle">libs/analysis or</text><text x="785" y="126" text-anchor="middle">libs/stereo</text>
+  <rect class="box3" x="680" y="162" width="210" height="56" rx="6"/><text x="785" y="184" text-anchor="middle">frontends/&lt;api&gt;,</text><text x="785" y="202" text-anchor="middle">converter_dll/&lt;api&gt;</text>
+  <rect class="box4" x="680" y="238" width="210" height="52" rx="6"/><text x="785" y="268" text-anchor="middle">src/&lt;group&gt;/&lt;program&gt;</text>
+  <path class="arrow" d="M180 140L298 40"/><path class="arrow" d="M180 150L298 114"/><path class="arrow" d="M180 160L298 190"/><path class="arrow" d="M180 170L298 262"/>
+  <path class="arrow" d="M590 38H678"/><path class="arrow" d="M590 114H678"/><path class="arrow" d="M590 190H678"/><path class="arrow" d="M590 264H678"/>
+</svg>
+<figcaption>The lower the knowledge, the more shared the place.</figcaption>
+</figure>
+<table>
+<tr><th>The code knows</th><th>It goes into</th><th>Examples</th></tr>
+<tr><td>Nothing of the rest: files, JSON, windows, hashes</td><td><code>utils</code></td><td><code>libs/utils/json</code></td></tr>
+<tr><td>What a draw is</td><td><code>analysis</code> or <code>stereo</code></td><td><code>libs/analysis/recipe</code>, <code>libs/stereo/core</code></td></tr>
+<tr><td>An API's calls</td><td>an API's folder</td><td><code>libs/analysis/api_dump_analysis/frontends/D3D8</code>, <code>runtime/converter_dll/D3D7</code>, <code>runtime/converter_dll/OpenGL</code></td></tr>
+<tr><td>Only what one program does</td><td>the program's own folder</td><td><code>tools/analysis/recipe_bake</code></td></tr>
+</table>
+<p>The table of every project and its purpose is the <a href="components.html">Components</a>.</p>
 
 <h2 id="conventions">Conventions and what checks them</h2>
+<p>Most rules are checked by review; a few are checked by a test or by CMake. The tables group them by what they are about.</p>
+
+<h3>Names and layout of the tree</h3>
+<table>
+<tr><th>Rule</th><th>Example</th><th>Checked by</th></tr>
+<tr><td>Folders and files lower-case <code>snake_case</code>, except the folders named after a graphics API or one of its entrypoints (<code>D3D7</code>, <code>D3D8</code>, <code>OpenGL</code>, and the <code>GL&lt;version&gt;</code> folders of API Interceptor), which keep the names the API gives them. Namespaces PascalCase. Executables PascalCase with <code>_x64</code> or <code>_x86</code> (<code>VRPlayer.exe</code> excepted).</td><td><code>tools/analysis/recipe_bake</code> gives <code>RecipeBake_x64.exe</code></td><td><code>cmake/architecture.cmake</code> and <code>cmake/install.cmake</code> (the suffix, the install folder), the <code>Layout</code> test (program folders), review (the rest)</td></tr>
+<tr><td>Everything in a named namespace, definitions qualified, no anonymous namespaces, no <code>using</code> directives (in <code>src/libs</code>, <code>src/runtime</code>, <code>src/tools</code> and <code>src/vr_player</code>; tests excepted).</td><td><code>Ret NS::f()</code></td><td>review</td></tr>
+<tr><td>A header defines one class (a template which only helps one class, such as a trait, stays in the header of that class); a data type shared by a module is in its <code>types.h</code>.</td><td></td><td>review</td></tr>
+<tr><td>A test file is named after what it tests; a class that is new has tests.</td><td><code>test_job_thread.cpp</code></td><td>review</td></tr>
+<tr><td>Code is not written twice: a shared type or helper goes where both users can reach it.</td><td></td><td><code>DuplicateCode</code> test (exceptions in <code>src/tests/data/known_duplicates.txt</code>; see below)</td></tr>
+</table>
+
+<h3>Shape of the code</h3>
+<table>
+<tr><th>Rule</th><th>Example</th><th>Checked by</th></tr>
+<tr><td>One return per function; an early exit is a <code>goto end</code>.</td><td><code>goto end;</code></td><td>review</td></tr>
+<tr><td>Allman braces always, also around a single statement.</td><td></td><td>review</td></tr>
+<tr><td>One argument per line in calls of two or more. A result that is an argument is kept in a variable first.</td><td></td><td>review</td></tr>
+<tr><td>One condition per line in a longer <code>if</code>; <code>== false</code> rather than <code>!</code>. A call that is one of the conditions is made before it, and the <code>if</code>s are nested in the order of evaluation. <code>else</code> and <code>if</code> on separate lines.</td><td>see below</td><td>review</td></tr>
+<tr><td>A string made of two or more operands has one operand per line, with the <code>+</code> aligned. A ternary that does not fit on one line breaks before the <code>:</code>, which stands under the <code>?</code>. A lambda is a variable before it is passed on.</td><td><code>_func</code></td><td>review</td></tr>
+<tr><td>A mutex is locked in a block of its own, as the first statement, around exactly the code it guards. State and its mutex are one struct.</td><td></td><td>review</td></tr>
+<tr><td>A <code>default</code> that means "this enum value is not supported" calls <code>AI_FAIL_UNSUPPORTED</code>, which ends the process in every build.</td><td></td><td>review</td></tr>
+</table>
+<p>The layout of a longer condition:</p>
+<pre><code>if (a_count == 0 &amp;&amp;
+    b_count == 0)
+{
+    goto end;
+}</code></pre>
+
+<h3>Order, names, constants and comments</h3>
+<table>
+<tr><th>Rule</th><th>Example</th><th>Checked by</th></tr>
+<tr><td>Members, functions, variables and enumerators in alphabetical order (an enum whose values are stored, or mirror an API, keeps its order and says why). Runs of declarations and statements aligned in columns.</td><td></td><td>review</td></tr>
+<tr><td>Names say what and in which unit; no shortened words. Suffixes: <code>_ptr</code> (pointer, and what returns one), <code>_func</code> (lambda), <code>_vec</code>, <code>_set</code>, <code>_map</code>.</td><td><code>in_interface</code>, not <code>in_iface</code></td><td>review</td></tr>
+<tr><td>Constants are <code>constexpr UPPER_CASE</code>, function-local unless two functions share them; no magic numbers.</td><td></td><td>review</td></tr>
+<tr><td>Comments are short, and say why or state a contract.</td><td></td><td>review</td></tr>
+</table>
+
+<h3>Docs</h3>
 <table>
 <tr><th>Rule</th><th>Checked by</th></tr>
-<tr><td>Folders and files lower-case <code>snake_case</code>, except the folders named after a graphics API or one of its entrypoints (<code>D3D7</code>, <code>D3D8</code>, <code>OpenGL</code>, and the <code>GL&lt;version&gt;</code> folders of API Interceptor), which keep the names the API gives them; namespaces PascalCase; executables PascalCase with <code>_x64</code> or <code>_x86</code> (<code>VRPlayer.exe</code> excepted)</td><td><code>cmake/architecture.cmake</code> and <code>cmake/install.cmake</code> (the suffix, the install folder), the <code>Layout</code> test (program folders), review (the rest)</td></tr>
-<tr><td>Everything in a named namespace, definitions qualified (<code>Ret NS::f()</code>), no anonymous namespaces, no <code>using</code> directives (in <code>src/libs</code>, <code>src/runtime</code>, <code>src/tools</code> and <code>src/vr_player</code>; tests excepted)</td><td>review</td></tr>
-<tr><td>Code is not written twice: a shared type or helper goes where both users can reach it</td><td><code>DuplicateCode</code> test (exceptions in <code>src/tests/data/known_duplicates.txt</code>; see below)</td></tr>
-<tr><td>One return per function (<code>goto end</code> for an early exit), Allman braces always (also around a single statement), one argument per line in calls of two or more (a result that is an argument is kept in a variable first), one condition per line in a longer <code>if</code> (<code>== false</code> rather than <code>!</code>; a call that is one of the conditions is made before it, and the <code>if</code>s are nested in the order of evaluation), <code>else</code> and <code>if</code> on separate lines</td><td>review</td></tr>
-<tr><td>A string made of two or more operands has one operand per line, with the <code>+</code> aligned; a ternary that does not fit on one line breaks before the <code>:</code>, which stands under the <code>?</code>; a lambda is a variable (<code>_func</code>) before it is passed on</td><td>review</td></tr>
-<tr><td>A mutex is locked in a block of its own, as the first statement, around exactly the code it guards; state and its mutex are one struct</td><td>review</td></tr>
-<tr><td>A <code>default</code> that means "this enum value is not supported" calls <code>AI_FAIL_UNSUPPORTED</code>, which ends the process in every build</td><td>review</td></tr>
-<tr><td>A test file is named after what it tests (<code>test_job_thread.cpp</code>); a class that is new has tests</td><td>review</td></tr>
-<tr><td>A header defines one class (a template which only helps one class, such as a trait, stays in the header of that class); a data type shared by a module is in its <code>types.h</code></td><td>review</td></tr>
-  <tr><td>Members, functions, variables and enumerators in alphabetical order (an enum whose values are stored, or mirror an API, keeps its order and says why); runs of declarations and statements aligned in columns</td><td>review</td></tr>
-<tr><td>Names say what and in which unit; no shortened words; suffixes <code>_ptr</code> (pointer, and what returns one), <code>_func</code> (lambda), <code>_vec</code>, <code>_set</code>, <code>_map</code></td><td>review</td></tr>
-<tr><td>Constants are <code>constexpr UPPER_CASE</code>, function-local unless two functions share them; no magic numbers</td><td>review</td></tr>
-<tr><td>Comments are short, and say why or state a contract</td><td>review</td></tr>
-<tr><td>Docs change in the same work as the code they describe</td><td>review</td></tr>
+<tr><td>Docs change in the same work as the code they describe.</td><td>review</td></tr>
 </table>
-<p>The <code>DuplicateCode</code> test reads the sources of <code>src</code> and of API Interceptor (<code>src</code> and <code>include</code>), leaves out test files, <code>entrypoints</code> folders and <code>hooks/OpenGL</code>, drops blank lines, lone braces, comments and includes, and fails when a run of eight such lines (of 250 bytes at least) is the same in two files. What is known is in <code>src/tests/data/known_duplicates.txt</code>, one line per group of files: the number of runs they share, and the files. A group that is not listed, or has more runs than listed, fails the test; a group that has fewer passes, and its line is then lowered or removed by hand. The list is for the real exceptions (such as the Direct3D 7 and 8 sides of API Interceptor, which mirror each other), and not a way to keep a copy.</p>
+
+<h3>The duplicate-code test</h3>
+<figure>
+<svg viewBox="0 0 900 230" role="img" aria-label="How the DuplicateCode test works">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="box" x="10" y="50" width="190" height="80" rx="6"/><text x="105" y="76" text-anchor="middle">sources</text><text class="small" x="105" y="94" text-anchor="middle">src, and API Interceptor</text><text class="small" x="105" y="110" text-anchor="middle">(src and include)</text>
+  <rect class="box4" x="240" y="50" width="200" height="80" rx="6"/><text x="340" y="70" text-anchor="middle">left out</text><text class="small" x="340" y="88" text-anchor="middle">test files, entrypoints folders,</text><text class="small" x="340" y="104" text-anchor="middle">hooks/OpenGL; blank lines, lone</text><text class="small" x="340" y="120" text-anchor="middle">braces, comments, includes</text>
+  <rect class="box3" x="480" y="50" width="200" height="80" rx="6"/><text x="580" y="76" text-anchor="middle">a run of 8 lines</text><text class="small" x="580" y="94" text-anchor="middle">(250 bytes at least)</text><text class="small" x="580" y="110" text-anchor="middle">the same in two files</text>
+  <rect class="box2" x="720" y="50" width="170" height="80" rx="6"/><text x="805" y="76" text-anchor="middle">known_duplicates.txt</text><text class="small" x="805" y="94" text-anchor="middle">a group listed with at</text><text class="small" x="805" y="110" text-anchor="middle">least as many runs passes</text>
+  <path class="arrow" d="M200 90H238"/><path class="arrow" d="M440 90H478"/><path class="arrow" d="M680 90H718"/>
+  <text class="small" x="450" y="170" text-anchor="middle">A group that is not listed, or has more runs than listed, fails the test.</text>
+  <text class="small" x="450" y="190" text-anchor="middle">A group that has fewer passes; its line is then lowered or removed by hand.</text>
+</svg>
+<figcaption>The test fails when a run of eight comparable lines is the same in two files.</figcaption>
+</figure>
+<ul>
+  <li>One line of <code>src/tests/data/known_duplicates.txt</code> is one group of files: the number of runs they share, and the files.</li>
+  <li>The list is for the real exceptions (such as the Direct3D 7 and 8 sides of API Interceptor, which mirror each other), and not a way to keep a copy.</li>
+</ul>
 <p>The conventions of API Interceptor, which this project follows, are in <a href="../deps/APIInterceptor/docs/building.html#conventions">its Building &amp; testing</a>.</p>
 
 <h2 id="pitfalls">Pitfalls</h2>
-<ul>
-  <li><strong>Folder names.</strong> Never name a folder <code>common</code>, <code>capture</code>, <code>interception</code> or <code>replay</code>. API Interceptor has folders of those names on the include path, and since the disk is case-insensitive, <code>"common/types.h"</code> from here can resolve to the wrong one with an error that points nowhere. What the front ends of the analysis share is in <code>shared</code> for this reason.</li>
-  <li><strong>Build the result before you commit.</strong> Both builds and both test programs: a header that is missing in one architecture only is a common failure (the headset is 64-bit only, <code>windows.h</code> is needed where a constant of it is used).</li>
-  <li><strong>Direct and indirect includes.</strong> A header is included by the file that uses a name from it; after a file is split, each part includes what it uses, not what the old file happened to pull in.</li>
-  <li><strong>The 32-bit side.</strong> Code that runs in the injected converter cannot use what the 64-bit side has (the headset, D3D12). Keep the two separated by the frame channel, and keep what both need in <code>utils</code> or <code>stereo</code>.</li>
-</ul>
+<table>
+<tr><th>Pitfall</th><th>Why, and what to do</th></tr>
+<tr><td><strong>Folder names</strong></td><td>Never name a folder <code>common</code>, <code>capture</code>, <code>interception</code> or <code>replay</code>. API Interceptor has folders of those names on the include path, and since the disk is case-insensitive, <code>"common/types.h"</code> from here can resolve to the wrong one with an error that points nowhere. What the front ends of the analysis share is in <code>shared</code> for this reason.</td></tr>
+<tr><td><strong>Build the result before you commit</strong></td><td>Both builds and both test programs: a header that is missing in one architecture only is a common failure (the headset is 64-bit only, <code>windows.h</code> is needed where a constant of it is used).</td></tr>
+<tr><td><strong>Direct and indirect includes</strong></td><td>A header is included by the file that uses a name from it; after a file is split, each part includes what it uses, not what the old file happened to pull in.</td></tr>
+<tr><td><strong>The 32-bit side</strong></td><td>Code that runs in the injected converter cannot use what the 64-bit side has (the headset, D3D12). Keep the two separated by the frame channel, and keep what both need in <code>utils</code> or <code>stereo</code>.</td></tr>
+</table>
 
 <h2 id="new-app">Adding an application</h2>
-<p>A program is supported when it has a <em>recipe</em>: a file that says which draws are the 3D scene, which are an interface and where the eyes should converge. The work is: capture it, analyse it, decide with evidence what each pass is, write and bake the recipe, check it, and add it to the catalog. <a href="adding-an-app.html">Adding an application</a> has every step, the commands and a prompt that works for the part an LLM does well. Background: <a href="analysis.html">Analysis</a> (what the tools tell you), <a href="recipes.html">Recipes</a> (what a recipe holds and how it is baked), <a href="replay.html">Replay</a> (how to check it without the headset).</p>
+<p>A program is supported when it has a <em>recipe</em>: a file that says which draws are the 3D scene, which are an interface and where the eyes should converge.</p>
+<figure>
+<svg viewBox="0 0 900 190" role="img" aria-label="The steps of adding an application">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="box" x="10" y="40" width="150" height="90" rx="6"/><text x="85" y="66" text-anchor="middle">1 Capture</text><text class="small" x="85" y="88" text-anchor="middle">record the program</text><text class="small" x="85" y="104" text-anchor="middle">with the dumper</text>
+  <rect class="box" x="190" y="40" width="150" height="90" rx="6"/><text x="265" y="66" text-anchor="middle">2 Analyse</text><text class="small" x="265" y="88" text-anchor="middle">extractors and</text><text class="small" x="265" y="104" text-anchor="middle">query tools</text>
+  <rect class="box3" x="370" y="40" width="150" height="90" rx="6"/><text x="445" y="66" text-anchor="middle">3 Decide</text><text class="small" x="445" y="88" text-anchor="middle">what each pass is,</text><text class="small" x="445" y="104" text-anchor="middle">with evidence</text>
+  <rect class="box3" x="550" y="40" width="150" height="90" rx="6"/><text x="625" y="66" text-anchor="middle">4 Bake</text><text class="small" x="625" y="88" text-anchor="middle">write the rules,</text><text class="small" x="625" y="104" text-anchor="middle">bake the recipe</text>
+  <rect class="box2" x="730" y="40" width="160" height="90" rx="6"/><text x="810" y="66" text-anchor="middle">5 Check, add</text><text class="small" x="810" y="88" text-anchor="middle">check the recipe,</text><text class="small" x="810" y="104" text-anchor="middle">add it to the catalog</text>
+  <path class="arrow" d="M160 85H188"/><path class="arrow" d="M340 85H368"/><path class="arrow" d="M520 85H548"/><path class="arrow" d="M700 85H728"/>
+  <text class="small" x="450" y="170" text-anchor="middle">Adding an application has every step, the commands and a prompt for the part an LLM does well.</text>
+</svg>
+<figcaption>The work, in order: capture it, analyse it, decide with evidence what each pass is, write and bake the recipe, check it, and add it to the catalog.</figcaption>
+</figure>
+<p><a href="adding-an-app.html">Adding an application</a> has every step, the commands and a prompt that works for the part an LLM does well.</p>
+<table>
+<tr><th>Background</th><th>What it tells you</th></tr>
+<tr><td><a href="analysis.html">Analysis</a></td><td>What the tools tell you.</td></tr>
+<tr><td><a href="recipes.html">Recipes</a></td><td>What a recipe holds and how it is baked.</td></tr>
+<tr><td><a href="replay.html">Replay</a></td><td>How to check it without the headset.</td></tr>
+</table>
 
 <h2 id="new-api">Adding an API</h2>
 <p>An API is added in layers, each of which can be finished and tested before the next. The layers are in the order they are needed; the stereo maths, the recipe format, the frame channel, the presenter and the VR player do not change, which is the point of the design (see <a href="architecture.html">Architecture</a>).</p>
@@ -119,13 +213,44 @@
 </svg>
 <figcaption>Layers 1 and 2 give an analysis of the API (and therefore a recipe); 3 gives checking without a headset; 4 gives live conversion.</figcaption>
 </figure>
-<ol>
-  <li><strong>Capture.</strong> The program's calls must reach a workload file: hooks for the API's entry points and the description of its functions and structures. That is API Interceptor's work, described in its own docs; the Direct3D 7 and 8 hooks there are worked examples.</li>
-  <li><strong>A front end for the analysis.</strong> A class in <code>frontends/&lt;api&gt;</code> (of <code>libs/analysis/api_dump_analysis</code>) that follows the state of the API and reports through the events of the <a href="analysis.html#frontends">front end contract</a>. For an API with a fixed-function pipeline, derive from <code>IFixedFunctionFrontend</code> in <code>frontends/shared</code>, which already follows the objects and the fixed-function state (the Direct3D 7 and 8 front ends do); the OpenGL front end derives from <code>IAPIFrontend</code> directly and uses the other helpers of <code>shared</code> (<code>ObjectTracker</code>, <code>GeometrySampler</code>, <code>MipChain</code>). What you write is what a resource is in your API, how its roles are told, and what the draw calls mean. Anything the shared vocabulary cannot say is a hint to extend it in an API-neutral way, not to put the API's words in the model. Register the front end in <code>AnalysisSession</code>, and test it on a captured slice (the Direct3D 7 tests use a call builder and a harness over it, <code>d3d7_call_builder.h</code> and <code>d3d7_frontend_harness.h</code>; the OpenGL ones have <code>gl_call_builder.h</code> and <code>gl_frontend_fixture.h</code>). From here the extractor, the query tools, the recipe rules and the baker work for the API.</li>
-  <li><strong>Replay.</strong> The replay engine runs the calls of a workload and has them executed for each eye through the executor interfaces of <code>tools/stereo_replay/engine_dll</code> (<code>IEyeExecutor</code> and the ones beside it). The API has an executor of its own there (<code>stereo_d3d7_call_executor.h</code>, <code>stereo_gl_call_executor.h</code>), and what only it needs is in a folder of its name (<code>D3D7/</code>). The consistency checker is how it is verified: the images of the converted replay must equal the images of the original in the modes that must be equal (see <a href="replay.html#programs">Replay</a>).</li>
-  <li><strong>A live adapter.</strong> In <code>runtime/converter_dll/&lt;api&gt;</code>: an eye renderer (draw what the program draws for the second eye, with the decisions of <code>StereoCore</code>), a way to have the program render to something that is not shown, at the size of the headset's image (a windowed mode for Direct3D, the eye targets and the scaler for OpenGL), and an exporter (pass the finished frame to the frame channel). <code>Converter</code> holds the adapters and gives each call to the one of its API. Anything the adapter cannot follow it must refuse at once and say so, not render something wrong (<a href="live-conversion.html#adapters">Decisions and adapters</a>).</li>
-  <li><strong>The edges.</strong> Add the API to the table of <a href="index.html#api">What is supported</a>, and its limits to the pages whose limits it changes. Check that both builds and both test programs are green.</li>
-</ol>
+
+<h3>1. Capture</h3>
+<p>The program's calls must reach a workload file: hooks for the API's entry points and the description of its functions and structures. That is API Interceptor's work, described in its own docs; the Direct3D 7 and 8 hooks there are worked examples.</p>
+
+<h3>2. A front end for the analysis</h3>
+<p>A class in <code>frontends/&lt;api&gt;</code> (of <code>libs/analysis/api_dump_analysis</code>) that follows the state of the API and reports through the events of the <a href="analysis.html#frontends">front end contract</a>.</p>
+<table>
+<tr><th>If the API</th><th>Then</th></tr>
+<tr><td>has a fixed-function pipeline</td><td>Derive from <code>IFixedFunctionFrontend</code> in <code>frontends/shared</code>, which already follows the objects and the fixed-function state (the Direct3D 7 and 8 front ends do).</td></tr>
+<tr><td>does not use the shared fixed-function front end</td><td>Derive from <code>IAPIFrontend</code> directly and use the other helpers of <code>shared</code> (<code>ObjectTracker</code>, <code>GeometrySampler</code>, <code>MipChain</code>), as the OpenGL front end does.</td></tr>
+</table>
+<ul>
+  <li>What you write is what a resource is in your API, how its roles are told, and what the draw calls mean.</li>
+  <li>Anything the shared vocabulary cannot say is a hint to extend it in an API-neutral way, not to put the API's words in the model.</li>
+  <li>Register the front end in <code>AnalysisSession</code>.</li>
+  <li>Test it on a captured slice. The Direct3D 7 tests use a call builder and a harness over it (<code>d3d7_call_builder.h</code> and <code>d3d7_frontend_harness.h</code>); the OpenGL ones have <code>gl_call_builder.h</code> and <code>gl_frontend_fixture.h</code>.</li>
+</ul>
+<p>From here the extractor, the query tools, the recipe rules and the baker work for the API.</p>
+
+<h3>3. Replay</h3>
+<p>The replay engine runs the calls of a workload and has them executed for each eye through the executor interfaces of <code>tools/stereo_replay/engine_dll</code> (<code>IEyeExecutor</code> and the ones beside it).</p>
+<ul>
+  <li>The API has an executor of its own there (<code>stereo_d3d7_call_executor.h</code>, <code>stereo_gl_call_executor.h</code>), and what only it needs is in a folder of its name (<code>D3D7/</code>).</li>
+  <li>The consistency checker is how it is verified: the images of the converted replay must equal the images of the original in the modes that must be equal (see <a href="replay.html#programs">Replay</a>).</li>
+</ul>
+
+<h3>4. A live adapter</h3>
+<p>In <code>runtime/converter_dll/&lt;api&gt;</code>, three parts:</p>
+<table>
+<tr><th>Part</th><th>What it does</th></tr>
+<tr><td>Eye renderer</td><td>Draws what the program draws for the second eye, with the decisions of <code>StereoCore</code>.</td></tr>
+<tr><td>Off-screen rendering</td><td>A way to have the program render to something that is not shown, at the size of the headset's image (a windowed mode for Direct3D, the eye targets and the scaler for OpenGL).</td></tr>
+<tr><td>Exporter</td><td>Passes the finished frame to the frame channel.</td></tr>
+</table>
+<p><code>Converter</code> holds the adapters and gives each call to the one of its API. Anything the adapter cannot follow it must refuse at once and say so, not render something wrong (<a href="live-conversion.html#adapters">Decisions and adapters</a>).</p>
+
+<h3>5. The edges</h3>
+<p>Add the API to the table of <a href="index.html#api">What is supported</a>, and its limits to the pages whose limits it changes. Check that both builds and both test programs are green.</p>
 <div class="note">The order matters for effort as well: after step 2 you can read a program of the new API, decide what its passes are and write recipes; after step 3 you can check them with no headset. Do not start the live adapter before the replay shows the recipes are right.</div>
 </main>
 </body>

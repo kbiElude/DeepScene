@@ -63,34 +63,134 @@
 
 <h2 id="adapters">Decisions and adapters</h2>
 <p>The converter is made of an <strong>adapter</strong>, which knows the API of the application, and of decisions that do not. <code>StereoCore</code>, <code>ConvergenceModel</code>, <code>MatrixSlots</code>, the frame channel, the presenter and the VR player have no API in them: an adapter tells <code>StereoCore</code> what the application does (it sets a matrix, it draws) and does what it answers.</p>
+
+<h3>The pieces</h3>
 <table>
 <tr><th>Piece</th><th>Job</th></tr>
-<tr><td><code>Converter</code></td><td>Registers the callbacks and orders the work of each call: feed the analysis, keep matrices, classify and render draws, take the settings the VR player changed. What it knows of the running program (the core, the feeder, the renderers, the counters) is one struct behind one lock (<code>Utils::Parallel::SrwMutex</code>), and no other lock is taken while it is held. Callback times are sampled, one call in 61.</td></tr>
-<tr><td><code>CallFeeder</code></td><td>Gives the analysis each call as a dump would, for Direct3D 7, Direct3D 8 and OpenGL alike; keeps the calls that wait for results in per-thread pools, which hand their vectors back to the next call. Takes the data chunks of a call out of the interceptor in one go, into vectors from a pool (<code>APIInterceptor::ChunkPool</code>) which the next call gets back, so that a chunk is not an allocation. The calls it makes carry no timestamp (<code>timestamp_qpc</code> is 0): nothing in the converter looks at when a call was made.</td></tr>
+<tr><td><code>Converter</code></td><td>Registers the callbacks and orders the work of each call: feed the analysis, keep matrices, classify and render draws, take the settings the VR player changed.</td></tr>
+<tr><td><code>CallFeeder</code></td><td>Gives the analysis each call as a dump would, for Direct3D 7, Direct3D 8 and OpenGL alike; keeps the calls that wait for results in per-thread pools, which hand their vectors back to the next call.</td></tr>
 <tr><td><code>StereoCore</code></td><td>The decisions: the class of a draw from the recipe and the view matrix, unknown draws and frames. Owns <code>ConvergenceModel</code> (where the eyes converge and how far apart they are) and <code>MatrixSlots</code> (the matrices a rule is about, and which to put in before a draw).</td></tr>
-<tr><td>The adapter for an API</td><td><code>D3D8EyeRenderer</code>, <code>D3D8ResolutionScaler</code>, <code>D3D8WindowedMode</code>, <code>D3D8HostMemoryExporter</code> in <code>runtime/converter_dll/D3D8</code>; <code>D3D7EyeRenderer</code>, <code>D3D7SurfaceTwins</code>, <code>D3D7WindowedMode</code>, <code>D3D7HostMemoryExporter</code> in <code>runtime/converter_dll/D3D7</code>; <code>GLEyeRenderer</code>, <code>GLEyeTargets</code>, <code>GLFrameReader</code>, <code>GLResolutionScaler</code>, <code>GLHostMemoryExporter</code> in <code>runtime/converter_dll/OpenGL</code>.</td></tr>
+<tr><td>The adapter for an API</td><td>Renders the second eye, scales the resolution, shows the program in a window or hides it, and exports the frames. The classes are listed below.</td></tr>
 <tr><td><code>FramePasser</code>, <code>SessionLog</code></td><td>What the adapters share: pass the presented frame on to the channel (at most one in 8 ms) and wait for the headset to want the next (<code>HostMemoryExporter</code>, the base of the three exporters, does the waiting); one log line per event.</td></tr>
 </table>
-<p>What a converter can know when a draw is issued is less than a replay knows: the pass is not known at that point, so a draw is told by its signature and the view matrix, and a rule about a pass or a frame shape cannot be followed. Where a program needs more than that, the converter fails at once through <code>StereoCore::require_fast_path</code> instead of producing wrong images; the same goes for what an adapter cannot follow (a program that locks a render target, or resets the device). The Direct3D 8 adapter ends the process, with a message that says so, when the program draws vertices positioned in pixels (<code>D3DFVF_XYZRHW</code>, as a HUD or text uses) from a vertex buffer; the ones that the call carries (<code>DrawPrimitiveUP</code>, <code>DrawIndexedPrimitiveUP</code>) are drawn for both eyes by the renderer (see <a href="#d3d7">Vertices in pixels</a>).</p>
+
+<h3>Details of the converter and the feeder</h3>
+<ul>
+  <li><code>Converter</code> keeps what it knows of the running program (the core, the feeder, the renderers, the counters) in one struct behind one lock (<code>Utils::Parallel::SrwMutex</code>), and no other lock is taken while it is held.</li>
+  <li>Callback times are sampled, one call in 61.</li>
+  <li><code>CallFeeder</code> takes the data chunks of a call out of the interceptor in one go, into vectors from a pool (<code>APIInterceptor::ChunkPool</code>) which the next call gets back, so that a chunk is not an allocation.</li>
+  <li>The calls it makes carry no timestamp (<code>timestamp_qpc</code> is 0): nothing in the converter looks at when a call was made.</li>
+</ul>
+
+<h3>The classes of each adapter</h3>
+<table>
+<tr><th>API</th><th>Folder</th><th>Classes</th></tr>
+<tr><td>Direct3D 8</td><td><code>runtime/converter_dll/D3D8</code></td><td><code>D3D8EyeRenderer</code>, <code>D3D8ResolutionScaler</code>, <code>D3D8WindowedMode</code>, <code>D3D8HostMemoryExporter</code></td></tr>
+<tr><td>Direct3D 7</td><td><code>runtime/converter_dll/D3D7</code></td><td><code>D3D7EyeRenderer</code>, <code>D3D7SurfaceTwins</code>, <code>D3D7WindowedMode</code>, <code>D3D7HostMemoryExporter</code></td></tr>
+<tr><td>OpenGL</td><td><code>runtime/converter_dll/OpenGL</code></td><td><code>GLEyeRenderer</code>, <code>GLEyeTargets</code>, <code>GLFrameReader</code>, <code>GLResolutionScaler</code>, <code>GLHostMemoryExporter</code></td></tr>
+</table>
+
+<h3>What a converter cannot know</h3>
+<p>What a converter can know when a draw is issued is less than a replay knows: the pass is not known at that point, so a draw is told by its signature and the view matrix, and a rule about a pass or a frame shape cannot be followed. Where a program needs more than that, the converter fails at once through <code>StereoCore::require_fast_path</code> instead of producing wrong images.</p>
+<ul>
+  <li>The same goes for what an adapter cannot follow: a program that locks a render target, or resets the device.</li>
+  <li>The Direct3D 8 adapter ends the process, with a message that says so, when the program draws vertices positioned in pixels (<code>D3DFVF_XYZRHW</code>, as a HUD or text uses) from a vertex buffer.</li>
+  <li>The ones that the call carries (<code>DrawPrimitiveUP</code>, <code>DrawIndexedPrimitiveUP</code>) are drawn for both eyes by the renderer (see <a href="#d3d7">Vertices in pixels</a>).</li>
+</ul>
 
 <h2 id="frame">A frame</h2>
+<figure>
+<svg viewBox="0 0 900 250" role="img" aria-label="From a draw of the program to the images in the channel">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="box4" x="10" y="95" width="130" height="56" rx="6"/><text x="75" y="120" text-anchor="middle">program</text><text class="small" x="75" y="137" text-anchor="middle">sets matrices, draws</text>
+  <rect class="box" x="170" y="95" width="130" height="56" rx="6"/><text x="235" y="120" text-anchor="middle">hook → feeder</text><text class="small" x="235" y="137" text-anchor="middle">draw analysed at once</text>
+  <rect class="box" x="330" y="95" width="130" height="56" rx="6"/><text x="395" y="120" text-anchor="middle">StereoCore</text><text class="small" x="395" y="137" text-anchor="middle">looks it up in the recipe</text>
+  <rect class="box2" x="500" y="30" width="190" height="50" rx="6"/><text x="595" y="52" text-anchor="middle">scene draw</text><text class="small" x="595" y="68" text-anchor="middle">once per eye, eye's matrices</text>
+  <rect class="box2" x="500" y="100" width="190" height="46" rx="6"/><text x="595" y="120" text-anchor="middle">interface draw</text><text class="small" x="595" y="135" text-anchor="middle">made once</text>
+  <rect class="box2" x="500" y="170" width="190" height="46" rx="6"/><text x="595" y="190" text-anchor="middle">skipped draw</text><text class="small" x="595" y="205" text-anchor="middle">not made</text>
+  <rect class="box3" x="730" y="95" width="150" height="56" rx="6"/><text x="805" y="120" text-anchor="middle">end of frame</text><text class="small" x="805" y="137" text-anchor="middle">images → channel</text>
+  <path class="arrow" d="M140 123H168"/><path class="arrow" d="M300 123H328"/>
+  <path class="arrow" d="M460 112L498 58"/><path class="arrow" d="M460 123H498"/><path class="arrow" d="M460 134L498 190"/>
+  <path class="arrow" d="M690 58L728 108"/><path class="arrow" d="M690 123H728"/><path class="arrow" d="M690 190L728 138"/>
+</svg>
+<figcaption>Other calls than draws are kept by the feeder until their results are in.</figcaption>
+</figure>
 <ol>
   <li>The program sets matrices and draws. The hook gives each call to the feeder. A draw is analysed immediately (its signature is needed before it runs); other calls are kept until their results are in.</li>
   <li>The core looks the draw up in the recipe. A scene draw is made for each eye with the eye's matrices; an interface draw is made once; a skipped one is not made. The maths of the matrices, the separation and the convergence is on the <a href="stereo.html">Stereo</a> page.</li>
-  <li>At the end of the frame the images go to the frame channel: in Direct3D 8 the GPU copies them to system-memory surfaces the exporter keeps, and a thread of the exporter (a <code>Utils::Parallel::JobThread</code>; the rows of the right eye go through a second one) copies the rows to the channel while the program renders the next frame (two sets of surfaces; the program waits for the thread only when it has the next frame to hand over). The exporters of Direct3D 7 and OpenGL do their own version of that.</li>
+  <li>At the end of the frame the images go to the frame channel.</li>
 </ol>
 
+<h3>How the images reach the channel (Direct3D 8)</h3>
+<ul>
+  <li>The GPU copies the images to system-memory surfaces that the exporter keeps. There are two sets of surfaces.</li>
+  <li>A thread of the exporter (a <code>Utils::Parallel::JobThread</code>) copies the rows to the channel while the program renders the next frame. The rows of the right eye go through a second thread.</li>
+  <li>The program waits for the thread only when it has the next frame to hand over.</li>
+  <li>The exporters of Direct3D 7 and OpenGL do their own version of that.</li>
+</ul>
+
 <h2 id="resolution">Resolution</h2>
-<p>A program like fr08 asks for a back buffer of 800 × 600, which is a small picture in a headset. The converter therefore renders it larger, at the resolution of the headset. The presenter asks the OpenXR runtime for the recommended size of the image of an eye (<code>xrEnumerateViewConfigurationViews</code>) and VR Player puts it in the frame channel before the program starts (<code>FrameChannel::set_target_eye_size()</code>). When the program makes its device, the scaler works out the scale from the size the program asked for (<code>ResolutionPolicy::get_fit_scale()</code>): the largest that fits the eye with the program's own proportions, so nothing is stretched. For example, 800 × 600 in an eye of 2064 × 2208 is a scale of 2.58 and a back buffer of 2064 × 1548. The back buffer and every render target are made that many times larger; the scale is never below 1 or above 4, and what is passed on has to fit the channel. The adapters of Direct3D 7, Direct3D 8 and OpenGL share what does not depend on the API: the scale (<code>RenderScalePlanner</code>, the least of what fits the eye, what the channel holds and what a surface of the API can be), the scaling of a rectangle (<code>ResolutionPolicy::scale_rect</code>), the lines of the log, and the reasons that an application is stopped for when it does what depends on the size of what it renders to (<code>ResolutionHazardGate</code>).</p>
-<p>The only setting is <em>Image quality</em> in the VR player: <em>Full</em> (the headset's resolution), <em>Half of the pixels</em> and <em>A quarter of the pixels</em>, which bring the target down by the square root of that in each direction, for a card that is hard pressed. Without a headset nothing is made larger. The analysis must see what the program asked for, not what was scaled, so the scaler restores the original values in the data the feeder sees (<code>CallFeeder::set_chunk_func</code>).</p>
+<p>A program that asks for a back buffer of 800 × 600 gives a small picture in a headset. The converter therefore renders it larger, at the resolution of the headset.</p>
+
+<h3>Where the size comes from</h3>
+<ol>
+  <li>The presenter asks the OpenXR runtime for the recommended size of the image of an eye (<code>xrEnumerateViewConfigurationViews</code>).</li>
+  <li>VR Player puts it in the frame channel before the program starts (<code>FrameChannel::set_target_eye_size()</code>).</li>
+  <li>When the program makes its device, the scaler works out the scale from the size the program asked for (<code>ResolutionPolicy::get_fit_scale()</code>): the largest that fits the eye with the program's own proportions, so nothing is stretched.</li>
+  <li>The back buffer and every render target are made that many times larger.</li>
+</ol>
+<figure>
+<svg viewBox="0 0 900 390" role="img" aria-label="The render scale is the least of three limits, from 1 to 4">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="group" x="20" y="30" width="310" height="331" rx="4"/><text class="small" x="30" y="48">image of one eye: 2064 × 2208</text>
+  <rect class="box2" x="20" y="60" width="310" height="232" rx="4"/><text x="175" y="170" text-anchor="middle">back buffer of the program</text><text class="small" x="175" y="188" text-anchor="middle">2064 × 1548: 800 × 600 times 2.58</text>
+  <text class="small" x="175" y="326" text-anchor="middle">the proportions of the program are kept</text>
+  <rect class="box4" x="400" y="40" width="230" height="46" rx="6"/><text x="515" y="60" text-anchor="middle">program asks for</text><text class="small" x="515" y="76" text-anchor="middle">800 × 600</text>
+  <rect class="box" x="400" y="130" width="230" height="46" rx="6"/><text class="small" x="515" y="150" text-anchor="middle">what fits the eye</text><text class="small" x="515" y="165" text-anchor="middle">with the program's proportions</text>
+  <rect class="box" x="400" y="190" width="230" height="46" rx="6"/><text class="small" x="515" y="217" text-anchor="middle">what the channel holds</text>
+  <rect class="box" x="400" y="250" width="230" height="46" rx="6"/><text class="small" x="515" y="270" text-anchor="middle">what a surface of the API</text><text class="small" x="515" y="285" text-anchor="middle">can be</text>
+  <rect class="box3" x="690" y="170" width="190" height="80" rx="6"/><text x="785" y="198" text-anchor="middle">RenderScalePlanner</text><text class="small" x="785" y="216" text-anchor="middle">the least of the three,</text><text class="small" x="785" y="231" text-anchor="middle">never below 1, never above 4</text>
+  <path class="arrow" d="M515 86V128"/>
+  <path class="arrow" d="M630 153L688 192"/><path class="arrow" d="M630 213H688"/><path class="arrow" d="M630 273L688 232"/>
+  <rect class="box2" x="690" y="310" width="190" height="46" rx="6"/><text x="785" y="330" text-anchor="middle">scale 2.58</text><text class="small" x="785" y="345" text-anchor="middle">in this example</text>
+  <path class="arrow" d="M785 250V308"/>
+</svg>
+<figcaption>The example is a program of 800 × 600 in an eye of 2064 × 2208.</figcaption>
+</figure>
+
+<h3>What the adapters share</h3>
+<p>The adapters of Direct3D 7, Direct3D 8 and OpenGL share what does not depend on the API.</p>
+<table>
+<tr><th>Piece</th><th>What it does</th></tr>
+<tr><td><code>RenderScalePlanner</code></td><td>The scale: the least of what fits the eye, what the channel holds and what a surface of the API can be.</td></tr>
+<tr><td><code>ResolutionPolicy::scale_rect</code></td><td>The scaling of a rectangle.</td></tr>
+<tr><td><code>ResolutionHazardGate</code></td><td>The reasons that an application is stopped for when it does what depends on the size of what it renders to.</td></tr>
+<tr><td>The lines of the log</td><td>The same wording for all three APIs.</td></tr>
+</table>
+
+<h3>Image quality</h3>
+<p>The only setting is <em>Image quality</em> in the VR player, for a card that is hard pressed.</p>
+<table>
+<tr><th>Choice</th><th>Target size</th></tr>
+<tr><td><em>Full</em></td><td>The headset's resolution.</td></tr>
+<tr><td><em>Half of the pixels</em></td><td>Brought down by the square root of that in each direction.</td></tr>
+<tr><td><em>A quarter of the pixels</em></td><td>Likewise.</td></tr>
+</table>
+<p>Without a headset nothing is made larger. The analysis must see what the program asked for, not what was scaled, so the scaler restores the original values in the data the feeder sees (<code>CallFeeder::set_chunk_func</code>).</p>
 
 <h2 id="pacing">Keeping the frames even</h2>
-<p>In a headset two things are felt: how <em>late</em> a picture is, and whether the motion is <em>even</em>. A frame that is shown twice with the one after it skipped is judder, and it is felt even when every frame is fast. The converter and the presenter therefore do three things: they get a frame from the program to the headset with as little work on the program's own thread as they can, they make the program produce one frame for each frame of the headset, and they hold the headset's frame for an image that is a few milliseconds late.</p>
+<p>In a headset two things are felt: how <em>late</em> a picture is, and whether the motion is <em>even</em>. A frame that is shown twice with the one after it skipped is judder, and it is felt even when every frame is fast. The converter and the presenter therefore do three things:</p>
+<ul>
+  <li>they get a frame from the program to the headset with as little work on the program's own thread as they can;</li>
+  <li>they make the program produce one frame for each frame of the headset;</li>
+  <li>they hold the headset's frame for an image that is a few milliseconds late.</li>
+</ul>
 
 <h3>The way of a frame</h3>
 <p>Each frame passes four threads. None waits for the one after it, except that the program waits for the exporter's thread when it has its next frame to hand over.</p>
 <figure>
 <svg viewBox="0 0 900 350" role="img" aria-label="The way of a frame through four threads, in time">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
   <text class="title" x="10" y="22">One frame, from the left to the right (not to scale)</text>
 
   <path class="group" d="M150 40V300"/><path class="group" d="M424 40V300"/><path class="group" d="M698 40V300"/>
@@ -160,11 +260,12 @@
 <figcaption>The dashed lines are the moments the compositor asks for a frame; at each it takes the newest images that are ready.</figcaption>
 </figure>
 <p>With the headset, the presenter therefore tells the program when to make a frame. Each time the compositor asks for one (<code>xrWaitFrame</code> returns) the presenter signals the frame channel (<code>FrameChannel::signal_pace()</code>, a named event). The converter, after the program has presented a frame, waits for that signal (<code>wait_for_pace()</code>) and only then lets the program begin the next one.</p>
-<ul>
-  <li><strong>The delay.</strong> The frame is not begun at the signal but a delay after it, so that its images are ready at the right moment. The delay is counted <em>from the signal</em>, not from the moment the program notices it: a frame that has to wait is then not longer by the delay, and one that is late goes on at once. The wait uses a timer fine to a millisecond or less, since a coarser one would be a frame.</li>
-  <li><strong>The right moment.</strong> The compositor builds its layers as soon as it asks for a frame, from the images that are ready by then. The presenter measures how far into a frame of the headset each set of images is ready (<code>HeadsetSink::tune_pace()</code>) and moves the delay until it is ready at 0.3 of a frame. The copy takes more than a frame, so this cannot be worked out beforehand.</li>
-  <li><strong>Where it cannot hurt.</strong> A program is not made to wait for a presenter that has not signalled for a quarter of a second (a headset that was taken off), nor longer than 100 ms for one signal. The delay and the signal are in the header of the channel.</li>
-</ul>
+<table>
+<tr><th>Part</th><th>What it does</th></tr>
+<tr><td>The delay</td><td>The frame is not begun at the signal but a delay after it, so that its images are ready at the right moment. The delay is counted <em>from the signal</em>, not from the moment the program notices it: a frame that has to wait is then not longer by the delay, and one that is late goes on at once. The wait uses a timer fine to a millisecond or less, since a coarser one would be a frame.</td></tr>
+<tr><td>The right moment</td><td>The compositor builds its layers as soon as it asks for a frame, from the images that are ready by then. The presenter measures how far into a frame of the headset each set of images is ready (<code>HeadsetSink::tune_pace()</code>) and moves the delay until it is ready at 0.3 of a frame. The copy takes more than a frame, so this cannot be worked out beforehand.</td></tr>
+<tr><td>Where it cannot hurt</td><td>A program is not made to wait for a presenter that has not signalled for a quarter of a second (a headset that was taken off), nor longer than 100 ms for one signal. The delay and the signal are in the header of the channel.</td></tr>
+</table>
 
 <h3 id="late-images">An image that is a few milliseconds late</h3>
 <p>The copy of a frame to the headset takes a good part of a frame and varies, so the images are sometimes ready just after the compositor asks. Without the wait, that frame shows the one before again, and the next shows the new images a frame late: a repeat and a skip for one late copy. The compositor's frame can be ended any time within its period, and it is ended in under a millisecond, so there is room to wait.</p>
@@ -183,6 +284,8 @@
 </svg>
 <figcaption>At most 6 ms are waited, and only when there are no new images: if none comes, the frame before is shown. The wait is in the log (<em>wait for new images</em>).</figcaption>
 </figure>
+
+<h4>Lag and options</h4>
 <p>The lag of the picture behind what the program did is the work of the four threads plus the margin before the next request: about two frames of the headset. The program's own sound is not delayed, so the picture trails the music by that much. The margin is on purpose; a smaller one gives a shorter lag and more repeats when a copy is late.</p>
 <ul>
   <li><strong>No preview with the headset.</strong> The channel has room for one reader, and the preview's copy of each image costs the same memory bandwidth as the headset's. The window says so; without a headset it previews the images.</li>
@@ -190,43 +293,207 @@
 </ul>
 
 <h2 id="d3d7">Vertices in pixels: Direct3D 7 and 8</h2>
-<p>A program of Direct3D 7 whose vertices are in pixels (Kasparov draws only those) is converted by the same pieces with a different renderer. The same <code>CallFeeder</code> follows its calls through the analysis, <code>StereoCore</code> decides each draw from the recipe, and what is done to the vertices is decided by <code>ScreenParallaxPlanner</code>, which the replay uses too, with the bytes moved by <code>Stereo::Core::ScreenParallax</code>. <code>StereoCore::make_screen_vertices()</code> gives an adapter a copy of the vertices moved for the eye. <code>D3D7EyeRenderer</code> uses it for every draw of vertices in pixels. <code>D3D8EyeRenderer::on_pre_draw()</code> uses it for <code>DrawPrimitiveUP</code> and <code>DrawIndexedPrimitiveUP</code> draws whose vertex format is XYZRHW (<code>D3D8Frontend::is_pre_transformed_vertex_shader</code>) and makes those draws for both eyes itself; XYZRHW vertices from a vertex buffer end the application with a message (see <a href="stereo.html#screen">Stereo</a>).</p>
+<p>A program of Direct3D 7 whose vertices are all in pixels is converted by the same pieces with a different renderer. The same <code>CallFeeder</code> follows its calls through the analysis, <code>StereoCore</code> decides each draw from the recipe, and what is done to the vertices is decided by <code>ScreenParallaxPlanner</code>, which the replay uses too, with the bytes moved by <code>Stereo::Core::ScreenParallax</code>.</p>
+<table>
+<tr><th>Call</th><th>Used by</th></tr>
+<tr><td><code>StereoCore::make_screen_vertices()</code></td><td>Gives an adapter a copy of the vertices moved for the eye.</td></tr>
+<tr><td><code>D3D7EyeRenderer</code></td><td>Uses it for every draw of vertices in pixels.</td></tr>
+<tr><td><code>D3D8EyeRenderer::on_pre_draw()</code></td><td>Uses it for <code>DrawPrimitiveUP</code> and <code>DrawIndexedPrimitiveUP</code> draws whose vertex format is XYZRHW (<code>D3D8Frontend::is_pre_transformed_vertex_shader</code>) and makes those draws for both eyes itself. XYZRHW vertices from a vertex buffer end the application with a message (see <a href="stereo.html#screen">Stereo</a>).</td></tr>
+</table>
+
+<h3>The second eye</h3>
+<p><code>D3D7SurfaceTwins</code> makes a copy of every surface the program renders to (render targets, depth buffers, its back buffer) as the program makes them. For each draw or clear, <code>D3D7EyeRenderer</code> repeats the work on the twins.</p>
+<figure>
+<svg viewBox="0 0 900 290" role="img" aria-label="How a draw of Direct3D 7 is made for both eyes with surface twins">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <text class="title" x="10" y="22">For each draw or clear of the program</text>
+  <rect class="box4" x="10" y="44" width="150" height="70" rx="6"/><text x="85" y="74" text-anchor="middle">draw or clear</text><text class="small" x="85" y="92" text-anchor="middle">of the program</text>
+  <rect class="box" x="190" y="44" width="150" height="70" rx="6"/><text x="265" y="70" text-anchor="middle">twins into the</text><text x="265" y="88" text-anchor="middle">device</text>
+  <rect class="box2" x="370" y="44" width="150" height="70" rx="6"/><text x="445" y="70" text-anchor="middle">right eye drawn</text><text class="small" x="445" y="90" text-anchor="middle">vertices moved one way</text>
+  <rect class="box" x="550" y="44" width="150" height="70" rx="6"/><text x="625" y="70" text-anchor="middle">program's state</text><text x="625" y="88" text-anchor="middle">put back</text>
+  <rect class="box2" x="730" y="44" width="150" height="70" rx="6"/><text x="805" y="70" text-anchor="middle">left eye drawn</text><text class="small" x="805" y="90" text-anchor="middle">vertices moved the other way</text>
+  <path class="arrow" d="M160 79H188"/><path class="arrow" d="M340 79H368"/><path class="arrow" d="M520 79H548"/><path class="arrow" d="M700 79H728"/>
+  <text class="title" x="10" y="160">Special cases</text>
+  <rect class="box3" x="10" y="176" width="266" height="86" rx="6"/><text x="143" y="200" text-anchor="middle">a clear with Blt</text><text class="small" x="143" y="222" text-anchor="middle">to a surface that has a twin:</text><text class="small" x="143" y="238" text-anchor="middle">made to the twin as well</text>
+  <rect class="box3" x="317" y="176" width="266" height="86" rx="6"/><text x="450" y="200" text-anchor="middle">a draw from a vertex buffer</text><text class="small" x="450" y="222" text-anchor="middle">locked to be read, then a draw</text><text class="small" x="450" y="238" text-anchor="middle">of vertices in memory</text>
+  <rect class="box3" x="624" y="176" width="266" height="86" rx="6"/><text x="757" y="200" text-anchor="middle">what cannot be repeated</text><text class="small" x="757" y="222" text-anchor="middle">counted and told in the log</text>
+</svg>
+<figcaption>A strided draw is made for the right eye as it is.</figcaption>
+</figure>
+
+<h3>The window</h3>
+<p>When another program shows the images, <code>D3D7WindowedMode</code> has the program render to an invisible window.</p>
 <ul>
-  <li><strong>The second eye.</strong> <code>D3D7SurfaceTwins</code> makes a copy of every surface the program renders to (render targets, depth buffers, its back buffer) as the program makes them. For each draw or clear, <code>D3D7EyeRenderer</code> puts the twins in the device, draws the right eye with the vertices moved one way, puts back what the program set, and draws the left with them moved the other way. The copies the program makes to a surface that has a twin (a clear with <code>Blt</code>) are made to the twin as well. A draw from a vertex buffer is read out of the buffer (locked to be read) and is then a draw of vertices in memory; a strided draw is made for the right eye as it is. What it cannot repeat is counted and told in the log.</li>
-  <li><strong>The window.</strong> When another program shows the images, <code>D3D7WindowedMode</code> has the program render to an invisible window: the cooperative level is that of a window, the display mode is not set, the surface that is shown has no chain of buffers, and the back buffer the program gets is a surface of the converter's own, the size of the display mode times the render scale. The hooks cannot change an argument of Direct3D 7 in place, so the call is not made and the converter makes its own and writes the result where the program is to get it. A flip shows nothing. The window is made fully transparent and click-through by <code>InvisibleWindows</code> (not hidden, since some programs pause while their window is hidden), which also tells the program it is always active, since some programs pause while their window is not.</li>
-  <li><strong>The resolution.</strong> The back buffer, its twin and the depth buffer are made as large as the images are shown (the same policy as Direct3D 8; surfaces are capped at 2048 on a side). The viewport, the rectangles of a clear and the positions of the vertices are scaled to match. A program that locks the whole back buffer, writes it and unlocks it (the ending screens of Kasparov) has it stretched to the whole after the unlock and copied to the twin. A lock to read, or of part of the surface, is only counted.</li>
-  <li><strong>The images.</strong> The back buffer is read before a flip, or before the blit of the surface the program rendered to onto the primary surface (how a program in a window shows a frame), converted to B, G, R of 8 bits, into the channel, the two eyes side by side. When no screen keeps time (no program that shows the images, or one that does not say), the converter holds the program to a frame rate (see <a href="#log">the switches</a>).</li>
+  <li>The cooperative level is that of a window, the display mode is not set, and the surface that is shown has no chain of buffers.</li>
+  <li>The back buffer the program gets is a surface of the converter's own, the size of the display mode times the render scale.</li>
+  <li>The hooks cannot change an argument of Direct3D 7 in place, so the call is not made and the converter makes its own and writes the result where the program is to get it.</li>
+  <li>A flip shows nothing.</li>
+  <li>The window is made fully transparent and click-through by <code>InvisibleWindows</code> (not hidden, since some programs pause while their window is hidden), which also tells the program it is always active, since some programs pause while their window is not.</li>
 </ul>
+
+<h3>The resolution</h3>
+<ul>
+  <li>The back buffer, its twin and the depth buffer are made as large as the images are shown (the same policy as Direct3D 8; surfaces are capped at 2048 on a side).</li>
+  <li>The viewport, the rectangles of a clear and the positions of the vertices are scaled to match.</li>
+  <li>A program that locks the whole back buffer, writes it and unlocks it (the ending screens of such a program) has it stretched to the whole after the unlock and copied to the twin.</li>
+  <li>A lock to read, or of part of the surface, is only counted.</li>
+</ul>
+
+<h3>The images</h3>
+<p>The back buffer is read before a flip, or before the blit of the surface the program rendered to onto the primary surface (how a program in a window shows a frame). It is converted to B, G, R of 8 bits and put into the channel, the two eyes side by side. When no screen keeps time (no program that shows the images, or one that does not say), the converter holds the program to a frame rate (see <a href="#log">the switches</a>).</p>
 
 <h2 id="opengl">OpenGL</h2>
-<p>A program of OpenGL (fixed function, a camera that is the model-view matrix) is converted by the same pieces with <code>GLEyeRenderer</code>. <code>CallFeeder</code> follows the OpenGL and WGL calls and both <code>SwapBuffers</code> (the one of GDI32 ends a frame like the one of WGL), and takes <code>glCallList</code>, <code>glDrawArrays</code>, <code>glDrawElements</code> and <code>glEnd</code> as the calls that draw. A call can make several draws (a list), so the model builder keeps the cover key and the signature key of each draw that the last call made (<code>get_call_draw_key_vec</code>), and the converter asks <code>StereoCore</code> about each one. A call is made as affected if any of its draws is, otherwise as the class of its draws; a list that mixes interface and scene is counted and told in the log.</p>
+<p>A program of OpenGL (fixed function, a camera that is the model-view matrix) is converted by the same pieces with <code>GLEyeRenderer</code>.</p>
+
+<h3>Which calls draw</h3>
 <ul>
-  <li><strong>The eyes.</strong> <code>GLEyeTargets</code> makes two framebuffers of renderbuffers (color, and depth with stencil) and binds the one of the left eye for the application, which never draws to its window, so it does not matter that the window cannot be seen. The functions of framebuffers are found through the <code>wglGetProcAddress</code> that the hooks call through, not the one the application sees: the hooked extension functions have no driver functions behind them until the application makes its context current. The functions of OpenGL 1.1 that the converter calls itself are the driver's too (<code>GLDriverFunctions</code>, from the cached pointers of the hooks), since a hook, besides the callbacks, copies the data of a call (a read of pixels) for a program that watches the application.</li>
-  <li><strong>A draw.</strong> A draw of <code>glDrawArrays</code>, <code>glDrawElements</code> or <code>glCallList</code> is made by the converter for both eyes, and the call of the application is not made. For an affected draw each eye gets the matrix of the eye (<code>StereoCore::make_eye_shift_matrix()</code>: half the separation to the side and a shear by the depth, so that what is at the distance of convergence stays put) in front of the model-view matrix the draw has, which is read and put back. Any camera is a model-view matrix, so the anchor of the replay (the call that begins the camera) is not needed live. Unaffected draws are made for both eyes as they are, skipped draws are not made. The indices of <code>glDrawElements</code> are the chunk the feeder took out of the interceptor. A pushed draw (see <a href="stereo.html#interface">Stereo</a>) is moved by moving the origin of its viewport (<code>PushShiftPlanner::make_viewport</code>; a side-reaching overlay is widened by the shift on each side). For an affected pushed draw the renderer reads the projection and the model-view and adds the parallax of its depth (<code>StereoCore::get_eye_parallax()</code>, <code>plan_push_shift_with_layer()</code>); a projection that is not perspective (<code>DrawMeasurer::is_perspective_projection</code>) says nothing of depth.</li>
-  <li><strong>A block of glBegin to glEnd.</strong> Whether it is affected is known at <code>glEnd</code>, after its vertices were given. The block is therefore compiled to a display list that the converter owns (<code>glNewList</code> at <code>glBegin</code>, <code>glEndList</code> after <code>glEnd</code>) and the list is called for each eye like a draw.</li>
-  <li><strong>Clears and textures.</strong> A <code>glClear</code> is made for the right eye as well. What the application renders to a texture (<code>glCopyTexImage2D</code>, <code>glCopyTexSubImage2D</code>) is copied for the right eye, from its framebuffer, to a twin of the texture, made when the first copy is seen with the parameters and the size of the level; the draws of the right eye bind the twin of a texture bound to the active unit, and a <code>glTexParameter</code> call is made to the twin too. A call that cannot be made for the right eye (pixels drawn with <code>glDrawPixels</code>, <code>glBitmap</code>, <code>glCopyPixels</code>, <code>glAccum</code>, an upload to a texture that has a twin, a display list that is compiled and made at once, a twin bound to a unit that is not the active one) is counted and told in the log, once.</li>
-  <li><strong>The images.</strong> At <code>SwapBuffers</code> <code>GLFrameReader</code> starts reading both eyes from the framebuffers into pixel buffers (as B, G, R, A, the order of the channel), which the graphics card fills while the application goes on, and gives the images of the frame before, from the buffers of the frame before, which are mapped; there are two sets of them, and a set is not used again while what was given from it is held (the images carry a token). <code>GLHostMemoryExporter</code> has a thread that turns the rows over (OpenGL has the bottom row first) into the channel, side by side, so that the application's own thread only hands the frame over; a frame that is given while the thread is at the one before is left out. Without a program that shows the images the window shows the left eye (a blit to the back buffer), and <code>APISTEREO_DUMP_FRAME</code>, <code>APISTEREO_DUMP_EVERY</code> and <code>APISTEREO_DUMP_FIRST_FRAME</code> write the images of the eyes to a file, as for Direct3D 7. <code>APISTEREO_DUMP_SCENES</code> writes scene images (see the switches below). The framebuffers are made again, at the size of the window, when it changes.</li>
-  <li><strong>The size.</strong> The framebuffers are made as large as the render scale says (see <a href="#resolution">Resolution</a>). What the application states in pixels is made to match by <code>GLResolutionScaler</code>; the call of the application is not made, and the analysis still sees it as it was made.
-    <ul>
-      <li><em>Scaled calls.</em> <code>glViewport</code>, <code>glScissor</code> (the rectangle is kept inside the framebuffer), <code>glLineWidth</code> and <code>glPointSize</code>, also in a display list that the application compiles. A texture that the application gives storage for without pixels (<code>glTexImage2D</code> with a null pointer, which is what it renders to) is made as many times larger, and so are the corner and the size of what is copied to it (<code>glCopyTexSubImage2D</code>, <code>glCopyTexImage2D</code>), for both eyes. A texture that was given pixels stays as it is.</li>
-      <li><em>Pixel reads.</em> A <code>glReadPixels</code> of one pixel of the colours, in bytes, is made at the pixel of the larger framebuffer that is under the centre of the one the application names (a pixel outside the window is brought to the nearest one inside it), into the application's own buffer (<code>ResolutionPolicy::scale_pixel_coordinate</code>).</li>
-      <li><em><code>cache_pixel_reads</code>.</em> Off unless the recipe has it, since it changes where what the application reads comes from. An application that samples the picture on a grid reads one pixel more than a thousand times in a row, and each read waits for the graphics card. The first read of such a run is made as it is; at the second the graphics card brings the left eye down to the size of the window (a blit that takes for each pixel the one under its centre, into a target of that size which is made once and kept) and it is read once; the rest of the run is given from that picture (<code>PictureReadbackCache</code>), at scale 1 as well. Any call that is not such a read ends the run, since it may change the picture; an application that has set the way pixels are packed, or a buffer for them, is read as it is.</li>
-      <li><em>Refused calls.</em> What cannot be made to match ends the application, through the core and with the reason (<code>ResolutionHazardGate</code>, for the calls of <code>GLResolutionHazards</code>, which the analysis tells too): any other read of pixels (more than one pixel, the depth, floats, other colours) or drawing pixels at places in pixels (<code>glReadPixels</code>, <code>glDrawPixels</code>, <code>glBitmap</code>, <code>glCopyPixels</code>, <code>glPixelZoom</code>), asking for the viewport, the scissor box, the width of lines or the size of points, asking for the size of a level of a texture, giving pixels to a texture that it renders to, and copying part of the framebuffer to a texture that it gave pixels.</li>
-    </ul>
-  </li>
-  <li><strong>Comfort.</strong> With <code>measure_depth</code> in the comfort of the recipe, <code>GLEyeRenderer</code> reads the depth buffer of the left eye before a pass is cleared and at the end of the frame.
-    <ul>
-      <li><em>Measuring.</em> The read is of a copy of the depth buffer that the graphics card makes small. <code>DepthBufferStatistics</code> turns the depths into distances with the projection of the pass; the nearest and farthest surfaces are the edges of what was drawn, and what was not drawn is the sky, as far as the far plane. <code>DepthMeasurer</code> gives the same numbers as <code>DepthBufferStatistics::measure()</code> to the last bit: on a processor with AVX2 (found out at its start; <code>depth_measurer_avx2.cpp</code> in <code>libs/stereo/core</code>) it counts the distances in a histogram, the bins being the top bits of the distance as a float, with the pixels taken eight at a time, and picks the three distances among those of three bins only; without AVX2 the scalar measure is used.</li>
-      <li><em>Lag.</em> The read is made to a buffer of the graphics card, which the converter does not wait for: the result is taken at the end of the frame after it. <code>FrameDepthLedger</code> puts the passes of a frame together (the farthest, the nearest, the median of their medians), so the depth that is given is that of the frame before, with the scene key of that frame (<code>GLEyeRenderer::get_depth_lag()</code> says 1; with no buffer of the graphics card to read to, the depth is read at once and the lag is 0). A frame with no depth in it is left to what was baked for its shape.</li>
-      <li><em>Convergence by time.</em> The nearest and farthest of the passes go to <code>StereoCore::on_frame_depth()</code>, which has the eyes converge and the separation limited as <code>RecipeApplier::get_comfort_limits()</code> says (the function that bakes the limits of a scene). The eyes follow that by the time that goes (<code>ConvergenceModel::get_fraction_of_the_way</code>: 5 percent of the way in the time of a frame at 72 Hz, a time constant of about 0.27 s, the same at any rate; the converter measures how long each frame took), so a run that is not held to a rate sees the same adaptation as the headset does. The scene dump counts frames, so a run that writes scenes is held to a rate (see <a href="#log">the switches</a>).</li>
-      <li><em>Attached draws.</em> The decision is <code>StereoCore::is_last_draw_attached_to_camera()</code>. A draw whose origin is nearer the camera than <code>camera_attached_depth</code> of the convergence distance is made as it is for both eyes, unless the recipe names it in <code>eye_space_cover_keys</code>, or has <code>comfort.automatic_layers</code> and the baker found it to be in eye space (its model-view is the identity because the application put its vertices in the space of the eye, so the origin says nothing of where they are).</li>
-    </ul>
-  </li>
+  <li><code>CallFeeder</code> follows the OpenGL and WGL calls and both <code>SwapBuffers</code> (the one of GDI32 ends a frame like the one of WGL).</li>
+  <li>It takes <code>glCallList</code>, <code>glDrawArrays</code>, <code>glDrawElements</code> and <code>glEnd</code> as the calls that draw.</li>
+  <li>A call can make several draws (a list), so the model builder keeps the cover key and the signature key of each draw that the last call made (<code>get_call_draw_key_vec</code>), and the converter asks <code>StereoCore</code> about each one.</li>
+  <li>A call is made as affected if any of its draws is, otherwise as the class of its draws; a list that mixes interface and scene is counted and told in the log.</li>
 </ul>
-<p>Not followed: matrices that are loaded inside a display list the application compiles (the camera of a list is then not the one that the eye matrix is put before), a twin that is bound to a unit that is not the active one (counted), and a second context (it is not converted).</p>
+
+<h3>The eyes</h3>
+<p><code>GLEyeTargets</code> makes two framebuffers of renderbuffers (color, and depth with stencil) and binds the one of the left eye for the application, which never draws to its window, so it does not matter that the window cannot be seen.</p>
+<ul>
+  <li>The functions of framebuffers are found through the <code>wglGetProcAddress</code> that the hooks call through, not the one the application sees: the hooked extension functions have no driver functions behind them until the application makes its context current.</li>
+  <li>The functions of OpenGL 1.1 that the converter calls itself are the driver's too (<code>GLDriverFunctions</code>, from the cached pointers of the hooks), since a hook, besides the callbacks, copies the data of a call (a read of pixels) for a program that watches the application.</li>
+</ul>
+
+<h3>A draw</h3>
+<p>A draw of <code>glDrawArrays</code>, <code>glDrawElements</code> or <code>glCallList</code> is made by the converter for both eyes, and the call of the application is not made.</p>
+<table>
+<tr><th>Class of the draw</th><th>What the converter does</th></tr>
+<tr><td>Affected</td><td>Each eye gets the matrix of the eye (<code>StereoCore::make_eye_shift_matrix()</code>: half the separation to the side and a shear by the depth, so that what is at the distance of convergence stays put) in front of the model-view matrix the draw has, which is read and put back.</td></tr>
+<tr><td>Unaffected</td><td>Made for both eyes as it is.</td></tr>
+<tr><td>Skipped</td><td>Not made.</td></tr>
+<tr><td>Pushed (see <a href="stereo.html#interface">Stereo</a>)</td><td>Moved by moving the origin of its viewport (<code>PushShiftPlanner::make_viewport</code>; a side-reaching overlay is widened by the shift on each side). For an affected pushed draw the renderer reads the projection and the model-view and adds the parallax of its depth (<code>StereoCore::get_eye_parallax()</code>, <code>plan_push_shift_with_layer()</code>); a projection that is not perspective (<code>DrawMeasurer::is_perspective_projection</code>) says nothing of depth.</td></tr>
+</table>
+<ul>
+  <li>Any camera is a model-view matrix, so the anchor of the replay (the call that begins the camera) is not needed live.</li>
+  <li>The indices of <code>glDrawElements</code> are the chunk the feeder took out of the interceptor.</li>
+</ul>
+
+<h3>A block of glBegin to glEnd</h3>
+<p>Whether it is affected is known at <code>glEnd</code>, after its vertices were given. The block is therefore compiled to a display list that the converter owns (<code>glNewList</code> at <code>glBegin</code>, <code>glEndList</code> after <code>glEnd</code>) and the list is called for each eye like a draw.</p>
+
+<h3>Clears and textures</h3>
+<ul>
+  <li>A <code>glClear</code> is made for the right eye as well.</li>
+  <li>What the application renders to a texture (<code>glCopyTexImage2D</code>, <code>glCopyTexSubImage2D</code>) is copied for the right eye, from its framebuffer, to a twin of the texture, made when the first copy is seen with the parameters and the size of the level.</li>
+  <li>The draws of the right eye bind the twin of a texture bound to the active unit, and a <code>glTexParameter</code> call is made to the twin too.</li>
+  <li>A call that cannot be made for the right eye is counted and told in the log, once: pixels drawn with <code>glDrawPixels</code>, <code>glBitmap</code>, <code>glCopyPixels</code>, <code>glAccum</code>, an upload to a texture that has a twin, a display list that is compiled and made at once, a twin bound to a unit that is not the active one.</li>
+</ul>
+
+<h3>The images</h3>
+<figure>
+<svg viewBox="0 0 900 190" role="img" aria-label="How the images of both eyes leave OpenGL for the channel">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <text class="title" x="10" y="22">At SwapBuffers</text>
+  <rect class="box" x="10" y="44" width="140" height="40" rx="6"/><text x="80" y="69" text-anchor="middle">left framebuffer</text>
+  <rect class="box" x="10" y="100" width="140" height="40" rx="6"/><text x="80" y="125" text-anchor="middle">right framebuffer</text>
+  <rect class="box3" x="190" y="44" width="170" height="96" rx="6"/><text x="275" y="78" text-anchor="middle">pixel buffers</text><text class="small" x="275" y="98" text-anchor="middle">B, G, R, A; two sets;</text><text class="small" x="275" y="113" text-anchor="middle">the card fills them while</text><text class="small" x="275" y="128" text-anchor="middle">the application goes on</text>
+  <rect class="box3" x="400" y="44" width="170" height="96" rx="6"/><text x="485" y="78" text-anchor="middle">GLFrameReader</text><text class="small" x="485" y="98" text-anchor="middle">maps the buffers of the</text><text class="small" x="485" y="113" text-anchor="middle">frame before and gives</text><text class="small" x="485" y="128" text-anchor="middle">those images</text>
+  <rect class="box2" x="610" y="44" width="160" height="96" rx="6"/><text x="690" y="70" text-anchor="middle">exporter thread</text><text class="small" x="690" y="90" text-anchor="middle">turns the rows over,</text><text class="small" x="690" y="105" text-anchor="middle">side by side; a frame</text><text class="small" x="690" y="120" text-anchor="middle">given too early is left out</text>
+  <rect class="box4" x="800" y="44" width="90" height="96" rx="6"/><text x="845" y="88" text-anchor="middle">frame</text><text x="845" y="106" text-anchor="middle">channel</text>
+  <path class="arrow" d="M150 64H188"/><path class="arrow" d="M150 120L188 100"/><path class="arrow" d="M360 92H398"/><path class="arrow" d="M570 92H608"/><path class="arrow" d="M770 92H798"/>
+  <text class="small" x="10" y="172">The application's own thread only hands the frame over.</text>
+</svg>
+<figcaption>The images that are given are those of the frame before.</figcaption>
+</figure>
+<ul>
+  <li>At <code>SwapBuffers</code> <code>GLFrameReader</code> starts reading both eyes from the framebuffers into pixel buffers (as B, G, R, A, the order of the channel), which the graphics card fills while the application goes on, and gives the images of the frame before, from the buffers of the frame before, which are mapped.</li>
+  <li>There are two sets of buffers, and a set is not used again while what was given from it is held (the images carry a token).</li>
+  <li><code>GLHostMemoryExporter</code> has a thread that turns the rows over (OpenGL has the bottom row first) into the channel, side by side, so that the application's own thread only hands the frame over. A frame that is given while the thread is at the one before is left out.</li>
+  <li>Without a program that shows the images the window shows the left eye (a blit to the back buffer).</li>
+  <li><code>APISTEREO_DUMP_FRAME</code>, <code>APISTEREO_DUMP_EVERY</code> and <code>APISTEREO_DUMP_FIRST_FRAME</code> write the images of the eyes to a file, as for Direct3D 7. <code>APISTEREO_DUMP_SCENES</code> writes scene images (see the switches below).</li>
+  <li>The framebuffers are made again, at the size of the window, when it changes.</li>
+</ul>
+
+<h3>The size</h3>
+<p>The framebuffers are made as large as the render scale says (see <a href="#resolution">Resolution</a>). What the application states in pixels is made to match by <code>GLResolutionScaler</code>; the call of the application is not made, and the analysis still sees it as it was made.</p>
+<table>
+<tr><th>Case</th><th>What is done</th></tr>
+<tr><td>Scaled calls</td><td><code>glViewport</code>, <code>glScissor</code> (the rectangle is kept inside the framebuffer), <code>glLineWidth</code> and <code>glPointSize</code>, also in a display list that the application compiles. A texture that the application gives storage for without pixels (<code>glTexImage2D</code> with a null pointer, which is what it renders to) is made as many times larger, and so are the corner and the size of what is copied to it (<code>glCopyTexSubImage2D</code>, <code>glCopyTexImage2D</code>), for both eyes. A texture that was given pixels stays as it is.</td></tr>
+<tr><td>Pixel reads</td><td>A <code>glReadPixels</code> of one pixel of the colours, in bytes, is made at the pixel of the larger framebuffer that is under the centre of the one the application names (a pixel outside the window is brought to the nearest one inside it), into the application's own buffer (<code>ResolutionPolicy::scale_pixel_coordinate</code>).</td></tr>
+<tr><td><code>cache_pixel_reads</code></td><td>Off unless the recipe has it, since it changes where what the application reads comes from. See below.</td></tr>
+<tr><td>Refused calls</td><td>What cannot be made to match ends the application, through the core and with the reason (<code>ResolutionHazardGate</code>, for the calls of <code>GLResolutionHazards</code>, which the analysis tells too). See below.</td></tr>
+</table>
+
+<h4>cache_pixel_reads</h4>
+<p>An application that samples the picture on a grid reads one pixel more than a thousand times in a row, and each read waits for the graphics card.</p>
+<ol>
+  <li>The first read of such a run is made as it is.</li>
+  <li>At the second the graphics card brings the left eye down to the size of the window (a blit that takes for each pixel the one under its centre, into a target of that size which is made once and kept) and it is read once.</li>
+  <li>The rest of the run is given from that picture (<code>PictureReadbackCache</code>), at scale 1 as well.</li>
+</ol>
+<p>Any call that is not such a read ends the run, since it may change the picture; an application that has set the way pixels are packed, or a buffer for them, is read as it is.</p>
+
+<h4>Refused calls</h4>
+<ul>
+  <li>Any other read of pixels (more than one pixel, the depth, floats, other colours) or drawing pixels at places in pixels (<code>glReadPixels</code>, <code>glDrawPixels</code>, <code>glBitmap</code>, <code>glCopyPixels</code>, <code>glPixelZoom</code>).</li>
+  <li>Asking for the viewport, the scissor box, the width of lines or the size of points.</li>
+  <li>Asking for the size of a level of a texture.</li>
+  <li>Giving pixels to a texture that it renders to, and copying part of the framebuffer to a texture that it gave pixels.</li>
+</ul>
+
+<h3>Comfort</h3>
+<p>With <code>measure_depth</code> in the comfort of the recipe, <code>GLEyeRenderer</code> reads the depth buffer of the left eye before a pass is cleared and at the end of the frame.</p>
+
+<h4>Measuring</h4>
+<p>The read is of a copy of the depth buffer that the graphics card makes small. <code>DepthBufferStatistics</code> turns the depths into distances with the projection of the pass; the nearest and farthest surfaces are the edges of what was drawn, and what was not drawn is the sky, as far as the far plane.</p>
+<p><code>DepthMeasurer</code> gives the same numbers as <code>DepthBufferStatistics::measure()</code> to the last bit.</p>
+<ul>
+  <li>On a processor with AVX2 (found out at its start; <code>depth_measurer_avx2.cpp</code> in <code>libs/stereo/core</code>) it counts the distances in a histogram, the bins being the top bits of the distance as a float, with the pixels taken eight at a time, and picks the three distances among those of three bins only.</li>
+  <li>Without AVX2 the scalar measure is used.</li>
+</ul>
+
+<h4>Lag</h4>
+<figure>
+<svg viewBox="0 0 900 200" role="img" aria-label="The depth that is given is that of the frame before">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="box" x="20" y="30" width="420" height="44" rx="6"/><text x="230" y="49" text-anchor="middle">frame N: depth read to a buffer of the card</text><text class="small" x="230" y="65" text-anchor="middle">before each clear and at the end; not waited for</text>
+  <rect class="box2" x="460" y="30" width="420" height="44" rx="6"/><text x="670" y="49" text-anchor="middle">frame N+1: the result is taken at its end</text><text class="small" x="670" y="65" text-anchor="middle">the depth given is that of frame N</text>
+  <rect class="box3" x="20" y="120" width="420" height="56" rx="6"/><text x="230" y="142" text-anchor="middle">FrameDepthLedger</text><text class="small" x="230" y="159" text-anchor="middle">puts the passes together: the farthest, the nearest,</text><text class="small" x="230" y="172" text-anchor="middle">the median of their medians</text>
+  <rect class="box3" x="460" y="120" width="420" height="56" rx="6"/><text x="670" y="142" text-anchor="middle">StereoCore::on_frame_depth()</text><text class="small" x="670" y="159" text-anchor="middle">with the scene key of frame N;</text><text class="small" x="670" y="172" text-anchor="middle">get_depth_lag() says 1</text>
+  <path class="arrow" d="M230 74V118"/><path class="arrow" d="M440 148H458"/>
+</svg>
+<figcaption>With no buffer of the graphics card to read to, the depth is read at once and the lag is 0.</figcaption>
+</figure>
+<ul>
+  <li>The read is made to a buffer of the graphics card, which the converter does not wait for: the result is taken at the end of the frame after it.</li>
+  <li><code>FrameDepthLedger</code> puts the passes of a frame together (the farthest, the nearest, the median of their medians), so the depth that is given is that of the frame before, with the scene key of that frame (<code>GLEyeRenderer::get_depth_lag()</code> says 1; with no buffer of the graphics card to read to, the depth is read at once and the lag is 0).</li>
+  <li>A frame with no depth in it is left to what was baked for its shape.</li>
+</ul>
+
+<h4>Convergence by time</h4>
+<ul>
+  <li>The nearest and farthest of the passes go to <code>StereoCore::on_frame_depth()</code>, which has the eyes converge and the separation limited as <code>RecipeApplier::get_comfort_limits()</code> says (the function that bakes the limits of a scene).</li>
+  <li>The eyes follow that by the time that goes (<code>ConvergenceModel::get_fraction_of_the_way</code>: 5 percent of the way in the time of a frame at 72 Hz, a time constant of about 0.27 s, the same at any rate; the converter measures how long each frame took), so a run that is not held to a rate sees the same adaptation as the headset does.</li>
+  <li>The scene dump counts frames, so a run that writes scenes is held to a rate (see <a href="#log">the switches</a>).</li>
+</ul>
+
+<h4>Attached draws</h4>
+<p>The decision is <code>StereoCore::is_last_draw_attached_to_camera()</code>. A draw whose origin is nearer the camera than <code>camera_attached_depth</code> of the convergence distance is made as it is for both eyes, unless one of these holds:</p>
+<ul>
+  <li>the recipe names it in <code>eye_space_cover_keys</code>;</li>
+  <li>the recipe has <code>comfort.automatic_layers</code> and the baker found it to be in eye space (its model-view is the identity because the application put its vertices in the space of the eye, so the origin says nothing of where they are).</li>
+</ul>
+
+<h3>Not followed</h3>
+<ul>
+  <li>Matrices that are loaded inside a display list the application compiles (the camera of a list is then not the one that the eye matrix is put before).</li>
+  <li>A twin that is bound to a unit that is not the active one (counted).</li>
+  <li>A second context (it is not converted).</li>
+</ul>
 
 <h2 id="channel">The frame channel</h2>
-<p>Shared memory between the 32-bit program and the 64-bit presenter, named from the session (<code>Local\APIStereo_&lt;session&gt;</code>). Three image slots: the producer writes one that is neither the newest nor the one being read, so nobody waits. Images start at multiples of 64 KB and rows at multiples of 256 bytes, so the GPU can import the memory as a heap. The two sides say how they can pass images (a mask of transport kinds), and the producer uses the best that both can; host memory is the one kind there is. The floats of the controls are stored as bits next to a has-value flag (<code>read_float</code> / <code>write_float</code>), so a reader never takes a value that was not set.</p>
+<p>Shared memory between the 32-bit program and the 64-bit presenter, named from the session (<code>Local\APIStereo_&lt;session&gt;</code>).</p>
+<ul>
+  <li>Images start at multiples of 64 KB and rows at multiples of 256 bytes, so the GPU can import the memory as a heap.</li>
+  <li>The two sides say how they can pass images (a mask of transport kinds), and the producer uses the best that both can; host memory is the one kind there is.</li>
+  <li>The floats of the controls are stored as bits next to a has-value flag (<code>read_float</code> / <code>write_float</code>), so a reader never takes a value that was not set.</li>
+</ul>
 <figure>
 <svg viewBox="0 0 900 180" role="img" aria-label="Layout of the frame channel memory">
   <rect class="box3" x="10" y="40" width="200" height="60" rx="4"/><text x="110" y="66" text-anchor="middle">header (64 KB)</text><text class="small" x="110" y="84" text-anchor="middle">version 12, controls, flags</text>
@@ -239,16 +506,52 @@
 <figcaption>Slot stride is 128 MB; pixels start at 64 KB.</figcaption>
 </figure>
 
+<h3>Three slots, nobody waits</h3>
+<p>There are three image slots: the producer writes one that is neither the newest nor the one being read, so nobody waits.</p>
+<figure>
+<svg viewBox="0 0 900 200" role="img" aria-label="Roles of the three slots of the channel">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="box2" x="20" y="50" width="250" height="70" rx="6"/><text x="145" y="80" text-anchor="middle">the newest</text><text class="small" x="145" y="100" text-anchor="middle">named by the latest slot</text>
+  <rect class="box4" x="325" y="50" width="250" height="70" rx="6"/><text x="450" y="80" text-anchor="middle">being read</text><text class="small" x="450" y="100" text-anchor="middle">by the consumer</text>
+  <rect class="box" x="630" y="50" width="250" height="70" rx="6"/><text x="755" y="80" text-anchor="middle">free</text><text class="small" x="755" y="100" text-anchor="middle">the producer writes here</text>
+  <path class="arrow" d="M755 160V122"/><text class="small" x="755" y="178" text-anchor="middle">neither of the other two, so no wait</text>
+  <text class="small" x="20" y="150">When the write is done this slot becomes the newest.</text>
+</svg>
+<figcaption>The roles change with each frame.</figcaption>
+</figure>
+
 <h2 id="log">The log and the switches</h2>
 <p>The log is off unless asked for (<code>--log</code> on the launcher and the presenter, which VRPlayer passes on): then <code>%TEMP%\apistereo_&lt;session&gt;.log</code> has statistics each second, as count (<code>n</code>), <code>mean</code>, <code>worst</code> and how many were <code>late</code>, in milliseconds, and every 600 frames one line of the converter's counts (draws affected, unaffected and skipped, unknown draws and frames, matrices kept, twins, and how long the callbacks took a frame, and how much of it in the draws). Off, only what has to be said is written: why the converter stops the application, a frame that cannot be passed on, a headset that cannot be used.</p>
+
+<h3>The statistics lines</h3>
 <table>
 <tr><th>Line</th><th>Entries</th><th>What it tells</th></tr>
 <tr><td><em>Pacing</em> (the converter)</td><td>app presents, frames passed on, copy cost; for Direct3D 8 also asking for the copies, locking, copy to the channel (thread), waiting for the thread, waiting for the screen</td><td>The time between the program's frames; what the program waits for to give a frame away; the thread's copy; whether the program waits for it or for the headset</td></tr>
 <tr><td><em>Frames to the headset</em> (the presenter)</td><td>arrivals; images ready into the frame, pace delay, the person's eye distance; taking the images; copy to the images</td><td>When frames reach the presenter; where in a frame of the headset the images are ready, and the delay that aims at 0.3 of it; the IPD the headset reports; the wait for the headset's images; the GPU copy to them</td></tr>
 <tr><td><em>Frames of the compositor</em></td><td>frames; wait for frame; wait for the lock; wait for new images; end of frame; images new, repeated, empty, skipped</td><td>The headset's own frames; how often and how long a frame was held for an image (wait for new images); what the frames showed</td></tr>
 </table>
-<p>If the program's presents are even and the repeats are many, the delay is ours; seconds in which the program itself stalls (a scene that loads) show as fewer presents and many repeats, and nothing downstream can show images the program has not made. With <code>--log --wait</code> the launcher reads the last statistics line when the application exits and says what the run came to: frames seen and how many draws were affected, unaffected and skipped, and a line for each thing the converter could not do (draws of a signature the recipe does not know, frames of a scene it has no distance for, surfaces that could not be given a twin, calls not made for the right eye).</p>
-<p>A run without the VR player takes its switches from the environment: <code>APISTEREO_EYE_SEPARATION</code>, <code>APISTEREO_DEPTH_STRENGTH</code> (1 is natural, and follows the limit of each scene), <code>APISTEREO_PUSH_OVERLAY</code>, <code>APISTEREO_TARGET_EYE_WIDTH</code> and <code>_HEIGHT</code> (which also have the program render to the invisible window), <code>APISTEREO_DUMP_FRAME</code>, <code>APISTEREO_DUMP_EVERY</code> and <code>APISTEREO_DUMP_FIRST_FRAME</code> (a frame, both eyes, to <code>%TEMP%\apistereo_frame_N.bmp</code>), <code>APISTEREO_DUMP_SCENES</code> (OpenGL: up to sixty frames of each scene to <code>%TEMP%\apistereo_scene_&lt;key&gt;[_N].bmp</code>, the first when the scene has lasted a second and a half and the others half a second of the demo apart; the log has the key, the frame, where the eyes converged and how far apart they were; see <a href="recipes.html">Recipes</a>), <code>APISTEREO_FRAME_RATE</code> (when no screen keeps time, the application is held to that many frames a second; Direct3D 7: held to 60 whatever the switch says, via <code>HostMemoryExporter::hold_to_frame_rate</code>; OpenGL: not held when unset; so that what the application does with the time of its music is what it would do when shown), and, to measure with Direct3D 7, <code>APISTEREO_NO_RIGHT_EYE</code> and <code>APISTEREO_NO_FRAME_LIMIT</code>. The launcher sets <code>APISTEREO_SESSION</code>, <code>APISTEREO_RECIPE</code> and <code>APISTEREO_LOG</code> for the application.</p>
+
+<h3>Reading the log</h3>
+<ul>
+  <li>If the program's presents are even and the repeats are many, the delay is ours.</li>
+  <li>Seconds in which the program itself stalls (a scene that loads) show as fewer presents and many repeats, and nothing downstream can show images the program has not made.</li>
+  <li>With <code>--log --wait</code> the launcher reads the last statistics line when the application exits and says what the run came to: frames seen and how many draws were affected, unaffected and skipped, and a line for each thing the converter could not do (draws of a signature the recipe does not know, frames of a scene it has no distance for, surfaces that could not be given a twin, calls not made for the right eye).</li>
+</ul>
+
+<h3>The switches</h3>
+<p>A run without the VR player takes its switches from the environment.</p>
+<table>
+<tr><th>Variable</th><th>Meaning</th></tr>
+<tr><td><code>APISTEREO_EYE_SEPARATION</code></td><td>The separation of the eyes.</td></tr>
+<tr><td><code>APISTEREO_DEPTH_STRENGTH</code></td><td>1 is natural, and follows the limit of each scene.</td></tr>
+<tr><td><code>APISTEREO_PUSH_OVERLAY</code></td><td>Whether the overlay is pushed.</td></tr>
+<tr><td><code>APISTEREO_TARGET_EYE_WIDTH</code>, <code>_HEIGHT</code></td><td>The target size of an eye; they also have the program render to the invisible window.</td></tr>
+<tr><td><code>APISTEREO_DUMP_FRAME</code>, <code>APISTEREO_DUMP_EVERY</code>, <code>APISTEREO_DUMP_FIRST_FRAME</code></td><td>A frame, both eyes, to <code>%TEMP%\apistereo_frame_N.bmp</code>.</td></tr>
+<tr><td><code>APISTEREO_DUMP_SCENES</code></td><td>OpenGL: up to sixty frames of each scene to <code>%TEMP%\apistereo_scene_&lt;key&gt;[_N].bmp</code>, the first when the scene has lasted a second and a half and the others half a second of the demo apart; the log has the key, the frame, where the eyes converged and how far apart they were (see <a href="recipes.html">Recipes</a>).</td></tr>
+<tr><td><code>APISTEREO_FRAME_RATE</code></td><td>When no screen keeps time, the application is held to that many frames a second, so that what the application does with the time of its music is what it would do when shown. Direct3D 7: held to 60 whatever the switch says, via <code>HostMemoryExporter::hold_to_frame_rate</code>. OpenGL: not held when unset.</td></tr>
+<tr><td><code>APISTEREO_NO_RIGHT_EYE</code>, <code>APISTEREO_NO_FRAME_LIMIT</code></td><td>To measure with Direct3D 7.</td></tr>
+</table>
+<p>The launcher sets <code>APISTEREO_SESSION</code>, <code>APISTEREO_RECIPE</code> and <code>APISTEREO_LOG</code> for the application.</p>
 <div class="note">A program that never exits by itself (a demo that loops its credits is one) must be ended by the user or the launcher; a test script that starts one must always clean up.</div>
 </main>
 </body>

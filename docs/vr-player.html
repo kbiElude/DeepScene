@@ -26,16 +26,76 @@
 <main>
 <h1>VR player</h1>
 <p class="lead">The front end: pick a program from the catalog, pick an output, choose the depth and the image quality, press Launch.</p>
+<ol class="toc">
+  <li><a href="#window">The window</a></li>
+  <li><a href="#start">Starting it</a></li>
+  <li><a href="#download">The first launch</a></li>
+  <li><a href="#launch">The launch sequence</a></li>
+  <li><a href="#pieces">Pieces</a></li>
+  <li><a href="#controls">Controls</a></li>
+  <li><a href="#headset">Headset path</a></li>
+  <li><a href="#devices">Devices</a></li>
+  <li><a href="#logs">Logs</a></li>
+  <li><a href="#code-map">Code map</a></li>
+</ol>
 
 <h2 id="window">The window</h2>
-<p>The catalog programs are listed on the left, alphabetically by name; a card shows the name, the description, and the reason when the program cannot be launched. For the selected program the right pane shows its name, the reason if it is unavailable, the download size if it has to be downloaded, the description, the VR settings and, at the bottom, the Launch button (Cancel while a download runs). Above the button the pane shows the download progress, or an error in a table, or the hint <em>Pick an application which is available.</em> when nothing can be launched.</p>
+<p>The window has a list on the left and a pane on the right.</p>
+<figure>
+<svg viewBox="0 0 900 330" role="img" aria-label="Layout of the VR player window">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="group" x="10" y="10" width="880" height="310" rx="10"/><text class="title" x="24" y="32">VRPlayer</text>
+  <rect class="box" x="30" y="48" width="250" height="256" rx="6"/><text class="title" x="155" y="70" text-anchor="middle">Catalog programs</text>
+  <rect class="box2" x="46" y="84" width="218" height="52" rx="5"/><text x="155" y="106" text-anchor="middle">a card</text><text class="small" x="155" y="124" text-anchor="middle">name, description</text>
+  <rect class="box2" x="46" y="146" width="218" height="52" rx="5"/><text x="155" y="168" text-anchor="middle">a card</text><text class="small" x="155" y="186" text-anchor="middle">alphabetical by name</text>
+  <rect class="box3" x="46" y="208" width="218" height="52" rx="5"/><text x="155" y="230" text-anchor="middle">a card that cannot be launched</text><text class="small" x="155" y="248" text-anchor="middle">with the reason</text>
+  <rect class="box" x="310" y="48" width="560" height="256" rx="6"/><text class="title" x="590" y="70" text-anchor="middle">The selected program</text>
+  <text class="small" x="330" y="96">name; the reason if it is unavailable; the download size if it has to be downloaded</text>
+  <text class="small" x="330" y="118">description</text>
+  <text class="small" x="330" y="140">VR settings: Device, Depth, Image quality</text>
+  <rect class="box4" x="330" y="160" width="520" height="56" rx="5"/><text x="590" y="182" text-anchor="middle">status line</text><text class="small" x="590" y="200" text-anchor="middle">download progress, or an error in a table, or: Pick an application which is available.</text>
+  <rect class="box2" x="330" y="232" width="520" height="52" rx="6"/><text x="590" y="263" text-anchor="middle">Launch (Cancel while a download runs)</text>
+</svg>
+<figcaption>The right pane lists what is known of the selected program; above the button it shows the progress or the reason nothing starts.</figcaption>
+</figure>
+<table>
+<tr><th>Part</th><th>Content</th></tr>
+<tr><td>Left list</td><td>The catalog programs, alphabetically by name. A card shows the name, the description, and the reason when the program cannot be launched.</td></tr>
+<tr><td>Right pane</td><td>The name, the reason if the program is unavailable, the download size if it has to be downloaded, the description, the VR settings and, at the bottom, the Launch button (Cancel while a download runs).</td></tr>
+<tr><td>Above the button</td><td>The download progress, or an error in a table, or the hint <em>Pick an application which is available.</em> when nothing can be launched.</td></tr>
+</table>
 
 <h2 id="start">Starting it</h2>
 <pre><code>VRPlayer.exe [--catalog file.json] [--log]</code></pre>
-<p>Without <code>--catalog</code> the catalog is the first <code>apps.json</code> found next to <code>VRPlayer.exe</code>, in an <code>apps\</code> next to it, or in the <code>apps\</code> of the folder above. A catalog that cannot be read is shown in the window, with the reason. An entry whose recipe cannot be found or is not valid, whose program cannot be found (and which has no download), or which says <code>unavailable_reason</code>, is listed with the reason and cannot be launched. The programs it starts (<code>StereoLauncher_x86.exe</code> or <code>_x64</code> by the architecture of the application, and <code>StereoPresenter_x64.exe</code>) are looked for in <code>runtime\</code> beside it, and beside it when there is no such folder. <code>--log</code> is passed on to both; see <a href="#logs">Logs</a>.</p>
+<table>
+<tr><th>Item</th><th>Behaviour</th></tr>
+<tr><td>Catalog</td><td>Without <code>--catalog</code>, the first <code>apps.json</code> found next to <code>VRPlayer.exe</code>, in an <code>apps\</code> next to it, or in the <code>apps\</code> of the folder above. A catalog that cannot be read is shown in the window, with the reason.</td></tr>
+<tr><td>Unavailable entries</td><td>An entry whose recipe cannot be found or is not valid, whose program cannot be found (and which has no download), or which says <code>unavailable_reason</code>, is listed with the reason and cannot be launched.</td></tr>
+<tr><td>Programs it starts</td><td><code>StereoLauncher_x86.exe</code> or <code>_x64</code> by the architecture of the application, and <code>StereoPresenter_x64.exe</code>. They are looked for in <code>runtime\</code> beside it, and beside it when there is no such folder.</td></tr>
+<tr><td><code>--log</code></td><td>Passed on to both; see <a href="#logs">Logs</a>.</td></tr>
+</table>
 
 <h2 id="download">The first launch</h2>
-<p>The programs of the catalog are listed alphabetically by name. The right pane says of a program that is not on the computer that it is downloaded the first time it is launched, with the size. Launch starts the download (the zip file, from the addresses of the catalog, one after the other until one works), and the window shows the progress, with a button to cancel. The file is checked against the hash of the catalog and unpacked into <code>apps\&lt;id&gt;\</code> beside <code>VRPlayer.exe</code>, and the program then starts by itself. The next launches start it at once. If the download or the installation fails (the network, a file which is not the expected one, a folder which cannot be written to, a virus scanner which removes the program), a window says what, and nothing is left half done; a launch that fails is reported in a table above the Launch button.</p>
+<p>The right pane says of a program that is not on the computer that it is downloaded the first time it is launched, with the size. Launch starts the download and the program then starts by itself. The next launches start it at once.</p>
+<figure>
+<svg viewBox="0 0 900 200" role="img" aria-label="Steps of the first launch of a program that is not installed">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="box" x="10" y="30" width="160" height="70" rx="6"/><text x="90" y="55" text-anchor="middle">1 download</text><text class="small" x="90" y="73" text-anchor="middle">the zip file, from the</text><text class="small" x="90" y="88" text-anchor="middle">addresses of the catalog</text>
+  <rect class="box" x="190" y="30" width="160" height="70" rx="6"/><text x="270" y="55" text-anchor="middle">2 check</text><text class="small" x="270" y="73" text-anchor="middle">against the hash</text><text class="small" x="270" y="88" text-anchor="middle">of the catalog</text>
+  <rect class="box" x="370" y="30" width="160" height="70" rx="6"/><text x="450" y="55" text-anchor="middle">3 unpack</text><text class="small" x="450" y="73" text-anchor="middle">into apps\&lt;id&gt;\</text><text class="small" x="450" y="88" text-anchor="middle">beside VRPlayer.exe</text>
+  <rect class="box2" x="550" y="30" width="160" height="70" rx="6"/><text x="630" y="55" text-anchor="middle">4 launch</text><text class="small" x="630" y="73" text-anchor="middle">the program starts</text><text class="small" x="630" y="88" text-anchor="middle">by itself</text>
+  <rect class="box3" x="730" y="30" width="160" height="70" rx="6"/><text x="810" y="55" text-anchor="middle">a failure</text><text class="small" x="810" y="73" text-anchor="middle">a window says what;</text><text class="small" x="810" y="88" text-anchor="middle">nothing left half done</text>
+  <path class="arrow" d="M170 65H188"/><path class="arrow" d="M350 65H368"/><path class="arrow" d="M530 65H548"/>
+  <path class="dashed" d="M90 100V140H810V102"/>
+  <text class="small" x="450" y="164" text-anchor="middle">the addresses are tried one after the other until one works; a button cancels the download</text>
+</svg>
+<figcaption>Any step can fail; the dashed line is where each one ends.</figcaption>
+</figure>
+<ul>
+  <li>The window shows the progress, with a button to cancel.</li>
+  <li>If the download or the installation fails (the network, a file which is not the expected one, a folder which cannot be written to, a virus scanner which removes the program), a window says what, and nothing is left half done.</li>
+  <li>A launch that fails is reported in a table above the Launch button.</li>
+</ul>
 
 <h2 id="launch">The launch sequence</h2>
 <p><code>AppSession::start()</code> does the following, in this order. The order is the reason for each step.</p>
@@ -54,40 +114,73 @@
 </svg>
 <figcaption>Steps 2 and 3 come first so that what is said through the channel is there when the converter first looks, and so that nothing started can get out of the job.</figcaption>
 </figure>
-<p>The window comes before the launcher so that it is there when the first image arrives. The two helpers are suspended until they are in the job, since a process that starts another before that would leave one outside it. The pipe keeps what the launcher says, so the window can show why a program stopped.</p>
+<table>
+<tr><th>Rule</th><th>Reason</th></tr>
+<tr><td>The window (presenter) comes before the launcher.</td><td>It is there when the first image arrives.</td></tr>
+<tr><td>The two helpers are suspended until they are in the job.</td><td>A process that starts another before that would leave one outside the job.</td></tr>
+<tr><td>The launcher's output goes to a pipe.</td><td>The pipe keeps what the launcher says, so the window can show why a program stopped.</td></tr>
+</table>
 
-<h2>Pieces</h2>
+<h2 id="pieces">Pieces</h2>
 <figure>
 <svg viewBox="0 0 900 300" role="img" aria-label="VR player and viewer components">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
   <rect class="box" x="10" y="30" width="190" height="90" rx="8"/><text class="title" x="105" y="52" text-anchor="middle">VRPlayer (64-bit)</text><text class="small" x="105" y="72" text-anchor="middle">ImGui window</text><text class="small" x="105" y="88" text-anchor="middle">AppCatalog, VRDevices</text><text class="small" x="105" y="104" text-anchor="middle">AppSession</text>
-  <rect class="box" x="270" y="30" width="170" height="50" rx="6"/><text x="355" y="52" text-anchor="middle">StereoLauncher</text><text class="small" x="355" y="68" text-anchor="middle">32-bit, injects</text>
-  <rect class="box4" x="270" y="100" width="170" height="50" rx="6"/><text x="355" y="122" text-anchor="middle">Program + StereoConverterDLL</text><text class="small" x="355" y="138" text-anchor="middle">32-bit</text>
+  <rect class="box" x="250" y="30" width="210" height="50" rx="6"/><text x="355" y="52" text-anchor="middle">StereoLauncher</text><text class="small" x="355" y="68" text-anchor="middle">32-bit, injects</text>
+  <rect class="box4" x="250" y="100" width="210" height="50" rx="6"/><text x="355" y="122" text-anchor="middle">Program + StereoConverterDLL</text><text class="small" x="355" y="138" text-anchor="middle">32-bit</text>
   <rect class="box" x="520" y="60" width="150" height="60" rx="6"/><text x="595" y="82" text-anchor="middle">StereoPresenter</text><text class="small" x="595" y="98" text-anchor="middle">64-bit</text><text class="small" x="595" y="112" text-anchor="middle">sinks</text>
   <rect class="box2" x="730" y="20" width="150" height="40" rx="6"/><text x="805" y="45" text-anchor="middle">preview window</text>
   <rect class="box2" x="730" y="75" width="150" height="40" rx="6"/><text x="805" y="100" text-anchor="middle">HeadsetSink</text>
   <rect class="box2" x="730" y="130" width="150" height="40" rx="6"/><text x="805" y="148" text-anchor="middle">D3D12FrameUploader</text>
-  <rect class="box2" x="730" y="185" width="150" height="40" rx="6"/><text x="805" y="203" text-anchor="middle">HeadsetSession (OpenXR)</text>
-  <path class="arrow" d="M200 60H268"/><path class="arrow" d="M355 80V98"/><path class="arrow" d="M440 125L518 100"/>
+  <rect class="box2" x="718" y="185" width="170" height="40" rx="6"/><text x="803" y="203" text-anchor="middle">HeadsetSession (OpenXR)</text>
+  <path class="arrow" d="M200 60H248"/><path class="arrow" d="M355 80V98"/><path class="arrow" d="M460 125L518 100"/>
   <path class="arrow" d="M670 85L728 45"/><path class="arrow" d="M670 95L728 95"/><path class="arrow" d="M805 115V128"/><path class="arrow" d="M805 170V183"/>
-  <path class="arrow" d="M200 100Q230 160 518 125"/>
-  <text class="small" x="380" y="195">VR player controls (depth, IPD scale, overlay push, eye size, pace) travel through the frame channel</text>
+  <path class="arrow" d="M105 120V215H595V122"/>
+  <text class="small" x="10" y="270">VR player controls (depth, IPD scale, overlay push, eye size, pace) travel through the frame channel</text>
 </svg>
 <figcaption>The presenter shows the preview window; when a headset is chosen the headset sink reads the frames instead (the channel has room for one reader), and the window says so.</figcaption>
 </figure>
-<p>While the headset is shown, the window says <em>Frame N</em> (the presents of the application, counted from 0 by the converter, as the replay counts frames) and <em>t</em> (seconds since the converter started, which is about the first call of the application). They travel with each frame through the channel, so a glitch can be named by frame and time; <em>t</em> is close to the times of the analysis timelines for a run of the same demo, but not equal, since the two runs differ in what they wait for.</p>
+<table>
+<tr><th>Piece</th><th>Role</th></tr>
+<tr><td><code>VRPlayer</code></td><td>The window; reads the catalog and starts a session (<code>AppSession</code>).</td></tr>
+<tr><td><code>StereoLauncher</code></td><td>Starts the program suspended and injects the converter DLL.</td></tr>
+<tr><td>Program + <code>StereoConverterDLL</code></td><td>The program, with the converter that makes both eyes inside it.</td></tr>
+<tr><td><code>StereoPresenter</code></td><td>Receives the frames through the channel and sends them to a sink: the preview window or the headset.</td></tr>
+</table>
+<h3>Frame number and time</h3>
+<p>While the headset is shown, the window says <em>Frame N</em> (the presents of the application, counted from 0 by the converter, as the replay counts frames) and <em>t</em> (seconds since the converter started, which is about the first call of the application). They travel with each frame through the channel, so a glitch can be named by frame and time. <em>t</em> is close to the times of the analysis timelines for a run of the same program, but not equal, since the two runs differ in what they wait for.</p>
 
-<h2>Controls</h2>
+<h2 id="controls">Controls</h2>
 <table>
 <tr><th>Control</th><th>What it does</th></tr>
 <tr><td><em>Device</em></td><td>The output: a headset found through OpenXR, or the preview window alone.</td></tr>
 <tr><td><em>Depth</em></td><td>Reduced, Natural or More: a strength that scales the eye separation of each scene. The comfort limit of the recipe is a ceiling that no choice passes. It can be changed while the program runs.</td></tr>
 <tr><td><em>Image quality</em></td><td>Full (the resolution of the headset, from OpenXR, with the proportions of the program), Half of the pixels and A quarter of the pixels; the last two are for a graphics card that cannot keep up. Set when the program starts; no effect without a headset.</td></tr>
 </table>
-<p>Three things have no control: the 2D overlays are pushed toward the viewer by the amount the recipe gives (<code>comfort.overlay_parallax</code>) for a program whose recipe has one, the program is paced to the headset, and no log is written unless <code>VRPlayer</code> is started with <code>--log</code>. The pacing and the log are options of the programs that VR Player starts (<code>--no-pacing</code>, <code>--log</code>).</p>
-<p>The distance between the eyes of the person is read from OpenXR while the program runs, and its ratio to 64 mm (limited to 0.7 to 1.4) scales the separation, so a narrow or wide IPD is followed without a control.</p>
+<h3>Without a control</h3>
+<table>
+<tr><th>What</th><th>How it is set</th></tr>
+<tr><td>2D overlays</td><td>Pushed toward the viewer by the amount the recipe gives (<code>comfort.overlay_parallax</code>) for a program whose recipe has one.</td></tr>
+<tr><td>Pacing</td><td>The program is paced to the headset. An option of the programs that VR Player starts: <code>--no-pacing</code>.</td></tr>
+<tr><td>Log</td><td>None is written unless <code>VRPlayer</code> is started with <code>--log</code> (an option of the programs it starts too).</td></tr>
+<tr><td>Distance between the eyes</td><td>Read from OpenXR while the program runs; its ratio to 64 mm (limited to 0.7 to 1.4) scales the separation, so a narrow or wide IPD is followed.</td></tr>
+</table>
 
-<h2>Headset path</h2>
+<h2 id="headset">Headset path</h2>
+<figure>
+<svg viewBox="0 0 900 250" role="img" aria-label="How a frame reaches the headset">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="box3" x="10" y="40" width="150" height="80" rx="6"/><text x="85" y="66" text-anchor="middle">frame channel</text><text class="small" x="85" y="84" text-anchor="middle">shared memory,</text><text class="small" x="85" y="100" text-anchor="middle">both eyes in a buffer</text>
+  <rect class="box" x="190" y="40" width="160" height="80" rx="6"/><text x="270" y="66" text-anchor="middle">D3D12FrameUploader</text><text class="small" x="270" y="84" text-anchor="middle">memory opened as a heap,</text><text class="small" x="270" y="100" text-anchor="middle">cross-adapter buffer</text>
+  <rect class="box" x="380" y="40" width="160" height="80" rx="6"/><text x="460" y="66" text-anchor="middle">HeadsetSink thread</text><text class="small" x="460" y="84" text-anchor="middle">newest frame about</text><text class="small" x="460" y="100" text-anchor="middle">every millisecond</text>
+  <rect class="box2" x="570" y="40" width="150" height="80" rx="6"/><text x="645" y="66" text-anchor="middle">OpenXR swapchain</text><text class="small" x="645" y="84" text-anchor="middle">one image per eye,</text><text class="small" x="645" y="100" text-anchor="middle">copied from the buffer</text>
+  <rect class="box4" x="750" y="40" width="140" height="80" rx="6"/><text x="820" y="66" text-anchor="middle">screen layers</text><text class="small" x="820" y="84" text-anchor="middle">a quad or a cylinder,</text><text class="small" x="820" y="100" text-anchor="middle">one per eye</text>
+  <path class="arrow" d="M160 80H188"/><path class="arrow" d="M350 80H378"/><path class="arrow" d="M540 80H568"/><path class="arrow" d="M720 80H748"/>
+  <rect class="box3" x="190" y="160" width="530" height="56" rx="6"/><text x="455" y="184" text-anchor="middle">before the first frame: swap chains made at the recommended eye size,</text><text x="455" y="204" text-anchor="middle">every image cleared to black on the GPU, black shown from the start</text>
+  <path class="arrow" d="M455 160V122"/>
+</svg>
+<figcaption>The pace comes from the headset thread and the compositor, not from the screen of the PC.</figcaption>
+</figure>
 <ol>
   <li>The presenter maps the frame channel and the uploader opens its memory as a D3D12 heap (at the allocation base of the mapped view; a pointer inside the view does not work) and places a cross-adapter buffer over it.</li>
   <li>A thread of the headset sink takes the newest frame from the channel about every millisecond, so that nothing which waits for the screen of the PC (a window that is drawn once a refresh) sets its pace.</li>
@@ -97,16 +190,39 @@
   <li>A recenter action puts the screen in front of the viewer again.</li>
 </ol>
 
-<h2>Code map</h2>
-<p><code>HeadsetSession</code> keeps its state in a private <code>Impl</code> (<code>headset_session_impl.h</code>) and is implemented in four files: <code>headset_session.cpp</code> (interface, logging), <code>headset_session_setup.cpp</code> (runtime, device, session, spaces, swap chain format, recenter action), <code>headset_session_swapchains.cpp</code> (the images of the eyes) and <code>headset_session_frame.cpp</code> (events and the frames of the compositor, the screen layers).</p>
-<p>The window and <code>AppSession</code> (which starts the launcher and the presenter) are the program, in <code>src/vr_player</code>. What does not draw is the library <code>libs/vr_player</code> (target <code>VRPlayerBackend</code>), in the namespace <code>VRPlayer</code> as the program is: <code>AppCatalog</code> reads the catalog, and <code>AppInstaller</code> installs a program that is not on the computer, with the download, the hash and the unpacking of <code>Utils::Files</code>. The window is an <code>IImGuiWindowHost</code> (<code>Utils::UIHost</code>, <code>libs/utils/ui_host</code>), which the presenter and the replay player use too. The headset is <code>libs/headset</code>.</p>
-
-<h2>Devices</h2>
-<p>The device dropdown is filled by <code>OpenXrVrDeviceProvider</code>. With no OpenXR runtime or headset it shows only <em>2D preview only</em> and is disabled; Launch works. With a headset, <em>2D preview only</em> is the last entry of the list, and a device that cannot be used is listed as <em>(unavailable)</em>, with the reason as a tooltip.</p>
+<h2 id="devices">Devices</h2>
+<p>The device dropdown is filled by <code>OpenXrVrDeviceProvider</code>.</p>
+<table>
+<tr><th>Situation</th><th>The dropdown</th></tr>
+<tr><td>No OpenXR runtime or headset</td><td>Shows only <em>2D preview only</em> and is disabled; Launch works.</td></tr>
+<tr><td>A headset</td><td><em>2D preview only</em> is the last entry of the list.</td></tr>
+<tr><td>A device that cannot be used</td><td>Listed as <em>(unavailable)</em>, with the reason as a tooltip.</td></tr>
+</table>
 <div class="note"><strong>Windows:</strong> the active OpenXR runtime must be set in the vendor's software (for a Quest, Meta Quest Link). If the registry names a runtime that is not installed, the loader finds none and the presenter logs “The headset is not used” and keeps showing frames in the window.</div>
 
 <h2 id="logs">Logs</h2>
-<p>With <code>--log</code> on StereoLauncher, or on VRPlayer (which passes it on to both programs), a session writes <code>%TEMP%\apistereo_&lt;session&gt;.log</code>; without it, only what stops the application or the headset is written. Lines ending in “(presenter)” come from the headset path. Each second it has three lines of timings, in milliseconds, as count, mean, worst and how many were late: <em>Pacing</em> (the converter: the presents of the program, the frames passed on, what the copies cost, the wait for the screen), <em>Frames to the headset</em> (the presenter: when the frames arrive, taking the images, the copy to them, how far into a frame the images are ready, the delay of the pace) and <em>Frames of the compositor</em> (the frames of the headset, and how many showed new images, repeated ones or none). They tell where a stutter comes from.</p>
+<p>With <code>--log</code> on StereoLauncher, or on VRPlayer (which passes it on to both programs), a session writes <code>%TEMP%\apistereo_&lt;session&gt;.log</code>; without it, only what stops the application or the headset is written. Lines ending in “(presenter)” come from the headset path.</p>
+<p>Each second the log has three lines of timings, in milliseconds, as count, mean, worst and how many were late. They tell where a stutter comes from.</p>
+<table>
+<tr><th>Line</th><th>Written by</th><th>What it times</th></tr>
+<tr><td><em>Pacing</em></td><td>the converter</td><td>The presents of the program, the frames passed on, what the copies cost, the wait for the screen.</td></tr>
+<tr><td><em>Frames to the headset</em></td><td>the presenter</td><td>When the frames arrive, taking the images, the copy to them, how far into a frame the images are ready, the delay of the pace.</td></tr>
+<tr><td><em>Frames of the compositor</em></td><td>the presenter</td><td>The frames of the headset, and how many showed new images, repeated ones or none.</td></tr>
+</table>
+
+<h2 id="code-map">Code map</h2>
+<table>
+<tr><th>Where</th><th>What</th></tr>
+<tr><td><code>HeadsetSession</code></td><td>Keeps its state in a private <code>Impl</code> (<code>headset_session_impl.h</code>) and is implemented in four files.</td></tr>
+<tr><td><code>headset_session.cpp</code></td><td>Interface, logging.</td></tr>
+<tr><td><code>headset_session_setup.cpp</code></td><td>Runtime, device, session, spaces, swap chain format, recenter action.</td></tr>
+<tr><td><code>headset_session_swapchains.cpp</code></td><td>The images of the eyes.</td></tr>
+<tr><td><code>headset_session_frame.cpp</code></td><td>Events and the frames of the compositor, the screen layers.</td></tr>
+<tr><td><code>src/vr_player</code></td><td>The window and <code>AppSession</code> (which starts the launcher and the presenter): the program.</td></tr>
+<tr><td><code>libs/vr_player</code> (target <code>VRPlayerBackend</code>)</td><td>What does not draw, in the namespace <code>VRPlayer</code> as the program is: <code>AppCatalog</code> reads the catalog, and <code>AppInstaller</code> installs a program that is not on the computer, with the download, the hash and the unpacking of <code>Utils::Files</code>.</td></tr>
+<tr><td><code>libs/utils/ui_host</code></td><td>The window is an <code>IImGuiWindowHost</code> (<code>Utils::UIHost</code>), which the presenter and the replay player use too.</td></tr>
+<tr><td><code>libs/headset</code></td><td>The headset.</td></tr>
+</table>
 </main>
 </body>
 </html>

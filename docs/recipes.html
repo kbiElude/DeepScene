@@ -91,15 +91,15 @@
 </table>
 <p>The exit codes are 0 (done), 1 (bad arguments), 2 (a file cannot be read), 3 (the recipe cannot be baked), 4 (the file cannot be written), and 5 and 6 from <code>--check</code>.</p>
 <h3>Tuning comfort with <code>--scenes</code></h3>
-<p>The screen of the headset that the recipe of Gerbera is made for is 73.6 degrees wide, so pass <code>--screen-degrees 73.6</code> for it: its limits are the widths that make 1.5 and 1 degrees. The limits of a recipe are parts of the width of the picture, so a recipe made for one width is weaker or stronger on another. Keep the near limit at about 1.5 degrees and the far limit at about 1, check the scenes that are flattest, and set what a cut needs in <code>scene_overrides</code>. The converter can write frames of each scene to look at (<code>APISTEREO_DUMP_SCENES</code>; see <a href="live-conversion.html#log">Live conversion</a>).</p>
+<p>Pass the width of the headset screen the limits were tuned for, as in <code>--screen-degrees 73.6</code> for a screen 73.6 degrees wide: the limits are then the widths that make 1.5 and 1 degrees. The limits of a recipe are parts of the width of the picture, so a recipe made for one width is weaker or stronger on another. Keep the near limit at about 1.5 degrees and the far limit at about 1, check the scenes that are flattest, and set what a cut needs in <code>scene_overrides</code>. The converter can write frames of each scene to look at (<code>APISTEREO_DUMP_SCENES</code>; see <a href="live-conversion.html#log">Live conversion</a>).</p>
 
 <h2 id="making">How one is made</h2>
-<p>The steps are captured in <a href="adding-an-app.html">Adding an app</a>: capture, extract, investigate the analysis (an LLM reading the query tool's JSON is good at this), draft the rules, bake, check offline with the <a href="replay.html">replay tools</a>, try live. The recipes that ship are in <code>apps/recipes</code>:</p>
+<p>The steps are captured in <a href="adding-an-app.html">Adding an app</a>: capture, extract, investigate the analysis (an LLM reading the query tool's JSON is good at this), draft the rules, bake, check offline with the <a href="replay.html">replay tools</a>, try live. The recipes that ship are in <code>apps/recipes</code>, one per supported program; between them they cover these kinds:</p>
 <table>
-<tr><th>Recipe</th><th>Program</th><th>What it uses</th></tr>
-<tr><td><code>fr08.json</code></td><td>fr08 (Direct3D 8)</td><td><code>eye_offset</code> and <code>eye_convergence</code> rules on <code>SetTransform</code>, <code>comfort</code>, an <code>unaffected</code> list.</td></tr>
-<tr><td><code>kasparov.json</code></td><td>Kasparov (DirectDraw 7 and Direct3D 7)</td><td>no rules; <code>comfort</code>, <code>screen_parallax</code> for its pre-transformed vertices.</td></tr>
-<tr><td><code>gerbera.json</code></td><td>Gerbera (OpenGL)</td><td>no rules; <code>view_anchor_shift</code>, <code>cache_pixel_reads</code>, <code>pushed</code> (with <code>part_cover_keys</code>), <code>unaffected</code>, <code>comfort</code> with <code>measure_depth</code>, <code>balance_convergence</code>, <code>camera_attached_depth</code>, <code>eye_space_cover_keys</code>, <code>part_parallax</code> and <code>scene_overrides</code>.</td></tr>
+<tr><th>Kind of program</th><th>What its recipe uses</th></tr>
+<tr><td>Direct3D 8, matrices</td><td><code>eye_offset</code> and <code>eye_convergence</code> rules on <code>SetTransform</code>, <code>comfort</code>, an <code>unaffected</code> list.</td></tr>
+<tr><td>Direct3D 7, vertices in pixels</td><td>no rules; <code>comfort</code>, <code>screen_parallax</code> for its pre-transformed vertices.</td></tr>
+<tr><td>OpenGL</td><td>no rules; <code>view_anchor_shift</code>, <code>cache_pixel_reads</code>, <code>pushed</code> (with <code>part_cover_keys</code>), <code>unaffected</code>, <code>comfort</code> with <code>measure_depth</code>, <code>balance_convergence</code>, <code>camera_attached_depth</code>, <code>eye_space_cover_keys</code>, <code>part_parallax</code> and <code>scene_overrides</code>.</td></tr>
 </table>
 
 <h2 id="format">The format</h2>
@@ -107,13 +107,13 @@
 <p>Three fields cannot be left out: <code>recipe_version</code> (0), <code>key_scheme_version</code> and <code>rules</code>. A section that a recipe does not need is left out; the sections below say what that means.</p>
 
 <h3 id="format-small">A small recipe</h3>
-<p>This is the whole hand-written part of <code>apps/recipes/kasparov.json</code>, a Direct3D 7 program whose vertices are in pixels (the baked section is added after it):</p>
+<p>This is the whole hand-written part of a recipe for a Direct3D 7 program whose vertices are in pixels (the baked section is added after it):</p>
 <pre><code>{
   "recipe_version": 0,
   "key_scheme_version": 1,
   "target": {
-    "name": "Kasparov",
-    "description": "Elitegroup, 1999 (the PC demo of The Party 1999)"
+    "name": "Example",
+    "description": "A Direct3D 7 demo"
   },
   "comfort": {
     "max_near_parallax": 0.03,
@@ -125,7 +125,7 @@
   },
   "rules": []
 }</code></pre>
-<p>A recipe for Direct3D 8 (fr08) has <code>rules</code> that change matrices instead, and an <code>unaffected</code> list of the passes that are the interface. A recipe for OpenGL has <code>"rules": []</code>, which must still be there, and gets its eyes from <code>view_anchor_shift</code>. The sections follow, in the order a recipe is usually written.</p>
+<p>A recipe for a Direct3D 8 program has <code>rules</code> that change matrices instead, and an <code>unaffected</code> list of the passes that are the interface. A recipe for OpenGL has <code>"rules": []</code>, which must still be there, and gets its eyes from <code>view_anchor_shift</code>. The sections follow, in the order a recipe is usually written.</p>
 
 <h3 id="format-top">The top of the file</h3>
 <table>

@@ -75,7 +75,7 @@
 <tr><td><strong>Frame</strong></td><td>The calls up to a present (or a flip). Every present is a frame.</td></tr>
 <tr><td><strong>Pass</strong></td><td>Draws that render into the same targets in one go.</td></tr>
 <tr><td><strong>Draw signature</strong></td><td>A 64-bit key that says what a draw is <em>at the moment it is issued</em>: the one thing a converter inside a running program can know of a draw (<a href="analysis.html#keys">Names that survive a restart</a>).</td></tr>
-<tr><td><strong>Frame shape</strong></td><td>The kinds of passes a frame is made of. A capture of a demo has hundreds of thousands of frames and a few dozen shapes.</td></tr>
+<tr><td><strong>Frame shape</strong></td><td>The kinds of passes a frame is made of. A capture of a program has hundreds of thousands of frames and a few dozen shapes.</td></tr>
 <tr><td><strong>Recipe</strong></td><td>A JSON file that says how to treat each draw of one program: scene or interface, and the numbers that go with it (<a href="recipes.html">Recipes</a>).</td></tr>
 <tr><td><strong>Eye separation</strong></td><td>The distance between the two cameras, in the units of the program's camera.</td></tr>
 <tr><td><strong>Convergence distance</strong></td><td>The distance from the camera at which the pictures of the two eyes coincide. What is there appears at the screen; nearer things stand out of it, farther ones lie behind it.</td></tr>
@@ -87,6 +87,22 @@
 
 <h2 id="api">What is supported</h2>
 <p>What depends on an API is exactly the row of this table; everything else (the model of the analysis, the keys, the recipe format, the decisions of the stereo core, the frame channel, the presenter and the player) does not know which API a program uses.</p>
+<figure>
+<svg viewBox="0 0 900 250" role="img" aria-label="What depends on the API and what does not">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="group" x="10" y="8" width="880" height="100" rx="10"/><text class="title" x="24" y="30">One set for each API</text>
+  <rect class="box3" x="30" y="44" width="190" height="50" rx="6"/><text x="125" y="66" text-anchor="middle">hooks and dump</text><text class="small" x="125" y="82" text-anchor="middle">API Interceptor</text>
+  <rect class="box3" x="250" y="44" width="190" height="50" rx="6"/><text x="345" y="66" text-anchor="middle">printer</text><text class="small" x="345" y="82" text-anchor="middle">API Interceptor</text>
+  <rect class="box3" x="470" y="44" width="190" height="50" rx="6"/><text x="565" y="66" text-anchor="middle">analysis front end</text><text class="small" x="565" y="82" text-anchor="middle">what the calls mean</text>
+  <rect class="box3" x="690" y="44" width="180" height="50" rx="6"/><text x="780" y="66" text-anchor="middle">replay executor,</text><text x="780" y="82" text-anchor="middle">converter adapter</text>
+  <rect class="group" x="10" y="130" width="880" height="110" rx="10"/><text class="title" x="24" y="152">The same for every API</text>
+  <rect class="box" x="30" y="170" width="190" height="56" rx="6"/><text x="125" y="194" text-anchor="middle">model, keys</text><text class="small" x="125" y="212" text-anchor="middle">of the analysis</text>
+  <rect class="box" x="250" y="170" width="190" height="56" rx="6"/><text x="345" y="194" text-anchor="middle">recipe format,</text><text class="small" x="345" y="212" text-anchor="middle">stereo core decisions</text>
+  <rect class="box" x="470" y="170" width="190" height="56" rx="6"/><text x="565" y="194" text-anchor="middle">frame channel,</text><text class="small" x="565" y="212" text-anchor="middle">presenter</text>
+  <rect class="box" x="690" y="170" width="180" height="56" rx="6"/><text x="780" y="194" text-anchor="middle">VR player</text>
+</svg>
+<figcaption>Adding an API means writing the top row for it; the bottom row stays as it is.</figcaption>
+</figure>
 <table>
 <tr><th>API</th><th>Hooks and dump</th><th>Printer</th><th>Analysis</th><th>Replay</th><th>Stereo conversion</th></tr>
 <tr><td>DirectDraw 7 and Direct3D 7</td><td>yes</td><td>yes</td><td>yes (front end)</td><td>yes (executor)</td><td>yes (adapter)</td></tr>
@@ -97,7 +113,7 @@
 <p>Adding an API means adding its row: see <a href="contributing.html#new-api">Adding an API</a>.</p>
 <p>The converter handles Direct3D 8 programs whose camera is set with <code>SetTransform</code>, Direct3D 7 programs whose vertices are in pixels, and OpenGL programs of the fixed function (the camera is the model-view matrix).</p>
 <p>The supported applications are 32-bit, so the converter and the launcher that go with them are built 32-bit; the player and the presenter are 64-bit. Only the Oculus Quest 3 is tested as a headset.</p>
-<p>The catalog has one demo for each API: fr08 (Direct3D 8), Kasparov (Direct3D 7) and Gerbera (OpenGL).</p>
+<p>The catalog has one program for each of Direct3D 7, Direct3D 8 and OpenGL.</p>
 
 <h2>Where to go next</h2>
 <div class="cards">

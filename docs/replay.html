@@ -28,14 +28,40 @@
 <p class="lead">Executing the calls of a workload again, without the program. Here it is done for both eyes: it is where recipes are tried, where a frame is checked to be drawable twice, and the proving ground for what the live converter does inside a running program.</p>
 <ol class="toc">
   <li><a href="#engine">The engine</a></li>
-  <li><a href="#two-eyes">Two eyes</a></li>
-  <li><a href="#seek">Seeking</a></li>
+  <li><a href="#two-eyes">Two eyes</a>
+    <ul>
+      <li><a href="#two-eyes-state">Putting the state back</a></li>
+      <li><a href="#two-eyes-gl">OpenGL: what is made once, what twice</a></li>
+      <li><a href="#two-eyes-anchor">OpenGL: the camera</a></li>
+      <li><a href="#two-eyes-textures">OpenGL: the textures</a></li>
+      <li><a href="#two-eyes-other">Pushed draws and vertices in pixels</a></li>
+    </ul>
+  </li>
+  <li><a href="#seek">Seeking</a>
+    <ul>
+      <li><a href="#seek-needs">What it needs and who does it</a></li>
+      <li><a href="#seek-gl">OpenGL: what a dead frame leaves out</a></li>
+      <li><a href="#seek-more">More rules of the OpenGL replay</a></li>
+    </ul>
+  </li>
   <li><a href="#programs">The programs</a></li>
-  <li><a href="#checking">What the checker is for</a></li>
+  <li><a href="#checking">What the checker is for</a>
+    <ul>
+      <li><a href="#checking-modes">The modes</a></li>
+      <li><a href="#checking-overlay">The overlay report</a></li>
+      <li><a href="#checking-images">Where the images come from</a></li>
+    </ul>
+  </li>
 </ol>
 
 <h2 id="engine">The engine</h2>
-<p>The replay engine belongs to API Interceptor (<code>ReplayEngineCore</code>, a static library; see its <a href="../deps/APIInterceptor/docs/capture.html">documentation</a>). It walks the calls of a workload one after the other with an executor for each API, and knows nothing of stereo. What this project adds goes in through two interfaces of the engine: an <code>IFrameExecutor</code>, which plays the calls of a frame (the engine presents the frame and pauses between two), and the executors of the calls, which a class can derive from. The result is <code>StereoReplayEngineDLL</code>. A program that wants to hear of frames and calls derives from <code>NullReplayObserver</code>, an observer that does nothing, and overrides what it cares about (the player's <code>FrameRangeObserver</code>, the checker's <code>StopObserver</code>).</p>
+<p>The replay engine belongs to API Interceptor (<code>ReplayEngineCore</code>, a static library; see its <a href="../deps/APIInterceptor/docs/capture.html">documentation</a>). It walks the calls of a workload one after the other with an executor for each API, and knows nothing of stereo.</p>
+<p>What this project adds goes in through two interfaces of the engine:</p>
+<ul>
+  <li>an <code>IFrameExecutor</code>, which plays the calls of a frame (the engine presents the frame and pauses between two);</li>
+  <li>the executors of the calls, which a class can derive from.</li>
+</ul>
+<p>The result is <code>StereoReplayEngineDLL</code>. A program that wants to hear of frames and calls derives from <code>NullReplayObserver</code>, an observer that does nothing, and overrides what it cares about (the player's <code>FrameRangeObserver</code>, the checker's <code>StopObserver</code>).</p>
 <figure>
 <svg viewBox="0 0 900 330" role="img" aria-label="The replay engine of the interceptor and what the project adds">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
@@ -54,11 +80,20 @@
   <rect class="box4" x="470" y="276" width="200" height="40" rx="6"/><text x="570" y="301" text-anchor="middle">consistency checker</text>
   <path class="arrow" d="M350 276V236"/><path class="arrow" d="M570 276V236"/>
 </svg>
-<figcaption>Each API has an executor of its own, registered by its API group, and a call it has no code for fails the replay instead of drawing something wrong. There is no translation of one API to another. Direct3D 7's executor replays a program in a window whatever it did: the primary surface shows the window, the back buffer of a flipping chain is a surface of the replay, and a flip is a blit to the window.</figcaption>
+<figcaption>Each API has an executor of its own, registered by its API group, and a call it has no code for fails the replay instead of drawing something wrong. There is no translation of one API to another.</figcaption>
 </figure>
+<p>Direct3D 7's executor replays a program in a window whatever it did:</p>
+<ul>
+  <li>the primary surface shows the window;</li>
+  <li>the back buffer of a flipping chain is a surface of the replay;</li>
+  <li>a flip is a blit to the window.</li>
+</ul>
 
 <h2 id="two-eyes">Two eyes</h2>
 <p>With a recipe, the engine executes every frame twice. The recipe tells, for each draw, whether it is drawn once, for each eye, or not at all (<code>RecipeApplier</code>), and the matrices of the eye are bound to the draws that are drawn per eye (<code>EyeMatrixBinder</code>), by the rules of <a href="stereo.html#matrices">Stereo</a>. A frame is rewritten (<code>FrameRewriter</code>) before it is run, and the two images go to a sink, which is how the player shows them.</p>
+
+<h3 id="two-eyes-state">Putting the state back</h3>
+<p>A frame may rely on what the frame before it left on the device (a render target not set because the last frame set it). The first execution changes that, so the second would start somewhere else, unless the state is put back.</p>
 <figure>
 <svg viewBox="0 0 900 220" role="img" aria-label="One frame executed twice with the state put back in between">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
@@ -73,13 +108,80 @@
 </svg>
 <figcaption>Without this, a frame played twice would not be the same as a frame played once for what the frame does not change between the eyes.</figcaption>
 </figure>
-<p><strong>OpenGL.</strong> The GL executor (<code>GLCallExecutor</code>) says when each call is made in a frame that is executed twice: what makes an object (<code>glGen*</code>, <code>glCreate*</code>) in the first execution only, since a second one would make others and the names that the replay maps would be lost; what deletes one (<code>glDelete*</code>) and the swap of the buffers after the last; everything else (state, matrices, draws, uploads, the lists) in each. The state is put back between the executions by <code>GLStateSaver</code>: the attribute stacks (<code>glPushAttrib</code> and <code>glPushClientAttrib</code> with all the bits) and the matrices, which they do not hold (the model-view and the projection matrix, and the texture matrix of each unit, as numbers). What the objects hold is not put back. A frame executed twice comes out as the same frame executed once (<code>--ways</code> checks it).</p>
-<p><strong>OpenGL, the eyes.</strong> A recipe with a <code>view_anchor_shift</code> (see <a href="recipes.html">Recipes</a>) gives the eyes parallax without a rule for a matrix: GL has none to rewrite, for the camera is built by calls on the model-view matrix. The front end says, for each draw, the call that begins its camera: the last load of that matrix that its stack descends from (a push copies it with the matrix, a pop gives back the one of the matrix below, and what is multiplied in leaves it). The call that is such an anchor for a draw that the recipe affects is played with the shift of the eye in place of what it loads: a <code>glLoadIdentity</code> loads the shift, a <code>glLoadMatrixf</code> or <code>glLoadMatrixd</code> loads the shift times the matrix of the program. Everything the program does next is on top, and the calls that are made relative to the camera (the position of a light, a clip plane, the planes of the coordinates of a texture) are made again for each eye, since the frame is. A call that is the anchor of draws of which some are affected and some are not, and a draw that is affected and has no anchor, stop the replay with a message that says which: the recipe leaves the draws alone, or says <code>"draws_without_anchor": "leave"</code>. Gerbera plays executed twice with <code>apps/recipes/gerbera.json</code>.</p>
-<p><strong>OpenGL, the textures.</strong> A texture that rendering fills and that a frame reads what an earlier frame left in has a copy for each eye (<code>per_eye_textures</code>): <code>StereoGLCallExecutor</code> makes the copy when the texture is first changed after the analysis knows what it is (a texture has no resource before it is given a size), with the parameters of the texture, and from then on the name that the program has is mapped to the copy of the eye, and what each unit has bound is that copy. A call that changes the texture is made for the other copy too in a frame that is executed once; in one that is executed twice each execution makes it for its own eye. The copies are deleted together. A texture that is not carried from frame to frame is shared and needs none of this: Gerbera is of that kind, and with its render target made a texture for each eye anyway the images come out as they do with one.</p>
+<table>
+<tr><th>API</th><th>How the state is put back</th></tr>
+<tr><td>Direct3D 8</td><td><code>save_state</code> and <code>restore_state</code> are a state block.</td></tr>
+<tr><td>Direct3D 7</td><td>The executor keeps the render states, texture stage states, transforms, viewport, render target and stage textures that the replayed calls set, and sets them again.</td></tr>
+<tr><td>OpenGL</td><td><code>GLStateSaver</code>; see the next section.</td></tr>
+</table>
+
+<h3 id="two-eyes-gl">OpenGL: what is made once, what twice</h3>
+<p>The GL executor (<code>GLCallExecutor</code>) says when each call is made in a frame that is executed twice:</p>
+<table>
+<tr><th>Calls</th><th>Made in</th><th>Why</th></tr>
+<tr><td>What makes an object (<code>glGen*</code>, <code>glCreate*</code>)</td><td>the first execution only</td><td>A second one would make others, and the names that the replay maps would be lost.</td></tr>
+<tr><td>What deletes one (<code>glDelete*</code>) and the swap of the buffers</td><td>the last execution only</td><td>The objects and the image are needed until the second eye is done.</td></tr>
+<tr><td>Everything else (state, matrices, draws, uploads, the lists)</td><td>each execution</td><td>Each eye needs them.</td></tr>
+</table>
+<p>The state is put back between the executions by <code>GLStateSaver</code>. It saves two things:</p>
 <ul>
-  <li><strong>The state put back.</strong> <code>save_state</code> and <code>restore_state</code> are a state block in Direct3D 8; the Direct3D 7 executor keeps the render states, texture stage states, transforms, viewport, render target and stage textures that the replayed calls set, and sets them again. OpenGL: see above (<code>GLStateSaver</code>).</li>
-  <li><strong>Pushed draws.</strong> A draw that the recipe names in <code>pushed</code> is moved by a <code>glViewport</code> that the executor plays before its first call (<code>execute_viewport_call</code>), with the origin shifted by <code>PushShiftPlanner</code>; one that the baker lists in <code>side_reaching_draws</code> is widened by the shift on each side (<code>PushShiftPlanner::make_viewport</code>), so that no edge is bare. A draw that is a baked flat layer (<code>RecipeApplier::is_cover_flat_layer</code>, with <code>comfort.automatic_layers</code>) is left alone whatever its structure is called, and does not give its camera the shift of the eye.</li>
-  <li><strong>Vertices in pixels.</strong> A program whose vertices no matrix moves (Kasparov) has no matrix to give the eyes; the engine moves the x of each vertex of an affected Direct3D 7 draw before it is played (<code>D3D7DrawRewriter</code>, using <code>Stereo::Core::ScreenParallax</code>), by the <a href="stereo.html#screen">screen-space formula</a>. A draw into a texture is moved like any other, so the texture is the picture of the eye; the quad that draws the texture to the screen is flat and stays.</li>
+  <li>the attribute stacks (<code>glPushAttrib</code> and <code>glPushClientAttrib</code> with all the bits);</li>
+  <li>the matrices, which the stacks do not hold: the model-view and the projection matrix, and the texture matrix of each unit, as numbers.</li>
+</ul>
+<p>What the objects hold is not put back. A frame executed twice comes out as the same frame executed once (<code>--ways</code> checks it).</p>
+
+<h3 id="two-eyes-anchor">OpenGL: the camera</h3>
+<p>A recipe with a <code>view_anchor_shift</code> (see <a href="recipes.html">Recipes</a>) gives the eyes parallax without a rule for a matrix: GL has none to rewrite, for the camera is built by calls on the model-view matrix.</p>
+<p>The front end says, for each draw, the call that begins its camera: the <em>anchor</em>, the last load of that matrix that its stack descends from.</p>
+<ul>
+  <li>A push copies it with the matrix.</li>
+  <li>A pop gives back the one of the matrix below.</li>
+  <li>What is multiplied in leaves it.</li>
+</ul>
+<figure>
+<svg viewBox="0 0 900 270" role="img" aria-label="The anchor call of a camera is played with the shift of each eye">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <text class="title" x="10" y="20">The calls of the program for one draw</text>
+  <rect class="box3" x="20" y="34" width="260" height="56" rx="6"/><text x="150" y="58" text-anchor="middle">anchor: glLoadIdentity</text><text class="small" x="150" y="76" text-anchor="middle">or glLoadMatrixf / glLoadMatrixd</text>
+  <rect class="box" x="320" y="34" width="260" height="56" rx="6"/><text x="450" y="58" text-anchor="middle">multiplied in on top</text><text class="small" x="450" y="76" text-anchor="middle">glTranslatef, glRotatef, ...</text>
+  <rect class="box2" x="620" y="34" width="260" height="56" rx="6"/><text x="750" y="58" text-anchor="middle">the draw</text><text class="small" x="750" y="76" text-anchor="middle">glBegin ... glEnd, array draws</text>
+  <path class="arrow" d="M280 62H318"/><path class="arrow" d="M580 62H618"/>
+  <text class="title" x="10" y="130">The same calls, played for each eye</text>
+  <rect class="box" x="20" y="144" width="260" height="46" rx="6"/><text x="150" y="164" text-anchor="middle" class="l">LEFT: loads the shift of the eye</text><text class="small" x="150" y="180" text-anchor="middle">identity: shift; matrix: shift x matrix</text>
+  <rect class="box" x="20" y="204" width="260" height="46" rx="6"/><text x="150" y="224" text-anchor="middle" class="r">RIGHT: loads the shift of the eye</text><text class="small" x="150" y="240" text-anchor="middle">identity: shift; matrix: shift x matrix</text>
+  <rect class="box3" x="320" y="144" width="560" height="106" rx="6"/><text x="600" y="172" text-anchor="middle">everything the program does next is on top, unchanged</text><text class="small" x="600" y="196" text-anchor="middle">calls made relative to the camera are made again for each eye, since the frame is:</text><text class="small" x="600" y="214" text-anchor="middle">the position of a light, a clip plane, the planes of the texture coordinates</text>
+  <path class="arrow" d="M268 90V142"/><path class="arrow" d="M280 227H318"/><path class="arrow" d="M280 167H318"/>
+</svg>
+<figcaption>Only the anchor changes; the rest of the camera is built on it as the program builds it.</figcaption>
+</figure>
+<table>
+<tr><th>Anchor call</th><th>Played, for an affected draw, as</th></tr>
+<tr><td><code>glLoadIdentity</code></td><td>a load of the shift of the eye</td></tr>
+<tr><td><code>glLoadMatrixf</code>, <code>glLoadMatrixd</code></td><td>a load of the shift times the matrix of the program</td></tr>
+</table>
+<p>Two cases stop the replay with a message that says which:</p>
+<ul>
+  <li>a call that is the anchor of draws of which some are affected and some are not;</li>
+  <li>a draw that is affected and has no anchor.</li>
+</ul>
+<p>The recipe then leaves the draws alone, or says <code>"draws_without_anchor": "leave"</code>. An OpenGL program is played executed twice with a recipe of this kind (<code>apps/recipes</code>).</p>
+
+<h3 id="two-eyes-textures">OpenGL: the textures</h3>
+<p>A texture that rendering fills, and that a frame reads what an earlier frame left in, has a copy for each eye (<code>per_eye_textures</code>).</p>
+<table>
+<tr><th>Step</th><th>What happens</th></tr>
+<tr><td>Making the copy</td><td><code>StereoGLCallExecutor</code> makes it when the texture is first changed after the analysis knows what it is (a texture has no resource before it is given a size), with the parameters of the texture.</td></tr>
+<tr><td>Naming</td><td>From then on the name that the program has is mapped to the copy of the eye, and what each unit has bound is that copy.</td></tr>
+<tr><td>A call that changes the texture</td><td>In a frame executed once it is made for the other copy too; in one executed twice each execution makes it for its own eye.</td></tr>
+<tr><td>Deleting</td><td>The copies are deleted together.</td></tr>
+</table>
+<p>A texture that is not carried from frame to frame is shared and needs none of this. For such a program, making its render target a texture for each eye anyway gives the images that one texture gives.</p>
+
+<h3 id="two-eyes-other">Pushed draws and vertices in pixels</h3>
+<ul>
+  <li><strong>Pushed draws.</strong> A draw that the recipe names in <code>pushed</code> is moved by a <code>glViewport</code> that the executor plays before its first call (<code>execute_viewport_call</code>), with the origin shifted by <code>PushShiftPlanner</code>. One that the baker lists in <code>side_reaching_draws</code> is widened by the shift on each side (<code>PushShiftPlanner::make_viewport</code>), so that no edge is bare.</li>
+  <li><strong>Baked flat layers.</strong> A draw that is a baked flat layer (<code>RecipeApplier::is_cover_flat_layer</code>, with <code>comfort.automatic_layers</code>) is left alone whatever its structure is called, and does not give its camera the shift of the eye.</li>
+  <li><strong>Vertices in pixels.</strong> A program whose vertices no matrix moves has no matrix to give the eyes. The engine moves the x of each vertex of an affected Direct3D 7 draw before it is played (<code>D3D7DrawRewriter</code>, using <code>Stereo::Core::ScreenParallax</code>), by the <a href="stereo.html#screen">screen-space formula</a>. A draw into a texture is moved like any other, so the texture is the picture of the eye; the quad that draws the texture to the screen is flat and stays.</li>
 </ul>
 
 <h2 id="seek">Seeking</h2>
@@ -100,36 +202,128 @@
   <rect class="box2" x="444" y="40" width="40" height="40" rx="4"/><text x="464" y="65" text-anchor="middle">…</text>
   <path class="arrow" d="M367 82V110"/>
   <text class="small" x="500" y="58">solid blue: played in full, since T or a frame after it reads what they wrote</text>
-  <text class="small" x="500" y="74">dashed: dead; played with draws, clears, copies and uploads left out; state and object-making calls stay</text>
-  <text class="small" x="500" y="90">frames after T: all played, so the replay can go on from T</text>
+  <text class="small" x="500" y="74">dashed: dead; played with draws, clears, copies and uploads left out;</text>
+  <text class="small" x="500" y="90">state and object-making calls stay</text><text class="small" x="500" y="106">frames after T: all played, so the replay can go on from T</text>
   <rect class="box3" x="20" y="120" width="860" height="46" rx="6"/><text x="450" y="140" text-anchor="middle">a frame is dead if nothing that T or any frame after it reads comes of it</text><text class="small" x="450" y="156" text-anchor="middle">a frame that writes only part of a resource keeps the version before it needed; one that writes all of one ends the way back</text>
   <rect class="box" x="20" y="184" width="860" height="40" rx="6"/><text x="450" y="209" text-anchor="middle">the reader of the workload also skips the data chunks (vertices, textures) that only dead frames refer to</text>
 </svg>
 <figcaption>The filter is set when a seek is asked for and applies to the segments that are still to be read, so a seek asked for before the last one was reached starts the replay over.</figcaption>
 </figure>
+
+<h3 id="seek-needs">What it needs and who does it</h3>
+<figure>
+<svg viewBox="0 0 900 250" role="img" aria-label="Inputs and classes of a seek">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="box3" x="20" y="20" width="220" height="50" rx="6"/><text x="130" y="42" text-anchor="middle">.deps of the workload</text><text class="small" x="130" y="58" text-anchor="middle">APIDumpDependencyExtractor</text>
+  <rect class="box3" x="20" y="90" width="220" height="50" rx="6"/><text x="130" y="112" text-anchor="middle">.index of the workload</text><text class="small" x="130" y="128" text-anchor="middle">APIDumpPrinter --index</text>
+  <rect class="box" x="300" y="20" width="220" height="50" rx="6"/><text x="410" y="42" text-anchor="middle">FrameSlicePlanner</text><text class="small" x="410" y="58" text-anchor="middle">makes the plan (Analysis)</text>
+  <rect class="box" x="300" y="90" width="220" height="50" rx="6"/><text x="410" y="112" text-anchor="middle">SliceSkipper</text><text class="small" x="410" y="128" text-anchor="middle">carries it out in the reader</text>
+  <rect class="box" x="300" y="160" width="220" height="50" rx="6"/><text x="410" y="182" text-anchor="middle">FrameHurry</text><text class="small" x="410" y="198" text-anchor="middle">runs the frames before T unpaced</text>
+  <rect class="box2" x="620" y="90" width="260" height="50" rx="6"/><text x="750" y="112" text-anchor="middle">the target frame</text><text class="small" x="750" y="128" text-anchor="middle">same images as a replay without a seek</text>
+  <path class="arrow" d="M240 45H298"/><path class="arrow" d="M240 115H298"/><path class="arrow" d="M410 70V88"/><path class="arrow" d="M520 115H618"/><path class="arrow" d="M520 185Q580 185 650 142"/>
+  <text class="small" x="450" y="236" text-anchor="middle">without the index every chunk is read; without the deps no frame is dead</text>
+</svg>
+<figcaption>The player takes the <code>.deps</code> file of the workload's name, or <code>--deps</code>.</figcaption>
+</figure>
+<table>
+<tr><th>Part</th><th>What it is</th></tr>
+<tr><td><code>.deps</code></td><td>The dependencies of the workload (<code>APIDumpDependencyExtractor</code>).</td></tr>
+<tr><td><code>.index</code></td><td>Needed for the chunk skipping (<code>APIDumpPrinter --index</code>); without it every chunk is read.</td></tr>
+<tr><td><code>FrameSlicePlanner</code></td><td>In <code>Analysis</code>; makes the plan.</td></tr>
+<tr><td><code>SliceSkipper</code></td><td>Carries the plan out.</td></tr>
+<tr><td><code>FrameHurry</code></td><td>Runs the frames before the target unpaced.</td></tr>
+</table>
 <ul>
-  <li><strong>What it needs:</strong> the <code>.deps</code> file of the workload (<code>APIDumpDependencyExtractor</code>; the player takes the file of the workload's name, or <code>--deps</code>), and for the chunk skipping the <code>.index</code> of the workload (<code>APIDumpPrinter --index</code>); without the index every chunk is read.</li>
-  <li><strong>Who does it:</strong> <code>FrameSlicePlanner</code> (in <code>Analysis</code>) makes the plan, <code>SliceSkipper</code> carries it out, and <code>FrameHurry</code> runs the frames before the target unpaced.</li>
   <li><strong>Correctness</strong> is checked rather than assumed: with every rule below, the images of the target frame of a seek (both eyes with a recipe) are byte for byte those of a replay without it. The checker's screenshots, with <code>--deps</code> and without, are how to check it.</li>
-  <li>A capture where every frame reads what the previous one wrote (fr08) gains nothing: no frame is dead.</li>
-  <li><strong>OpenGL:</strong> a dead frame leaves out glBegin to glEnd with the vertices between them, glClear, the array draws, glReadPixels, glCopyTexImage2D and glCopyTexSubImage2D, glDrawPixels, glBitmap and glCallList; the state, the textures and the lists are made. The calls of a list that is being made (glNewList to glEndList) are always made, so that the list has them. A call of a list is left out only if the list does draws and state and nothing of the eye's own (<code>GLDisplayListTracker</code> follows the lists as the calls come, and classes them as the analysis does, <code>GLListEyeDependence</code>); a list that loads or moves a matrix, sets a projection, a viewport or a scissor box, calls such a list, or is not defined ends the process with a message (<code>AI_ASSERT_ALWAYS</code>), since leaving it out would leave the matrices of the frames after it not as the capture had them. The reader does not make the content calls of a dead frame into calls at all (<code>SliceSkipper::get_call_kept_func_factory</code>; a segment is read by one thread, which follows glNewList and glEndList in it, so the calls of a list that is being made are kept; a list that is made across two segments ends the process the same way), and the chunks that only those calls refer to are left out; the calls of a list are left to the skipper, which knows the list. A seek to frame 20000 of Gerbera takes 16.4 s instead of 30.7 s.</li>
-  <li><strong>Readbacks:</strong> the replay of a GL workload does not make glGetFloatv, nor glReadPixels when no pixel pack buffer is bound: they only write into the memory of the application, what the app computed of them is in the calls that follow as it was dumped, and a replay has no use for the values (so a second eye needs them as little).</li>
-  <li><strong>Texture parameters:</strong> a <code>glTexParameteri</code> or <code>glTexParameterf</code> that gives a parameter of a texture the value it has is not made (<code>GLTextureParameterCache</code>, one of the interceptors of the engine): a driver takes such a call as long as one that changes something, and a workload sets the same few parameters again and again. Only the ten parameters that the twin of a texture for the other eye takes are looked at (the filters, how the coordinates wrap, the levels and their generation), so a call that is left out is one that the twin would not have changed either. The first call that gives a parameter its value is always made, since what the texture has until then is not known; and what the cache knows is forgotten, not guessed, when a call may change it without being told: a display list that sets the texture state (or is not known) is called, textures are deleted, <code>glPopAttrib</code>, a context is made or deleted, a call that another interceptor left out, and a replay that starts over.</li>
-  <li><strong>Textures filled a part at a time:</strong> a texture whose writes all say where they landed (<code>written_extent</code>) is whole again once the frames that wrote it have written all of the part that any write reaches, and the versions before those do not show in it: the way back of a frame that uses it ends there (<code>FrameSlicePlanner</code>, <code>compute_windows</code>; at most 64 versions are looked at together), at the last version that replaced all of it, which holds what the writes do not reach. A frame that is made for a version it wrote is made in part, which is to say that the replay makes all of its calls but only what flows into that version (<code>input_resource_vec</code>) is looked for in the frames before it: the draws that sample the texture after the copy to it use the texture, and what they render is not read by any frame that is made. Gerbera has one such texture, of 1024 x 512, to which 845 frames copy the same 147 x 414 rectangle; a seek into them makes 3 of the frames before the target instead of 739.</li>
-  <li><strong>State that a pop undoes:</strong> in a dead frame, between a <code>glPushAttrib</code> and its <code>glPopAttrib</code>, the reader also leaves out the calls that only give a piece of state a value which the groups of the mask save (<code>GLAttributeCoverage</code>: capabilities, materials, lights, the texture environment and generation, blend, depth, polygon and line state, the current color, normal and texture coordinates, and the like), since nothing that is made looks at the state before the pop does away with it. What is made are the push and the pop, the calls that choose where the next ones go (the active texture unit, the matrix mode, the bound texture), the parameters of textures (they change an object, which the pop does not undo), and the state of the client (the arrays and their pointers, which <code>glPushClientAttrib</code> saves and <code>glPushAttrib</code> does not). A frame that is left out has to pop what it pushes: one that ends first ends the process with a message (<code>AI_ASSERT_ALWAYS</code>), as the state that it would have left is not made; and a pair that begins in a segment and ends in the next leaves out what follows the push in the first one only. Gerbera pushes all of the attributes once in each frame, and every one of its dead frames pops them. <code>--state-census</code> says how many calls of each kind a seek does not make.</li>
+  <li>A capture where every frame reads what the previous one wrote gains nothing: no frame is dead.</li>
   <li>Frames are counted as the converter counts them live (the window of a running converter says <em>Frame N</em>), so a frame seen there can be typed here.</li>
+</ul>
+
+<h3 id="seek-gl">OpenGL: what a dead frame leaves out</h3>
+<p>A dead frame leaves out these calls: glBegin to glEnd with the vertices between them, glClear, the array draws, glReadPixels, glCopyTexImage2D and glCopyTexSubImage2D, glDrawPixels, glBitmap and glCallList. The state, the textures and the lists are made. A seek to frame 20000 of one OpenGL capture takes 16.4 s instead of 30.7 s.</p>
+<table>
+<tr><th>Case</th><th>Rule</th></tr>
+<tr><td>Calls of a list that is being made (glNewList to glEndList)</td><td>Always made, so that the list has them.</td></tr>
+<tr><td>A call of a list</td><td>Left out only if the list does draws and state and nothing of the eye's own. <code>GLDisplayListTracker</code> follows the lists as the calls come and classes them as the analysis does (<code>GLListEyeDependence</code>).</td></tr>
+<tr><td>A list that loads or moves a matrix, sets a projection, a viewport or a scissor box, calls such a list, or is not defined</td><td>Ends the process with a message (<code>AI_ASSERT_ALWAYS</code>), since leaving it out would leave the matrices of the frames after it not as the capture had them.</td></tr>
+<tr><td>The content calls of a dead frame</td><td>The reader does not make them into calls at all (<code>SliceSkipper::get_call_kept_func_factory</code>), and the chunks that only those calls refer to are left out. The calls of a list are left to the skipper, which knows the list.</td></tr>
+<tr><td>A segment</td><td>Read by one thread, which follows glNewList and glEndList in it, so the calls of a list that is being made are kept. A list that is made across two segments ends the process the same way.</td></tr>
+</table>
+
+<h3 id="seek-more">More rules of the OpenGL replay</h3>
+<table>
+<tr><th>Rule</th><th>What it does</th></tr>
+<tr><td>Readbacks</td><td>The replay does not make glGetFloatv, nor glReadPixels when no pixel pack buffer is bound: they only write into the memory of the application, what the app computed of them is in the calls that follow as it was dumped, and a replay has no use for the values (so a second eye needs them as little).</td></tr>
+<tr><td>Texture parameters</td><td>A <code>glTexParameteri</code> or <code>glTexParameterf</code> that gives a parameter of a texture the value it has is not made (<code>GLTextureParameterCache</code>, one of the interceptors of the engine): a driver takes such a call as long as one that changes something, and a workload sets the same few parameters again and again.</td></tr>
+<tr><td>Textures filled a part at a time</td><td>The way back of a frame that uses such a texture ends earlier (see below).</td></tr>
+<tr><td>State that a pop undoes</td><td>The reader leaves out the calls that only set state a pop undoes (see below).</td></tr>
+</table>
+
+<h4>Texture parameters: what the cache knows</h4>
+<ul>
+  <li>Only the ten parameters that the twin of a texture for the other eye takes are looked at (the filters, how the coordinates wrap, the levels and their generation), so a call that is left out is one that the twin would not have changed either.</li>
+  <li>The first call that gives a parameter its value is always made, since what the texture has until then is not known.</li>
+  <li>What the cache knows is forgotten, not guessed, when a call may change it without being told: a display list that sets the texture state (or is not known) is called, textures are deleted, <code>glPopAttrib</code>, a context is made or deleted, a call that another interceptor left out, and a replay that starts over.</li>
+</ul>
+
+<h4>Textures filled a part at a time</h4>
+<p>A texture whose writes all say where they landed (<code>written_extent</code>) is whole again once the frames that wrote it have written all of the part that any write reaches. The versions before those do not show in it.</p>
+<ul>
+  <li>The way back of a frame that uses it ends there (<code>FrameSlicePlanner</code>, <code>compute_windows</code>; at most 64 versions are looked at together), at the last version that replaced all of it, which holds what the writes do not reach.</li>
+  <li>A frame that is made for a version it wrote is made in part: the replay makes all of its calls, but only what flows into that version (<code>input_resource_vec</code>) is looked for in the frames before it. The draws that sample the texture after the copy to it use the texture, and what they render is not read by any frame that is made.</li>
+  <li>Example: a texture of 1024 x 512 to which 845 frames copy the same 147 x 414 rectangle. A seek into them makes 3 of the frames before the target instead of 739.</li>
+</ul>
+
+<h4>State that a pop undoes</h4>
+<p>In a dead frame, between a <code>glPushAttrib</code> and its <code>glPopAttrib</code>, the reader also leaves out the calls that only give a piece of state a value which the groups of the mask save (<code>GLAttributeCoverage</code>: capabilities, materials, lights, the texture environment and generation, blend, depth, polygon and line state, the current color, normal and texture coordinates, and the like), since nothing that is made looks at the state before the pop does away with it.</p>
+<table>
+<tr><th>Made anyway</th><th>Why</th></tr>
+<tr><td>The push and the pop</td><td>They bound the pair.</td></tr>
+<tr><td>The calls that choose where the next ones go (the active texture unit, the matrix mode, the bound texture)</td><td>Later calls depend on the choice.</td></tr>
+<tr><td>The parameters of textures</td><td>They change an object, which the pop does not undo.</td></tr>
+<tr><td>The state of the client (the arrays and their pointers)</td><td><code>glPushClientAttrib</code> saves it and <code>glPushAttrib</code> does not.</td></tr>
+</table>
+<ul>
+  <li>A frame that is left out has to pop what it pushes: one that ends first ends the process with a message (<code>AI_ASSERT_ALWAYS</code>), as the state that it would have left is not made.</li>
+  <li>A pair that begins in a segment and ends in the next leaves out what follows the push in the first one only.</li>
+  <li>Example: a program that pushes all of the attributes once in each frame, and every one of whose dead frames pops them. <code>--state-census</code> says how many calls of each kind a seek does not make.</li>
 </ul>
 
 <h2 id="programs">The programs</h2>
 <table>
 <tr><th>Program</th><th>What it is</th></tr>
-<tr><td><code>StereoReplayPlayer</code></td><td>A window (ImGui, through <code>UIHost</code> of <code>Utils</code>) around the engine: choose a workload and optionally a recipe, play and pause, see both eyes in a preview. It has a seek bar (a slider, a step, and a box to type a frame in; <code>g &lt;frame&gt;</code> with <code>--console</code>); while a seek is under way the status says <em>seeking</em>, and <em>paused</em> once the frame is reached. A frame back in time asks first. The eye separation slider changes the distance for the frames from then on; when it is let go of while paused, the frame on show is played again.</td></tr>
+<tr><td><code>StereoReplayPlayer</code></td><td>A window (ImGui, through <code>UIHost</code> of <code>Utils</code>) around the engine: choose a workload and optionally a recipe, play and pause, see both eyes in a preview.</td></tr>
 <tr><td><code>StereoReplayConsistencyChecker</code></td><td>No window. Replays a workload several ways and compares the images; takes screenshots; profiles; makes the overlay report. Its modes are in the next section.</td></tr>
 </table>
-<p>In the release (see <a href="contributing.html#build">Building</a>) the engine and the two programs are in <code>tools\stereo_replay\</code>, each as <code>_x64</code> and <code>_x86</code>; a 64-bit player starts the 32-bit one for a 32-bit workload, and the 32-bit ones replay the Direct3D 7, Direct3D 8 and OpenGL captures, which are of 32-bit programs. In the source they are in <code>src/tools/stereo_replay</code>, in <code>engine_dll</code>, <code>player</code> and <code>consistency_checker</code>.</p>
+<h3>The player's controls</h3>
+<table>
+<tr><th>Control</th><th>What it does</th></tr>
+<tr><td>Seek bar</td><td>A slider, a step, and a box to type a frame in (<code>g &lt;frame&gt;</code> with <code>--console</code>). While a seek is under way the status says <em>seeking</em>, and <em>paused</em> once the frame is reached. A frame back in time asks first.</td></tr>
+<tr><td>Eye separation slider</td><td>Changes the distance for the frames from then on. When it is let go of while paused, the frame on show is played again.</td></tr>
+</table>
+<h3>Where they are</h3>
+<p>In the release (see <a href="contributing.html#build">Building</a>) the engine and the two programs are in <code>tools\stereo_replay\</code>, each as <code>_x64</code> and <code>_x86</code>. A 64-bit player starts the 32-bit one for a 32-bit workload, and the 32-bit ones replay the Direct3D 7, Direct3D 8 and OpenGL captures, which are of 32-bit programs. In the source they are in <code>src/tools/stereo_replay</code>, in <code>engine_dll</code>, <code>player</code> and <code>consistency_checker</code>.</p>
 
 <h2 id="checking">What the checker is for</h2>
 <p>The checker is the test that the engine is fit for stereo: that a replay is repeatable, and that a frame executed twice draws the same as once. It is also where everything else about a recipe is tried without a window.</p>
+<figure>
+<svg viewBox="0 0 900 270" role="img" aria-label="The checker replays the workload several ways and compares the images of each frame">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="box3" x="20" y="100" width="150" height="60" rx="6"/><text x="95" y="126" text-anchor="middle">workload</text><text class="small" x="95" y="144" text-anchor="middle">(and a recipe)</text>
+  <rect class="box" x="230" y="20" width="230" height="40" rx="6"/><text x="345" y="45" text-anchor="middle">the frames as they are</text>
+  <rect class="box" x="230" y="75" width="230" height="40" rx="6"/><text x="345" y="100" text-anchor="middle">again (repeatable?)</text>
+  <rect class="box" x="230" y="130" width="230" height="40" rx="6"/><text x="345" y="155" text-anchor="middle">executed twice, state put back</text>
+  <rect class="box" x="230" y="185" width="230" height="40" rx="6"/><text x="345" y="210" text-anchor="middle">for the eyes of the recipe</text>
+  <rect class="box4" x="520" y="100" width="150" height="60" rx="6"/><text x="595" y="126" text-anchor="middle">hash of the image</text><text class="small" x="595" y="144" text-anchor="middle">of each frame</text>
+  <rect class="box2" x="720" y="60" width="160" height="60" rx="6"/><text x="800" y="86" text-anchor="middle">ways agree</text><text class="small" x="800" y="104" text-anchor="middle">exit without a diff</text>
+  <rect class="box3" x="720" y="140" width="160" height="60" rx="6"/><text x="800" y="162" text-anchor="middle">first frame that</text><text x="800" y="180" text-anchor="middle">differs: PNGs + diff</text>
+  <path class="arrow" d="M170 130H228"/><path class="arrow" d="M460 40L518 118"/><path class="arrow" d="M460 95L518 125"/><path class="arrow" d="M460 150L518 140"/><path class="arrow" d="M460 205L518 150"/><path class="arrow" d="M670 120L718 95"/><path class="arrow" d="M670 140L718 165"/>
+  <text class="small" x="450" y="256" text-anchor="middle">each way is a replay from the start; --parallel runs them at the same time, each with an engine of its own</text>
+</svg>
+<figcaption>The ways are compared frame by frame; the images of the first frame that differs are written with an image of the pixels that differ.</figcaption>
+</figure>
+
+<h3 id="checking-modes">The modes</h3>
 <table>
 <tr><th>Mode</th><th>Says</th></tr>
 <tr><td>(none) with <code>--ways</code>, <code>--parallel</code></td><td>Replays the frames as they are, again, executed twice, with the state put back, and for the eyes of the recipe; hashes each frame's image and compares the ways. It can write the images of the first frame that differs, with an image of the pixels that differ. Each way is a replay from the start; <code>--parallel</code> replays them at the same time, each with an engine of its own.</td></tr>
@@ -139,11 +333,51 @@
 <tr><td><code>--same-frames-as other.workload</code></td><td>Whether two workloads give the same images (exit code 3 if not): how a slice is checked against its workload.</td></tr>
 <tr><td><code>--profile</code></td><td>Where the time of the calls went: the functions and the frames that took longest.</td></tr>
 <tr><td><code>--state-census</code></td><td>What the calls of OpenGL in the frames that a seek to frame B does not make (<code>--deps</code> says which) do to the state of the context: per function, how many give a piece of state the value it has, and how many are overwritten by another call before a frame that is made, a push or a pop of attributes, a call of a list or another barrier looks at it; and whether each of those frames pushes and pops all that it changes.</td></tr>
-<tr><td><code>--overlay-report candidates.json</code></td><td>Of the draws that may be 2D overlays (<code>RecipeBake --overlays</code>), which ones really make pixels: some of the frames of each (the list says which: its first, middle and last frame) are replayed with the draw and without it (the recipe skips it), and the images are compared. A draw that changes no pixel in a frame is looked at again to say why: the frame is cut after its last call, with the draw and without it, and if the two differ it makes pixels when it is drawn and what is drawn after it covers them (<em>overdrawn later</em>), and if they do not it makes none then (<em>not rasterized</em>: transparent, clipped, outside the picture, or hidden by the depth test). It writes an animated GIF and a still for each frame that changes, a JSON and an <code>index.html</code> per run, and flags a draw that the recipe leaves alone but is deep or covers much of the picture. The page lists the draws on the left, each with a dot for every frame it was looked at in, and a click goes to the draw on the right, where its frames come one after the other in the order of time, so that how it behaves over the demo can be seen. <code>--overlay-report-last-frame N</code> leaves out the frames after the Nth (each replay goes from the start to its frame, so the later frames cost most). The work can be shared between processes (<code>--jobs N</code>). With <code>--deps</code>, the candidates of a frame are played in one run of the frame (<em>quick path</em>): the frame is played once for each variant (as it is, each pass left out, each draw left out, the cut frames), each from the state that the frame before left, which the frame's dependencies must allow (it makes or releases no resource, and what it writes it replaces before it reads it); a frame that does not, or one that fails so, is replayed a candidate at a time, and <code>--overlay-report-exact</code> does that for all of them, as a check of the quick path (the images are the same). A replay leaves memory behind and a 32-bit process runs out of address space after a few hundred, so a process looks at no more than <code>--overlay-report-shard-entries N</code> candidates (40 by default; 0: no limit), a longer list is split into more parts than <code>--jobs</code>, and the parts run no more than <code>--jobs</code> at a time.</td></tr>
+<tr><td><code>--overlay-report candidates.json</code></td><td>Of the draws that may be 2D overlays (<code>RecipeBake --overlays</code>), which ones really make pixels. See <a href="#checking-overlay">The overlay report</a>.</td></tr>
 </table>
-<p>The images that the modes compare come from the executor of each API: Direct3D reads its back buffer, and OpenGL the color buffer of the context that is current, which is the whole client area of its window, read as the back buffer after the swap. The specification leaves its content undefined after the swap; on the drivers the replay is run with it is what was presented. Its rows are put from the top and its alpha is 255, whatever the window has.</p>
-<p>A draw that the recipe leaves out is left out whole: the calls that come before the call of the draw and belong to it (the <code>glBegin</code> and the vertices of a block that <code>glEnd</code> makes a draw of) are left out with it, as a primitive is drawn when its vertices are given. The draws of a list that is called share the call of the list, so they are left out together or not at all. The swap of the buffers of a window is made after the executions of a frame, as the present of Direct3D is, so that the image of a frame is read before it.</p>
-<p>Any mode takes <code>--breadcrumb FILE</code>: the call that the replay is about to make is written to the file, as one line (whether it was begun or finished, the frame, the number of the call, the thread, the function and its arguments), for each call. The file is mapped into the memory of the checker, so what is in it when the program crashes is the call that crashed it (or, finished, the last one that was made); nothing has to be flushed.</p>
+<p>Any mode takes <code>--breadcrumb FILE</code>: the call that the replay is about to make is written to the file, as one line, for each call. A line says whether the call was begun or finished, the frame, the number of the call, the thread, the function and its arguments. The file is mapped into the memory of the checker, so what is in it when the program crashes is the call that crashed it (or, finished, the last one that was made); nothing has to be flushed.</p>
+
+<h3 id="checking-overlay">The overlay report</h3>
+<p><code>--overlay-report candidates.json</code> decides, for each draw that may be a 2D overlay, whether it really makes pixels. Some of the frames of each draw (the list says which: its first, middle and last frame) are replayed with the draw and without it (the recipe skips it), and the images are compared.</p>
+<figure>
+<svg viewBox="0 0 900 270" role="img" aria-label="Variants of a frame compared by the overlay report and the verdicts">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="box" x="20" y="30" width="200" height="50" rx="6"/><text x="120" y="52" text-anchor="middle">frame with the draw</text><text class="small" x="120" y="68" text-anchor="middle">image A</text>
+  <rect class="box" x="20" y="100" width="200" height="50" rx="6"/><text x="120" y="122" text-anchor="middle">frame without the draw</text><text class="small" x="120" y="138" text-anchor="middle">the recipe skips it: image B</text>
+  <rect class="box3" x="290" y="62" width="170" height="56" rx="6"/><text x="375" y="86" text-anchor="middle">A and B differ?</text><text class="small" x="375" y="104" text-anchor="middle">pixel by pixel</text>
+  <rect class="box2" x="540" y="30" width="340" height="50" rx="6"/><text x="710" y="52" text-anchor="middle">yes: the draw makes pixels</text><text class="small" x="710" y="68" text-anchor="middle">GIF and still for the frame</text>
+  <rect class="box4" x="540" y="100" width="340" height="50" rx="6"/><text x="710" y="122" text-anchor="middle">no: cut the frame after the draw's last call</text><text class="small" x="710" y="138" text-anchor="middle">with the draw and without it, compare again</text>
+  <rect class="box" x="540" y="170" width="160" height="50" rx="6"/><text x="620" y="192" text-anchor="middle">differ: overdrawn</text><text class="small" x="620" y="208" text-anchor="middle">later</text>
+  <rect class="box" x="720" y="170" width="160" height="50" rx="6"/><text x="800" y="192" text-anchor="middle">same: not rasterized</text><text class="small" x="800" y="208" text-anchor="middle">at that frame</text>
+  <path class="arrow" d="M220 55L288 80"/><path class="arrow" d="M220 125L288 100"/><path class="arrow" d="M460 80L538 55"/><path class="arrow" d="M460 100L538 125"/><path class="arrow" d="M650 150L630 168"/><path class="arrow" d="M770 150L790 168"/>
+  <text class="small" x="450" y="250" text-anchor="middle">not rasterized: transparent, clipped, outside the picture, or hidden by the depth test</text>
+</svg>
+<figcaption>The verdict for a draw that changes no pixel in a frame says why: what is drawn after it covers its pixels, or it makes none.</figcaption>
+</figure>
+<ul>
+  <li>It writes an animated GIF and a still for each frame that changes, a JSON and an <code>index.html</code> per run, and flags a draw that the recipe leaves alone but is deep or covers much of the picture.</li>
+  <li>The page lists the draws on the left, each with a dot for every frame it was looked at in. A click goes to the draw on the right, where its frames come one after the other in the order of time, so that how it behaves over the run can be seen.</li>
+</ul>
+<table>
+<tr><th>Option</th><th>Effect</th></tr>
+<tr><td><code>--overlay-report-last-frame N</code></td><td>Leaves out the frames after the Nth (each replay goes from the start to its frame, so the later frames cost most).</td></tr>
+<tr><td><code>--jobs N</code></td><td>The work is shared between processes.</td></tr>
+<tr><td><code>--deps</code></td><td>The candidates of a frame are played in one run of the frame (<em>quick path</em>); see below.</td></tr>
+<tr><td><code>--overlay-report-exact</code></td><td>Replays a candidate at a time for all of them, as a check of the quick path (the images are the same).</td></tr>
+<tr><td><code>--overlay-report-shard-entries N</code></td><td>A process looks at no more than N candidates (40 by default; 0: no limit). A longer list is split into more parts than <code>--jobs</code>, and the parts run no more than <code>--jobs</code> at a time.</td></tr>
+</table>
+<p>The quick path plays the frame once for each variant (as it is, each pass left out, each draw left out, the cut frames), each from the state that the frame before left. That must be allowed by the frame's dependencies: it makes or releases no resource, and what it writes it replaces before it reads it. A frame that does not allow it, or one that fails so, is replayed a candidate at a time.</p>
+<p>The shards exist because a replay leaves memory behind and a 32-bit process runs out of address space after a few hundred.</p>
+
+<h3 id="checking-images">Where the images come from</h3>
+<p>The images that the modes compare come from the executor of each API.</p>
+<table>
+<tr><th>API</th><th>Source of the image</th></tr>
+<tr><td>Direct3D</td><td>Its back buffer.</td></tr>
+<tr><td>OpenGL</td><td>The color buffer of the context that is current, which is the whole client area of its window, read as the back buffer after the swap. The specification leaves its content undefined after the swap; on the drivers the replay is run with it is what was presented. Its rows are put from the top and its alpha is 255, whatever the window has.</td></tr>
+</table>
+<p>A draw that the recipe leaves out is left out whole: the calls that come before the call of the draw and belong to it (the <code>glBegin</code> and the vertices of a block that <code>glEnd</code> makes a draw of) are left out with it, as a primitive is drawn when its vertices are given. The draws of a list that is called share the call of the list, so they are left out together or not at all.</p>
+<p>The swap of the buffers of a window is made after the executions of a frame, as the present of Direct3D is, so that the image of a frame is read before it.</p>
 <p>The checker's source has a file for each of these ways of working (<code>replay_runner</code>, <code>comparison</code>, <code>screenshot_mode</code>, <code>profile_mode</code>, <code>state_census_mode</code>, <code>overlay_report_mode</code>), a <code>command_line</code> that has tests, and a <code>main.cpp</code> that loads the recipe and chooses.</p>
 </main>
 </body>
