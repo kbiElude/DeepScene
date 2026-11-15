@@ -12,10 +12,6 @@ It works in three steps:
 2. **Process** the capture: the analysis tells what each draw of the program is (the scene, the interface, the post-processing), and a **recipe** says how each draw is to be treated for stereo.
 3. **Play** it in 3D: a converter is injected into the running program, renders the two eyes from what the program draws, and passes the images on to a window or a headset. `VRPlayer` is the front end that lists the programs and starts them.
 
-![The VR player: the list of programs, and the device, depth and image quality of the one that is picked](docs/welcome.png)
-
-*The window of `VRPlayer`: the programs of the catalog on the left; the output, the depth and the image quality of the picked one on the right.*
-
 Three graphics APIs are supported: Direct3D 8, Direct3D 7 (for programs whose vertices are already in pixels) and OpenGL (the fixed function). The demos are what drove the work: one for each API is in the catalog.
 
 ## What is in here
