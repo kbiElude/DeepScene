@@ -111,6 +111,21 @@ TEST_F(CatalogLoaderTest, TheCatalogCanSayWhichButtonOfTheFirstDialogIsPressedFo
               "Launch");
 }
 
+TEST_F(CatalogLoaderTest, TheCatalogCanSayWhichCheckboxOfTheFirstDialogIsUntickedForTheUser)
+{
+    ASSERT_TRUE(parse(get_text(", \"launch_button\": \"Play\", \"untick_checkbox\": \"Fullscreen\"") ) ) << m_error;
+
+    EXPECT_EQ(m_catalog.app_vec.at(0).untick_checkbox_text,
+              "Fullscreen");
+}
+
+TEST_F(CatalogLoaderTest, NoCheckboxIsUntickedUnlessTheCatalogNamesOne)
+{
+    ASSERT_TRUE(parse(get_text("") ) ) << m_error;
+
+    EXPECT_TRUE(m_catalog.app_vec.at(0).untick_checkbox_text.empty() );
+}
+
 TEST_F(CatalogLoaderTest, TheCatalogCanSayWhyAnApplicationWhoseRecipeIsThereCannotBeStarted)
 {
     ASSERT_TRUE(parse(get_text(", \"unavailable_reason\": \"Not converted yet.\"") ) ) << m_error;

@@ -29,6 +29,7 @@ namespace VRPlayer
             float                               overlay_parallax   = 0.0f;  /* from the comfort section of the recipe: how far overlays may be pushed toward the viewer; 0 if the recipe gives no amount, which means the application wants none */
             std::string                         recipe_path;                /* absolute                                                                         */
             std::string                         unavailable_reason;         /* empty if the application can be launched                                         */
+            std::string                         untick_checkbox_text;       /* text of a checkbox in the same dialog, which the launcher unticks before it presses the button; empty: none */
             std::string                         working_directory;          /* absolute; the directory of the executable unless the catalog names another       */
         };
 

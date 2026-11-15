@@ -85,6 +85,12 @@ std::string VRPlayer::AppSession::get_command_line(const SessionRequest& in_requ
                   quote_argument(in_request.launch_button_text);
     }
 
+    if (in_request.untick_checkbox_text.empty() == false)
+    {
+        result += " --untick-checkbox "                           +
+                  quote_argument(in_request.untick_checkbox_text);
+    }
+
     if (in_request.working_directory.empty() == false)
     {
         result += " --working-directory "                      +
@@ -274,17 +280,18 @@ bool VRPlayer::AppSession::start(const VRPlayer::AppCatalog::AppEntry& in_app,
         goto end;
     }
 
-    request.arguments          = in_app.arguments;
-    request.executable_path    = in_app.executable_path;
-    request.is_logging         = in_write_log;
-    request.launch_button_text = in_app.launch_button_text;
-    request.pace_to_headset    = in_pace_to_headset;
-    request.launcher_path      = in_launcher_directory + ((architecture == Capture::InjectionLauncher::TargetArchitecture::X86) ? "\\StereoLauncher_x86.exe"
-                                                                                                                                : "\\StereoLauncher_x64.exe");
-    request.recipe_path        = in_app.recipe_path;
-    request.session_id         = std::to_string(::GetCurrentProcessId() ) + "-" + std::to_string(::GetTickCount64() );
-    request.title              = in_app.name;
-    request.use_headset        = in_use_headset;
+    request.arguments            = in_app.arguments;
+    request.executable_path      = in_app.executable_path;
+    request.is_logging           = in_write_log;
+    request.launch_button_text   = in_app.launch_button_text;
+    request.pace_to_headset      = in_pace_to_headset;
+    request.launcher_path        = in_launcher_directory + ((architecture == Capture::InjectionLauncher::TargetArchitecture::X86) ? "\\StereoLauncher_x86.exe"
+                                                                                                                                  : "\\StereoLauncher_x64.exe");
+    request.recipe_path          = in_app.recipe_path;
+    request.session_id           = std::to_string(::GetCurrentProcessId() ) + "-" + std::to_string(::GetTickCount64() );
+    request.title                = in_app.name;
+    request.untick_checkbox_text = in_app.untick_checkbox_text;
+    request.use_headset          = in_use_headset;
 
     request.presenter_path     = in_launcher_directory + "\\StereoPresenter_x64.exe";
     request.working_directory  = in_app.working_directory;

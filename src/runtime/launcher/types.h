@@ -12,6 +12,16 @@ namespace Stereo
 {
     namespace Launcher
     {
+        /* What became of the checkbox that is to be unticked before the button is pressed (see ButtonClicker). */
+        enum class CheckboxOutcome
+        {
+            ALREADY_UNTICKED, /* it was not ticked                                */
+            NOT_ASKED,        /* no checkbox was named                            */
+            NOT_FOUND,        /* the window has no checkbox of that text          */
+            STILL_TICKED,     /* it was clicked, and it is ticked all the same    */
+            UNTICKED          /* it was ticked, and clicking it unticked it       */
+        };
+
         /* The exit codes of the program. */
         enum class ExitCode
         {
@@ -44,6 +54,7 @@ namespace Stereo
             std::string recipe_path;
             std::string session_id;
             bool        should_wait         = false; /* wait until the application exits                  */
+            std::string untick_checkbox_text; /* text of a checkbox in the same window, which is unticked before the button is pressed; empty: none */
             std::string working_directory;  /* empty: the directory of the launcher                       */
         };
     }

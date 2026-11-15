@@ -15,6 +15,7 @@
  *         "working_directory": "fr08",               (optional) default: the directory of the executable
  *         "title": "Fr-08: .the .product"            (optional) default: the name of the recipe target
  *         "launch_button": "Launch",                 (optional) text of a button in the application's first dialog; the launcher presses it
+ *         "untick_checkbox": "Fullscreen",           (optional) text of a checkbox in that dialog; the launcher unticks it just before it presses the button
  *         "unavailable_reason": "...",               (optional) why the player cannot start the application (see below)
  *         "download": {                              (optional) where to get the application if its executable is missing:
  *           "urls": ["https://..."],                 https only; tried one after the other until one works

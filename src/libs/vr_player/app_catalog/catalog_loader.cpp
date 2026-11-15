@@ -274,6 +274,7 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_app(const Utils::Json::JsonValue
                                                                           "recipe",
                                                                           "title",
                                                                           "unavailable_reason",
+                                                                          "untick_checkbox",
                                                                           "working_directory"});
 
         if (unknown_key_ptr != nullptr)
@@ -329,6 +330,16 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_app(const Utils::Json::JsonValue
                                      false, /* in_is_required */
                                      in_path,
                                     &out_app_ptr->launch_button_text,
+                                     out_error_ptr);
+        }
+
+        if (is_parsed)
+        {
+            is_parsed = parse_string(in_app,
+                                     "untick_checkbox",
+                                     false, /* in_is_required */
+                                     in_path,
+                                    &out_app_ptr->untick_checkbox_text,
                                      out_error_ptr);
         }
 

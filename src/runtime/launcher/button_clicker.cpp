@@ -7,19 +7,31 @@
 #include <cctype>
 
 bool Stereo::Launcher::ButtonClicker::click_once(const DWORD&       in_process_id,
-                                                 const std::string& in_button_text)
+                                                 const std::string& in_button_text,
+                                                 const std::string& in_checkbox_text,
+                                                 CheckboxOutcome*   out_checkbox_outcome_ptr)
 {
     bool   result = false;
     Search search;
 
-    search.button_text = get_normalized_text(in_button_text);
-    search.process_id  = in_process_id;
+    search.button_text   = get_normalized_text(in_button_text);
+    search.checkbox_text = get_normalized_text(in_checkbox_text);
+    search.process_id    = in_process_id;
 
     ::EnumWindows(on_top_level_window,
                   reinterpret_cast<LPARAM>(&search) );
 
+    *out_checkbox_outcome_ptr = (in_checkbox_text.empty() ) ? CheckboxOutcome::NOT_ASKED
+                                                            : CheckboxOutcome::NOT_FOUND;
+
     if (search.button != nullptr)
     {
+        /* The checkbox is unticked before the button is pressed, because the application reads it when the button is pressed. */
+        if (search.checkbox != nullptr)
+        {
+            *out_checkbox_outcome_ptr = untick_checkbox(search.checkbox);
+        }
+
         /* The click is posted, not sent. The application may run the demo from inside its click handler, and a sent message would block until that handler returns. */
         result = (::PostMessageA(search.button,
                                  BM_CLICK,
@@ -33,18 +45,25 @@ bool Stereo::Launcher::ButtonClicker::click_once(const DWORD&       in_process_i
 bool Stereo::Launcher::ButtonClicker::click_when_shown(const HANDLE&      in_process,
                                                        const DWORD&       in_process_id,
                                                        const std::string& in_button_text,
-                                                       const DWORD&       in_timeout_milliseconds)
+                                                       const std::string& in_checkbox_text,
+                                                       const DWORD&       in_timeout_milliseconds,
+                                                       CheckboxOutcome*   out_checkbox_outcome_ptr)
 {
     constexpr DWORD POLL_INTERVAL_MILLISECONDS = 250;
 
     DWORD n_waited_milliseconds = 0;
     bool  result                = false;
 
+    *out_checkbox_outcome_ptr = (in_checkbox_text.empty() ) ? CheckboxOutcome::NOT_ASKED
+                                                            : CheckboxOutcome::NOT_FOUND;
+
     while (n_waited_milliseconds < in_timeout_milliseconds &&
            result                == false)
     {
         const bool is_clicked = click_once(in_process_id,
-                                           in_button_text);
+                                           in_button_text,
+                                           in_checkbox_text,
+                                           out_checkbox_outcome_ptr);
 
         if (is_clicked)
         {
@@ -97,22 +116,42 @@ BOOL CALLBACK Stereo::Launcher::ButtonClicker::on_child_window(HWND   in_window,
                      text_i8vec256,
                      static_cast<int>(sizeof(text_i8vec256) ) );
 
-    /* Accepts a standard button or a button class that a toolkit derives from it (such as "TButton"). A label with the same text is not pressed. */
-    const bool is_button  = (get_normalized_text(class_i8vec64).find("button") != std::string::npos);
-    const bool is_enabled = (::IsWindowEnabled(in_window)                      != FALSE);
-    const bool is_shown   = (::IsWindowVisible(in_window)                      != FALSE);
-    const bool is_match   = (get_normalized_text(text_i8vec256)                == search_ptr->button_text);
+    const std::string class_name = get_normalized_text(class_i8vec64);
+    const std::string text       = get_normalized_text(text_i8vec256);
 
-    if (is_button  &&
-        is_enabled &&
-        is_shown   &&
-        is_match)
+    /* Accepts a standard button or a button class that a toolkit derives from it (such as "TButton"). A label with the same text is not pressed. */
+    const bool is_button     = (class_name.find("button")   != std::string::npos);
+    const bool is_checkbox   = (class_name.find("button")   != std::string::npos ||
+                                class_name.find("checkbox") != std::string::npos);
+    const bool is_enabled    = (::IsWindowEnabled(in_window) != FALSE);
+    const bool is_shown      = (::IsWindowVisible(in_window) != FALSE);
+    const bool is_button_hit = (is_button                    &&
+                                is_enabled                   &&
+                                is_shown                     &&
+                                text == search_ptr->button_text);
+    const bool is_box_hit    = (search_ptr->checkbox_text.empty() == false &&
+                                is_checkbox                                &&
+                                is_enabled                                 &&
+                                is_shown                                   &&
+                                text == search_ptr->checkbox_text);
+
+    if (is_button_hit)
     {
         search_ptr->button = in_window;
     }
+    else
+    if (is_box_hit)
+    {
+        search_ptr->checkbox = in_window;
+    }
 
-    return (search_ptr->button == nullptr) ? TRUE
-                                           : FALSE;
+    /* The search goes on until both are found, if a checkbox is looked for: it can come after the button. */
+    const bool is_done = (search_ptr->button   != nullptr &&
+                          (search_ptr->checkbox_text.empty() ||
+                           search_ptr->checkbox != nullptr) );
+
+    return (is_done) ? FALSE
+                     : TRUE;
 }
 
 BOOL CALLBACK Stereo::Launcher::ButtonClicker::on_top_level_window(HWND   in_window,
@@ -131,6 +170,60 @@ BOOL CALLBACK Stereo::Launcher::ButtonClicker::on_top_level_window(HWND   in_win
                            in_search_ptr);
     }
 
-    return (search_ptr->button == nullptr) ? TRUE
-                                           : FALSE;
+    const bool is_done = (search_ptr->button   != nullptr &&
+                          (search_ptr->checkbox_text.empty() ||
+                           search_ptr->checkbox != nullptr) );
+
+    return (is_done) ? FALSE
+                     : TRUE;
+}
+
+Stereo::Launcher::CheckboxOutcome Stereo::Launcher::ButtonClicker::untick_checkbox(const HWND& in_checkbox)
+{
+    constexpr DWORD N_POLLS                    = 20;
+    constexpr DWORD POLL_INTERVAL_MILLISECONDS = 50;
+    constexpr DWORD SEND_TIMEOUT_MILLISECONDS  = 1000;
+
+    CheckboxOutcome result = CheckboxOutcome::ALREADY_UNTICKED;
+
+    /* The state is asked from the application's thread. A message that is not answered in time counts as "not ticked". */
+    const auto is_ticked_func = [&]()
+    {
+        DWORD_PTR state = BST_UNCHECKED;
+
+        ::SendMessageTimeoutA(in_checkbox,
+                              BM_GETCHECK,
+                              0,
+                              0,
+                              SMTO_ABORTIFHUNG,
+                              SEND_TIMEOUT_MILLISECONDS,
+                             &state);
+
+        return (state == BST_CHECKED);
+    };
+
+    if (is_ticked_func() )
+    {
+        /* A click, not BM_SETCHECK: the application is told of it the way it is of a click of the user. */
+        ::PostMessageA(in_checkbox,
+                       BM_CLICK,
+                       0,
+                       0);
+
+        result = CheckboxOutcome::STILL_TICKED;
+
+        for (DWORD n_poll = 0;
+                   n_poll < N_POLLS && result == CheckboxOutcome::STILL_TICKED;
+                 ++n_poll)
+        {
+            ::Sleep(POLL_INTERVAL_MILLISECONDS);
+
+            if (is_ticked_func() == false)
+            {
+                result = CheckboxOutcome::UNTICKED;
+            }
+        }
+    }
+
+    return result;
 }

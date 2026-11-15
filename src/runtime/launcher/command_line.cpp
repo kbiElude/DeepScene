@@ -15,6 +15,8 @@ const char* Stereo::Launcher::CommandLine::get_usage_ptr()
            "  --arguments \"text\"        put on the command line of the application as it is\n"
            "  --click-button \"text\"     presses the button of that text (not looking at the case or at the '&') when the application shows it,\n"
            "                            for the dialog that a demo shows before it starts; given up after a minute\n"
+           "  --untick-checkbox \"text\"  unticks the checkbox of that text in the same dialog just before the button is pressed (for the\n"
+           "                            option to run full screen, for example); it is of use only with --click-button\n"
            "  --working-directory dir   where the application runs (the current directory by default)\n"
            "  --log                     the converter writes a log of what it does (see SessionEnvironment::get_log_path());\n"
            "                            without it, only why it stops the application is written\n"
@@ -50,6 +52,7 @@ bool Stereo::Launcher::CommandLine::parse(const std::vector<std::string>& in_arg
             argument == "--click-button"      ||
             argument == "--recipe"            ||
             argument == "--session"           ||
+            argument == "--untick-checkbox"   ||
             argument == "--working-directory")
         {
             if (has_next == false)
@@ -79,6 +82,11 @@ bool Stereo::Launcher::CommandLine::parse(const std::vector<std::string>& in_arg
             if (argument == "--session")
             {
                 out_options_ptr->session_id = value;
+            }
+            else
+            if (argument == "--untick-checkbox")
+            {
+                out_options_ptr->untick_checkbox_text = value;
             }
             else
             {

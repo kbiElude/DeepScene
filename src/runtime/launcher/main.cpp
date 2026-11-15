@@ -22,12 +22,59 @@ namespace Stereo
 {
     namespace Launcher
     {
+        std::string              describe_checkbox_outcome   (const CheckboxOutcome&          in_outcome,
+                                                              const std::string&              in_checkbox_text);
         std::string              get_converter_failure_reason(const std::string&              in_session_id);
         std::string              get_own_directory           ();
         bool                     is_file                     (const std::string&              in_path);
         std::vector<std::string> read_log_lines              (const std::string&              in_session_id);
         int                      run                         (const std::vector<std::string>& in_argument_vec);
     }
+}
+
+std::string Stereo::Launcher::describe_checkbox_outcome(const CheckboxOutcome& in_outcome,
+                                                        const std::string&     in_checkbox_text)
+{
+    std::string result;
+
+    switch (in_outcome)
+    {
+        case CheckboxOutcome::ALREADY_UNTICKED:
+        {
+            result = "[*] The checkbox [" + in_checkbox_text + "] was not ticked.\n";
+
+            break;
+        }
+
+        case CheckboxOutcome::NOT_FOUND:
+        {
+            result = "[!] The checkbox [" + in_checkbox_text + "] was not found; it has to be unticked by hand.\n";
+
+            break;
+        }
+
+        case CheckboxOutcome::STILL_TICKED:
+        {
+            result = "[!] The checkbox [" + in_checkbox_text + "] is still ticked after it was clicked.\n";
+
+            break;
+        }
+
+        case CheckboxOutcome::UNTICKED:
+        {
+            result = "[*] Unticked the checkbox [" + in_checkbox_text + "].\n";
+
+            break;
+        }
+
+        case CheckboxOutcome::NOT_ASKED:
+        default:
+        {
+            break;
+        }
+    }
+
+    return result;
 }
 
 std::string Stereo::Launcher::get_converter_failure_reason(const std::string& in_session_id)
@@ -219,11 +266,21 @@ int Stereo::Launcher::run(const std::vector<std::string>& in_argument_vec)
     {
         constexpr DWORD CLICK_TIMEOUT_MILLISECONDS = 60000;
 
+        CheckboxOutcome checkbox_outcome = CheckboxOutcome::NOT_ASKED;
+
         const bool is_clicked = ButtonClicker::click_when_shown(process_info.hProcess,
                                                                 process_info.dwProcessId,
                                                                 options.click_button_text,
-                                                                CLICK_TIMEOUT_MILLISECONDS);
+                                                                options.untick_checkbox_text,
+                                                                CLICK_TIMEOUT_MILLISECONDS,
+                                                               &checkbox_outcome);
 
+        const std::string checkbox_message = describe_checkbox_outcome(checkbox_outcome,
+                                                                       options.untick_checkbox_text);
+
+        fprintf(stdout,
+                "%s",
+                checkbox_message.c_str() );
         fprintf(stdout,
                 (is_clicked) ? "[*] Pressed the button [%s].\n"
                              : "[!] The button [%s] was not found; it has to be pressed by hand.\n",

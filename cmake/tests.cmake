@@ -24,6 +24,7 @@ if (DEMOVRPLAYER_BUILD_TESTS)
                                      "${DemoVRPlayer_SOURCE_DIR}/src/runtime/converter_dll/own_call_scope.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/runtime/converter_dll/render_scale_planner.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/runtime/converter_dll/resolution_hazard_gate.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/runtime/launcher/button_clicker.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/runtime/launcher/command_line.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/runtime/launcher/log_summarizer.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/runtime/presenter/command_line.cpp"

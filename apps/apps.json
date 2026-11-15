@@ -40,6 +40,7 @@
       "id": "gerbera",
       "title": "Gerbera",
       "launch_button": "Play >",
+      "untick_checkbox": "Fullscreen",
       "recipe": "recipes/gerbera.json",
       "executable": "gerbera/PajaPlayer.exe",
       "download": {

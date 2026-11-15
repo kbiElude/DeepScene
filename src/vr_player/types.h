@@ -30,6 +30,7 @@ namespace VRPlayer
         std::string recipe_path;
         std::string session_id;
         std::string title;              /* title of the window that shows the images                             */
+        std::string untick_checkbox_text; /* text of a checkbox in the same dialog, which the launcher unticks; empty: none */
         bool        use_headset         = false; /* the window also shows them in the headset, if there is one   */
         std::string presenter_path;        /* path of StereoPresenter, which shows the images of the application */
         std::string working_directory;

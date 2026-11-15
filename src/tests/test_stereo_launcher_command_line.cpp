@@ -44,6 +44,31 @@ TEST(StereoLauncherCommandLineTest, TheButtonToPressIsRead)
               "Launch");
 }
 
+TEST(StereoLauncherCommandLineTest, TheCheckboxToUntickIsRead)
+{
+    std::string               error;
+    Stereo::Launcher::Options options;
+
+    ASSERT_TRUE(Stereo::Launcher::CommandLine::parse({"--session", "s", "--recipe", "r.json", "--click-button", "Play", "--untick-checkbox", "Fullscreen", "demo.exe"},
+                                                     &options,
+                                                     &error) ) << error;
+
+    EXPECT_EQ(options.untick_checkbox_text,
+              "Fullscreen");
+}
+
+TEST(StereoLauncherCommandLineTest, NoCheckboxIsUntickedUnlessOneIsGiven)
+{
+    std::string               error;
+    Stereo::Launcher::Options options;
+
+    ASSERT_TRUE(Stereo::Launcher::CommandLine::parse({"--session", "s", "--recipe", "r.json", "demo.exe"},
+                                                     &options,
+                                                     &error) ) << error;
+
+    EXPECT_TRUE(options.untick_checkbox_text.empty() );
+}
+
 TEST(StereoLauncherCommandLineTest, NoButtonIsPressedUnlessOneIsGiven)
 {
     std::string               error;

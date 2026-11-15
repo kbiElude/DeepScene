@@ -55,6 +55,21 @@ TEST(AppSessionTest, TheButtonThatTheLauncherPressesIsHandedOver)
               "\"launcher.exe\" --recipe \"r.json\" --session \"s\" --click-button \"Launch\" --wait \"demo.exe\"");
 }
 
+TEST(AppSessionTest, TheCheckboxThatTheLauncherUnticksIsHandedOver)
+{
+    VRPlayer::SessionRequest request;
+
+    request.executable_path      = "demo.exe";
+    request.launch_button_text   = "Play";
+    request.launcher_path        = "launcher.exe";
+    request.recipe_path          = "r.json";
+    request.session_id           = "s";
+    request.untick_checkbox_text = "Fullscreen";
+
+    EXPECT_EQ(VRPlayer::AppSession::get_command_line(request),
+              "\"launcher.exe\" --recipe \"r.json\" --session \"s\" --click-button \"Play\" --untick-checkbox \"Fullscreen\" --wait \"demo.exe\"");
+}
+
 TEST(AppSessionTest, TheWindowIsStartedWithTheSessionAndTheTitle)
 {
     VRPlayer::SessionRequest request;
