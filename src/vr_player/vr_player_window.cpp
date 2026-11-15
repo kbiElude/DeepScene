@@ -133,7 +133,11 @@ bool VRPlayer::VrPlayerWindow::draw_app_card(const size_t& in_n_app)
     ImGui::PushFont(nullptr,
                     style.FontSizeBase * CARD_TITLE_SCALE);
 
-    title_height = ImGui::GetTextLineHeight();
+    /* A title which is longer than the card wraps to a second line. */
+    title_height = ImGui::CalcTextSize(app.name.c_str(),
+                                       nullptr,
+                                       false, /* hide_text_after_double_hash */
+                                       wrap_width).y;
 
     ImGui::PopFont();
 
@@ -186,7 +190,9 @@ bool VRPlayer::VrPlayerWindow::draw_app_card(const size_t& in_n_app)
         ImGui::PushStyleColor(ImGuiCol_Text,
                               (is_available) ? TEXT_COLOR
                                              : DIM_TEXT_COLOR);
+        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + wrap_width);
         ImGui::TextUnformatted(app.name.c_str() );
+        ImGui::PopTextWrapPos ();
         ImGui::PopStyleColor  ();
         ImGui::PopFont        ();
 
@@ -334,9 +340,11 @@ void VRPlayer::VrPlayerWindow::draw_details()
             ImGui::PopStyleColor ();
         }
 
-        ImGui::TextWrapped("%s",
-                           (app.description.empty() ) ? "No description."
-                                                      : app.description.c_str() );
+        if (app.description.empty() == false)
+        {
+            ImGui::TextWrapped("%s",
+                               app.description.c_str() );
+        }
 
         ImGui::Spacing();
         ImGui::Separator();

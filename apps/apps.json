@@ -3,6 +3,7 @@
   "apps": [
     {
       "id": "fr08",
+      "title": "fr08 by Farbrausch (2000)",
       "recipe": "recipes/fr08.json",
       "executable": "fr08/fr08v101.exe",
       "download": {
@@ -20,7 +21,7 @@
     },
     {
       "id": "kasparov",
-      "title": "Kasparov",
+      "title": "Kasparov by Elitegroup (1999)",
       "recipe": "recipes/kasparov.json",
       "executable": "kasparov/kasparov.exe",
       "download": {
@@ -38,7 +39,7 @@
     },
     {
       "id": "gerbera",
-      "title": "Gerbera",
+      "title": "Gerbera by Moppi Productions (2001)",
       "launch_button": "Play >",
       "untick_checkbox": "Fullscreen",
       "recipe": "recipes/gerbera.json",

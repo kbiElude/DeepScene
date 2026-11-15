@@ -2,8 +2,7 @@
   "recipe_version": 0,
   "key_scheme_version": 1,
   "target": {
-    "name": "fr08",
-    "description": "Farbrausch"
+    "name": "fr08"
   },
   "comfort": {
     "max_near_parallax": 0.03,

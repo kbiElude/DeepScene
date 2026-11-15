@@ -2,8 +2,7 @@
   "recipe_version": 0,
   "key_scheme_version": 1,
   "target": {
-    "name": "Kasparov",
-    "description": "Elitegroup"
+    "name": "Kasparov"
   },
   "comfort": {
     "max_near_parallax": 0.03,
