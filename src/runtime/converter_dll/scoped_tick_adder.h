@@ -12,8 +12,8 @@ namespace Stereo
 {
     namespace ConverterDLL
     {
-        /* Adds the ticks of the performance counter that pass during its life to a total, when it ends. A disabled one reads no counter and adds nothing, so that a scope
-         * which only sometimes counts (a call that may or may not be a draw) costs nothing when it does not.
+        /* Adds the performance-counter ticks that pass during its lifetime to a total when it is destroyed. A disabled adder reads no counter and
+         * adds nothing, so a scope that only sometimes counts (a call that may or may not be a draw) costs nothing when it does not count.
          */
         class ScopedTickAdder
         {

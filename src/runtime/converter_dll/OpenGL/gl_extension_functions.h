@@ -12,7 +12,7 @@ namespace Stereo
 {
     namespace ConverterDLL
     {
-        /* The functions of OpenGL that opengl32.dll does not export (framebuffers, buffers, the active texture unit), found through the context that is current. */
+        /* The OpenGL functions that opengl32.dll does not export (framebuffers, buffers, the active texture unit). They are looked up through the current context. */
         struct GLExtensionFunctions
         {
             typedef void (APIENTRY* ActiveTextureFunc)        (GLenum in_texture);
@@ -35,11 +35,11 @@ namespace Stereo
             typedef void (APIENTRY* RenderbufferStorageFunc)  (GLenum in_target, GLenum in_internal_format, GLsizei in_width, GLsizei in_height);
             typedef GLboolean (APIENTRY* UnmapBufferFunc)     (GLenum in_target);
 
-            ActiveTextureFunc           active_texture_func_ptr            = nullptr; /* optional: only a program that uses more than one unit needs it */
-            BindBufferFunc              bind_buffer_func_ptr               = nullptr; /* optional: without the buffers the images of the eyes are read at once */
+            ActiveTextureFunc           active_texture_func_ptr            = nullptr; /* optional: needed only by a program that uses more than one texture unit */
+            BindBufferFunc              bind_buffer_func_ptr               = nullptr; /* optional: without buffers, the images of the eyes are read immediately */
             BindFramebufferFunc         bind_framebuffer_func_ptr          = nullptr;
             BindRenderbufferFunc        bind_renderbuffer_func_ptr         = nullptr;
-            BlitFramebufferFunc         blit_framebuffer_func_ptr          = nullptr; /* optional: shows the left eye in the window of a program that shows nothing elsewhere */
+            BlitFramebufferFunc         blit_framebuffer_func_ptr          = nullptr; /* optional: shows the left eye in the application's window when no other program shows the images */
             BufferDataFunc              buffer_data_func_ptr               = nullptr;
             CheckFramebufferStatusFunc  check_framebuffer_status_func_ptr  = nullptr;
             DeleteBuffersFunc           delete_buffers_func_ptr            = nullptr;
@@ -53,11 +53,11 @@ namespace Stereo
             RenderbufferStorageFunc     renderbuffer_storage_func_ptr      = nullptr;
             UnmapBufferFunc             unmap_buffer_func_ptr              = nullptr;
 
-            /* Finds the functions (the ones of the extension if the context has not got the ones of the version); false if the ones that are needed are missing. */
+            /* Finds the functions, using the extension (EXT) versions when the context lacks the core ones. Returns false if a required function is missing. */
             bool load();
 
         private:
-            /* wglGetProcAddress says that a function is not there by a few small values as well as by zero. */
+            /* wglGetProcAddress reports a missing function with a few small values (1, 2, 3 and -1) as well as with zero. */
             template<typename FuncType>
             static bool find_function(const char* in_name_ptr,
                                       FuncType*   out_func_ptr_ptr);

@@ -86,7 +86,9 @@ Analysis::Recipe::DrawClass Stereo::Core::StereoCore::classify_draw(const uint64
         m_is_last_draw_pushed = is_cover_pushed;
     }
 
-    /* A draw that is named by its size as pushed is flat: the parts of an object that are drawn alike, one of them a protruding part, have no depth of their own to show. */
+    /* A draw whose cover key names it as a flat layer or as pushed is unaffected: it has no depth of its own to show. An example is the
+     * parts of an object that are drawn alike, one of them a protruding part.
+     */
     const bool is_cover_held = (is_cover_flat ||
                                 is_cover_pushed);
 
@@ -232,11 +234,11 @@ bool Stereo::Core::StereoCore::make_screen_vertices(const Analysis::Recipe::Eye&
                                                                        in_index_ptr,
                                                                        in_n_indices,
                                                                        in_picture_width);
-    const auto plan               = plan_screen_shift(in_eye,
-                                                      true, /* in_has_extent */
-                                                      in_is_presented,
-                                                      in_picture_width,
-                                                      reaches_both_sides);
+    const auto plan               = plan_screen_shift                 (in_eye,
+                                                                       true, /* in_has_extent */
+                                                                       in_is_presented,
+                                                                       in_picture_width,
+                                                                       reaches_both_sides);
     bool       result             = false;
 
     if (plan.kind != ScreenShiftKind::NONE ||
@@ -250,7 +252,7 @@ bool Stereo::Core::StereoCore::make_screen_vertices(const Analysis::Recipe::Eye&
                                                          in_n_vertices,
                                                          out_vertex_vec_ptr->data() );
 
-        result = (is_moved ||
+        result = (is_moved     ||
                   in_must_copy);
     }
 
@@ -289,15 +291,15 @@ std::array<float, 16> Stereo::Core::StereoCore::make_eye_shift_matrix(const Anal
 void Stereo::Core::StereoCore::on_frame_completed(const uint64_t& in_shape_key)
 {
     const float fraction_of_the_way = ConvergenceModel::get_fraction_of_the_way(m_frame_interval_seconds);
-    const float scene_distance      = m_applier.get_scene_convergence_distance(in_shape_key);
+    const float scene_distance      = m_applier.get_scene_convergence_distance (in_shape_key);
 
     m_scene_shape_key = in_shape_key;
 
     if (m_convergence_model.follow_scene_convergence_distance(scene_distance,
                                                               fraction_of_the_way) == false)
     {
-        /* The scene is not known: the limit of the one before stays with its distance, for lifting it would give the eyes more room than
-         * the scene that is on the screen may allow.
+        /* The scene is unknown. The limit of the previous scene stays together with its distance, because lifting it would give the eyes
+         * more room than the scene on the screen may allow.
          */
         m_n_unknown_frames++;
     }
@@ -318,7 +320,7 @@ bool Stereo::Core::StereoCore::on_frame_depth(const uint64_t&   in_shape_key,
 
     if (result)
     {
-        const auto limits = Analysis::Recipe::RecipeApplier::get_comfort_limits(m_applier.get_comfort(),
+        const auto limits = Analysis::Recipe::RecipeApplier::get_comfort_limits(m_applier.get_comfort           (),
                                                                                 m_applier.find_scene_comfort_ptr(in_shape_key),
                                                                                 in_depth_range.median_depth,
                                                                                 in_depth_range.near_depth,
@@ -364,8 +366,9 @@ float Stereo::Core::StereoCore::get_eye_parallax(const float& in_origin_depth,
     if (in_origin_depth < 0.0f &&
         distance        > 0.0f)
     {
-        /* The left eye's parallax of a point at the depth, as a part of the picture width: half the separation less what the convergence takes
-         * back.
+        /* The left eye's shift of a point at this depth is half the separation, reduced by what the convergence takes back. In normalized
+         * device units the picture is 2 wide, so this shift equals the distance between the two eyes' images as a fraction of the picture
+         * width.
          */
         const float shift_in_units = separation * HALF * (1.0f + in_origin_depth / distance);
 
@@ -388,7 +391,7 @@ float Stereo::Core::StereoCore::plan_follow_shift(const Analysis::Recipe::Eye& i
 
     if (m_is_last_draw_part)
     {
-        /* The left eye moves right by the parallax over two, the right eye left. */
+        /* Each eye moves by half the parallax: the left eye to the right, the right eye to the left. */
         const float shift_in_ndc = get_eye_parallax(in_origin_depth,
                                                     in_projection_x_scale,
                                                     in_is_perspective);
@@ -419,7 +422,7 @@ float Stereo::Core::StereoCore::plan_part_shift(const Analysis::Recipe::Eye& in_
 
     if (m_is_last_draw_part)
     {
-        const auto& comfort    = m_applier.get_comfort();
+        const auto& comfort    = m_applier.get_comfort           ();
         const auto* scene_ptr  = m_applier.find_scene_comfort_ptr(m_scene_shape_key);
         const float near_limit = (scene_ptr != nullptr && scene_ptr->max_near_parallax > 0.0f) ? scene_ptr->max_near_parallax
                                                                                                : comfort.max_near_parallax;
@@ -480,7 +483,7 @@ float Stereo::Core::StereoCore::plan_push_shift(const Analysis::Recipe::Eye& in_
                                   in_is_moved_by_eyes,
                                   in_picture_width_pixels,
                                   m_convergence_model.get_effective_eye_separation(),
-                                  0.0f /* the effective separation is within the limit of the scene */);
+                                  0.0f /* the effective separation already respects the scene limit */);
 }
 
 Stereo::Core::ScreenShiftPlan Stereo::Core::StereoCore::plan_screen_shift(const Analysis::Recipe::Eye& in_eye,
@@ -501,7 +504,7 @@ Stereo::Core::ScreenShiftPlan Stereo::Core::StereoCore::plan_screen_shift(const 
     input.is_presented         = in_is_presented;
     input.picture_width        = in_picture_width;
     input.reaches_both_sides   = in_reaches_both_sides;
-    input.separation_limit     = 0.0f; /* the effective separation is within it */
+    input.separation_limit     = 0.0f; /* the effective separation already respects the scene limit */
 
     return ScreenParallaxPlanner::plan(m_applier,
                                        input);
@@ -510,7 +513,7 @@ Stereo::Core::ScreenShiftPlan Stereo::Core::StereoCore::plan_screen_shift(const 
 void Stereo::Core::StereoCore::require_fast_path(const bool&        in_is_ok,
                                                  const std::string& in_reason) const
 {
-    /* Limitation: an application that fails here would need the calls of a pass held back until the pass is known; the converter has no
+    /* Limitation: an application that fails here needs the calls of a pass to be held back until the pass is known. The converter has no
      * such deferred path.
      */
     if (in_is_ok == false)

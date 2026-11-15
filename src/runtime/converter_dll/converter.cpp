@@ -32,12 +32,12 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
                            Stereo::Session::SessionEnvironment::get_converter_failed_exit_code() );
     };
 
-    /* A converter that finds that it cannot convert the application right ends it, and says why in the log. */
+    /* If the converter finds that it cannot convert the application correctly, it ends the application and writes the reason to the log. */
     m_live_state.core_ptr.reset(new Stereo::Core::StereoCore(in_recipe,
                                                              write_failure_func) );
 
-    /* The calls that the feeder follows (Direct3D 7, Direct3D 8 and OpenGL), before and after. A Direct3D 8 frame is passed on before
-     * the present, since what the back buffer holds after a present is not defined.
+    /* Register the callbacks for the calls that the feeder follows (Direct3D 7, Direct3D 8 and OpenGL). A Direct3D 8 frame is passed on before
+     * the present, because the content of the back buffer after a present is undefined.
      */
     for (uint32_t n_api_func = 0;
                   n_api_func < APIInterceptor::APIFUNCTION_COUNT;
@@ -56,7 +56,7 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
         }
     }
 
-    /* Ways to set what the program which shows the images says otherwise, for a run without it, and to look at a frame. */
+    /* Environment variables that set the values normally set by the viewer, for a run without the viewer, and that dump frames for inspection. */
     {
         float value = 0.0f;
 
@@ -128,14 +128,14 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
     }
 
     {
-        /* Said by the program which shows the images, before it starts the application: the device is made with it. */
+        /* The viewer reports the size of the eye images before it starts the application, because the device is created with it. */
         uint32_t target_height = 0;
         uint32_t target_width  = 0;
 
         bool is_shown_elsewhere = m_channel_ptr->get_target_eye_size(&target_width,
                                                                      &target_height);
 
-        /* A way to say it for a run without VRPlayer, which says it otherwise. */
+        /* Environment variables that set the size for a run without VRPlayer. VRPlayer reports it through the channel. */
         {
             float height = 0.0f;
             float width  = 0.0f;
@@ -162,8 +162,8 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
             }
         }
 
-        /* A program that shows the images says how large they are before the application starts: without one the application is on the screen, as
-         * it is, and a window of it is not made invisible.
+        /* When a viewer reports the size of the eye images, the application is not shown on the screen and its window is made invisible. Without
+         * a viewer the application stays on the screen as it is and its window is left alone.
          */
         m_live_state.d3d7_windowed_mode.set_target_eye_size(target_width,
                                                             target_height);
@@ -215,7 +215,7 @@ Stereo::ConverterDLL::Converter::Converter(const Stereo::Session::SessionInfo&  
                                                    inout_chunk_ptr);
         };
 
-        /* The analysis sees the application as it asked to be, or the signatures of its draws would depend on the scale. */
+        /* The analysis must see the application as it asked to be, or the signatures of its draws would depend on the scale. */
         m_live_state.feeder.set_chunk_func(restore_chunk_func);
     }
 
@@ -268,7 +268,7 @@ void Stereo::ConverterDLL::Converter::count_frame(std::vector<std::string>* out_
     m_live_state.n_frames++;
 
 
-    /* The first frame says that the calls of the application reach the converter, and how far the application has come. */
+    /* The first frame shows that the calls of the application reach the converter, and how far the application has come. */
     if (m_live_state.n_frames == 1)
     {
         out_log_line_vec_ptr->push_back("The first frame ends, after " + std::to_string(m_live_state.n_affected_draws + m_live_state.n_unaffected_draws + m_live_state.n_skipped_draws) + " draws");
@@ -314,7 +314,7 @@ std::unique_ptr<Stereo::ConverterDLL::Converter> Stereo::ConverterDLL::Converter
 
 std::string Stereo::ConverterDLL::Converter::make_statistics_line() const
 {
-    /* The application is of one API, so one of the two renderers has the twins. */
+    /* The application uses one API, so only one of the two renderers has twins. */
     const uint64_t n_failed_twins = m_live_state.d3d7_renderer_ptr->get_n_failed_twins() + m_live_state.d3d8_renderer_ptr->get_n_failed_twins();
     const uint64_t n_twins        = m_live_state.d3d7_renderer_ptr->get_n_twins       () + m_live_state.d3d8_renderer_ptr->get_n_twins       ();
     LARGE_INTEGER  frequency;
@@ -385,7 +385,7 @@ void Stereo::ConverterDLL::Converter::on_d3d7_frame_ending(const APIInterceptor:
                                                            const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
                                                            std::vector<std::string>*                  out_log_line_vec_ptr)
 {
-    /* The frame which a flip is about to show is in the back buffer of the surface it is called for. */
+    /* The frame that a flip is about to show is in the back buffer of the surface that the flip is called for. */
     if (in_api_func == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_FLIP)
     {
         pass_d3d7_frame(const_cast<void*>(in_arguments_ptr[0].get_ptr() ),
@@ -394,7 +394,7 @@ void Stereo::ConverterDLL::Converter::on_d3d7_frame_ending(const APIInterceptor:
         m_live_state.d3d7_windowed_mode.keep_windows_invisible();
     }
     else
-    /* A program of a window shows its frame by a blit of the surface it rendered to onto the primary surface: that surface is the picture. */
+    /* An application in a window shows its frame by blitting the surface it rendered to onto the primary surface. That surface is the frame. */
     if (in_api_func == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_BLT     ||
         in_api_func == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_BLTFAST)
     {
@@ -406,7 +406,7 @@ void Stereo::ConverterDLL::Converter::on_d3d7_frame_ending(const APIInterceptor:
         m_live_state.d3d7_windowed_mode.keep_windows_invisible();
     }
 
-    /* What was not made for the right eye is said, the first calls of each. */
+    /* Log the notes about calls that were not made for the right eye (the first calls of each kind). */
     for (const auto& note : m_live_state.d3d7_renderer_ptr->take_unmirrored_notes() )
     {
         out_log_line_vec_ptr->push_back(note);
@@ -438,8 +438,8 @@ bool Stereo::ConverterDLL::Converter::on_gl_draws(Analysis::Recipe::DrawClass* o
     *out_is_pushed_ptr = (class_set.empty() == false &&
                           is_every_draw_pushed);
 
-    /* The draws of a display list are made by the driver, in one call: they cannot be made for an eye one at a time, so a list whose draws are not all of one class is
-     * told (the first one), and counted.
+    /* The driver makes all draws of a display list in one call, so they cannot be made for an eye one at a time. If the draws of a list do not all have the same
+     * class, the first such list is logged and every one is counted.
      */
     if (class_set.size() > 1)
     {
@@ -451,7 +451,7 @@ bool Stereo::ConverterDLL::Converter::on_gl_draws(Analysis::Recipe::DrawClass* o
         m_live_state.n_mixed_class_calls++;
     }
 
-    /* The call is made as affected if any of its draws is: a list that has a draw of the scene is the scene's. */
+    /* The call is AFFECTED if any of its draws is. A list that contains a draw of the scene belongs to the scene. */
     if (class_set.find(Analysis::Recipe::DrawClass::AFFECTED) != class_set.end() )
     {
         *out_draw_class_ptr = Analysis::Recipe::DrawClass::AFFECTED;
@@ -488,10 +488,10 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
                                               in_arguments_out_ptr,
                                               in_returned_value_ptr);
 
-        /* What the frame that ended was made of tells which scene it is; the draws that follow are converged for it. */
+        /* The draws of the frame that just ended identify the scene (the shape key). The draws that follow are converged for that scene. */
         if (this_ptr->m_live_state.feeder.take_completed_frame_shape_key(&shape_key) )
         {
-            /* The eyes follow a scene by the time that goes, not by the number of frames: how long this frame took after the one before says how far they go. */
+            /* The eyes follow a scene over time, not over a number of frames, so the core needs the time that this frame took after the previous one. */
             LARGE_INTEGER frame_qpc;
             LARGE_INTEGER frequency;
 
@@ -507,12 +507,12 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
 
             this_ptr->m_live_state.last_frame_qpc = frame_qpc.QuadPart;
 
-            /* How deep the frame was, as the application drew it, if the recipe has it measured (see Comfort::measures_depth); else what was baked for the kind of frame. */
+            /* The depth of the frame as the application drew it, if the recipe has depth measured (see Comfort::measures_depth). Otherwise the core uses the depth baked for this kind of frame. */
             Stereo::Core::DepthRange depth_range;
             float                    projection_scale = 0.0f;
 
-            /* The depth that is given is of the frame before when the depth buffer is read to a buffer of the graphics card, which is not waited for (see
-             * GLEyeRenderer::get_depth_lag()): it goes with the scene that frame was of.
+            /* The depth buffer can be read into a graphics card buffer that is not waited for (see GLEyeRenderer::get_depth_lag()). Then the depth
+             * that is returned belongs to the previous frame, so it is applied to the scene of that frame.
              */
             const uint32_t depth_lag       = this_ptr->m_live_state.gl_renderer_ptr->get_depth_lag();
             const uint64_t depth_shape_key = (depth_lag == 0) ? shape_key
@@ -533,16 +533,16 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
             }
             else
             {
-                /* The scene too: a part's clamp is the limit of its scene. */
+                /* Also set the scene: the clamp of a part is the limit of its scene. */
                 this_ptr->m_live_state.core_ptr->set_scene_shape_key(shape_key);
 
                 this_ptr->m_live_state.last_depth_range       = depth_range;
                 this_ptr->m_live_state.last_projection_scale  = projection_scale;
             }
 
-            /* A debugging aid for tuning a recipe: a frame of each scene, to look at, with the key that the recipe knows it by. It is taken once the run of frames of the scene has lasted
-             * long enough for the eyes to have come to what the scene says (they follow it over a fraction of a second, by the time that goes, whatever the frames per second are), so that
-             * the cuts of a frame or two are left out.
+            /* A debugging aid for tuning a recipe: it writes a frame of each scene to a file, together with the key that the recipe knows the scene by. The frame
+             * is taken only after the run of frames of the scene has lasted long enough for the eyes to settle. The eyes follow a scene over a fraction of a second,
+             * whatever the frame rate is, so this skips scene cuts that last only a frame or two.
              */
             constexpr double N_SECONDS_IN_A_SCENE_TO_SETTLE = 1.5;
 
@@ -557,8 +557,8 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
                 this_ptr->m_live_state.scene_run_n_samples = 0;
             }
 
-            /* A scene that goes on is looked at again, since a scene is not one picture: what the camera shows moves with the time of the demo (half a second apart, whatever the frames per
-             * second are). Only the run of the scene in which the first was written goes on.
+            /* A scene that continues is sampled again, because a scene is not a single picture: the camera moves with the time of the demo. The samples are
+             * half a second apart, whatever the frame rate is. Only the run of the scene in which the first sample was written continues.
              */
             constexpr uint32_t N_SAMPLES_OF_A_SCENE      = 60;
             constexpr double   N_SECONDS_BETWEEN_SAMPLES = 0.5;
@@ -644,15 +644,15 @@ void Stereo::ConverterDLL::Converter::on_post_callback(APIInterceptor::APIFuncti
         }
         else
         {
-            /* What is followed and is neither of Direct3D is OpenGL. */
+            /* A followed call that is not Direct3D belongs to OpenGL. */
             this_ptr->m_live_state.gl_renderer_ptr->on_post(in_api_func,
                                                             in_n_arguments_out,
                                                             in_arguments_out_ptr);
         }
     }
 
-    /* The frame is presented: the application makes the next one when the screen wants it, which is what the program that shows the
-     * frames says (if it does). Outside the lock of the converter, since it is as long as a frame.
+    /* After a present, the application makes the next frame when the screen wants it, as reported by the viewer (if it reports it). This runs outside the
+     * lock of the converter because the wait can last a whole frame.
      */
     const bool is_own_call = OwnCallScope::is_active();
 
@@ -707,7 +707,7 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
         const auto api_group = Capture::APIDumpLoader::get_api_group(in_api_func);
         const bool is_d3d8   = (api_group == Capture::APIDumpLoader::APIGroup::D3D8);
 
-        /* What is followed and is neither of Direct3D is OpenGL (and the SwapBuffers of GDI32 that ends its frames). */
+        /* A followed call that is not Direct3D belongs to OpenGL. This includes the GDI32 SwapBuffers, which ends an OpenGL frame. */
         const bool is_gl     = (is_d3d8 == false                                      &&
                                 api_group != Capture::APIDumpLoader::APIGroup::D3D7);
         const bool is_draw   = m_live_state.feeder.on_pre(in_api_func,
@@ -716,7 +716,7 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
 
         if (in_api_func == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_SETTRANSFORM)
         {
-            /* The matrix is kept; it is put in the device before the draws that need it, for the eye they are made for. */
+            /* The converter keeps the matrix. It puts it in the device before the draws that need it, for the eye that each draw is made for. */
             *out_should_pass_through_ptr = (on_set_transform(in_n_arguments,
                                                              in_arguments_ptr) == false);
         }
@@ -733,11 +733,11 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
             Analysis::Recipe::DrawClass draw_class = Analysis::Recipe::DrawClass::UNAFFECTED;
             bool                        is_pushed  = false;
 
-            /* What is done for a call that draws, down to the end of this block, is the time of the draws. */
+            /* Everything in this block counts as draw time if the call is a draw. */
             ScopedTickAdder draw_timing(&m_live_state.n_draw_ticks,
                                         is_draw);
 
-            /* The draws of a call of OpenGL are those that the front end made of it (a display list makes several, or none). */
+            /* The draws of an OpenGL call are the ones that the front end derived from it (a display list makes several draws, or none). */
             const bool has_draws = (is_draw) ? on_gl_draws(&draw_class,
                                                            &is_pushed,
                                                            &log_line_vec)
@@ -752,11 +752,11 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
                 m_live_state.has_last_gl_images = has_gl_images;
                 m_live_state.last_gl_images     = gl_images;
 
-                /* The copy is for a look at the frame before the next is read, not a hold on its memory: the reader would wait for it. */
+                /* The saved copy must not keep the consumer token: the reader of the frame would wait until the token is released. */
                 m_live_state.last_gl_images.consumer_token.reset();
             }
 
-            /* What the application renders is made for both eyes: a draw or a clear is made here, and the call of the application is not. */
+            /* The renderer makes the draws and clears of the application for both eyes. If it returns false, the call of the application is not made. */
             if (m_live_state.gl_renderer_ptr->on_pre(in_api_func,
                                                      in_n_arguments,
                                                      in_arguments_ptr,
@@ -783,7 +783,7 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
             }
             else
             {
-                /* What a window cannot have is made in its way, and not by the call of the application. */
+                /* The windowed mode handles what a window cannot do, so the call of the application is not made. */
                 if (m_live_state.d3d7_windowed_mode.on_pre(in_api_func,
                                                            in_n_arguments,
                                                            in_arguments_ptr) == false)
@@ -791,7 +791,7 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
                     *out_should_pass_through_ptr = false;
                 }
 
-                /* What is in pixels is made in the pixels of a larger back buffer, if it is made larger. */
+                /* If the back buffer is made larger, the renderer handles the calls that work in pixels, so the call of the application is not made. */
                 if (m_live_state.d3d7_renderer_ptr->on_pre(in_api_func,
                                                            in_n_arguments,
                                                            in_arguments_ptr) == false)
@@ -814,7 +814,7 @@ void Stereo::ConverterDLL::Converter::on_pre(const APIInterceptor::APIFunction& 
             const auto draw_class = m_live_state.core_ptr->classify_draw(m_live_state.feeder.get_last_draw_signature_key(),
                                                                          m_live_state.feeder.get_last_draw_cover_key    () );
 
-            /* A draw of Direct3D 7 or 8 is made by the renderer if it moves the vertices for the eye. */
+            /* The renderer makes a Direct3D 7 or 8 draw if it moves the vertices for the eye. */
             if (is_d3d8)
             {
                 ScopedTickAdder draw_timing(&m_live_state.n_draw_ticks,
@@ -881,9 +881,9 @@ void Stereo::ConverterDLL::Converter::on_pre_callback(APIInterceptor::APIFunctio
                                                       void*                                      in_user_arg_ptr,
                                                       bool*                                      out_should_pass_through_ptr)
 {
-    /* The time the callbacks take is told in the log. The clock costs about as much as a call that is only noted, so it is read for one call of this many of a thread only; what
-     * that one took is counted that many times. The number is a prime, so that it does not line up with a few calls that the application makes over and over (every one that is
-     * timed would be the same call).
+    /* The log reports how much time the callbacks take. Reading the clock costs about as much as a call that is only noted, so only one call in N_CALLS_PER_TIMING
+     * of a thread is timed, and the time is counted that many times. The number is prime so that it does not line up with a short cycle of calls that the application
+     * repeats (otherwise the timed call would always be the same one).
      */
     constexpr uint32_t N_CALLS_PER_TIMING = 61;
 
@@ -922,7 +922,7 @@ void Stereo::ConverterDLL::Converter::on_present_starting(const APIInterceptor::
 {
     *out_right_surface_ptr_ptr = m_live_state.d3d8_renderer_ptr->get_back_buffer_twin_ptr(const_cast<void*>(in_arguments_ptr[0].get_ptr() ));
 
-    /* The application renders to a window that cannot be seen; it may change its style. */
+    /* The application renders to a window that cannot be seen. It may change the style of the window, so the converter makes it invisible again. */
     m_windowed_mode.keep_windows_invisible();
 
     count_frame(out_log_line_vec_ptr);
@@ -985,7 +985,7 @@ void Stereo::ConverterDLL::Converter::pass_d3d7_frame(void* in_primary_surface_p
                                                                                                                                                                     : m_live_state.d3d7_windowed_mode.get_back_buffer_ptr() );
     bool                                            is_to_release   = false;
 
-    /* The application renders to the back buffer of its window if it is made to; otherwise the chain it flips with has one. */
+    /* If the application renders to the back buffer of its window, use that one. Otherwise the chain that the application flips has a back buffer. */
     if (back_buffer_ptr == nullptr)
     {
         Interception::Hooks::D3D7::DDSCAPS2 caps   = {};
@@ -1008,7 +1008,7 @@ void Stereo::ConverterDLL::Converter::pass_d3d7_frame(void* in_primary_surface_p
     {
         void* const back_buffer_twin_ptr = m_live_state.d3d7_renderer_ptr->get_twin_ptr(back_buffer_ptr);
 
-        /* A debugging aid: the images of the eyes of one frame, to look at. */
+        /* A debugging aid: writes the eye images of one frame to a file. */
         if ( (m_live_state.dump_frame                           != 0                             &&
               m_live_state.n_frames                             == m_live_state.dump_frame)      ||
              (m_live_state.dump_every                           != 0                             &&
@@ -1049,7 +1049,7 @@ void Stereo::ConverterDLL::Converter::pass_d3d7_frame(void* in_primary_surface_p
 
 void Stereo::ConverterDLL::Converter::pass_gl_frame(const GLFrameImages& in_images)
 {
-    /* A debugging aid: the images of the eyes of one frame, to look at (the same switches as for Direct3D 7). */
+    /* A debugging aid: writes the eye images of one frame to a file (the same environment variables as for Direct3D 7). */
     if ( (m_live_state.dump_frame                           != 0                             &&
           m_live_state.n_frames                             == m_live_state.dump_frame)      ||
          (m_live_state.dump_every                           != 0                             &&

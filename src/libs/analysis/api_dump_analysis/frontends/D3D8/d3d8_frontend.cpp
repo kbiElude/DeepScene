@@ -23,7 +23,7 @@ Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::D3D8Frontend(Analysis::APIDu
      m_auto_depth_stencil_id(Analysis::APIDumpAnalysis::ResourceId::NONE),
      m_base_vertex_index    (0)
 {
-    /* Release is a method of every interface, and tells that an object may be gone. */
+    /* Every interface has a Release method. A call to it can mean that the object is gone. */
     #define D3D8_METHOD(INTERFACE_TAG, interface_name, METHOD_TAG, method_name, vtable_index, return_type, parameters) \
         if (::strcmp(#method_name, "Release") == 0) \
         { \
@@ -40,7 +40,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::create_swap_chain_resou
     Analysis::APIDumpAnalysis::AttachmentSet             attachments;
     const Analysis::APIDumpAnalysis::ResourceDescription back_buffer_description = D3D8ResourceDescriber::describe_back_buffer(in_parameters);
 
-    /* The device makes the back buffer, and the depth buffer if it is asked to, and renders to them to begin with. */
+    /* The device creates the back buffer, and the depth buffer if one is requested, and initially renders to them. */
     m_back_buffer_view             = Analysis::APIDumpAnalysis::ResourceView();
     m_back_buffer_view.resource_id = m_builder_ptr->on_create_resource      (back_buffer_description,
                                                                              "BackBuffer");
@@ -64,7 +64,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::create_swap_chain_resou
 
     m_builder_ptr->on_set_attachments(attachments);
 
-    /* The viewport is the whole of the back buffer until the application says otherwise. */
+    /* The viewport covers the whole back buffer until the application sets another one. */
     m_builder_ptr->on_set_viewport(get_full_viewport(m_color_view) );
 }
 
@@ -312,7 +312,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_clear(const Call
                                                                                         depth,
                                                                                         stencil);
 
-        /* Without rectangles, the clear is of the viewport. */
+        /* Without rectangles, the clear covers the viewport. */
         clear.has_rectangles         = (in_view.get_u32(COUNT_ARGUMENT) != 0);
         clear.is_limited_to_viewport = true;
 
@@ -353,7 +353,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_device(co
     Interception::Core::D3D8Utils::PresentParameters parameters;
     bool                                             is_ok      = false;
 
-    /* The device may fill in what the application left to it (the size of the window). */
+    /* The device fills in what the application left unspecified (the size of the window). */
     const Capture::APIDumpLoader::DataChunk* chunk_ptr = in_view.get_out_chunk_ptr(PRESENTATION_PARAMETERS_ARGUMENT);
 
     if (chunk_ptr == nullptr)
@@ -382,7 +382,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_device(co
     }
     else
     {
-        /* A new device starts from the defaults, and its shader handles are its own. */
+        /* A new device starts with the default state. Shader handles belong to the device. */
         m_pipeline_state.reset   ();
         m_pixel_shader_map.clear ();
         m_vertex_shader_map.clear();
@@ -429,7 +429,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_pixel_sha
 void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_resource(const CallView&        in_view,
                                                                                 const DescribeFuncPtr& in_describe_func_ptr)
 {
-    /* The object is the last argument of the method. */
+    /* The created object is returned through the last argument of the method. */
     const size_t   object_argument = in_view.get_n_head_arguments() - 1;
     const uint64_t address         = in_view.get_out_pointer(object_argument);
 
@@ -445,7 +445,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_resource(
 
     if (in_view.succeeded() == false)
     {
-        /* The application has nothing to follow: the object was not made. */
+        /* The call did not create an object, so there is nothing to follow. */
     }
     else
     if (is_info_known == false)
@@ -498,7 +498,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_vertex_sh
         VertexShader                                   shader;
         const std::string                              shader_name = "VertexShader " + std::to_string(handle);
 
-        /* A shader with no function is a declaration for the fixed-function pipeline. */
+        /* A shader without a function is a vertex declaration for the fixed-function pipeline. */
         code_hasher.add_bytes(declaration_ptr->data(),
                               declaration_ptr->size() );
 
@@ -510,7 +510,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_vertex_sh
             description.size_in_bytes = function_ptr->size();
         }
 
-        /* A hash of the declaration and the function together, as one thing: what makes the shader what it is. */
+        /* A hash over the declaration and the function together. It identifies the shader. */
         description.content_hash     = code_hasher.get_digest();
         description.has_content_hash = true;
         description.kind             = Analysis::APIDumpAnalysis::ResourceKind::SHADER;
@@ -648,7 +648,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_get_back_buffer(
     {
         ObjectTracker::TrackedObject tracked_object;
 
-        /* The back buffers that a swap chain flips between are one image, as far as the analysis is concerned. */
+        /* The analysis treats all back buffers of a swap chain as one image. */
         tracked_object.view = m_back_buffer_view;
 
         m_tracker.track(address,
@@ -799,7 +799,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_reset(const Call
     bool                                             is_ok      = false;
     Interception::Core::D3D8Utils::PresentParameters parameters;
 
-    /* The device may fill in what the application left to it (the size of the window). */
+    /* The device fills in what the application left unspecified (the size of the window). */
     const Capture::APIDumpLoader::DataChunk* chunk_ptr = in_view.get_out_chunk_ptr(PRESENTATION_PARAMETERS_ARGUMENT);
 
     if (chunk_ptr == nullptr)
@@ -826,8 +826,8 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_reset(const Call
         }
         else
         {
-            /* What the device had made is gone, and the state of the device is the default one again. The render targets
-             * of the application are not the device's to destroy.
+            /* The resources the device created itself are gone, and the device state is the default again. Render targets
+             * created by the application are not destroyed here, because they do not belong to the device.
              */
             m_builder_ptr->on_destroy_resource(m_back_buffer_view.resource_id);
             m_builder_ptr->on_destroy_resource(m_auto_depth_stencil_id);
@@ -912,7 +912,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_render_targe
     {
         Analysis::APIDumpAnalysis::AttachmentSet attachments;
 
-        /* A surface that is not given stays what it was. */
+        /* A surface that is not passed stays unchanged. */
         if (render_target_ptr != nullptr)
         {
             m_color_view = render_target_ptr->view;
@@ -929,7 +929,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_render_targe
 
         m_builder_ptr->on_set_attachments(attachments);
 
-        /* The viewport is the whole of the new render target. */
+        /* The viewport covers the whole new render target. */
         if (render_target_ptr != nullptr)
         {
             m_builder_ptr->on_set_viewport(get_full_viewport(m_color_view) );
@@ -983,7 +983,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_vertex_shade
     const uint32_t handle          = in_view.get_u32         (HANDLE_ARGUMENT);
     const auto     shader_iterator = m_vertex_shader_map.find(handle);
 
-    /* The handle is that of a vertex shader that was made, or an FVF code. */
+    /* The handle is either the handle of a vertex shader that was created, or an FVF code. */
     if (shader_iterator != m_vertex_shader_map.end() )
     {
         m_pipeline_state.set_vertex_shader(shader_iterator->second.id,
@@ -1054,7 +1054,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_unlock(const Cal
     {
         Analysis::APIDumpAnalysis::ResourceView destination = object_ptr->view;
 
-        /* A buffer or a texture is addressed as a whole; the level and the face say which part of a texture is written. */
+        /* A buffer or a texture is addressed as one resource. For a texture, the level and the face select the part that is written. */
         if (object_ptr->owns_resource)
         {
             destination.layer     = in_layer;
@@ -1174,7 +1174,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::on_call(const Capture::
         is_ignored = (has_succeeded == false);
     }
 
-    /* A call which failed changed nothing. */
+    /* A call that failed changed nothing. */
     if (is_ignored)
     {
         /* Nothing to do. */
@@ -1256,7 +1256,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::on_call(const Capture::
 
             case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_PRESENT:
             {
-                /* Every present is a frame, like the other tools count them, whether or not the device could show it. */
+                /* Every present counts as a frame, as in the other tools, whether or not the device could show it. */
                 m_builder_ptr->on_frame_presented();
 
                 break;
@@ -1419,8 +1419,8 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::on_call(const Capture::
                 break;
             }
 
-            /* What the application has written to a buffer or a texture is stored with the unlock: the data follows the
-             * arguments of the method.
+            /* The dumper stores what the application wrote to a buffer or a texture with the unlock call. The data follows
+             * the arguments of the method.
              */
             case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DINDEXBUFFER8_UNLOCK:
             case APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DVERTEXBUFFER8_UNLOCK:
@@ -1482,11 +1482,11 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::on_call(const Capture::
                 else
                 if (view.has_failed() )
                 {
-                    /* A call which failed changed nothing. */
+                    /* A call that failed changed nothing. */
                 }
                 else
                 {
-                    /* What is not followed is left out only if the policy says it may be: any other ends the process. */
+                    /* A call that is not followed may be left out only if the policy allows it. Any other unfollowed call ends the process. */
                     const char* unsupported_reason_ptr = D3D8FunctionPolicy::get_unsupported_reason_ptr(in_call.func);
 
                     if (unsupported_reason_ptr != nullptr)
@@ -1565,7 +1565,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::register_names(const Ca
 
             if (method_info_ptr != nullptr)
             {
-                /* Create* methods always return new objects; Get* ones return existing objects, which may be unknown to us. */
+                /* Create* methods always return new objects. Get* methods return existing objects, which may be unknown to the front end. */
                 constexpr char CREATE_PREFIX[] = "Create";
 
                 const bool is_create = (::strncmp(method_info_ptr->method_name_ptr,
@@ -1640,8 +1640,8 @@ std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDu
                                                                                                                                                   const uint32_t& in_vertex_count,
                                                                                                                                                   const uint32_t& in_stride)
 {
-    /* What the dumper stored with the call follows its arguments: the indices, if the draw has them, and then the vertices. DrawIndexedPrimitiveUP has the
-     * format of the indices as its seventh argument.
+    /* The dumper stores data with the call, after the arguments: the indices (if the draw has them), then the vertices.
+     * The format of the indices is the seventh argument of DrawIndexedPrimitiveUP.
      */
     constexpr size_t INDEX_FORMAT_ARGUMENT = 6;
 

@@ -20,9 +20,7 @@ const Stereo::Replay::ConsistencyChecker::Variant Stereo::Replay::ConsistencyChe
     {Stereo::Replay::EngineDLL::FrameExecution::VARIANTS, "the last frame once for each variant", true, true}
 };
 
-/* Says how the executions of a way of replaying differ from the frames as they are. Returns the first frame in which one of the
- * executions differs, and false if there is none.
- */
+/* Returns the way of replaying that the name stands for (see print_usage), or nullptr. */
 const Stereo::Replay::ConsistencyChecker::Variant* Stereo::Replay::ConsistencyChecker::get_variant_ptr(const std::string& in_way_name)
 {
     const Variant* result_ptr = nullptr;
@@ -63,8 +61,8 @@ bool Stereo::Replay::ConsistencyChecker::replay_to_frame(const Stereo::Replay::C
     options.first_frame = in_frame_index;
     options.last_frame  = in_frame_index;
 
-    /* With the history, every frame before the one asked for is replayed with the recipe (it is hurried through, with no image taken), which is what makes
-     * what the eyes carry over from frame to frame right; the dependencies leave out what nothing after the frame reads, which makes it quick.
+    /* With history, every frame before the requested one is replayed with the recipe, without taking images. This is what makes what the eyes
+     * carry over from frame to frame correct. The dependencies let the replay skip what nothing later reads, which makes it fast.
      */
     if (in_options.has_history ||
         has_deps_file)
@@ -90,8 +88,8 @@ bool Stereo::Replay::ConsistencyChecker::replay_variants_to_frame(const Stereo::
     bool                                              result  = false;
     Stereo::Replay::ConsistencyChecker::FrameHashSink sink(true); /* in_keeps_images */
 
-    /* The frames before the one asked for are replayed with the recipe, with the dependencies leaving out what nothing after the frame reads, as replay_to_frame()
-     * does when it has them; the variants are of the last frame alone.
+    /* The frames before the requested one are replayed with the recipe, and the dependencies let the replay skip what nothing later reads, as
+     * replay_to_frame() does when it has them. Only the last frame is played as variants.
      */
     options.first_frame       = 0;
     options.frame_variant_vec = in_variant_vec;
@@ -151,7 +149,7 @@ bool Stereo::Replay::ConsistencyChecker::run_variant(const Stereo::Replay::Consi
 
         engine_ptr->add_replay_observer (&observer);
 
-        /* The call that is made is written to a file that a crash leaves, if the options ask. */
+        /* If the options ask for it, the call that is being made is written to a file, so that after a crash the file shows the last call. */
         if (breadcrumb.is_open() )
         {
             engine_ptr->add_call_interceptor(&breadcrumb);
@@ -192,7 +190,7 @@ bool Stereo::Replay::ConsistencyChecker::run_variant(const Stereo::Replay::Consi
 
         controller_ptr->set_speed(0.0);
 
-        /* Going to the last frame is what a seek does, which leaves out what the dependencies say nothing after it reads. */
+        /* Going straight to the last frame is a seek. A seek skips what the dependencies say nothing after it reads. */
         if (has_deps_file          == false &&
             in_options.has_history == false)
         {

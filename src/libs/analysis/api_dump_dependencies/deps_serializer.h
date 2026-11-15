@@ -36,7 +36,7 @@ namespace Analysis
             static std::vector<uint8_t> serialize_resources     (const DependencyAnalysis&   in_analysis);
 
         private:
-            /* Reads a value of an enumeration, which goes from 0 up to the last value given. A value above it fails the reader. */
+            /* Reads an enumeration value in the range from 0 to in_last_value. A larger value makes the reader fail. */
             template<typename Enum>
             static Enum read_enum(Utils::BinaryIO::ByteReader* inout_reader_ptr,
                                   const Enum&                  in_last_value);

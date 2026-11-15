@@ -9,7 +9,9 @@
 
 uint32_t Stereo::Replay::EngineDLL::GLAttributeCoverage::get_attribute_bits(const APIInterceptor::APIFunction& in_function)
 {
-    /* Made once, from the names, when the first call is asked about; the reader threads ask at the same time. */
+    /* Built once from the function names, on the first call. Reader threads can call at the same time; the initialization of a
+     * function-local static is thread-safe.
+     */
     static const std::vector<uint32_t> bits_vec = []()
     {
         std::vector<uint32_t> result_vec(static_cast<size_t>(APIInterceptor::APIFUNCTION_COUNT),
@@ -41,7 +43,9 @@ uint32_t Stereo::Replay::EngineDLL::GLAttributeCoverage::get_attribute_bits(cons
     return result;
 }
 
-/* The groups that a function of that name is saved in, from the beginning of its name; no more than what a call only gives a value to. */
+/* Returns the glPushAttrib groups that save the state set by the function with this name, or 0. Only functions that just assign a
+ * value to state are listed. Some entries match by name prefix.
+ */
 uint32_t Stereo::Replay::EngineDLL::GLAttributeCoverage::get_bits_of_name(const char* in_name_ptr)
 {
     /* The groups of glPushAttrib. */

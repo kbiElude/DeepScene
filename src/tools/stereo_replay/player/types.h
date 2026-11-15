@@ -26,7 +26,7 @@ namespace Stereo
 
             struct Options
             {
-                std::string deps_filename;                   /* the dependencies of the workload, which a seek leaves frames out by; none: the file named like the workload, if there is one */
+                std::string deps_filename;                   /* the dependencies file that a seek uses to leave frames out; empty: the file named like the workload, if it exists */
                 EyeMode     eye_mode            = EyeMode::BOTH;
                 float       eye_separation      = 0.0f;      /* if has_eye_separation */
                 uint32_t    first_frame         = 0;

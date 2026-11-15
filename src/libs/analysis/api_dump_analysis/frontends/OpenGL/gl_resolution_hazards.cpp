@@ -47,7 +47,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GLResolutionHazards::classify(const A
         {
             uint32_t name = 0;
 
-            /* What the application asks for is the state that the converter made larger: its answer is the larger one. */
+            /* The application queries the state that the converter enlarged, so the answer it gets is the enlarged value. */
             if (in_n_arguments > 0                                       &&
                 APIInterceptor::read_number(in_arguments_ptr[0],
                                            &name)                        &&

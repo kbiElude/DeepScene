@@ -10,7 +10,7 @@
 std::vector<Analysis::APIDumpDependencies::PerEyeCandidate> Analysis::APIDumpDependencies::PerEyeCandidates::find(const DependencyAnalysis& in_analysis)
 {
     const auto                   group_vec = find_rotation_groups(in_analysis);
-    std::map<size_t, size_t>     group_by_resource_map; /* the number of the resource less 1, and its group */
+    std::map<size_t, size_t>     group_by_resource_map; /* resource number minus 1 to group index */
     std::vector<PerEyeCandidate> result_vec;
 
     for (size_t n_group = 0;
@@ -32,7 +32,7 @@ std::vector<Analysis::APIDumpDependencies::PerEyeCandidate> Analysis::APIDumpDep
         const ResourceSummary& summary        = in_analysis.result.resource_vec.at(n_resource).summary;
         const bool             is_rendered_to = is_rendered_to_by_frames(resource);
 
-        /* Some frame uses what an earlier frame left in it, whether that frame writes it too or not. */
+        /* Some frame uses content that an earlier frame left in the resource, whether or not that frame writes the resource too. */
         const bool is_used_later = (summary.n_frames_using_earlier_content          != 0 ||
                                     summary.n_frames_using_earlier_content_possibly != 0);
 
@@ -48,7 +48,7 @@ std::vector<Analysis::APIDumpDependencies::PerEyeCandidate> Analysis::APIDumpDep
         }
     }
 
-    /* A rotation group is one thing: if the frames use earlier content of one of its resources, they do of all of them for the eyes. */
+    /* A rotation group is handled as a unit. If the frames use earlier content of one member, all members become candidates. */
     for (size_t n_group = 0;
                 n_group < group_vec.size();
               ++n_group)
@@ -120,7 +120,7 @@ std::vector<Analysis::APIDumpDependencies::RotationGroup> Analysis::APIDumpDepen
 {
     constexpr size_t N_MIN_WRITING_FRAMES = 2;
 
-    std::map<uint64_t, std::vector<size_t> > member_vec_by_key_map; /* by what the resources are alike in */
+    std::map<uint64_t, std::vector<size_t> > member_vec_by_key_map; /* by match_key: the resources of one description */
     std::vector<RotationGroup>               result_vec;
 
     for (size_t n_resource = 0;
@@ -144,7 +144,7 @@ std::vector<Analysis::APIDumpDependencies::RotationGroup> Analysis::APIDumpDepen
     {
         const auto&                               member_vec = key_members.second;
         bool                                      has_repeat = false;
-        std::vector<std::pair<uint64_t, size_t> > turn_vec; /* the frame of a write, and the member that wrote it */
+        std::vector<std::pair<uint64_t, size_t> > turn_vec; /* (frame of a write, member that wrote it) */
 
         if (member_vec.size() < 2)
         {
@@ -167,7 +167,7 @@ std::vector<Analysis::APIDumpDependencies::RotationGroup> Analysis::APIDumpDepen
         std::sort(turn_vec.begin(),
                   turn_vec.end  () );
 
-        /* Turns, not a run of one resource: no member is written by two writes in a row. */
+        /* The writes must alternate: no member may be written by two consecutive writes. */
         for (size_t n_turn = 1;
                     n_turn < turn_vec.size() && has_repeat == false;
                   ++n_turn)
@@ -183,7 +183,9 @@ std::vector<Analysis::APIDumpDependencies::RotationGroup> Analysis::APIDumpDepen
             group.n_resource_vec    = member_vec;
             group.has_regular_order = (turn_vec.size() >= member_vec.size() );
 
-            /* Each member once in the first turns, and the same order from then on. */
+            /* Regular order: the first writes, as many as there are members, are by distinct members, and each later write is by the same member
+             * as the write one cycle (one group size) earlier.
+             */
             for (size_t n_turn = 0;
                         n_turn < turn_vec.size() && group.has_regular_order;
                       ++n_turn)

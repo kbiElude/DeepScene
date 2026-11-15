@@ -9,7 +9,7 @@ uint64_t Analysis::APIDumpAnalysis::Frontends::GLPipelineState::compute_state_ke
 {
     Utils::Hashing::Hasher hasher;
 
-    /* The sets and the maps are in order, so the same state is the same digest whichever way it was reached. */
+    /* The sets and the maps are ordered, so the same state always gives the same digest, whichever way it was reached. */
     for (const auto& capability : m_enabled_capability_set)
     {
         hasher.add_u64(capability);
@@ -60,7 +60,7 @@ uint32_t Analysis::APIDumpAnalysis::Frontends::GLPipelineState::get_capability_g
     constexpr uint32_t TEXTURE_BIT        = 0x00040000;
     constexpr uint32_t TRANSFORM_BIT      = 0x00001000;
 
-    /* The capabilities are in the enable group, and each in the group of what it is about (the first of GL_LIGHT0 to GL_LIGHT7 is 0x4000). */
+    /* Every capability is in the enable group, and also in the group of the feature it controls (GL_LIGHT0 to GL_LIGHT7 start at 0x4000). */
     constexpr uint32_t FIRST_LIGHT = 0x4000;
     constexpr uint32_t N_LIGHTS    = 8;
 
@@ -158,7 +158,7 @@ uint32_t Analysis::APIDumpAnalysis::Frontends::GLPipelineState::get_capability_g
 uint64_t Analysis::APIDumpAnalysis::Frontends::GLPipelineState::get_unit_key(const uint32_t& in_unit,
                                                                              const uint32_t& in_capability)
 {
-    /* The unit is in the upper half, from 1 on, so that no key of a unit is a key of a capability that has none. */
+    /* The unit goes in the upper 32 bits, counted from 1, so that the key of a unit capability never equals the key of a capability without a unit. */
     return (static_cast<uint64_t>(in_unit) + 1) << 32 | in_capability;
 }
 
@@ -260,7 +260,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLPipelineState::restore(const GLPipe
     std::set<uint64_t>               capability_set = m_enabled_capability_set;
     std::map<GLStateValue, uint32_t> value_map      = m_value_map;
 
-    /* What is enabled now, and what was when the state was saved: the capability of a group of the mask is as it was. */
+    /* Visits every capability that is enabled now or was enabled when the state was saved. A capability in a group of the mask gets its saved value. */
     capability_set.insert(in_saved.m_enabled_capability_set.begin(),
                           in_saved.m_enabled_capability_set.end() );
 

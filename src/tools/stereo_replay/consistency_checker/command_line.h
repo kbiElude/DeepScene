@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * The command line of the replay check tool: the options which it is given, and what it says of them.
+ * The command line of the replay check tool: its usage text and the parsing of its options.
  */
 #ifndef STEREO_REPLAY_CONSISTENCYCHECKER_COMMAND_LINE_H
 #define STEREO_REPLAY_CONSISTENCYCHECKER_COMMAND_LINE_H
@@ -24,26 +24,27 @@ namespace Stereo
             public:
                 static const char* get_usage_ptr();
 
-                /* Returns false, and says why, if the arguments are not right. The program name is not among them. */
+                /* Parses the arguments, which do not include the program name. Returns false, and says why, if they are invalid. */
                 static bool parse(const std::vector<std::string>& in_argument_vec,
                                   Options*                        out_options_ptr,
                                   std::string*                    out_error_ptr);
 
             private:
-                /* False if the options of a screenshot or a contact sheet are given without it, or it without the file to write, or both at once. */
+                /* Checks the screenshot and contact sheet options. A screenshot and a contact sheet cannot be combined. Either one needs an output image
+                 * file, and an eye view needs a recipe. Without a screenshot or a contact sheet, no image file or eye view may be given. */
                 static bool are_image_options_valid(const Options& in_options);
 
-                /* The view of the eyes that the name stands for: left, right, both or anaglyph. False for any other name. */
+                /* Converts a name (left, right, both or anaglyph) to an eye view. Returns false for any other name. */
                 static bool parse_eye_view(const std::string&      in_name,
                                            Utils::Images::EyeView* out_view_ptr);
 
-                /* A whole number from the least to the most. False, and the output left alone, for any other text. */
+                /* Parses a whole number between the least and the most. Returns false, and leaves the output unchanged, for any other text. */
                 static bool parse_unsigned(const std::string& in_text,
                                            const uint64_t&    in_least,
                                            const uint64_t&    in_most,
                                            uint32_t*          out_value_ptr);
 
-                /* The items of a list which is written with commas between them (an empty item is one too). */
+                /* Splits a comma-separated list into its items. An empty item counts as an item. */
                 static std::vector<std::string> split_list(const std::string& in_list);
             };
         }

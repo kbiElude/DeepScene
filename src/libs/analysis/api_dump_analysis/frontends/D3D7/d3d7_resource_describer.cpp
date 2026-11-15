@@ -28,7 +28,7 @@ Analysis::APIDumpAnalysis::Format Analysis::APIDumpAnalysis::Frontends::D3D7Reso
         result.format_class = Analysis::APIDumpAnalysis::FormatClass::COLOR;
     }
 
-    /* What the format is, in a number: the code of a compressed format, or a digest of the flags, the size and the masks. */
+    /* Reduces the format to one number: the code of a compressed format, or a digest of the flags, the size and the masks. */
     if ( (in_format.dwFlags & Interception::Core::D3D7Utils::DDPF_FOURCC) != 0)
     {
         result.raw_value = in_format.dwFourCC;
@@ -92,7 +92,7 @@ Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Fronte
         result.format.format_class = Analysis::APIDumpAnalysis::FormatClass::COLOR;
     }
 
-    /* A mip map chain has the number of levels it says, or all of them down to 1x1 if it does not say. */
+    /* A mip map chain has the number of levels it declares, or all levels down to 1x1 if it declares none. */
     if ( (caps & Interception::Core::D3D7Utils::DDSCAPS_MIPMAP) != 0)
     {
         const uint32_t n_levels_asked = ( (flags & Interception::Core::D3D7Utils::DDSD_MIPMAPCOUNT) != 0) ? in_description.mip_map_count

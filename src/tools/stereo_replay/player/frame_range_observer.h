@@ -14,8 +14,8 @@ namespace Stereo
     {
         namespace Player
         {
-            /* Makes the replay go unpaced up to the first frame of a range, play the range at the recorded pace, and pause after
-             * its last frame. Playing on afterwards is not stopped again.
+            /* Runs the replay as fast as possible up to the first frame of a range, plays the range at the recorded pace, and pauses
+             * after the last frame of the range. If playing continues afterwards, the observer does not pause it again.
              */
             class FrameRangeObserver : public Stereo::Replay::EngineDLL::NullReplayObserver
             {

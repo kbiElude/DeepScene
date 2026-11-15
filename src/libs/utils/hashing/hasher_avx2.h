@@ -12,13 +12,13 @@ namespace Utils
 {
     namespace Hashing
     {
-        /* The stripes of XXH64 for a processor that has AVX2. It is a class of its own because its file is built for AVX2, and so is not to be the home of anything that the rest
-         * of the program may call.
+        /* The XXH64 stripe loop for processors with AVX2. It is a class of its own because its file is built with AVX2 enabled, so the file must not
+         * contain anything that the rest of the program may call.
          */
         class HasherAvx2
         {
         public:
-            /* The four accumulators of XXH64 (the arguments are its first and second prime) after the stripes of 32 bytes that in_n_stripes of them are. */
+            /* Updates the four XXH64 accumulators with in_n_stripes stripes of 32 bytes each. The primes are the first and second primes of XXH64. */
             static void hash_stripes(const uint8_t*  in_data_ptr,
                                      const size_t&   in_n_stripes,
                                      const uint64_t& in_prime_1,

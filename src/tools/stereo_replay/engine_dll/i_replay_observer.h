@@ -14,7 +14,7 @@ namespace Stereo
     {
         namespace EngineDLL
         {
-            /* Watches a replay (see the one of the replay engine of the interceptor). */
+            /* Watches a replay (see ::Replay::ReplayEngineDLL::IReplayObserver). */
             typedef ::Replay::ReplayEngineDLL::IReplayObserver IReplayObserver;
         }
     }

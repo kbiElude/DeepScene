@@ -20,27 +20,28 @@ namespace Stereo
     {
         namespace ConsistencyChecker
         {
-            /* Replays the frames of the options from the workload of the options and from the other workload, as they are, and says whether the images are the same.
-             * Returns false if a replay fails. A slice of the workload (frames 0 to B) is the same as the workload for the frames up to B.
+            /* Replays the frames of the options from the workload of the options and from the other workload, both as they are, and says whether the
+             * images are the same. Returns false if a replay fails. A slice of the workload (frames 0 to B) must give the same images as the workload
+             * for the frames up to B.
              */
             bool compare_workloads(const Options& in_options,
                                    bool*          out_has_difference_ptr,
                                    std::string*   out_error_ptr);
 
-            /* Writes the images of one frame, as it is and executed twice, to the directory of the options. */
+            /* Writes the images of one frame to the directory of the options: the frame as it is, and the frame executed twice. */
             void dump_frame(const Options&  in_options,
                             const uint32_t& in_n_frame,
                             const Variant&  in_variant);
 
-            /* Says how the executions of a way of replaying differ from the frames as they are. Returns the first frame in which one of the
-             * executions differs, and false if there is none.
+            /* Prints how the executions of a way of replaying differ from the frames as they are. Returns true and sets out_first_frame_ptr to the
+             * first frame in which an execution differs. Returns false if no execution differs.
              */
             bool print_comparison(const Variant&                                     in_variant,
                                   const std::map<FrameHashSink::ImageKey, uint64_t>& in_baseline_map,
                                   const std::map<FrameHashSink::ImageKey, uint64_t>& in_hash_map,
                                   uint32_t*                                          out_first_frame_ptr);
 
-            /* Says, and writes an image of, how the image of an execution differs from the one of the frame as it is. */
+            /* Prints how the image of an execution differs from the image of the frame as it is, and writes an image of the difference. */
             void write_difference(const std::string&          in_label,
                                   const std::string&          in_path,
                                   const Utils::Images::Image& in_image_as_it_is,

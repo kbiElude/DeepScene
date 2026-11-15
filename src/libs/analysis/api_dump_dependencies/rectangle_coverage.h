@@ -12,14 +12,14 @@ namespace Analysis
 {
     namespace APIDumpDependencies
     {
-        /* Whether rectangles together leave nothing of another rectangle uncovered: how the planner tells that the last few writes to a texture which the
-         * frames fill a strip at a time have made all of it that anyone writes, so that the writes before them do not show.
+        /* Tests whether a set of rectangles leaves any part of another rectangle uncovered. The planner uses it to tell that the last few writes to
+         * a texture, which frames fill one strip at a time, have written everything that any frame writes, so that the earlier writes no longer show.
          */
         class RectangleCoverage
         {
         public:
-            /* True if every texel of the extent is in at least one of the rectangles (those which are not known, or have nothing in them, cover nothing); an
-             * extent which is not known is covered by none.
+            /* True if every texel of the extent lies in at least one of the rectangles. Rectangles that are unknown or empty cover nothing. An extent
+             * that is unknown or empty is never covered.
              */
             static bool covers(const std::vector<Analysis::APIDumpAnalysis::AccessRectangle>& in_rectangle_vec,
                                const Analysis::APIDumpAnalysis::AccessRectangle&              in_extent);

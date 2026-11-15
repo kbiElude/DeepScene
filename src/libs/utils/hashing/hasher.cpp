@@ -8,7 +8,7 @@
 #include <math.h>
 #include <string.h>
 
-/* The xxHash which Zstandard comes with, built into this file only. */
+/* The xxHash bundled with Zstandard, compiled into this file only. */
 #define XXH_INLINE_ALL
 #include "xxhash.h"
 
@@ -172,7 +172,7 @@ uint64_t Utils::Hashing::Hasher::hash_bytes_avx2(const void*   in_data_ptr,
     constexpr int      N_ROTATE_BITS_4    = 18;
     constexpr uint64_t SEED               = 0;
 
-    /* What XXH64 does for 32 bytes or more, with its four accumulators (the first four of its state) as it starts them. */
+    /* XXH64 for inputs of 32 bytes or more. The four accumulators are the first four words of its state, each set to its starting value. */
     uint64_t       accumulator_u64vec4[4] = {SEED + XXH_PRIME64_1 + XXH_PRIME64_2,
                                              SEED + XXH_PRIME64_2,
                                              SEED,
@@ -203,7 +203,7 @@ uint64_t Utils::Hashing::Hasher::hash_bytes_avx2(const void*   in_data_ptr,
 
     result += static_cast<uint64_t>(in_n_bytes);
 
-    /* The bytes that are left (fewer than a stripe) and the last mixing of the bits are the usual way. */
+    /* The remaining bytes (fewer than one stripe) and the final bit mixing use the standard XXH64 steps. */
     return XXH64_finalize(result,
                           data_u8_ptr + n_stripes * N_BYTES_PER_STRIPE,
                           in_n_bytes,

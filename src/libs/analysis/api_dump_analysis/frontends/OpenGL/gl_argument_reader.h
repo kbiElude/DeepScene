@@ -16,11 +16,11 @@ namespace Analysis
     {
         namespace Frontends
         {
-            /* How the classes that follow the calls of OpenGL read the arguments of a call. */
+            /* The helpers that the classes following OpenGL calls use to read the arguments of a call. */
             class GLArgumentReader
             {
             public:
-                /* Reads the first N arguments of the call as numbers; false if it has fewer, or one that is not a number. */
+                /* Reads the first N arguments of the call as numbers. Returns false if the call has fewer than N arguments, or if one of them is not a number. */
                 template<typename T, size_t N>
                 static bool read_arguments(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                            std::array<T, N>*                            out_value_array_ptr)

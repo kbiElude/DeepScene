@@ -31,7 +31,7 @@ void Stereo::Replay::EngineDLL::FrameBuffer::add_call(const Capture::APIDumpLoad
                 const bool is_new = (chunk_iterator        == m_chunk_map.end() ||
                                      chunk_iterator->first != chunk_id);
 
-                /* One search for both the check and the place to put the chunk. */
+                /* lower_bound finds both whether the chunk is new and where to insert it. */
                 if (chunk_ptr != nullptr &&
                     is_new)
                 {

@@ -103,7 +103,7 @@ end:
     return result;
 }
 
-/* Writes the images of one frame, as it is and executed twice, to the directory of the options. */
+/* Writes the images of one frame to the directory of the options: the frame as it is, and the frame executed twice. */
 void Stereo::Replay::ConsistencyChecker::dump_frame(const Stereo::Replay::ConsistencyChecker::Options& in_options,
                                                     const uint32_t&                                    in_n_frame,
                                                     const Variant&                                     in_variant)
@@ -199,7 +199,7 @@ bool Stereo::Replay::ConsistencyChecker::print_comparison(const Variant&        
         const auto     first   = in_hash_map.find({n_frame, 0});
         const auto     second  = in_hash_map.find({n_frame, 1});
 
-        /* An image which is not there is a difference, except for the second execution of a way which has one only. */
+        /* A missing image counts as a difference, except for the second execution of a way that has only one execution. */
         const bool first_differs  = (first           == hash_map_end                                     ||
                                      first->second   != baseline_pair.second);
         const bool second_differs = (in_variant.mode == Stereo::Replay::EngineDLL::FrameExecution::TWICE &&

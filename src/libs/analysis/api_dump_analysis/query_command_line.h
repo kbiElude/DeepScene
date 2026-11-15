@@ -2,9 +2,10 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Reads the command line of the programs that ask questions of a file of the analysis (APIDumpAnalysisQuery, APIDumpDependencyQuery, APIDumpTextureQuery): --compact,
- * --limit, --no-verify, --offset and --workload are the same for all of them (see QueryOptions). A program is asked about each argument that is not one of these
- * before it is taken for an unknown option, and about each argument that is not an option at all (the file, the command, the numbers).
+ * Reads the command line of the programs that query a file of the analysis (APIDumpAnalysisQuery, APIDumpDependencyQuery,
+ * APIDumpTextureQuery). The options --compact, --limit, --no-verify, --offset and --workload are the same for all of them (see QueryOptions).
+ * An argument that is none of these options is first offered to the program, and only then treated as an unknown option. An argument that is
+ * not an option at all (the file, the command, the numbers) is also offered to the program.
  */
 #ifndef APIDUMPANALYSIS_QUERY_COMMAND_LINE_H
 #define APIDUMPANALYSIS_QUERY_COMMAND_LINE_H
@@ -23,15 +24,15 @@ namespace Analysis
         class QueryCommandLine
         {
         public:
-            /* What a program with options of its own says of an argument. */
+            /* What a program with options of its own does with an argument. */
             typedef Utils::CommandLine::ProgramOptionFunc ProgramOptionFunc;
 
-            /* What a program says of an argument that is not an option: the nth of them (from 0). False, and the reason, if it is not right. */
+            /* What a program does with an argument that is not an option; in_n_positional counts these arguments from 0. Returns false and the reason if the argument is invalid. */
             typedef std::function<bool(const std::string& in_argument,
                                        const size_t&      in_n_positional,
                                        std::string*       out_error_ptr)> PositionalFunc;
 
-            /* False, and the reason, if the arguments are not right. The number options are those that only take a number: the program is asked about the others. */
+            /* Returns false and the reason if the arguments are invalid. The number options are the options that only take a number; the program is asked about all other options. */
             static bool parse(const int&                            in_argc,
                               char*                                 in_argv[],
                               const std::vector<QueryNumberOption>& in_number_option_vec,
@@ -40,8 +41,8 @@ namespace Analysis
                               QueryOptions*                         out_options_ptr,
                               std::string*                          out_error_ptr);
 
-            /* The same, for the programs whose arguments that are not options are a file, a command, and numbers (as many as the rules allow): the program is asked
-             * about none of them, and gets what they said. False, and the reason, if they are not right, or if the file or the command is not there.
+            /* Like parse(), for the programs whose non-option arguments are a file, a command, and numbers (as many as the rules allow). The
+             * program is not asked about these arguments; it gets the parsed result. Returns false and the reason if they are invalid, or if the file or the command is missing.
              */
             static bool parse_file_command_and_numbers(const int&                            in_argc,
                                                        char*                                 in_argv[],

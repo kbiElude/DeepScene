@@ -2,9 +2,9 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * What one level of a texture holds at a point of a workload, from the events of a .textures file: the events that write it are laid over each other in the order
- * of the calls, and what is left visible of each is a piece. A write that gives the level another size or format than it had starts the level again, as
- * specifying the level anew does.
+ * Computes what one level of a texture holds at a point of a workload, from the events of a .textures file. The events that write the level are
+ * laid over each other in call order, and what remains visible of each event is a piece. A write that gives the level a different size or format
+ * starts the level again, as specifying the level anew does.
  */
 #ifndef APIDUMPTEXTURES_TEXTURE_LEVEL_CONTENT_H
 #define APIDUMPTEXTURES_TEXTURE_LEVEL_CONTENT_H
@@ -20,14 +20,14 @@ namespace Analysis
         class TextureLevelContent
         {
         public:
-            /* The content of a level of a resource, as the events up to the cut leave it. */
+            /* Returns the content of one level of a resource, as the events up to the cut leave it. */
             static LevelContent find(const TextureTimeline&                       in_timeline,
                                      const Analysis::APIDumpAnalysis::ResourceId& in_resource_id,
                                      const uint32_t&                              in_mip_level,
                                      const LevelCut&                              in_cut);
 
         private:
-            /* A rectangle of one layer that an event wrote, kept in texels. */
+            /* A rectangle of one layer that an event wrote, in texels. */
             struct Rectangle
             {
                 uint32_t event_index = 0;
@@ -37,14 +37,18 @@ namespace Analysis
                 uint32_t y           = 0;
             };
 
-            /* The rectangles of each layer, by the number of the layer. */
+            /* The rectangles of each layer, by layer number. */
             typedef std::map<uint32_t, std::vector<Rectangle> > LayerMap;
 
-            /* The pieces of the layers, with the layers that hold the same rectangles of the same events as one run. */
+            /* Converts the rectangles into pieces. Consecutive layers that hold the same rectangles from the same events become one piece with a
+             * layer count.
+             */
             static void make_pieces(const LayerMap&          in_layer_map,
                                     std::vector<LevelPiece>* out_piece_vec_ptr);
 
-            /* What is left of the rectangles of a layer when an event writes a rectangle over them, and the rectangle itself. */
+            /* Lays a rectangle over the rectangles of a layer. The parts of the old rectangles that stay visible are kept, and the new rectangle
+             * is added.
+             */
             static void paint(const Rectangle&        in_rectangle,
                               std::vector<Rectangle>* inout_rectangle_vec_ptr);
         };

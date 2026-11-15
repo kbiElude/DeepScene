@@ -2,9 +2,10 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * What the front end of OpenGL does with the calls about matrices: the stacks of each context (a model-view, a projection, and the others, which are only kept
- * right), what loads or multiplies the current matrix, and what the model builder is told of the two that it is told of (MODEL_VIEW_MATRIX and PROJECTION_MATRIX,
- * each when it changes). OpenGL has one matrix for the model and the view together, so the two are told as they are, and a model is not told from a view.
+ * Handles the OpenGL matrix calls: the matrix stacks of each context (model-view, projection, and the others, which are only tracked to keep them
+ * correct), the calls that load or multiply the current matrix, and the reports to the model builder. Only two matrices are reported, each when it
+ * changes: MODEL_VIEW_MATRIX and PROJECTION_MATRIX. OpenGL has a single matrix for model and view together, so the model-view matrix is reported
+ * as it is. A separate model matrix is never derived from it.
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_MATRIX_HANDLER_H
 #define APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_MATRIX_HANDLER_H
@@ -27,10 +28,10 @@ namespace Analysis
                 /* The builder must outlive the handler. */
                 explicit GLMatrixHandler(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr);
 
-                /* How many of the calls about matrices are not followed, and the front end goes on without them. */
+                /* The number of matrix calls that are not followed. The front end continues without them. */
                 uint64_t get_n_unfollowed_calls() const;
 
-                /* A call that loads or multiplies the current matrix: the matrix is what its arguments (or its data) say. */
+                /* A call that loads or multiplies the current matrix. The matrix operand comes from the call arguments or from the data stored with the call. */
                 void handle_matrix(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                    const Capture::APIDumpLoader::Workload&      in_workload,
                                    GLContextState*                              inout_state_ptr);
@@ -40,7 +41,7 @@ namespace Analysis
                 void handle_pop_matrix (GLContextState*                              inout_state_ptr);
                 void handle_push_matrix(GLContextState*                              inout_state_ptr);
 
-                /* Tells the model builder the model-view and the projection matrix of the context, those of them which are not what it was told last. */
+                /* Reports the model-view and projection matrices of the context to the model builder, but only those that differ from the last report. */
                 void report_matrices(const GLContextState& in_state);
 
             private:
@@ -49,21 +50,21 @@ namespace Analysis
                                    const uint64_t&                                    in_byte_offset,
                                    GLReportedMatrix*                                  inout_reported_ptr);
 
-                /* The stack of the matrices that glMatrixMode has chosen. */
+                /* The matrix stack that glMatrixMode selected. */
                 static std::vector<GLMatrix>* get_current_stack_ptr(GLContextState* inout_state_ptr);
 
-                /* The matrix that a call of glLoadMatrix or glMultMatrix has stored as its argument, of floats or of doubles. */
+                /* Reads the matrix that a glLoadMatrix or glMultMatrix call stored as its argument, as floats or as doubles. */
                 static bool read_matrix_chunk(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                               const Capture::APIDumpLoader::Workload&      in_workload,
                                               const bool&                                  in_is_double,
                                               GLMatrix*                                    out_matrix_f32mat_ptr);
 
-                /* The matrix that the call has to load into the current one, or to multiply it by; false if its arguments cannot be read. */
+                /* Reads the matrix that the call loads into the current matrix or multiplies it by. Returns false if the arguments cannot be read. */
                 static bool read_matrix_operand(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                 const Capture::APIDumpLoader::Workload&      in_workload,
                                                 GLMatrix*                                    out_matrix_f32mat_ptr);
 
-                /* GL_MODELVIEW, the matrix mode. */
+                /* The value of the GL_MODELVIEW matrix mode. */
                 static const uint32_t MODELVIEW_MODE;
 
                 Analysis::APIDumpAnalysis::ModelBuilder* m_builder_ptr;

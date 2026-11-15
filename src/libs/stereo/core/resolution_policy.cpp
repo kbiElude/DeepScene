@@ -77,9 +77,11 @@ uint32_t Stereo::Core::ResolutionPolicy::scale_pixel_coordinate(const int64_t&  
         in_real_extent  != 0)
     {
         const int64_t last_asked_pixel = static_cast<int64_t>(in_asked_extent) - 1;
-        const double  last_real_pixel  = static_cast<double>(in_real_extent) - 1.0;
+        const double  last_real_pixel  = static_cast<double> (in_real_extent)  - 1.0;
 
-        /* Brought inside the window first, so that the pixel that is found is the one that the nearest pixel of the window has. */
+        /* The coordinate is moved inside the application's picture first, so that the result is the one that the nearest pixel inside the
+         * picture gets.
+         */
         const int64_t asked_pixel = (in_coordinate < 0)                ? 0
                                   : (in_coordinate > last_asked_pixel) ? last_asked_pixel
                                                                        : in_coordinate;
@@ -110,7 +112,7 @@ Stereo::Core::PixelRect Stereo::Core::ResolutionPolicy::scale_rect(const PixelRe
 {
     PixelRect result = scale_rect(in_rect);
 
-    /* Rounding must not take the rectangle out of what it is for. */
+    /* Rounding must not push the rectangle outside the bounds. */
     if (result.x + result.width > in_bounds_width)
     {
         result.width = (result.x < in_bounds_width) ? in_bounds_width - result.x

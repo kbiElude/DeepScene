@@ -6,7 +6,7 @@
 #include "utils/hashing/hasher.h"
 #include "interception/hooks/D3D8/types.h"
 
-/* What a device can have: an index beyond these is not one that D3D8 has. */
+/* The limits of a device. An index beyond them does not exist in D3D8. */
 static constexpr uint32_t N_MAX_LIGHTS        = 256;
 static constexpr uint32_t N_MAX_RENDER_STATES = 256;
 static constexpr uint32_t N_MAX_STAGE_STATES  = 32;
@@ -36,7 +36,7 @@ Analysis::APIDumpAnalysis::DrawDescription Analysis::APIDumpAnalysis::Frontends:
                                              : Analysis::APIDumpAnalysis::ResourceId::NONE;
     result.shader_id_vec                                   = get_shader_id_vec();
 
-    /* The format of the vertices: what the format code or the declaration says, and how far apart the vertices are. */
+    /* The vertex format: the layout given by the format code or the declaration, and the stride between vertices. */
     layout_hasher.add_u64(m_vertex_layout_value);
     layout_hasher.add_u64(static_cast<uint64_t>(m_stream_binding_map.size() ));
 
@@ -67,7 +67,7 @@ Analysis::APIDumpAnalysis::DrawDescription Analysis::APIDumpAnalysis::Frontends:
 
     result.shader_id_vec                                   = get_shader_id_vec();
 
-    /* The only stream is the application's memory. */
+    /* The only vertex source is the application's memory. */
     layout_hasher.add_u64(m_vertex_layout_value);
     layout_hasher.add_u32(in_stride);
 

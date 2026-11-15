@@ -8,7 +8,7 @@
 Stereo::Replay::EngineDLL::GLTextureParameterCache::GLTextureParameterCache()
     :m_active_unit                 (0),
      m_is_recording                (false),
-     m_is_unit_known               (true), /* the unit of a context that is new */
+     m_is_unit_known               (true), /* a new context starts with unit 0 active */
      m_last_context                (0),
      m_last_frame                  (0),
      m_n_skipped_calls             (0),
@@ -54,7 +54,7 @@ void Stereo::Replay::EngineDLL::GLTextureParameterCache::on_call_replayed(const 
                                             n_known_lists   != 0   &&
                                             n_texture_lists == 0);
 
-            /* A list that is not known may be anything: it is made, so what is known of the textures is not. */
+            /* A list that is unknown, or that sets texture state, can change anything, so the cache forgets everything it knows. */
             if (is_list_safe == false)
             {
                 forget_all();
@@ -140,7 +140,9 @@ void Stereo::Replay::EngineDLL::GLTextureParameterCache::on_call_replayed(const 
         {
             if (m_is_recording)
             {
-                /* What a list does is done when it is called, or now if it is made and made at once: it is not known which, so both are taken for it. */
+                /* A list is either executed at once while it is recorded or only when it is called, and the cache does not know which.
+                 * It assumes both: the list is marked as setting texture state, and the cache forgets everything it knows now.
+                 */
                 if (is_state_call)
                 {
                     m_recording_sets_texture_state = true;
@@ -157,7 +159,7 @@ void Stereo::Replay::EngineDLL::GLTextureParameterCache::on_call_replayed(const 
             if (skipped_by_this_cache == false &&
                 is_state_call)
             {
-                /* A call that another interceptor left out: what it would have done is not known. */
+                /* Another interceptor left this call out, so its effect is unknown. */
                 forget_all();
             }
 
@@ -174,7 +176,7 @@ bool Stereo::Replay::EngineDLL::GLTextureParameterCache::should_execute_call(con
     uint32_t target    = 0;
     double   value     = 0.0;
 
-    /* A replay that starts over makes the context again. */
+    /* A frame number that goes backwards means the replay started over and will create the context again. */
     if (in_n_frame < m_last_frame)
     {
         forget_all();
@@ -264,7 +266,7 @@ bool Stereo::Replay::EngineDLL::GLTextureParameterCache::find_bound_texture(cons
 
 void Stereo::Replay::EngineDLL::GLTextureParameterCache::forget_all()
 {
-    /* A call of a list, or glPopAttrib, may have changed the active unit as well. */
+    /* The active unit is unknown too, because a called list or glPopAttrib may have changed it. */
     m_bound_texture_map.clear();
     m_value_map.clear();
 
@@ -370,7 +372,7 @@ void Stereo::Replay::EngineDLL::GLTextureParameterCache::update_for_executed_cal
         case APIInterceptor::APIFUNCTION_GL_GLTEXPARAMETERFV:
         case APIInterceptor::APIFUNCTION_GL_GLTEXPARAMETERIV:
         {
-            /* The value is in a chunk that is not looked at here: what the texture has of the parameter is not known from now on. */
+            /* The value is stored in a chunk that is not read here, so the value of this parameter is unknown from now on. */
             bool has_parameter = false;
 
             if (in_call.arg_in_vec.size() >= 2)
@@ -434,7 +436,9 @@ void Stereo::Replay::EngineDLL::GLTextureParameterCache::update_for_executed_cal
                                                           &context);
             }
 
-            /* The textures belong to a context: another one has others. Making none current leaves them as they are. */
+            /* Textures belong to a context, so switching to another context invalidates what the cache knows. Making no context
+             * current changes nothing.
+             */
             if (has_context  &&
                 context != 0)
             {

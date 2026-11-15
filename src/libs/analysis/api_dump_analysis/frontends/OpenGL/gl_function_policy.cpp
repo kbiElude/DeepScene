@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Generated from the list of the GL functions that the front end does not name, then read and kept by hand: the groups and their reasons are what matters.
+ * The list of GL functions that the front end does not name was generated and is maintained by hand. The groups and their reasons are what matters.
  */
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_function_policy.h"
 #include "capture/api_dump_names/function_names.h"
@@ -12,8 +12,9 @@ bool Analysis::APIDumpAnalysis::Frontends::GLFunctionPolicy::bakes_current_matri
 {
     bool result = false;
 
-    /* A position or a direction of a light, a clip plane, the planes of the generation of texture coordinates (the forms that take an array: the others choose a mode) and the
-     * raster position are given in the coordinates of the program, and OpenGL turns them into those of the eye with the model-view matrix of the moment of the call.
+    /* The position or direction of a light, a clip plane, the planes for generating texture coordinates (the forms that take an array; the other forms
+     * choose a mode) and the raster position are given in the coordinates of the program. OpenGL converts them to eye coordinates with the model-view
+     * matrix that is current at the moment of the call.
      */
     switch (in_function)
     {
@@ -65,9 +66,9 @@ bool Analysis::APIDumpAnalysis::Frontends::GLFunctionPolicy::changes_what_a_draw
 {
     bool result = false;
 
-    /* The stencil test and what it does, the logic op, what blending does with the values (the equation, the separate factors, the constant color), and which side
-     * of a face is the front (which decides which draws reach the framebuffer, as the culling that is followed does). The model follows the functions of blending
-     * and of culling that are the first of their kind, and the draws that are told apart by them; these are the rest of them.
+    /* The stencil test and its operations, the logic op, the blend equation, the separate blend factors, the blend constant color, and the choice of
+     * which face side is the front. These decide which draws reach the framebuffer and how they combine with it, as the culling that the model follows
+     * does. The model follows the basic blending and culling functions (glBlendFunc, glCullFace) and tells draws apart by them. The functions listed here are the remaining ones.
      */
     switch (in_function)
     {
@@ -101,7 +102,9 @@ bool Analysis::APIDumpAnalysis::Frontends::GLFunctionPolicy::is_left_out_by_desi
 
     switch (in_function)
     {
-        /* Values for the vertices that follow: The model builds the geometry of a draw from the positions of its vertices alone, so what else a vertex has (a color, a normal, a texture coordinate) is not a part of its structure; the replay makes the calls. */
+        /* Values for the vertices that follow. The model builds the geometry of a draw from the vertex positions alone, so a color, a normal or a
+         * texture coordinate is not part of the draw structure. The replay still makes these calls.
+         */
         case APIInterceptor::APIFUNCTION_GL_GLCOLOR3B:
         case APIInterceptor::APIFUNCTION_GL_GLCOLOR3BV:
         case APIInterceptor::APIFUNCTION_GL_GLCOLOR3D:
@@ -262,7 +265,9 @@ bool Analysis::APIDumpAnalysis::Frontends::GLFunctionPolicy::is_left_out_by_desi
             break;
         }
 
-        /* State of the arrays that a draw reads: A draw of arrays comes with a snapshot of what it reads (see GLArrayDrawDescriber), so where the arrays are and which are on is not needed. */
+        /* State of the arrays that a draw reads. A draw from arrays comes with a snapshot of the data it reads (see GLArrayDrawDescriber), so the
+         * location of the arrays and which of them are enabled are not needed.
+         */
         case APIInterceptor::APIFUNCTION_GL_GLCLIENTACTIVETEXTURE:
         case APIInterceptor::APIFUNCTION_GL_GLCOLORPOINTER:
         case APIInterceptor::APIFUNCTION_GL_GLDISABLECLIENTSTATE:
@@ -281,7 +286,9 @@ bool Analysis::APIDumpAnalysis::Frontends::GLFunctionPolicy::is_left_out_by_desi
             break;
         }
 
-        /* Names and sizes that nothing follows: The name of a list or a texture is taken from the program that makes it (the list by glNewList, the texture by its first image); the base of the names of glCallLists has no use, as that call ends the process. */
+        /* Names and sizes that nothing follows. A list or texture name comes from the program that creates it (a list by glNewList, a texture by its
+         * first image). The base of the names of glCallLists is not needed, because that call ends the process.
+         */
         case APIInterceptor::APIFUNCTION_GL_GLFINISH:
         case APIInterceptor::APIFUNCTION_GL_GLFLUSH:
         case APIInterceptor::APIFUNCTION_GL_GLGENLISTS:
@@ -294,7 +301,9 @@ bool Analysis::APIDumpAnalysis::Frontends::GLFunctionPolicy::is_left_out_by_desi
             break;
         }
 
-        /* State of the rendering that the model does not tell the draws apart by: It changes how a draw looks, not what its structure is (the geometry, the resources, the state that the model follows); the replay makes the calls, so what is shown is as it was. */
+        /* Rendering state that the model does not use to tell draws apart. It changes how a draw looks, not its structure (the geometry, the resources
+         * and the state that the model follows). The replay still makes these calls, so the result looks as it did originally.
+         */
         case APIInterceptor::APIFUNCTION_GL_GLCLAMPCOLOR:
         case APIInterceptor::APIFUNCTION_GL_GLCLEARINDEX:
         case APIInterceptor::APIFUNCTION_GL_GLCOLORMATERIAL:
@@ -337,7 +346,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GLFunctionPolicy::is_left_out_by_desi
 
         default:
         {
-            /* The queries that return what the program asks for and change nothing (glGet*, glIs*, glAre*): a name rule, since there are a hundred and fifty. */
+            /* The queries (glGet*, glIs*, glAre*) return what the program asks for and change nothing. They are matched by a name rule, because there are about a hundred and fifty of them. */
             result = is_query(in_function);
 
             break;

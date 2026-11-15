@@ -22,7 +22,7 @@ bool Analysis::APIDumpAnalysisQuery::parse_arguments(const int&   in_argc,
     Analysis::APIDumpAnalysis::QueryPositionals     positionals;
     bool                                            result = false;
 
-    /* What the tool has besides the options that every query tool has: --shape, which takes a number, and --class and --which. */
+    /* The options of this tool in addition to those every query tool has: --shape (takes a number), --class and --which. */
     const auto set_shape_id_func = [&](const uint64_t& in_value)
     {
         out_options_ptr->arguments.has_shape_id = true;
@@ -49,7 +49,7 @@ bool Analysis::APIDumpAnalysisQuery::parse_arguments(const int&   in_argc,
 
         if (*out_is_known_ptr == false)
         {
-            /* Not one of ours. */
+            /* Not an option of this tool. */
         }
         else
         if (in_has_next == false)
@@ -96,7 +96,7 @@ bool Analysis::APIDumpAnalysisQuery::parse_arguments(const int&   in_argc,
         return is_set;
     };
 
-    /* The file, the command, and then the id of a pass or the index of a frame. */
+    /* The positional arguments: the file, the command, and then the id of a pass or the index of a frame. */
     positional_rules.max_n_numbers     = 1;
     positional_rules.missing_text      = "A .passes file and a command are needed";
     positional_rules.number_error_text = "An id must be a number, not ";
@@ -126,7 +126,7 @@ bool Analysis::APIDumpAnalysisQuery::parse_arguments(const int&   in_argc,
         out_options_ptr->arguments.pass_id         = value;
     }
 
-    /* The paging of the lists is read with the other options that every query tool has. */
+    /* The paging options (limit and offset) are common to all query tools; copy them into the arguments. */
     out_options_ptr->arguments.limit  = out_options_ptr->common.limit;
     out_options_ptr->arguments.offset = out_options_ptr->common.offset;
 

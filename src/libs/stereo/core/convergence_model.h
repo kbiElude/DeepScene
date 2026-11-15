@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Where the eyes converge, and how far apart they are, for the draw that is being made: what the player set, what the recipe says of
- * the scene, and what it says of the draw (see StereoCore, which asks it).
+ * Decides where the eyes converge and how far apart they are for the draw being made. It combines the values the player set, what the
+ * recipe says about the scene, and what the recipe says about the draw. StereoCore owns it and asks it.
  *
  * Not thread-safe.
  */
@@ -19,63 +19,70 @@ namespace Stereo
         public:
             ConvergenceModel();
 
-            /* The completed frame has a scene distance: the distance eases toward it by the given fraction, and takes it at once the first time or
-             * at a cut (a target more than twice or less than half of the previous one). Returns false, and changes nothing, if there is none (0).
+            /* Called when a completed frame has a scene convergence distance (in_target). The stored scene distance moves toward in_target by
+             * in_fraction_of_the_way. It jumps to in_target on the first call and at a cut (a target more than twice or less than half of the
+             * previous one). Returns false and changes nothing if in_target is not above 0.
              */
             bool follow_scene_convergence_distance(const float& in_target,
                                                    const float& in_fraction_of_the_way);
 
-            /* The completed frame has a scene limit of the eye separation: it eases as the distance does and snaps at a cut. None (0) lifts the
-             * limit at once.
+            /* Called when a completed frame has a scene limit for the eye separation (in_target). The limit eases and snaps at a cut like the
+             * scene distance does. A target of 0 or less removes the limit at once.
              */
             void follow_scene_max_separation(const float& in_target,
                                              const float& in_fraction_of_the_way);
 
-            /* The setters' values; 0 for the ones that were not set. */
+            /* The values stored by the setters. A value that was never set is 0, except the IPD scale, which is 1. */
             float get_convergence_distance() const;
             float get_depth_strength      () const;
             float get_eye_separation      () const;
             float get_ipd_scale           () const;
 
-            /* The one that was set, or else the one of the scene, or else the recipe's for the draw; 0 if there is none. */
+            /* The convergence distance the player set. If none was set, the scene distance. If there is none either, the recipe's distance for
+             * the draw. 0 if all three are missing.
+             */
             float get_effective_convergence_distance() const;
 
-            /* With a strength above 0, a fixed part of the effective convergence distance (a thirtieth, as a rule of thumb has the distance
-             * between the cameras of a stereo shot) times the strength and the scale of the distance between the person's eyes, but no more than the limit of the scene, which is a ceiling that no
-             * strength lifts (a strength below 1 brings the limit down with it); otherwise the one that was set.
+            /* If the depth strength and the effective convergence distance are both above 0, returns the natural separation: one thirtieth of the
+             * effective convergence distance (a rule of thumb for the camera distance of a stereo shot), times the depth strength and the IPD
+             * scale. The scene's maximum separation caps it. A depth strength below 1 lowers that cap by the same factor, and no strength
+             * raises it. Otherwise returns the separation that was set.
              */
             float get_effective_eye_separation() const;
 
-            /* Each returns false, and leaves things as they were, if the value is not a number or is below zero. */
+            /* Each returns false and changes nothing if the value is not a number or is below zero. */
             bool set_convergence_distance(const float& in_convergence_distance);
             bool set_depth_strength      (const float& in_depth_strength);
             bool set_eye_separation      (const float& in_eye_separation);
 
-            /* How the distance between the eyes of the person who looks compares with the one that the natural separation is made for (the
-             * natural separation is multiplied by it, and the limit of a scene is not), which the program that shows the images says while they
-             * are shown. 1 until it does. Returns false, and leaves it as it was, if it is not a number above zero.
+            /* The ratio of the viewer's eye distance to the eye distance that the natural separation assumes. The natural separation is
+             * multiplied by it, the scene limit is not. The program that shows the images reports it while they are shown. It is 1 until then.
+             * Returns false and changes nothing if the value is not a number above 0.
              */
             bool set_ipd_scale(const float& in_ipd_scale);
 
-            /* The distance of the draw that was classified last, from the recipe; 0 if it has none. */
+            /* The convergence distance that the recipe gives for the draw classified last; 0 if it gives none. */
             void set_draw_convergence_distance(const float& in_draw_convergence_distance);
 
-            /* How much of the way to its target a value goes in the time that a frame took: 0 for no time, 0.05 for the time of a frame of 72 Hz (the rate of the
-             * headset, which the eyes were tuned at), and the same movement in the same time whatever the rate is (two frames of half the time go as far as one of
-             * the whole), so that a run of a thousand frames a second and one of 72 look the same in time. Near 1 for a long stall: the eyes are there.
+            /* The fraction of the way to its target that a value covers in in_elapsed_seconds. It is 0 for no time and 0.05 for one frame at 72 Hz
+             * (the headset rate that the easing was tuned for). The movement depends only on elapsed time: two frames of half the length cover as
+             * much as one full frame, so a run at 1000 frames per second looks the same as a run at 72. After a long stall it is close to 1, so
+             * the eyes are at the target.
              */
             static float get_fraction_of_the_way(const float& in_elapsed_seconds);
 
-            /* The time of a frame of 72 Hz, which get_fraction_of_the_way() gives 0.05 for. */
+            /* The duration of one frame at 72 Hz. get_fraction_of_the_way() returns 0.05 for it. */
             static float get_reference_frame_seconds();
 
         private:
-            /* The value that is eased toward the target by some of the way, by the fraction of the way that is given (along the logarithm); the target itself if the value is not above zero, or if it is near enough. */
+            /* Moves in_current toward in_target by in_fraction_of_the_way, measured on the logarithm of the values. Returns in_target if
+             * in_current is not above 0 or if the eased value is close enough to the target.
+             */
             static float get_eased_value(const float& in_current,
                                          const float& in_target,
                                          const float& in_fraction_of_the_way);
 
-            /* Whether the target is a cut from the previous one (more than twice or less than half); false if there is none. */
+            /* True if in_target is more than twice or less than half of in_previous_target. False if either of them is not above 0. */
             static bool is_cut(const float& in_previous_target,
                                const float& in_target);
 
@@ -86,8 +93,8 @@ namespace Stereo
             float m_ipd_scale;
             float m_previous_scene_convergence_target; /* the previous frame's target; 0: none */
             float m_previous_scene_max_separation_target;
-            float m_scene_convergence_distance; /* eased toward the recipe's for the shape of the last frame */
-            float m_scene_max_separation;       /* the same, for the limit of the eyes; 0: none                */
+            float m_scene_convergence_distance; /* eased toward the recipe's scene distance                    */
+            float m_scene_max_separation;       /* the same, for the eye separation limit; 0: none             */
         };
     }
 }

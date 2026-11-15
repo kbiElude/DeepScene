@@ -56,7 +56,7 @@ LRESULT CALLBACK Stereo::ConverterDLL::InvisibleWindows::handle_message(HWND   i
     {
         case WM_ACTIVATE:
         {
-            /* The low word says how, and the high one if the window is minimized: the window is not. */
+            /* The low word of the parameter is the activation state, the high word is the minimized flag. The window is active and not minimized. */
             w_param = WA_ACTIVE;
 
             break;
@@ -72,7 +72,7 @@ LRESULT CALLBACK Stereo::ConverterDLL::InvisibleWindows::handle_message(HWND   i
 
         case WM_KILLFOCUS:
         {
-            /* An application which pauses when it loses the focus is not to know that it does. */
+            /* The application must not learn that it lost the focus, because it might pause. The message is not passed on. */
             goto end;
         }
 
@@ -130,7 +130,7 @@ void Stereo::ConverterDLL::InvisibleWindows::keep_active(const HWND& in_window)
                             GWLP_WNDPROC,
                             reinterpret_cast<LONG_PTR>(&handle_message) );
 
-        /* What the application would have been told if its window had come to the front: it may be waiting for that. */
+        /* These messages are what the application would receive if its window came to the front. It may be waiting for them. */
         ::PostMessageW(in_window,
                        WM_ACTIVATEAPP,
                        TRUE,
@@ -160,7 +160,7 @@ void Stereo::ConverterDLL::InvisibleWindows::make_invisible(const HWND& in_windo
                                                 GWL_EXSTYLE);
     const LONG_PTR wanted = style | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT;
 
-    /* Said again only when the application has taken it off. */
+    /* The styles are set again only if the application has removed them. */
     if (style != wanted)
     {
         ::SetWindowLongPtrW         (in_window,

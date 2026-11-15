@@ -64,7 +64,7 @@ bool Stereo::ConverterDLL::GLResolutionScaler::is_null_pointer(const APIIntercep
         const void* data_ptr = nullptr;
         uint32_t    n_bytes  = 0;
 
-        /* A pointer that is null has no chunk (or one of no bytes): the data of an upload is none. Data that is there is a chunk of its bytes. */
+        /* A null pointer has no chunk, or a chunk of no bytes: an upload without data. Data that is present is a chunk with its bytes. */
         const bool has_chunk = APIInterceptor::get_data_chunk(in_argument.get_data_chunk_id(),
                                                              &data_ptr,
                                                              &n_bytes);
@@ -105,7 +105,7 @@ bool Stereo::ConverterDLL::GLResolutionScaler::make_scaled_read(const uint32_t& 
         m_real_height  != 0      &&
         m_real_width   != 0)
     {
-        /* The pixel under the centre of the one that the application names, which is the nearest one that it has if it names one that it does not. */
+        /* The pixel under the center of the pixel the application names. If the application names a pixel outside the window, the nearest pixel inside it is used. */
         const uint32_t x_real = m_policy.scale_pixel_coordinate(read.x,
                                                                 m_asked_width,
                                                                 m_real_width);
@@ -115,7 +115,7 @@ bool Stereo::ConverterDLL::GLResolutionScaler::make_scaled_read(const uint32_t& 
 
         const OwnCallScope own_call_scope;
 
-        /* The framebuffer that is read is the one that the application renders to, and the pixel is given to it in its own buffer, with the way of packing that it has set. */
+        /* The framebuffer that is read is the one the application renders to. The pixel is written into the application's own buffer, using the pixel packing the application set. */
         GLDriverFunctions::get().read_pixels_func_ptr(static_cast<GLint>(x_real),
                                                       static_cast<GLint>(y_real),
                                                       READ_EXTENT,
@@ -140,14 +140,14 @@ bool Stereo::ConverterDLL::GLResolutionScaler::on_pre(const APIInterceptor::APIF
     Analysis::APIDumpAnalysis::ResolutionHazard hazard = Analysis::APIDumpAnalysis::ResolutionHazard::SIZE_QUERIES;
     bool                                        result = false;
 
-    /* A read of bytes from the framebuffer is made here, for the larger one, and the application gets what it would have. */
+    /* A read of bytes from the framebuffer is made here, from the larger framebuffer, and the application receives what it would have received. */
     if (in_function == APIInterceptor::APIFUNCTION_GL_GLREADPIXELS)
     {
         result = make_scaled_read(in_n_arguments,
                                   in_arguments_ptr);
     }
 
-    /* What cannot be made to match ends the application. */
+    /* A call that cannot be made to match ends the application. */
     if (result == false)
     {
         const bool is_hazard = Analysis::APIDumpAnalysis::Frontends::GLResolutionHazards::classify(in_function,
@@ -206,7 +206,7 @@ bool Stereo::ConverterDLL::GLResolutionScaler::on_pre(const APIInterceptor::APIF
                                                      &value_array.at(n_argument) );
             }
 
-            /* A box with a corner or a size below 0 is for the driver to say what it is. */
+            /* A box with a negative corner or size is left for the driver to reject. */
             if (is_read                    &&
                 value_array.at(0) >= 0     &&
                 value_array.at(1) >= 0     &&
@@ -221,7 +221,7 @@ bool Stereo::ConverterDLL::GLResolutionScaler::on_pre(const APIInterceptor::APIF
                 rect.x      = static_cast<uint32_t>(value_array.at(0) );
                 rect.y      = static_cast<uint32_t>(value_array.at(1) );
 
-                /* A viewport may be larger than the window, and is then the application's to be wrong about; the scissor box is kept in the framebuffer. */
+                /* A viewport may be larger than the window. That is the application's choice, so it is scaled without limits. The scissor box is kept within the framebuffer. */
                 rect = (in_function == APIInterceptor::APIFUNCTION_GL_GLSCISSOR) ? m_policy.scale_rect(rect,
                                                                                                        m_real_width,
                                                                                                        m_real_height)
@@ -256,7 +256,7 @@ bool Stereo::ConverterDLL::GLResolutionScaler::on_pre(const APIInterceptor::APIF
 
             const bool is_scaled_destination = is_scaled_texture(in_bound_texture);
 
-            /* Pixels given to a texture that has room for more of them than the application knows of cannot be made to match. */
+            /* Pixels given to a texture that has room for more pixels than the application knows about cannot be made to match. */
             if (in_function == APIInterceptor::APIFUNCTION_GL_GLTEXSUBIMAGE2D)
             {
                 if (is_scaled_destination)
@@ -279,7 +279,7 @@ bool Stereo::ConverterDLL::GLResolutionScaler::on_pre(const APIInterceptor::APIF
 
                     if (is_storage_only)
                     {
-                        /* Room for what the application will copy from the framebuffer: as much more of it as the framebuffer has. */
+                        /* Reserves room for what the application will copy from the framebuffer: the texture grows by the same scale as the framebuffer. */
                         std::array<int32_t, 9> value_array = {};
                         bool                   is_read     = true;
 
@@ -375,7 +375,7 @@ bool Stereo::ConverterDLL::GLResolutionScaler::parse_single_pixel_read(const uin
         goto end;
     }
 
-    /* The buffer of the application: a pointer (not an offset in a buffer of the driver, nor none). */
+    /* The pixel buffer must be an application pointer: not an offset into a driver buffer, and not null. */
     if (in_arguments_ptr[PIXELS_ARGUMENT].type != APIInterceptor::ARGTYPE_VOID_PTR)
     {
         goto end;
@@ -403,7 +403,7 @@ bool Stereo::ConverterDLL::GLResolutionScaler::parse_single_pixel_read(const uin
         const uint32_t type   = static_cast<uint32_t>(value_array.at(ARGUMENT_TYPE) );
         const int64_t  width  = value_array.at(ARGUMENT_WIDTH);
 
-        /* Only the read that is known to be made, of one pixel of bytes of the colors: any other cannot be made to match. */
+        /* Only one kind of read is made here: one pixel of byte colors. Any other read cannot be made to match. */
         if (width  != READ_EXTENT        ||
             height != READ_EXTENT        ||
             format != FORMAT_RGB         ||
@@ -437,7 +437,7 @@ void Stereo::ConverterDLL::GLResolutionScaler::plan(const uint32_t& in_asked_wid
                                                                                  in_asked_height,
                                                                                  in_max_extent) );
 
-    /* The scale of a window that changes size is the one for its new size; what the application stated for the old one it states again for the new. */
+    /* A window that changes size gets the scale for its new size. The application states its pixel values again for the new size, and those are scaled. */
     if (policy.get_scale() != m_policy.get_scale() ||
         in_asked_height    != m_asked_height       ||
         in_asked_width     != m_asked_width)
@@ -471,8 +471,8 @@ void Stereo::ConverterDLL::GLResolutionScaler::scale_copy(const bool&           
                                                           const uint32_t&         in_bound_texture,
                                                           std::array<int32_t, 8>* inout_value_array_ptr)
 {
-    /* The arguments are the target, the level and then: for a sub image the offset in the texture (2 and 3), the corner of what is copied (4, 5) and its size (6, 7); for the
-     * other the format (2), the corner (3, 4), the size (5, 6) and the border (7).
+    /* The arguments are the target and the level, then: for a sub image, the offset in the texture (2, 3), the corner of the copied rectangle (4, 5)
+     * and its size (6, 7); for glCopyTexImage2D, the format (2), the corner (3, 4), the size (5, 6) and the border (7).
      */
     const size_t corner_x_index = (in_is_sub_image) ? 4 : 3;
     const size_t size_width_index = corner_x_index + 2;

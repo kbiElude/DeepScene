@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Shows the images which the stereo converter of an application passes on (see command_line.cpp for the arguments). It is a
- * 64-bit program whichever the architecture of the application is, since it is what talks to the VR runtime.
+ * Shows the images that the stereo converter of an application passes on (see command_line.cpp for the arguments). It is a 64-bit program
+ * whatever the architecture of the application is, because it is the program that talks to the VR runtime.
  */
 #include "stereo/session/session_environment.h"
 #include "stereo/transport/frame_channel.h"
@@ -69,7 +69,7 @@ int WINAPI WinMain(HINSTANCE in_instance,
 
     Utils::UIHost::IImGuiWindowHost::enable_dpi_awareness();
 
-    /* The converters (Direct3D 7, Direct3D 8, OpenGL) pass their images by the memory of the channel: it is what the importer takes. */
+    /* The converters (Direct3D 7, Direct3D 8, OpenGL) pass their images through the memory of the channel, which the importer reads. */
     {
         std::unique_ptr<Stereo::Transport::IFrameImporter> importer_ptr(new Stereo::Transport::HostMemoryImporter(std::move(channel_ptr) ));
 
@@ -87,8 +87,8 @@ int WINAPI WinMain(HINSTANCE in_instance,
         goto end;
     }
 
-    /* The headset, if it is asked for and there is one: what cannot be done is said in the log of the session, and the window goes on
-     * previewing the images. With a headset the window hands the frames to it and no longer previews them.
+    /* Use the headset if it is requested and there is one. If it cannot be used, the reason goes to the log of the session and the window keeps
+     * previewing the images. With a headset, the window hands the frames to it and stops previewing them.
      */
     if (options.use_headset)
     {
@@ -121,7 +121,7 @@ int WINAPI WinMain(HINSTANCE in_instance,
         }
         else
         {
-            /* Said whether a log is asked for or not: the headset that was chosen is not there to see the images. */
+            /* Written whether or not a log was requested, because the headset the user chose will not show the images. */
             Stereo::Presenter::PresenterLog::write_line(log_path,
                                                         "The headset is not used: " + headset_error);
         }

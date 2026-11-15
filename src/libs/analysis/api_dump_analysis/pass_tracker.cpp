@@ -21,7 +21,7 @@ void Analysis::APIDumpAnalysis::PassTracker::complete(const uint64_t&         in
                                                       Model*                  inout_model_ptr,
                                                       FrameInProgress*        inout_frame_ptr)
 {
-    /* A constant in effect, with the value that it has. */
+    /* A constant in effect, together with its value. */
     typedef std::vector<uint8_t>                             ValueVector;
     typedef std::pair<ConstantSignature, const ValueVector*> ConstantInEffect;
     typedef std::vector<ConstantInEffect>                    ConstantInEffectVector;
@@ -35,7 +35,7 @@ void Analysis::APIDumpAnalysis::PassTracker::complete(const uint64_t&         in
     pass_structure.clears_stencil = m_open_pass.clears_stencil;
     pass_structure.viewport       = m_open_pass.viewport;
 
-    /* Views are keyed as before the pass; a view the pass clears ignores its old contents. */
+    /* The views are keyed as they were before the pass. A view that the pass clears ignores its old contents. */
     for (const auto& color_view : m_open_pass.attachments.color_view_vec)
     {
         pass_structure.color_view_key_vec.push_back((m_open_pass.clears_color) ? inout_key_table_ptr->get_unwritten_view_key(color_view)
@@ -90,7 +90,7 @@ void Analysis::APIDumpAnalysis::PassTracker::complete(const uint64_t&         in
     pass_id = inout_model_ptr->pass_structure_interner.intern(pass_structure,
                                                               pass_structure.key);
 
-    /* Camera series, for each kind of pass that has them. */
+    /* The camera series, for each kind of pass that has camera constants. */
     for (uint32_t n_constant = 0;
                   n_constant < constant_vec.size();
                 ++n_constant)
@@ -110,7 +110,7 @@ void Analysis::APIDumpAnalysis::PassTracker::complete(const uint64_t&         in
         }
     }
 
-    /* What the pass has rendered to is what later passes read. */
+    /* What the pass rendered to is what later passes read. */
     for (const auto& color_view : m_open_pass.attachments.color_view_vec)
     {
         inout_key_table_ptr->record_write(color_view.resource_id,
@@ -133,7 +133,7 @@ void Analysis::APIDumpAnalysis::PassTracker::complete(const uint64_t&         in
 
         inout_frame_ptr->pass_instance_vec.push_back(instance);
 
-        /* A pass which renders to what is presented is the one whose draws the viewer sees as they are. */
+        /* A pass that renders to a presented resource is the pass whose draws the viewer sees as they are. */
         {
             bool is_presented = false;
 
@@ -141,7 +141,7 @@ void Analysis::APIDumpAnalysis::PassTracker::complete(const uint64_t&         in
             {
                 const uint32_t id_value = get_resource_id_value(color_view.resource_id);
 
-                if (id_value != 0                                              &&
+                if (id_value != 0                                    &&
                     id_value <= inout_model_ptr->resource_vec.size() )
                 {
                     is_presented |= (inout_model_ptr->resource_vec.at(id_value - 1).description.kind == ResourceKind::SWAP_CHAIN_IMAGE);
@@ -151,7 +151,8 @@ void Analysis::APIDumpAnalysis::PassTracker::complete(const uint64_t&         in
             inout_frame_ptr->pass_is_presented_vec.push_back(is_presented);
         }
 
-        /* Kept with the frame: which kind of frame it is in is known when the frame ends. */
+        /* The covering keys go straight into the model. The histograms are kept with the frame, because the kind of frame that this pass is in
+         * is known only when the frame ends. */
         if (in_keeps_history)
         {
             if (m_open_pass.covering_draw_key_set.empty() == false)

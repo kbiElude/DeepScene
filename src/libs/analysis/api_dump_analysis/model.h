@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * The analysis of a workload. Its size follows the variety of what the application did, not the length of the capture: a frame is
- * a small record pointing to its shape, and only a few frames of each shape keep their detail.
+ * The analysis of a workload. Its size grows with the variety of what the application did, not with the length of the capture: a frame is a
+ * small record that points to its shape, and only a few frames of each shape keep their detail.
  */
 #ifndef APIDUMPANALYSIS_MODEL_H
 #define APIDUMPANALYSIS_MODEL_H
@@ -24,15 +24,15 @@ namespace Analysis
     {
         struct Model
         {
-            /* Camera constants over time, per pass structure. */
+            /* The camera constants over time, per pass structure. */
             std::map<ConstantSeriesKey, ValueTimeSeries> constant_series_map;
 
-            /* How deep the draws of each pass structure are, as the camera of the pass saw them, in each kind of frame it is in (a pass of
-             * one scene is not one of another). A pass with no draw in front of the camera has none.
+            /* The depth of the draws of each pass structure as the camera of the pass saw them, for each kind of frame the pass occurs in
+             * (the same pass in one scene differs from that in another). A pass with no draw in front of the camera has no entry.
              */
             std::map<DepthHistogramKey, DepthHistogram> depth_histogram_map;
 
-            /* What the draws of each kind did (see DrawFacts), by the key of their structure and of their size. Empty if the analysis did not tell them. */
+            /* What the draws of each kind did (see DrawFacts), by the key of their structure and size. Empty if the analysis did not collect it. */
             std::map<DrawFactsKey, DrawFacts> draw_facts_map;
 
             /* Draw structures by key. */
@@ -40,31 +40,32 @@ namespace Analysis
 
             std::vector<FrameRecord>         frame_record_vec;
             StructureInterner<FrameShape>    frame_shape_interner;
-            uint64_t                         n_key_collisions = 0; /* different draw structures with the same key      */
+            uint64_t                         n_key_collisions = 0; /* the number of different draw structures that have the same key */
             StructureInterner<PassStructure> pass_structure_interner;
             RepresentativeStore              representative_store;
-            std::vector<ResourceAccess>      resource_access_vec;  /* by ID, less 1 */
-            std::vector<Resource>            resource_vec;         /* by ID, less 1 */
+            std::vector<ResourceAccess>      resource_access_vec;  /* indexed by ID - 1 */
+            std::vector<Resource>            resource_vec;         /* indexed by ID - 1 */
 
-            /* How deep the surfaces that the draws of each pass structure draw are (the vertices, not the origins of the objects), as the
-             * camera of the pass saw them, in each kind of frame it is in. A pass whose front end could not tell the vertices has none.
+            /* The depth of the surfaces that the draws of each pass structure draw (the vertices, not the origins of the objects) as the camera of
+             * the pass saw them, for each kind of frame the pass occurs in. A pass whose front end could not read the vertices has no entry.
              */
             std::map<DepthHistogramKey, DepthHistogram> surface_depth_histogram_map;
 
-            /* How wide the picture is for each pass of each kind of frame (see ProjectionScale), for the draws with a perspective projection. */
+            /* The width of the picture for each pass of each kind of frame (see ProjectionScale), for the draws with a perspective projection. */
             std::map<DepthHistogramKey, ProjectionScale> projection_scale_map;
 
-            /* By the pass structure that the draws were made in: a scene can have a mesh that covers the view with the key of an overlay's quad,
-             * and what the recipe leaves alone is told by the pass.
+            /* The keys of the draws that cover the whole view (a flash, a fade; see KeyBuilder::compute_draw_cover_key(): a signature and a size),
+             * per pass structure. A draw key counts as covering if, in at least one draw with that key, the vertices reach all four edges of the
+             * picture through the projection of the pass (a quad that wipes in covers the whole picture only for a while). Moving such a draw
+             * sideways would leave a strip of the picture bare, so it must not be moved.
              *
-             * The keys of the draws that cover the whole of the view (a flash, a fade; see KeyBuilder::compute_draw_cover_key(): a signature and a
-             * size): their vertices, through the projection of the pass, reach all four edges of the picture, in at least one draw with the key
-             * (a quad that wipes in is the whole picture only for a time). What is moved sideways leaves a strip of the picture bare, so a draw like it is not to be moved.
+             * The map is per pass structure because a scene can contain a mesh that covers the view and has the same key as the quad of an
+             * overlay, and what the recipe leaves alone is decided per pass.
              */
-            std::map<uint32_t, std::set<uint64_t> > covering_draw_key_map; /* by the pass structure the draws were in */
+            std::map<uint32_t, std::set<uint64_t> > covering_draw_key_map; /* by the pass structure of the draws */
         };
 
-        /* A model and what it was made from: the contents of a .passes file. */
+        /* A model together with what it was made from: the contents of a .passes file. */
         struct AnalysisResult
         {
             Model             model;

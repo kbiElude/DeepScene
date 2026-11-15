@@ -42,7 +42,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::begin_frame_execution(const
 
     bool result = true;
 
-    /* The eye of the execution, for the objects which each eye has a copy of. */
+    /* Tell the executors which eye this execution is for, so that objects with a copy per eye resolve to the right copy. */
     {
         const Analysis::Recipe::Eye eye = (m_frame_mode == FrameExecution::TWICE) ? ((in_n_execution == N_LEFT_EXECUTION) ? Analysis::Recipe::Eye::LEFT
                                                                                                                          : Analysis::Recipe::Eye::RIGHT)
@@ -51,7 +51,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::begin_frame_execution(const
         set_executors_eye(eye);
     }
 
-    /* Each execution of the last frame in the mode VARIANTS leaves out what its variant says. */
+    /* In the VARIANTS mode, each execution of the last frame leaves out what its variant says. */
     if (m_frame_mode == FrameExecution::VARIANTS &&
         m_session_ptr != nullptr                 &&
         in_n_execution < m_frame_execution.variant_vec.size() )
@@ -70,7 +70,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::begin_frame_execution(const
 
     if (in_uses_history == false)
     {
-        /* No carry-over: the history is stale. */
+        /* The frame does not carry the back buffer over, so the history is stale. Discard it. */
         if (in_n_execution == N_LEFT_EXECUTION)
         {
             for (auto& snapshot : m_eye_history.snapshot_array)
@@ -85,7 +85,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::begin_frame_execution(const
         const auto& left_snapshot  = m_eye_history.snapshot_array.at(N_LEFT_EXECUTION);
         const auto& right_snapshot = m_eye_history.snapshot_array.at(N_RIGHT_EXECUTION);
 
-        /* The right eye starts from this until it has a history. */
+        /* Keep the back buffer as it is before the first execution. The right eye starts from it until it has a history. */
         if (left_snapshot.has_pixels  == false ||
             right_snapshot.has_pixels == false)
         {
@@ -140,7 +140,9 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::capture_execution(const uin
                                                           in_n_execution);
     }
 
-    /* A read waits for the device: it is done once for the image and the history together, and only if one is needed. */
+    /* Reading the back buffer waits for the device. Read it once for the image and the history together, and only if one of them
+     * is needed.
+     */
     if (wants_image     ||
         in_uses_history)
     {
@@ -182,10 +184,12 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_buffered_frame(cons
     bool         skips        = false;
     bool         uses_history = false;
 
-    /* The buffer of the frame before keeps what it allocated. */
+    /* Empty the buffer of the previous frame. */
     buffer.clear();
 
-    /* In the mode VARIANTS the frames before the last are played for the eyes, as TWICE says, so that what the eyes carry over is as it is. */
+    /* In the VARIANTS mode, the frames before the last one are played as in the TWICE mode, so that the back buffers the eyes carry
+     * over are correct.
+     */
     const bool is_variants_frame = (m_frame_execution.mode == FrameExecution::VARIANTS &&
                                     in_n_frame             == m_frame_execution.last_frame);
 
@@ -194,7 +198,9 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_buffered_frame(cons
                                                                                                 : m_frame_execution.mode);
     m_variant_ptr = nullptr;
 
-    /* A change of the separation is seen from the next frame, so that the two eyes of a frame are apart by the same distance. */
+    /* Read the separation once per frame, so that both eyes of a frame use the same distance. A change takes effect from the next
+     * frame.
+     */
     m_frame_eye_separation = m_eye_separation;
 
     *out_has_workload_ended_ptr = false;
@@ -243,7 +249,9 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_buffered_frame(cons
                 if (uses_history                           &&
                     m_frame_mode == FrameExecution::VARIANTS)
                 {
-                    /* Each variant would have to begin with the back buffer that the frame before left, which is not kept for more than the two eyes. */
+                    /* Each variant would have to start from the back buffer that the previous frame left, but only one back buffer per eye is
+                     * kept.
+                     */
                     m_host_ptr->fail("Frame " + std::to_string(in_n_frame) + " carries the back buffer over from the frame before, so that it cannot be played once for each of several variants.");
 
                     result = false;
@@ -314,7 +322,9 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_buffered_frame(cons
                                  m_frame_execution.truncate_draw_key);
         }
 
-        /* A frame that a recipe with a view anchor shift cannot give an eye is not played for one: it would be mono, and nobody would have said so. */
+        /* If a recipe with a view anchor shift cannot produce an eye for this frame, fail instead of playing the frame. The result
+         * would silently be mono.
+         */
         if (m_recipe_applier_ptr->has_view_anchor_shift() )
         {
             std::string error;
@@ -329,7 +339,9 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_buffered_frame(cons
         }
     }
 
-    /* The device is as the calls of a frame played as they are leave it, not as the binder believes. */
+    /* A frame that is not rewritten leaves the device in the state its own calls set, which can differ from what the binder
+     * believes. Drop the calls the binder kept.
+     */
     if (is_rewritten        == false &&
         m_matrix_binder_ptr != nullptr)
     {
@@ -347,7 +359,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_buffered_frame(cons
 
     if (has_buffered_calls)
     {
-        /* The frame is played more than once only if it is complete and nothing leaves it out, as the runner has it. */
+        /* The frame is executed more than once only if it is complete and not skipped. FrameRunner::run() uses the same rule. */
         FrameExecutionOptions run_options = m_frame_execution;
 
         run_options.mode = m_frame_mode;
@@ -486,7 +498,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_draw_call(const Cap
     Stereo::Core::ScreenShiftPlan         plan;
     Capture::APIDumpLoader::DumpedAPICall rewritten;
 
-    /* The scene (the kind of frame) knows where its surfaces are, and how far apart the eyes may be for the nearest of them. */
+    /* The scene (the kind of frame, identified by its shape key) provides the convergence distance and the maximum eye separation. */
     input.convergence_distance = m_recipe_applier_ptr->get_scene_convergence_distance(shape_key);
     input.cover_key            = in_cover_key;
     input.eye                  = in_eye;
@@ -553,7 +565,9 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_frame(::Replay::Rep
     const uint32_t n_frame     = in_host_ptr->get_n_frames_presented();
     bool           result      = false;
 
-    /* A frame which a slice leaves out has no content which anything reads: it is played as it is, with only the calls that set state, which is quicker */
+    /* Nothing reads the content of a frame that a slice leaves out. Play such a frame as it is, which is quicker: the slice skipper
+     * leaves out its content calls, so only the calls that set state run.
+     */
     if (m_slice_skipper_ptr != nullptr)
     {
         is_dead = m_slice_skipper_ptr->is_dead_frame(n_frame);
@@ -573,7 +587,9 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_frame(::Replay::Rep
     }
     else
     {
-        /* A frame played as it is leaves the device as the application sets it, which the binder does not know. */
+        /* A frame played as it is leaves the device in the state the application set, which the binder does not know. Drop the kept
+         * calls.
+         */
         if (m_matrix_binder_ptr != nullptr)
         {
             m_matrix_binder_ptr->forget();
@@ -598,7 +614,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_rewritten_call(cons
     Analysis::Recipe::CallPlace place;
     bool                        result     = false;
 
-    /* Executed twice: the first execution is the left eye, the second the right one. */
+    /* In the TWICE mode the first execution is for the left eye and the second for the right eye. */
     if (m_frame_execution.mode == FrameExecution::TWICE)
     {
         eye = (in_n_execution == 0) ? Analysis::Recipe::Eye::LEFT
@@ -611,14 +627,15 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_rewritten_call(cons
         return (in_draw.call_index < in_call_index);
     };
 
-    /* The draws are in the order of the calls. */
+    /* The draws are sorted by call index, so a binary search finds the first draw at or after this call. */
     const auto draw_iterator = std::lower_bound(frame.draw_instance_vec.begin(),
                                                 frame.draw_instance_vec.end  (),
                                                 call_index,
                                                 is_draw_before_call_func);
 
-    /* The first call of a draw that the recipe pushes moves the viewport sideways, so that all of the calls of the draw (the glBegin and the vertices of a block
-     * that a glEnd makes a draw of) are made with it; the call of the draw puts it back.
+    /* The first call of a draw that the recipe pushes moves the viewport sideways, so that every call of the draw is made with the
+     * moved viewport. That includes the glBegin and the vertices of a block that a glEnd turns into a draw. The call of the draw
+     * itself restores the viewport.
      */
     bool       has_pushed_viewport = true;
     const auto pushed_iterator     = m_pushed_draw_by_first_call_map.find(call_index);
@@ -649,13 +666,13 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_rewritten_call(cons
     else
     if (is_call_skipped(call_index) )
     {
-        /* A call of a draw that is left out, before the call of the draw. */
+        /* A call that belongs to a draw that is left out and comes before the call of the draw. Skip it. */
         result = true;
     }
     else
     if (m_view_anchor_call_index_set.count(call_index) != 0)
     {
-        /* The call that begins the camera of draws that are affected: it loads the shift of the eye. */
+        /* The call that begins the camera of the affected draws. It loads the shift of the eye. */
         result = execute_view_anchor_call(in_call,
                                           in_chunk_source,
                                           eye);
@@ -666,7 +683,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_rewritten_call(cons
     {
         const uint64_t pass_key = frame.pass_key_vec.at(draw_iterator->pass_index);
 
-        /* A draw which is skipped needs nothing on the device. */
+        /* A skipped draw needs nothing on the device, so nothing is executed. */
         if (is_draw_skipped_here(pass_key,
                                                   draw_iterator->structure_key) )
         {
@@ -677,7 +694,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_rewritten_call(cons
             const bool is_affected = is_draw_affected_here(pass_key,
                                                            *draw_iterator);
 
-            /* What the draw is made with is put on the device first. */
+            /* Put the matrices the draw needs on the device first. */
             result = m_matrix_binder_ptr->before_draw(is_affected,
                                                       eye,
                                                       m_frame_eye_separation);
@@ -694,7 +711,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_rewritten_call(cons
                                            frame.pass_instance_vec.at(draw_iterator->pass_index).structure_id);
             }
 
-            /* The viewport that was moved for a draw that the recipe pushes (before its first call) is put back. */
+            /* Restore the viewport that was moved before the first call of a draw that the recipe pushes. */
             if (result                                                                      &&
                 m_pushed_draw_by_first_call_map.empty() == false)
             {
@@ -716,7 +733,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_rewritten_call(cons
     else
     if (m_recipe_applier_ptr->has_rule_for(in_call.func) == false)
     {
-        /* Most calls are not about a matrix: they are played as they are, without looking for their pass. */
+        /* Most calls do not involve a matrix. Play them as they are, without looking up their pass. */
         result = m_host_ptr->execute_call(in_call,
                                           in_chunk_source);
     }
@@ -732,7 +749,9 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_rewritten_call(cons
             place.pass_key = frame.pass_key_vec.at(pass_index);
         }
 
-        /* A call which sets a matrix the recipe changes waits for the draw which needs it. */
+        /* The binder keeps a call that sets a matrix the recipe changes and executes it before the draw that needs it. If the binder
+         * does not take the call, execute it now.
+         */
         result = true;
 
         if (m_matrix_binder_ptr->on_call(in_call,
@@ -765,8 +784,9 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_view_anchor_call(co
 
     OverlayChunkSource overlay(in_chunk_source);
 
-    /* What the call loads is what the camera of the program is made on, and the shift of the eye goes on top of it (first, as the left factor): a glLoadIdentity loads
-     * nothing, so that the shift is all that is loaded; a matrix that the program loaded has the shift put before it. The call that loads is a glLoadMatrixf then.
+    /* The call loads the base of the program's camera, and the shift of the eye is applied on top of it as the left factor. After a
+     * glLoadIdentity only the shift is loaded. After a glLoadMatrixf or glLoadMatrixd the shift is multiplied with the matrix that
+     * the program loaded. In both cases the rewritten call is a glLoadMatrixf.
      */
     switch (in_call.func)
     {
@@ -909,7 +929,7 @@ void Stereo::Replay::EngineDLL::StereoFrameExecutor::find_pushed_draw_calls(cons
         if (is_pushed &&
             is_skipped == false)
         {
-            /* The calls of a draw begin with its own, unless the front end says that they begin earlier. */
+            /* The calls of a draw start with its own call, unless the front end reports an earlier first call. */
             const uint64_t first_call = (draw.first_call_index < draw.call_index) ? draw.first_call_index
                                                                                   : draw.call_index;
 
@@ -947,7 +967,7 @@ void Stereo::Replay::EngineDLL::StereoFrameExecutor::find_truncation_call(const 
         if (pass_key             == in_truncate_pass_key &&
             draw.structure_key   == in_truncate_draw_key)
         {
-            /* The last of them: the draws are in the order of the calls. */
+            /* Keep the last match: the draws are in call order, so the last match has the highest call index. */
             m_truncate_after_call = draw.call_index;
         }
     }
@@ -957,14 +977,17 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::find_view_anchor_calls(cons
                                                                             std::string*                                     out_error_ptr)
 {
     std::set<uint64_t>                          affected_anchor_set;
-    std::set<std::pair<uint64_t, uint64_t> >    anchorless_draw_set; /* the pass and the draw, by their keys */
+    std::set<std::pair<uint64_t, uint64_t> >    anchorless_draw_set; /* the pass key and the draw key */
     std::set<uint64_t>                          unaffected_anchor_set;
     bool                                        result = true;
 
     m_unflattened_draw_call_set.clear();
     m_view_anchor_call_index_set.clear();
 
-    /* The replay gives the shift of an eye to a camera at its beginning, and all the draws that share it get it: a draw that is flat and shares the camera of a draw that is not keeps the rules (the live converter does not have the limit). */
+    /* The replay applies the shift of an eye at the beginning of a camera, so every draw that shares that camera gets the shift.
+     * A flat draw that shares the camera of a draw that is not flat therefore keeps the rules (the live converter has no such
+     * limit).
+     */
     {
         std::set<uint64_t> shared_anchor_set;
 
@@ -1038,7 +1061,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::find_view_anchor_calls(cons
         }
     }
 
-    /* All the kinds of draw are told, so that a recipe can be made to leave them alone in one go. */
+    /* Report every kind of draw that has no camera anchor, so that one recipe change can mark all of them as unaffected. */
     if (anchorless_draw_set.empty() == false)
     {
         char key_i8vec64[64];
@@ -1106,7 +1129,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::get_eye_history_need(const 
 
         if (is_swap_chain_image)
         {
-            /* The player keeps the pictures of the eyes apart. */
+            /* The player keeps a separate picture for each eye. */
             *out_needs_history_ptr = true;
         }
         else
@@ -1114,7 +1137,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::get_eye_history_need(const 
             Analysis::APIDumpAnalysis::ResourceIdentity identity;
             bool                                        is_per_eye = false;
 
-            /* Each eye has a copy of a texture that the recipe says it has a copy of, so that nothing is carried over from one to the other. */
+            /* A texture that the recipe lists as per-eye has a copy for each eye, so nothing is carried over from one eye to the other. */
             if (Analysis::APIDumpAnalysis::ResourceIdentities::find(model.resource_vec,
                                                                     id,
                                                                    &identity) )
@@ -1198,7 +1221,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::is_call_skipped(const uint6
         result = (in_call_index <= range.second);
     }
 
-    /* What comes after the call that the frame is cut at. */
+    /* Calls after the cut point are skipped. */
     if (m_truncate_after_call != UINT64_MAX &&
         in_call_index          > m_truncate_after_call)
     {
@@ -1217,7 +1240,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::is_draw_affected_here(const
     const bool is_flat = (m_recipe_applier_ptr->is_cover_pushed(in_draw.cover_key) &&
                           m_unflattened_draw_call_set.count(in_draw.call_index) == 0);
 
-    /* A baked flat layer is left alone by its key, whatever its structure is named in the passes. */
+    /* A baked flat layer is left alone because of its cover key, however its structure is named in the passes. */
     const bool is_flat_layer = m_recipe_applier_ptr->is_cover_flat_layer(in_draw.cover_key);
 
     return (is_affected_by_recipe &&
@@ -1241,7 +1264,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::is_draw_skipped_here(const 
     bool result = m_recipe_applier_ptr->is_draw_skipped(in_pass_key,
                                                         in_draw_key);
 
-    /* What the variant leaves out is left out as well. */
+    /* Draws that the variant leaves out are skipped as well. */
     if (result         == false &&
         m_variant_ptr  != nullptr)
     {
@@ -1270,7 +1293,9 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::is_per_eye_texture(const Ca
     Analysis::APIDumpAnalysis::ResourceView     view;
     bool                                        result   = false;
 
-    /* The analysis has followed the call that made the object by the time the object is asked about: calls are read before they are played. */
+    /* The analysis has already processed the call that created the object when the object is asked about, because calls are read
+     * before they are played.
+     */
     if (m_recipe_applier_ptr != nullptr &&
         m_session_ptr        != nullptr)
     {
@@ -1292,7 +1317,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::is_per_eye_texture(const Ca
 
 void Stereo::Replay::EngineDLL::StereoFrameExecutor::on_frame_presented()
 {
-    /* What is not rendered for two eyes is rendered for the left one. */
+    /* Frames that are not rendered for two eyes use the left eye, so go back to it after each presented frame. */
     set_executors_eye(Analysis::Recipe::Eye::LEFT);
 }
 
@@ -1319,7 +1344,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::prepare_variant(const Analy
     find_skipped_call_ranges(in_frame);
     find_pushed_draw_calls  (in_frame);
 
-    /* The frame is cut as the variant says, if it does; otherwise as the options of the frame say, if they do. */
+    /* Cut the frame where the variant says. If the variant does not cut, use the cut from the frame options, if they have one. */
     m_truncate_after_call = UINT64_MAX;
 
     if (in_variant_ptr != nullptr &&

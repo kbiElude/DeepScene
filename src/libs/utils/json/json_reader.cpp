@@ -302,7 +302,7 @@ bool Utils::Json::JsonReader::parse_number(JsonValue* out_value_ptr)
         }
     }
 
-    /* strtod wants text which ends: a short number is copied to the stack for it, not to a string. */
+    /* strtod needs a null-terminated string. A short number is copied to a stack buffer for it, which avoids allocating a std::string. */
     {
         char         buffer[N_BUFFER_BYTES];
         const size_t n_chars = m_position - start;
@@ -361,7 +361,7 @@ bool Utils::Json::JsonReader::parse_object(const size_t& in_depth,
     }
     else
     {
-        std::unordered_set<std::string> key_set; /* the keys so far: a search of the object for each key would be quadratic */
+        std::unordered_set<std::string> key_set; /* keys seen so far; searching the object for each new key would be quadratic */
 
         while (true)
         {
@@ -472,7 +472,7 @@ bool Utils::Json::JsonReader::parse_string(std::string* out_string_ptr)
 
         if (character != '\\')
         {
-            /* The characters up to the next quote, backslash or control character are taken together. */
+            /* All characters up to the next quote, backslash or control character are taken in one step. */
             size_t run_end = m_position + 1;
 
             while (run_end                                        <  m_text.size()             &&

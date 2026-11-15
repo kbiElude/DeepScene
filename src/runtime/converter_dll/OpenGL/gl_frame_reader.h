@@ -16,18 +16,20 @@ namespace Stereo
 {
     namespace ConverterDLL
     {
-        /* Reads the images of the eyes of a frame out of their framebuffers without making the application wait for the graphics card: the pixels are read into buffers
-         * (which the card fills while the application goes on), and the frame is given a frame later, from the buffers of the frame before, which are mapped. There are two
-         * sets of buffers; a set is not used again while what was given from it is held (see GLFrameImages::consumer_token). Without buffers the images are read at once.
-         * Calls are made with the context of the application current, and the converter's own.
+        /* Reads the eye images of a frame from their framebuffers without making the application wait for the graphics card. The pixels are
+         * read into buffers, which the card fills while the application goes on. The frame is handed out one frame later, from the buffers of the
+         * previous frame, which are mapped for reading. There are two sets of buffers. A set is not reused while something still holds the frame
+         * that was handed out from it (see GLFrameImages::consumer_token). If buffers are unavailable, the images are read immediately. The reader
+         * makes its OpenGL calls with the application's context current, and they are the converter's own calls.
          */
         class GLFrameReader
         {
         public:
             GLFrameReader();
 
-            /* Starts reading the frame that is ready in the framebuffers, and gives the one that was started the frame before (with the buffers mapped), or if the
-             * buffers cannot be used the frame that is ready (read at once). False if there is none to give: the first frame, or a size that changed.
+            /* Starts reading the frame that is ready in the framebuffers. Returns the frame whose read started one frame earlier, with its buffers
+             * mapped. If buffers cannot be used, it returns the frame that is ready, read immediately. Returns false if there is no frame to
+             * return: on the first frame, or after the size changed.
              */
             bool read(GLEyeTargets*  inout_targets_ptr,
                       GLFrameImages* out_images_ptr);
@@ -38,24 +40,24 @@ namespace Stereo
 
             static const GLenum PIXEL_PACK_BUFFER;
 
-            /* What a frame is read into. */
+            /* The buffers that one frame is read into. */
             struct Set
             {
                 std::array<uint32_t, N_EYES>             buffer_array       = {};
-                std::weak_ptr<const void>                consumer;               /* held by what has been given of the set */
-                bool                                     has_frame          = false; /* the pixels of a frame are on their way into the buffers */
+                std::weak_ptr<const void>                consumer;               /* held by whatever was handed out from this set */
+                bool                                     has_frame          = false; /* a frame is being read into the buffers */
                 uint32_t                                 height             = 0;
                 bool                                     is_mapped          = false;
                 std::array<const uint8_t*, N_EYES>       mapped_ptr_array   = {};
-                std::array<std::vector<uint8_t>, N_EYES> pixel_u8_vec_array;     /* without buffers */
+                std::array<std::vector<uint8_t>, N_EYES> pixel_u8_vec_array;     /* used when there are no buffers */
                 uint32_t                                 width              = 0;
             };
 
-            /* Waits until what was given of the set is not held, and unmaps its buffers. */
+            /* Waits until nothing holds what was handed out from the set, then unmaps its buffers. */
             void finish_set(const GLEyeTargets& in_targets,
                             Set*                inout_set_ptr);
 
-            /* Finishes the set, and gives its buffers back. */
+            /* Finishes the set, then deletes its buffers. */
             void release_set(const GLEyeTargets& in_targets,
                              Set*                inout_set_ptr);
 

@@ -37,7 +37,7 @@ Stereo::ConverterDLL::D3D8HostMemoryExporter::D3D8HostMemoryExporter(Stereo::Tra
 
 Stereo::ConverterDLL::D3D8HostMemoryExporter::~D3D8HostMemoryExporter()
 {
-    /* The thread of the job first: it hands the right eye to the other. */
+    /* The job thread goes first: it hands the right eye to the other thread. */
     m_job_thread_ptr->stop();
     m_eye_thread_ptr->stop();
 
@@ -71,7 +71,7 @@ bool Stereo::ConverterDLL::D3D8HostMemoryExporter::ensure_staging(void*         
     unlock_staging (inout_staging_ptr);
     release_staging(inout_staging_ptr);
 
-    /* The surface may not be lockable; a system memory copy of it always is. */
+    /* The surface may not be lockable, but a system-memory copy of it always is. */
     if (SUCCEEDED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_CREATEIMAGESURFACE>(device_vtable,
                                                                                                                      Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_CREATEIMAGESURFACE)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(in_device_ptr),
                                                                                                                                                                                                   in_description.Width,
@@ -105,7 +105,7 @@ Stereo::Transport::ExportStatus Stereo::ConverterDLL::D3D8HostMemoryExporter::ex
     const auto get_back_buffer_func = APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_GETBACKBUFFER>(device_vtable,
                                                                                                                                     Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_GETBACKBUFFER);
 
-    /* The other side has not said that it takes what the exporter passes on: not a failure, the frame is left out. */
+    /* The other side has not said that it accepts what the exporter passes on. This is not a failure: the frame is left out. */
     if (is_host_memory_negotiated() == false)
     {
         result = Stereo::Transport::ExportStatus::NOT_READY;
@@ -126,9 +126,9 @@ Stereo::Transport::ExportStatus Stereo::ConverterDLL::D3D8HostMemoryExporter::ex
         surface_ptr_array.at(0) = back_buffer_ptr;
     }
 
-    /* The sizes and formats of the eyes, and a surface in system memory for each, which is the one of the frame before this set had if it is
-     * the same. The set is not the one that the thread is copying from: that one is unlocked when the thread is through with it, and the
-     * other has been since the frame before.
+    /* Reads the size and format of each eye and makes sure each eye has a surface in system memory. The surface this set held for the previous
+     * frame is reused if the size and format are the same. This set is not the one the thread is copying from: the thread unlocks its set
+     * when it finishes, and this set has been unlocked since the previous frame.
      */
     for (uint32_t n_eye = 0;
                   n_eye < n_eyes;
@@ -163,7 +163,7 @@ Stereo::Transport::ExportStatus Stereo::ConverterDLL::D3D8HostMemoryExporter::ex
         }
     }
 
-    /* Both copies are asked for before either is waited for, so that the GPU makes them one after the other without the CPU between. */
+    /* Both copies are requested before either is waited for, so that the GPU makes them one after the other with no CPU work in between. */
     {
         const double issue_start_ms = Utils::Statistics::SeriesStats::get_now();
 
@@ -213,7 +213,7 @@ Stereo::Transport::ExportStatus Stereo::ConverterDLL::D3D8HostMemoryExporter::ex
     job.info.timestamp_seconds = in_source.timestamp_seconds;
     job.info.width             = description_array.at(0).Width * n_eyes;
 
-    /* The thread must be through with the frame before, whose surfaces are of the other set, to be given this one. */
+    /* The thread must have finished the previous frame, whose surfaces are in the other set, before it can be given this one. */
     wait_for_job();
 
     {
@@ -374,8 +374,8 @@ void Stereo::ConverterDLL::D3D8HostMemoryExporter::write_job()
     bool           is_ok           = (destination_ptr != nullptr);
     const uint32_t pitch           = Stereo::Transport::FrameChannel::get_pitch(m_job.info.width);
 
-    /* The right eye is copied by a thread of its own while this one copies the left: the rows of an eye are 30 MB at 3200 x 2400, which is
-     * as long as a CPU takes for them, and the two do not touch the same memory.
+    /* A second thread copies the right eye while this thread copies the left. The two threads do not touch the same memory. One eye is
+     * 30 MB at 3200 x 2400, and copying it on a single thread is slow.
      */
     if (is_ok                 &&
         m_job.info.n_eyes > 1)

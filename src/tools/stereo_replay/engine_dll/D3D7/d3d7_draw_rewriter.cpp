@@ -231,7 +231,7 @@ bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::rewrite_vertices(const Capture
         }
     }
 
-    /* Vertices which a matrix moves are the matrix's. */
+    /* Vertices that a transformation matrix moves are left to the matrix. Only pre-transformed vertices, which are in pixels, are rewritten. */
     if (Analysis::APIDumpAnalysis::Frontends::FixedFunctionVertexFormat::is_pre_transformed(fvf) == false)
 
     {
@@ -260,7 +260,7 @@ bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::rewrite_vertices(const Capture
 
     chunk_ptr = in_chunk_source.get_data_chunk_ptr(in_call.arg_in_vec.at(n_argument).get_data_chunk_id() );
 
-    /* What the call says there are must be there. */
+    /* The chunk must exist and must hold at least as many vertices as the call says. */
     if (chunk_ptr == nullptr)
     {
         goto end;

@@ -9,7 +9,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_depths(const std::
                                                                      const DepthHistogramMapMember& in_member_ptr,
                                                                      Model*                         out_model_ptr)
 {
-    /* The frame shape and the pass structure, and how many ranges have weight. */
+    /* The minimum size of a record: the frame shape, the pass structure, and the number of ranges that have weight. */
     constexpr size_t MIN_HISTOGRAM_N_BYTES = 3 * sizeof(uint32_t);
 
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
@@ -21,7 +21,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_depths(const std::
                   n_histogram < n_histograms && reader.has_failed() == false;
                 ++n_histogram)
     {
-        /* Read in the order they are stored. */
+        /* The values are read in the order in which they are stored. */
         const uint32_t shape_id  = reader.read_u32  ();
         const uint32_t pass_id   = reader.read_u32  ();
         const auto     n_weights = reader.read_count(sizeof(uint32_t) + sizeof(uint64_t) );
@@ -65,7 +65,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_depths(const std::
 bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_draw_facts(const std::vector<uint8_t>& in_byte_vec,
                                                                          Model*                      out_model_ptr)
 {
-    /* The keys of the structure and of the size, the areas, the four counts and the six extents. */
+    /* The minimum size of an entry: the key of the structure, the key of the size, the areas, the four counts and the six extents. */
     constexpr size_t MIN_ENTRY_N_BYTES = 2 * sizeof(uint64_t) + 2 * sizeof(float) + 7 * sizeof(uint64_t) + 6 * sizeof(float);
 
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
@@ -121,7 +121,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_draw_keys(const st
 {
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
                                        in_byte_vec.size());
-    /* The pass structure, and how many keys it has. */
+    /* The minimum size of a record: the pass structure and the number of its keys. */
     constexpr size_t MIN_PASS_N_BYTES = 2 * sizeof(uint32_t);
 
     const auto n_passes = reader.read_count(MIN_PASS_N_BYTES);
@@ -158,7 +158,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_draw_keys(const st
 bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_draws(const std::vector<uint8_t>& in_byte_vec,
                                                                     Model*                      out_model_ptr)
 {
-    /* The key, then a structure with no shaders, bindings or vertex buffers: write_draw_structure() with empty vectors. */
+    /* The key, then a structure with no shaders, bindings or vertex buffers: what write_draw_structure() writes for empty vectors. */
     constexpr size_t MIN_DRAW_N_BYTES = sizeof(uint64_t)      /* key                           */
                                       + sizeof(uint64_t)      /* index buffer key              */
                                       + 2 * sizeof(uint8_t)   /* is indexed, is instanced      */
@@ -294,7 +294,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_meta(const std::ve
 bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_passes(const std::vector<uint8_t>& in_byte_vec,
                                                                      Model*                      out_model_ptr)
 {
-    /* write_pass_structure() with empty vectors. */
+    /* The size that write_pass_structure() writes for empty vectors. */
     constexpr size_t MIN_PASS_N_BYTES = 3 * sizeof(uint8_t)   /* clears color, depth, stencil */
                                       + 2 * sizeof(uint32_t)  /* n colors, n constants        */
                                       +     sizeof(uint64_t)  /* depth stencil view key       */
@@ -314,7 +314,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_passes(const std::
     {
         const PassStructure structure = read_pass_structure(&reader);
 
-        /* A pass is made of draws which exist. */
+        /* A pass is made of draws, and they must exist. */
         for (const auto& draw_key : structure.draw_structure_key_vec)
         {
             if (out_model_ptr->draw_structure_map.find(draw_key) == out_model_ptr->draw_structure_map.end() )
@@ -323,7 +323,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_passes(const std::
             }
         }
 
-        /* A duplicate or out-of-order structure means this is not a file we wrote. */
+        /* A duplicate or out-of-order structure means that this is not a file that the writer produced. */
         if (out_model_ptr->pass_structure_interner.intern(structure,
                                                           structure.key) != n_pass)
         {
@@ -342,7 +342,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_passes(const std::
 bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_projection_scales(const std::vector<uint8_t>& in_byte_vec,
                                                                                 Model*                      out_model_ptr)
 {
-    /* The frame shape and the pass structure, the mean and the weight. */
+    /* The minimum size of a record: the frame shape, the pass structure, the mean and the weight. */
     constexpr size_t MIN_ENTRY_N_BYTES = 2 * sizeof(uint32_t) + sizeof(float) + sizeof(uint64_t);
 
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
@@ -426,7 +426,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_representatives(co
                 detail.transfer_record_vec.push_back(read_transfer_record(&reader) );
             }
 
-            /* The frame is one of the frames, and the resources are resources. */
+            /* The frames must be existing frames, and the resources must be existing resources. */
             if (frame_index >= out_model_ptr->frame_record_vec.size() )
             {
                 is_ok = false;
@@ -446,7 +446,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_representatives(co
                 }
             }
 
-            /* Entries are stored as first, lightest, heaviest: the order add() expects. */
+            /* The entries are stored as first, lightest, heaviest, which is the order that add() expects. */
             out_model_ptr->representative_store.add(n_shape,
                                                     frame_index,
                                                     weight,
@@ -507,7 +507,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_resource_access(co
 bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_resources(const std::vector<uint8_t>& in_byte_vec,
                                                                         Model*                      out_model_ptr)
 {
-    /* A resource with an empty name: write_resource_description() and the fields around it. */
+    /* A resource with an empty name: what write_resource_description() and the fields around it write. */
     constexpr size_t MIN_RESOURCE_N_BYTES = 6 * sizeof(uint64_t)  /* created at, destroyed at, match key, API flags, content hash, size */
                                           + 14 * sizeof(uint32_t) /* name length, ID, parent view (3), description (9)                  */
                                           + 6 * sizeof(uint8_t);  /* is destroyed, description (5)                                      */
@@ -532,7 +532,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_resources(const st
         resource.match_key               = reader.read_u64          ();
         resource.parent_view             = read_resource_view       (&reader);
 
-        /* IDs are consecutive from 1, and a resource is part of one that was made before it. */
+        /* The IDs are consecutive from 1, and a resource can be part of a resource that was created before it. */
         const auto id_value        = get_resource_id_value(resource.id);
         const bool is_parent_valid = is_resource_id_valid (resource.parent_view.resource_id,
                                                            n_resource);

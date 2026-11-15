@@ -294,8 +294,8 @@ bool Utils::Files::ZipExtractor::is_name_safe(const std::string& in_name)
         }
     }
 
-    /* Each part of the name: not empty (but for the end of a directory), not "." or "..", not a device, and not ending with a dot or a space,
-     * which the system does not keep.
+    /* Every part of the name must meet these rules: it is not empty (except after the final separator of a directory), it is not "." or "..",
+     * it is not a device name, and it does not end with a dot or a space (Windows drops those).
      */
     while (n_part_start_character < name_with_forward_slashes.size() )
     {
@@ -355,7 +355,9 @@ size_t Utils::Files::ZipExtractor::write(void*       in_context_ptr,
     DWORD         n_bytes_written_by_call = 0;
     size_t        result                  = 0;
 
-    /* An entry is not written beyond its size, and not at all once it is cancelled; the caller sees the difference. */
+    /* An entry is never written beyond its declared size, and nothing more is written once the extraction is cancelled.
+     * The caller can tell the two cases apart.
+     */
     if (is_cancelled                                                               ||
         context_ptr->n_bytes_written + in_n_bytes >  context_ptr->n_bytes_declared ||
         in_offset                                 != context_ptr->n_bytes_written)

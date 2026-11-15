@@ -14,15 +14,15 @@ namespace Utils
 {
     namespace D3D12
     {
-        /* Records a list of commands, has a queue run it, and waits until it is done: the allocator and the list, and a fence of the device
-         * with an event to wait on, which the things that copy to or clear textures on the GPU all need.
+        /* Records a command list, has a queue execute it, and waits until it has finished. It owns the allocator, the list, and a fence with an event
+         * to wait on. Everything that copies to or clears textures on the GPU needs these.
          *
-         * Not thread-safe: the thread which owns the queue runs.
+         * Not thread-safe: only the thread that owns the queue may use it.
          */
         class D3D12CommandRunner
         {
         public:
-            /* The device and the queue (a direct one) must outlive the runner. */
+            /* The device and the queue (a direct queue) must outlive the runner. */
             D3D12CommandRunner(ID3D12Device*       in_device_ptr,
                                ID3D12CommandQueue* in_queue_ptr);
             ~D3D12CommandRunner();
@@ -30,28 +30,28 @@ namespace Utils
             D3D12CommandRunner           (const D3D12CommandRunner&) = delete;
             D3D12CommandRunner& operator=(const D3D12CommandRunner&) = delete;
 
-            /* Gives up the list that begin_list_ptr() gave, and nothing is run. */
+            /* Discards the list from begin_list_ptr() without running it. */
             void abandon_list();
 
-            /* A list to record the commands in, which is empty. Returns nullptr, and says why, if there is none. Every list is ended by
+            /* Returns an empty command list to record into, or nullptr and sets the error if none is available. Every list must be ended with
              * abandon_list() or finish_list().
              */
             ID3D12GraphicsCommandList* begin_list_ptr(std::string* out_error_ptr);
 
-            /* Has the queue run the list, and returns when it is done. False, and the reason, if it cannot be. */
+            /* Has the queue execute the list and returns when it has finished. Returns false and sets the error on failure. */
             bool finish_list(std::string* out_error_ptr);
 
-            /* False, and the reason, if the runner could not make what it needs. */
+            /* Returns false and sets the error if the runner could not create the objects it needs. */
             bool is_ok(std::string* out_error_ptr) const;
 
         private:
-            /* Returns when everything given to the queue before the call is done. */
+            /* Returns when everything submitted to the queue before the call has finished. */
             bool wait(std::string* out_error_ptr);
 
 
             Microsoft::WRL::ComPtr<ID3D12CommandAllocator>    m_allocator_ptr;
             Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_command_list_ptr;
-            std::string                                       m_error; /* what stopped the runner from being made; empty if nothing did */
+            std::string                                       m_error; /* why construction failed; empty on success */
             HANDLE                                            m_fence_event;
             Microsoft::WRL::ComPtr<ID3D12Fence>               m_fence_ptr;
             uint64_t                                          m_fence_value;

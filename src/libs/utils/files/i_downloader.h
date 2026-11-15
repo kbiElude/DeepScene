@@ -13,14 +13,14 @@ namespace Utils
 {
     namespace Files
     {
-        /* Gets one file from an address. It is behind an interface so that what installs does not need a network to be tested. */
+        /* Downloads one file from an address. It is an interface so that the installer can be tested without a network. */
         class IDownloader
         {
         public:
             virtual ~IDownloader() = default;
 
-            /* Writes the file at the address to in_file_path. Returns false, and says why, if it could not; a download which
-             * in_is_cancelled stops is one of them.
+            /* Writes the file at the address to in_file_path. Returns false and sets the error if it could not. A download stopped by in_is_cancelled
+             * also counts as a failure.
              */
             virtual bool download(const std::string&       in_url,
                                   const std::string&       in_file_path,

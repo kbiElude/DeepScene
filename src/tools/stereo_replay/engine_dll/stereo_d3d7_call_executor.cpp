@@ -19,8 +19,8 @@ bool Stereo::Replay::EngineDLL::StereoD3D7CallExecutor::after_call(const Capture
     bool is_setup = false;
     bool result   = true;
 
-    /* What sets up an object that each eye has a copy of is made for both: the call that makes the copy, and the ones that follow it. The
-     * calls that are made in each execution of a frame are made for the eye of the execution.
+    /* Calls that set up an object that has a copy for each eye run for both eyes: the call that creates the object and the calls
+     * that follow it. Calls that run in every execution of a frame run for the eye of that execution.
      */
     if (m_is_building_twin == false)
     {
@@ -111,7 +111,9 @@ void Stereo::Replay::EngineDLL::StereoD3D7CallExecutor::on_object_registered(con
 {
     (void) in_live_object_ptr;
 
-    /* Asked when the object is made, which is when the copy is: it is made by the call being made again, for the right eye. */
+    /* The executor asks when the object is created, which is also when its copy is created. The copy is created by running the
+     * call again for the right eye.
+     */
     if (m_per_eye_predicate)
     {
         const bool is_per_eye = m_per_eye_predicate(in_dumped_value);
@@ -125,7 +127,7 @@ void Stereo::Replay::EngineDLL::StereoD3D7CallExecutor::on_object_registered(con
 
 void Stereo::Replay::EngineDLL::StereoD3D7CallExecutor::on_object_released(void* in_object_ptr)
 {
-    /* The copy of the other eye is let go of with it. */
+    /* Release the other eye's copy together with the object. */
     void* const twin_ptr = find_right_twin(in_object_ptr);
 
     if (twin_ptr != nullptr)
@@ -151,8 +153,8 @@ void* Stereo::Replay::EngineDLL::StereoD3D7CallExecutor::resolve_object(void* in
 
 void Stereo::Replay::EngineDLL::StereoD3D7CallExecutor::set_eye(const Analysis::Recipe::Eye& in_eye)
 {
-    /* The device keeps what was set on it by the eye before: the target and the textures must be those of this eye, or that eye
-     * would draw into (and read) the other's copy.
+    /* The device still has the render target and textures that the previous eye set. Replace them with the copies of this eye.
+     * Otherwise this eye would draw into (and read) the other eye's copy.
      */
     const bool is_changing = (m_eye != in_eye);
 
@@ -208,7 +210,7 @@ bool Stereo::Replay::EngineDLL::StereoD3D7CallExecutor::take_object(const uint64
     uint64_t left_value = 0;
     bool     result     = false;
 
-    /* The object is the copy of the right eye of the one that the call made for the left eye. */
+    /* The object is the right eye's copy of the object that the call created for the left eye. */
     if (m_is_building_twin)
     {
         if (get_call_context().get_remapper_ptr()->get(::Replay::ReplayEngineDLL::ObjectKind::D3D7_OBJECT,

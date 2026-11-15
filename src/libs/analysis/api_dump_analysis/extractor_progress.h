@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * What the programs that read a workload say while they work: a line each time that the interval has gone by, with the segments, the calls and the frames read so
- * far, the demo time they make, and what a program has to add to it.
+ * The progress report of the programs that read a workload. Each time the interval has passed, it prints one line with the segments, calls
+ * and frames read so far, the demo time they cover, and any text the program adds.
  */
 #ifndef APIDUMPANALYSIS_EXTRACTOR_PROGRESS_H
 #define APIDUMPANALYSIS_EXTRACTOR_PROGRESS_H
@@ -20,16 +20,16 @@ namespace Analysis
         class ExtractorProgress
         {
         public:
-            /* Something to put in the line after the frames, as " shapes=3" (with the space before it); empty for nothing. */
+            /* Returns text to append to the line after the frames, for example " shapes=3" (with the leading space). Empty adds nothing. */
             typedef std::function<std::string(const Frontends::SessionProgress& in_progress)> ExtraTextFunc;
 
-            /* The time is counted from here. 0 seconds is a line for every segment. */
+            /* The interval is the time between progress lines, and the clock starts at construction. 0 seconds prints a line for every segment. */
             explicit ExtractorProgress(const double& in_interval_seconds);
 
             /* Seconds since the object was made. */
             double get_elapsed_seconds() const;
 
-            /* The function for AnalysisSession::run(): it keeps the object, which has to be there while the session runs. */
+            /* Returns the function to pass to AnalysisSession::run(). It refers to this object, which must outlive the session. */
             Frontends::AnalysisSession::ProgressFunc get_progress_func(const ExtraTextFunc& in_extra_text_func = ExtraTextFunc() );
 
         private:

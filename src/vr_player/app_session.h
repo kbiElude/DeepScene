@@ -14,10 +14,10 @@
 
 namespace VRPlayer
 {
-    /* One application played in VR: the window which shows its images is started, and the launcher, which starts the application
-     * with the converter in it; they are watched until the application exits or the window is closed. The launcher of the
-     * architecture of the application is the one which starts it (see StereoLauncher). Everything belongs to a job, so that
-     * ending the session, or this program, ends all of it.
+    /* One application played in VR. The session starts the window that shows the images of the application, and the launcher, which starts the
+     * application with the converter inside it. Both are watched until the application exits or the window is closed. The launcher that
+     * matches the architecture of the application starts it (see StereoLauncher). Everything belongs to one job, so ending the session,
+     * or this program, ends all of it.
      */
     class AppSession
     {
@@ -25,25 +25,25 @@ namespace VRPlayer
          AppSession();
         ~AppSession();
 
-        /* What went wrong, if the state is FAILED. */
+        /* The reason for the failure, if the state is FAILED. */
         const std::string& get_message() const;
 
         SessionState get_state() const;
 
-        /* How strong the 3D is: 1 is the natural one the converter works out for each scene (see Stereo::Core::set_depth_strength), 0 is
-         * none. It can be said while the application plays; it is ignored when none does.
+        /* Sets how strong the 3D is: 1 is the natural depth the converter works out for each scene (see Stereo::Core::set_depth_strength), 0 is
+         * no depth. It can be set while the application plays. It is ignored when no session is running.
          */
         void set_depth_strength(const float& in_depth_strength);
 
-        /* Whether the draws that the recipe leaves alone (an interface, text) are pushed toward the viewer, by what the recipe says. It can
-         * be said while the application plays; it is ignored when none does.
+        /* Sets whether the draws that the recipe leaves alone (an interface, text) are pushed toward the viewer by the amount the recipe gives.
+         * It can be set while the application plays. It is ignored when no session is running.
          */
         void set_is_overlay_pushed(const bool& in_is_pushed);
 
-        /* Starts the window and the launcher. With the headset the window shows the images in the headset of the OpenXR runtime too, if
-         * there is one. The render scale is how many times larger than the application asks the converter renders,
-         * in each direction (see ResolutionPolicy); it is said to the converter before the application starts. Returns false, and says
-         * why, if that cannot be done.
+        /* Starts the window and the launcher. With in_use_headset the window also shows the images in the headset of the OpenXR runtime, if
+         * there is one. The target eye size is the size, in pixels, at which the converter should render each eye (see ResolutionPolicy). It is
+         * sent to the converter before the application starts, and it is ignored if either value is 0. Returns false and sets the error if the
+         * session cannot be started.
          */
         bool start(const VRPlayer::AppCatalog::AppEntry& in_app,
                    const std::string&                    in_launcher_directory,
@@ -54,10 +54,10 @@ namespace VRPlayer
                    const bool&                           in_write_log,
                    std::string*                          out_error_ptr);
 
-        /* Looks whether the launcher has returned or the window is closed; call it often. */
+        /* Checks whether the launcher has exited or the window was closed. Call it often. */
         void update();
 
-        /* The command lines of the launcher and of the window. */
+        /* Build the command lines of the launcher and of the window. */
         static std::string get_command_line          (const SessionRequest& in_request);
         static std::string get_presenter_command_line(const SessionRequest& in_request);
 
@@ -69,11 +69,11 @@ namespace VRPlayer
         static std::string quote_argument(const std::string& in_argument);
         static std::string read_output   (const HANDLE&      in_pipe);
 
-        std::unique_ptr<Stereo::Transport::FrameChannel> m_channel_ptr; /* what the converter and the window share */
-        float                                            m_depth_strength; /* the last one said, if m_has_depth_strength */
+        std::unique_ptr<Stereo::Transport::FrameChannel> m_channel_ptr; /* shared by the converter and the window */
+        float                                            m_depth_strength; /* the last value sent, valid if m_has_depth_strength */
         bool                                             m_has_depth_strength;
         bool                                             m_has_is_overlay_pushed;
-        bool                                             m_is_overlay_pushed; /* the last one said, if m_has_is_overlay_pushed */
+        bool                                             m_is_overlay_pushed; /* the last value sent, valid if m_has_is_overlay_pushed */
         HANDLE                                           m_job;
         HANDLE                                           m_launcher_process;
         std::string                                      m_message;

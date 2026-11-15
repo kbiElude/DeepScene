@@ -20,7 +20,7 @@
 
 void Stereo::Replay::ConsistencyChecker::OverlayReport::add_warnings(OverlayReportEntry* inout_entry_ptr)
 {
-    /* An overlay is a part of the picture: a draw that makes most of it is either a fade, or a scene which is taken for an overlay. */
+    /* An overlay covers only part of the picture. A draw that makes most of it is either a fade or a scene that is mistaken for an overlay. */
     constexpr double MUCH_OF_PICTURE_FRACTION = 0.4;
 
     const bool is_left_alone = (inout_entry_ptr->replay_class == "unaffected" ||
@@ -99,7 +99,8 @@ uint32_t Stereo::Replay::ConsistencyChecker::OverlayReport::get_n_shards(const O
     const uint32_t n_groups = static_cast<uint32_t>(get_pass_group_map(in_entry_vec).size() );
     uint32_t       n_shards = in_options.n_jobs;
 
-    /* A process that makes many replays runs out of address space (each leaves some memory behind): a part has no more candidates than the limit says. */
+    /* A process that makes many replays runs out of address space, because each replay leaves some memory behind. So a part gets at most as
+     * many candidates as the limit says. */
     if (in_options.overlay_report_shard_entries != 0)
     {
         const uint32_t n_entries = static_cast<uint32_t>(in_entry_vec.size() );
@@ -132,7 +133,7 @@ std::map<std::pair<uint32_t, uint64_t>, std::vector<size_t> > Stereo::Replay::Co
 std::vector<uint32_t> Stereo::Replay::ConsistencyChecker::OverlayReport::get_shard_of_entry_vec(const std::vector<OverlayReportEntry>& in_entry_vec,
                                                                                                const uint32_t&                       in_n_shards)
 {
-    /* A replay costs the frames it goes through, and a few more for the device it makes. */
+    /* The cost of a replay is the number of frames it goes through, plus a few more for creating the device. */
     constexpr uint64_t N_FRAMES_OF_SETUP = 1000;
 
     struct Group
@@ -165,8 +166,9 @@ std::vector<uint32_t> Stereo::Replay::ConsistencyChecker::OverlayReport::get_sha
             return (in_group_a.frame_index > in_group_b.frame_index);
         };
 
-        /* The frames that cost most go first, each group to the shard that would be done with it soonest, which is the shard with the least to do unless the frame is
-         * made there already (the frame as it is is made once for each shard that has a draw of it). Only the list says it, so every process comes to the same.
+        /* Groups are assigned most expensive frame first. Each group goes to the shard that would finish it soonest. That is the shard with the
+         * least work, unless the frame is already replayed in another shard (the unmodified frame is replayed once in each shard that has a draw of
+         * it). The assignment depends only on the list, so every process computes the same result.
          */
         std::stable_sort(group_vec.begin(),
                          group_vec.end  (),
@@ -176,7 +178,7 @@ std::vector<uint32_t> Stereo::Replay::ConsistencyChecker::OverlayReport::get_sha
     for (const auto& group : group_vec)
     {
         const uint64_t cost_of_replay = group.frame_index + N_FRAMES_OF_SETUP;
-        const uint64_t n_replays      = group.n_entry_vec.size() + ((group.n_entry_vec.size() > 1) ? 1 : 0); /* the draws, and the pass if it has more than one */
+        const uint64_t n_replays      = group.n_entry_vec.size() + ((group.n_entry_vec.size() > 1) ? 1 : 0); /* one replay per draw, plus one for the whole pass if it has more than one draw */
         uint32_t       n_best_shard   = 0;
         uint64_t       best_load      = 0;
 
@@ -289,7 +291,8 @@ bool Stereo::Replay::ConsistencyChecker::OverlayReport::parse_candidates(const O
     {
         OverlayReportEntry entry;
 
-        /* A draw is left out in its own pass only, so the list must say which pass that is (a list of RecipeBake --overlays has it for each candidate). */
+        /* A draw is left out in its own pass only, so the list must name that pass. The list written by RecipeBake --overlays has it for each
+         * candidate. */
         const auto* pass_key_ptr      = candidate.find_ptr("pass_key");
         bool        is_pass_key_valid = false;
 
@@ -306,7 +309,7 @@ bool Stereo::Replay::ConsistencyChecker::OverlayReport::parse_candidates(const O
             goto end;
         }
 
-        /* A candidate which no frame shows cannot be seen. */
+        /* A candidate that appears in no frame cannot be shown. */
         const auto* first_frame_ptr    = candidate.find_ptr("first_frame_index");
         bool        is_candidate_shown = false;
 
@@ -335,7 +338,7 @@ bool Stereo::Replay::ConsistencyChecker::OverlayReport::parse_candidates(const O
         entry.pass_id      = static_cast<uint64_t>(candidate.at("pass_id").number_value);
         entry.replay_class = candidate.at         ("replay_class").string_value;
 
-        /* How deep the vertices of the pass of the candidate are, if the list says. */
+        /* The depth of the vertices of the pass of the candidate, if the list has it. */
         const auto* depth_ptr = candidate.find_ptr("depth");
 
         if (depth_ptr != nullptr)
@@ -359,7 +362,7 @@ bool Stereo::Replay::ConsistencyChecker::OverlayReport::parse_candidates(const O
             entry.reason_vec.push_back(reason.string_value);
         }
 
-        /* The frames to look at: the ones the list says, spread over the frames that the draw is in, or the first of them. */
+        /* The frames to look at: those named in the list, spread over the frames that the draw is in, or else the first frame of the draw. */
         std::vector<uint32_t> frame_index_vec;
         const auto*           sample_ptr = candidate.find_ptr("sample_frame_indices");
 
@@ -545,7 +548,7 @@ bool Stereo::Replay::ConsistencyChecker::OverlayReport::process_entries(const Op
     std::map<std::pair<uint32_t, uint64_t>, size_t> n_draws_of_pass_map;
     bool                                            result              = false;
 
-    /* The candidates go to the shards by what they cost (the draws of a pass in a frame stay together), so that the shards are done at about the same time. */
+    /* Candidates are assigned to shards by cost, so that the shards finish at about the same time. The draws of a pass in a frame stay together. */
     if (in_options.overlay_report_shard_count != 0)
     {
         const auto                     shard_of_entry_vec = get_shard_of_entry_vec(*inout_entry_vec_ptr,
@@ -580,7 +583,7 @@ bool Stereo::Replay::ConsistencyChecker::OverlayReport::process_entries(const Op
                                     in_quick_path_ptr->render_variants_func    != nullptr &&
                                     in_options.overlay_report_is_exact         == false);
 
-    /* A frame at a time, so that what is the same for the candidates of a frame is done once for it. */
+    /* The work goes frame by frame, so that what the candidates of a frame share is done once per frame. */
     for (const auto& frame_pair : entry_index_by_frame_map)
     {
         bool is_played_quick = false;
@@ -651,7 +654,7 @@ bool Stereo::Replay::ConsistencyChecker::OverlayReport::process_entry(const Opti
     Utils::Images::Image probe_image;
     bool                 result        = false;
 
-    /* The frame as it is: once for each frame, whichever candidates are seen in it. */
+    /* The frame as it is is replayed once per frame, however many candidates it has. */
     if (inout_baseline_image_map_ptr->count(entry.frame_index) == 0)
     {
         if (in_render_func(in_options,
@@ -668,7 +671,8 @@ bool Stereo::Replay::ConsistencyChecker::OverlayReport::process_entry(const Opti
 
         entry.n_picture_pixels = static_cast<uint64_t>(baseline_image.width) * baseline_image.height;
 
-        /* A pass that makes no difference left out whole makes none draw by draw: the first of its draws in the frame finds that out, for all of them. */
+        /* If leaving out the whole pass changes no pixel, no single draw of the pass changes any either. The first draw of the pass in the frame
+         * finds that out for all of them. */
         if (in_n_draws_of_pass_map.at(pass_pair) > 1)
         {
             if (inout_is_pass_visible_map_ptr->count(pass_pair) == 0)
@@ -709,7 +713,8 @@ bool Stereo::Replay::ConsistencyChecker::OverlayReport::process_entry(const Opti
             }
         }
 
-        /* The draw is left out in its pass, not in the other passes which have a draw of its structure (a pass that draws a scene may be one of them). */
+        /* The draw is left out in its own pass only, not in the other passes that have a draw of the same structure (a pass that draws a scene may
+         * be one of them). */
         Analysis::Recipe::PassDraw pass_draw;
 
         pass_draw.draw_key = entry.structure_key;
@@ -778,7 +783,7 @@ bool Stereo::Replay::ConsistencyChecker::OverlayReport::process_frame_quick(cons
     std::vector<size_t>                                  cause_entry_vec;        /* by place in in_entry_index_vec: those that change no pixel */
     std::vector<size_t>                                  entry_variant_vec;      /* by place in in_entry_index_vec: the variant that leaves the draw out */
     std::vector<bool>                                    is_done_vec(in_entry_index_vec.size(),
-                                                                     false);     /* said already: the pass makes no pixels */
+                                                                     false);     /* the pass is already reported as making no pixels */
     std::vector<Utils::Images::Image>                    image_vec;
     std::map<uint64_t, size_t>                           pass_variant_map;       /* by the key of the pass: the variant that leaves it out */
     bool                                                 result = false;
@@ -863,7 +868,7 @@ bool Stereo::Replay::ConsistencyChecker::OverlayReport::process_frame_quick(cons
 
             entry.n_picture_pixels = static_cast<uint64_t>(baseline_image.width) * baseline_image.height;
 
-            /* A pass that makes no difference left out whole makes none draw by draw. */
+            /* A pass that changes no pixel when left out as a whole changes none draw by draw. */
             if (in_n_draws_of_pass_map.at(pass_pair) > 1)
             {
                 const auto& pass_image = image_vec.at(pass_variant_map.at(entry.pass_key) );
@@ -895,7 +900,8 @@ bool Stereo::Replay::ConsistencyChecker::OverlayReport::process_frame_quick(cons
             }
         }
 
-        /* Why the draws that change no pixel change none: the frame cut after the draw, with it and without it, for all of them in one more run of the frame. */
+        /* Finds why the draws that change no pixel change none. For all of them, the frame is cut after the draw and played with and without the
+         * draw, in one more run of the frame. */
         if (cause_entry_vec.empty() == false)
         {
             std::vector<Stereo::Replay::EngineDLL::FrameVariant> cut_variant_vec;
@@ -944,7 +950,7 @@ bool Stereo::Replay::ConsistencyChecker::OverlayReport::process_frame_quick(cons
                 }
                 else
                 {
-                    /* The cut frames could not be played together: the cause is looked for with a replay for each. */
+                    /* The cut frames cannot be played together, so the cause is found with one replay per draw. */
                     Options probe_options = in_options;
 
                     probe_options.recipe.skipped.pass_draw_vec.push_back(variant_vec.at(entry_variant_vec.at(cause_entry_vec.at(n_cause) ) ).skipped_pass_draw_vec.at(0) );
@@ -987,7 +993,7 @@ bool Stereo::Replay::ConsistencyChecker::OverlayReport::process_frame_quick(cons
                                    image_vec.at(entry_variant_vec.at(n_place) ),
                                    out_error_ptr) == false)
             {
-                /* The images are what cannot be written; that is not for another way of playing the frame to mend. */
+                /* Writing the images failed. Replaying the frame in another way would not fix that. */
                 result = true;
 
                 goto end;
@@ -1064,8 +1070,8 @@ bool Stereo::Replay::ConsistencyChecker::OverlayReport::run(const Options&      
     n_shards = get_n_shards(in_options,
                             entry_vec);
 
-    /* The parts of the work are done by processes of their own (each replay of the workload decodes it from its start, which is most of the time), and the
-     * results are put together here.
+    /* The parts of the work run in separate processes, because each replay of the workload decodes it from its start, which takes most of the
+     * time. The results are merged here.
      */
     if (in_options.overlay_report_shard_count == 0 &&
         n_shards                             >  1 &&
@@ -1126,7 +1132,7 @@ bool Stereo::Replay::ConsistencyChecker::OverlayReport::run(const Options&      
         goto end;
     }
 
-    /* A part of the work leaves its results to the one that put the parts together. */
+    /* A part of the work writes its results to a file for the process that started the parts and merges them. */
     if (in_options.overlay_report_result_filename.empty() == false)
     {
         if (write_list(in_options.overlay_report_result_filename,
@@ -1198,8 +1204,9 @@ bool Stereo::Replay::ConsistencyChecker::OverlayReport::write_images(const std::
 {
     constexpr uint32_t ANIMATION_FRAME_DELAY_N_MILLISECONDS = 700;
 
-    /* The still has the pixels which the draws make in magenta, and the rest of the frame dimmed so that they show. The animation shows the frame as it is, and the
-     * same frame with those pixels in magenta, by turns, so that what is magenta can be told from what is under it.
+    /* The still shows the pixels that the draws make in magenta and dims the rest of the frame so that they stand out. The animation
+     * alternates between the frame as it is and the same frame with those pixels in magenta, so that the magenta area can be compared with what
+     * is under it.
      */
     const auto marked_image = make_highlighted_image(in_baseline_image,
                                                      in_probe_image,

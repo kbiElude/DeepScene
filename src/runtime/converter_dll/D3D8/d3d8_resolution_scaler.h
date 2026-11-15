@@ -19,24 +19,24 @@ namespace Stereo
 {
     namespace ConverterDLL
     {
-        /* Has a Direct3D 8 application render larger than it asks (see ResolutionPolicy), without its knowing. It makes the back buffer, and so
-         * the depth buffer that goes with it, larger as the application makes its device, and makes the viewports that the application sets
-         * for it larger: a viewport is in pixels, and what the application means by it is a part of the image, not of that many pixels. A
-         * render target of another size (what the application made itself) is left as it is, and so are the viewports for it.
+        /* Makes a Direct3D 8 application render larger than it asks for (see ResolutionPolicy), without its knowledge. When the application
+         * creates its device, the scaler enlarges the back buffer, and with it the depth buffer. It also enlarges every viewport that the
+         * application sets for the back buffer: a viewport is in pixels, but the application means a part of the image, not a number of
+         * pixels. A render target of another size (one the application created itself) stays as it is, and so do the viewports set for it.
          *
-         * What the application does that it cannot be kept from seeing the larger sizes in, or that does not scale with them, ends the
-         * application, through the core, instead of showing it wrong (see on_pre()). Nothing of the kind is in fr-08; each production has
-         * to be found out.
+         * If the application does something that exposes the larger sizes, or that does not scale with them, the scaler ends the application
+         * through the core instead of showing wrong images (see on_pre()). fr-08 does nothing of this kind. Every other production has to be
+         * checked separately.
          */
         class D3D8ResolutionScaler : public Interception::Hooks::D3D8::IArgumentModifier
         {
         public:
-            /* What the render target which the application renders to now is: the surface, or null if the scaler is not to know. */
+            /* The render target that the application currently renders to (a surface), or null if it is unknown. */
             typedef std::function<void*()> RenderTargetFunc;
 
-            /* The core must outlive the scaler. What the application renders is made as large as fits the target (the size of an eye of the
-             * headset) with its proportions, when the application says how large it is; no target, a size of 0, or a target that is not larger
-             * than what the application asks for, makes the scaler do nothing.
+            /* The core must outlive the scaler. When the application states how large its image is, the scaler enlarges it as far as it fits the
+             * target (the size of one eye of the headset), keeping the proportions. The scaler does nothing if there is no target, if the target
+             * size is 0, or if the target is not larger than the size the application asks for.
              */
             D3D8ResolutionScaler(const uint32_t&              in_target_width,
                                  const uint32_t&              in_target_height,
@@ -61,24 +61,24 @@ namespace Stereo
             void on_set_viewport(Interception::Hooks::D3D8::IDirect3DDevice8*    in_device_ptr,
                                  const Interception::Hooks::D3D8::D3DVIEWPORT8** inout_viewport_ptr_ptr) override;
 
-            /* Puts the sizes that the application asked for back in the parameters of the device that it made, for the analysis to see: the
-             * back buffer is part of what a draw is told by, and a draw must be told the same at any scale.
+            /* Writes the sizes that the application asked for back into the device parameters of the chunk, so that the analysis sees them. The
+             * back buffer is part of what identifies a draw, and a draw must have the same identity at any scale.
              */
             void restore_chunk(const APIInterceptor::APIFunction& in_function,
                                std::vector<uint8_t>*              inout_chunk_ptr) const;
 
         private:
-            uint32_t                                m_asked_height; /* of the back buffer, 0 until the device is made */
+            uint32_t                                m_asked_height; /* the height the application asked for for the back buffer; 0 until the device is created */
             uint32_t                                m_asked_width;
             Stereo::Core::StereoCore*               m_core_ptr;
             Stereo::Core::LogFunc                   m_log_func;
-            Stereo::Core::ResolutionPolicy          m_policy; /* made when the application says how large its image is */
+            Stereo::Core::ResolutionPolicy          m_policy; /* set when the application states how large its image is */
             uint32_t                                m_target_height;
             uint32_t                                m_target_width;
-            uint32_t                                m_real_height; /* of the back buffer, 0 until the device is made */
+            uint32_t                                m_real_height; /* the enlarged height of the back buffer; 0 until the device is created */
             uint32_t                                m_real_width;
             RenderTargetFunc                        m_render_target_func;
-            Interception::Hooks::D3D8::D3DVIEWPORT8 m_viewport;    /* the one set instead of the application's, for the length of a call */
+            Interception::Hooks::D3D8::D3DVIEWPORT8 m_viewport;    /* the viewport set in place of the application's, valid for the duration of one call */
         };
     }
 }

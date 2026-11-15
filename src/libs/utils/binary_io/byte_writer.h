@@ -24,7 +24,7 @@ namespace Utils
 
             const std::vector<uint8_t>& get_bytes() const;
 
-            /* The bytes, without a copy. The writer is empty after it. */
+            /* Returns the bytes without copying them. The writer is empty afterwards. */
             std::vector<uint8_t> take_bytes();
 
             void write_bool  (const bool&        in_value);

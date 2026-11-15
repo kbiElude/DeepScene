@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * The VR player: lists the applications which can be played in VR, and the devices to play them on. It is a window, not a console
- * program; the playback itself is done by another program, which this one starts.
+ * The VR player: lists the applications that can be played in VR and the devices to play them on. It is a window program, not a console
+ * program. The playback itself is done by other programs that this one starts.
  */
 #include "vr_player/app_catalog/catalog_loader.h"
 #include "utils/ui_host/i_imgui_window_host.h"
@@ -55,7 +55,7 @@ std::string VRPlayer::find_catalog()
 
 std::string VRPlayer::find_runtime_directory()
 {
-    /* What VRPlayer starts is in runtime\ of a release, and beside the program in a build folder. */
+    /* The programs that VRPlayer starts are in runtime\ in a release, and next to the executable in a build folder. */
     const std::string directory      = get_directory(get_program_path() );
     const std::string candidate_array[] =
     {
@@ -155,7 +155,7 @@ int WINAPI WinMain(HINSTANCE in_instance,
     catalog_filename = (options.catalog_filename.empty() ) ? VRPlayer::find_catalog()
                                                            : options.catalog_filename;
 
-    /* A catalog which cannot be read is shown in the window, which is more use than nothing. */
+    /* A catalog that cannot be read is shown as an error in the window, which tells the user more than exiting silently. */
     if (catalog_filename.empty() == false)
     {
         const bool is_catalog_loaded = VRPlayer::AppCatalog::CatalogLoader::load(catalog_filename,

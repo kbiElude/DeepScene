@@ -13,26 +13,28 @@ namespace Stereo
 {
     namespace Session
     {
-        /* How the launcher hands a playback over to the DLL: through environment variables of its own process, which the application
-         * inherits. Each playback has its own, so that several can run, and nothing is left in a directory.
+        /* Hands a playback from the launcher to the DLL through environment variables of the launcher's own process. The application
+         * inherits them. Each playback has its own session, so several playbacks can run at once, and nothing is left in a directory.
          */
         class SessionEnvironment
         {
         public:
-            /* What the application exits with when the converter stops it, since what it is given cannot be converted (see the log). */
+            /* The exit code of the application when the converter stops it because it cannot convert what the application does (the log says
+             * why).
+             */
             static uint32_t get_converter_failed_exit_code();
 
-            /* Where the converter in the application writes what it has to say. */
+            /* The file in which the converter inside the application writes its messages. */
             static std::string get_log_path(const std::string& in_session_id);
 
-            /* The DLL's side: false if the process was not started by the launcher. */
+            /* The DLL's side. Reads the session info. Returns false if the process was not started by the launcher. */
             static bool read(SessionInfo* out_info_ptr);
 
-            /* The launcher's side: before the application is started. */
+            /* The launcher's side. Call it before the application is started. Returns false if a variable cannot be set. */
             static bool write(const SessionInfo& in_info);
 
         private:
-            /* False if the variable is not set, or is more than the system allows. */
+            /* Returns false if the variable is not set or its value is longer than the system allows. */
             static bool read_variable(const char*  in_name_ptr,
                                       std::string* out_value_ptr);
 

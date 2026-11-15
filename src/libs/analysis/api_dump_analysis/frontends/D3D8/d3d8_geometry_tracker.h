@@ -2,14 +2,14 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * What is in the vertex and index buffers of a Direct3D 8 device, so that a draw can be told where its vertices are. Only for the
- * analysis of a workload, which has the time: a converter that plays an application as it runs does not keep the contents of buffers.
+ * Tracks the contents of the vertex and index buffers of a Direct3D 8 device, so that the analysis can find the vertices of a draw. It is
+ * used only when analyzing a workload, which has time for this. A converter that plays an application live does not keep buffer contents.
  *
- * A buffer is filled by the data of its unlocks, which are stored with them, at the offset that its lock said. The position of a
- * vertex is the first thing in it, for the vertex formats that have one: in the space of the model (XYZ, and XYZ with blend weights),
- * or in pixels, with the reciprocal of the depth (pre-transformed, XYZRHW); the vertices of a vertex shader, whose declaration is not
- * read, are not sampled. The vertices of a draw from memory of the application (DrawPrimitiveUP and DrawIndexedPrimitiveUP) come with
- * the call, and are sampled the same way.
+ * A buffer is filled with the data of its unlocks, which the dumper stores with the call, at the offset given by the lock. The position
+ * is the first element of a vertex, for the vertex formats that have one: in model space (XYZ, and XYZ with blend weights), or in pixels
+ * with the reciprocal of the depth (pre-transformed, XYZRHW). The vertices of a vertex shader are not sampled, because its declaration is
+ * not read. The vertices of a draw from application memory (DrawPrimitiveUP and DrawIndexedPrimitiveUP) are stored with the call and are
+ * sampled the same way.
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_D3D8_GEOMETRY_TRACKER_H
 #define APIDUMPANALYSIS_FRONTENDS_D3D8_GEOMETRY_TRACKER_H
@@ -44,7 +44,7 @@ namespace Analysis
                     Analysis::APIDumpAnalysis::ResourceId vertex_buffer_id  = Analysis::APIDumpAnalysis::ResourceId::NONE;
                 };
 
-                /* The vertices that a draw from memory of the application uses (the data comes with the call). */
+                /* The vertices that a draw from application memory uses (the data is stored with the call). */
                 struct MemoryRange
                 {
                     uint32_t       fvf             = 0;       /* 0 if the vertices are those of a vertex shader */
@@ -60,10 +60,10 @@ namespace Analysis
 
                 D3D8GeometryTracker();
 
-                /* The buffer is gone. */
+                /* Forgets a buffer that was destroyed. */
                 void forget(const Analysis::APIDumpAnalysis::ResourceId& in_id);
 
-                /* The format is that of D3DFMT_INDEX16 or D3DFMT_INDEX32. */
+                /* The format is D3DFMT_INDEX16 or D3DFMT_INDEX32. */
                 void on_create_index_buffer(const Analysis::APIDumpAnalysis::ResourceId& in_id,
                                             const uint32_t&                              in_n_bytes,
                                             const uint32_t&                              in_format);
@@ -71,29 +71,29 @@ namespace Analysis
                 void on_create_vertex_buffer(const Analysis::APIDumpAnalysis::ResourceId& in_id,
                                              const uint32_t&                              in_n_bytes);
 
-                /* A lock of a buffer: where, and how much (0: all that is left). The data comes with the unlock. */
+                /* Records a lock of a buffer: the offset and the size (0: the rest of the buffer). The data is stored with the unlock. */
                 void on_lock(const Analysis::APIDumpAnalysis::ResourceId& in_id,
                              const uint32_t&                              in_offset,
                              const uint32_t&                              in_n_bytes);
 
-                /* What the application wrote to the locked part of the buffer; none, if it was locked for reading. */
+                /* Records what the application wrote to the locked part of the buffer. Records nothing if the buffer was locked for reading. */
                 void on_unlock(const Analysis::APIDumpAnalysis::ResourceId& in_id,
                                const uint8_t*                               in_data_ptr,
                                const uint64_t&                              in_n_bytes);
 
-                /* Some of the vertices of the draw, in the space of the model; null if they cannot be told. */
+                /* A sample of the vertices of the draw, in model space; null if they cannot be determined. */
                 std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> sample(const DrawRange& in_range);
 
                 /* The bytes of an index: 2 for D3DFMT_INDEX16, 4 for D3DFMT_INDEX32. */
                 static uint32_t get_index_stride(const uint32_t& in_format);
 
-                /* Whether the vertex format has a position that is sampled: in the space of the model, or in pixels (see is_pre_transformed_fvf). */
+                /* Returns true if the vertex format has a position that is sampled, either in model space or in pixels (see is_pre_transformed_fvf). */
                 static bool is_position_fvf(const uint32_t& in_fvf);
 
-                /* Whether the positions are in pixels, with the reciprocal of the depth (XYZRHW): the vertices are not moved by the matrices. */
+                /* Returns true if the positions are in pixels with the reciprocal of the depth (XYZRHW). The matrices do not transform such vertices. */
                 static bool is_pre_transformed_fvf(const uint32_t& in_fvf);
 
-                /* Some of the vertices of a draw from memory, as sample() tells them of a draw from buffers; null if they cannot be told. */
+                /* A sample of the vertices of a draw from application memory, like sample() does for a draw from buffers; null if they cannot be determined. */
                 static std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> sample_memory(const MemoryRange& in_range);
 
             private:
@@ -106,7 +106,7 @@ namespace Analysis
                     uint64_t             version      = 0;     /* changes with each write     */
                 };
 
-                /* What a sample is of: the buffers (and the version of what is in them), and the part of them that is drawn. */
+                /* The key of a sample: the buffers, the version of their contents, and the part of them that is drawn. */
                 typedef std::array<uint64_t, 9> SampleKey;
 
 

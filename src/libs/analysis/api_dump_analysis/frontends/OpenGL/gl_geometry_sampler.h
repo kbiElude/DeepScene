@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Which of the vertices of a draw are a sample of its geometry: a few, spread evenly over the draw, so that the sample says what the draw does
- * from its first vertex to its last.
+ * Chooses which vertices of a draw form the sample of its geometry: a few vertices, spread evenly over the draw, so that the sample describes
+ * the draw from its first vertex to its last.
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_GEOMETRY_SAMPLER_H
 #define APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_GEOMETRY_SAMPLER_H
@@ -23,14 +23,14 @@ namespace Analysis
             class GLGeometrySampler
             {
             public:
-                /* The number of vertices of a draw that are sampled (all of them if they are not many). */
+                /* The number of vertices of a draw that are sampled (all of them if the draw has few). */
                 static size_t get_n_samples(const size_t& in_n_vertices);
 
-                /* The vertex of the draw that the sample of the given number is. */
+                /* Returns the index of the draw vertex that is the sample with the given number. */
                 static size_t get_sample_vertex(const size_t& in_n_sample,
                                                 const size_t& in_n_vertices);
 
-                /* The sample of a draw whose positions are all known. */
+                /* Builds the sample of a draw whose positions are all known. */
                 static std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> make_sample(const std::vector<std::array<float, 3> >& in_position_vec);
 
             private:

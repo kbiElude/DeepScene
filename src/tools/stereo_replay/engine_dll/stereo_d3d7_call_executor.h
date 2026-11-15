@@ -15,8 +15,9 @@ namespace Stereo
     {
         namespace EngineDLL
         {
-            /* Replays the Direct3D 7 calls for two eyes: an object which each eye has a copy of (a render target, a texture) is made twice, once
-             * for each eye, by the call that makes it and by the calls that set it up, and the calls of an eye use the copy of that eye.
+            /* Replays the Direct3D 7 calls for two eyes. An object that has a copy for each eye (a render target or a texture) is
+             * created twice, once per eye: the call that creates it and the calls that set it up run again for the right eye. The calls
+             * of an eye use the copy of that eye.
              */
             class StereoD3D7CallExecutor : public ::Replay::ReplayEngineDLL::D3D7CallExecutor,
                                            public IEyeExecutor
@@ -40,17 +41,17 @@ namespace Stereo
                                            void*                                        in_live_object_ptr) override;
 
             private:
-                /* The right eye's copy of the object, if the object is one that each eye has a copy of; nullptr if not. */
+                /* Returns the right eye's copy of the object if the object has a copy for each eye. Returns nullptr otherwise. */
                 void* find_right_twin(void* in_left_object_ptr) const;
 
-                /* True if an object of the call has a copy for each eye: a call which sets such an object up is made for both. */
+                /* True if an object used by the call has a copy for each eye. A call that sets up such an object runs for both eyes. */
                 bool involves_per_eye_object() const;
 
                 Analysis::Recipe::Eye  m_eye;
-                bool                   m_is_building_twin; /* the call is made for the right eye's copies */
-                bool                   m_needs_twin;       /* the call made an object which each eye has a copy of */
+                bool                   m_is_building_twin; /* the call is run for the right eye's copies */
+                bool                   m_needs_twin;       /* the call created an object that has a copy per eye */
                 PerEyePredicate        m_per_eye_predicate;
-                std::map<void*, void*> m_right_twin_map;   /* the copy of each eye's object: by the left one */
+                std::map<void*, void*> m_right_twin_map;   /* the right eye's copy, keyed by the left eye's object */
             };
         }
     }

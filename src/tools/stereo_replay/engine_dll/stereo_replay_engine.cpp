@@ -31,7 +31,7 @@ Stereo::Replay::EngineDLL::StereoReplayEngine::StereoReplayEngine()
                                                     in_dumped_address);
     };
 
-    /* Asked when an object is made, whether each eye has a copy of it. */
+    /* The executor asks, when it creates an object, whether the object has a copy for each eye. */
     d3d7_executor_ptr->set_per_eye_predicate(is_per_eye_func);
 
     m_engine.add_call_executor(Capture::APIDumpLoader::APIGroup::D3D7,
@@ -45,7 +45,9 @@ Stereo::Replay::EngineDLL::StereoReplayEngine::StereoReplayEngine()
                                                     in_dumped_name);
     };
 
-    /* Asked when a texture is changed, whether each eye has a copy of it: its name is that of the program. */
+    /* The executor asks, when a texture is changed, whether the texture has a copy for each eye. The texture is identified by the
+     * program's name for it.
+     */
     gl_executor_ptr->set_per_eye_predicate(is_per_eye_texture_func);
 
     m_engine.add_call_executor(Capture::APIDumpLoader::APIGroup::GL,
@@ -86,7 +88,7 @@ Stereo::Replay::EngineDLL::PlaybackStatus Stereo::Replay::EngineDLL::StereoRepla
 bool Stereo::Replay::EngineDLL::StereoReplayEngine::load(const char*  in_filename_ptr,
                                                          std::string* out_error_ptr)
 {
-    /* What was known of another workload is not of this one. */
+    /* Dependencies and a seek target from another workload do not apply to this one. */
     m_has_dependencies = false;
 
     m_has_seek_target = false;
@@ -122,11 +124,14 @@ void Stereo::Replay::EngineDLL::StereoReplayEngine::play()
 
 void Stereo::Replay::EngineDLL::StereoReplayEngine::play_to_frame(const uint32_t& in_n_frame)
 {
-    /* What the frames before it make is what it and the frames after it read: the rest may be left out, if the dependencies are known. */
+    /* The target frame and the frames after it read what the earlier frames produce. If the dependencies are known, the earlier
+     * frames whose output nothing reads can be left out.
+     */
     if (m_has_dependencies)
     {
-        /* The reader decodes segments ahead of the replay with the chunks of the dead frames left out, for the slice that was set when it was started. A
-         * new slice while the replay has not reached the last target needs the chunks that the old one left out, so the replay starts over.
+        /* The reader decodes segments ahead of the replay and skips the chunks of the dead frames of the slice that was set when
+         * the reader started. If the replay has not reached the previous target, a new slice may need chunks that the old slice
+         * skipped, so the replay starts over.
          */
         bool is_last_seek_unfinished = false;
 
@@ -140,7 +145,7 @@ void Stereo::Replay::EngineDLL::StereoReplayEngine::play_to_frame(const uint32_t
         m_slice_skipper.set_slice(Analysis::APIDumpDependencies::FrameSlicePlanner::plan(m_dependencies,
                                                                                          in_n_frame) );
 
-        /* Before the reset, since the replay thread starts the reader again as soon as it is asked to. */
+        /* Set these before the reset, because the replay thread restarts the reader as soon as the reset is requested. */
         m_engine.set_call_kept_func_factory(m_slice_skipper.get_call_kept_func_factory() );
         m_engine.set_chunk_wanted_func     (m_slice_skipper.get_chunk_wanted_func() );
 
@@ -153,7 +158,7 @@ void Stereo::Replay::EngineDLL::StereoReplayEngine::play_to_frame(const uint32_t
         m_seek_target_frame = in_n_frame;
     }
 
-    /* The frames up to the one asked for are hurried through; it is shown, and the replay pauses there. */
+    /* The frames before the target are hurried through. The target frame is shown and the replay pauses there. */
     m_hurry.set_until_frame(in_n_frame);
 
     m_engine.play_to_frame(in_n_frame);

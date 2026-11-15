@@ -11,7 +11,7 @@ static_assert(sizeof(SRWLOCK) == sizeof(void*),
 Utils::Parallel::SrwMutex::SrwMutex()
     :m_lock_ptr(nullptr)
 {
-    /* All zero is how an SRWLOCK starts out (SRWLOCK_INIT). */
+    /* An SRWLOCK is initialized to all zero (SRWLOCK_INIT). */
 }
 
 void Utils::Parallel::SrwMutex::lock()

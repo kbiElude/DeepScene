@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Keeps every access that the model builder tells, and where the frames end, for the analysis of the dependencies to go through when the
- * workload is read. Accesses are small, and there are a few for each draw.
+ * Stores every access that the model builder reports, and where each frame ends. DependencyAnalyzer reads the log after the whole workload has
+ * been processed. An access is small and a draw produces only a few, so keeping all of them is cheap.
  */
 #ifndef APIDUMPDEPENDENCIES_ACCESS_LOG_H
 #define APIDUMPDEPENDENCIES_ACCESS_LOG_H
@@ -22,15 +22,15 @@ namespace Analysis
         public:
             AccessLog();
 
-            /* The accesses, in the order they were made in. */
+            /* The accesses, in the order they were made. */
             const std::vector<Analysis::APIDumpAnalysis::AccessEvent>& get_event_vec() const;
 
-            /* For each frame which ended, the number of accesses made up to its end: the accesses of frame N are those from the end of frame N - 1
-             * to this one. Accesses which follow the last of them are of a frame which did not end.
+            /* For each frame that ended, the number of accesses made up to the end of that frame. The accesses of frame N are those from index
+             * count[N - 1] (0 for frame 0) up to count[N]. Accesses after the last count belong to a frame that did not end.
              */
             const std::vector<uint64_t>& get_frame_end_event_count_vec() const;
 
-            /* The first and the last call of each frame which ended (by the numbers the model builder was told). */
+            /* The first and the last call of each frame that ended, as numbered by the model builder. */
             const std::vector<FrameCallRange>& get_frame_call_range_vec() const;
 
             void on_access     (const Analysis::APIDumpAnalysis::AccessEvent& in_event) override;

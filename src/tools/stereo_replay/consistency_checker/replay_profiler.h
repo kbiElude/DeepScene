@@ -2,9 +2,10 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Where the time of a replay goes: the time that each call takes, summed by function and by frame. It sees the calls through the interception of the
- * engine: the time between the engine asking whether to execute a call and its saying that it was replayed is the call's (a call that is skipped has
- * none). Frames are the ones that the engine counts, and a frame's time is that of its calls, without any waiting for the pace of the dumped program.
+ * Shows where the time of a replay goes: the time that each call takes, summed by function and by frame. It observes the calls through the
+ * call interception of the engine. The time between the engine asking whether to execute a call and reporting that it was replayed is the
+ * time of the call; a skipped call has none. Frames are the ones that the engine counts. The time of a frame is the time of its calls,
+ * without any waiting for the pace of the dumped program.
  */
 #ifndef STEREO_REPLAY_CONSISTENCYCHECKER_REPLAY_PROFILER_H
 #define STEREO_REPLAY_CONSISTENCYCHECKER_REPLAY_PROFILER_H
@@ -25,37 +26,37 @@ namespace Stereo
             class ReplayProfiler : public ::Replay::ReplayEngineDLL::ICallInterceptor
             {
             public:
-                /* The time in nanoseconds, from any starting point. */
+                /* A timestamp in nanoseconds. Only differences between timestamps are meaningful. */
                 typedef std::function<uint64_t()> ClockFunc;
 
-                /* What the calls of one function took. */
+                /* The time spent in the calls of one function. */
                 struct FunctionEntry
                 {
                     APIInterceptor::APIFunction function            = APIInterceptor::APIFUNCTION_UNKNOWN;
-                    uint64_t                    max_n_nanoseconds   = 0; /* of a call */
+                    uint64_t                    max_n_nanoseconds   = 0; /* the longest single call */
                     uint64_t                    n_calls             = 0;
                     uint64_t                    total_n_nanoseconds = 0;
                 };
 
-                /* What the calls of one frame took. */
+                /* The time spent in the calls of one frame. */
                 struct FrameEntry
                 {
                     uint32_t                    n_frame                 = 0;
                     uint64_t                    n_calls                 = 0;
                     APIInterceptor::APIFunction slowest_function        = APIInterceptor::APIFUNCTION_UNKNOWN;
-                    uint64_t                    slowest_n_nanoseconds   = 0; /* a call */
+                    uint64_t                    slowest_n_nanoseconds   = 0; /* the longest single call */
                     uint64_t                    total_n_nanoseconds     = 0;
                 };
 
-                /* The clock is the steady clock of the system unless another is given. */
+                /* The default clock is the steady clock of the system; another clock can be passed in. */
                 explicit ReplayProfiler(const ClockFunc& in_clock_func = ClockFunc());
 
-                /* What was seen is read when the replay is over: the engine's thread is the one that writes it. */
+                /* Read the results only after the replay is over. The thread of the engine writes them during the replay. */
 
                 /* The frames that took longest, longest first. */
                 std::vector<FrameEntry> get_slowest_frames(const size_t& in_n_frames) const;
 
-                /* The functions whose calls took longest in all, longest first. */
+                /* The functions with the largest total call time, longest first. */
                 std::vector<FunctionEntry> get_slowest_functions(const size_t& in_n_functions) const;
 
                 uint64_t get_n_calls            () const;

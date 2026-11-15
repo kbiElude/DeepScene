@@ -16,7 +16,7 @@ uint32_t Analysis::APIDumpAnalysis::Frontends::GLTextureFormatMapper::get_n_byte
     struct TypeRow
     {
         uint32_t n_bytes;
-        bool     is_packed; /* the channels are in a word of the size: that is all of the texel */
+        bool     is_packed; /* the channels are packed into one word of this size, and the word is the whole texel */
         uint32_t type;
     };
 
@@ -90,7 +90,7 @@ Utils::Graphics::TextureFormat Analysis::APIDumpAnalysis::Frontends::GLTextureFo
         Format   texture_format;
     };
 
-    /* The unsized ones are what the drivers make of them. */
+    /* An unsized internal format gets the format that drivers typically choose for it. */
     static const InternalFormatRow INTERNAL_FORMAT_ROW_ARRAY[] =
     {
         {0x1902, Format::D24_UNORM_X8},          /* GL_DEPTH_COMPONENT              */
@@ -153,7 +153,7 @@ uint32_t Analysis::APIDumpAnalysis::Frontends::GLTextureFormatMapper::get_unpack
 
     if (in_n_bytes_per_texel != 0)
     {
-        /* A row starts at a multiple of the alignment: the alignment is a power of two. */
+        /* A row starts at a multiple of the alignment. The alignment is a power of two. */
         result = (in_alignment > 1) ? ((row_n_bytes + in_alignment - 1) / in_alignment) * in_alignment
                                     : row_n_bytes;
     }

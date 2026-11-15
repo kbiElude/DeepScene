@@ -2,13 +2,13 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Where the vertices of a Direct3D 7 draw are, so that the draw can be told by them. Only for the analysis of a workload, which has
- * the time: a converter that plays an application as it runs does not keep the contents of buffers.
+ * Finds the vertices of a Direct3D 7 draw so that the analysis can measure the draw. It is used only when analyzing a workload, which
+ * has time for this. A converter that plays an application live does not keep buffer contents.
  *
- * The vertices of a draw are in the application's memory (the dumper stored them with the call), in the arrays of a strided draw
- * (stored with it too), or in a vertex buffer, whose contents are the data of its unlocks. A vertex buffer is locked whole, so what an
- * unlock stores starts at the first byte. The position of a vertex is the first thing in it, for the vertex formats that have one in the
- * space of the model (XYZ, and XYZ with blend weights); pre-transformed vertices (XYZRHW) are not sampled.
+ * The vertices of a draw are in one of three places: the application's memory (the dumper stored them with the call), the arrays of a
+ * strided draw (also stored with the call), or a vertex buffer, whose contents are the data of its unlocks. A vertex buffer is always
+ * locked as a whole, so the data stored by an unlock starts at the first byte. The position is the first element of a vertex, for the
+ * vertex formats that have a position in model space (XYZ, and XYZ with blend weights). Pre-transformed vertices (XYZRHW) are not sampled here.
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_D3D7_GEOMETRY_TRACKER_H
 #define APIDUMPANALYSIS_FRONTENDS_D3D7_GEOMETRY_TRACKER_H
@@ -29,7 +29,7 @@ namespace Analysis
             class D3D7GeometryTracker
             {
             public:
-                /* The vertices that a draw uses. The positions are the first three floats of each vertex, or four if it is pre-transformed. */
+                /* The vertices that a draw uses. The position is the first three floats of each vertex, or four if the vertex is pre-transformed. */
                 struct DrawRange
                 {
                     uint32_t        base_vertex_index = 0;       /* added to the indices                                     */
@@ -43,21 +43,21 @@ namespace Analysis
                     size_t          vertex_n_bytes    = 0;
                 };
 
-                /* The vertex buffer is gone. */
+                /* Forgets a vertex buffer that was destroyed. */
                 void forget(const Analysis::APIDumpAnalysis::ResourceId& in_id);
 
-                /* The contents of a vertex buffer; nullptr if it was never told. */
+                /* The contents of a vertex buffer; nullptr if none were recorded. */
                 const std::vector<uint8_t>* get_vertex_buffer_bytes_ptr(const Analysis::APIDumpAnalysis::ResourceId& in_id) const;
 
                 void on_create_vertex_buffer(const Analysis::APIDumpAnalysis::ResourceId& in_id,
                                              const uint64_t&                              in_n_bytes);
 
-                /* What the application wrote to the buffer; nothing, if it was locked for reading. */
+                /* Records what the application wrote to the buffer. Records nothing if the buffer was locked for reading. */
                 void on_unlock(const Analysis::APIDumpAnalysis::ResourceId& in_id,
                                const uint8_t*                               in_data_ptr,
                                const uint64_t&                              in_n_bytes);
 
-                /* Some of the vertices of the draw, in the space of the model; null if they cannot be told. */
+                /* A sample of the vertices of the draw, in model space; null if they cannot be determined. */
                 static std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> sample(const DrawRange& in_range);
 
             private:

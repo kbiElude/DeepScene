@@ -58,7 +58,7 @@ void Stereo::ConverterDLL::D3D7SurfaceTwins::handle_add_attached_surface(const A
     void* const attached_twin_ptr = get_twin_ptr(const_cast<void*>(in_arguments_ptr[ATTACHED_ARGUMENT].get_ptr() ) );
     void* const surface_twin_ptr  = get_twin_ptr(const_cast<void*>(in_arguments_ptr[SURFACE_ARGUMENT].get_ptr () ) );
 
-    /* What is attached to a surface is attached to its twin, if both have one. */
+    /* Whatever is attached to a surface is also attached to its twin, if both have twins. */
     if (attached_twin_ptr != nullptr &&
         surface_twin_ptr  != nullptr)
     {
@@ -83,13 +83,13 @@ void Stereo::ConverterDLL::D3D7SurfaceTwins::handle_create_surface(const APIInte
 
         m_direct_draw_ptr = const_cast<void*>(in_arguments_ptr[DIRECT_DRAW_ARGUMENT].get_ptr() );
 
-        /* The description the application gave is a structure, which the arguments hold as a chunk: the surface knows what it is. */
+        /* The description that the application passed is a structure; the arguments hold it as a chunk. It tells which kind of surface is created. */
         if (get_caps(surface_ptr,
                     &caps) )
         {
             if ( (caps & Interception::Core::D3D7Utils::DDSCAPS_PRIMARYSURFACE) != 0)
             {
-                /* The surface that is shown: it has no twin, but its back buffer will. */
+                /* The shown surface has no twin, but its back buffer will. */
                 m_primary_ptr = surface_ptr;
             }
             else
@@ -112,7 +112,7 @@ void Stereo::ConverterDLL::D3D7SurfaceTwins::handle_get_attached_surface(const A
     uint32_t    caps         = 0;
     void* const surface_ptr  = const_cast<void*>(in_arguments_ptr[SURFACE_ARGUMENT].get_ptr() );
 
-    /* What the application asked for is a structure, which the arguments hold as a chunk: the surface that it got knows what it is. */
+    /* The description that the application passed is a structure; the arguments hold it as a chunk. It tells which kind of surface the application got. */
     if (attached_ptr == nullptr)
     {
         goto end;
@@ -137,10 +137,10 @@ void Stereo::ConverterDLL::D3D7SurfaceTwins::handle_get_attached_surface(const A
         }
     }
 
-    /* What the primary surface gives as its back buffer: the chain of the application, or the surface of its own that a window has. */
+    /* The back buffer that the primary surface returns is either the application's own chain or, in windowed mode, the converter's surface. */
     if (surface_ptr == m_primary_ptr)
     {
-        /* The back buffer of the chain that the primary surface flips with: what the application renders to. */
+        /* The back buffer of the chain that the primary surface flips with. It is the surface the application renders to. */
         make_twin_ptr(attached_ptr,
                       true); /* in_is_back_buffer */
 
@@ -151,7 +151,7 @@ void Stereo::ConverterDLL::D3D7SurfaceTwins::handle_get_attached_surface(const A
     {
         void* const surface_twin_ptr = get_twin_ptr(surface_ptr);
 
-        /* The depth buffer that is attached to a surface which has a twin is attached to the twin as well. */
+        /* A depth buffer attached to a surface that has a twin is also attached to the twin. */
         if (surface_twin_ptr != nullptr)
         {
             Interception::Hooks::D3D7::IDirectDrawSurface7* attached_twin_ptr = nullptr;
@@ -169,7 +169,7 @@ void Stereo::ConverterDLL::D3D7SurfaceTwins::handle_get_attached_surface(const A
 
                 m_twin_map[attached_ptr] = attached_twin_ptr;
 
-                /* The twin holds on to what is attached to it. */
+                /* GetAttachedSurface returned a new reference. Release it, because the twin keeps the attachment itself. */
                 APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_RELEASE>(attached_vtable,
                                                                                                            Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_RELEASE)(attached_twin_ptr);
             }
@@ -214,7 +214,7 @@ void Stereo::ConverterDLL::D3D7SurfaceTwins::handle_release(const APIInterceptor
 
                 m_twin_map.erase(twin_iterator);
 
-                /* The reference of the twin that this made is the one that is let go of: what is attached to a twin goes with it. */
+                /* Releases the reference that this class holds on the twin. Surfaces attached to the twin are released along with it. */
                 APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_RELEASE>(vtable,
                                                                                                            Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_RELEASE)(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(twin_ptr) );
             }
@@ -263,7 +263,7 @@ bool Stereo::ConverterDLL::D3D7SurfaceTwins::is_back_buffer(void* in_surface_ptr
 void* Stereo::ConverterDLL::D3D7SurfaceTwins::make_twin_ptr(void*       in_surface_ptr,
                                                             const bool& in_is_back_buffer)
 {
-    /* What makes a surface a part of a chain, or the surface that is shown, is not for a copy to have. */
+    /* Capabilities that make a surface part of a flip chain or the shown surface. The twin must not have them. */
     constexpr uint32_t CAPS_NOT_FOR_TWIN = Interception::Core::D3D7Utils::DDSCAPS_BACKBUFFER     |
                                            Interception::Core::D3D7Utils::DDSCAPS_COMPLEX        |
                                            Interception::Core::D3D7Utils::DDSCAPS_FLIP           |
@@ -305,7 +305,7 @@ void* Stereo::ConverterDLL::D3D7SurfaceTwins::make_twin_ptr(void*       in_surfa
     description.dwFlags          &= FLAGS_FOR_TWIN;
     description.ddsCaps.dwCaps   &= ~CAPS_NOT_FOR_TWIN;
 
-    /* A back buffer is a plain surface that is rendered to, which is what a copy of it is. */
+    /* A back buffer is an ordinary render-target surface, so its twin is created as one. */
     if (in_is_back_buffer)
     {
         description.ddsCaps.dwCaps |= Interception::Core::D3D7Utils::DDSCAPS_3DDEVICE |
@@ -343,7 +343,7 @@ void Stereo::ConverterDLL::D3D7SurfaceTwins::on_post(const APIInterceptor::APIFu
     constexpr uint32_t N_ARGUMENTS_GET_ATTACHED = 3;
     constexpr uint32_t N_ARGUMENTS_RELEASE      = 1;
 
-    /* A call that failed made nothing; a release which does not is told by what it returns. */
+    /* A failed call changed nothing, so it is skipped. Release is always handled, because its return value is a reference count, not a success code. */
     const bool did_succeed  = has_succeeded(in_returned_value_ptr);
     const bool is_to_handle = (did_succeed                                                                  ||
                                in_function == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_RELEASE);

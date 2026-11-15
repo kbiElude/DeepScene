@@ -9,11 +9,11 @@ namespace Utils
 {
     namespace Cpu
     {
-        /* What the processor that the program runs on can do, for the code that is built for more than what every processor does. */
+        /* Reports which optional instruction sets the processor supports, for code that is built to use them. */
         class CpuFeatures
         {
         public:
-            /* True if the processor has AVX2 and the system saves its registers when it switches threads. It is found out once. */
+            /* True if the processor supports AVX2 and the operating system saves the AVX registers when it switches threads. The result is detected once. */
             static bool is_avx2_supported();
         };
     }

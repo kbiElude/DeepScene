@@ -58,6 +58,6 @@ uint32_t Analysis::APIDumpAnalysis::StructureInterner<Structure>::intern(const S
     return result;
 }
 
-/* The structures which the analysis interns. */
+/* The structure types that the analysis interns. */
 template class Analysis::APIDumpAnalysis::StructureInterner<Analysis::APIDumpAnalysis::FrameShape>;
 template class Analysis::APIDumpAnalysis::StructureInterner<Analysis::APIDumpAnalysis::PassStructure>;

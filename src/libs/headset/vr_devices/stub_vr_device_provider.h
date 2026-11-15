@@ -11,7 +11,7 @@ namespace Headset
 {
     namespace VRDevices
     {
-        /* Made-up devices, always the same: two which can be used, and one which is not connected, so that the list shows both. */
+        /* Simulated devices, always the same: two that can be used and one that is not connected, so that the list shows both cases. */
         class StubVrDeviceProvider : public IVrDeviceProvider
         {
         public:

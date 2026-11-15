@@ -18,7 +18,7 @@ Stereo::Replay::EngineDLL::FramePacer::FramePacer()
 
 uint64_t Stereo::Replay::EngineDLL::FramePacer::get_wall_frequency()
 {
-    /* It does not change while the system runs. */
+    /* The frequency is fixed while the system runs, so it is queried once. */
     static const uint64_t result = []
     {
         LARGE_INTEGER frequency;
@@ -54,7 +54,7 @@ void Stereo::Replay::EngineDLL::FramePacer::set_speed(const double& in_speed)
 void Stereo::Replay::EngineDLL::FramePacer::wait_for_frame(const uint64_t& in_timestamp_qpc,
                                                            const uint64_t& in_qpc_frequency)
 {
-    /* Sleep() is exact to a millisecond at best; the rest of the wait is spent spinning. */
+    /* Sleep() is accurate to a millisecond at best, so the last SPIN_SECONDS of a wait are spent spinning. */
     constexpr double GAP_AVERAGE_FACTOR    = 4.0;
     constexpr double GAP_AVERAGE_WEIGHT    = 0.1;
     constexpr double MAX_FRAME_GAP_SECONDS = 0.04;
@@ -90,8 +90,8 @@ void Stereo::Replay::EngineDLL::FramePacer::wait_for_frame(const uint64_t& in_ti
             gap_seconds = longest_gap_seconds;
         }
 
-        /* The average of the gaps as they are kept, the ones which were cut too: a first gap which was short (the start of a workload has some) would
-         * otherwise hold every longer one down to a few times its own length for good, since a gap which is cut never raised the average.
+        /* The average includes gaps that were cut. If it did not, a short first gap (workloads start with some) would hold the limit
+         * at a few times its length for good, because a gap that is cut never raises the average.
          */
         m_average_gap_seconds = (m_average_gap_seconds > 0.0) ? m_average_gap_seconds * (1.0 - GAP_AVERAGE_WEIGHT) + gap_seconds * GAP_AVERAGE_WEIGHT
                                                               : gap_seconds;

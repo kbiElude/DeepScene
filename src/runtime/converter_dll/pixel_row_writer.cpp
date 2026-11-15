@@ -23,7 +23,7 @@ bool Stereo::ConverterDLL::PixelRowWriter::write_eye(const uint32_t&       in_fo
     const uint8_t* source_ptr   = in_source_ptr;
     uint32_t       source_pitch = in_source_pitch;
 
-    /* The formats of 32 bits are as they are wanted; the others are converted first. */
+    /* The 32-bit formats that already have the wanted layout are copied as they are. All other formats are converted first. */
     if (in_format != Interception::Hooks::D3D8::D3DFMT_A8R8G8B8 &&
         in_format != Interception::Hooks::D3D8::D3DFMT_X8R8G8B8)
     {

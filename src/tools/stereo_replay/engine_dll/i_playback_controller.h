@@ -14,18 +14,18 @@ namespace Stereo
     {
         namespace EngineDLL
         {
-            /* Controls a replay from any thread (see the controller of the replay engine of the interceptor for play, pause, reset and the
-             * status), and says how far apart the eyes are and how fast the replay goes.
+            /* Controls a replay from any thread, and sets the distance between the eyes and the replay speed. Play, pause, reset and
+             * the status come from ::Replay::ReplayEngineDLL::IPlaybackController.
              */
             class IPlaybackController : public ::Replay::ReplayEngineDLL::IPlaybackController
             {
             public:
-                /* The distance between the eyes, in the units of the camera of the application. */
+                /* The distance between the eyes, in the units of the application's camera. */
                 virtual float get_eye_separation() const = 0;
 
-                /* Changes the distance between the eyes of the frames that are rendered for two eyes; 0 renders the same image for both.
-                 * Takes effect from the next frame, and is not part of any recipe: a recipe says in which direction the eyes are moved
-                 * apart (an eye offset), and this says how far. It starts as 0.
+                /* Sets the distance between the eyes for frames that are rendered for two eyes; 0 renders the same image for both.
+                 * Takes effect from the next frame. A recipe does not contain the separation. It says in which direction the eyes move
+                 * apart (an eye offset), and this value says how far. The initial value is 0.
                  */
                 virtual void set_eye_separation(const float& in_eye_separation) = 0;
 

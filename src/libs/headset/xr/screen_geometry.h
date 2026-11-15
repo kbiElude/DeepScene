@@ -9,7 +9,7 @@ namespace Headset
 {
     namespace XR
     {
-        /* How far an eye sees from the direction it looks in, in radians: down and left are negative, as OpenXR has them. */
+        /* How far an eye sees from the direction it looks in, in radians. Down and left are negative, as in OpenXR. */
         struct FieldOfView
         {
             float angle_down  = 0.0f;
@@ -18,11 +18,11 @@ namespace Headset
             float angle_up    = 0.0f;
         };
 
-        /* A part of a cylinder around the viewer, which is seen from inside: the screen that curves with the viewer's view. */
+        /* A section of a cylinder around the viewer, seen from inside. It is a screen that curves around the viewer. */
         struct CylinderScreen
         {
-            float aspect_ratio  = 1.0f; /* of the part of the surface: its width along the curve over its height */
-            float central_angle = 0.0f; /* how much of the way around it spans, in radians                      */
+            float aspect_ratio  = 1.0f; /* of the section: its width along the curve divided by its height         */
+            float central_angle = 0.0f; /* the angle that the section spans around the cylinder, in radians        */
             float radius        = 1.0f;
         };
 
@@ -33,14 +33,15 @@ namespace Headset
             float width  = 0.0f;
         };
 
-        /* Where the screen of a headset is, and how large: as large as the view lets it be, whichever headset it is. The head is where
-         * the pose of the view says; the screen is in front of it, and does not follow it.
+        /* Decides where the screen of a headset is and how large it is: as large as the view allows, whichever headset it is. The head is
+         * where the pose of the view says. The screen is in front of the head and does not follow it.
          */
         class ScreenGeometry
         {
         public:
-            /* The screen which fills as much of the field of view as an image of the aspect ratio (its width over its height) can, which
-             * is as much of the width of it as there is, or as much of the height. The scale is of what is left (1 fills it).
+            /* Both functions return the screen that fills as much of the field of view as an image with the given aspect ratio (width divided by height)
+             * can. The screen fills either all of the available width or all of the available height, whichever limits it. in_scale scales
+             * the result relative to what is available (1 fills it).
              */
             static CylinderScreen fit_cylinder(const FieldOfView& in_field_of_view,
                                                const float&       in_aspect_ratio,
@@ -51,14 +52,14 @@ namespace Headset
                                                const float&       in_distance,
                                                const float&       in_scale);
 
-            /* The part of the view which the screen can fill: where both eyes see, and as far to each side as to the other (a screen is
-             * in the middle of the view).
+            /* Returns the part of the view that the screen can fill: where both eyes see, and as far to one side as to the other (the
+             * screen is in the middle of the view).
              */
             static FieldOfView get_common_field_of_view(const FieldOfView& in_first,
                                                         const FieldOfView& in_second);
 
-            /* Which way an orientation looks, as an angle about the vertical axis, with 0 looking down the -Z axis and turning to -X as it
-             * grows (the pitch and the roll are left out).
+            /* Returns the direction that an orientation faces, as an angle about the vertical axis. 0 looks down the -Z axis, and the angle
+             * grows as the direction turns toward -X. Pitch and roll are ignored.
              */
             static float get_yaw(const float& in_x,
                                  const float& in_y,

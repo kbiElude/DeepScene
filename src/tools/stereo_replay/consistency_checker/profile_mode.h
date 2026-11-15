@@ -16,7 +16,7 @@ namespace Stereo
     {
         namespace ConsistencyChecker
         {
-            /* Replays the frames of the options once (with the recipe, if there is one) and says where the time of the calls went: the functions that took
+            /* Replays the frames of the options once (with the recipe, if there is one) and reports where the call time went: the functions that took
              * longest, and the frames.
              */
             bool take_profile(const Options& in_options,

@@ -69,7 +69,9 @@ void Stereo::Replay::EngineDLL::GLDisplayListTracker::on_call(const Capture::API
         {
             if (m_is_recording)
             {
-                /* A list that is not defined when the call is read may be anything when it is made: it is taken for the worst, and for one that sets state. */
+                /* A list that is not defined when this call is recorded may get any content before it runs. Assume the worst: the list
+                 * is eye-dependent and sets state.
+                 */
                 GLListEyeDependence called_dependence = GLListEyeDependence::EYE_DEPENDENT;
                 bool                called_sets_state = true;
 
@@ -91,7 +93,7 @@ void Stereo::Replay::EngineDLL::GLDisplayListTracker::on_call(const Capture::API
 
         case APIInterceptor::APIFUNCTION_GL_GLCALLLISTS:
         {
-            /* The lists are named by an array that is not looked at here. */
+            /* glCallLists takes the list names from an array that is not read here. Assume the worst. */
             if (m_is_recording)
             {
                 m_recording_effects.dependence = GLListEyeDependence::EYE_DEPENDENT;
@@ -153,7 +155,9 @@ void Stereo::Replay::EngineDLL::GLDisplayListTracker::on_call(const Capture::API
                 m_recording_effects.dependence = GLListClassifier::combine(m_recording_effects.dependence,
                                                                            call_dependence);
 
-                /* What is not content is state, whatever it is: a state, a texture coordinate that the vertices that follow have, an object. */
+                /* Every call that is not content counts as setting state: a state value, a texture coordinate that later vertices
+                 * inherit, or an object.
+                 */
                 if (SliceSkipper::is_content_call(in_call.func) == false)
                 {
                     m_recording_effects.sets_state = true;

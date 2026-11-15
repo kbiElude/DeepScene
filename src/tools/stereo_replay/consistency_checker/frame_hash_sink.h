@@ -22,7 +22,7 @@ namespace Stereo
             class FrameHashSink : public Stereo::Replay::EngineDLL::IFrameImageSink
             {
             public:
-                /* A frame, and the execution of it that an image is of. */
+                /* Identifies an image: the frame and the execution of it that the image is of. */
                 typedef std::pair<uint32_t, uint32_t> ImageKey;
 
 
@@ -37,7 +37,8 @@ namespace Stereo
                                     const uint32_t&                              in_n_execution,
                                     const Stereo::Replay::EngineDLL::FrameImage& in_image) override;
 
-                /* Only the images of these frames are kept (the hashes are of all of them); with none, the images of all, if the sink keeps images. */
+                /* Only the images of these frames are kept; the hashes are kept for all frames. If the list is empty, the images of all frames are kept,
+                 * provided the sink keeps images. */
                 void set_frames_to_keep(const std::set<uint32_t>& in_frame_set);
 
                 bool wants_frame_image(const uint32_t& in_n_frame,

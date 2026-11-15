@@ -2,13 +2,13 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * The container of the files that the analysis makes (.passes, .deps, .textures): a header which each file has of its own, and then sections, each a
- * Zstandard frame of the bytes of a part of the file, with its tag, its version, its size and the hash of its bytes in front of it:
+ * The container of the files that the analysis writes (.passes, .deps, .textures): a header that is specific to each file, followed by
+ * sections. A section is a Zstandard frame with the bytes of one part of the file, preceded by its tag, its version, its size and the hash of its bytes:
  *
  *   section := SectionHeader stored_bytes
  *
- * A reader skips the sections it does not know; the ones it does know must come in the order it expects, once each, in the version it expects.
- * The same bytes always give the same file.
+ * A reader skips the sections it does not know. The sections it does know must come in the expected order, once each, in the expected version.
+ * The same bytes always produce the same file.
  */
 #ifndef APIDUMPANALYSIS_SECTIONED_FILE_H
 #define APIDUMPANALYSIS_SECTIONED_FILE_H
@@ -47,8 +47,8 @@ namespace Analysis
         static_assert(sizeof(SectionHeader) == 32,
                       "Unexpected padding in a section header");
 
-        /* The header of the files whose sections say what an analysis found (.deps, .textures): what kind of file it is, the version of the layout, and the
-         * version of what the sections mean.
+        /* The header of the files whose sections store the results of an analysis (.deps, .textures): the kind of file, the version of the layout,
+         * and the version of the meaning of the sections.
          */
         struct AnalysisFileHeader
         {
@@ -60,16 +60,16 @@ namespace Analysis
         static_assert(sizeof(AnalysisFileHeader) == 16,
                       "Unexpected padding in the file header");
 
-        /* What a reader or a writer of a kind of file with an AnalysisFileHeader says of it. */
+        /* What a reader or writer of a kind of file that has an AnalysisFileHeader needs to know about it. */
         struct AnalysisFileKind
         {
             uint32_t    analysis_version;
-            const char* extension_ptr;    /* with the dot, for the messages: ".deps" */
+            const char* extension_ptr;    /* with the dot, for messages: ".deps" */
             uint32_t    file_version;
             const char* magic_ptr;        /* sizeof(AnalysisFileHeader::magic_i8vec8) bytes */
         };
 
-        /* A section which a reader knows. The file holds them in the order they are listed in. */
+        /* A section that a reader knows. The file stores the known sections in the order in which they are listed. */
         struct SectionInfo
         {
             uint32_t tag;
@@ -79,33 +79,33 @@ namespace Analysis
         class SectionedFile
         {
         public:
-            /* Called for each known section of the file, in order, with its bytes (decompressed, and checked against the hash). False says that the
-             * bytes are not valid.
+            /* Called for each known section of the file, in order, with its bytes (decompressed and checked against the hash). Returns false
+             * if the bytes are not valid.
              */
             typedef std::function<bool(const uint32_t& in_tag, const std::vector<uint8_t>& in_raw_byte_vec)> SectionFunc;
 
-            /* Checks the AnalysisFileHeader at the start of the bytes against the kind of file that is expected; false, and the reason, if it is not. */
+            /* Checks the AnalysisFileHeader at the start of the bytes against the expected kind of file. Returns false and the reason if it does not match. */
             static bool check_analysis_header(const std::vector<uint8_t>& in_byte_vec,
                                               const AnalysisFileKind&     in_kind,
                                               std::string*                out_error_ptr);
 
-            /* The four characters of a tag. */
+            /* The four characters of a tag, as a string. */
             static std::string get_tag_name(const uint32_t& in_tag);
 
-            /* The bytes of the AnalysisFileHeader of a kind of file. */
+            /* The bytes of the AnalysisFileHeader for a kind of file. */
             static std::vector<uint8_t> make_analysis_header_bytes(const AnalysisFileKind& in_kind);
 
-            /* The header of a section and its compressed bytes; empty if the section cannot be made. */
+            /* The header of a section followed by its compressed bytes; empty if the section cannot be made. */
             static std::vector<uint8_t> pack_section(const SectionInfo&          in_section_info,
                                                      const std::vector<uint8_t>& in_raw_byte_vec);
 
-            /* The bytes of a file; false, and the reason, if it cannot be opened or read. */
+            /* The bytes of a file. Returns false and the reason if the file cannot be opened or read. */
             static bool read_file(const std::string&    in_filename,
                                   std::vector<uint8_t>* out_byte_vec_ptr,
                                   std::string*          out_error_ptr);
 
-            /* Goes through the sections which follow the first in_position bytes of the file (those of its own header). False, and the error, if a
-             * section is missing, repeated, out of order, damaged, of a version which is not the one that is known, or is not valid.
+            /* Goes through the sections that follow the first in_position bytes of the file (its own header). Returns false and the error if a
+             * section is missing, repeated, out of order, damaged, of an unexpected version, or invalid.
              */
             static bool read_sections(const std::vector<uint8_t>& in_byte_vec,
                                       const size_t&               in_position,
@@ -114,7 +114,7 @@ namespace Analysis
                                       const SectionFunc&          in_section_func,
                                       std::string*                out_error_ptr);
 
-            /* Writes the bytes beside the file, and the file is replaced by them when they are all written: a failure leaves the old file as it was. */
+            /* Writes the bytes next to the file and replaces the file with them when all bytes are written, so a failure leaves the old file unchanged. */
             static bool write_file(const std::string&          in_filename,
                                    const std::vector<uint8_t>& in_byte_vec,
                                    std::string*                out_error_ptr);

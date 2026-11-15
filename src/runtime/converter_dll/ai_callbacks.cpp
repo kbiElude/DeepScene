@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * The interception library (APIInterceptor) has the DllMain of this DLL, and tells it when it is put in and taken out.
+ * The interception library (APIInterceptor) contains the DllMain of this DLL. It calls these functions when the DLL is injected and when it is removed.
  */
 #include "common/globals.h"
 #include "converter.h"

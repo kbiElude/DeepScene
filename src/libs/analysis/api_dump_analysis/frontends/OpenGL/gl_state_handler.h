@@ -2,9 +2,9 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * What the front end of OpenGL does with the calls that set the state of a context: the values that a clear uses, the capabilities that are switched on and off,
- * the values of the pipeline that a draw is told apart by (a function, a mode, a mask), the viewport and the scissor box, and the stack of attributes (glPushAttrib
- * keeps what the program sets after it, and glPopAttrib puts it back). The state is that of the context that the call is made for, which the front end gives.
+ * Handles the OpenGL calls that set the state of a context: the values that a clear uses, the capabilities that are switched on and off, the pipeline
+ * values that distinguish draws (a function, a mode, a mask), the viewport and the scissor box, and the attribute stack (glPushAttrib saves the
+ * state, and glPopAttrib restores it). The state belongs to the context that the call is made for. The front end passes that context in.
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_STATE_HANDLER_H
 #define APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_STATE_HANDLER_H
@@ -28,7 +28,7 @@ namespace Analysis
                 /* The builder must outlive the handler. */
                 explicit GLStateHandler(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr);
 
-                /* How many of the calls that set the state are not followed, and the front end goes on without them. */
+                /* The number of state calls that are not followed. The front end continues without them. */
                 uint64_t get_n_unfollowed_calls() const;
 
                 void handle_clear_color  (const Capture::APIDumpLoader::DumpedAPICall& in_call,
@@ -42,37 +42,37 @@ namespace Analysis
                                    const bool&                                  in_is_enabled,
                                    GLContextState*                              inout_state_ptr);
 
-                /* What was put back may be another viewport, which the builder is told of if the window is made (it has none before). */
+                /* The restored state may contain a different viewport. The builder is told about it only if the window exists (there is no viewport before that). */
                 void handle_pop_attributes(const GLWindow& in_window,
                                            GLContextState* inout_state_ptr);
 
                 void handle_push_attributes(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                             GLContextState*                              inout_state_ptr);
 
-                /* A scissor box is a call that depends on the size of what is rendered to: the counter counts it. */
+                /* A scissor box depends on the size of the render target, so the counter counts it as a resolution hazard. */
                 void handle_scissor(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                     ResolutionHazardCounter*                     inout_counter_ptr,
                                     GLContextState*                              inout_state_ptr);
 
-                /* A call which sets a value of the pipeline that a draw is told apart by (a function, a mode, a mask). */
+                /* A call that sets a pipeline value that distinguishes draws (a function, a mode, a mask). */
                 void handle_state_value(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                         GLContextState*                              inout_state_ptr);
 
-                /* The model has the viewport of what is rendered to, and there is none before the window is made: the builder is told only after. */
+                /* The model has the viewport of the render target. There is none before the window is created, so the builder is told only after that. */
                 void handle_viewport(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                      const GLWindow&                              in_window,
                                      GLContextState*                              inout_state_ptr);
 
             private:
-                /* True if the two boxes are the same. */
+                /* Returns true if the two boxes are equal. */
                 static bool is_same_box(const GLBox& in_first,
                                         const GLBox& in_second);
 
-                /* A box from the four arguments of glViewport or glScissor. */
+                /* Reads a box from the four arguments of glViewport or glScissor. */
                 static bool read_box(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                      GLBox*                                       out_box_ptr);
 
-                /* Puts back what the mask of a glPushAttrib asked to be saved. */
+                /* Restores what the mask of the matching glPushAttrib selected for saving. */
                 static void restore_attributes(const GLAttributeFrame& in_frame,
                                                GLAttributes*           inout_attributes_ptr);
 

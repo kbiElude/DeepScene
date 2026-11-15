@@ -17,12 +17,12 @@ namespace Utils
         class ParallelFor
         {
         public:
-            /* Called for the items from the first up to (not including) the end. */
+            /* Processes the items from in_first_item up to, but not including, in_end_item. */
             typedef std::function<void(const uint64_t& in_first_item, const uint64_t& in_end_item)> RangeFunc;
 
-            /* Calls the function for all the items 0 .. n_items - 1, in ranges which are given to the threads as they get done with the last
-             * (so that an item which takes long does not hold up the rest). The calling thread is one of them. With one thread, or few items, there
-             * are no others. The function is called for each item once, by one thread, and must not need the items to be done in order.
+            /* Calls the function for every item 0 .. n_items - 1. The items are split into ranges, and each thread takes a new range when it finishes
+             * its previous one, so a slow item does not hold up the rest. The calling thread is one of the threads. With one thread, or with few
+             * items, no other thread is used. The function is called once for each item, by one thread, and must not depend on the order of the items.
              */
             static void run(const uint64_t&  in_n_items,
                             const uint32_t&  in_n_threads,

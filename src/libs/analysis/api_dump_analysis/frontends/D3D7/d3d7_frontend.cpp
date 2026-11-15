@@ -18,7 +18,7 @@
 #include <algorithm>
 #include <string.h>
 
-/* An argument that a draw has not got. */
+/* Marks an argument that the draw method does not have. */
 static constexpr size_t NONE_ARGUMENT = static_cast<size_t>(-1);
 
 Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::D3D7Frontend(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr)
@@ -26,7 +26,7 @@ Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::D3D7Frontend(Analysis::APIDu
      m_screen_height       (0),
      m_screen_width        (0)
 {
-    /* Release is a method of every interface, and tells that an object may be gone. */
+    /* Every interface has a Release method. A call to it can mean that the object is gone. */
     #define D3D7_METHOD(INTERFACE_TAG, interface_name, METHOD_TAG, method_name, vtable_index, return_type, parameters) \
         if (::strcmp(#method_name, "Release") == 0) \
         { \
@@ -66,7 +66,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::apply_render_target(con
         m_builder_ptr->on_set_attachments(attachments);
     }
 
-    /* The viewport is the whole of a new render target, until the application says otherwise. */
+    /* A new render target starts with a viewport that covers all of it, until the application sets another one. */
     if (is_target_changed)
     {
         m_builder_ptr->on_set_viewport(get_full_viewport(m_color_view) );
@@ -159,7 +159,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::count_resolution_hazard
 
 const Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::DrawLayout* Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::find_draw_layout_ptr(const APIInterceptor::APIFunction& in_function)
 {
-    /* The type of the primitives is the first argument of all of them. */
+    /* The primitive type is the first argument of every draw method. */
     static const DrawLayout draw_layout_array[] =
     {
         {6,             2,             APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVE,        true,  NONE_ARGUMENT, NONE_ARGUMENT},
@@ -196,7 +196,7 @@ const char* Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::get_created_obje
     uint32_t    n_iid_argument = 0;
     const char* result_ptr     = in_info.object_type_name_ptr;
 
-    /* What is asked for decides the type of the object. */
+    /* The interface that is requested decides the type of the object. */
     if (Interception::Core::D3D7Utils::get_iid_argument_index(in_view.get_call().func,
                                                              &n_iid_argument) )
     {
@@ -310,7 +310,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_add_attached_sur
     {
         const Analysis::APIDumpAnalysis::ResourceDescription* description_ptr = find_resource_description_ptr(attached_ptr->view.resource_id);
 
-        /* A depth buffer attached to a surface is the one that is rendered with when the surface is what is rendered to. */
+        /* A depth buffer attached to a surface is used whenever that surface is the render target. */
         if (description_ptr != nullptr &&
             description_ptr->is_depth_stencil)
         {
@@ -344,7 +344,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_clear(const Call
                                                                                     depth,
                                                                                     stencil);
 
-    /* Without rectangles, the clear is of the viewport. */
+    /* Without rectangles, the clear covers the viewport. */
     clear.has_rectangles         = (in_view.get_u32(COUNT_ARGUMENT) != 0);
     clear.is_limited_to_viewport = true;
 
@@ -367,7 +367,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_create_device(co
     }
     else
     {
-        /* A new device starts from the defaults, and renders to the surface to begin with. */
+        /* A new device starts with the default state and initially renders to its surface. */
         m_pipeline_state.reset();
 
         m_color_view = Analysis::APIDumpAnalysis::ResourceView();
@@ -583,7 +583,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_get_attached_sur
     else
     if (m_tracker.get_object_ptr(address) != nullptr)
     {
-        /* The surface is known already: the chain keeps giving the same ones. */
+        /* The surface is already tracked: a flipping chain returns the same surfaces every time. */
     }
     else
     if (self_ptr == nullptr)
@@ -619,7 +619,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_get_attached_sur
     {
         ObjectTracker::TrackedObject tracked_object;
 
-        /* The next level of the texture is a part of it. */
+        /* The next mip level belongs to the same texture. */
         tracked_object.view = self_ptr->view;
 
         tracked_object.view.mip_level++;
@@ -697,7 +697,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_unlock(const Cal
     bool                                     is_data_found = false;
     const ObjectTracker::TrackedObject*      object_ptr    = m_tracker.get_object_ptr(in_view.get_pointer(OBJECT_ARGUMENT) );
 
-    /* What the application has written is stored with the unlock: the data follows the arguments of the method. */
+    /* The dumper stores what the application wrote with the unlock call. The data follows the arguments of the method. */
     if (object_ptr != nullptr)
     {
         is_data_found = in_view.get_data_reference(in_view.get_n_head_arguments(),
@@ -739,7 +739,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_write_to_surface
     else
     if (source_address == 0)
     {
-        /* A fill with a color or a depth: the surface is written, with nothing that is in the workload. */
+        /* A fill with a color or a depth: the surface is written, but the workload holds no data for it. */
         m_builder_ptr->on_upload(destination_ptr->view,
                                  Analysis::APIDumpAnalysis::DataReference() );
     }
@@ -768,7 +768,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::on_call(const Capture::
     register_names           (view);
     count_resolution_hazards (view);
 
-    /* A call which failed changed nothing. */
+    /* A call that failed changed nothing. */
     if (is_release)
     {
         handle_release(view);
@@ -939,7 +939,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::on_call(const Capture::
 
             case APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_FLIP:
             {
-                /* The frame that it ends is told to the builder below, for every call that is a frame boundary. */
+                /* The frame that this call ends is reported to the builder below, for every call that is a frame boundary. */
 
                 break;
             }
@@ -953,7 +953,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::on_call(const Capture::
 
             default:
             {
-                /* What is not followed is left out only if the policy says it may be: any other ends the process. */
+                /* A call that is not followed may be left out only if the policy allows it. Any other unfollowed call ends the process. */
                 const char* unsupported_reason_ptr = D3D7FunctionPolicy::get_unsupported_reason_ptr(in_call.func);
 
                 if (unsupported_reason_ptr != nullptr)
@@ -973,7 +973,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::on_call(const Capture::
         }
     }
 
-    /* Every flip is a frame, like the other tools count them, whether or not the device could show it. */
+    /* Every flip counts as a frame, as in the other tools, whether or not the device could show it. */
     if (Capture::APIDumpLoader::is_frame_boundary(in_call) )
     {
         m_builder_ptr->on_frame_presented();
@@ -991,8 +991,8 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::register_names(const Ca
         const auto* method_info_ptr = Interception::Core::D3D7Utils::get_method_info_ptr(call.func);
         bool        is_create       = true;
 
-        /* The exports of the DLL and the Create* methods always return new objects; Get* ones return existing objects, which may be
-         * unknown to us.
+        /* The exports of the DLL and the Create* methods always return new objects. Get* methods return existing objects, which may
+         * be unknown to the front end.
          */
         if (method_info_ptr != nullptr)
         {
@@ -1038,9 +1038,9 @@ std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDu
                                                                                                                                      const uint32_t&                              in_fvf,
                                                                                                                                      const Analysis::APIDumpAnalysis::ResourceId& in_vertex_buffer_id)
 {
-    /* What the dumper stored with the call follows its arguments: the indices, if the draw has them, and then the vertices. A strided
-     * draw has the arrays of the vertices in place of them; the stride of the positions is in the structure of the strides (a pointer
-     * and a stride for each kind of vertex data, in the layout of a 32-bit process), and the first of the arrays is the positions.
+    /* The dumper stores data with the call, after the arguments: the indices (if the draw has them), then the vertices. A strided draw
+     * stores the vertex arrays instead of the vertices. The stride of the positions is in the stride structure (a pointer and a stride for
+     * each kind of vertex data, laid out as in a 32-bit process). The first array holds the positions.
      */
     constexpr size_t N_STRIDED_ARRAYS       = 12;
     constexpr size_t POSITION_STRIDE_OFFSET = sizeof(uint32_t);
@@ -1052,8 +1052,8 @@ std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDu
     D3D7GeometryTracker::DrawRange                                   range;
     std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> result_ptr;
 
-    /* The positions of pre-transformed vertices are in pixels, not in the space of the model; they are sampled as that (x, y and the reciprocal
-     * of the depth), for what the analysis tells of how deep the surfaces of a scene are.
+    /* The positions of pre-transformed vertices are in pixels, not in model space. They are sampled as x, y and the reciprocal of the
+     * depth, which the analysis uses to measure how deep the surfaces of a scene are.
      */
     const bool has_position = (position_mask != 0);
 
@@ -1089,7 +1089,7 @@ std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDu
             range.vertex_data_ptr = bytes_ptr->data();
             range.vertex_n_bytes  = bytes_ptr->size();
 
-            /* The start is what is added to the indices, or the first vertex. */
+            /* The start is the base vertex added to the indices, or the first vertex if the draw is not indexed. */
             if (in_layout.is_indexed)
             {
                 range.base_vertex_index = in_view.get_u32(START_VERTEX_ARGUMENT);

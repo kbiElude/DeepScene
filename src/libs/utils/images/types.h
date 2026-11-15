@@ -14,7 +14,7 @@ namespace Utils
 {
     namespace Images
     {
-        /* What of the two eyes of a frame an image shows. */
+        /* Which eye or eyes of a frame an image shows. */
         enum class EyeView
         {
             ANAGLYPH, /* both, red-cyan                                */

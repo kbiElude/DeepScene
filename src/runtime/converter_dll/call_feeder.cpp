@@ -47,13 +47,13 @@ Stereo::ConverterDLL::CallFeeder::ReturnedValueUniquePtr Stereo::ConverterDLL::C
 
 void Stereo::ConverterDLL::CallFeeder::analyze(const Capture::APIDumpLoader::DumpedAPICall& in_call)
 {
-    /* Chunks are far apart only if something is wrong; one that is far from the others is left out rather than allocate for it. */
+    /* Chunk ids that are far apart indicate a problem. A chunk that is far from the first one is dropped instead of allocating room for it. */
     constexpr uint32_t MAX_CHUNK_ID_SPAN = 1u << 16;
 
     m_chunk_id_vec.clear();
 
-    /* A chunk is in the arguments of the call and in its results when the call reads it (a structure it is given): it is taken
-     * once, or the second time would replace it with nothing.
+    /* A call that reads a structure given to it has the chunk both in its in-arguments and in its out-arguments. The chunk is taken only once,
+     * because taking it a second time would return nothing.
      */
     for (const auto* argument_vec_ptr : {&in_call.arg_in_vec, &in_call.arg_out_vec})
     {
@@ -66,7 +66,7 @@ void Stereo::ConverterDLL::CallFeeder::analyze(const Capture::APIDumpLoader::Dum
         }
     }
 
-    /* The chunks of the call before go back to the pool with their room, for the ones of this call: a chunk is then not an allocation. */
+    /* The chunks of the previous call go back to the pool with their memory, so that the chunks of this call need no allocation. */
     for (auto& chunk_ptr : m_workload.data_chunk_ptr_vec)
     {
         m_chunk_pool.recycle(&chunk_ptr);
@@ -78,7 +78,7 @@ void Stereo::ConverterDLL::CallFeeder::analyze(const Capture::APIDumpLoader::Dum
 
     if (m_chunk_id_vec.empty() == false)
     {
-        /* One chunk is what most calls have, and there is nothing in it to put in order. */
+        /* Most calls have a single chunk. It needs no sorting. */
         if (m_chunk_id_vec.size() > 1)
         {
             std::sort(m_chunk_id_vec.begin(),
@@ -95,7 +95,7 @@ void Stereo::ConverterDLL::CallFeeder::analyze(const Capture::APIDumpLoader::Dum
 
         m_workload.first_data_chunk_id = first_chunk_id;
 
-        /* The numbers are in order, so the ones that are too far from the first are the last. */
+        /* The ids are sorted, so the ids that are too far from the first one are at the end. */
         while (m_chunk_id_vec.back() - first_chunk_id >= MAX_CHUNK_ID_SPAN)
         {
             m_chunk_id_vec.pop_back();
@@ -105,7 +105,7 @@ void Stereo::ConverterDLL::CallFeeder::analyze(const Capture::APIDumpLoader::Dum
 
         m_workload.data_chunk_ptr_vec.resize(m_chunk_id_vec.back() - first_chunk_id + 1);
 
-        /* Each chunk is taken into a vector from the pool, which stays in the workload if the chunk was there. */
+        /* Each chunk is taken into a vector from the pool. The vector stays in the workload if the chunk exists. */
         for (const auto& chunk_id : m_chunk_id_vec)
         {
             auto& chunk_ptr = m_workload.data_chunk_ptr_vec.at(chunk_id - first_chunk_id);
@@ -160,7 +160,7 @@ void Stereo::ConverterDLL::CallFeeder::fill_call(const APIInterceptor::APIFuncti
 
     out_call_ptr->func          = in_function;
     out_call_ptr->thread_id     = static_cast<uint32_t>(::GetCurrentThreadId() );
-    /* A call is not timed: nothing that the converter does looks at when it was made. The time is for the tools that work on the file of a workload, whose calls the dumper stamps. */
+    /* The call is not timed. The converter never uses the time of a call. The time matters only to the tools that read a workload file, where the dumper stamps each call. */
     out_call_ptr->timestamp_qpc = 0;
 
     if (out_call_ptr->returned_value_ptr != nullptr)
@@ -213,7 +213,7 @@ Stereo::ConverterDLL::CallFeeder::PendingCalls* Stereo::ConverterDLL::CallFeeder
 {
     const uint32_t thread_id = static_cast<uint32_t>(::GetCurrentThreadId() );
 
-    /* One thread makes almost all the calls: the map is asked only when another one makes one. */
+    /* Almost all calls come from one thread, so the map is searched only when another thread makes a call. */
     if (m_last_thread_pending_calls_ptr == nullptr   ||
         m_last_thread_id                != thread_id)
     {
@@ -251,7 +251,7 @@ bool Stereo::ConverterDLL::CallFeeder::is_followed(const APIInterceptor::APIFunc
 {
     const auto api_group = Capture::APIDumpLoader::get_api_group(in_function);
 
-    /* SwapBuffers is a function of GDI32, and what ends a frame of OpenGL; the rest of GDI32 is not followed. */
+    /* SwapBuffers is a GDI32 function that ends an OpenGL frame. The rest of GDI32 is not followed. */
     return (api_group == Capture::APIDumpLoader::APIGroup::D3D7 ||
             api_group == Capture::APIDumpLoader::APIGroup::D3D8 ||
             api_group == Capture::APIDumpLoader::APIGroup::GL   ||
@@ -266,7 +266,7 @@ void Stereo::ConverterDLL::CallFeeder::on_post(const APIInterceptor::APIFunction
 {
     auto* pending_calls_ptr = get_pending_calls_ptr();
 
-    /* The latest call of the function that this thread is still waiting for; a call the interceptor made inside it is above it. */
+    /* Find the latest call of this function that this thread still waits for. A call that the interceptor makes inside it comes later in the list. */
     for (size_t n_call = pending_calls_ptr->n_calls;
                 n_call > 0;
               --n_call)
@@ -285,7 +285,7 @@ void Stereo::ConverterDLL::CallFeeder::on_post(const APIInterceptor::APIFunction
 
             analyze(call);
 
-            /* The call goes past the others, with its vectors, to be used again. */
+            /* Move the call behind the active ones. It keeps its vectors for reuse. */
             std::rotate(pending_calls_ptr->call_vec.begin() + static_cast<std::ptrdiff_t>(n_call - 1),
                         pending_calls_ptr->call_vec.begin() + static_cast<std::ptrdiff_t>(n_call),
                         pending_calls_ptr->call_vec.begin() + static_cast<std::ptrdiff_t>(pending_calls_ptr->n_calls) );
@@ -318,8 +318,8 @@ bool Stereo::ConverterDLL::CallFeeder::on_pre(const APIInterceptor::APIFunction&
 
     if (result)
     {
-        /* The front end follows a draw that succeeded; the call is not made yet, so it is taken to succeed. It is not kept: the
-         * slot stays past n_calls.
+        /* The front end only follows a draw that succeeded. The draw has not been made yet, so it is assumed to succeed. The call is not stored:
+         * its slot stays past n_calls.
          */
         call.returned_value_ptr = acquire_returned_value(APIInterceptor::APIFunctionArgument::create_i32(0) );
 

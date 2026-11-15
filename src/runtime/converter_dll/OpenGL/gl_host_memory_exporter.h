@@ -16,12 +16,13 @@ namespace Stereo
 {
     namespace ConverterDLL
     {
-        /* Passes the images of the eyes of an OpenGL application on by the memory of the channel. The images are already in the memory of the application (the
-         * converter reads them from its framebuffers into buffers it has mapped, see GLFrameReader), so this only turns the rows over (OpenGL has the bottom one first), and
-         * a thread of its own does that while the application goes on with the next frame. A frame that is given while the thread is still at the one before is left out.
+        /* Passes the eye images of an OpenGL application to the channel through host memory. The images are already in memory: the converter
+         * reads them from its framebuffers into mapped buffers (see GLFrameReader). The exporter therefore only flips the rows, because OpenGL
+         * stores the bottom row first. A thread of its own does this while the application goes on with the next frame. A frame that is
+         * handed over while the thread is still working on the previous one is left out.
          *
-         * The source (see ExportSource) holds a GLFrameImages in the left surface, and anything that is not null in the right one. The exporter keeps a copy of it, with
-         * the token that says the memory is in use, until the thread is through.
+         * The source (see ExportSource) holds a GLFrameImages in the left surface, and any non-null pointer in the right surface. The exporter
+         * keeps a copy of the images, with the token that marks the memory as in use, until the thread has finished.
          */
         class GLHostMemoryExporter : public HostMemoryExporter
         {
@@ -34,15 +35,15 @@ namespace Stereo
             GLHostMemoryExporter(const GLHostMemoryExporter&)            = delete;
             GLHostMemoryExporter& operator=(const GLHostMemoryExporter&) = delete;
 
-            /* EXPORTED when the thread has the frame to copy to the channel. NOT_READY until the other side has said that it takes the host memory kind, and while the thread is
-             * at the frame before; FAILED if the images are larger than the channel takes.
+            /* EXPORTED: the thread accepted the frame to copy to the channel. NOT_READY: the other side has not said that it accepts the host
+             * memory kind, or the thread is still working on the previous frame. FAILED: the images are larger than the channel accepts.
              */
             Stereo::Transport::ExportStatus export_frame(const uint64_t&                        in_frame_index,
                                                          const Stereo::Transport::ExportSource& in_source) override;
 
             void wait_for_pace() override;
 
-            /* A debugging aid: the images of the eyes, side by side, in a file of the type BMP. */
+            /* A debugging aid: writes the eye images, side by side, to a BMP file. */
             static bool write_debug_image(const GLFrameImages& in_images,
                                           const std::string&   in_path);
 
@@ -50,7 +51,7 @@ namespace Stereo
             static const uint32_t BYTES_PER_PIXEL;
             static const uint32_t N_EYES;
 
-            /* What the thread is to copy. */
+            /* What the thread copies. */
             struct Job
             {
                 uint64_t      frame_index       = 0;
@@ -58,11 +59,12 @@ namespace Stereo
                 double        timestamp_seconds = 0.0;
             };
 
-            /* What the thread does for a frame: copies the rows of the images of the job to the channel. */
+            /* What the thread does for each frame: copies the rows of the images of the job to the channel. */
             void write_job();
 
-            /* Puts the rows of an image of an eye (B, G, R, A of 8 bits, from the bottom up as OpenGL gives them) into the image of both eyes, where the eye is the place of the
-             * image across; the top row of the destination is the last of the source if the rows are turned over, and the first if not.
+            /* Writes the rows of the image of one eye (8-bit B, G, R, A, bottom row first as OpenGL gives them) into the image of both eyes.
+             * in_eye is the position of the eye across that image. If the rows are turned over, the last source row becomes the top destination
+             * row. Otherwise the first source row does.
              */
             static void write_eye_rows(const uint8_t*  in_bgra_ptr,
                                        const uint32_t& in_width,
@@ -74,7 +76,7 @@ namespace Stereo
 
             Job                                         m_job;
             std::unique_ptr<Utils::Parallel::JobThread> m_job_thread_ptr;
-            int64_t                                     m_n_frames_per_second; /* the application is held to this many frames a second when no screen keeps time (APISTEREO_FRAME_RATE); 0: it is not */
+            int64_t                                     m_n_frames_per_second; /* when no screen keeps time, the application is held to this many frames a second (APISTEREO_FRAME_RATE); 0: no limit */
         };
     }
 }

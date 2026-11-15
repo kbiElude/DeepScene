@@ -2,25 +2,25 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Bakes a recipe: from what the recipe says of passes and draws (see Recipe::affected, ::unaffected and ::skipped) and the
- * analysis of the application, it works out what a converter which plays the application as it runs can know of each draw when
- * the draw is issued, and writes that into the "baked" section of the recipe (see recipe_loader.h). The rest of the recipe is
- * kept; the file is written again in the formatting of this class.
+ * Bakes a recipe. From what the recipe says about passes and draws (see Recipe::affected, ::unaffected and ::skipped) and from the
+ * analysis of the application, it works out what a converter that plays the application as it runs can know about each draw when the draw
+ * is issued. It writes the result into the "baked" section of the recipe (see recipe_loader.h). The rest of the recipe is kept; the file
+ * is written again in the formatting of this class.
  *
- * A converter which plays an application as it runs does not know the pass a draw belongs to until the pass has ended. It knows
- * the signature of the draw (see KeyBuilder::compute_draw_signature_key), and the view matrix. Most signatures are drawn by
- * passes of one class only, and a rule per signature says it. Where passes of different classes draw the same signature (an
- * overlay drawn with the shaders of the scene, say), the view matrix of the passes tells them apart, if the matrices of the
- * classes are never the same; if they are, or there is none, baking fails: that application needs the converter to hold the draws
- * of a pass back until it knows which pass it is, which the converter does not do.
+ * Such a converter does not know which pass a draw belongs to until the pass has ended. It knows only the signature of the draw (see
+ * KeyBuilder::compute_draw_signature_key) and the view matrix. Most signatures are drawn by passes of one class only, so one rule per
+ * signature is enough. Some signatures are drawn by passes of different classes (an overlay drawn with the shaders of the scene, say).
+ * The view matrix of the passes then tells the classes apart, provided the classes never share a matrix. If they do, or if a pass has no
+ * matrix, baking fails: that application needs a converter that holds the draws of a pass back until it knows which pass it is, and this
+ * converter does not do that.
  *
- * It also works out the distance at which the eyes are to converge for each signature that is affected (see
- * Recipe::convergence_vec): the median, by vertices, of how deep the draws of the passes that draw it are in the space of the
- * camera (see DepthHistogram). It is a property of the scene, so that nobody has to calibrate it.
+ * It also works out the distance at which the eyes converge for each affected signature (see Recipe::convergence_vec): the median over
+ * all vertices of how deep the draws of the passes that draw it are in the space of the camera (see DepthHistogram). It is a property of
+ * the scene, so nobody has to calibrate it.
  *
- * Passes that share a signature must share a distance, which blends the scenes they are in. A converter that knows what kind of
- * frame (what scene) the frame before was, by its shape key, can do better, so the distance of each frame shape is baked too (see
- * Recipe::scene_convergence_vec): the median, by vertices, of the depth of the affected passes of the frames of that shape.
+ * Passes that share a signature must share a distance, which blends the scenes they are in. A converter that knows from the shape key what
+ * kind of frame (what scene) the previous frame was can do better, so the distance of each frame shape is baked too (see
+ * Recipe::scene_convergence_vec): the median over all vertices of the depth of the affected passes in the frames of that shape.
  */
 #ifndef RECIPEBAKE_RECIPE_BAKER_H
 #define RECIPEBAKE_RECIPE_BAKER_H
@@ -45,12 +45,13 @@ namespace Analysis
         class RecipeBaker
         {
         public:
-            /* Returns false, and says why, if the recipe is not valid or cannot be baked with the analysis. A "baked" section that the
-             * recipe has already is replaced.
+            /* Returns false, and says why, if the recipe is not valid or cannot be baked with the analysis. An existing "baked" section of the
+             * recipe is replaced.
              *
-             * The dependencies of the workload (see APIDumpDependencyExtractor), if there are any, say which textures each eye has a copy of: without
-             * them it is the resources which a frame reads before it writes it, and writes, which misses one that is read in the frame after the one
-             * which rendered to it (two that an application uses by turns). They must be of the workload that the analysis is of.
+             * The dependencies of the workload (see APIDumpDependencyExtractor) are optional. They say which textures each eye has its own copy of.
+             * Without them, those are the resources that a frame reads before it writes them, and writes. That rule misses a target that is read in
+             * the frame after the one that rendered to it (two targets that an application uses in turns). The dependencies must come from the
+             * workload that the analysis is of.
              */
             static bool bake(const std::string&                                       in_recipe_text,
                              const Analysis::APIDumpAnalysis::AnalysisResult&         in_analysis,
@@ -59,20 +60,20 @@ namespace Analysis
                              std::string*                                             out_error_ptr,
                              const Analysis::APIDumpDependencies::DependencyAnalysis* in_dependencies_ptr = nullptr);
 
-            /* How deep each scene (kind of frame) of the analysis is, in the order of the shapes; a scene that has no affected pass with something in front of the camera
-             * has has_depth false. What the recipe says of what is near and what is far (see Comfort) says which surfaces count.
+            /* How deep each scene (kind of frame) of the analysis is, in the order of the shapes. has_depth is false for a scene that has no affected
+             * pass with something in front of the camera. The near and far settings of the recipe (see Comfort) decide which surfaces count.
              */
             static std::vector<SceneMeasure> measure_scenes(const Analysis::Recipe::Recipe&                  in_recipe,
                                                             const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis);
 
-            /* Where the eyes converge in the scene, and how far apart they may be: the distance that was measured and the limits of the nearest and of the farthest surfaces
-             * (see Comfort) from the recipe, or what the recipe says of the scene (see SceneComfort), which wins.
+            /* Where the eyes converge in the scene and how far apart they may be. The inputs are the measured distance and the limits for the nearest
+             * and the farthest surfaces from the recipe (see Comfort). A SceneComfort entry for the scene (see SceneComfort) overrides them.
              */
             static SceneLimits resolve_scene_limits(const Analysis::Recipe::Recipe& in_recipe,
                                                     const SceneMeasure&             in_measure);
 
         private:
-            /* What a draw is for a converter that plays an application as it runs: the class and whether it is pushed toward the viewer. */
+            /* The class of a draw and whether it is pushed toward the viewer, as a converter that plays an application as it runs sees them. */
             typedef std::pair<Analysis::Recipe::DrawClass, bool>               ClassKey;
             typedef std::map<ClassKey, std::set<uint32_t> >                    ClassMap;
             typedef std::vector<Analysis::Recipe::DrawConvergence>             ConvergenceVector;
@@ -82,7 +83,7 @@ namespace Analysis
             typedef std::vector<Analysis::Recipe::SceneConvergence>            SceneConvergenceVector;
             typedef std::vector<Analysis::Recipe::SceneSeparation>             SceneSeparationVector;
 
-            /* The rules of a signature which passes of different classes draw: each class that is not affected, or is pushed, is told by the view
+            /* The rules for a signature that passes of different classes draw. Each class that is not affected, or is pushed, is selected by the view
              * matrices of its passes. Returns false, and says why, if the matrices do not tell the classes apart.
              */
             static bool compute_conditional_rules(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis,
@@ -107,24 +108,24 @@ namespace Analysis
                                                   SceneSeparationVector*                           out_scene_separation_vec_ptr,
                                                   BakeReport*                                      out_report_ptr);
 
-            /* Tells draws apart by what the analysis saw them do, whatever the API: pixel-space draws are layers, those always after a 3D draw are
-             * overlays, those at the camera with vertices in front are in eye space. A draw that samples a copy of the picture is no overlay; keys
-             * whose draws disagree are left out.
+            /* Classifies draws by what the analysis saw them do, whatever the API. Draws in pixel space are layers. Draws that always come after a 3D
+             * draw are overlays. Draws at the camera with vertices in front of it are in eye space. A draw that samples a copy of the picture is not
+             * an overlay. Keys whose draws disagree are left out.
              */
             static DrawKeyLists get_automatic_layers(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis);
 
-            /* The keys of the draws that cover the whole of the view, in the passes that the recipe leaves alone: only those are moved by the
-             * overlay, and the mesh of a scene can have the same key.
+            /* The keys of the draws that cover the whole view, taken from the passes that the recipe leaves alone. Only those draws are moved by the
+             * overlay. The list is limited to them because the mesh of a scene can have the same key.
              */
             static std::vector<uint64_t> get_covering_draw_key_vec(const Analysis::Recipe::Recipe&                  in_recipe,
                                                                    const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis);
 
-            /* The textures which frames carry over from the frame before, which each eye has a copy of (the back buffer is not one: the player keeps
-             * its pictures apart for the eyes). */
+            /* The textures that frames carry over from the previous frame and that each eye has its own copy of. The back buffer is not included,
+             * because the player already keeps its pictures apart for the eyes. */
             static PerEyeTextureVector get_per_eye_texture_vec(const Analysis::APIDumpAnalysis::AnalysisResult&         in_analysis,
                                                                const Analysis::APIDumpDependencies::DependencyAnalysis* in_dependencies_ptr);
 
-            /* The class as a message says it: "affected", or "unaffected, pushed". */
+            /* The class as it is written in a message: "affected" or "unaffected, pushed". */
             static std::string get_class_key_text(const ClassKey& in_class_key);
 
             static const char* get_class_name(const Analysis::Recipe::DrawClass& in_class);
@@ -133,19 +134,20 @@ namespace Analysis
                                                               const uint64_t&                        in_pass_key,
                                                               const uint64_t&                        in_structure_key);
 
-            /* As the keys are written in a recipe. */
+            /* A key as it is written in a recipe. */
             static std::string get_key_text(const uint64_t& in_key);
 
-            /* The horizontal scale of the projection of a pass (which is 1 over the tangent of half the angle of view), from the first value that
-             * its camera had; 0 if the pass has no projection.
+            /* The horizontal scale of the projection of a pass, which is 1 / tan(half the angle of view across the picture width). It is taken from
+             * the first value that the camera of the pass had; 0 if the pass has no projection.
              */
             static float get_projection_scale(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis,
                                               const uint32_t&                                  in_pass_id);
 
-            /* Keys of flat draws that reach from the left edge to the right one (see DrawFacts): a push widens their viewport so no edge is bare. */
+            /* The keys of flat draws that reach from the left edge to the right edge (see DrawFacts). A push widens their viewport so that no edge
+             * stays bare. */
             static std::vector<uint64_t> get_side_reaching_draw_key_vec(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis);
 
-            /* The values the view matrix of a pass took. Returns false, and says why, if the pass cannot say. */
+            /* The values that the view matrix of a pass took. Returns false, and says why, if the pass cannot provide them. */
             static bool get_view_matrix_vec(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis,
                                             const uint32_t&                                  in_pass_id,
                                             MatrixVector*                                    out_matrix_vec_ptr,

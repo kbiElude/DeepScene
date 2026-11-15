@@ -8,7 +8,7 @@
 
 bool Utils::Cpu::CpuFeatures::is_avx2_supported()
 {
-    /* Found out on the first call (the initialization of a local is thread safe), and the same for every call after it. */
+    /* Detected on the first call. The initialization of a local static is thread safe, and every later call returns the same value. */
     static const bool result = []()
     {
         constexpr int CPUID_EXTENDED_LEAF   = 7;
@@ -19,7 +19,7 @@ bool Utils::Cpu::CpuFeatures::is_avx2_supported()
         constexpr int N_CPUID_REGISTERS     = 4;
         constexpr int REGISTER_EBX          = 1;
         constexpr int REGISTER_ECX          = 2;
-        constexpr int XCR0_SSE_AND_AVX_BITS = 6; /* the system saves the registers of SSE and those of AVX when it switches threads */
+        constexpr int XCR0_SSE_AND_AVX_BITS = 6; /* the operating system saves the SSE and AVX registers when it switches threads */
 
         int  cpu_info_array[N_CPUID_REGISTERS] = {};
         bool is_supported                      = false;

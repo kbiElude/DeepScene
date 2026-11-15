@@ -14,16 +14,16 @@ namespace Stereo
     {
         namespace EngineDLL
         {
-            /* Says which frames a seek hurries through: those before the frame it goes to. Nothing of them is waited for, shown or presented; what
-             * they do to the state of the device is done as it is, since the frames after them are made of it. Set by any thread, read by the replay
-             * thread.
+            /* Tells which frames a seek hurries through: the frames before the frame the seek goes to. A hurried frame is not waited
+             * for, shown or presented. Its calls still change the device state, because the later frames depend on that state.
+             * Set from any thread, read by the replay thread.
              */
             class FrameHurry
             {
             public:
                 FrameHurry();
 
-                /* The frames are played as they are again. */
+                /* Stops hurrying: all frames play normally again. */
                 void clear();
 
                 /* The frames before this one (counted from 0) are hurried through. */

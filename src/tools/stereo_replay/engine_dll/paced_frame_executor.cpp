@@ -13,8 +13,8 @@ namespace Stereo
     {
         namespace EngineDLL
         {
-            /* What the executor of the frames is given in place of the host: the same, except that reading the call which ends a frame waits for the
-             * time the frame was presented at.
+            /* The host that the executor receives in place of the real host. It forwards everything to the real host, except that
+             * reading the call that ends a frame waits until the time the frame was presented at.
              */
             class PacedFrameHost : public ::Replay::ReplayEngineDLL::IFrameHost
             {
@@ -80,7 +80,7 @@ namespace Stereo
                     {
                         if (m_hurry_ptr->is_hurrying(m_host_ptr->get_n_frames_presented() ) )
                         {
-                            /* The time of the frames that were hurried through is not to be made up for when the pace is back. */
+                            /* Restart the timeline so that the time of the hurried frames is not made up for when normal pace resumes. */
                             m_pacer_ptr->reset();
                         }
                         else
@@ -108,7 +108,7 @@ Stereo::Replay::EngineDLL::PacedFrameExecutor::PacedFrameExecutor(::Replay::Repl
      m_host_ptr    (nullptr),
      m_hurry_ptr   (in_hurry_ptr)
 {
-    /* Sleep() is exact to a millisecond only if asked for. */
+    /* Request a timer resolution of 1 ms; without it Sleep() is much less accurate. */
     ::timeBeginPeriod(1);
 }
 
@@ -120,7 +120,7 @@ Stereo::Replay::EngineDLL::PacedFrameExecutor::~PacedFrameExecutor()
 bool Stereo::Replay::EngineDLL::PacedFrameExecutor::execute_frame(::Replay::ReplayEngineDLL::IFrameHost* in_host_ptr,
                                                                   bool*                                  out_has_workload_ended_ptr)
 {
-    /* The executor keeps the host it is given until the next frame: the one it is given stays as long as the engine. */
+    /* The paced host is rebuilt only when the host changes. The engine gives the same host for as long as it lives. */
     if (m_host_ptr != in_host_ptr)
     {
         m_host_ptr       = in_host_ptr;
@@ -140,7 +140,7 @@ void Stereo::Replay::EngineDLL::PacedFrameExecutor::on_frame_presented()
 
 void Stereo::Replay::EngineDLL::PacedFrameExecutor::on_play_started()
 {
-    /* A pause, or a reset, must not make the replay hurry to catch up. */
+    /* After a pause or a reset the replay must not hurry to catch up on the time that passed, so restart the timeline. */
     m_pacer.reset();
 
     m_executor_ptr->on_play_started();

@@ -5,9 +5,9 @@
 #include "stereo/transport/frame_channel.h"
 #include <string.h>
 
-/* What the processes share: the header, then the images. The fields are in the order of the memory (this is a format which two
- * programs agree on), and the 64-bit one is first so that it is aligned. Zeroed memory is a channel with nothing in it, which is
- * how it starts, so no side has to make it ready before the other uses it.
+/* The memory that the two processes share: the header, then the images. The fields appear in memory order, because both programs must
+ * agree on this layout. The 64-bit fields come first so that they are aligned. Zeroed memory is an empty channel, which is how the
+ * memory starts, so neither side has to initialize it before the other uses it.
  */
 struct Stereo::Transport::FrameChannel::Header
 {
@@ -24,7 +24,7 @@ struct Stereo::Transport::FrameChannel::Header
     };
 
     volatile LONG64 n_frames_published;
-    volatile LONG64 pace_signal_qpc;           /* when the consumer signalled last, on the clock of the system; 0: never */
+    volatile LONG64 pace_signal_qpc;           /* the consumer's last signal, in QPC ticks; 0: never     */
     volatile LONG   consumer_accepted_kinds;   /* a mask of TransportKind; 0: not said yet               */
     volatile LONG   convergence_distance_bits; /* of a float; valid if has_convergence_distance is not 0 */
     volatile LONG   depth_strength_bits;       /* of a float; valid if has_depth_strength is not 0       */
@@ -37,8 +37,8 @@ struct Stereo::Transport::FrameChannel::Header
     volatile LONG   ipd_scale_bits;            /* of a float; valid if has_ipd_scale is not 0            */
     volatile LONG   latest_slot_plus_one;      /* 0: none yet                                            */
     volatile LONG   magic;
-    volatile LONG   pace_delay_us;             /* how long the producer waits after a signal              */
-    volatile LONG   overlay_is_pushed;         /* 0: not; the consumer says that the person wants it       */
+    volatile LONG   pace_delay_us;             /* how long the producer waits after a signal, in us      */
+    volatile LONG   overlay_is_pushed;         /* 0: no; set by the consumer when the person wants it    */
     volatile LONG   producer_offered_kinds;    /* a mask of TransportKind; 0: not said yet               */
     volatile LONG   reading_slot_plus_one;     /* 0: none                                                */
     volatile LONG   target_eye_height;         /* valid if has_target_eye_size is not 0                  */
@@ -48,15 +48,15 @@ struct Stereo::Transport::FrameChannel::Header
 };
 
 constexpr uint32_t BYTES_PER_PIXEL = 4;
-constexpr uint32_t HEADER_N_BYTES  = 65536;      /* the images start where a GPU places a heap's buffers: at a multiple of 64 KB */
+constexpr uint32_t HEADER_N_BYTES  = 65536;      /* the images start at a multiple of 64 KB, where a GPU places the buffers of a heap */
 constexpr LONG     MAGIC           = 0x52545341; /* "ASTR" */
-constexpr uint32_t MAX_HEIGHT      = 4096;       /* of a texture that Direct3D 8 hardware makes at most */
-constexpr uint32_t MAX_WIDTH       = 8192;       /* both eyes of 4096                                   */
+constexpr uint32_t MAX_HEIGHT      = 4096;       /* the largest texture height of Direct3D 8 hardware    */
+constexpr uint32_t MAX_WIDTH       = 8192;       /* two eyes of 4096 each                                */
 constexpr uint32_t N_SLOTS         = 3;
-constexpr uint32_t PITCH_ALIGNMENT = 256;        /* of a row of a buffer that a GPU copies to a texture */
+constexpr uint32_t PITCH_ALIGNMENT = 256;        /* row alignment of a buffer that a GPU copies to a texture */
 constexpr LONG     VERSION         = 12;
 
-/* A multiple of 64 KB: the pitch of the widest image is a multiple of 256 */
+/* A multiple of 64 KB, because the pitch of the widest image is a multiple of 256. */
 constexpr uint64_t SLOT_N_BYTES    = static_cast<uint64_t>(MAX_WIDTH) * BYTES_PER_PIXEL * MAX_HEIGHT;
 
 static_assert(SLOT_N_BYTES % 65536 == 0,
@@ -94,8 +94,8 @@ bool Stereo::Transport::FrameChannel::begin_read(FrameInfo*      out_info_ptr,
 
     bool result = false;
 
-    /* The slot which was the newest may have been left behind by a new image before it is marked as read: then the newest is
-     * looked for again.
+    /* A new image can replace the newest slot before this slot is marked as being read. In that case the search for the newest slot is
+     * repeated.
      */
     for (uint32_t n_try = 0;
                   n_try < N_TRIES && result == false;
@@ -152,7 +152,7 @@ uint8_t* Stereo::Transport::FrameChannel::begin_write_ptr(const FrameInfo& in_in
         in_info.width  % in_info.n_eyes               == 0          &&
         static_cast<uint64_t>(pitch) * in_info.height <= SLOT_N_BYTES)
     {
-        /* Of three slots, one is the newest and one may be read: the third is free. */
+        /* Of the three slots, one is the newest and one may be in use by the reader. A slot that is neither is free. */
         for (uint32_t n_slot = 0;
                       n_slot < N_SLOTS;
                     ++n_slot)
@@ -168,7 +168,7 @@ uint8_t* Stereo::Transport::FrameChannel::begin_write_ptr(const FrameInfo& in_in
 
         if (result_ptr != nullptr)
         {
-            /* What is passed is in the memory of the channel, whatever the producer says. */
+            /* The image is always passed in the memory of the channel, whatever kind the producer asks for. */
             m_header_ptr->slot_array[m_n_write_slot].frame_index       = in_info.frame_index;
             m_header_ptr->slot_array[m_n_write_slot].height            = in_info.height;
             m_header_ptr->slot_array[m_n_write_slot].kind              = static_cast<uint32_t>(TransportKind::HOST_MEMORY);
@@ -354,7 +354,7 @@ std::unique_ptr<Stereo::Transport::FrameChannel> Stereo::Transport::FrameChannel
         goto end;
     }
 
-    /* An event that a signal of the consumer sets, and the producer's wait takes: it holds one signal at most. */
+    /* An auto-reset event. The consumer's signal sets it and the producer's wait consumes it. It holds at most one signal. */
     pace_event = ::CreateEventA(nullptr,
                                 FALSE, /* bManualReset */
                                 FALSE, /* bInitialState */
@@ -457,7 +457,7 @@ void Stereo::Transport::FrameChannel::set_pace_delay_us(const uint32_t& in_delay
 void Stereo::Transport::FrameChannel::set_target_eye_size(const uint32_t& in_width,
                                                           const uint32_t& in_height)
 {
-    /* The values first, then the flag that says that there are some. */
+    /* The values are stored first, then the flag that says they are set. */
     ::InterlockedExchange(&m_header_ptr->target_eye_height,
                           static_cast<LONG>(in_height) );
     ::InterlockedExchange(&m_header_ptr->target_eye_width,
@@ -479,7 +479,7 @@ void Stereo::Transport::FrameChannel::signal_pace()
 
 bool Stereo::Transport::FrameChannel::wait_for_pace(const uint32_t& in_timeout_n_milliseconds)
 {
-    /* A consumer that has not signalled for this long is not there: the producer is not to wait for what does not come. */
+    /* A consumer that has not signaled for this long is gone. The producer must not wait for a signal that will not come. */
     constexpr LONGLONG ALIVE_N_MILLISECONDS = 250;
 
     LARGE_INTEGER frequency;
@@ -494,7 +494,7 @@ bool Stereo::Transport::FrameChannel::wait_for_pace(const uint32_t& in_timeout_n
     if (signalled_qpc                         != 0                                         &&
         (now.QuadPart - signalled_qpc) * 1000 <= ALIVE_N_MILLISECONDS * frequency.QuadPart)
     {
-        /* A signal that came while the producer was busy is there already; if not, the next one is waited for. */
+        /* A signal that arrived while the producer was busy is already pending. If there is none, the next one is awaited. */
         bool is_signalled = (::WaitForSingleObject(m_pace_event,
                                                    0) == WAIT_OBJECT_0);
 
@@ -508,7 +508,7 @@ bool Stereo::Transport::FrameChannel::wait_for_pace(const uint32_t& in_timeout_n
 
         if (is_signalled)
         {
-            /* The moment is counted from the last signal, which may be a later one than the one that was taken. */
+            /* The target time is counted from the latest signal, which may be later than the signal that was consumed. */
             const LONGLONG delay_qpc = static_cast<LONGLONG>(static_cast<uint32_t>(m_header_ptr->pace_delay_us) ) * frequency.QuadPart / 1000000;
             const LONGLONG target    = static_cast<LONGLONG>(m_header_ptr->pace_signal_qpc) + delay_qpc;
 
@@ -530,8 +530,8 @@ bool Stereo::Transport::FrameChannel::wait_for_pace(const uint32_t& in_timeout_n
 void Stereo::Transport::FrameChannel::wait_until(const LONGLONG& in_target_qpc,
                                                  const LONGLONG& in_frequency)
 {
-    /* A timer that wakes it about a millisecond early, if the system has one that is fine enough, and the rest is looked at: a wait that
-     * is as coarse as a tick of the system would be a frame.
+    /* If the system has a timer that is precise enough, it wakes the thread about a millisecond early, and a polling loop covers the rest.
+     * A wait as coarse as one system tick would last a whole frame.
      */
     constexpr LONGLONG EARLY_N_MICROSECONDS = 1000;
 
@@ -554,7 +554,7 @@ void Stereo::Transport::FrameChannel::wait_until(const LONGLONG& in_target_qpc,
     {
         LARGE_INTEGER due;
 
-        /* Relative, in units of 100 ns, and negative for that. */
+        /* A negative value means a relative time, in units of 100 ns. */
         due.QuadPart = -(remaining_us - EARLY_N_MICROSECONDS) * 10;
 
         if (::SetWaitableTimer(m_pace_timer,
@@ -588,7 +588,7 @@ void Stereo::Transport::FrameChannel::write_float(const float&   in_value,
              &in_value,
              sizeof(float) );
 
-    /* The value first, then the flag that says that there is one. */
+    /* The value is stored first, then the flag that says it is set. */
     ::InterlockedExchange(out_value_bits_ptr,
                           bits);
     ::InterlockedExchange(out_has_value_ptr,

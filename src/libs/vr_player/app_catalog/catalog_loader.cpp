@@ -76,7 +76,7 @@ std::string VRPlayer::AppCatalog::CatalogLoader::get_directory(const std::string
 
 bool VRPlayer::AppCatalog::CatalogLoader::is_absolute_path(const std::string& in_path)
 {
-    /* A drive, or a network share; a path which starts with a separator only is of the current drive. */
+    /* Absolute means a drive path (C:...) or a network share (\\server...). A path that starts with a single separator is relative to the current drive. */
     const size_t n_characters = in_path.size();
     bool         result       = false;
 
@@ -222,7 +222,7 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse(const std::string& in_text,
         out_catalog_ptr->app_vec.push_back(app);
     }
 
-    /* Listed by name, letters of either case alike, then by id. */
+    /* Sorted by name, ignoring case, then by id. */
     {
         const auto is_listed_before_func = [](const AppEntry& in_a,
                                               const AppEntry& in_b)
@@ -352,8 +352,8 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_app(const Utils::Json::JsonValue
                                      out_error_ptr);
         }
 
-        /* What the catalog says of an application whose recipe is there: it cannot be started from the player (for a kind of application that the converter inside it does not
-         * convert, whose recipe is for the replay tools).
+        /* Optional. Marks an application whose recipe exists but that the player cannot start, for example an application of a kind that the built-in
+         * converter does not convert (its recipe is for the replay tools). The value is the reason shown to the user.
          */
         if (is_parsed)
         {
@@ -398,7 +398,7 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_app(const Utils::Json::JsonValue
                 goto end;
             }
 
-            /* The executable is in what is downloaded; a catalog which says otherwise has a mistake in it. */
+            /* The executable must be inside the downloaded directory. A catalog that says otherwise is wrong. */
             const size_t n_directory_characters  = install_directory.size() + 1;
             const size_t n_executable_characters = out_app_ptr->executable_path.size();
             bool         is_outside_directory    = true;
@@ -686,7 +686,7 @@ std::string VRPlayer::AppCatalog::CatalogLoader::resolve_path(const std::string&
                  '/',
                  '\\');
 
-    /* "." and ".." are resolved, so that what is shown is where the file is; a ".." which has nothing to remove is kept. */
+    /* "." and ".." parts are resolved, so that the displayed path is the real location of the file. A ".." with nothing to remove is kept. */
     while (start <= joined.size() )
     {
         size_t            end  = joined.find('\\',
@@ -698,7 +698,7 @@ std::string VRPlayer::AppCatalog::CatalogLoader::resolve_path(const std::string&
 
         bool can_remove_previous = false;
 
-        /* A ".." removes the part before it, unless that is a ".." or a drive. */
+        /* A ".." removes the part before it, unless that part is itself a ".." or a drive. */
         if (part == "..")
         {
             const bool has_previous = (part_vec.empty() == false);

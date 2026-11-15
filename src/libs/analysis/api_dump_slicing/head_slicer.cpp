@@ -58,7 +58,7 @@ size_t Analysis::APIDumpSlicing::HeadSlicer::cut_segment(const uint64_t&        
 
     call_vec.resize(n_calls_kept);
 
-    /* A call which was made later has a chunk which is numbered after the ones of the calls before it. */
+    /* Data chunk numbers grow with call order, so the highest chunk number that a kept call uses tells how many chunks of the segment to keep. */
     for (const auto& call : call_vec)
     {
         for (const auto* argument_vec_ptr : {&call.arg_in_vec, &call.arg_out_vec})
@@ -107,7 +107,7 @@ bool Analysis::APIDumpSlicing::HeadSlicer::find_slice_end(const Capture::APIDump
     {
         const auto& entry = segment_vec.at(n_segment);
 
-        /* The end of the frame is the call of a segment that ends the (last - first + 1)th of the frames which end in it. */
+        /* The frame ends in the first segment whose number of ended frames, counted from the start of the workload, exceeds in_last_frame. */
         if (in_last_frame < entry.first_frame_index + entry.n_frames_ended)
         {
             out_end_ptr->n_segment = n_segment;
@@ -118,7 +118,7 @@ bool Analysis::APIDumpSlicing::HeadSlicer::find_slice_end(const Capture::APIDump
         }
     }
 
-    /* The last frame has not ended: the workload goes on to its end in it. */
+    /* The last frame never ends, because the workload stops inside it. The slice then runs to the end of the last segment. */
     out_end_ptr->n_segment = segment_vec.size() - 1;
 
     result = true;
@@ -210,8 +210,8 @@ bool Analysis::APIDumpSlicing::HeadSlicer::slice(const std::string&  in_workload
         goto end;
     }
 
-    /* A workload whose chunks are stripped is written again from its start; otherwise the segments before the last one are copied as they are, and the
-     * reader starts at the last.
+    /* If chunks are stripped, every segment is read and written again from the start. Otherwise the segments before the last one are copied
+     * unchanged, and the reader starts at the last segment.
      */
     reader_options.n_threads                      = in_options.n_reader_threads;
     reader_options.skip_data_chunks_above_n_bytes = in_options.strip_chunks_above_n_bytes;

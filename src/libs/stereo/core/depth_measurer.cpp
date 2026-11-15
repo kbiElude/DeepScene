@@ -9,7 +9,7 @@
 #include <string.h>
 
 const uint32_t Stereo::Core::DepthMeasurer::FIRST_DISTANCE_KEY = 8;
-const uint32_t Stereo::Core::DepthMeasurer::KEY_SHIFT        = 17; /* a bin per 6 bits of the mantissa: about 1.1 percent of the distance */
+const uint32_t Stereo::Core::DepthMeasurer::KEY_SHIFT        = 17; /* keeps 6 mantissa bits: a bin is about 1.1 percent of the distance wide */
 const uint32_t Stereo::Core::DepthMeasurer::N_BINS           = 1u << (32 - 1 - KEY_SHIFT);
 const uint32_t Stereo::Core::DepthMeasurer::N_SUB_HISTOGRAMS = 4;
 
@@ -25,7 +25,7 @@ Stereo::Core::DepthMeasurer::DepthMeasurer(const bool& in_allow_avx2)
 
     if (m_is_using_avx2)
     {
-        /* The histograms are all zero between the calls: a call clears the bins that it used. */
+        /* The histograms stay all zero between calls: each call clears the bins it used. */
         m_histogram_vec.assign(static_cast<size_t>(N_SUB_HISTOGRAMS) * N_BINS,
                                0);
         m_total_vec.assign    (N_BINS,
@@ -41,7 +41,7 @@ void Stereo::Core::DepthMeasurer::clear_histogram(const DepthKeyRange& in_key_ra
     {
         uint32_t* const histogram_ptr = m_histogram_vec.data() + static_cast<size_t>(n_sub_histogram) * N_BINS;
 
-        /* The bins before the first for a distance count what was not one, and are outside the range. */
+        /* The bins before FIRST_DISTANCE_KEY count pixels without a distance, and they are outside the range. */
         std::fill(histogram_ptr,
                   histogram_ptr + FIRST_DISTANCE_KEY,
                   0u);
@@ -63,7 +63,7 @@ uint32_t Stereo::Core::DepthMeasurer::get_key(const float& in_distance)
              &in_distance,
              sizeof(bits) );
 
-    /* The bits of a positive float grow with it. */
+    /* The bits of a positive float grow with its value. */
     return (bits >> KEY_SHIFT) + FIRST_DISTANCE_KEY;
 }
 
@@ -223,7 +223,7 @@ Stereo::Core::DepthRange Stereo::Core::DepthMeasurer::select_depths(const DepthS
                                            rank_near,
                                            &n_before_near);
 
-    /* The distances of the three bins: the one of each rank is among them. */
+    /* The distances in the three bins. The distance of each wanted rank is among them. */
     std::vector<float> far_vec;
     std::vector<float> median_vec;
     std::vector<float> near_vec;

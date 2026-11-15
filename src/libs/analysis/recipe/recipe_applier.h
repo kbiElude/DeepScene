@@ -22,7 +22,7 @@ namespace Analysis
 {
     namespace Recipe
     {
-        /* Where a call is: in what frame, and in what pass of it, if any (see ModelBuilder::find_pass_index). */
+        /* Where a call is: in which frame (identified by its shape key) and, if it is in a pass, which pass (see ModelBuilder::find_pass_index). */
         struct CallPlace
         {
             bool     has_pass  = false;
@@ -35,36 +35,39 @@ namespace Analysis
         public:
             explicit RecipeApplier(const Analysis::Recipe::Recipe& in_recipe);
 
-            /* What the recipe does to a draw by the signature it has when it is issued (see Recipe::draw_rule_vec), given the view matrix
-             * in effect then (16 numbers, row by row): that of the first rule of the signature which applies. A draw which no rule
-             * applies to is affected. For a converter which plays an application as it runs; a replay knows the passes, and asks
-             * is_draw_affected() and is_draw_skipped().
+            /* Classifies a draw by the signature it has when it is issued (see Recipe::draw_rule_vec) and the view matrix in effect at that time
+             * (16 numbers, row by row). The first rule for the signature that applies decides. A draw that no rule applies to is affected. This
+             * is for a converter that plays an application while it runs. A replay knows the passes, so it calls is_draw_affected() and
+             * is_draw_skipped() instead.
              */
             Analysis::Recipe::DrawClass classify_draw(const uint64_t&              in_signature_key,
                                                       const std::array<float, 16>& in_view_matrix) const;
 
-            /* The distance at which the eyes converge for the draws of the signature (see Recipe::convergence_vec); 0 if the recipe says
-             * none.
+            /* Returns the distance at which the eyes converge for the draws with this signature (see Recipe::convergence_vec), or 0 if the recipe
+             * gives none.
              */
             float get_convergence_distance(const uint64_t& in_signature_key) const;
 
-            /* The rules about the call, in the order they apply. The kind of matrix is checked later, by apply_rule(). The pointers
-             * last as long as the applier.
+            /* Returns the rules about the call, in the order they apply. The kind of matrix is checked later, by apply_rule(). The pointers stay
+             * valid as long as the applier exists.
              */
             std::vector<const Analysis::Recipe::Rule*> get_matching_rule_ptr_vec(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                                  const CallPlace&                             in_place) const;
 
-            /* Whether the recipe has the reads of one pixel that the application makes in a run given from a picture that is read once (see Recipe::caches_pixel_reads). */
+            /* Whether the recipe serves the single-pixel reads that the application makes in a run from one picture that is read once (see
+             * Recipe::caches_pixel_reads).
+             */
             bool get_caches_pixel_reads() const;
 
-            /* What the person who writes the recipe says about how much the eyes can be asked to do. */
+            /* Returns the comfort settings: what the recipe author says about how much the eyes can be asked to do. */
             const Comfort& get_comfort() const;
 
-            /* What the comfort of the recipe makes of a scene that is this deep (the depth of the surfaces that are nearest and farthest, and the median of all of them, in the units
-             * of the camera of the application, and the x scale of its projection, which is 1 over the tangent of half the angle of view of the width of the picture): where the eyes
-             * converge and how far apart they may be so that no surface is further apart in the pictures than Comfort says; what the recipe says of the scene (a SceneComfort, or
-             * none) wins. With both limits and Comfort::balances_convergence the eyes converge where the whole depth fits them best: 1 / d = 1 / near - (1 / near - 1 / far) * near limit /
-             * (near limit + far limit).
+            /* Computes where the eyes converge and how far apart they may be for a scene of the given depth, so that no surface is further apart in
+             * the two pictures than Comfort allows. The depths are those of the nearest and the farthest surface and the median of all surfaces, in
+             * the units of the camera of the application. The projection scale is the x scale of the projection: 1 over the tangent of half the
+             * angle of view across the picture width. What the recipe says about the scene (a SceneComfort, or nullptr for none) wins. With both
+             * limits and Comfort::balances_convergence, the eyes converge where the whole depth fits them best:
+             * 1 / d = 1 / near - (1 / near - 1 / far) * near limit / (near limit + far limit).
              */
             static ComfortLimits get_comfort_limits(const Comfort&      in_comfort,
                                                     const SceneComfort* in_scene_ptr,
@@ -73,41 +76,43 @@ namespace Analysis
                                                     const float&        in_far_depth,
                                                     const float&        in_projection_scale);
 
-            /* How far toward the viewer a draw of the cover key is pushed, if it is pushed: the part parallax for a part of an object that protrudes (see
-             * DrawSelector::part_cover_key_vec) if the recipe has one, the overlay parallax otherwise.
+            /* Returns how far toward the viewer a draw with this cover key is pushed, if it is pushed. This is the part parallax for a part of an
+             * object that protrudes (see DrawSelector::part_cover_key_vec) if the recipe sets one, and the overlay parallax otherwise.
              */
             float get_cover_push_parallax(const uint64_t& in_cover_key) const;
 
-            /* How far toward the viewer the draws that the rules leave alone are pushed (see Comfort::overlay_parallax); 0: not. */
+            /* Returns how far toward the viewer the draws that the rules leave alone are pushed (see Comfort::overlay_parallax). 0 means no push. */
             float get_overlay_parallax() const;
 
-            /* What the recipe says of the scene (see Comfort::scene_override_vec); nullptr if it says nothing. */
+            /* Returns what the recipe says about the scene (see Comfort::scene_override_vec), or nullptr if it says nothing. */
             const SceneComfort* find_scene_comfort_ptr(const uint64_t& in_shape_key) const;
 
-            /* The distance at which the eyes converge in the frames of the shape (see Recipe::scene_convergence_vec); 0 if the recipe says
-             * none.
+            /* Returns the distance at which the eyes converge in the frames of the shape (see Recipe::scene_convergence_vec), or 0 if the recipe
+             * gives none.
              */
             float get_scene_convergence_distance(const uint64_t& in_shape_key) const;
 
-            /* How far apart the eyes may be in the frames of the shape (see Recipe::scene_separation_vec); 0 if the recipe says none. */
+            /* Returns how far apart the eyes may be in the frames of the shape (see Recipe::scene_separation_vec), or 0 if the recipe gives no limit. */
             float get_scene_max_separation(const uint64_t& in_shape_key) const;
 
-            /* How vertices that no matrix moves are given parallax (see ScreenParallax); not enabled if the recipe does not say. */
+            /* Returns how vertices that no matrix moves get their parallax (see ScreenParallax). It is not enabled if the recipe does not have the
+             * section.
+             */
             const Analysis::Recipe::ScreenParallax& get_screen_parallax() const;
 
             Analysis::Recipe::UnknownFramePolicy get_unknown_frame_policy() const;
 
-            /* The view anchor shift of the recipe (see ViewAnchorShift); not enabled if the recipe does not say. */
+            /* Returns the view anchor shift of the recipe (see ViewAnchorShift). It is not enabled if the recipe does not have the section. */
             const Analysis::Recipe::ViewAnchorShift& get_view_anchor_shift() const;
 
-            /* False if no rule is about the function, whatever the arguments: a quick check before the call is looked at. */
+            /* Returns false if no rule is about the function, whatever its arguments. It is a quick check to run before looking at a call. */
             bool has_rule_for(const APIInterceptor::APIFunction& in_function) const;
 
             /* Whether the recipe has a view anchor shift (see ViewAnchorShift): the camera of a draw is moved by the call that begins it. */
             bool has_view_anchor_shift() const;
 
-            /* Whether the rules apply to a draw (see Recipe::affected): the draw in its pass counts for more than the key of the draw, which counts for more
-             * than the key of its pass, and a draw which none of them names is affected.
+            /* Whether the rules apply to a draw (see Recipe::affected). The most specific name wins: the draw in its pass counts for more than the key
+             * of the draw, which counts for more than the key of its pass. A draw that none of them names is affected.
              */
             bool is_draw_affected(const uint64_t& in_pass_key,
                                   const uint64_t& in_draw_key) const;
@@ -131,54 +136,59 @@ namespace Analysis
             bool is_draw_skipped(const uint64_t& in_pass_key,
                                  const uint64_t& in_draw_key) const;
 
-            /* Whether the draw has its vertices in the space of the eye, so it is not taken for attached to the camera. */
+            /* Whether the draw has its vertices in eye space, so it is not treated as attached to the camera. */
             bool is_eye_space_cover(const uint64_t& in_cover_key) const;
 
-            /* True if the frame is one the recipe was made for: its shape is listed, or no shape is. */
+            /* True if the recipe was made for this frame: its shape is listed, or the recipe lists no shapes. */
             bool is_frame_known(const uint64_t& in_shape_key) const;
 
-            /* Whether a draw of the key (see KeyBuilder::compute_draw_cover_key()) is a part of an object that protrudes from it (see DrawSelector::part_cover_key_vec). */
+            /* Whether a draw with this key (see KeyBuilder::compute_draw_cover_key()) is a part of an object that protrudes from it (see
+             * DrawSelector::part_cover_key_vec).
+             */
             bool is_part_cover(const uint64_t& in_cover_key) const;
 
             /* True if the recipe says that each eye has a copy of the texture (see PerEyeTexture). */
             bool is_per_eye_texture(const Analysis::APIDumpAnalysis::ResourceIdentity& in_identity) const;
 
-            /* Whether the draw is a flat overlay from the left edge to the right one: a push widens its viewport so no edge is bare. */
+            /* Whether the draw is a flat overlay that spans from the left edge to the right edge. Pushing it widens its viewport so that no edge
+             * stays bare.
+             */
             bool is_side_reaching(const uint64_t& in_cover_key) const;
 
-            /* True if the recipe knows the signature of a draw: the analysis it was baked from saw it, or the recipe lists none. A draw of
-             * an unknown signature is affected, like any draw which no rule applies to, but the recipe was not made for it.
+            /* True if the recipe knows the signature of a draw: the analysis that the recipe was baked from saw it, or the recipe lists no
+             * signatures. A draw with an unknown signature is affected, like any draw that no rule applies to, but the recipe was not made for it.
              */
             bool is_signature_known(const uint64_t& in_signature_key) const;
 
-            /* Whether the draw is pushed toward the viewer, by its signature and the view matrix (the rule that classify_draw() takes says so; see DrawRule::is_pushed). For a converter
-             * which plays an application as it runs.
+            /* Whether the draw is pushed toward the viewer, decided by its signature and the view matrix. The rule that classify_draw() picks must
+             * have is_pushed set (see DrawRule::is_pushed). This is for a converter that plays an application while it runs.
              */
             bool is_signature_pushed(const uint64_t&              in_signature_key,
                                      const std::array<float, 16>& in_view_matrix) const;
 
-            /* The matrix that the camera of a draw begins with for the eye (see ViewAnchorShift), as OpenGL has matrices: the columns one after the other. The eyes are
-             * apart by the separation, but no more than the scene of the shape allows (see SceneSeparation); they converge at the distance of the scene (see
-             * SceneConvergence), or else at the one of the recipe, and with neither the matrix is the translation alone.
+            /* Returns the matrix that the camera of a draw starts with for the eye (see ViewAnchorShift). It is stored the way OpenGL stores
+             * matrices, column after column. The eyes are in_eye_separation apart, but no more than the scene of the shape allows (see
+             * SceneSeparation). They converge at the distance of the scene (see SceneConvergence) or, if there is none, at the distance of the
+             * recipe. With neither distance, the matrix is only the translation.
              */
             std::array<float, 16> make_view_anchor_matrix(const Analysis::Recipe::Eye& in_eye,
                                                           const float&                 in_eye_separation,
                                                           const uint64_t&              in_shape_key) const;
 
 
-            /* The rule for the eye, for a draw that is pushed toward the viewer (see Comfort::overlay_parallax): if the rule is the one
-             * of a projection (an eye convergence) and the matrix is a perspective one, the picture of the eye is moved sideways by the
-             * parallax, to the right for the left eye. Returns false, and leaves the matrix as it is, for any other rule or matrix.
+            /* Applies the push of a draw toward the viewer (see Comfort::overlay_parallax) for the eye. If the rule is a projection rule (an
+             * eye convergence) and the matrix is a perspective matrix, the picture of the eye is moved sideways by the parallax, to the right for
+             * the left eye. Returns false, and leaves the matrix unchanged, for any other rule or matrix.
              */
             static bool apply_overlay_shift(const Analysis::Recipe::Rule& in_rule,
                                             const Analysis::Recipe::Eye&  in_eye,
                                             const float&                  in_overlay_parallax,
                                             std::array<float, 16>*        inout_matrix_ptr);
 
-            /* Applies the rule for the eye to the matrix (16 numbers, row by row). The eye separation is the distance between the
-             * eyes, in the units of the matrix; an eye offset and an eye convergence use it. The convergence distance, in the same units,
-             * is where the eyes converge; an eye convergence uses it, and does nothing if it is not more than zero. Returns false, and
-             * leaves the matrix as it is, if the rule is about another kind of matrix.
+            /* Applies the rule for the eye to the matrix (16 numbers, row by row). The eye separation is the distance between the eyes, in the
+             * units of the matrix. An eye offset and an eye convergence use it. The convergence distance, in the same units, is where the eyes
+             * converge. An eye convergence uses it and changes nothing if it is not greater than zero. Returns false, and leaves the matrix
+             * unchanged, if the rule is about another kind of matrix.
              */
             static bool apply_rule(const Analysis::Recipe::Rule& in_rule,
                                    const Analysis::Recipe::Eye&  in_eye,
@@ -187,7 +197,7 @@ namespace Analysis
                                    const float&                  in_convergence_distance = 0.0f);
 
         private:
-            /* Signature -> positions in the recipe's draw rules. */
+            /* Maps a signature to the positions of its rules in the draw rules of the recipe. */
             typedef std::unordered_map<uint64_t, std::vector<uint32_t> > DrawRuleIndexMap;
 
             /* A draw in one pass: the key of the pass and the key of the draw. */

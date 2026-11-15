@@ -14,20 +14,20 @@ namespace Stereo
     {
         namespace EngineDLL
         {
-            /* Changes the matrices of the calls of a frame for an eye, as the rules of a recipe say. */
+            /* Rewrites the matrix argument of the calls of a frame for one eye, as the rules of a recipe say. */
             class FrameRewriter
             {
             public:
                 explicit FrameRewriter(const Analysis::Recipe::RecipeApplier& in_applier);
 
-                /* Whether a rule is about the call: a quick check which does not look at the matrix, so a call for which it is false is
-                 * not worth keeping.
+                /* Whether any rule applies to the call. This is a cheap check that does not read the matrix. A call for which it returns
+                 * false never needs to be kept for rewriting.
                  */
                 bool has_matching_rule(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                        const Analysis::Recipe::CallPlace&           in_place) const;
 
-                /* Returns false if no rule changes the call. Otherwise the call is copied to the output with the matrix argument
-                 * pointing to a chunk of the overlay, which holds the new matrix.
+                /* Returns false if no rule changes the call. Otherwise it writes a copy of the call to the output. In the copy the
+                 * matrix argument refers to a new chunk in the overlay, and that chunk holds the changed matrix.
                  */
                 bool rewrite(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                              const Analysis::Recipe::CallPlace&           in_place,

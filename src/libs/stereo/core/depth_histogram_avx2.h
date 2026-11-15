@@ -13,14 +13,16 @@ namespace Stereo
 {
     namespace Core
     {
-        /* The pixel pass of DepthMeasurer for a processor that has AVX2. It is a class of its own because its file is built for AVX2, and so is not to be the home of anything that
-         * the rest of the program may call.
+        /* The pixel pass of DepthMeasurer for a processor that has AVX2. It is a class of its own because its .cpp file is compiled with AVX2
+         * enabled, so no code that the rest of the program may call can live there.
          */
         class DepthHistogramAvx2
         {
         public:
-            /* Writes the distance of each pixel (0 for one that is not a distance) to out_distance_ptr, and counts the distances by bin in the histograms of in_layout, which follow
-             * each other in out_histogram_ptr (the pixels that are next to each other go to different ones, so that those that are in one bin do not wait for each other).
+            /* Writes the distance of each pixel to out_distance_ptr (0 for a pixel without a distance). Counts the distances per bin in the
+             * histograms described by in_layout. The histograms follow each other in out_histogram_ptr. Neighbouring pixels go to different
+             * histograms, so that pixels that fall into the same bin do not wait for each other. Stores the range of used bins and the number
+             * of sky pixels in out_result_ptr.
              */
             static void fill(const float*                in_depth_ptr,
                              const size_t&               in_n_depths,

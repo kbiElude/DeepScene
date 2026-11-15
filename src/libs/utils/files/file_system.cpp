@@ -14,7 +14,7 @@ bool Utils::Files::FileSystem::create_directories(const std::string& in_path,
     bool         result                    = false;
     std::wstring wide_path                 = to_wide(in_path);
 
-    /* From the top: each directory which is not there is made. The prefix of a long path is not one of them. */
+    /* Creates each missing directory from the top down. The long-path prefix is not treated as a directory. */
     n_segment_start_character = (wide_path.compare(0, 4, L"\\\\?\\") == 0) ? 4
                                                                            : 0;
 
@@ -228,7 +228,7 @@ std::wstring Utils::Files::FileSystem::to_wide(const std::string& in_text)
                  L'/',
                  L'\\');
 
-    /* A drive path gets the prefix, which lifts the limit of the length of a path. */
+    /* A path on a drive gets the long-path prefix, which lifts the MAX_PATH length limit. */
     if (result.size() >= 3                                       &&
         result.at(1) == L':'                                     &&
         result.at(2) == L'\\'                                    &&

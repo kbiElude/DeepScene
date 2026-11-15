@@ -2,10 +2,11 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Says which call a replay was making when it crashed: the call about to be made is written, as text, to a file that is mapped into the memory of
- * the process. What a program has written to a mapped file is the system's, and stays in the file when the program dies, so there is nothing to
- * flush and nothing to be lost to a crash. The file is one line: whether the call was begun or finished, the frame it is in, how many calls the replay
- * has made, the thread, and the call with the numbers of its arguments (pointers in hexadecimal, data of the workload as the number of its chunk).
+ * Records which call a replay was making when it crashed. The call that is about to be made is written as text to a file that is mapped
+ * into the memory of the process. Data written to a mapped file belongs to the operating system and stays in the file when the process
+ * dies, so nothing has to be flushed and a crash loses nothing. The file holds one line: whether the call was begun or finished, the frame,
+ * the number of calls the replay has made, the thread, and the call with its arguments (pointers in hexadecimal, data of the workload as the
+ * number of its chunk).
  */
 #ifndef STEREO_REPLAY_CONSISTENCYCHECKER_CRASH_BREADCRUMB_H
 #define STEREO_REPLAY_CONSISTENCYCHECKER_CRASH_BREADCRUMB_H
@@ -23,11 +24,12 @@ namespace Stereo
             class CrashBreadcrumb : public ::Replay::ReplayEngineDLL::ICallInterceptor
             {
             public:
-                /* The file is made, or made empty, and is as long as one line can be. If it cannot be made, the breadcrumb does nothing. */
+                /* Creates the file, or empties it, and sizes it for the longest line. If the file cannot be created, the breadcrumb does nothing. */
                 explicit CrashBreadcrumb(const std::string& in_filename);
                 ~CrashBreadcrumb();
 
-                /* The call as a line of text: the state ("begun" or "finished"), the frame, the number of the call, the thread, the function and its arguments. */
+                /* Formats a call as one line of text: the state ("begun" or "finished"), the frame, the call number, the thread, the function and its
+                 * arguments. */
                 static std::string format_call(const std::string&                           in_state,
                                                const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                const uint32_t&                              in_n_frame,
@@ -43,7 +45,7 @@ namespace Stereo
                                          const uint32_t&                              in_n_frame) override;
 
             private:
-                /* The most that a line is (the rest of an argument list is left out). */
+                /* The maximum length of a line in bytes. The rest of a longer argument list is cut off. */
                 static constexpr size_t LINE_N_BYTES = 1024;
 
                 void write_line(const std::string& in_line);

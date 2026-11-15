@@ -13,7 +13,7 @@
 #include <KnownFolders.h>
 #include <ShlObj.h>
 
-/* The size of the font of the windows which ask for the one of the system (Segoe UI, found in the fonts folder of the system). */
+/* The font size for windows that ask for the system font (Segoe UI, found in the Windows fonts folder). */
 static constexpr float SYSTEM_FONT_SIZE = 18.0f;
 
 static const BOOL IS_DARK_TITLE_BAR = TRUE;
@@ -22,7 +22,7 @@ static const BOOL IS_DARK_TITLE_BAR = TRUE;
 #define DWMWA_USE_IMMERSIVE_DARK_MODE 20
 #endif
 
-/* Declared by the backend only inside a disabled block. */
+/* The ImGui Win32 backend declares this function only inside a disabled block, so it is declared here. */
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND   in_window,
                                                              UINT   in_message,
                                                              WPARAM in_wparam,
@@ -144,7 +144,7 @@ bool Utils::UIHost::IImGuiWindowHost::create(std::string* out_error_ptr)
     ::SetWindowTextA(m_hwnd,
                      m_options.title.c_str() );
 
-    /* The title bar follows the dark window; where the system does not know the attribute, nothing happens. */
+    /* The title bar is made dark to match the window. On a system that does not know the attribute, nothing happens. */
     ::DwmSetWindowAttribute(m_hwnd,
                             DWMWA_USE_IMMERSIVE_DARK_MODE,
                            &IS_DARK_TITLE_BAR,
@@ -167,7 +167,7 @@ bool Utils::UIHost::IImGuiWindowHost::create(std::string* out_error_ptr)
 
     if (m_options.uses_system_font)
     {
-        /* Without the font file, the window keeps the font of ImGui. */
+        /* Without the font file, the window keeps the default ImGui font. */
         const std::string font_path = get_system_font_path();
 
         if (font_path.empty() == false)
@@ -177,7 +177,7 @@ bool Utils::UIHost::IImGuiWindowHost::create(std::string* out_error_ptr)
         }
     }
 
-    /* The sizes and the text follow the DPI of the monitor. */
+    /* Sizes and text are scaled to the DPI of the monitor. */
     ImGui::GetStyle().ScaleAllSizes(scale);
 
     ImGui::GetStyle().FontScaleDpi = scale;
@@ -333,7 +333,7 @@ std::string Utils::UIHost::IImGuiWindowHost::get_system_font_path()
     PWSTR       fonts_folder_ptr = nullptr;
     std::string result;
 
-    /* The fonts folder is where the system says it is: not every Windows is on C:\Windows. */
+    /* The fonts folder is queried from Windows because Windows is not always installed in C:\Windows. */
     if (SUCCEEDED(::SHGetKnownFolderPath(FOLDERID_Fonts,
                                          0, /* dwFlags */
                                          nullptr,
@@ -369,7 +369,7 @@ std::string Utils::UIHost::IImGuiWindowHost::get_system_font_path()
         }
     }
 
-    /* Frees nothing if the folder was not found. */
+    /* Safe even if the folder was not found, because the pointer is then null. */
     ::CoTaskMemFree(fonts_folder_ptr);
 
     return result;
@@ -448,7 +448,7 @@ LRESULT Utils::UIHost::IImGuiWindowHost::process_message(const HWND&   in_window
 
         case WM_SYSCOMMAND:
         {
-            /* The menu of the Alt key would take the keyboard from the window. */
+            /* Pressing Alt would open the system menu and take the keyboard away from the window. */
             if ((in_wparam & 0xfff0) == SC_KEYMENU)
             {
                 goto end;
@@ -481,7 +481,7 @@ void Utils::UIHost::IImGuiWindowHost::render_frame()
 {
     const float clear_color_fp32vec4[] = {0.1f, 0.1f, 0.12f, 1.0f};
 
-    /* The size which the last frame needed. */
+    /* Use the content size measured in the previous frame. */
     if (m_options.fits_content)
     {
         fit_to_content();
@@ -561,7 +561,7 @@ void Utils::UIHost::IImGuiWindowHost::run()
 
     MSG message = {};
 
-    /* A window which fits its content takes the size of it before it is on the screen. */
+    /* Two frames are rendered before the window is shown, so that a window that fits its content has its final size when it appears. */
     render_frame();
     render_frame();
 

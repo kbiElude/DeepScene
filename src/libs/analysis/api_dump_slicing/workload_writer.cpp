@@ -172,9 +172,9 @@ bool Analysis::APIDumpSlicing::WorkloadWriter::write_compressed_segment(const ui
 
 bool Analysis::APIDumpSlicing::WorkloadWriter::write_segment(const Capture::APIDumpLoader::Workload& in_segment)
 {
-    constexpr int    COMPRESSION_LEVEL       = 3; /* the dumper's: it keeps up with a running program */
-    constexpr size_t N_SEGMENT_COUNTS        = 3; /* API calls, data chunks, surfaces                 */
-    constexpr size_t N_SURFACE_HEADER_FIELDS = 3; /* width, height, n bytes                           */
+    constexpr int    COMPRESSION_LEVEL       = 3; /* the level of the dumper, which is fast enough to keep up with a running program */
+    constexpr size_t N_SEGMENT_COUNTS        = 3; /* API calls, data chunks, surfaces                                                */
+    constexpr size_t N_SURFACE_HEADER_FIELDS = 3; /* width, height, n bytes                                                          */
 
     const uint32_t counts_u32vec3[N_SEGMENT_COUNTS] =
     {
@@ -189,7 +189,7 @@ bool Analysis::APIDumpSlicing::WorkloadWriter::write_segment(const Capture::APID
     bool                                           result              = false;
     Capture::APIDumperDLL::ZstdFileWriterUniquePtr writer_ptr;
 
-    /* Items are written out as they are put together, so that a big segment need not exist in memory twice. */
+    /* Writes the buffered bytes out as soon as an item is serialized, so that a large segment is never held in memory both loaded and serialized. */
     const auto flush_func = [&]()
     {
         bool is_written = true;

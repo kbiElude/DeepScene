@@ -47,7 +47,7 @@ void Stereo::Presenter::PreviewSink::on_frame(const Stereo::Transport::ImportedF
 
     const Stereo::Transport::FrameInfo& info = in_frame.info;
 
-    /* An image that was shown is not uploaded again. */
+    /* A frame that was already uploaded is not uploaded again. */
     if (info.frame_index != m_last_frame_index)
     {
         if (info.width  != m_width ||

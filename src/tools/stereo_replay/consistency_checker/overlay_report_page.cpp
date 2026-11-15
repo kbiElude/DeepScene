@@ -66,7 +66,7 @@ Stereo::Replay::ConsistencyChecker::OverlayReportPage::DrawEntryMap Stereo::Repl
         result[in_entry_vec.at(n_entry).structure_key].push_back(n_entry);
     }
 
-    /* A draw is read from its first frame to its last. */
+    /* The entries of each draw are sorted by frame, then by pass, so that a draw is read from its first frame to its last. */
     for (auto& draw_pair : result)
     {
         const auto is_earlier_func = [&in_entry_vec](const size_t& in_a,
@@ -194,7 +194,7 @@ std::string Stereo::Replay::ConsistencyChecker::OverlayReportPage::make_card(con
 
     if (in_entry.animation_filename.empty() == false)
     {
-        /* The animation shows the frame and the frame with the draws in magenta, by turns; the still dims the rest of the frame. */
+        /* The animation alternates between the frame and the frame with the draws in magenta; the still dims the rest of the frame. */
         result += "<a href=\"";
         result += escape_html(in_entry.animation_filename);
         result += "\"><img src=\"";
@@ -359,7 +359,7 @@ std::string Stereo::Replay::ConsistencyChecker::OverlayReportPage::make_section(
 
     result += "</div><div class=\"timeline\">";
 
-    /* The frames in the order of time, each a dot that goes to its card. */
+    /* One dot per frame, in the order of time; each dot links to the card of its frame. */
     for (const auto n_entry : in_entry_place_vec)
     {
         const auto& entry = in_entry_vec.at(n_entry);

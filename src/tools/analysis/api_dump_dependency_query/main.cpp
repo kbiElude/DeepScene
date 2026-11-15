@@ -21,7 +21,7 @@ bool Analysis::APIDumpDependencyQuery::parse_arguments(const int&   in_argc,
     Analysis::APIDumpAnalysis::QueryPositionals     positionals;
     bool                                            result = false;
 
-    /* What the tool has besides the options that every query tool has: --class. */
+    /* The option of this tool in addition to those every query tool has: --class. */
     const QueryCommandLine::ProgramOptionFunc program_option_func = [&](const std::string& in_argument,
                                                                         const bool&        in_has_next,
                                                                         const std::string& in_next_argument,
@@ -36,7 +36,7 @@ bool Analysis::APIDumpDependencyQuery::parse_arguments(const int&   in_argc,
 
         if (*out_is_known_ptr == false)
         {
-            /* Not ours. */
+            /* Not an option of this tool. */
         }
         else
         if (in_has_next == false)
@@ -59,7 +59,7 @@ bool Analysis::APIDumpDependencyQuery::parse_arguments(const int&   in_argc,
         return is_set;
     };
 
-    /* The file, the command, and then the id of a resource or the index of a frame. */
+    /* The positional arguments: the file, the command, and then the id of a resource or the index of a frame. */
     positional_rules.max_n_numbers     = 1;
     positional_rules.missing_text      = "A .deps file and a command are needed";
     positional_rules.number_error_text = "An id must be a number, not ";
@@ -91,7 +91,7 @@ bool Analysis::APIDumpDependencyQuery::parse_arguments(const int&   in_argc,
         out_options_ptr->arguments.resource_id     = value;
     }
 
-    /* The paging of the lists is read with the other options that every query tool has. */
+    /* The paging options (limit and offset) are common to all query tools; copy them into the arguments. */
     out_options_ptr->arguments.limit  = out_options_ptr->common.limit;
     out_options_ptr->arguments.offset = out_options_ptr->common.offset;
 

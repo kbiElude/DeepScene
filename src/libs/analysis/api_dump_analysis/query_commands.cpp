@@ -178,7 +178,7 @@ bool Analysis::APIDumpAnalysis::QueryCommands::get_first_frame_index(const Analy
     const auto& model_ref = in_analysis.model;
     bool        result    = false;
 
-    /* The frames are in order, and a frame has the passes of its shape. */
+    /* The frames are in order, and each frame has the passes of its shape. */
     for (const auto& frame_record : model_ref.frame_record_vec)
     {
         const auto& shape = model_ref.frame_shape_interner.get_structure(frame_record.shape_id);
@@ -258,7 +258,7 @@ Analysis::APIDumpAnalysis::PassDepthSpread Analysis::APIDumpAnalysis::QueryComma
     constexpr double FRACTION_FAR    = 0.9;
     constexpr double FRACTION_MEDIAN = 0.5;
     constexpr double FRACTION_NEAR   = 0.1;
-    constexpr float  MAX_FLAT_RATIO  = 1.1f; /* a range is 9% deeper than the one before: flat is one range, or two next to each other */
+    constexpr float  MAX_FLAT_RATIO  = 1.1f; /* the far depth is at most 10% above the near depth: the depths fall in one range, or in two adjacent ranges */
 
     const auto&     model_ref         = in_analysis.model;
     DepthHistogram  origin_histogram;
@@ -281,7 +281,7 @@ Analysis::APIDumpAnalysis::PassDepthSpread Analysis::APIDumpAnalysis::QueryComma
         }
     }
 
-    /* The vertices of the draws say more than the origins of their objects, which may be anywhere. */
+    /* The vertices of the draws are more informative than the origins of their objects, which can be anywhere. */
     const auto& histogram = (surface_histogram.is_empty() ) ? origin_histogram
                                                             : surface_histogram;
 
@@ -510,7 +510,7 @@ std::vector<uint32_t> Analysis::APIDumpAnalysis::QueryCommands::get_static_camer
     const auto&           model_ref  = in_analysis.model;
     std::vector<uint32_t> result_vec;
 
-    /* The camera of a pass which never changes is the sign of a pass that is drawn in screen space. */
+    /* A pass whose camera never changes is probably drawn in screen space. */
     for (uint32_t n_pass = 0;
                   n_pass < model_ref.pass_structure_interner.get_n_structures();
                 ++n_pass)
@@ -690,7 +690,7 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
     inout_writer_ptr->write_key   ("passes");
     inout_writer_ptr->begin_array();
 
-    /* A pass whose objects have their origins behind the camera still has surfaces in front of it. */
+    /* The depth is reported for every pass that has either histogram: a pass whose object origins are behind the camera can still have surfaces in front of it. */
     std::set<DepthHistogramKey> key_set;
     const DepthHistogram        no_histogram;
 
@@ -730,7 +730,7 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
         inout_writer_ptr->write_key    ("depth_far");
         inout_writer_ptr->write_float  (origin.get_depth_at_fraction(FRACTION_FAR) );
 
-        /* Of the vertices that the draws draw, and not of the origins of their objects, if the analysis could tell them. */
+        /* The depth of the surfaces comes from the vertices that the draws draw, not from the origins of their objects. It is present only if the analysis could read the vertices. */
         const auto surface_iterator = model_ref.surface_depth_histogram_map.find(key);
 
         if (surface_iterator != model_ref.surface_depth_histogram_map.end() )
@@ -1074,7 +1074,7 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
 
     inout_writer_ptr->end_array();
 
-    /* A draw of a candidate pass is a candidate too: a person looks at them one by one, and a recipe can tell them apart by their signatures. */
+    /* A draw of a candidate pass is a candidate too: a person reviews them one by one, and a recipe can tell them apart by their signatures. */
     inout_writer_ptr->write_key("draws");
     inout_writer_ptr->begin_array();
 
@@ -1124,7 +1124,7 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
             write_depth_spread(depth_spread,
                                inout_writer_ptr);
 
-            /* What makes the draw a candidate; a hint as the pass is. */
+            /* Why the draw is a candidate. Like the pass, this is only a hint. */
             inout_writer_ptr->write_key("reasons");
             inout_writer_ptr->begin_inline_array();
             inout_writer_ptr->write_string("static_camera");
@@ -1148,8 +1148,8 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
 
     inout_writer_ptr->end_array();
 
-    /* The draws that were drawn with an orthographic projection are candidates too, whatever the camera of their pass does: a pass of a 3D scene can have the
-     * panels of a screen in it. A hint again: a sure sign of nothing, and a good one.
+    /* The draws made with an orthographic projection are candidates too, whatever the camera of their pass does: a pass of a 3D scene can
+     * contain the panels of a screen. Like the passes, this is only a hint: it can be wrong, but it is often useful.
      */
     inout_writer_ptr->write_key("orthographic_draws");
     inout_writer_ptr->begin_array();
@@ -1207,7 +1207,7 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
     inout_writer_ptr->write_key("pass_keys");
     inout_writer_ptr->begin_array();
 
-    /* A pass whose vertices are at many depths is a 3D scene seen from one place, and is not a candidate for the list. */
+    /* A pass whose vertices lie at many depths is a 3D scene seen from one place, so it is not a candidate for the list. */
     for (const auto& pass_id : pass_id_vec)
     {
         const auto depth_spread = get_pass_depth_spread(in_analysis,
@@ -1466,7 +1466,7 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
         inout_writer_ptr->write_key   ("passes");
         inout_writer_ptr->begin_array();
 
-        /* IDs are sorted, so the instances of a pass structure are adjacent. */
+        /* The IDs are sorted, so the instances of one pass structure are adjacent. */
         for (size_t n_id = 0;
                     n_id < shape.pass_structure_id_vec.size();
                   )
@@ -1994,7 +1994,7 @@ void Analysis::APIDumpAnalysis::QueryCommands::write_sample(const AnalysisResult
                                                             const ValueTimeSeries::Sample& in_sample,
                                                             Utils::Json::JsonWriter*       inout_writer_ptr)
 {
-    constexpr size_t MAX_F32_N_BYTES = 256; /* longer values are given in hex only   */
+    constexpr size_t MAX_F32_N_BYTES = 256; /* longer values are written in hex only */
 
     inout_writer_ptr->begin_object();
     inout_writer_ptr->write_key   ("seconds");

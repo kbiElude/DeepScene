@@ -19,7 +19,7 @@ bool Stereo::Replay::ConsistencyChecker::run_report_shards(const Stereo::Replay:
     std::vector<HANDLE> process_handle_vec;
     bool                result             = true;
 
-    /* One of the parts that run is waited for (the first to end), to make room for another (or at the end): its exit code says whether it did well. */
+    /* Waits for the first running part to finish, to make room for another part (or at the end). Its exit code says whether it succeeded. */
     const auto wait_for_part_func = [&]()
     {
         DWORD exit_code = 0;
@@ -51,14 +51,15 @@ bool Stereo::Replay::ConsistencyChecker::run_report_shards(const Stereo::Replay:
         goto end;
     }
 
-    /* A part is this program again, for its share of the candidates: its own process, with its own engine and the memory of it, which is what makes the parts
-     * quick (a replay of the workload decodes it from its start, with threads of its own), and its output goes where this one's goes.
+    /* A part is this program started again for its share of the candidates. It is a separate process with its own engine and memory, which is
+     * what makes the parts fast: every replay decodes the workload from its start, with threads of its own. The output of a part goes where
+     * the output of this process goes.
      */
     for (uint32_t n_shard = 0;
                   n_shard < in_n_shards;
                 ++n_shard)
     {
-        /* No more parts run at a time than there are jobs; a part that failed ends the starting of the others. */
+        /* At most as many parts run at a time as there are jobs. When a part fails, no further parts are started. */
         while (process_handle_vec.size() >= in_options.n_jobs)
         {
             wait_for_part_func();
@@ -103,7 +104,7 @@ bool Stereo::Replay::ConsistencyChecker::run_report_shards(const Stereo::Replay:
 
         startup_information.cb = sizeof(startup_information);
 
-        /* The command line of CreateProcess is written to: it is a copy. */
+        /* CreateProcess may modify the command line buffer, so it gets a copy. */
         std::vector<char> command_line_i8_vec(command_line.begin(),
                                               command_line.end  ());
 
@@ -131,7 +132,7 @@ bool Stereo::Replay::ConsistencyChecker::run_report_shards(const Stereo::Replay:
         process_handle_vec.push_back(process_information.hProcess);
     }
 
-    /* Those that were started are waited for, whether or not the others could be. */
+    /* Parts that were started are waited for, even if starting another part failed. */
     while (process_handle_vec.empty() == false)
     {
         wait_for_part_func();
@@ -174,8 +175,8 @@ bool Stereo::Replay::ConsistencyChecker::take_overlay_report(const Stereo::Repla
                                 out_part_error_ptr);
     };
 
-    /* The quick path needs the dependencies (they say which frames can be played again from the state they leave); without them, or if they cannot be read,
-     * each candidate is replayed on its own.
+    /* The quick path needs the dependencies, which say which frames can be played again from the state they leave. Without them, or if they
+     * cannot be read, each candidate is replayed on its own.
      */
     Analysis::APIDumpDependencies::DependencyAnalysis analysis;
     std::string                                       deps_error;

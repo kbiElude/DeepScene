@@ -2,20 +2,21 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Layout of a .deps file: what the frames of a workload do with what the frames before them left in the resources of it, written once so that
- * it can be asked about as often as needed. Integers are little-endian.
+ * Layout of a .deps file. The file stores, for every resource of a workload, how each frame uses the content that earlier frames left in it. The
+ * analysis runs once and the file is then queried as often as needed. Integers are little-endian.
  *
  *   file := FileHeader section*          (an AnalysisFileHeader: magic, file version, analysis version; the sections are those of SectionedFile, in this order, once each)
  *
- *   META  the workload (its name, its size and the hashes of its start, middle and end), how it was read, and what the calls were of
+ *   META  the workload (name, size, and hashes of its start, middle and end), properties of the dump (truncation, pointer size, timer frequency),
+ *         and the number of calls per API
  *   RSRC  the resources, as in a .passes file (see PassesSerializer::serialize_resources)
- *   FCAL  the calls of each frame: the first and the last
- *   RDEP  for each resource: its totals, the runs of frames which use it in the same way, and the versions of its content with the frames which
- *         use each and the rectangles that the frame which wrote it wrote (when the resource is one that every write said where it landed in), and
- *         then the rectangle that holds all of those, if there is one
+ *   FCAL  the first and the last call of each frame
+ *   RDEP  for each resource: its totals, the runs of frames that use it in the same way, the versions of its content (each with the frames that
+ *         use it, its inputs, and the rectangles its writer wrote if every write to the resource reported where it landed), and then the written
+ *         extent that contains all those rectangles, if there is one
  *
- * Workload data is not stored. ANALYSIS_VERSION is the version of what the sections mean (see DependencyAnalyzer): bump it whenever a file made
- * from the same workload would come out different.
+ * The file does not contain workload data. ANALYSIS_VERSION identifies the meaning of the section contents (see DependencyAnalyzer). Increase it
+ * whenever the same workload would produce a different file.
  */
 #ifndef APIDUMPDEPENDENCIES_DEPS_FORMAT_H
 #define APIDUMPDEPENDENCIES_DEPS_FORMAT_H

@@ -15,20 +15,22 @@ namespace Stereo
 {
     namespace Core
     {
-        /* Does what DepthBufferStatistics::measure() does, with the same numbers as the result, in a fraction of the time on a processor that has AVX2 (and as it does on one that
-         * has not): the distances of the pixels are put in a histogram, whose bins are the top bits of the distance as a float (which grow with the distance, so that the bins
-         * are about one percent wide, whatever the distance is), the bins that hold the nearest, the median and the farthest distance are found from their counts, and the
-         * three distances are chosen among those in the three bins only. What a measurer keeps between calls is the memory it works in, which is why a caller owns one.
+        /* Does what DepthBufferStatistics::measure() does and returns the same numbers, in a fraction of the time on a processor with AVX2.
+         * On a processor without AVX2 it calls that function. The AVX2 path works as follows. It puts the distances of the pixels in a
+         * histogram. A bin is selected by the top bits of the distance as a float. These bits grow with the distance, so every bin is about
+         * one percent wide, whatever the distance is. The bin counts show which bins hold the nearest, the median and the farthest distance.
+         * The three distances are then selected among the values in those three bins only. A measurer keeps its working memory between
+         * calls, so each caller owns one.
          */
         class DepthMeasurer
         {
         public:
-            /* in_allow_avx2 is false to have the measurer do it the way it is done without AVX2 (for the tests). */
+            /* Pass false as in_allow_avx2 to force the path without AVX2 (for the tests). */
             DepthMeasurer(const bool& in_allow_avx2);
 
             bool is_using_avx2() const;
 
-            /* As DepthBufferStatistics::measure(); a step that is not 1 is done the way it is done without AVX2. */
+            /* Same as DepthBufferStatistics::measure(). A step above 1 uses the path without AVX2. */
             DepthRange measure(const float*  in_depth_ptr,
                                const size_t& in_n_depths,
                                const size_t& in_step,
@@ -60,8 +62,8 @@ namespace Stereo
             bool                  m_is_using_avx2;
             std::vector<uint32_t> m_total_vec;
 
-            /* The bin of a distance is what is left of its bits when KEY_SHIFT of them are left out, plus FIRST_DISTANCE_KEY: the bins before that are for what is not a distance,
-             * one for each of the 8 pixels that the pixel pass takes together.
+            /* The bin of a distance is its float bits shifted right by KEY_SHIFT, plus FIRST_DISTANCE_KEY. The bins below FIRST_DISTANCE_KEY
+             * count pixels without a distance, one bin for each of the 8 pixels that the pixel pass handles together.
              */
             static const uint32_t FIRST_DISTANCE_KEY;
             static const uint32_t KEY_SHIFT;

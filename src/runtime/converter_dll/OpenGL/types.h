@@ -12,9 +12,9 @@ namespace Stereo
 {
     namespace ConverterDLL
     {
-        /* The images of the eyes of a frame of an OpenGL application, as OpenGL reads them: rows from the bottom up, 8 bits each of B, G, R and A (the order of the
-         * images of the channel). They are in memory that is mapped from the buffers that the pixels were read into, and stay there while anything holds the token: the
-         * one that passes them on keeps a copy of the struct until it is done with them.
+        /* The eye images of one frame of an OpenGL application, as OpenGL reads them: rows from the bottom up, 8 bits each of B, G, R and A (the
+         * order of the channel's images). The pixels are in memory that is mapped from the buffers they were read into. The memory stays valid
+         * while anything holds the token. The code that passes the images on keeps a copy of this struct until it is done with them.
          */
         struct GLFrameImages
         {
@@ -25,7 +25,7 @@ namespace Stereo
             uint32_t                    width           = 0;
         };
 
-        /* A glReadPixels of the application that reads one pixel of the colors, in bytes, to memory of its own: the only read that the converter makes itself (see GLResolutionScaler). */
+        /* A glReadPixels call of the application that reads one pixel of the colors, in bytes, into the application's own memory. It is the only read that the converter makes itself (see GLResolutionScaler). */
         struct SinglePixelRead
         {
             uint32_t format     = 0;

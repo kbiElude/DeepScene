@@ -184,7 +184,7 @@ bool Stereo::Replay::ConsistencyChecker::CrashBreadcrumb::should_execute_call(co
 
 void Stereo::Replay::ConsistencyChecker::CrashBreadcrumb::write_line(const std::string& in_line)
 {
-    /* The line is written whole before the end of the previous one is cleared, so that a crash in the middle of it leaves a line, not a half. */
+    /* The new line is written completely before the rest of the previous line is cleared, so that a crash in the middle leaves a whole line. */
     const size_t n_bytes = (in_line.size() < LINE_N_BYTES - 1) ? in_line.size()
                                                                : LINE_N_BYTES - 1;
 
@@ -194,7 +194,7 @@ void Stereo::Replay::ConsistencyChecker::CrashBreadcrumb::write_line(const std::
 
     m_view_ptr[n_bytes] = '\n';
 
-    /* What is left of a longer line before it. */
+    /* Clear what is left of a longer previous line. */
     ::memset(m_view_ptr + n_bytes + 1,
              0,
              LINE_N_BYTES - n_bytes - 1);

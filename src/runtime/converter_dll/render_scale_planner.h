@@ -12,15 +12,17 @@ namespace Stereo
 {
     namespace ConverterDLL
     {
-        /* What the adapters of the APIs share in deciding how much larger an application renders than it asks (see ResolutionPolicy) and in saying it: the scale is the
-         * largest that fits the images in the eye of the headset, within what the frame channel holds for both eyes and what a surface of the API can be.
+        /* The code that the API adapters share to decide how much larger than requested an application renders (see ResolutionPolicy) and to report it.
+         * The scale is the largest one that fits the images in an eye of the headset, while staying within what the frame channel holds for both eyes
+         * and the largest surface that the API can create.
          */
         class RenderScalePlanner
         {
         public:
-            /* The scale for an application that asks for images of the size, shown in a target of the size (an eye of the headset): the least of what fits the target with the
-             * proportions of the images, what the channel holds (see EyeImageLimits), and what fits in the largest extent that a surface of the API can have (0: no limit of
-             * the API). Not brought inside the limits of a ResolutionPolicy, which says what it is.
+            /* Returns the scale for an application that asks for images of the asked size, shown in a target of the target size (an eye of the headset).
+             * It is the smallest of three scales: the one that fits the images in the target with their proportions, the one that fits the channel
+             * (see EyeImageLimits), and the one that fits the largest extent that a surface of the API can have (in_max_surface_extent, 0: no limit).
+             * It is not clamped to the limits of a ResolutionPolicy. The policy does that.
              */
             static float choose_scale(const uint32_t& in_target_width,
                                       const uint32_t& in_target_height,
@@ -28,7 +30,7 @@ namespace Stereo
                                       const uint32_t& in_asked_height,
                                       const uint32_t& in_max_surface_extent);
 
-            /* The line of the log that says what was made larger: "The <what> is made 2064 x 1548 instead of 640 x 480 (scale 3.225)". */
+            /* Returns the log line that reports a resize: "The <what> is made 2064 x 1548 instead of 640 x 480 (scale 3.225)". */
             static std::string describe_resize(const std::string& in_what,
                                                const uint32_t&    in_asked_width,
                                                const uint32_t&    in_asked_height,
@@ -36,7 +38,7 @@ namespace Stereo
                                                const uint32_t&    in_real_height,
                                                const float&       in_scale);
 
-            /* Why the images of the eyes cannot be passed on at the scale, when they are larger than the channel holds. */
+            /* Returns the explanation for the case where the eye images at this scale are larger than the channel can pass on. */
             static std::string describe_too_large(const uint32_t& in_real_width,
                                                   const uint32_t& in_real_height,
                                                   const float&    in_scale);

@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * What a constant (a camera matrix, say) was over the capture, as the values it took and when it took them. A constant
- * which is set again to what it already was is not stored again.
+ * The values that a constant (for example, a camera matrix) took over the capture, and when it took them. If a constant is set again to the
+ * value it already had, the value is not stored again.
  */
 #ifndef APIDUMPANALYSIS_VALUE_TIME_SERIES_H
 #define APIDUMPANALYSIS_VALUE_TIME_SERIES_H
@@ -26,16 +26,16 @@ namespace Analysis
 
             ValueTimeSeries();
 
-            /* Returns true if the value was stored, i.e. if it is not the one the constant had. */
+            /* Returns true if the value was stored, that is, if it differs from the current value of the constant. */
             bool add(const uint64_t&             in_timestamp_qpc,
                      const std::vector<uint8_t>& in_value_u8_vec);
 
-            /* Updates, including those that did not change the value. */
+            /* The number of updates, including the updates that did not change the value. */
             uint64_t get_n_updates() const;
 
             const std::vector<Sample>& get_sample_vec() const;
 
-            /* Makes the series what it was, for a series that has been stored. */
+            /* Restores a series that was stored earlier. */
             void restore(const uint64_t&     in_n_updates,
                          std::vector<Sample> in_sample_vec);
 

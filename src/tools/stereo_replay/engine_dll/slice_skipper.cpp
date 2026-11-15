@@ -26,8 +26,9 @@ Capture::APIDumpLoader::CallKeptFuncFactory Stereo::Replay::EngineDLL::SliceSkip
     Capture::APIDumpLoader::CallKeptFuncFactory      result;
     const Analysis::APIDumpDependencies::FrameSlice* const slice_ptr = m_slice_ptr;
 
-    /* A slice is never freed (see get_chunk_wanted_func()). The function that the factory makes follows the lists, and the pushes of attributes, of its segment
-     * alone, as the threads that read segments do not meet.
+    /* A slice is never freed (see get_chunk_wanted_func()), so the lambda can keep a pointer to it. Each function the factory
+     * creates tracks only the lists and the attribute pushes of its own segment, because the threads that read segments work
+     * independently of each other.
      */
     if (slice_ptr != nullptr)
     {
@@ -35,7 +36,7 @@ Capture::APIDumpLoader::CallKeptFuncFactory Stereo::Replay::EngineDLL::SliceSkip
                  {
                      bool                  is_recording     = false;
                      uint64_t              last_frame_index = UINT64_MAX;
-                     std::vector<uint32_t> push_mask_vec; /* of the pushes of attributes in the frame that has not been popped, the last one first */
+                     std::vector<uint32_t> push_mask_vec; /* masks of the glPushAttrib calls of the frame that are not popped yet, the most recent last */
 
                      return Capture::APIDumpLoader::CallKeptFunc([slice_ptr,
                                                                   is_recording,
@@ -49,7 +50,9 @@ Capture::APIDumpLoader::CallKeptFuncFactory Stereo::Replay::EngineDLL::SliceSkip
                                                                      {
                                                                          case APIInterceptor::APIFUNCTION_GL_GLENDLIST:
                                                                          {
-                                                                             /* A list that began in the segment before has its first calls there, and what is left out of it is left out of the list. */
+                                                                             /* A list that began in the previous segment has its first calls there. Calls left out of those are left out of the
+                                                                              * list itself, so this case is not supported.
+                                                                              */
                                                                              AI_ASSERT_ALWAYS(is_recording,
                                                                                               "A display list is made across two segments of the workload, so that the calls of its first part are not known when its last part is read. Seeking over it is not implemented.");
 
@@ -69,7 +72,9 @@ Capture::APIDumpLoader::CallKeptFuncFactory Stereo::Replay::EngineDLL::SliceSkip
                                                                          {
                                                                              const auto group = Capture::APIDumpLoader::get_api_group(in_call.func);
 
-                                                                             /* The calls of a list that is being made are kept in it; a call of a list is left to should_execute_call(), which knows the list. */
+                                                                             /* Calls of a list that is being recorded are kept: leaving one out would remove it from the list. A call of a list is
+                                                                              * decided by should_execute_call(), which knows the list.
+                                                                              */
                                                                              if (is_recording == false                                  &&
                                                                                  group        == Capture::APIDumpLoader::APIGroup::GL   &&
                                                                                  in_call.func != APIInterceptor::APIFUNCTION_GL_GLCALLLIST)
@@ -81,9 +86,10 @@ Capture::APIDumpLoader::CallKeptFuncFactory Stereo::Replay::EngineDLL::SliceSkip
                                                                                  is_kept = (is_content == false ||
                                                                                             is_live);
 
-                                                                                 /* What a push of attributes that a pop undoes, in a frame that is left out, does not need to be made, since nothing that is made looks at
-                                                                                  * it before the pop does away with it (see GLAttributeCoverage). The calls that are made are the push and the pop themselves, and what a pop
-                                                                                  * does not undo. A frame is left out all of it, so it has to pop what it pushes: the state that its calls would have left is not made.
+                                                                                 /* In a frame that is left out, the calls between a push of attributes and its pop that the pop undoes need not be kept,
+                                                                                  * because nothing that is executed reads them before the pop discards them (see GLAttributeCoverage). The push, the pop and
+                                                                                  * the calls that the pop does not undo are kept. A frame that is left out must pop everything it pushes, because the state its
+                                                                                  * skipped calls would have left is never created.
                                                                                   */
                                                                                  if (in_frame_index != last_frame_index)
                                                                                  {
@@ -146,7 +152,7 @@ Capture::APIDumpLoader::ChunkWantedFunc Stereo::Replay::EngineDLL::SliceSkipper:
     Capture::APIDumpLoader::ChunkWantedFunc                result;
     const Analysis::APIDumpDependencies::FrameSlice* const slice_ptr = m_slice_ptr;
 
-    /* A slice is never freed, so the function may outlive the skipper's use of it; it is the same decision as should_execute_call() makes. */
+    /* A slice is never freed, so the function can outlive this call. It decides like should_execute_call(), except for the GL calls (see below). */
     if (slice_ptr != nullptr)
     {
         result = [slice_ptr](const Capture::APIDumpLoader::DumpedAPICall& in_call,
@@ -161,8 +167,8 @@ Capture::APIDumpLoader::ChunkWantedFunc Stereo::Replay::EngineDLL::SliceSkipper:
                          const bool is_content = is_content_call(in_call.func);
                          const auto group      = Capture::APIDumpLoader::get_api_group(in_call.func);
 
-                         /* The calls of a GL display list that is being made are kept and not left out, and this does not know which are those: the chunks
-                          * of GL stay, and the replay leaves out the calls only.
+                         /* The chunks of all GL calls are wanted. The calls of a display list that is being recorded must keep their
+                          * chunks, and this function cannot tell which calls those are. Only the calls themselves are left out.
                           */
                          is_wanted = (is_content == false ||
                                       group      == Capture::APIDumpLoader::APIGroup::GL);
@@ -309,15 +315,16 @@ bool Stereo::Replay::EngineDLL::SliceSkipper::is_list_call_skippable(const Captu
 
     const bool is_independent = (dependence == Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence::INDEPENDENT);
 
-    /* A list that touches the matrices, the projection, the viewport or the scissor box (or calls one that does, or is not defined) would leave them as it
-     * found them for the one eye and not the other, and the frames that follow would go on from what is not the state the capture had. Such a list is not
-     * supported, so that is told, and not left to give a picture that is wrong.
+    /* A list that changes the matrices, the projection, the viewport or the scissor box (or calls such a list, or is not defined)
+     * changes state that is specific to an eye. If its call is left out, that change does not happen, and later frames would
+     * continue from a state the capture never had. Such a list is not supported, so stop with an error instead of showing a
+     * wrong picture.
      */
     AI_ASSERT_ALWAYS(is_found && is_independent,
                      "A display list that is related to the location of the eye (it loads or moves a matrix, makes something relative to it, sets a projection, a viewport or a scissor box, calls such a list, or is not defined) is called in a frame that the slice leaves out. Seeking over it is not implemented.");
 
-    /* A list that does anything but draw (it sets a state, or the color or the texture coordinate that the vertices that follow have) is made: the frames that are
-     * not left out go on from what it leaves, and leaving it out would take that away.
+    /* A list that does more than draw (it sets state, or the color or texture coordinate that later vertices inherit) is executed.
+     * Frames that are not left out continue from what it leaves, and leaving it out would remove that.
      */
     bool sets_state = true;
 
@@ -353,7 +360,7 @@ bool Stereo::Replay::EngineDLL::SliceSkipper::should_execute_call(const Capture:
 
     bool result = true;
 
-    /* The lists are followed in every frame, since a list that a live frame calls may be made in a dead one. */
+    /* Track the lists in every frame, because a list that a live frame calls may have been recorded in a dead frame. */
     const bool was_recording = m_list_tracker.is_recording();
 
     m_list_tracker.on_call(in_call);
@@ -363,7 +370,7 @@ bool Stereo::Replay::EngineDLL::SliceSkipper::should_execute_call(const Capture:
         const bool is_slice_live = Analysis::APIDumpDependencies::FrameSlicePlanner::is_live(*slice_ptr,
                                                                                              in_n_frame);
 
-        /* The calls of a list that is being made are kept in it: leaving one out would leave it out of every call of the list. */
+        /* Calls of a list that is being recorded are kept: leaving one out would remove it from every call of the list. */
         if (is_slice_live == false &&
             was_recording == false)
         {

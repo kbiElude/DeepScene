@@ -16,7 +16,7 @@ namespace Analysis
         class CommandLine
         {
         public:
-            /* Returns false, and says why, if the arguments are not right. The program name is not among them. */
+            /* Parses the arguments, which do not include the program name. Returns false, and says why, if they are invalid. */
             static bool parse(const std::vector<std::string>& in_argument_vec,
                               Options*                        out_options_ptr,
                               std::string*                    out_error_ptr);

@@ -16,14 +16,14 @@ namespace Stereo
     {
         namespace ConsistencyChecker
         {
-            /* Replays the workload once, up to the last of the frames that the options have a contact sheet of, and writes the sheet: the frames spread evenly
-             * from the first frame of the options to the last (or the end of the workload), each as a screenshot is.
+            /* Replays the workload once, up to the last frame of the contact sheet, and writes the sheet. The sheet shows frames spread evenly from
+             * the first frame of the options to the last (or to the end of the workload), each rendered as a screenshot would be.
              */
             bool take_contact_sheet(const Options& in_options,
                                     std::string*   out_error_ptr);
 
-            /* Replays the workload once, up to the screenshot frame, and writes the image of it to the screenshot file: with a recipe the eyes as the options
-             * say, otherwise the frame as it is.
+            /* Replays the workload once, up to the screenshot frame, and writes its image to the screenshot file. With a recipe the image shows the
+             * eye view that the options ask for; without one it shows the frame as it is.
              */
             bool take_screenshot(const Options& in_options,
                                  std::string*   out_error_ptr);

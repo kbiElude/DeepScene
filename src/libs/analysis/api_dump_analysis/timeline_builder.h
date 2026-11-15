@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Puts the frames of an analysis in time order: runs of frames of one shape and their speed, how often each shape and pass
- * structure occurs, and setup frames (much longer than a typical frame).
+ * Puts the frames of an analysis in time order: runs of frames of one shape and their speed, how often each shape and pass structure occurs,
+ * and the setup frames (frames that are much longer than a typical frame).
  */
 #ifndef APIDUMPANALYSIS_TIMELINE_BUILDER_H
 #define APIDUMPANALYSIS_TIMELINE_BUILDER_H

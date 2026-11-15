@@ -11,20 +11,20 @@ namespace Stereo
 {
     namespace ConverterDLL
     {
-        /* How large the image of an eye can be: the two eyes are passed on side by side, in the image of the frame channel, which has a size of
-         * its own. What a converter makes the surfaces as large as (see ResolutionPolicy) is within it.
+        /* The largest image that one eye can have. The frame channel passes both eyes side by side in one image of a fixed maximum size, so each eye
+         * gets at most half of the width. The surfaces that the converter creates (see ResolutionPolicy) must stay within this size.
          */
         class EyeImageLimits
         {
         public:
-            /* The scale which makes an image of the size the application asks for as large as the frame can hold both eyes of. */
+            /* Returns the scale that enlarges an image of the given size (what the application asks for) as far as both eyes still fit in the frame. */
             static float get_largest_scale(const uint32_t& in_width,
                                            const uint32_t& in_height);
 
             static uint32_t get_max_height();
             static uint32_t get_max_width ();
 
-            /* Whether both eyes, each of the size, are within what the frame can hold. */
+            /* Returns true if two images of the given size, one per eye, fit in the frame. */
             static bool fits(const uint32_t& in_width,
                              const uint32_t& in_height);
 

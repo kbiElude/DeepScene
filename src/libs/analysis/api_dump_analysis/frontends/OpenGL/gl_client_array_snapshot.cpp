@@ -9,7 +9,7 @@ uint32_t Analysis::APIDumpAnalysis::Frontends::GLClientArraySnapshot::get_elemen
 {
     uint32_t result = in_array.stride;
 
-    /* Elements which follow each other fill the part of the array that was copied. */
+    /* Consecutive elements fill the part of the array that was copied. */
     if (result              == 0 &&
         in_array.n_elements != 0)
     {

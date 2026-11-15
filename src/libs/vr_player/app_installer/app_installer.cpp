@@ -65,7 +65,7 @@ bool VRPlayer::AppInstaller::AppInstaller::is_busy() const
 
 bool VRPlayer::AppInstaller::AppInstaller::is_sha256_hex(const std::string& in_text)
 {
-    constexpr size_t N_DIGITS = 64; /* of a SHA-256 */
+    constexpr size_t N_DIGITS = 64; /* hex digits of a SHA-256 */
 
     const size_t n_characters = in_text.size();
     bool         result       = false;
@@ -97,7 +97,7 @@ void VRPlayer::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spe
     std::string                    staging_directory   = in_spec.install_directory + ".download";
     std::string                    unpacked_directory  = staging_directory         + "\\unpacked";
 
-    /* One installation of a directory at a time, whichever DeepScene it is started by. */
+    /* Only one installation of a directory at a time, even if several DeepScene processes start one. */
     {
         std::string lower_directory = in_spec.install_directory;
 
@@ -244,7 +244,7 @@ void VRPlayer::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spe
         goto end;
     }
 
-    /* The directory is made only now, whole: an installation which did not end leaves nothing which looks like one. */
+    /* The install directory is created only now, complete. An installation that did not finish leaves nothing that looks like an installed application. */
     if (Utils::Files::FileSystem::is_directory(in_spec.install_directory) )
     {
         ::RemoveDirectoryW(Utils::Files::FileSystem::to_wide(in_spec.install_directory).c_str() );
@@ -358,7 +358,7 @@ bool VRPlayer::AppInstaller::AppInstaller::start(const InstallSpec& in_spec,
         }
     }
 
-    /* Everything which is written is under the directory of the applications: when it cannot be, the user is told so, and nothing is
+    /* Everything is written under the directory of the applications. If that directory cannot be written to, the user is told and nothing is
      * written anywhere else.
      */
     {

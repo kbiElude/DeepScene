@@ -35,7 +35,7 @@ bool Stereo::Replay::EngineDLL::EyeMatrixBinder::before_draw(const bool&        
     {
         Slot& slot = *slot_pair.second;
 
-        /* A matrix made for another separation is not the one to have, though it is for the eye. */
+        /* A matrix that was made for a different separation is stale, even if it is bound for the right eye. */
         if (slot.bound             != wanted                 ||
             (wanted                != EyeMatrixBinding::MONO &&
              slot.bound_separation != in_eye_separation) )
@@ -44,7 +44,7 @@ bool Stereo::Replay::EngineDLL::EyeMatrixBinder::before_draw(const bool&        
 
             if (wanted != EyeMatrixBinding::MONO)
             {
-                /* The call for the eye is made again when it was made for the other one. */
+                /* The rewritten call is reused if it was made for this eye and separation; otherwise it is made again. */
                 is_for_eye = (slot.has_rewritten_call                              &&
                               slot.rewritten_eye        == in_eye                  &&
                               slot.rewritten_separation == in_eye_separation);
@@ -114,7 +114,8 @@ bool Stereo::Replay::EngineDLL::EyeMatrixBinder::on_call(const Capture::APIDumpL
     bool    result = false;
     auto    slot   = std::unique_ptr<Slot>();
 
-    /* Most calls of a function with a rule are not for it: they need no copy, only to take the place of a call which was. */
+    /* Most calls to a function that has a rule do not match the rule. They need no copy; they only replace the slot of an earlier call that did
+     * match. */
     if (m_rewriter.has_matching_rule(in_call,
                                      in_place) == false)
     {
@@ -140,7 +141,7 @@ bool Stereo::Replay::EngineDLL::EyeMatrixBinder::on_call(const Capture::APIDumpL
                      in_eye_separation,
                      slot.get() );
 
-    /* Whatever this call replaces is not what the device is to have. */
+    /* Drop the slot of the earlier call that this call replaces; the device must not use it. */
     m_slot_map.erase(key);
 
     if (result)

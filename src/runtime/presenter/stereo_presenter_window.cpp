@@ -25,7 +25,7 @@ void Stereo::Presenter::StereoPresenterWindow::draw_contents(Utils::UIHost::Cont
 
     if (m_is_styled == false)
     {
-        /* The image goes to the edge of the window, on black. */
+        /* The image fills the window edge to edge, on a black background. */
         ImGui::GetStyle().WindowPadding              = ImVec2(0.0f,
                                                               0.0f);
         ImGui::GetStyle().Colors[ImGuiCol_WindowBg]  = ImVec4(0.0f,
@@ -50,7 +50,7 @@ void Stereo::Presenter::StereoPresenterWindow::draw_contents(Utils::UIHost::Cont
                                          fit_window_func) );
     }
 
-    /* The headset reads the frames, if there is one: the channel has room for one reader. */
+    /* If there is a headset sink, it reads the frames and the window must not, because the channel has room for only one reader. */
     if (m_headset_sink_ptr == nullptr)
     {
         const bool is_acquired = m_importer_ptr->acquire(&frame);
@@ -72,7 +72,7 @@ void Stereo::Presenter::StereoPresenterWindow::draw_contents(Utils::UIHost::Cont
 
         if (m_headset_sink_ptr != nullptr)
         {
-            /* No preview while the headset shows the frames, so the frame and time are given here. */
+            /* There is no preview while the headset shows the frames, so the shown frame and time are displayed as text instead. */
             text = "Showing in the headset (no preview while it does)";
 
             if (m_headset_sink_ptr->get_shown_frame(&shown_frame_index,
@@ -139,7 +139,7 @@ void Stereo::Presenter::StereoPresenterWindow::fit_window_to_image(const uint32_
         if (frame.right  - frame.left <= monitor.rcWork.right  - monitor.rcWork.left &&
             frame.bottom - frame.top  <= monitor.rcWork.bottom - monitor.rcWork.top)
         {
-            /* Asynchronously: this is called while the window draws, and a new size makes it make its swap chain again. */
+            /* The resize is asynchronous because this runs while the window draws, and a new size makes the host create its swap chain again. */
             ::SetWindowPos(window,
                            nullptr,
                            0, /* X */

@@ -16,7 +16,7 @@ bool Analysis::APIDumpAnalysis::QueryCommandLine::parse(const int&              
 {
     size_t n_positionals = 0;
 
-    /* What is done with each argument: an option that every query program has, an option that takes a number, an option of the program, or what is not an option. */
+    /* Handles each argument as one of: an option that every query program has, an option that takes a number, an option of the program, or a non-option argument. */
     const auto parse_argument_func = [&](const Utils::CommandLine::ArgumentCursor& in_cursor,
                                          bool*                                     out_uses_next_ptr,
                                          std::string*                              out_error_ptr_inner)
@@ -73,7 +73,7 @@ bool Analysis::APIDumpAnalysis::QueryCommandLine::parse(const int&              
         if (is_valid == false ||
             is_known)
         {
-            /* Either the argument was not right, or it was an option and is done with. */
+            /* Either the argument was invalid, or it was an option and has been handled. */
         }
         else
         if (argument.empty()  == false &&
@@ -185,7 +185,7 @@ bool Analysis::APIDumpAnalysis::QueryCommandLine::parse_file_command_and_numbers
 {
     bool result = false;
 
-    /* The file, the command, and then the numbers. */
+    /* The positional arguments are the file, the command, and then the numbers. */
     const PositionalFunc positional_func = [&](const std::string& in_argument,
                                                const size_t&      in_n_positional,
                                                std::string*       out_error_ptr_inner)

@@ -73,7 +73,9 @@ std::vector<std::string> Analysis::Recipe::RecipeLoader::describe_pass_selectors
 
 const Analysis::Recipe::RecipeLoader::CallDescriptor* Analysis::Recipe::RecipeLoader::find_call_descriptor_ptr(const std::string& in_name)
 {
-    /* The functions a rule can apply to: name, function and argument positions (argument 0 is the object it is called on). */
+    /* The functions that a rule can apply to, with their API, name and argument positions. Argument 0 is the object that the function is
+     * called on.
+     */
     static const CallDescriptor CALL_DESCRIPTOR_ARRAY[] =
     {
         {RuleApi::D3D7, APIInterceptor::APIFunction::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_SETTRANSFORM, 2, "IDirect3DDevice7::SetTransform", 1},
@@ -309,7 +311,9 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
                 goto end;
             }
 
-            /* No list at all is how a recipe says that every frame is known. */
+            /* A recipe without a known_shape_keys field means that every frame is known. An empty list would mean that no frame is known, so it
+             * is refused.
+             */
             if (out_recipe_ptr->known_shape_key_vec.empty() )
             {
                 *out_error_ptr = "known_shape_keys: the list is empty, so no frame would be known; leave the field out to know every frame";
@@ -362,7 +366,9 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
             }
         }
 
-        /* The size of a draw is known to the replay and to the converter that plays the application as it runs; only the push makes use of it. */
+        /* Only `pushed` may name draws by cover key, because only the push uses the size of a draw. The replay and the converter that plays the
+         * application while it runs both know that size.
+         */
         {
             struct Named
             {
@@ -768,7 +774,7 @@ bool Analysis::Recipe::RecipeLoader::parse_anchor_shift(const Utils::Json::JsonV
         const auto* distance_ptr = in_value.find_ptr("convergence_distance");
         const auto* draws_ptr    = in_value.find_ptr("draws_without_anchor");
 
-        /* The distance is not needed: a scene (see SceneConvergence) says its own, and without either the eyes are moved apart and no more. */
+        /* The distance is optional. A scene (see SceneConvergence) provides its own, and without either distance the eyes are only moved apart. */
         if (distance_ptr != nullptr)
         {
             bool is_distance_valid = false;
@@ -907,7 +913,7 @@ bool Analysis::Recipe::RecipeLoader::parse_baked(const Utils::Json::JsonValue& i
             goto end;
         }
 
-        /* A rule which has no condition applies whatever follows it, so what follows would never be tried. */
+        /* An earlier rule for the same signature that has no condition always applies, so this rule would never be tried. */
         for (const auto& other_rule : inout_recipe_ptr->draw_rule_vec)
         {
             if (other_rule.signature_key           == rule.signature_key &&
@@ -2109,7 +2115,7 @@ bool Analysis::Recipe::RecipeLoader::parse_scene_overrides(const Utils::Json::Js
         }
 
         {
-            /* The name of the number, where it goes, and the most it can be (a part of the width of the picture is up to one). */
+            /* A number field: where its value goes, its name, and its maximum. A fraction of the picture width is at most 1. */
             struct NumberField
             {
                 float*      destination_ptr;
@@ -2162,7 +2168,7 @@ bool Analysis::Recipe::RecipeLoader::parse_screen_parallax(const Utils::Json::Js
                                                            ScreenParallax*               out_screen_parallax_ptr,
                                                            std::string*                  out_error_ptr)
 {
-    /* An angle of view of a half circle or more is no picture. */
+    /* An angle of view of 180 degrees or more cannot form a picture, so it is refused. */
     constexpr double MAX_FIELD_OF_VIEW_DEGREES = 180.0;
 
     bool result = false;
@@ -2186,7 +2192,7 @@ bool Analysis::Recipe::RecipeLoader::parse_screen_parallax(const Utils::Json::Js
         const auto* distance_ptr = in_value.find_ptr("convergence_distance");
         const auto* fov_ptr      = in_value.find_ptr("field_of_view_degrees");
 
-        /* The distance is what there is no way to find out. */
+        /* The distance is required, because for pre-transformed vertices there is no other way to find it. */
         if (distance_ptr == nullptr)
         {
             *out_error_ptr = in_path + ".convergence_distance is missing";

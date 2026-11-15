@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Starts an application with the stereo converter in it (see command_line.cpp for the arguments). The converter is a DLL of the
- * architecture of the application, so there is a launcher of each: it is the launcher which Detours can inject from.
+ * Starts an application with the stereo converter in it (see command_line.cpp for the arguments). The converter is a DLL with the
+ * architecture of the application, so there is one launcher for each architecture: Detours can only inject it from a launcher of that architecture.
  */
 #include "analysis/recipe/recipe_loader.h"
 #include "capture/injection_launcher/launcher.h"
@@ -38,7 +38,7 @@ std::string Stereo::Launcher::get_converter_failure_reason(const std::string& in
 
     std::ifstream log(Stereo::Session::SessionEnvironment::get_log_path(in_session_id));
 
-    /* The last of the lines it wrote, without what it adds to each (the process, the program, the recipe). */
+    /* Takes the last matching line the converter wrote, without the suffix it adds to every line (the process, the program, the recipe). */
     while (std::getline(log,
                         line) )
     {
@@ -168,7 +168,7 @@ int Stereo::Launcher::run(const std::vector<std::string>& in_argument_vec)
         goto end;
     }
 
-    /* A recipe which cannot be used is better found here than after the application is up. */
+    /* Load the recipe here so that an unusable recipe is found before the application starts. */
     if (Analysis::Recipe::RecipeLoader::load(options.recipe_path,
                                              &recipe,
                                              &error) == false)
@@ -214,7 +214,7 @@ int Stereo::Launcher::run(const std::vector<std::string>& in_argument_vec)
             process_info.dwProcessId);
     fflush (stdout);
 
-    /* The dialog that some demos show before they start. */
+    /* Some demos show a dialog before they start. Press its button. */
     if (options.click_button_text.empty() == false)
     {
         constexpr DWORD CLICK_TIMEOUT_MILLISECONDS = 60000;
@@ -244,7 +244,7 @@ int Stereo::Launcher::run(const std::vector<std::string>& in_argument_vec)
                 "[*] The application exited with code %lu.\n",
                 exit_code);
 
-        /* The converter stops an application which it cannot convert, and says why in its log. */
+        /* The converter stops an application it cannot convert and writes the reason to its log. */
         if (exit_code == Stereo::Session::SessionEnvironment::get_converter_failed_exit_code() )
         {
             const std::string failure_reason = get_converter_failure_reason(options.session_id);
@@ -256,7 +256,7 @@ int Stereo::Launcher::run(const std::vector<std::string>& in_argument_vec)
             result = ExitCode::CONVERTER_FAILED;
         }
 
-        /* What the converter said of the run, in a few lines. */
+        /* A short summary of the run, taken from the log of the converter. */
         if (options.is_logging)
         {
             for (const auto& report_line : LogSummarizer::make_report_lines(LogSummarizer::summarize(read_log_lines(options.session_id) ) ) )

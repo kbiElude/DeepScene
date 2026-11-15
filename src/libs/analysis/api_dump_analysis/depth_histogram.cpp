@@ -5,7 +5,7 @@
 #include "analysis/api_dump_analysis/depth_histogram.h"
 #include <math.h>
 
-/* 8 ranges for each doubling of the depth, from 1 / 128 to 2 ^ 17 (more than 130000), in the units of the camera. */
+/* The ranges are 8 per doubling of the depth, covering 1 / 128 to 2 ^ 17 (about 131000), in the units of the camera. */
 constexpr uint32_t BINS_PER_OCTAVE = 8;
 constexpr int32_t  FIRST_OCTAVE    = -7;
 constexpr uint32_t N_OCTAVES       = 24;
@@ -24,7 +24,7 @@ void Analysis::APIDumpAnalysis::DepthHistogram::add(const float&    in_depth,
 {
     const bool is_finite = ::isfinite(in_depth);
 
-    /* A depth that is not in front of the camera, or is nearer than the first range, is not counted: there is nothing to converge on. */
+    /* A depth that is not in front of the camera, or is nearer than the first range, is ignored: there is nothing to converge on. */
     if (is_finite)
     {
         const float first_depth = ::ldexpf(1.0f,

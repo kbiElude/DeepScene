@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * What a flexible vertex format says of the vertices, for every API that has one.
+ * What a flexible vertex format (FVF) says about the vertices. Shared by the APIs that have one.
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_FIXED_FUNCTION_VERTEX_FORMAT_H
 #define APIDUMPANALYSIS_FRONTENDS_FIXED_FUNCTION_VERTEX_FORMAT_H

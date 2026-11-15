@@ -64,7 +64,7 @@ void Analysis::APIDumpAnalysis::ResourceAccessTracker::end_frame(const uint64_t&
 {
     out_loop_carried_id_vec_ptr->clear();
 
-    /* The order of the touches is the order of the first access; the IDs are listed in their own. */
+    /* m_touched_vec is in the order of first access. Sorting it makes the loop-carried IDs come out in ID order. */
     std::sort(m_touched_vec.begin(),
               m_touched_vec.end() );
 

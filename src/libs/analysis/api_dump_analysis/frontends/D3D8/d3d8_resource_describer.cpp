@@ -85,7 +85,7 @@ Analysis::APIDumpAnalysis::Format Analysis::APIDumpAnalysis::Frontends::D3D8Reso
 
         default:
         {
-            /* Packed YUV formats, the formats of buffers, and those that are not known. */
+            /* Packed YUV formats, buffer formats and unknown formats. */
             result.format_class = Analysis::APIDumpAnalysis::FormatClass::UNKNOWN;
 
             break;
@@ -334,7 +334,7 @@ Analysis::APIDumpAnalysis::ResourceDescription Analysis::APIDumpAnalysis::Fronte
 
 uint32_t Analysis::APIDumpAnalysis::Frontends::D3D8ResourceDescriber::get_n_samples(const Interception::Hooks::D3D8::D3DMULTISAMPLE_TYPE& in_type)
 {
-    /* D3DMULTISAMPLE_NONE is 0, and the others are the number of samples. */
+    /* D3DMULTISAMPLE_NONE is 0. The other values equal the number of samples. */
     return (in_type == Interception::Hooks::D3D8::D3DMULTISAMPLE_NONE) ? 1
                                                                        : static_cast<uint32_t>(in_type);
 }

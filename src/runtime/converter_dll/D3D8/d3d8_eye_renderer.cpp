@@ -262,7 +262,7 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::handle_create_device(const APIInterc
 
     if (m_device_ptr != nullptr)
     {
-        /* What the device renders to to begin with is a back buffer and a depth buffer that the application never asked for. */
+        /* The device creates its back buffer and depth buffer itself. The application never asked for them. */
         if (SUCCEEDED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3DDEVICE8_GETRENDERTARGET>(m_device_ptr,
                                                                                                                       Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3DDEVICE8_GETRENDERTARGET)(static_cast<Interception::Hooks::D3D8::IDirect3DDevice8*>(m_device_ptr),
                                                                                                                                                                                                &render_target_ptr) ))
@@ -550,7 +550,7 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::on_post(const APIInterceptor::APIFun
 
         default:
         {
-            /* A draw which was skipped is not made again either. */
+            /* A skipped draw is not repeated for the right eye. */
             const bool is_draw = CallFeeder::is_draw(in_function);
 
             if (is_draw)
@@ -625,7 +625,7 @@ bool Stereo::ConverterDLL::D3D8EyeRenderer::on_pre(const APIInterceptor::APIFunc
             void* const depth_stencil_ptr = get_pointer_argument(in_arguments_ptr[DEPTH_STENCIL_ARGUMENT_INDEX]);
             void* const render_target_ptr = get_pointer_argument(in_arguments_ptr[RENDER_TARGET_ARGUMENT_INDEX]);
 
-            /* A surface that is not there is no change, in Direct3D 8: of the render target, and of the depth buffer. */
+            /* In Direct3D 8, passing no surface leaves the render target or the depth buffer unchanged. */
             if (render_target_ptr != nullptr)
             {
                 const bool is_ok = (get_twin_ptr(render_target_ptr) != nullptr);
@@ -677,7 +677,7 @@ bool Stereo::ConverterDLL::D3D8EyeRenderer::on_pre_draw(const Analysis::Recipe::
 
     if (in_draw_class != Analysis::Recipe::DrawClass::SKIPPED)
     {
-        /* XYZRHW vertices are in pixels, so no matrix moves them: the renderer makes the draw for both eyes with them moved by the core's plan. */
+        /* XYZRHW vertices are in pixels, so no matrix moves them. The renderer makes the draw for both eyes, with the vertices moved by the core's plan. */
         const bool is_pre_transformed = Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::is_pre_transformed_vertex_shader(m_mirror.vertex_shader);
 
         if (is_pre_transformed)
@@ -753,7 +753,7 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::play_right_eye(void*                
         get_viewport_func(device,
                          &viewport);
 
-        /* Setting a render target may set the viewport to the whole of it. */
+        /* Setting a render target can reset the viewport to cover the whole target. */
         set_render_target_func(device,
                                static_cast<Interception::Hooks::D3D8::IDirect3DSurface8*>(twin_target_ptr),
                                static_cast<Interception::Hooks::D3D8::IDirect3DSurface8*>(twin_depth_ptr) );
@@ -789,7 +789,7 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::play_right_eye(void*                
 
         in_draw_func();
 
-        /* What the application set is in the device again. */
+        /* The render target and depth buffer that the application set are set in the device again. */
         set_render_target_func(device,
                                static_cast<Interception::Hooks::D3D8::IDirect3DSurface8*>(m_mirror.render_target_ptr),
                                static_cast<Interception::Hooks::D3D8::IDirect3DSurface8*>(m_mirror.depth_stencil_ptr) );

@@ -38,14 +38,14 @@ namespace Stereo
     {
         namespace Player
         {
-            /* Shows the images of the eyes side by side (or the one image, for one eye). It has a Direct3D 11 device of its own, as
-             * the images are read back from the device of the replay. The window lives on a thread of its own, so that it answers
-             * the messages the replay sends to the windows of the process whatever the main thread is doing.
+            /* Shows the images of the eyes side by side (or one image, for one eye). It has its own Direct3D 11 device, because the
+             * images are read back from the device of the replay. The window runs on its own thread, so that it keeps answering the
+             * messages the replay sends to the windows of the process, whatever the main thread is doing.
              */
             class PreviewWindow : public Stereo::Replay::EngineDLL::IFrameImageSink
             {
             public:
-                /* Called, from the thread of the window, when the user closes it. Before create(). */
+                /* Called from the thread of the window when the user closes it. It must be set (see set_close_func()) before create(). */
                 typedef std::function<void()> CloseFunc;
 
 
@@ -53,7 +53,7 @@ namespace Stereo
 
                 ~PreviewWindow();
 
-                /* Returns false, with the reason, if the window or the device cannot be made. */
+                /* Returns false, and sets the reason in out_error_ptr, if the window or the device cannot be created. */
                 bool create(std::string* out_error_ptr);
 
                 /* Any thread; the images are copied. */
@@ -63,15 +63,15 @@ namespace Stereo
 
                 void set_close_func(const CloseFunc& in_close_func);
 
-                /* The frames before the first are not shown, so they are not read back: for a replay that hurries up to a frame. The first
-                 * and the last frame are always shown, since the replay may stop on them.
+                /* Frames before the first one are not shown, so they are not read back. This suits a replay that hurries up to a frame.
+                 * The first and the last frame are always shown, because the replay may stop on them.
                  */
                 void set_frame_range(const uint32_t& in_first_frame,
                                      const uint32_t& in_last_frame);
 
-                /* False while the window is hidden, before the first frame to show, and for the frames in between which come sooner than the
-                 * window can show them: reading an image waits for the device. The answer is the same for the executions of a frame.
-                 * Replay thread only.
+                /* Returns false while the window is hidden, before the first frame to show, and for frames that come sooner than the
+                 * window can show them. Reading an image makes the replay wait for the device. The answer is the same for all executions
+                 * of a frame. Replay thread only.
                  */
                 bool wants_frame_image(const uint32_t& in_n_frame,
                                        const uint32_t& in_n_execution) const override;
@@ -85,7 +85,7 @@ namespace Stereo
                     uint32_t                  width    = 0;
                 };
 
-                /* When an image was wanted last. Replay thread only, so it has no lock. */
+                /* When an image was wanted last. Replay thread only, so it needs no lock. */
                 struct ImageRate
                 {
                     uint32_t                              n_decided_frame = 0;
@@ -94,7 +94,9 @@ namespace Stereo
                     std::chrono::steady_clock::time_point last_wanted_time;
                 };
 
-                /* How the thread says that the window is up, or why it is not. Lock order: no other lock is taken while it is held. */
+                /* How the window thread reports that the window is up, or why it is not. Lock order: no other lock is taken while the
+                 * mutex is held.
+                 */
                 struct Startup
                 {
                     std::condition_variable cv;

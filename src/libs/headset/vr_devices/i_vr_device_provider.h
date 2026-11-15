@@ -13,14 +13,16 @@ namespace Headset
 {
     namespace VRDevices
     {
-        /* Where the list of devices comes from: the OpenXR runtime of the machine (OpenXRVRDeviceProvider), or made-up devices (StubVRDeviceProvider). */
+        /* A source of the device list: the OpenXR runtime of the machine (OpenXrVrDeviceProvider) or simulated devices
+         * (StubVrDeviceProvider).
+         */
         class IVrDeviceProvider
         {
         public:
             virtual ~IVrDeviceProvider() = default;
 
-            /* The devices, in the order they are shown, each with an id of its own. Returns false, and says why, if they cannot be
-             * listed.
+            /* Lists the devices in the order they are shown, each with its own id. Returns false and sets out_error_ptr to the reason if
+             * they cannot be listed.
              */
             virtual bool enumerate(std::vector<VrDevice>* out_device_vec_ptr,
                                    std::string*           out_error_ptr) const = 0;

@@ -137,8 +137,8 @@ void Stereo::Presenter::HeadsetSink::log_once(const std::string& in_text)
 
 void Stereo::Presenter::HeadsetSink::on_compositor_frame(const double& in_period_n_milliseconds)
 {
-    /* The natural separation is made for eyes this far apart (a typical distance); the scale is what the person's are, to it, within what a
-     * head can be. Said only when it has changed enough to be felt.
+    /* The natural eye separation is computed for eyes this far apart (a typical distance). The scale is the person's eye distance relative to
+     * that, limited to a plausible range. It is sent only when it has changed enough to be noticed.
      */
     constexpr float CHANGE_THAT_IS_SAID  = 0.005f;
     constexpr float REFERENCE_IPD_METRES = 0.064f;
@@ -177,7 +177,7 @@ void Stereo::Presenter::HeadsetSink::run_frames()
 
     while (m_session_ptr->run_frame(&error) )
     {
-        /* What the session went through is for the log, as it happens: it is what tells what the headset did. */
+        /* The log lines of the session are written as they occur, because they show what the headset did. */
         for (const auto& line : m_session_ptr->take_log_lines() )
         {
             m_log_func(line);
@@ -199,8 +199,8 @@ void Stereo::Presenter::HeadsetSink::run_frames()
 
 void Stereo::Presenter::HeadsetSink::run_uploads()
 {
-    /* The frames of the application come from other processes, which have no event to wake this one: the memory of the channel is looked
-     * at about every millisecond, which is as fine as a sleep goes if the clock of the system is asked to tick that fast.
+    /* The frames of the application come from other processes, which have no event to wake this thread. It therefore polls the memory of the
+     * channel about every millisecond, which is the finest sleep granularity available once the system timer is set to tick that fast.
      */
     constexpr UINT TIMER_N_MILLISECONDS = 1;
 
@@ -235,9 +235,9 @@ void Stereo::Presenter::HeadsetSink::run_uploads()
 
 void Stereo::Presenter::HeadsetSink::tune_pace(const double& in_released_n_milliseconds)
 {
-    /* How much of the way to the aim is gone in a frame: the images of one frame are what the next is judged by, so not all. */
+    /* The fraction of the timing error that is corrected per frame. It is small because the effect of a correction shows only in the images of the following frames. */
     constexpr double GAIN                         = 0.1;
-    constexpr double TARGET                       = 0.3; /* of a frame: the images are ready this far into it, which leaves the rest for a copy that is late */
+    constexpr double TARGET                       = 0.3; /* of a frame: the images should be ready this far into it; the rest is margin for a late copy */
     constexpr double MICROSECONDS_PER_MILLISECOND = 1000.0;
 
     const double period = m_frame_period;
@@ -250,7 +250,7 @@ void Stereo::Presenter::HeadsetSink::tune_pace(const double& in_released_n_milli
         const double phase = ::fmod(in_released_n_milliseconds - start,
                                     period);
 
-        /* Too early is a positive error, which makes the delay longer; the frame is a circle, so the nearest way round is taken. */
+        /* Images that are ready too early give a positive error, which makes the delay longer. The phase wraps around every frame, so the error is taken the short way around. */
         double error = TARGET * period - phase;
 
         if (error > period / 2.0)
@@ -290,7 +290,7 @@ void Stereo::Presenter::HeadsetSink::upload_frame(const Stereo::Transport::Impor
     ID3D12Resource* right_texture_ptr = nullptr;
     const double    start_ms          = Utils::Statistics::SeriesStats::get_now();
 
-    /* The same frame again is what the screen already shows. */
+    /* The headset already shows this frame. */
     if (m_has_frame                                      &&
         in_frame.info.frame_index == m_last_frame_index)
     {
@@ -306,7 +306,7 @@ void Stereo::Presenter::HeadsetSink::upload_frame(const Stereo::Transport::Impor
                                            &right_texture_ptr,
                                            &error) == false)
     {
-        /* Not running yet is not worth saying; what the headset cannot show is. */
+        /* Do not log that the session is not running yet. Log any other reason why the headset cannot show the frame. */
         const size_t has_not_given_position = error.find("has not given");
         const size_t not_running_position   = error.find("not running");
 

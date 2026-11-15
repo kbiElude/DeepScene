@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * The matrices of the application that a rule of the recipe is about, and what the device has of each: the application sets them, a
- * draw needs the ones of its eye (see StereoCore, which owns it).
+ * The application's matrices that a recipe rule is about, and which version of each one the device holds. The application sets the
+ * matrices, and a draw needs the versions for its eye. StereoCore owns it.
  *
  * Not thread-safe.
  */
@@ -25,13 +25,14 @@ namespace Stereo
         class MatrixSlots
         {
         public:
-            /* The matrices to put in the device before a draw of the class, for the eye, that are not in it yet: for a draw which is
-             * affected, those the recipe changes are made for the eye with the distances, for any other the application's, except that
-             * a draw to what the application presents is pushed toward the viewer (see Comfort::overlay_parallax) if the parallax is more
-             * than zero. What was returned is taken to be put in.
+            /* Collects the matrices to put in the device before a draw of in_draw_class for in_eye, leaving out those that are already in it.
+             * For an affected draw, the matrices that the recipe changes are made for the eye with the given distances. For any other draw
+             * they are the application's own matrices. The exception is a draw to the final target (what the application presents): it is
+             * pushed toward the viewer if in_overlay_parallax is above 0 (see Comfort::overlay_parallax). The caller must treat the returned
+             * matrices as put in the device.
              *
-             * The changes are written to the first entries of the vector, which the caller keeps from one call to the next so that
-             * the room of its entries is used again; the entries after them are not meant. Returns how many there are.
+             * The changes are written to the first entries of the vector. The caller keeps the vector from one call to the next so that the
+             * storage of its entries is reused. The entries after the returned count are not valid. Returns the number of changes.
              */
             uint32_t bind(const Analysis::Recipe::DrawClass& in_draw_class,
                           const Analysis::Recipe::Eye&       in_eye,
@@ -41,11 +42,11 @@ namespace Stereo
                           const float&                       in_overlay_parallax,
                           std::vector<MatrixChange>*         inout_change_vec_ptr);
 
-            /* Forgets the matrices kept, for when the device has other ones than the slots know of (it was reset). */
+            /* Forgets the stored matrices. Call it when the device holds other matrices than the slots know of (after a device reset). */
             void forget();
 
-            /* A call of the application that sets a matrix. Returns true if a rule is about it: the matrix is kept and the caller does not
-             * execute the call. Otherwise any matrix kept for the same call is forgotten.
+            /* Handles an application call that sets a matrix. Returns true if a rule is about this matrix: the matrix is stored and the caller
+             * must not execute the call. Otherwise returns false and forgets any matrix stored for the same call.
              */
             bool on_matrix_call(const Analysis::Recipe::RecipeApplier&                  in_applier,
                                 const APIInterceptor::APIFunction&                      in_function,
@@ -53,7 +54,7 @@ namespace Stereo
                                 const std::array<float, 16>&                            in_matrix);
 
         private:
-            /* A matrix is told by the function and the integer arguments of its call (the state of D3DTS_VIEW, say). */
+            /* A matrix is identified by the function and the integer arguments of the call that sets it (for example, the D3DTS_VIEW state). */
             typedef std::pair<APIInterceptor::APIFunction, std::vector<uint32_t> > SlotKey;
 
             /* A matrix of the application that a rule is about. */
@@ -75,8 +76,8 @@ namespace Stereo
                                       SlotKey*                                                out_key_ptr);
 
 
-            Capture::APIDumpLoader::DumpedAPICall m_scratch_call; /* of on_matrix_call(): its vectors keep their room from call to call */
-            SlotKey                               m_scratch_key;  /* the same                                                          */
+            Capture::APIDumpLoader::DumpedAPICall m_scratch_call; /* scratch for on_matrix_call(): its vectors keep their storage between calls */
+            SlotKey                               m_scratch_key;  /* scratch for the slot key of on_matrix_call()                               */
             std::map<SlotKey, Slot>               m_slot_map;
         };
     }

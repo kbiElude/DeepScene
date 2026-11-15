@@ -10,7 +10,7 @@
 bool Analysis::APIDumpDependencies::RectangleCoverage::covers(const std::vector<Analysis::APIDumpAnalysis::AccessRectangle>& in_rectangle_vec,
                                                               const Analysis::APIDumpAnalysis::AccessRectangle&              in_extent)
 {
-    /* A rectangle as its edges, clipped to the extent; the right and the top are the first texel not in it. */
+    /* A rectangle as its edges, clipped to the extent. The right and top edges are exclusive: they are the first texel outside the rectangle. */
     struct Edges
     {
         uint64_t bottom;
@@ -69,8 +69,8 @@ bool Analysis::APIDumpDependencies::RectangleCoverage::covers(const std::vector<
                                 x_vec.end  () ),
                     x_vec.end() );
 
-        /* Each slab between two edges is covered if the rectangles that span it cover the extent from the bottom to the top; and the extent is covered if
-         * every slab of it is.
+        /* The x coordinates of the edges split the extent into vertical slabs. A slab is covered if the rectangles that span it together cover
+         * the extent from the bottom to the top. The extent is covered if every slab is.
          */
         result = (x_vec.size() >= 2);
 

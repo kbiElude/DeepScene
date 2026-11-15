@@ -83,7 +83,7 @@ bool Analysis::APIDumpDependencies::DepsFile::read_bytes(const std::vector<uint8
 
                 case DepsFormat::TAG_META:
                 {
-                    /* The first of them: it starts the analysis, which the others add to. */
+                    /* META is the first section. It initializes the analysis, and the later sections add to it. */
                     is_valid = DepsSerializer::deserialize_meta(in_raw_byte_vec,
                                                                 out_analysis_ptr);
 
@@ -154,7 +154,9 @@ std::vector<uint8_t> Analysis::APIDumpDependencies::DepsFile::write_bytes(const 
     std::vector<std::future<std::vector<uint8_t> > > future_vec;
     std::vector<uint8_t>                             result_vec = Analysis::APIDumpAnalysis::SectionedFile::make_analysis_header_bytes(FILE_KIND);
 
-    /* The sections are independent, and compressing them is what takes the time: they are made together, and put in order. */
+    /* The sections are independent and compressing them is the slow part, so they are serialized in parallel. The results are then appended
+     * in section order.
+     */
     for (const auto& section_info : SECTION_INFO_ARRAY)
     {
         future_vec.push_back(std::async(std::launch::async,

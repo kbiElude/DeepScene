@@ -104,7 +104,7 @@ bool Stereo::Replay::ConsistencyChecker::CommandLine::parse(const std::vector<st
                                                             Options*                        out_options_ptr,
                                                             std::string*                    out_error_ptr)
 {
-    /* The options which are a flag, a text or a whole number: the name of each, and the field of the options which it sets. */
+    /* The options that are a flag, a text or a whole number. Each entry gives the option name and the field of the options that it sets. */
     struct FlagOption
     {
         const char*     name_ptr;

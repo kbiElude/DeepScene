@@ -20,8 +20,8 @@ namespace Stereo
     {
         namespace EngineDLL
         {
-            /* The replay engine of the interceptor, with the frames played for the eyes of a recipe, at the pace of the dumped process, and
-             * the Direct3D 7 and OpenGL calls executed for two eyes.
+            /* The stereo replay engine. It wraps the base replay engine (::Replay::ReplayEngineDLL::ReplayEngine). Frames are played
+             * for the eyes of a recipe at the pace of the dumped process, and Direct3D 7 and OpenGL calls are executed for two eyes.
              */
             class StereoReplayEngine : public IReplayEngine,
                                        public IPlaybackController
@@ -53,16 +53,18 @@ namespace Stereo
                 void                 set_windows_visible        (const bool&                     in_are_visible)              override;
 
             private:
-                /* Declared in the order the engine needs them: the engine, whose thread uses the others, is the first to go. */
+                /* The members are declared so that m_engine is destroyed first. Its thread uses the other members, so it must stop
+                 * before they are destroyed.
+                 */
                 Analysis::APIDumpDependencies::DependencyAnalysis m_dependencies;
                 FrameHurry                                        m_hurry;
                 bool                                              m_has_dependencies;
-                bool                                              m_has_seek_target;   /* a seek with the dependencies was asked for, and m_seek_target_frame is its frame */
+                bool                                              m_has_seek_target;   /* a seek that uses the dependencies was requested; m_seek_target_frame is its target frame */
                 PresentSkipper                                    m_present_skipper;
                 uint32_t                                          m_seek_target_frame;
                 SliceSkipper                                      m_slice_skipper;
                 GLTextureParameterCache                           m_texture_parameter_cache;
-                std::string                                       m_workload_filename; /* what was loaded; the dependencies are checked against it */
+                std::string                                       m_workload_filename; /* the loaded workload; the dependencies file is checked against it */
                 StereoFrameExecutor                               m_stereo_executor;
                 PacedFrameExecutor                                m_paced_executor;
 

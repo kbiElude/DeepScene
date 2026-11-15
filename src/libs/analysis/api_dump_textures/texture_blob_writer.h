@@ -2,8 +2,9 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Makes the table of contents, and writes the file of blobs (see textures_format.h) for those that are not left in the workload: each content once, whatever the number of times it is added. A content is told from the others by its two
- * hashes and its length; it is stored with the filter that it was first given. One thread at a time.
+ * Builds the table of contents and writes the file of blobs (see textures_format.h) for the contents that are not left in the workload. Each
+ * content is stored once, however often it is added. Two contents are the same if both hashes and the length match. A content is stored with the
+ * filter it was first given. Not thread-safe: use it from one thread at a time.
  */
 #ifndef APIDUMPTEXTURES_TEXTURE_BLOB_WRITER_H
 #define APIDUMPTEXTURES_TEXTURE_BLOB_WRITER_H
@@ -25,15 +26,18 @@ namespace Analysis
         public:
             TextureBlobWriter();
 
-            /* Adds the content, if it is not there, and gives its place in the table of blobs; the second time the same content is added it is the same place. */
+            /* Adds the content unless it is already in the table, and returns its index in the table of blobs. Adding the same content again
+             * returns the same index.
+             */
             bool add(const void*       in_data_ptr,
                      const size_t&     in_n_bytes,
                      const BlobFilter& in_filter,
                      uint32_t*         out_blob_index_ptr,
                      std::string*      out_error_ptr);
 
-            /* Adds a content that is left where it is in the workload (the data chunk that an upload carried): nothing is written, and the entry has the size and the
-             * hashes of the bytes, so that a reader can tell the chunk it reads is the one. The place of a chunk that is added again is the same. Needs no file.
+            /* Adds a content that stays in the workload, in the data chunk that an upload carried. Nothing is written. The entry records the size
+             * and the hashes of the bytes, so that a reader can verify that the chunk it reads is the right one. Adding the same chunk again returns
+             * the same index. This needs no file.
              */
             bool add_workload_reference(const void*     in_data_ptr,
                                         const size_t&   in_n_bytes,
@@ -49,12 +53,12 @@ namespace Analysis
             /* The size of the file so far. */
             uint64_t get_n_bytes() const;
 
-            /* Starts the file (what was in it is gone). */
+            /* Starts a new file. Any previous content of the file is discarded. */
             bool open(const std::string& in_filename,
                       std::string*       out_error_ptr);
 
         private:
-            /* The content hash, the length hash and the length. */
+            /* Identifies a content: the content hash, the length hash and the length. */
             typedef std::tuple<uint64_t, uint64_t, uint64_t> ContentKey;
 
             std::vector<BlobEntry>            m_blob_vec;

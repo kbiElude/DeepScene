@@ -7,7 +7,9 @@
 #include <math.h>
 #include <string.h>
 
-/* How near to an edge of the picture a vertex has to be to be at it, as a part of the width: what the analysis counts as reaching it. */
+/* How close to an edge of the picture a vertex must be to count as at the edge, as a fraction of the picture width. The analysis uses the
+ * same distance to decide whether a draw reaches an edge.
+ */
 static constexpr float EDGE_REACH = 0.005f;
 
 bool Stereo::Core::ScreenParallax::apply_plan(const ScreenShiftPlan& in_plan,
@@ -69,9 +71,9 @@ float Stereo::Core::ScreenParallax::get_shift(const Parameters& in_parameters,
 float Stereo::Core::ScreenParallax::get_shift(const ShiftFactors& in_factors,
                                               const float&        in_reciprocal_depth)
 {
-    /* A vertex behind the camera (a reciprocal of the depth that is not above zero) is no place to have a picture of, and neither is one at the
-     * camera (a reciprocal that is huge, or not a number): they are put at the edge of what there is, which is infinity at one end, and a tenth
-     * of the convergence distance at the other.
+    /* A reciprocal depth that is not above 0 means the vertex is at infinity or behind the camera. A reciprocal that is huge or not a number
+     * means the vertex is at the camera. Neither position has a meaningful shift, so the reciprocal is limited to the range from 0 (infinity)
+     * to max_reciprocal (a tenth of the convergence distance).
      */
     const float above_zero = std::max(in_reciprocal_depth,
                                       0.0f);
@@ -80,8 +82,8 @@ float Stereo::Core::ScreenParallax::get_shift(const ShiftFactors& in_factors,
                                                                           : 0.0f; /* not a number */
     const float magnitude  = in_factors.magnitude_per_reciprocal * (reciprocal - in_factors.convergence_reciprocal);
 
-    /* A camera that is moved to the left sees what is near further to the right. */
-    return (in_factors.is_left) ? magnitude
+    /* A camera moved to the left sees near objects further to the right. */
+    return (in_factors.is_left) ?  magnitude
                                 : -magnitude;
 }
 
@@ -228,8 +230,8 @@ void Stereo::Core::ScreenParallax::shift_vertices(const Parameters& in_parameter
         const float shift = get_shift(factors,
                                       reciprocal);
 
-        /* A vertex at an edge of the picture which the shift would take from it is left there: what the polygon covered up to the edge it covers
-         * still, and no gap of the colour behind it opens (where the ground ends at the side of the picture, for one).
+        /* A vertex at an edge of the picture is not moved away from that edge. The polygon still covers up to the edge, and no gap that shows
+         * the color behind it opens (for example where the ground ends at the side of the picture).
          */
         const bool is_held_at_left  = (x     <= edge_n_pixels &&
                                        shift >  0.0f);

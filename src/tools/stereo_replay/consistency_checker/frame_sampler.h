@@ -19,8 +19,9 @@ namespace Stereo
             class FrameSampler
             {
             public:
-                /* The frames, in order, spread evenly from the first to the last (both are in it, unless only one is asked for: then it is the first). With
-                 * fewer frames in the range than asked for, all of them. None if none is asked for, or the first is after the last.
+                /* Chooses frames spread evenly from the first to the last, in order. Both ends are included, except when only one frame is requested: then
+                 * it is the first. If the range has fewer frames than requested, all of them are returned. The result is empty if no frames are requested
+                 * or the first frame is after the last.
                  */
                 static std::vector<uint32_t> sample(const uint32_t& in_first_frame,
                                                     const uint32_t& in_last_frame,

@@ -22,7 +22,7 @@ void Stereo::ConverterDLL::FramePasser::on_present(void* in_device_ptr,
                                                    void* in_left_surface_ptr,
                                                    void* in_right_surface_ptr)
 {
-    /* The host shows less than one image per this many milliseconds; copying more often would only slow the application down. */
+    /* The viewer shows fewer than one image per MIN_COPY_INTERVAL_N_MILLISECONDS, so copying more often would only slow the application down. */
     constexpr int64_t MIN_COPY_INTERVAL_N_MILLISECONDS = 8;
     constexpr double  REPORT_PERIOD_N_MILLISECONDS     = 1000.0;
 
@@ -42,7 +42,7 @@ void Stereo::ConverterDLL::FramePasser::on_present(void* in_device_ptr,
 
         if (now.QuadPart - m_frame_state.last_copy_qpc >= interval_qpc)
         {
-            /* The device is read through its methods, which are the application's to watch and not ours. */
+            /* The converter reads the device through its methods. The application watches those calls, so they are marked as the converter's own. */
             const OwnCallScope              own_call_scope;
             Stereo::Transport::ExportSource source;
 
@@ -90,7 +90,7 @@ void Stereo::ConverterDLL::FramePasser::on_present(void* in_device_ptr,
                 case Stereo::Transport::ExportStatus::NOT_READY:
                 default:
                 {
-                    /* The program which shows the images has not said what it takes yet. */
+                    /* The viewer has not reported which kinds of frame it accepts. */
                     break;
                 }
             }
@@ -98,7 +98,7 @@ void Stereo::ConverterDLL::FramePasser::on_present(void* in_device_ptr,
 
         ++m_frame_state.frame_index;
 
-        /* What the application and the copies do, a second at a time: what tells whether the images come evenly. */
+        /* Once a second the log gets the timing of the presents and of the copies. It shows whether the images arrive evenly. */
         const bool is_log_enabled = m_log.is_enabled();
 
         if (is_log_enabled)
@@ -124,6 +124,6 @@ void Stereo::ConverterDLL::FramePasser::on_present(void* in_device_ptr,
 
 void Stereo::ConverterDLL::FramePasser::wait_for_pace()
 {
-    /* Not under the lock of the state: the wait is as long as a frame. */
+    /* The state lock is not held here, because the wait can last a whole frame. */
     m_frame_state.exporter_ptr->wait_for_pace();
 }

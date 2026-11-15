@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Where the model builder tells what happens to the textures, as the front ends learn of it: an upload, a copy that rendering made, the levels that the driver
- * generates. A sink is optional, and must not call the builder which calls it.
+ * The interface through which the model builder reports what happens to textures, as the front ends learn of it: an upload, a copy made by
+ * rendering, the levels that the driver generates. A sink is optional. It must not call back into the builder that calls it.
  */
 #ifndef APIDUMPTEXTURES_I_TEXTURE_SINK_H
 #define APIDUMPTEXTURES_I_TEXTURE_SINK_H
@@ -21,8 +21,9 @@ namespace Analysis
         public:
             virtual ~ITextureSink() = default;
 
-            /* The event, with the call and the frame it is in (the builder fills them), and no blob (the sink makes it). An upload that has data comes with the bytes of
-             * it, which are valid for the call only, and with the data chunk of the workload that they are in; with none the data pointer is null.
+            /* Receives one event. The builder fills in the call and the frame of the event, and leaves the blob for the sink to set. For an upload
+             * that carries data, in_data_ptr points to the bytes, which are valid only during the call, and in_data_chunk_id is the data chunk of the
+             * workload that holds them. Otherwise in_data_ptr is null.
              */
             virtual void on_texture_event(const TextureEvent& in_event,
                                           const uint8_t*      in_data_ptr,

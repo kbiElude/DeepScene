@@ -24,7 +24,7 @@ bool Stereo::Replay::EngineDLL::FrameHurry::is_hurrying(const uint32_t& in_n_fra
 
 void Stereo::Replay::EngineDLL::FrameHurry::set_until_frame(const uint32_t& in_n_frame)
 {
-    /* The frame comes first: the other thread looks at the flag, and then at the frame. */
+    /* Store the frame first: the replay thread reads the flag, then the frame. */
     m_until_frame = in_n_frame;
     m_has_frame   = true;
 }

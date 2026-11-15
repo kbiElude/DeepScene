@@ -89,7 +89,7 @@ float Stereo::Core::PushShiftPlanner::plan_with_layer(const Analysis::Recipe::Re
         goto end;
     }
 
-    /* Each eye gets half of it: the left picture goes to the right, and the right picture to the left. */
+    /* Each eye gets half of the parallax: the left picture moves to the right and the right picture moves to the left. */
     result = (in_eye == Analysis::Recipe::Eye::LEFT) ?  parallax * in_picture_width_pixels * HALF
                                                      : -parallax * in_picture_width_pixels * HALF;
 

@@ -13,7 +13,7 @@ namespace VRPlayer
     class CommandLine
     {
     public:
-        /* Returns false, and says why, if the arguments are not right. The program name is not among them. */
+        /* Returns false and sets the error if the arguments are invalid. The arguments do not include the program name. */
         static bool parse(const std::vector<std::string>& in_argument_vec,
                           Options*                        out_options_ptr,
                           std::string*                    out_error_ptr);

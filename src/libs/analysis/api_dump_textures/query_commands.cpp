@@ -252,8 +252,8 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpTextures::QueryCommands:
 
     for (const auto& piece : content.piece_vec)
     {
-        /* The part of the level that the piece is (in texels), and the event that made it: the event has a region of its own, of which the piece is what no later
-         * event wrote over.
+        /* A piece is the part of the region of an event that no later event overwrote. It is written together with the event that made it. The
+         * extents are in texels.
          */
         inout_writer_ptr->begin_object();
         inout_writer_ptr->write_key   ("first_layer");
@@ -380,7 +380,7 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpTextures::QueryCommands:
     struct LevelUse
     {
         std::array<uint64_t, N_EVENT_KINDS> n_event_array = {};
-        uint32_t                            last_event    = 0; /* the last one that is not a snapshot: it says the size and format the level has at the end */
+        uint32_t                            last_event    = 0; /* the last event that is not a snapshot; it gives the size and format of the level at the end */
         bool                                has_size      = false;
     };
 

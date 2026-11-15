@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Replays a workload file. This is the front-end of StereoReplayEngineDLL.dll: a window with the playback controls, or the
- * console (--console), which also gives the speed.
+ * Replays a workload file. This is the front end of StereoReplayEngineDLL.dll. It offers a window with the playback controls, or a
+ * console mode (--console) that also lets the user set the speed.
  */
 #include "utils/command_line/number_parser.h"
 #include "analysis/recipe/recipe_loader.h"
@@ -33,7 +33,7 @@ namespace Stereo
     {
         namespace Player
         {
-            /* Reports what happens to the replay on the console, and how steady the frames come. */
+            /* Prints replay events to the console, together with statistics about how evenly the frames are presented. */
             class ConsoleObserver : public Stereo::Replay::EngineDLL::IReplayObserver
             {
             public:
@@ -56,7 +56,9 @@ namespace Stereo
                 QuitHandler*        m_quit_ptr;
             };
 
-            /* The file of the dependencies which is named like the workload: its name with the extension .deps. */
+            /* Returns the default dependencies file: the workload path with its extension replaced by .deps. Returns an empty string
+             * if the path has no extension.
+             */
             std::string get_default_deps_filename(const std::string& in_workload_path);
 
             int  run        (int                                             in_argc,
@@ -94,7 +96,7 @@ void Stereo::Replay::Player::ConsoleObserver::on_frame_presented(const uint32_t&
 
     const double now_ms = static_cast<double>(ticks.QuadPart) * m_ms_per_tick;
 
-    /* The time since the frame before; the first one has none. */
+    /* The time since the previous frame. The first frame has no previous frame. */
     if (in_n_frame      != 0   &&
         m_last_frame_ms != 0.0)
     {
@@ -115,7 +117,7 @@ void Stereo::Replay::Player::ConsoleObserver::on_state_changed(const Stereo::Rep
             "[*] %s\n",
             state_name_ptr);
 
-    /* A pause, or the end, closes a stretch of frames; the time to the next one does not count. */
+    /* Any state other than PLAYING (a pause or the end) closes a run of frames. Print the statistics of that run and start a new one. */
     if (in_new_state != Stereo::Replay::EngineDLL::PlaybackState::PLAYING)
     {
         print_frame_times(std::move(m_frame_time_ms_vec) );
@@ -170,7 +172,7 @@ std::string Stereo::Replay::Player::get_default_deps_filename(const std::string&
 int Stereo::Replay::Player::run(int   in_argc,
                                 char* in_argv[])
 {
-    /* Used when the command line gives no distance. */
+    /* The eye separation that is used when the command line does not give one. */
     constexpr float    DEFAULT_EYE_SEPARATION = 0.1f;
     constexpr uint32_t N_INDEX_READER_THREADS = 2;
 
@@ -278,7 +280,9 @@ int Stereo::Replay::Player::run(int   in_argc,
 
     controller_ptr = engine_ptr->get_playback_controller_ptr();
 
-    /* What a seek goes by: the dependencies between the frames, if the file of them is there. A file which is not of this workload is said, and not used. */
+    /* A seek uses the dependencies between the frames, if their file exists. If the file belongs to another workload, report that
+     * and do not use it.
+     */
     deps_filename = (options.deps_filename.empty() ) ? get_default_deps_filename(options.workload_path)
                                                      : options.deps_filename;
 
@@ -335,8 +339,9 @@ int Stereo::Replay::Player::run(int   in_argc,
         execution_options.mode = (options.eye_mode == EyeMode::BOTH)  ? Stereo::Replay::EngineDLL::FrameExecution::TWICE
                                                                       : Stereo::Replay::EngineDLL::FrameExecution::BUFFERED_ONCE;
 
-        /* The second execution of a frame is to begin where the first did: a frame may rely on the state which the one before it left (a render
-         * target which it never sets, say), and the first execution changes it.
+        /* Restore the device state before the second execution of a frame, so that it starts from the same state as the first. A
+         * frame may rely on the state that the previous frame left (for example a render target that it never sets), and the first
+         * execution changes that state.
          */
         execution_options.restores_state = (options.eye_mode == EyeMode::BOTH);
 
@@ -361,7 +366,7 @@ int Stereo::Replay::Player::run(int   in_argc,
         preview_ptr->set_frame_range(options.has_frame_range ? options.first_frame : 0,
                                      options.has_frame_range ? options.last_frame  : UINT32_MAX);
 
-        /* The preview shows what is rendered, so the window of the application would only be in the way. */
+        /* The preview shows the rendered images, so the window of the application would only be in the way. */
         engine_ptr->set_windows_visible(false);
 
         engine_ptr->set_frame_execution (execution_options);
@@ -374,7 +379,7 @@ int Stereo::Replay::Player::run(int   in_argc,
 
     if (options.is_console)
     {
-        /* What the replay says is read as it happens, also by a program which holds the other end of a pipe. */
+        /* Make stdout unbuffered, so that a program reading the other end of a pipe sees each message as it happens. */
         ::setvbuf(stdout,
                   nullptr,
                   _IONBF,
@@ -382,7 +387,9 @@ int Stereo::Replay::Player::run(int   in_argc,
 
         controller_ptr->play();
 
-        /* Reading the commands blocks, so the main thread waits for the end instead; the reader is left behind. */
+        /* Reading commands blocks, so it runs on its own thread. The main thread waits for the quit request instead, and the reader
+         * thread is detached afterwards.
+         */
         std::thread input_thread(run_console,
                                  controller_ptr,
                                  quit_ptr);
@@ -412,7 +419,9 @@ int Stereo::Replay::Player::run(int   in_argc,
             window.show_eye_separation();
         }
 
-        /* The slider that seeks needs the number of frames: the index of the workload says (it is made the first time, and kept next to it). */
+        /* The seek slider needs the number of frames, which the workload index provides. The index is built the first time and stored
+         * next to the workload.
+         */
         if (Capture::APIDumpLoader::WorkloadIndex::load_or_build(options.workload_path.c_str(),
                                                                  N_INDEX_READER_THREADS,
                                                                 &index,
@@ -429,7 +438,7 @@ int Stereo::Replay::Player::run(int   in_argc,
 
         quit_ptr->set_target(close_window_func);
 
-        /* The window is up before the replay makes its own, so that it can be put below it. */
+        /* Create the control window before the replay creates its own windows, so that it can be placed below them. */
         engine_ptr->add_replay_observer(&window);
 
         controller_ptr->play();
@@ -465,7 +474,7 @@ void Stereo::Replay::Player::run_console(Stereo::Replay::EngineDLL::IPlaybackCon
     for (std::string command; std::getline(std::cin,
                                            command); )
     {
-        /* The player has ended already, and the controller may be gone. */
+        /* The player has already ended, so the controller may no longer exist. */
         if (in_quit_ptr->is_requested() )
         {
             break;

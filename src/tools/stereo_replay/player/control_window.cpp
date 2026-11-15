@@ -7,10 +7,14 @@
 #include "imgui.h"
 #include <algorithm>
 
-/* Posted by the replay thread: the window of the replay has been put in place. */
+/* Posted to the control window after the replay thread reports that the replay window was placed. The handler moves the control
+ * window below the replay window.
+ */
 static constexpr UINT WM_PLACE_BELOW_REPLAY_WINDOW = WM_APP + 1;
 
-/* The top of the slider: the eyes of a person are 0.065 m apart, scenes are rarely in metres. */
+/* The maximum of the eye separation slider. Human eyes are about 0.065 m apart, but scene units are rarely metres, so the range is
+ * much wider.
+ */
 static constexpr float EYE_SEPARATION_MAX = 2.0f;
 
 
@@ -54,7 +58,7 @@ void Stereo::Replay::Player::ControlWindow::draw_contents(Utils::UIHost::Content
 
     extend_content(inout_extent_ptr);
 
-    /* The number of the frame which was presented last; right after a reset, it is the first one: frame 0. */
+    /* The number of the frame that was presented last. After a reset no frame was presented, and 0 is shown. */
     ImGui::Text("Frame: %u",
                 (status.n_frames_presented > 0) ? status.n_frames_presented - 1
                                                 : 0);
@@ -68,7 +72,7 @@ void Stereo::Replay::Player::ControlWindow::draw_contents(Utils::UIHost::Content
 
     ImGui::Separator();
 
-    /* After the end, only a reset starts the replay again. */
+    /* Once the replay has ended, only a reset starts it again. */
     ImGui::BeginDisabled(is_ended);
 
     if (ImGui::Button((is_playing) ? "Pause"
@@ -101,7 +105,9 @@ void Stereo::Replay::Player::ControlWindow::draw_contents(Utils::UIHost::Content
 
     extend_content(inout_extent_ptr);
 
-    /* The slider, the step and the box seek: forward is hurried through, back in time starts over, which is asked about first. */
+    /* The slider, the step buttons and the frame box all seek. A seek forward hurries through the frames in between. A seek back in
+     * time restarts the replay, so the user is asked to confirm first.
+     */
     if (m_n_frames > 1)
     {
         const uint32_t current_frame = (status.n_frames_presented > 0) ? status.n_frames_presented - 1
@@ -110,7 +116,7 @@ void Stereo::Replay::Player::ControlWindow::draw_contents(Utils::UIHost::Content
 
         ImGui::Separator();
 
-        /* The slider is where the replay is, until it is taken hold of. */
+        /* The slider follows the replay until the user grabs it. */
         if (m_is_slider_active == false)
         {
             m_slider_frame = static_cast<int>(current_frame);
@@ -219,8 +225,9 @@ void Stereo::Replay::Player::ControlWindow::draw_contents(Utils::UIHost::Content
             m_controller_ptr->set_eye_separation(separation);
         }
 
-        /* A frame which was played is not played again by itself: the new distance is in the next one, unless the frame is played again, which is starting
-         * over (quick if the dependencies are known) and playing on to it.
+        /* A frame that was already played is not played again automatically, so the new distance applies from the next frame. If
+         * m_is_redo_on_release is set, releasing the slider shows the current frame again: the replay is reset and plays on to that
+         * frame (fast if the dependencies are known).
          */
         const bool is_released = ImGui::IsItemDeactivatedAfterEdit();
 
@@ -249,7 +256,7 @@ void Stereo::Replay::Player::ControlWindow::draw_contents(Utils::UIHost::Content
         }
     }
 
-    /* The message does not make the window wider than the buttons do. */
+    /* Wrap the message at the right edge of the content, so that it does not make the window wider than the buttons do. */
     if (status.state == Stereo::Replay::EngineDLL::PlaybackState::FAILED)
     {
         ImGui::PushTextWrapPos(inout_extent_ptr->right);
@@ -278,7 +285,7 @@ Utils::UIHost::WindowOptions Stereo::Replay::Player::ControlWindow::get_window_o
     result.client_height = CLIENT_HEIGHT;
     result.client_width  = CLIENT_WIDTH;
     result.fits_content  = true;
-    result.is_topmost    = true; /* the windows of the replay are made by the replayed app, and can cover this one */
+    result.is_topmost    = true; /* the replayed application creates the replay windows, which could cover this window */
     result.title         = in_title;
 
     return result;
@@ -319,7 +326,7 @@ void Stereo::Replay::Player::ControlWindow::on_frame_presented(const uint32_t& i
 
 void Stereo::Replay::Player::ControlWindow::on_resized_to_content()
 {
-    /* The window is wider or narrower now: it is centered under the replay window again. */
+    /* The width of the window changed, so center it under the replay window again. */
     m_is_placed = false;
 
     place_below_replay_window();
@@ -334,7 +341,7 @@ void Stereo::Replay::Player::ControlWindow::on_state_changed(const Stereo::Repla
 
 void Stereo::Replay::Player::ControlWindow::on_window_closed()
 {
-    /* The user has closed the window of the replay: the tool ends with it, and main() sees to that. */
+    /* Nothing to do. Closing the replay window ends the tool, and the quit handler closes this window. */
 }
 
 void Stereo::Replay::Player::ControlWindow::on_window_placed(const Stereo::Replay::EngineDLL::WindowPlacement& in_placement)
@@ -346,7 +353,7 @@ void Stereo::Replay::Player::ControlWindow::on_window_placed(const Stereo::Repla
         m_replay_window.placement = in_placement;
     }
 
-    /* The window is moved by the thread which owns it. */
+    /* Post a message so that the thread that owns the window moves it. */
     ::PostMessageW(get_window(),
                    WM_PLACE_BELOW_REPLAY_WINDOW,
                    0,
@@ -373,7 +380,9 @@ void Stereo::Replay::Player::ControlWindow::place_below_replay_window()
         placement = m_replay_window.placement;
     }
 
-    /* A window of the replay which comes back in another place (it was made anew) takes the controls with it. */
+    /* Place the window the first time, and again whenever the replay window changes position or size (for example when the
+     * application creates it anew).
+     */
     if (is_known                                     &&
         (m_is_placed      == false                   ||
          placement.height != m_last_placement.height ||
@@ -399,7 +408,7 @@ void Stereo::Replay::Player::ControlWindow::place_below_replay_window()
                              &monitor_info);
         }
 
-        /* Under the window of the replay, in the middle; if that leaves the screen, it is moved back into it. */
+        /* Center the window below the replay window. If that would leave the work area of the monitor, move it back inside. */
         x = placement.x + (placement.width - (control_rect.right - control_rect.left) ) / N_PARTS_TO_CENTER;
         y = placement.y + placement.height + GAP_N_PIXELS;
 

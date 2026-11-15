@@ -30,8 +30,8 @@ namespace Utils
             static bool read_file(const std::string& in_filename,
                                   std::string*       out_text_ptr);
 
-            /* Some editors, and PowerShell 5.1, start a UTF-8 file with a byte order mark; JSON does not allow it, so a reader of files
-             * takes it off before parse().
+            /* Some editors and PowerShell 5.1 write a UTF-8 byte order mark at the start of a file. JSON does not allow one, so the file reader
+             * removes it before calling parse().
              */
             static std::string strip_byte_order_mark(const std::string& in_text);
 

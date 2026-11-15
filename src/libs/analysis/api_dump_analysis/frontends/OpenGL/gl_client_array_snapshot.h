@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Reads the snapshot of the vertex arrays that the dumper makes at a draw (it is the last argument of glDrawArrays and glDrawElements; the
- * layout is described with ClientArrayManager in the interception), and the elements of an array.
+ * Reads the snapshot of the vertex arrays that the dumper takes at a draw, and the elements of an array. The snapshot is the last argument of
+ * glDrawArrays and glDrawElements. Its layout is described with ClientArrayManager in the interception.
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_CLIENT_ARRAY_SNAPSHOT_H
 #define APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_CLIENT_ARRAY_SNAPSHOT_H
@@ -26,15 +26,15 @@ namespace Analysis
                 /* The distance between the elements of the array, in bytes. */
                 static uint32_t get_element_stride(const GLClientArray& in_array);
 
-                /* The size of a GL type of a component (a byte, a short, an int, a float or a double), in bytes; 0 for any other. */
+                /* The size in bytes of a GL component type (byte, short, int, float or double); 0 for any other type. */
                 static uint32_t get_type_n_bytes(const uint32_t& in_type);
 
-                /* The arrays of the snapshot, which point into its data; false if it is not the size that it says it is. */
+                /* Reads the arrays of the snapshot. They point into its data. Returns false if the snapshot is not as large as it declares. */
                 static bool parse(const Capture::APIDumpLoader::DataChunk& in_chunk,
                                   std::vector<GLClientArray>*              out_array_vec_ptr);
 
-                /* The first three components of an element as numbers (the third is 0 if the array has two); false if the element is not
-                 * in the part of the array that the snapshot has, or the type of a component is not a number that a position is made of.
+                /* Reads the first three components of an element as numbers (the third is 0 if the array has two components). Returns false if
+                 * the element is outside the part of the array that the snapshot holds, or if the component type cannot form a position.
                  */
                 static bool read_position(const GLClientArray&  in_array,
                                           const uint32_t&       in_element,
@@ -54,7 +54,7 @@ namespace Analysis
                     TYPE_UNSIGNED_SHORT = 0x1403
                 };
 
-                /* One array as the dumper writes it. */
+                /* One array as the dumper stores it. */
 #pragma pack(push, 1)
                 struct PackedArray
                 {
@@ -75,7 +75,7 @@ namespace Analysis
                 static_assert(sizeof(PackedArray) == 48,
                               "Unexpected layout of an array of a snapshot");
 
-                /* A component as a number; false for a type that is not one of the five. */
+                /* Reads a component as a number. Returns false for a type other than the five supported ones. */
                 static bool read_component(const uint32_t& in_type,
                                            const uint8_t*  in_data_ptr,
                                            double*         out_value_ptr);

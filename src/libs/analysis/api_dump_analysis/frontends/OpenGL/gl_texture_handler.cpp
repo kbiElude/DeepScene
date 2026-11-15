@@ -20,7 +20,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::add_texture_binding
 {
     constexpr uint32_t TEXTURE_2D = 0x0DE1;
 
-    /* A texture is sampled by a unit that has its target enabled and a texture of the program bound (one that has been given a size). */
+    /* A unit samples a texture if its target is enabled and a texture of the program is bound to it (one that has been given a size). */
     for (const auto& binding_pair : in_state.attributes.texture_binding_map)
     {
         const uint32_t unit             = binding_pair.first;
@@ -45,8 +45,8 @@ void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::add_texture_binding
 bool Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::find_resource_view(const uint64_t&                          in_address,
                                                                                 Analysis::APIDumpAnalysis::ResourceView* out_view_ptr) const
 {
-    /* The objects of OpenGL are numbers, not addresses of the application: the address is the name of a texture, as the program has it. A texture has a resource
-     * once it is given a size, and until then there is none to find.
+    /* OpenGL objects are numbers, not application addresses, so the address of a texture is the name the program uses for it. A texture gets a
+     * resource once it is given a size. Until then there is no resource to find.
      */
     const auto texture_iterator = m_texture_map.find(static_cast<uint32_t>(in_address) );
     bool       result           = false;
@@ -78,7 +78,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::generate_mipmap_lev
     if (texture_iterator == m_texture_map.end()                ||
         texture_iterator->second.level_map.count(0) == 0)
     {
-        /* A texture whose first level has not been given has nothing to make the levels of. */
+        /* A texture whose first level has not been specified has nothing to derive the other levels from. */
         m_n_unfollowed_calls++;
     }
     else
@@ -91,7 +91,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::generate_mipmap_lev
         const bool           wants_events  = m_builder_ptr->wants_texture_events();
         uint32_t             level         = 1;
 
-        /* The levels go down to one texel by one: each is half of the one above, and no less than one. */
+        /* The levels shrink down to one texel by one texel. Each level is half the size of the one above, but never smaller than one. */
         while ((texture_level.width > 1 || texture_level.height > 1) &&
                level <= max_level)
         {
@@ -103,11 +103,11 @@ void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::generate_mipmap_lev
 
             texture.level_map[level] = texture_level;
 
-            /* What the driver makes is not in the workload: the level is content that is read back, once something reads it. */
+            /* The driver generates this level, so the workload holds no data for it. The content is read back when something first reads it. */
             texture.dirty_level_set.insert (level);
             texture.render_level_set.insert(level);
 
-            /* The driver makes the whole of the level. */
+            /* The driver generates the entire level. */
             GLTextureRegion whole_level;
 
             whole_level.height = texture_level.height;
@@ -152,7 +152,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::generate_mipmaps_if
     const uint32_t name          = get_bound_texture_name(in_state);
     const auto     parameters_it = m_texture_parameter_map.find(name);
 
-    /* GL_GENERATE_MIPMAP makes the levels below the first whenever the first changes. */
+    /* GL_GENERATE_MIPMAP regenerates the levels below the first whenever the first level changes. */
     if (in_level == 0                                           &&
         parameters_it != m_texture_parameter_map.end()          &&
         parameters_it->second.generates_mipmaps)
@@ -167,7 +167,7 @@ uint32_t Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::get_bound_textu
     const auto     binding_iterator = in_state.attributes.texture_binding_map.find(unit);
     uint32_t       result           = 0;
 
-    /* A unit that nothing has been bound to has the default texture, which is named 0. */
+    /* A unit with nothing bound to it uses the default texture, whose name is 0. */
     if (binding_iterator != in_state.attributes.texture_binding_map.end() )
     {
         result = binding_iterator->second;
@@ -244,7 +244,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::handle_bind_texture
     else
     if (bind_array.at(1) != 0)
     {
-        /* A texture of another target (one and three dimensions, cube maps, arrays, multisampled ones) is not followed; the default texture of one is not sampled. */
+        /* Textures of other targets (one and three dimensions, cube maps, arrays, multisampled textures) are not followed. The default texture of such a target is not sampled. */
         UnsupportedUse::report_with_value(in_call.func,
                                           "a texture of a target other than GL_TEXTURE_2D is bound (the target)",
                                           bind_array.at(0) );
@@ -339,7 +339,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::handle_pixel_store(
 
     std::array<int32_t, 2> parameter_array = {};
 
-    /* The values that are not followed (the packing of what is read back, the skips) do not touch how an upload is laid out here. */
+    /* The pixel store values that are not followed (the packing of data read back, the skips) do not affect how an upload is laid out. */
     if (GLArgumentReader::read_arguments(in_call,
                                          &parameter_array) )
     {
@@ -389,12 +389,12 @@ void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::handle_tex_image(co
     else
     if (image_array.at(0) == PROXY_TEXTURE_2D)
     {
-        /* A question of what the driver can make: nothing is changed. */
+        /* This call only asks what the driver could create (a proxy target). It changes nothing. */
     }
     else
     if (image_array.at(0) != TEXTURE_2D)
     {
-        /* The faces of cube maps, one and three dimensions and the like are not followed. */
+        /* Cube map faces, one and three dimensional targets and similar targets are not followed. */
         UnsupportedUse::report_with_value(in_call.func,
                                           "a level of a texture of a target other than GL_TEXTURE_2D is given (the target)",
                                           image_array.at(0) );
@@ -420,8 +420,8 @@ void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::handle_tex_image(co
                              level,
                              texture_level);
 
-        /* The call gives the pixels of all of the level, which it makes the size it says: all of the texture, if the level is the only one that it has. A texture
-         * with other levels keeps them, so what is given to this one is told no more than it was.
+        /* The call supplies the pixels of the whole level. The written rectangle is known only if this is the only level of the texture. If the
+         * texture has other levels, the rectangle stays unknown, because those levels are kept.
          */
         const uint32_t                             bound_name       = get_bound_texture_name(*inout_state_ptr);
         const auto                                 bound_iterator   = m_texture_map.find(bound_name);
@@ -463,7 +463,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::handle_tex_image(co
 void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::handle_tex_parameter(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                                   const GLContextState&                        in_state)
 {
-    /* glTexParameter(target, pname, param): of all the parameters, three change what the levels of a texture hold or which of them there are. */
+    /* glTexParameter(target, pname, param): of all the parameters, only three change what the levels of a texture hold or which levels exist. */
     constexpr uint32_t BASE_LEVEL      = 0x813C;
     constexpr uint32_t GENERATE_MIPMAP = 0x8191;
     constexpr uint32_t MAX_LEVEL       = 0x813D;
@@ -489,7 +489,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::handle_tex_paramete
 
         if (is_level_parameter == false)
         {
-            /* A filter, a wrap, a border: it does not change what the levels hold. */
+            /* A filter, a wrap mode or a border does not change what the levels hold. */
         }
         else
         if (target != TEXTURE_2D)
@@ -541,7 +541,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::handle_tex_sub_imag
                                                                                   const Capture::APIDumpLoader::Workload&      in_workload,
                                                                                   GLContextState*                              inout_state_ptr)
 {
-    /* glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels): a write to a part of the level, to the dependencies and to the textures. */
+    /* glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels): writes a part of a level. It is recorded for the dependencies and for the textures. */
     constexpr uint32_t PROXY_TEXTURE_2D = 0x8064;
     constexpr uint32_t TEXTURE_2D       = 0x0DE1;
 
@@ -555,7 +555,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::handle_tex_sub_imag
     else
     if (image_array.at(0) == PROXY_TEXTURE_2D)
     {
-        /* A question of what the driver can make: nothing is changed. */
+        /* This call only asks what the driver could create (a proxy target). It changes nothing. */
     }
     else
     if (image_array.at(0) != TEXTURE_2D)
@@ -572,16 +572,16 @@ void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::handle_tex_sub_imag
         const bool     is_level_known   = (texture_iterator != m_texture_map.end() &&
                                            texture_iterator->second.level_map.count(level) != 0);
 
-        /* A part of a level that the texture has not been given. */
+        /* The level must already exist: a region of a level that the texture has not been given is not processed. */
         if (is_level_known)
         {
-            /* What the pixels are laid over is changed: a level whose content rendering made is no longer what a snapshot of it was, and is read again. */
+            /* The content under the new pixels changes. A level whose content came from rendering no longer matches its earlier snapshot, so it is read again. */
             if (texture_iterator->second.render_level_set.count(level) != 0)
             {
                 texture_iterator->second.dirty_level_set.insert(level);
             }
 
-            /* The call gives the pixels of a rectangle of the level. */
+            /* The call supplies the pixels of a rectangle of the level. */
             Analysis::APIDumpAnalysis::AccessRectangle sub_image_rectangle;
 
             sub_image_rectangle.height   = image_array.at(5);
@@ -622,9 +622,9 @@ bool Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::is_unsupported_text
 {
     bool result = false;
 
-    /* What makes or changes a texture that is not a GL_TEXTURE_2D, or in a way that is not followed: compressed images, storage that is fixed, multisampled and
-     * three dimensional textures, one dimension, buffer textures, views, images, a texture that is a part of a framebuffer, the calls that name a texture
-     * directly, and what clears, copies or invalidates the content of one.
+    /* Calls that create or change a texture that is not a GL_TEXTURE_2D, or that change one in a way that is not followed: compressed images, immutable
+     * storage, multisampled and three dimensional textures, one dimensional textures, buffer textures, views, images, textures attached to a framebuffer,
+     * calls that address a texture by name directly, and calls that clear, copy or invalidate the content of a texture.
      */
     switch (in_function)
     {
@@ -738,7 +738,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::record_texture_leve
     {
         texture_iterator->second.level_map[in_level] = in_texture_level;
 
-        /* The call gives the whole level, so what rendering made of it is gone (a copy that follows makes it again). */
+        /* The call supplies the whole level, so any content made by rendering is gone. A later copy recreates it. */
         texture_iterator->second.dirty_level_set.erase (in_level);
         texture_iterator->second.render_level_set.erase(in_level);
         texture_iterator->second.render_region_map.erase(in_level);
@@ -760,7 +760,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::report_render_write
     const bool     is_level_known   = (texture_iterator != m_texture_map.end() &&
                                        texture_iterator->second.level_map.count(in_level) != 0);
 
-    /* What rendering made of the level is not in the workload, so it is a content to be read when something first reads it. */
+    /* Content made by rendering is not in the workload, so it must be read back when something first reads it. */
     if (is_level_known)
     {
         GLTexture&       texture        = texture_iterator->second;
@@ -770,8 +770,8 @@ void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::report_render_write
         texture.dirty_level_set.insert (in_level);
         texture.render_level_set.insert(in_level);
 
-        /* What rendering has made of the level is in the one rectangle that holds all the copies: the rest of it is storage that was given and not filled (its
-         * content is not defined), or pixels that were uploaded (in the workload), and a snapshot has no use for either.
+        /* The content made by rendering lies in the one rectangle that contains all the copies. The rest of the level is either storage that was
+         * allocated and never filled (its content is undefined) or pixels that were uploaded (they are in the workload). A snapshot needs neither.
          */
         region.height = in_height;
         region.width  = in_width;
@@ -800,7 +800,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::report_render_write
     if (wants_events &&
         is_level_known)
     {
-        /* What is copied is the window, which has no source in the file of the textures: it is never stored. */
+        /* The source of the copy is the window, which has no entry in the file of textures, so it is never stored. */
         Analysis::APIDumpTextures::TextureEvent event = make_texture_event(texture_iterator->second,
                                                                            in_level,
                                                                            in_x_offset,
@@ -823,9 +823,9 @@ void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::report_snapshots(co
 
     const bool wants_events = m_builder_ptr->wants_texture_events();
 
-    /* A draw reads the textures of the units that have the target enabled; what rendering made of a level of them, and nothing has read since, is a content that is
-     * not in the workload: it is what a snapshot is for, once for each time it has changed. Which levels a draw reads depends on how far the texture is from the
-     * eye, so each level that rendering has changed is taken to be read.
+    /* A draw reads the textures of the units that have the target enabled. Content that rendering wrote to a level, and that nothing has read since, is not
+     * in the workload. A snapshot captures this content, once each time it changes. Which levels a draw reads depends on how far the texture is from the
+     * eye, so every level that rendering changed is treated as read.
      */
     for (const auto& binding_pair : in_state.attributes.texture_binding_map)
     {
@@ -844,7 +844,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::report_snapshots(co
                 if (wants_events &&
                     texture.level_map.count(level) != 0)
                 {
-                    /* The region that rendering has made of the level; the whole of it if it is not known (a level that rendering made without a copy). */
+                    /* The region of the level that rendering wrote. It is the whole level if the region is unknown (a level that rendering produced without a copy). */
                     const GLTextureLevel& texture_level   = texture.level_map.at(level);
                     const auto            region_iterator = texture.render_region_map.find(level);
                     GLTextureRegion       region;
@@ -924,9 +924,10 @@ void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::report_upload(const
                                                                                      in_state.pixel_store.unpack_row_length,
                                                                                      in_state.pixel_store.unpack_alignment);
 
-        /* The pixels are in the call, or there are none: the level is given a size and no data. The dumper makes a data chunk of every pointer to pixels that is not
-         * an offset into a buffer, and of a null pointer one that has no bytes (see MemoryChunk): a chunk with no bytes is a null pointer, that is, storage that is
-         * given and not filled (a texture that is to be copied to). Gerbera makes one, of 1024 by 512 texels, and the frame fills a part of it with a copy.
+        /* Either the call holds the pixels, or there are none and the level only gets a size. The dumper stores a data chunk for every pixel pointer that is
+         * not an offset into a buffer. For a null pointer the chunk has no bytes (see MemoryChunk). A chunk without bytes therefore means a null pointer,
+         * that is, storage that is allocated but not filled (a texture that will be a copy target). Gerbera creates one such texture, of 1024 by 512 texels,
+         * and a frame fills part of it with a copy.
          */
         if (chunk_ptr != nullptr &&
             chunk_ptr->empty() == false)
@@ -960,7 +961,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::specify_texture(con
                    texture_iterator->second.width           == in_width);
     }
 
-    /* The size of the first level is the size of the texture: a texture that is given another one is another resource. */
+    /* The size of the first level is the size of the texture. A texture that is given a different size becomes a different resource. */
     if (is_same == false)
     {
         Analysis::APIDumpAnalysis::ResourceDescription description;
@@ -1001,7 +1002,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::upload_texture_leve
 
     if (texture_iterator == m_texture_map.end() )
     {
-        /* A level of a texture whose first level has not been given. */
+        /* A level of a texture whose first level has not been specified. */
         m_n_unfollowed_calls++;
     }
     else
@@ -1015,7 +1016,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::upload_texture_leve
         destination.mip_level   = in_level;
         destination.resource_id = texture_iterator->second.resource_id;
 
-        /* The pixels are in the call, or a null pointer: the level is given a size and no data. */
+        /* Either the call holds the pixels, or the pointer is null and the level only gets a size. */
         if (view.get_data_reference(PIXELS_ARGUMENT,
                                     &data) )
         {

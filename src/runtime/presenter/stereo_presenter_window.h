@@ -17,9 +17,9 @@ namespace Stereo
 {
     namespace Presenter
     {
-        /* The window which shows what the converter of an application passes on: the newest image, as large as the window lets it
-         * be with its proportions kept. Stereo images, one for each eye, are side by side. The frames come from an importer, and
-         * the window shows them through a sink (see PreviewSink), as the headset does through its own (see HeadsetSink).
+        /* The window that shows what the converter of an application passes on: the newest image, as large as the window allows with its proportions
+         * kept. A stereo image has the two eyes side by side. The frames come from an importer, and the window shows them through a sink
+         * (see PreviewSink), as the headset does through its own sink (see HeadsetSink).
          */
         class StereoPresenterWindow : public Utils::UIHost::IImGuiWindowHost
         {
@@ -27,12 +27,11 @@ namespace Stereo
             StereoPresenterWindow(std::unique_ptr<Stereo::Transport::IFrameImporter> in_importer_ptr,
                                   const std::string&                                 in_title);
 
-            /* The importer of the window, for a sink which is to read the frames (see HeadsetSink). */
+            /* The importer of the window, for a sink that is to read the frames (see HeadsetSink). */
             Stereo::Transport::IFrameImporter* get_importer_ptr() const;
 
-            /* Hands the frames to the headset. The headset is then the one which reads them, and the window no longer previews them: what a
-             * window which is drawn in step with the screen, and shows each image, does to the pace of the frames is what the headset is not to
-             * wait for.
+            /* Hands the frames to the headset. The headset sink then reads the frames, and the window no longer previews them. A window that is drawn in
+             * step with the screen and shows every image would set the pace of the frames, and the headset must not wait for it.
              */
             void set_headset_sink(std::unique_ptr<HeadsetSink> in_sink_ptr);
 
@@ -40,16 +39,16 @@ namespace Stereo
             void draw_contents(Utils::UIHost::ContentExtent* inout_extent_ptr) override;
 
         private:
-            /* The window is made as large as the image, if the screen has room for it, so that it is shown as it is. */
+            /* Resizes the window to the size of the image if the screen has room for it, so that the image is shown at its own size. */
             void fit_window_to_image(const uint32_t& in_width,
                                      const uint32_t& in_height);
 
             static Utils::UIHost::WindowOptions get_window_options(const std::string& in_title);
 
             std::unique_ptr<Stereo::Transport::IFrameImporter> m_importer_ptr;
-            std::unique_ptr<HeadsetSink>                       m_headset_sink_ptr; /* after the importer: it goes first */
+            std::unique_ptr<HeadsetSink>                       m_headset_sink_ptr; /* declared after the importer so that it is destroyed first */
             bool                                               m_is_styled;
-            std::unique_ptr<PreviewSink>                       m_sink_ptr; /* made when the window has its device */
+            std::unique_ptr<PreviewSink>                       m_sink_ptr; /* created when the window has its device */
         };
     }
 }

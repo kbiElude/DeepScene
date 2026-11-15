@@ -12,7 +12,7 @@ void Utils::Parallel::ParallelFor::run(const uint64_t&  in_n_items,
                                        const uint32_t&  in_n_threads,
                                        const RangeFunc& in_func)
 {
-    /* Small enough for the work to be shared out evenly, large enough for the threads not to meet at the counter all the time. */
+    /* Small enough to share the work evenly, large enough that the threads do not contend for the shared counter on every item. */
     constexpr uint64_t N_RANGES_PER_THREAD = 16;
 
     const uint64_t n_threads        = std::max<uint64_t>(1,

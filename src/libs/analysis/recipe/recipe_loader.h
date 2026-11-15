@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Loads a recipe from JSON text or a file. Every check that needs no application is done here: names, numbers and keys are
- * valid, and no unknown field is left. The format is described in docs/recipes.html.
+ * Loads a recipe from JSON text or a file. It performs every check that does not need the application: names, numbers and keys must be
+ * valid, and unknown fields are rejected. The format is described in docs/recipes.html.
  */
 #ifndef RECIPE_RECIPE_LOADER_H
 #define RECIPE_RECIPE_LOADER_H
@@ -20,10 +20,12 @@ namespace Analysis
         class RecipeLoader
         {
         public:
-            /* One line for each list of pass keys or of draws in a pass: a replay knows which pass a draw is in, a converter that plays the application as it runs does not, and leaves them out. */
+            /* Returns one line for each list of pass keys or of draws in a pass. A replay knows which pass a draw is in. A converter that plays
+             * the application while it runs does not, so it ignores these lists.
+             */
             static std::vector<std::string> describe_pass_selectors_live_ignores(const Recipe& in_recipe);
 
-            /* Returns false, and says why, if the recipe cannot be read. */
+            /* Returns false, with the reason in the error, if the recipe cannot be read. */
             static bool load(const std::string& in_filename,
                              Recipe*            out_recipe_ptr,
                              std::string*       out_error_ptr);
@@ -51,7 +53,7 @@ namespace Analysis
                                                                   std::string*                    out_error_ptr);
             static const CallDescriptor* find_call_descriptor_ptr(const std::string&              in_name);
 
-            /* True if a key, or a draw of a pass, is in both lists. */
+            /* True if both lists contain the same key, or the same draw in the same pass. */
             static bool has_common_key      (const std::vector<uint64_t>& in_a,
                                              const std::vector<uint64_t>& in_b);
             static bool has_common_pass_draw(const std::vector<PassDraw>& in_a,

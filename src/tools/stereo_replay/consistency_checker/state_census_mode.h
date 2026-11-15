@@ -16,9 +16,9 @@ namespace Stereo
     {
         namespace ConsistencyChecker
         {
-            /* Replays the frames of the options once, the way a seek to the last of them does (the dependencies of the options say which frames are not made),
-             * and says, of the calls of OpenGL in the frames that are not made, how many give a piece of state the value it has and how many are overwritten
-             * before anything that is made looks at them (see StateCensus).
+            /* Replays the frames of the options once, the way a seek to the last of them does (the dependencies of the options say which frames are
+             * not made). For the OpenGL calls in the frames that are not made, it reports how many set a piece of state to the value that it already
+             * has and how many are overwritten before anything that is made looks at them (see StateCensus).
              */
             bool take_state_census(const Options& in_options,
                                    std::string*   out_error_ptr);

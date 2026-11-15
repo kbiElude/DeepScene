@@ -13,18 +13,18 @@ namespace Stereo
 {
     namespace Presenter
     {
-        /* What the host has to say goes in the log of the session, which is where the converter in the application says what it does. */
+        /* The messages of the presenter go to the log of the session, the same log in which the converter inside the application records what it does. */
         class PresenterLog
         {
         public:
-            /* Adds a line to the file, which is kept open (opening and closing it for each line is slow, when something watches files).
-             * Nothing is said if the file cannot be opened: there is nobody to say it to. Any thread.
+            /* Appends a line to the file, which is kept open (reopening it for every line is slow when something watches the files). Nothing is
+             * written if the file cannot be opened, because there is nobody to report that to. Callable from any thread.
              */
             static void write_line(const std::string& in_path,
                                    const std::string& in_text);
 
         private:
-            /* The file that was written to last. */
+            /* The file that was written to most recently. */
             struct State
             {
                 HANDLE      file = INVALID_HANDLE_VALUE;

@@ -49,7 +49,7 @@ bool Analysis::APIDumpAnalysis::DrawMeasurer::find_draw_matrices(const ConstantS
 
     *out_matrices_ptr = DrawMatrices();
 
-    /* The lowest model matrix of the constants, in the order they are kept in, is the one that the draws are made with. */
+    /* The first model matrix in the constant map order is the one the draw uses. */
     for (const auto& state_pair : in_constant_state_map)
     {
         const auto& update = state_pair.second.update;
@@ -80,14 +80,14 @@ bool Analysis::APIDumpAnalysis::DrawMeasurer::find_draw_matrices(const ConstantS
 
                     out_matrices_ptr->has_projection = true;
 
-                    /* No depth to converge at in a projection which does not shrink what is far. */
+                    /* An orthographic projection does not shrink distant objects, so there is no depth to converge at. */
                     is_orthographic = (out_matrices_ptr->projection_f32mat.at(PROJECTION_WW) != 0.0f);
 
                     break;
                 }
 
-                /* A matrix for the model and the view together (OpenGL has no other) is the whole way to the camera: with the model matrix
-                 * of the identity it is what the view matrix is for the rest.
+                /* OpenGL has a single matrix for model and view together. It is stored as the view matrix. The model matrix then stays the
+                 * identity, so the combined matrix takes a vertex all the way to the camera.
                  */
                 case ConstantSemantic::MODEL_VIEW_MATRIX:
                 case ConstantSemantic::VIEW_MATRIX:
@@ -109,14 +109,16 @@ bool Analysis::APIDumpAnalysis::DrawMeasurer::find_draw_matrices(const ConstantS
         }
     }
 
-    /* The identity is what a program that sets no projection has (or one that draws in the space of the picture): it says nothing, and is not told apart. */
+    /* The identity is the projection of a program that sets none, or that draws in the space of the picture. It carries no information, so it is
+     * never reported as orthographic.
+     */
     const std::array<float, N_MATRIX_ELEMENTS> identity_f32mat = {1.0f, 0.0f, 0.0f, 0.0f,
                                                                   0.0f, 1.0f, 0.0f, 0.0f,
                                                                   0.0f, 0.0f, 1.0f, 0.0f,
                                                                   0.0f, 0.0f, 0.0f, 1.0f};
 
-    /* An orthographic projection does not make w of the depth: the last column of the matrix is (0, 0, 0, 1), as the elements 3, 7, 11 and 15 are
-     * (what the depth is for is the test above, which a projection that has the last element and still divides by the depth passes too).
+    /* An orthographic projection does not derive w from the depth: elements 3, 7 and 11 are zero and element 15 is nonzero.
+     * The identity matches this pattern too, so it is excluded.
      */
     const auto& projection_f32mat = out_matrices_ptr->projection_f32mat;
 
@@ -166,14 +168,14 @@ void Analysis::APIDumpAnalysis::DrawMeasurer::record_draw_depth(const DrawDescri
                              model_f32mat.at(ORIGIN_ROW * N_COLUMNS + 2) * view_f32mat.at(2 * N_COLUMNS + DEPTH_COLUMN) +
                              view_f32mat.at (ORIGIN_ROW * N_COLUMNS                                                     + DEPTH_COLUMN);
 
-        /* A camera that looks down minus z has what it sees at a negative z. */
+        /* A right-handed camera looks down minus z, so what it sees has a negative z. */
         const float depth = (in_draw.is_camera_right_handed) ? -view_z
                                                              : view_z;
 
         inout_depth_ptr->depth_histogram.add(depth,
                                              in_draw.vertex_count);
 
-        /* A perspective projection says how wide the picture is: its x scale (an orthographic one has 1 in the last element, and no depth to be wide at). */
+        /* The x scale of a perspective projection says how wide the picture is. An orthographic projection has no depth at which to measure the width. */
         constexpr size_t PROJECTION_SCALE_X = 0;
         constexpr size_t PROJECTION_WW      = 15;
 
@@ -252,7 +254,7 @@ void Analysis::APIDumpAnalysis::DrawMeasurer::record_draw_facts(const DrawDescri
     {
         is_flat_layer = true;
 
-        /* The positions are in pixels, and the third coordinate is the reciprocal of the depth. */
+        /* The positions are in pixels. The third coordinate is the reciprocal of the depth. */
         if (in_viewport.width  > 0.0f &&
             in_viewport.height > 0.0f)
         {
@@ -290,7 +292,7 @@ void Analysis::APIDumpAnalysis::DrawMeasurer::record_draw_facts(const DrawDescri
             const auto   model_view_f32mat = compute_model_view(matrices);
             const float* projection        = matrices.projection_f32mat.data();
 
-            /* Origin depth: the z of the model-view translation. */
+            /* The depth of the object origin is the z of the translation of the model-view matrix. */
             const float origin_view_z = model_view_f32mat.at(ORIGIN_ROW * N_VIEW_COLUMNS + DEPTH_COLUMN);
 
             origin_depth = (in_draw.is_camera_right_handed) ? -origin_view_z
@@ -311,7 +313,7 @@ void Analysis::APIDumpAnalysis::DrawMeasurer::record_draw_facts(const DrawDescri
                                                             model_view_f32mat.at(3 * N_VIEW_COLUMNS + n_column);
                 }
 
-                /* The vertex through the projection, with the divide by w that makes a perspective one smaller with the distance (it is 1 for an orthographic one). */
+                /* Projects the vertex. Dividing by w makes a perspective projection shrink objects with distance. In an orthographic projection w is 1. */
                 const float w = view_position[0] * projection[3]  +
                                 view_position[1] * projection[7]  +
                                 view_position[2] * projection[11] +
@@ -352,13 +354,13 @@ void Analysis::APIDumpAnalysis::DrawMeasurer::record_draw_facts(const DrawDescri
         constexpr float EYE_SPACE_DEPTH_RATIO = 20.0f; /* origin depth must be this many times below vertex depth */
         constexpr float PICTURE_EXTENT        = 2.0f;  /* edges are at -1 and 1 */
 
-        /* Eye space: the object is at the camera, its vertices are not. */
+        /* Eye space: the object origin is at the camera, but its vertices are not. */
         is_eye_space = (is_3d                                                 &&
                         has_vertex_behind                             == false &&
                         z_min                                          > 0.0f &&
                         ::fabsf(origin_depth) * EYE_SPACE_DEPTH_RATIO < z_min);
 
-        /* The part of the picture that the box covers: what is outside of the edges is not of the picture. */
+        /* The part of the picture that the bounding box covers. Whatever lies outside the edges is not part of the picture. */
         const float x_inside_max = std::min(x_max,
                                             1.0f);
         const float x_inside_min = std::max(x_min,
@@ -413,7 +415,7 @@ Analysis::APIDumpAnalysis::ViewCoverage Analysis::APIDumpAnalysis::DrawMeasurer:
                                                                                                            const ConstantStateMap& in_constant_state_map,
                                                                                                            PassDepth*              inout_depth_ptr)
 {
-    /* How near to an edge of the picture a vertex has to be for the draw to reach it, in the units of the picture (the edges are at 1 and -1). */
+    /* How close a vertex must be to an edge of the picture for the draw to count as reaching it, in picture units (the edges are at -1 and 1). */
     constexpr float EDGE_REACH = 0.995f;
 
     ViewCoverage result = ViewCoverage::UNKNOWN;
@@ -440,8 +442,8 @@ Analysis::APIDumpAnalysis::ViewCoverage Analysis::APIDumpAnalysis::DrawMeasurer:
                 const uint64_t weight       = std::max<uint64_t>(1,
                                                                  in_draw.vertex_count / position_vec.size() );
 
-                /* The nearest depth that is drawn, from the projection: D3D has the near plane at minus the shift over the scale, and OpenGL at the
-                 * shift over the scale less one (its scale is (f + n) / (n - f) and its shift 2fn / (n - f)).
+                /* The nearest depth that is drawn, taken from the projection. D3D puts the near plane at minus the z shift over the z scale.
+                 * OpenGL puts it at the z shift over the z scale, less one (its z scale is (f + n) / (n - f) and its z shift is 2fn / (n - f)).
                  */
                 float near_depth = 0.0f;
 
@@ -482,11 +484,11 @@ Analysis::APIDumpAnalysis::ViewCoverage Analysis::APIDumpAnalysis::DrawMeasurer:
                                                                 model_view_f32mat.at(3 * N_VIEW_COLUMNS + n_column);
                     }
 
-                    /* A camera that looks down minus z has what it sees at a negative z. */
+                    /* A right-handed camera looks down minus z, so what it sees has a negative z. */
                     const float depth = (in_draw.is_camera_right_handed) ? -view_position[2]
                                                                          : view_position[2];
 
-                    /* Where the vertex is in the picture, whether it is in view or not: a draw that reaches past the edges covers them. */
+                    /* Tracks where the vertex lies in the picture, whether or not it is in view: a draw that reaches past an edge covers that edge. */
                     if (depth > 0.0f && matrices.has_projection)
                     {
                         const float x = view_position[0] * projection[PROJECTION_SCALE_X] / depth;
@@ -498,7 +500,7 @@ Analysis::APIDumpAnalysis::ViewCoverage Analysis::APIDumpAnalysis::DrawMeasurer:
                         y_min = (y < y_min) ? y : y_min;
                     }
 
-                    /* In front of the camera, and in view: what is behind it or off to the side is not what the eyes look at. */
+                    /* A vertex counts as seen if it is in front of the camera and inside the view. Vertices behind the camera or off to the side are not seen. */
                     bool is_seen = (depth > 0.0f && depth >= near_depth);
 
                     if (is_seen && matrices.has_projection)
@@ -517,7 +519,7 @@ Analysis::APIDumpAnalysis::ViewCoverage Analysis::APIDumpAnalysis::DrawMeasurer:
                     }
                 }
 
-                /* With no point in front of the camera there is nothing to say of the view (the coverage stays UNKNOWN). */
+                /* If no vertex is in front of the camera, nothing can be said about the view and the coverage stays UNKNOWN. */
                 if (x_min <= x_max)
                 {
                     result = (x_min <= -EDGE_REACH &&
@@ -537,10 +539,10 @@ Analysis::APIDumpAnalysis::ViewCoverage Analysis::APIDumpAnalysis::DrawMeasurer:
                                                                                                      const Viewport&        in_viewport,
                                                                                                      PassDepth*             inout_depth_ptr)
 {
-    /* How near to an edge of the viewport a vertex has to be for the draw to reach it, as a part of the size of the viewport. */
+    /* How close a vertex must be to an edge of the viewport for the draw to count as reaching it, as a fraction of the viewport size. */
     constexpr float EDGE_REACH = 0.005f;
 
-    /* How much the reciprocal of the depth may differ across a draw for it to be flat, as a part of it. */
+    /* The largest spread of the reciprocal depth across a draw for the draw to count as flat, as a fraction of the largest reciprocal depth. */
     constexpr float FLAT_DEPTH_SPREAD = 0.001f;
 
     ViewCoverage       result               = ViewCoverage::UNKNOWN;
@@ -561,7 +563,7 @@ Analysis::APIDumpAnalysis::ViewCoverage Analysis::APIDumpAnalysis::DrawMeasurer:
     {
         const float reciprocal_depth = position[2];
 
-        /* A vertex that is not in front of the camera has no depth to tell, and is no part of the view. */
+        /* A vertex that is not in front of the camera has no depth and is not part of the view. */
         if (reciprocal_depth > 0.0f)
         {
             const float depth      = 1.0f / reciprocal_depth;
@@ -589,7 +591,7 @@ Analysis::APIDumpAnalysis::ViewCoverage Analysis::APIDumpAnalysis::DrawMeasurer:
         }
     }
 
-    /* The depth of the draw, as the matrices tell it for the other draws (the origin of the object): the middle of what was seen. */
+    /* Other draws are counted at the depth of their object origin, which comes from the matrices. Here the draw is counted at the median depth of its seen vertices. */
     if (seen_depth_vec.empty() == false)
     {
         std::sort(seen_depth_vec.begin(),
@@ -607,9 +609,9 @@ Analysis::APIDumpAnalysis::ViewCoverage Analysis::APIDumpAnalysis::DrawMeasurer:
         const bool reaches_ends  = (y_min <= in_viewport.y                      + EDGE_REACH * in_viewport.height &&
                                     y_max >= in_viewport.y + in_viewport.height - EDGE_REACH * in_viewport.height);
 
-        /* What matters to the eyes is the sides: moved sideways, a picture which reaches both leaves a strip bare at one of them. A flat quad (all of
-         * it at one depth, as a backdrop, a flash and a fade are) that goes from one side to the other covers the picture, whether the picture
-         * has bars above and below it or not; a mesh that goes from one side to the other (a floor) is not one that covers it.
+        /* The sides matter to the eyes: when a picture is shifted sideways, a draw that does not reach both sides leaves a bare strip at one of them.
+         * A flat quad (all at one depth, such as a backdrop, a flash or a fade) that spans from side to side covers the picture, whether or not the
+         * picture has bars above and below. A mesh that spans from side to side, such as a floor, does not cover the picture.
          */
         const bool is_flat        = (reciprocal_depth_max - reciprocal_depth_min <= FLAT_DEPTH_SPREAD * reciprocal_depth_max);
 

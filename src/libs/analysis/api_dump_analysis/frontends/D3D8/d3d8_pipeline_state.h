@@ -2,9 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * What the D3D8 device has bound and set that a draw depends on: buffers, textures, shaders (or the vertex format), render
- * states, texture stage states and lights. The state of the fixed-function pipeline is kept by FixedFunctionState, which tells
- * how the state key is made.
+ * The state of the D3D8 device that a draw depends on: buffers, textures, shaders (or the vertex format), render states, texture
+ * stage states and lights. FixedFunctionState keeps the state of the fixed-function pipeline and defines how the state key is built.
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_D3D8_PIPELINE_STATE_H
 #define APIDUMPANALYSIS_FRONTENDS_D3D8_PIPELINE_STATE_H
@@ -26,7 +25,7 @@ namespace Analysis
             public:
                 D3D8PipelineState();
 
-                /* Describes a draw with what is bound now. */
+                /* Describes a draw using the current bindings. */
                 Analysis::APIDumpAnalysis::DrawDescription describe_draw(const Analysis::APIDumpAnalysis::PrimitiveTopology& in_topology,
                                                                          const uint32_t&                                     in_vertex_count,
                                                                          const bool&                                         in_is_indexed);
@@ -37,28 +36,28 @@ namespace Analysis
                                                                                       const bool&                                         in_is_indexed,
                                                                                       const uint32_t&                                     in_stride);
 
-                /* The FVF code of the vertices; 0 if a vertex shader is set, whose declaration says what they are like. */
+                /* The FVF code of the vertices; 0 if a vertex shader is set, because its declaration defines the vertex layout. */
                 uint32_t get_fvf() const;
 
                 Analysis::APIDumpAnalysis::ResourceId get_index_buffer_id() const;
 
-                /* The vertex buffer of a stream and its stride; false if no buffer is bound to it. */
+                /* The vertex buffer of a stream and its stride; returns false if no buffer is bound to the stream. */
                 bool get_stream_source(const uint32_t&                        in_stream,
                                        Analysis::APIDumpAnalysis::ResourceId* out_id_ptr,
                                        uint32_t*                              out_stride_ptr) const;
 
-                /* Back to what a device starts with, which is also what Reset leaves. */
-                /* The state of the fixed-function pipeline, which the front end follows the calls that set it of. */
+                /* The state of the fixed-function pipeline. The front end updates it from the calls that set it. */
                 FixedFunctionState& get_fixed_function_state();
 
+                /* Restores the state a new device starts with. This is also the state after Reset. */
                 void reset();
 
-                /* The functions which take an index return false, and change nothing, for an index which no device has: it would only make
-                 * the state grow.
+                /* The functions that take an index return false and change nothing when the index is beyond the device limits.
+                 * Accepting such an index would only make the state grow.
                  */
                 void set_index_buffer(const Analysis::APIDumpAnalysis::ResourceId& in_id);
 
-                /* The shader NONE is no pixel shader. */
+                /* The shader NONE unbinds the pixel shader. */
                 void set_pixel_shader(const Analysis::APIDumpAnalysis::ResourceId& in_id);
 
 
@@ -69,10 +68,10 @@ namespace Analysis
 
 
 
-                /* The vertices have the format that an FVF code says, and the fixed-function pipeline handles them. */
+                /* The vertices have the format given by the FVF code, and the fixed-function pipeline processes them. */
                 void set_vertex_shader(const uint32_t& in_fvf);
 
-                /* A vertex shader, whose declaration says what the vertices are like. */
+                /* A vertex shader. Its declaration defines the vertex layout. */
                 void set_vertex_shader(const Analysis::APIDumpAnalysis::ResourceId& in_id,
                                        const uint64_t&                              in_declaration_hash);
 
@@ -83,7 +82,7 @@ namespace Analysis
                     uint32_t                              stride = 0;
                 };
 
-                /* The shaders that are set, in the order of the stages of the pipeline. */
+                /* The shaders that are set, in pipeline stage order. */
                 std::vector<Analysis::APIDumpAnalysis::ResourceId> get_shader_id_vec() const;
 
 
@@ -97,7 +96,7 @@ namespace Analysis
                 Analysis::APIDumpAnalysis::ResourceId m_index_buffer_id;
                 Analysis::APIDumpAnalysis::ResourceId m_pixel_shader_id;
                 std::map<uint32_t, StreamBinding>     m_stream_binding_map;       /* by stream */
-                uint64_t                              m_vertex_layout_value;      /* of the FVF code, or of the declaration of the vertex shader */
+                uint64_t                              m_vertex_layout_value;      /* from the FVF code, or from the declaration of the vertex shader */
                 Analysis::APIDumpAnalysis::ResourceId m_vertex_shader_id;
             };
         }

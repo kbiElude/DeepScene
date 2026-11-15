@@ -2,9 +2,9 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Converts the parts of a texture timeline to and from the bytes of .textures sections (see textures_format.h). Reading validates: impossible counts, values
- * of an enumeration that does not have them, resources and blobs that are not there, calls out of order, and leftover bytes make a section invalid. Sections
- * must be read in file order, since later ones are checked against earlier ones.
+ * Converts the parts of a texture timeline to and from the bytes of .textures sections (see textures_format.h). Reading validates the data. A
+ * section is invalid if it has impossible counts, enumeration values that do not exist, references to resources or blobs that do not exist,
+ * calls out of order, or leftover bytes. Sections must be read in file order, because later ones are checked against earlier ones.
  */
 #ifndef APIDUMPTEXTURES_TEXTURES_SERIALIZER_H
 #define APIDUMPTEXTURES_TEXTURES_SERIALIZER_H
@@ -36,12 +36,12 @@ namespace Analysis
             static std::vector<uint8_t> serialize_resources  (const TextureTimeline&      in_timeline);
 
         private:
-            /* Whether the values of an entry, as they were read, say what can be. */
+            /* True if the values read for a blob entry are consistent. */
             static bool is_entry_valid(const uint8_t&   in_filter,
                                        const uint8_t&   in_location,
                                        const BlobEntry& in_entry);
 
-            /* Whether an event, as it was read, says what can be. */
+            /* True if the values read for an event are consistent. */
             static bool is_event_valid(const TextureEvent&                                     in_event,
                                        const uint8_t&                                          in_kind,
                                        const uint32_t&                                         in_level_format_value,
@@ -49,7 +49,7 @@ namespace Analysis
                                        const size_t&                                           in_n_blobs,
                                        const std::vector<Analysis::APIDumpAnalysis::Resource>& in_resource_vec);
 
-            /* Whether a region is on the blocks of its format. */
+            /* True if the region of the event lies on block boundaries of its format. */
             static bool is_region_on_blocks(const TextureEvent& in_event);
 
             static Analysis::APIDumpAnalysis::ResourceView read_view(Utils::BinaryIO::ByteReader* inout_reader_ptr);

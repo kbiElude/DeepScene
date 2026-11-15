@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Replays a workload the ways which the checker compares: the frames as they are, executed twice, and for the eyes of a recipe.
+ * Replays a workload in the ways that the checker compares: the frames as they are, executed twice, and rendered for the eyes with a recipe.
  */
 #ifndef STEREO_REPLAY_CONSISTENCYCHECKER_REPLAY_RUNNER_H
 #define STEREO_REPLAY_CONSISTENCYCHECKER_REPLAY_RUNNER_H
@@ -25,17 +25,18 @@ namespace Stereo
             /* The way of replaying that the name stands for (see print_usage), or nullptr. */
             const Variant* get_variant_ptr(const std::string& in_way_name);
 
-            /* Replays the workload up to the frame (with the frames before it, if the options say so), with the recipe of the options if they have one, so that
-             * the sink has the image of the frame. The frame is the only one the sink keeps.
+            /* Replays the workload up to the frame (including the frames before it, if the options ask for history), with the recipe of the options
+             * if there is one, so that the sink has the image of the frame. The frame is the only one that the sink keeps.
              */
             bool replay_to_frame(const Options&  in_options,
                                  const uint32_t& in_frame_index,
                                  FrameHashSink*  out_sink_ptr,
                                  std::string*    out_error_ptr);
 
-            /* Replays the workload up to the frame as replay_to_frame() does, with the recipe and the dependencies of the options (which it needs), but plays the frame once
-             * for each of the variants, for the left eye, from the state that the frames before it leave, and gives the image of each in the order of the variants.
-             * False, and the reason, if the frame cannot be played that way (it carries the back buffer over, say): it is then replayed one variant at a time.
+            /* Replays the workload up to the frame as replay_to_frame() does, using the recipe and the dependencies of the options (it needs both).
+             * The frame itself is played once per variant, for the left eye, each time from the state that the frames before it leave. It returns
+             * the image of each variant, in the order of the variants. It returns false, with the reason, if the frame cannot be played this way (for
+             * example because it carries the back buffer over); the variants are then replayed one at a time.
              */
             bool replay_variants_to_frame(const Options&                                            in_options,
                                           const uint32_t&                                           in_frame_index,
@@ -50,8 +51,8 @@ namespace Stereo
                              std::string*                                 out_error_ptr,
                              ::Replay::ReplayEngineDLL::ICallInterceptor* in_interceptor_ptr = nullptr);
 
-            /* Replays the frames the ways in the vector, one after the other or all at once, and prints how long each took. The sinks are in the order of
-             * the ways.
+            /* Replays the frames once per way in the vector, one after the other or all at once, and prints how long each took. The sinks are in the
+             * order of the ways.
              */
             bool run_variants(const Options&                     in_options,
                               const std::vector<const Variant*>& in_variant_ptr_vec,

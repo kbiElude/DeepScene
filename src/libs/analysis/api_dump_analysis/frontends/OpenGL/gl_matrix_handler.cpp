@@ -94,8 +94,9 @@ void Analysis::APIDumpAnalysis::Frontends::GLMatrixHandler::handle_matrix(const 
                                                        operand);
         }
 
-        /* A load replaces what the matrix was, so the camera of everything that is done to it next begins with the load: it is where a player puts the shift of an eye.
-         * A push copies the matrix with its camera, a pop gives back the one of the matrix below, and what is multiplied in leaves it as it is.
+        /* A load replaces the matrix, so the camera for everything done to the matrix afterwards begins with the load. This is where a player
+         * applies the shift of an eye. A push copies the matrix together with its camera, a pop restores the camera of the matrix below, and a
+         * multiplication leaves the camera unchanged.
          */
         if (is_load                                                  &&
             inout_state_ptr->attributes.matrix_mode == MODELVIEW_MODE)
@@ -127,7 +128,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLMatrixHandler::handle_pop_matrix(GL
 {
     std::vector<GLMatrix>* stack_ptr = get_current_stack_ptr(inout_state_ptr);
 
-    /* A stack is never empty: the matrix at its bottom is the one that the context starts with. */
+    /* A stack is never empty: the matrix at its bottom is the one the context starts with. */
     if (stack_ptr->size() <= 1)
     {
         m_n_unfollowed_calls++;
@@ -348,7 +349,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLMatrixHandler::report_matrix(const 
     {
         Analysis::APIDumpAnalysis::ConstantUpdate update;
 
-        /* The state of the fixed-function pipeline has no memory the application can see: the front end says where the matrices are in it. */
+        /* The application cannot see any memory of the fixed-function pipeline state, so the front end reports where the matrices are within it. */
         update.location.block_kind  = Analysis::APIDumpAnalysis::ConstantBlockKind::FIXED_FUNCTION_STATE;
         update.location.byte_offset = in_byte_offset;
         update.location.byte_size   = sizeof(GLMatrix);

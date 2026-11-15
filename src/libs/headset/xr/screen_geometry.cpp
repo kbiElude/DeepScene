@@ -6,12 +6,14 @@
 #include <algorithm>
 #include <math.h>
 
-/* What of the view the screen takes: the edge of the view is where the lenses are worst, and a screen up to it would be cut off by the
- * eyes which look a little away from the middle.
+/* The fraction of the field of view that the screen fills. The edge of the view is where the lenses are worst, and a screen that reached
+ * the edge would be cut off by eyes that look slightly away from the middle.
  */
 constexpr float FILL_OF_VIEW = 0.92f;
 
-/* A screen wider than half of the way around, or narrower than a few degrees, is not a screen of a headset. */
+/* Limits for the angle that a cylinder screen spans, in radians: at most 3 (close to half the way around) and at least 0.1 (a few
+ * degrees). A screen outside these limits is not a headset screen.
+ */
 constexpr float MAX_CENTRAL_ANGLE = 3.0f;
 constexpr float MIN_CENTRAL_ANGLE = 0.1f;
 
@@ -21,8 +23,9 @@ Headset::XR::CylinderScreen Headset::XR::ScreenGeometry::fit_cylinder(const Fiel
                                                                       const float&       in_distance,
                                                                       const float&       in_scale)
 {
-    /* Along the curve, the screen is as wide as the angle it spans; its height is that over the aspect ratio, and is seen from the
-     * middle of the cylinder as the angle whose tangent is half of it over the radius.
+    /* At radius 1, the length of the screen along the curve equals the angle it spans. Its height is that width divided by the aspect
+     * ratio. From the middle of the cylinder, the height spans the angle whose tangent is half the height over the radius. The vertical
+     * limit is the largest width whose height fits in the available vertical angle.
      */
     const float    available_horizontal = in_field_of_view.angle_right - in_field_of_view.angle_left;
     const float    available_vertical   = in_field_of_view.angle_up    - in_field_of_view.angle_down;
@@ -60,7 +63,7 @@ Headset::XR::QuadScreen Headset::XR::ScreenGeometry::fit_quad(const FieldOfView&
 Headset::XR::FieldOfView Headset::XR::ScreenGeometry::get_common_field_of_view(const FieldOfView& in_first,
                                                                                const FieldOfView& in_second)
 {
-    /* Both eyes see where they overlap; the screen is in the middle, so it reaches as far to one side as to the other. */
+    /* Both eyes see the overlap. The screen is in the middle, so it reaches as far to one side as to the other. */
     const float down  = std::max(in_first.angle_down,
                                  in_second.angle_down);
     const float left  = std::max(in_first.angle_left,
@@ -90,7 +93,7 @@ float Headset::XR::ScreenGeometry::get_yaw(const float& in_x,
                                            const float& in_z,
                                            const float& in_w)
 {
-    /* What the orientation does to a vector which looks down -Z, as the angle it is turned about the vertical axis. */
+    /* The angle about the vertical axis by which the orientation turns a vector that looks down -Z. */
     return ::atan2f(2.0f        * (in_x * in_z + in_w * in_y),
                     1.0f - 2.0f * (in_x * in_x + in_y * in_y) );
 }

@@ -17,7 +17,7 @@ namespace Stereo
     {
         namespace EngineDLL
         {
-            /* What the device has of a matrix, as far as the binder knows. */
+            /* Which variant of a matrix is in the device, as far as the binder knows. */
             enum class EyeMatrixBinding
             {
                 LEFT,
@@ -32,17 +32,19 @@ namespace Stereo
                 BUFFERED_ONCE, /* the calls are read up to the present, then executed once  */
                 DIRECT,        /* each call is executed as it is read                       */
                 TWICE,         /* the calls are read up to the present, then executed twice */
-                VARIANTS       /* the frames before the last are played as TWICE says; the last is executed once for each of the variants, for the left eye */
+                VARIANTS       /* the frames before the last are executed as in TWICE; the last frame is executed once per variant, for the left eye */
             };
 
-            /* One way of playing the last frame in the mode VARIANTS: draws that are left out besides those that the recipe leaves out, and where the frame is cut. */
+            /* One way of playing the last frame in the VARIANTS mode: which draws are left out in addition to those the recipe leaves
+             * out, and where the frame is cut.
+             */
             struct FrameVariant
             {
                 std::vector<Analysis::Recipe::PassDraw> skipped_pass_draw_vec;
                 std::vector<uint64_t>                   skipped_pass_key_vec;  /* the draws of these passes are all left out */
                 uint64_t                                truncate_draw_key    = 0;     /* truncates_after_draw: the key of the structure of the draw */
                 uint64_t                                truncate_pass_key    = 0;     /* truncates_after_draw: the key of the pass that it is in */
-                bool                                    truncates_after_draw = false; /* the frame is cut after the last call of the draws of the structure in the pass */
+                bool                                    truncates_after_draw = false; /* the frame is cut after the last call of the draws with that structure in that pass */
             };
 
             typedef ::Replay::ReplayEngineDLL::FrameImage      FrameImage;
@@ -50,7 +52,7 @@ namespace Stereo
             typedef ::Replay::ReplayEngineDLL::PlaybackStatus  PlaybackStatus;
             typedef ::Replay::ReplayEngineDLL::WindowPlacement WindowPlacement;
 
-            /* Applies to the frames first_frame to last_frame, counted from 0; the others are executed as they are read. */
+            /* Applies to the frames first_frame to last_frame (counted from 0). The other frames are executed as they are read. */
             struct FrameExecutionOptions
             {
                 Analysis::Recipe::Eye eye            = Analysis::Recipe::Eye::LEFT; /* BUFFERED_ONCE: the eye to render for; TWICE: the left one, then the right one */
@@ -60,10 +62,10 @@ namespace Stereo
                 bool                  restores_state = false;                       /* TWICE: the state of the device is restored before the second execution */
                 uint64_t              truncate_draw_key = 0;                        /* truncates_after_draw: the key of the structure of the draw */
                 uint64_t              truncate_pass_key = 0;                        /* truncates_after_draw: the key of the pass that it is in */
-                bool                  truncates_after_draw = false;                 /* the last frame (last_frame) is cut after the last call of the draws of the structure in the pass: what is
-                                                                                      * drawn up to them is the image, for seeing whether they draw anything and whether what comes after covers it */
-                std::vector<FrameVariant> variant_vec;                              /* VARIANTS: the ways to play the last frame; the image of the Nth is the one of the Nth execution; the state of
-                                                                                      * the device is restored between them if restores_state is set */
+                bool                  truncates_after_draw = false;                 /* the last frame (last_frame) is cut after the last call of the draws with that structure in that pass. The
+                                                                                      * image is what has been drawn up to that point; it shows whether those draws draw anything and whether later draws cover them */
+                std::vector<FrameVariant> variant_vec;                              /* VARIANTS: the ways to play the last frame. The Nth execution produces the image of the Nth variant. The state of
+                                                                                      * the device is restored between executions if restores_state is set */
             };
         }
     }

@@ -2,15 +2,15 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * What the texels of a texture are, in the words of no API: a named format for every layout that the programs of this project follow, with what each says of
- * itself (the size of its block, the bytes of it, whether it is compressed, has depth or stencil, is sRGB). The front end of each API turns its own values (an
- * OpenGL internal format and type, a Direct3D format or pixel format) into one of these, and what it cannot is UNKNOWN: the program that has it keeps the
- * value of the API beside it, to say what it was.
+ * A texture format that belongs to no graphics API. Each format names one memory layout that the programs of this project handle and describes it: its
+ * block size, its bytes per block, and whether it is compressed, has depth or stencil, or is sRGB. The front end of each API converts its own values
+ * (an OpenGL internal format and type, a Direct3D format or pixel format) to one of these. A value without a counterpart becomes UNKNOWN, and the program
+ * keeps the API's original value next to it to record what it was.
  *
- * The values are stored in files and do not change: a format is added after the last one, and none is removed or moved. The names tell the layout in memory.
- * For formats of bytes the channels are in the order of the bytes, the lowest address first (R8G8B8A8 is a byte of red, one of green, one of blue and one of
- * alpha); for formats packed in a word they are in the order of the bits of the word, the highest first (R5G6B5 has red in the top five bits). X is a part
- * that is not used, and L is luminance (one value for red, green and blue).
+ * The values are stored in files and never change: a new format is added after the last one, and none is removed or moved. The names state the memory
+ * layout. For byte formats the channels follow the byte order, lowest address first (R8G8B8A8 is one byte each of red, green, blue and alpha). For formats
+ * packed into a word the channels follow the bit order of the word, highest bits first (R5G6B5 has red in the top five bits). X is an unused part, and L
+ * is luminance (one value for red, green and blue).
  */
 #ifndef UTILS_GRAPHICS_TEXTURE_FORMAT_H
 #define UTILS_GRAPHICS_TEXTURE_FORMAT_H
@@ -46,7 +46,7 @@ namespace Utils
             A4R4G4B4_UNORM     = 9,
             A2B10G10R10_UNORM  = 17,
 
-            /* Of 16 and 32 bits for a channel */
+            /* 16 and 32 bits per channel */
             R16_UNORM          = 18,
             R16G16_UNORM       = 19,
             R16G16B16A16_UNORM = 20,
@@ -77,11 +77,11 @@ namespace Utils
             BC7_UNORM_SRGB     = 41
         };
 
-        /* The value of the last format: the formats go from 0 to it, with none missing. */
+        /* The value of the last format. The values run from 0 to this one with no gaps. */
         constexpr uint16_t LAST_TEXTURE_FORMAT_VALUE = 41;
 
-        /* What a format says of itself. A texel is a block of one by one for a format that is not compressed. D32_FLOAT_S8_UINT is as D3D and Vulkan have it in
-         * memory: 8 bytes for a texel (the float, the stencil byte, and padding).
+        /* The properties of a format. For an uncompressed format a block is one texel by one texel. D32_FLOAT_S8_UINT has the D3D and Vulkan memory
+         * layout: 8 bytes per texel (the float, the stencil byte, and padding).
          */
         struct TextureFormatInfo
         {
@@ -92,25 +92,27 @@ namespace Utils
             bool        is_compressed          = false;
             bool        is_srgb                = false;
             const char* name_ptr               = "UNKNOWN";
-            uint32_t    n_bytes_per_block      = 0; /* 0: not known (UNKNOWN) */
+            uint32_t    n_bytes_per_block      = 0; /* 0 for UNKNOWN */
         };
 
         class TextureFormats
         {
         public:
-            /* What the format says of itself; the UNKNOWN has no bytes. */
+            /* Returns the properties of the format. UNKNOWN has no bytes per block. */
             static TextureFormatInfo get_info(const TextureFormat& in_format);
 
-            /* The bytes that a region of the texels takes: whole blocks, so that a region smaller than a block takes the one. 0 for a format that is not known. */
+            /* Returns the bytes that a region of texels occupies. It counts whole blocks, so a region smaller than one block still takes one block.
+             * Returns 0 for an unknown format.
+             */
             static uint64_t get_n_bytes(const TextureFormat& in_format,
                                         const uint32_t&      in_width_in_texels,
                                         const uint32_t&      in_height_in_texels);
 
-            /* Whether the value is that of a format (the UNKNOWN is). For what is read from a file. */
+            /* True if the value is a valid format, UNKNOWN included. Used to validate values read from a file. */
             static bool is_format_value(const uint32_t& in_value);
 
         private:
-            /* The info of a table row: block width, block height, depth, stencil, compressed, sRGB, name, bytes of a block. */
+            /* Builds the properties for one table row from: block width, block height, depth, stencil, compressed, sRGB, name, bytes per block. */
             static TextureFormatInfo make_info(const uint32_t& in_block_width,
                                                const uint32_t& in_block_height,
                                                const bool&     in_has_depth,

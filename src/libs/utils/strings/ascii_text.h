@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * What is done to ASCII text, for everything that needs it.
+ * Helpers for ASCII text, shared by the programs of this project.
  */
 #ifndef UTILS_STRINGS_ASCII_TEXT_H
 #define UTILS_STRINGS_ASCII_TEXT_H
@@ -16,7 +16,7 @@ namespace Utils
         class AsciiText
         {
         public:
-            /* The text with its ASCII letters in lower case; other bytes are kept. */
+            /* Returns the text with its ASCII letters converted to lower case. All other bytes are kept. */
             static std::string to_lower(const std::string& in_text);
         };
     }

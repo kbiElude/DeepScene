@@ -89,7 +89,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8GeometryTracker::on_lock(const An
 {
     const auto buffer_iterator = m_buffer_map.find(in_id);
 
-    /* The size is not needed: the data that comes with the unlock says how much was locked. */
+    /* The size is not needed: the data stored with the unlock says how much was locked. */
     (void) in_n_bytes;
 
     if (buffer_iterator != m_buffer_map.end() )
@@ -129,7 +129,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8GeometryTracker::on_unlock(const 
 
 std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDumpAnalysis::Frontends::D3D8GeometryTracker::sample(const DrawRange& in_range)
 {
-    /* The cache is bounded since a buffer that is written to each frame makes a sample of its own each time. */
+    /* The cache is bounded because a buffer that is written every frame produces a new sample every time. */
     constexpr size_t MAX_N_SAMPLES = 4096;
 
     std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> result_ptr;

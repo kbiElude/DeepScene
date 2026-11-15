@@ -9,14 +9,14 @@ Utils::Graphics::TextureFormatInfo Utils::Graphics::TextureFormats::get_info(con
     typedef Utils::Graphics::TextureFormat     Format;
     typedef Utils::Graphics::TextureFormatInfo Info;
 
-    /* A format and what it says of itself. */
+    /* A format together with its properties. */
     struct Row
     {
         Format format;
         Info   info;
     };
 
-    /* In the order of the values, so that a format is its place in the table (the tests check it). */
+    /* The rows follow the order of the enum values, so a format's value is its row index. The tests verify this. */
     static const Row ROW_ARRAY[] =
     {
         {Format::UNKNOWN,             make_info(1, 1, false, false, false, false, "UNKNOWN",             0)},
@@ -80,7 +80,7 @@ uint64_t Utils::Graphics::TextureFormats::get_n_bytes(const TextureFormat& in_fo
 {
     const TextureFormatInfo info = get_info(in_format);
 
-    /* Whole blocks: a width of 5 texels in blocks of 4 is two of them. */
+    /* Counts whole blocks: a width of 5 texels with 4-texel blocks is 2 blocks. */
     const uint64_t n_blocks_across = (static_cast<uint64_t>(in_width_in_texels)  + info.block_width_in_texels  - 1) / info.block_width_in_texels;
     const uint64_t n_blocks_down   = (static_cast<uint64_t>(in_height_in_texels) + info.block_height_in_texels - 1) / info.block_height_in_texels;
 

@@ -80,7 +80,7 @@ bool Analysis::APIDumpAnalysis::WorkloadIdentity::hash_piece(const std::string& 
     file.read(reinterpret_cast<char*>(piece_u8_vec.data() ),
               static_cast<std::streamsize>(piece_u8_vec.size() ) );
 
-    /* A file shorter than a piece is hashed as far as it goes; reaching its end is not an error. */
+    /* A file shorter than a piece is hashed up to its end. Reaching the end is not an error. */
     piece_u8_vec.resize(static_cast<size_t>(file.gcount() ) );
 
     *out_hash_ptr = Utils::Hashing::Hasher::hash_bytes(piece_u8_vec.data(),
@@ -94,7 +94,7 @@ end:
 bool Analysis::APIDumpAnalysis::WorkloadIdentity::is_same_workload(const WorkloadReference& in_a,
                                                                    const WorkloadReference& in_b)
 {
-    /* A hash that is 0 was not recorded, and tells nothing. */
+    /* A hash of 0 was not recorded and says nothing. */
     const auto is_hash_alike_func = [](const uint64_t& in_hash_a,
                                        const uint64_t& in_hash_b)
     {

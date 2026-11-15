@@ -89,7 +89,7 @@ Analysis::APIDumpAnalysis::ResourceId Analysis::APIDumpAnalysis::Frontends::GLBl
     {
         blob_ptr = &iterator->second;
 
-        /* The first time that it is seen in this frame. */
+        /* The first time the blob is seen in this frame. */
         if (blob_ptr->last_frame != m_frame_index)
         {
             blob_ptr->last_frame = m_frame_index;

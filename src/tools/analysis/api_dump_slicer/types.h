@@ -12,7 +12,7 @@ namespace Analysis
 {
     namespace APIDumpSlicer
     {
-        /* What the exit code of the program says. */
+        /* The exit codes of the program. */
         enum class ExitCode
         {
             BAD_ARGUMENTS = 1,

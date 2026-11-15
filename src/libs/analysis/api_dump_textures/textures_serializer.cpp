@@ -10,7 +10,7 @@
 bool Analysis::APIDumpTextures::TexturesSerializer::deserialize_blobs(const std::vector<uint8_t>& in_byte_vec,
                                                                       TextureTimeline*            inout_timeline_ptr)
 {
-    /* The bytes of an entry of the table of blobs: what is the least that a count of them can take. */
+    /* The minimum stored size in bytes of one entry of the table of blobs. It is used to reject impossible counts. */
     constexpr size_t BLOB_ENTRY_N_BYTES = sizeof(uint64_t) * 5 + sizeof(uint8_t) * 2 + sizeof(uint32_t);
 
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
@@ -64,7 +64,7 @@ bool Analysis::APIDumpTextures::TexturesSerializer::deserialize_blobs(const std:
 bool Analysis::APIDumpTextures::TexturesSerializer::deserialize_events(const std::vector<uint8_t>& in_byte_vec,
                                                                        TextureTimeline*            inout_timeline_ptr)
 {
-    /* The bytes of an event: what is the least that a count of them can take. */
+    /* The minimum stored size in bytes of one event. It is used to reject impossible counts. */
     constexpr size_t EVENT_N_BYTES = sizeof(uint8_t) + sizeof(uint64_t) * 2 + sizeof(uint32_t) * 22;
 
     Utils::BinaryIO::ByteReader reader(in_byte_vec.data(),
@@ -111,7 +111,7 @@ bool Analysis::APIDumpTextures::TexturesSerializer::deserialize_events(const std
         event.level_depth_or_layer_count = reader.read_u32();
         event.sample_index               = reader.read_u32();
 
-        /* A value that is not a format is left as the UNKNOWN, and the event is not valid. */
+        /* A value that is not a format leaves the format as UNKNOWN, and the event is invalid. */
         if (Utils::Graphics::TextureFormats::is_format_value(level_format_value) )
         {
             event.level_format = static_cast<Utils::Graphics::TextureFormat>(level_format_value);
@@ -179,8 +179,8 @@ bool Analysis::APIDumpTextures::TexturesSerializer::deserialize_resources(const 
     return result;
 }
 
-/* Whether the values of an entry, as they were read, say what can be: values of an enumeration that there are, and for a content that is left in the workload no
- * stored bytes and no filter (it has nothing of the file of blobs).
+/* Checks a blob entry that was read from a file. The filter and the location must be values that exist. A content that stays in the workload
+ * has no stored bytes and no filter, because it has nothing in the file of blobs.
  */
 bool Analysis::APIDumpTextures::TexturesSerializer::is_entry_valid(const uint8_t&   in_filter,
                                                                    const uint8_t&   in_location,
@@ -199,9 +199,9 @@ bool Analysis::APIDumpTextures::TexturesSerializer::is_entry_valid(const uint8_t
              has_stored_values == false) );
 }
 
-/* Whether an event, as it was read, says what can be: values of the enumerations that there are, resources that are there (they are numbered from 1; the
- * window, which is no resource, may be the source), calls in order, a blob that is in the table, at least one layer, for a multisampled texture a sample
- * that it has, and a format that there is with a region on its blocks.
+/* Checks an event that was read from a file. The enumeration values must exist. The resources must exist (resource numbers start at 1, and the
+ * source may also be the window, which is not a resource). The calls must be in order, the blob must be in the table, and there must be at least
+ * one layer. For a multisampled texture the sample must exist. The format must exist and the region must lie on its blocks.
  */
 bool Analysis::APIDumpTextures::TexturesSerializer::is_event_valid(const TextureEvent&                                     in_event,
                                                                    const uint8_t&                                          in_kind,
@@ -245,8 +245,8 @@ bool Analysis::APIDumpTextures::TexturesSerializer::is_event_valid(const Texture
             in_event.call_index >= in_last_call_index);
 }
 
-/* Whether a region is on the blocks of its format: it starts on a block, and ends on one or at the edge of the level, in each direction. A format of blocks of
- * one texel has every region on them.
+/* True if the region starts on a block boundary and ends on one or at the edge of the level, in both directions. For a format whose blocks are
+ * one texel, every region is on block boundaries.
  */
 bool Analysis::APIDumpTextures::TexturesSerializer::is_region_on_blocks(const TextureEvent& in_event)
 {

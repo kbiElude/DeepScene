@@ -2,9 +2,9 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * What the front ends of the APIs that have a fixed-function pipeline (Direct3D 7 and 8) do alike: they follow the objects the application
- * makes (see ObjectTracker), and the state of the device that does not depend on the API (transforms, lights, render states, textures), and
- * count the calls they cannot follow. What the APIs do not do alike (the resources, the draws, the vertices) is the front end's own.
+ * The common part of the front ends of the APIs that have a fixed-function pipeline (Direct3D 7 and 8). It follows the objects that the
+ * application creates (see ObjectTracker) and the device state that does not depend on the API (transforms, lights, render states, textures),
+ * and counts the calls that it cannot follow. What differs between the APIs (the resources, the draws, the vertices) is left to the front end.
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_I_FIXED_FUNCTION_FRONTEND_H
 #define APIDUMPANALYSIS_FRONTENDS_I_FIXED_FUNCTION_FRONTEND_H
@@ -41,23 +41,23 @@ namespace Analysis
 
                 uint64_t get_n_unsupported_calls() const override;
 
-                /* What the front end knows about the objects (for the checks of the tests). */
+                /* The objects that the front end knows about (used by the tests). */
                 const ObjectTracker& get_tracker() const;
 
             protected:
-                /* nullptr if there is no such resource. */
+                /* Returns nullptr if there is no such resource. */
                 const Analysis::APIDumpAnalysis::ResourceDescription* find_resource_description_ptr(const Analysis::APIDumpAnalysis::ResourceId& in_id) const;
 
-                /* Lets go of what is kept of a resource that is gone (the vertices that were seen of it, say). */
+                /* Drops what is kept for a resource that no longer exists (for example, the vertices that were sampled from it). */
                 virtual void forget_resource(const Analysis::APIDumpAnalysis::ResourceId& in_id) = 0;
 
-                /* The whole of a surface, as a viewport. */
+                /* The whole surface as a viewport. */
                 Analysis::APIDumpAnalysis::Viewport get_full_viewport(const Analysis::APIDumpAnalysis::ResourceView& in_view) const;
 
-                /* The state of the fixed-function pipeline of the device, which the API says the rules of. */
+                /* The fixed-function pipeline state of the device. The API supplies the rules for it. */
                 virtual FixedFunctionState& get_fixed_function_state() = 0;
 
-                /* What a transform state is for; UNKNOWN for the states the front end does not follow. */
+                /* What a transform state is for; UNKNOWN for the states that the front end does not follow. */
                 virtual Analysis::APIDumpAnalysis::ConstantSemantic get_transform_semantic(const uint32_t& in_state) const = 0;
 
                 void handle_light_enable           (const CallView& in_view);
@@ -70,12 +70,12 @@ namespace Analysis
 
 
                 Analysis::APIDumpAnalysis::ModelBuilder*        m_builder_ptr;
-                Analysis::APIDumpAnalysis::ResourceView         m_color_view;           /* what is rendered to                  */
+                Analysis::APIDumpAnalysis::ResourceView         m_color_view;           /* the render target                    */
                 Analysis::APIDumpAnalysis::ResourceView         m_depth_stencil_view;   /* resource_id is NONE if there is none */
                 Capture::APIDumpLoader::ObjectNamer             m_namer;
                 uint64_t                                        m_n_unfollowed_calls;
                 uint64_t                                        m_n_unsupported_calls;
-                std::unordered_set<APIInterceptor::APIFunction> m_release_function_set; /* the methods which Release, for the front end to fill */
+                std::unordered_set<APIInterceptor::APIFunction> m_release_function_set; /* the Release methods; filled by the derived front end */
                 ResolutionHazardCounter                         m_resolution_hazard_counter;
                 ObjectTracker                                   m_tracker;
                 Analysis::APIDumpAnalysis::ConstantUpdate       m_transform_update_scratch;

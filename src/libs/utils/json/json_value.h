@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * A value of a JSON text: what JsonReader gives, and what the readers of the files of this project look into.
+ * One value of a JSON text. JsonReader produces it, and the file readers of this project query it.
  */
 #ifndef UTILS_JSON_JSON_VALUE_H
 #define UTILS_JSON_JSON_VALUE_H
@@ -30,7 +30,7 @@ namespace Utils
             /* The member of an object, or nullptr. */
             const JsonValue* find_ptr(const std::string& in_key) const;
 
-            /* The first key of an object which is not among the allowed ones, or nullptr. */
+            /* The first key of the object that is not in the allowed set, or nullptr. */
             const std::string* find_unknown_key_ptr(const std::vector<std::string>& in_allowed_key_vec) const;
         };
     }

@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * What the programs that ask questions of a file of the analysis (APIDumpAnalysisQuery, APIDumpDependencyQuery, APIDumpTextureQuery) are asked to do in the same
- * way: print JSON on one line or not, check the workload or not, where the workload is, and how much of a list to print.
+ * The settings that the query programs (APIDumpAnalysisQuery, APIDumpDependencyQuery, APIDumpTextureQuery) share: whether to print JSON on
+ * one line, whether to check the workload, where the workload is, and how much of a list to print.
  */
 #ifndef APIDUMPANALYSIS_QUERY_OPTIONS_H
 #define APIDUMPANALYSIS_QUERY_OPTIONS_H
@@ -18,7 +18,7 @@ namespace Analysis
 {
     namespace APIDumpAnalysis
     {
-        /* An option of a program that takes a number and nothing else is done with it: its name (with the dashes), and what the program does with the number. */
+        /* An option of a program that takes only a number: its name (with the dashes) and what the program does with the number. */
         struct QueryNumberOption
         {
             std::string                           name;
@@ -31,18 +31,18 @@ namespace Analysis
             bool        is_verify_off     = false;
             uint64_t    limit             = 100; /* items in a list; 0 is all */
             uint64_t    offset            = 0;   /* items to skip             */
-            std::string workload_filename;       /* where the workload is, if not where the file says */
+            std::string workload_filename;       /* the path of the workload, if it is not the one that the file names */
         };
 
-        /* What a query program says of the arguments that are not options: the file, the command, and then numbers. */
+        /* How a query program handles the arguments that are not options: the file, the command, and then numbers. */
         struct QueryPositionalRules
         {
-            size_t      max_n_numbers = 0; /* more of them are refused with "Too many arguments" */
-            std::string missing_text;      /* said if the file or the command is not there       */
-            std::string number_error_text; /* in front of the argument that is not a number      */
+            size_t      max_n_numbers = 0; /* more numbers than this are refused with "Too many arguments" */
+            std::string missing_text;      /* the message if the file or the command is missing            */
+            std::string number_error_text; /* the message prefix for an argument that is not a number      */
         };
 
-        /* What the arguments that are not options said. */
+        /* The parsed arguments that are not options. */
         struct QueryPositionals
         {
             std::string           command;

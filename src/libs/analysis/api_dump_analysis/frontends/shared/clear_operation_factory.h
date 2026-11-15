@@ -17,7 +17,7 @@ namespace Analysis
             class ClearOperationFactory
             {
             public:
-                /* The clear of the APIs whose clear call has flags for what to clear, a color in ARGB (a byte each), a depth and a stencil. */
+                /* Builds the clear for APIs whose clear call takes flags for what to clear, a color in ARGB (one byte per channel), a depth and a stencil. */
                 static Analysis::APIDumpAnalysis::ClearOperation create(const bool&     in_clears_color,
                                                                         const bool&     in_clears_depth,
                                                                         const bool&     in_clears_stencil,

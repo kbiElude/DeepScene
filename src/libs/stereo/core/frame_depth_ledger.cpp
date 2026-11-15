@@ -31,7 +31,7 @@ void Stereo::Core::FrameDepthLedger::add_pending(const uint32_t& in_slot,
 void Stereo::Core::FrameDepthLedger::add_result(const PendingDepthRead& in_read,
                                                 const DepthRange&       in_range)
 {
-    /* The frames up to the one that was given are gone: a result of one of them is no use. */
+    /* Frames up to the one that was handed out are gone, so a result for one of them is dropped. */
     if (in_read.frame >= m_oldest_kept_frame)
     {
         add_to_frame(in_read.frame,
@@ -74,7 +74,7 @@ void Stereo::Core::FrameDepthLedger::add_to_frame(const uint64_t&   in_frame,
 
 void Stereo::Core::FrameDepthLedger::end_frame(const uint32_t& in_lag)
 {
-    /* A depth that was ready and was not taken is not kept for the next frame. */
+    /* A ready depth that was not taken is dropped. */
     m_ready = FrameDepth();
 
     if (m_frame >= in_lag)
@@ -88,7 +88,7 @@ void Stereo::Core::FrameDepthLedger::end_frame(const uint32_t& in_lag)
             m_ready = std::move(ready_it->second);
         }
 
-        /* Everything up to the frame that is ready is done with. */
+        /* Frames up to and including the ready frame are no longer needed. */
         m_frame_map.erase(m_frame_map.begin(),
                           done_end_it);
 
@@ -145,7 +145,7 @@ bool Stereo::Core::FrameDepthLedger::take_ready(DepthRange* out_range_ptr,
     {
         *out_range_ptr = m_ready.range;
 
-        /* Of the passes, the one in the middle. */
+        /* The median of the passes' medians. */
         std::sort(m_ready.median_vec.begin(),
                   m_ready.median_vec.end  () );
 

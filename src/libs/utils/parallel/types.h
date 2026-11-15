@@ -9,11 +9,11 @@ namespace Utils
 {
     namespace Parallel
     {
-        /* Where the job of a JobThread is. */
+        /* The state of the job of a JobThread. */
         enum class JobState
         {
-            DONE,    /* the thread is through with it, and nobody has taken the result */
-            IDLE,    /* there is none                                                  */
+            DONE,    /* the thread has finished it, and nobody has taken the result    */
+            IDLE,    /* there is no job                                                */
             QUEUED,  /* waiting for the thread                                         */
             RUNNING
         };

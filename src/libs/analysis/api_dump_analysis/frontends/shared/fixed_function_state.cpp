@@ -36,7 +36,7 @@ uint64_t Analysis::APIDumpAnalysis::Frontends::FixedFunctionState::compute_state
                                                                                                             : state_pair.second);
     }
 
-    /* Which lights are on, and what kind they are. */
+    /* Which lights are enabled, and the type of each. */
     hasher.add_u64(static_cast<uint64_t>(m_enabled_light_set.size() ));
 
     for (const auto& light_index : m_enabled_light_set)
@@ -159,7 +159,7 @@ bool Analysis::APIDumpAnalysis::Frontends::FixedFunctionState::set_render_state(
 
     if (result)
     {
-        /* Setting a state to what it is (which applications do all the time) leaves the key alone. */
+        /* Applications often set a state to the value it already has. That must not change the key. */
         const auto state_iterator = m_render_state_map.lower_bound(in_state);
 
         if (state_iterator        == m_render_state_map.end() ||
@@ -189,7 +189,7 @@ bool Analysis::APIDumpAnalysis::Frontends::FixedFunctionState::set_texture(const
 
     if (result == false)
     {
-        /* Nothing to do. */
+        /* Nothing to do: the stage does not exist. */
     }
     else
     if (in_view.resource_id == Analysis::APIDumpAnalysis::ResourceId::NONE)

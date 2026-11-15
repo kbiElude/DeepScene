@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * The matrices that the calls of OpenGL make, as the specification says them (column vectors, the columns kept one after the other).
- * A matrix which cannot be made (a box with no width, an axis of no length) is the identity.
+ * Builds the matrices that the OpenGL calls produce, exactly as the specification defines them (column vectors, stored column after column).
+ * A matrix that cannot be built (a box with no width, an axis of length zero) is the identity.
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_MATRIX_MATH_H
 #define APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_MATRIX_MATH_H
@@ -51,7 +51,7 @@ namespace Analysis
                                                 const double& in_y,
                                                 const double& in_z);
 
-                /* What glMultMatrix makes of the current matrix and the one it is given: the current one first, as the left factor. */
+                /* The result of glMultMatrix for the current matrix and the given matrix. The current matrix is the left factor. */
                 static GLMatrix multiply(const GLMatrix& in_left,
                                          const GLMatrix& in_right);
             };

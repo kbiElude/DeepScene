@@ -93,7 +93,7 @@ Analysis::APIDumpAnalysis::Frontends::GLArrayDrawResult Analysis::APIDumpAnalysi
             const uint32_t index_n_bytes    = GLClientArraySnapshot::get_type_n_bytes(index_type);
             const size_t   indices_n_bytes  = static_cast<size_t>(count) * index_n_bytes;
 
-            /* The arrays are not in the call if no array of it reads the memory of the application (the draw has no vertex data to see). */
+            /* The call holds no arrays if none of its arrays reads application memory (the draw has no vertex data to see). */
             bool is_valid = true;
 
             if (arrays_chunk_ptr != nullptr)

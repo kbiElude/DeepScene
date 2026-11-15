@@ -11,12 +11,12 @@ namespace Headset
 {
     namespace XR
     {
-        /* What of an image a swap chain gives the eye: an image which has been taken is waited for, then copied to, then given back. */
+        /* The states of a swap chain image for one eye. An acquired image is waited for, then copied to, then released. */
         enum class SwapchainImageState
         {
-            ACQUIRED, /* taken, and the compositor has not said that it is done with it yet */
+            ACQUIRED, /* acquired from the swap chain; the compositor is still using it */
             IDLE,
-            READY     /* the compositor is done with it: it can be copied to              */
+            READY     /* the compositor has finished with it: it can be copied to       */
         };
     }
 }

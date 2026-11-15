@@ -12,26 +12,31 @@ namespace Stereo
 {
     namespace Core
     {
-        /* How deep what a frame (or a pass of it) drew is, in the units of the camera of the application, as the surfaces that are visible in its depth buffer say. */
+        /* How deep the scene drawn by a frame (or by one pass of it) is. The values are distances from the application's camera, in its units,
+         * taken from the visible surfaces in the depth buffer.
+         */
         struct DepthRange
         {
             float far_depth    = 0.0f;
-            bool  has_depth    = false; /* false if nothing in the buffer was drawn (all of it is as deep as the buffer goes) */
+            bool  has_depth    = false; /* false if too little was drawn, or far_depth is not above near_depth */
             float median_depth = 0.0f;
             float near_depth   = 0.0f;
         };
 
-        /* What the depth buffer of a frame says of how deep it is. */
+        /* Measures how deep a scene is from the depth buffer of a frame. */
         class DepthBufferStatistics
         {
         public:
-            /* The distance from the camera of a depth of the buffer, for the projection (as measure() takes it); 0 if the projection says no such distance. */
+            /* The distance from the camera of a depth buffer value, for the given projection (the same two values that measure() takes).
+             * Returns 0 if the projection gives no valid distance.
+             */
             static float get_distance(const float& in_depth,
                                       const float& in_projection_z_scale,
                                       const float& in_projection_z_shift);
 
-            /* What is looked for in the distances of the pixels that were drawn to, when there are in_n_drawn of them among in_n_looked_at that were looked at (in_n_sky of them
-             * were not drawn to). The nearest and the farthest in_fraction of the pixels that were drawn are the edges of the scene.
+            /* Decides what measure() looks for among the pixels that were drawn to. in_n_looked_at pixels were examined, in_n_drawn of them
+             * were drawn to and in_n_sky were not. The nearest and the farthest in_fraction of the drawn pixels are the edges of the scene.
+             * The result has is_enough set to false if too little was drawn to measure anything.
              */
             static DepthSelection get_selection(const size_t& in_n_drawn,
                                                 const size_t& in_n_looked_at,
@@ -40,10 +45,11 @@ namespace Stereo
                                                 const float&  in_projection_z_shift,
                                                 const float&  in_fraction);
 
-            /* The depths are what an OpenGL depth buffer holds (0 at the near plane and 1 at the far one) of a perspective projection whose elements are the ones that give the depth
-             * its meaning (its z scale and z shift: the elements 10 and 14 of a matrix of OpenGL). A pixel that is as deep as the buffer goes was not drawn to: it is the sky, which is as far as the far plane, if there are as many of
-             * them as the fraction. The nearest surfaces are the first fraction of the pixels that were drawn, and the farthest the last (0.001 is a thousandth); the
-             * median is that of the pixels that were drawn. Only every step-th depth is looked at.
+            /* The depths are OpenGL depth buffer values (0 at the near plane, 1 at the far plane) of a perspective projection. The projection
+             * enters through its z scale and z shift, which are elements 10 and 14 of an OpenGL projection matrix. A pixel at the far end of the
+             * buffer was not drawn to. It is sky, and it counts as being at the far plane if the sky covers at least in_fraction of the examined
+             * pixels. The nearest surfaces are the first in_fraction of the drawn pixels, and the farthest surfaces are the last in_fraction
+             * (0.001 means a thousandth). The median is the median of the drawn pixels. Only every in_step-th depth is examined.
              */
             static DepthRange measure(const float*  in_depth_ptr,
                                       const size_t& in_n_depths,
@@ -52,7 +58,7 @@ namespace Stereo
                                       const float&  in_projection_z_shift,
                                       const float&  in_fraction);
 
-            /* A depth that is this close to the end of the buffer was not drawn to (the buffer is cleared to 1). */
+            /* A depth at or above this value was not drawn to (the buffer is cleared to 1). */
             static const float NOT_DRAWN_DEPTH;
         };
     }

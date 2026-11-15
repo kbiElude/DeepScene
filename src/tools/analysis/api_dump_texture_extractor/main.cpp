@@ -45,7 +45,7 @@ void Analysis::APIDumpTextureExtractor::print_stats(const Analysis::APIDumpTextu
             {
                 ++n_snapshots;
 
-                /* What keeping all of them, as they are, would take before compression and before the same content is kept once. */
+                /* The size of all snapshots as they are: before compression and before identical content is stored once. */
                 n_snapshot_bytes += Utils::Graphics::TextureFormats::get_n_bytes(event.level_format,
                                                                                  event.width,
                                                                                  event.height) * event.layer_count;
@@ -127,7 +127,7 @@ int Analysis::APIDumpTextureExtractor::run(int   in_argc,
     Analysis::APIDumpTextures::TextureCollector  collector(&writer);
     Analysis::APIDumpTextures::TextureTimeline   timeline;
 
-    /* Without history: the textures need no more of the frames than the model builder keeps anyway. */
+    /* Without history: the textures need only the frames that the model builder keeps anyway. */
     Analysis::APIDumpAnalysis::Frontends::AnalysisSession session(false);
 
     Analysis::APIDumpAnalysis::ExtractorTool::Steps steps;
@@ -156,8 +156,8 @@ int Analysis::APIDumpTextureExtractor::run(int   in_argc,
         else
         if (in_argument == "--skip-chunks-above")
         {
-            /* The pixels of an upload are in the data chunks, and a chunk that is left out comes as one with no bytes, which cannot be told from the one that the dumper
-             * did not store: so no chunk is left out.
+            /* The pixels of an upload are in the data chunks. A skipped chunk is delivered as a chunk with no bytes, which looks the same as a chunk
+             * that the dumper did not store. So no chunk may be skipped.
              */
             *out_error_ptr = "--skip-chunks-above is not for this program: the pixels of the uploads are in the data chunks, which are all read";
 
@@ -172,8 +172,8 @@ int Analysis::APIDumpTextureExtractor::run(int   in_argc,
         std::string                                  error;
         Analysis::APIDumpAnalysis::ExtractorExitCode exit_code = Analysis::APIDumpAnalysis::ExtractorExitCode::SUCCESS;
 
-        /* What rendering made is not in the workload: keeping it takes a replay that reads the textures back at the snapshot points, which no program does. A file
-         * that has none of it, from a run that was asked for it, would be taken for one that has it: so the process ends instead.
+        /* Rendered content is not in the workload. Keeping it would need a replay that reads the textures back at the snapshot points, and no
+         * program does that. A file written without it, from a run that asked for it, would look like a complete file, so the program stops instead.
          */
         AI_ASSERT_ALWAYS(includes_render_content == false,
                          "--include-render-content needs a replay of the workload that reads the textures back at the snapshot points, which no program does.");
@@ -252,7 +252,7 @@ int Analysis::APIDumpTextureExtractor::run(int   in_argc,
             goto end;
         }
 
-        /* What was written is read back, and is what was made: nothing of what is kept of the textures is kept as something else. */
+        /* Read the written file back and check that it matches the timeline in memory. A mismatch means a texture was stored incorrectly. */
         {
             Analysis::APIDumpTextures::TextureTimeline written_timeline;
 
@@ -291,7 +291,7 @@ end:
 
     steps.print_usage_func = print_usage;
 
-    /* The pixels of an upload are in data chunks, which are all read. */
+    /* The pixels of an upload are in the data chunks, so no data chunk is skipped (0 means that all chunks are read). */
     steps.profile.default_skip_data_chunks_above_n_bytes = 0;
     steps.profile.output_extension                       = ".textures";
 

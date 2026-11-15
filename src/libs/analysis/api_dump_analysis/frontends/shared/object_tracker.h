@@ -2,9 +2,9 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * The D3D8 objects that are alive, by address, and what each of them is in the model: a resource, or a part of one (the
- * surface of a mip level of a texture). An address is forgotten when its object is released, so that an object created
- * at the same address later is not taken for the old one.
+ * The live D3D8 objects by address, and what each one is in the model: a resource, or a part of a resource (the surface of one mip level of
+ * a texture). An address is forgotten when its object is released, so that a later object created at the same address is not mistaken for
+ * the old one.
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_OBJECT_TRACKER_H
 #define APIDUMPANALYSIS_FRONTENDS_OBJECT_TRACKER_H
@@ -25,8 +25,8 @@ namespace Analysis
             public:
                 struct TrackedObject
                 {
-                    bool                                    owns_resource = false; /* the object is a resource, not a part of one */
-                    Analysis::APIDumpAnalysis::ResourceView view;                  /* the resource, or the part of it             */
+                    bool                                    owns_resource = false; /* true: the object is a resource; false: a part of one */
+                    Analysis::APIDumpAnalysis::ResourceView view;                  /* the resource, or the part of it                      */
                 };
 
                 ObjectTracker();
@@ -35,7 +35,7 @@ namespace Analysis
 
                 size_t get_n_objects() const;
 
-                /* nullptr if the address is not that of an object which is alive and tracked. */
+                /* Returns nullptr if the address does not belong to a live, tracked object. */
                 const TrackedObject* get_object_ptr(const uint64_t& in_address) const;
 
                 void track(const uint64_t&      in_address,

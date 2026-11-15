@@ -2,16 +2,16 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * The questions that a .deps file is asked, and the JSON they are answered with (see APIDumpDependencyQuery):
+ * The queries that can be run against a .deps file, and the JSON they return (see APIDumpDependencyQuery):
  *
- *   info       what the file is of, and how many resources are of each kind of dependency
- *   resources  every resource with its totals, optionally of one class of dependency (paged)
- *   resource   one resource: its totals, the runs of frames which use it alike, and the versions of its content with their consumers (paged)
+ *   info       what the file describes, and how many resources have each dependency class
+ *   resources  every resource with its totals, optionally limited to one dependency class (paged)
+ *   resource   one resource: its totals, the runs of frames that use it in the same way, and the versions of its content with the frames that use them (paged)
  *   frame      one frame: the calls it spans, and what it does with each resource it touches
- *   carries    what a frame uses of what the frames before it left, and which frame left it
- *   per-eye    the resources which carry content from frame to frame and are rendered to: those which each eye needs a copy of, as a recipe
- *              names them (see the "per_eye_textures" of a recipe)
- *   slice      the frames whose content a replay has to make to go to a frame (see FrameSlicePlanner), and the runs of frames it can leave out
+ *   carries    what a frame uses of the content that earlier frames left, and which frame left it
+ *   per-eye    the resources that are rendered to and carry content from frame to frame: the ones each eye needs a copy of, which a recipe lists
+ *              as its "per_eye_textures"
+ *   slice      the frames that a replay has to make to reach a frame (see FrameSlicePlanner), and the runs of frames it can leave out
  *
  * Frames are numbered from 0, as in the other files of the analysis. Keys are hex strings.
  */
@@ -28,7 +28,7 @@ namespace Analysis
 {
     namespace APIDumpDependencies
     {
-        /* What a query is about. Each command uses only some of the arguments. */
+        /* The arguments of a query. Each command uses only some of them. */
         struct QueryArguments
         {
             DependencyClass dependency_class = DependencyClass::CARRIED;
@@ -47,11 +47,13 @@ namespace Analysis
             /* The command names. */
             static const std::vector<std::string>& get_command_names();
 
-            /* Reads a class name: carried, carried_possibly, frame_local, static or unused. */
+            /* Parses a dependency class name (carried, carried_possibly, frame_local, static or unused). Returns false if the name is unknown. */
             static bool parse_dependency_class(const std::string& in_name,
                                                DependencyClass*   out_class_ptr);
 
-            /* Runs a command. Sets the error unless it returns OK; the writer's text is unusable then. */
+            /* Runs a command and writes the JSON result to the writer. If the status is not OK, the error is set and the content of the writer
+             * must be discarded.
+             */
             static Analysis::APIDumpAnalysis::QueryStatus run(const std::string&        in_command,
                                                               const DependencyAnalysis& in_analysis,
                                                               const QueryArguments&     in_arguments,
@@ -59,18 +61,20 @@ namespace Analysis
                                                               std::string*              out_error_ptr);
 
         private:
-            /* The version of a resource whose content a frame uses from the frames before: nullptr if there is none. */
+            /* Returns the version whose content the frame uses: the latest version written before the frame, or the version without a writer.
+             * Returns nullptr if there is none.
+             */
             static const ResourceVersion* find_consumed_version_ptr(const ResourceDependencies& in_dependencies,
                                                                     const uint64_t&             in_frame_index);
 
-            /* What a frame does with a resource: nullptr if it does not touch it. */
+            /* Returns the use run that contains the frame, or nullptr if the frame does not touch the resource. */
             static const UseRun* find_use_run_ptr(const ResourceDependencies& in_dependencies,
                                                   const uint64_t&             in_frame_index);
 
             static const char* get_carry_kind_name      (const CarryKind&       in_kind);
             static const char* get_dependency_class_name(const DependencyClass& in_class);
 
-            /* The paging of a list: the arguments of the other files of the analysis. */
+            /* Returns the paging arguments (limit and offset) in the form that the other query files of the analysis use. */
             static Analysis::APIDumpAnalysis::QueryArguments get_paging(const QueryArguments& in_arguments);
 
             static Analysis::APIDumpAnalysis::QueryStatus run_carries  (const DependencyAnalysis& in_analysis,
@@ -98,7 +102,7 @@ namespace Analysis
                                                                         Utils::Json::JsonWriter*  inout_writer_ptr,
                                                                         std::string*              out_error_ptr);
 
-            /* A resource: what it is, and its totals. */
+            /* write_resource_head writes what the resource is, and write_summary writes its totals. */
             static void write_resource_head(const DependencyAnalysis& in_analysis,
                                             const size_t&             in_n_resource,
                                             Utils::Json::JsonWriter*  inout_writer_ptr);

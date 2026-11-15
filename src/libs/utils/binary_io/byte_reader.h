@@ -24,12 +24,12 @@ namespace Utils
             ByteReader(const uint8_t* in_data_ptr,
                        const size_t&  in_n_bytes);
 
-            /* Makes the reader fail: for what was read, and cannot be right. */
+            /* Marks the reader as failed. Callers use it when a value they have read is invalid. */
             void fail();
 
             size_t get_n_bytes_left() const;
 
-            /* True if a read went past the end (it gave zeros), or a count was impossible. */
+            /* True if a read went past the end (and returned zeros) or a count was too large for the remaining bytes. */
             bool has_failed() const;
 
             bool                 is_at_end    () const;

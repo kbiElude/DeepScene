@@ -11,8 +11,9 @@ namespace Stereo
 {
     namespace ConverterDLL
     {
-        /* The functions of OpenGL 1.1 that the converter calls, as the driver has them: not the hooks, which, besides the callbacks, record the data of a
-         * call (a read of pixels makes a copy of them) for a program that is watching the application, and are of no use for what the converter does itself.
+        /* The OpenGL 1.1 functions that the converter calls, taken directly from the driver. They are not the hooks. A hook also runs the
+         * callbacks and records the data of the call (a pixel read copies its pixels) for a program that watches the application. The converter's
+         * own calls need none of that.
          */
         struct GLDriverFunctions
         {

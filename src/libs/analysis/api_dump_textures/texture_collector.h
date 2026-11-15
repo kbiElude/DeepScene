@@ -2,8 +2,9 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Keeps what the front ends tell of the textures (see ITextureSink), for the timeline of a .textures file: the events in the order they came in, and for each
- * upload that has data the place of its content in the table of the writer of blobs, as a content that is left where it is in the workload.
+ * Collects what the front ends report about textures (see ITextureSink) for the timeline of a .textures file: the events in the order they
+ * arrive, and for each upload that carries data, the place of its content in the table of the blob writer. The content is registered as one that
+ * stays in the workload.
  */
 #ifndef APIDUMPTEXTURES_TEXTURE_COLLECTOR_H
 #define APIDUMPTEXTURES_TEXTURE_COLLECTOR_H
@@ -20,13 +21,13 @@ namespace Analysis
         class TextureCollector : public ITextureSink
         {
         public:
-            /* The writer is not the collector's: it must outlive it. */
+            /* The collector does not own the writer. The writer must outlive the collector. */
             explicit TextureCollector(TextureBlobWriter* in_writer_ptr);
 
-            /* What went wrong first, if anything did (an event after it is kept all the same, without its content); empty if nothing did. */
+            /* The first error that occurred, or an empty string if there was none. An event that causes an error is still kept, without its content. */
             const std::string& get_error() const;
 
-            /* The events so far, in the order of the calls. */
+            /* The events so far, in call order. */
             const std::vector<TextureEvent>& get_event_vec() const;
 
             void on_texture_event(const TextureEvent& in_event,

@@ -121,7 +121,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLStateHandler::handle_pop_attributes
         const bool is_viewport_same = is_same_box(old_viewport,
                                                   inout_state_ptr->attributes.viewport);
 
-        /* What was put back may be another viewport, which is a change for what is rendered to. */
+        /* The restored state may contain a different viewport, which changes what is rendered. */
         const bool has_window = in_window.has_default_framebuffer();
 
         if (has_window &&
@@ -342,7 +342,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLStateHandler::handle_viewport(const
     {
         inout_state_ptr->attributes.viewport = box;
 
-        /* The model has the viewport of what is rendered to, and there is none before the first clear. */
+        /* The model tracks the viewport of the render target, which exists only while a default framebuffer is present. */
         if (in_window.has_default_framebuffer() )
         {
             m_builder_ptr->on_set_viewport(GLWindow::get_model_viewport(*inout_state_ptr) );
@@ -407,7 +407,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLStateHandler::restore_attributes(co
         inout_attributes_ptr->clear_stencil = saved.clear_stencil;
     }
 
-    /* The scissor test is one of the flags of the enable group as well as of the scissor group. */
+    /* The scissor test flag belongs to both the enable group and the scissor group. */
     if ( (in_frame.mask & (ENABLE_BIT | SCISSOR_BIT) ) != 0)
     {
         inout_attributes_ptr->is_scissor_enabled = saved.is_scissor_enabled;
@@ -418,7 +418,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLStateHandler::restore_attributes(co
         inout_attributes_ptr->scissor_box = saved.scissor_box;
     }
 
-    /* The textures that are bound, and the unit that is active. */
+    /* The bound textures and the active texture unit. */
     if ( (in_frame.mask & TEXTURE_BIT) != 0)
     {
         inout_attributes_ptr->active_texture_unit = saved.active_texture_unit;

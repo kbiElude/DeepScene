@@ -20,7 +20,7 @@ Analysis::APIDumpTextures::LevelContent Analysis::APIDumpTextures::TextureLevelC
     {
         const TextureEvent& event = in_timeline.event_vec.at(n_event);
 
-        /* The events are in the order of the calls: none after the cut is counted. */
+        /* The events are in call order, so the first event past the cut ends the search. */
         if (event.frame_index > in_cut.last_frame_index ||
             event.call_index  > in_cut.last_call_index)
         {
@@ -56,8 +56,8 @@ Analysis::APIDumpTextures::LevelContent Analysis::APIDumpTextures::TextureLevelC
                                        event.x                 == 0                                  &&
                                        event.y                 == 0);
 
-        /* A level that is given another size or format is a new level: what it held is gone. So is one that is given its size again with no pixels: what it holds
-         * is not known. A part of a level that is given no pixels changes nothing.
+        /* A level that gets a different size or format is a new level, and what it held is gone. The same applies to a level that is given its
+         * size again with no pixels: its content is then unknown. A sizing-only write to a part of a level changes nothing.
          */
         const bool is_emptied  = (is_sizing_only && covers_level);
         const bool is_replaced = (result.has_level && is_another_level);
@@ -137,10 +137,10 @@ void Analysis::APIDumpTextures::TextureLevelContent::make_pieces(const LayerMap&
             continue;
         }
 
-        /* The next layer that holds the same rectangles of the same events is a part of the run. */
-        if (previous_key_vec.empty() == false      &&
-            layer_pair.first == previous_layer + 1 &&
-            key_vec          == previous_key_vec)
+        /* A directly following layer with the same rectangles from the same events extends the current run. */
+        if (previous_key_vec.empty() == false              &&
+            layer_pair.first         == previous_layer + 1 &&
+            key_vec                  == previous_key_vec)
         {
             for (size_t n_piece = previous_first_piece;
                         n_piece < out_piece_vec_ptr->size();
@@ -197,7 +197,9 @@ void Analysis::APIDumpTextures::TextureLevelContent::paint(const Rectangle&     
         }
         else
         {
-            /* What the new rectangle leaves of the old one: the rows above it, the rows below it, and the parts to the left and right of it in the rows between. */
+            /* The parts of the old rectangle that the new one does not cover: the rows above, the rows below, and the strips to the left and
+             * right in the rows between.
+             */
             const uint32_t middle_bottom = (std::min)(old_bottom,
                                                       new_bottom);
             const uint32_t middle_top    = (std::max)(old_rectangle.y,

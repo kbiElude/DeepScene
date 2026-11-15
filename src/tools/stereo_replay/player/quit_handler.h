@@ -15,8 +15,8 @@ namespace Stereo
     {
         namespace Player
         {
-            /* Ends the player: any thread may ask (a window of the replay or the preview is closed, the user quits), and the main thread
-             * either waits for the request, or has a target which is called to end what it is blocked in.
+            /* Ends the player. Any thread may request the quit (a replay or preview window is closed, or the user quits). The main
+             * thread either waits for the request, or registers a target function that ends whatever the main thread is blocked in.
              */
             class QuitHandler
             {
@@ -30,8 +30,9 @@ namespace Stereo
                 /* Any thread. */
                 void request();
 
-                /* The target is called, with the lock held, by every request, and at once if one was made already, so it must be quick and
-                 * must not ask for a quit. An empty target is taken away. It must be taken away before what it uses is gone.
+                /* The target function is called, with the lock held, on every request, and immediately if a request was already made.
+                 * It must therefore be quick and must not call request(). Passing an empty function removes the target. Remove the
+                 * target before anything it uses is destroyed.
                  */
                 void set_target(const TargetFunc& in_target_func);
 

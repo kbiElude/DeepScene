@@ -17,9 +17,10 @@ namespace Stereo
     {
         namespace EngineDLL
         {
-            /* Executes the calls of a buffered frame once or twice. A call is executed when its executor says (see
-             * ExecutionClass): state, draws and uploads in every execution, what creates objects in the first one, and what destroys
-             * objects, and the present, after the last one. The back buffer is handed out after each execution, and each one is told when it begins.
+            /* Executes the calls of a buffered frame once or more (twice for the two eyes, or once per variant). The executor of a
+             * call chooses when it runs through its ExecutionClass. State changes, draws and uploads run in every execution, calls that
+             * create objects run in the first execution, and calls that destroy objects and the present run after the last one. The
+             * begin function is called before each execution and the capture function after it, to hand out the back buffer.
              */
             class FrameRunner
             {
@@ -27,17 +28,17 @@ namespace Stereo
                 typedef std::function<bool(const uint32_t& in_n_execution)> BeginFunc;
                 typedef std::function<bool(const uint32_t& in_n_execution)> CaptureFunc;
 
-                /* The call is the n-th of the frame, and is executed in the given execution. */
+                /* Executes in_call, the in_n_call-th call of the frame, as part of the execution in_n_execution. */
                 typedef std::function<bool                                     (const Capture::APIDumpLoader::DumpedAPICall&   in_call,
                                                                                 const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
                                                                                 const size_t&                                  in_n_call,
                                                                                 const uint32_t&                                in_n_execution)> ExecuteFunc;
                 typedef std::function<::Replay::ReplayEngineDLL::ICallExecutor*(const Capture::APIDumpLoader::DumpedAPICall&   in_call)>        GetExecutorFunc;
 
-                /* The frame is complete if it ends with the present; otherwise (the workload ends in the middle of it) it is executed
-                 * once whatever the options say, and nothing is captured. A frame which skips the calls that repeat is executed once without
-                 * them: what creates and destroys objects still goes on, so that the frames after it find what they need. Returns false if a
-                 * call fails, or the begin or capture function does.
+                /* A frame is complete if it ends with the present. An incomplete frame (the workload ends in the middle of it) is
+                 * executed once whatever the options say, and nothing is captured. If in_skips_repeated_calls is set, the frame is executed
+                 * once without the calls that repeat. Calls that create or destroy objects still run, so that later frames find the
+                 * objects they need. Returns false if a call fails, or if the begin or capture function does.
                  */
                 static bool run(const FrameBuffer&                                            in_buffer,
                                 const bool&                                                   in_is_complete,

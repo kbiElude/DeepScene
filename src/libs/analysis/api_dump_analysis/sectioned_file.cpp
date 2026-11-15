@@ -119,8 +119,8 @@ std::vector<uint8_t> Analysis::APIDumpAnalysis::SectionedFile::pack_section(cons
 
     ::ZSTD_CCtx* const compression_context = ::ZSTD_createCCtx();
 
-    /* A checksum of the content ends the frame, so that a bit of a section that is damaged is noticed whether or not the decompressor needs it (there are
-     * bits of a small frame that it does not).
+    /* A checksum of the content ends the frame, so that damage to a section is noticed even where the decompressor would not need the damaged
+     * bits (a small frame has such bits).
      */
     ::ZSTD_CCtx_setParameter(compression_context,
                              ::ZSTD_c_compressionLevel,
@@ -137,7 +137,7 @@ std::vector<uint8_t> Analysis::APIDumpAnalysis::SectionedFile::pack_section(cons
 
     ::ZSTD_freeCCtx(compression_context);
 
-    /* The buffer is as big as the worst case needs, so this does not fail unless something is very wrong. */
+    /* The buffer is as large as the worst case needs, so this fails only if something is very wrong. */
     if (::ZSTD_isError(n_stored_bytes) == 0)
     {
         stored_byte_vec.resize(n_stored_bytes);
@@ -203,7 +203,7 @@ bool Analysis::APIDumpAnalysis::SectionedFile::read_sections(const std::vector<u
                                                              const SectionFunc&          in_section_func,
                                                              std::string*                out_error_ptr)
 {
-    constexpr uint64_t MAX_SECTION_N_BYTES = 1ull << 30; /* cap on the claimed size of a section */
+    constexpr uint64_t MAX_SECTION_N_BYTES = 1ull << 30; /* the largest size that a section may claim */
 
     size_t n_next_section = 0;
     size_t position       = in_position;
@@ -275,7 +275,7 @@ bool Analysis::APIDumpAnalysis::SectionedFile::read_sections(const std::vector<u
             goto end;
         }
 
-        /* The size is known from the compressed data too: a claim that differs is refused before anything is allocated for it. */
+        /* The size is also stored in the compressed frame. A claimed size that differs from it is refused before any memory is allocated for it. */
         bool is_size_valid = (header.n_raw_bytes <= MAX_SECTION_N_BYTES);
 
         if (is_size_valid)
@@ -345,7 +345,7 @@ bool Analysis::APIDumpAnalysis::SectionedFile::write_file(const std::string&    
                                                           const std::vector<uint8_t>& in_byte_vec,
                                                           std::string*                out_error_ptr)
 {
-    /* A file is written beside the real one, and takes its place when it is complete: a failure leaves the old file as it was. */
+    /* The file is written next to the real one and replaces it when complete, so a failure leaves the old file unchanged. */
     const std::string temporary_filename = in_filename + ".tmp";
     bool              result             = false;
 

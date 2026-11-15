@@ -13,7 +13,7 @@ namespace Stereo
     {
         namespace EngineDLL
         {
-            /* Sees every call of the workload around its replay (see the one of the replay engine of the interceptor). */
+            /* Sees every call of the workload before and after it is replayed (see ::Replay::ReplayEngineDLL::ICallInterceptor). */
             typedef ::Replay::ReplayEngineDLL::ICallInterceptor ICallInterceptor;
         }
     }

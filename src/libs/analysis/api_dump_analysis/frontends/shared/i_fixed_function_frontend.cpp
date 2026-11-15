@@ -102,7 +102,7 @@ void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_releas
     const uint64_t                      address    = in_view.get_pointer(OBJECT_ARGUMENT);
     const ObjectTracker::TrackedObject* object_ptr = m_tracker.get_object_ptr(address);
 
-    /* The last reference is gone. */
+    /* The object is released for the last time when the returned reference count is 0. */
     if (object_ptr != nullptr)
     {
         const uint32_t returned_reference_count = in_view.get_returned_u32();
@@ -120,7 +120,7 @@ void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_releas
         }
     }
 
-    /* The address may be given to another object: it has no name until it is registered again. */
+    /* The address can be reused by another object, so its name is dropped until the address is registered again. */
     if (in_view.get_returned_u32() == 0)
     {
         m_namer.forget_object(address);
@@ -134,7 +134,7 @@ void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_set_li
 
     const Capture::APIDumpLoader::DataChunk* chunk_ptr = in_view.get_chunk_ptr(LIGHT_ARGUMENT);
 
-    /* The type is the first field of the light. */
+        /* The type is the first field of the light structure. */
     if (chunk_ptr         == nullptr          ||
         chunk_ptr->size() <  sizeof(uint32_t) )
     {
@@ -183,7 +183,7 @@ void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_set_te
 
     if (address == 0)
     {
-        /* No texture takes the one in the stage away. */
+        /* An address of 0 means no texture, which clears the stage. */
         if (get_fixed_function_state().set_texture(stage,
                                                    Analysis::APIDumpAnalysis::ResourceView() ) == false)
         {
@@ -226,7 +226,7 @@ void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_set_te
 void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_set_transform(const CallView& in_view)
 {
     constexpr size_t MATRIX_ARGUMENT = 2;
-    constexpr size_t MATRIX_N_BYTES  = 16 * sizeof(float); /* D3DMATRIX, of both APIs */
+    constexpr size_t MATRIX_N_BYTES  = 16 * sizeof(float); /* D3DMATRIX, the same in both APIs */
     constexpr size_t STATE_ARGUMENT  = 1;
 
     const Capture::APIDumpLoader::DataChunk* chunk_ptr = in_view.get_chunk_ptr(MATRIX_ARGUMENT);
@@ -242,14 +242,14 @@ void Analysis::APIDumpAnalysis::Frontends::IFixedFunctionFrontend::handle_set_tr
     {
         Analysis::APIDumpAnalysis::ConstantUpdate& update = m_transform_update_scratch;
 
-        /* The transforms are state of the device, laid out one after the other. */
+        /* The transforms are part of the device state, stored one after the other. */
         update.location.block_kind  = Analysis::APIDumpAnalysis::ConstantBlockKind::FIXED_FUNCTION_STATE;
         update.location.byte_offset = static_cast<uint64_t>(state) * MATRIX_N_BYTES;
         update.location.byte_size   = MATRIX_N_BYTES;
         update.provenance           = Analysis::APIDumpAnalysis::ConstantProvenance::API_DEFINED;
         update.semantic             = get_transform_semantic(state);
 
-        /* The memory of the matrix of the last call is used again. */
+        /* The scratch update keeps its buffer between calls, so assigning the matrix usually does not allocate. */
         update.value_u8_vec.assign(chunk_ptr->begin(),
                                    chunk_ptr->end() );
 

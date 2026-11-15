@@ -56,7 +56,7 @@ bool Analysis::APIDumpSlicer::CommandLine::parse(const std::vector<std::string>&
 
             if (argument == "--frames")
             {
-                /* "B", or "0-B". */
+                /* The value is "B" or "0-B", where B is the frame number at which the slice ends. */
                 const size_t n_dash = text.find('-');
 
                 if (n_dash != std::string::npos)

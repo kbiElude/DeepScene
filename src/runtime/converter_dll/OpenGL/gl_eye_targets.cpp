@@ -113,7 +113,7 @@ bool Stereo::ConverterDLL::GLEyeTargets::begin_depth_read(uint32_t* out_slot_ptr
                                                  m_depth_buffer_array.at(n_slot) );
             }
 
-            /* The depth of the whole buffer goes to the small copy, and from there to the buffer of the slot: the graphics card does it, and nothing is waited for. */
+            /* The depth buffer is copied to the small copy, and from there to the buffer of the slot. The graphics card does both without the CPU waiting. */
             blit_left_eye(m_depth_probe.framebuffer,
                           m_probe_width,
                           m_probe_height,
@@ -127,7 +127,7 @@ bool Stereo::ConverterDLL::GLEyeTargets::begin_depth_read(uint32_t* out_slot_ptr
             GLDriverFunctions::get().pixel_storei_func_ptr(PACK_ALIGNMENT,
                                                            1);
 
-            /* With a buffer bound the pixels go to it, at its start. */
+            /* With a buffer bound, the pixels go into it starting at its beginning. */
             GLDriverFunctions::get().read_pixels_func_ptr(0,
                                                           0,
                                                           static_cast<GLsizei>(m_probe_width),
@@ -139,7 +139,7 @@ bool Stereo::ConverterDLL::GLEyeTargets::begin_depth_read(uint32_t* out_slot_ptr
             GLDriverFunctions::get().pixel_storei_func_ptr(PACK_ALIGNMENT,
                                                            saved_alignment);
 
-            /* The buffer that the application had bound for pixels to be packed to is bound again. */
+            /* The pixel-pack buffer that the application had bound is bound again. */
             m_functions.bind_buffer_func_ptr(PIXEL_PACK_BUFFER,
                                              static_cast<GLuint>(saved_pack_buffer) );
 
@@ -178,7 +178,7 @@ void Stereo::ConverterDLL::GLEyeTargets::blit_left_eye(const uint32_t&   in_dest
     constexpr GLenum READ_FRAMEBUFFER = 0x8CA8;
     constexpr GLenum SCISSOR_TEST     = 0x0C11;
 
-    /* A blit is cut to the scissor box if the test is on, which the application has made the box of something else. */
+    /* With the scissor test on, a blit is clipped to the scissor box, which the application has set for its own drawing. */
     const bool is_scissor_on = (GLDriverFunctions::get().is_enabled_func_ptr(SCISSOR_TEST) != GL_FALSE);
 
     if (is_scissor_on)
@@ -228,7 +228,7 @@ bool Stereo::ConverterDLL::GLEyeTargets::ensure(const void*     in_context_ptr,
                                                 const uint32_t& in_width,
                                                 const uint32_t& in_height)
 {
-    /* A depth is read for how deep the scene is, and a copy of it this wide says that. */
+    /* The depth is read to measure how deep the scene is, and a copy of this width is enough for that. */
     constexpr uint32_t DEPTH_PROBE_WIDTH = 320;
 
     const OwnCallScope own_call_scope;
@@ -245,7 +245,7 @@ bool Stereo::ConverterDLL::GLEyeTargets::ensure(const void*     in_context_ptr,
     {
         if (m_context_ptr != in_context_ptr)
         {
-            /* Another context: the targets are those of the first, and a second context is not converted. */
+            /* A different context: the targets belong to the first context, and a second context is not converted. */
             goto end;
         }
 
@@ -280,7 +280,7 @@ bool Stereo::ConverterDLL::GLEyeTargets::ensure(const void*     in_context_ptr,
         goto end;
     }
 
-    /* The copy of the depth is not needed to render: if it cannot be made the depth is read from the buffer itself. */
+    /* The small depth copy is not needed for rendering. If it cannot be made, the depth is read from the full buffer. */
     if (m_functions.blit_framebuffer_func_ptr != nullptr)
     {
         m_probe_width     = (std::min)(m_width,
@@ -327,7 +327,7 @@ bool Stereo::ConverterDLL::GLEyeTargets::finish_depth_read(const uint32_t&  in_s
             m_functions.bind_buffer_func_ptr(PIXEL_PACK_BUFFER,
                                              m_depth_buffer_array.at(in_slot) );
 
-            /* A read of the frame before is done by now: the graphics card has had a whole frame for it. */
+            /* The read began a frame ago, so it is normally finished. Mapping the buffer waits if it is not. */
             const void* const data_ptr = m_functions.map_buffer_func_ptr(PIXEL_PACK_BUFFER,
                                                                          READ_ONLY);
 
@@ -461,7 +461,7 @@ bool Stereo::ConverterDLL::GLEyeTargets::read_depth(std::vector<float>* out_dept
 
         if (m_has_depth_probe)
         {
-            /* The depth of the whole buffer goes to the small one, by the graphics card. */
+            /* The graphics card scales the whole depth buffer down to the small copy. */
             blit_left_eye(m_depth_probe.framebuffer,
                           m_probe_width,
                           m_probe_height,
@@ -547,7 +547,7 @@ bool Stereo::ConverterDLL::GLEyeTargets::read_picture(const uint32_t&       in_w
         in_width                              != 0         &&
         in_height                             != 0)
     {
-        /* The target is made for a size once, and kept: the picture is read from it again and again. */
+        /* The target is made once per size and kept, because the picture is read from it again and again. */
         if (m_readback_width  != in_width ||
             m_readback_height != in_height)
         {
@@ -639,7 +639,7 @@ void Stereo::ConverterDLL::GLEyeTargets::release_targets()
     release_target(&m_readback_target);
     release_target(&m_right);
 
-    /* The buffers of the graphics card that the depth was read to: a read that was on its way is lost with them. */
+    /* The buffers of the graphics card that the depth was read into are released. A read that was in progress is lost with them. */
     for (size_t n_slot = 0;
                 n_slot < N_DEPTH_READ_SLOTS;
               ++n_slot)

@@ -323,7 +323,7 @@ void Utils::Json::JsonWriter::write_string_literal(const std::string& in_value)
     constexpr unsigned char FIRST_PRINTABLE_CHARACTER = 0x20; /* characters below this are control characters */
     constexpr size_t        N_BUFFER_BYTES            = 8;
 
-    size_t run_start = 0; /* where the characters which need no escape begin: they are appended all at once */
+    size_t run_start = 0; /* start of the current run of characters that need no escape; the run is appended all at once */
 
     write_raw("\"");
 

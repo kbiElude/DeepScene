@@ -5,9 +5,9 @@
  * The front end of DirectDraw 7 and Direct3D 7: follows the surfaces and the vertex buffers, the state of the device and the draws,
  * and reports them to the model builder.
  *
- * Surfaces are resources. The primary surface and the back buffers that it flips with are swap chain images; a mip level of a texture
- * is a part of the texture, as the surface that GetAttachedSurface gives for it. A depth buffer is the surface that was attached to
- * what is rendered to. A frame ends with a flip, or with the blit to the primary surface that does the work of one.
+ * Surfaces are resources. The primary surface and the back buffers it flips with are swap chain images. A mip level of a texture is part
+ * of that texture: it is the surface that GetAttachedSurface returns for it. A depth buffer is the surface attached to the render target.
+ * A frame ends with a flip, or with a blit to the primary surface that acts as one.
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_D3D7_FRONTEND_H
 #define APIDUMPANALYSIS_FRONTENDS_D3D7_FRONTEND_H
@@ -46,12 +46,12 @@ namespace Analysis
                              const Capture::APIDumpLoader::Workload&      in_workload) override;
 
             private:
-                /* What the base class needs of the front end. */
+                /* The functions that the base class requires from the front end. */
                 void                                        forget_resource         (const Analysis::APIDumpAnalysis::ResourceId& in_id)    override;
                 FixedFunctionState&                         get_fixed_function_state()                                                      override;
                 Analysis::APIDumpAnalysis::ConstantSemantic get_transform_semantic  (const uint32_t&                              in_state) const override;
 
-                /* Where the arguments of a draw are. */
+                /* The positions of the arguments of a draw method. */
                 struct DrawLayout
                 {
                     size_t                      count_argument;         /* the vertices, or the indices if the draw is indexed */
@@ -62,7 +62,7 @@ namespace Analysis
                     size_t                      vertex_buffer_argument;
                 };
 
-                /* Renders to the surface from now on, with the depth buffer that is attached to it. */
+                /* Makes the surface the render target, together with the depth buffer attached to it. */
                 void apply_render_target(const Analysis::APIDumpAnalysis::ResourceView& in_target);
 
                 void count_resolution_hazards(const CallView& in_view);
@@ -83,27 +83,27 @@ namespace Analysis
                 void handle_set_viewport        (const CallView&   in_view);
                 void handle_unlock              (const CallView&   in_view);
 
-                /* A copy from a surface to another, or a fill of a surface if there is no source: Blt, BltFast and Load. */
+                /* A copy from one surface to another, or a fill of a surface if there is no source: Blt, BltFast and Load. */
                 void handle_write_to_surface(const CallView& in_view,
                                              const size_t&   in_destination_argument,
                                              const size_t&   in_source_argument);
 
-                /* Names the objects that the call has created or returned, like the printer does. */
+                /* Names the objects that the call created or returned, as the printer does. */
                 void register_names(const CallView& in_view);
 
 
-                /* The type of the object that a call makes, by the interface it asks for if it asks for one. */
+                /* The type of the object that a call creates, taken from the interface the call requests, if it requests one. */
                 static const char* get_created_object_type_name_ptr(const CallView&                                in_view,
                                                                     const Interception::Hooks::D3D7::ArgumentInfo& in_info);
 
-                /* Some of the vertices of a draw, if the front end can tell them; null if not. */
+                /* A sample of the vertices of a draw; null if the front end cannot determine them. */
                 std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> sample_geometry(const CallView&                              in_view,
                                                                                                  const DrawLayout&                            in_layout,
                                                                                                  const uint32_t&                              in_fvf,
                                                                                                  const Analysis::APIDumpAnalysis::ResourceId& in_vertex_buffer_id);
 
 
-                /* nullptr for the functions that are not draws. */
+                /* nullptr for functions that are not draws. */
                 static const DrawLayout* find_draw_layout_ptr(const APIInterceptor::APIFunction& in_function);
 
                 static Analysis::APIDumpAnalysis::PrimitiveTopology get_primitive_topology(const uint32_t& in_type);

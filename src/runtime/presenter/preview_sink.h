@@ -18,8 +18,8 @@ namespace Stereo
 {
     namespace Presenter
     {
-        /* Keeps the newest frame in a Direct3D 11 texture, for a window to draw. The texture is made again when the size of the frames
-         * changes, and the function is told then.
+        /* Keeps the newest frame in a Direct3D 11 texture for a window to draw. The texture is created again when the size of the frames
+         * changes, and the size-changed function is called then.
          */
         class PreviewSink : public IEyeSink
         {

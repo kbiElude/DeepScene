@@ -2,9 +2,9 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * What the programs that ask questions of a file of the analysis (APIDumpAnalysisQuery, APIDumpDependencyQuery, APIDumpTextureQuery) do the same way once their
- * arguments are read: read the file, check the workload that it is of, ask the question, and print the answer or the error. A program says only how its file is read,
- * which workload the file names, and what the question is.
+ * The steps that the query programs (APIDumpAnalysisQuery, APIDumpDependencyQuery, APIDumpTextureQuery) share once their arguments are read:
+ * read the file, check the workload that it belongs to, ask the question, and print the answer or the error. A program only supplies how its
+ * file is read, which workload the file names, and what the question is.
  */
 #ifndef APIDUMPANALYSIS_QUERY_TOOL_H
 #define APIDUMPANALYSIS_QUERY_TOOL_H
@@ -22,18 +22,18 @@ namespace Analysis
         class QueryTool
         {
         public:
-            /* Asks the question, and writes the answer to the writer. */
+            /* Asks the question and writes the answer to the writer. */
             typedef std::function<QueryStatus(Utils::Json::JsonWriter* in_writer_ptr,
                                               std::string*             out_error_ptr)> CommandFunc;
 
-            /* Reads the file. False, and the reason, if it cannot be read. */
+            /* Reads the file. Returns false and the reason if it cannot be read. */
             typedef std::function<bool(const std::string& in_filename,
                                        std::string*       out_error_ptr)> ReadFunc;
 
-            /* The workload that the file which was read is of. */
+            /* The workload that the file read by the ReadFunc belongs to. */
             typedef std::function<const WorkloadReference&()> ReferenceFunc;
 
-            /* The file noun is what the file is called in the message about a workload that is not its one ("file", "analysis"). Errors are printed here, and the answer. */
+            /* The file noun is what the file is called in the message about a workload mismatch ("file", "analysis"). Prints the error or the answer. */
             static QueryExitCode run(const QueryOptions&  in_options,
                                      const std::string&   in_filename,
                                      const char*          in_file_noun_ptr,

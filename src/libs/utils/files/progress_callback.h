@@ -12,7 +12,7 @@ namespace Utils
 {
     namespace Files
     {
-        /* Told how much of a job is done, and how much it is (0 if that is not known). */
+        /* Receives the progress of a job: the bytes done so far and the bytes in total (0 if the total is not known). */
         typedef std::function<void(const uint64_t& in_n_bytes_done,
                                    const uint64_t& in_n_bytes_total)> ProgressCallback;
     }

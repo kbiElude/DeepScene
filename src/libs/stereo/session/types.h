@@ -14,9 +14,9 @@ namespace Stereo
         /* What the launcher tells the DLL about the playback it is injected for (see SessionEnvironment). */
         struct SessionInfo
         {
-            bool        is_logging = false; /* the converter writes what it does to the log of the session; otherwise only why it stops        */
+            bool        is_logging = false; /* the converter logs everything it does; otherwise it logs only why it stops */
             std::string recipe_path;
-            std::string session_id;        /* names what the DLL and the program which shows its images share         */
+            std::string session_id;        /* names the resources that the DLL and the viewer share                      */
         };
     }
 }

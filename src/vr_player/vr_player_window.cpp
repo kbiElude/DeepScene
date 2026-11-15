@@ -64,17 +64,17 @@ static const ImVec4 WINDOW_COLOR          (0.07f,
                                            0.095f,
                                            1.00f);
 
-/* Sizes at 100% scale; the scale of the monitor is applied. */
+/* Sizes at 100% scale; the monitor scale is applied on top. */
 static constexpr float ACCENT_LINE_HEIGHT    = 2.0f;
 static constexpr float CARD_ACCENT_BAR_WIDTH = 3.0f;
 static constexpr int   DEFAULT_DEPTH_INDEX   = 1;
 
-/* The depth that can be asked for: less than the converter works out for each scene, as much, and a little more where the scene allows it. */
+/* The depth strengths the user can choose: less than the converter's natural depth for each scene, the same, and somewhat more where the scene allows it. */
 static constexpr size_t  N_DEPTHS                       = 3;
 static const char* const DEPTH_NAME_ARRAY[N_DEPTHS]     = {"Reduced", "Natural", "More"};
 static constexpr float   DEPTH_STRENGTH_ARRAY[N_DEPTHS] = {0.65f, 1.0f, 1.25f};
 
-/* How the pixels of an eye of the headset are brought down, in each direction: half the pixels and a quarter of them. */
+/* The render quality: the fraction of the headset eye size that is used in each direction. 0.707 gives half the pixels and 0.5 gives a quarter of them. */
 static constexpr size_t N_QUALITIES                               = 3;
 static const char* const QUALITY_NAME_ARRAY[N_QUALITIES]          = {"Full (the resolution of the headset)", "Half of the pixels", "A quarter of the pixels"};
 static constexpr float   QUALITY_SIZE_FRACTION_ARRAY[N_QUALITIES] = {1.0f, 0.70710678f, 0.5f};
@@ -373,7 +373,7 @@ void VRPlayer::VrPlayerWindow::draw_device_combo()
         preview = m_content.device_vec.at(static_cast<size_t>(m_device_index) ).name;
     }
 
-    /* With no runtime, or no headset, there is nothing to choose: the picture is shown in the window, and the list says so. */
+    /* With no runtime or no headset there is nothing to choose: the picture is shown in the window, and the list says so. */
     ImGui::BeginDisabled   (has_devices == false);
     ImGui::SetNextItemWidth(-FLT_MIN);
 
@@ -520,7 +520,7 @@ void VRPlayer::VrPlayerWindow::draw_launch_area()
     const float       line_height   = ImGui::GetTextLineHeightWithSpacing();
     const float       status_height = STATUS_N_LINES * line_height;
 
-    /* An error is as tall as its text, which wraps in a cell of a table, and a blank line comes after it. */
+    /* The error area is as tall as its text, which wraps in a table cell, plus a blank line after it. */
     const float       error_width   = ImGui::GetContentRegionAvail().x - 2.0f * style.CellPadding.x;
     const float       error_height  = (is_error_text) ? ImGui::CalcTextSize(m_status.c_str(),
                                                                             nullptr,
@@ -531,7 +531,7 @@ void VRPlayer::VrPlayerWindow::draw_launch_area()
                                                                       error_height);
     const float       free_height   = ImGui::GetContentRegionAvail().y;
 
-    /* The button is at the bottom of the panel, in the middle. */
+    /* The button sits at the bottom of the panel, centered. */
     if (free_height > area_height)
     {
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + free_height - area_height);
@@ -541,7 +541,7 @@ void VRPlayer::VrPlayerWindow::draw_launch_area()
 
     if (is_error_text)
     {
-        /* The error is in a table, and the button follows it after a newline: nothing covers the text, however long it is. */
+        /* The error is in a table and the button follows it on a new line, so nothing covers the text however long it is. */
         if (ImGui::BeginTable("##status_error",
                               1, /* columns */
                               ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg) )
@@ -571,7 +571,7 @@ void VRPlayer::VrPlayerWindow::draw_launch_area()
 
     if (is_error_text)
     {
-        /* Said above. */
+        /* The error text is already drawn above. */
     }
     else
     if (m_installing_app >= 0)
@@ -602,7 +602,7 @@ void VRPlayer::VrPlayerWindow::draw_launch_area()
         ImGui::PopTextWrapPos();
         ImGui::PopStyleColor ();
 
-        /* The button does not move with the length of what is said above it. */
+        /* The button keeps its position however long the text above it is. */
         ImGui::SetCursorPosY(status_top + status_height);
     }
 
@@ -714,7 +714,7 @@ void VRPlayer::VrPlayerWindow::draw_vr_settings()
     ImGui::TextWrapped   ("Full is the resolution of the headset; lower is easier on the graphics card. Set at start; headset only.");
     ImGui::PopStyleColor ();
 
-    /* The overlay is pushed for an application whose recipe says an amount, and not for one that does not; no control for it. */
+    /* The overlay is pushed for an application whose recipe gives an amount, and not for one whose recipe does not. There is no control for it. */
     {
         const float overlay_parallax = m_content.catalog.app_vec.at(static_cast<size_t>(m_selected_app) ).overlay_parallax;
 
@@ -772,7 +772,7 @@ bool VRPlayer::VrPlayerWindow::is_launch_possible() const
 {
     bool result = false;
 
-    /* A device is not needed: with none, the picture is shown in the window. */
+    /* A device is not required: without one, the picture is shown in the window. */
     if (m_selected_app   >= 0 &&
         m_installing_app <  0)
     {
@@ -803,7 +803,7 @@ void VRPlayer::VrPlayerWindow::launch()
 
 void VRPlayer::VrPlayerWindow::select_defaults()
 {
-    /* The first application which can be played, or else the first one: its reason is what is shown. */
+    /* Select the first application that can be played, or else the first one, so that its unavailable reason is shown. */
     for (size_t n_app = 0;
                 n_app < m_content.catalog.app_vec.size();
               ++n_app)
@@ -883,7 +883,7 @@ void VRPlayer::VrPlayerWindow::start_app(const size_t& in_n_app)
     uint32_t                              target_height = 0;
     uint32_t                              target_width  = 0;
 
-    /* An eye of the headset, brought down as the quality says; none without a headset. */
+    /* The size of an eye of the headset, scaled by the chosen quality. It stays 0 without a headset. */
     if (m_device_index >= 0)
     {
         const Headset::VRDevices::VrDevice& device   = m_content.device_vec.at(static_cast<size_t>(m_device_index) );
@@ -961,7 +961,7 @@ void VRPlayer::VrPlayerWindow::update_install()
                 }
                 else
                 {
-                    /* What a virus scanner does with a packed demo, which is what this one is. */
+                    /* A virus scanner often removes a packed demo, and this application is one. */
                     m_install_error             = "The application was unpacked, but its program is not there: "                                                      +
                                                   m_content.catalog.app_vec.at(n_app).executable_path                                                                 +
                                                   "\n\nA virus scanner may have removed it. Look in its quarantine, allow the file, and launch the application again.";
@@ -996,7 +996,7 @@ void VRPlayer::VrPlayerWindow::update_install()
 
             default:
             {
-                /* Still going: the progress is drawn. */
+                /* The installation is still running. Its progress is drawn elsewhere. */
                 break;
             }
         }
@@ -1009,7 +1009,7 @@ void VRPlayer::VrPlayerWindow::update_session()
 
     m_session.update();
 
-    /* The depth, and the overlay, can be changed while the application plays. */
+    /* The depth strength and the overlay setting can be changed while the application plays. */
     m_session.set_depth_strength   (m_depth_strength);
     m_session.set_is_overlay_pushed(m_push_overlay                   &&
                                     m_overlay_app >= 0               &&

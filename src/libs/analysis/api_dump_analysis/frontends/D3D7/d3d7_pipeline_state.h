@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * What the Direct3D 7 device has set that a draw depends on: render states, texture stage states, lights and textures, which
- * FixedFunctionState keeps, and the format of the vertices, which a draw brings. There are no shaders.
+ * The state of the Direct3D 7 device that a draw depends on: render states, texture stage states, lights and textures (kept by
+ * FixedFunctionState), plus the vertex format, which each draw supplies. There are no shaders.
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_D3D7_PIPELINE_STATE_H
 #define APIDUMPANALYSIS_FRONTENDS_D3D7_PIPELINE_STATE_H
@@ -23,17 +23,17 @@ namespace Analysis
             public:
                 D3D7PipelineState();
 
-                /* Describes a draw with what is set now. The vertices are in the application's memory unless a vertex buffer is given. */
+                /* Describes a draw using the current state. The vertices are in the application's memory unless a vertex buffer is given. */
                 Analysis::APIDumpAnalysis::DrawDescription describe_draw(const Analysis::APIDumpAnalysis::PrimitiveTopology& in_topology,
                                                                          const uint32_t&                                     in_vertex_count,
                                                                          const bool&                                         in_is_indexed,
                                                                          const uint32_t&                                     in_fvf,
                                                                          const Analysis::APIDumpAnalysis::ResourceId&        in_vertex_buffer_id);
 
-                /* Back to what a device starts with. */
-                /* The state of the fixed-function pipeline, which the front end follows the calls that set it of. */
+                /* The state of the fixed-function pipeline. The front end updates it from the calls that set it. */
                 FixedFunctionState& get_fixed_function_state();
 
+                /* Restores the state a new device starts with. */
                 void reset();
 
 

@@ -66,7 +66,7 @@ bool Analysis::APIDumpAnalysis::Frontends::D3D8ResolutionHazards::classify(const
             const uint32_t state = (in_n_arguments > RENDER_STATE_ARGUMENT_INDEX) ? in_arguments_ptr[RENDER_STATE_ARGUMENT_INDEX].get_u32()
                                                                                   : 0;
 
-            /* The sizes of points are in pixels. */
+            /* Point sizes are in pixels. */
             if (state == Interception::Hooks::D3D8::D3DRS_POINTSIZE         ||
                 state == Interception::Hooks::D3D8::D3DRS_POINTSIZE_MIN     ||
                 state == Interception::Hooks::D3D8::D3DRS_POINTSIZE_MAX     ||
@@ -88,7 +88,7 @@ bool Analysis::APIDumpAnalysis::Frontends::D3D8ResolutionHazards::classify(const
             const uint32_t shader = (in_n_arguments > VERTEX_SHADER_ARGUMENT_INDEX) ? in_arguments_ptr[VERTEX_SHADER_ARGUMENT_INDEX].get_u32()
                                                                                     : 0;
 
-            /* Positions in pixels are a vertex format, not a shader. */
+            /* Positions in pixels come from a vertex format, not from a shader. */
             if (D3D8Frontend::is_pre_transformed_vertex_shader(shader) )
             {
                 *out_hazard_ptr = ResolutionHazard::SCREEN_SPACE_VERTICES;

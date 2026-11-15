@@ -94,12 +94,12 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_create_surface(const APIInte
     {
         const auto* description_ptr = static_cast<const Interception::Hooks::D3D7::DDSURFACEDESC2*>(chunk_ptr);
 
-        /* Only the surface that is shown, with the chain of buffers that it is flipped with, is not one a window can have. */
+        /* A window can have every surface except the shown primary surface with a flip chain of buffers. */
         if ( (description_ptr->ddsCaps.dwCaps & Interception::Core::D3D7Utils::DDSCAPS_PRIMARYSURFACE) == 0 ||
              (description_ptr->ddsCaps.dwCaps & Interception::Core::D3D7Utils::DDSCAPS_FLIP)           == 0)
         {
-            /* A surface that is rendered to, of the size of the images of the application (a depth buffer for the back buffer), is made as large as the
-             * back buffer is.
+            /* A render-target surface with the size of the application's images (for example the depth buffer of the back buffer) is created
+             * at the size of the back buffer.
              */
             handle_sized_surface(*description_ptr,
                                  direct_draw_ptr,
@@ -117,13 +117,13 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_create_surface(const APIInte
         const auto create_surface_func_ptr = APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAW7_CREATESURFACE>(vtable,
                                                                                                                                        Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAW7_CREATESURFACE);
 
-        /* The surface that is shown is the one of the window. */
+        /* The shown surface is the window's surface. */
         primary_description.dwSize         = static_cast<DWORD>(sizeof(primary_description) );
         primary_description.dwFlags        = Interception::Core::D3D7Utils::DDSD_CAPS;
         primary_description.ddsCaps.dwCaps = Interception::Core::D3D7Utils::DDSCAPS_PRIMARYSURFACE;
 
-        /* The back buffer is a surface of its own that is rendered to: of the size of the display mode that was asked for, and of the format
-         * of the desktop, which is the one of the primary surface.
+        /* The back buffer is a separate render-target surface. It has the size of the display mode that was asked for and the format of the
+         * desktop, which is also the format of the primary surface.
          */
         back_buffer_description.dwSize         = static_cast<DWORD>(sizeof(back_buffer_description) );
         back_buffer_description.dwFlags        = Interception::Core::D3D7Utils::DDSD_CAPS   |
@@ -153,7 +153,7 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_create_surface(const APIInte
                 m_back_buffer_ptr = back_buffer_ptr;
                 m_primary_ptr     = primary_ptr;
 
-                /* What the application is to get is where it asked for it. */
+                /* The created surface is written to the output argument where the application expects it. */
                 *static_cast<void**>(const_cast<void*>(in_arguments_ptr[SURFACE_ARGUMENT].get_ptr() )) = primary_ptr;
 
                 *out_should_pass_through_ptr = false;
@@ -201,13 +201,13 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_get_attached_surface(const A
         goto end;
     }
 
-    /* The back buffer of the chain is the surface of the window's own. */
+    /* The back buffer of the chain is the converter's own surface. */
     if ( (static_cast<const Interception::Hooks::D3D7::DDSCAPS2*>(chunk_ptr)->dwCaps & Interception::Core::D3D7Utils::DDSCAPS_BACKBUFFER) != 0)
     {
         const OwnCallScope own_call_scope;
         void** const       vtable         = APIInterceptor::get_vtable_ptr(m_back_buffer_ptr);
 
-        /* What a call that gives a surface gives is a reference to it. */
+        /* A call that returns a surface returns a new reference to it, so the reference count is increased. */
         APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAWSURFACE7_ADDREF>(vtable,
                                                                                                   Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAWSURFACE7_ADDREF)(static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(m_back_buffer_ptr) );
 
@@ -231,7 +231,7 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_set_cooperative_level(const 
     void** const       vtable          = APIInterceptor::get_vtable_ptr(direct_draw_ptr);
     HWND               window          = nullptr;
 
-    /* A handle is a pointer, or the number of one. */
+    /* A window handle is passed either as a pointer or as an integer. */
     if (in_arguments_ptr[WINDOW_ARGUMENT].type == APIInterceptor::ARGTYPE_VOID_PTR)
     {
         window = reinterpret_cast<HWND>(const_cast<void*>(in_arguments_ptr[WINDOW_ARGUMENT].get_ptr() ));
@@ -252,8 +252,8 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_set_cooperative_level(const 
 
 void Stereo::ConverterDLL::D3D7WindowedMode::handle_set_display_mode(const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
 {
-    /* The largest side of what Direct3D 7 renders to: a surface wider or higher than this is not made on the hardware that was tried (a size that is
-     * a pixel more than 2048 fails, and the application stops), whatever the headset could show.
+    /* The largest side of a Direct3D 7 render target. On the hardware that was tried, a larger surface cannot be created (one pixel more than
+     * 2048 fails and the application stops), whatever the headset could show.
      */
     constexpr uint32_t MAX_RENDER_TARGET_EXTENT = 2048;
     constexpr size_t   HEIGHT_ARGUMENT          = 2;
@@ -262,7 +262,7 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_set_display_mode(const APIIn
     uint32_t height = 0;
     uint32_t width  = 0;
 
-    /* The size is the one of the images of the application, which is what the back buffer is made as large as. */
+    /* The size of the requested display mode is the size of the application's images. The back buffer is sized from it. */
     const bool has_width = APIInterceptor::read_number(in_arguments_ptr[WIDTH_ARGUMENT],
                                                       &width);
 
@@ -276,8 +276,8 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_set_display_mode(const APIIn
             m_display_height = height;
             m_display_width  = width;
 
-            /* The back buffer is made as large as the images that are shown allow, with the proportions of the display mode; not larger than the channel
-             * holds, for the two eyes side by side.
+            /* The back buffer is made as large as the shown images allow, keeping the proportions of the display mode, but not larger than
+             * the channel holds for two eyes side by side.
              */
             if (m_target_height != 0 &&
                 m_target_width  != 0)
@@ -306,7 +306,7 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_sized_surface(const Intercep
     Interception::Hooks::D3D7::DDSURFACEDESC2       scaled_description = in_description;
     Interception::Hooks::D3D7::IDirectDrawSurface7* surface_ptr        = nullptr;
 
-    /* Only a surface that is as large as the images of the application is, and only if they are made larger. */
+    /* Only a surface that is as large as the application's images is changed, and only if the images are enlarged. */
     if (is_policy_identity                                                                 ||
         m_display_width                                                == 0                ||
         (in_description.ddsCaps.dwCaps & CAPS_OF_SURFACES_RENDERED_TO) == 0                ||

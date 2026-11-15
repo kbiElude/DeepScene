@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Converts the parts of an analysis to and from the bytes of .passes sections (see passes_format.h). Reading
- * validates: impossible counts, dangling references and leftover bytes make a section invalid.
+ * Converts the parts of an analysis to and from the bytes of .passes sections (see passes_format.h). Reading validates: impossible counts,
+ * dangling references and leftover bytes make a section invalid.
  *
  * Sections must be read in file order, since later ones are checked against earlier ones.
  */
@@ -24,10 +24,10 @@ namespace Analysis
         class PassesSerializer
         {
         public:
-            /* The histograms that the model keeps in a member: for how deep the draws are, and for how deep their surfaces are. */
+            /* The histograms that the model keeps as a member: the depth of the draws and the depth of their surfaces. */
             typedef std::map<DepthHistogramKey, DepthHistogram> Model::* DepthHistogramMapMember;
 
-            /* The sets of keys of draws that the model keeps by pass structure: for the draws that cover the view. */
+            /* The sets of draw keys that the model keeps per pass structure: the keys of the draws that cover the view. */
             typedef std::map<uint32_t, std::set<uint64_t> > Model::* DrawKeyMapMember;
 
             static bool                 deserialize_depths         (const std::vector<uint8_t>&    in_byte_vec,
@@ -78,7 +78,7 @@ namespace Analysis
             static bool is_resource_access_valid(const ResourceAccess& in_access,
                                                  const uint64_t&       in_n_frames);
 
-            /* True for no resource, or a resource of the first n. */
+            /* True for no resource, or for a resource whose ID is at most n. */
             static bool is_resource_id_valid(const ResourceId& in_id,
                                              const size_t&     in_n_resources);
 
@@ -107,7 +107,7 @@ namespace Analysis
             static void                write_viewport            (const Viewport&              in_viewport,
                                                                   Utils::BinaryIO::ByteWriter* inout_writer_ptr);
 
-            /* Reads a value of an enumeration, which goes from 0 up to the last value given. A value above it fails the reader. */
+            /* Reads a value of an enumeration whose values go from 0 up to the given last value. A larger value fails the reader. */
             template<typename Enum>
             static Enum read_enum(Utils::BinaryIO::ByteReader* inout_reader_ptr,
                                   const Enum&                  in_last_value);

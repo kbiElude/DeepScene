@@ -6,7 +6,7 @@
 #include "utils/hashing/hasher.h"
 #include "interception/core/D3D7Utils/constants.h"
 
-/* What a device can have: an index beyond these is not one that D3D7 has. */
+/* The limits of a device. An index beyond them does not exist in D3D7. */
 static constexpr uint32_t N_MAX_LIGHTS        = 256;
 static constexpr uint32_t N_MAX_RENDER_STATES = 256;
 static constexpr uint32_t N_MAX_STAGE_STATES  = 32;
@@ -29,7 +29,7 @@ Analysis::APIDumpAnalysis::DrawDescription Analysis::APIDumpAnalysis::Frontends:
                                                                                                     in_vertex_count,
                                                                                                     in_is_indexed);
 
-    /* The format of the vertices is the format code. Where they come from is told by the vertex buffer, if there is one. */
+    /* The vertex format is the format code. The vertex buffer, if there is one, says where the vertices come from. */
     layout_hasher.add_u32(in_fvf);
 
     if (in_vertex_buffer_id != Analysis::APIDumpAnalysis::ResourceId::NONE)

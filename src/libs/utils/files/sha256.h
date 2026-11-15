@@ -13,8 +13,8 @@ namespace Utils
 {
     namespace Files
     {
-        /* SHA-256, with the cryptography of the system (CNG): what a download is compared with before it is trusted. One object
-         * hashes one run of bytes, which are given to it in pieces.
+        /* SHA-256 computed with the Windows cryptography API (CNG). A download is compared against it before it is trusted. One object hashes
+         * one sequence of bytes, which is supplied in pieces.
          */
         class Sha256
         {
@@ -25,20 +25,20 @@ namespace Utils
             Sha256(const Sha256&)            = delete;
             Sha256& operator=(const Sha256&) = delete;
 
-            /* The hash as 64 characters of hex in lower case. After it, the object is done. */
+            /* Returns the hash as 64 lower-case hex characters. The object cannot be used afterwards. */
             bool finish(std::string* out_hex_ptr);
 
-            /* Adds bytes to what is hashed. Returns false if the hashing of the system cannot be used. */
+            /* Adds bytes to the data being hashed. Returns false if the system hashing API cannot be used. */
             bool update(const void*   in_bytes_ptr,
                         const size_t& in_n_bytes);
 
 
-            /* The hash of bytes which are in memory. */
+            /* Hashes bytes that are already in memory. */
             static bool hash_bytes(const void*   in_bytes_ptr,
                                    const size_t& in_n_bytes,
                                    std::string*  out_hex_ptr);
 
-            /* The hash of a file. Returns false, and says why, if the file cannot be read, or if in_is_cancelled is set while it is. */
+            /* Hashes a file. Returns false and sets the error if the file cannot be read or if in_is_cancelled is set while it is being read. */
             static bool hash_file(const std::string&       in_path,
                                   const std::atomic<bool>& in_is_cancelled,
                                   std::string*             out_hex_ptr,

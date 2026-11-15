@@ -6,14 +6,15 @@
  * tests can use it freely.
  *
  * Commands:
- *   depth     how deep the draws of each pass are in each kind of frame: the depths below which a tenth, a half and nine tenths of them are
- *   info      what the analysis is of, and how much it found
+ *   depth      how deep the draws of each pass are in each kind of frame: the depths below which a tenth, a half and nine tenths of them lie
+ *   info       what the analysis is of, and how much it found
  *   timeline   runs of frames of one shape, in time order (paged)
  *   pipelines  frame shapes and the pass structures each is made of (paged)
- *   overlays   passes whose camera never changes, and the draws of them, and the draws with an orthographic projection: candidates for 2D overlays, as a recipe "unaffected" list (a hint only)
+ *   overlays   passes whose camera never changes, their draws, and the draws with an orthographic projection: candidates for 2D overlays,
+ *              as a recipe "unaffected" list (a hint only)
  *   pass       one pass structure, with its draws (paged) and camera constants
  *   frame      one frame by index, or a representative frame of a shape
- *   resources  what the frames did with each resource, optionally of one class (paged)
+ *   resources  what the frames did with each resource, optionally for one class (paged)
  *
  * Times are in seconds since the first call of the workload. Keys are hex strings.
  */
@@ -33,23 +34,23 @@ namespace Analysis
         class QueryCommands
         {
         public:
-            /* The command names. */
+            /* The names of the commands. */
             static const std::vector<std::string>& get_command_names();
 
-            /* What the queries of every file of the analysis say alike: the name of a kind of resource, and the page of a list (the items from the
-             * offset up to the limit of the arguments; 0 is all, which the end of the page is the total for).
+            /* Helpers shared by the queries of every analysis file: the name of a kind of resource, and the end of the page of a list (the items
+             * from the offset up to the limit of the arguments; a limit of 0 means all, and the end of the page is then the total).
              */
             static uint64_t    get_page_end          (const uint64_t&       in_total,
                                                       const QueryArguments& in_arguments);
             static const char* get_resource_kind_name(const ResourceKind&   in_kind);
 
-            /* What the overlays command says, for the tools that look into it further: the first frame that has the pass structure (false if no frame has
-             * it), how deep the vertices of a pass are, and the passes whose camera never changes (in the order of their ids).
+            /* Data of the overlays command for the tools that look into it further: the first frame that contains the pass structure (false if no
+             * frame does), the depth spread of the vertices of a pass, and the passes whose camera never changes (in the order of their IDs).
              */
             static bool get_first_frame_index(const AnalysisResult& in_analysis,
                                               const uint32_t&       in_pass_id,
                                               uint64_t*             out_frame_index_ptr);
-            /* The frames that have the pass structure, in the order of time. */
+            /* The frames that contain the pass structure, in time order. */
             static std::vector<uint64_t> get_frame_index_vec          (const AnalysisResult& in_analysis,
                                                                        const uint32_t&       in_pass_id);
             static PassDepthSpread       get_pass_depth_spread        (const AnalysisResult& in_analysis,
@@ -60,14 +61,14 @@ namespace Analysis
             static bool parse_resource_access_class(const std::string&   in_name,
                                                     ResourceAccessClass* out_class_ptr);
 
-            /* Runs a command. Sets the error unless it returns OK; the writer's text is unusable then. */
+            /* Runs a command. Sets the error unless it returns OK; the text in the writer is unusable then. */
             static QueryStatus run(const std::string&       in_command,
                                    const AnalysisResult&    in_analysis,
                                    const QueryArguments&    in_arguments,
                                    Utils::Json::JsonWriter* inout_writer_ptr,
                                    std::string*             out_error_ptr);
 
-            /* Writes the "depth" member of an object: how deep the vertices of a pass are, or that nobody knows. */
+            /* Writes the "depth" member of an object: the depth spread of the vertices of a pass, or that it is unknown. */
             static void write_depth_spread(const PassDepthSpread&   in_spread,
                                            Utils::Json::JsonWriter* inout_writer_ptr);
 

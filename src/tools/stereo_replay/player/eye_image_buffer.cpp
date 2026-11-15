@@ -41,7 +41,7 @@ bool Stereo::Replay::Player::EyeImageBuffer::submit(const uint32_t&             
                                     in_image.pixel_ptr + static_cast<size_t>(in_image.width) * in_image.height * sizeof(uint32_t) );
     }
 
-    /* The left image of a pair waits for the right one. */
+    /* In the BOTH mode the left image waits for the right image of the same frame, so that both are published together. */
     if (m_eye_mode == EyeMode::BOTH &&
         n_eye      != EYE_RIGHT)
     {

@@ -2,8 +2,9 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * The vocabulary of the dependencies between the frames of a workload: for each resource, what each frame does with what the frames before it left in
- * it. Nothing here knows about any API; it is made of the accesses that the model builder tells (see Analysis::APIDumpAnalysis::AccessEvent).
+ * The vocabulary for the dependencies between the frames of a workload: for each resource, how each frame uses the content that earlier frames left
+ * in it. Nothing here depends on a graphics API. The types are built from the accesses that the model builder reports (see
+ * Analysis::APIDumpAnalysis::AccessEvent).
  */
 #ifndef APIDUMPDEPENDENCIES_TYPES_H
 #define APIDUMPDEPENDENCIES_TYPES_H
@@ -18,45 +19,45 @@ namespace Analysis
 {
     namespace APIDumpDependencies
     {
-        /* Whether a frame uses what the frames before it left in a resource. */
+        /* Whether a frame uses the content that earlier frames left in a resource. */
         enum class CarryKind
         {
-            CERTAIN,  /* a read, or a write which blends or tests, reaches the resource before anything has replaced all of its content        */
-            NONE,     /* the first thing that is done to it replaces all of it, or all that is done to it is a write that nobody reads         */
-            POSSIBLE  /* only part of it was written before it is read (or the extent of the write is not known): the old content may show   */
+            CERTAIN,  /* a read, or a write that blends or tests, reaches the resource before any write replaced all of its content */
+            NONE,     /* every read comes after a write that replaced all of the content, or there is no read                       */
+            POSSIBLE  /* only part of it was written before a read (or the extent is unknown): old content may show                 */
         };
 
-        /* What the frames of a workload do to a resource, as a whole. */
+        /* How the frames of a workload use a resource, taken as a whole. */
         enum class DependencyClass
         {
-            CARRIED,          /* some frame uses what the frames before it left in the resource, and writes it: the next frame will use what that one left     */
-            CARRIED_POSSIBLY, /* the same, but only as far as the old content may show (CarryKind::POSSIBLE)                                                 */
-            FRAME_LOCAL,      /* no frame uses what an earlier one left in it                                                                                   */
-            STATIC,           /* what the frames use was left by frames which do not use it themselves: written, and then only read                           */
+            CARRIED,          /* a frame uses content left by earlier frames and also writes the resource, so the next frame uses what it left */
+            CARRIED_POSSIBLY, /* the same, but the use of old content is only possible (CarryKind::POSSIBLE)                                   */
+            FRAME_LOCAL,      /* no frame uses content that an earlier frame left in the resource                                              */
+            STATIC,           /* frames use content left by earlier frames, but none of them also writes it: written, then only read           */
             UNUSED
         };
 
-        /* The calls of a frame, from the first to the last, both of them in it. */
+        /* The calls of a frame. Both indices are inclusive. */
         struct FrameCallRange
         {
             uint64_t first_call_index = 0;
             uint64_t last_call_index  = 0;
         };
 
-        /* A run of frames, from the first to the last, both of them in it. */
+        /* A run of consecutive frames. Both indices are inclusive. */
         struct FrameRange
         {
             uint64_t first_frame_index = 0;
             uint64_t last_frame_index  = 0;
         };
 
-        /* The frames of a workload whose content has to be made for the frames from a target on to come out as they do when every frame is made (see
-         * FrameSlicePlanner). The others are dead: nothing which a frame from the target on reads comes of them, so a replay may leave out what they
-         * draw and copy.
+        /* The result of slicing for a target frame (see FrameSlicePlanner). A live frame has to be made so that the frames from the target on come
+         * out as they do when every frame is made. A dead frame is not needed: nothing that a frame from the target on reads comes from it, so a
+         * replay may leave out its draws and copies.
          */
         struct FrameSlice
         {
-            std::vector<bool> is_live_vec;                 /* by the number of the frame; a frame past the end of it is live */
+            std::vector<bool> is_live_vec;                 /* by frame index; frames beyond the end of the vector are live */
             uint64_t          n_live_frames      = 0;
             uint64_t          target_frame_index = 0;
         };
@@ -65,15 +66,13 @@ namespace Analysis
         struct FrameUse
         {
             CarryKind carry            = CarryKind::NONE;
-            bool      is_fully_written = false; /* something replaces all of the content                                          */
-            bool      is_read          = false; /* sampled, copied from, or read by a blend or a test: any read of the resource    */
-            bool      is_self_sampled  = false; /* a call reads the resource as a texture while it renders to it                   */
+            bool      is_fully_written = false; /* a write replaces all of the content                             */
+            bool      is_read          = false; /* any read: sampled, copied from, or read by a blend or a test    */
+            bool      is_self_sampled  = false; /* a call samples the resource as a texture while it renders to it */
             bool      is_written       = false;
         };
 
-        /* The frames from the first to the last which do the same to the resource. Frames of the run are all used: a frame which does not touch
-         * the resource ends a run.
-         */
+        /* A run of consecutive frames that use the resource in the same way. A frame that does not touch the resource ends the run. */
         struct UseRun
         {
             uint64_t first_frame_index = 0;
@@ -81,42 +80,45 @@ namespace Analysis
             FrameUse use;
         };
 
-        /* What a resource held from the frame which wrote it to the next one which does: the content that the frames in between use. A version
-         * which has no writer is what the resource held when the application made it.
+        /* The content that a resource holds from the frame that wrote it until the next frame that writes it. The frames in between use this
+         * content. A version without a writer is the content the resource held when the application created it.
          *
-         * input_resource_vec is the resources (by number, from 1) whose content before the writer's frame flows into this version through the calls of the
-         * frame, other than this resource itself: what the writer has to be given for this version to come out as it did, as against all that the frame uses.
-         * It is known (has_inputs) for a resource that has a written extent, when its own content before the frame does not flow into what the frame writes
-         * to it, other than by what a write that is only a part of it leaves; otherwise the writer is taken to need all that it uses.
+         * input_resource_vec lists the resources (by number, from 1) whose content from before the writer's frame flows into this version through
+         * the calls of that frame. It does not list this resource itself. It says what the writer must be given for this version to come out
+         * unchanged, as opposed to everything the frame uses. has_inputs is true only for a resource that has a written extent and whose own earlier
+         * content does not flow into what the frame writes to it (a partial write that leaves the content in place does not count). Otherwise the
+         * writer is assumed to need everything it uses.
          */
         struct ResourceVersion
         {
-            std::vector<FrameRange> consumer_range_vec;                    /* the frames which use the content, in order                                 */
-            bool                    has_inputs                 = false;    /* input_resource_vec is known                                                */
+            std::vector<FrameRange> consumer_range_vec;                    /* the frames that use the content, in order                              */
+            bool                    has_inputs                 = false;    /* input_resource_vec is valid                                            */
             bool                    has_writer                 = false;
-            std::vector<uint32_t>   input_resource_vec;                    /* see the comment of the struct                                              */
-            bool                    keeps_earlier_content      = false;    /* the writer did not replace all of it: the version before is still there in part */
+            std::vector<uint32_t>   input_resource_vec;                    /* see the comment of the struct                                          */
+            bool                    keeps_earlier_content      = false;    /* the writer replaced only part of it, so the version before still shows */
             uint64_t                n_consumer_frames          = 0;
-            uint64_t                n_possible_consumer_frames = 0;        /* of the above, those which may not use it at all (CarryKind::POSSIBLE)      */
-            uint64_t                writer_frame_index         = 0;        /* valid if has_writer                                                        */
+            uint64_t                n_possible_consumer_frames = 0;        /* of n_consumer_frames, those that may not use the content (POSSIBLE)    */
+            uint64_t                writer_frame_index         = 0;        /* valid if has_writer                                                    */
 
-            /* Where the writer wrote (see ResourceDependencies::written_extent), if the extent of everything that was written to the resource is known. */
+            /* The rectangles that the writer wrote (see ResourceDependencies::written_extent). Filled only if the extent of all writes to the resource
+             * is known.
+             */
             std::vector<Analysis::APIDumpAnalysis::AccessRectangle> written_rectangle_vec;
         };
 
-        /* A resource in numbers. A frame is counted for what it does, once. */
+        /* A resource in numbers. Each frame is counted once for each thing it does. */
         struct ResourceSummary
         {
             DependencyClass dependency_class                        = DependencyClass::UNUSED;
-            uint64_t        first_frame_index                       = 0; /* valid if n_frames_used is not 0                                           */
+            uint64_t        first_frame_index                       = 0; /* valid if n_frames_used is not 0                                                */
             uint64_t        last_frame_index                        = 0;
-            uint64_t        longest_carry_n_frames                  = 0; /* from the frame which wrote what a frame uses, to the frame which uses it  */
-            uint64_t        n_frames_carrying                       = 0; /* use what the frames before left (CERTAIN), and write the resource         */
-            uint64_t        n_frames_carrying_possibly              = 0; /* the same, POSSIBLE                                                        */
+            uint64_t        longest_carry_n_frames                  = 0; /* the longest distance in frames from a version's writer to a frame that uses it */
+            uint64_t        n_frames_carrying                       = 0; /* frames that use earlier content (CERTAIN) and write the resource               */
+            uint64_t        n_frames_carrying_possibly              = 0; /* the same for POSSIBLE                                                          */
             uint64_t        n_frames_read                           = 0;
             uint64_t        n_frames_self_sampled                   = 0;
             uint64_t        n_frames_used                           = 0;
-            uint64_t        n_frames_using_earlier_content          = 0; /* CERTAIN, whether they write it or not                                     */
+            uint64_t        n_frames_using_earlier_content          = 0; /* frames with a CERTAIN use, whether or not they write the resource */
             uint64_t        n_frames_using_earlier_content_possibly = 0;
             uint64_t        n_frames_written                        = 0;
         };
@@ -127,31 +129,30 @@ namespace Analysis
             std::vector<UseRun>          use_run_vec;
             std::vector<ResourceVersion> version_vec;
 
-            /* The rectangle that holds every part of the resource that a write which does not replace all of it reached, in the first level of the first
-             * layer. Known if every such write said where it landed (the rest of the resource then holds what it was made with, or what a write that
-             * replaced all of it gave it, whichever frame is the last to be made); not known otherwise, and then the versions say nothing of where.
+            /* The smallest rectangle, in the first level of the first layer, that contains every part of the resource reached by a write that does
+             * not replace the whole resource. It is known only if every such write reported where it landed. Outside the rectangle the resource then
+             * holds the content it was created with, or the content of a write that replaced all of it, whichever frame was made last. If the
+             * extent is unknown, the versions carry no rectangles.
              */
             Analysis::APIDumpAnalysis::AccessRectangle written_extent;
         };
 
-        /* What the frames of a workload do with every resource, by the number of the resource less 1. */
+        /* How the frames of a workload use every resource. resource_vec is indexed by resource number minus 1. */
         struct DependencyResult
         {
-            uint64_t                          n_frames = 0; /* the frames which ended, and one more if accesses follow the last */
+            uint64_t                          n_frames = 0; /* the frames that ended, plus one if accesses follow the last frame end */
             std::vector<ResourceDependencies> resource_vec;
         };
 
-        /* What a .deps file holds: the dependencies, and what is needed to say what they are of (the workload, the resources, the calls of each
-         * frame). Follows DependencyResult, FrameCallRange and the types of the analysis.
-         */
+        /* The content of a .deps file: the dependency result, plus what identifies it (the workload, the resources, the calls of each frame). */
         struct DependencyAnalysis
         {
-            std::vector<FrameCallRange>                      frame_call_range_vec;       /* of the frames which ended                              */
-            bool                                             is_truncated      = false;  /* the workload ends in the middle of a segment           */
+            std::vector<FrameCallRange>                      frame_call_range_vec;       /* of the frames that ended                     */
+            bool                                             is_truncated      = false;  /* the workload ends in the middle of a segment */
             uint64_t                                         n_calls           = 0;
-            std::map<std::string, uint64_t>                  n_calls_by_api_map;         /* by the name of the API (see APIGroup)                  */
-            uint32_t                                         pointer_n_bytes   = 0;      /* of the process which was dumped                        */
-            uint64_t                                         qpc_frequency     = 0;      /* ticks per second                                       */
+            std::map<std::string, uint64_t>                  n_calls_by_api_map;         /* by API name (see APIGroup)                   */
+            uint32_t                                         pointer_n_bytes   = 0;      /* pointer size of the process that was dumped  */
+            uint64_t                                         qpc_frequency     = 0;      /* ticks per second                             */
             DependencyResult                                 result;
             std::vector<Analysis::APIDumpAnalysis::Resource> resource_vec;
             Analysis::APIDumpAnalysis::WorkloadReference     workload_reference;

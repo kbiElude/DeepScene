@@ -16,7 +16,7 @@ namespace Analysis
             class MipChain
             {
             public:
-                /* The number of mip levels of a texture; 0 asked for means all down to 1x1. */
+                /* The number of mip levels of a texture. If 0 levels are requested, the result is the full chain down to 1x1. */
                 static uint32_t get_level_count(const uint32_t& in_n_levels_asked,
                                                 const uint32_t& in_width,
                                                 const uint32_t& in_height);

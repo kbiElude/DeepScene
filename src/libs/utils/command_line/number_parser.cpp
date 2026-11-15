@@ -15,7 +15,7 @@ bool Utils::CommandLine::NumberParser::parse_double(const std::string& in_text,
     bool         result           = false;
     double       value            = 0.0;
 
-    /* strtod skips space and takes a sign, a hexadecimal number, "inf" and "nan": none of them is a plain number. */
+    /* strtod also accepts leading space, a sign, hexadecimal numbers, "inf" and "nan". None of these is a plain number, so they are rejected here. */
     if (in_text.empty() ||
         invalid_position != std::string::npos)
     {

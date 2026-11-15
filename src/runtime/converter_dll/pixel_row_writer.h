@@ -12,17 +12,17 @@ namespace Stereo
 {
     namespace ConverterDLL
     {
-        /* Puts the rows of the image of an eye into an image of one or two eyes, side by side, as pixels of 8 bits each of B, G, R and A (see
-         * PixelConverter), which is what the frames of the channel are made of. It is what each exporter does with the surface of an eye, whatever
-         * the API it was read from is.
+        /* Copies the rows of the image of one eye into an image that holds one or two eyes side by side. Each pixel has 8 bits for each of B, G, R and A
+         * (see PixelConverter). This is the format of the frames of the channel. Every exporter uses it to write the surface of an eye, whatever API the
+         * surface comes from.
          */
         class PixelRowWriter
         {
         public:
-            /* The format is a Direct3D 8 format (D3DFORMAT), which the formats of the other APIs are given as (see PixelConverter). The pixels of
-             * 32 bits that are as they are wanted are copied as they are; the others are converted first, in the scratch vector, which is kept by
-             * the caller so that its room is used again. The eye is the index of the eye in the image, which is where its rows begin, in pixels,
-             * across: width times the index. Returns false, and writes nothing, for a format that is not converted.
+            /* in_format is a Direct3D 8 format (D3DFORMAT). The formats of the other APIs are converted to it (see PixelConverter). A 32-bit format
+             * that already has the wanted layout is copied as it is. Any other format is converted first, into inout_scratch_ptr. The caller keeps that
+             * vector so that its memory is reused. in_eye is the index of the eye in the destination image. The rows of the eye start at the pixel
+             * column in_width * in_eye. Returns false and writes nothing if the format cannot be converted.
              */
             static bool write_eye(const uint32_t&       in_format,
                                   const uint32_t&       in_width,

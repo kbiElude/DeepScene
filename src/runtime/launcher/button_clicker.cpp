@@ -20,7 +20,7 @@ bool Stereo::Launcher::ButtonClicker::click_once(const DWORD&       in_process_i
 
     if (search.button != nullptr)
     {
-        /* Posted, not sent: the application may run the demo from inside the handler of the click, and a send would wait for that. */
+        /* The click is posted, not sent. The application may run the demo from inside its click handler, and a sent message would block until that handler returns. */
         result = (::PostMessageA(search.button,
                                  BM_CLICK,
                                  0,
@@ -97,7 +97,7 @@ BOOL CALLBACK Stereo::Launcher::ButtonClicker::on_child_window(HWND   in_window,
                      text_i8vec256,
                      static_cast<int>(sizeof(text_i8vec256) ) );
 
-    /* A button, or one that a toolkit makes of it ("TButton"); a label that says the same is not pressed. */
+    /* Accepts a standard button or a button class that a toolkit derives from it (such as "TButton"). A label with the same text is not pressed. */
     const bool is_button  = (get_normalized_text(class_i8vec64).find("button") != std::string::npos);
     const bool is_enabled = (::IsWindowEnabled(in_window)                      != FALSE);
     const bool is_shown   = (::IsWindowVisible(in_window)                      != FALSE);

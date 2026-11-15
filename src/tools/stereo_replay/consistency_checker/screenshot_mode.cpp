@@ -34,7 +34,7 @@ bool Stereo::Replay::ConsistencyChecker::take_contact_sheet(const Stereo::Replay
 
     Stereo::Replay::ConsistencyChecker::FrameHashSink sink(true); /* in_keeps_images */
 
-    /* The end of the workload: the range of the options may go beyond it. */
+    /* The last frame of the workload; the range of the options may extend past it. */
     const bool is_index_loaded = Capture::APIDumpLoader::WorkloadIndex::load_or_build(in_options.workload_filename.c_str(),
                                                                                       N_INDEX_READER_THREADS,
                                                                                      &index,
@@ -117,7 +117,7 @@ bool Stereo::Replay::ConsistencyChecker::take_contact_sheet(const Stereo::Replay
         goto end;
     }
 
-    /* About as many tiles across as down; a tile with both eyes is twice as wide as one with an eye. */
+    /* Use about as many tiles across as down. A tile with both eyes is twice as wide as a tile with one eye. */
     n_columns = static_cast<uint32_t>(std::ceil(std::sqrt(static_cast<double>(tile_image_vec.size() ) ) ) );
 
     if (uses_recipe                                                                               &&

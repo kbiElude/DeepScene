@@ -99,7 +99,7 @@ Analysis::RecipeBake::CoverageReport Analysis::RecipeBake::RecipeChecker::check(
 
     result.n_signatures = signature_pass_kind_count_map.size();
 
-    /* What the recipe leaves alone as the overlays are, a pass at a time: the first draw that tells it is the one that is reported. */
+    /* What the recipe leaves alone is checked as for overlays, one pass at a time. Only the first draw that shows a problem is reported. */
     std::set<uint32_t> disagreeing_pass_set;
     std::set<uint32_t> deep_pass_set;
 

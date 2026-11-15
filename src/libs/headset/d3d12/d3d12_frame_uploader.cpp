@@ -73,7 +73,7 @@ Headset::D3D12::D3D12FrameUploader::Region* Headset::D3D12::D3D12FrameUploader::
         buffer_desc.Alignment        = 0;
         buffer_desc.DepthOrArraySize = 1;
         buffer_desc.Dimension        = D3D12_RESOURCE_DIMENSION_BUFFER;
-        buffer_desc.Flags            = D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER; /* what the memory of another process or adapter needs */
+        buffer_desc.Flags            = D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER; /* needed for memory shared with another process or adapter */
         buffer_desc.Format           = DXGI_FORMAT_UNKNOWN;
         buffer_desc.Height           = 1;
         buffer_desc.Layout           = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
@@ -209,11 +209,11 @@ bool Headset::D3D12::D3D12FrameUploader::upload(const Stereo::Transport::Importe
         }
 
         list_ptr->CopyTextureRegion(&destination,
-                                               0, /* in_dst_x */
-                                               0, /* in_dst_y */
-                                               0, /* in_dst_z */
-                                              &source,
-                                              &source_box);
+                                     0, /* in_dst_x */
+                                     0, /* in_dst_y */
+                                     0, /* in_dst_z */
+                                    &source,
+                                    &source_box);
 
         if (in_texture_state != D3D12_RESOURCE_STATE_COPY_DEST)
         {
@@ -226,7 +226,7 @@ bool Headset::D3D12::D3D12FrameUploader::upload(const Stereo::Transport::Importe
             barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
             list_ptr->ResourceBarrier(1,
-                                               &barrier);
+                                     &barrier);
         }
     }
 

@@ -431,7 +431,7 @@ std::vector<uint8_t> Analysis::APIDumpAnalysis::PassesFile::write_bytes(const An
                   sizeof(file_header),
                  &result_vec);
 
-    /* The sections are independent, and compressing them is what takes the time: they are made together, and put in order. */
+    /* The sections are independent and compressing them takes most of the time, so they are packed in parallel and then written in order. */
     for (const auto& section_info : SECTION_INFO_ARRAY)
     {
         future_vec.push_back(std::async(std::launch::async,

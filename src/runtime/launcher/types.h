@@ -11,25 +11,25 @@ namespace Stereo
 {
     namespace Launcher
     {
-        /* What the exit code of the program says. */
+        /* The exit codes of the program. */
         enum class ExitCode
         {
             BAD_ARGUMENTS    = 1,
-            CONVERTER_FAILED = 3, /* the converter in the application stopped it, and said why in its log */
+            CONVERTER_FAILED = 3, /* the converter inside the application stopped it and wrote the reason to its log */
             LAUNCH_FAILED    = 2,
             SUCCESS          = 0
         };
 
         struct Options
         {
-            std::string arguments;          /* of the application, as they are put on its command line   */
-            std::string click_button_text;  /* of a button that the application shows, which is pressed; empty: none */
+            std::string arguments;          /* command line arguments of the application                 */
+            std::string click_button_text;  /* text of a button in a window the application shows, which is pressed; empty: none */
             std::string executable_path;
             bool        is_logging          = false; /* the converter writes a log of what it does                         */
             std::string recipe_path;
             std::string session_id;
-            bool        should_wait         = false; /* until the application exits                       */
-            std::string working_directory;  /* empty: that of the launcher                                */
+            bool        should_wait         = false; /* wait until the application exits                  */
+            std::string working_directory;  /* empty: the directory of the launcher                       */
         };
     }
 }

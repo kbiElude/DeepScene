@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 
-/* How far the screen is from the head when it is put: where eyes of a headset focus is about this. */
+/* The distance in metres between the head and the screen when the screen is placed. It is about where the eyes of a headset focus. */
 constexpr float SCREEN_DISTANCE = 2.0f;
 
 Headset::XR::HeadsetSession::HeadsetSession()
@@ -57,7 +57,7 @@ bool Headset::XR::HeadsetSession::acquire_eye_textures(const uint32_t&  in_width
                                                        ID3D12Resource** out_right_texture_ptr_ptr,
                                                        std::string*     out_error_ptr)
 {
-    constexpr int64_t WAIT_N_NANOSECONDS = 8 * 1000 * 1000; /* the compositor gives an image back within a frame, which is 14 ms at 72 Hz */
+    constexpr int64_t WAIT_N_NANOSECONDS = 8 * 1000 * 1000; /* the compositor gives an image back within a frame (14 ms at 72 Hz) */
 
     bool result = false;
 
@@ -159,7 +159,7 @@ void Headset::XR::HeadsetSession::add_log(const std::string& in_text)
 
 bool Headset::XR::HeadsetSession::clear_swapchain_images(std::string* out_error_ptr)
 {
-    constexpr int64_t WAIT_N_NANOSECONDS = 100 * 1000 * 1000; /* a swap chain that was just made gives its images back at once */
+    constexpr int64_t WAIT_N_NANOSECONDS = 100 * 1000 * 1000; /* the images of a new swap chain are available at once */
 
     const D3D12_RESOURCE_STATES texture_state = HeadsetSession::get_texture_state();
     const DXGI_FORMAT           view_format   = static_cast<DXGI_FORMAT>(m_format);
@@ -210,7 +210,7 @@ bool Headset::XR::HeadsetSession::clear_swapchain_images(std::string* out_error_
                 goto end;
             }
 
-            /* An image that was taken is given back whether or not it could be made black. */
+            /* An image that was acquired is released whether or not it could be cleared. */
             {
                 ID3D12Resource* const texture_ptr = eye.image_vec.at(image_index).texture;
 
@@ -233,7 +233,7 @@ bool Headset::XR::HeadsetSession::clear_swapchain_images(std::string* out_error_
             }
         }
 
-        /* Black is shown only if every image of the eye is. */
+        /* Black is shown only if every image of the eye was cleared. */
         if (result)
         {
             eye.has_image = true;
@@ -246,9 +246,9 @@ end:
 
 bool Headset::XR::HeadsetSession::create_actions(std::string* out_error_ptr)
 {
-    /* The button of each hand that every controller has (the simple controller), and the one of a Touch controller which is for the
-     * app (the menu button of the left one, A of the right one). A runtime which does not know a profile does not use what is
-     * suggested for it.
+    /* Binds the action to one button on each hand. The simple controller profile uses the menu button of both hands. The Touch controller
+     * profile uses the menu button of the left hand and the A button of the right hand, which are the buttons that apps may use. A runtime
+     * that does not know a profile ignores the bindings suggested for it.
      */
     struct ProfileBinding
     {
@@ -334,7 +334,7 @@ bool Headset::XR::HeadsetSession::create_actions(std::string* out_error_ptr)
         suggested_binding.countSuggestedBindings = 2;
         suggested_binding.suggestedBindings      = binding_array;
 
-        /* Not an error: what a runtime does not know of is not used. */
+        /* Not an error: a runtime ignores the bindings for a profile that it does not know. */
         ::xrSuggestInteractionProfileBindings(m_instance,
                                              &suggested_binding);
     }
@@ -425,7 +425,9 @@ end:
 
 bool Headset::XR::HeadsetSession::create_instance(std::string* out_error_ptr)
 {
-    /* What is asked for: the way to give the compositor textures of Direct3D 12, and, if it has it, the curved screen. */
+    /* The extensions to enable: the Direct3D 12 extension, which lets the session give the compositor Direct3D 12 textures, and the
+     * cylinder layer extension (the curved screen) if the runtime has it.
+     */
     std::vector<const char*>           enabled_extension_vec = {XR_KHR_D3D12_ENABLE_EXTENSION_NAME};
     std::vector<XrExtensionProperties> extension_vec;
     bool                               has_d3d12             = false;
@@ -865,7 +867,9 @@ void Headset::XR::HeadsetSession::make_layer(const uint32_t& in_n_eye,
         layer.space         = m_local_space;
         layer.subImage      = sub_image;
 
-        /* The quad is in front of the head, not around it. */
+        /* A cylinder is centered on the head position. A quad has no radius, so it is moved forward from the head by SCREEN_DISTANCE along
+         * the direction that the head faces.
+         */
         layer.pose.position.x -= ::sinf(m_screen_yaw) * SCREEN_DISTANCE;
         layer.pose.position.z -= ::cosf(m_screen_yaw) * SCREEN_DISTANCE;
     }
@@ -995,7 +999,9 @@ bool Headset::XR::HeadsetSession::make_swapchains(const uint32_t& in_width,
     m_has_logged_screen = false;
     result            = true;
 
-    /* What the images hold now is whatever was in the memory; black is shown until the application's first frame is copied. */
+    /* The new images hold whatever was in memory. They are cleared to black, which is shown until the first frame of the application is
+     * copied.
+     */
     {
         std::string clear_error;
 
@@ -1040,8 +1046,9 @@ void Headset::XR::HeadsetSession::on_session_state_changed(const XrSessionState&
 
                 m_shared.is_running = true;
 
-                /* Black is shown from the start, until the frames of the application come (they make the swap chains again if they are of another
-                 * size): with nothing to show, the runtime shows what it likes, and it flickers.
+                /* The swap chains are created at the recommended size, so that black is shown from the start until the frames of the
+                 * application arrive. If those frames have another size, acquire_eye_textures() creates the swap chains again. With nothing
+                 * to show, the runtime shows arbitrary content, which flickers.
                  */
                 if (read_recommended_eye_size(&eye_width,
                                               &eye_height) )
@@ -1104,8 +1111,8 @@ bool Headset::XR::HeadsetSession::pick_format(std::string* out_error_ptr)
                                  &n_formats,
                                   format_vec.data() );
 
-    /* The bytes of the images are copied as they are, so the format has to be of the family of the pixels they have; the sRGB one,
-     * as they are (what is said to be sRGB is read as such by the compositor).
+    /* The bytes of the images are copied unchanged, so the format must be in the same family as the pixels of the images
+     * (B8G8R8A8). The sRGB format is preferred, because the compositor then treats the copied bytes as sRGB-encoded.
      */
     for (const auto& candidate_format : format_vec)
     {
@@ -1176,7 +1183,7 @@ bool Headset::XR::HeadsetSession::probe(HeadsetInfo* out_info_ptr,
     out_info_ptr->runtime_name = session.m_runtime_name;
     out_info_ptr->system_name  = session.m_system_name;
 
-    /* The size of the image of an eye that the runtime recommends: what the headset is meant to be rendered at. */
+    /* The image size per eye that the runtime recommends. */
     session.read_recommended_eye_size(&out_info_ptr->eye_width,
                                       &out_info_ptr->eye_height);
 
@@ -1277,7 +1284,7 @@ void Headset::XR::HeadsetSession::request_exit()
 bool Headset::XR::HeadsetSession::run_frame(std::string* out_error_ptr)
 {
     constexpr DWORD  IDLE_N_MILLISECONDS           = 10;
-    constexpr int    IMAGE_WAIT_N_MICROSECONDS     = 6000; /* the frame has this much room before the compositor wants it */
+    constexpr int    IMAGE_WAIT_N_MICROSECONDS     = 6000; /* the frame can wait this long for new images before the compositor needs it */
     constexpr double LATE_PERIODS                  = 1.5;
     constexpr double REPORT_PERIOD_N_MILLISECONDS  = 1000.0;
     constexpr double N_NANOSECONDS_PER_MILLISECOND = 1000000.0;
@@ -1305,7 +1312,9 @@ bool Headset::XR::HeadsetSession::run_frame(std::string* out_error_ptr)
             is_running = m_shared.is_running;
         }
 
-        /* A frame is waited for only in a running session: until the runtime says that it is ready, there is nothing to wait for. */
+        /* A frame is waited for only in a running session. Before the runtime reports that the session is ready, there is nothing to
+         * wait for.
+         */
         if (is_running == false)
         {
             ::Sleep(IDLE_N_MILLISECONDS);
@@ -1331,7 +1340,7 @@ bool Headset::XR::HeadsetSession::run_frame(std::string* out_error_ptr)
             timing.frame_interval.add_interval      (wait_end_ms);
             timing.wait_cost.add                    (wait_end_ms - wait_start_ms);
 
-            /* The compositor wants a frame: the application is to make the one that it shows next. */
+            /* The compositor wants a frame, so the application should make the frame that is shown next. */
             if (m_frame_func)
             {
                 m_frame_func(static_cast<double>(timing.period_ms) );
@@ -1370,7 +1379,7 @@ bool Headset::XR::HeadsetSession::run_frame(std::string* out_error_ptr)
         const XrCompositionLayerBaseHeader* layer_ptr_array[2] = {};
         uint32_t                            n_layers           = 0;
 
-        /* The screen is put in front of the head the first time the head is known, and when the user says so. */
+        /* The screen is placed in front of the head when the head position first becomes known, and whenever the user asks for it. */
         const bool is_recenter = read_recenter();
 
         if (is_recenter           ||
@@ -1396,9 +1405,9 @@ bool Headset::XR::HeadsetSession::run_frame(std::string* out_error_ptr)
 
             timing.lock_wait.add(Utils::Statistics::SeriesStats::get_now() - lock_start_ms);
 
-            /* The images that the application's frame made are not always there when the compositor asks: a copy that is late by a few
-             * milliseconds would show the frame before again, and the next one in its place a frame later. The frame is not ended for a
-             * little while for them, which it has room for; if they do not come, the frame before is shown.
+            /* The images of the application's frame are not always ready when the compositor asks. If a copy is late by a few milliseconds,
+             * the previous images would be shown again and the new images would appear one frame later. So the frame waits a short time for
+             * new images, which fits in the time budget of the frame. If they do not arrive, the previous images are shown.
              */
             if (m_shared.image_serial == timing.last_serial)
             {
@@ -1419,7 +1428,7 @@ bool Headset::XR::HeadsetSession::run_frame(std::string* out_error_ptr)
 
             n_layers = make_layers(frame_state.predictedDisplayTime);
 
-            /* Whether the images of the eyes are new to the compositor, or the ones that it showed already. */
+            /* Counts whether the eye images are new to the compositor or the ones that it already showed. */
             if (n_layers == 0)
             {
                 ++timing.n_empty;
@@ -1589,8 +1598,8 @@ void Headset::XR::HeadsetSession::update_field_of_view(const XrTime& in_time)
     {
         if (n_views == 2)
         {
-            /* The distance between the eyes: between the places the runtime puts the two views, which it changes with the adjustment of the
-             * headset. Smoothed, since it is a measure of a head that moves.
+            /* The eye distance is the distance between the positions of the two views. The runtime changes it when the headset is adjusted.
+             * It is smoothed because it is measured on a head that moves.
              */
             if ((view_state.viewStateFlags & XR_VIEW_STATE_POSITION_VALID_BIT) != 0)
             {

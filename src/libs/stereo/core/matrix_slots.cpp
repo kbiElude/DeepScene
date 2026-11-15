@@ -37,7 +37,7 @@ uint32_t Stereo::Core::MatrixSlots::bind(const Analysis::Recipe::DrawClass& in_d
         Slot& slot           = slot_pair.second;
         bool  is_bound_right = (slot.bound == wanted);
 
-        /* A matrix made for another separation is not the one to have, though it is for the eye. */
+        /* A matrix made for another convergence distance or eye separation is stale, even if it is for the right eye. */
         if (wanted == MatrixSlotBinding::LEFT ||
             wanted == MatrixSlotBinding::RIGHT)
         {
@@ -148,7 +148,7 @@ bool Stereo::Core::MatrixSlots::on_matrix_call(const Analysis::Recipe::RecipeApp
         goto end;
     }
 
-    /* The places of a call are not known as it is made. */
+    /* The pass of a live call is not known, so the rules are matched with an empty CallPlace. */
     m_scratch_call.arg_in_vec.assign(in_argument_vec.begin(),
                                      in_argument_vec.end  () );
 
@@ -161,7 +161,7 @@ bool Stereo::Core::MatrixSlots::on_matrix_call(const Analysis::Recipe::RecipeApp
     slot.rule_ptr_vec = in_applier.get_matching_rule_ptr_vec(m_scratch_call,
                                                              Analysis::Recipe::CallPlace() );
 
-    /* Whatever this call replaces is not what the device is to have. */
+    /* The matrix stored for this call earlier is replaced by this call, so it is dropped. */
     m_slot_map.erase(m_scratch_key);
 
     if (slot.rule_ptr_vec.empty() == false)

@@ -211,8 +211,9 @@ int main(int   in_argc,
         goto end;
     }
 
-    /* The frames as they are come first: they are what the other ways are compared with. Without a choice, the next one tells how much a replay
-     * differs from itself; then either the two with executions twice, or the one with the recipe.
+    /* The frames as they are come first; every other way is compared against them. If the user names no ways, the default ways follow. The
+     * first is a second replay of the frames, which shows how much a replay differs from itself. Then come either the two ways that execute
+     * each frame twice, or, with a recipe, the way that uses the recipe.
      */
     variant_ptr_vec.push_back(&Stereo::Replay::ConsistencyChecker::VARIANT_ARRAY[0]);
 
@@ -278,7 +279,7 @@ int main(int   in_argc,
 
         if (has_dump_directory)
         {
-            /* The frame is the one that the last way makes: the one under test. */
+            /* The dumped frame is the one that the last way produces, which is the way under test. */
             Stereo::Replay::ConsistencyChecker::dump_frame(options,
                                                            options.dump_frame,
                                                            *variant_ptr_vec.back() );
@@ -300,7 +301,7 @@ int main(int   in_argc,
                                                                                                   sink_vec.at        (n_variant).get_hash_map(),
                                                                                                  &variant_first_frame);
 
-            /* The last way is the one under test; the ones before it only show how much a replay differs from itself. */
+            /* The last way is the one under test; the earlier ways only show how much a replay differs from itself. */
             if (has_difference          &&
                 n_variant == n_sinks - 1)
             {

@@ -180,7 +180,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLDrawHandler::handle_begin(const Cap
     {
         GLImmediateBlock& block = inout_state_ptr->immediate_block;
 
-        /* A glBegin that comes while a block is open starts it again. */
+        /* A glBegin inside an open block restarts the block. */
         block.first_call_index = m_builder_ptr->get_call_index();
         block.is_open         = true;
         block.mode            = mode_array.at(0);
@@ -217,7 +217,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLDrawHandler::handle_clear(const Cap
 
         const GLBox& box = inout_state_ptr->attributes.scissor_box;
 
-        /* With the scissor test on, a clear reaches the box and no more, unless the box is the whole framebuffer. */
+        /* With the scissor test on, a clear affects only the scissor box, unless the box covers the whole framebuffer. */
         const int32_t framebuffer_height = static_cast<int32_t>(inout_window_ptr->get_framebuffer_height() );
         const int32_t framebuffer_width  = static_cast<int32_t>(inout_window_ptr->get_framebuffer_width() );
 
@@ -253,7 +253,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLDrawHandler::handle_end(GLWindow*  
 {
     GLImmediateBlock& block = inout_state_ptr->immediate_block;
 
-    /* The vertices of a block are one draw; a glEnd with no glBegin, or a block with no vertices, is none. */
+    /* The vertices of a block form one draw. A glEnd without a glBegin, or a block without vertices, produces no draw. */
     if (block.is_open &&
         block.n_vertices > 0)
     {
@@ -264,7 +264,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLDrawHandler::handle_end(GLWindow*  
         auto description = inout_state_ptr->pipeline_state.describe_draw(topology,
                                                                          block.n_vertices);
 
-        /* The vertices are calls of the draw: a draw that is left out is left out from the glBegin. */
+        /* The vertex calls belong to the draw. A draw that is left out is left out from its glBegin on. */
         description.first_call_index = block.first_call_index;
 
         inout_texture_handler_ptr->add_texture_bindings(*inout_state_ptr,
@@ -290,7 +290,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLDrawHandler::handle_vertex(const Ca
 {
     GLImmediateBlock& block = inout_state_ptr->immediate_block;
 
-    /* A vertex that comes with no block open is one that OpenGL does not use. */
+    /* A vertex outside a glBegin/glEnd block is not used by OpenGL. */
     if (block.is_open)
     {
         block.n_vertices++;

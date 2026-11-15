@@ -11,7 +11,7 @@ namespace Utils
 {
     namespace UIHost
     {
-        /* The lower right corner of what a window has drawn, in the pixels of the window. */
+        /* The bottom right corner of everything a window has drawn, in the pixels of the window. */
         struct ContentExtent
         {
             float bottom = 0.0f;
@@ -20,14 +20,14 @@ namespace Utils
 
         struct WindowOptions
         {
-            std::wstring class_name;                    /* of the window class: one for each kind of window of a process       */
-            int          client_height = 0;             /* at 100% scale; the scale of the monitor is applied                  */
+            std::wstring class_name;                    /* window class name: one for each kind of window in a process         */
+            int          client_height = 0;             /* at 100% scale; the monitor scale is applied on top                  */
             int          client_width  = 0;
-            bool         fits_content  = false;         /* the window takes the size of what it draws                          */
+            bool         fits_content  = false;         /* the window is sized to fit what it draws                            */
             bool         is_resizable  = false;
             bool         is_topmost    = false;
             std::string  title;
-            bool         uses_system_font = false;      /* Segoe UI, if the machine has it, in place of the font of ImGui      */
+            bool         uses_system_font = false;      /* use Segoe UI, if the machine has it, instead of the ImGui font      */
         };
     }
 }

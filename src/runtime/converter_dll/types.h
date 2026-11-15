@@ -11,12 +11,15 @@ namespace Stereo
 {
     namespace ConverterDLL
     {
-        /* Where the vertices of a draw are. */
+        /* Where the vertices of a draw are stored. */
         enum class DrawKind
         {
-            STRIDED,           /* in arrays of the application, which a structure points at                          */
-            VERTEX_BUFFER,     /* in a vertex buffer: read into the memory of the renderer, and then they are in memory */
-            VERTICES_IN_MEMORY /* in one block of the memory of the application                                      */
+            STRIDED,           /* in arrays of the application, which a structure points to
+ */
+            VERTEX_BUFFER,     /* in a vertex buffer: they are read into the memory of the renderer, and from then on they are in memory
+ */
+            VERTICES_IN_MEMORY /* in one block of the memory of the application
+ */
         };
     }
 }

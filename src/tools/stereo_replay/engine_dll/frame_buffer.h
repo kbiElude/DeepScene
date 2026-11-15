@@ -15,15 +15,15 @@ namespace Stereo
     {
         namespace EngineDLL
         {
-            /* The calls of one frame and their data chunks, copied out of the segments they were read from: a segment is gone once
-             * the walker moves on, so a frame can be executed again only from a copy.
+            /* Holds the calls of one frame and their data chunks. Both are copied out of the segments they were read from, because a
+             * segment is released when the walker moves on. A frame can be executed again only from such a copy.
              */
             class FrameBuffer : public ::Replay::ReplayEngineDLL::IChunkSource
             {
             public:
                 FrameBuffer();
 
-                /* Copies the call, and the chunks that it refers to and the buffer does not have yet. */
+                /* Copies the call, and the chunks it refers to that the buffer does not hold yet. */
                 void add_call(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
                               const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source);
 
@@ -33,7 +33,7 @@ namespace Stereo
                 const Capture::APIDumpLoader::DataChunk*                  get_data_chunk_ptr (const uint32_t& in_data_chunk_id) const override;
                 uint32_t                                                  get_pointer_n_bytes()                                 const override;
 
-                /* A call can not be copied as it is: it owns its returned value. */
+                /* Copies a call. The call cannot be copied by plain assignment because it owns its returned value. */
                 static Capture::APIDumpLoader::DumpedAPICall copy_call(const Capture::APIDumpLoader::DumpedAPICall& in_call);
 
             private:

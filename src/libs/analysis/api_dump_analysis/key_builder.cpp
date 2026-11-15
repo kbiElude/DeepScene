@@ -24,7 +24,7 @@ uint64_t Analysis::APIDumpAnalysis::KeyBuilder::compute_description_key(const Re
 {
     Utils::Hashing::Hasher hasher;
 
-    /* What the application keeps in its memory is told apart by what it is for; its bytes and its size are those of the moment. */
+    /* Application memory is identified by what it is used for. Its current bytes and size are not part of the key. */
     if (in_description.is_application_memory)
     {
         hasher.add_bool(true);
@@ -120,7 +120,7 @@ uint64_t Analysis::APIDumpAnalysis::KeyBuilder::compute_draw_structure_key(const
 
     hasher.add_u64(in_structure.vertex_layout_key);
 
-    /* Only an orthographic draw adds it, so that the key of any other draw does not depend on the flag. */
+    /* Only an orthographic draw adds the flag, so that the key of any other draw does not depend on it. */
     if (in_structure.is_orthographic)
     {
         hasher.add_bool(true);

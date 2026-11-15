@@ -29,7 +29,7 @@ Utils::D3D12::D3D12CommandRunner::D3D12CommandRunner(ID3D12Device*       in_devi
         goto end;
     }
 
-    /* A list is made recording; it is closed until the first one is begun. */
+    /* A new command list starts in the recording state. It is closed here so that it stays closed until the first begin_list_ptr() call. */
     m_command_list_ptr->Close();
 
     if (FAILED(in_device_ptr->CreateFence(0, /* in_initial_value */
@@ -59,7 +59,7 @@ Utils::D3D12::D3D12CommandRunner::~D3D12CommandRunner()
 {
     std::string error;
 
-    /* What the GPU may still be reading is not released before it is done. */
+    /* Wait for the GPU first, so that nothing it may still be reading is released early. */
     if (m_fence_event != nullptr)
     {
         wait(&error);

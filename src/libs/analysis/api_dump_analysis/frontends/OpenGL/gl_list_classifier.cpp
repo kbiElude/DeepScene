@@ -40,7 +40,7 @@ Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence Analysis::APIDumpAnaly
 
         default:
         {
-            /* What is made relative to the matrix of the moment of the call (a light, a clip plane) is the eye's own, as far as the matrix is. */
+            /* A call whose effect is relative to the current matrix (a light, a clip plane) depends on the eye only through that matrix. */
             if (GLFunctionPolicy::bakes_current_matrix(in_function) )
             {
                 result = GLListEyeDependence::RELATIVE_MATRIX_ONLY;

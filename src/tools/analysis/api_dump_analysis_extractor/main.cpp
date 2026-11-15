@@ -97,7 +97,7 @@ int Analysis::APIDumpAnalysisExtractor::run(int   in_argc,
 
     Analysis::APIDumpAnalysis::ExtractorTool::Steps steps;
 
-    /* The shapes of the frames and the structures of the passes that have been found, which are what this program is for. */
+    /* The result of this program: the shape of each frame and the structure of each pass found in the workload. */
     steps.extra_text_func = [](const Analysis::APIDumpAnalysis::Frontends::SessionProgress& in_progress)
     {
         char text_i8vec64[64] = {};

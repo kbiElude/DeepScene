@@ -14,7 +14,7 @@ bool Stereo::Replay::ConsistencyChecker::FrameRepeatability::is_repeatable(const
     const auto& resource_vec   = in_analysis.result.resource_vec;
     bool        result         = true;
 
-    /* A frame that the analysis has not seen end is not known. */
+    /* Nothing is known about a frame whose end the analysis has not seen. */
     if (in_frame_index >= call_range_vec.size() )
     {
         *out_reason_ptr = "the frame is not one that the dependencies know";
@@ -29,7 +29,7 @@ bool Stereo::Replay::ConsistencyChecker::FrameRepeatability::is_repeatable(const
         const auto&        dependencies = resource_vec.at(n_resource);
         const std::string  name         = "resource " + std::to_string(n_resource + 1);
 
-        /* A resource that the frame makes or releases would be made or released again. */
+        /* A frame that creates or releases a resource would create or release it again every time it is played. */
         if (n_resource < in_analysis.resource_vec.size() )
         {
             const auto& resource = in_analysis.resource_vec.at(n_resource);
@@ -52,7 +52,8 @@ bool Stereo::Replay::ConsistencyChecker::FrameRepeatability::is_repeatable(const
             }
         }
 
-        /* The run of frames that the frame is in, if it uses the resource. */
+        /* Find the use run (a stretch of consecutive frames that use the resource) that contains this frame. A frame outside a run does not use the
+         * resource. */
         const auto run_end_iterator = std::upper_bound(dependencies.use_run_vec.begin(),
                                                        dependencies.use_run_vec.end  (),
                                                        static_cast<uint64_t>(in_frame_index),
@@ -74,7 +75,8 @@ bool Stereo::Replay::ConsistencyChecker::FrameRepeatability::is_repeatable(const
             continue;
         }
 
-        /* What the frame writes, and uses of what was there, comes out as it does only once. */
+        /* A frame that writes the resource and uses what it held before gives a different result when it is played again, unless the frame
+         * overwrites the whole written extent first. */
         if (run.use.is_written &&
             run.use.carry      != Analysis::APIDumpDependencies::CarryKind::NONE)
         {

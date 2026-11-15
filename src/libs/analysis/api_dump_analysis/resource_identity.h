@@ -2,12 +2,13 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * What tells a resource from the others in every run of an application, and is known the moment the application makes it: the key of how
- * it was made (see KeyBuilder::compute_description_key) and how many resources with that key were made before it. The key alone is not
- * enough, since an application makes several textures in the same way; the number of the resource is not, since nothing says it is the
- * same in another run. The order in which an application makes its resources is, for the programs that matter here, the same in every run.
+ * What tells a resource apart from the others in every run of an application, and is known at the moment the application creates it: the key
+ * of how it was created (see KeyBuilder::compute_description_key) and the number of resources with that key that were created before it. The
+ * key alone is not enough, because an application creates several textures in the same way. The resource number is not enough either,
+ * because nothing guarantees that it is the same in another run. The order in which an application creates its resources is the same in every
+ * run, for the programs that matter here.
  *
- * The keys that the resources have in a frame (see ResourceKeyTable) are not this: they say what wrote to the resource in that frame.
+ * This is not the key that a resource has in a frame (see ResourceKeyTable): that key says what wrote to the resource in that frame.
  */
 #ifndef APIDUMPANALYSIS_RESOURCE_IDENTITY_H
 #define APIDUMPANALYSIS_RESOURCE_IDENTITY_H
@@ -23,7 +24,7 @@ namespace Analysis
         struct ResourceIdentity
         {
             uint64_t description_key = 0;
-            uint32_t ordinal         = 0; /* the number of resources made before it with the same key */
+            uint32_t ordinal         = 0; /* the number of resources with the same key that were created before this one */
         };
 
         bool operator==(const ResourceIdentity& in_a,
@@ -32,7 +33,7 @@ namespace Analysis
         class ResourceIdentities
         {
         public:
-            /* False if there is no such resource in the list (the list is by ID, less 1: Model::resource_vec). */
+            /* Returns false if the list has no such resource (the list is indexed by ID - 1: Model::resource_vec). */
             static bool find(const std::vector<Resource>& in_resource_vec,
                              const ResourceId&            in_id,
                              ResourceIdentity*            out_identity_ptr);

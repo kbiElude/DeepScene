@@ -31,7 +31,7 @@ void Stereo::Replay::EngineDLL::StereoGLCallExecutor::apply_eye()
     constexpr unsigned int MAX_TEXTURE_UNITS = 0x84E2;
     constexpr unsigned int TEXTURE0          = 0x84C0;
 
-    /* More units than this are not looked at: a program of the age of fixed-function GL does not use them. */
+    /* Only the first MAX_N_UNITS texture units are checked, because programs written for fixed-function GL do not use more. */
     constexpr int MAX_N_UNITS = 8;
 
     const auto active_texture_func_ptr = reinterpret_cast<PFNACTIVETEXTUREPROC>(get_proc_ptr("glActiveTexture") );
@@ -46,7 +46,7 @@ void Stereo::Replay::EngineDLL::StereoGLCallExecutor::apply_eye()
         goto end;
     }
 
-    /* What the program's name for a texture is mapped to: the copy of the eye. */
+    /* Map the program's texture names to the copies of the current eye. */
     for (const auto& twin_pair : m_twin_map)
     {
         m_remapper_ptr->add(::Replay::ReplayEngineDLL::ObjectKind::TEXTURE,
@@ -62,7 +62,7 @@ void Stereo::Replay::EngineDLL::StereoGLCallExecutor::apply_eye()
         goto end;
     }
 
-    /* What a unit has bound is what the eye before left there: the copy of this eye is bound in its place. */
+    /* Each unit still has the previous eye's copy bound. Bind the copy of the current eye in its place. */
     if (active_texture_func_ptr != nullptr)
     {
         get_integerv_func_ptr(ACTIVE_TEXTURE,
@@ -152,10 +152,10 @@ bool Stereo::Replay::EngineDLL::StereoGLCallExecutor::execute(const Capture::API
 {
     const auto get_integerv_func_ptr = reinterpret_cast<PFNGETINTEGERVPROC>(get_proc_ptr("glGetIntegerv") );
 
-    std::vector<std::pair<uint32_t, uint32_t> > other_copy_vec; /* the dumped name and the live name of the copy of the other eye, of the textures that are deleted */
+    std::vector<std::pair<uint32_t, uint32_t> > other_copy_vec; /* the dumped name and the live name of the other eye's copy of each texture that is deleted */
     bool                                        result = false;
 
-    /* What is made again for the other eye is not looked at again. */
+    /* A call that is replicated for the other eye is executed as it is, without any further per-eye handling. */
     if (m_is_replicating)
     {
         result = GLCallExecutor::execute(in_call,
@@ -165,7 +165,9 @@ bool Stereo::Replay::EngineDLL::StereoGLCallExecutor::execute(const Capture::API
         goto end;
     }
 
-    /* The copy of the other eye of a texture that is deleted is deleted with it: the call finds the one that the eye has, and the remapper forgets it. */
+    /* Deleting a texture that has a copy per eye also deletes the other eye's copy. The call itself deletes the copy of the current
+     * eye, and the remapper forgets it. Remember the other copies now and delete them after the call.
+     */
     if (in_call.func == APIInterceptor::APIFUNCTION_GL_GLDELETETEXTURES &&
         m_twin_map.empty() == false                                     &&
         in_call.arg_in_vec.size() > 1                                   &&
@@ -231,7 +233,7 @@ bool Stereo::Replay::EngineDLL::StereoGLCallExecutor::execute(const Capture::API
         get_integerv_func_ptr(TEXTURE_BINDING_2D,
                              &bound_name);
 
-        /* The copy that is bound is one of a texture that each eye has a copy of, or a texture of the program that is not known to be. */
+        /* The bound texture is either a copy of a texture that has a copy per eye, or an ordinary texture of the program. */
         for (const auto& twin_pair : m_twin_map)
         {
             if (static_cast<uint32_t>(bound_name) == twin_pair.second.left_live_name ||
@@ -285,8 +287,8 @@ bool Stereo::Replay::EngineDLL::StereoGLCallExecutor::make_twin(const uint32_t& 
     const auto get_parameter_func_ptr= reinterpret_cast<PFNGETTEXPARAMETERIVPROC>(get_proc_ptr("glGetTexParameteriv") );
     const auto set_parameter_func_ptr= reinterpret_cast<PFNTEXPARAMETERIPROC>    (get_proc_ptr("glTexParameteri") );
 
-    /* What a texture has besides its pixels, that a copy takes: the parameters that the cache of them looks at, so that a call it leaves out is one that the twin
-     * would not have changed either.
+    /* The copy takes over the texture parameters that GLTextureParameterCache tracks, so that a call the cache leaves out is also
+     * one that the twin would not have changed.
      */
     const auto&      parameter_vec = GLTextureParameterCache::get_cached_parameters();
     const size_t     n_parameters  = parameter_vec.size();
@@ -342,7 +344,7 @@ bool Stereo::Replay::EngineDLL::StereoGLCallExecutor::make_twin(const uint32_t& 
     bind_func_ptr(TEXTURE_2D,
                   in_live_name);
 
-    /* A parameter that the driver does not have left an error that the program did not make. */
+    /* A parameter that the driver does not support leaves a GL error. The program did not cause it, so clear it. */
     while (get_error_func_ptr != nullptr &&
            get_error_func_ptr() != 0)
     {
@@ -414,7 +416,7 @@ void Stereo::Replay::EngineDLL::StereoGLCallExecutor::restore_state()
 {
     GLCallExecutor::restore_state();
 
-    /* The state that was put back has what the program had bound before: the copies of this eye are bound again. */
+    /* Restoring the state rebinds the textures the program had bound before, so bind the copies of this eye again. */
     apply_eye();
 }
 

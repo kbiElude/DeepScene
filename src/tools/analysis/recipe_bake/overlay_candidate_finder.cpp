@@ -14,8 +14,8 @@
 std::vector<Analysis::RecipeBake::OverlayCandidate> Analysis::RecipeBake::OverlayCandidateFinder::find(const Analysis::Recipe::Recipe&                  in_recipe,
                                                                                                        const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
 {
-    /* The part of the picture that the box around a draw has to cover for the draw to be called one that covers the view: a full quad of a picture that has bars above
-     * and below it (as Gerbera's does) is 0.79 of the viewport.
+    /* The fraction of the viewport that the bounding box of a draw must cover for the draw to count as covering the view. A full quad of a
+     * picture with bars above and below it (as in Gerbera) covers 0.79 of the viewport, so the threshold is 0.75.
      */
     constexpr float COVERS_VIEW_FRACTION = 0.75f;
 
@@ -87,7 +87,7 @@ std::vector<Analysis::RecipeBake::OverlayCandidate> Analysis::RecipeBake::Overla
             const bool is_orthographic   = (structure_iterator != model_ref.draw_structure_map.end() &&
                                             structure_iterator->second.is_orthographic);
 
-            /* A camera that never changes, and a projection that is orthographic, are the hint that the analysis has: a good sign, and no more. */
+            /* Hint from the analysis: the camera of the pass never changes, or the draw is orthographic. A good sign, not proof. */
             const bool is_hinted         = (is_static_camera ||
                                             is_orthographic);
 
@@ -119,7 +119,8 @@ std::vector<Analysis::RecipeBake::OverlayCandidate> Analysis::RecipeBake::Overla
                     candidate.reason_vec.push_back("draws_over_existing_color");
                 }
 
-                /* What the draws of the structure did, which says whether the overlay has content of its own or works on the picture below it. */
+                /* The facts of the structure's draws (blending, sampling a copy of the picture) show whether the overlay has content of its own or
+                 * works on the picture below it. */
                 auto facts_iterator = model_ref.draw_facts_map.lower_bound(Analysis::APIDumpAnalysis::DrawFactsKey(draw_signature.structure_key,
                                                                                                                    0) );
 
@@ -202,7 +203,7 @@ std::vector<Analysis::RecipeBake::OverlayCandidate> Analysis::RecipeBake::Overla
                     candidate.reason_vec.push_back("recipe_skips_draw");
                 }
 
-                /* The replay and the converter that plays the application as it runs ask the recipe differently: they should come to the same. */
+                /* The replay and the converter that plays the application as it runs classify draws differently. They are expected to agree. */
                 if (candidate.is_replay_unaffected != (candidate.live_class == LiveClass::UNAFFECTED) )
                 {
                     candidate.reason_vec.push_back("replay_and_live_disagree");
@@ -294,7 +295,7 @@ Analysis::RecipeBake::LiveClass Analysis::RecipeBake::OverlayCandidateFinder::ge
         }
     }
 
-    /* A pass with no camera is asked once, with numbers that no rule is about. */
+    /* A pass with no camera is classified once, with an all-zero camera matrix that no rule matches. */
     if (camera_vec.empty() )
     {
         camera_vec.push_back(std::array<float, 16>() );
@@ -540,7 +541,7 @@ void Analysis::RecipeBake::OverlayCandidateFinder::write_json(const std::vector<
             Analysis::APIDumpAnalysis::QueryCommands::write_draw_facts(candidate.draw_facts,
                                                                         inout_writer_ptr);
 
-            /* A structure whose draws are not all alike says so by the size of its draws; the report does not carry this. */
+            /* The draw facts of a structure do not show that its draws differ, so the facts are also written per draw size (the cover key). */
             inout_writer_ptr->write_key("draw_groups");
             inout_writer_ptr->begin_array();
 

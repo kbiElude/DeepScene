@@ -62,7 +62,7 @@ void Stereo::ConverterDLL::HostMemoryExporter::restart_frame_rate_clock()
 
 bool Stereo::ConverterDLL::HostMemoryExporter::wait_for_screen()
 {
-    /* The screen asks about every 14 ms; a wait that is much longer than a few of them is not for it. */
+    /* The screen asks for a frame about every 14 ms. A wait much longer than a few of those intervals means that the screen is not asking. */
     constexpr uint32_t TIMEOUT_N_MILLISECONDS = 100;
 
     return m_channel_ptr->wait_for_pace(TIMEOUT_N_MILLISECONDS);

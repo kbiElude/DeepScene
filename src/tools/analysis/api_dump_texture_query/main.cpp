@@ -22,7 +22,7 @@ bool Analysis::APIDumpTextureQuery::parse_arguments(const int&   in_argc,
     Analysis::APIDumpAnalysis::QueryPositionals     positionals;
     bool                                            result = false;
 
-    /* What the tool has besides the options that every query tool has: --call, which takes a number. */
+    /* The option of this tool in addition to those every query tool has: --call (takes a number). */
     const auto set_call_limit_func = [&](const uint64_t& in_value)
     {
         out_options_ptr->arguments.call_limit     = in_value;
@@ -34,7 +34,7 @@ bool Analysis::APIDumpTextureQuery::parse_arguments(const int&   in_argc,
         {"--call", set_call_limit_func}
     };
 
-    /* The file, the command, and then the numbers: the frame, the resource and the level of at, or the resource of resource. */
+    /* The positional arguments: the file, the command, and then numbers: frame, resource and level for "at", or the resource id for "resource". */
     positional_rules.max_n_numbers     = SIZE_MAX;
     positional_rules.missing_text      = "A .textures file and a command are needed";
     positional_rules.number_error_text = "A frame, a resource or a level must be a number, not ";
@@ -93,7 +93,7 @@ bool Analysis::APIDumpTextureQuery::parse_arguments(const int&   in_argc,
         goto end;
     }
 
-    /* The paging of the lists is read with the other options that every query tool has. */
+    /* The paging options (limit and offset) are common to all query tools; copy them into the arguments. */
     out_options_ptr->arguments.limit  = out_options_ptr->common.limit;
     out_options_ptr->arguments.offset = out_options_ptr->common.offset;
 

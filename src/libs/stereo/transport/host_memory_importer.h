@@ -13,7 +13,7 @@ namespace Stereo
 {
     namespace Transport
     {
-        /* Takes the frames that the producer put in the memory of the channel. It says, on the channel, that this is what it takes. */
+        /* Takes the frames that the producer put in the memory of the channel. It tells the channel that this is the kind it accepts. */
         class HostMemoryImporter : public IFrameImporter
         {
         public:

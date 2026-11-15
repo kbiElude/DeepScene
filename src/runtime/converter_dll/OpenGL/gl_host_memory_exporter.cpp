@@ -16,8 +16,9 @@ Stereo::ConverterDLL::GLHostMemoryExporter::GLHostMemoryExporter(Stereo::Transpo
     :HostMemoryExporter   (inout_channel_ptr),
      m_n_frames_per_second(0)
 {
-    /* A debugging aid for a run with no program that shows the images: the application is held to a rate, as Direct3D 7 is held to one, so that what it does with the time
-     * of its music is what it is when it is shown by a screen, and not that of a run of a thousand frames a second.
+    /* A debugging aid for a run without a program that shows the images. The application is held to a frame rate, as the Direct3D 7 path is,
+     * so that anything it ties to time (its music, for example) behaves as it does when a screen shows the frames, not as in a run of a
+     * thousand frames a second.
      */
     float      n_frames_per_second = 0.0f;
     const bool is_rate_set         = Environment::get_number("APISTEREO_FRAME_RATE",
@@ -28,7 +29,7 @@ Stereo::ConverterDLL::GLHostMemoryExporter::GLHostMemoryExporter(Stereo::Transpo
     {
         m_n_frames_per_second = static_cast<int64_t>(n_frames_per_second);
 
-        /* A wait of the length of a frame is not the length of a tick of the timer, which is some 15 ms. */
+        /* The wait for one frame is shorter than the default timer tick (about 15 ms), so the timer resolution is raised to 1 ms. */
         ::timeBeginPeriod(1);
     }
 
@@ -76,7 +77,7 @@ Stereo::Transport::ExportStatus Stereo::ConverterDLL::GLHostMemoryExporter::expo
             m_job.timestamp_seconds = in_source.timestamp_seconds;
         };
 
-        /* The thread is at the frame before: this one is left out. */
+        /* The thread is still working on the previous frame, so this frame is left out. */
         result = (m_job_thread_ptr->try_queue(prepare_func) ) ? Stereo::Transport::ExportStatus::EXPORTED
                                                               : Stereo::Transport::ExportStatus::NOT_READY;
     }
@@ -97,7 +98,7 @@ void Stereo::ConverterDLL::GLHostMemoryExporter::wait_for_pace()
         }
         else
         {
-            /* The next frame of the limiter is counted from this one if the screen stops keeping time. */
+            /* If the screen stops keeping time, the limiter counts the next frame from this one. */
             restart_frame_rate_clock();
         }
     }
@@ -121,7 +122,7 @@ bool Stereo::ConverterDLL::GLHostMemoryExporter::write_debug_image(const GLFrame
         in_images.right_bgra_ptr != nullptr &&
         n_bytes                  != 0)
     {
-        /* A BMP has its bottom row first, as OpenGL does. */
+        /* A BMP stores its bottom row first, as OpenGL does. */
         write_eye_rows(in_images.left_bgra_ptr,
                        in_images.width,
                        in_images.height,
@@ -237,7 +238,7 @@ void Stereo::ConverterDLL::GLHostMemoryExporter::write_job()
         }
     }
 
-    /* The memory of the images is the reader's again when the copies of the token are gone. */
+    /* The image memory goes back to the reader once all copies of the token are gone. */
     job   = Job();
     m_job = Job();
 }

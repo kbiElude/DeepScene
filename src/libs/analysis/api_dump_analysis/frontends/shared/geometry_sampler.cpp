@@ -30,7 +30,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GeometrySampler::is_finite(const std:
 
 std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDumpAnalysis::Frontends::GeometrySampler::sample(const GeometrySamplingRange& in_range)
 {
-    /* A few dozen vertices tell where a mesh is, and what the analysis makes of them is a percentile of the depth. */
+    /* A few dozen vertices show where a mesh is. The analysis uses a percentile of their depth. */
     constexpr size_t MAX_N_POINTS           = 64;
     constexpr size_t RECIPROCAL_DEPTH_FLOAT = 3;
 
@@ -54,7 +54,7 @@ std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDu
                     n_point < n_points;
                   ++n_point)
         {
-            /* Spread over the draw, so that a mesh whose parts are in different places is told by all of them. */
+            /* The samples are spread over the draw, so that a mesh whose parts lie in different places is represented by all of them. */
             const uint64_t slot         = static_cast<uint64_t>(n_point) * in_range.vertex_count / n_points;
             uint64_t       vertex_index = in_range.first + slot;
             bool           is_valid     = true;
@@ -92,7 +92,7 @@ std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDu
 
                 position = {read_floats[0], read_floats[1], read_floats[2]};
 
-                /* For vertices which are positioned in the picture, the third coordinate is the reciprocal of the depth, and not the depth buffer's. */
+                /* For vertices that are already positioned in the picture, the third coordinate is the reciprocal of the depth, not a depth buffer value. */
                 if (in_range.is_pre_transformed)
                 {
                     position[2] = read_floats[RECIPROCAL_DEPTH_FLOAT];

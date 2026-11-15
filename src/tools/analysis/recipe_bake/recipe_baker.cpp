@@ -57,7 +57,7 @@ bool Analysis::RecipeBake::RecipeBaker::bake(const std::string&                 
         goto end;
     }
 
-    /* A section from an earlier baking is of no use, and may be of a version this build cannot read. */
+    /* A "baked" section from an earlier baking is of no use, and it may have a version that this build cannot read. */
     for (size_t n_member = 0;
                 n_member < root.key_vec.size();
               ++n_member)
@@ -87,7 +87,7 @@ bool Analysis::RecipeBake::RecipeBaker::bake(const std::string&                 
         goto end;
     }
 
-    /* What the dependencies say must be of the workload that the analysis is of. */
+    /* The dependencies must come from the same workload as the analysis. */
     if (in_dependencies_ptr != nullptr)
     {
         const bool is_of_workload = Analysis::APIDumpAnalysis::WorkloadIdentity::is_same_workload(in_analysis.workload_reference,
@@ -142,7 +142,7 @@ bool Analysis::RecipeBake::RecipeBaker::bake(const std::string&                 
                                                                                 in_dependencies_ptr);
         DrawKeyLists              draw_key_lists      = get_automatic_layers   (in_analysis);
 
-        /* Only a recipe that asks gets the layers, so others bake as before. */
+        /* Only a recipe that asks for automatic layers gets them, so other recipes bake as before. */
         draw_key_lists.covering_draw_key_vec      = get_covering_draw_key_vec     (recipe,
                                                                                    in_analysis);
         draw_key_lists.has_automatic_layers       = recipe.comfort.uses_automatic_layers;
@@ -177,12 +177,12 @@ bool Analysis::RecipeBake::RecipeBaker::compute_conditional_rules(const Analysis
                                                                   RuleVector*                                      inout_rule_vec_ptr,
                                                                   std::string*                                     out_error_ptr)
 {
-    /* More than this many values make a rule that a converter would spend its time on. */
+    /* More than this many view matrices would make a rule that costs the converter too much time. */
     constexpr size_t MAX_VIEW_MATRICES_PER_RULE = 64;
 
-    /* TODO: the view matrix is all there is to tell apart the passes which draw a signature differently. An application where it is
-     * not enough (the matrices of two classes overlap, a pass has none, as when the camera is a shader constant) needs the deferred
-     * path of the converter: the calls of a pass are held back until the pass is known, and then played.
+    /* TODO: the view matrix is the only thing that tells apart the passes that draw a signature differently. An application where it is not
+     * enough (the matrices of two classes overlap, or a pass has none, as when the camera is a shader constant) needs the deferred path of
+     * the converter: the calls of a pass are held back until the pass is known, and then played.
      */
     const std::string deferred_text = ". This application needs the converter to hold the draws "
                                       "of a pass back until it knows which pass it is, which the "
@@ -260,7 +260,7 @@ bool Analysis::RecipeBake::RecipeBaker::compute_conditional_rules(const Analysis
 
     for (const auto& matrix_pair : matrix_vec_by_class)
     {
-        /* What no rule applies to is affected, and not pushed. */
+        /* A draw that no rule applies to is affected and not pushed. */
         if (matrix_pair.first.first  != Analysis::Recipe::DrawClass::AFFECTED ||
             matrix_pair.first.second)
         {
@@ -312,7 +312,7 @@ void Analysis::RecipeBake::RecipeBaker::compute_convergence(const Analysis::Reci
     std::vector<uint32_t>                 parent_vec(n_passes);
     std::map<uint64_t, uint32_t>                 pass_of_signature_map;
 
-    /* A pass is found by the group it is in: passes which draw the same signature are in one, whatever follows. */
+    /* Finds the group of a pass: passes that draw the same signature are in one group, whatever else they draw. */
     const auto find_group_func = [&parent_vec](const uint32_t& in_pass)
                                  {
                                      uint32_t result = in_pass;
@@ -336,8 +336,9 @@ void Analysis::RecipeBake::RecipeBaker::compute_convergence(const Analysis::Reci
         parent_vec.at(n_pass) = n_pass;
     }
 
-    /* The converter does not know the pass of a draw, only its signature; a distance told for each signature, and not for each pass,
-     * is one for all the signatures of the passes which share any, or the draws of a pass would converge at different distances.
+    /* The converter does not know the pass of a draw, only its signature. A distance given per signature, not per pass, therefore has to be
+     * one distance for all the signatures of the passes that share any signature. Otherwise the draws of one pass would converge at
+     * different distances.
      */
     for (uint32_t n_pass = 0;
                   n_pass < n_passes;
@@ -367,7 +368,7 @@ void Analysis::RecipeBake::RecipeBaker::compute_convergence(const Analysis::Reci
         group_of_signature_map[signature_pair.first] = find_group_func(signature_pair.second);
     }
 
-    /* Whatever kind of frame a pass was in: a signature that passes of several scenes draw has one distance for all of them. */
+    /* Merge the histograms over all kinds of frames: a signature that passes of several scenes draw has one distance for all of them. */
     for (const auto& histogram_pair : model_ref.depth_histogram_map)
     {
         group_histogram_map[find_group_func(histogram_pair.first.second)].merge(histogram_pair.second);
@@ -466,7 +467,7 @@ bool Analysis::RecipeBake::RecipeBaker::compute_draw_rules(const Analysis::Recip
 
         if (signature_pair.second.size() == 1)
         {
-            /* Every pass draws it the same way: the rule needs no condition. */
+            /* Every pass draws the signature the same way, so the rule needs no condition. */
             const ClassKey& class_key = signature_pair.second.begin()->first;
 
             if (class_key.first != Analysis::Recipe::DrawClass::AFFECTED ||
@@ -640,8 +641,8 @@ std::vector<uint64_t> Analysis::RecipeBake::RecipeBaker::get_covering_draw_key_v
     {
         const uint64_t pass_key = in_analysis.model.pass_structure_interner.get_structure(pass_pair.first).key;
 
-        /* Those of the passes that the recipe leaves alone are not moved by the overlay; and where the vertices are moved sideways (a recipe that
-         * has screen parallax), a draw that covers the view is not, in any pass, for it would leave a strip bare.
+        /* The passes that the recipe leaves alone are not moved by the overlay. When the vertices are moved sideways (a recipe with screen
+         * parallax), a draw that covers the view is not moved in any pass either, because that would leave a strip of the picture bare.
          */
         if (unaffected_pass_key_set.count(pass_key) != 0 ||
             in_recipe.screen_parallax.is_enabled)
@@ -695,9 +696,9 @@ Analysis::RecipeBake::RecipeBaker::PerEyeTextureVector Analysis::RecipeBake::Rec
 {
     PerEyeTextureVector result_vec;
 
-    /* The dependencies know what the frames do with each resource in the order they do it, which the totals of the analysis do not: a target which
-     * is read in the frame after the one that rendered to it, and not rewritten in that one, is carried over too (two targets that a demo uses by
-     * turns are, each in half of the frames).
+    /* The dependencies record what the frames do with each resource, in order, which the totals of the analysis do not. A target that is read
+     * in the frame after the one that rendered to it, and is not rewritten in that frame, is carried over too (for example two targets that a
+     * demo uses in turns, each in half of the frames).
      */
     if (in_dependencies_ptr != nullptr)
     {
@@ -721,7 +722,7 @@ Analysis::RecipeBake::RecipeBaker::PerEyeTextureVector Analysis::RecipeBake::Rec
     }
     else
     {
-        /* Without them, the totals of the analysis: a resource which a frame reads before it writes it, and writes. */
+        /* Without the dependencies, use the totals of the analysis: a resource that a frame reads before it writes it, and writes. */
         for (size_t n_resource = 0;
                     n_resource < in_analysis.model.resource_vec.size();
                   ++n_resource)
@@ -729,7 +730,7 @@ Analysis::RecipeBake::RecipeBaker::PerEyeTextureVector Analysis::RecipeBake::Rec
             const auto& resource = in_analysis.model.resource_vec.at                         (n_resource);
             const auto  access   = Analysis::APIDumpAnalysis::ResourceAccessTracker::classify(in_analysis.model.resource_access_vec.at(n_resource) );
 
-            /* What a frame carries over in the back buffer is kept apart for the eyes by the player (it reads and writes the pixels). */
+            /* The back buffer is excluded: the player already keeps what a frame carries over in it apart for the eyes (it reads and writes the pixels). */
             if (access                    == Analysis::APIDumpAnalysis::ResourceAccessClass::LOOP_CARRIED &&
                 resource.description.kind != Analysis::APIDumpAnalysis::ResourceKind::SWAP_CHAIN_IMAGE)
             {
@@ -789,10 +790,10 @@ float Analysis::RecipeBake::RecipeBaker::get_projection_scale(const Analysis::AP
 
 std::vector<uint64_t> Analysis::RecipeBake::RecipeBaker::get_side_reaching_draw_key_vec(const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
 {
-    /* How near an edge (-1 or 1) a vertex must be to reach it. */
+    /* How close to an edge (-1 or 1) a vertex must be to count as reaching it. */
     constexpr float EDGE_REACH = 0.99f;
 
-    /* How much depth may vary across a flat draw, as a part of it. */
+    /* The largest depth variation across a flat draw, as a fraction of its depth. */
     constexpr float FLAT_DEPTH_SPREAD = 0.001f;
 
     std::set<uint64_t> key_set;
@@ -919,7 +920,7 @@ std::vector<Analysis::RecipeBake::SceneMeasure> Analysis::RecipeBake::RecipeBake
         const auto&                               shape            = model_ref.frame_shape_interner.get_structure(n_shape);
         Analysis::APIDumpAnalysis::DepthHistogram surface_histogram;
 
-        /* A pass of a frame counts if the recipe affects any draw of it, and counts once however often a frame has it. */
+        /* A pass of a frame counts if the recipe affects any draw of it, and it counts once however often the frame has it. */
         for (const auto& pass_id : std::set<uint32_t>(shape.pass_structure_id_vec.begin(),
                                                       shape.pass_structure_id_vec.end() ))
         {
@@ -964,14 +965,14 @@ std::vector<Analysis::RecipeBake::SceneMeasure> Analysis::RecipeBake::RecipeBake
                     }
                 }
 
-                /* An analysis that did not say it (an older file) has the first projection that the pass is seen with. */
+                /* An analysis file that does not record the projection of each draw (an older file) gives the first projection that the pass was seen with. */
                 if (measure.projection_scale <= 0.0f)
                 {
                     measure.projection_scale = get_projection_scale(in_analysis,
                                                                     pass_id);
                 }
 
-                /* A pass whose vertices no matrix moves has no projection to read the angle of view from: the recipe says it. */
+                /* A pass whose vertices no matrix moves has no projection to read the angle of view from, so the angle of view comes from the recipe. */
                 if (measure.projection_scale             <= 0.0f &&
                     in_recipe.screen_parallax.is_enabled)
                 {
@@ -983,7 +984,7 @@ std::vector<Analysis::RecipeBake::SceneMeasure> Analysis::RecipeBake::RecipeBake
             }
         }
 
-        /* What the draws were seen through, where the analysis says it, is more than the first projection of a pass. */
+        /* If the analysis records the projection of the draws, their weighted average replaces the first projection of the pass. */
         if (scale_weight > 0.0)
         {
             measure.projection_scale = static_cast<float>(scale_weighted_sum / scale_weight);
@@ -994,8 +995,8 @@ std::vector<Analysis::RecipeBake::SceneMeasure> Analysis::RecipeBake::RecipeBake
         if (histogram.is_empty() == false)
         {
             measure.distance   = histogram.get_depth_at_fraction                           (FRACTION_MEDIAN);
-            /* What the vertices of the draws say, and what the origins of the draws say (every draw has one, and a draw whose vertices are not read, a display list, has no
-             * vertices): a surface is as near as the nearer of the two says, and as far as the farther.
+            /* There are two estimates: one from the vertices of the draws and one from the origins of the draws. Every draw has an origin; a draw whose
+             * vertices are not read (a display list) has no vertices. A surface is as near as the nearer estimate says and as far as the farther one says.
              */
             const double near_fraction  = static_cast<double>(in_recipe.comfort.near_fraction);
             const float  origin_far     = histogram.get_depth_at_fraction        (1.0 - near_fraction);
@@ -1127,7 +1128,7 @@ void Analysis::RecipeBake::RecipeBaker::write_baked(const DrawKeyLists&         
         inout_writer_ptr->write_hex_u64(convergence.signature_key);
         inout_writer_ptr->write_key    ("distance");
 
-        /* A float is exact in nine digits, which is what write_float does not give. */
+        /* write_float does not print the nine significant digits that a float needs to round-trip, so the value is written as a double. */
         inout_writer_ptr->write_double (static_cast<double>(convergence.distance) );
         inout_writer_ptr->end_object();
     }
@@ -1143,7 +1144,7 @@ void Analysis::RecipeBake::RecipeBaker::write_baked(const DrawKeyLists&         
         inout_writer_ptr->write_hex_u64(scene_convergence.shape_key);
         inout_writer_ptr->write_key    ("distance");
 
-        /* A float is exact in nine digits, which is what write_float does not give. */
+        /* write_float does not print the nine significant digits that a float needs to round-trip, so the value is written as a double. */
         inout_writer_ptr->write_double (static_cast<double>(scene_convergence.distance) );
         inout_writer_ptr->end_object();
     }
@@ -1159,7 +1160,7 @@ void Analysis::RecipeBake::RecipeBaker::write_baked(const DrawKeyLists&         
         inout_writer_ptr->write_hex_u64(scene_separation.shape_key);
         inout_writer_ptr->write_key    ("separation");
 
-        /* A float is exact in nine digits, which is what write_float does not give. */
+        /* write_float does not print the nine significant digits that a float needs to round-trip, so the value is written as a double. */
         inout_writer_ptr->write_double (static_cast<double>(scene_separation.max_separation) );
         inout_writer_ptr->end_object();
     }
@@ -1195,7 +1196,7 @@ void Analysis::RecipeBake::RecipeBaker::write_baked(const DrawKeyLists&         
             {
                 inout_writer_ptr->begin_inline_array();
 
-                /* A float is exact in nine digits, which is what write_float does not give. */
+                /* write_float does not print the nine significant digits that a float needs to round-trip, so the value is written as a double. */
                 for (const auto& element : matrix)
                 {
                     inout_writer_ptr->write_double(static_cast<double>(element) );
@@ -1218,7 +1219,7 @@ void Analysis::RecipeBake::RecipeBaker::write_baked(const DrawKeyLists&         
 void Analysis::RecipeBake::RecipeBaker::write_value(const Utils::Json::JsonValue& in_value,
                                                     Utils::Json::JsonWriter*      inout_writer_ptr)
 {
-    /* A whole number up to here is written as one; JSON numbers are doubles, which hold these exactly. */
+    /* A whole number up to this limit is written as an integer. JSON numbers are doubles, which represent these values exactly. */
     constexpr double MAX_WHOLE_NUMBER = 9007199254740992.0;
 
     switch (in_value.type)
@@ -1232,7 +1233,7 @@ void Analysis::RecipeBake::RecipeBaker::write_value(const Utils::Json::JsonValue
                 is_inline = is_inline && (item.type == Utils::Json::JsonValueType::NUMBER);
             }
 
-            /* Numbers go on one line (a matrix), the rest one to a line (a list of keys). */
+            /* Numbers go on one line (a matrix); everything else goes one element per line (a list of keys). */
             if (is_inline)
             {
                 inout_writer_ptr->begin_inline_array();

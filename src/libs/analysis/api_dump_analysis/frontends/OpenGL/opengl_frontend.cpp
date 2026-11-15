@@ -49,7 +49,7 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::copy_to_bound_texture
     {
         m_window.ensure_default_framebuffer(in_state);
 
-        /* What is copied is the color of the window, or its depth if the texture is of depth. */
+        /* The copy reads the color of the window, or its depth if the texture has a depth format. */
         const auto format_class = GLTextureHandler::get_format_class(texture_ptr->internal_format);
         const auto source       = (format_class == Analysis::APIDumpAnalysis::FormatClass::COLOR) ? m_window.get_color_view()
                                                                                                    : m_window.get_depth_stencil_view();
@@ -60,8 +60,8 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::copy_to_bound_texture
         destination.mip_level   = in_level;
         destination.resource_id = texture_ptr->resource_id;
 
-        /* Where in the level the copy lands, for the frames that the dependencies say are not needed: a texture that the frames fill a strip at a time is
-         * whole again after a few of them.
+        /* The rectangle of the level that the copy writes. The dependency analysis uses it to find frames that are not needed: a texture that the
+         * frames fill one strip at a time is complete again after a few of them.
          */
         destination_rectangle.height   = in_height;
         destination_rectangle.is_known = true;
@@ -93,7 +93,9 @@ Analysis::APIDumpAnalysis::Frontends::GLContextState* Analysis::APIDumpAnalysis:
 {
     GLContextState* result_ptr = nullptr;
 
-    /* The thread that makes a call nearly always made the one before it. A state is never taken out of the map, so one that was found stays good until handle_make_current(). */
+    /* A thread nearly always makes the call that follows its previous call in the same context. A state is never removed from the map, so a cached
+     * state stays valid until handle_make_current() runs.
+     */
     if (m_cached_context_state_ptr != nullptr &&
         m_cached_thread_id         == in_thread_id)
     {
@@ -209,8 +211,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_bind_buffer(co
     if (bind_array.at(0) == PIXEL_PACK_BUFFER &&
         bind_array.at(1) != 0)
     {
-        /* What glReadPixels reads goes to the buffer, and not to the memory of the program: the bytes are in no call of the workload, and the program may have
-         * them made into a texture from the buffer.
+        /* glReadPixels then writes to the buffer instead of the memory of the program. The bytes are in no call of the workload, and the program
+         * may create a texture from the buffer.
          */
         report_unsupported_use(in_call.func,
                                "pixels are packed into a buffer, so that what is read back never reaches the memory of the program and is in no call (the target)",
@@ -220,7 +222,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_bind_buffer(co
     if (bind_array.at(0) == PIXEL_UNPACK_BUFFER &&
         bind_array.at(1) != 0)
     {
-        /* The pixels of what is uploaded from now on are in the buffer, and not in the call: the bytes of an upload would be left out. */
+        /* From now on the pixels of an upload are in the buffer instead of the call, so the bytes of the upload would be missing. */
         report_unsupported_use(in_call.func,
                                "pixels are unpacked from a buffer, so that the pixels of an upload are not in the call (the target)",
                                bind_array.at(0) );
@@ -228,8 +230,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_bind_buffer(co
     else
     if (bind_array.at(1) != 0)
     {
-        /* The data of a buffer (vertices, indices, constants) is made by calls that the front end does not follow, and a draw that reads from one comes with no
-         * snapshot of what it reads: the geometry of the draw would be left out.
+        /* The calls that fill a buffer (vertices, indices, constants) are not followed. A draw that reads from the buffer has no snapshot of the
+         * data, so the geometry of the draw would be missing.
          */
         report_unsupported_use(in_call.func,
                                "a buffer object is bound, and buffer objects are not followed, so that what a draw reads from one is in no snapshot (the target)",
@@ -320,7 +322,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_copy_tex_sub_i
                               image_array.at(6),
                               image_array.at(7) ) == false)
     {
-        /* A part of a texture that has not been given a size. */
+        /* The part of the texture has no size yet. */
         m_n_unfollowed_calls++;
     }
 }
@@ -330,14 +332,14 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
 {
     GLContextState* state_ptr = find_current_context_ptr(in_call.thread_id);
 
-    /* A call made by a thread which has no context current does nothing. */
+    /* A call from a thread that has no current context has no effect. */
     if (state_ptr == nullptr)
     {
         m_n_unfollowed_calls++;
     }
     else
     {
-        /* A call made while a list is made is kept in it, and is made when the list is called (and at once too, for GL_COMPILE_AND_EXECUTE). */
+        /* While a display list is being made, its calls are stored in the list and run when the list is called. With GL_COMPILE_AND_EXECUTE they also run at once. */
         const bool is_recording = (state_ptr->list_recording.list_ptr != nullptr                  &&
                                    in_call.func                       != APIInterceptor::APIFUNCTION_GL_GLENDLIST);
         const bool is_made      = (is_recording                       == false                    ||
@@ -614,8 +616,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
 
                 case APIInterceptor::APIFUNCTION_GL_GLREADPIXELS:
                 {
-                    /* What a program reads back is used by the program, which the model does not follow. What it makes of the pixels that it reads into its memory (a
-                     * texture, say) is in the call that gives it, as the bytes of an upload; reading to a buffer is not possible here, as binding one ends the process.
+                    /* The model does not follow what the program does with read-back pixels. If the program turns them into a texture, the bytes appear
+                     * in the call that uploads them. Reading into a buffer is impossible here, because binding a buffer ends the process.
                      */
                     m_resolution_hazard_counter.count(Analysis::APIDumpAnalysis::ResolutionHazard::PIXEL_READBACKS);
 
@@ -709,8 +711,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
                     else
                     if (is_unsupported_function(in_call.func) )
                     {
-                        /* What it writes to the framebuffer, or the lists that it calls, is not in anything the model follows: what is found of the frames would be
-                         * wrong without it (and so would the textures that are made of the framebuffer).
+                        /* The model does not follow what these calls write to the framebuffer or which lists they call. Without them, the frames
+                         * (and the textures made from the framebuffer) would be reported wrongly.
                          */
                         report_unsupported_use(in_call.func,
                                                "the framebuffer is written from somewhere other than a draw, or lists named by an array are called, which is not followed (the function)",
@@ -719,8 +721,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
                     else
                     if (GLFunctionPolicy::changes_what_a_draw_writes(in_call.func) )
                     {
-                        /* Not followed: a frame that has only a draw that this decides could be taken for one that writes nothing, and a seek would leave it out.
-                         * It is said, and not passed over.
+                        /* A frame whose only draw depends on this state could look like a frame that writes nothing, and a seek would skip it.
+                         * The call is reported instead of ignored.
                          */
                         report_unsupported_use(in_call.func,
                                                "state that decides what a draw writes, or how its pixels are combined with what is there (the stencil test, the logic op, the blend equation, the winding of faces), is not followed (the function)",
@@ -730,8 +732,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
                     if (GLFunctionPolicy::is_left_out_by_design(in_call.func) == false &&
                         GLFunctionPolicy::bakes_current_matrix (in_call.func) == false)
                     {
-                        /* Not followed, and not known to be of no matter: a call that the front end has never been told about is not passed over without saying so (a
-                         * shader, a buffer, an evaluator, the selection, an accumulation buffer, a rectangle, what changes how pixels are converted, and so on).
+                        /* The front end does not know this call, so it cannot tell that the call is irrelevant. It is reported instead of ignored
+                         * (examples: shaders, buffers, evaluators, selection, the accumulation buffer, rectangles, pixel conversion state).
                          */
                         report_unsupported_use(in_call.func,
                                                "the function is not followed, and is not one that is known to be of no matter to what is found of the frames (the function)",
@@ -767,10 +769,10 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_make_current(c
     else
     if (recorded_result != 0)
     {
-        /* A call which failed changed nothing (the first unbind of a program, with no context current, fails). */
+        /* A failed call changed nothing (for example, the first unbind of a program with no current context fails). */
         const uint64_t context_address = in_call.arg_in_vec.at(CONTEXT_ARGUMENT).get_ptr_as_u64();
 
-        /* The context of a thread is changed here and nowhere else: what find_current_context_ptr() kept is not to be trusted. */
+        /* The current context of a thread changes only here, so the context state cached by find_current_context_ptr() is stale. */
         m_cached_context_state_ptr = nullptr;
 
         if (context_address == 0)
@@ -784,7 +786,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_make_current(c
 
             m_current_context_by_thread_map[in_call.thread_id] = context_address;
 
-            /* What the model builder has been told of the matrices is those of the context that was current before. */
+            /* The model builder still holds the matrices of the context that was current before, so it is told the matrices of the new one. */
             m_matrix_handler.report_matrices(m_context_map.at(context_address) );
         }
     }
@@ -831,7 +833,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::on_call(const Capture
         handle_make_current(in_call);
     }
 
-    /* SwapBuffers is a function of GDI32, and the end of a frame of OpenGL. */
+    /* SwapBuffers belongs to GDI32 and ends a frame of an OpenGL application. */
     const bool is_frame_boundary = Capture::APIDumpLoader::is_frame_boundary(in_call);
 
     if (is_frame_boundary)

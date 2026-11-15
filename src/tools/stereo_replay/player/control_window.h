@@ -18,8 +18,8 @@ namespace Stereo
     {
         namespace Player
         {
-            /* The window with the playback controls: play / pause, reset, and what has been replayed so far. It lives apart from the
-             * windows of the replay, so that what the replay does to its API state is not touched.
+            /* The window with the playback controls: play and pause, reset, and the progress of the replay. It is a separate window
+             * from the replay windows, so it does not touch the API state of the replay.
              */
             class ControlWindow : public Utils::UIHost::IImGuiWindowHost,
                                   public Stereo::Replay::EngineDLL::IReplayObserver
@@ -33,16 +33,18 @@ namespace Stereo
                 void on_state_changed  (const Stereo::Replay::EngineDLL::PlaybackState& in_old_state,
                                         const Stereo::Replay::EngineDLL::PlaybackState& in_new_state) override;
 
-                /* The replay's window is closed by the user: the quit handler closes this one. */
+                /* The user closed the replay window. The quit handler then closes this window. */
                 void on_window_closed() override;
 
-                /* The window which the replay puts in place decides where this one goes: below it, in the middle. Any thread. */
+                /* Called when the replay places its window. The control window is then placed below it, centered. Any thread. */
                 void on_window_placed(const Stereo::Replay::EngineDLL::WindowPlacement& in_placement) override;
 
-                /* The number of frames of the workload, for the slider that seeks; none (0, the default) leaves the slider out. Before the window runs. */
+                /* Sets the number of frames of the workload, which the seek slider needs. 0 (the default) leaves the slider out. Call
+                 * it before the window runs.
+                 */
                 void set_n_frames(const uint64_t& in_n_frames);
 
-                /* Adds the slider of the eye separation; for a replay which has a recipe. */
+                /* Adds the eye separation slider. Use it for a replay that has a recipe. */
                 void show_eye_separation();
 
             protected:
@@ -55,7 +57,7 @@ namespace Stereo
                 void on_resized_to_content()                                               override;
 
             private:
-                /* The placement of the window of the replay. Lock order: no other lock is taken while it is held. */
+                /* The placement of the replay window. Lock order: no other lock is taken while the mutex is held. */
                 struct ReplayWindow
                 {
                     bool                                       is_known = false;
@@ -66,7 +68,7 @@ namespace Stereo
 
                 void place_below_replay_window();
 
-                /* Seeks to the frame, or asks first if that is back in time (see m_has_pending_seek). */
+                /* Seeks to the frame. If that is back in time, asks for confirmation first (see m_has_pending_seek). */
                 void request_seek(const uint32_t& in_n_frame,
                                   const uint32_t& in_current_frame);
 

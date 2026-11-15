@@ -10,7 +10,7 @@
 static constexpr UINT           QUIT_MESSAGE      = WM_APP + 1;
 static constexpr const wchar_t* WINDOW_CLASS_NAME = L"StereoReplayPlayerPreviewWindow";
 
-/* One triangle which covers the viewport; the viewport is where the image goes. */
+/* A single triangle that covers the whole viewport. The viewport is the area where the image is drawn. */
 static constexpr const char* SHADER_SOURCE =
         "struct VsOut\n"
         "{\n"
@@ -63,7 +63,7 @@ Stereo::Replay::Player::PreviewWindow::~PreviewWindow()
 {
     if (m_thread.joinable() )
     {
-        /* The thread ends the message loop, and destroys the window. */
+        /* Ask the window thread to end its message loop. The thread destroys the window afterwards. */
         ::PostMessageW(m_hwnd,
                        QUIT_MESSAGE,
                        0,  /* wparam */
@@ -355,7 +355,7 @@ void Stereo::Replay::Player::PreviewWindow::draw_eye(const EyeTexture& in_textur
                                                          : scale_y;
         D3D11_VIEWPORT viewport    = {};
 
-        /* The image keeps its proportions, and sits in the middle of the cell. */
+        /* Scale the image to fit the cell without changing its aspect ratio, and center it. */
         viewport.Height   = static_cast<float>(in_texture.height) * scale;
         viewport.MaxDepth = 1.0f;
         viewport.Width    = static_cast<float>(in_texture.width)  * scale;
@@ -395,7 +395,7 @@ LRESULT Stereo::Replay::Player::PreviewWindow::handle_message(const HWND&   in_w
             break;
         }
 
-        /* The preview is hidden, and the player is told to end. */
+        /* Hide the preview and tell the player to end. */
         case WM_CLOSE:
         {
             m_is_visible = false;
@@ -411,7 +411,7 @@ LRESULT Stereo::Replay::Player::PreviewWindow::handle_message(const HWND&   in_w
             break;
         }
 
-        /* The window is gone, whoever did it: so is the thread's reason to live. */
+        /* The window is destroyed, no matter by whom, so end the message loop of the thread. */
         case WM_DESTROY:
         {
             ::PostQuitMessage(0);
@@ -681,7 +681,7 @@ void Stereo::Replay::Player::PreviewWindow::upload(const EyeImageBuffer::Image& 
 bool Stereo::Replay::Player::PreviewWindow::wants_frame_image(const uint32_t& in_n_frame,
                                                               const uint32_t& in_n_execution) const
 {
-    /* About the rate of a 60 Hz display: faster than that, the frames in between would never be seen. */
+    /* About one image per refresh of a 60 Hz display. Showing images more often would only produce frames that are never seen. */
     constexpr std::chrono::milliseconds MIN_INTERVAL(16);
 
     const auto now = std::chrono::steady_clock::now();

@@ -14,7 +14,9 @@ namespace Stereo
     {
         namespace EngineDLL
         {
-            /* A chunk source with chunks of its own put over those of another one, which must outlive it. */
+            /* A chunk source that holds chunks of its own on top of another chunk source (the base). A chunk in the overlay hides the
+             * base chunk with the same ID. The base must outlive the overlay.
+             */
             class OverlayChunkSource : public ::Replay::ReplayEngineDLL::IChunkSource
             {
             public:
@@ -23,7 +25,7 @@ namespace Stereo
                 const Capture::APIDumpLoader::DataChunk* get_data_chunk_ptr (const uint32_t& in_data_chunk_id) const override;
                 uint32_t                                 get_pointer_n_bytes()                                 const override;
 
-                /* Puts a chunk over the one of the base with the same ID, or adds it. */
+                /* Adds a chunk. If the base has a chunk with the same ID, the new chunk hides it. */
                 void set_chunk(const uint32_t&                          in_data_chunk_id,
                                const Capture::APIDumpLoader::DataChunk& in_chunk);
 

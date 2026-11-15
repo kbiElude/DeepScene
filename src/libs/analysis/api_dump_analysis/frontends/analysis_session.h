@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Analyzes a workload: reads it a segment at a time, hands each call to the front end of its API, and keeps the model that
- * the front ends build. The calls of an API which has no front end are counted and skipped.
+ * Analyzes a workload: reads it one segment at a time, hands each call to the front end of its API, and keeps the model that the front ends
+ * build. The calls of an API that has no front end are counted and skipped.
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_ANALYSIS_SESSION_H
 #define APIDUMPANALYSIS_FRONTENDS_ANALYSIS_SESSION_H
@@ -28,77 +28,77 @@ namespace Analysis
             public:
                 typedef std::function<void(const SessionProgress& in_progress)> ProgressFunc;
 
-                /* Without history no frames are kept; for playing calls instead of analyzing them (see ModelBuilder). */
+                /* If in_keeps_history is false, no frames are kept. Use this to play calls back instead of analyzing them (see ModelBuilder). */
                 explicit AnalysisSession(const bool& in_keeps_history = true);
 
 
-                /* The frame completed by the last call; valid if process_call returned true. */
                 /* The keys of each draw that the last call made (see ModelBuilder::get_call_draw_key_vec). */
                 const std::vector<Analysis::APIDumpAnalysis::DrawKeys>& get_call_draw_key_vec() const;
 
+                /* The frame that the last call completed. Valid only if process_call() returned true. */
                 const Analysis::APIDumpAnalysis::CompletedFrame& get_completed_frame() const;
 
-                /* The resource that an object of the application stands for, by its address (see IAPIFrontend::find_resource_view). */
+                /* The resource that an application object stands for, looked up by its address (see IAPIFrontend::find_resource_view). */
                 bool find_resource_view(const Capture::APIDumpLoader::APIGroup&  in_group,
                                         const uint64_t&                          in_address,
                                         Analysis::APIDumpAnalysis::ResourceView* out_view_ptr) const;
 
-                /* The key of the last draw analyzed by its signature and size (see ModelBuilder::get_last_draw_cover_key). */
+                /* The key of the last analyzed draw, built from its signature and size (see ModelBuilder::get_last_draw_cover_key). */
                 uint64_t get_last_draw_cover_key() const;
 
-                /* The signature of the last draw analyzed (see ModelBuilder::get_last_draw_signature_key). */
+                /* The signature of the last analyzed draw (see ModelBuilder::get_last_draw_signature_key). */
                 uint64_t get_last_draw_signature_key() const;
 
                 const Analysis::APIDumpAnalysis::Model& get_model() const;
 
-                /* What the workload holds and how it was read. Final once the analysis is over. */
+                /* What the workload contains and how it was read. Final once the analysis is over. */
                 WorkloadSummary get_summary() const;
 
                 /* The viewport the application has set (see ModelBuilder::get_viewport). */
                 const Analysis::APIDumpAnalysis::Viewport& get_viewport() const;
 
-                /* The workload read by run(); empty before. */
+                /* The workload that run() read; empty before run() is called. */
                 WorkloadReference get_workload_reference() const;
 
                 /* True once the limit of set_max_frames() is reached. */
                 bool has_reached_frame_limit() const;
 
-                /* Analyzes one call, after the calls before it. The segment holds the call's data chunks. Returns true if the call ended a
+                /* Analyzes one call, after the calls before it. The segment holds the data chunks of the call. Returns true if the call ended a
                  * frame.
                  */
                 bool process_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                   const Capture::APIDumpLoader::Workload&      in_segment);
 
-                /* Analyzes the calls of a segment, after those of the segments before it. */
+                /* Analyzes the calls of a segment, after the calls of the earlier segments. */
                 void process_segment(const Capture::APIDumpLoader::Workload& in_segment);
 
-                /* Analyzes a workload file, reporting progress after each segment (an empty function is no report). Returns false and sets the
-                 * error if the file cannot be read. A file that ends abruptly is analyzed as far as it goes; the summary says so.
+                /* Analyzes a workload file and reports progress after each segment (an empty function means no reporting). Returns false and sets
+                 * the error if the file cannot be read. A file that ends abruptly is analyzed as far as it goes, and the summary says so.
                  */
                 bool run(const char*         in_filename_ptr,
                          const ProgressFunc& in_progress_func,
                          std::string*        out_error_ptr);
 
-                /* Where the uses of resources are told (see IAccessSink and ModelBuilder::set_access_sink); nullptr, the default, is nowhere. */
+                /* The sink that is told about uses of resources (see IAccessSink and ModelBuilder::set_access_sink). The default, nullptr, means no sink. */
                 void set_access_sink(Analysis::APIDumpAnalysis::IAccessSink* in_sink_ptr);
 
-                /* Stops the analysis after this many frames; 0 (the default) is no limit. */
+                /* Stops the analysis after this many frames. The default, 0, means no limit. */
                 void set_max_frames(const uint64_t& in_max_frames);
 
-                /* The threads that read the segments of the file ahead of the analysis (see WorkloadReader::Options); 0 (the default) reads them
-                 * as the analysis asks for them. The analysis itself is the same.
+                /* The number of threads that read the segments of the file ahead of the analysis (see WorkloadReader::Options). The default, 0,
+                 * reads each segment when the analysis asks for it. The result of the analysis does not depend on this setting.
                  */
                 void set_n_reader_threads(const uint32_t& in_n_threads);
 
-                /* Data chunks of more bytes than this are not read from the workload (see WorkloadReader::Options): for an analysis which does
-                 * not look at vertices and pixels, and a session without history, which does not sample the geometry. 0 (the default) reads all.
+                /* Data chunks larger than this many bytes are not read from the workload (see WorkloadReader::Options). Use it for an analysis
+                 * that does not look at vertices and pixels, or for a session without history, which does not sample the geometry. The default, 0, reads all chunks.
                  */
                 void set_skip_data_chunks_above_n_bytes(const uint32_t& in_n_bytes);
 
-                /* Where what happens to the textures is told (see ITextureSink and ModelBuilder::set_texture_sink); nullptr, the default, is nowhere. */
+                /* The sink that is told about what happens to the textures (see ITextureSink and ModelBuilder::set_texture_sink). The default, nullptr, means no sink. */
                 void set_texture_sink(Analysis::APIDumpTextures::ITextureSink* in_sink_ptr);
 
-                /* The model itself, not a copy: for when the analysis is done. The progress is not to be asked for after it. */
+                /* Moves the model out of the session instead of copying it. Call it when the analysis is done; do not ask for the progress afterwards. */
                 Analysis::APIDumpAnalysis::Model take_model();
 
             private:
@@ -113,7 +113,7 @@ namespace Analysis
                 D3D7Frontend                            m_d3d7_frontend;
                 D3D8Frontend                            m_d3d8_frontend;
                 uint64_t                                m_max_frames;
-                std::array<uint64_t, N_API_GROUPS>      m_n_calls_by_group_array; /* counted here, and put in the summary when it is asked for */
+                std::array<uint64_t, N_API_GROUPS>      m_n_calls_by_group_array; /* counted here, and put into the summary when the summary is requested */
                 uint64_t                                m_n_calls_since_frame;
                 uint32_t                                m_n_reader_threads;
                 OpenGLFrontend                          m_opengl_frontend;

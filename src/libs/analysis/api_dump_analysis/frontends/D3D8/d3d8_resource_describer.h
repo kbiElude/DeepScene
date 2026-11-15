@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Tells what a D3D8 resource is, in the terms of the model, from the call that creates it. The pool and the usage flags,
- * which the model has no general counterpart of, are kept as they are in the api_flags of the description.
+ * Describes a D3D8 resource in the terms of the model, based on the call that creates it. The pool and the usage flags have no general
+ * counterpart in the model, so they are stored unchanged in the api_flags of the description.
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_D3D8_RESOURCE_DESCRIBER_H
 #define APIDUMPANALYSIS_FRONTENDS_D3D8_RESOURCE_DESCRIBER_H
@@ -23,12 +23,12 @@ namespace Analysis
             public:
                 static Analysis::APIDumpAnalysis::Format convert_format(const Interception::Hooks::D3D8::D3DFORMAT& in_format);
 
-                /* The depth buffer which the device creates for itself, if the application asks for one. */
+                /* The depth buffer that the device creates for itself, if the application requests one. */
                 static Analysis::APIDumpAnalysis::ResourceDescription describe_auto_depth_stencil(const Interception::Core::D3D8Utils::PresentParameters& in_parameters);
 
                 static Analysis::APIDumpAnalysis::ResourceDescription describe_back_buffer(const Interception::Core::D3D8Utils::PresentParameters& in_parameters);
 
-                /* The describe_* functions below follow the arguments of the CreateXxx methods. */
+                /* The describe_* functions below read the arguments of the corresponding CreateXxx methods. */
                 static Analysis::APIDumpAnalysis::ResourceDescription describe_cube_texture         (const CallView& in_view);
                 static Analysis::APIDumpAnalysis::ResourceDescription describe_depth_stencil_surface(const CallView& in_view);
                 static Analysis::APIDumpAnalysis::ResourceDescription describe_image_surface        (const CallView& in_view);
@@ -39,11 +39,11 @@ namespace Analysis
                 static Analysis::APIDumpAnalysis::ResourceDescription describe_volume_texture       (const CallView& in_view);
 
             private:
-                /* The pool and the usage flags, in the one number that the description keeps them in. */
+                /* Combines the pool and the usage flags into the single number that the description stores. */
                 static uint64_t compute_api_flags(const Interception::Hooks::D3D8::D3DPOOL& in_pool,
                                                   const uint32_t&                           in_usage);
 
-                /* The part that all the 2D surfaces have in common. */
+                /* The part that all 2D surfaces have in common. */
                 static Analysis::APIDumpAnalysis::ResourceDescription describe_surface(const uint32_t&                             in_width,
                                                                                        const uint32_t&                             in_height,
                                                                                        const Interception::Hooks::D3D8::D3DFORMAT& in_format,

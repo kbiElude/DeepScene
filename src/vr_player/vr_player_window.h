@@ -14,8 +14,9 @@
 
 namespace VRPlayer
 {
-    /* The window of the VR player: the applications which can be played in VR, the device to play them on, and the button which
-     * starts the application with the converter in it. The distance between the eyes is passed on while the application plays; the device is chosen before it starts.
+    /* The window of the VR player: the applications that can be played in VR, the device to play them on, and the button that starts the
+     * application with the converter in it. The depth strength and the overlay setting are passed on while the application plays. The device
+     * and the quality are chosen before it starts.
      */
     class VrPlayerWindow : public Utils::UIHost::IImGuiWindowHost
     {
@@ -47,22 +48,22 @@ namespace VRPlayer
         static Utils::UIHost::WindowOptions get_window_options();
 
         WindowContent                        m_content;
-        int                                  m_depth_index;      /* in the depths */
-        float                                m_depth_strength;   /* of that choice: 1 is the one that the converter works out for each scene */
-        int                                  m_device_index;     /* in the devices; -1 if there is none which can be used */
+        int                                  m_depth_index;      /* index into the depth choices */
+        float                                m_depth_strength;   /* strength of that choice: 1 is the natural depth the converter works out for each scene */
+        int                                  m_device_index;     /* index into the devices; -1 if no device can be used */
         Utils::Files::HttpDownloader         m_downloader;
-        std::string                          m_install_error;    /* what the window of the error says                      */
+        std::string                          m_install_error;    /* text of the install error window                       */
         VRPlayer::AppInstaller::AppInstaller m_installer;
-        int                                  m_installing_app;   /* in the catalog; -1 if none is being installed          */
+        int                                  m_installing_app;   /* index into the catalog; -1 if none is being installed  */
         bool                                 m_is_status_error;
         bool                                 m_is_styled;
-        bool                                 m_pace_to_headset;  /* no control: on */
-        int                                  m_overlay_app;      /* the application m_push_overlay was set for; -1 if there is none */
+        bool                                 m_pace_to_headset;  /* no control in the window: always on */
+        int                                  m_overlay_app;      /* the application m_push_overlay was set for; -1 if none */
         bool                                 m_push_overlay;     /* the draws that the recipe leaves alone are pushed toward the viewer */
-        bool                                 m_write_log;        /* no control: off, unless the program was started with --log */
-        int                                  m_quality_index;    /* in the qualities: how many of the pixels of the headset are rendered */
+        bool                                 m_write_log;        /* no control in the window: off unless the program was started with --log */
+        int                                  m_quality_index;    /* index into the quality choices: the fraction of the headset pixels that is rendered */
         std::string                          m_running_app_name;
-        int                                  m_selected_app;     /* in the catalog; -1 if there is no application         */
+        int                                  m_selected_app;     /* index into the catalog; -1 if the catalog is empty    */
         AppSession                           m_session;
         bool                                 m_should_open_install_error;
         std::string                          m_status;

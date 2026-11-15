@@ -11,22 +11,23 @@ namespace Stereo
 {
     namespace Transport
     {
-        /* The consumer's end of a channel, for one kind of transport: it makes the newest frame available to what shows it (see
-         * ImportedFrame). A frame is good until it is released.
+        /* The consumer's end of a channel, for one kind of transport. It makes the newest frame available to whatever shows it (see
+         * ImportedFrame). A frame is valid until it is released.
          */
         class IFrameImporter
         {
         public:
             virtual ~IFrameImporter() = default;
 
-            /* The newest frame. Returns false if there is none yet. */
+            /* Returns the newest frame in out_frame_ptr. Returns false if there is none yet. */
             virtual bool acquire(ImportedFrame* out_frame_ptr) = 0;
 
-            /* The frame which was acquired is not needed any more. */
+            /* Call it when the acquired frame is no longer needed. */
             virtual void release() = 0;
 
-            /* The screen is about to want a frame (see FrameChannel::signal_pace()); and the delay that the producer is to wait after it, in
-             * microseconds. Of no use to a transport that has no producer to hold back.
+            /* set_pace_delay_us() sets how long, in microseconds, the producer waits after a signal. signal_pace() tells the producer that the
+             * screen is about to want a frame (see FrameChannel::signal_pace()). Both do nothing for a transport that has no producer to hold
+             * back.
              */
             virtual void set_pace_delay_us(const uint32_t& in_delay_us)
             {
@@ -38,7 +39,7 @@ namespace Stereo
                 /* Stub */
             }
 
-            /* How the distance between the eyes of the person who looks compares with the one the producer's separation is made for (see
+            /* Sets the ratio of the viewer's eye distance to the eye distance that the producer's separation is made for (see
              * FrameChannel::get_ipd_scale()).
              */
             virtual void set_ipd_scale(const float& in_ipd_scale)

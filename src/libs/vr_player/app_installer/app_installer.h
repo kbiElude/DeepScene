@@ -2,9 +2,9 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Puts an application in its directory: downloads its archive, checks it, unpacks it, and moves it into place. It writes only
- * under the directory of the application and next to it (install_directory + ".download", which is removed when it is done), so
- * nothing is left anywhere else. The work is done by a thread of its own; the window asks for the progress.
+ * Installs an application into its directory: downloads its archive, verifies it, unpacks it, and moves it into place. It writes only to the
+ * application's directory and to a staging directory next to it (install_directory + ".download", removed when the installation ends), so
+ * nothing is left anywhere else. The work runs on a thread of its own, and the window asks for the progress.
  */
 #ifndef APPINSTALLER_APP_INSTALLER_H
 #define APPINSTALLER_APP_INSTALLER_H
@@ -23,33 +23,33 @@ namespace VRPlayer
         class AppInstaller
         {
         public:
-            /* The downloader is not owned, and has to outlive this object. */
+            /* The downloader is not owned and must outlive this object. */
             explicit AppInstaller(Utils::Files::IDownloader* in_downloader_ptr);
 
-            /* Stops what is done, and waits for it. */
+            /* Stops a running installation, if any, and waits for it. */
             ~AppInstaller();
 
             AppInstaller(const AppInstaller&)            = delete;
             AppInstaller& operator=(const AppInstaller&) = delete;
 
-            /* Asks for what is done to stop; the progress says CANCELLED soon after. */
+            /* Asks the installation to stop. The progress changes to CANCELLED shortly afterwards. */
             void cancel();
 
-            /* A copy of the progress, as of now. */
+            /* Returns a copy of the current progress. */
             InstallProgress get_progress() const;
 
             /* True from start() until the progress is DONE, FAILED or CANCELLED. */
             bool is_busy() const;
 
-            /* Checks that the application can be put where it goes (the directory is not taken, and the one it is made in can be
-             * written to), and starts. Returns false, and says why, if not: that is what the user is told, since nothing is done
-             * anywhere else.
+            /* Checks that the application can be installed (the install directory does not exist yet and its parent directory can be written to),
+             * then starts the installation. Returns false and sets the error otherwise. The error is what the user is told, because nothing is
+             * written anywhere else.
              */
             bool start(const InstallSpec& in_spec,
                        std::string*       out_error_ptr);
 
         private:
-            /* What the thread and the window share. The lock is held for a copy of the progress and for nothing else. */
+            /* State shared by the installer thread and the window. The lock is held only while the progress is copied. */
             struct SharedState
             {
                 InstallProgress progress;

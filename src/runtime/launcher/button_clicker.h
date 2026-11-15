@@ -12,25 +12,25 @@ namespace Stereo
 {
     namespace Launcher
     {
-        /* Presses the button of a window that an application shows before it starts (the "Launch" of a demo's setup dialog), so that
-         * nobody has to.
+        /* Presses a button in a window that an application shows before it starts, such as the "Launch" button of a demo's setup dialog, so that
+         * the user does not have to.
          */
         class ButtonClicker
         {
         public:
-            /* Looks, until the process exits or the time runs out, for a button of a window of the process whose text is the one given
-             * (without its '&', not looking at the case), and presses it. Returns false if it was not found.
+            /* Searches, until the process exits or the timeout expires, for a button in a window of the process whose text matches in_button_text
+             * (ignoring '&' and case), and presses it. Returns false if no such button was found.
              */
             static bool click_when_shown(const HANDLE&      in_process,
                                          const DWORD&       in_process_id,
                                          const std::string& in_button_text,
                                          const DWORD&       in_timeout_milliseconds);
 
-            /* The text without its '&' (the mark of the key of a button), in lower case. */
+            /* Returns the text in lower case without '&' (the mark of the keyboard shortcut of a button). */
             static std::string get_normalized_text(const std::string& in_text);
 
         private:
-            /* What the enumeration of the windows looks for, and what it found. */
+            /* What the window enumeration searches for, and what it found. */
             struct Search
             {
                 HWND        button      = nullptr;

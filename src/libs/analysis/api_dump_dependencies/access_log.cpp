@@ -33,7 +33,9 @@ void Analysis::APIDumpDependencies::AccessLog::on_frame_ended(const uint64_t& in
                                                               const uint64_t& in_first_call_index,
                                                               const uint64_t& in_last_call_index)
 {
-    /* The frames are told in order, from 0, so that the position in the vector is the number of the frame. */
+    /* The model builder reports frames in order, starting at 0, so the index of a frame equals its position in the vector. A frame that
+     * is reported out of order is ignored.
+     */
     if (in_frame_index == m_frame_end_event_count_vec.size() )
     {
         FrameCallRange call_range;

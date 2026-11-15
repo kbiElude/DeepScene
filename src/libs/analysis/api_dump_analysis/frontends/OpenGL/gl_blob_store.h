@@ -2,13 +2,13 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * The data that draws read from the memory of the application, as resources of the model: a piece of data is a buffer which the model builder
- * is told of the first time it is seen, and is the same buffer each time after that, in whatever frame, for as long as its bytes are the same.
+ * Stores the data that draws read from application memory and exposes it as resources of the model. A piece of data is a buffer. The model
+ * builder is told about it the first time it is seen. Every later sighting, in any frame, gives the same buffer as long as the bytes are the same.
  *
- * The bytes are kept as long as they are worth keeping, which depends on how the piece is used again. Every piece is kept for the frame that it
- * is seen in (so that a frame can be drawn once for each eye); a piece that was seen in only one frame is let go of at the end of it, and one that
- * is seen in a second frame is reuse across frames, and is kept on. A piece that was let go of and is seen again is kept again, as a call has
- * its bytes each time.
+ * The store keeps the bytes only as long as they are worth keeping, which depends on whether the piece is used again. Every piece is kept
+ * for the frame in which it is seen, so that the frame can be drawn once for each eye. A piece seen in only one frame is released at the end of
+ * that frame. A piece seen in a second frame is reused across frames and stays. A piece that was released and is seen again is stored again,
+ * because every call carries its bytes.
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_BLOB_STORE_H
 #define APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_BLOB_STORE_H
@@ -34,35 +34,35 @@ namespace Analysis
                 /* The builder must outlive the store. */
                 explicit GLBlobStore(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr);
 
-                /* The bytes of the piece if they are kept (they are for every piece of this frame, and for those seen in more than one frame);
-                 * null if they are not, or the resource is not one of the store.
+                /* Returns the bytes of the piece if they are kept. They are kept for every piece of the current frame and for every piece seen in
+                 * more than one frame. Returns null if they are not kept, or if the resource does not belong to the store.
                  */
                 std::shared_ptr<const std::vector<uint8_t> > get_data_ptr(const Analysis::APIDumpAnalysis::ResourceId& in_resource_id) const;
 
-                /* The number of different pieces of data that the store has made a resource of. */
+                /* The number of distinct pieces of data for which the store has created a resource. */
                 uint64_t get_n_blobs() const;
 
-                /* The number of bytes that are kept now. */
+                /* The number of bytes currently kept. */
                 uint64_t get_n_cached_bytes() const;
 
-                /* The resource of the data: made now if the store has not seen these bytes (as this kind of buffer) before. The bytes are kept
-                 * at least until the end of the frame.
+                /* Returns the resource for the data. The resource is created now if the store has not seen these bytes before (as this kind of
+                 * buffer). The bytes are kept at least until the end of the frame.
                  */
                 Analysis::APIDumpAnalysis::ResourceId get_resource_id(const Analysis::APIDumpAnalysis::ResourceKind& in_kind,
                                                                       const void*                                    in_data_ptr,
                                                                       const size_t&                                  in_n_bytes);
 
-                /* How the piece has been used again so far; ONE_FRAME for a resource that is not one of the store. */
+                /* Returns how the piece has been reused so far; ONE_FRAME for a resource that does not belong to the store. */
                 GLBlobReuse get_reuse(const Analysis::APIDumpAnalysis::ResourceId& in_resource_id) const;
 
-                /* The frame is over: what was seen in it only is let go of. */
+                /* Ends the frame. Data that was seen only in this frame is released. */
                 void on_frame_ended();
 
             private:
-                /* The kind of buffer, the hash of the bytes and their number. */
+                /* The key of a blob: the kind of buffer, the hash of the bytes and the number of bytes. */
                 typedef std::tuple<uint32_t, uint64_t, uint64_t> BlobKey;
 
-                /* Keeps the bytes of the blob, which are not kept. */
+                /* Stores the bytes of a blob whose bytes are not yet kept. */
                 void cache_bytes(const void*   in_data_ptr,
                                  const size_t& in_n_bytes,
                                  GLBlob*       inout_blob_ptr);

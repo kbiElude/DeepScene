@@ -65,40 +65,41 @@ Analysis::Recipe::RecipeApplier::RecipeApplier(const Analysis::Recipe::Recipe& i
                                                       pass_draw.draw_key) );
     }
 
-    m_covering_draw_key_set.insert  (m_recipe.covering_draw_key_vec.begin  (),
-                                     m_recipe.covering_draw_key_vec.end    () );
+    m_covering_draw_key_set.insert  (m_recipe.covering_draw_key_vec.begin          (),
+                                     m_recipe.covering_draw_key_vec.end            () );
     m_eye_space_cover_key_set.insert(m_recipe.comfort.eye_space_cover_key_vec.begin(),
                                      m_recipe.comfort.eye_space_cover_key_vec.end  () );
+
     if (m_recipe.comfort.uses_automatic_layers)
     {
         m_automatic_flat_layer_cover_key_set.insert(m_recipe.flat_layer_draw_key_vec.begin(),
                                                     m_recipe.flat_layer_draw_key_vec.end  () );
-        m_automatic_overlay_cover_key_set.insert   (m_recipe.overlay_draw_key_vec.begin(),
-                                                    m_recipe.overlay_draw_key_vec.end  () );
-        m_eye_space_cover_key_set.insert           (m_recipe.eye_space_draw_key_vec.begin(),
-                                                    m_recipe.eye_space_draw_key_vec.end  () );
+        m_automatic_overlay_cover_key_set.insert   (m_recipe.overlay_draw_key_vec.begin   (),
+                                                    m_recipe.overlay_draw_key_vec.end     () );
+        m_eye_space_cover_key_set.insert           (m_recipe.eye_space_draw_key_vec.begin (),
+                                                    m_recipe.eye_space_draw_key_vec.end   () );
     }
 
-    m_known_signature_key_set.insert(m_recipe.known_signature_key_vec.begin(),
-                                     m_recipe.known_signature_key_vec.end  () );
-    m_pushed_cover_key_set.insert   (m_recipe.pushed.cover_key_vec.begin   (),
-                                     m_recipe.pushed.cover_key_vec.end     () );
-    m_pushed_part_cover_key_set.insert(m_recipe.pushed.part_cover_key_vec.begin(),
-                                       m_recipe.pushed.part_cover_key_vec.end  () );
-    m_pushed_draw_key_set.insert    (m_recipe.pushed.draw_key_vec.begin    (),
-                                     m_recipe.pushed.draw_key_vec.end      () );
-    m_pushed_pass_key_set.insert    (m_recipe.pushed.pass_key_vec.begin    (),
-                                     m_recipe.pushed.pass_key_vec.end      () );
+    m_known_signature_key_set.insert   (m_recipe.known_signature_key_vec.begin   (),
+                                        m_recipe.known_signature_key_vec.end     () );
+    m_pushed_cover_key_set.insert      (m_recipe.pushed.cover_key_vec.begin      (),
+                                        m_recipe.pushed.cover_key_vec.end        () );
+    m_pushed_part_cover_key_set.insert (m_recipe.pushed.part_cover_key_vec.begin (),
+                                        m_recipe.pushed.part_cover_key_vec.end   () );
+    m_pushed_draw_key_set.insert       (m_recipe.pushed.draw_key_vec.begin       (),
+                                        m_recipe.pushed.draw_key_vec.end         () );
+    m_pushed_pass_key_set.insert       (m_recipe.pushed.pass_key_vec.begin       (),
+                                        m_recipe.pushed.pass_key_vec.end         () );
     m_side_reaching_draw_key_set.insert(m_recipe.side_reaching_draw_key_vec.begin(),
                                         m_recipe.side_reaching_draw_key_vec.end  () );
-    m_skipped_draw_key_set.insert   (m_recipe.skipped.draw_key_vec.begin   (),
-                                     m_recipe.skipped.draw_key_vec.end     () );
-    m_skipped_pass_key_set.insert   (m_recipe.skipped.pass_key_vec.begin   (),
-                                     m_recipe.skipped.pass_key_vec.end     () );
-    m_unaffected_draw_key_set.insert(m_recipe.unaffected.draw_key_vec.begin(),
-                                     m_recipe.unaffected.draw_key_vec.end  () );
-    m_unaffected_pass_key_set.insert(m_recipe.unaffected.pass_key_vec.begin(),
-                                     m_recipe.unaffected.pass_key_vec.end  () );
+    m_skipped_draw_key_set.insert      (m_recipe.skipped.draw_key_vec.begin      (),
+                                        m_recipe.skipped.draw_key_vec.end        () );
+    m_skipped_pass_key_set.insert      (m_recipe.skipped.pass_key_vec.begin      (),
+                                        m_recipe.skipped.pass_key_vec.end        () );
+    m_unaffected_draw_key_set.insert   (m_recipe.unaffected.draw_key_vec.begin   (),
+                                        m_recipe.unaffected.draw_key_vec.end     () );
+    m_unaffected_pass_key_set.insert   (m_recipe.unaffected.pass_key_vec.begin   (),
+                                        m_recipe.unaffected.pass_key_vec.end     () );
 }
 
 bool Analysis::Recipe::RecipeApplier::apply_overlay_shift(const Analysis::Recipe::Rule& in_rule,
@@ -119,11 +120,12 @@ bool Analysis::Recipe::RecipeApplier::apply_overlay_shift(const Analysis::Recipe
 
     if (is_perspective)
     {
-        /* The shear is a shift of the picture in the units of the picture, which is two wide: the eyes are a part of the width apart
-         * when each is moved by that part of two (the same way that a near thing is moved, the left picture toward the right).
+        /* The shear shifts the picture in picture units, and the picture is two units wide. Moving the left picture by +p and the right picture
+         * by -p puts them 2p apart, which is p of the width. The shift goes the same way as for a near object: the left picture moves toward
+         * the right.
          */
         inout_matrix_ptr->at(SHEAR_INDEX) += (in_eye == Analysis::Recipe::Eye::LEFT) ?  in_overlay_parallax
-                                                                                          : -in_overlay_parallax;
+                                                                                     : -in_overlay_parallax;
 
         result = true;
     }
@@ -158,8 +160,8 @@ bool Analysis::Recipe::RecipeApplier::apply_rule(const Analysis::Recipe::Rule& i
             if (is_matrix_of_kind(*inout_matrix_ptr,
                                   Analysis::Recipe::MatrixKind::PERSPECTIVE) )
             {
-                /* The view moves what is seen by half the separation, toward the right for the left eye; this takes it back where
-                 * the depth is the distance.
+                /* The view moves the scene toward the right by half the separation for the left eye. The shear moves it back, so that content
+                 * at the convergence distance has no parallax.
                  */
                 if (in_convergence_distance > 0.0f)
                 {
@@ -283,34 +285,36 @@ Analysis::Recipe::ComfortLimits Analysis::Recipe::RecipeApplier::get_comfort_lim
                        in_scene_ptr->convergence_distance > 0.0f) ? in_scene_ptr->convergence_distance
                                                                   : in_median_depth;
 
-    const float max_far_parallax  = (in_scene_ptr                      != nullptr &&
-                                     in_scene_ptr->max_far_parallax     > 0.0f)   ? in_scene_ptr->max_far_parallax
-                                                                                  : in_comfort.max_far_parallax;
-    const float max_near_parallax = (in_scene_ptr                      != nullptr &&
-                                     in_scene_ptr->max_near_parallax    > 0.0f)   ? in_scene_ptr->max_near_parallax
-                                                                                  : in_comfort.max_near_parallax;
+    const float max_far_parallax  = (in_scene_ptr                    != nullptr &&
+                                     in_scene_ptr->max_far_parallax  >  0.0f)   ? in_scene_ptr->max_far_parallax
+                                                                                : in_comfort.max_far_parallax;
+    const float max_near_parallax = (in_scene_ptr                    != nullptr &&
+                                     in_scene_ptr->max_near_parallax >  0.0f)   ? in_scene_ptr->max_near_parallax
+                                                                                : in_comfort.max_near_parallax;
 
-    /* With both limits the eyes converge where the whole of the depth of the scene fits them best: s * scale * (1 / zn - 1 / zf) / 2 is the width of all the parallax
-     * of the scene, at most the two limits together, and it is split so that the nearest surfaces have the near limit: 1 / d = 1 / zn - (1 / zn - 1 / zf) * near / (near + far).
+    /* With both limits, the eyes converge where the whole depth of the scene fits best. The total parallax from the nearest to the farthest
+     * surface is s * scale * (1 / zn - 1 / zf) / 2 of the picture width, and it should not exceed the two limits together. The distance d splits
+     * this total in the ratio of the two limits, so that the nearest surfaces get exactly the near limit:
+     * 1 / d = 1 / zn - (1 / zn - 1 / zf) * near / (near + far).
      */
-    if (in_comfort.balances_convergence                                                  &&
-        (in_scene_ptr == nullptr || in_scene_ptr->convergence_distance <= 0.0f)           &&
-        max_near_parallax > 0.0f                                                          &&
-        max_far_parallax  > 0.0f                                                          &&
-        in_near_depth     > 0.0f                                                          &&
-        in_far_depth      > in_near_depth)
+    if (in_comfort.balances_convergence                                                           &&
+        (in_scene_ptr                   == nullptr || in_scene_ptr->convergence_distance <= 0.0f) &&
+        max_near_parallax               >  0.0f                                                   &&
+        max_far_parallax                >  0.0f                                                   &&
+        in_near_depth                   >  0.0f                                                   &&
+        in_far_depth                    >  in_near_depth)
     {
-        const float depth_term    = 1.0f / in_near_depth - 1.0f / in_far_depth;
+        const float depth_term    = 1.0f / in_near_depth - 1.0f                           / in_far_depth;
         const float inverse_depth = 1.0f / in_near_depth - depth_term * max_near_parallax / (max_near_parallax + max_far_parallax);
 
         result.distance = 1.0f / inverse_depth;
     }
 
-    /* The eyes may be no further apart than lets the nearest surface of the scene be at most max_near_parallax of the width of the picture
-     * from where the eyes see it at the screen, which is where the scene converges. A surface at depth z, with the eyes a separation s apart
-     * (each half of it from the middle), is at the screen when it is at the distance d, and else s * scale * (1 / z - 1 / d) / 2 of the
-     * width of the picture from it; the limit is the s at which that is max_near_parallax for the nearest z. For the farthest surface it is
-     * the same with (1 / d - 1 / z), which is at most 1 / d however far it is.
+    /* The separation is limited so that the pictures of the eyes show the nearest surface of the scene at most max_near_parallax of the
+     * picture width apart. With the eyes a separation s apart (each half of it from the middle), a surface at depth z lies on the screen when
+     * z equals the convergence distance d. Otherwise the pictures show it s * scale * (1 / z - 1 / d) / 2 of the picture width apart. The limit
+     * is the s for which this equals max_near_parallax at the nearest depth z. For the farthest surface the same applies with (1 / d - 1 / z),
+     * which never exceeds 1 / d however far the surface is.
      */
     if (max_near_parallax > 0.0f           &&
         in_near_depth     > 0.0f           &&
@@ -327,8 +331,8 @@ Analysis::Recipe::ComfortLimits Analysis::Recipe::RecipeApplier::get_comfort_lim
         const float far_limit = (far_term > 0.0f)                ? 2.0f * max_far_parallax / (scale * far_term)
                                                                  : 0.0f;
 
-        if (far_limit > 0.0f                           &&
-            (result.max_separation <= 0.0f             ||
+        if (far_limit              >  0.0f                   &&
+            (result.max_separation <= 0.0f                   ||
              far_limit             <  result.max_separation) )
         {
             result.is_far_limit   = true;
@@ -356,8 +360,8 @@ float Analysis::Recipe::RecipeApplier::get_convergence_distance(const uint64_t& 
 
 float Analysis::Recipe::RecipeApplier::get_cover_push_parallax(const uint64_t& in_cover_key) const
 {
-    const bool is_part = (m_pushed_part_cover_key_set.count(in_cover_key) != 0 &&
-                          m_recipe.comfort.part_parallax                    >  0.0f);
+    const bool is_part = (m_pushed_part_cover_key_set.count(in_cover_key) != 0     &&
+                          m_recipe.comfort.part_parallax                  >  0.0f);
 
     return (is_part) ? m_recipe.comfort.part_parallax
                      : m_recipe.comfort.overlay_parallax;
@@ -488,7 +492,7 @@ bool Analysis::Recipe::RecipeApplier::is_draw_affected(const uint64_t& in_pass_k
 {
     bool result = true;
 
-    /* The most specific name wins: a draw in its pass, then a draw, then a pass. */
+    /* The most specific name wins, in this order: a draw in its pass, a draw, a pass. */
     if (m_affected_pass_draw_set.count(PassDrawKey(in_pass_key,
                                                    in_draw_key) ) != 0)
     {
@@ -639,8 +643,8 @@ bool Analysis::Recipe::RecipeApplier::is_signature_known(const uint64_t& in_sign
 {
     const size_t n_matching_keys = m_known_signature_key_set.count(in_signature_key);
 
-    return (m_known_signature_key_set.empty() ||
-            n_matching_keys != 0);
+    return (m_known_signature_key_set.empty()       ||
+            n_matching_keys                   != 0);
 }
 
 bool Analysis::Recipe::RecipeApplier::is_signature_pushed(const uint64_t&              in_signature_key,
@@ -660,9 +664,9 @@ std::array<float, 16> Analysis::Recipe::RecipeApplier::make_eye_offset_matrix(co
     constexpr size_t N_COLUMNS      = 4;
     constexpr size_t TRANSLATION_ROW = 3;
 
-    /* A matrix of a view moves what is seen: toward the right for the left eye, which looks from further to the left. */
+    /* A view matrix moves the scene, not the camera. For the left eye, which looks from further to the left, the scene moves toward the right. */
     const float           half_separation = ((in_eye == Analysis::Recipe::Eye::LEFT) ?  0.5f
-                                                                                                  : -0.5f) * in_eye_separation;
+                                                                                     : -0.5f) * in_eye_separation;
     std::array<float, 16> result          = {1, 0, 0, 0,
                                              0, 1, 0, 0,
                                              0, 0, 1, 0,
@@ -688,7 +692,7 @@ std::array<float, 16> Analysis::Recipe::RecipeApplier::make_view_anchor_matrix(c
     const float distance   = (scene_distance > 0.0f)            ? scene_distance
                                                                : m_recipe.view_anchor_shift.convergence_distance;
 
-    /* The scene moves toward the right for the left eye: the camera is to the left. */
+    /* For the left eye the scene moves toward the right, because the camera is to the left. */
     const float half_shift = (in_eye == Analysis::Recipe::Eye::LEFT) ? separation * HALF
                                                                     : -separation * HALF;
 
@@ -700,7 +704,7 @@ std::array<float, 16> Analysis::Recipe::RecipeApplier::make_view_anchor_matrix(c
         0.0f, 0.0f, 0.0f, 1.0f
     };
 
-    /* x + h + (h / d) * z: the translation is the fourth column, and the shear is what the depth adds to x. */
+    /* The shift is x + h + (h / d) * z. The translation h is the fourth column, and the shear h / d is what the depth z adds to x. */
     result.at(12) = half_shift;
 
     if (distance > 0.0f)

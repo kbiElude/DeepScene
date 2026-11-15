@@ -16,12 +16,12 @@ namespace Utils
         class ImageComparer
         {
         public:
-            /* Images of other sizes differ in everything: has_same_size is false and the other fields are 0. */
+            /* Images of different sizes are not compared further: has_same_size is false and all other fields are 0. */
             static ImageDifference compare(const Image& in_first_image,
                                            const Image& in_second_image);
 
-            /* An image of the size of the two, black where they are the same and red where they differ. False, and an empty image, if their sizes
-             * differ.
+            /* Builds an image of the same size as the inputs, black where the two images match and red where they differ. Returns false and an empty
+             * image if the sizes differ.
              */
             static bool make_difference_image(const Image& in_first_image,
                                               const Image& in_second_image,
@@ -30,7 +30,7 @@ namespace Utils
         private:
             static const size_t N_BYTES_PER_PIXEL;
 
-            /* True if both images have the pixels their size says. */
+            /* True if both images contain as many pixels as their width and height say. */
             static bool are_comparable(const Image& in_first_image,
                                        const Image& in_second_image);
         };

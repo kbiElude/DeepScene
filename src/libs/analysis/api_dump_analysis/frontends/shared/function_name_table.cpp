@@ -15,7 +15,7 @@ const char* Analysis::APIDumpAnalysis::Frontends::FunctionNameTable::find_reason
                                                               : nullptr;
     const char* result_ptr      = nullptr;
 
-    /* A value that is no function (the marks that begin and end the methods) has no name, and is in no table. */
+    /* A value that is not a function (the marks that begin and end the methods) has no name and is in no table. */
     for (size_t n_entry = 0;
                 n_entry < in_n_entries &&
                 full_name_ptr != nullptr;

@@ -12,8 +12,8 @@ bool Stereo::ConverterDLL::GLExtensionFunctions::find_function(const char* in_na
                                                                FuncType*   out_func_ptr_ptr)
 {
     const std::string extension_name = std::string(in_name_ptr) + "EXT";
-    /* The entrypoint that the hooks call through: the hooks of the extension functions that wglGetProcAddress gives out do not have the functions of the driver yet
-     * when the application makes its context current. */
+    /* The original wglGetProcAddress, called through the cached pointer. The hooks that wglGetProcAddress returns for extension functions do not
+     * have the driver's functions yet when the application makes its context current. */
     const auto        get_proc_address_func_ptr = reinterpret_cast<Interception::Hooks::WGL::PFNWGLGETPROCADDRESSPROC>(Interception::Hooks::WGL::g_cached_get_proc_address_func_ptr);
     PROC              proc_ptr       = get_proc_address_func_ptr(in_name_ptr);
 
@@ -39,7 +39,7 @@ bool Stereo::ConverterDLL::GLExtensionFunctions::find_function(const char* in_na
 
 bool Stereo::ConverterDLL::GLExtensionFunctions::load()
 {
-    /* The functions are looked for through the library, which the hooks watch: these calls are the converter's own. */
+    /* The functions are looked up through the library that the hooks watch. OwnCallScope marks these calls as the converter's own. */
     const OwnCallScope own_call_scope;
     bool               result = true;
 
@@ -56,7 +56,7 @@ bool Stereo::ConverterDLL::GLExtensionFunctions::load()
     find_function("glActiveTexture",   &active_texture_func_ptr);
     find_function("glBlitFramebuffer", &blit_framebuffer_func_ptr);
 
-    /* The buffers are of OpenGL 1.5: all or none of them are used. */
+    /* The buffer functions are part of OpenGL 1.5. Either all of them are used or none. */
     if (find_function("glBindBuffer",    &bind_buffer_func_ptr)    == false ||
         find_function("glBufferData",    &buffer_data_func_ptr)    == false ||
         find_function("glDeleteBuffers", &delete_buffers_func_ptr) == false ||

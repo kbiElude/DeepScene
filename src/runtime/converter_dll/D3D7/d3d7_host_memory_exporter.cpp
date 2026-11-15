@@ -15,8 +15,8 @@
 Stereo::ConverterDLL::D3D7HostMemoryExporter::D3D7HostMemoryExporter(Stereo::Transport::FrameChannel* inout_channel_ptr)
     :HostMemoryExporter(inout_channel_ptr)
 {
-    /* A wait of the length of a frame is not the length of a tick of the timer, which is some 15 ms: without this the application is held to half
-     * the rate it is meant to have, when there is no program that shows the images to keep time by.
+    /* The default timer tick is about 15 ms, which is longer than a frame, so a sleep of one frame would last a whole tick. Without a 1 ms timer period,
+     * the application can be held to about half its intended rate when no program that shows the images keeps time.
      */
     ::timeBeginPeriod(1);
 }
@@ -40,7 +40,7 @@ Stereo::Transport::ExportStatus Stereo::ConverterDLL::D3D7HostMemoryExporter::ex
     std::array<void*, N_EYES>         surface_ptr_array = {in_source.left_surface_ptr,
                                                            in_source.right_surface_ptr};
 
-    /* The other side has not said that it takes what the exporter passes on: not a failure, the frame is left out. */
+    /* The other side has not said that it accepts host memory frames. This is not a failure: the frame is skipped. */
     if (is_host_memory_negotiated() == false)
     {
         result = Stereo::Transport::ExportStatus::NOT_READY;
@@ -211,9 +211,9 @@ void Stereo::ConverterDLL::D3D7HostMemoryExporter::wait_for_pace()
 {
     constexpr int64_t FALLBACK_N_FRAMES_PER_SECOND = 60;
 
-    /* A screen that keeps time says when the next frame is due. With nobody to show the images, or one that does not say (a window shows them as they
-     * come), there is no screen to keep time by, and a window which is not flipped keeps none: the application is held to the rate of a screen, or
-     * what it does to the time of its music would not be what it does when it is shown.
+    /* If the program that shows the images keeps time, it says when the next frame is due. Otherwise there is nothing to keep time by: no
+     * program shows the images, or it does not say when (a window shows frames as they arrive), or the window is not flipped. The application
+     * is then held to the rate of a screen, because otherwise the timing of its music would differ from what is shown.
      */
     const bool is_negotiated      = is_host_memory_negotiated();
     bool       is_paced_by_screen = false;
@@ -225,7 +225,8 @@ void Stereo::ConverterDLL::D3D7HostMemoryExporter::wait_for_pace()
 
     if (is_paced_by_screen == false)
     {
-        const bool is_limiter_disabled = Environment::is_set("APISTEREO_NO_FRAME_LIMIT"); /* a debugging aid: the cost of a frame, with nothing to wait for */
+        const bool is_limiter_disabled = Environment::is_set("APISTEREO_NO_FRAME_LIMIT"); /* a debugging aid: measures the cost of a frame without waiting
+ */
 
         if (is_limiter_disabled == false)
         {
@@ -234,7 +235,7 @@ void Stereo::ConverterDLL::D3D7HostMemoryExporter::wait_for_pace()
     }
     else
     {
-        /* The next frame of the limiter is counted from this one if the screen stops keeping time. */
+        /* If the screen stops keeping time, the limiter counts the next frame from this one. */
         restart_frame_rate_clock();
     }
 }

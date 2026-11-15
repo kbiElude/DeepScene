@@ -88,7 +88,7 @@ Analysis::APIDumpAnalysis::Timeline Analysis::APIDumpAnalysis::TimelineBuilder::
     {
         const auto& shape = model_ref.frame_shape_interner.get_structure(n_shape);
 
-        /* IDs are sorted, so the instances of a pass structure are adjacent. */
+        /* The IDs are sorted, so the instances of one pass structure are adjacent. */
         for (size_t n_id = 0;
                     n_id < shape.pass_structure_id_vec.size();
                   ++n_id)
@@ -112,7 +112,7 @@ Analysis::APIDumpAnalysis::Timeline Analysis::APIDumpAnalysis::TimelineBuilder::
 
 std::vector<uint64_t> Analysis::APIDumpAnalysis::TimelineBuilder::get_setup_frame_index_vec(const Model& in_model)
 {
-    constexpr uint64_t SETUP_DURATION_FACTOR = 20; /* multiple of the median frame duration */
+    constexpr uint64_t SETUP_DURATION_FACTOR = 20; /* a multiple of the median frame duration */
 
     std::vector<uint64_t> duration_vec;
     uint64_t              median_duration = 0;

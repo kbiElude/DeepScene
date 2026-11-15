@@ -28,7 +28,7 @@ std::vector<Analysis::RecipeBake::SceneReport> Analysis::RecipeBake::SceneReport
         }
     }
 
-    /* Where the frames of each scene are: a run is the frames of it that follow one another. */
+    /* Where the frames of each scene are, as runs: a run is a stretch of consecutive frames of the scene. */
     for (const auto& frame : in_analysis.model.frame_record_vec)
     {
         const auto report_iterator = report_map.find(frame.shape_id);
@@ -63,7 +63,7 @@ std::vector<Analysis::RecipeBake::SceneReport> Analysis::RecipeBake::SceneReport
                                                                        : 1.0f;
         const float half    = 0.5f;
 
-        /* A model that has nothing yet goes to the first target at once, whatever the fraction. */
+        /* A model that has no value yet moves to its first target at once, whatever the fraction. */
         const float reference_frame_seconds = Stereo::Core::ConvergenceModel::get_reference_frame_seconds();
         const float fraction_of_the_way     = Stereo::Core::ConvergenceModel::get_fraction_of_the_way(reference_frame_seconds);
 

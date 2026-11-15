@@ -26,7 +26,7 @@ Stereo::ConverterDLL::D3D7EyeRenderer::D3D7EyeRenderer(Stereo::Core::StereoCore*
      m_n_unmirrored_calls(0),
      m_windowed_mode_ptr (in_windowed_mode_ptr)
 {
-    /* A debugging aid: what the right eye costs, by leaving it out. */
+    /* A debugging aid: skips the right eye, to measure what it costs. */
     m_is_right_eye_off = Environment::is_set("APISTEREO_NO_RIGHT_EYE");
 }
 
@@ -64,8 +64,9 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::copy_pixel_write_to_both_eyes(void* 
             goto end;
         }
 
-        /* The picture is in the corner of the size of the display mode, if the back buffer is larger: it goes to the twin as large as the whole, and
-         * back. Otherwise it is the back buffer as it is that goes to the twin.
+        /* If the back buffer is larger than the display mode, the application's picture fills only its corner. The corner is stretched into
+         * the twin and the twin is then copied back, so the picture fills the whole back buffer in both surfaces. Otherwise the whole back
+         * buffer is copied to the twin.
          */
         if (display_width  != 0                   &&
             display_height != 0                   &&
@@ -121,7 +122,7 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::draw(const DrawArguments& in_draw_ar
 
     if (in_draw_arguments.kind == DrawKind::STRIDED)
     {
-        /* The arrays are the application's, and the draw is made as it is: positions that a camera moves are not the renderer's to move. */
+        /* The arrays belong to the application, so the draw is made as it is. The renderer does not move positions that a camera moves. */
         auto strided = in_draw_arguments.strided;
 
         if (in_draw_arguments.is_indexed)
@@ -189,7 +190,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::Recipe:
     float    scale          = 1.0f;
     uint32_t vertex_n_bytes = 0;
 
-    /* Vertices which a matrix moves are the matrix's. */
+    /* Only pre-transformed vertices (already in screen space) are moved. Vertices that the device transforms with a matrix are left as they are. */
     if (Analysis::APIDumpAnalysis::Frontends::FixedFunctionVertexFormat::is_pre_transformed(in_draw_arguments.fvf) )
 
     {
@@ -202,10 +203,10 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::Recipe:
     {
         const bool is_presented = m_surface_twins.is_back_buffer(m_mirror.render_target_ptr);
 
-        /* The positions are in the pixels of the application, which a larger back buffer is not made of. */
+        /* The positions are in the application's pixels, which a larger back buffer does not use, so they are scaled. */
         scale = get_render_scale();
 
-        /* The application's vertices are not touched: the draw uses a copy. */
+        /* The application's vertices are not modified: the draw uses a copy. */
         const bool has_copy = m_core_ptr->make_screen_vertices(in_eye,
                                                                is_presented,
                                                                in_picture_width,
@@ -272,7 +273,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::enter_right_eye(void*          in_de
         get_viewport_func(device,
                          &out_scope_ptr->viewport);
 
-        /* Setting a render target may set the viewport to the whole of it. */
+        /* Setting a render target can reset the viewport to cover the whole target, so the viewport is set again afterwards. */
         set_render_target_func(device,
                                static_cast<Interception::Hooks::D3D7::IDirectDrawSurface7*>(twin_target_ptr),
                                0); /* dwFlags */
@@ -314,7 +315,7 @@ const void* Stereo::ConverterDLL::D3D7EyeRenderer::get_chunk_ptr(const APIInterc
                                                              &result_ptr,
                                                              &n_bytes);
 
-        /* A pointer that was null is captured as a chunk with nothing in it. */
+        /* A null pointer is captured as a chunk with no data. */
         if (has_chunk == false ||
             n_bytes   == 0)
         {
@@ -406,7 +407,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::mirror_blt(const APIInterceptor::API
     const bool is_fast = (in_function == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_BLTFAST);
     bool       result  = false;
 
-    /* The copy is made to the twin of the surface, from the twin of the surface it is made from if that has one, and as it is otherwise. */
+    /* The copy goes to the twin of the destination surface. Its source is the twin of the source surface if that has one, otherwise the source itself. */
     if (in_n_arguments                              >= ((is_fast) ? N_ARGUMENTS_BLT_FAST
                                                                   : N_ARGUMENTS_BLT)     &&
         in_arguments_ptr[DESTINATION_ARGUMENT].type == APIInterceptor::ARGTYPE_VOID_PTR)
@@ -494,7 +495,7 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::note_unmirrored(const APIInterceptor
 
     m_n_unmirrored_calls++;
 
-    /* The first ones are told, to know what they are. */
+    /* Only the first MAX_N_NOTES calls are described, to show which kinds of calls are affected. */
     if (m_unmirrored_note_vec.size() < MAX_N_NOTES)
     {
         const char* const name_ptr = Interception::Core::D3D7Utils::get_function_name_ptr(in_function);
@@ -516,7 +517,7 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::on_post(const APIInterceptor::APIFun
                             in_arguments_ptr,
                             in_returned_value_ptr);
 
-    /* The application has written the back buffer, all of it: what it wrote is made for both eyes. */
+    /* The application wrote the whole back buffer and unlocked it: copy what it wrote to both eyes. */
     if (in_function              == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_UNLOCK &&
         in_n_arguments           >  0                                                           &&
         in_arguments_ptr[0].type == APIInterceptor::ARGTYPE_VOID_PTR)
@@ -535,7 +536,7 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::on_post(const APIInterceptor::APIFun
         }
     }
 
-    /* A device renders to the surface that it is made for, until the application sets another. */
+    /* A new device renders to the surface it was created for, until the application sets another render target. */
     if (in_function                             == APIInterceptor::APIFUNCTION_D3D7_IDIRECT3D7_CREATEDEVICE &&
         in_n_arguments                          >  DEVICE_ARGUMENT                                          &&
         in_arguments_ptr[DEVICE_ARGUMENT].type  == APIInterceptor::ARGTYPE_VOID_PTR                         &&
@@ -549,7 +550,7 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::on_post(const APIInterceptor::APIFun
         }
     }
 
-    /* A viewport is in the pixels of what it is for: another render target may be of other pixels. */
+    /* A viewport is given in the pixels of its render target. Another render target can have a different size, so the viewport is set again. */
     if (in_function              == APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_SETRENDERTARGET &&
         in_n_arguments           >  0                                                                 &&
         in_arguments_ptr[0].type == APIInterceptor::ARGTYPE_VOID_PTR                                  &&
@@ -627,7 +628,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre(const APIInterceptor::APIFunc
             bool        has_chunk     = false;
             uint32_t    n_chunk_bytes = 0;
 
-            /* The viewport is a structure, which the arguments hold as a chunk. */
+            /* The viewport is a structure; the arguments hold it as a chunk. */
             if (in_n_arguments                           >  VIEWPORT_ARGUMENT                     &&
                 in_arguments_ptr[VIEWPORT_ARGUMENT].type == APIInterceptor::ARGTYPE_DATA_CHUNK_ID)
             {
@@ -647,7 +648,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre(const APIInterceptor::APIFunc
                          chunk_ptr,
                          sizeof(m_mirror.viewport) );
 
-                /* The viewport of the larger back buffer is the viewport the application sets, as large as the back buffer is. */
+                /* With a larger back buffer, the converter sets the application's viewport scaled to the back buffer, and the application's own call is not made. */
                 if (get_render_scale() != 1.0f)
                 {
                     set_effective_viewport(const_cast<void*>(in_arguments_ptr[0].get_ptr() ));
@@ -667,7 +668,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre(const APIInterceptor::APIFunc
             {
                 void* const destination_ptr = const_cast<void*>(in_arguments_ptr[DESTINATION_ARGUMENT].get_ptr() );
 
-                /* A copy to a surface that has a twin is repeated to the twin. */
+                /* A copy to a surface that has a twin is repeated on the twin. */
                 if (get_twin_ptr(destination_ptr) != nullptr)
                 {
                     if (mirror_blt(in_function,
@@ -679,7 +680,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre(const APIInterceptor::APIFunc
                     }
                 }
 
-                /* A copy to the back buffer is in the pixels of the application, which the back buffer is no longer of. */
+                /* A copy to the back buffer uses the application's pixels, but the back buffer is larger, so the copy lands in the wrong place. */
                 const bool is_back_buffer = m_surface_twins.is_back_buffer(destination_ptr);
 
                 if (is_back_buffer)
@@ -716,8 +717,8 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre(const APIInterceptor::APIFunc
 
         case APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_LOCK:
         {
-            /* Pixels that the application reads or writes are in the pixels of the application. A write of the whole surface is made for both eyes
-             * when it ends (see copy_pixel_write_to_both_eyes()); the rest is counted, if the back buffer is larger.
+            /* Pixels that the application reads or writes are in the application's pixels. A write of the whole surface is copied to both eyes
+             * when it ends (see copy_pixel_write_to_both_eyes()). Other reads and writes are only counted, if the back buffer is larger.
              */
             if (in_n_arguments                          >= N_ARGUMENTS_LOCK                 &&
                 in_arguments_ptr[DESTINATION_ARGUMENT].type == APIInterceptor::ARGTYPE_VOID_PTR)
@@ -770,7 +771,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre_draw(const APIInterceptor::AP
     RightEyeScope scope;
 
 
-    /* A draw which the renderer does not know is not made for the right eye. */
+    /* A draw that the renderer does not recognize is not made for the right eye. */
     if (read_draw_arguments(in_function,
                             in_n_arguments,
                             in_arguments_ptr,
@@ -783,7 +784,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre_draw(const APIInterceptor::AP
         goto end;
     }
 
-    /* The vertices of a buffer are read, and the draw is then one of vertices in memory, which are moved like the rest. */
+    /* The vertices of a vertex buffer are read into memory. The draw then uses vertices in memory, which are moved like the others. */
     if (draw_arguments.kind == DrawKind::VERTEX_BUFFER)
     {
         const bool is_buffer_read = read_vertex_buffer(&draw_arguments);
@@ -797,7 +798,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre_draw(const APIInterceptor::AP
         }
     }
 
-    /* The right eye is drawn first, with the twins in the device; the left eye is drawn after, with what the application set. */
+    /* The right eye is drawn first, with the twins set in the device. The left eye is drawn afterwards, with the state the application set. */
     if (m_is_right_eye_off == false)
     {
         is_right_eye_entered = enter_right_eye(draw_arguments.device_ptr,
@@ -883,7 +884,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::play_clear(const uint32_t&          
 
     device_ptr = const_cast<void*>(in_arguments_ptr[DEVICE_ARGUMENT].get_ptr() );
 
-    /* The rectangles are in the memory of the application, if it clears parts of the surface. */
+    /* If the application clears only parts of the surface, the rectangles are in the application's memory. */
     if (count > 0)
     {
         if (in_arguments_ptr[RECTS_ARGUMENT].type != APIInterceptor::ARGTYPE_VOID_PTR)
@@ -896,7 +897,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::play_clear(const uint32_t&          
 
         rects_ptr = static_cast<const Interception::Hooks::D3D7::D3DRECT*>(in_arguments_ptr[RECTS_ARGUMENT].get_ptr() );
 
-        /* They are in the pixels of the application: the larger back buffer has more of them. */
+        /* The rectangles are in the application's pixels. The larger back buffer has more pixels, so they are converted. */
         if (scale != 1.0f)
         {
             rect_vec.assign(rects_ptr,
@@ -954,7 +955,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::play_clear(const uint32_t&          
                                  "a clear while the device renders to a surface which has no twin");
         }
 
-        /* The call of the application is for rectangles of its own pixels: the clear of the left eye is made with those of the back buffer. */
+        /* The application's call has rectangles in its own pixels. The clear for the left eye is made with rectangles converted to the back buffer's pixels. */
         if (is_scaled)
         {
             clear_func(rects_ptr);
@@ -1242,7 +1243,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::read_vertex_buffer(DrawArguments* in
 
         if (result)
         {
-            /* From the copy, the indices (which are relative to the first vertex) mean what they meant. */
+            /* The copy starts at the first vertex the draw uses, so start_vertex is 0 and the indices, which are relative to that vertex, keep their meaning. */
             inout_draw_arguments_ptr->fvf          = description.dwFVF;
             inout_draw_arguments_ptr->kind         = DrawKind::VERTICES_IN_MEMORY;
             inout_draw_arguments_ptr->start_vertex = 0;

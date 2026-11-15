@@ -18,7 +18,7 @@ bool Stereo::Replay::EngineDLL::FrameRunner::run(const FrameBuffer&             
 {
     std::vector<::Replay::ReplayEngineDLL::ExecutionClass> class_vec;
 
-    /* A frame that is executed more than once: twice, for the eyes, or once for each of the variants of the last frame. */
+    /* True if the frame is executed more than once: twice (one execution per eye) or once per variant. */
     const bool     is_repeated  = (in_is_complete                                    &&
                                    in_skips_repeated_calls == false                  &&
                                    (in_options.mode        == FrameExecution::TWICE  ||
@@ -30,7 +30,7 @@ bool Stereo::Replay::EngineDLL::FrameRunner::run(const FrameBuffer&             
                                                 : 1;
     bool           result       = false;
 
-    /* Asked once, since the answer is the same in every execution. */
+    /* The execution class of a call is the same in every execution, so it is looked up once. */
     class_vec.reserve(n_calls);
 
     for (const auto& call : in_buffer.get_call_vec() )
@@ -64,7 +64,9 @@ bool Stereo::Replay::EngineDLL::FrameRunner::run(const FrameBuffer&             
                 executor_ptr->restore_state();
             }
 
-            /* A restore lets go of the state it puts back, so that the next execution (there is one if this is not the last) has it saved again: each starts where the first did. */
+            /* A restore consumes the saved state. Save it again unless this is the last execution, so that every execution starts
+             * from the same state as the first one.
+             */
             if (n_execution + 1 < n_executions)
             {
                 for (const auto executor_ptr : in_executor_ptr_vec)
@@ -97,7 +99,9 @@ bool Stereo::Replay::EngineDLL::FrameRunner::run(const FrameBuffer&             
                     break;
                 }
 
-                /* What comes after all the executions waits for them, unless the frame is cut short. */
+                /* These calls run after the last execution (see the loop below). An incomplete frame has a single execution, so its
+                 * calls of this class run here.
+                 */
                 case ::Replay::ReplayEngineDLL::ExecutionClass::AFTER_ALL:
                 {
                     should_execute = (in_is_complete == false);

@@ -72,7 +72,7 @@ int Analysis::APIDumpDependencyExtractor::run(int   in_argc,
     Analysis::APIDumpDependencies::AccessLog          log;
     Analysis::APIDumpDependencies::DependencyAnalysis analysis;
 
-    /* Without history: the analysis keeps what it keeps of the frames only as far as the dependencies need it. */
+    /* Without history: the analysis keeps only as much of each frame as the dependencies need. */
     Analysis::APIDumpAnalysis::Frontends::AnalysisSession session(false);
 
     Analysis::APIDumpAnalysis::ExtractorTool::Steps steps;
@@ -149,7 +149,7 @@ end:
 
     steps.print_usage_func = print_usage;
 
-    /* Pixels and vertices are not what the dependencies are made of. */
+    /* The dependencies contain no pixels or vertices, so data chunks above 64 KiB are skipped by default. */
     steps.profile.default_skip_data_chunks_above_n_bytes = 64 * 1024;
     steps.profile.output_extension                       = ".deps";
 

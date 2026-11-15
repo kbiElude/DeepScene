@@ -11,8 +11,8 @@ namespace Stereo
 {
     namespace ConverterDLL
     {
-        /* While one exists on a thread, the calls that the thread makes are the converter's own, not the application's: the callbacks
-         * leave them alone, so that what the converter does to the device is not taken for what the application does.
+        /* While an OwnCallScope exists on a thread, the calls that the thread makes belong to the converter, not to the application. The callbacks
+         * ignore them, so the converter's own use of the device is not mistaken for the application's.
          */
         class OwnCallScope
         {
@@ -23,7 +23,7 @@ namespace Stereo
             OwnCallScope           (const OwnCallScope&) = delete;
             OwnCallScope& operator=(const OwnCallScope&) = delete;
 
-            /* True if the calling thread is in a scope. */
+            /* Returns true if the calling thread is inside an OwnCallScope. */
             static bool is_active();
 
         private:

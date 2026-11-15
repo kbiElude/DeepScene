@@ -2,9 +2,9 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * What is told of the use of resources, as the model builder learns of it: every read and write, in the order of the calls, and where the frames
- * end. The dependencies between frames are made of it (see AccessEvent for what an access is). A sink is optional, and must not call the
- * builder which calls it.
+ * Receives the resource accesses that the model builder learns about: every read and write in call order, and where each frame ends. The
+ * dependencies between frames are computed from them (see AccessEvent for what an access is). A sink is optional. It must not call back into
+ * the builder that calls it.
  */
 #ifndef APIDUMPANALYSIS_I_ACCESS_SINK_H
 #define APIDUMPANALYSIS_I_ACCESS_SINK_H
@@ -21,13 +21,14 @@ namespace Analysis
         public:
             virtual ~IAccessSink() = default;
 
-            /* A use of a resource. The accesses of one call come in the order the call makes them; those of a draw come with the reads before
+            /* One access to a resource. The accesses of a call arrive in the order the call makes them. For a draw, the reads arrive before
              * the writes.
              */
             virtual void on_access(const AccessEvent& in_event) = 0;
 
-            /* The frame ended (a present); the accesses which followed the previous one are its own. The frames are numbered from 0. The calls
-             * of the frame are those from the first to the last (the call which ends it is the last), by the numbers that the builder was told.
+            /* A frame ended (at a present). The accesses since the previous on_frame_ended belong to this frame. Frames are numbered from 0.
+             * The calls of the frame run from the first to the last call index, inclusive (the call that ends the frame is the last). The
+             * indices are the call numbers that the builder was given.
              */
             virtual void on_frame_ended(const uint64_t& in_frame_index,
                                         const uint64_t& in_first_call_index,

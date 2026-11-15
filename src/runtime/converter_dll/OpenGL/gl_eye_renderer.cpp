@@ -61,7 +61,7 @@ void Stereo::ConverterDLL::GLEyeRenderer::collect_depth_reads(const bool& in_onl
 
     while (is_popped)
     {
-        /* What the read gave is looked at where it is, in the buffer of the graphics card, and the pass it is of is told by the numbers that were kept for it. */
+        /* The depth is measured in place, in the buffer of the graphics card. The pass it belongs to is identified by the z scale and shift saved when the read started. */
         const auto depth_func = [this, &read](const float* in_depth_ptr, const size_t& in_n_depths)
         {
             const auto range = measure_depths(read.z_scale,
@@ -221,7 +221,7 @@ Stereo::Core::DepthRange Stereo::ConverterDLL::GLEyeRenderer::measure_depths(con
                                                                              const float*  in_depth_ptr,
                                                                              const size_t& in_n_depths)
 {
-    /* A depth buffer that is read whole (the copy of it could not be made) is looked at every fourth pixel; the copy is small enough to be looked at whole. */
+    /* A depth array larger than N_DEPTHS_LOOKED_AT_WHOLE is a whole depth buffer (the small copy could not be made), so every fourth pixel is measured. The small copy is measured at every pixel. */
     constexpr size_t N_DEPTHS_LOOKED_AT_WHOLE = 100000;
     constexpr size_t N_PIXELS_BETWEEN_SAMPLES = 4;
 
@@ -247,7 +247,7 @@ void Stereo::ConverterDLL::GLEyeRenderer::measure_pass_depth()
     {
         forget_lost_depth_reads();
 
-        /* With a buffer of the graphics card to read it to the depth is not waited for: the result is taken when the frame ends, and is of the frame that is given then. */
+        /* With a buffer of the graphics card, the depth read is not waited for. Its result is taken at the end of the next frame, and it belongs to the frame the read started in. */
         if (m_targets.has_depth_read_buffers() )
         {
             start_depth_read();
@@ -297,7 +297,7 @@ bool Stereo::ConverterDLL::GLEyeRenderer::mirror_copy(const APIInterceptor::APIF
             bool               has_twin      = (twin_iterator != m_twin_map.end() );
             const bool         is_scaled     = (m_scaler.is_identity() == false);
 
-            /* The framebuffer is larger than the application knows: what it copies of it is as many times larger. */
+            /* The framebuffer is larger than the application knows, so the sizes of the copy are scaled up by the same factor. */
             if (is_scaled)
             {
                 m_scaler.scale_copy(is_sub,
@@ -359,7 +359,7 @@ bool Stereo::ConverterDLL::GLEyeRenderer::mirror_copy(const APIInterceptor::APIF
                           "A copy of the framebuffer to a texture was not made for the right eye: the twin of the texture cannot be made");
             }
 
-            /* The copy of the left eye is the application's call with the numbers of the larger framebuffer, which it cannot make. */
+            /* The application's copy call uses the sizes of the smaller framebuffer, so it cannot be made. The left-eye copy is made with the scaled-up sizes instead. */
             if (is_scaled)
             {
                 if (is_sub)
@@ -455,7 +455,7 @@ bool Stereo::ConverterDLL::GLEyeRenderer::on_frame_ending(GLFrameImages* out_ima
 {
     bool result = false;
 
-    /* A frame ends here: what was read of the picture is not the picture of the next one, whatever the calls in between were. */
+    /* A frame ends here. The picture that was read is out of date in the next frame, whatever calls come in between. */
     m_readback_cache.invalidate();
 
     if (m_targets.is_ready() == false)
@@ -463,7 +463,7 @@ bool Stereo::ConverterDLL::GLEyeRenderer::on_frame_ending(GLFrameImages* out_ima
         goto end;
     }
 
-    /* The reads of the depth that were started before this frame are done by now, whatever the graphics card had to do: their results go to the frames they are of. */
+    /* Take the results of the depth reads started in earlier frames. finish_depth_read() waits for any read that is still running. Each result goes to the frame it belongs to. */
     forget_lost_depth_reads();
 
     collect_depth_reads(true,   /* in_only_older_frames */
@@ -471,18 +471,18 @@ bool Stereo::ConverterDLL::GLEyeRenderer::on_frame_ending(GLFrameImages* out_ima
 
     measure_pass_depth();
 
-    /* The depth of the frame before is complete (its reads were all taken above); the depth of this frame is when its reads are, if they are not waited for. */
+    /* The depth of the previous frame is complete, because all of its reads were taken above. With buffers of the graphics card, the depth of this frame arrives one frame later (lag 1). Without them it was read at once (lag 0). */
     m_depth_lag = (m_targets.has_depth_read_buffers() ) ? 1
                                                         : 0;
 
     m_depth_ledger.end_frame(m_depth_lag);
 
     {
-        /* The images that come are those of the frame before, which have been read while this one was made. */
+        /* The images returned belong to the previous frame. They were read while this frame was being made. */
         result = m_frame_reader.read(&m_targets,
                                      out_images_ptr);
 
-        /* A program that shows the images elsewhere has no use for the window; otherwise the window shows the left eye. */
+        /* A program that shows the images elsewhere does not need the window. Otherwise the window shows the left eye. */
         if (m_is_shown_elsewhere == false)
         {
             m_targets.blit_left_to_window();
@@ -506,7 +506,7 @@ void Stereo::ConverterDLL::GLEyeRenderer::on_post(const APIInterceptor::APIFunct
     {
         case APIInterceptor::APIFUNCTION_GDI32_SWAPBUFFERS:
         {
-            /* The window may have another size now: the framebuffers are made again, for the frame that begins. */
+            /* The window may have a new size, so the framebuffers are made again for the frame that begins. */
             try_to_prepare();
 
             break;
@@ -579,7 +579,7 @@ bool Stereo::ConverterDLL::GLEyeRenderer::on_pre(const APIInterceptor::APIFuncti
     bool is_made_scaled    = false;
     bool is_read_served    = false;
 
-    /* Anything that the application does but read a pixel may change the picture: what was read of it is not used again. Only if the recipe asks for the reads to be given from it. */
+    /* Any call except a pixel read may change the picture, so the picture that was read is discarded. This applies only if the recipe serves pixel reads from the picture. */
     if (m_caches_pixel_reads)
     {
         if (in_function != APIInterceptor::APIFUNCTION_GL_GLREADPIXELS)
@@ -594,7 +594,7 @@ bool Stereo::ConverterDLL::GLEyeRenderer::on_pre(const APIInterceptor::APIFuncti
         }
     }
 
-    /* What the application states in pixels is made to match the framebuffers, in a list that it compiles as well as outside one (the call made here is in the list). */
+    /* State that the application gives in pixels is adapted to the size of the framebuffers. This applies inside and outside a display list that the application compiles; inside one, the call made here is compiled into the list. */
     if (m_targets.is_ready()            &&
         m_scaler.is_identity() == false &&
         is_read_served         == false)
@@ -605,7 +605,7 @@ bool Stereo::ConverterDLL::GLEyeRenderer::on_pre(const APIInterceptor::APIFuncti
                                          m_bound_texture_array.at(m_active_unit) );
     }
 
-    /* A list that the application compiles makes nothing now: what is in it is made when it is called. */
+    /* A display list that the application compiles executes nothing. Its contents run when the list is called. */
     if (m_is_in_app_list)
     {
         if (in_function == APIInterceptor::APIFUNCTION_GL_GLENDLIST)
@@ -660,7 +660,7 @@ bool Stereo::ConverterDLL::GLEyeRenderer::on_pre(const APIInterceptor::APIFuncti
 
         case APIInterceptor::APIFUNCTION_GL_GLBEGIN:
         {
-            /* The block is compiled, not made: it is made for each eye when it ends, when it is known what the recipe says of it. */
+            /* The block is compiled, not executed. It is executed once for each eye when the block ends, when the class that the recipe gives it is known. */
             if (m_targets.is_ready() )
             {
                 const OwnCallScope own_call_scope;
@@ -725,7 +725,7 @@ bool Stereo::ConverterDLL::GLEyeRenderer::on_pre(const APIInterceptor::APIFuncti
             {
                 constexpr uint32_t DEPTH_BUFFER_BIT = 0x00000100;
 
-                /* What the pass drew is in the depth buffer until it is cleared. */
+                /* What the pass drew stays in the depth buffer until the buffer is cleared. */
                 if (mask & DEPTH_BUFFER_BIT)
                 {
                     measure_pass_depth();
@@ -946,7 +946,7 @@ bool Stereo::ConverterDLL::GLEyeRenderer::on_pre_draw(const APIInterceptor::APIF
                 APIInterceptor::read_number(in_arguments_ptr[2],
                                            &type) )
             {
-                /* The indices are in the memory of the application (a chunk of them), or the offset in a buffer, which is the pointer itself. */
+                /* The indices are either in the memory of the application (a chunk) or an offset into a bound buffer. In the second case the pointer value is the offset itself. */
                 const void* const indices_ptr = (in_arguments_ptr[3].type == APIInterceptor::ARGTYPE_DATA_CHUNK_ID) ? resolve_pointer(in_arguments_ptr[3])
                                                                                                                     : in_arguments_ptr[3].get_ptr();
 
@@ -984,7 +984,7 @@ bool Stereo::ConverterDLL::GLEyeRenderer::on_pre_draw(const APIInterceptor::APIF
         }
     }
 
-    /* Made here, for both eyes; what could not be read is left to the application. */
+    /* The converter makes this call for both eyes. A call whose arguments cannot be read is left to the application. */
     return (draw_func == nullptr);
 }
 
@@ -992,7 +992,7 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
                                                     const Analysis::Recipe::DrawClass& in_draw_class,
                                                     const bool&                        in_is_pushed)
 {
-    /* Where the numbers that are looked for are in a matrix (the columns one after the other) and in a viewport. */
+    /* Positions of the values this function needs within a matrix (stored column by column) and within a viewport. */
     constexpr size_t MATRIX_X_SCALE              = 0;
     constexpr size_t MATRIX_Z_TRANSLATION        = 14;
     constexpr GLenum MODELVIEW                   = 0x1700;
@@ -1015,14 +1015,14 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
     std::array<float, 16> saved_matrix;
     std::array<GLint, 4>  saved_viewport     = {};
 
-    /* The viewport is the one the draw is made with: a pushed draw is moved by moving its origin, which works for any projection. */
+    /* The viewport is the one the draw is made with. A pushed draw is moved by shifting the origin of the viewport, which works with any projection. */
     if (in_is_pushed)
     {
         GLDriverFunctions::get().get_integerv_func_ptr(VIEWPORT,
                                                        saved_viewport.data() );
     }
 
-    /* A part that protrudes from an object, drawn once for both eyes, goes where the eyes would have put its origin: the camera it is made with is read here. */
+    /* A part that protrudes from an object is drawn once for both eyes. It must appear where the eyes would have put its origin, so the camera of the draw is read here. */
     if (in_is_pushed &&
         is_last_draw_part)
     {
@@ -1041,7 +1041,7 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
         GLDriverFunctions::get().get_floatv_func_ptr(PROJECTION_MATRIX,
                                                      m_pass_projection_f32mat.data() );
 
-        /* A projection that is not perspective says nothing of depth. */
+        /* A projection that is not perspective carries no depth information. */
         m_pass_has_affected_draws = Analysis::APIDumpAnalysis::DrawMeasurer::is_perspective_projection(m_pass_projection_f32mat);
     }
 
@@ -1060,7 +1060,7 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
         GLDriverFunctions::get().get_floatv_func_ptr(GL_MODELVIEW_MATRIX,
                                                      saved_matrix.data() );
 
-        /* The core decides from how far in front of the camera the origin is. */
+        /* The core decides whether the draw is attached to the camera from the distance of its origin in front of the camera. */
         const float origin_depth = -saved_matrix.at(MATRIX_Z_TRANSLATION);
 
         if (m_core_ptr->is_last_draw_attached_to_camera(origin_depth) )
@@ -1071,8 +1071,8 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
         }
     }
 
-    /* What the eyes already move the draw by, which the push leaves room for: none for a draw made as it is, else the parallax of its origin depth
-     * and projection.
+    /* The parallax that the eyes already apply to the draw, which the push must leave room for. It is zero for a draw made as it is. Otherwise it is
+     * the parallax of the depth of the draw's origin under its projection.
      */
     float layer_parallax = 0.0f;
 
@@ -1112,7 +1112,7 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
 
             if (is_part)
             {
-                /* A projection with a -1 in its fourth row, third column is a perspective one. */
+                /* A perspective projection has a -1 in the third column of its fourth row. */
                 shift_pixels = m_core_ptr->plan_part_shift(eye,
                                                            picture_width_pixels,
                                                            part_matrix.at(MATRIX_Z_TRANSLATION),
@@ -1120,7 +1120,7 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
                                                            Analysis::APIDumpAnalysis::DrawMeasurer::is_perspective_projection(part_projection) );
             }
 
-            /* Toward zero, so the shift stays within the plan; a side-reaching overlay is widened so no edge is bare. */
+            /* The shift is rounded toward zero so that it stays within the plan. An overlay that reaches the sides is widened so that no edge is left bare. */
             const auto pushed_viewport = Stereo::Core::PushShiftPlanner::make_viewport(saved_viewport.at(VIEWPORT_X),
                                                                                        saved_viewport.at(VIEWPORT_WIDTH),
                                                                                        shift_pixels,
@@ -1189,7 +1189,7 @@ const void* Stereo::ConverterDLL::GLEyeRenderer::resolve_pointer(const APIInterc
     {
         uint32_t n_bytes = 0;
 
-        /* The chunk is the converter's by now (the feeder took it out of the interceptor when it analysed the call). */
+        /* The chunk belongs to the converter now: the feeder took it out of the interceptor when it analysed the call. */
         if (m_get_chunk_func                                          == nullptr ||
             m_get_chunk_func(in_argument.get_data_chunk_id(),
                             &result,
@@ -1226,7 +1226,7 @@ void Stereo::ConverterDLL::GLEyeRenderer::select_textures(const bool& in_are_twi
                 continue;
             }
 
-            /* Only the unit that is active can be bound without the function that changes it. */
+            /* Only the active unit can be bound without calling the function that changes the active unit. */
             if (n_unit == m_active_unit)
             {
                 GLDriverFunctions::get().bind_texture_func_ptr(GL_TEXTURE_2D,
@@ -1261,7 +1261,7 @@ bool Stereo::ConverterDLL::GLEyeRenderer::serve_pixel_read(const uint32_t&      
     {
         std::array<uint8_t, 4> rgba = {};
 
-        /* The picture is the one that the application sees, brought down to the size of its window by the graphics card. */
+        /* This is the picture the application sees: the graphics card scales it down to the size of the application's window. */
         const auto fill_func = [this, picture_height, picture_width](std::vector<uint8_t>* out_rgba_u8_vec_ptr)
         {
             return m_targets.read_picture(picture_width,
@@ -1300,7 +1300,7 @@ void Stereo::ConverterDLL::GLEyeRenderer::start_depth_read()
 
     bool is_started = m_targets.begin_depth_read(&slot);
 
-    /* All the buffers are in use: the oldest read is waited for, to have one free. */
+    /* All buffers are in use. Wait for the oldest read so that one buffer is free. */
     if (is_started == false)
     {
         collect_depth_reads(false, /* in_only_older_frames */
@@ -1361,7 +1361,7 @@ void Stereo::ConverterDLL::GLEyeRenderer::try_to_prepare()
         uint32_t       real_height   = asked_height;
         uint32_t       real_width    = asked_width;
 
-        /* The framebuffers are as large as the eye of the headset has room for, with the proportions of the window. */
+        /* The framebuffers are as large as the eye of the headset allows, with the proportions of the window. */
         if (asked_width  > 0 &&
             asked_height > 0)
         {
@@ -1383,7 +1383,7 @@ void Stereo::ConverterDLL::GLEyeRenderer::try_to_prepare()
                                                real_width,
                                                real_height);
 
-        /* Until the application says otherwise, the viewport and the scissor box are those of its window, which are the size of the framebuffers. */
+        /* When the framebuffers are larger than the window, the viewport and the scissor box are set to the framebuffer size until the application sets its own. */
         if (is_ready                           &&
             m_scaler.is_identity() == false    &&
             (real_width  != m_applied_width    ||

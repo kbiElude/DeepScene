@@ -212,7 +212,7 @@ bool Analysis::APIDumpAnalysis::Frontends::AnalysisSession::process_call(const C
     m_builder.begin_call(m_summary.n_calls,
                          in_call.timestamp_qpc);
 
-    /* SwapBuffers is a function of GDI32, and what ends a frame of OpenGL. */
+    /* SwapBuffers belongs to GDI32 and ends a frame of an OpenGL application. */
     if (frontend_ptr == nullptr)
     {
         if (in_call.func == APIInterceptor::APIFUNCTION_GDI32_SWAPBUFFERS)
@@ -285,7 +285,7 @@ bool Analysis::APIDumpAnalysis::Frontends::AnalysisSession::run(const char*     
 
         m_workload_reference.filename = in_filename_ptr;
 
-        /* A workload which is read by the loader but not by this is still analyzed; it just cannot be told from another by its reference. */
+        /* If the loader can read the workload but WorkloadIdentity cannot, the workload is still analyzed; it just cannot be told apart from others by its reference. */
         WorkloadIdentity::read(in_filename_ptr,
                               &m_workload_reference,
                               &identity_error);
@@ -305,7 +305,7 @@ bool Analysis::APIDumpAnalysis::Frontends::AnalysisSession::run(const char*     
 
     if (result)
     {
-        /* Where the analysis stopped at the frame limit, the end of the file was not reached, so it is not said to be cut: it was never looked at. */
+        /* If the analysis stopped at the frame limit, it never reached the end of the file, so the file is not reported as truncated. */
         m_summary.is_truncated = (reader_ptr->is_truncated()          &&
                                   has_reached_frame_limit() == false);
     }

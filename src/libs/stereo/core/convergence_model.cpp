@@ -21,7 +21,7 @@ Stereo::Core::ConvergenceModel::ConvergenceModel()
 }
 
 bool Stereo::Core::ConvergenceModel::follow_scene_convergence_distance(const float& in_target,
-                                                                  const float& in_fraction_of_the_way)
+                                                                       const float& in_fraction_of_the_way)
 {
     const bool result = (in_target > 0.0f);
 
@@ -68,14 +68,14 @@ float Stereo::Core::ConvergenceModel::get_eased_value(const float& in_current,
                                                       const float& in_target,
                                                       const float& in_fraction_of_the_way)
 {
-    /* How close to the target is the same as being there. */
+    /* Within this fraction of the target, the value snaps to the target. */
     constexpr float SNAP_FRACTION = 0.001f;
 
     float result = in_target;
 
     if (in_current > 0.0f)
     {
-        /* Along the logarithm, as a depth is felt in proportion to itself. */
+        /* Eases on the logarithm because a depth is perceived in proportion to its size. */
         const float eased = ::expf(::logf(in_current) +
                                    (::logf(in_target) - ::logf(in_current)) * in_fraction_of_the_way);
 
@@ -95,13 +95,13 @@ float Stereo::Core::ConvergenceModel::get_effective_convergence_distance() const
 
 float Stereo::Core::ConvergenceModel::get_effective_eye_separation() const
 {
-    /* A thirtieth of the distance at which the eyes converge: the rule of thumb for the distance between the cameras of a stereo shot. */
+    /* One thirtieth of the convergence distance: a rule of thumb for the camera distance of a stereo shot. */
     constexpr float SEPARATION_PER_CONVERGENCE_DISTANCE = 1.0f / 30.0f;
 
     const float convergence_distance = get_effective_convergence_distance();
 
-    /* What the eyes can bear at the nearest surface of the scene may be less than that: the limit of the scene says, and no strength is
-     * allowed to take it further. A strength below 1 is a wish for less, which the limit follows.
+    /* The nearest surface of the scene may allow less separation than the natural one. The scene limit caps the separation and no depth
+     * strength raises the cap. A depth strength below 1 asks for less separation, so the cap is lowered by the same factor.
      */
     const float natural_separation = m_depth_strength * m_ipd_scale * SEPARATION_PER_CONVERGENCE_DISTANCE * convergence_distance;
     const float wished_for_part    = std::min(m_depth_strength,
@@ -122,7 +122,7 @@ float Stereo::Core::ConvergenceModel::get_eye_separation() const
 
 float Stereo::Core::ConvergenceModel::get_fraction_of_the_way(const float& in_elapsed_seconds)
 {
-    /* What a frame of the reference time goes. */
+    /* The fraction of the way covered during one reference frame. */
     constexpr float FRACTION_PER_REFERENCE_FRAME = 0.05f;
 
     float result = 0.0f;
@@ -153,7 +153,7 @@ float Stereo::Core::ConvergenceModel::get_reference_frame_seconds()
 bool Stereo::Core::ConvergenceModel::is_cut(const float& in_previous_target,
                                             const float& in_target)
 {
-    /* Frames of one scene have near targets; a cut has a far one. */
+    /* Targets of frames in one scene are close together. A cut makes them jump. */
     constexpr float CUT_RATIO = 2.0f;
 
     bool result = false;
@@ -161,7 +161,7 @@ bool Stereo::Core::ConvergenceModel::is_cut(const float& in_previous_target,
     if (in_previous_target > 0.0f &&
         in_target          > 0.0f)
     {
-        const float ratio = (in_target > in_previous_target) ? in_target / in_previous_target
+        const float ratio = (in_target > in_previous_target) ? in_target          / in_previous_target
                                                              : in_previous_target / in_target;
 
         result = (ratio > CUT_RATIO);

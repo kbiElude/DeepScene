@@ -30,7 +30,7 @@ Analysis::APIDumpDependencies::DependencyResult Analysis::APIDumpDependencies::D
 
     DependencyResult result;
 
-    /* The frame of each access: the accesses up to the end of frame N are of frames up to N. */
+    /* Assigns each access to its frame: the accesses from the end count of frame N - 1 up to the end count of frame N belong to frame N. */
     {
         size_t n_event = 0;
 
@@ -46,7 +46,7 @@ Analysis::APIDumpDependencies::DependencyResult Analysis::APIDumpDependencies::D
             }
         }
 
-        /* What comes after the last end belongs to a frame which did not end. */
+        /* The accesses after the last frame end belong to a frame that did not end. */
         for (;
              n_event < event_vec.size();
            ++n_event)
@@ -65,7 +65,7 @@ Analysis::APIDumpDependencies::DependencyResult Analysis::APIDumpDependencies::D
         }
     }
 
-    /* The accesses by resource, each in the order it was made in (a counting sort, which is stable). */
+    /* Groups the accesses by resource with a counting sort. The sort is stable, so each resource keeps its accesses in the order they were made. */
     for (const auto& event : event_vec)
     {
         const uint32_t id_value = Analysis::APIDumpAnalysis::get_resource_id_value(event.resource_id);
@@ -113,7 +113,7 @@ Analysis::APIDumpDependencies::DependencyResult Analysis::APIDumpDependencies::D
         {
             ResourceAccesses accesses;
 
-            /* The range is of the indices of a vector, so it fits size_t on a 32-bit build too. */
+            /* The range holds vector indices, so the value fits in size_t even on a 32-bit build. */
             const size_t    resource_index = static_cast<size_t>(n_resource);
 
             accesses.event_index_ptr = event_index_vec.data() + first_event_vec.at(resource_index);
@@ -164,7 +164,7 @@ void Analysis::APIDumpDependencies::DependencyAnalyzer::analyze_resource(const A
         bool           call_has_sampled  = false;
         bool           call_has_write    = false;
 
-        std::vector<Analysis::APIDumpAnalysis::AccessRectangle> written_rectangle_vec; /* what the frame wrote, if the extent of all writes is known */
+        std::vector<Analysis::APIDumpAnalysis::AccessRectangle> written_rectangle_vec; /* rectangles the frame wrote; set only if the written extent is known */
 
         /* The accesses of the resource in this frame. */
         while (end_access                                                     <  in_accesses.n_events &&
@@ -174,7 +174,7 @@ void Analysis::APIDumpDependencies::DependencyAnalyzer::analyze_resource(const A
             const bool                                    is_read  = (event.mode != Analysis::APIDumpAnalysis::AccessMode::WRITE);
             const bool                                    is_write = (event.mode != Analysis::APIDumpAnalysis::AccessMode::READ);
 
-            if (end_access == n_access ||
+            if (end_access       == n_access   ||
                 event.call_index != call_index)
             {
                 call_index       = event.call_index;
@@ -231,7 +231,7 @@ void Analysis::APIDumpDependencies::DependencyAnalyzer::analyze_resource(const A
                 }
             }
 
-            /* What a call reads as a texture while it also writes is a use of what it is writing. */
+            /* A call that samples the resource as a texture and also writes it reads its own output, so the frame uses what it is writing. */
             if (call_has_sampled &&
                 call_has_write)
             {
@@ -241,12 +241,12 @@ void Analysis::APIDumpDependencies::DependencyAnalyzer::analyze_resource(const A
             ++end_access;
         }
 
-        /* The frame uses the content of the version before it. */
+        /* The frame uses the latest version, which holds the content that earlier frames left. */
         if (use.carry != CarryKind::NONE)
         {
             if (out_dependencies_ptr->version_vec.empty() )
             {
-                /* What the application made it with. */
+                /* A version without a writer holds the content the application created the resource with. */
                 out_dependencies_ptr->version_vec.emplace_back();
             }
 
@@ -279,7 +279,7 @@ void Analysis::APIDumpDependencies::DependencyAnalyzer::analyze_resource(const A
                                                                                      : frame_index + 1);
         }
 
-        /* And what it writes is the next version. */
+        /* What the frame writes becomes the next version. */
         if (use.is_written)
         {
             ResourceVersion version;
@@ -288,7 +288,7 @@ void Analysis::APIDumpDependencies::DependencyAnalyzer::analyze_resource(const A
             version.keeps_earlier_content = (use.is_fully_written == false);
             version.writer_frame_index    = frame_index;
 
-            /* A frame that replaced all of the resource has nothing to say of where it wrote. */
+            /* A write that replaced the whole resource has no useful rectangle, so none is stored. */
             if (use.is_fully_written == false)
             {
                 version.written_rectangle_vec = written_rectangle_vec;
@@ -388,12 +388,12 @@ void Analysis::APIDumpDependencies::DependencyAnalyzer::analyze_resource(const A
 }
 
 void Analysis::APIDumpDependencies::DependencyAnalyzer::compute_frame_inputs(const std::vector<Analysis::APIDumpAnalysis::AccessEvent>& in_event_vec,
-                                                                             const size_t&                                               in_first_event,
-                                                                             const size_t&                                               in_end_event,
-                                                                             const std::vector<Analysis::APIDumpAnalysis::Resource>&     in_resource_vec,
-                                                                             const std::vector<uint8_t>&                                 in_is_tracked_vec,
-                                                                             InputWorkspace*                                             inout_workspace_ptr,
-                                                                             std::vector<FrameInputs>*                                   out_frame_inputs_vec_ptr)
+                                                                             const size_t&                                              in_first_event,
+                                                                             const size_t&                                              in_end_event,
+                                                                             const std::vector<Analysis::APIDumpAnalysis::Resource>&    in_resource_vec,
+                                                                             const std::vector<uint8_t>&                                in_is_tracked_vec,
+                                                                             InputWorkspace*                                            inout_workspace_ptr,
+                                                                             std::vector<FrameInputs>*                                  out_frame_inputs_vec_ptr)
 {
     InputWorkspace&       workspace = *inout_workspace_ptr;
     std::vector<uint32_t> input_vec;
@@ -419,7 +419,7 @@ void Analysis::APIDumpDependencies::DependencyAnalyzer::compute_frame_inputs(con
         const uint64_t call_index = in_event_vec.at(n_event).call_index;
         size_t         end_call   = n_event;
 
-        while (end_call < in_end_event                                &&
+        while (end_call                             <  in_end_event &&
                in_event_vec.at(end_call).call_index == call_index)
         {
             ++end_call;
@@ -427,7 +427,9 @@ void Analysis::APIDumpDependencies::DependencyAnalyzer::compute_frame_inputs(con
 
         input_vec.clear();
 
-        /* What the call reads is what it gives to what it writes: the resources that flowed into each of those it reads, or it itself if nothing has been written to it. */
+        /* The call gives what it reads to what it writes. For each resource the call reads, the inputs are the resources that already flowed into it
+         * in this frame, or the resource itself if nothing has been written to it yet.
+         */
         for (size_t n_call_event = n_event;
                     n_call_event < end_call;
                   ++n_call_event)
@@ -468,12 +470,12 @@ void Analysis::APIDumpDependencies::DependencyAnalyzer::compute_frame_inputs(con
             {
                 const bool is_whole_resource = covers_whole_resource(event.subresource_range,
                                                                      in_resource_vec.at(number - 1).description);
-                const bool is_replace        = (event.mode     == Analysis::APIDumpAnalysis::AccessMode::WRITE &&
+                const bool is_replace        = (event.mode     == Analysis::APIDumpAnalysis::AccessMode::WRITE    &&
                                                 event.coverage == Analysis::APIDumpAnalysis::AccessCoverage::FULL &&
                                                 is_whole_resource);
-                const bool is_fed_back       = std::binary_search(input_vec.begin(),
-                                                                  input_vec.end  (),
-                                                                  number);
+                const bool is_fed_back       = std::binary_search             (input_vec.begin(),
+                                                                               input_vec.end  (),
+                                                                               number);
                 auto&      dependency_vec    = workspace.dependency_vec_vec.at(number);
 
                 if (is_fed_back)
@@ -481,7 +483,9 @@ void Analysis::APIDumpDependencies::DependencyAnalyzer::compute_frame_inputs(con
                     workspace.has_feedback_vec.at(number) = 1;
                 }
 
-                /* What a resource has when the frame begins is what it was, which a write that does not replace all of it leaves in part. */
+                /* At the first write in the frame, the resource still holds its content from before the frame. A write that replaces only part of
+                 * it keeps that content, so the resource then depends on itself.
+                 */
                 if (workspace.has_dependencies_vec.at(number) == 0)
                 {
                     workspace.has_dependencies_vec.at(number) = 1;
@@ -519,7 +523,7 @@ void Analysis::APIDumpDependencies::DependencyAnalyzer::compute_frame_inputs(con
         auto& dependency_vec = workspace.dependency_vec_vec.at(number);
 
         if (workspace.is_written_vec.at(number) != 0 &&
-            in_is_tracked_vec.at(number)        != 0)
+            in_is_tracked_vec.at       (number) != 0)
         {
             FrameInputs frame_inputs;
 
@@ -558,7 +562,7 @@ void Analysis::APIDumpDependencies::DependencyAnalyzer::compute_inputs(const Acc
     std::vector<uint8_t> is_tracked_vec(in_resource_vec.size() + 1,
                                         0);
 
-    /* Only the resources that a written extent is known of: what the others need is all that a frame uses. */
+    /* Only resources with a known written extent are tracked. For the others, the writer is assumed to need everything the frame uses. */
     for (size_t n_resource = 0;
                 n_resource < in_resource_vec.size();
               ++n_resource)
@@ -581,7 +585,7 @@ void Analysis::APIDumpDependencies::DependencyAnalyzer::compute_inputs(const Acc
         {
             InputWorkspace workspace;
 
-            workspace.dependency_vec_vec.resize(in_resource_vec.size() + 1);
+            workspace.dependency_vec_vec.resize  (in_resource_vec.size() + 1);
             workspace.has_dependencies_vec.assign(in_resource_vec.size() + 1,
                                                   0);
             workspace.has_feedback_vec.assign    (in_resource_vec.size() + 1,
@@ -594,10 +598,10 @@ void Analysis::APIDumpDependencies::DependencyAnalyzer::compute_inputs(const Acc
                         ++n_frame)
             {
                 const size_t frame_index = static_cast<size_t>(n_frame);
-                const size_t first_event = (frame_index == 0) ? 0
-                                                              : static_cast<size_t>(frame_end_count_vec.at(frame_index - 1) );
-                const size_t end_event   = (frame_index < frame_end_count_vec.size() ) ? static_cast<size_t>(frame_end_count_vec.at(frame_index) )
-                                                                                       : event_vec.size();
+                const size_t first_event = (frame_index == 0)                           ? 0
+                                                                                        : static_cast<size_t>(frame_end_count_vec.at(frame_index - 1) );
+                const size_t end_event   = (frame_index <  frame_end_count_vec.size() ) ? static_cast<size_t>(frame_end_count_vec.at(frame_index) )
+                                                                                        : event_vec.size();
 
                 compute_frame_inputs(event_vec,
                                      first_event,
@@ -613,7 +617,9 @@ void Analysis::APIDumpDependencies::DependencyAnalyzer::compute_inputs(const Acc
                                           in_n_threads,
                                           compute_frames_func);
 
-        /* The version that a frame wrote of a resource is the one whose writer it is; the versions are in the order of their frames. */
+        /* Finds the version that the frame wrote: the version whose writer is this frame. The versions are ordered by writer frame, so a binary
+         * search finds it.
+         */
         for (size_t n_frame = 0;
                     n_frame < n_frames;
                   ++n_frame)
@@ -622,7 +628,7 @@ void Analysis::APIDumpDependencies::DependencyAnalyzer::compute_inputs(const Acc
             {
                 auto&  version_vec = inout_result_ptr->resource_vec.at(frame_inputs.resource_number - 1).version_vec;
                 size_t first       = (version_vec.empty() == false && version_vec.front().has_writer == false) ? 1
-                                                                                                                : 0;
+                                                                                                               : 0;
                 size_t end         = version_vec.size();
 
                 while (first < end)
@@ -643,7 +649,7 @@ void Analysis::APIDumpDependencies::DependencyAnalyzer::compute_inputs(const Acc
                 {
                     ResourceVersion& version = version_vec.at(first);
 
-                    if (version.has_writer                 &&
+                    if (version.has_writer                   &&
                         version.writer_frame_index == n_frame)
                     {
                         version.has_inputs = (frame_inputs.has_feedback == false);
@@ -686,7 +692,7 @@ Analysis::APIDumpAnalysis::AccessRectangle Analysis::APIDumpDependencies::Depend
             const bool is_replace        = (event.mode     == Analysis::APIDumpAnalysis::AccessMode::WRITE &&
                                             event.coverage == Analysis::APIDumpAnalysis::AccessCoverage::FULL);
 
-            /* A write that replaces all of the resource leaves nothing of what was before it, so it is not one of those that this is about. */
+            /* A write that replaces the whole resource leaves none of the earlier content, so it does not contribute to the written extent. */
             if (is_replace        &&
                 is_whole_resource)
             {
@@ -701,7 +707,7 @@ Analysis::APIDumpAnalysis::AccessRectangle Analysis::APIDumpDependencies::Depend
                 continue;
             }
 
-            /* A rectangle with nothing in it reaches nothing. */
+            /* A rectangle with no area reaches nothing, so it is ignored. */
             if (event.rectangle.width  != 0 &&
                 event.rectangle.height != 0)
             {
@@ -752,7 +758,7 @@ bool Analysis::APIDumpDependencies::DependencyAnalyzer::covers_whole_resource(co
     const uint32_t n_mip_levels = std::max<uint32_t>(in_description.mip_level_count,
                                                      1);
 
-    /* A count of 0 is all of them from the first on. */
+    /* A count of 0 means all layers or mip levels from the first one on. */
     const uint32_t last_layer     = (in_range.n_layers     == 0) ? n_layers
                                                                  : in_range.first_layer     + in_range.n_layers;
     const uint32_t last_mip_level = (in_range.n_mip_levels == 0) ? n_mip_levels
@@ -766,7 +772,7 @@ bool Analysis::APIDumpDependencies::DependencyAnalyzer::covers_whole_resource(co
 
 bool Analysis::APIDumpDependencies::DependencyAnalyzer::is_first_level_range(const Analysis::APIDumpAnalysis::SubresourceRange& in_range)
 {
-    /* A count of 0 layers is all of them, so a resource of one layer is the same as a count of 1. */
+    /* A layer count of 0 means all layers. For a one-layer resource, a count of 0 and a count of 1 mean the same, so both are accepted. */
     return (in_range.first_layer     == 0 &&
             in_range.first_mip_level == 0 &&
             in_range.n_layers        <= 1 &&

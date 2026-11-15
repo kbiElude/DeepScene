@@ -14,23 +14,25 @@ namespace Stereo
     {
         namespace EngineDLL
         {
-            /* Presents the frames at the pace at which the dumped process did: waits for the time that the frame was presented
-             * at, relative to the previous one. A gap much longer than the usual one, or longer than a fixed limit, is cut
-             * short, because the long ones are mostly the dumper's own (writing a segment), not the app's. A replay which
-             * falls behind does not catch up in a burst: it starts the timeline anew.
+            /* Presents the frames at the pace of the dumped process. It waits until the time the frame was presented at, measured
+             * relative to the previous frame. A gap is cut short if it is longer than a fixed limit or much longer than the usual gap,
+             * because long gaps mostly come from the dumper (it writes a segment), not from the application. A replay that falls
+             * behind does not catch up in a burst; it restarts the timeline.
              */
             class FramePacer
             {
             public:
                 FramePacer();
 
-                /* The timeline starts anew with the next frame (after a pause, or a reset). */
+                /* Restarts the timeline at the next frame. Call it after a pause or a reset. */
                 void reset();
 
                 /* 1 is the pace of the dumped process, 2 is twice as fast, 0 is as fast as possible. Any thread. */
                 void set_speed(const double& in_speed);
 
-                /* Called for each frame, from the replay thread, with the time stamp of the call that ends it. */
+                /* Waits for the presentation time of a frame. Called once per frame from the replay thread, with the time stamp of the
+                 * call that ends the frame.
+                 */
                 void wait_for_frame(const uint64_t& in_timestamp_qpc,
                                     const uint64_t& in_qpc_frequency);
 

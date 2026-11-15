@@ -24,22 +24,22 @@ namespace VRPlayer
             VERIFYING
         };
 
-        /* Where an application comes from, and what the archive it comes in has to be. */
+        /* Where an application is downloaded from and what its archive must look like. */
         struct InstallSpec
         {
-            std::string              install_directory;        /* absolute: where the files of the application go; the installer makes it; it must not exist before */
-            uint64_t                 n_archive_bytes      = 0; /* what the download is; 0 if it is not known                                        */
-            uint64_t                 n_unpacked_bytes_max = 0; /* what the files may take together                                                  */
-            std::string              page_url;                 /* where the archive can be got by hand; shown if the download does not work         */
-            std::string              sha256_hex;               /* of the archive, in lower case: what is not that is not unpacked                   */
-            std::vector<std::string> url_vec;                  /* of the archive, one after the other until one works                               */
+            std::string              install_directory;        /* absolute: where the application files go; the installer creates it, so it must not exist beforehand */
+            uint64_t                 n_archive_bytes      = 0; /* size of the download; 0 if unknown                                                */
+            uint64_t                 n_unpacked_bytes_max = 0; /* the most that the unpacked files may take together                                */
+            std::string              page_url;                 /* where the archive can be downloaded by hand; shown if the download fails          */
+            std::string              sha256_hex;               /* SHA-256 of the archive as lower-case hex; an archive with another hash is not unpacked */
+            std::vector<std::string> url_vec;                  /* addresses of the archive, tried in order until one works                          */
         };
 
         struct InstallProgress
         {
-            std::string  message;           /* what is being done, or why it did not work */
-            uint64_t     n_bytes_done  = 0; /* of the phase                               */
-            uint64_t     n_bytes_total = 0; /* of the phase; 0 if it is not known         */
+            std::string  message;           /* what is being done, or why it failed */
+            uint64_t     n_bytes_done  = 0; /* within the current phase                   */
+            uint64_t     n_bytes_total = 0; /* of the current phase; 0 if unknown         */
             InstallPhase phase         = InstallPhase::IDLE;
         };
     }

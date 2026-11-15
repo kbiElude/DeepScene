@@ -15,32 +15,34 @@ namespace Stereo
     {
         namespace EngineDLL
         {
-            /* Tells whether an object which the application makes, by the address that the dump gives it, is one that each eye has a copy of (see
-             * PerEyeTexture). Asked when the object is made, which is when the copies are.
+            /* Tells whether an object the application creates has a separate copy for each eye (see PerEyeTexture). The object is
+             * identified by the address the dump gives it. The executor asks when it creates the object, which is also when it
+             * creates the copies.
              */
             typedef std::function<bool(const uint64_t& in_dumped_address)> PerEyePredicate;
 
-            /* An executor of the calls of an API which keeps a copy of some objects for each eye. */
+            /* An executor of the calls of one API that keeps a separate copy of some objects for each eye. */
             class IEyeExecutor
             {
             public:
                 virtual ~IEyeExecutor() = default;
 
-                /* The eye that the calls which follow are executed for, until the next time: the objects which each eye has a copy of are the ones of
-                 * that eye. The left one to begin with, and for what is not rendered for two eyes.
+                /* Sets the eye that the following calls are executed for, until the next call of set_eye(). Objects that have a copy
+                 * per eye resolve to the copy of that eye. The initial eye is the left one, which is also used for frames that are not
+                 * rendered for two eyes.
                  */
                 virtual void set_eye(const Analysis::Recipe::Eye& in_eye) = 0;
 
-                /* How many times the frame that is about to be played is executed (1 or 2): an executor that keeps a copy of an object for each eye brings the copy of the eye that is
-                 * not executed up to date by itself in a frame that is executed once, and leaves it to the other execution in one that is executed twice. Nothing is done
-                 * by default.
+                /* Tells how many times the frame about to be played is executed (1 or 2). An executor that keeps a copy of an object per
+                 * eye uses it like this. If the frame is executed once, the executor brings the copy of the eye that is not executed up to
+                 * date itself. If the frame is executed twice, the other execution does that. The default implementation does nothing.
                  */
                 virtual void set_n_executions(const uint32_t& in_n_executions)
                 {
                     (void) in_n_executions;
                 }
 
-                /* What tells which objects have a copy for each eye; none, if it is not set. */
+                /* Sets the predicate that tells which objects have a copy per eye. Without a predicate, no object has one. */
                 virtual void set_per_eye_predicate(const PerEyePredicate& in_predicate) = 0;
             };
         }

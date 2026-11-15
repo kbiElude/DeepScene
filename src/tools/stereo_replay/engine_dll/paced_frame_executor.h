@@ -18,13 +18,13 @@ namespace Stereo
         {
             class PacedFrameHost;
 
-            /* Plays the frames of another frame executor at the pace of the dumped process: the call that ends a frame is not given to it before
-             * the time that the frame was presented at.
+            /* Plays the frames of another frame executor at the pace of the dumped process. The call that ends a frame is not given
+             * to that executor before the time the frame was presented at.
              */
             class PacedFrameExecutor : public ::Replay::ReplayEngineDLL::IFrameExecutor
             {
             public:
-                /* The frames which the hurry says are hurried through are not waited for. */
+                /* Frames that in_hurry_ptr says are hurried through are not waited for. */
                 PacedFrameExecutor(::Replay::ReplayEngineDLL::IFrameExecutor* in_executor_ptr,
                                    const FrameHurry*                          in_hurry_ptr);
                 ~PacedFrameExecutor();
@@ -39,7 +39,7 @@ namespace Stereo
             private:
                 const FrameHurry*                          m_hurry_ptr;
                 ::Replay::ReplayEngineDLL::IFrameExecutor* m_executor_ptr;
-                ::Replay::ReplayEngineDLL::IFrameHost*     m_host_ptr; /* the one the paced host is for */
+                ::Replay::ReplayEngineDLL::IFrameHost*     m_host_ptr; /* the host that the paced host forwards to */
                 std::unique_ptr<PacedFrameHost>            m_paced_host_ptr;
                 FramePacer                                 m_pacer;
             };

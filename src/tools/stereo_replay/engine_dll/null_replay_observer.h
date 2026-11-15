@@ -13,8 +13,9 @@ namespace Stereo
     {
         namespace EngineDLL
         {
-            /* A replay observer that does nothing with what it is told. An observer that cares about some of it derives from this one and overrides those. It is all in
-             * the header since the tools that use it load the engine as a library at run time.
+            /* A replay observer that ignores every notification. An observer that needs only some of them derives from this class and
+             * overrides those. The class is implemented entirely in the header because the tools that use it load the engine as a
+             * library at run time.
              */
             class NullReplayObserver : public IReplayObserver
             {

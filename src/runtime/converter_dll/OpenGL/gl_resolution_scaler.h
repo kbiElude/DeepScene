@@ -20,26 +20,29 @@ namespace Stereo
 {
     namespace ConverterDLL
     {
-        /* Has an OpenGL application render larger than it asks (see ResolutionPolicy), without its knowing. The framebuffers of the eyes (see GLEyeTargets) are made as
-         * large as the policy says, and what the application states in pixels is made to match: the viewport, the scissor box, the width of lines and the size of points
-         * are scaled, and so are the textures that it makes room in for what it copies from the framebuffer (a texture whose storage it gives without pixels), with
-         * the rectangles of the copies, and a glReadPixels of one pixel of the colors, in bytes, is made at the pixel of the larger framebuffer that is under the centre of the one the
-         * application names. A call of the application that is made here is not made by it (the converter says so, and the analysis still sees the call as the
-         * application made it). What the application does that cannot be made to match (any other read of pixels, drawing pixels, asking how large the viewport is, giving pixels to a
-         * texture it renders to) ends the application, through the core, instead of showing it wrong; the calls that do that are the ones of GLResolutionHazards.
+        /* Makes an OpenGL application render larger than it asks for (see ResolutionPolicy), without its knowledge. The framebuffers of the
+         * eyes (see GLEyeTargets) get the size that the policy chooses. Everything the application states in pixels is converted to match:
+         * the viewport, the scissor box, the line width and the point size are scaled. A texture that the application gives storage for without
+         * pixels, to fill by copying from the framebuffer, is scaled together with the rectangles of those copies. A glReadPixels of one color
+         * pixel in bytes is made at the pixel of the larger framebuffer that lies under the center of the pixel the application names. When the
+         * scaler makes a call itself, the application's own call is not made, and the analysis still sees the call as the application issued it.
+         *
+         * Anything else that cannot be made to match ends the application, through the core, instead of showing wrong images: any other pixel
+         * read, drawing pixels, querying the viewport size, and giving pixels to a texture that is rendered to. GLResolutionHazards lists these calls.
          */
         class GLResolutionScaler
         {
         public:
-            /* The core must outlive the scaler. What the application renders is made as large as fits the target (the size of an eye of the headset) with its proportions,
-             * once the application's window is known (see plan()); no target, or a target that is not larger than the window, makes the scaler do nothing.
+            /* The core must outlive the scaler. Once the size of the application's window is known (see plan()), the scaler enlarges the rendering
+             * as far as it fits the target (the size of one eye of the headset), keeping the proportions. It does nothing if there is no target or
+             * the target is not larger than the window.
              */
             GLResolutionScaler(const uint32_t&              in_target_width,
                                const uint32_t&              in_target_height,
                                Stereo::Core::StereoCore*    in_core_ptr,
                                const Stereo::Core::LogFunc& in_log_func);
 
-            /* The size of the window of the application, as plan() was told (0 until it was). */
+            /* The window size of the application as given to plan(), or 0 before plan() is called. */
             uint32_t get_asked_height() const;
             uint32_t get_asked_width () const;
 
@@ -47,19 +50,20 @@ namespace Stereo
 
             bool is_identity() const;
 
-            /* True if the texture has room for more pixels than the application knows of (it gave its storage without pixels, or by a copy of the framebuffer). */
+            /* True if the texture has room for more pixels than the application knows about. This happens when the application gave the storage without pixels, or by a copy of the framebuffer. */
             bool is_scaled_texture(const uint32_t& in_texture) const;
 
-            /* A call of the application is about to be made, while a texture is bound (0: none). Returns true if the call was made here, scaled, and the application's is not to
-             * be made. Ends the application, through the core, if the call is one that cannot be made to match.
+            /* A call of the application is about to be made while the given texture is bound (0: none). Returns true if the scaler made the scaled
+             * call itself, so the application's call must not be made. Ends the application, through the core, if the call cannot be made to match.
              */
             bool on_pre(const APIInterceptor::APIFunction&         in_function,
                         const uint32_t&                            in_n_arguments,
                         const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
                         const uint32_t&                            in_bound_texture);
 
-            /* The window of the application is this large, and the largest that a framebuffer or a texture can be is this (0: not known). Chooses the scale and says the size of
-             * the framebuffers; the lines of the log say what was made larger. Ends the application if its images cannot be passed on, even at the least scale.
+            /* Takes the window size of the application and the largest size that a framebuffer or texture can have (0: unknown). Chooses the scale
+             * and returns the size of the framebuffers. The log says what was enlarged. Ends the application if its images cannot be passed on, even
+             * at the smallest scale.
              */
             void plan(const uint32_t& in_asked_width,
                       const uint32_t& in_asked_height,
@@ -67,35 +71,37 @@ namespace Stereo
                       uint32_t*       out_real_width_ptr,
                       uint32_t*       out_real_height_ptr);
 
-            /* The numbers of a copy of the framebuffer to a texture (as the arguments of glCopyTexSubImage2D or glCopyTexImage2D are: the target, the level, then for a sub
-             * image the offset in the texture and for the other the format, then the corner of what is copied, its size, and for the other the border) made as large. For a sub
-             * image the texture must be a scaled one, or the application is ended. A copy to a texture that has none yet (glCopyTexImage2D) makes it one.
+            /* Scales the numbers of a copy from the framebuffer to a texture (the arguments of glCopyTexSubImage2D or glCopyTexImage2D). The array
+             * holds the target and the level, then for a sub image the offset in the texture, or for glCopyTexImage2D the format, then the corner
+             * and the size of the copied rectangle, and for glCopyTexImage2D the border. For a sub image the texture must already be a scaled
+             * texture, or the application is ended. A copy to a texture that has no storage yet (glCopyTexImage2D) makes the texture a scaled one.
              */
             void scale_copy(const bool&                  in_is_sub_image,
                             const uint32_t&              in_bound_texture,
                             std::array<int32_t, 8>*      inout_value_array_ptr);
 
-            /* The texture is gone. */
+            /* Called when the texture is deleted. */
             void forget_texture(const uint32_t& in_texture);
 
-            /* Whether the call (the arguments of a glReadPixels) reads one pixel of the colors, in bytes, to memory of the application (not to a buffer of the driver), which is the
-             * only read that is made for the larger framebuffer or from a picture that was read (see PictureReadbackCache); what it reads is told by the read.
+            /* Returns true if the call (the arguments of a glReadPixels) reads one pixel of the colors, in bytes, into memory of the application
+             * (not into a buffer of the driver). This is the only read that is made for the larger framebuffer or from a picture that was read
+             * (see PictureReadbackCache). The details of the read are written to out_read_ptr.
              */
             static bool parse_single_pixel_read(const uint32_t&                            in_n_arguments,
                                                 const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
                                                 SinglePixelRead*                           out_read_ptr);
 
         private:
-            /* A glReadPixels of the application (its arguments), made here for the larger framebuffer: the one pixel that it names is read at the pixel under its centre (see
-             * ResolutionPolicy::scale_pixel_coordinate(), which also brings a pixel that is outside the window to the nearest one in it), into the buffer of the application. Returns false, and
-             * does nothing, for any other read (of more than a pixel, of the depth, of floats, of other colors, into a buffer of the driver), and when nothing is scaled: the application is ended
-             * for it if it is.
+            /* Makes a glReadPixels of the application (its arguments) for the larger framebuffer: reads the one pixel the application names at the
+             * pixel under its center, into the application's buffer (see ResolutionPolicy::scale_pixel_coordinate(), which also moves a pixel
+             * outside the window to the nearest pixel inside it). Returns false and does nothing for any other read (more than one pixel, depth,
+             * floats, other colors, into a driver buffer) and when nothing is scaled. If something is scaled, the application is ended for such a read.
              */
             bool make_scaled_read(const uint32_t&                            in_n_arguments,
                                   const APIInterceptor::APIFunctionArgument* in_arguments_ptr) const;
 
-            /* Whether the argument is a pointer that is null (the data of an upload is none). The call is not analysed yet when it is about to be made, and its data is still
-             * where the interceptor keeps it.
+            /* Returns true if the argument is a null pointer (an upload without data). The call has not been analysed yet when it is about to be
+             * made, so its data is still in the chunk that the interceptor keeps.
              */
             static bool is_null_pointer(const APIInterceptor::APIFunctionArgument& in_argument);
 

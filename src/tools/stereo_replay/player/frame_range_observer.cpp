@@ -16,7 +16,7 @@ Stereo::Replay::Player::FrameRangeObserver::FrameRangeObserver(Stereo::Replay::E
 
 void Stereo::Replay::Player::FrameRangeObserver::on_frame_presented(const uint32_t& in_n_frame)
 {
-    /* The frame before the range was the last one to hurry through. */
+    /* The frame just before the range was the last one to hurry through, so switch to the recorded pace. */
     if (m_first_frame  != 0             &&
         in_n_frame + 1 == m_first_frame)
     {

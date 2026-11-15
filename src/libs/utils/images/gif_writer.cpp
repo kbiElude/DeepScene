@@ -51,7 +51,7 @@ void Utils::Images::GifWriter::compress_lzw(const std::vector<uint8_t>& in_index
         }
     };
 
-    /* The codes are one bit longer as soon as the next one to be made does not fit in the length they have. */
+    /* The code length grows by one bit as soon as the next code to be assigned no longer fits in the current length. */
     const auto grow_func = [&]()
     {
         if (next_code  > (1u << code_size) - 1 &&
@@ -133,7 +133,7 @@ void Utils::Images::GifWriter::compress_lzw(const std::vector<uint8_t>& in_index
                                          data_u8_vec.begin() + n_byte + n_block_bytes);
     }
 
-    inout_file_u8_vec_ptr->push_back(0); /* the end of the blocks */
+    inout_file_u8_vec_ptr->push_back(0); /* the block terminator */
 }
 
 bool Utils::Images::GifWriter::encode(const std::vector<Image>& in_frame_vec,
@@ -187,7 +187,7 @@ bool Utils::Images::GifWriter::encode(const std::vector<Image>& in_frame_vec,
         out_file_u8_vec_ptr->push_back(0); /* the colour of the background  */
         out_file_u8_vec_ptr->push_back(0); /* the aspect ratio: not given   */
 
-        /* The extension that makes it play for ever. */
+        /* The extension that makes the animation loop forever. */
         const uint8_t loop_u8vec19[] =
         {
             0x21,
@@ -224,7 +224,7 @@ bool Utils::Images::GifWriter::encode(const std::vector<Image>& in_frame_vec,
                                       in_frame_delay_n_milliseconds / N_MILLISECONDS_PER_UNIT),
                    out_file_u8_vec_ptr);
 
-        out_file_u8_vec_ptr->push_back(0); /* the colour that is see-through: none */
+        out_file_u8_vec_ptr->push_back(0); /* the transparent colour index: none */
         out_file_u8_vec_ptr->push_back(0);
 
         out_file_u8_vec_ptr->push_back(0x2C); /* the frame, from the top left corner */
@@ -264,7 +264,7 @@ void Utils::Images::GifWriter::quantize(const Image&              in_image,
     constexpr uint32_t BIN_SHIFT         = 3; /* 8 bits to 5 */
     constexpr uint32_t CHANNEL_MASK      = 31;
 
-    /* A box of the median cut: the colours it holds (as 15 bits: 5 of each of R, G and B), and how many pixels have them. */
+    /* A box of the median cut. It holds colours (15 bits each: 5 bits per channel R, G, B) and the number of pixels that have them. */
     struct ColorBox
     {
         std::vector<uint16_t> color_vec;
@@ -313,7 +313,9 @@ void Utils::Images::GifWriter::quantize(const Image&              in_image,
         }
     }
 
-    /* The box of most pixels which has more than one colour is cut in two at the median of the pixels, along the channel in which its colours are furthest apart. */
+    /* Cuts the box with the most pixels among those that hold more than one colour. The cut is at the median pixel, along the channel in which
+     * the box's colours are furthest apart.
+     */
     while (box_vec.size() < N_COLORS)
     {
         size_t n_best_box = box_vec.size(); /* none */

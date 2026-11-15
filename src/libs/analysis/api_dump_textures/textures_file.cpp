@@ -95,7 +95,7 @@ bool Analysis::APIDumpTextures::TexturesFile::read_bytes(const std::vector<uint8
 
                 case TexturesFormat::TAG_META:
                 {
-                    /* The first of them: it starts the timeline, which the others add to. */
+                    /* META is the first section. It initializes the timeline, and the later sections add to it. */
                     is_valid = TexturesSerializer::deserialize_meta(in_raw_byte_vec,
                                                                     out_timeline_ptr);
 

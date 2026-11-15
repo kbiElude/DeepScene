@@ -19,7 +19,7 @@ void Stereo::ConverterDLL::GLFrameReader::finish_set(const GLEyeTargets& in_targ
 {
     const auto& functions = in_targets.get_functions();
 
-    /* What was given of the set is being copied by another thread, which is done when it lets go of its token: far less than a frame. */
+    /* Another thread is copying what was handed out from the set. It is done when it releases its token, which takes far less than a frame. */
     while (inout_set_ptr->consumer.expired() == false)
     {
         std::this_thread::yield();
@@ -63,7 +63,7 @@ bool Stereo::ConverterDLL::GLFrameReader::read(GLEyeTargets*  inout_targets_ptr,
         goto end;
     }
 
-    /* What was read for another size is of no use. */
+    /* Buffers that were filled for another size are useless. */
     if (current.width  != width  ||
         current.height != height)
     {
@@ -106,7 +106,7 @@ bool Stereo::ConverterDLL::GLFrameReader::read(GLEyeTargets*  inout_targets_ptr,
                                                current.buffer_array.at(n_eye) );
             }
 
-            /* With a buffer bound the pixels go to it, at its start. */
+            /* With a buffer bound, the pixels go into the buffer, starting at its beginning. */
             inout_targets_ptr->read_eye( (n_eye == 0) ? Analysis::Recipe::Eye::LEFT
                                                       : Analysis::Recipe::Eye::RIGHT,
                                         nullptr);
@@ -117,7 +117,7 @@ bool Stereo::ConverterDLL::GLFrameReader::read(GLEyeTargets*  inout_targets_ptr,
 
         current.has_frame = true;
 
-        /* The frame before has been on its way for a whole frame. */
+        /* The previous frame has had a whole frame to arrive. */
         if (previous.has_frame)
         {
             bool is_mapped = true;

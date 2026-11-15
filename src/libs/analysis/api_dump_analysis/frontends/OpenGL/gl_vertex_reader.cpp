@@ -14,7 +14,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GLVertexReader::find_layout(const API
 
     *out_layout_ptr = GLVertexLayout();
 
-    /* What each function takes: the number of components and their kind, and below whether it is the one of a pointer. */
+    /* What each function takes: the number of components and their kind. The column below says whether the function takes a pointer. */
     switch (in_function)
     {
         case APIInterceptor::APIFUNCTION_GL_GLVERTEX2D:

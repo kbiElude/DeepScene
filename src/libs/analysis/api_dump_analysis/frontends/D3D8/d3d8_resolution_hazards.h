@@ -16,14 +16,14 @@ namespace Analysis
     {
         namespace Frontends
         {
-            /* Tells the calls of a Direct3D 8 application which depend on the size of what it renders to in pixels, so that it cannot be
-             * made to render larger than it asks without it noticing (see ResolutionHazard). It is used where a workload is analyzed, and
-             * where an application is made to render larger, so that both say the same.
+            /* Identifies the calls of a Direct3D 8 application that depend on the pixel size of its render target. If the application renders
+             * larger than it asked for, these calls would reveal it (see ResolutionHazard). The workload analysis and the live upscaling both
+             * use this class, so they agree on which calls are hazards.
              */
             class D3D8ResolutionHazards
             {
             public:
-                /* Returns true, and which hazard it is, if the call is one. The arguments are those the call was made with. */
+                /* Returns true and sets the hazard if the call is one. The arguments are the ones the call was made with. */
                 static bool classify(const APIInterceptor::APIFunction&         in_function,
                                      const uint32_t&                            in_n_arguments,
                                      const APIInterceptor::APIFunctionArgument* in_arguments_ptr,

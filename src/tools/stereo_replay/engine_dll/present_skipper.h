@@ -14,8 +14,8 @@ namespace Stereo
     {
         namespace EngineDLL
         {
-            /* Leaves out the calls that present a frame (a flip, a present: they wait for the screen, and the screen is not what a hurry is for)
-             * in the frames that FrameHurry says are hurried through.
+            /* Leaves out the calls that present a frame (a flip or a present) in the frames that FrameHurry says are hurried through.
+             * These calls wait for the screen, and a hurried frame does not need the screen.
              */
             class PresentSkipper : public ::Replay::ReplayEngineDLL::ICallInterceptor
             {

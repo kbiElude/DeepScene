@@ -6,26 +6,26 @@
 #include "analysis/api_dump_analysis/passes_serializer.h"
 #include "analysis/api_dump_dependencies/deps_serializer.h"
 
-/* The bits of what a frame does to a resource, as it is stored. */
+/* The flag bits that store the booleans of a FrameUse. */
 const uint8_t Analysis::APIDumpDependencies::DepsSerializer::USE_FLAG_FULLY_WRITTEN = 1 << 0;
 const uint8_t Analysis::APIDumpDependencies::DepsSerializer::USE_FLAG_READ          = 1 << 1;
 const uint8_t Analysis::APIDumpDependencies::DepsSerializer::USE_FLAG_SELF_SAMPLED  = 1 << 2;
 const uint8_t Analysis::APIDumpDependencies::DepsSerializer::USE_FLAG_WRITTEN       = 1 << 3;
 const uint8_t Analysis::APIDumpDependencies::DepsSerializer::USE_FLAG_ALL           = USE_FLAG_FULLY_WRITTEN | USE_FLAG_READ | USE_FLAG_SELF_SAMPLED | USE_FLAG_WRITTEN;
 
-/* The bits of what a version is. */
+/* The flag bits that store the booleans of a ResourceVersion. */
 const uint8_t Analysis::APIDumpDependencies::DepsSerializer::VERSION_FLAG_HAS_INPUTS            = 1 << 2;
 const uint8_t Analysis::APIDumpDependencies::DepsSerializer::VERSION_FLAG_HAS_WRITER            = 1 << 0;
 const uint8_t Analysis::APIDumpDependencies::DepsSerializer::VERSION_FLAG_KEEPS_EARLIER_CONTENT = 1 << 1;
 const uint8_t Analysis::APIDumpDependencies::DepsSerializer::VERSION_FLAG_ALL                   = VERSION_FLAG_HAS_INPUTS | VERSION_FLAG_HAS_WRITER | VERSION_FLAG_KEEPS_EARLIER_CONTENT;
 
-/* The fields of a range of frames, with nothing in the variable parts. */
+/* The minimum stored size in bytes of a frame range, used to reject impossible counts. */
 const size_t Analysis::APIDumpDependencies::DepsSerializer::MIN_RANGE_N_BYTES = 2 * sizeof(uint64_t);
 
 bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_dependencies(const std::vector<uint8_t>& in_byte_vec,
                                                                              DependencyAnalysis*         inout_analysis_ptr)
 {
-    /* The fields of a resource's totals, a use run, a version and a rectangle, with nothing in the variable parts. */
+    /* The minimum stored sizes in bytes of a rectangle, the totals of a resource, a use run and a version, used to reject impossible counts. */
     constexpr size_t MIN_RECTANGLE_N_BYTES = 4 * sizeof(uint32_t);
     constexpr size_t MIN_RESOURCE_N_BYTES  = 2 * sizeof(uint8_t) + 10 * sizeof(uint64_t) + 2 * sizeof(uint32_t);
     constexpr size_t MIN_RUN_N_BYTES       = 2 * sizeof(uint64_t) + 2 * sizeof(uint8_t);
@@ -168,7 +168,7 @@ bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_dependencies(con
             {
                 const uint32_t input_resource = reader.read_u32();
 
-                /* A resource is numbered from 1. */
+                /* Resource numbers start at 1, so 0 is invalid. */
                 if (input_resource == 0          ||
                     input_resource > n_resources)
                 {
@@ -240,7 +240,7 @@ bool Analysis::APIDumpDependencies::DepsSerializer::deserialize_frames(const std
         range.first_call_index = reader.read_u64();
         range.last_call_index  = reader.read_u64();
 
-        /* The frames follow each other. */
+        /* Each frame must start after the last call of the previous frame, and must not end before it starts. */
         if (range.first_call_index <  next_call_index        ||
             range.last_call_index  <  range.first_call_index)
         {

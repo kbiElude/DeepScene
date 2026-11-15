@@ -134,8 +134,8 @@ void Analysis::APIDumpAnalysis::ModelBuilder::fill_draw_structure(const DrawDesc
 {
     constexpr uint32_t SINGLE_INSTANCE = 1;
 
-    /* A draw made with a projection that does not make what is far smaller is another kind of draw than one made with a perspective: the same state is
-     * used by the panels of a screen and by the scene.
+    /* A draw with an orthographic projection (where distance does not make things smaller) is a different kind of draw than one with a
+     * perspective projection, because the same state is used by the panels of a screen and by the scene.
      */
     DrawMatrices matrices;
 
@@ -155,7 +155,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::fill_draw_structure(const DrawDesc
                                                                        : m_key_table.get_view_key          (in_view);
                                    };
 
-    /* The vectors keep what they allocated for the draw before. */
+    /* The vectors keep the memory that they allocated for the previous draw. */
     out_structure_ptr->shader_key_vec.clear();
     out_structure_ptr->texture_binding_key_vec.clear();
     out_structure_ptr->vertex_buffer_key_vec.clear();
@@ -198,7 +198,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::fill_draw_structure(const DrawDesc
         return (order_a < order_b);
     };
 
-    /* The order in which the application binds the textures is not what the draw is. */
+    /* The order in which the application binds the textures does not change what the draw is. */
     std::sort(out_structure_ptr->texture_binding_key_vec.begin(),
               out_structure_ptr->texture_binding_key_vec.end(),
               is_binding_less_func);
@@ -250,8 +250,8 @@ Analysis::APIDumpAnalysis::AccessCoverage Analysis::APIDumpAnalysis::ModelBuilde
         goto end;
     }
 
-    if (in_clear.is_limited_to_viewport                 &&
-        id_value                        != 0            &&
+    if (in_clear.is_limited_to_viewport                                &&
+        id_value                        != 0                           &&
         id_value                        <= m_model.resource_vec.size() )
     {
         const ResourceDescription& description = m_model.resource_vec.at(id_value - 1).description;
@@ -263,7 +263,7 @@ Analysis::APIDumpAnalysis::AccessCoverage Analysis::APIDumpAnalysis::ModelBuilde
         if (description.width  == 0 ||
             description.height == 0)
         {
-            /* A surface which has no size told is not one to tell the viewport against. */
+            /* A surface with no known size cannot be compared with the viewport. */
             result = AccessCoverage::UNKNOWN;
         }
         else
@@ -414,14 +414,15 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_copy(const ResourceView&    in_
                 AccessRole::TRANSFER_DESTINATION,
                 AccessMode::WRITE,
                 (in_destination_rectangle.is_known) ? AccessCoverage::PARTIAL
-                                                    : AccessCoverage::UNKNOWN, /* which part of it is not told, unless the front end says */
+                                                    : AccessCoverage::UNKNOWN, /* which part is written is unknown unless the front end says so */
                 destination_range,
                 in_destination_rectangle);
 
     close_pass_if_rendered_to(in_source);
     close_pass_if_rendered_to(in_destination);
 
-    /* A draw that samples the destination of a copy of the picture works on what is below it, and the content of the destination is made for each eye. */
+    /* A draw that samples the destination of a copy of the picture reads what is already rendered below it, and the content of the
+     * destination is produced separately for each eye. */
     for (const auto& color_view : m_attachments.color_view_vec)
     {
         if (color_view.resource_id == in_source.resource_id)
@@ -432,7 +433,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_copy(const ResourceView&    in_
         }
     }
 
-    /* The destination is what the source was. */
+    /* The destination gets the same content as the source, so it gets the key of the source. */
     hasher.add_u32(static_cast<uint32_t>   (TransferKind::COPY) );
     hasher.add_u64(m_key_table.get_view_key(in_source) );
 
@@ -483,7 +484,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_destroy_resource(const Resource
         m_model.resource_vec.at(index - 1).destroyed_at_call_index = m_call_index;
         m_model.resource_vec.at(index - 1).is_destroyed            = true;
 
-        /* The frame may still refer to it. */
+        /* The frame being built may still refer to the resource, so it is forgotten later. */
         m_pending_forget_vec.push_back(in_id);
     }
 }
@@ -544,9 +545,9 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_draw(const DrawDescription& in_
 
         m_last_draw_signature_key = signature_key;
 
-        /* A draw is told by its signature and its size: the draws of one signature (the quads of a flash and of a text, in one dynamic buffer)
-         * are not all the same. A key that has covered the view once is kept, even if other draws with it do not: a flash that comes in as a
-         * wipe is a quad of one size which is not always the whole picture, and it is not to be moved for the times that it is.
+        /* A draw is identified by its signature and its size, because the draws of one signature are not all the same (the quads of a flash and
+         * the quads of a text can share one dynamic buffer). A key that covered the view once stays covering, even if other draws with that key
+         * do not: a flash that wipes in is a quad of one size that is not always the whole picture, and it must not be moved while it is.
          */
         m_last_draw_cover_key = KeyBuilder::compute_draw_cover_key(signature_key,
                                                                    in_draw.vertex_count,
@@ -573,19 +574,19 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_draw(const DrawDescription& in_
         m_call_draw_key_vec.push_back({m_last_draw_cover_key,
                                        m_last_draw_signature_key});
 
-        /* The same draw is recognized by one signature in a pass: its targets are the pass's. */
+        /* A pass identifies the same draw by one signature, because the targets are those of the pass. */
         if (signature_pair.second        == false         &&
             signature_pair.first->second != signature_key)
         {
             m_model.n_key_collisions++;
         }
 
-        /* The calls of a draw begin with its own, unless the front end says that they begin earlier (it is not later than the call of the draw). */
+        /* The calls of a draw begin with its own call, unless the front end says that they begin earlier (the first call is never later than the call of the draw). */
         const bool     has_first_call = (in_draw.first_call_index <= m_call_index);
         const uint64_t first_call     = (has_first_call) ? in_draw.first_call_index
                                                          : m_call_index;
 
-        /* The pass is not complete yet, so it is the next one to be added to the frame. */
+        /* The open pass is not complete yet, so its index is the index that the pass will have in the frame. */
         m_frame.draw_instance_vec.push_back({m_call_index,
                                              m_last_draw_cover_key,
                                              first_call,
@@ -664,7 +665,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_frame_presented()
     m_completed_frame.pass_instance_vec = m_frame.pass_instance_vec;
     m_completed_frame.pass_is_presented_vec = m_frame.pass_is_presented_vec;
 
-    /* What was in the completed frame before is cleared with the rest at the end. */
+    /* The swap hands the old draw instances of the completed frame to m_frame, which is cleared with the rest of the frame at the end. */
     m_completed_frame.draw_instance_vec.swap(m_frame.draw_instance_vec);
 
     m_completed_frame.pass_key_vec = pass_key_vec;
@@ -679,7 +680,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_frame_presented()
                               &m_model.resource_access_vec,
                               &m_completed_frame.loop_carried_resource_id_vec);
 
-    /* Detail only for the frames the store keeps. */
+    /* Details are recorded only for the frames that the store keeps. */
     if (m_keeps_history)
     {
         const bool is_wanted = m_model.representative_store.wants(frame_record.shape_id,
@@ -746,7 +747,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_set_viewport(const Viewport& in
 
     m_viewport = in_viewport;
 
-    /* The pass that was open may be the one that was just closed. */
+    /* The pass that was open may be the one that was just closed, so the open pass is looked up again. */
     open_pass_ptr = m_pass_tracker.get_open_pass_ptr();
 
     if (open_pass_ptr != nullptr)
@@ -784,7 +785,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_update_constant(const ConstantU
                                                                              in_update.location.byte_offset,
                                                                              in_update.location.byte_size)];
 
-        /* Assigned in place: the value of the update before keeps its memory. */
+        /* Assigned in place, so the buffers of the previous update are reused. */
         state.block_key = m_key_table.get_unwritten_key(in_update.location.block_id);
         state.update    = in_update;
     }
@@ -809,7 +810,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_upload(const ResourceView&    i
 
     close_pass_if_rendered_to(in_destination);
 
-    /* Contents vary per frame and are not hashed; only the fact of an upload is. */
+    /* The contents vary per frame and are not hashed; only the fact that an upload happened is. */
     hasher.add_u32(static_cast<uint32_t>(TransferKind::UPLOAD) );
 
     m_key_table.record_write(in_destination.resource_id,
@@ -875,8 +876,8 @@ void Analysis::APIDumpAnalysis::ModelBuilder::record_draw_access(const DrawDescr
 
     m_access_tracker.on_write(m_attachments.depth_stencil_view.resource_id);
 
-    /* What the sink is told: the reads, and then the writes. A texture is read whole (the filter reaches the levels around the one asked for);
-     * an attachment is written where the draw reaches, which is not known here.
+    /* What the sink is told: first the reads, then the writes. A texture is read as a whole (the filter also reaches the levels around the
+     * requested one). An attachment is written where the draw reaches, which is not known here.
      */
     for (const auto& binding : in_draw.texture_binding_vec)
     {
@@ -952,7 +953,7 @@ Analysis::APIDumpAnalysis::Model Analysis::APIDumpAnalysis::ModelBuilder::take_m
 
 bool Analysis::APIDumpAnalysis::ModelBuilder::wants_geometry() const
 {
-    /* Every frame gets a sample (1 in FRAME_STRIDE frames): it is at most a few dozen vertices, and the front end keeps the ones it has made. */
+    /* One frame in FRAME_STRIDE gets a geometry sample (with a stride of 1, every frame). A sample is at most a few dozen vertices, and the front end keeps the ones it has taken. */
     constexpr uint64_t FRAME_STRIDE = 1;
 
     return (m_keeps_history &&

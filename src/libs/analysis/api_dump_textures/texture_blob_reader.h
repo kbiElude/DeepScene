@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Reads the contents from the file of blobs (see textures_format.h), any one alone: the file is not read as a whole. A content that is damaged, or is not
- * the one its entry says, is refused. One thread at a time.
+ * Reads contents from the file of blobs (see textures_format.h) one at a time, without reading the whole file. A content that is damaged, or does
+ * not match its entry, is refused. Not thread-safe: use it from one thread at a time.
  */
 #ifndef APIDUMPTEXTURES_TEXTURE_BLOB_READER_H
 #define APIDUMPTEXTURES_TEXTURE_BLOB_READER_H
@@ -23,13 +23,13 @@ namespace Analysis
         public:
             TextureBlobReader();
 
-            /* The size of the file. */
+            /* The size of the file in bytes. */
             uint64_t get_n_bytes() const;
 
             bool open(const std::string& in_filename,
                       std::string*       out_error_ptr);
 
-            /* The bytes of the content, as they were given when it was stored. */
+            /* Reads the content that the entry describes. The result holds the bytes exactly as they were given when the content was stored. */
             bool read(const BlobEntry&      in_entry,
                       std::vector<uint8_t>* out_raw_byte_vec_ptr,
                       std::string*          out_error_ptr);

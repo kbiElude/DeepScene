@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Writes an image as a PNG (8 bits per channel, RGB: the alpha of an image is always opaque), compressed by miniz.
+ * Writes an image as a PNG with 8 bits per channel in RGB. The alpha channel is dropped because it is always opaque. Compression is done by miniz.
  */
 #ifndef UTILS_IMAGES_PNG_WRITER_H
 #define UTILS_IMAGES_PNG_WRITER_H
@@ -19,11 +19,11 @@ namespace Utils
         class PngWriter
         {
         public:
-            /* The bytes of the file. False if the image is empty or its pixels are fewer than its size says. */
+            /* Returns the bytes of the file. Returns false if the image is empty or has fewer pixels than its size says. */
             static bool encode(const Image&          in_image,
                                std::vector<uint8_t>* out_file_u8_vec_ptr);
 
-            /* False if the image cannot be encoded or the file cannot be written. */
+            /* Returns false if the image cannot be encoded or the file cannot be written. */
             static bool write_file(const std::string& in_path,
                                    const Image&       in_image);
         };

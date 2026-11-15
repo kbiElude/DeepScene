@@ -13,14 +13,14 @@ namespace Stereo
 {
     namespace ConverterDLL
     {
-        /* Has the application render to a window, and makes the window invisible, so that the images of the application are seen where the converter
-         * shows them and not on the screen of the application: an application which asks for the whole screen would otherwise have it, in
-         * the display mode it asks for.
+        /* Makes a Direct3D 8 application render to a window, and makes that window invisible. The images of the application then appear where
+         * the converter shows them, not on the screen of the application. Without this, an application that asks for the whole screen would
+         * take it, in the display mode it asks for.
          *
-         * The parameters of the device that the application asks for are changed as it creates it: a window, the format of the desktop
-         * for the back buffer, one back buffer and a swap effect which a window has. The sizes of the back buffer are the application's.
-         * The windows it names are made fully transparent and click-through, and kept so, and not hidden: an application may pause while its
-         * window is hidden (fr-08 does), and may show or style its window after it creates its device.
+         * The device parameters that the application passes when it creates the device are changed: a window, the desktop format for the back
+         * buffer, one back buffer, and a swap effect that a window supports. The back buffer sizes stay the application's. The windows the
+         * application names are made fully transparent and click-through. They are not hidden, because an application may pause while its
+         * window is hidden (fr-08 does), and may show or restyle its window after it creates the device.
          */
         class D3D8WindowedMode : public Interception::Hooks::D3D8::IArgumentModifier
         {

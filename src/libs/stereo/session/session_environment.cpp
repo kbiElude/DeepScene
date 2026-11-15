@@ -36,7 +36,7 @@ bool Stereo::Session::SessionEnvironment::read(SessionInfo* out_info_ptr)
     std::string log_value;
     bool        result = false;
 
-    /* Whether to log is not needed: a process that is not told to does not. */
+    /* The log variable is optional. A process that is not told to log does not log. */
     const bool has_log = read_variable(LOG_VARIABLE_NAME,
                                        &log_value);
 
@@ -58,7 +58,7 @@ bool Stereo::Session::SessionEnvironment::read(SessionInfo* out_info_ptr)
 bool Stereo::Session::SessionEnvironment::read_variable(const char*  in_name_ptr,
                                                         std::string* out_value_ptr)
 {
-    constexpr DWORD N_MAX_CHARACTERS = 32768; /* what the system allows in an environment variable */
+    constexpr DWORD N_MAX_CHARACTERS = 32768; /* the system limit for the value of an environment variable */
 
     std::string buffer(N_MAX_CHARACTERS,
                        '\0');
@@ -84,7 +84,7 @@ bool Stereo::Session::SessionEnvironment::write(const SessionInfo& in_info)
     bool              result          = false;
     const char* const session_id_ptr  = in_info.session_id.c_str();
 
-    /* No variable is a process that does not log, so a value from an earlier session of this process is taken away. */
+    /* A missing variable means no logging, so a value left by an earlier session of this process is removed. */
     ::SetEnvironmentVariableA(LOG_VARIABLE_NAME,
                               (in_info.is_logging) ? "1"
                                                    : nullptr);

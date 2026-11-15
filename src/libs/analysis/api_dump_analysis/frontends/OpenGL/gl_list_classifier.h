@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Tells what the calls of a display list do to what an eye has of its own, which says whether a list that the driver made once can be called
- * for both eyes of a stereo frame (see GLListEyeDependence).
+ * Classifies how the calls of a display list affect the state that differs per eye. The class decides whether a list that the driver compiled
+ * once can be called for both eyes of a stereo frame (see GLListEyeDependence).
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_LIST_CLASSIFIER_H
 #define APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_LIST_CLASSIFIER_H
@@ -20,18 +20,19 @@ namespace Analysis
             class GLListClassifier
             {
             public:
-                /* What a call does: the matrices that it loads, the projections, viewports and scissor boxes that it sets are the eye's own to change;
-                 * those which it moves relative to the current ones are not, nor are those that are made relative to the current model-view matrix (a light, a
-                 * clip plane); anything else does not touch them. A call of a list is not told here: it is what the called list is.
+                /* Classifies a call. A call that loads a matrix, or sets a projection, a viewport or a scissor box, is EYE_DEPENDENT: each eye needs its own
+                 * values. A call that changes matrices relative to the current ones, or whose effect is relative to the current model-view matrix (a light,
+                 * a clip plane), is RELATIVE_MATRIX_ONLY. Any other call is INDEPENDENT. A call of another list is not classified here: it takes the
+                 * classification of the list it calls.
                  */
                 static GLListEyeDependence classify_call(const APIInterceptor::APIFunction& in_function);
 
-                /* The one of the two that asks more of the replay (an eye-dependent list, then one that moves the matrices, then the rest). */
+                /* Returns whichever of the two classes demands more of the replay (in order: an eye-dependent list, then one that moves the matrices, then the rest). */
                 static GLListEyeDependence combine(const GLListEyeDependence& in_first,
                                                    const GLListEyeDependence& in_second);
 
             private:
-                /* The more a replay has to do for it, the higher. */
+                /* The more a replay has to do for a class, the higher its value. */
                 static uint32_t get_rank(const GLListEyeDependence& in_dependence);
             };
         }

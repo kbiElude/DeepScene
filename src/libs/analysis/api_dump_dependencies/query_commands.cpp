@@ -20,7 +20,7 @@ const Analysis::APIDumpDependencies::ResourceVersion* Analysis::APIDumpDependenc
                 in_version.writer_frame_index < in_frame_index);
     };
 
-    /* The versions are in the order of their writers; the frame uses the last one which a frame before it wrote (or the one that nobody wrote). */
+    /* The versions are ordered by writer frame. The frame uses the last version that was written before it, or the version without a writer. */
     const auto end_iterator = std::partition_point(in_dependencies.version_vec.begin(),
                                                    in_dependencies.version_vec.end(),
                                                    is_version_before_frame_func);
@@ -38,7 +38,7 @@ const Analysis::APIDumpDependencies::UseRun* Analysis::APIDumpDependencies::Quer
         return (in_run.last_frame_index < in_value);
     };
 
-    /* The runs are in order and do not overlap: the one that the frame is in is the first which does not end before it. */
+    /* The runs are ordered and do not overlap, so the run that contains the frame is the first run that does not end before it. */
     const auto run_iterator = std::lower_bound(in_dependencies.use_run_vec.begin(),
                                                in_dependencies.use_run_vec.end(),
                                                in_frame_index,
@@ -589,7 +589,7 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryComma
         write_summary      (dependencies.summary,
                             inout_writer_ptr);
 
-        /* The rectangle that holds all that the writes which did not replace all of the resource reached, as x, y, width and height. */
+        /* The written extent (see ResourceDependencies::written_extent) as x, y, width and height. */
         inout_writer_ptr->write_key("written_extent");
 
         if (dependencies.written_extent.is_known)
@@ -692,7 +692,7 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryComma
 
             inout_writer_ptr->end_array ();
 
-            /* Where the writer wrote, as x, y, width and height each. */
+            /* The rectangles that the writer wrote, each as x, y, width and height. */
             inout_writer_ptr->write_key ("written_rectangles");
             inout_writer_ptr->begin_array();
 
@@ -815,7 +815,7 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryComma
     inout_writer_ptr->write_key("n_frames");
     inout_writer_ptr->write_u64(in_analysis.result.n_frames);
 
-    /* The frames before the target which a replay has to make, and those it can leave out. */
+    /* Counts the frames before the target that a replay has to make (live) and those it can leave out (dead). */
     {
         uint64_t n_live_before   = 0;
         uint64_t n_dead          = 0;
@@ -841,7 +841,7 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryComma
         inout_writer_ptr->write_u64(n_dead);
     }
 
-    /* Runs of dead frames, in the order of the frames and paged, so that a person can look through them. */
+    /* Lists the runs of dead frames in frame order. The list is paged so that a long list can be browsed. */
     {
         std::vector<FrameRange> dead_run_vec;
 

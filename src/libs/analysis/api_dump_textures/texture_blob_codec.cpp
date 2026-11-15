@@ -83,7 +83,7 @@ bool Analysis::APIDumpTextures::TextureBlobCodec::pack(const void*           in_
         goto end;
     }
 
-    /* The checksum is what tells a frame that was damaged; the size is in the frame, as the frame is made in one go. */
+    /* The checksum lets unpack() detect a damaged frame. The frame header records the content size, because the frame is compressed in one call. */
     ::ZSTD_CCtx_setParameter(context_ptr,
                              ZSTD_c_compressionLevel,
                              COMPRESSION_LEVEL);
@@ -162,7 +162,7 @@ bool Analysis::APIDumpTextures::TextureBlobCodec::unpack(const uint8_t*        i
 
     out_raw_byte_vec_ptr->resize(static_cast<size_t>(in_entry.n_raw_bytes) );
 
-    /* The decompressor checks the checksum of the frame, and the size that the frame says. */
+    /* The decompressor verifies the checksum of the frame. It also fails if the content is larger than the size in the entry. */
     n_raw_bytes = ::ZSTD_decompress(out_raw_byte_vec_ptr->data(),
                                     out_raw_byte_vec_ptr->size(),
                                     in_stored_ptr,

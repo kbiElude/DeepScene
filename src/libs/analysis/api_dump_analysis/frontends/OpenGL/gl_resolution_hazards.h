@@ -16,15 +16,15 @@ namespace Analysis
     {
         namespace Frontends
         {
-            /* Tells the calls of an OpenGL application which depend on the size of what it renders to in pixels in a way that a converter cannot make match when it renders
-             * larger than the application asks, so that the application cannot be made to render larger without it noticing (see ResolutionHazard): what is read or drawn at
-             * places in pixels, and what asks how large the viewport is. The state that is in pixels and can be made to match (the viewport, the scissor box, the width of lines,
-             * and the copies of the framebuffer to textures) is not here; the converter makes those match.
+            /* Identifies the calls of an OpenGL application that depend on the pixel size of its render target in a way the converter cannot compensate
+             * for when it renders larger than the application asked for (see ResolutionHazard). Such calls would reveal the larger size to the application:
+             * reads and draws at pixel positions, and queries of the viewport size. State in pixels that the converter can keep consistent (the viewport,
+             * the scissor box, the line width and the copies of the framebuffer to textures) is not listed here.
              */
             class GLResolutionHazards
             {
             public:
-                /* Returns true, and which hazard it is, if the call is one. The arguments are those the call was made with. */
+                /* Returns true and sets the hazard if the call is one. The arguments are the ones the call was made with. */
                 static bool classify(const APIInterceptor::APIFunction&         in_function,
                                      const uint32_t&                            in_n_arguments,
                                      const APIInterceptor::APIFunctionArgument* in_arguments_ptr,

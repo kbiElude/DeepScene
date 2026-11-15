@@ -2,9 +2,9 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * This file is built for AVX2 (see the CMakeLists.txt of the library), so that nothing in it may be used on a processor that does not have it: Hasher calls it only after it
- * found out that the processor has AVX2. It is kept to what has to be here: the stripes of XXH64, with no function of the standard library and none that is shared with other
- * files (such a function is built here with AVX2, and the linker may pick this copy of it for the callers that are not).
+ * This file is built with AVX2 enabled (see the CMakeLists.txt of the library), so none of its code may run on a processor without AVX2. Hasher calls it only after
+ * it has detected AVX2. The file holds only the XXH64 stripe loop. It uses no standard library function and no function shared with other files, because such a
+ * function would also be compiled with AVX2 here, and the linker could pick this copy for callers that run on processors without AVX2.
  */
 #include "utils/hashing/hasher_avx2.h"
 #include <immintrin.h>
@@ -19,10 +19,11 @@ void Utils::Hashing::HasherAvx2::hash_stripes(const uint8_t*  in_data_ptr,
     constexpr int N_BITS_ROTATED       = 31;
     constexpr int N_BITS_ROTATED_OTHER = 64 - N_BITS_ROTATED;
 
-    /* The four accumulators of XXH64 are the four 64-bit lanes of a register, and a stripe of 32 bytes is the four 64-bit words that go to them, so that each step of XXH64
-     * (add the word times the second prime, rotate by 31, times the first prime) is the same step for the four lanes. AVX2 has no multiplication of 64 bits by 64: it is made of the
-     * ones of 32 by 32 that it has, as the low half of the product is the sum of the low product and the two cross products shifted up by 32 bits. The lanes wrap round at 64 bits
-     * as the numbers of XXH64 do, so that what comes out is what XXH64 gives.
+    /* XXH64 keeps four accumulators. Here they are the four 64-bit lanes of one register, and a 32-byte stripe is the four 64-bit words that feed them.
+     * One XXH64 step (add the word times the second prime, rotate by 31, multiply by the first prime) therefore runs on all four lanes at once.
+     * AVX2 has no 64-bit by 64-bit multiplication, so it is built from the 32-bit by 32-bit multiplications that AVX2 has: the low 64 bits of the
+     * product are the low product plus the two cross products shifted up by 32 bits. The lanes wrap at 64 bits like the arithmetic of XXH64, so the
+     * result is the same as XXH64 gives.
      */
     const __m256i prime_1_v      = _mm256_set1_epi64x(static_cast<long long>(in_prime_1) );
     const __m256i prime_1_high_v = _mm256_srli_epi64(prime_1_v,

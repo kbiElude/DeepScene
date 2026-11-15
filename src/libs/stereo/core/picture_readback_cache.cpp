@@ -29,7 +29,7 @@ bool Stereo::Core::PictureReadbackCache::read_pixel(const FillFunc&         in_f
                                                     const int64_t&          in_y,
                                                     std::array<uint8_t, 4>* out_rgba_u8vec4_ptr)
 {
-    /* The first read of a run is made as it is: a read that stands alone costs what it did. */
+    /* The whole picture is read at this read of a run. Earlier reads are made directly, so a lone read costs what it always did. */
     constexpr uint32_t N_READS_BEFORE_PICTURE = 2;
     constexpr size_t   N_CHANNELS             = 4;
 
@@ -40,7 +40,7 @@ bool Stereo::Core::PictureReadbackCache::read_pixel(const FillFunc&         in_f
     {
         const size_t n_picture_bytes = static_cast<size_t>(in_picture_width) * in_picture_height * N_CHANNELS;
 
-        /* A picture of another size is not the one that is kept. */
+        /* A picture of another size invalidates the stored one. */
         if (m_is_valid                     &&
             (m_width  != in_picture_width  ||
              m_height != in_picture_height) )
@@ -58,7 +58,7 @@ bool Stereo::Core::PictureReadbackCache::read_pixel(const FillFunc&         in_f
 
             m_has_failed = (is_filled == false);
             m_height     = in_picture_height;
-            m_is_valid   = (is_filled                           &&
+            m_is_valid   = (is_filled                               &&
                             m_rgba_u8_vec.size() >= n_picture_bytes);
             m_width      = in_picture_width;
         }
@@ -68,7 +68,7 @@ bool Stereo::Core::PictureReadbackCache::read_pixel(const FillFunc&         in_f
             const int64_t last_x = static_cast<int64_t>(in_picture_width)  - 1;
             const int64_t last_y = static_cast<int64_t>(in_picture_height) - 1;
 
-            /* The nearest pixel that the picture has, for one that the application names outside of it. */
+            /* A pixel outside the picture is replaced by the nearest pixel inside it. */
             const int64_t x      = std::min<int64_t>(std::max<int64_t>(in_x,
                                                                        0),
                                                      last_x);

@@ -20,47 +20,48 @@ namespace Stereo
 {
     namespace ConverterDLL
     {
-        /* Renders the second eye of a Direct3D 8 application. The eye whose images the application draws, by its own calls, is the left;
-         * the right is drawn by the renderer, each time after the left: every render target, depth buffer and texture the application
-         * renders to has a twin, made when the application makes it, and a draw (or a clear, or a copy) that the application makes is
-         * made again with the twins in place of what the application has set. The device is called through its virtual table, so what
-         * is done inside the callbacks of the interceptor is not seen by anything that watches the device.
+        /* Renders the right eye of a Direct3D 8 application. The application's own calls draw the left eye. The renderer draws the right
+         * eye after each of those calls. Every render target, depth buffer and texture that the application renders to has a twin, which the
+         * renderer creates when the application creates the original. A draw, clear or copy of the application is repeated with the twins in
+         * place of the application's objects. The renderer calls the device through its virtual table, so anything that watches the device
+         * does not see these calls.
          *
-          * Vertices in pixels (D3DFVF_XYZRHW) that the call carries are moved for each eye by the core's plan, and the renderer makes the draw for
-          * both eyes.
-          *
-          * What it cannot follow (locking a render target, resetting the device, an unseen render target, XYZRHW vertices from a vertex buffer) ends
-          * the application rather than show wrong images.
+         * A draw with vertices in pixels (D3DFVF_XYZRHW) is made by the renderer for both eyes. The core's plan moves the vertices for each eye.
          *
-         * Not thread-safe: the caller serializes the calls, and the device is the one thread's.
+         * When the renderer meets something it cannot follow, it ends the application instead of showing wrong images. This covers locking a
+         * render target, resetting the device, rendering to a surface the renderer did not see created, and XYZRHW vertices from a vertex buffer.
+         *
+         * Not thread-safe. The caller serializes the calls, and the device belongs to one thread.
          */
         class D3D8EyeRenderer
         {
         public:
             explicit D3D8EyeRenderer(Stereo::Core::StereoCore* in_core_ptr);
 
-            /* The twin of the back buffer of the device, or nullptr if it has none (yet). */
+            /* The twin of the back buffer of the device, or nullptr if there is none. */
             void* get_back_buffer_twin_ptr(void* in_device_ptr);
 
-            /* How many twins are made, and how many were wanted and could not be made (a render target or a depth buffer that the device would not make again). */
+            /* The number of twins created, and the number of twins that were wanted but could not be created (the device refused to create a render
+             * target or depth buffer again). */
             uint64_t get_n_failed_twins() const;
             uint64_t get_n_twins       () const;
 
-            /* What the application renders to now, as the renderer knows; nullptr before the device is made. */
+            /* The render target that the application currently renders to, as the renderer tracked it. nullptr before the device is created. */
             void* get_render_target_ptr() const;
 
-            /* The call is done: makes what the right eye needs of it (a twin of what the call made, the call again with the twins). */
+            /* The call is done: creates what the right eye needs for it (a twin of the object the call created, or the call repeated with the twins). */
             void on_post(const APIInterceptor::APIFunction&         in_function,
                          const uint32_t&                            in_n_arguments,
                          const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
 
-            /* The call is about to be made. Returns false if it is not to be: the draw is skipped. */
+            /* The call is about to be made. Returns false if the call must be skipped. */
             bool on_pre(const APIInterceptor::APIFunction&         in_function,
                         const uint32_t&                            in_n_arguments,
                         const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
 
-            /* A draw is about to be made: puts the left eye's matrices in the device. Returns false if it is not to be: skipped, or made for both
-             * eyes by the renderer (vertices in pixels). The picture width is the application's viewport width.
+            /* A draw is about to be made: sets the left eye's matrices in the device. Returns false if the application's call must not be made: either
+             * the draw is skipped, or the renderer already made it for both eyes (vertices in pixels). The picture width is the width of the
+             * application's viewport.
              */
             bool on_pre_draw(const Analysis::Recipe::DrawClass&         in_draw_class,
                              const APIInterceptor::APIFunction&         in_function,
@@ -70,14 +71,14 @@ namespace Stereo
         private:
             static constexpr uint32_t N_TEXTURE_STAGES = 8;
 
-            /* What the application has set in the device, as far as the renderer knows. */
+            /* The device state that the application has set, as far as the renderer has seen it. */
             struct DeviceMirror
             {
-                void*                                    back_buffer_ptr   = nullptr; /* what the device renders to to begin with: what is presented */
+                void*                                    back_buffer_ptr   = nullptr; /* the back buffer that the device was created with, which is what is presented */
                 void*                                    depth_stencil_ptr = nullptr;
                 void*                                    render_target_ptr = nullptr;
                 std::array<void*, N_TEXTURE_STAGES>      texture_ptr_array = {};
-                uint32_t                                 vertex_shader     = 0;       /* what SetVertexShader was given last: the handle of a shader, or the format of the vertices (a handle has the top bit set) */
+                uint32_t                                 vertex_shader     = 0;       /* the last argument of SetVertexShader: a shader handle, or a vertex format (a handle has the top bit set) */
             };
 
             void  apply_matrices          (void*                                      in_device_ptr,
@@ -103,24 +104,24 @@ namespace Stereo
             void  repeat_call             (const APIInterceptor::APIFunction&         in_function,
                                            const APIInterceptor::APIFunctionArgument* in_arguments_ptr) const;
 
-            /* The twin of a surface or a texture, or the object itself if it has none: what the right eye reads from. */
+            /* The twin of a surface or a texture, or the object itself if it has no twin. The right eye reads from this. */
             void* get_twin_or_own_ptr(void* in_object_ptr) const;
 
             /* The twin of a surface or a texture; nullptr if it has none. */
             void* get_twin_ptr(void* in_object_ptr) const;
 
-            /* What the argument of a call points at, which the call holds as a pointer to what it does not change, but the device is called with as it is. */
+            /* Returns the pointer that an argument holds, to pass to the device unchanged. */
             static void* get_pointer_argument(const APIInterceptor::APIFunctionArgument& in_argument);
 
-            std::vector<Stereo::Core::MatrixChange> m_change_vec; /* of the draw being made: its entries are used again */
+            std::vector<Stereo::Core::MatrixChange> m_change_vec; /* of the draw being made; the entries are reused */
             Stereo::Core::StereoCore*               m_core_ptr;
             void*                                   m_device_ptr;
             Analysis::Recipe::DrawClass             m_draw_class;
-            bool                                    m_is_draw_handled; /* made for both eyes in on_pre_draw() */
+            bool                                    m_is_draw_handled; /* set when on_pre_draw() has made the draw for both eyes */
             DeviceMirror                            m_mirror;
             uint64_t                                m_n_failed_twins;
-            std::map<void*, void*>                  m_twin_map;   /* the application's -> its twin */
-            std::vector<uint8_t>                    m_vertex_vec; /* the draw's vertices, moved for an eye */
+            std::map<void*, void*>                  m_twin_map;   /* the application's object -> its twin */
+            std::vector<uint8_t>                    m_vertex_vec; /* the vertices of the draw, moved for one eye */
         };
     }
 }

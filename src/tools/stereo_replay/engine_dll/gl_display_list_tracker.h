@@ -16,33 +16,39 @@ namespace Stereo
     {
         namespace EngineDLL
         {
-            /* Follows the display lists that the calls of a replay make, in the order they are replayed in, and says what each does to what an eye has
-             * of its own (see GLListEyeDependence). The slice skipper asks it whether a call of a list may be left out of a dead frame.
+            /* Tracks the display lists that the replayed calls create, in replay order, and records what each list does to the state
+             * that is specific to an eye (see GLListEyeDependence). The slice skipper asks it whether a call to a list may be left out
+             * of a dead frame.
              */
             class GLDisplayListTracker
             {
             public:
                 GLDisplayListTracker();
 
-                /* The class of the list, if it is defined (not found: the list was never made, or was deleted). */
+                /* Returns the eye-dependence class of the list. Returns false if the list is not defined (it was never created, or it
+                 * was deleted).
+                 */
                 bool find_eye_dependence(const uint32_t&                                            in_list,
                                          Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence* out_dependence_ptr) const;
 
-                /* Whether the list does anything that is not content (see SliceSkipper::is_content_call()): sets state, including the values that the next vertices
-                 * have, or calls a list that does, or one that is not defined. A call of such a list cannot be left out of a dead frame, since the frames after it go
-                 * on from the state it leaves. Not found: the list was never made, or was deleted.
+                /* Returns whether the list does anything that is not content (see SliceSkipper::is_content_call()). A list does so if it
+                 * sets state, including the values the next vertices take (such as the current color), if it calls a list that does, or if
+                 * it calls an undefined list. A call to such a list cannot be left out of a dead frame, because later frames continue from
+                 * the state it leaves. Returns false if the list is not defined (it was never created, or it was deleted).
                  */
                 bool find_sets_state(const uint32_t& in_list,
                                      bool*           out_sets_state_ptr) const;
 
-                /* Whether a list is being made: its calls are kept and not made, so they are not the calls of a frame to leave out. */
+                /* Whether a list is being recorded. Its calls are stored in the list instead of being executed, so they are not calls
+                 * of a frame that could be left out.
+                 */
                 bool is_recording() const;
 
-                /* Every call, in the order of the replay. */
+                /* Receives every call, in replay order. */
                 void on_call(const Capture::APIDumpLoader::DumpedAPICall& in_call);
 
             private:
-                /* What a list that is defined does. */
+                /* What a defined list does. */
                 struct ListEffects
                 {
                     Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence dependence = Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence::INDEPENDENT;

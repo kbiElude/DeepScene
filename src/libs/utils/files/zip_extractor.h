@@ -14,15 +14,14 @@ namespace Utils
 {
     namespace Files
     {
-        /* Unpacks a zip file (with miniz) into a directory, and does not trust it: a name which would put a file outside the directory
-         * (a path of a drive, "..", a name of a device), an entry which is encrypted, files which together are more than the limit, and
-         * names which are the same in the eyes of the system all fail the unpacking, and a file which is longer than its entry says
-         * is not written beyond it.
+        /* Unpacks a zip file into a directory with miniz and does not trust the archive. These cases make the extraction fail: a name that would
+         * place a file outside the directory (a drive path, "..", a device name), an encrypted entry, files whose total size exceeds the limit,
+         * and names that Windows treats as the same. A file longer than its entry declares is not written beyond the declared size.
          */
         class ZipExtractor
         {
         public:
-            /* The entries go under in_directory, which is made. Returns false, and says why, if they cannot; what was written is left. */
+            /* Writes the entries under in_directory, which is created. Returns false and sets the error on failure. Files already written are left in place. */
             static bool extract(const std::string&       in_archive_path,
                                 const std::string&       in_directory,
                                 const uint64_t&          in_n_unpacked_bytes_max,
@@ -30,11 +29,11 @@ namespace Utils
                                 const ProgressCallback&  in_progress_func,
                                 std::string*             out_error_ptr);
 
-            /* True if the name of an entry stays inside the directory it is unpacked into. */
+            /* True if an entry name stays inside the directory it is unpacked into. */
             static bool is_name_safe(const std::string& in_name);
 
         private:
-            /* What the writing of an entry needs; it is the opaque pointer of the write callback of miniz. */
+            /* The state needed to write one entry. It is passed as the opaque context pointer of the miniz write callback. */
             struct WriteContext
             {
                 void*                    file_handle_ptr; /* HANDLE */

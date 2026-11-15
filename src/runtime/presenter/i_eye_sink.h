@@ -11,8 +11,8 @@ namespace Stereo
 {
     namespace Presenter
     {
-        /* What shows the images of the eyes that an importer takes: the window which previews them, the headset. A sink takes a frame as
-         * it comes, and it is good for no longer than the call: what the sink needs of it, it copies.
+        /* Shows the eye images that an importer provides, for example the preview window or the headset. A sink receives each frame as it arrives.
+         * The frame is valid only for the duration of the call, so the sink copies whatever it needs.
          */
         class IEyeSink
         {

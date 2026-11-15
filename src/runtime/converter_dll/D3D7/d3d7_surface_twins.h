@@ -15,13 +15,13 @@ namespace Stereo
 {
     namespace ConverterDLL
     {
-        /* The right eye's copies of the surfaces that the application renders to. A surface that the application makes to render to (a
-         * render target, a depth buffer), and the back buffer it gets from the primary surface, is made again, the same size and format, as
-         * the application makes it: that is its twin, which the right eye is drawn to while the left eye is drawn to the surface. The
-         * attachments of a surface (the depth buffer of a render target) are made again between the twins.
+        /* Holds the right eye's copies of the surfaces that the application renders to. A surface that the application creates to render to
+         * (a render target or a depth buffer), and the back buffer it gets from the primary surface, is created a second time with the same
+         * size and format. That copy is its twin. The right eye is drawn to the twin while the left eye is drawn to the application's
+         * surface. Attachments of a surface (for example the depth buffer of a render target) are attached between the twins in the same way.
          *
-         * The surfaces are called through their virtual tables, so what is done inside the callbacks of the interceptor is not seen by
-         * anything that watches them. Not thread-safe: the caller serializes the calls.
+         * The surfaces are called through their virtual tables, so nothing that watches them sees the calls made inside the interceptor
+         * callbacks. Not thread-safe: the caller serializes the calls.
          */
         class D3D7SurfaceTwins
         {
@@ -31,14 +31,14 @@ namespace Stereo
             /* The twin of a surface of the application, or nullptr if it has none. */
             void* get_twin_ptr(void* in_surface_ptr) const;
 
-            /* Whether the surface is the back buffer which the application got from its primary surface: what it presents. */
+            /* Whether the surface is the back buffer that the application got from its primary surface, that is, the surface it presents. */
             bool is_back_buffer(void* in_surface_ptr) const;
 
             uint64_t get_n_failed_twins() const;
             uint64_t get_n_twins       () const;
 
-            /* The call is done: makes the twins of what it made, and lets go of those of what it ended. The arguments are those of the call
-             * after it, with the surfaces it gave.
+            /* The call has been made: creates the twins of the surfaces it created and releases the twins of the surfaces it destroyed. The
+             * arguments are those of the call after it ran, including the surfaces it returned.
              */
             void on_post(const APIInterceptor::APIFunction&         in_function,
                          const uint32_t&                            in_n_arguments,
@@ -46,11 +46,11 @@ namespace Stereo
                          const APIInterceptor::APIFunctionArgument* in_returned_value_ptr);
 
         private:
-            /* The capabilities of the surface (DDSCAPS_*), which it says itself; false if it does not. */
+            /* Reads the capabilities (DDSCAPS_*) from the surface itself; returns false if the surface cannot report them. */
             static bool get_caps(void*     in_surface_ptr,
                                  uint32_t* out_caps_ptr);
 
-            /* Whether the call that gave the argument succeeded; a call with no returned value is taken to have. */
+            /* Whether the call that returned the argument succeeded. A call without a returned value counts as succeeded. */
             static bool has_succeeded(const APIInterceptor::APIFunctionArgument* in_returned_value_ptr);
 
             void handle_add_attached_surface(const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
@@ -59,8 +59,8 @@ namespace Stereo
             void handle_release             (const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
                                              const APIInterceptor::APIFunctionArgument* in_returned_value_ptr);
 
-            /* Makes the twin of the surface, the same size and format, and keeps it for the surface; nullptr, and a failure counted, if it
-             * cannot be made.
+            /* Creates the twin of the surface, with the same size and format, and stores it for the surface. On failure it counts the
+             * failure and returns nullptr.
              */
             void* make_twin_ptr(void*       in_surface_ptr,
                                 const bool& in_is_back_buffer);

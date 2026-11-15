@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * The loop over the arguments of a command line: each is given to a function, which says whether it took the argument after it as its value (that one is then not
- * given on its own).
+ * Loops over the arguments of a command line and gives each one to a handler function. The handler reports whether it used the following argument
+ * as its value. That argument is then not passed to the handler on its own.
  */
 #ifndef UTILS_COMMANDLINE_ARGUMENT_WALKER_H
 #define UTILS_COMMANDLINE_ARGUMENT_WALKER_H
@@ -19,12 +19,12 @@ namespace Utils
         class ArgumentWalker
         {
         public:
-            /* What a program does with an argument: false, and the reason, if the argument is not right. Whether it took the argument after it is set. */
+            /* Handles one argument. Returns false and sets the error if the argument is invalid. Sets out_uses_next_ptr if it used the following argument. */
             typedef std::function<bool(const ArgumentCursor& in_cursor,
                                        bool*                 out_uses_next_ptr,
                                        std::string*          out_error_ptr)> HandlerFunc;
 
-            /* Gives the arguments (not the name of the program) to the function in order. False, and the reason, if the function says an argument is not right. */
+            /* Calls the handler for each argument in order (the program name is skipped). Returns false and sets the error if the handler rejects an argument. */
             static bool walk(const int&         in_argc,
                              char*              in_argv[],
                              const HandlerFunc& in_handler_func,

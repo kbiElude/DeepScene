@@ -7,14 +7,16 @@
 #include <math.h>
 #include <vector>
 
-/* A depth that is this close to the end of the buffer was not drawn to (the buffer is cleared to 1). */
+/* A depth at or above this value was not drawn to (the buffer is cleared to 1). */
 const float Stereo::Core::DepthBufferStatistics::NOT_DRAWN_DEPTH = 0.999999f;
 
 float Stereo::Core::DepthBufferStatistics::get_distance(const float& in_depth,
                                                         const float& in_projection_z_scale,
                                                         const float& in_projection_z_shift)
 {
-    /* z of the normalized device = 2 * depth - 1 = -scale - shift / z of the eye, and the camera looks down minus z: the distance is shift / (z of the device + scale). */
+    /* A depth maps to the normalized device z = 2 * depth - 1. For this projection z_device = -scale - shift / z_eye, and the camera looks
+     * down -z, so the distance is shift / (z_device + scale).
+     */
     const float divisor = 2.0f * in_depth - 1.0f + in_projection_z_scale;
     const float result  = (divisor != 0.0f) ? in_projection_z_shift / divisor
                                             : 0.0f;
@@ -30,20 +32,20 @@ Stereo::Core::DepthSelection Stereo::Core::DepthBufferStatistics::get_selection(
                                                                                 const float&  in_projection_z_shift,
                                                                                 const float&  in_fraction)
 {
-    /* Less than this many pixels, or less than one of this many of those looked at, is hardly anything. */
+    /* Fewer drawn pixels than MIN_N_DRAWN, or fewer than one drawn pixel per N_LOOKED_AT_PER_DRAWN examined pixels, is too little to measure. */
     constexpr size_t MIN_N_DRAWN           = 16;
     constexpr size_t N_LOOKED_AT_PER_DRAWN = 100;
 
     DepthSelection result;
 
-    /* A buffer with nothing drawn in it, or hardly anything, says nothing of how deep the scene is. */
+    /* A buffer with nothing or hardly anything drawn in it does not say how deep the scene is. */
     if (in_n_drawn >= MIN_N_DRAWN                           &&
         in_n_drawn >= in_n_looked_at / N_LOOKED_AT_PER_DRAWN)
     {
         result.far_plane = get_distance(1.0f,
                                         in_projection_z_scale,
                                         in_projection_z_shift);
-        result.has_sky   = (result.far_plane > 0.0f                                                                                                  &&
+        result.has_sky   = (result.far_plane              >  0.0f                                                                   &&
                             static_cast<double>(in_n_sky) >= static_cast<double>(in_n_looked_at) * static_cast<double>(in_fraction) );
         result.is_enough = true;
         result.n_edge    = std::min(in_n_drawn - 1,

@@ -2,11 +2,11 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * The state of the fixed-function pipeline of OpenGL that a draw is told apart by: what is enabled (blending, the tests of the depth and the
- * stencil, culling, lighting, fog, texturing...) and a few settings (the functions of the depth and of the blending, the modes of the
- * polygons...). A setting that is the default is the same as one never made, so a draw is told by what the program changed.
+ * The state of the OpenGL fixed-function pipeline that distinguishes one draw from another: what is enabled (blending, depth and stencil tests,
+ * culling, lighting, fog, texturing...) and a few settings (the depth and blend functions, the polygon modes...). A setting that has the default
+ * value is the same as a setting that was never made, so draws are distinguished only by what the program changed.
  *
- * glPushAttrib saves a copy of it, and glPopAttrib puts back the parts that the groups of its mask hold.
+ * glPushAttrib saves a copy of this state, and glPopAttrib restores the parts that belong to the groups in its mask.
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_PIPELINE_STATE_H
 #define APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_PIPELINE_STATE_H
@@ -26,22 +26,22 @@ namespace Analysis
             class GLPipelineState
             {
             public:
-                /* A draw made with what is set now, but for the geometry, which the caller adds. The camera of OpenGL looks down minus z. */
+                /* Describes a draw using the current state. The caller adds the geometry. The OpenGL camera looks down minus z. */
                 Analysis::APIDumpAnalysis::DrawDescription describe_draw(const Analysis::APIDumpAnalysis::PrimitiveTopology& in_topology,
                                                                          const uint32_t&                                     in_vertex_count) const;
 
-                /* True if the capability is enabled for the texture unit; for the capabilities that are the unit's own (see is_unit_capability). */
+                /* Returns true if the capability is enabled for the texture unit. The unit only matters for capabilities that each unit has (see is_unit_capability). */
                 bool is_unit_capability_enabled(const uint32_t& in_unit,
                                                 const uint32_t& in_capability) const;
 
-                /* Puts back what the groups of the mask hold (a mask of all the bits puts back all of it). */
+                /* Restores the parts of the state that belong to the groups of the mask (a mask with all bits set restores everything). */
                 void restore(const GLPipelineState& in_saved,
                              const uint32_t&        in_mask);
 
                 void set_capability(const uint32_t& in_capability,
                                     const bool&     in_is_enabled);
 
-                /* For the capabilities that glEnable sets for the active texture unit. */
+                /* Applies to the capabilities that glEnable sets for the active texture unit. */
                 void set_unit_capability(const uint32_t& in_unit,
                                          const uint32_t& in_capability,
                                          const bool&     in_is_enabled);
@@ -49,7 +49,7 @@ namespace Analysis
                 void set_value(const GLStateValue& in_value,
                                const uint32_t&     in_setting);
 
-                /* True for the capabilities that each texture unit has its own of: the targets of the textures, and the generation of coordinates. */
+                /* Returns true for the capabilities that each texture unit has separately: the texture targets and the generation of coordinates. */
                 static bool is_unit_capability(const uint32_t& in_capability);
 
             private:
@@ -58,10 +58,10 @@ namespace Analysis
                 void set_key(const uint64_t& in_key,
                              const bool&     in_is_enabled);
 
-                /* The bits of the attribute groups that hold the capability, which glPushAttrib takes a mask of. */
+                /* The bits of the attribute groups that contain the capability, as used in the mask of glPushAttrib. */
                 static uint32_t get_capability_groups(const uint32_t& in_capability);
 
-                /* The key of a capability of a texture unit among the enabled ones; that of any other capability is the capability. */
+                /* The key of a capability in the enabled set. For a texture unit capability it combines the unit and the capability. For any other capability the key is the capability itself. */
                 static uint64_t get_unit_key(const uint32_t& in_unit,
                                              const uint32_t& in_capability);
 

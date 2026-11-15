@@ -2,32 +2,34 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Reads the catalog of the VR player. It is a JSON file (strict: unknown fields are refused, and errors say where they are):
+ * Reads the catalog of the VR player, a JSON file. Reading is strict: unknown fields are refused, and errors say where they are.
  *
  *   {
  *     "catalog_version": 0,
  *     "apps": [
  *       {
- *         "id": "fr08",                              letters, digits, '-' and '_'; each once
- *         "recipe": "recipes/fr08.json",             the recipe which converts the application to stereo
- *         "executable": "fr08/fr08v101.exe",         what to start
- *         "arguments": "-windowed",                  (optional)
- *         "working_directory": "fr08",               (optional) the directory of the executable by default
- *         "title": "Fr-08: .the .product"            (optional) the name of the target of the recipe by default
- *         "download": {                             (optional) where the application is got if its executable is not there:
- *           "urls": ["https://..."],                  https only; one after the other until one works
- *           "sha256": "...",                         of the archive (a zip file), in hex: what is not that is not used
- *           "size": 66454,                          bytes of the archive
- *           "unpacked_size": 69184,                 the most that the files may take together
- *           "page": "https://..."                   (optional) where the archive can be got by hand
+ *         "id": "fr08",                              letters, digits, '-' and '_'; each id once
+ *         "recipe": "recipes/fr08.json",             the recipe that converts the application to stereo
+ *         "executable": "fr08/fr08v101.exe",         the program to start
+ *         "arguments": "-windowed",                  (optional) command line arguments of the application
+ *         "working_directory": "fr08",               (optional) default: the directory of the executable
+ *         "title": "Fr-08: .the .product"            (optional) default: the name of the recipe target
+ *         "launch_button": "Launch",                 (optional) text of a button in the application's first dialog; the launcher presses it
+ *         "unavailable_reason": "...",               (optional) why the player cannot start the application (see below)
+ *         "download": {                              (optional) where to get the application if its executable is missing:
+ *           "urls": ["https://..."],                 https only; tried one after the other until one works
+ *           "sha256": "...",                         hex SHA-256 of the archive (a zip file); an archive with another hash is not used
+ *           "size": 66454,                           size of the archive in bytes
+ *           "unpacked_size": 69184,                  the most that the unpacked files may take together
+ *           "page": "https://..."                    (optional) where the archive can be downloaded by hand
  *         }
  *       }
  *     ]
  *   }
  *
- * Relative paths are relative to the directory of the catalog. An application whose recipe or executable is not there, or whose
- * recipe is not valid, is listed with the reason (AppEntry::unavailable_reason): the catalog is still usable. An application which
- * has a download is put in the directory of the catalog which has its id as the name, and its executable has to be in it.
+ * Relative paths are relative to the directory of the catalog. An application whose recipe or executable is missing, or whose recipe is
+ * invalid, is still listed, with the reason (AppEntry::unavailable_reason), so the catalog remains usable. An application that has a
+ * download is installed into the directory next to the catalog that is named after its id, and its executable must be inside it.
  */
 #ifndef APPCATALOG_CATALOG_LOADER_H
 #define APPCATALOG_CATALOG_LOADER_H
@@ -44,12 +46,12 @@ namespace VRPlayer
         class CatalogLoader
         {
         public:
-            /* Returns false, and says why, if the catalog cannot be read. */
+            /* Returns false and sets the error if the catalog cannot be read. */
             static bool load(const std::string& in_filename,
                              Catalog*           out_catalog_ptr,
                              std::string*       out_error_ptr);
 
-            /* The paths of the catalog which are relative are made so against the base directory. */
+            /* Relative paths in the catalog are resolved against in_base_directory. */
             static bool parse(const std::string& in_text,
                               const std::string& in_base_directory,
                               Catalog*           out_catalog_ptr,

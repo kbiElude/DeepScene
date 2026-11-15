@@ -28,7 +28,7 @@ Stereo::ConverterDLL::D3D8ResolutionScaler::D3D8ResolutionScaler(const uint32_t&
      m_target_width      (in_target_width),
      m_viewport          ()
 {
-    /* Whether anything is made larger is known when the application makes its device; until then the scaler is there for it. */
+    /* Whether anything is enlarged is decided when the application creates its device. The scaler registers itself already if a target size is given. */
     if (m_target_width  > 0 &&
         m_target_height > 0)
     {
@@ -50,7 +50,7 @@ void Stereo::ConverterDLL::D3D8ResolutionScaler::on_create_device(Interception::
     (void) in_adapter;
     (void) in_focus_window;
 
-    /* A size of 0 is the size of the window, which is not the application's to say. */
+    /* A size of 0 means the size of the window. The application does not state it, so the scaler cannot enlarge it. */
     m_core_ptr->require_fast_path(inout_parameters_ptr->BackBufferWidth  != 0 &&
                                   inout_parameters_ptr->BackBufferHeight != 0,
                                   "The application lets its window decide how large the back buffer is, which cannot be made larger");
@@ -75,7 +75,7 @@ void Stereo::ConverterDLL::D3D8ResolutionScaler::on_create_device(Interception::
                                                        m_real_height,
                                                        m_policy.get_scale() ) );
 
-        /* Both eyes are passed on side by side, in an image of a size which has its limit; it is better said here than seen as no picture. */
+        /* Both eyes are passed on side by side in one image, and the channel limits its size. An oversized image is reported here instead of showing no picture. */
         {
             const bool        is_supported = EyeImageLimits::fits(m_real_width,
                                                                   m_real_height);
@@ -98,7 +98,7 @@ void Stereo::ConverterDLL::D3D8ResolutionScaler::on_pre(const APIInterceptor::AP
 {
     Analysis::APIDumpAnalysis::ResolutionHazard hazard = Analysis::APIDumpAnalysis::ResolutionHazard::CLEARS_WITH_RECTANGLES;
 
-    /* What the application does that it cannot be kept from seeing the larger sizes in, or that does not scale with them, ends it. */
+    /* A call that exposes the larger sizes to the application, or that does not scale with them, ends the application. */
     const bool is_identity = m_policy.is_identity();
 
     if (is_identity == false)
@@ -125,7 +125,7 @@ void Stereo::ConverterDLL::D3D8ResolutionScaler::on_set_viewport(Interception::H
 
     (void) in_device_ptr;
 
-    /* The viewports for the back buffer are made as large as it was; those for another target are the application's. */
+    /* Viewports for the back buffer are enlarged by the scale. Viewports for other render targets stay as the application set them. */
     if (render_target_ptr != nullptr &&
         m_real_width      != 0)
     {

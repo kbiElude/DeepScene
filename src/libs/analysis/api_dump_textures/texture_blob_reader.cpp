@@ -90,7 +90,7 @@ bool Analysis::APIDumpTextures::TextureBlobReader::read(const BlobEntry&      in
 
     out_raw_byte_vec_ptr->clear();
 
-    /* The bytes of a content that is left in the workload are in the workload: it is for the reader of the workload to give them. */
+    /* A content that stays in the workload is not in this file. The reader of the workload has to provide its bytes. */
     if (in_entry.location != BlobLocation::STORED)
     {
         *out_error_ptr = "A content is in the workload, not in the file of blobs";
@@ -105,7 +105,7 @@ bool Analysis::APIDumpTextures::TextureBlobReader::read(const BlobEntry&      in
         goto end;
     }
 
-    /* An entry which says what is not in the file (the file is cut, or is another one) is refused before anything is read. */
+    /* An entry that points outside the file (the file is truncated, or belongs to another workload) is refused before anything is read. */
     if (in_entry.file_offset_n_bytes <  sizeof(TexturesFormat::BlobFileHeader)               ||
         in_entry.file_offset_n_bytes >  m_n_bytes                                            ||
         in_entry.n_stored_bytes      >  m_n_bytes - in_entry.file_offset_n_bytes)

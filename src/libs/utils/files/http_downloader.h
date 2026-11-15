@@ -11,14 +11,14 @@ namespace Utils
 {
     namespace Files
     {
-        /* Downloads with WinHTTP, which is part of the system: its proxy settings, its certificates, its TLS. An address is https; a
-         * redirect to an address which is http is not followed (the default of WinHTTP, which is kept).
+        /* Downloads with WinHTTP, which is part of Windows and brings its proxy settings, certificates and TLS. Addresses are https. A redirect to
+         * an http address is not followed (this is the WinHTTP default).
          */
         class HttpDownloader : public IDownloader
         {
         public:
-            /* An address which is http is refused, unless in_is_http_allowed (for the tests, which talk to a server of their own). A read
-             * which waits longer than in_receive_timeout_ms for the server ends the download, and so is how long a cancel can take.
+            /* An http address is refused unless in_is_http_allowed is set (the tests set it because they talk to their own server). A read that waits
+             * longer than in_receive_timeout_ms for the server ends the download. This is also the longest a cancel can take.
              */
             HttpDownloader(const bool& in_is_http_allowed,
                            const int&  in_receive_timeout_ms = 5000);

@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * The groups and their reasons are what matters: the tables are read and kept by hand.
+ * The groups and their reasons are what matters. The tables are maintained by hand.
  */
 #include "analysis/api_dump_analysis/frontends/D3D7/d3d7_function_policy.h"
 #include "analysis/api_dump_analysis/frontends/shared/function_name_table.h"

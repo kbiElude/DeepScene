@@ -39,7 +39,7 @@ namespace Analysis
                                      const size_t&         in_n_bytes,
                                      std::vector<uint8_t>* inout_byte_vec_ptr);
 
-            /* The header of a section and its compressed bytes; empty if the section cannot be made. */
+            /* The header of a section followed by its compressed bytes; empty if the section cannot be made. */
             static std::vector<uint8_t> pack_section(const SectionInfo&    in_section_info,
                                                      const AnalysisResult& in_analysis);
 
@@ -49,7 +49,7 @@ namespace Analysis
             static std::vector<uint8_t> serialize_section (const uint32_t&             in_tag,
                                                            const AnalysisResult&       in_analysis);
 
-            /* The sections this reader knows are in the order of SECTION_INFO_ARRAY, which is the order of the file. */
+            /* The sections that this reader knows, in the order of the file (the order of SECTION_INFO_ARRAY). */
             static const size_t      N_SECTIONS;
             static const SectionInfo SECTION_INFO_ARRAY[];
         };

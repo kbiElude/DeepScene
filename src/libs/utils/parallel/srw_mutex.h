@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * A mutex that costs little to take when no other thread has it.
+ * A mutex that is cheap to lock when no other thread holds it.
  */
 #ifndef UTILS_PARALLEL_SRW_MUTEX_H
 #define UTILS_PARALLEL_SRW_MUTEX_H
@@ -11,10 +11,13 @@ namespace Utils
 {
     namespace Parallel
     {
-        /* What std::mutex is for the code that takes it (lock, try_lock, unlock, so that a std::lock_guard of it works): not recursive, and not to be unlocked by a thread that
-         * does not have it. It is the slim reader-writer lock of the system, taken for writing: taking it is one atomic operation and no more, where std::mutex of the library of
-         * the compiler asks which thread has it (so that it can tell a thread that takes it twice) and takes a critical section. It is for a lock that is taken for a few
-         * instructions of work and very many times, as the one of a callback is.
+        /* A drop-in replacement for std::mutex: it has lock(), try_lock() and unlock(), so std::lock_guard works with it. Like std::mutex it is not recursive,
+         * and only the thread that locked it may unlock it.
+         *
+         * It wraps the Windows slim reader-writer lock in exclusive mode, so locking is a single atomic operation. The std::mutex of the MSVC library also
+         * records the owning thread (to detect a thread that locks twice) and takes a critical section.
+         *
+         * Use it for locks that are held for a few instructions and taken very often, such as the lock of a callback.
          */
         class SrwMutex
         {
@@ -29,7 +32,7 @@ namespace Utils
             void unlock  ();
 
         private:
-            void* m_lock_ptr; /* the SRWLOCK, which is a pointer in size (kept so, so that this header needs no header of the system) */
+            void* m_lock_ptr; /* The SRWLOCK. It is stored as a pointer so that this header does not need the Windows headers. */
         };
     }
 }

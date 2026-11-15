@@ -43,7 +43,7 @@ Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence Analysis::APIDumpAnaly
                                                    &list);
         }
 
-        /* A list that is not there yet when the call is kept may be anything when it is made: it is taken for the worst. */
+        /* A list that does not exist yet when the call is recorded could contain anything when it is created, so it is assumed to be the worst case. */
         result = GLListEyeDependence::EYE_DEPENDENT;
 
         if (is_found)
@@ -64,7 +64,7 @@ uint64_t Analysis::APIDumpAnalysis::Frontends::GLListHandler::get_n_unfollowed_c
 void Analysis::APIDumpAnalysis::Frontends::GLListHandler::handle_call_list(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                            const CallFunc&                              in_call_func)
 {
-    /* A list that calls itself, or lists that call each other, are not made for ever. */
+    /* A list that calls itself, or lists that call each other, are not executed forever. */
     constexpr uint32_t MAX_LIST_DEPTH = 64;
 
     std::array<uint32_t, 1> list_array = {};
@@ -85,10 +85,10 @@ void Analysis::APIDumpAnalysis::Frontends::GLListHandler::handle_call_list(const
         }
         else
         {
-            /* The list is held on to, as a call of it may delete it. */
+            /* The handler holds a reference to the list, because a call inside the list may delete it. */
             const std::shared_ptr<GLDisplayList> list_ptr = list_iterator->second;
 
-            /* One call is reused for the whole list, so that its room for the arguments is allocated once and not for every recorded call. */
+            /* One call object is reused for the whole list, so the memory for the arguments is allocated once and not for every recorded call. */
             Capture::APIDumpLoader::DumpedAPICall call;
 
             call.thread_id     = in_call.thread_id;
@@ -163,7 +163,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLListHandler::handle_new_list(const 
     {
         const uint32_t mode = list_array.at(1);
 
-        /* The calls made while a list is made are kept in it, and are not made, unless the mode says that they are made too. */
+        /* The calls made while a list is being recorded are stored in the list. They are executed as well only if the mode says so. */
         if (mode == COMPILE ||
             mode == COMPILE_AND_EXECUTE)
         {
@@ -192,7 +192,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLListHandler::record_call(const Capt
     recorded_call.arg_in_vec = in_call.arg_in_vec;
     recorded_call.func       = in_call.func;
 
-    /* The workload that the call is in is let go of before the list is called, so that the list keeps the data of the call itself. */
+    /* The workload that holds the call is released before the list is called, so that the list keeps the data of the call itself. */
     for (auto& argument : recorded_call.arg_in_vec)
     {
         if (argument.type == APIInterceptor::ARGTYPE_DATA_CHUNK_ID)
@@ -210,7 +210,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLListHandler::record_call(const Capt
             }
             else
             {
-                /* The data is not there: an argument which is not a chunk, so that it is not taken for another one of the list. */
+                /* The data is missing. The argument is not a chunk, so it cannot be mistaken for another chunk of the list. */
                 argument = APIInterceptor::APIFunctionArgument::create_void_ptr(nullptr);
             }
         }

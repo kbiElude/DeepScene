@@ -18,20 +18,21 @@ namespace Utils
         class ImageComposer
         {
         public:
-            /* Red-cyan: the red of the left image, and the green and blue of the right one. False, and an empty image, if their sizes differ. */
+            /* Builds a red-cyan anaglyph: red from the left image, green and blue from the right image. Returns false and an empty image if the sizes differ. */
             static bool make_anaglyph(const Image& in_left_image,
                                       const Image& in_right_image,
                                       Image*       out_image_ptr);
 
-            /* The images in rows of in_n_columns, left to right, with a gap between them, on dark gray. A cell is as large as the largest image, and an
-             * image is at its top left. False, and an empty image, if there are no images, no columns, or an image is empty.
+            /* Arranges the images in a grid with in_n_columns columns, filled left to right, with a gap between cells, on a dark gray background. Each cell
+             * is as large as the largest image, and an image sits at the top left of its cell. Returns false and an empty image if there are no images,
+             * no columns, or an image is empty.
              */
             static bool make_contact_sheet(const std::vector<Image>& in_image_vec,
                                            const uint32_t&           in_n_columns,
                                            Image*                    out_image_ptr);
 
-            /* What of the two eyes the view says: one of them, both side by side, or both as an anaglyph. False, and an empty image, if the images cannot be
-             * put together.
+            /* Builds the image the view asks for: one eye, both eyes side by side, or both eyes as an anaglyph. Returns false and an empty image if the
+             * images cannot be combined.
              */
             static bool make_eye_view(const EyeView& in_view,
                                       const Image&   in_left_image,
@@ -41,7 +42,7 @@ namespace Utils
         private:
             static const size_t N_BYTES_PER_PIXEL;
 
-            /* True if the image has the pixels its size says, and some. */
+            /* True if the image is not empty and contains as many pixels as its size says. */
             static bool is_usable(const Image& in_image);
         };
     }

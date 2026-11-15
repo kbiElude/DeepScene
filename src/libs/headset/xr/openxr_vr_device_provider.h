@@ -11,8 +11,8 @@ namespace Headset
 {
     namespace XR
     {
-        /* The headset of the OpenXR runtime which is active on the machine, if it is there and connected: one device. With no runtime, or no
-         * headset, there are no devices, and that is not an error: the picture is shown on the screen only.
+        /* The headset of the OpenXR runtime that is active on the machine, if one is present and connected: one device. With no runtime or
+         * no headset the list is empty. That is not an error: the picture is then shown on the screen only.
          */
         class OpenXrVrDeviceProvider : public Headset::VRDevices::IVrDeviceProvider
         {

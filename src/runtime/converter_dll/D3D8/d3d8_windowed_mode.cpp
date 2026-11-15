@@ -33,7 +33,7 @@ void Stereo::ConverterDLL::D3D8WindowedMode::on_create_device(Interception::Hook
     const auto get_display_mode_func = APIInterceptor::get_method_ptr<Interception::Hooks::D3D8::PFN_IDIRECT3D8_GETADAPTERDISPLAYMODE>(vtable,
                                                                                                                                        Interception::Hooks::D3D8::VTABLE_INDEX_IDIRECT3D8_GETADAPTERDISPLAYMODE);
 
-    /* A window shows the format of the desktop. */
+    /* A window shows the desktop format. */
     if (SUCCEEDED(get_display_mode_func(in_direct3d_ptr,
                                         in_adapter,
                                        &display_mode) ))
@@ -41,8 +41,8 @@ void Stereo::ConverterDLL::D3D8WindowedMode::on_create_device(Interception::Hook
         inout_parameters_ptr->BackBufferFormat = display_mode.Format;
     }
 
-    /* Only a swap effect that discards can have samples; a window has no flip, and the refresh rate and the interval are for the
-     * whole screen.
+    /* Multisampling needs the swap effect that discards. A window cannot flip, and the refresh rate and the presentation interval apply
+     * only to full-screen mode.
      */
     inout_parameters_ptr->BackBufferCount                  = 1;
     inout_parameters_ptr->FullScreen_PresentationInterval  = Interception::Hooks::D3D8::D3DPRESENT_INTERVAL_DEFAULT;

@@ -19,10 +19,12 @@ bool Analysis::APIDumpDependencies::FrameSlicePlanner::is_live(const FrameSlice&
 Analysis::APIDumpDependencies::FrameSlice Analysis::APIDumpDependencies::FrameSlicePlanner::plan(const DependencyAnalysis& in_analysis,
                                                                                                  const uint64_t&           in_target_frame_index)
 {
-    /* A resource, and the number of one of its versions. */
+    /* A resource index and the index of one of its versions. */
     typedef std::pair<size_t, size_t> VersionRef;
 
-    /* How much of a frame is made: none of it, as much as is needed for the versions that it wrote which are needed, or all of it. */
+    /* How much of a frame has to be made: none of it (dead), only what the needed versions that the frame wrote depend on (partly live), or all
+     * of it (fully live). A replay makes a frame as a whole or leaves it out, so a partly live frame is still replayed.
+     */
     enum FrameState
     {
         FRAME_DEAD,
@@ -30,7 +32,9 @@ Analysis::APIDumpDependencies::FrameSlice Analysis::APIDumpDependencies::FrameSl
         FRAME_FULLY_LIVE
     };
 
-    /* What is left to look at: what a frame that is made in full uses, or what a version needs of the frame that wrote it. */
+    /* A pending piece of work. Either the frame is fully live and everything it uses must be made (is_whole_frame), or only one version that
+     * the frame wrote is needed and only the inputs of that version must be made.
+     */
     struct Task
     {
         uint64_t frame_index;
@@ -39,7 +43,7 @@ Analysis::APIDumpDependencies::FrameSlice Analysis::APIDumpDependencies::FrameSl
         size_t   version_index;
     };
 
-    /* Where the way back from a version ends; see compute_windows(). */
+    /* The result of compute_windows() for one resource. It is computed the first time it is needed. */
     struct Windows
     {
         std::vector<size_t> end_version_vec;
@@ -52,8 +56,8 @@ Analysis::APIDumpDependencies::FrameSlice Analysis::APIDumpDependencies::FrameSl
     FrameSlice                         result;
     std::deque<Task>                   task_queue;
 
-    std::vector<std::vector<VersionRef> > consumed_vec_vec(static_cast<size_t>(n_frames) ); /* by frame: what it uses of the frames before it, by resource */
-    std::vector<std::vector<size_t> >     parent_vec_vec  (resource_vec.size  ());          /* by resource: the next version below that is not needed yet */
+    std::vector<std::vector<VersionRef> > consumed_vec_vec(static_cast<size_t>(n_frames) ); /* by frame: the versions it uses, sorted by resource           */
+    std::vector<std::vector<size_t> >     parent_vec_vec  (resource_vec.size  ());          /* by resource: union-find over version positions, see below    */
     std::vector<FrameState>               state_vec       (static_cast<size_t>(n_frames),
                                                            FRAME_DEAD);
     std::vector<Windows>                  windows_vec     (resource_vec.size  ());
@@ -63,7 +67,7 @@ Analysis::APIDumpDependencies::FrameSlice Analysis::APIDumpDependencies::FrameSl
 
     result.target_frame_index = in_target_frame_index;
 
-    /* What each frame uses of earlier content: the version a frame consumes is the one which was the latest when the frame began. */
+    /* Records the versions that each frame consumes. The version a frame consumes is the one that was the latest when the frame began. */
     for (size_t n_resource = 0;
                 n_resource < resource_vec.size();
               ++n_resource)
@@ -71,7 +75,9 @@ Analysis::APIDumpDependencies::FrameSlice Analysis::APIDumpDependencies::FrameSl
         const auto& version_vec = resource_vec.at(n_resource).version_vec;
         auto&       parent_vec  = parent_vec_vec.at(n_resource);
 
-        /* Counted from 1, so that 0 says there is none below; a version which is needed points to the one below it. */
+        /* Positions are version indices plus 1, so position 0 means that there is no version. Initially each position is its own parent, which
+         * marks its version as not needed yet. When a version becomes needed, its position is pointed at the position below it.
+         */
         parent_vec.resize(version_vec.size() + 1);
 
         std::iota(parent_vec.begin(),
@@ -95,7 +101,9 @@ Analysis::APIDumpDependencies::FrameSlice Analysis::APIDumpDependencies::FrameSl
         }
     }
 
-    /* A frame that is made in full has all that it uses made, and so does the writer of what that is (unless it is made in part: see below). */
+    /* Makes a frame fully live and queues it, so that everything it uses is made as well. The writers of those versions are made in full too,
+     * unless a version records its inputs (see make_part_of_frame_func).
+     */
     const auto make_whole_frame_func = [&](const uint64_t& in_frame_index)
     {
         if (in_frame_index < n_frames)
@@ -124,7 +132,7 @@ Analysis::APIDumpDependencies::FrameSlice Analysis::APIDumpDependencies::FrameSl
         }
     };
 
-    /* A frame that is made in part is made all the same (the replay makes a frame or leaves it out), but it is given only what its needed version needs. */
+    /* Makes a frame partly live. The frame is replayed as a whole, but only what its needed version depends on has to be made for it. */
     const auto make_part_of_frame_func = [&](const uint64_t& in_frame_index)
     {
         if (in_frame_index < n_frames)
@@ -141,7 +149,9 @@ Analysis::APIDumpDependencies::FrameSlice Analysis::APIDumpDependencies::FrameSl
         }
     };
 
-    /* The number of the version at or below the one given (counted from 1) that is not needed yet; 0 if there is none. */
+    /* Returns the position (version index plus 1) of the nearest version at or below in_position that is not needed yet, or 0 if there is none.
+     * It compresses the paths it follows.
+     */
     const auto find_unneeded_func = [](std::vector<size_t>* inout_parent_vec_ptr,
                                        const size_t&        in_position)
     {
@@ -164,8 +174,8 @@ Analysis::APIDumpDependencies::FrameSlice Analysis::APIDumpDependencies::FrameSl
         return root;
     };
 
-    /* The versions from the first to the last (both are needed) of a resource: each is made once, and its writer is made, in full unless the version says what
-     * it needs of it.
+    /* Marks the versions from in_first_version to in_last_version (inclusive) of a resource as needed. Each version is processed once. Its
+     * writer is made in full, unless the version records its inputs (has_inputs). Then only those inputs are made for the writer.
      */
     const auto need_versions_func = [&](const size_t& in_resource,
                                         const size_t& in_first_version,
@@ -208,7 +218,9 @@ Analysis::APIDumpDependencies::FrameSlice Analysis::APIDumpDependencies::FrameSl
         }
     };
 
-    /* What a frame used of a resource: the version it consumed, as far back as the way back goes. */
+    /* A live frame consumes a version of a resource. This marks that version, and the earlier versions it depends on, as needed, as far back
+     * as the walk goes (see compute_windows()).
+     */
     const auto need_consumed_func = [&](const size_t& in_resource,
                                         const size_t& in_version)
     {
@@ -226,12 +238,14 @@ Analysis::APIDumpDependencies::FrameSlice Analysis::APIDumpDependencies::FrameSl
         const size_t end_version   = windows.end_version_vec.at  (in_version);
         const size_t first_version = windows.first_version_vec.at(in_version);
 
-        /* The writer of the version is made; if it left some of the version before it, that is used too, as far as the way back goes. */
+        /* The consumed version is needed, and so are the older versions down to first_version. A writer that replaced only part of the resource
+         * leaves part of the version before it visible.
+         */
         need_versions_func(in_resource,
                            first_version,
                            in_version);
 
-        /* What the writes since do not reach is what the version where the way back ends held. */
+        /* If the walk skipped versions, the version where it ends is still needed. It holds the content that the skipped writes did not reach. */
         if (first_version > end_version)
         {
             need_versions_func(in_resource,
@@ -240,7 +254,7 @@ Analysis::APIDumpDependencies::FrameSlice Analysis::APIDumpDependencies::FrameSl
         }
     };
 
-    /* The target and everything after it is made, and so is whatever it uses. */
+    /* The target frame and every frame after it are live, and so is everything they use. */
     for (uint64_t n_frame = in_target_frame_index;
                   n_frame < n_frames;
                 ++n_frame)
@@ -266,8 +280,8 @@ Analysis::APIDumpDependencies::FrameSlice Analysis::APIDumpDependencies::FrameSl
         }
         else
         {
-            /* A frame that is made for a version which it wrote needs what flows into that version, and not the rest of what it uses. What the resource itself
-             * had before the frame is a part of the version if the frame left some of it, which is the way back of the version's own.
+            /* A frame that is needed only for a version it wrote needs only the inputs of that version, not everything the frame uses. The earlier
+             * content of the written resource itself is covered by the walk back from that version (see need_versions_func).
              */
             const auto& version = resource_vec.at(task.resource_index).version_vec.at(task.version_index);
 
@@ -297,7 +311,9 @@ void Analysis::APIDumpDependencies::FrameSlicePlanner::compute_windows(const Res
                                                                        std::vector<size_t>*        out_end_version_vec_ptr,
                                                                        std::vector<size_t>*        out_first_version_vec_ptr)
 {
-    /* No more versions than this are looked at together: a texture that takes longer than that to be whole is taken for one that does not become whole. */
+    /* The maximum number of versions that are examined together. A texture that needs more versions than this to become complete is treated as
+     * one that never becomes complete.
+     */
     constexpr size_t MAX_N_VERSIONS_IN_WINDOW = 64;
 
     const auto&  version_vec = in_dependencies.version_vec;
@@ -315,7 +331,9 @@ void Analysis::APIDumpDependencies::FrameSlicePlanner::compute_windows(const Res
     {
         const auto& version = version_vec.at(n_version);
 
-        /* The way back from a version goes on while the writer left some of what was before it. */
+        /* The walk back continues while the writer left some of the earlier content in place. It ends at a version without a writer, a version
+         * whose writer replaced everything, or the first version.
+         */
         const bool ends_here = (version.has_writer            == false ||
                                 version.keeps_earlier_content == false ||
                                 n_version                     == 0);
@@ -332,13 +350,15 @@ void Analysis::APIDumpDependencies::FrameSlicePlanner::compute_windows(const Res
         else
         if (in_dependencies.written_extent.is_known)
         {
-            /* The shortest run of versions that ends with this one and has written all of the extent; the start of it only goes up as the end does. */
+            /* Looks for the shortest run of versions that ends with this version and has written the whole extent. The start of that run never
+             * moves back as n_version grows, so the search resumes from the start found so far.
+             */
             const size_t lowest_first = std::max<size_t>(first,
                                                          (n_version + 1 > MAX_N_VERSIONS_IN_WINDOW) ? n_version + 1 - MAX_N_VERSIONS_IN_WINDOW
                                                                                                     : 0);
 
-            /* Only versions that say what they need can be dropped from the way back of the ones after them: a writer that is given all that it uses needs the
-             * version before it, in whatever part of it that it reads.
+            /* A run can hide the older versions only if every version in it records its inputs. A writer that is given everything it uses needs the
+             * version before it, whichever part of that version the writer reads.
              */
             const auto covers_func = [&](const size_t& in_first_version)
             {

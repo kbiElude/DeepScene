@@ -18,9 +18,9 @@ namespace Stereo
     {
         namespace Player
         {
-            /* Hands the images of the eyes from the replay thread to the thread which shows them. Both eyes of a frame come out together,
-             * never the left one of a frame with the right one of the frame before. Images are swapped between the threads, not copied
-             * under the lock, so a thread never waits for the other one to copy a frame.
+            /* Hands the images of the eyes from the replay thread to the thread that shows them. Both eyes of a frame come out
+             * together: the buffer never returns the left image of one frame with the right image of the previous frame. Images are
+             * swapped between the threads instead of being copied under the lock, so neither thread waits for the other to copy a frame.
              */
             class EyeImageBuffer
             {
@@ -35,23 +35,25 @@ namespace Stereo
                 struct Image
                 {
                     uint32_t             height = 0;
-                    std::vector<uint8_t> pixel_u8_vec; /* B, G, R and A of 8 bits, rows one after the other */
+                    std::vector<uint8_t> pixel_u8_vec; /* 8-bit B, G, R and A per pixel, rows stored one after the other */
                     uint32_t             width  = 0;
                 };
 
                 explicit EyeImageBuffer(const EyeMode& in_eye_mode);
 
-                /* The user of the buffer wakes up when a submit() says so, and calls take() then. */
+                /* Call this when waking up the user failed, so that the next submit() asks for a wake-up again. (The user is woken when
+                 * submit() returns true, and then calls take().)
+                 */
                 void on_post_failed();
 
-                /* The image of an execution of a frame (the first is the left eye's, if both eyes are shown). Returns true if the user has to
-                 * be woken up: images wait to be taken, and the user has not been told yet. Replay thread only.
+                /* Stores the image of one execution of a frame (execution 0 is the left eye if both eyes are shown). Returns true if the
+                 * caller must wake up the user: images are waiting to be taken and the user has not been told yet. Replay thread only.
                  */
                 bool submit(const uint32_t&                              in_n_execution,
                             const Stereo::Replay::EngineDLL::FrameImage& in_image);
 
-                /* Swaps the images which have not been taken into the arrays (the eyes with no new image are left alone), and says which.
-                 * Returns false if there was none.
+                /* Swaps the images that have not been taken yet into the arrays. Eyes without a new image are left alone, and
+                 * out_is_new_array_ptr says which eyes got a new image. Returns false if no eye had a new image.
                  */
                 bool take(std::array<Image, N_EYES>* inout_image_array_ptr,
                           std::array<bool,  N_EYES>* out_is_new_array_ptr);

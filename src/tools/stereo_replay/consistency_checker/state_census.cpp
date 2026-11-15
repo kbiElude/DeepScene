@@ -43,7 +43,7 @@ Stereo::Replay::ConsistencyChecker::StateCensus::ClassifiedCall Stereo::Replay::
         "glPushAttrib", "glPushClientAttrib"
     };
 
-    /* Calls that depend on the ones before them, by their whole names and by the beginnings of them. */
+    /* Calls whose effect depends on earlier calls, matched by their whole names and by the beginnings of their names. */
     static const char* const SEQUENCE_NAME_ARRAY[] =
     {
         "glBegin", "glBindTexture", "glEnd", "glFrustum", "glMatrixMode", "glOrtho", "glPopMatrix", "glPushMatrix"
@@ -54,7 +54,7 @@ Stereo::Replay::ConsistencyChecker::StateCensus::ClassifiedCall Stereo::Replay::
         "glClear", "glCompressed", "glCopyTex", "glDraw", "glGen", "glLoad", "glMult", "glRotate", "glScale", "glTexImage", "glTexSubImage", "glTranslate", "glVertex"
     };
 
-    /* Functions that have one piece of state, whatever their arguments. */
+    /* Functions that always set one piece of state, whatever their arguments. */
     static const char* const SINGLE_NAME_ARRAY[] =
     {
         "glAlphaFunc", "glBlendFunc", "glClearColor", "glClearDepth", "glColorMask", "glColorMaterial", "glCullFace", "glDepthFunc", "glDepthMask", "glDepthRange",
@@ -79,13 +79,13 @@ Stereo::Replay::ConsistencyChecker::StateCensus::ClassifiedCall Stereo::Replay::
         argument_vec.push_back(value);
     }
 
-    /* The number of an argument, to say which piece of state; 0 if there is none. */
+    /* The position of the argument that selects the piece of state; 0 if there is none. */
     const auto number_func = [&](const size_t& in_index)
     {
         return std::to_string(static_cast<uint64_t>( (in_index < argument_vec.size() ) ? argument_vec.at(in_index) : 0.0) );
     };
 
-    /* The arguments from the one given on are the value, if the function takes numbers (an array is not looked into). */
+    /* If the function takes numbers, the arguments from the given one on form the value. An array is not looked into. */
     const auto set_keyed_func = [&](const std::string& in_key,
                                     const size_t&      in_first_value_index)
     {
@@ -104,7 +104,7 @@ Stereo::Replay::ConsistencyChecker::StateCensus::ClassifiedCall Stereo::Replay::
 
     const std::string unit_text = std::to_string(m_active_unit);
 
-    /* The queries are not barriers: the replay does not make them (what they would write is in the calls that follow, as it was dumped). */
+    /* Queries are not barriers. The replay does not make them; what they would write is in the calls that follow, as it was dumped. */
     if (is_one_of(BARRIER_NAME_ARRAY,
                   sizeof(BARRIER_NAME_ARRAY) / sizeof(BARRIER_NAME_ARRAY[0]),
                   in_name_ptr) )
@@ -310,7 +310,7 @@ void Stereo::Replay::ConsistencyChecker::StateCensus::end_run()
     {
         ++m_n_runs;
 
-        /* What has to be made when the run is over: the last value of each piece of state that is not the one it had when the run began. */
+        /* What must be made when the run is over: the last value of each piece of state whose value differs from the one it had when the run began. */
         for (const auto& pending : m_pending_map)
         {
             const auto state_iterator = m_state_map.find(pending.first);
@@ -542,13 +542,13 @@ void Stereo::Replay::ConsistencyChecker::StateCensus::on_call_replayed(const Cap
             const bool is_dead = (in_n_frame < m_is_live_vec.size() &&
                                   m_is_live_vec.at(in_n_frame) == false);
 
-            /* The first call of a frame that is made sees the state as it is, so what was left out before it is made first. */
+            /* The first call of a frame that is made sees the state as it is, so the calls that were left out before it are made first. */
             if (is_dead == false)
             {
                 end_run();
             }
 
-            /* The pushes of a dead frame are followed from its first call to its last. */
+            /* The pushes of a dead frame are tracked from its first call to its last. */
             if (is_wgl == false)
             {
                 if (is_dead == false ||
@@ -575,7 +575,7 @@ void Stereo::Replay::ConsistencyChecker::StateCensus::on_call_replayed(const Cap
                 }
             }
 
-            /* A barrier ends the calls that can be taken together, and what is known of the state with them. */
+            /* A barrier ends the current group of calls that can be taken together, and the knowledge of the state that was gathered in that group. */
             const auto barrier_func = [&]()
             {
                 if (is_dead)
@@ -599,7 +599,8 @@ void Stereo::Replay::ConsistencyChecker::StateCensus::on_call_replayed(const Cap
                                                               &context);
                 }
 
-                /* A context made current that is another one, or made, or deleted: its state is another's. The same one again, and none, change nothing. */
+                /* Making a different context current, creating a context or deleting one switches to another state. Making the same context current
+                 * again, or making no context current, changes nothing. */
                 if (::strcmp(name_ptr, "wglMakeCurrent") == 0)
                 {
                     if (in_was_executed &&
@@ -654,7 +655,7 @@ void Stereo::Replay::ConsistencyChecker::StateCensus::on_call_replayed(const Cap
 
                 if (is_in_list)
                 {
-                    /* What is made into a list is kept in it, and changes nothing now. */
+                    /* Calls that are recorded into a list are kept in the list and change no state at this point. */
                     if (entry_ptr != nullptr)
                     {
                         ++entry_ptr->n_in_lists;
@@ -751,7 +752,7 @@ void Stereo::Replay::ConsistencyChecker::StateCensus::on_call_replayed(const Cap
 
                             ++entry_ptr->n_keyed;
 
-                            /* Another call gave it the value it has. */
+                            /* An earlier call already gave the piece of state this value. */
                             if (state_iterator != m_state_map.end()            &&
                                 state_iterator->second.has_value               &&
                                 classified.value.has_value                     &&
@@ -760,7 +761,7 @@ void Stereo::Replay::ConsistencyChecker::StateCensus::on_call_replayed(const Cap
                                 ++entry_ptr->n_repeats;
                             }
 
-                            /* The call that gave it a value before, in the same run, need not be made. */
+                            /* The earlier call in the same run that set this piece of state is overwritten, so it need not be made. */
                             if (pending_iterator != m_pending_map.end() )
                             {
                                 ++m_entry_map[pending_iterator->second.function].n_overwritten_later;
@@ -799,7 +800,7 @@ bool Stereo::Replay::ConsistencyChecker::StateCensus::should_execute_call(const 
     return true;
 }
 
-/* A function that takes an array says so by its last letter (glMaterialfv, glTexEnviv, glColor3fv). */
+/* A function that takes an array ends in the letter v (glMaterialfv, glTexEnviv, glColor3fv). */
 bool Stereo::Replay::ConsistencyChecker::StateCensus::takes_array(const char* in_name_ptr)
 {
     const size_t n_characters = ::strlen(in_name_ptr);

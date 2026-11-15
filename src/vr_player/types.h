@@ -21,17 +21,17 @@ namespace VRPlayer
     /* What is needed to start an application with the stereo converter in it. */
     struct SessionRequest
     {
-        std::string arguments;          /* of the application                                                   */
+        std::string arguments;          /* command line arguments of the application                            */
         std::string executable_path;
-        std::string launch_button_text; /* of a button that the application shows first, which the launcher presses; empty: none */
-        std::string launcher_path;      /* StereoLauncher of the architecture of the application                */
+        std::string launch_button_text; /* text of a button in the first dialog of the application, which the launcher presses; empty: none */
+        std::string launcher_path;      /* path of the StereoLauncher that matches the application architecture */
         bool        is_logging          = false; /* the converter and the presenter write a log of the session  */
-        bool        pace_to_headset     = true;  /* the application makes a frame for each one of the headset   */
+        bool        pace_to_headset     = true;  /* the application renders one frame per headset frame         */
         std::string recipe_path;
         std::string session_id;
-        std::string title;              /* of the window which shows the images                                  */
-        bool        use_headset         = false; /* the window shows them in the headset too, if there is one    */
-        std::string presenter_path;        /* StereoPresenter, which shows the images of the application         */
+        std::string title;              /* title of the window that shows the images                             */
+        bool        use_headset         = false; /* the window also shows them in the headset, if there is one   */
+        std::string presenter_path;        /* path of StereoPresenter, which shows the images of the application */
         std::string working_directory;
     };
 
@@ -43,7 +43,7 @@ namespace VRPlayer
         RUNNING
     };
 
-    /* What the window shows. */
+    /* The data that the window shows. */
     struct WindowContent
     {
         VRPlayer::AppCatalog::Catalog             catalog;

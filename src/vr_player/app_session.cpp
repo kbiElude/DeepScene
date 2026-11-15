@@ -23,7 +23,7 @@ VRPlayer::AppSession::AppSession()
 
 VRPlayer::AppSession::~AppSession()
 {
-    /* What still runs ends with the job. */
+    /* Closing the job handle ends everything that still runs. */
     close_handles();
 }
 
@@ -47,7 +47,7 @@ void VRPlayer::AppSession::close_handles()
 void VRPlayer::AppSession::end_session(const SessionState& in_state,
                                        const std::string&  in_message)
 {
-    /* The window, the launcher and the application all belong to the job. */
+    /* The window, the launcher and the application all belong to the job, so terminating the job ends all of them. */
     if (m_job != nullptr)
     {
         ::TerminateJobObject(m_job,
@@ -127,7 +127,7 @@ std::string VRPlayer::AppSession::quote_argument(const std::string& in_argument)
     size_t      n_backslashes = 0;
     std::string result        = "\"";
 
-    /* The rules of CommandLineToArgvW: backslashes only count in front of a quote. */
+    /* The quoting rules of CommandLineToArgvW: backslashes are special only in front of a quote. */
     for (const char character : in_argument)
     {
         if (character == '\\')
@@ -167,7 +167,7 @@ std::string VRPlayer::AppSession::read_output(const HANDLE& in_pipe)
     DWORD       n_read      = 0;
     std::string result;
 
-    /* The launcher has exited, so everything it wrote is in the pipe, and nothing has to be waited for. */
+    /* The launcher has exited, so everything it wrote is already in the pipe and there is nothing to wait for. */
     while (is_reading)
     {
         const BOOL is_peeked = ::PeekNamedPipe(in_pipe,
@@ -205,7 +205,7 @@ std::string VRPlayer::AppSession::read_output(const HANDLE& in_pipe)
 
 void VRPlayer::AppSession::set_depth_strength(const float& in_depth_strength)
 {
-    /* Said when it changes, so that what else sets it through the channel is not overridden at every frame. */
+    /* Sent only when the value changes, so that other writers of the channel are not overridden on every frame. */
     if (m_channel_ptr != nullptr)
     {
         if (m_has_depth_strength == false             ||
@@ -221,7 +221,7 @@ void VRPlayer::AppSession::set_depth_strength(const float& in_depth_strength)
 
 void VRPlayer::AppSession::set_is_overlay_pushed(const bool& in_is_pushed)
 {
-    /* Said when it changes, like the strength. */
+    /* Sent only when the value changes, like the depth strength. */
     if (m_channel_ptr != nullptr)
     {
         if (m_has_is_overlay_pushed == false         ||
@@ -307,7 +307,7 @@ bool VRPlayer::AppSession::start(const VRPlayer::AppCatalog::AppEntry& in_app,
         goto end;
     }
 
-    /* The channel is made before anything is started, so that what is said through it is there when the converter first looks. */
+    /* The channel is created before anything is started, so that what is written to it is there when the converter first looks. */
     channel_ptr = Stereo::Transport::FrameChannel::open_ptr(request.session_id,
                                                             out_error_ptr);
 
@@ -316,7 +316,7 @@ bool VRPlayer::AppSession::start(const VRPlayer::AppCatalog::AppEntry& in_app,
         goto end;
     }
 
-    /* What the application renders is made as large as fits an eye of the headset; the channel has room for no more than it has. */
+    /* The application renders at the largest size that fits an eye of the headset. The size is limited to what the channel has room for. */
     if (in_target_eye_width  > 0 &&
         in_target_eye_height > 0)
     {
@@ -326,7 +326,7 @@ bool VRPlayer::AppSession::start(const VRPlayer::AppCatalog::AppEntry& in_app,
                                                             Stereo::Transport::FrameChannel::get_max_height() ));
     }
 
-    /* Everything which is started belongs to a job, which ends it all when the session ends. */
+    /* Everything that is started belongs to a job, which ends all of it when the session ends. */
     job = ::CreateJobObjectW(nullptr,
                              nullptr);
 
@@ -351,7 +351,7 @@ bool VRPlayer::AppSession::start(const VRPlayer::AppCatalog::AppEntry& in_app,
         }
     }
 
-    /* What the launcher says is kept, so that the window can show why it stopped. */
+    /* The output of the launcher is kept, so that the window can show why it stopped. */
     security.bInheritHandle = TRUE;
     security.nLength        = sizeof(security);
 
@@ -373,8 +373,8 @@ bool VRPlayer::AppSession::start(const VRPlayer::AppCatalog::AppEntry& in_app,
     startup_info.cb        = sizeof                    (startup_info);
     presenter_command_line = get_presenter_command_line(request);
 
-    /* The window first: it is there when the first image comes. Both are suspended until they are in the job, so that nothing they
-     * start can get out of it.
+    /* The window is started first so that it is ready when the first image comes. Both processes are created suspended and resumed only after
+     * they are in the job, so that nothing they start can escape the job.
      */
     if (::CreateProcessA(nullptr,
                          &presenter_command_line[0],
@@ -425,7 +425,7 @@ bool VRPlayer::AppSession::start(const VRPlayer::AppCatalog::AppEntry& in_app,
     ::ResumeThread            (launcher_info.hThread);
     ::CloseHandle             (launcher_info.hThread);
 
-    /* A session which ended before is replaced; its job is closed now. */
+    /* A session that ended earlier is replaced, and its job is closed here. */
     close_handles();
 
     m_message.clear();
@@ -445,7 +445,7 @@ bool VRPlayer::AppSession::start(const VRPlayer::AppCatalog::AppEntry& in_app,
     presenter_process       = nullptr;
 
 end:
-    /* A job which is not kept takes what was started in it along. */
+    /* A job that was not kept ends whatever was started in it when it is closed. */
     if (job != nullptr)
     {
         ::CloseHandle(job);
@@ -502,7 +502,7 @@ void VRPlayer::AppSession::update()
         if (::WaitForSingleObject(m_presenter_process,
                                   0) == WAIT_OBJECT_0)
         {
-            /* The window was closed: that is the end of the session, and of the application with it. */
+            /* The window was closed. That ends the session, and the application with it. */
             end_session(SessionState::ENDED,
                         std::string() );
         }
