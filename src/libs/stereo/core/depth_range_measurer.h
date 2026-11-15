@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#ifndef STEREO_CORE_DEPTH_BUFFER_STATISTICS_H
-#define STEREO_CORE_DEPTH_BUFFER_STATISTICS_H
+#ifndef STEREO_CORE_DEPTH_RANGE_MEASURER_H
+#define STEREO_CORE_DEPTH_RANGE_MEASURER_H
 
 #include "stereo/core/types.h"
 #include <stddef.h>
@@ -24,7 +24,7 @@ namespace Stereo
         };
 
         /* Measures how deep a scene is from the depth buffer of a frame. */
-        class DepthBufferStatistics
+        class DepthRangeMeasurer
         {
         public:
             /* The distance from the camera of a depth buffer value, for the given projection (the same two values that measure() takes).
@@ -64,4 +64,4 @@ namespace Stereo
     }
 }
 
-#endif /* STEREO_CORE_DEPTH_BUFFER_STATISTICS_H */
+#endif /* STEREO_CORE_DEPTH_RANGE_MEASURER_H */

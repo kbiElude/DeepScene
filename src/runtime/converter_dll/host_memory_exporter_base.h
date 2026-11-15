@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#ifndef STEREO_CONVERTERDLL_HOST_MEMORY_EXPORTER_H
-#define STEREO_CONVERTERDLL_HOST_MEMORY_EXPORTER_H
+#ifndef STEREO_CONVERTERDLL_HOST_MEMORY_EXPORTER_BASE_H
+#define STEREO_CONVERTERDLL_HOST_MEMORY_EXPORTER_BASE_H
 
 #include "stereo/transport/frame_channel.h"
 #include "stereo/transport/i_frame_exporter.h"
@@ -16,14 +16,14 @@ namespace Stereo
         /* The base of the exporters that pass the images through the host memory of the frame channel. It offers only that transport kind, and it
          * waits for the viewer the same way for all of them.
          */
-        class HostMemoryExporter : public Stereo::Transport::IFrameExporter
+        class HostMemoryExporterBase : public Stereo::Transport::IFrameExporter
         {
         public:
             Stereo::Transport::TransportKindMask get_offered_kinds() const override;
 
         protected:
             /* The channel must outlive the exporter. The constructor registers the offered transport kind on the channel. */
-            explicit HostMemoryExporter(Stereo::Transport::FrameChannel* inout_channel_ptr);
+            explicit HostMemoryExporterBase(Stereo::Transport::FrameChannel* inout_channel_ptr);
 
             Stereo::Transport::FrameChannel* get_channel_ptr() const;
 
@@ -50,4 +50,4 @@ namespace Stereo
     }
 }
 
-#endif /* STEREO_CONVERTERDLL_HOST_MEMORY_EXPORTER_H */
+#endif /* STEREO_CONVERTERDLL_HOST_MEMORY_EXPORTER_BASE_H */

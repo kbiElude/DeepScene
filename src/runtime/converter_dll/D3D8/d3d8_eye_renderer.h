@@ -9,7 +9,7 @@
 #include "common/api_function_argument.h"
 #include "common/types.h"
 #include "interception/hooks/D3D8/types.h"
-#include "stereo/core/stereo_core.h"
+#include "stereo/core/recipe_stereo_planner.h"
 #include <array>
 #include <functional>
 #include <map>
@@ -36,7 +36,7 @@ namespace Stereo
         class D3D8EyeRenderer
         {
         public:
-            explicit D3D8EyeRenderer(Stereo::Core::StereoCore* in_core_ptr);
+            explicit D3D8EyeRenderer(Stereo::Core::RecipeStereoPlanner* in_core_ptr);
 
             /* The twin of the back buffer of the device, or nullptr if there is none. */
             void* get_back_buffer_twin_ptr(void* in_device_ptr);
@@ -114,7 +114,7 @@ namespace Stereo
             static void* get_pointer_argument(const APIInterceptor::APIFunctionArgument& in_argument);
 
             std::vector<Stereo::Core::MatrixChange> m_change_vec; /* of the draw being made; the entries are reused */
-            Stereo::Core::StereoCore*               m_core_ptr;
+            Stereo::Core::RecipeStereoPlanner*      m_core_ptr;
             void*                                   m_device_ptr;
             Analysis::Recipe::DrawClass             m_draw_class;
             bool                                    m_is_draw_handled; /* set when on_pre_draw() has made the draw for both eyes */

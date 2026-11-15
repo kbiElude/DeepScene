@@ -16,7 +16,7 @@
 #include <string>
 #include <thread>
 
-void Analysis::APIDumpDependencyExtractor::print_stats(const Analysis::APIDumpDependencies::DependencyAnalysis& in_analysis)
+void Analysis::APIDumpDependencyExtractor::print_stats(const Analysis::APIDumpDependencies::DependencyFileContent& in_analysis)
 {
     std::map<Analysis::APIDumpDependencies::DependencyClass, uint64_t> n_resources_by_class_map;
 
@@ -69,8 +69,8 @@ void Analysis::APIDumpDependencyExtractor::print_usage()
 int Analysis::APIDumpDependencyExtractor::run(int   in_argc,
                                               char* in_argv[])
 {
-    Analysis::APIDumpDependencies::AccessLog          log;
-    Analysis::APIDumpDependencies::DependencyAnalysis analysis;
+    Analysis::APIDumpDependencies::AccessLog             log;
+    Analysis::APIDumpDependencies::DependencyFileContent analysis;
 
     /* Without history: the analysis keeps only as much of each frame as the dependencies need. */
     Analysis::APIDumpAnalysis::Frontends::AnalysisSession session(false);

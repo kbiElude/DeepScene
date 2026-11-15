@@ -2,10 +2,10 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#ifndef STEREO_CORE_DEPTH_MEASURER_H
-#define STEREO_CORE_DEPTH_MEASURER_H
+#ifndef STEREO_CORE_FAST_DEPTH_RANGE_MEASURER_H
+#define STEREO_CORE_FAST_DEPTH_RANGE_MEASURER_H
 
-#include "stereo/core/depth_buffer_statistics.h"
+#include "stereo/core/depth_range_measurer.h"
 #include "stereo/core/types.h"
 #include <stddef.h>
 #include <stdint.h>
@@ -15,22 +15,22 @@ namespace Stereo
 {
     namespace Core
     {
-        /* Does what DepthBufferStatistics::measure() does and returns the same numbers, in a fraction of the time on a processor with AVX2.
+        /* Does what DepthRangeMeasurer::measure() does and returns the same numbers, in a fraction of the time on a processor with AVX2.
          * On a processor without AVX2 it calls that function. The AVX2 path works as follows. It puts the distances of the pixels in a
          * histogram. A bin is selected by the top bits of the distance as a float. These bits grow with the distance, so every bin is about
          * one percent wide, whatever the distance is. The bin counts show which bins hold the nearest, the median and the farthest distance.
          * The three distances are then selected among the values in those three bins only. A measurer keeps its working memory between
          * calls, so each caller owns one.
          */
-        class DepthMeasurer
+        class FastDepthRangeMeasurer
         {
         public:
             /* Pass false as in_allow_avx2 to force the path without AVX2 (for the tests). */
-            DepthMeasurer(const bool& in_allow_avx2);
+            FastDepthRangeMeasurer(const bool& in_allow_avx2);
 
             bool is_using_avx2() const;
 
-            /* Same as DepthBufferStatistics::measure(). A step above 1 uses the path without AVX2. */
+            /* Same as DepthRangeMeasurer::measure(). A step above 1 uses the path without AVX2. */
             DepthRange measure(const float*  in_depth_ptr,
                                const size_t& in_n_depths,
                                const size_t& in_step,
@@ -73,4 +73,4 @@ namespace Stereo
     }
 }
 
-#endif /* STEREO_CORE_DEPTH_MEASURER_H */
+#endif /* STEREO_CORE_FAST_DEPTH_RANGE_MEASURER_H */

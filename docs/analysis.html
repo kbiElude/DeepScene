@@ -531,7 +531,7 @@
 </ul>
 </details>
 <h3>The same analysis, inside the program</h3>
-<p>The converter inside a program runs the same <code>AnalysisSession</code>, fed by <code>CallFeeder</code> with the calls as they are made, but built <em>without history</em>: no frame records, no representative detail, no camera series. What it keeps grows only with the kinds of frames, passes and draws.</p>
+<p>The converter inside a program runs the same <code>AnalysisSession</code>, fed by <code>LiveCallAnalyzer</code> with the calls as they are made, but built <em>without history</em>: no frame records, no representative detail, no camera series. What it keeps grows only with the kinds of frames, passes and draws.</p>
 <p>It needs two things the running program provides: the draw signature of each draw, as it is issued, to match against the recipe, and the shape key of each frame, when the present is made, to ease toward the scene's convergence distance.</p>
 
 <h2 id="limits"><span class="no">12</span>What it does not do</h2>

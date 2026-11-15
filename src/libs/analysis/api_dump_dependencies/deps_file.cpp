@@ -26,9 +26,9 @@ const Analysis::APIDumpAnalysis::SectionInfo Analysis::APIDumpDependencies::Deps
     {Analysis::APIDumpDependencies::DepsFormat::TAG_RDEP, 1}
 };
 
-bool Analysis::APIDumpDependencies::DepsFile::read(const std::string&  in_filename,
-                                                   DependencyAnalysis* out_analysis_ptr,
-                                                   std::string*        out_error_ptr)
+bool Analysis::APIDumpDependencies::DepsFile::read(const std::string&     in_filename,
+                                                   DependencyFileContent* out_analysis_ptr,
+                                                   std::string*           out_error_ptr)
 {
     std::vector<uint8_t> byte_vec;
     bool                 result = false;
@@ -49,14 +49,14 @@ end:
 }
 
 bool Analysis::APIDumpDependencies::DepsFile::read_bytes(const std::vector<uint8_t>& in_byte_vec,
-                                                         DependencyAnalysis*         out_analysis_ptr,
+                                                         DependencyFileContent*      out_analysis_ptr,
                                                          std::string*                out_error_ptr)
 {
     constexpr size_t N_SECTIONS = sizeof(SECTION_INFO_ARRAY) / sizeof(SECTION_INFO_ARRAY[0]);
 
     bool result = false;
 
-    *out_analysis_ptr = DependencyAnalysis();
+    *out_analysis_ptr = DependencyFileContent();
 
     if (Analysis::APIDumpAnalysis::SectionedFile::check_analysis_header(in_byte_vec,
                                                                         FILE_KIND,
@@ -127,9 +127,9 @@ end:
     return result;
 }
 
-bool Analysis::APIDumpDependencies::DepsFile::write(const std::string&        in_filename,
-                                                    const DependencyAnalysis& in_analysis,
-                                                    std::string*              out_error_ptr)
+bool Analysis::APIDumpDependencies::DepsFile::write(const std::string&           in_filename,
+                                                    const DependencyFileContent& in_analysis,
+                                                    std::string*                 out_error_ptr)
 {
     const std::vector<uint8_t> byte_vec = write_bytes(in_analysis);
     bool                       result   = false;
@@ -149,7 +149,7 @@ end:
     return result;
 }
 
-std::vector<uint8_t> Analysis::APIDumpDependencies::DepsFile::write_bytes(const DependencyAnalysis& in_analysis)
+std::vector<uint8_t> Analysis::APIDumpDependencies::DepsFile::write_bytes(const DependencyFileContent& in_analysis)
 {
     std::vector<std::future<std::vector<uint8_t> > > future_vec;
     std::vector<uint8_t>                             result_vec = Analysis::APIDumpAnalysis::SectionedFile::make_analysis_header_bytes(FILE_KIND);

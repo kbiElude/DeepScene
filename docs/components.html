@@ -83,7 +83,7 @@
   <text class="title" x="10" y="130">A library part</text>
   <rect class="box" x="10" y="142" width="250" height="52" rx="6"/><text x="135" y="164" text-anchor="middle">src/libs/stereo/core</text><text class="small" x="135" y="182" text-anchor="middle">library folder / part folder</text>
   <rect class="box3" x="330" y="142" width="250" height="52" rx="6"/><text x="455" y="164" text-anchor="middle">Stereo::Core</text><text class="small" x="455" y="182" text-anchor="middle">namespace: the path in PascalCase</text>
-  <rect class="box2" x="650" y="142" width="240" height="52" rx="6"/><text x="770" y="164" text-anchor="middle">"stereo/core/stereo_core.h"</text><text class="small" x="770" y="182" text-anchor="middle">include, from src/libs</text>
+  <rect class="box2" x="650" y="142" width="240" height="52" rx="6"/><text x="770" y="164" text-anchor="middle">"stereo/core/recipe_stereo_planner.h"</text><text class="small" x="770" y="182" text-anchor="middle">include, from src/libs</text>
   <path class="arrow" d="M260 168H328"/><path class="arrow" d="M580 168H648"/>
   <text class="small" x="450" y="218" text-anchor="middle">tools/stereo_replay/player gives StereoReplayPlayer in the same way.</text>
 </svg>
@@ -120,7 +120,7 @@
 <tr><th>Part</th><th>What it is for</th><th>Main classes</th></tr>
 <tr><td>BinaryIO</td><td>Bytes read and written as numbers, strings and blocks, for the files of the analysis.</td><td><code>ByteReader</code>, <code>ByteWriter</code></td></tr>
 <tr><td>CommandLine</td><td>What the command lines of the programs share. The launcher, the presenter, the extractors, the query programs and the rest all use it.</td><td><code>ArgumentWalker</code> loops over the arguments and hands each to the options of the program (<code>ArgumentCursor</code> is the position in them, <code>ProgramOptionFunc</code> a function for one option); <code>NumberParser</code> reads the numbers</td></tr>
-<tr><td>Cpu</td><td>What the processor can do: whether it has AVX2 and the system saves its registers. The code that has a faster path for it (<code>StableHasher</code>, <code>DepthMeasurer</code>) asks once.</td><td><code>CpuFeatures</code></td></tr>
+<tr><td>Cpu</td><td>What the processor can do: whether it has AVX2 and the system saves its registers. The code that has a faster path for it (<code>StableHasher</code>, <code>FastDepthRangeMeasurer</code>) asks once.</td><td><code>CpuFeatures</code></td></tr>
 <tr><td>D3D12</td><td>A list of Direct3D 12 commands recorded, run by a queue and waited for, and a texture filled with one colour.</td><td><code>D3D12CommandRunner</code> (the allocator, the list and the fence), <code>D3D12TextureClearer</code></td></tr>
 <tr><td>Files</td><td>A file from the network, checked and unpacked, and the file system under it. The downloader is behind an interface so that what installs needs no network to be tested.</td><td><code>HttpDownloader</code> gets a file over https (WinHTTP, so the proxy and the certificates of the system); <code>Sha256</code> hashes it with the cryptography of the system; <code>ZipExtractor</code> unpacks it with miniz (and refuses a name which would put a file outside the directory); <code>FileSystem</code> has what they share (names in UTF-8, directories); <code>IDownloader</code></td></tr>
 <tr><td>Graphics</td><td>What the texels of a texture are, in the words of no API: a named format for each layout the programs follow. The front end of each API turns its own formats into these, and the files of the analysis store them.</td><td><code>TextureFormat</code></td></tr>
@@ -277,15 +277,15 @@
 <h4>Core</h4>
 <table>
 <tr><th>Group</th><th>Class</th><th>What it does</th></tr>
-<tr><td rowspan="3">Classes of draws</td><td><code>StereoCore</code></td><td>Decides the class of a draw from the recipe, the view matrix, and what to do with draws and frames the recipe does not know. <code>is_last_draw_attached_to_camera()</code> says whether a draw is made as it is for both eyes, <code>get_eye_parallax()</code> how far apart the eyes move a point of a given depth, and <code>plan_push_shift_with_layer()</code> how far a pushed draw that the eyes also move is shifted.</td></tr>
+<tr><td rowspan="3">Classes of draws</td><td><code>RecipeStereoPlanner</code></td><td>Decides the class of a draw from the recipe, the view matrix, and what to do with draws and frames the recipe does not know. <code>is_last_draw_attached_to_camera()</code> says whether a draw is made as it is for both eyes, <code>get_eye_parallax()</code> how far apart the eyes move a point of a given depth, and <code>plan_push_shift_with_layer()</code> how far a pushed draw that the eyes also move is shifted.</td></tr>
 <tr><td><code>ConvergenceModel</code></td><td>Says where the eyes converge and how far apart they are.</td></tr>
 <tr><td><code>MatrixSlots</code></td><td>Which matrices a rule is about and which to put in before a draw. The resolution policy says how much larger than the application asks to render.</td></tr>
 <tr><td rowspan="4">Vertices already in the space of the picture</td><td><code>ScreenParallaxPlanner</code></td><td>Decides what is done to the vertices of a draw that are already in the space of the picture (moved by their depth, pushed as a whole, or left alone), for the replay engine and the live converter alike. An API adapter asks it what to do and does it.</td></tr>
-<tr><td><code>ScreenParallax</code></td><td>Moves the bytes of such vertices (<code>make_parameters()</code> and <code>apply_plan()</code> turn a plan into the move). It works on the bytes, so the replay engine, with a dumped draw, and the live converter, with the application's draw, share it.</td></tr>
-<tr><td><code>StereoCore::make_screen_vertices()</code></td><td>Gives an adapter the moved copy of a draw's vertices.</td></tr>
+<tr><td><code>ScreenSpaceVertexShifter</code></td><td>Moves the bytes of such vertices (<code>make_parameters()</code> and <code>apply_plan()</code> turn a plan into the move). It works on the bytes, so the replay engine, with a dumped draw, and the live converter, with the application's draw, share it.</td></tr>
+<tr><td><code>RecipeStereoPlanner::make_screen_vertices()</code></td><td>Gives an adapter the moved copy of a draw's vertices.</td></tr>
 <tr><td><code>PushShiftPlanner</code></td><td>Says how far a draw that the recipe names as pushed moves sideways for an eye.</td></tr>
-<tr><td rowspan="4">How deep a scene is (from the depth buffer)</td><td><code>DepthBufferStatistics</code></td><td>Measures the nearest, median and farthest distance of what a frame drew.</td></tr>
-<tr><td><code>DepthMeasurer</code></td><td>The same, with the same numbers, much faster on a processor with AVX2.</td></tr>
+<tr><td rowspan="4">How deep a scene is (from the depth buffer)</td><td><code>DepthRangeMeasurer</code></td><td>Measures the nearest, median and farthest distance of what a frame drew.</td></tr>
+<tr><td><code>FastDepthRangeMeasurer</code></td><td>The same, with the same numbers, much faster on a processor with AVX2.</td></tr>
 <tr><td><code>FrameDepthLedger</code></td><td>Keeps the results of reads that are not waited for until the frame they belong to has ended.</td></tr>
 <tr><td><code>PictureReadbackCache</code></td><td>Answers the one-pixel reads that an application makes of its picture from one read of the whole picture.</td></tr>
 </table>
@@ -322,8 +322,8 @@
 <svg viewBox="0 0 900 370" role="img" aria-label="Parts of the converter DLL">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
   <rect class="box3" x="330" y="10" width="240" height="50" rx="6"/><text x="450" y="32" text-anchor="middle">LiveStereoConverter</text><text class="small" x="450" y="48" text-anchor="middle">orders the work of each call</text>
-  <rect class="box" x="10" y="10" width="250" height="50" rx="6"/><text x="135" y="32" text-anchor="middle">CallFeeder</text><text class="small" x="135" y="48" text-anchor="middle">gives the analysis the calls as a dump would</text>
-  <rect class="box4" x="640" y="10" width="250" height="50" rx="6"/><text x="765" y="32" text-anchor="middle">FramePasser, SessionLog</text><text class="small" x="765" y="48" text-anchor="middle">pass frames on, log the session</text>
+  <rect class="box" x="10" y="10" width="250" height="50" rx="6"/><text x="135" y="32" text-anchor="middle">LiveCallAnalyzer</text><text class="small" x="135" y="48" text-anchor="middle">gives the analysis the calls as a dump would</text>
+  <rect class="box4" x="640" y="10" width="250" height="50" rx="6"/><text x="765" y="32" text-anchor="middle">PacedFramePublisher, SessionLog</text><text class="small" x="765" y="48" text-anchor="middle">pass frames on, log the session</text>
   <rect class="box4" x="10" y="100" width="280" height="160" rx="8"/><text class="title" x="150" y="122" text-anchor="middle">D3D8/</text>
   <text class="small" x="24" y="146">D3D8EyeRenderer: second eye, draws of</text><text class="small" x="24" y="162">vertices in pixels for both eyes</text><text class="small" x="24" y="182">D3D8ResolutionScaler</text><text class="small" x="24" y="202">forces windowed mode</text><text class="small" x="24" y="222">D3D8HostMemoryExporter: frame and right</text><text class="small" x="24" y="238">eye copied on two JobThreads</text>
   <rect class="box4" x="310" y="100" width="280" height="160" rx="8"/><text class="title" x="450" y="122" text-anchor="middle">D3D7/</text>
@@ -338,14 +338,14 @@
 <table>
 <tr><th>Group</th><th>Class</th><th>What it does</th></tr>
 <tr><td rowspan="2">Core</td><td><code>LiveStereoConverter</code></td><td>Orders the work of each call.</td></tr>
-<tr><td><code>CallFeeder</code></td><td>Gives the analysis the calls as a dump would.</td></tr>
+<tr><td><code>LiveCallAnalyzer</code></td><td>Gives the analysis the calls as a dump would.</td></tr>
 <tr><td rowspan="4">Direct3D 8 adapter (<code>D3D8/</code>)</td><td><code>D3D8EyeRenderer</code></td><td>Renders the second eye; also makes the draws of vertices in pixels that the call carries for both eyes.</td></tr>
 <tr><td><code>D3D8ResolutionScaler</code></td><td>Scales the resolution.</td></tr>
 <tr><td>(windowed mode)</td><td>Forces windowed mode.</td></tr>
 <tr><td><code>D3D8HostMemoryExporter</code></td><td>Exports the frame into the channel's memory: copies the frame to the channel and the right eye of it on two <code>JobThread</code>s.</td></tr>
 <tr><td>Direct3D 7 adapter (<code>D3D7/</code>)</td><td><code>D3D7EyeRenderer</code>, <code>D3D7SurfaceTwins</code>, <code>D3D7WindowedMode</code>, <code>D3D7HostMemoryExporter</code></td><td>The same jobs with the surfaces and the draws of its API.</td></tr>
 <tr><td>OpenGL adapter (<code>OpenGL/</code>)</td><td><code>GLEyeRenderer</code>, <code>GLEyeTargets</code>, <code>GLFrameReader</code></td><td>Renders both eyes into targets of its own, reads the frame, scales the resolution and finds the functions of the driver.</td></tr>
-<tr><td rowspan="2">Shared</td><td><code>FramePasser</code>, <code>SessionLog</code></td><td>Pass frames on; log the session.</td></tr>
+<tr><td rowspan="2">Shared</td><td><code>PacedFramePublisher</code>, <code>SessionLog</code></td><td>Pass frames on; log the session.</td></tr>
 <tr><td><code>RenderScalePlanner</code>, <code>ResolutionHazardGate</code>, <code>EyeImageLimits</code>, <code>PixelRowWriter</code>, <code>InvisibleWindowManager</code>, <code>OwnCallScope</code></td><td>Decide the scale, hide the windows of the application and keep the converter's own calls apart from the application's.</td></tr>
 </table>
 

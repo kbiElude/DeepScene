@@ -33,10 +33,10 @@ Stereo::ConverterDLL::LiveStereoConverter::LiveStereoConverter(const Stereo::Ses
     };
 
     /* If the converter finds that it cannot convert the application correctly, it ends the application and writes the reason to the log. */
-    m_live_state.core_ptr.reset(new Stereo::Core::StereoCore(in_recipe,
-                                                             write_failure_func) );
+    m_live_state.core_ptr.reset(new Stereo::Core::RecipeStereoPlanner(in_recipe,
+                                                                      write_failure_func) );
 
-    /* Register the callbacks for the calls that the feeder follows (Direct3D 7, Direct3D 8 and OpenGL). A Direct3D 8 frame is passed on before
+    /* Register the callbacks for the calls that the call analyzer follows (Direct3D 7, Direct3D 8 and OpenGL). A Direct3D 8 frame is passed on before
      * the present, because the content of the back buffer after a present is undefined.
      */
     for (uint32_t n_api_func = 0;
@@ -45,7 +45,7 @@ Stereo::ConverterDLL::LiveStereoConverter::LiveStereoConverter(const Stereo::Ses
     {
         const auto function = static_cast<APIInterceptor::APIFunction>(n_api_func);
 
-        if (CallFeeder::is_followed(function) )
+        if (LiveCallAnalyzer::is_followed(function) )
         {
             APIInterceptor::register_for_post_callback(function,
                                                       &LiveStereoConverter::on_post_callback,
@@ -121,10 +121,10 @@ Stereo::ConverterDLL::LiveStereoConverter::LiveStereoConverter(const Stereo::Ses
         std::unique_ptr<Stereo::Transport::IFrameExporter> d3d7_exporter_ptr(new D3D7HostMemoryExporter(m_channel_ptr.get() ));
         std::unique_ptr<Stereo::Transport::IFrameExporter> d3d8_exporter_ptr(new D3D8HostMemoryExporter(m_channel_ptr.get() ));
 
-        m_frame_passer_ptr.reset     (new FramePasser(std::move(d3d8_exporter_ptr),
-                                                      m_log) );
-        m_d3d7_frame_passer_ptr.reset(new FramePasser(std::move(d3d7_exporter_ptr),
-                                                      m_log) );
+        m_paced_frame_publisher_ptr.reset     (new PacedFramePublisher(std::move(d3d8_exporter_ptr),
+                                                                       m_log) );
+        m_d3d7_paced_frame_publisher_ptr.reset(new PacedFramePublisher(std::move(d3d7_exporter_ptr),
+                                                                       m_log) );
     }
 
     {
@@ -178,9 +178,9 @@ Stereo::ConverterDLL::LiveStereoConverter::LiveStereoConverter(const Stereo::Ses
                                               const void**    out_data_ptr_ptr,
                                               uint32_t*       out_n_bytes_ptr)
         {
-            return m_live_state.feeder.get_last_call_chunk(in_chunk_id,
-                                                           out_data_ptr_ptr,
-                                                           out_n_bytes_ptr);
+            return m_live_state.call_analyzer.get_last_call_chunk(in_chunk_id,
+                                                                  out_data_ptr_ptr,
+                                                                  out_n_bytes_ptr);
         };
 
         m_live_state.gl_renderer_ptr->set_get_chunk_func(get_gl_chunk_func);
@@ -188,8 +188,8 @@ Stereo::ConverterDLL::LiveStereoConverter::LiveStereoConverter(const Stereo::Ses
         {
             std::unique_ptr<Stereo::Transport::IFrameExporter> gl_exporter_ptr(new GLHostMemoryExporter(m_channel_ptr.get() ));
 
-            m_gl_frame_passer_ptr.reset(new FramePasser(std::move(gl_exporter_ptr),
-                                                        m_log) );
+            m_gl_paced_frame_publisher_ptr.reset(new PacedFramePublisher(std::move(gl_exporter_ptr),
+                                                                         m_log) );
         }
 
         const auto get_render_target_func = [this]()
@@ -216,7 +216,7 @@ Stereo::ConverterDLL::LiveStereoConverter::LiveStereoConverter(const Stereo::Ses
         };
 
         /* The analysis must see the application as it asked to be, or the signatures of its draws would depend on the scale. */
-        m_live_state.feeder.set_chunk_func(restore_chunk_func);
+        m_live_state.call_analyzer.set_chunk_func(restore_chunk_func);
     }
 
     for (const auto& note : Analysis::Recipe::RecipeLoader::describe_pass_selectors_live_ignores(in_recipe) )
@@ -422,7 +422,7 @@ bool Stereo::ConverterDLL::LiveStereoConverter::on_gl_draws(Analysis::Recipe::Dr
     std::set<Analysis::Recipe::DrawClass> class_set;
     bool                                  is_every_draw_pushed = true;
 
-    for (const auto& draw_keys : m_live_state.feeder.get_last_call_draw_key_vec() )
+    for (const auto& draw_keys : m_live_state.call_analyzer.get_last_call_draw_key_vec() )
     {
         const auto draw_class = m_live_state.core_ptr->classify_draw(draw_keys.signature_key,
                                                                      draw_keys.cover_key);
@@ -483,13 +483,13 @@ void Stereo::ConverterDLL::LiveStereoConverter::on_post_callback(APIInterceptor:
 
         uint64_t shape_key = 0;
 
-        this_ptr->m_live_state.feeder.on_post(in_api_func,
-                                              in_n_arguments_out,
-                                              in_arguments_out_ptr,
-                                              in_returned_value_ptr);
+        this_ptr->m_live_state.call_analyzer.on_post(in_api_func,
+                                                     in_n_arguments_out,
+                                                     in_arguments_out_ptr,
+                                                     in_returned_value_ptr);
 
         /* The draws of the frame that just ended identify the scene (the shape key). The draws that follow are converged for that scene. */
-        if (this_ptr->m_live_state.feeder.take_completed_frame_shape_key(&shape_key) )
+        if (this_ptr->m_live_state.call_analyzer.take_completed_frame_shape_key(&shape_key) )
         {
             /* The eyes follow a scene over time, not over a number of frames, so the core needs the time that this frame took after the previous one. */
             LARGE_INTEGER frame_qpc;
@@ -659,19 +659,19 @@ void Stereo::ConverterDLL::LiveStereoConverter::on_post_callback(APIInterceptor:
     if (is_own_call == false                                                     &&
         in_api_func == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_PRESENT)
     {
-        this_ptr->m_frame_passer_ptr->wait_for_pace();
+        this_ptr->m_paced_frame_publisher_ptr->wait_for_pace();
     }
     else
     if (is_own_call == false                                                     &&
         in_api_func == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_FLIP)
     {
-        this_ptr->m_d3d7_frame_passer_ptr->wait_for_pace();
+        this_ptr->m_d3d7_paced_frame_publisher_ptr->wait_for_pace();
     }
     else
     if (is_own_call == false                                                    &&
         in_api_func == APIInterceptor::APIFUNCTION_GDI32_SWAPBUFFERS)
     {
-        this_ptr->m_gl_frame_passer_ptr->wait_for_pace();
+        this_ptr->m_gl_paced_frame_publisher_ptr->wait_for_pace();
     }
     else
     if (is_own_call == false)
@@ -684,7 +684,7 @@ void Stereo::ConverterDLL::LiveStereoConverter::on_post_callback(APIInterceptor:
             (in_api_func      == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_BLT      ||
              in_api_func      == APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_BLTFAST) )
         {
-            this_ptr->m_d3d7_frame_passer_ptr->wait_for_pace();
+            this_ptr->m_d3d7_paced_frame_publisher_ptr->wait_for_pace();
         }
     }
 }
@@ -710,9 +710,9 @@ void Stereo::ConverterDLL::LiveStereoConverter::on_pre(const APIInterceptor::API
         /* A followed call that is not Direct3D belongs to OpenGL. This includes the GDI32 SwapBuffers, which ends an OpenGL frame. */
         const bool is_gl     = (is_d3d8 == false                                      &&
                                 api_group != Capture::APIDumpLoader::APIGroup::D3D7);
-        const bool is_draw   = m_live_state.feeder.on_pre(in_api_func,
-                                                          in_n_arguments,
-                                                          in_arguments_ptr);
+        const bool is_draw   = m_live_state.call_analyzer.on_pre(in_api_func,
+                                                                 in_n_arguments,
+                                                                 in_arguments_ptr);
 
         if (in_api_func == APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_SETTRANSFORM)
         {
@@ -811,8 +811,8 @@ void Stereo::ConverterDLL::LiveStereoConverter::on_pre(const APIInterceptor::API
         }
         else
         {
-            const auto draw_class = m_live_state.core_ptr->classify_draw(m_live_state.feeder.get_last_draw_signature_key(),
-                                                                         m_live_state.feeder.get_last_draw_cover_key    () );
+            const auto draw_class = m_live_state.core_ptr->classify_draw(m_live_state.call_analyzer.get_last_draw_signature_key(),
+                                                                         m_live_state.call_analyzer.get_last_draw_cover_key    () );
 
             /* The renderer makes a Direct3D 7 or 8 draw if it moves the vertices for the eye. */
             if (is_d3d8)
@@ -822,7 +822,7 @@ void Stereo::ConverterDLL::LiveStereoConverter::on_pre(const APIInterceptor::API
 
                 *out_should_pass_through_ptr = m_live_state.d3d8_renderer_ptr->on_pre_draw(draw_class,
                                                                                            in_api_func,
-                                                                                           m_live_state.feeder.get_viewport().width,
+                                                                                           m_live_state.call_analyzer.get_viewport().width,
                                                                                            in_arguments_ptr);
             }
             else
@@ -834,16 +834,16 @@ void Stereo::ConverterDLL::LiveStereoConverter::on_pre(const APIInterceptor::API
                                                    const void**    out_data_ptr_ptr,
                                                    uint32_t*       out_n_bytes_ptr)
                 {
-                    return m_live_state.feeder.get_last_call_chunk(in_chunk_id,
-                                                                   out_data_ptr_ptr,
-                                                                   out_n_bytes_ptr);
+                    return m_live_state.call_analyzer.get_last_call_chunk(in_chunk_id,
+                                                                          out_data_ptr_ptr,
+                                                                          out_n_bytes_ptr);
                 };
 
                 *out_should_pass_through_ptr = m_live_state.d3d7_renderer_ptr->on_pre_draw(in_api_func,
                                                                                            in_n_arguments,
                                                                                            in_arguments_ptr,
                                                                                            get_chunk_func,
-                                                                                           m_live_state.feeder.get_viewport().width);
+                                                                                           m_live_state.call_analyzer.get_viewport().width);
             }
 
             count_draw(draw_class);
@@ -869,9 +869,9 @@ void Stereo::ConverterDLL::LiveStereoConverter::on_pre(const APIInterceptor::API
 
     if (is_present)
     {
-        m_frame_passer_ptr->on_present(const_cast<void*>(in_arguments_ptr[0].get_ptr() ),
-                                       nullptr, /* in_left_surface_ptr */
-                                       right_surface_ptr);
+        m_paced_frame_publisher_ptr->on_present(const_cast<void*>(in_arguments_ptr[0].get_ptr() ),
+                                                nullptr, /* in_left_surface_ptr */
+                                                right_surface_ptr);
     }
 }
 
@@ -1033,9 +1033,9 @@ void Stereo::ConverterDLL::LiveStereoConverter::pass_d3d7_frame(void* in_primary
             }
         }
 
-        m_d3d7_frame_passer_ptr->on_present(nullptr, /* in_device_ptr */
-                                            back_buffer_ptr,
-                                            back_buffer_twin_ptr);
+        m_d3d7_paced_frame_publisher_ptr->on_present(nullptr, /* in_device_ptr */
+                                                     back_buffer_ptr,
+                                                     back_buffer_twin_ptr);
 
         if (is_to_release)
         {
@@ -1073,9 +1073,9 @@ void Stereo::ConverterDLL::LiveStereoConverter::pass_gl_frame(const GLFrameImage
         }
     }
 
-    m_gl_frame_passer_ptr->on_present(nullptr,
-                                      const_cast<GLFrameImages*>(&in_images),
-                                      const_cast<GLFrameImages*>(&in_images) );
+    m_gl_paced_frame_publisher_ptr->on_present(nullptr,
+                                               const_cast<GLFrameImages*>(&in_images),
+                                               const_cast<GLFrameImages*>(&in_images) );
 }
 
 void Stereo::ConverterDLL::LiveStereoConverter::read_channel_settings(std::vector<std::string>* out_log_line_vec_ptr)

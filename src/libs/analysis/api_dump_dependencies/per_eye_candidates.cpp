@@ -7,7 +7,7 @@
 #include <map>
 #include <utility>
 
-std::vector<Analysis::APIDumpDependencies::PerEyeCandidate> Analysis::APIDumpDependencies::PerEyeCandidates::find(const DependencyAnalysis& in_analysis)
+std::vector<Analysis::APIDumpDependencies::PerEyeCandidate> Analysis::APIDumpDependencies::PerEyeCandidates::find(const DependencyFileContent& in_analysis)
 {
     const auto                   group_vec = find_rotation_groups(in_analysis);
     std::map<size_t, size_t>     group_by_resource_map; /* resource number minus 1 to group index */
@@ -116,7 +116,7 @@ std::vector<Analysis::APIDumpDependencies::PerEyeCandidate> Analysis::APIDumpDep
     return result_vec;
 }
 
-std::vector<Analysis::APIDumpDependencies::RotationGroup> Analysis::APIDumpDependencies::PerEyeCandidates::find_rotation_groups(const DependencyAnalysis& in_analysis)
+std::vector<Analysis::APIDumpDependencies::RotationGroup> Analysis::APIDumpDependencies::PerEyeCandidates::find_rotation_groups(const DependencyFileContent& in_analysis)
 {
     constexpr size_t N_MIN_WRITING_FRAMES = 2;
 

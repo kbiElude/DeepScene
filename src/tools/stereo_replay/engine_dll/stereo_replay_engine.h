@@ -56,17 +56,17 @@ namespace Stereo
                 /* The members are declared so that m_engine is destroyed first. Its thread uses the other members, so it must stop
                  * before they are destroyed.
                  */
-                Analysis::APIDumpDependencies::DependencyAnalysis m_dependencies;
-                HurriedFrameSelector                              m_hurry;
-                bool                                              m_has_dependencies;
-                bool                                              m_has_seek_target;   /* a seek that uses the dependencies was requested; m_seek_target_frame is its target frame */
-                PresentSkipper                                    m_present_skipper;
-                uint32_t                                          m_seek_target_frame;
-                SliceSkipper                                      m_slice_skipper;
-                GLTextureParameterCache                           m_texture_parameter_cache;
-                std::string                                       m_workload_filename; /* the loaded workload; the dependencies file is checked against it */
-                StereoFrameExecutor                               m_stereo_executor;
-                PacedFrameExecutor                                m_paced_executor;
+                Analysis::APIDumpDependencies::DependencyFileContent m_dependencies;
+                HurriedFrameSelector                                 m_hurry;
+                bool                                                 m_has_dependencies;
+                bool                                                 m_has_seek_target;   /* a seek that uses the dependencies was requested; m_seek_target_frame is its target frame */
+                PresentSkipper                                       m_present_skipper;
+                uint32_t                                             m_seek_target_frame;
+                SliceSkipper                                         m_slice_skipper;
+                GLTextureParameterCache                              m_texture_parameter_cache;
+                std::string                                          m_workload_filename; /* the loaded workload; the dependencies file is checked against it */
+                StereoFrameExecutor                                  m_stereo_executor;
+                PacedFrameExecutor                                   m_paced_executor;
 
                 ::Replay::ReplayEngineDLL::ReplayEngine m_engine;
             };

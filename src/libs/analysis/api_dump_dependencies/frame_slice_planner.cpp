@@ -16,8 +16,8 @@ bool Analysis::APIDumpDependencies::FrameSlicePlanner::is_live(const FrameSlice&
             in_slice.is_live_vec.at(static_cast<size_t>(in_frame_index) ) );
 }
 
-Analysis::APIDumpDependencies::FrameSlice Analysis::APIDumpDependencies::FrameSlicePlanner::plan(const DependencyAnalysis& in_analysis,
-                                                                                                 const uint64_t&           in_target_frame_index)
+Analysis::APIDumpDependencies::FrameSlice Analysis::APIDumpDependencies::FrameSlicePlanner::plan(const DependencyFileContent& in_analysis,
+                                                                                                 const uint64_t&              in_target_frame_index)
 {
     /* A resource index and the index of one of its versions. */
     typedef std::pair<size_t, size_t> VersionRef;

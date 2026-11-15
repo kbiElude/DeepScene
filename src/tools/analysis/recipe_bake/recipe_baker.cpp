@@ -19,12 +19,12 @@
 #include <stdio.h>
 #include <string.h>
 
-bool Analysis::RecipeBake::RecipeBaker::bake(const std::string&                                       in_recipe_text,
-                                             const Analysis::APIDumpAnalysis::AnalysisResult&         in_analysis,
-                                             std::string*                                             out_text_ptr,
-                                             BakeReport*                                              out_report_ptr,
-                                             std::string*                                             out_error_ptr,
-                                             const Analysis::APIDumpDependencies::DependencyAnalysis* in_dependencies_ptr)
+bool Analysis::RecipeBake::RecipeBaker::bake(const std::string&                                          in_recipe_text,
+                                             const Analysis::APIDumpAnalysis::AnalysisResult&            in_analysis,
+                                             std::string*                                                out_text_ptr,
+                                             BakeReport*                                                 out_report_ptr,
+                                             std::string*                                                out_error_ptr,
+                                             const Analysis::APIDumpDependencies::DependencyFileContent* in_dependencies_ptr)
 {
     std::string              authored_text;
     ConvergenceVector        convergence_vec;
@@ -668,8 +668,8 @@ std::string Analysis::RecipeBake::RecipeBaker::get_key_text(const uint64_t& in_k
     return buffer_i8vec32;
 }
 
-Analysis::RecipeBake::RecipeBaker::PerEyeTextureVector Analysis::RecipeBake::RecipeBaker::get_per_eye_texture_vec(const Analysis::APIDumpAnalysis::AnalysisResult&         in_analysis,
-                                                                                                                  const Analysis::APIDumpDependencies::DependencyAnalysis* in_dependencies_ptr)
+Analysis::RecipeBake::RecipeBaker::PerEyeTextureVector Analysis::RecipeBake::RecipeBaker::get_per_eye_texture_vec(const Analysis::APIDumpAnalysis::AnalysisResult&            in_analysis,
+                                                                                                                  const Analysis::APIDumpDependencies::DependencyFileContent* in_dependencies_ptr)
 {
     PerEyeTextureVector result_vec;
 

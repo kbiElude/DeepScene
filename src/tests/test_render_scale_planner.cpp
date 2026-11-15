@@ -116,12 +116,12 @@ TEST(ResolutionHazardGateTest, NothingStopsAnApplicationThatIsNotRenderedLarger)
 
     recipe.is_baked = true;
 
-    Stereo::Core::StereoCore core(recipe,
-                                  [&](const std::string& in_message)
-                                  {
-                                      has_failed = true;
-                                      message    = in_message;
-                                  });
+    Stereo::Core::RecipeStereoPlanner core(recipe,
+                                           [&](const std::string& in_message)
+                                           {
+                                               has_failed = true;
+                                               message    = in_message;
+                                           });
 
     Stereo::ConverterDLL::ResolutionHazardGate::require_unaffected_by_scale(&core,
                                                                             Stereo::Core::ResolutionPolicy(1.0f),

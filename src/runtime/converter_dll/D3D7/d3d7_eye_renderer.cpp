@@ -11,14 +11,14 @@
 #include "interception/core/D3D7Utils/methods.h"
 #include "interception/core/D3D7Utils/strided_layout.h"
 #include "interception/core/D3D7Utils/vertex_format.h"
-#include "stereo/core/screen_parallax.h"
+#include "stereo/core/screen_space_vertex_shifter.h"
 #include "d3d7_eye_renderer.h"
 #include "environment_variable_reader.h"
 #include "own_call_scope.h"
 #include <string.h>
 
-Stereo::ConverterDLL::D3D7EyeRenderer::D3D7EyeRenderer(Stereo::Core::StereoCore* in_core_ptr,
-                                                       const D3D7WindowedMode*   in_windowed_mode_ptr)
+Stereo::ConverterDLL::D3D7EyeRenderer::D3D7EyeRenderer(Stereo::Core::RecipeStereoPlanner* in_core_ptr,
+                                                       const D3D7WindowedMode*            in_windowed_mode_ptr)
     :m_core_ptr          (in_core_ptr),
      m_has_pixel_write   (false),
      m_is_right_eye_off  (false),
@@ -222,10 +222,10 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::Recipe:
         {
             if (scale != 1.0f)
             {
-                Stereo::Core::ScreenParallax::scale_vertices(scale,
-                                                             vertex_n_bytes,
-                                                             in_draw_arguments.n_vertices,
-                                                             m_vertex_vec.data() );
+                Stereo::Core::ScreenSpaceVertexShifter::scale_vertices(scale,
+                                                                       vertex_n_bytes,
+                                                                       in_draw_arguments.n_vertices,
+                                                                       m_vertex_vec.data() );
             }
 
             draw(in_draw_arguments,

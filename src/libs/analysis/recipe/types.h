@@ -158,7 +158,7 @@ namespace Analysis
              */
             float max_near_parallax = 0.0f;
 
-            /* Whether a converter that can (see StereoCore::on_frame_depth) measures the depth of the surfaces of each frame while the application
+            /* Whether a converter that can (see RecipeStereoPlanner::on_frame_depth) measures the depth of the surfaces of each frame while the application
              * renders it, and checks that depth against the limits, instead of using what was baked for the scene (see SceneSeparation). The baked
              * values only cover scenes whose depth the analysis can see, not a program that draws with display lists, and not a camera that flies
              * past a near surface. What a recipe says about a scene (see SceneComfort) is kept.
@@ -197,7 +197,7 @@ namespace Analysis
          * the picture so that what is at the convergence distance has no parallax. A vertex at that distance is not moved. That is how an
          * interface (drawn flat at one depth) and a picture that is made from another picture are left unmoved.
          */
-        struct ScreenParallax
+        struct ScreenParallaxSettings
         {
             float convergence_distance  = 0.0f;  /* in the units of the camera of the application; content at this distance has no parallax */
             float field_of_view_degrees = 90.0f; /* the angle of view across the width of the picture                                       */
@@ -274,7 +274,7 @@ namespace Analysis
          * frame (no pass keys means any pass, no shape keys means any frame). Rules apply in recipe order, and each rule works on the matrix that
          * the previous rule produced.
          */
-        struct Rule
+        struct MatrixRule
         {
             ActionKind                     action_kind            = ActionKind::MULTIPLY;
             std::vector<ArgumentCondition> argument_condition_vec;
@@ -365,9 +365,9 @@ namespace Analysis
             std::vector<uint64_t>         overlay_draw_key_vec;            /* from "baked": draws in the space of the picture over a 3D scene: left as made and pushed */
             std::vector<PerEyeTexture>    per_eye_texture_vec;             /* from "baked"; see PerEyeTexture             */
             DrawSelector                  pushed;                          /* draws that are pushed toward the viewer by comfort.overlay_parallax, whatever else they are */
-            std::vector<Rule>             rule_vec;
+            std::vector<MatrixRule>       rule_vec;
             std::vector<SceneConvergence> scene_convergence_vec;
-            ScreenParallax                screen_parallax;                 /* see ScreenParallax; not enabled unless the recipe has it */
+            ScreenParallaxSettings        screen_parallax;                 /* see ScreenParallaxSettings; not enabled unless the recipe has it */
             std::vector<SceneSeparation>  scene_separation_vec;            /* from "baked"; see SceneSeparation           */
             std::vector<uint64_t>         side_reaching_draw_key_vec;      /* from "baked": flat draws that span from the left edge to the right edge: a push widens their viewport */
             DrawSelector                  skipped;                         /* draws which are not played                 */

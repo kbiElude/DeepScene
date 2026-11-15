@@ -2,11 +2,11 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Tests for StereoCore: what a converter which plays an application as it runs decides from a baked recipe, and when it refuses to.
+ * Tests for RecipeStereoPlanner: what a converter which plays an application as it runs decides from a baked recipe, and when it refuses to.
  */
 #include <gtest/gtest.h>
 #include "analysis/recipe/recipe_loader.h"
-#include "stereo/core/stereo_core.h"
+#include "stereo/core/recipe_stereo_planner.h"
 #include <math.h>
 #include <string>
 #include <vector>
@@ -15,7 +15,7 @@ class StereoCoreTest : public ::testing::Test
 {
 protected:
     /* The matrices for the draw, as a vector of their own. */
-    static std::vector<Stereo::Core::MatrixChange> bind_matrices(Stereo::Core::StereoCore*      inout_core_ptr,
+    static std::vector<Stereo::Core::MatrixChange> bind_matrices(Stereo::Core::RecipeStereoPlanner*      inout_core_ptr,
                                                                  const Analysis::Recipe::DrawClass& in_draw_class,
                                                                  const Analysis::Recipe::Eye&       in_eye,
                                                                  const bool&                              in_is_final_target = false)
@@ -86,12 +86,12 @@ TEST_F(StereoCoreTest, ARecipeThatIsNotBakedIsRefused)
 {
     std::vector<std::string> message_vec;
 
-    Stereo::Core::StereoCore core(make_recipe("",
-                                              ""),
-                                  [&message_vec](const std::string& in_message)
-                                  {
-                                      message_vec.push_back(in_message);
-                                  });
+    Stereo::Core::RecipeStereoPlanner core(make_recipe("",
+                                                       ""),
+                                           [&message_vec](const std::string& in_message)
+                                           {
+                                               message_vec.push_back(in_message);
+                                           });
 
     ASSERT_EQ(message_vec.size(),
               1u);
@@ -103,14 +103,14 @@ TEST_F(StereoCoreTest, ARuleAboutAPassOrAFrameShapeIsRefusedForItCannotBeFollowe
 {
     std::vector<std::string> message_vec;
 
-    Stereo::Core::StereoCore core(make_recipe(get_baked_text(""),
-                                              "{\"name\": \"scene\", \"call\": \"IDirect3DDevice8::SetTransform\","
-                                              " \"when\": {\"state\": \"D3DTS_VIEW\", \"pass_keys\": [\"0x0000000000000001\"]},"
-                                              " \"action\": {\"type\": \"eye_offset\", \"order\": \"post\", \"axis\": \"x\"}}"),
-                                  [&message_vec](const std::string& in_message)
-                                  {
-                                      message_vec.push_back(in_message);
-                                  });
+    Stereo::Core::RecipeStereoPlanner core(make_recipe(get_baked_text(""),
+                                                       "{\"name\": \"scene\", \"call\": \"IDirect3DDevice8::SetTransform\","
+                                                       " \"when\": {\"state\": \"D3DTS_VIEW\", \"pass_keys\": [\"0x0000000000000001\"]},"
+                                                       " \"action\": {\"type\": \"eye_offset\", \"order\": \"post\", \"axis\": \"x\"}}"),
+                                           [&message_vec](const std::string& in_message)
+                                           {
+                                               message_vec.push_back(in_message);
+                                           });
 
     ASSERT_EQ(message_vec.size(),
               1u);
@@ -122,14 +122,14 @@ TEST_F(StereoCoreTest, ARuleAboutAPassOrAFrameShapeIsRefusedForItCannotBeFollowe
 
 TEST_F(StereoCoreTest, TheMatrixOfARuleIsKeptAndPutInForTheEyeThatDrawsAreMadeFor)
 {
-    const auto               arguments   = make_set_transform_arguments(STATE_VIEW);
-    std::vector<std::string> message_vec;
-    Stereo::Core::StereoCore core(make_recipe(get_baked_text(""),
-                                              get_view_rule_text() ),
-                                  [&message_vec](const std::string& in_message)
-                                  {
-                                      message_vec.push_back(in_message);
-                                  });
+    const auto                        arguments   = make_set_transform_arguments(STATE_VIEW);
+    std::vector<std::string>          message_vec;
+    Stereo::Core::RecipeStereoPlanner core(make_recipe(get_baked_text(""),
+                                                       get_view_rule_text() ),
+                                           [&message_vec](const std::string& in_message)
+                                           {
+                                               message_vec.push_back(in_message);
+                                           });
 
     core.set_eye_separation(0.5f);
 
@@ -167,10 +167,10 @@ TEST_F(StereoCoreTest, TheMatrixOfARuleIsKeptAndPutInForTheEyeThatDrawsAreMadeFo
 
 TEST_F(StereoCoreTest, AMatrixIsPutInOnlyWhenTheDeviceHasAnotherOne)
 {
-    const auto               arguments = make_set_transform_arguments(STATE_VIEW);
-    Stereo::Core::StereoCore core(make_recipe(get_baked_text(""),
-                                              get_view_rule_text() ),
-                                  Stereo::Core::FailFunc() );
+    const auto                        arguments = make_set_transform_arguments(STATE_VIEW);
+    Stereo::Core::RecipeStereoPlanner core(make_recipe(get_baked_text(""),
+                                                       get_view_rule_text() ),
+                                           Stereo::Core::FailFunc() );
 
     core.set_eye_separation(0.5f);
     core.on_matrix_call(SET_TRANSFORM,
@@ -208,10 +208,10 @@ TEST_F(StereoCoreTest, AMatrixIsPutInOnlyWhenTheDeviceHasAnotherOne)
 
 TEST_F(StereoCoreTest, AnotherSeparationMakesTheMatrixAgain)
 {
-    const auto               arguments = make_set_transform_arguments(STATE_VIEW);
-    Stereo::Core::StereoCore core(make_recipe(get_baked_text(""),
-                                              get_view_rule_text() ),
-                                  Stereo::Core::FailFunc() );
+    const auto                        arguments = make_set_transform_arguments(STATE_VIEW);
+    Stereo::Core::RecipeStereoPlanner core(make_recipe(get_baked_text(""),
+                                                       get_view_rule_text() ),
+                                           Stereo::Core::FailFunc() );
 
     core.set_eye_separation(0.5f);
     core.on_matrix_call(SET_TRANSFORM,
@@ -238,9 +238,9 @@ TEST_F(StereoCoreTest, AnotherSeparationMakesTheMatrixAgain)
 
 TEST_F(StereoCoreTest, ACallThatNoRuleIsAboutIsLeftToTheCaller)
 {
-    Stereo::Core::StereoCore core(make_recipe(get_baked_text(""),
-                                              get_view_rule_text() ),
-                                  Stereo::Core::FailFunc() );
+    Stereo::Core::RecipeStereoPlanner core(make_recipe(get_baked_text(""),
+                                                       get_view_rule_text() ),
+                                           Stereo::Core::FailFunc() );
 
     EXPECT_FALSE(core.on_matrix_call(SET_TRANSFORM,
                                      make_set_transform_arguments(STATE_WORLD),
@@ -255,9 +255,9 @@ TEST_F(StereoCoreTest, ACallThatNoRuleIsAboutIsLeftToTheCaller)
 
 TEST_F(StereoCoreTest, MatricesThatWereKeptCanBeForgotten)
 {
-    Stereo::Core::StereoCore core(make_recipe(get_baked_text(""),
-                                              get_view_rule_text() ),
-                                  Stereo::Core::FailFunc() );
+    Stereo::Core::RecipeStereoPlanner core(make_recipe(get_baked_text(""),
+                                                       get_view_rule_text() ),
+                                           Stereo::Core::FailFunc() );
 
     core.on_matrix_call(SET_TRANSFORM,
                         make_set_transform_arguments(STATE_VIEW),
@@ -271,12 +271,12 @@ TEST_F(StereoCoreTest, MatricesThatWereKeptCanBeForgotten)
 
 TEST_F(StereoCoreTest, ADrawIsToldByItsSignatureAndTheViewMatrixTheApplicationHas)
 {
-    Stereo::Core::StereoCore core(make_recipe(get_baked_text("{\"signature\": \"0x0000000000000001\", \"class\": \"unaffected\","
-                                                             " \"when\": {\"constant\": \"view_matrix\","
-                                                             " \"equals_any\": [[1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,2.5,1]]}},"
-                                                             "{\"signature\": \"0x0000000000000002\", \"class\": \"skipped\"}"),
-                                              get_view_rule_text() ),
-                                  Stereo::Core::FailFunc() );
+    Stereo::Core::RecipeStereoPlanner core(make_recipe(get_baked_text("{\"signature\": \"0x0000000000000001\", \"class\": \"unaffected\","
+                                                                      " \"when\": {\"constant\": \"view_matrix\","
+                                                                      " \"equals_any\": [[1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,2.5,1]]}},"
+                                                                      "{\"signature\": \"0x0000000000000002\", \"class\": \"skipped\"}"),
+                                                       get_view_rule_text() ),
+                                           Stereo::Core::FailFunc() );
 
     /* The application has set no camera: the device has the identity. */
     EXPECT_EQ(core.classify_draw(1, 0),
@@ -295,9 +295,9 @@ TEST_F(StereoCoreTest, ADrawIsToldByItsSignatureAndTheViewMatrixTheApplicationHa
 
 TEST_F(StereoCoreTest, ADrawThatIsNamedBySizeAsPushedIsFlatAndPushed)
 {
-    Stereo::Core::StereoCore core(make_recipe("\"pushed\": {\"cover_keys\": [\"0x0000000000000005\"]}, " + get_baked_text(""),
-                                              get_view_rule_text() ),
-                                  Stereo::Core::FailFunc() );
+    Stereo::Core::RecipeStereoPlanner core(make_recipe("\"pushed\": {\"cover_keys\": [\"0x0000000000000005\"]}, " + get_baked_text(""),
+                                                       get_view_rule_text() ),
+                                           Stereo::Core::FailFunc() );
 
     /* The same signature: the draw of that size is flat, the others are as the recipe says. */
     EXPECT_EQ(core.classify_draw(1, 5),
@@ -311,10 +311,10 @@ TEST_F(StereoCoreTest, ADrawThatIsNamedBySizeAsPushedIsFlatAndPushed)
 
 TEST_F(StereoCoreTest, ADrawWhoseVerticesAreInTheSpaceOfTheEyeIsToldByItsSignatureAndSize)
 {
-    Stereo::Core::StereoCore core(make_recipe(std::string("\"comfort\": {\"eye_space_cover_keys\": [\"0x0000000000000005\"]}, ") +
-                                              get_baked_text(""),
-                                              get_view_rule_text() ),
-                                  Stereo::Core::FailFunc() );
+    Stereo::Core::RecipeStereoPlanner core(make_recipe(std::string("\"comfort\": {\"eye_space_cover_keys\": [\"0x0000000000000005\"]}, ") +
+                                                       get_baked_text(""),
+                                                       get_view_rule_text() ),
+                                           Stereo::Core::FailFunc() );
 
     /* The same signature: the draw of that size is in the space of the eye, the others are not. */
     core.classify_draw(1, 5);
@@ -340,10 +340,10 @@ TEST_F(StereoCoreTest, TheVerticesInPixelsOfADrawAreMovedInACopyForAnEyeWhatever
              vertex_vec.size() );
 
     /* A recipe with the parallax of screen-space draws: the draw is affected, so its vertices are moved by their depth. */
-    Stereo::Core::StereoCore core(make_recipe(std::string("\"screen_parallax\": {\"convergence_distance\": 5}, ") +
-                                              get_baked_text(""),
-                                              get_view_rule_text() ),
-                                  Stereo::Core::FailFunc() );
+    Stereo::Core::RecipeStereoPlanner core(make_recipe(std::string("\"screen_parallax\": {\"convergence_distance\": 5}, ") +
+                                                       get_baked_text(""),
+                                                       get_view_rule_text() ),
+                                           Stereo::Core::FailFunc() );
 
     core.set_convergence_distance(5.0f);
     core.set_eye_separation      (1.0f);
@@ -379,9 +379,9 @@ TEST_F(StereoCoreTest, TheVerticesInPixelsOfADrawAreMovedInACopyForAnEyeWhatever
               0);
 
     /* A draw that nothing moves is not copied, unless the caller asks. */
-    Stereo::Core::StereoCore plain_core(make_recipe(get_baked_text(""),
-                                                    get_view_rule_text() ),
-                                        Stereo::Core::FailFunc() );
+    Stereo::Core::RecipeStereoPlanner plain_core(make_recipe(get_baked_text(""),
+                                                             get_view_rule_text() ),
+                                                 Stereo::Core::FailFunc() );
 
     plain_core.classify_draw(1, 0);
 
@@ -410,10 +410,10 @@ TEST_F(StereoCoreTest, TheVerticesInPixelsOfADrawAreMovedInACopyForAnEyeWhatever
 TEST_F(StereoCoreTest, ADrawIsAttachedToTheCameraByHowFarInFrontOfItItsOriginIsUnlessItsVerticesAreInTheSpaceOfTheEye)
 {
     /* The nearest 5 percent of the distance of convergence (100) is attached to the camera. */
-    Stereo::Core::StereoCore core(make_recipe(std::string("\"comfort\": {\"camera_attached_depth\": 0.05, \"eye_space_cover_keys\": [\"0x0000000000000005\"]}, ") +
-                                              get_baked_text(""),
-                                              get_view_rule_text() ),
-                                  Stereo::Core::FailFunc() );
+    Stereo::Core::RecipeStereoPlanner core(make_recipe(std::string("\"comfort\": {\"camera_attached_depth\": 0.05, \"eye_space_cover_keys\": [\"0x0000000000000005\"]}, ") +
+                                                       get_baked_text(""),
+                                                       get_view_rule_text() ),
+                                           Stereo::Core::FailFunc() );
 
     core.set_convergence_distance(100.0f);
     core.set_depth_strength      (1.0f);
@@ -436,9 +436,9 @@ TEST_F(StereoCoreTest, TheLayersThatTheBakerFoundAreUsedOnlyForARecipeThatAsksFo
 
     /* Without the flag the lists are read and left alone: the recipe plays as it did. */
     {
-        Stereo::Core::StereoCore core(make_recipe(baked_text,
-                                                  get_view_rule_text() ),
-                                      Stereo::Core::FailFunc() );
+        Stereo::Core::RecipeStereoPlanner core(make_recipe(baked_text,
+                                                           get_view_rule_text() ),
+                                               Stereo::Core::FailFunc() );
 
         EXPECT_EQ(core.classify_draw(1, 6),
                   Analysis::Recipe::DrawClass::AFFECTED);
@@ -455,9 +455,9 @@ TEST_F(StereoCoreTest, TheLayersThatTheBakerFoundAreUsedOnlyForARecipeThatAsksFo
 
     /* With it: a layer is left as it is, an overlay is as well and is pushed, and a draw in the space of the eye is told so. */
     {
-        Stereo::Core::StereoCore core(make_recipe("\"comfort\": {\"automatic_layers\": true}, " + baked_text,
-                                                  get_view_rule_text() ),
-                                      Stereo::Core::FailFunc() );
+        Stereo::Core::RecipeStereoPlanner core(make_recipe("\"comfort\": {\"automatic_layers\": true}, " + baked_text,
+                                                           get_view_rule_text() ),
+                                               Stereo::Core::FailFunc() );
 
         EXPECT_EQ(core.classify_draw(1, 6),
                   Analysis::Recipe::DrawClass::UNAFFECTED);
@@ -481,11 +481,11 @@ TEST_F(StereoCoreTest, TheLayersThatTheBakerFoundAreUsedOnlyForARecipeThatAsksFo
 TEST_F(StereoCoreTest, ADrawThatIsMadeAsItIsGetsTheWholeOfThePushAndOneTheEyesMoveGetsWhatIsLeft)
 {
     /* The recipe pushes the signature 1 by 0.015 of the width (the nearest surfaces may have 0.02), and has it affected. */
-    Stereo::Core::StereoCore core(make_recipe(std::string("\"comfort\": {\"max_near_parallax\": 0.02, \"overlay_parallax\": 0.015}, ") +
-                                              "\"pushed\": {\"draw_keys\": [\"0x0000000000000001\"]}, " +
-                                              get_baked_text("{\"signature\": \"0x0000000000000001\", \"class\": \"affected\", \"pushed\": true}"),
-                                              get_view_rule_text() ),
-                                  Stereo::Core::FailFunc() );
+    Stereo::Core::RecipeStereoPlanner core(make_recipe(std::string("\"comfort\": {\"max_near_parallax\": 0.02, \"overlay_parallax\": 0.015}, ") +
+                                                       "\"pushed\": {\"draw_keys\": [\"0x0000000000000001\"]}, " +
+                                                       get_baked_text("{\"signature\": \"0x0000000000000001\", \"class\": \"affected\", \"pushed\": true}"),
+                                                       get_view_rule_text() ),
+                                           Stereo::Core::FailFunc() );
 
     core.set_convergence_distance(100.0f);
     core.set_depth_strength      (1.0f);
@@ -510,10 +510,10 @@ TEST_F(StereoCoreTest, ADrawThatIsMadeAsItIsGetsTheWholeOfThePushAndOneTheEyesMo
 
 TEST_F(StereoCoreTest, ADrawThatReachesBothSidesOfThePictureIsToldByItsSignatureAndSize)
 {
-    Stereo::Core::StereoCore core(make_recipe(std::string("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": [], \"known_signatures\": [\"0x0000000000000001\", \"0x0000000000000002\"], ") +
-                                              "\"side_reaching_draws\": [\"0x0000000000000009\"]},",
-                                              get_view_rule_text() ),
-                                  Stereo::Core::FailFunc() );
+    Stereo::Core::RecipeStereoPlanner core(make_recipe(std::string("\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": [], \"known_signatures\": [\"0x0000000000000001\", \"0x0000000000000002\"], ") +
+                                                       "\"side_reaching_draws\": [\"0x0000000000000009\"]},",
+                                                       get_view_rule_text() ),
+                                           Stereo::Core::FailFunc() );
 
     /* The same signature: the draw of that size is a flat overlay that spans the picture, the others are not. */
     core.classify_draw(1, 9);
@@ -527,9 +527,9 @@ TEST_F(StereoCoreTest, ADrawThatReachesBothSidesOfThePictureIsToldByItsSignature
 
 TEST_F(StereoCoreTest, APartThatProtrudesFollowsTheDepthOfItsOriginAndOthersDoNot)
 {
-    Stereo::Core::StereoCore core(make_recipe("\"pushed\": {\"part_cover_keys\": [\"0x0000000000000005\"], \"cover_keys\": [\"0x0000000000000007\"]}, " + get_baked_text(""),
-                                              get_view_rule_text() ),
-                                  Stereo::Core::FailFunc() );
+    Stereo::Core::RecipeStereoPlanner core(make_recipe("\"pushed\": {\"part_cover_keys\": [\"0x0000000000000005\"], \"cover_keys\": [\"0x0000000000000007\"]}, " + get_baked_text(""),
+                                                       get_view_rule_text() ),
+                                           Stereo::Core::FailFunc() );
 
     core.set_convergence_distance(100.0f);
     core.set_eye_separation(8.0f);
@@ -557,10 +557,10 @@ TEST_F(StereoCoreTest, APartThatProtrudesFollowsTheDepthOfItsOriginAndOthersDoNo
 
 TEST_F(StereoCoreTest, APartThatIsNearTheCameraIsHeldToTheNearestParallaxOfTheScene)
 {
-    Stereo::Core::StereoCore core(make_recipe(std::string("\"comfort\": {\"max_near_parallax\": 0.01, \"max_far_parallax\": 0.01, \"overlay_parallax\": 0.015, \"part_parallax\": 0.006}, ") +
-                                              "\"pushed\": {\"part_cover_keys\": [\"0x0000000000000005\"]}, " + get_baked_text(""),
-                                              get_view_rule_text() ),
-                                  Stereo::Core::FailFunc() );
+    Stereo::Core::RecipeStereoPlanner core(make_recipe(std::string("\"comfort\": {\"max_near_parallax\": 0.01, \"max_far_parallax\": 0.01, \"overlay_parallax\": 0.015, \"part_parallax\": 0.006}, ") +
+                                                       "\"pushed\": {\"part_cover_keys\": [\"0x0000000000000005\"]}, " + get_baked_text(""),
+                                                       get_view_rule_text() ),
+                                           Stereo::Core::FailFunc() );
 
     core.set_convergence_distance(100.0f);
     core.set_eye_separation(8.0f);
@@ -582,12 +582,12 @@ TEST_F(StereoCoreTest, APartThatIsNearTheCameraIsHeldToTheNearestParallaxOfTheSc
 
 TEST_F(StereoCoreTest, APartIsHeldToTheLimitOfTheSceneThatWasSetAlone)
 {
-    Stereo::Core::StereoCore core(make_recipe(std::string("\"comfort\": {\"max_near_parallax\": 0.01, \"max_far_parallax\": 0.01, \"overlay_parallax\": 0.015, \"part_parallax\": 0.006, ") +
-                                              "\"scene_overrides\": [{\"shape\": \"0x00000000000000c8\", \"max_near_parallax\": 0.005}]}, "                                           +
-                                              "\"pushed\": {\"part_cover_keys\": [\"0x0000000000000005\"]}, "                                                                          +
-                                              get_baked_text(""),
-                                              get_view_rule_text() ),
-                                  Stereo::Core::FailFunc() );
+    Stereo::Core::RecipeStereoPlanner core(make_recipe(std::string("\"comfort\": {\"max_near_parallax\": 0.01, \"max_far_parallax\": 0.01, \"overlay_parallax\": 0.015, \"part_parallax\": 0.006, ") +
+                                                       "\"scene_overrides\": [{\"shape\": \"0x00000000000000c8\", \"max_near_parallax\": 0.005}]}, "                                           +
+                                                       "\"pushed\": {\"part_cover_keys\": [\"0x0000000000000005\"]}, "                                                                          +
+                                                       get_baked_text(""),
+                                                       get_view_rule_text() ),
+                                           Stereo::Core::FailFunc() );
 
     core.set_convergence_distance(100.0f);
     core.set_eye_separation(8.0f);
@@ -607,9 +607,9 @@ TEST_F(StereoCoreTest, APartIsHeldToTheLimitOfTheSceneThatWasSetAlone)
 
 TEST_F(StereoCoreTest, DrawsOfASignatureTheRecipeDoesNotKnowAreCounted)
 {
-    Stereo::Core::StereoCore core(make_recipe(get_baked_text(""),
-                                              get_view_rule_text() ),
-                                  Stereo::Core::FailFunc() );
+    Stereo::Core::RecipeStereoPlanner core(make_recipe(get_baked_text(""),
+                                                       get_view_rule_text() ),
+                                           Stereo::Core::FailFunc() );
 
     core.classify_draw(1, 0);
     core.classify_draw(2, 0);
@@ -628,12 +628,12 @@ TEST_F(StereoCoreTest, AnAdapterThatFindsWhatCannotBeConvertedRightFailsTheConve
 {
     std::vector<std::string> message_vec;
 
-    Stereo::Core::StereoCore core(make_recipe(get_baked_text(""),
-                                              get_view_rule_text() ),
-                                  [&message_vec](const std::string& in_message)
-                                  {
-                                      message_vec.push_back(in_message);
-                                  });
+    Stereo::Core::RecipeStereoPlanner core(make_recipe(get_baked_text(""),
+                                                       get_view_rule_text() ),
+                                           [&message_vec](const std::string& in_message)
+                                           {
+                                               message_vec.push_back(in_message);
+                                           });
 
     core.require_fast_path(true, /* in_is_ok */
                            "nothing is wrong");
@@ -655,12 +655,12 @@ TEST_F(StereoCoreTest, ASeparationThatIsNotAmountToAnythingIsRefused)
 {
     std::vector<std::string> message_vec;
 
-    Stereo::Core::StereoCore core(make_recipe(get_baked_text(""),
-                                              get_view_rule_text() ),
-                                  [&message_vec](const std::string& in_message)
-                                  {
-                                      message_vec.push_back(in_message);
-                                  });
+    Stereo::Core::RecipeStereoPlanner core(make_recipe(get_baked_text(""),
+                                                       get_view_rule_text() ),
+                                           [&message_vec](const std::string& in_message)
+                                           {
+                                               message_vec.push_back(in_message);
+                                           });
 
     core.set_eye_separation(0.25f);
     core.set_eye_separation(-1.0f);
@@ -674,15 +674,15 @@ TEST_F(StereoCoreTest, ASeparationThatIsNotAmountToAnythingIsRefused)
 
 TEST_F(StereoCoreTest, TheConvergenceDistanceShearsTheProjectionForEachEyeAndIsSaidAgainWhenItChanges)
 {
-    const auto               projection_arguments = make_set_transform_arguments(STATE_PROJECTION);
-    std::vector<std::string> message_vec;
-    Stereo::Core::StereoCore core(make_recipe(get_baked_text(""),
-                                              "{\"call\": \"IDirect3DDevice8::SetTransform\", \"when\": {\"state\": \"D3DTS_PROJECTION\","
-                                              " \"matrix\": \"perspective\"}, \"action\": {\"type\": \"eye_convergence\"}}"),
-                                  [&message_vec](const std::string& in_message)
-                                  {
-                                      message_vec.push_back(in_message);
-                                  });
+    const auto                        projection_arguments = make_set_transform_arguments(STATE_PROJECTION);
+    std::vector<std::string>          message_vec;
+    Stereo::Core::RecipeStereoPlanner core(make_recipe(get_baked_text(""),
+                                                       "{\"call\": \"IDirect3DDevice8::SetTransform\", \"when\": {\"state\": \"D3DTS_PROJECTION\","
+                                                       " \"matrix\": \"perspective\"}, \"action\": {\"type\": \"eye_convergence\"}}"),
+                                           [&message_vec](const std::string& in_message)
+                                           {
+                                               message_vec.push_back(in_message);
+                                           });
     std::array<float, 16>    projection           = {1.0f, 0.0f, 0.0f, 0.0f,
                                                0.0f, 1.0f, 0.0f, 0.0f,
                                                0.0f, 0.0f, 1.0f, 1.0f,
@@ -756,11 +756,11 @@ TEST_F(StereoCoreTest, TheDistanceOfTheRecipeIsFollowedForEachDrawUnlessOneIsSet
     /* The signatures of get_baked_text() are 1 and 2: the first converges at 5, the second has no distance. */
     recipe.convergence_vec.push_back({5.0f, 1});
 
-    Stereo::Core::StereoCore core(recipe,
-                                  [&message_vec](const std::string& in_message)
-                                  {
-                                      message_vec.push_back(in_message);
-                                  });
+    Stereo::Core::RecipeStereoPlanner core(recipe,
+                                           [&message_vec](const std::string& in_message)
+                                           {
+                                               message_vec.push_back(in_message);
+                                           });
 
     core.set_eye_separation(0.2f);
 
@@ -817,10 +817,10 @@ TEST_F(StereoCoreTest, TheEyesGoTowardASceneByTheTimeThatTheFrameTookAndNotByThe
     /* The distance after one frame of the second scene that took this long, from the first scene taken at once. */
     const auto get_distance_func = [&recipe](const float& in_frame_seconds)
     {
-        Stereo::Core::StereoCore core(recipe,
-                                      [](const std::string&)
-                                      {
-                                      });
+        Stereo::Core::RecipeStereoPlanner core(recipe,
+                                               [](const std::string&)
+                                               {
+                                               });
 
         core.on_frame_completed(100);
         core.set_frame_interval_seconds(in_frame_seconds);
@@ -865,11 +865,11 @@ TEST_F(StereoCoreTest, TheDistanceOfTheSceneIsTakenAtOnceAtFirstAndThenEasedTowa
     recipe.scene_convergence_vec.push_back({10.0f, 100});
     recipe.scene_convergence_vec.push_back({18.0f, 200});
 
-    Stereo::Core::StereoCore core(recipe,
-                                  [&message_vec](const std::string& in_message)
-                                  {
-                                      message_vec.push_back(in_message);
-                                  });
+    Stereo::Core::RecipeStereoPlanner core(recipe,
+                                           [&message_vec](const std::string& in_message)
+                                           {
+                                               message_vec.push_back(in_message);
+                                           });
 
     core.set_eye_separation(0.2f);
 
@@ -940,10 +940,10 @@ TEST_F(StereoCoreTest, ACutToASceneAtAnotherDistanceIsTakenAtOnce)
     recipe.scene_convergence_vec.push_back({10.0f, 100});
     recipe.scene_convergence_vec.push_back({40.0f, 200});
 
-    Stereo::Core::StereoCore core(recipe,
-                                  [](const std::string&)
-                                  {
-                                  });
+    Stereo::Core::RecipeStereoPlanner core(recipe,
+                                           [](const std::string&)
+                                           {
+                                           });
 
     core.on_frame_completed(100);
 
@@ -960,14 +960,14 @@ TEST_F(StereoCoreTest, ACutToASceneAtAnotherDistanceIsTakenAtOnce)
 
 TEST_F(StereoCoreTest, TheStrengthOfThe3DMakesTheDistanceBetweenTheEyesAThirtiethOfTheDistanceTheyConvergeAtTimesIt)
 {
-    const auto               arguments   = make_set_transform_arguments(STATE_VIEW);
-    std::vector<std::string> message_vec;
-    Stereo::Core::StereoCore core(make_recipe(get_baked_text(""),
-                                              get_view_rule_text() ),
-                                  [&message_vec](const std::string& in_message)
-                                  {
-                                      message_vec.push_back(in_message);
-                                  });
+    const auto                        arguments   = make_set_transform_arguments(STATE_VIEW);
+    std::vector<std::string>          message_vec;
+    Stereo::Core::RecipeStereoPlanner core(make_recipe(get_baked_text(""),
+                                                       get_view_rule_text() ),
+                                           [&message_vec](const std::string& in_message)
+                                           {
+                                               message_vec.push_back(in_message);
+                                           });
 
     ASSERT_TRUE(core.on_matrix_call(SET_TRANSFORM,
                                     arguments,
@@ -1028,14 +1028,14 @@ TEST_F(StereoCoreTest, TheStrengthOfThe3DMakesTheDistanceBetweenTheEyesAThirtiet
 
 TEST_F(StereoCoreTest, WhatTheRecipeLeavesAloneAndIsMadeToWhatIsPresentedIsPushedTowardTheViewer)
 {
-    const auto                  projection_arguments = make_set_transform_arguments(STATE_PROJECTION);
-    Stereo::Core::StereoCore    core(make_recipe("\"comfort\": {\"overlay_parallax\": 0.04}," + get_baked_text(""),
-                                                 "{\"call\": \"IDirect3DDevice8::SetTransform\", \"when\": {\"state\": \"D3DTS_PROJECTION\","
-                                                 " \"matrix\": \"perspective\"}, \"action\": {\"type\": \"eye_convergence\"}}"),
-                                     [](const std::string& in_message)
-                                     {
-                                         (void) in_message;
-                                     });
+    const auto                        projection_arguments = make_set_transform_arguments(STATE_PROJECTION);
+    Stereo::Core::RecipeStereoPlanner core(make_recipe("\"comfort\": {\"overlay_parallax\": 0.04}," + get_baked_text(""),
+                                                       "{\"call\": \"IDirect3DDevice8::SetTransform\", \"when\": {\"state\": \"D3DTS_PROJECTION\","
+                                                       " \"matrix\": \"perspective\"}, \"action\": {\"type\": \"eye_convergence\"}}"),
+                                           [](const std::string& in_message)
+                                           {
+                                               (void) in_message;
+                                           });
     const std::array<float, 16> projection           = {1.0f, 0.0f, 0.0f, 0.0f,
                                                0.0f, 1.0f, 0.0f, 0.0f,
                                                0.0f, 0.0f, 1.0f, 1.0f,
@@ -1099,14 +1099,14 @@ TEST_F(StereoCoreTest, WhatTheRecipeLeavesAloneAndIsMadeToWhatIsPresentedIsPushe
 
 TEST_F(StereoCoreTest, WithoutAParallaxForTheOverlayWhatTheRecipeLeavesAloneIsTheSameForBothEyes)
 {
-    const auto                  projection_arguments = make_set_transform_arguments(STATE_PROJECTION);
-    Stereo::Core::StereoCore    core(make_recipe(get_baked_text(""),
-                                                 "{\"call\": \"IDirect3DDevice8::SetTransform\", \"when\": {\"state\": \"D3DTS_PROJECTION\","
-                                                 " \"matrix\": \"perspective\"}, \"action\": {\"type\": \"eye_convergence\"}}"),
-                                     [](const std::string& in_message)
-                                     {
-                                         (void) in_message;
-                                     });
+    const auto                        projection_arguments = make_set_transform_arguments(STATE_PROJECTION);
+    Stereo::Core::RecipeStereoPlanner core(make_recipe(get_baked_text(""),
+                                                       "{\"call\": \"IDirect3DDevice8::SetTransform\", \"when\": {\"state\": \"D3DTS_PROJECTION\","
+                                                       " \"matrix\": \"perspective\"}, \"action\": {\"type\": \"eye_convergence\"}}"),
+                                           [](const std::string& in_message)
+                                           {
+                                               (void) in_message;
+                                           });
     const std::array<float, 16> projection           = {1.0f, 0.0f, 0.0f, 0.0f,
                                                0.0f, 1.0f, 0.0f, 0.0f,
                                                0.0f, 0.0f, 1.0f, 1.0f,
@@ -1140,11 +1140,11 @@ TEST_F(StereoCoreTest, ASceneTheRecipeDoesNotKnowKeepsTheLimitOfTheSceneBeforeAn
     recipe.scene_convergence_vec.push_back({30.0f, 200});
     recipe.scene_separation_vec.push_back({0.25f, 100});
 
-    Stereo::Core::StereoCore core(recipe,
-                                  [](const std::string& in_message)
-                                  {
-                                      (void) in_message;
-                                  });
+    Stereo::Core::RecipeStereoPlanner core(recipe,
+                                           [](const std::string& in_message)
+                                           {
+                                               (void) in_message;
+                                           });
 
     core.set_depth_strength(1.0f);
 
@@ -1191,14 +1191,14 @@ TEST_F(StereoCoreTest, ASceneTheRecipeDoesNotKnowKeepsTheLimitOfTheSceneBeforeAn
 
 TEST_F(StereoCoreTest, WhatTheRecipeSaysOfTheOverlayIsHowFarAndTheOverlayIsNotPushedUnlessThePersonAsks)
 {
-    const auto                  projection_arguments = make_set_transform_arguments(STATE_PROJECTION);
-    Stereo::Core::StereoCore    core(make_recipe("\"comfort\": {\"overlay_parallax\": 0.04}," + get_baked_text(""),
-                                                 "{\"call\": \"IDirect3DDevice8::SetTransform\", \"when\": {\"state\": \"D3DTS_PROJECTION\","
-                                                 " \"matrix\": \"perspective\"}, \"action\": {\"type\": \"eye_convergence\"}}"),
-                                     [](const std::string& in_message)
-                                     {
-                                         (void) in_message;
-                                     });
+    const auto                        projection_arguments = make_set_transform_arguments(STATE_PROJECTION);
+    Stereo::Core::RecipeStereoPlanner core(make_recipe("\"comfort\": {\"overlay_parallax\": 0.04}," + get_baked_text(""),
+                                                       "{\"call\": \"IDirect3DDevice8::SetTransform\", \"when\": {\"state\": \"D3DTS_PROJECTION\","
+                                                       " \"matrix\": \"perspective\"}, \"action\": {\"type\": \"eye_convergence\"}}"),
+                                           [](const std::string& in_message)
+                                           {
+                                               (void) in_message;
+                                           });
     const std::array<float, 16> projection           = {1.0f, 0.0f, 0.0f, 0.0f,
                                                0.0f, 1.0f, 0.0f, 0.0f,
                                                0.0f, 0.0f, 1.0f, 1.0f,
@@ -1256,11 +1256,11 @@ TEST_F(StereoCoreTest, ADrawThatCoversTheWholeOfTheViewIsNotPushedWhateverThePer
 
     recipe.covering_draw_key_vec.push_back(7);
 
-    Stereo::Core::StereoCore    core(recipe,
-                                     [](const std::string& in_message)
-                                     {
-                                         (void) in_message;
-                                     });
+    Stereo::Core::RecipeStereoPlanner core(recipe,
+                                           [](const std::string& in_message)
+                                           {
+                                               (void) in_message;
+                                           });
     const std::array<float, 16> projection = {1.0f, 0.0f, 0.0f, 0.0f,
                                                0.0f, 1.0f, 0.0f, 0.0f,
                                                0.0f, 0.0f, 1.0f, 1.0f,
@@ -1314,9 +1314,9 @@ TEST_F(StereoCoreTest, ADrawThatCoversTheWholeOfTheViewIsNotPushedWhateverThePer
 
 TEST_F(StereoCoreTest, TheEyeShiftMatrixMovesTheCameraHalfTheSeparationToEachSide)
 {
-    Stereo::Core::StereoCore core(make_recipe(get_baked_text(""),
-                                              ""),
-                                  Stereo::Core::FailFunc() );
+    Stereo::Core::RecipeStereoPlanner core(make_recipe(get_baked_text(""),
+                                                       ""),
+                                           Stereo::Core::FailFunc() );
 
     core.set_eye_separation(0.5f);
 
@@ -1344,9 +1344,9 @@ TEST_F(StereoCoreTest, TheEyeShiftMatrixMovesTheCameraHalfTheSeparationToEachSid
 
 TEST_F(StereoCoreTest, TheEyeShiftMatrixShearsTheSceneByTheDepthSoWhatIsAtTheDistanceStaysPut)
 {
-    Stereo::Core::StereoCore core(make_recipe(get_baked_text(""),
-                                              ""),
-                                  Stereo::Core::FailFunc() );
+    Stereo::Core::RecipeStereoPlanner core(make_recipe(get_baked_text(""),
+                                                       ""),
+                                           Stereo::Core::FailFunc() );
 
     core.set_convergence_distance(10.0f);
     core.set_eye_separation      (0.5f);
@@ -1367,12 +1367,12 @@ TEST_F(StereoCoreTest, TheEyeShiftMatrixShearsTheSceneByTheDepthSoWhatIsAtTheDis
 
 TEST_F(StereoCoreTest, TheCoreSaysWhetherTheRecipeHasThePixelReadsCached)
 {
-    Stereo::Core::StereoCore cached_core(make_recipe("\"cache_pixel_reads\": true," + get_baked_text(""),
-                                                     ""),
-                                         Stereo::Core::FailFunc() );
-    Stereo::Core::StereoCore plain_core (make_recipe(get_baked_text(""),
-                                                     ""),
-                                         Stereo::Core::FailFunc() );
+    Stereo::Core::RecipeStereoPlanner cached_core(make_recipe("\"cache_pixel_reads\": true," + get_baked_text(""),
+                                                              ""),
+                                                  Stereo::Core::FailFunc() );
+    Stereo::Core::RecipeStereoPlanner plain_core (make_recipe(get_baked_text(""),
+                                                              ""),
+                                                  Stereo::Core::FailFunc() );
 
     EXPECT_TRUE (cached_core.get_caches_pixel_reads() );
     EXPECT_FALSE(plain_core.get_caches_pixel_reads() );
@@ -1380,10 +1380,10 @@ TEST_F(StereoCoreTest, TheCoreSaysWhetherTheRecipeHasThePixelReadsCached)
 
 TEST_F(StereoCoreTest, TheDepthThatWasMeasuredSetsWhereTheEyesConvergeAndHowFarApartTheyMayBe)
 {
-    Stereo::Core::StereoCore core(make_recipe("\"comfort\": {\"balance_convergence\": true, \"max_far_parallax\": 0.01, \"max_near_parallax\": 0.015, \"measure_depth\": true},"
-                                              + get_baked_text(""),
-                                              ""),
-                                  Stereo::Core::FailFunc() );
+    Stereo::Core::RecipeStereoPlanner core(make_recipe("\"comfort\": {\"balance_convergence\": true, \"max_far_parallax\": 0.01, \"max_near_parallax\": 0.015, \"measure_depth\": true},"
+                                                       + get_baked_text(""),
+                                                       ""),
+                                           Stereo::Core::FailFunc() );
     Stereo::Core::DepthRange range;
 
     EXPECT_TRUE(core.get_measures_depth() );
@@ -1429,10 +1429,10 @@ TEST_F(StereoCoreTest, TheDepthThatWasMeasuredSetsWhereTheEyesConvergeAndHowFarA
 
 TEST_F(StereoCoreTest, WhatTheRecipeSaysOfAKindOfFrameWinsOverTheDepthThatWasMeasured)
 {
-    Stereo::Core::StereoCore core(make_recipe("\"comfort\": {\"max_near_parallax\": 0.015, \"measure_depth\": true, \"scene_overrides\": [{\"shape\": \"0x0000000000000007\", \"convergence_distance\": 250}]},"
-                                              + get_baked_text(""),
-                                              ""),
-                                  Stereo::Core::FailFunc() );
+    Stereo::Core::RecipeStereoPlanner core(make_recipe("\"comfort\": {\"max_near_parallax\": 0.015, \"measure_depth\": true, \"scene_overrides\": [{\"shape\": \"0x0000000000000007\", \"convergence_distance\": 250}]},"
+                                                       + get_baked_text(""),
+                                                       ""),
+                                           Stereo::Core::FailFunc() );
     Stereo::Core::DepthRange range;
 
     range.far_depth    = 1000.0f;
@@ -1451,9 +1451,9 @@ TEST_F(StereoCoreTest, WhatTheRecipeSaysOfAKindOfFrameWinsOverTheDepthThatWasMea
 
 TEST_F(StereoCoreTest, TheEyesGiveADrawAParallaxByItsDepthThatTheDistanceOfConvergenceTakesBack)
 {
-    Stereo::Core::StereoCore core(make_recipe(get_baked_text(""),
-                                              get_view_rule_text() ),
-                                  Stereo::Core::FailFunc() );
+    Stereo::Core::RecipeStereoPlanner core(make_recipe(get_baked_text(""),
+                                                       get_view_rule_text() ),
+                                           Stereo::Core::FailFunc() );
 
     core.set_convergence_distance(10.0f);
     core.set_eye_separation      (1.0f);

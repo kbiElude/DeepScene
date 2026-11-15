@@ -30,7 +30,7 @@ namespace Stereo
 
             /* The parallax between the eyes for an affected draw in a pass whose units are pixels, as a fraction of the picture width. It is
              * the eye separation (capped by the scene limit) divided by the picture width. It is 0 if the draw is not affected or the width is
-             * not above 0. A 3D draw is moved by its depth instead (see StereoCore::get_eye_parallax()).
+             * not above 0. A 3D draw is moved by its depth instead (see RecipeStereoPlanner::get_eye_parallax()).
              */
             static float get_screen_layer_parallax(const bool&  in_is_affected,
                                                    const float& in_picture_width_pixels,

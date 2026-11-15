@@ -2,11 +2,11 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Tests for DepthMeasurer: what it says of a depth buffer is what DepthBufferStatistics::measure() says, to the last bit, with AVX2 and without it.
+ * Tests for FastDepthRangeMeasurer: what it says of a depth buffer is what DepthRangeMeasurer::measure() says, to the last bit, with AVX2 and without it.
  */
 #include <gtest/gtest.h>
-#include "stereo/core/depth_buffer_statistics.h"
-#include "stereo/core/depth_measurer.h"
+#include "stereo/core/depth_range_measurer.h"
+#include "stereo/core/fast_depth_range_measurer.h"
 #include "utils/cpu/cpu_features.h"
 #include <cmath>
 #include <limits>
@@ -58,19 +58,19 @@ namespace
         return result;
     }
 
-    void expect_same_as_scalar(Stereo::Core::DepthMeasurer&  in_measurer,
-                               const std::vector<float>&     in_depth_vec,
-                               const size_t&                 in_step,
-                               const float&                  in_z_scale,
-                               const float&                  in_z_shift,
-                               const float&                  in_fraction)
+    void expect_same_as_scalar(Stereo::Core::FastDepthRangeMeasurer& in_measurer,
+                               const std::vector<float>&             in_depth_vec,
+                               const size_t&                         in_step,
+                               const float&                          in_z_scale,
+                               const float&                          in_z_shift,
+                               const float&                          in_fraction)
     {
-        const auto expected = Stereo::Core::DepthBufferStatistics::measure(in_depth_vec.data(),
-                                                                           in_depth_vec.size(),
-                                                                           in_step,
-                                                                           in_z_scale,
-                                                                           in_z_shift,
-                                                                           in_fraction);
+        const auto expected = Stereo::Core::DepthRangeMeasurer::measure(in_depth_vec.data(),
+                                                                        in_depth_vec.size(),
+                                                                        in_step,
+                                                                        in_z_scale,
+                                                                        in_z_shift,
+                                                                        in_fraction);
         const auto actual   = in_measurer.measure(in_depth_vec.data(),
                                                   in_depth_vec.size(),
                                                   in_step,
@@ -89,9 +89,9 @@ namespace
     }
 }
 
-TEST(DepthMeasurer, ItGivesWhatTheScalarMeasureGivesForScenesOfAllSizesAndSkies)
+TEST(FastDepthRangeMeasurer, ItGivesWhatTheScalarMeasureGivesForScenesOfAllSizesAndSkies)
 {
-    Stereo::Core::DepthMeasurer measurer(true);
+    Stereo::Core::FastDepthRangeMeasurer measurer(true);
 
     for (const size_t n_depths : {1, 7, 8, 9, 15, 16, 17, 100, 1001, 76800})
     {
@@ -114,15 +114,15 @@ TEST(DepthMeasurer, ItGivesWhatTheScalarMeasureGivesForScenesOfAllSizesAndSkies)
     }
 }
 
-TEST(DepthMeasurer, ItUsesAvx2WhenTheProcessorHasIt)
+TEST(FastDepthRangeMeasurer, ItUsesAvx2WhenTheProcessorHasIt)
 {
-    EXPECT_EQ(Stereo::Core::DepthMeasurer(true).is_using_avx2(),
+    EXPECT_EQ(Stereo::Core::FastDepthRangeMeasurer(true).is_using_avx2(),
               Utils::Cpu::CpuFeatures::is_avx2_supported() );
 }
 
-TEST(DepthMeasurer, ItGivesWhatTheScalarMeasureGivesWithoutAvx2)
+TEST(FastDepthRangeMeasurer, ItGivesWhatTheScalarMeasureGivesWithoutAvx2)
 {
-    Stereo::Core::DepthMeasurer measurer(false);
+    Stereo::Core::FastDepthRangeMeasurer measurer(false);
 
     EXPECT_FALSE(measurer.is_using_avx2() );
 
@@ -141,12 +141,12 @@ TEST(DepthMeasurer, ItGivesWhatTheScalarMeasureGivesWithoutAvx2)
     }
 }
 
-TEST(DepthMeasurer, ItGivesWhatTheScalarMeasureGivesForDepthsThatAreNotDepths)
+TEST(FastDepthRangeMeasurer, ItGivesWhatTheScalarMeasureGivesForDepthsThatAreNotDepths)
 {
-    Stereo::Core::DepthMeasurer measurer(true);
-    auto                        depth_vec = make_scene(2000,
-                                                       0.2f,
-                                                       11);
+    Stereo::Core::FastDepthRangeMeasurer measurer(true);
+    auto                                 depth_vec = make_scene(2000,
+                                                                0.2f,
+                                                                11);
 
     /* What a read of a buffer can hold that is not a depth: nothing at all, infinity, below 0, above 1; and the depth at which the projection has no distance. */
     const float depth_without_distance = (-Z_SCALE + 1.0f) * 0.5f;
@@ -176,12 +176,12 @@ TEST(DepthMeasurer, ItGivesWhatTheScalarMeasureGivesForDepthsThatAreNotDepths)
     }
 }
 
-TEST(DepthMeasurer, ItGivesWhatTheScalarMeasureGivesForDistancesThatAreAlmostNothing)
+TEST(FastDepthRangeMeasurer, ItGivesWhatTheScalarMeasureGivesForDistancesThatAreAlmostNothing)
 {
-    Stereo::Core::DepthMeasurer measurer(true);
-    const auto                  depth_vec = make_scene(3000,
-                                                       0.0f,
-                                                       5);
+    Stereo::Core::FastDepthRangeMeasurer measurer(true);
+    const auto                           depth_vec = make_scene(3000,
+                                                                0.0f,
+                                                                5);
 
     /* A shift this small gives distances that are not normal floats, and the bin that they are in is still not the bin of what is not a distance. */
     expect_same_as_scalar(measurer,
@@ -200,9 +200,9 @@ TEST(DepthMeasurer, ItGivesWhatTheScalarMeasureGivesForDistancesThatAreAlmostNot
                           0.02f);
 }
 
-TEST(DepthMeasurer, WhatItWorksInIsLeftCleanForTheNextCall)
+TEST(FastDepthRangeMeasurer, WhatItWorksInIsLeftCleanForTheNextCall)
 {
-    Stereo::Core::DepthMeasurer measurer(true);
+    Stereo::Core::FastDepthRangeMeasurer measurer(true);
 
     /* A scene that spreads over many bins, then one that is in a few, then a buffer with nothing drawn, then the first scene again: each is what the scalar measure says. */
     const auto wide_vec  = make_scene(76800,
@@ -229,12 +229,12 @@ TEST(DepthMeasurer, WhatItWorksInIsLeftCleanForTheNextCall)
     }
 }
 
-TEST(DepthMeasurer, ABufferThatIsReadEveryFewPixelsIsMeasuredTheWayItIsWithoutAvx2)
+TEST(FastDepthRangeMeasurer, ABufferThatIsReadEveryFewPixelsIsMeasuredTheWayItIsWithoutAvx2)
 {
-    Stereo::Core::DepthMeasurer measurer(true);
-    const auto                  depth_vec = make_scene(20000,
-                                                       0.3f,
-                                                       9);
+    Stereo::Core::FastDepthRangeMeasurer measurer(true);
+    const auto                           depth_vec = make_scene(20000,
+                                                                0.3f,
+                                                                9);
 
     for (const size_t step : {0, 2, 4})
     {
@@ -247,12 +247,12 @@ TEST(DepthMeasurer, ABufferThatIsReadEveryFewPixelsIsMeasuredTheWayItIsWithoutAv
     }
 }
 
-TEST(DepthMeasurer, ItGivesWhatTheScalarMeasureGivesWhereverTheBufferStartsInMemory)
+TEST(FastDepthRangeMeasurer, ItGivesWhatTheScalarMeasureGivesWhereverTheBufferStartsInMemory)
 {
-    Stereo::Core::DepthMeasurer measurer(true);
-    const auto                  scene_vec = make_scene(4096 + 64,
-                                                       0.2f,
-                                                       17);
+    Stereo::Core::FastDepthRangeMeasurer measurer(true);
+    const auto                           scene_vec = make_scene(4096 + 64,
+                                                                0.2f,
+                                                                17);
 
     /* The copy that the measurer makes is of lines of 64 bytes when the buffer starts at one, and by the pixel when it does not. */
     for (size_t n_offset = 0;
@@ -261,12 +261,12 @@ TEST(DepthMeasurer, ItGivesWhatTheScalarMeasureGivesWhereverTheBufferStartsInMem
     {
         std::vector<float> depth_vec(scene_vec.begin() + static_cast<std::ptrdiff_t>(n_offset),
                                      scene_vec.begin() + static_cast<std::ptrdiff_t>(n_offset) + 4000);
-        const auto         expected = Stereo::Core::DepthBufferStatistics::measure(depth_vec.data(),
-                                                                                   depth_vec.size(),
-                                                                                   1,
-                                                                                   Z_SCALE,
-                                                                                   Z_SHIFT,
-                                                                                   0.02f);
+        const auto         expected = Stereo::Core::DepthRangeMeasurer::measure(depth_vec.data(),
+                                                                                depth_vec.size(),
+                                                                                1,
+                                                                                Z_SCALE,
+                                                                                Z_SHIFT,
+                                                                                0.02f);
         const auto         actual   = measurer.measure(scene_vec.data() + n_offset,
                                                        4000,
                                                        1,
@@ -283,10 +283,10 @@ TEST(DepthMeasurer, ItGivesWhatTheScalarMeasureGivesWhereverTheBufferStartsInMem
     }
 }
 
-TEST(DepthMeasurer, ABufferOfNoDepthsSaysNothing)
+TEST(FastDepthRangeMeasurer, ABufferOfNoDepthsSaysNothing)
 {
-    Stereo::Core::DepthMeasurer measurer(true);
-    const float                 no_depth = 0.5f;
+    Stereo::Core::FastDepthRangeMeasurer measurer(true);
+    const float                          no_depth = 0.5f;
 
     EXPECT_FALSE(measurer.measure(&no_depth,
                                   0,

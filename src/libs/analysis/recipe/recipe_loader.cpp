@@ -526,7 +526,7 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
                   ++n_rule)
         {
             const std::string rule_path = "rules[" + std::to_string(n_rule) + "]";
-            Rule              rule;
+            MatrixRule        rule;
 
             if (parse_rule(rule_array_ptr->item_vec.at(n_rule),
                            rule_path,
@@ -563,7 +563,7 @@ end:
 
 bool Analysis::Recipe::RecipeLoader::parse_action(const Utils::Json::JsonValue& in_action,
                                                   const std::string&            in_path,
-                                                  Rule*                         inout_rule_ptr,
+                                                  MatrixRule*                   inout_rule_ptr,
                                                   std::string*                  out_error_ptr)
 {
     bool result = false;
@@ -1964,13 +1964,13 @@ end:
 
 bool Analysis::Recipe::RecipeLoader::parse_rule(const Utils::Json::JsonValue& in_rule,
                                                 const std::string&            in_path,
-                                                Rule*                         out_rule_ptr,
+                                                MatrixRule*                   out_rule_ptr,
                                                 std::string*                  out_error_ptr)
 {
     const CallDescriptor* call_ptr = nullptr;
     bool                  result   = false;
 
-    *out_rule_ptr = Rule();
+    *out_rule_ptr = MatrixRule();
 
     if (in_rule.type != Utils::Json::JsonValueType::OBJECT)
     {
@@ -2165,7 +2165,7 @@ end:
 
 bool Analysis::Recipe::RecipeLoader::parse_screen_parallax(const Utils::Json::JsonValue& in_value,
                                                            const std::string&            in_path,
-                                                           ScreenParallax*               out_screen_parallax_ptr,
+                                                           ScreenParallaxSettings*       out_screen_parallax_ptr,
                                                            std::string*                  out_error_ptr)
 {
     /* An angle of view of 180 degrees or more cannot form a picture, so it is refused. */
@@ -2371,7 +2371,7 @@ bool Analysis::Recipe::RecipeLoader::parse_unsigned(const Utils::Json::JsonValue
 bool Analysis::Recipe::RecipeLoader::parse_when(const Utils::Json::JsonValue& in_when,
                                                 const std::string&            in_path,
                                                 const CallDescriptor&         in_call,
-                                                Rule*                         inout_rule_ptr,
+                                                MatrixRule*                   inout_rule_ptr,
                                                 std::string*                  out_error_ptr)
 {
     bool result = false;

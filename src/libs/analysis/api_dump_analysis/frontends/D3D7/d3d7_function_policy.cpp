@@ -5,7 +5,7 @@
  * The groups and their reasons are what matters. The tables are maintained by hand.
  */
 #include "analysis/api_dump_analysis/frontends/D3D7/d3d7_function_policy.h"
-#include "analysis/api_dump_analysis/frontends/shared/function_name_table.h"
+#include "analysis/api_dump_analysis/frontends/shared/function_policy_reason_table.h"
 #include <iterator>
 
 const char Analysis::APIDumpAnalysis::Frontends::D3D7FunctionPolicy::PALETTES[] = "makes or changes a palette, which gives the colors of the pixels of a surface, and the front end follows no palette";
@@ -16,7 +16,7 @@ const char* Analysis::APIDumpAnalysis::Frontends::D3D7FunctionPolicy::get_unsupp
     static constexpr char STATE_BLOCKS[]    = "records or plays back state blocks, which are calls that the front end does not follow";
 
     /* Sorted by name. */
-    static const FunctionNameTable::Entry unsupported_entry_array[] =
+    static const FunctionPolicyReasonTable::Entry unsupported_entry_array[] =
     {
         {"ApplyStateBlock",                          STATE_BLOCKS},
         {"BeginStateBlock",                          STATE_BLOCKS},
@@ -49,9 +49,9 @@ const char* Analysis::APIDumpAnalysis::Frontends::D3D7FunctionPolicy::get_unsupp
         {"UpdateOverlayZOrder",                      "is about overlays, which the display puts over the screen with what no call of the workload made"}
     };
 
-    return FunctionNameTable::find_reason_ptr(unsupported_entry_array,
-                                              std::size(unsupported_entry_array),
-                                              in_function);
+    return FunctionPolicyReasonTable::find_reason_ptr(unsupported_entry_array,
+                                                      std::size(unsupported_entry_array),
+                                                      in_function);
 }
 
 bool Analysis::APIDumpAnalysis::Frontends::D3D7FunctionPolicy::is_left_out_by_design(const APIInterceptor::APIFunction& in_function)
@@ -62,7 +62,7 @@ bool Analysis::APIDumpAnalysis::Frontends::D3D7FunctionPolicy::is_left_out_by_de
     static constexpr char STORED_ELSEWHERE[] = "is not where the data of what the application writes is stored: it is with the Unlock that follows";
 
     /* Sorted by name. */
-    static const FunctionNameTable::Entry left_out_entry_array[] =
+    static const FunctionPolicyReasonTable::Entry left_out_entry_array[] =
     {
         {"AddRef",                          "counts references to an object"},
         {"BeginScene",                      "brackets the calls of a frame, and writes nothing"},
@@ -108,10 +108,10 @@ bool Analysis::APIDumpAnalysis::Frontends::D3D7FunctionPolicy::is_left_out_by_de
         {"WaitForVerticalBlank",            "is about when, and writes nothing"}
     };
 
-    const char* reason_ptr = FunctionNameTable::find_reason_ptr(left_out_entry_array,
-                                                                std::size(left_out_entry_array),
-                                                                in_function);
+    const char* reason_ptr = FunctionPolicyReasonTable::find_reason_ptr(left_out_entry_array,
+                                                                        std::size(left_out_entry_array),
+                                                                        in_function);
 
     return (reason_ptr != nullptr ||
-            FunctionNameTable::is_query(in_function) );
+            FunctionPolicyReasonTable::is_query(in_function) );
 }

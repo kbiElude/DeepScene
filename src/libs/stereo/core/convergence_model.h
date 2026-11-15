@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
  * Decides where the eyes converge and how far apart they are for the draw being made. It combines the values the player set, what the
- * recipe says about the scene, and what the recipe says about the draw. StereoCore owns it and asks it.
+ * recipe says about the scene, and what the recipe says about the draw. RecipeStereoPlanner owns it and asks it.
  *
  * Not thread-safe.
  */

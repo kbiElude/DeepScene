@@ -527,7 +527,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_draw_call(const Cap
         {
             is_moved = D3D7DrawRewriter::rewrite(in_call,
                                                    in_chunk_source,
-                                                   Stereo::Core::ScreenParallax::make_parameters(plan),
+                                                   Stereo::Core::ScreenSpaceVertexShifter::make_parameters(plan),
                                                   &overlay,
                                                   &rewritten);
 

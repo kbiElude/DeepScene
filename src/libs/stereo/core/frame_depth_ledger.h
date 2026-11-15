@@ -5,7 +5,7 @@
 #ifndef STEREO_CORE_FRAME_DEPTH_LEDGER_H
 #define STEREO_CORE_FRAME_DEPTH_LEDGER_H
 
-#include "stereo/core/depth_buffer_statistics.h"
+#include "stereo/core/depth_range_measurer.h"
 #include "stereo/core/types.h"
 #include <deque>
 #include <map>

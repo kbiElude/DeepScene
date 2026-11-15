@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
  * Reads the snapshot of the vertex arrays that the dumper takes at a draw, and the elements of an array. The snapshot is the last argument of
- * glDrawArrays and glDrawElements. Its layout is described with ClientArrayManager in the interception.
+ * glDrawArrays and glDrawElements. Its layout is described with ClientVertexArrayTracker in the interception.
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_CLIENT_ARRAY_SNAPSHOT_H
 #define APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_CLIENT_ARRAY_SNAPSHOT_H

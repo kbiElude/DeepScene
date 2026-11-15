@@ -4,8 +4,8 @@
  *
  * A lookup table for the policies of the Direct3D front ends. Each entry is a function name with the reason it is listed.
  */
-#ifndef APIDUMPANALYSIS_FRONTENDS_FUNCTION_NAME_TABLE_H
-#define APIDUMPANALYSIS_FRONTENDS_FUNCTION_NAME_TABLE_H
+#ifndef APIDUMPANALYSIS_FRONTENDS_FUNCTION_POLICY_REASON_TABLE_H
+#define APIDUMPANALYSIS_FRONTENDS_FUNCTION_POLICY_REASON_TABLE_H
 
 #include "common/types.h"
 #include <stddef.h>
@@ -16,7 +16,7 @@ namespace Analysis
     {
         namespace Frontends
         {
-            class FunctionNameTable
+            class FunctionPolicyReasonTable
             {
             public:
                 /* A name is one of three things: the name of a method alone ("BeginScene", which matches every interface that has the method),
@@ -45,4 +45,4 @@ namespace Analysis
     }
 }
 
-#endif /* APIDUMPANALYSIS_FRONTENDS_FUNCTION_NAME_TABLE_H */
+#endif /* APIDUMPANALYSIS_FRONTENDS_FUNCTION_POLICY_REASON_TABLE_H */

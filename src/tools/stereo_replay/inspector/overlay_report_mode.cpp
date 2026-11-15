@@ -178,10 +178,10 @@ bool Stereo::Replay::Inspector::take_overlay_report(const Stereo::Replay::Inspec
     /* The quick path needs the dependencies, which say which frames can be played again from the state they leave. Without them, or if they
      * cannot be read, each candidate is replayed on its own.
      */
-    Analysis::APIDumpDependencies::DependencyAnalysis analysis;
-    std::string                                       deps_error;
-    bool                                              has_deps = false;
-    Stereo::Replay::Inspector::FrameVariantReplayPlan frame_variant_replay_plan;
+    Analysis::APIDumpDependencies::DependencyFileContent analysis;
+    std::string                                          deps_error;
+    bool                                                 has_deps = false;
+    Stereo::Replay::Inspector::FrameVariantReplayPlan    frame_variant_replay_plan;
 
     if (in_options.overlay_report_is_exact == false &&
         in_options.deps_filename.empty()   == false)

@@ -6,7 +6,7 @@
 #define STEREO_REPLAY_ENGINEDLL_D3D7_DRAW_REWRITER_H
 
 #include "capture/api_dump_loader/api_dump_loader.h"
-#include "stereo/core/screen_parallax.h"
+#include "stereo/core/screen_space_vertex_shifter.h"
 #include "overlay_chunk_source.h"
 #include <functional>
 #include <stddef.h>
@@ -19,7 +19,7 @@ namespace Stereo
         namespace EngineDLL
         {
             /* Applies parallax for an eye to a dumped Direct3D 7 draw whose vertices are in pixels. The call is copied with the vertices moved (see
-             * Stereo::Core::ScreenParallax).
+             * Stereo::Core::ScreenSpaceVertexShifter).
              */
             class D3D7DrawRewriter
             {
@@ -28,11 +28,11 @@ namespace Stereo
                  * matrix moves, a vertex buffer, or data that does not match what the call says. Otherwise the call is copied to the output, with its
                  * vertices pointing to a chunk of the overlay that holds the moved vertices.
                  */
-                static bool rewrite(const Capture::APIDumpLoader::DumpedAPICall&    in_call,
-                                    const ::Replay::ReplayEngineDLL::IChunkSource&  in_chunk_source,
-                                    const Stereo::Core::ScreenParallax::Parameters& in_parameters,
-                                    OverlayChunkSource*                             inout_overlay_ptr,
-                                    Capture::APIDumpLoader::DumpedAPICall*          out_call_ptr);
+                static bool rewrite(const Capture::APIDumpLoader::DumpedAPICall&              in_call,
+                                    const ::Replay::ReplayEngineDLL::IChunkSource&            in_chunk_source,
+                                    const Stereo::Core::ScreenSpaceVertexShifter::Parameters& in_parameters,
+                                    OverlayChunkSource*                                       inout_overlay_ptr,
+                                    Capture::APIDumpLoader::DumpedAPICall*                    out_call_ptr);
 
                 /* The same, but every vertex is moved by the same shift, in pixels (positive to the right). It is for a draw that is pushed toward the
                  * viewer as a whole, whatever its depth (an interface). Also returns false for a shift of 0.
@@ -43,7 +43,7 @@ namespace Stereo
                                        OverlayChunkSource*                            inout_overlay_ptr,
                                        Capture::APIDumpLoader::DumpedAPICall*         out_call_ptr);
 
-                /* Says whether the vertices that the call uses reach both sides of a picture of the given width (see ScreenParallax::reaches_both_sides).
+                /* Says whether the vertices that the call uses reach both sides of a picture of the given width (see ScreenSpaceVertexShifter::reaches_both_sides).
                  * Returns false if the call is not a draw of pre-transformed vertices with its data in the workload, because the vertex positions are then
                  * unknown.
                  */

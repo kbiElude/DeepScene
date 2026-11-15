@@ -145,14 +145,14 @@ x<sub>ndc</sub> = P<sub>00</sub> · (x + h) / z + P<sub>20</sub>
 </svg>
 <figcaption>The cameras do not rotate. The picture of each is cut from a window that is the same for both at the convergence distance.</figcaption>
 </figure>
-<p>In the code: <code>RecipeApplier::apply_rule</code> (<code>libs/analysis/recipe</code>), which <code>StereoCore::bind_matrices</code> reaches through <code>MatrixSlots</code> (<code>libs/stereo/core</code>) when a scene draw is about to be made. The program's own calls that set the two matrices are not executed; the converter keeps them and puts the matrices of the eye in the device before each draw (see <a href="#second-eye">Making the second picture</a>).</p>
+<p>In the code: <code>RecipeApplier::apply_rule</code> (<code>libs/analysis/recipe</code>), which <code>RecipeStereoPlanner::bind_matrices</code> reaches through <code>MatrixSlots</code> (<code>libs/stereo/core</code>) when a scene draw is about to be made. The program's own calls that set the two matrices are not executed; the converter keeps them and puts the matrices of the eye in the device before each draw (see <a href="#second-eye">Making the second picture</a>).</p>
 
 <h2 id="screen">Without matrices: vertices in pixels</h2>
 <p>Some programs (Direct3D 7 ones), or some draws of a Direct3D 8 program, use <em>pre-transformed</em> vertices: a position in pixels and the reciprocal of the depth (<code>rhw</code>). No matrix moves them, so the two matrix rules have nothing to change. There is also no projection to read the angle of view from, and no camera to measure the depth of surfaces in. The recipe gives both: a <code>screen_parallax</code> section with the convergence distance and the field of view.</p>
 <p>The same formula, in pixels, with the shift applied directly to the vertex <code>x</code>:</p>
 <div class="math">shift(left eye) = (W / 2) / tan(fov / 2) · (s / 2) · (rhw − 1/d)        pixels, positive to the right
 shift(right eye) = −shift(left eye)
-<span class="why"><code>Stereo::Core::ScreenParallax::get_shift</code>. <code>W</code> is the picture width in pixels. Because the vertex already carries <code>rhw = 1/z</code>, the shift is a single multiply-add per vertex.</span></div>
+<span class="why"><code>Stereo::Core::ScreenSpaceVertexShifter::get_shift</code>. <code>W</code> is the picture width in pixels. Because the vertex already carries <code>rhw = 1/z</code>, the shift is a single multiply-add per vertex.</span></div>
 <figure>
 <svg viewBox="0 0 900 270" role="img" aria-label="Shift in pixels against the reciprocal of the depth for each eye">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
@@ -172,7 +172,7 @@ shift(right eye) = −shift(left eye)
   <li><strong>A draw that covers the whole view is never moved</strong> (a flash, a fade): its two pictures apart would leave a strip of the screen bare. The recipe knows such draws by key, but a key can be shared by a piece of sky that is drawn as a full-screen quad, so the converter also checks that the draw's own vertices reach both sides of the view.</li>
   <li><strong>A draw into a texture is moved like any other</strong>, so that the texture is the picture of the eye. The quad that draws the texture to the screen is flat, and is left where it is.</li>
 </ul>
-<p>The decisions about which draw is moved how are in <code>ScreenParallaxPlanner</code> (<code>libs/stereo/core</code>), which the replay engine and the live converter both use; the bytes are moved by <code>ScreenParallax</code> (<code>libs/stereo/core</code>), through <code>StereoCore::make_screen_vertices</code> in the converter and directly in the replay.</p>
+<p>The decisions about which draw is moved how are in <code>ScreenParallaxPlanner</code> (<code>libs/stereo/core</code>), which the replay engine and the live converter both use; the bytes are moved by <code>ScreenSpaceVertexShifter</code> (<code>libs/stereo/core</code>), through <code>RecipeStereoPlanner::make_screen_vertices</code> in the converter and directly in the replay.</p>
 
 <h2 id="separation">How far apart the eyes are</h2>
 <p>The separation is not a fixed number of the program's units: a corridor and a hillside would need very different ones. It follows the distance at which the eyes converge, by the rule of thumb that the cameras of a stereo shot are a thirtieth of that distance apart, and it is scaled by what the person asks and by the person's eyes:</p>
@@ -218,7 +218,7 @@ shift(right eye) = −shift(left eye)
 <tr><td>Per scene (<code>scene_convergence</code>)</td><td>The baker merges the histograms of the passes that the recipe affects, for each frame shape, and takes the median.</td><td>A frame of a shape that is known.</td></tr>
 <tr><td>Per draw signature (<code>convergence</code>)</td><td>The same median over the passes that draw a signature.</td><td>A draw whose scene is not known when it is issued.</td></tr>
 <tr><td>Balanced</td><td>With <code>comfort.balance_convergence</code> and both parallax limits, the distance goes where the nearest surfaces have all of the near limit and the farthest all of the far one (below).</td><td>A scene with a sky behind a near object, which the median would make flat. A distance that the recipe gives for a scene is kept.</td></tr>
-<tr><td>Measured live</td><td>With <code>comfort.measure_depth</code>, an OpenGL converter measures the depth buffer of each frame (<code>StereoCore::on_frame_depth</code>) and takes the distance and the limit from it, as the baker does for a scene.</td><td>Frames the baked values do not fit.</td></tr>
+<tr><td>Measured live</td><td>With <code>comfort.measure_depth</code>, an OpenGL converter measures the depth buffer of each frame (<code>RecipeStereoPlanner::on_frame_depth</code>) and takes the distance and the limit from it, as the baker does for a scene.</td><td>Frames the baked values do not fit.</td></tr>
 <tr><td>Set by the player</td><td>The player's own value.</td><td>Wins over the scene's, which wins over the draw's.</td></tr>
 </table>
 <p>The balanced distance solves <code>1/d = 1/z<sub>near</sub> − (1/z<sub>near</sub> − 1/z<sub>far</sub>) · near / (near + far)</code>, where <code>near</code> and <code>far</code> are the two parallax limits.</p>
@@ -239,7 +239,7 @@ shift(right eye) = −shift(left eye)
 </figure>
 <table>
 <tr><th>Constant</th><th>Value</th><th>Meaning</th></tr>
-<tr><td><code>ConvergenceModel::get_fraction_of_the_way</code></td><td>5% per 1/72 s</td><td>The step is by time, not by frames (the converter tells the core the frame time with <code>StereoCore::set_frame_interval_seconds</code>): a time constant of about 0.27 s at any frame rate.</td></tr>
+<tr><td><code>ConvergenceModel::get_fraction_of_the_way</code></td><td>5% per 1/72 s</td><td>The step is by time, not by frames (the converter tells the core the frame time with <code>RecipeStereoPlanner::set_frame_interval_seconds</code>): a time constant of about 0.27 s at any frame rate.</td></tr>
 <tr><td><code>SNAP_FRACTION</code> (<code>ConvergenceModel::get_eased_value</code>)</td><td>0.001</td><td>Within this part of the target the value snaps to it.</td></tr>
 <tr><td><code>CUT_RATIO</code> (<code>ConvergenceModel::is_cut</code>)</td><td>2</td><td>A target more than twice or less than half of the one of the frame before is a cut. The same holds for the limit of the eyes.</td></tr>
 </table>
@@ -278,7 +278,7 @@ shift(right eye) = −shift(left eye)
 <tr><td><code>camera_attached_depth</code></td><td>The part of the convergence distance under which an origin counts as attached to the camera.</td></tr>
 <tr><td><code>eye_space_cover_keys</code></td><td>Draws (by signature and size) whose model-view is the identity because the application has put their vertices in the space of the eye. An identity has an origin of 0 whatever the vertices are, so these are kept out of the rule above and given the parallax of the depth of their vertices.</td></tr>
 </table>
-<p>The decision is <code>StereoCore::is_last_draw_attached_to_camera()</code>. It takes how far in front of the camera the origin is; the front end turns its matrix into that, whatever the handedness of its camera.</p>
+<p>The decision is <code>RecipeStereoPlanner::is_last_draw_attached_to_camera()</code>. It takes how far in front of the camera the origin is; the front end turns its matrix into that, whatever the handedness of its camera.</p>
 <p>The other <code>comfort</code> fields are explained where they act: <code>balance_convergence</code> and <code>measure_depth</code> in <a href="#convergence">Where the eyes converge</a>; <code>overlay_parallax</code>, <code>part_parallax</code> and <code>automatic_layers</code> in <a href="#interface">What is not moved, and what is pushed</a>.</p>
 
 <h2 id="interface">What is not moved, and what is pushed</h2>
@@ -306,7 +306,7 @@ shift(right eye) = −shift(left eye)
 <tr><td>Left alone, listed in the recipe's <code>pushed</code></td><td>Pushed by <code>overlay_parallax</code>, as a part of the width of the picture (0.04 is four in a hundred).</td></tr>
 <tr><td>Affected, listed in <code>pushed</code></td><td>Pushed too, so that text and a logo stand off the layer they are drawn on.</td></tr>
 <tr><td>A part of an object that protrudes from it (the eyes of a character), in <code>pushed.part_cover_keys</code></td><td>Pushed by <code>part_parallax</code>, which is less, since the part is only a little nearer than the rest of the object.</td></tr>
-<tr><td>With <code>comfort.automatic_layers</code>: the baker's <code>flat_layer_draws</code></td><td>Left alone, not pushed. The live converter (<code>StereoCore::classify_draw()</code>) and the replay both ask <code>RecipeApplier::decide_draw()</code>, so they agree.</td></tr>
+<tr><td>With <code>comfort.automatic_layers</code>: the baker's <code>flat_layer_draws</code></td><td>Left alone, not pushed. The live converter (<code>RecipeStereoPlanner::classify_draw()</code>) and the replay both ask <code>RecipeApplier::decide_draw()</code>, so they agree.</td></tr>
 <tr><td>With <code>comfort.automatic_layers</code>: the baker's <code>overlay_draws</code></td><td>Left alone and pushed (<code>RecipeApplier::decide_draw()</code> checks the cover key), with no pass or draw named in the recipe.</td></tr>
 <tr><td>With <code>comfort.automatic_layers</code>: the baker's <code>eye_space_draws</code></td><td>Read as <code>eye_space_cover_keys</code> are.</td></tr>
 <tr><td>A draw that covers the view, or works on a copy of the picture (a blur, a glow)</td><td>Not pushed: it would leave a strip bare or move what the eyes of the picture already made.</td></tr>
@@ -317,7 +317,7 @@ shift(right eye) = −shift(left eye)
 <tr><th>Case</th><th>The push</th></tr>
 <tr><td>With matrices</td><td>A constant added to the same shear element: <code>P<sub>20</sub> += ±o</code> (plus for the left eye), so the two pictures of the draw are <code>o</code> of the width apart.</td></tr>
 <tr><td>In pixels</td><td>Every vertex of the draw is moved by the same <code>o · W / 2</code> pixels (right for the left eye), whatever its depth.</td></tr>
-<tr><td>OpenGL</td><td>The viewport is moved sideways around the draw (from its <code>glBegin</code>, the whole of its calls), by half of the parallax for each eye, whatever the projection of the draw is. A call that makes several draws (a display list) is pushed only if all of them are. The shift comes from <code>StereoCore::plan_push_shift()</code>, with the effective separation of the scene, and <code>GLEyeRenderer</code> moves the viewport and puts it back. The draw rule baked for a pushed signature carries <code>"pushed": true</code>.</td></tr>
+<tr><td>OpenGL</td><td>The viewport is moved sideways around the draw (from its <code>glBegin</code>, the whole of its calls), by half of the parallax for each eye, whatever the projection of the draw is. A call that makes several draws (a display list) is pushed only if all of them are. The shift comes from <code>RecipeStereoPlanner::plan_push_shift()</code>, with the effective separation of the scene, and <code>GLEyeRenderer</code> moves the viewport and puts it back. The draw rule baked for a pushed signature carries <code>"pushed": true</code>.</td></tr>
 </table>
 <h3>Two limits on a push</h3>
 <p>A draw that reaches from one side of the picture to the other (a 2D bar or a scroller, named in <code>baked.side_reaching_draws</code>) would leave bare the side that it moves away from. Its viewport is made as much wider as the shift on each side, so the edge that the shift would expose stays where it was and the other goes past the edge of the view (<code>PushShiftPlanner::make_viewport</code>, the same for the converter and the replay).</p>
@@ -335,7 +335,7 @@ shift(right eye) = −shift(left eye)
 <table>
 <tr><th>Draw</th><th>Its layer</th></tr>
 <tr><td>2D pass in pixels, affected</td><td>The separation (held to the limit of the scene) over the width of the picture.</td></tr>
-<tr><td>3D pass (OpenGL), affected</td><td>What the eyes give the depth of the origin, which the converter reads from the model-view and the projection (<code>StereoCore::get_eye_parallax()</code>, <code>plan_push_shift_with_layer()</code>). The replay uses the separation over the width, which equals this only in a pass of pixels.</td></tr>
+<tr><td>3D pass (OpenGL), affected</td><td>What the eyes give the depth of the origin, which the converter reads from the model-view and the projection (<code>RecipeStereoPlanner::get_eye_parallax()</code>, <code>plan_push_shift_with_layer()</code>). The replay uses the separation over the width, which equals this only in a pass of pixels.</td></tr>
 <tr><td>Made as it is: an identity model-view under a projection that is not a perspective one, as a 2D layer has, or attached to the camera</td><td>None: the eyes do not move it, so its whole parallax is the push.</td></tr>
 </table>
 
@@ -346,7 +346,7 @@ shift(right eye) = −shift(left eye)
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
   <rect class="box4" x="30" y="10" width="150" height="34" rx="6"/><text x="105" y="32" text-anchor="middle">application</text>
   <rect class="box3" x="250" y="10" width="170" height="34" rx="6"/><text x="335" y="32" text-anchor="middle">converter (adapter)</text>
-  <rect class="box" x="490" y="10" width="150" height="34" rx="6"/><text x="565" y="32" text-anchor="middle">StereoCore</text>
+  <rect class="box" x="490" y="10" width="150" height="34" rx="6"/><text x="565" y="32" text-anchor="middle">RecipeStereoPlanner</text>
   <rect class="box2" x="710" y="10" width="150" height="34" rx="6"/><text x="785" y="32" text-anchor="middle">device</text>
   <path class="arrowline" d="M105 44V370" stroke-dasharray="3 3"/><path class="arrowline" d="M335 44V370" stroke-dasharray="3 3"/><path class="arrowline" d="M565 44V370" stroke-dasharray="3 3"/><path class="arrowline" d="M785 44V370" stroke-dasharray="3 3"/>
   <path class="arrow" d="M105 70H333"/><text class="small" x="220" y="64" text-anchor="middle">SetTransform(view)</text>
@@ -366,7 +366,7 @@ shift(right eye) = −shift(left eye)
 </svg>
 <figcaption>Direct3D 8: the left eye is the program's own draw (a draw of moved vertices in pixels is made for both eyes by the renderer); the right is repeated by <code>D3D8EyeRenderer</code> on the twins. <code>MatrixSlots</code> puts a matrix in the device only if the device does not already have the matrix of that eye.</figcaption>
 </figure>
-<p>For vertices in pixels (Direct3D 7, and Direct3D 8 draws whose vertices come with the call) the vertices have to be copied to be moved, so a moved draw is made by the renderer for <em>both</em> eyes, each with its own copy of the vertices (<code>StereoCore::make_screen_vertices</code>), and a draw that is not moved is made as the program made it. In OpenGL the camera is the model-view matrix, so the converter makes every draw itself, for both eyes, and the application's own call is not made: each eye gets <code>StereoCore::make_eye_shift_matrix</code> (half the separation to the side and a shear by the depth, so that what is at the convergence distance stays put) in front of the matrix the draw has (<a href="live-conversion.html#opengl">Live conversion</a>). In an <a href="replay.html">offline replay</a> there is no running program to repeat calls for: the engine executes the whole frame twice, left then right, and puts the state of the device back between the two.</p>
+<p>For vertices in pixels (Direct3D 7, and Direct3D 8 draws whose vertices come with the call) the vertices have to be copied to be moved, so a moved draw is made by the renderer for <em>both</em> eyes, each with its own copy of the vertices (<code>RecipeStereoPlanner::make_screen_vertices</code>), and a draw that is not moved is made as the program made it. In OpenGL the camera is the model-view matrix, so the converter makes every draw itself, for both eyes, and the application's own call is not made: each eye gets <code>RecipeStereoPlanner::make_eye_shift_matrix</code> (half the separation to the side and a shear by the depth, so that what is at the convergence distance stays put) in front of the matrix the draw has (<a href="live-conversion.html#opengl">Live conversion</a>). In an <a href="replay.html">offline replay</a> there is no running program to repeat calls for: the engine executes the whole frame twice, left then right, and puts the state of the device back between the two.</p>
 <p>The converter also renders larger than the program asks. The program's back buffer and render targets are made a scale larger, so that the picture fills the headset's native resolution; the scale is the largest that fits an eye with the program's own proportions, never below 1 or above 4 (<code>ResolutionPolicy</code>, <a href="live-conversion.html#resolution">Live conversion</a>).</p>
 
 <h2 id="symptoms">When it looks wrong</h2>
@@ -377,7 +377,7 @@ shift(right eye) = −shift(left eye)
 <tr><td>Everything is behind the screen, or far in front of it</td><td>the convergence distance does not suit the scene</td><td>the baked <code>convergence</code> and <code>scene_convergence</code></td></tr>
 <tr><td>Something near has an extreme shift</td><td>the ceiling is too generous or the scene has none</td><td><code>comfort</code>: lower <code>max_near_parallax</code> or raise <code>near_fraction</code>; bake again</td></tr>
 <tr><td>Text sits inside the scene, at the depth of the screen</td><td>the draws left alone have no parallax of their own</td><td><code>comfort.overlay_parallax</code></td></tr>
-<tr><td>A crack in one eye, in the sky or a ground that meets the edge</td><td>a piece of a full-screen quad was left alone while its neighbour moved, or an edge was not held</td><td><code>ScreenParallaxPlanner</code> (the covering check), <code>ScreenParallax::shift_vertices</code></td></tr>
+<tr><td>A crack in one eye, in the sky or a ground that meets the edge</td><td>a piece of a full-screen quad was left alone while its neighbour moved, or an edge was not held</td><td><code>ScreenParallaxPlanner</code> (the covering check), <code>ScreenSpaceVertexShifter::shift_vertices</code></td></tr>
 <tr><td>A screen of the program is mono</td><td>its frame shape is not in <code>known_shape_keys</code></td><td>capture it, bake again</td></tr>
 </table>
 

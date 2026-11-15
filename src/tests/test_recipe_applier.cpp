@@ -38,9 +38,9 @@ protected:
     }
 
     /* A rule for SetTransform with the state D3DTS_VIEW. */
-    static Analysis::Recipe::Rule make_view_rule()
+    static Analysis::Recipe::MatrixRule make_view_rule()
     {
-        Analysis::Recipe::Rule              rule;
+        Analysis::Recipe::MatrixRule        rule;
         Analysis::Recipe::ArgumentCondition condition;
 
         condition.argument_index = 1;
@@ -69,9 +69,9 @@ protected:
         return call;
     }
 
-    static std::vector<const Analysis::Recipe::Rule*> match(const Analysis::Recipe::Recipe&      in_recipe,
-                                                            const Capture::APIDumpLoader::DumpedAPICall&     in_call,
-                                                            const Analysis::Recipe::CallPlace&  in_place)
+    static std::vector<const Analysis::Recipe::MatrixRule*> match(const Analysis::Recipe::Recipe&      in_recipe,
+                                                                  const Capture::APIDumpLoader::DumpedAPICall&     in_call,
+                                                                  const Analysis::Recipe::CallPlace&  in_place)
     {
         const Analysis::Recipe::RecipeApplier applier(in_recipe);
 
@@ -256,7 +256,7 @@ TEST_F(RecipeApplierTest, TheRulesThatMatchComeInTheOrderOfTheRecipe)
 
 TEST_F(RecipeApplierTest, AProductWithTheRecipesMatrixAfterOrBeforeTheCallsIsNotTheSame)
 {
-    Analysis::Recipe::Rule rule = make_view_rule();
+    Analysis::Recipe::MatrixRule rule = make_view_rule();
 
     rule.action_kind              = Analysis::Recipe::ActionKind::MULTIPLY;
     rule.left_matrix_fp32vec16    = make_scale(2.0f);
@@ -292,7 +292,7 @@ TEST_F(RecipeApplierTest, AProductWithTheRecipesMatrixAfterOrBeforeTheCallsIsNot
 
 TEST_F(RecipeApplierTest, EachEyeGetsItsOwnMatrix)
 {
-    Analysis::Recipe::Rule rule = make_view_rule();
+    Analysis::Recipe::MatrixRule rule = make_view_rule();
 
     rule.action_kind    = Analysis::Recipe::ActionKind::MULTIPLY;
     rule.multiply_order = Analysis::Recipe::MultiplyOrder::POST;
@@ -317,7 +317,7 @@ TEST_F(RecipeApplierTest, EachEyeGetsItsOwnMatrix)
 
 TEST_F(RecipeApplierTest, ReplacingPutsTheRecipesMatrixInPlaceOfTheCalls)
 {
-    Analysis::Recipe::Rule rule = make_view_rule();
+    Analysis::Recipe::MatrixRule rule = make_view_rule();
 
     rule.action_kind = Analysis::Recipe::ActionKind::REPLACE;
 
@@ -333,7 +333,7 @@ TEST_F(RecipeApplierTest, ReplacingPutsTheRecipesMatrixInPlaceOfTheCalls)
 
 TEST_F(RecipeApplierTest, ARuleAboutPerspectiveOrOrthographicMatricesLeavesTheOthersAlone)
 {
-    Analysis::Recipe::Rule rule = make_view_rule();
+    Analysis::Recipe::MatrixRule rule = make_view_rule();
 
     rule.action_kind = Analysis::Recipe::ActionKind::REPLACE;
 
@@ -667,9 +667,9 @@ TEST_F(RecipeApplierTest, AnEyeOffsetMovesTheEyesApartByHalfTheSeparationEachAlo
 
     for (const auto& axis_case : case_array)
     {
-        Analysis::Recipe::Rule rule;
-        auto                   left  = make_identity();
-        auto                   right = make_identity();
+        Analysis::Recipe::MatrixRule rule;
+        auto                         left  = make_identity();
+        auto                         right = make_identity();
 
         rule.action_kind    = Analysis::Recipe::ActionKind::EYE_OFFSET;
         rule.multiply_order = Analysis::Recipe::MultiplyOrder::POST;
@@ -693,7 +693,7 @@ TEST_F(RecipeApplierTest, AnEyeOffsetMovesTheEyesApartByHalfTheSeparationEachAlo
 
 TEST_F(RecipeApplierTest, AnEyeOffsetGrowsWithTheSeparationAndIsNothingWithoutIt)
 {
-    Analysis::Recipe::Rule rule;
+    Analysis::Recipe::MatrixRule rule;
 
     rule.action_kind    = Analysis::Recipe::ActionKind::EYE_OFFSET;
     rule.multiply_order = Analysis::Recipe::MultiplyOrder::POST;
@@ -729,9 +729,9 @@ TEST_F(RecipeApplierTest, AnEyeOffsetIsMultipliedInTheOrderTheRuleSays)
                                          0, 0, 2, 0,
                                          0, 0, 0, 1};
 
-    Analysis::Recipe::Rule rule;
-    auto                   post = scale;
-    auto                   pre  = scale;
+    Analysis::Recipe::MatrixRule rule;
+    auto                         post = scale;
+    auto                         pre  = scale;
 
     rule.action_kind = Analysis::Recipe::ActionKind::EYE_OFFSET;
     rule.offset_axis = Analysis::Recipe::Axis::X;
@@ -758,8 +758,8 @@ TEST_F(RecipeApplierTest, AnEyeOffsetIsMultipliedInTheOrderTheRuleSays)
 
 TEST_F(RecipeApplierTest, AnEyeOffsetOfAnotherKindOfMatrixIsLeftAlone)
 {
-    Analysis::Recipe::Rule rule;
-    auto                   matrix = make_identity();
+    Analysis::Recipe::MatrixRule rule;
+    auto                         matrix = make_identity();
 
     rule.action_kind    = Analysis::Recipe::ActionKind::EYE_OFFSET;
     rule.matrix_kind    = Analysis::Recipe::MatrixKind::PERSPECTIVE;
@@ -880,8 +880,8 @@ TEST_F(RecipeApplierTest, ASignatureIsKnownIfTheRecipeListsItOrListsNone)
 
 TEST_F(RecipeApplierTest, AnEyeConvergenceShearsAPerspectiveProjectionSoThatWhatIsAtTheDistanceIsAtTheSamePlaceInBothEyes)
 {
-    Analysis::Recipe::Rule rule;
-    auto                   left = make_identity();
+    Analysis::Recipe::MatrixRule rule;
+    auto                         left = make_identity();
 
     rule.action_kind = Analysis::Recipe::ActionKind::EYE_CONVERGENCE;
     rule.matrix_kind = Analysis::Recipe::MatrixKind::PERSPECTIVE;
@@ -916,8 +916,8 @@ TEST_F(RecipeApplierTest, AnEyeConvergenceShearsAPerspectiveProjectionSoThatWhat
 
 TEST_F(RecipeApplierTest, AnEyeConvergenceDoesNothingWithoutADistanceOrASeparationAndIsOnlyForAPerspectiveProjection)
 {
-    Analysis::Recipe::Rule rule;
-    auto                   perspective = make_identity();
+    Analysis::Recipe::MatrixRule rule;
+    auto                         perspective = make_identity();
 
     rule.action_kind = Analysis::Recipe::ActionKind::EYE_CONVERGENCE;
 
@@ -996,8 +996,8 @@ TEST_F(RecipeApplierTest, TheLimitOfTheSeparationOfAShapeIsTheRecipesAndZeroForO
 
 TEST_F(RecipeApplierTest, AnOverlayIsPushedOnlyByTheRuleOfAProjectionAndOnlyInAPerspectiveMatrix)
 {
-    Analysis::Recipe::Rule convergence_rule;
-    Analysis::Recipe::Rule offset_rule;
+    Analysis::Recipe::MatrixRule convergence_rule;
+    Analysis::Recipe::MatrixRule offset_rule;
 
     convergence_rule.action_kind = Analysis::Recipe::ActionKind::EYE_CONVERGENCE;
     offset_rule.action_kind      = Analysis::Recipe::ActionKind::EYE_OFFSET;

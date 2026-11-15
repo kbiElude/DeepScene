@@ -67,7 +67,7 @@
   <text class="small" x="646" y="186">Headers sit beside their sources;</text>
   <text class="small" x="646" y="204">there is no include/ folder.</text>
   <text class="small" x="646" y="224">Includes name a library from src/libs:</text>
-  <text class="small" x="646" y="242">"stereo/core/stereo_core.h"</text>
+  <text class="small" x="646" y="242">"stereo/core/recipe_stereo_planner.h"</text>
 </svg>
 <figcaption>The source tree is the release: the path of a program in <code>src</code> tells where it is installed.</figcaption>
 </figure>
@@ -243,7 +243,7 @@
 <p>In <code>runtime/converter_dll/&lt;api&gt;</code>, three parts:</p>
 <table>
 <tr><th>Part</th><th>What it does</th></tr>
-<tr><td>Eye renderer</td><td>Draws what the program draws for the second eye, with the decisions of <code>StereoCore</code>.</td></tr>
+<tr><td>Eye renderer</td><td>Draws what the program draws for the second eye, with the decisions of <code>RecipeStereoPlanner</code>.</td></tr>
 <tr><td>Off-screen rendering</td><td>A way to have the program render to something that is not shown, at the size of the headset's image (a windowed mode for Direct3D, the eye targets and the scaler for OpenGL).</td></tr>
 <tr><td>Exporter</td><td>Passes the finished frame to the frame channel.</td></tr>
 </table>

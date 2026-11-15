@@ -52,12 +52,12 @@ namespace Analysis
         {
         public:
             /* Returns the candidates, sorted by resource. */
-            static std::vector<PerEyeCandidate> find(const DependencyAnalysis& in_analysis);
+            static std::vector<PerEyeCandidate> find(const DependencyFileContent& in_analysis);
 
             /* Returns the rotation groups, sorted by the first resource of each. A group is two or more resources of one description that frames
              * render to. Each is written in at least two frames, and no member is written twice in a row (the writes alternate between members).
              */
-            static std::vector<RotationGroup> find_rotation_groups(const DependencyAnalysis& in_analysis);
+            static std::vector<RotationGroup> find_rotation_groups(const DependencyFileContent& in_analysis);
 
         private:
             /* True if frames render to the resource (as a render target or a depth-stencil buffer) and it is not the image of a swap chain. */

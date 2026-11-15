@@ -137,10 +137,10 @@ void Analysis::APIDumpDependencyQuery::print_usage()
 int Analysis::APIDumpDependencyQuery::run(int   in_argc,
                                           char* in_argv[])
 {
-    Analysis::APIDumpDependencies::DependencyAnalysis analysis;
-    std::string                                       error;
-    Analysis::APIDumpAnalysis::QueryExitCode          exit_code = Analysis::APIDumpAnalysis::QueryExitCode::SUCCESS;
-    Options                                           options;
+    Analysis::APIDumpDependencies::DependencyFileContent analysis;
+    std::string                                          error;
+    Analysis::APIDumpAnalysis::QueryExitCode             exit_code = Analysis::APIDumpAnalysis::QueryExitCode::SUCCESS;
+    Options                                              options;
 
     if (parse_arguments(in_argc,
                         in_argv,

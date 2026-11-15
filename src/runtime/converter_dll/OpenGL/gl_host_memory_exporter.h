@@ -5,7 +5,7 @@
 #ifndef STEREO_CONVERTERDLL_GL_HOST_MEMORY_EXPORTER_H
 #define STEREO_CONVERTERDLL_GL_HOST_MEMORY_EXPORTER_H
 
-#include "host_memory_exporter.h"
+#include "host_memory_exporter_base.h"
 #include "types.h"
 #include "utils/parallel/job_thread.h"
 #include <memory>
@@ -24,7 +24,7 @@ namespace Stereo
          * The source (see ExportSource) holds a GLFrameImages in the left surface, and any non-null pointer in the right surface. The exporter
          * keeps a copy of the images, with the token that marks the memory as in use, until the thread has finished.
          */
-        class GLHostMemoryExporter : public HostMemoryExporter
+        class GLHostMemoryExporter : public HostMemoryExporterBase
         {
         public:
             /* The channel must outlive the exporter. The exporter says on it what it offers. */

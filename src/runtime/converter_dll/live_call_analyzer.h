@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#ifndef STEREO_CONVERTERDLL_CALL_FEEDER_H
-#define STEREO_CONVERTERDLL_CALL_FEEDER_H
+#ifndef STEREO_CONVERTERDLL_LIVE_CALL_ANALYZER_H
+#define STEREO_CONVERTERDLL_LIVE_CALL_ANALYZER_H
 
 #include "analysis/api_dump_analysis/frontends/analysis_session.h"
 #include "common/api_function_argument.h"
@@ -25,20 +25,20 @@ namespace Stereo
          * A call is analysed when it is done, because only then are its results known. A draw is the exception: its signature is needed
          * before the draw is made, so it is analysed at once. The data chunks of a call are moved out of the interceptor when the call is analysed.
          *
-         * The feeder works with any API: it uses the front end that matches the API of the calls (see AnalysisSession).
+         * The call analyzer works with any API: it uses the front end that matches the API of the calls (see AnalysisSession).
          *
          * Not thread-safe: the caller serializes the calls.
          */
-        class CallFeeder
+        class LiveCallAnalyzer
         {
         public:
             /* Lets the caller change the contents of a data chunk of a call before the call is analysed. */
             typedef std::function<void(const APIInterceptor::APIFunction& in_function,
                                        std::vector<uint8_t>*              inout_chunk_ptr)> ChunkFunc;
 
-            CallFeeder();
+            LiveCallAnalyzer();
 
-            /* Returns a data chunk of the call that was analysed last. The feeder took the chunk out of the interceptor. Returns false if the call has no such
+            /* Returns a data chunk of the call that was analysed last. The call analyzer took the chunk out of the interceptor. Returns false if the call has no such
              * chunk. The data stays valid until the next call is analysed.
              */
             bool get_last_call_chunk(const uint32_t& in_chunk_id,
@@ -136,4 +136,4 @@ namespace Stereo
     }
 }
 
-#endif /* STEREO_CONVERTERDLL_CALL_FEEDER_H */
+#endif /* STEREO_CONVERTERDLL_LIVE_CALL_ANALYZER_H */

@@ -3,11 +3,11 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "capture/api_dump_loader/api_info.h"
-#include "call_feeder.h"
+#include "live_call_analyzer.h"
 #include <algorithm>
 #include <Windows.h>
 
-Stereo::ConverterDLL::CallFeeder::CallFeeder()
+Stereo::ConverterDLL::LiveCallAnalyzer::LiveCallAnalyzer()
     :m_completed_frame_shape_key    (0),
      m_has_completed_frame          (false),
      m_last_thread_id               (0),
@@ -25,7 +25,7 @@ Stereo::ConverterDLL::CallFeeder::CallFeeder()
     m_workload.qpc_frequency   = m_qpc_frequency;
 }
 
-Stereo::ConverterDLL::CallFeeder::ReturnedValueUniquePtr Stereo::ConverterDLL::CallFeeder::acquire_returned_value(const APIInterceptor::APIFunctionArgument& in_value)
+Stereo::ConverterDLL::LiveCallAnalyzer::ReturnedValueUniquePtr Stereo::ConverterDLL::LiveCallAnalyzer::acquire_returned_value(const APIInterceptor::APIFunctionArgument& in_value)
 {
     ReturnedValueUniquePtr result_ptr;
 
@@ -45,7 +45,7 @@ Stereo::ConverterDLL::CallFeeder::ReturnedValueUniquePtr Stereo::ConverterDLL::C
     return result_ptr;
 }
 
-void Stereo::ConverterDLL::CallFeeder::analyze(const Capture::APIDumpLoader::DumpedAPICall& in_call)
+void Stereo::ConverterDLL::LiveCallAnalyzer::analyze(const Capture::APIDumpLoader::DumpedAPICall& in_call)
 {
     /* Chunk ids that are far apart indicate a problem. A chunk that is far from the first one is dropped instead of allocating room for it. */
     constexpr uint32_t MAX_CHUNK_ID_SPAN = 1u << 16;
@@ -149,10 +149,10 @@ void Stereo::ConverterDLL::CallFeeder::analyze(const Capture::APIDumpLoader::Dum
     }
 }
 
-void Stereo::ConverterDLL::CallFeeder::fill_call(const APIInterceptor::APIFunction&         in_function,
-                                                 const uint32_t&                            in_n_arguments,
-                                                 const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
-                                                 Capture::APIDumpLoader::DumpedAPICall*     out_call_ptr)
+void Stereo::ConverterDLL::LiveCallAnalyzer::fill_call(const APIInterceptor::APIFunction&         in_function,
+                                                       const uint32_t&                            in_n_arguments,
+                                                       const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
+                                                       Capture::APIDumpLoader::DumpedAPICall*     out_call_ptr)
 {
     out_call_ptr->arg_in_vec.assign(in_arguments_ptr,
                                     in_arguments_ptr + in_n_arguments);
@@ -169,9 +169,9 @@ void Stereo::ConverterDLL::CallFeeder::fill_call(const APIInterceptor::APIFuncti
     }
 }
 
-bool Stereo::ConverterDLL::CallFeeder::get_last_call_chunk(const uint32_t& in_chunk_id,
-                                                           const void**    out_data_ptr_ptr,
-                                                           uint32_t*       out_n_bytes_ptr) const
+bool Stereo::ConverterDLL::LiveCallAnalyzer::get_last_call_chunk(const uint32_t& in_chunk_id,
+                                                                 const void**    out_data_ptr_ptr,
+                                                                 uint32_t*       out_n_bytes_ptr) const
 {
     const size_t n_chunks    = m_workload.data_chunk_ptr_vec.size();
     const bool   is_in_range = (n_chunks                                     >  0                              &&
@@ -194,22 +194,22 @@ bool Stereo::ConverterDLL::CallFeeder::get_last_call_chunk(const uint32_t& in_ch
     return result;
 }
 
-const std::vector<Analysis::APIDumpAnalysis::DrawKeys>& Stereo::ConverterDLL::CallFeeder::get_last_call_draw_key_vec() const
+const std::vector<Analysis::APIDumpAnalysis::DrawKeys>& Stereo::ConverterDLL::LiveCallAnalyzer::get_last_call_draw_key_vec() const
 {
     return m_session.get_call_draw_key_vec();
 }
 
-uint64_t Stereo::ConverterDLL::CallFeeder::get_last_draw_cover_key() const
+uint64_t Stereo::ConverterDLL::LiveCallAnalyzer::get_last_draw_cover_key() const
 {
     return m_session.get_last_draw_cover_key();
 }
 
-uint64_t Stereo::ConverterDLL::CallFeeder::get_last_draw_signature_key() const
+uint64_t Stereo::ConverterDLL::LiveCallAnalyzer::get_last_draw_signature_key() const
 {
     return m_session.get_last_draw_signature_key();
 }
 
-Stereo::ConverterDLL::CallFeeder::PendingCalls* Stereo::ConverterDLL::CallFeeder::get_pending_calls_ptr()
+Stereo::ConverterDLL::LiveCallAnalyzer::PendingCalls* Stereo::ConverterDLL::LiveCallAnalyzer::get_pending_calls_ptr()
 {
     const uint32_t thread_id = static_cast<uint32_t>(::GetCurrentThreadId() );
 
@@ -224,12 +224,12 @@ Stereo::ConverterDLL::CallFeeder::PendingCalls* Stereo::ConverterDLL::CallFeeder
     return m_last_thread_pending_calls_ptr;
 }
 
-const Analysis::APIDumpAnalysis::Viewport& Stereo::ConverterDLL::CallFeeder::get_viewport() const
+const Analysis::APIDumpAnalysis::Viewport& Stereo::ConverterDLL::LiveCallAnalyzer::get_viewport() const
 {
     return m_session.get_viewport();
 }
 
-bool Stereo::ConverterDLL::CallFeeder::is_draw(const APIInterceptor::APIFunction& in_function)
+bool Stereo::ConverterDLL::LiveCallAnalyzer::is_draw(const APIInterceptor::APIFunction& in_function)
 {
     return (in_function == APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVE        ||
             in_function == APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVESTRIDED ||
@@ -247,7 +247,7 @@ bool Stereo::ConverterDLL::CallFeeder::is_draw(const APIInterceptor::APIFunction
             in_function == APIInterceptor::APIFUNCTION_GL_GLEND);
 }
 
-bool Stereo::ConverterDLL::CallFeeder::is_followed(const APIInterceptor::APIFunction& in_function)
+bool Stereo::ConverterDLL::LiveCallAnalyzer::is_followed(const APIInterceptor::APIFunction& in_function)
 {
     const auto api_group = Capture::APIDumpLoader::get_api_group(in_function);
 
@@ -259,10 +259,10 @@ bool Stereo::ConverterDLL::CallFeeder::is_followed(const APIInterceptor::APIFunc
             in_function == APIInterceptor::APIFUNCTION_GDI32_SWAPBUFFERS);
 }
 
-void Stereo::ConverterDLL::CallFeeder::on_post(const APIInterceptor::APIFunction&         in_function,
-                                               const uint32_t&                            in_n_arguments_out,
-                                               const APIInterceptor::APIFunctionArgument* in_arguments_out_ptr,
-                                               const APIInterceptor::APIFunctionArgument* in_returned_value_ptr)
+void Stereo::ConverterDLL::LiveCallAnalyzer::on_post(const APIInterceptor::APIFunction&         in_function,
+                                                     const uint32_t&                            in_n_arguments_out,
+                                                     const APIInterceptor::APIFunctionArgument* in_arguments_out_ptr,
+                                                     const APIInterceptor::APIFunctionArgument* in_returned_value_ptr)
 {
     auto* pending_calls_ptr = get_pending_calls_ptr();
 
@@ -297,9 +297,9 @@ void Stereo::ConverterDLL::CallFeeder::on_post(const APIInterceptor::APIFunction
     }
 }
 
-bool Stereo::ConverterDLL::CallFeeder::on_pre(const APIInterceptor::APIFunction&         in_function,
-                                              const uint32_t&                            in_n_arguments,
-                                              const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
+bool Stereo::ConverterDLL::LiveCallAnalyzer::on_pre(const APIInterceptor::APIFunction&         in_function,
+                                                    const uint32_t&                            in_n_arguments,
+                                                    const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
 {
     auto*      pending_calls_ptr = get_pending_calls_ptr();
     const bool result            = is_draw              (in_function);
@@ -333,12 +333,12 @@ bool Stereo::ConverterDLL::CallFeeder::on_pre(const APIInterceptor::APIFunction&
     return result;
 }
 
-void Stereo::ConverterDLL::CallFeeder::set_chunk_func(const ChunkFunc& in_chunk_func)
+void Stereo::ConverterDLL::LiveCallAnalyzer::set_chunk_func(const ChunkFunc& in_chunk_func)
 {
     m_chunk_func = in_chunk_func;
 }
 
-bool Stereo::ConverterDLL::CallFeeder::take_completed_frame_shape_key(uint64_t* out_shape_key_ptr)
+bool Stereo::ConverterDLL::LiveCallAnalyzer::take_completed_frame_shape_key(uint64_t* out_shape_key_ptr)
 {
     const bool result = m_has_completed_frame;
 

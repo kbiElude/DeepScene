@@ -21,17 +21,17 @@ namespace Analysis
         {
         public:
             /* The error is set when the function returns false. */
-            static bool read(const std::string&  in_filename,
-                             DependencyAnalysis* out_analysis_ptr,
-                             std::string*        out_error_ptr);
+            static bool read(const std::string&     in_filename,
+                             DependencyFileContent* out_analysis_ptr,
+                             std::string*           out_error_ptr);
 
             static bool                 read_bytes (const std::vector<uint8_t>& in_byte_vec,
-                                                    DependencyAnalysis*         out_analysis_ptr,
+                                                    DependencyFileContent*      out_analysis_ptr,
                                                     std::string*                out_error_ptr);
-            static bool                 write      (const std::string&          in_filename,
-                                                    const DependencyAnalysis&   in_analysis,
-                                                    std::string*                out_error_ptr);
-            static std::vector<uint8_t> write_bytes(const DependencyAnalysis&   in_analysis);
+            static bool                 write      (const std::string&           in_filename,
+                                                    const DependencyFileContent& in_analysis,
+                                                    std::string*                 out_error_ptr);
+            static std::vector<uint8_t> write_bytes(const DependencyFileContent& in_analysis);
 
         private:
             static const Analysis::APIDumpAnalysis::AnalysisFileKind FILE_KIND;

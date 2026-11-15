@@ -8,10 +8,10 @@
 #include "analysis/recipe/types.h"
 #include "common/callbacks.h"
 #include "stereo/session/types.h"
-#include "stereo/core/stereo_core.h"
+#include "stereo/core/recipe_stereo_planner.h"
 #include "stereo/transport/frame_channel.h"
 #include "utils/parallel/srw_mutex.h"
-#include "call_feeder.h"
+#include "live_call_analyzer.h"
 #include "common/api_function_argument.h"
 #include "D3D7/d3d7_eye_renderer.h"
 #include "D3D7/d3d7_host_memory_exporter.h"
@@ -20,7 +20,7 @@
 #include "D3D8/d3d8_host_memory_exporter.h"
 #include "D3D8/d3d8_resolution_scaler.h"
 #include "D3D8/d3d8_windowed_mode.h"
-#include "frame_passer.h"
+#include "paced_frame_publisher.h"
 #include "OpenGL/gl_eye_renderer.h"
 #include "OpenGL/gl_host_memory_exporter.h"
 #include "session_log.h"
@@ -37,7 +37,7 @@ namespace Stereo
     namespace ConverterDLL
     {
         /* The stereo converter of one application. It follows the calls of the application to the device the way the analysis of a dump does
-         * (see CallFeeder) and uses the baked recipe to decide what each draw is (see StereoCore). It passes the frames that the application
+         * (see LiveCallAnalyzer) and uses the baked recipe to decide what each draw is (see RecipeStereoPlanner). It passes the frames that the application
          * is about to present, unchanged, to the viewer, the program that shows the images. The session log (see SessionLog) records what the
          * converter did.
          */
@@ -121,10 +121,10 @@ namespace Stereo
             /* The state of the converter while the application runs. Lock order: no other lock is taken while its mutex is held. */
             struct LiveState
             {
-                std::unique_ptr<Stereo::Core::StereoCore> core_ptr;
-                std::unique_ptr<GLEyeRenderer>            gl_renderer_ptr;
-                std::unique_ptr<D3D7EyeRenderer>          d3d7_renderer_ptr;
-                std::atomic<int64_t>                      n_callback_ticks = {0}; /* time spent in the callbacks, in performance-counter ticks. Only one call in N_CALLS_PER_TIMING is timed, and its time is counted that many times
+                std::unique_ptr<Stereo::Core::RecipeStereoPlanner> core_ptr;
+                std::unique_ptr<GLEyeRenderer>                     gl_renderer_ptr;
+                std::unique_ptr<D3D7EyeRenderer>                   d3d7_renderer_ptr;
+                std::atomic<int64_t>                               n_callback_ticks = {0}; /* time spent in the callbacks, in performance-counter ticks. Only one call in N_CALLS_PER_TIMING is timed, and its time is counted that many times
  */
                 std::atomic<int64_t>                      n_draw_ticks     = {0}; /* the part of n_callback_ticks spent in draws (Direct3D 7, Direct3D 8 and OpenGL)
  */
@@ -148,7 +148,7 @@ namespace Stereo
  */
                 bool                                      is_overlay_push_forced = false; /* set from the environment, not by the viewer
  */
-                CallFeeder                                feeder;
+                LiveCallAnalyzer                          call_analyzer;
                 Utils::Parallel::SrwMutex                 mutex;
                 Stereo::Core::DepthRange                  last_depth_range;              /* the depth range measured for the last frame
  */
@@ -172,9 +172,9 @@ namespace Stereo
             };
 
             std::unique_ptr<Stereo::Transport::FrameChannel> m_channel_ptr;
-            std::unique_ptr<FramePasser>                     m_d3d7_frame_passer_ptr;
-            std::unique_ptr<FramePasser>                     m_gl_frame_passer_ptr;
-            std::unique_ptr<FramePasser>                     m_frame_passer_ptr;
+            std::unique_ptr<PacedFramePublisher>             m_d3d7_paced_frame_publisher_ptr;
+            std::unique_ptr<PacedFramePublisher>             m_gl_paced_frame_publisher_ptr;
+            std::unique_ptr<PacedFramePublisher>             m_paced_frame_publisher_ptr;
             LiveState                                        m_live_state;
             SessionLog                                       m_log;
             D3D8WindowedMode                                 m_windowed_mode;

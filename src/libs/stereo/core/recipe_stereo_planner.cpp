@@ -3,12 +3,12 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "stereo/core/push_shift_planner.h"
-#include "stereo/core/screen_parallax.h"
-#include "stereo/core/stereo_core.h"
+#include "stereo/core/screen_space_vertex_shifter.h"
+#include "stereo/core/recipe_stereo_planner.h"
 #include <stdlib.h>
 
-Stereo::Core::StereoCore::StereoCore(const Analysis::Recipe::Recipe& in_recipe,
-                                     const FailFunc&                 in_fail_func)
+Stereo::Core::RecipeStereoPlanner::RecipeStereoPlanner(const Analysis::Recipe::Recipe& in_recipe,
+                                                       const FailFunc&                 in_fail_func)
     :m_applier                   (in_recipe),
      m_fail_func                 (in_fail_func),
      m_frame_interval_seconds    (ConvergenceModel::get_reference_frame_seconds() ),
@@ -42,10 +42,10 @@ Stereo::Core::StereoCore::StereoCore(const Analysis::Recipe::Recipe& in_recipe,
     }
 }
 
-uint32_t Stereo::Core::StereoCore::bind_matrices(const Analysis::Recipe::DrawClass& in_draw_class,
-                                                 const Analysis::Recipe::Eye&       in_eye,
-                                                 std::vector<MatrixChange>*         inout_change_vec_ptr,
-                                                 const bool&                        in_is_final_target)
+uint32_t Stereo::Core::RecipeStereoPlanner::bind_matrices(const Analysis::Recipe::DrawClass& in_draw_class,
+                                                          const Analysis::Recipe::Eye&       in_eye,
+                                                          std::vector<MatrixChange>*         inout_change_vec_ptr,
+                                                          const bool&                        in_is_final_target)
 {
     return m_matrix_slots.bind(in_draw_class,
                                in_eye,
@@ -57,8 +57,8 @@ uint32_t Stereo::Core::StereoCore::bind_matrices(const Analysis::Recipe::DrawCla
                                inout_change_vec_ptr);
 }
 
-Analysis::Recipe::DrawClass Stereo::Core::StereoCore::classify_draw(const uint64_t& in_signature_key,
-                                                                    const uint64_t& in_cover_key)
+Analysis::Recipe::DrawClass Stereo::Core::RecipeStereoPlanner::classify_draw(const uint64_t& in_signature_key,
+                                                                             const uint64_t& in_cover_key)
 {
     Analysis::Recipe::DrawQuery query;
 
@@ -87,7 +87,7 @@ Analysis::Recipe::DrawClass Stereo::Core::StereoCore::classify_draw(const uint64
     return m_last_draw_class;
 }
 
-void Stereo::Core::StereoCore::fail(const std::string& in_message) const
+void Stereo::Core::RecipeStereoPlanner::fail(const std::string& in_message) const
 {
     if (m_fail_func)
     {
@@ -99,102 +99,102 @@ void Stereo::Core::StereoCore::fail(const std::string& in_message) const
     }
 }
 
-void Stereo::Core::StereoCore::forget_matrices()
+void Stereo::Core::RecipeStereoPlanner::forget_matrices()
 {
     m_matrix_slots.forget();
 }
 
-bool Stereo::Core::StereoCore::get_caches_pixel_reads() const
+bool Stereo::Core::RecipeStereoPlanner::get_caches_pixel_reads() const
 {
     return m_applier.get_caches_pixel_reads();
 }
 
-float Stereo::Core::StereoCore::get_camera_attached_depth() const
+float Stereo::Core::RecipeStereoPlanner::get_camera_attached_depth() const
 {
     return m_applier.get_comfort().camera_attached_depth;
 }
 
-float Stereo::Core::StereoCore::get_convergence_distance() const
+float Stereo::Core::RecipeStereoPlanner::get_convergence_distance() const
 {
     return m_convergence_model.get_convergence_distance();
 }
 
-float Stereo::Core::StereoCore::get_depth_strength() const
+float Stereo::Core::RecipeStereoPlanner::get_depth_strength() const
 {
     return m_convergence_model.get_depth_strength();
 }
 
-float Stereo::Core::StereoCore::get_effective_convergence_distance() const
+float Stereo::Core::RecipeStereoPlanner::get_effective_convergence_distance() const
 {
     return m_convergence_model.get_effective_convergence_distance();
 }
 
-float Stereo::Core::StereoCore::get_effective_eye_separation() const
+float Stereo::Core::RecipeStereoPlanner::get_effective_eye_separation() const
 {
     return m_convergence_model.get_effective_eye_separation();
 }
 
-float Stereo::Core::StereoCore::get_eye_separation() const
+float Stereo::Core::RecipeStereoPlanner::get_eye_separation() const
 {
     return m_convergence_model.get_eye_separation();
 }
 
-float Stereo::Core::StereoCore::get_ipd_scale() const
+float Stereo::Core::RecipeStereoPlanner::get_ipd_scale() const
 {
     return m_convergence_model.get_ipd_scale();
 }
 
-bool Stereo::Core::StereoCore::get_is_last_draw_eye_space() const
+bool Stereo::Core::RecipeStereoPlanner::get_is_last_draw_eye_space() const
 {
     return m_is_last_draw_eye_space;
 }
 
-bool Stereo::Core::StereoCore::get_is_last_draw_part() const
+bool Stereo::Core::RecipeStereoPlanner::get_is_last_draw_part() const
 {
     return m_is_last_draw_part;
 }
 
-bool Stereo::Core::StereoCore::get_is_last_draw_pushed() const
+bool Stereo::Core::RecipeStereoPlanner::get_is_last_draw_pushed() const
 {
     return m_is_last_draw_pushed;
 }
 
-bool Stereo::Core::StereoCore::get_is_last_draw_side_reaching() const
+bool Stereo::Core::RecipeStereoPlanner::get_is_last_draw_side_reaching() const
 {
     return m_is_last_draw_side_reaching;
 }
 
-bool Stereo::Core::StereoCore::get_is_overlay_pushed() const
+bool Stereo::Core::RecipeStereoPlanner::get_is_overlay_pushed() const
 {
     return m_is_overlay_pushed;
 }
 
-bool Stereo::Core::StereoCore::get_measures_depth() const
+bool Stereo::Core::RecipeStereoPlanner::get_measures_depth() const
 {
     return m_applier.get_comfort().measures_depth;
 }
 
-uint64_t Stereo::Core::StereoCore::get_n_unknown_draws() const
+uint64_t Stereo::Core::RecipeStereoPlanner::get_n_unknown_draws() const
 {
     return m_n_unknown_draws;
 }
 
-uint64_t Stereo::Core::StereoCore::get_n_unknown_frames() const
+uint64_t Stereo::Core::RecipeStereoPlanner::get_n_unknown_frames() const
 {
     return m_n_unknown_frames;
 }
 
-float Stereo::Core::StereoCore::get_near_fraction() const
+float Stereo::Core::RecipeStereoPlanner::get_near_fraction() const
 {
     return m_applier.get_comfort().near_fraction;
 }
 
-const std::array<float, 16>& Stereo::Core::StereoCore::get_view_matrix() const
+const std::array<float, 16>& Stereo::Core::RecipeStereoPlanner::get_view_matrix() const
 {
     return m_view_matrix_fp32vec16;
 }
 
-bool Stereo::Core::StereoCore::is_last_draw_attached_to_camera(const float& in_origin_depth) const
+bool Stereo::Core::RecipeStereoPlanner::is_last_draw_attached_to_camera(const float& in_origin_depth) const
 {
     const float attached_depth = get_camera_attached_depth() * get_effective_convergence_distance();
 
@@ -203,23 +203,23 @@ bool Stereo::Core::StereoCore::is_last_draw_attached_to_camera(const float& in_o
             m_is_last_draw_eye_space == false);
 }
 
-bool Stereo::Core::StereoCore::make_screen_vertices(const Analysis::Recipe::Eye& in_eye,
-                                                    const bool&                  in_is_presented,
-                                                    const float&                 in_picture_width,
-                                                    const uint8_t*               in_vertex_ptr,
-                                                    const uint32_t&              in_vertex_n_bytes,
-                                                    const size_t&                in_n_vertices,
-                                                    const uint16_t*              in_index_ptr,
-                                                    const size_t&                in_n_indices,
-                                                    const bool&                  in_must_copy,
-                                                    std::vector<uint8_t>*        out_vertex_vec_ptr) const
+bool Stereo::Core::RecipeStereoPlanner::make_screen_vertices(const Analysis::Recipe::Eye& in_eye,
+                                                             const bool&                  in_is_presented,
+                                                             const float&                 in_picture_width,
+                                                             const uint8_t*               in_vertex_ptr,
+                                                             const uint32_t&              in_vertex_n_bytes,
+                                                             const size_t&                in_n_vertices,
+                                                             const uint16_t*              in_index_ptr,
+                                                             const size_t&                in_n_indices,
+                                                             const bool&                  in_must_copy,
+                                                             std::vector<uint8_t>*        out_vertex_vec_ptr) const
 {
-    const bool reaches_both_sides = ScreenParallax::reaches_both_sides(in_vertex_ptr,
-                                                                       in_vertex_n_bytes,
-                                                                       in_n_vertices,
-                                                                       in_index_ptr,
-                                                                       in_n_indices,
-                                                                       in_picture_width);
+    const bool reaches_both_sides = ScreenSpaceVertexShifter::reaches_both_sides(in_vertex_ptr,
+                                                                                 in_vertex_n_bytes,
+                                                                                 in_n_vertices,
+                                                                                 in_index_ptr,
+                                                                                 in_n_indices,
+                                                                                 in_picture_width);
     const auto plan               = plan_screen_shift                 (in_eye,
                                                                        true, /* in_has_extent */
                                                                        in_is_presented,
@@ -233,10 +233,10 @@ bool Stereo::Core::StereoCore::make_screen_vertices(const Analysis::Recipe::Eye&
         out_vertex_vec_ptr->assign(in_vertex_ptr,
                                    in_vertex_ptr + in_n_vertices * in_vertex_n_bytes);
 
-        const bool is_moved = ScreenParallax::apply_plan(plan,
-                                                         in_vertex_n_bytes,
-                                                         in_n_vertices,
-                                                         out_vertex_vec_ptr->data() );
+        const bool is_moved = ScreenSpaceVertexShifter::apply_plan(plan,
+                                                                   in_vertex_n_bytes,
+                                                                   in_n_vertices,
+                                                                   out_vertex_vec_ptr->data() );
 
         result = (is_moved     ||
                   in_must_copy);
@@ -245,7 +245,7 @@ bool Stereo::Core::StereoCore::make_screen_vertices(const Analysis::Recipe::Eye&
     return result;
 }
 
-std::array<float, 16> Stereo::Core::StereoCore::make_eye_shift_matrix(const Analysis::Recipe::Eye& in_eye) const
+std::array<float, 16> Stereo::Core::RecipeStereoPlanner::make_eye_shift_matrix(const Analysis::Recipe::Eye& in_eye) const
 {
     constexpr float HALF = 0.5f;
 
@@ -274,7 +274,7 @@ std::array<float, 16> Stereo::Core::StereoCore::make_eye_shift_matrix(const Anal
     return result;
 }
 
-void Stereo::Core::StereoCore::on_frame_completed(const uint64_t& in_shape_key)
+void Stereo::Core::RecipeStereoPlanner::on_frame_completed(const uint64_t& in_shape_key)
 {
     const float fraction_of_the_way = ConvergenceModel::get_fraction_of_the_way(m_frame_interval_seconds);
     const float scene_distance      = m_applier.get_scene_convergence_distance (in_shape_key);
@@ -298,9 +298,9 @@ void Stereo::Core::StereoCore::on_frame_completed(const uint64_t& in_shape_key)
     }
 }
 
-bool Stereo::Core::StereoCore::on_frame_depth(const uint64_t&   in_shape_key,
-                                              const DepthRange& in_depth_range,
-                                              const float&      in_projection_scale)
+bool Stereo::Core::RecipeStereoPlanner::on_frame_depth(const uint64_t&   in_shape_key,
+                                                       const DepthRange& in_depth_range,
+                                                       const float&      in_projection_scale)
 {
     const bool result = in_depth_range.has_depth;
 
@@ -324,9 +324,9 @@ bool Stereo::Core::StereoCore::on_frame_depth(const uint64_t&   in_shape_key,
     return result;
 }
 
-bool Stereo::Core::StereoCore::on_matrix_call(const APIInterceptor::APIFunction&                      in_function,
-                                              const std::vector<APIInterceptor::APIFunctionArgument>& in_argument_vec,
-                                              const std::array<float, 16>&                            in_matrix)
+bool Stereo::Core::RecipeStereoPlanner::on_matrix_call(const APIInterceptor::APIFunction&                      in_function,
+                                                       const std::vector<APIInterceptor::APIFunctionArgument>& in_argument_vec,
+                                                       const std::array<float, 16>&                            in_matrix)
 {
     return m_matrix_slots.on_matrix_call(m_applier,
                                          in_function,
@@ -334,14 +334,14 @@ bool Stereo::Core::StereoCore::on_matrix_call(const APIInterceptor::APIFunction&
                                          in_matrix);
 }
 
-void Stereo::Core::StereoCore::on_view_matrix_set(const std::array<float, 16>& in_matrix)
+void Stereo::Core::RecipeStereoPlanner::on_view_matrix_set(const std::array<float, 16>& in_matrix)
 {
     m_view_matrix_fp32vec16 = in_matrix;
 }
 
-float Stereo::Core::StereoCore::get_eye_parallax(const float& in_origin_depth,
-                                                 const float& in_projection_x_scale,
-                                                 const bool&  in_is_perspective) const
+float Stereo::Core::RecipeStereoPlanner::get_eye_parallax(const float& in_origin_depth,
+                                                          const float& in_projection_x_scale,
+                                                          const bool&  in_is_perspective) const
 {
     constexpr float HALF = 0.5f;
 
@@ -365,11 +365,11 @@ float Stereo::Core::StereoCore::get_eye_parallax(const float& in_origin_depth,
     return result;
 }
 
-float Stereo::Core::StereoCore::plan_follow_shift(const Analysis::Recipe::Eye& in_eye,
-                                                  const float&                 in_picture_width_pixels,
-                                                  const float&                 in_origin_depth,
-                                                  const float&                 in_projection_x_scale,
-                                                  const bool&                  in_is_perspective) const
+float Stereo::Core::RecipeStereoPlanner::plan_follow_shift(const Analysis::Recipe::Eye& in_eye,
+                                                           const float&                 in_picture_width_pixels,
+                                                           const float&                 in_origin_depth,
+                                                           const float&                 in_projection_x_scale,
+                                                           const bool&                  in_is_perspective) const
 {
     constexpr float HALF = 0.5f;
 
@@ -389,11 +389,11 @@ float Stereo::Core::StereoCore::plan_follow_shift(const Analysis::Recipe::Eye& i
     return result;
 }
 
-float Stereo::Core::StereoCore::plan_part_shift(const Analysis::Recipe::Eye& in_eye,
-                                                const float&                 in_picture_width_pixels,
-                                                const float&                 in_origin_depth,
-                                                const float&                 in_projection_x_scale,
-                                                const bool&                  in_is_perspective) const
+float Stereo::Core::RecipeStereoPlanner::plan_part_shift(const Analysis::Recipe::Eye& in_eye,
+                                                         const float&                 in_picture_width_pixels,
+                                                         const float&                 in_origin_depth,
+                                                         const float&                 in_projection_x_scale,
+                                                         const bool&                  in_is_perspective) const
 {
     constexpr float HALF = 0.5f;
 
@@ -438,17 +438,17 @@ float Stereo::Core::StereoCore::plan_part_shift(const Analysis::Recipe::Eye& in_
     return result;
 }
 
-float Stereo::Core::StereoCore::plan_push_shift(const Analysis::Recipe::Eye& in_eye,
-                                                const float&                 in_picture_width_pixels) const
+float Stereo::Core::RecipeStereoPlanner::plan_push_shift(const Analysis::Recipe::Eye& in_eye,
+                                                         const float&                 in_picture_width_pixels) const
 {
     return plan_push_shift(in_eye,
                            in_picture_width_pixels,
                            (m_last_draw_class == Analysis::Recipe::DrawClass::AFFECTED) );
 }
 
-float Stereo::Core::StereoCore::plan_push_shift_with_layer(const Analysis::Recipe::Eye& in_eye,
-                                                           const float&                 in_picture_width_pixels,
-                                                           const float&                 in_layer_parallax) const
+float Stereo::Core::RecipeStereoPlanner::plan_push_shift_with_layer(const Analysis::Recipe::Eye& in_eye,
+                                                                    const float&                 in_picture_width_pixels,
+                                                                    const float&                 in_layer_parallax) const
 {
     return PushShiftPlanner::plan_with_layer(m_applier,
                                              in_eye,
@@ -457,9 +457,9 @@ float Stereo::Core::StereoCore::plan_push_shift_with_layer(const Analysis::Recip
                                              in_picture_width_pixels);
 }
 
-float Stereo::Core::StereoCore::plan_push_shift(const Analysis::Recipe::Eye& in_eye,
-                                                const float&                 in_picture_width_pixels,
-                                                const bool&                  in_is_moved_by_eyes) const
+float Stereo::Core::RecipeStereoPlanner::plan_push_shift(const Analysis::Recipe::Eye& in_eye,
+                                                         const float&                 in_picture_width_pixels,
+                                                         const bool&                  in_is_moved_by_eyes) const
 {
     const float in_parallax = m_applier.get_cover_push_parallax(m_last_draw_cover_key);
 
@@ -472,11 +472,11 @@ float Stereo::Core::StereoCore::plan_push_shift(const Analysis::Recipe::Eye& in_
                                   0.0f /* the effective separation already respects the scene limit */);
 }
 
-Stereo::Core::ScreenShiftPlan Stereo::Core::StereoCore::plan_screen_shift(const Analysis::Recipe::Eye& in_eye,
-                                                                          const bool&                  in_has_extent,
-                                                                          const bool&                  in_is_presented,
-                                                                          const float&                 in_picture_width,
-                                                                          const bool&                  in_reaches_both_sides) const
+Stereo::Core::ScreenShiftPlan Stereo::Core::RecipeStereoPlanner::plan_screen_shift(const Analysis::Recipe::Eye& in_eye,
+                                                                                   const bool&                  in_has_extent,
+                                                                                   const bool&                  in_is_presented,
+                                                                                   const float&                 in_picture_width,
+                                                                                   const bool&                  in_reaches_both_sides) const
 {
     ScreenParallaxPlanner::Input input;
 
@@ -496,8 +496,8 @@ Stereo::Core::ScreenShiftPlan Stereo::Core::StereoCore::plan_screen_shift(const 
                                        input);
 }
 
-void Stereo::Core::StereoCore::require_fast_path(const bool&        in_is_ok,
-                                                 const std::string& in_reason) const
+void Stereo::Core::RecipeStereoPlanner::require_fast_path(const bool&        in_is_ok,
+                                                          const std::string& in_reason) const
 {
     /* Limitation: an application that fails here needs the calls of a pass to be held back until the pass is known. The converter has no
      * such deferred path.
@@ -510,8 +510,8 @@ void Stereo::Core::StereoCore::require_fast_path(const bool&        in_is_ok,
     }
 }
 
-void Stereo::Core::StereoCore::require_supported(const bool&        in_is_ok,
-                                                 const std::string& in_reason) const
+void Stereo::Core::RecipeStereoPlanner::require_supported(const bool&        in_is_ok,
+                                                          const std::string& in_reason) const
 {
     if (in_is_ok == false)
     {
@@ -519,7 +519,7 @@ void Stereo::Core::StereoCore::require_supported(const bool&        in_is_ok,
     }
 }
 
-void Stereo::Core::StereoCore::set_convergence_distance(const float& in_convergence_distance)
+void Stereo::Core::RecipeStereoPlanner::set_convergence_distance(const float& in_convergence_distance)
 {
     if (m_convergence_model.set_convergence_distance(in_convergence_distance) == false)
     {
@@ -527,7 +527,7 @@ void Stereo::Core::StereoCore::set_convergence_distance(const float& in_converge
     }
 }
 
-void Stereo::Core::StereoCore::set_depth_strength(const float& in_depth_strength)
+void Stereo::Core::RecipeStereoPlanner::set_depth_strength(const float& in_depth_strength)
 {
     if (m_convergence_model.set_depth_strength(in_depth_strength) == false)
     {
@@ -535,7 +535,7 @@ void Stereo::Core::StereoCore::set_depth_strength(const float& in_depth_strength
     }
 }
 
-void Stereo::Core::StereoCore::set_eye_separation(const float& in_eye_separation)
+void Stereo::Core::RecipeStereoPlanner::set_eye_separation(const float& in_eye_separation)
 {
     if (m_convergence_model.set_eye_separation(in_eye_separation) == false)
     {
@@ -543,12 +543,12 @@ void Stereo::Core::StereoCore::set_eye_separation(const float& in_eye_separation
     }
 }
 
-void Stereo::Core::StereoCore::set_frame_interval_seconds(const float& in_frame_interval_seconds)
+void Stereo::Core::RecipeStereoPlanner::set_frame_interval_seconds(const float& in_frame_interval_seconds)
 {
     m_frame_interval_seconds = in_frame_interval_seconds;
 }
 
-void Stereo::Core::StereoCore::set_ipd_scale(const float& in_ipd_scale)
+void Stereo::Core::RecipeStereoPlanner::set_ipd_scale(const float& in_ipd_scale)
 {
     if (m_convergence_model.set_ipd_scale(in_ipd_scale) == false)
     {
@@ -556,12 +556,12 @@ void Stereo::Core::StereoCore::set_ipd_scale(const float& in_ipd_scale)
     }
 }
 
-void Stereo::Core::StereoCore::set_is_overlay_pushed(const bool& in_is_pushed)
+void Stereo::Core::RecipeStereoPlanner::set_is_overlay_pushed(const bool& in_is_pushed)
 {
     m_is_overlay_pushed = in_is_pushed;
 }
 
-void Stereo::Core::StereoCore::set_scene_shape_key(const uint64_t& in_shape_key)
+void Stereo::Core::RecipeStereoPlanner::set_scene_shape_key(const uint64_t& in_shape_key)
 {
     m_scene_shape_key = in_shape_key;
 }

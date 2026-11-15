@@ -10,7 +10,7 @@
 #include "common/callbacks.h"
 #include "interception/core/D3D7Utils/constants.h"
 #include "interception/core/D3D7Utils/strided_layout.h"
-#include "stereo/core/stereo_core.h"
+#include "stereo/core/recipe_stereo_planner.h"
 #include "D3D7/d3d7_eye_renderer.h"
 #include "D3D7/d3d7_windowed_mode.h"
 #include "fake_direct_draw.h"
@@ -51,11 +51,11 @@ namespace
             recipe.screen_parallax.field_of_view_degrees = 90.0f;
             recipe.screen_parallax.is_enabled            = true;
 
-            core_ptr.reset(new Stereo::Core::StereoCore(recipe,
-                                                        [](const std::string&)
-                                                        {
-                                                            FAIL() << "The core was asked to fail";
-                                                        }) );
+            core_ptr.reset(new Stereo::Core::RecipeStereoPlanner(recipe,
+                                                                 [](const std::string&)
+                                                                 {
+                                                                     FAIL() << "The core was asked to fail";
+                                                                 }) );
 
             core_ptr->set_convergence_distance(5.0f);
             core_ptr->set_eye_separation(2.0f);
@@ -63,7 +63,7 @@ namespace
                                     2);/* a cover key  */
         }
 
-        std::unique_ptr<Stereo::Core::StereoCore> core_ptr;
+        std::unique_ptr<Stereo::Core::RecipeStereoPlanner> core_ptr;
     };
 
     void post_create_surface(Stereo::ConverterDLL::D3D7EyeRenderer* inout_renderer_ptr,

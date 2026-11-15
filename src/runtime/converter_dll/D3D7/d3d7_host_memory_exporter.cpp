@@ -13,7 +13,7 @@
 #include <string.h>
 
 Stereo::ConverterDLL::D3D7HostMemoryExporter::D3D7HostMemoryExporter(Stereo::Transport::FrameChannel* inout_channel_ptr)
-    :HostMemoryExporter(inout_channel_ptr)
+    :HostMemoryExporterBase(inout_channel_ptr)
 {
     /* The default timer tick is about 15 ms, which is longer than a frame, so a sleep of one frame would last a whole tick. Without a 1 ms timer period,
      * the application can be held to about half its intended rate when no program that shows the images keeps time.

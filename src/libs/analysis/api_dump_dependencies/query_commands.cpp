@@ -171,11 +171,11 @@ bool Analysis::APIDumpDependencies::QueryCommands::parse_dependency_class(const 
     return (class_iterator != class_map.end() );
 }
 
-Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryCommands::run(const std::string&        in_command,
-                                                                                         const DependencyAnalysis& in_analysis,
-                                                                                         const QueryArguments&     in_arguments,
-                                                                                         Utils::Json::JsonWriter*  inout_writer_ptr,
-                                                                                         std::string*              out_error_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryCommands::run(const std::string&           in_command,
+                                                                                         const DependencyFileContent& in_analysis,
+                                                                                         const QueryArguments&        in_arguments,
+                                                                                         Utils::Json::JsonWriter*     inout_writer_ptr,
+                                                                                         std::string*                 out_error_ptr)
 {
     Analysis::APIDumpAnalysis::QueryStatus result = Analysis::APIDumpAnalysis::QueryStatus::BAD_ARGUMENTS;
 
@@ -238,10 +238,10 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryComma
     return result;
 }
 
-Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_carries(const DependencyAnalysis& in_analysis,
-                                                                                                 const QueryArguments&     in_arguments,
-                                                                                                 Utils::Json::JsonWriter*  inout_writer_ptr,
-                                                                                                 std::string*              out_error_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_carries(const DependencyFileContent& in_analysis,
+                                                                                                 const QueryArguments&        in_arguments,
+                                                                                                 Utils::Json::JsonWriter*     inout_writer_ptr,
+                                                                                                 std::string*                 out_error_ptr)
 {
     return run_frame(in_analysis,
                      in_arguments,
@@ -250,11 +250,11 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryComma
                      out_error_ptr);
 }
 
-Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_frame(const DependencyAnalysis& in_analysis,
-                                                                                               const QueryArguments&     in_arguments,
-                                                                                               const bool&               in_is_carries_only,
-                                                                                               Utils::Json::JsonWriter*  inout_writer_ptr,
-                                                                                               std::string*              out_error_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_frame(const DependencyFileContent& in_analysis,
+                                                                                               const QueryArguments&        in_arguments,
+                                                                                               const bool&                  in_is_carries_only,
+                                                                                               Utils::Json::JsonWriter*     inout_writer_ptr,
+                                                                                               std::string*                 out_error_ptr)
 {
     typedef Analysis::APIDumpAnalysis::QueryArguments PagingArguments;
     typedef Analysis::APIDumpAnalysis::QueryStatus    QueryStatus;
@@ -396,8 +396,8 @@ end:
     return result;
 }
 
-Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_info(const DependencyAnalysis& in_analysis,
-                                                                                              Utils::Json::JsonWriter*  inout_writer_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_info(const DependencyFileContent& in_analysis,
+                                                                                              Utils::Json::JsonWriter*     inout_writer_ptr)
 {
     std::map<DependencyClass, uint64_t> n_resources_by_class_map;
 
@@ -476,8 +476,8 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryComma
     return Analysis::APIDumpAnalysis::QueryStatus::OK;
 }
 
-Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_per_eye(const DependencyAnalysis& in_analysis,
-                                                                                                 Utils::Json::JsonWriter*  inout_writer_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_per_eye(const DependencyFileContent& in_analysis,
+                                                                                                 Utils::Json::JsonWriter*     inout_writer_ptr)
 {
     inout_writer_ptr->begin_object();
     inout_writer_ptr->write_key   ("note");
@@ -549,10 +549,10 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryComma
     return Analysis::APIDumpAnalysis::QueryStatus::OK;
 }
 
-Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_resource(const DependencyAnalysis& in_analysis,
-                                                                                                  const QueryArguments&     in_arguments,
-                                                                                                  Utils::Json::JsonWriter*  inout_writer_ptr,
-                                                                                                  std::string*              out_error_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_resource(const DependencyFileContent& in_analysis,
+                                                                                                  const QueryArguments&        in_arguments,
+                                                                                                  Utils::Json::JsonWriter*     inout_writer_ptr,
+                                                                                                  std::string*                 out_error_ptr)
 {
     typedef Analysis::APIDumpAnalysis::QueryArguments PagingArguments;
     typedef Analysis::APIDumpAnalysis::QueryStatus    QueryStatus;
@@ -721,9 +721,9 @@ end:
     return result;
 }
 
-Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_resources(const DependencyAnalysis& in_analysis,
-                                                                                                   const QueryArguments&     in_arguments,
-                                                                                                   Utils::Json::JsonWriter*  inout_writer_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_resources(const DependencyFileContent& in_analysis,
+                                                                                                   const QueryArguments&        in_arguments,
+                                                                                                   Utils::Json::JsonWriter*     inout_writer_ptr)
 {
     typedef Analysis::APIDumpAnalysis::QueryArguments PagingArguments;
 
@@ -777,10 +777,10 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryComma
     return Analysis::APIDumpAnalysis::QueryStatus::OK;
 }
 
-Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_slice(const DependencyAnalysis& in_analysis,
-                                                                                               const QueryArguments&     in_arguments,
-                                                                                               Utils::Json::JsonWriter*  inout_writer_ptr,
-                                                                                               std::string*              out_error_ptr)
+Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpDependencies::QueryCommands::run_slice(const DependencyFileContent& in_analysis,
+                                                                                               const QueryArguments&        in_arguments,
+                                                                                               Utils::Json::JsonWriter*     inout_writer_ptr,
+                                                                                               std::string*                 out_error_ptr)
 {
     typedef Analysis::APIDumpAnalysis::QueryStatus QueryStatus;
 
@@ -897,9 +897,9 @@ end:
     return result;
 }
 
-void Analysis::APIDumpDependencies::QueryCommands::write_resource_head(const DependencyAnalysis& in_analysis,
-                                                                       const size_t&             in_n_resource,
-                                                                       Utils::Json::JsonWriter*  inout_writer_ptr)
+void Analysis::APIDumpDependencies::QueryCommands::write_resource_head(const DependencyFileContent& in_analysis,
+                                                                       const size_t&                in_n_resource,
+                                                                       Utils::Json::JsonWriter*     inout_writer_ptr)
 {
     const auto&                                 resource = in_analysis.resource_vec.at(in_n_resource);
     Analysis::APIDumpAnalysis::ResourceIdentity identity;

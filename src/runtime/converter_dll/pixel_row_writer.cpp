@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "interception/hooks/D3D8/types.h"
-#include "pixel_converter.h"
+#include "d3d_format_bgra8_converter.h"
 #include "pixel_row_writer.h"
 #include <string.h>
 
@@ -27,12 +27,12 @@ bool Stereo::ConverterDLL::PixelRowWriter::write_eye(const uint32_t&       in_fo
     if (in_format != Interception::Hooks::D3D8::D3DFMT_A8R8G8B8 &&
         in_format != Interception::Hooks::D3D8::D3DFMT_X8R8G8B8)
     {
-        is_ok = ::Replay::ReplayEngineDLL::PixelConverter::convert_to_bgra8(in_format,
-                                                                            in_width,
-                                                                            in_height,
-                                                                            in_source_pitch,
-                                                                            in_source_ptr,
-                                                                            inout_scratch_ptr);
+        is_ok = ::Replay::ReplayEngineDLL::D3DFormatBgra8Converter::convert_to_bgra8(in_format,
+                                                                                     in_width,
+                                                                                     in_height,
+                                                                                     in_source_pitch,
+                                                                                     in_source_ptr,
+                                                                                     inout_scratch_ptr);
 
         source_ptr   = inout_scratch_ptr->data();
         source_pitch = in_width * BYTES_PER_PIXEL;

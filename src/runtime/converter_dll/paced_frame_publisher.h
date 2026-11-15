@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#ifndef STEREO_CONVERTERDLL_FRAME_PASSER_H
-#define STEREO_CONVERTERDLL_FRAME_PASSER_H
+#ifndef STEREO_CONVERTERDLL_PACED_FRAME_PUBLISHER_H
+#define STEREO_CONVERTERDLL_PACED_FRAME_PUBLISHER_H
 
 #include "stereo/transport/i_frame_exporter.h"
 #include "utils/statistics/series_stats.h"
@@ -19,11 +19,11 @@ namespace Stereo
         /* Passes the frames that the application is about to present to the viewer (see IFrameExporter), at the pace at which the viewer shows
          * them.
          */
-        class FramePasser
+        class PacedFramePublisher
         {
         public:
-            FramePasser(std::unique_ptr<Stereo::Transport::IFrameExporter> in_exporter_ptr,
-                        const SessionLog&                                  in_log);
+            PacedFramePublisher(std::unique_ptr<Stereo::Transport::IFrameExporter> in_exporter_ptr,
+                                const SessionLog&                                  in_log);
 
             /* Passes one frame on. If in_left_surface_ptr is nullptr, the left image is the back buffer of the device. in_right_surface_ptr is the
              * twin of the back buffer, or nullptr if the back buffer has none.
@@ -62,4 +62,4 @@ namespace Stereo
     }
 }
 
-#endif /* STEREO_CONVERTERDLL_FRAME_PASSER_H */
+#endif /* STEREO_CONVERTERDLL_PACED_FRAME_PUBLISHER_H */

@@ -2,27 +2,27 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "host_memory_exporter.h"
+#include "host_memory_exporter_base.h"
 #include <windows.h>
 
-Stereo::ConverterDLL::HostMemoryExporter::HostMemoryExporter(Stereo::Transport::FrameChannel* inout_channel_ptr)
+Stereo::ConverterDLL::HostMemoryExporterBase::HostMemoryExporterBase(Stereo::Transport::FrameChannel* inout_channel_ptr)
     :m_channel_ptr   (inout_channel_ptr),
      m_last_frame_qpc(0)
 {
     m_channel_ptr->set_offered_kinds(get_offered_kinds() );
 }
 
-Stereo::Transport::FrameChannel* Stereo::ConverterDLL::HostMemoryExporter::get_channel_ptr() const
+Stereo::Transport::FrameChannel* Stereo::ConverterDLL::HostMemoryExporterBase::get_channel_ptr() const
 {
     return m_channel_ptr;
 }
 
-Stereo::Transport::TransportKindMask Stereo::ConverterDLL::HostMemoryExporter::get_offered_kinds() const
+Stereo::Transport::TransportKindMask Stereo::ConverterDLL::HostMemoryExporterBase::get_offered_kinds() const
 {
     return static_cast<Stereo::Transport::TransportKindMask>(Stereo::Transport::TransportKind::HOST_MEMORY);
 }
 
-void Stereo::ConverterDLL::HostMemoryExporter::hold_to_frame_rate(const int64_t& in_n_frames_per_second)
+void Stereo::ConverterDLL::HostMemoryExporterBase::hold_to_frame_rate(const int64_t& in_n_frames_per_second)
 {
     constexpr LONGLONG N_MILLISECONDS_PER_SECOND = 1000;
 
@@ -46,12 +46,12 @@ void Stereo::ConverterDLL::HostMemoryExporter::hold_to_frame_rate(const int64_t&
     m_last_frame_qpc = now.QuadPart;
 }
 
-bool Stereo::ConverterDLL::HostMemoryExporter::is_host_memory_negotiated() const
+bool Stereo::ConverterDLL::HostMemoryExporterBase::is_host_memory_negotiated() const
 {
     return (m_channel_ptr->get_negotiated_kind() == Stereo::Transport::TransportKind::HOST_MEMORY);
 }
 
-void Stereo::ConverterDLL::HostMemoryExporter::restart_frame_rate_clock()
+void Stereo::ConverterDLL::HostMemoryExporterBase::restart_frame_rate_clock()
 {
     LARGE_INTEGER now;
 
@@ -60,7 +60,7 @@ void Stereo::ConverterDLL::HostMemoryExporter::restart_frame_rate_clock()
     m_last_frame_qpc = now.QuadPart;
 }
 
-bool Stereo::ConverterDLL::HostMemoryExporter::wait_for_screen()
+bool Stereo::ConverterDLL::HostMemoryExporterBase::wait_for_screen()
 {
     /* The screen asks for a frame about every 14 ms. A wait much longer than a few of those intervals means that the screen is not asking. */
     constexpr uint32_t TIMEOUT_N_MILLISECONDS = 100;

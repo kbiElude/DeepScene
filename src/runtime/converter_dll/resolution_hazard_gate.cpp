@@ -100,7 +100,7 @@ const char* Stereo::ConverterDLL::ResolutionHazardGate::get_reason(const Analysi
     return result_ptr;
 }
 
-void Stereo::ConverterDLL::ResolutionHazardGate::require_unaffected_by_scale(Stereo::Core::StereoCore*                          in_core_ptr,
+void Stereo::ConverterDLL::ResolutionHazardGate::require_unaffected_by_scale(Stereo::Core::RecipeStereoPlanner*                 in_core_ptr,
                                                                              const Stereo::Core::ResolutionPolicy&              in_policy,
                                                                              const Analysis::APIDumpAnalysis::ResolutionHazard& in_hazard)
 {

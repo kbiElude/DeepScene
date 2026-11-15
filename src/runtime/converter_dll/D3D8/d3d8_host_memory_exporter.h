@@ -6,7 +6,7 @@
 #define STEREO_CONVERTERDLL_D3D8_HOST_MEMORY_EXPORTER_H
 
 #include "interception/hooks/D3D8/types.h"
-#include "host_memory_exporter.h"
+#include "host_memory_exporter_base.h"
 #include "types.h"
 #include "utils/parallel/job_thread.h"
 #include "utils/statistics/series_stats.h"
@@ -35,7 +35,7 @@ namespace Stereo
          * The source (see ExportSource) holds the device and the eye surfaces. If the left surface is null, the back buffer of the device is
          * the left eye. If the right surface is null, the frame has one eye. With both, the channel image is twice as wide.
          */
-        class D3D8HostMemoryExporter : public HostMemoryExporter
+        class D3D8HostMemoryExporter : public HostMemoryExporterBase
         {
         public:
             /* The channel must outlive the exporter. The exporter says on it what it offers. */

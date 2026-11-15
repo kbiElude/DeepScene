@@ -9,7 +9,7 @@
 #include "common/api_function_argument.h"
 #include "common/types.h"
 #include "interception/hooks/D3D7/types.h"
-#include "stereo/core/stereo_core.h"
+#include "stereo/core/recipe_stereo_planner.h"
 #include "d3d7_surface_twins.h"
 #include "d3d7_windowed_mode.h"
 #include "types.h"
@@ -23,7 +23,7 @@ namespace Stereo
 {
     namespace ConverterDLL
     {
-        /* Renders the eyes of a Direct3D 7 application whose vertices are in picture space (see ScreenParallax).
+        /* Renders the eyes of a Direct3D 7 application whose vertices are in picture space (see ScreenSpaceVertexShifter).
          *
          * The application draws the left eye with its own calls. The renderer draws the right eye, each time before the left eye. Every
          * surface the application renders to has a twin (see D3D7SurfaceTwins). When the application draws or clears, the renderer repeats
@@ -47,8 +47,8 @@ namespace Stereo
                                        uint32_t*       out_n_bytes_ptr)> ChunkFunc;
 
             /* The windowed mode gives the factor by which the back buffer is made larger than the application asks (see D3D7WindowedMode::get_render_scale()). */
-            D3D7EyeRenderer(Stereo::Core::StereoCore* in_core_ptr,
-                            const D3D7WindowedMode*   in_windowed_mode_ptr);
+            D3D7EyeRenderer(Stereo::Core::RecipeStereoPlanner* in_core_ptr,
+                            const D3D7WindowedMode*            in_windowed_mode_ptr);
 
             uint64_t get_n_failed_twins() const;
             uint64_t get_n_twins       () const;
@@ -78,9 +78,9 @@ namespace Stereo
                         const uint32_t&                            in_n_arguments,
                         const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
 
-            /* A draw is about to be made, and the core has classified it (see StereoCore::classify_draw()). The renderer makes the draw for
+            /* A draw is about to be made, and the core has classified it (see RecipeStereoPlanner::classify_draw()). The renderer makes the draw for
              * the right eye. Returns false if the application's call must not be made, because the renderer made the left-eye draw itself.
-             * in_picture_width is the width of the viewport that the draw uses (see CallFeeder::get_viewport()).
+             * in_picture_width is the width of the viewport that the draw uses (see LiveCallAnalyzer::get_viewport()).
              */
             bool on_pre_draw(const APIInterceptor::APIFunction&         in_function,
                              const uint32_t&                            in_n_arguments,
@@ -198,8 +198,8 @@ namespace Stereo
             bool read_vertex_buffer(DrawArguments* inout_draw_arguments_ptr);
 
 
-            Stereo::Core::StereoCore* m_core_ptr;
-            bool                      m_has_pixel_write; /* the whole back buffer is locked for writing
+            Stereo::Core::RecipeStereoPlanner* m_core_ptr;
+            bool                               m_has_pixel_write; /* the whole back buffer is locked for writing
  */
             DeviceMirror              m_mirror;
             bool                      m_is_right_eye_off;

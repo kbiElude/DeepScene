@@ -9,7 +9,7 @@
 #include "common/api_function_argument.h"
 #include "interception/hooks/D3D8/argument_modifier.h"
 #include "stereo/core/resolution_policy.h"
-#include "stereo/core/stereo_core.h"
+#include "stereo/core/recipe_stereo_planner.h"
 #include "stereo/core/types.h"
 #include <functional>
 #include <stdint.h>
@@ -38,11 +38,11 @@ namespace Stereo
              * target (the size of one eye of the headset), keeping the proportions. The scaler does nothing if there is no target, if the target
              * size is 0, or if the target is not larger than the size the application asks for.
              */
-            D3D8ResolutionScaler(const uint32_t&              in_target_width,
-                                 const uint32_t&              in_target_height,
-                                 Stereo::Core::StereoCore*    in_core_ptr,
-                                 const RenderTargetFunc&      in_render_target_func,
-                                 const Stereo::Core::LogFunc& in_log_func);
+            D3D8ResolutionScaler(const uint32_t&                    in_target_width,
+                                 const uint32_t&                    in_target_height,
+                                 Stereo::Core::RecipeStereoPlanner* in_core_ptr,
+                                 const RenderTargetFunc&            in_render_target_func,
+                                 const Stereo::Core::LogFunc&       in_log_func);
             ~D3D8ResolutionScaler() override;
 
             D3D8ResolutionScaler(const D3D8ResolutionScaler&)            = delete;
@@ -70,7 +70,7 @@ namespace Stereo
         private:
             uint32_t                                m_asked_height; /* the height the application asked for for the back buffer; 0 until the device is created */
             uint32_t                                m_asked_width;
-            Stereo::Core::StereoCore*               m_core_ptr;
+            Stereo::Core::RecipeStereoPlanner*      m_core_ptr;
             Stereo::Core::LogFunc                   m_log_func;
             Stereo::Core::ResolutionPolicy          m_policy; /* set when the application states how large its image is */
             uint32_t                                m_target_height;

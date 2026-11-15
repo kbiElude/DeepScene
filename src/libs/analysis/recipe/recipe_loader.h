@@ -61,7 +61,7 @@ namespace Analysis
 
             static bool parse_action          (const Utils::Json::JsonValue& in_action,
                                                const std::string&            in_path,
-                                               Rule*                         inout_rule_ptr,
+                                               MatrixRule*                   inout_rule_ptr,
                                                std::string*                  out_error_ptr);
             static bool parse_anchor_shift    (const Utils::Json::JsonValue& in_value,
                                                const std::string&            in_path,
@@ -112,7 +112,7 @@ namespace Analysis
                                                  std::string*                  out_error_ptr);
             static bool parse_rule              (const Utils::Json::JsonValue& in_rule,
                                                  const std::string&            in_path,
-                                                 Rule*                         out_rule_ptr,
+                                                 MatrixRule*                   out_rule_ptr,
                                                  std::string*                  out_error_ptr);
             static bool parse_scene_overrides   (const Utils::Json::JsonValue& in_array,
                                                  const std::string&            in_path,
@@ -120,7 +120,7 @@ namespace Analysis
                                                  std::string*                  out_error_ptr);
             static bool parse_screen_parallax   (const Utils::Json::JsonValue& in_value,
                                                  const std::string&            in_path,
-                                                 ScreenParallax*               out_screen_parallax_ptr,
+                                                 ScreenParallaxSettings*       out_screen_parallax_ptr,
                                                  std::string*                  out_error_ptr);
             static bool parse_state             (const Utils::Json::JsonValue& in_value,
                                                  const std::string&            in_path,
@@ -134,7 +134,7 @@ namespace Analysis
             static bool parse_when              (const Utils::Json::JsonValue& in_when,
                                                  const std::string&            in_path,
                                                  const CallDescriptor&         in_call,
-                                                 Rule*                         inout_rule_ptr,
+                                                 MatrixRule*                   inout_rule_ptr,
                                                  std::string*                  out_error_ptr);
         };
     }

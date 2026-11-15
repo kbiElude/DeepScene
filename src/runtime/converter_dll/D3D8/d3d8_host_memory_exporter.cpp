@@ -9,7 +9,7 @@
 #include <string.h>
 
 Stereo::ConverterDLL::D3D8HostMemoryExporter::D3D8HostMemoryExporter(Stereo::Transport::FrameChannel* inout_channel_ptr)
-    :HostMemoryExporter(inout_channel_ptr),
+    :HostMemoryExporterBase(inout_channel_ptr),
      m_eye_destination_ptr(nullptr),
      m_eye_is_ok   (false),
      m_eye_pitch   (0),

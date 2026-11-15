@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
  * The decisions of a converter that plays an application as it runs and renders each eye of what the application draws, whatever the
- * API is. An adapter for an API tells StereoCore what the application does (it sets a matrix, it draws) and carries out its answers
+ * API is. An adapter for an API tells RecipeStereoPlanner what the application does (it sets a matrix, it draws) and carries out its answers
  * (set these matrices, draw this once or once per eye). The adapter knows nothing about the application, only about the recipe, which
  * must be baked (see RecipeBake).
  *
@@ -14,13 +14,13 @@
  *
  * Not thread-safe: an adapter calls it from the thread that calls the device.
  */
-#ifndef STEREO_CORE_STEREO_CORE_H
-#define STEREO_CORE_STEREO_CORE_H
+#ifndef STEREO_CORE_RECIPE_STEREO_PLANNER_H
+#define STEREO_CORE_RECIPE_STEREO_PLANNER_H
 
 #include "analysis/recipe/recipe_applier.h"
 #include "common/api_function_argument.h"
 #include "stereo/core/convergence_model.h"
-#include "stereo/core/depth_buffer_statistics.h"
+#include "stereo/core/depth_range_measurer.h"
 #include "stereo/core/matrix_slots.h"
 #include "stereo/core/screen_parallax_planner.h"
 #include "stereo/core/types.h"
@@ -32,12 +32,12 @@ namespace Stereo
 {
     namespace Core
     {
-        class StereoCore
+        class RecipeStereoPlanner
         {
         public:
             /* Fails, through in_fail_func, if the recipe is not baked or has rules that cannot be followed while the application runs. */
-            StereoCore(const Analysis::Recipe::Recipe& in_recipe,
-                       const FailFunc&                 in_fail_func);
+            RecipeStereoPlanner(const Analysis::Recipe::Recipe& in_recipe,
+                                const FailFunc&                 in_fail_func);
 
             /* Collects the matrices to put in the device before a draw of in_draw_class for in_eye, leaving out those that are already in it.
              * For an affected draw, the matrices that the recipe changes are made for the eye. For any other draw they are the application's
@@ -94,7 +94,7 @@ namespace Stereo
              */
             bool is_last_draw_attached_to_camera(const float& in_origin_depth) const;
 
-            /* Copies the last draw's vertices (in pixels, see ScreenParallax) and moves the copy for the eye. It asks plan_screen_shift() what
+            /* Copies the last draw's vertices (in pixels, see ScreenSpaceVertexShifter) and moves the copy for the eye. It asks plan_screen_shift() what
              * to do and leaves the application's vertices alone. Returns true if the output vector holds the vertices to draw, because they
              * were moved or because in_must_copy asked for a copy.
              */
@@ -126,7 +126,7 @@ namespace Stereo
             bool get_measures_depth() const;
 
             /* Reports how deep the frame that the application has just presented was, measured from its depth buffer (see
-             * DepthBufferStatistics), together with the x scale of its projection. The eyes follow the convergence distance and the maximum
+             * DepthRangeMeasurer), together with the x scale of its projection. The eyes follow the convergence distance and the maximum
              * separation that the comfort settings of the recipe give for that depth (see RecipeApplier::get_comfort_limits()). If the recipe
              * has comfort settings for the shape of the frame, they win over the values baked for the shape (see on_frame_completed()).
              * Returns false and does nothing if the range has no depth.
@@ -299,4 +299,4 @@ namespace Stereo
     }
 }
 
-#endif /* STEREO_CORE_STEREO_CORE_H */
+#endif /* STEREO_CORE_RECIPE_STEREO_PLANNER_H */

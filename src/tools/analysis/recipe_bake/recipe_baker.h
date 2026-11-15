@@ -53,12 +53,12 @@ namespace Analysis
              * the frame after the one that rendered to it (two targets that an application uses in turns). The dependencies must come from the
              * workload that the analysis is of.
              */
-            static bool bake(const std::string&                                       in_recipe_text,
-                             const Analysis::APIDumpAnalysis::AnalysisResult&         in_analysis,
-                             std::string*                                             out_text_ptr,
-                             BakeReport*                                              out_report_ptr,
-                             std::string*                                             out_error_ptr,
-                             const Analysis::APIDumpDependencies::DependencyAnalysis* in_dependencies_ptr = nullptr);
+            static bool bake(const std::string&                                          in_recipe_text,
+                             const Analysis::APIDumpAnalysis::AnalysisResult&            in_analysis,
+                             std::string*                                                out_text_ptr,
+                             BakeReport*                                                 out_report_ptr,
+                             std::string*                                                out_error_ptr,
+                             const Analysis::APIDumpDependencies::DependencyFileContent* in_dependencies_ptr = nullptr);
 
             /* How deep each scene (kind of frame) of the analysis is, in the order of the shapes. has_depth is false for a scene that has no affected
              * pass with something in front of the camera. The near and far settings of the recipe (see Comfort) decide which surfaces count.
@@ -122,8 +122,8 @@ namespace Analysis
 
             /* The textures that frames carry over from the previous frame and that each eye has its own copy of. The back buffer is not included,
              * because the player already keeps its pictures apart for the eyes. */
-            static PerEyeTextureVector get_per_eye_texture_vec(const Analysis::APIDumpAnalysis::AnalysisResult&         in_analysis,
-                                                               const Analysis::APIDumpDependencies::DependencyAnalysis* in_dependencies_ptr);
+            static PerEyeTextureVector get_per_eye_texture_vec(const Analysis::APIDumpAnalysis::AnalysisResult&            in_analysis,
+                                                               const Analysis::APIDumpDependencies::DependencyFileContent* in_dependencies_ptr);
 
             /* The class as it is written in a message: "affected" or "unaffected, pushed". */
             static std::string get_class_key_text(const ClassKey& in_class_key);

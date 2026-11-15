@@ -115,7 +115,7 @@ protected:
         m_analysis = scene.make_analysis();
     }
 
-    DependencyAnalysis                            m_analysis;
+    DependencyFileContent                         m_analysis;
     Analysis::APIDumpDependencies::QueryArguments m_arguments;
     std::string                                   m_error;
 };

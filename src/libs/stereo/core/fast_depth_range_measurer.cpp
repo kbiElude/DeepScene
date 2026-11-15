@@ -2,18 +2,18 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "stereo/core/depth_measurer.h"
+#include "stereo/core/fast_depth_range_measurer.h"
 #include "stereo/core/depth_histogram_avx2.h"
 #include "utils/cpu/cpu_features.h"
 #include <algorithm>
 #include <string.h>
 
-const uint32_t Stereo::Core::DepthMeasurer::FIRST_DISTANCE_KEY = 8;
-const uint32_t Stereo::Core::DepthMeasurer::KEY_SHIFT        = 17; /* keeps 6 mantissa bits: a bin is about 1.1 percent of the distance wide */
-const uint32_t Stereo::Core::DepthMeasurer::N_BINS           = 1u << (32 - 1 - KEY_SHIFT);
-const uint32_t Stereo::Core::DepthMeasurer::N_SUB_HISTOGRAMS = 4;
+const uint32_t Stereo::Core::FastDepthRangeMeasurer::FIRST_DISTANCE_KEY = 8;
+const uint32_t Stereo::Core::FastDepthRangeMeasurer::KEY_SHIFT        = 17; /* keeps 6 mantissa bits: a bin is about 1.1 percent of the distance wide */
+const uint32_t Stereo::Core::FastDepthRangeMeasurer::N_BINS  = 1u << (32 - 1 - KEY_SHIFT);
+const uint32_t Stereo::Core::FastDepthRangeMeasurer::N_SUB_HISTOGRAMS = 4;
 
-Stereo::Core::DepthMeasurer::DepthMeasurer(const bool& in_allow_avx2)
+Stereo::Core::FastDepthRangeMeasurer::FastDepthRangeMeasurer(const bool& in_allow_avx2)
     :m_distance_vec  (),
      m_histogram_vec (),
      m_is_using_avx2 (false),
@@ -33,7 +33,7 @@ Stereo::Core::DepthMeasurer::DepthMeasurer(const bool& in_allow_avx2)
     }
 }
 
-void Stereo::Core::DepthMeasurer::clear_histogram(const DepthKeyRange& in_key_range)
+void Stereo::Core::FastDepthRangeMeasurer::clear_histogram(const DepthKeyRange& in_key_range)
 {
     for (uint32_t n_sub_histogram = 0;
                   n_sub_histogram < N_SUB_HISTOGRAMS;
@@ -55,7 +55,7 @@ void Stereo::Core::DepthMeasurer::clear_histogram(const DepthKeyRange& in_key_ra
     }
 }
 
-uint32_t Stereo::Core::DepthMeasurer::get_key(const float& in_distance)
+uint32_t Stereo::Core::FastDepthRangeMeasurer::get_key(const float& in_distance)
 {
     uint32_t bits = 0;
 
@@ -67,14 +67,14 @@ uint32_t Stereo::Core::DepthMeasurer::get_key(const float& in_distance)
     return (bits >> KEY_SHIFT) + FIRST_DISTANCE_KEY;
 }
 
-bool Stereo::Core::DepthMeasurer::is_using_avx2() const
+bool Stereo::Core::FastDepthRangeMeasurer::is_using_avx2() const
 {
     return m_is_using_avx2;
 }
 
-uint32_t Stereo::Core::DepthMeasurer::locate_key(const DepthKeyRange& in_key_range,
-                                                 const size_t&        in_rank,
-                                                 size_t*              out_n_before_ptr) const
+uint32_t Stereo::Core::FastDepthRangeMeasurer::locate_key(const DepthKeyRange& in_key_range,
+                                                          const size_t&        in_rank,
+                                                          size_t*              out_n_before_ptr) const
 {
     size_t   n_before = 0;
     uint32_t result   = in_key_range.min_key;
@@ -96,12 +96,12 @@ uint32_t Stereo::Core::DepthMeasurer::locate_key(const DepthKeyRange& in_key_ran
     return result;
 }
 
-Stereo::Core::DepthRange Stereo::Core::DepthMeasurer::measure(const float*  in_depth_ptr,
-                                                              const size_t& in_n_depths,
-                                                              const size_t& in_step,
-                                                              const float&  in_projection_z_scale,
-                                                              const float&  in_projection_z_shift,
-                                                              const float&  in_fraction)
+Stereo::Core::DepthRange Stereo::Core::FastDepthRangeMeasurer::measure(const float*  in_depth_ptr,
+                                                                       const size_t& in_n_depths,
+                                                                       const size_t& in_step,
+                                                                       const float&  in_projection_z_scale,
+                                                                       const float&  in_projection_z_shift,
+                                                                       const float&  in_fraction)
 {
     DepthRange result;
 
@@ -117,22 +117,22 @@ Stereo::Core::DepthRange Stereo::Core::DepthMeasurer::measure(const float*  in_d
     }
     else
     {
-        result = DepthBufferStatistics::measure(in_depth_ptr,
-                                                in_n_depths,
-                                                in_step,
-                                                in_projection_z_scale,
-                                                in_projection_z_shift,
-                                                in_fraction);
+        result = DepthRangeMeasurer::measure(in_depth_ptr,
+                                             in_n_depths,
+                                             in_step,
+                                             in_projection_z_scale,
+                                             in_projection_z_shift,
+                                             in_fraction);
     }
 
     return result;
 }
 
-Stereo::Core::DepthRange Stereo::Core::DepthMeasurer::measure_avx2(const float*  in_depth_ptr,
-                                                                   const size_t& in_n_depths,
-                                                                   const float&  in_projection_z_scale,
-                                                                   const float&  in_projection_z_shift,
-                                                                   const float&  in_fraction)
+Stereo::Core::DepthRange Stereo::Core::FastDepthRangeMeasurer::measure_avx2(const float*  in_depth_ptr,
+                                                                            const size_t& in_n_depths,
+                                                                            const float&  in_projection_z_scale,
+                                                                            const float&  in_projection_z_shift,
+                                                                            const float&  in_fraction)
 {
     DepthHistogramLayout layout;
     DepthPassResult      pass_result;
@@ -157,12 +157,12 @@ Stereo::Core::DepthRange Stereo::Core::DepthMeasurer::measure_avx2(const float* 
     const DepthKeyRange& key_range = pass_result.key_range;
     const size_t         n_drawn   = (key_range.min_key <= key_range.max_key) ? merge_histogram(key_range)
                                                                               : 0;
-    const DepthSelection selection = DepthBufferStatistics::get_selection(n_drawn,
-                                                                          in_n_depths,
-                                                                          pass_result.n_sky,
-                                                                          in_projection_z_scale,
-                                                                          in_projection_z_shift,
-                                                                          in_fraction);
+    const DepthSelection selection = DepthRangeMeasurer::get_selection(n_drawn,
+                                                                       in_n_depths,
+                                                                       pass_result.n_sky,
+                                                                       in_projection_z_scale,
+                                                                       in_projection_z_shift,
+                                                                       in_fraction);
 
     if (selection.is_enough)
     {
@@ -176,7 +176,7 @@ Stereo::Core::DepthRange Stereo::Core::DepthMeasurer::measure_avx2(const float* 
     return result;
 }
 
-size_t Stereo::Core::DepthMeasurer::merge_histogram(const DepthKeyRange& in_key_range)
+size_t Stereo::Core::FastDepthRangeMeasurer::merge_histogram(const DepthKeyRange& in_key_range)
 {
     size_t result = 0;
 
@@ -200,9 +200,9 @@ size_t Stereo::Core::DepthMeasurer::merge_histogram(const DepthKeyRange& in_key_
     return result;
 }
 
-Stereo::Core::DepthRange Stereo::Core::DepthMeasurer::select_depths(const DepthSelection& in_selection,
-                                                                    const size_t&         in_n_drawn,
-                                                                    const DepthKeyRange&  in_key_range) const
+Stereo::Core::DepthRange Stereo::Core::FastDepthRangeMeasurer::select_depths(const DepthSelection& in_selection,
+                                                                             const size_t&         in_n_drawn,
+                                                                             const DepthKeyRange&  in_key_range) const
 {
     const size_t   rank_far    = in_n_drawn - 1 - in_selection.n_edge;
     const size_t   rank_median = in_n_drawn / 2;
@@ -271,8 +271,8 @@ Stereo::Core::DepthRange Stereo::Core::DepthMeasurer::select_depths(const DepthS
     return result;
 }
 
-float Stereo::Core::DepthMeasurer::select_nth(std::vector<float>* io_distance_vec_ptr,
-                                              const size_t&       in_index)
+float Stereo::Core::FastDepthRangeMeasurer::select_nth(std::vector<float>* io_distance_vec_ptr,
+                                                       const size_t&       in_index)
 {
     std::nth_element(io_distance_vec_ptr->begin(),
                      io_distance_vec_ptr->begin() + static_cast<std::ptrdiff_t>(in_index),

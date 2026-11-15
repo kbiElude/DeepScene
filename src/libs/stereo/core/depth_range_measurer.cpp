@@ -2,17 +2,17 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "depth_buffer_statistics.h"
+#include "depth_range_measurer.h"
 #include <algorithm>
 #include <math.h>
 #include <vector>
 
 /* A depth at or above this value was not drawn to (the buffer is cleared to 1). */
-const float Stereo::Core::DepthBufferStatistics::NOT_DRAWN_DEPTH = 0.999999f;
+const float Stereo::Core::DepthRangeMeasurer::NOT_DRAWN_DEPTH = 0.999999f;
 
-float Stereo::Core::DepthBufferStatistics::get_distance(const float& in_depth,
-                                                        const float& in_projection_z_scale,
-                                                        const float& in_projection_z_shift)
+float Stereo::Core::DepthRangeMeasurer::get_distance(const float& in_depth,
+                                                     const float& in_projection_z_scale,
+                                                     const float& in_projection_z_shift)
 {
     /* A depth maps to the normalized device z = 2 * depth - 1. For this projection z_device = -scale - shift / z_eye, and the camera looks
      * down -z, so the distance is shift / (z_device + scale).
@@ -25,12 +25,12 @@ float Stereo::Core::DepthBufferStatistics::get_distance(const float& in_depth,
                                                  : 0.0f;
 }
 
-Stereo::Core::DepthSelection Stereo::Core::DepthBufferStatistics::get_selection(const size_t& in_n_drawn,
-                                                                                const size_t& in_n_looked_at,
-                                                                                const size_t& in_n_sky,
-                                                                                const float&  in_projection_z_scale,
-                                                                                const float&  in_projection_z_shift,
-                                                                                const float&  in_fraction)
+Stereo::Core::DepthSelection Stereo::Core::DepthRangeMeasurer::get_selection(const size_t& in_n_drawn,
+                                                                             const size_t& in_n_looked_at,
+                                                                             const size_t& in_n_sky,
+                                                                             const float&  in_projection_z_scale,
+                                                                             const float&  in_projection_z_shift,
+                                                                             const float&  in_fraction)
 {
     /* Fewer drawn pixels than MIN_N_DRAWN, or fewer than one drawn pixel per N_LOOKED_AT_PER_DRAWN examined pixels, is too little to measure. */
     constexpr size_t MIN_N_DRAWN           = 16;
@@ -55,12 +55,12 @@ Stereo::Core::DepthSelection Stereo::Core::DepthBufferStatistics::get_selection(
     return result;
 }
 
-Stereo::Core::DepthRange Stereo::Core::DepthBufferStatistics::measure(const float*  in_depth_ptr,
-                                                                      const size_t& in_n_depths,
-                                                                      const size_t& in_step,
-                                                                      const float&  in_projection_z_scale,
-                                                                      const float&  in_projection_z_shift,
-                                                                      const float&  in_fraction)
+Stereo::Core::DepthRange Stereo::Core::DepthRangeMeasurer::measure(const float*  in_depth_ptr,
+                                                                   const size_t& in_n_depths,
+                                                                   const size_t& in_step,
+                                                                   const float&  in_projection_z_scale,
+                                                                   const float&  in_projection_z_shift,
+                                                                   const float&  in_fraction)
 {
     std::vector<float> distance_vec;
     size_t             n_looked_at = 0;

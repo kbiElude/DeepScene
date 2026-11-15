@@ -8,10 +8,10 @@
 #include "analysis/recipe/types.h"
 #include "common/api_function_argument.h"
 #include "common/types.h"
-#include "stereo/core/depth_measurer.h"
+#include "stereo/core/fast_depth_range_measurer.h"
 #include "stereo/core/frame_depth_ledger.h"
 #include "stereo/core/picture_readback_cache.h"
-#include "stereo/core/stereo_core.h"
+#include "stereo/core/recipe_stereo_planner.h"
 #include "gl_eye_targets.h"
 #include "gl_frame_reader.h"
 #include "gl_resolution_scaler.h"
@@ -32,7 +32,7 @@ namespace Stereo
          *
          * The application renders to the framebuffer of the left eye (see GLEyeTargets). The converter repeats each draw and each clear for the
          * right eye. For an affected draw it moves the camera for each eye: it puts the eye matrix in front of the draw's model-view matrix (see
-         * StereoCore::make_eye_shift_matrix()), and it does the same for the left draw, so both eyes move by half the separation. The recipe
+         * RecipeStereoPlanner::make_eye_shift_matrix()), and it does the same for the left draw, so both eyes move by half the separation. The recipe
          * classifies each draw as affected, unaffected (made for both eyes as it is) or skipped.
          *
          * When the application renders to a texture (it copies the framebuffer into the texture), the converter also copies the framebuffer into
@@ -45,7 +45,7 @@ namespace Stereo
         class GLEyeRenderer
         {
         public:
-            /* Finds the data that an argument refers to (the indices of a draw, the names of textures) in the chunks that the feeder took. */
+            /* Finds the data that an argument refers to (the indices of a draw, the names of textures) in the chunks that the call analyzer took. */
             typedef std::function<bool(const uint32_t&, const void**, uint32_t*)> GetChunkFunc;
 
             /* Counters for the log. */
@@ -65,10 +65,10 @@ namespace Stereo
             /* The core must outlive the renderer. If in_is_shown_elsewhere is set, the windows of the application are made invisible. The application
              * renders as large as fits the target, an eye of the headset (see GLResolutionScaler); a target of 0 keeps the application's size.
              */
-            GLEyeRenderer(Stereo::Core::StereoCore* in_core_ptr,
-                          const bool&               in_is_shown_elsewhere,
-                          const uint32_t&           in_target_width,
-                          const uint32_t&           in_target_height);
+            GLEyeRenderer(Stereo::Core::RecipeStereoPlanner* in_core_ptr,
+                          const bool&                        in_is_shown_elsewhere,
+                          const uint32_t&                    in_target_width,
+                          const uint32_t&                    in_target_height);
 
             /* How many frames behind the depth from take_frame_depth() is. It is 1 when the depth buffer is read into a buffer of the graphics card
              * without waiting (the result is taken at the end of the next frame). It is 0 when the depth is read at once (there are no such buffers,
@@ -101,7 +101,7 @@ namespace Stereo
             /* A call is about to be made. Returns true if the application's call is to be made. It returns false if the converter made the call for
              * both eyes or the call is not to be made at all. A call that draws gives its class. A draw inside a display list that the application
              * compiles does not count as a draw here, because the list runs only when it is called. A pushed draw is made with the origin of its
-             * viewport moved for each eye (see StereoCore::plan_push_shift()).
+             * viewport moved for each eye (see RecipeStereoPlanner::plan_push_shift()).
              */
             bool on_pre(const APIInterceptor::APIFunction&         in_function,
                         const uint32_t&                            in_n_arguments,
@@ -156,7 +156,7 @@ namespace Stereo
             /* Forgets the pending depth reads if the targets were recreated since they started: their buffers no longer exist. */
             void forget_lost_depth_reads();
 
-            /* Measures how deep the drawn surfaces are in a depth read (see DepthMeasurer), using the z scale and z shift of the projection. */
+            /* Measures how deep the drawn surfaces are in a depth read (see FastDepthRangeMeasurer), using the z scale and z shift of the projection. */
             Stereo::Core::DepthRange measure_depths(const float&  in_z_scale,
                                                     const float&  in_z_shift,
                                                     const float*  in_depth_ptr,
@@ -203,7 +203,7 @@ namespace Stereo
             uint32_t                              m_depth_generation;       /* generation of the targets when the pending depth reads began (see GLEyeTargets::get_generation()) */
             uint32_t                              m_depth_lag;              /* see get_depth_lag() */
             Stereo::Core::FrameDepthLedger        m_depth_ledger;
-            Stereo::Core::DepthMeasurer           m_depth_measurer;
+            Stereo::Core::FastDepthRangeMeasurer  m_fast_depth_range_measurer;
             uint32_t                              m_active_unit;
             uint32_t                              m_applied_height; /* framebuffer size that the viewport and the scissor box were last set for */
             uint32_t                              m_applied_width;
@@ -212,7 +212,7 @@ namespace Stereo
             bool                                  m_block_is_pushed;
             uint32_t                              m_block_list;
             bool                                  m_caches_pixel_reads; /* the recipe serves one-pixel reads of a run from one picture that is read once */
-            Stereo::Core::StereoCore*             m_core_ptr;
+            Stereo::Core::RecipeStereoPlanner*    m_core_ptr;
             GLFrameReader                         m_frame_reader;
             GetChunkFunc                          m_get_chunk_func;
             bool                                  m_has_failed;

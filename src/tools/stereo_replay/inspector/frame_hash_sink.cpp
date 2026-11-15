@@ -26,7 +26,7 @@ const Utils::Images::Image& Stereo::Replay::Inspector::FrameHashSink::get_image(
                                                   : empty_image;
 }
 
-void Stereo::Replay::Inspector::FrameHashSink::on_frame_image(const uint32_t&                                       in_n_frame,
+void Stereo::Replay::Inspector::FrameHashSink::on_frame_image(const uint32_t&                              in_n_frame,
                                                               const uint32_t&                              in_n_execution,
                                                               const Stereo::Replay::EngineDLL::FrameImage& in_image)
 {

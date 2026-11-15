@@ -112,37 +112,37 @@ bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::find_extent(const Capture::API
         }
     }
 
-    *out_reaches_both_sides_ptr = Stereo::Core::ScreenParallax::reaches_both_sides(vertex_chunk_ptr->data(),
-                                                                                   vertex_n_bytes,
-                                                                                   n_vertices,
-                                                                                   (index_chunk_ptr != nullptr) ? reinterpret_cast<const uint16_t*>(index_chunk_ptr->data() )
-                                                                                                                : nullptr,
-                                                                                   n_indices,
-                                                                                   in_picture_width);
+    *out_reaches_both_sides_ptr = Stereo::Core::ScreenSpaceVertexShifter::reaches_both_sides(vertex_chunk_ptr->data(),
+                                                                                             vertex_n_bytes,
+                                                                                             n_vertices,
+                                                                                             (index_chunk_ptr != nullptr) ? reinterpret_cast<const uint16_t*>(index_chunk_ptr->data() )
+                                                                                                                          : nullptr,
+                                                                                             n_indices,
+                                                                                             in_picture_width);
     result                      = true;
 
 end:
     return result;
 }
 
-bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::rewrite(const Capture::APIDumpLoader::DumpedAPICall&    in_call,
-                                                          const ::Replay::ReplayEngineDLL::IChunkSource&  in_chunk_source,
-                                                          const Stereo::Core::ScreenParallax::Parameters& in_parameters,
-                                                          OverlayChunkSource*                             inout_overlay_ptr,
-                                                          Capture::APIDumpLoader::DumpedAPICall*          out_call_ptr)
+bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::rewrite(const Capture::APIDumpLoader::DumpedAPICall&              in_call,
+                                                          const ::Replay::ReplayEngineDLL::IChunkSource&            in_chunk_source,
+                                                          const Stereo::Core::ScreenSpaceVertexShifter::Parameters& in_parameters,
+                                                          OverlayChunkSource*                                       inout_overlay_ptr,
+                                                          Capture::APIDumpLoader::DumpedAPICall*                    out_call_ptr)
 {
     bool result = false;
 
-    if (Stereo::Core::ScreenParallax::is_valid(in_parameters) )
+    if (Stereo::Core::ScreenSpaceVertexShifter::is_valid(in_parameters) )
     {
         const auto shift_vertices_func = [&in_parameters](const uint32_t& in_vertex_n_bytes,
                                                           const size_t&   in_n_vertices,
                                                           uint8_t*        inout_vertex_ptr)
         {
-            Stereo::Core::ScreenParallax::shift_vertices(in_parameters,
-                                                         in_vertex_n_bytes,
-                                                         in_n_vertices,
-                                                         inout_vertex_ptr);
+            Stereo::Core::ScreenSpaceVertexShifter::shift_vertices(in_parameters,
+                                                                   in_vertex_n_bytes,
+                                                                   in_n_vertices,
+                                                                   inout_vertex_ptr);
         };
 
         result = rewrite_vertices(in_call,
@@ -169,10 +169,10 @@ bool Stereo::Replay::EngineDLL::D3D7DrawRewriter::rewrite_by(const Capture::APID
                                                        const size_t&   in_n_vertices,
                                                        uint8_t*        inout_vertex_ptr)
         {
-            Stereo::Core::ScreenParallax::shift_vertices_by(in_shift,
-                                                            in_vertex_n_bytes,
-                                                            in_n_vertices,
-                                                            inout_vertex_ptr);
+            Stereo::Core::ScreenSpaceVertexShifter::shift_vertices_by(in_shift,
+                                                                      in_vertex_n_bytes,
+                                                                      in_n_vertices,
+                                                                      inout_vertex_ptr);
         };
 
         result = rewrite_vertices(in_call,

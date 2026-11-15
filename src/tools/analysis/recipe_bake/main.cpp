@@ -30,17 +30,17 @@ int main(int   in_argc,
     constexpr int EXIT_NOT_COVERED        = 5;
     constexpr int EXIT_SUSPECT_UNAFFECTED = 6;
 
-    Analysis::APIDumpAnalysis::AnalysisResult         analysis;
-    std::vector<std::string>                          argument_vec;
-    std::string                                       baked_text;
-    Analysis::APIDumpDependencies::DependencyAnalysis dependencies;
-    std::string                                       error;
-    FILE*                                             file_ptr     = nullptr;
-    bool                                              is_written   = false;
-    Analysis::RecipeBake::Options                     options;
-    std::string                                       recipe_text;
-    Analysis::RecipeBake::BakeReport                  report;
-    int                                               result       = EXIT_SUCCESS;
+    Analysis::APIDumpAnalysis::AnalysisResult            analysis;
+    std::vector<std::string>                             argument_vec;
+    std::string                                          baked_text;
+    Analysis::APIDumpDependencies::DependencyFileContent dependencies;
+    std::string                                          error;
+    FILE*                                                file_ptr     = nullptr;
+    bool                                                 is_written   = false;
+    Analysis::RecipeBake::Options                        options;
+    std::string                                          recipe_text;
+    Analysis::RecipeBake::BakeReport                     report;
+    int                                                  result       = EXIT_SUCCESS;
 
     for (int n_argument = 1;
              n_argument < in_argc;

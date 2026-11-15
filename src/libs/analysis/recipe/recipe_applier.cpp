@@ -102,10 +102,10 @@ Analysis::Recipe::RecipeApplier::RecipeApplier(const Analysis::Recipe::Recipe& i
                                         m_recipe.unaffected.pass_key_vec.end     () );
 }
 
-bool Analysis::Recipe::RecipeApplier::apply_overlay_shift(const Analysis::Recipe::Rule& in_rule,
-                                                          const Analysis::Recipe::Eye&  in_eye,
-                                                          const float&                  in_overlay_parallax,
-                                                          std::array<float, 16>*        inout_matrix_ptr)
+bool Analysis::Recipe::RecipeApplier::apply_overlay_shift(const Analysis::Recipe::MatrixRule& in_rule,
+                                                          const Analysis::Recipe::Eye&        in_eye,
+                                                          const float&                        in_overlay_parallax,
+                                                          std::array<float, 16>*              inout_matrix_ptr)
 {
     constexpr size_t SHEAR_INDEX = 8; /* row 2, column 0: what the depth adds to x */
 
@@ -133,11 +133,11 @@ bool Analysis::Recipe::RecipeApplier::apply_overlay_shift(const Analysis::Recipe
     return result;
 }
 
-bool Analysis::Recipe::RecipeApplier::apply_rule(const Analysis::Recipe::Rule& in_rule,
-                                                 const Analysis::Recipe::Eye&  in_eye,
-                                                 const float&                  in_eye_separation,
-                                                 std::array<float, 16>*        inout_matrix_ptr,
-                                                 const float&                  in_convergence_distance)
+bool Analysis::Recipe::RecipeApplier::apply_rule(const Analysis::Recipe::MatrixRule& in_rule,
+                                                 const Analysis::Recipe::Eye&        in_eye,
+                                                 const float&                        in_eye_separation,
+                                                 std::array<float, 16>*              inout_matrix_ptr,
+                                                 const float&                        in_convergence_distance)
 {
     constexpr size_t SCALE_INDEX = 0;
     constexpr size_t SHEAR_INDEX = 8; /* row 2, column 0: what the depth adds to x */
@@ -408,10 +408,10 @@ float Analysis::Recipe::RecipeApplier::get_cover_push_parallax(const uint64_t& i
                      : m_recipe.comfort.overlay_parallax;
 }
 
-std::vector<const Analysis::Recipe::Rule*> Analysis::Recipe::RecipeApplier::get_matching_rule_ptr_vec(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                                      const CallPlace&                             in_place) const
+std::vector<const Analysis::Recipe::MatrixRule*> Analysis::Recipe::RecipeApplier::get_matching_rule_ptr_vec(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                                                            const CallPlace&                             in_place) const
 {
-    std::vector<const Analysis::Recipe::Rule*> result_vec;
+    std::vector<const Analysis::Recipe::MatrixRule*> result_vec;
 
     for (const auto& rule : m_recipe.rule_vec)
     {
@@ -511,7 +511,7 @@ float Analysis::Recipe::RecipeApplier::get_scene_max_separation(const uint64_t& 
                                                                       : 0.0f;
 }
 
-const Analysis::Recipe::ScreenParallax& Analysis::Recipe::RecipeApplier::get_screen_parallax() const
+const Analysis::Recipe::ScreenParallaxSettings& Analysis::Recipe::RecipeApplier::get_screen_parallax() const
 {
     return m_recipe.screen_parallax;
 }

@@ -45,8 +45,8 @@
   <rect class="group" x="10" y="10" width="660" height="330" rx="10"/><text class="title" x="24" y="32">The program, with StereoConverterDLL in it</text>
   <rect class="box4" x="30" y="60" width="130" height="50" rx="6"/><text x="95" y="90" text-anchor="middle">API calls</text>
   <rect class="box" x="200" y="60" width="130" height="50" rx="6"/><text x="265" y="82" text-anchor="middle">hooks</text><text class="small" x="265" y="98" text-anchor="middle">pre / post callbacks</text>
-  <rect class="box" x="380" y="48" width="260" height="40" rx="6"/><text x="510" y="73" text-anchor="middle">CallFeeder → AnalysisSession</text>
-  <rect class="box" x="380" y="100" width="260" height="40" rx="6"/><text x="510" y="125" text-anchor="middle">StereoCore: what to do with this draw</text>
+  <rect class="box" x="380" y="48" width="260" height="40" rx="6"/><text x="510" y="73" text-anchor="middle">LiveCallAnalyzer → AnalysisSession</text>
+  <rect class="box" x="380" y="100" width="260" height="40" rx="6"/><text x="510" y="125" text-anchor="middle">RecipeStereoPlanner: what to do with a draw</text>
   <rect class="box" x="380" y="152" width="260" height="40" rx="6"/><text x="510" y="177" text-anchor="middle">LiveStereoConverter: orders each call</text>
   <rect class="box2" x="380" y="204" width="260" height="40" rx="6"/><text x="510" y="229" text-anchor="middle">adapter (D3D7, D3D8, OpenGL): the second eye</text>
   <rect class="box3" x="30" y="204" width="130" height="50" rx="6"/><text x="95" y="226" text-anchor="middle">recipe</text><text class="small" x="95" y="242" text-anchor="middle">read at start</text>
@@ -58,27 +58,27 @@
   <rect class="box2" x="710" y="130" width="170" height="64" rx="6"/><text x="795" y="156" text-anchor="middle">StereoPresenter</text><text class="small" x="795" y="174" text-anchor="middle">64-bit, shows the images</text>
   <path class="arrow" d="M640 296H690V194L708 180"/>
 </svg>
-<figcaption>The feeder gives the analysis each call as a dump would; the core answers per draw what the converter must do with it; the adapter does it.</figcaption>
+<figcaption>The call analyzer gives the analysis each call as a dump would; the core answers per draw what the converter must do with it; the adapter does it.</figcaption>
 </figure>
 
 <h2 id="adapters">Decisions and adapters</h2>
-<p>The converter is made of an <strong>adapter</strong>, which knows the API of the application, and of decisions that do not. <code>StereoCore</code>, <code>ConvergenceModel</code>, <code>MatrixSlots</code>, the frame channel, the presenter and the VR player have no API in them: an adapter tells <code>StereoCore</code> what the application does (it sets a matrix, it draws) and does what it answers.</p>
+<p>The converter is made of an <strong>adapter</strong>, which knows the API of the application, and of decisions that do not. <code>RecipeStereoPlanner</code>, <code>ConvergenceModel</code>, <code>MatrixSlots</code>, the frame channel, the presenter and the VR player have no API in them: an adapter tells <code>RecipeStereoPlanner</code> what the application does (it sets a matrix, it draws) and does what it answers.</p>
 
 <h3>The pieces</h3>
 <table>
 <tr><th>Piece</th><th>Job</th></tr>
 <tr><td><code>LiveStereoConverter</code></td><td>Registers the callbacks and orders the work of each call: feed the analysis, keep matrices, classify and render draws, take the settings the VR player changed.</td></tr>
-<tr><td><code>CallFeeder</code></td><td>Gives the analysis each call as a dump would, for Direct3D 7, Direct3D 8 and OpenGL alike; keeps the calls that wait for results in per-thread pools, which hand their vectors back to the next call.</td></tr>
-<tr><td><code>StereoCore</code></td><td>The decisions: the class of a draw from the recipe and the view matrix, unknown draws and frames. Owns <code>ConvergenceModel</code> (where the eyes converge and how far apart they are) and <code>MatrixSlots</code> (the matrices a rule is about, and which to put in before a draw).</td></tr>
+<tr><td><code>LiveCallAnalyzer</code></td><td>Gives the analysis each call as a dump would, for Direct3D 7, Direct3D 8 and OpenGL alike; keeps the calls that wait for results in per-thread pools, which hand their vectors back to the next call.</td></tr>
+<tr><td><code>RecipeStereoPlanner</code></td><td>The decisions: the class of a draw from the recipe and the view matrix, unknown draws and frames. Owns <code>ConvergenceModel</code> (where the eyes converge and how far apart they are) and <code>MatrixSlots</code> (the matrices a rule is about, and which to put in before a draw).</td></tr>
 <tr><td>The adapter for an API</td><td>Renders the second eye, scales the resolution, shows the program in a window or hides it, and exports the frames. The classes are listed below.</td></tr>
-<tr><td><code>FramePasser</code>, <code>SessionLog</code></td><td>What the adapters share: pass the presented frame on to the channel (at most one in 8 ms) and wait for the headset to want the next (<code>HostMemoryExporter</code>, the base of the three exporters, does the waiting); one log line per event.</td></tr>
+<tr><td><code>PacedFramePublisher</code>, <code>SessionLog</code></td><td>What the adapters share: pass the presented frame on to the channel (at most one in 8 ms) and wait for the headset to want the next (<code>HostMemoryExporterBase</code>, the base of the three exporters, does the waiting); one log line per event.</td></tr>
 </table>
 
-<h3>Details of the converter and the feeder</h3>
+<h3>Details of the converter and the call analyzer</h3>
 <ul>
-  <li><code>LiveStereoConverter</code> keeps what it knows of the running program (the core, the feeder, the renderers, the counters) in one struct behind one lock (<code>Utils::Parallel::SrwMutex</code>), and no other lock is taken while it is held.</li>
+  <li><code>LiveStereoConverter</code> keeps what it knows of the running program (the core, the call analyzer, the renderers, the counters) in one struct behind one lock (<code>Utils::Parallel::SrwMutex</code>), and no other lock is taken while it is held.</li>
   <li>Callback times are sampled, one call in 61.</li>
-  <li><code>CallFeeder</code> takes the data chunks of a call out of the interceptor in one go, into vectors from a pool (<code>APIInterceptor::ChunkPool</code>) which the next call gets back, so that a chunk is not an allocation.</li>
+  <li><code>LiveCallAnalyzer</code> takes the data chunks of a call out of the interceptor in one go, into vectors from a pool (<code>APIInterceptor::ChunkPool</code>) which the next call gets back, so that a chunk is not an allocation.</li>
   <li>The calls it makes carry no timestamp (<code>timestamp_qpc</code> is 0): nothing in the converter looks at when a call was made.</li>
 </ul>
 
@@ -91,7 +91,7 @@
 </table>
 
 <h3>What a converter cannot know</h3>
-<p>What a converter can know when a draw is issued is less than a replay knows: the pass is not known at that point, so a draw is told by its signature and the view matrix, and a rule about a pass or a frame shape cannot be followed. Where a program needs more than that, the converter fails at once through <code>StereoCore::require_fast_path</code> instead of producing wrong images.</p>
+<p>What a converter can know when a draw is issued is less than a replay knows: the pass is not known at that point, so a draw is told by its signature and the view matrix, and a rule about a pass or a frame shape cannot be followed. Where a program needs more than that, the converter fails at once through <code>RecipeStereoPlanner::require_fast_path</code> instead of producing wrong images.</p>
 <ul>
   <li>The same goes for what an adapter cannot follow: a program that locks a render target, or resets the device.</li>
   <li>The Direct3D 8 adapter ends the process, with a message that says so, when the program draws vertices positioned in pixels (<code>D3DFVF_XYZRHW</code>, as a HUD or text uses) from a vertex buffer.</li>
@@ -103,20 +103,20 @@
 <svg viewBox="0 0 900 250" role="img" aria-label="From a draw of the program to the images in the channel">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
   <rect class="box4" x="10" y="95" width="130" height="56" rx="6"/><text x="75" y="120" text-anchor="middle">program</text><text class="small" x="75" y="137" text-anchor="middle">sets matrices, draws</text>
-  <rect class="box" x="170" y="95" width="130" height="56" rx="6"/><text x="235" y="120" text-anchor="middle">hook → feeder</text><text class="small" x="235" y="137" text-anchor="middle">draw analysed at once</text>
-  <rect class="box" x="330" y="95" width="130" height="56" rx="6"/><text x="395" y="120" text-anchor="middle">StereoCore</text><text class="small" x="395" y="137" text-anchor="middle">looks it up in the recipe</text>
+  <rect class="box" x="170" y="95" width="130" height="56" rx="6"/><text x="235" y="120" text-anchor="middle">hook → analyzer</text><text class="small" x="235" y="137" text-anchor="middle">draw analysed at once</text>
+  <rect class="box" x="320" y="95" width="152" height="56" rx="6"/><text x="396" y="120" text-anchor="middle">RecipeStereoPlanner</text><text class="small" x="396" y="137" text-anchor="middle">looks it up in the recipe</text>
   <rect class="box2" x="500" y="30" width="190" height="50" rx="6"/><text x="595" y="52" text-anchor="middle">scene draw</text><text class="small" x="595" y="68" text-anchor="middle">once per eye, eye's matrices</text>
   <rect class="box2" x="500" y="100" width="190" height="46" rx="6"/><text x="595" y="120" text-anchor="middle">interface draw</text><text class="small" x="595" y="135" text-anchor="middle">made once</text>
   <rect class="box2" x="500" y="170" width="190" height="46" rx="6"/><text x="595" y="190" text-anchor="middle">skipped draw</text><text class="small" x="595" y="205" text-anchor="middle">not made</text>
   <rect class="box3" x="730" y="95" width="150" height="56" rx="6"/><text x="805" y="120" text-anchor="middle">end of frame</text><text class="small" x="805" y="137" text-anchor="middle">images → channel</text>
-  <path class="arrow" d="M140 123H168"/><path class="arrow" d="M300 123H328"/>
-  <path class="arrow" d="M460 112L498 58"/><path class="arrow" d="M460 123H498"/><path class="arrow" d="M460 134L498 190"/>
+  <path class="arrow" d="M140 123H168"/><path class="arrow" d="M300 123H318"/>
+  <path class="arrow" d="M472 112L498 58"/><path class="arrow" d="M472 123H498"/><path class="arrow" d="M472 134L498 190"/>
   <path class="arrow" d="M690 58L728 108"/><path class="arrow" d="M690 123H728"/><path class="arrow" d="M690 190L728 138"/>
 </svg>
-<figcaption>Other calls than draws are kept by the feeder until their results are in.</figcaption>
+<figcaption>Other calls than draws are kept by the analyzer until their results are in.</figcaption>
 </figure>
 <ol>
-  <li>The program sets matrices and draws. The hook gives each call to the feeder. A draw is analysed immediately (its signature is needed before it runs); other calls are kept until their results are in.</li>
+  <li>The program sets matrices and draws. The hook gives each call to the call analyzer. A draw is analysed immediately (its signature is needed before it runs); other calls are kept until their results are in.</li>
   <li>The core looks the draw up in the recipe. A scene draw is made for each eye with the eye's matrices; an interface draw is made once; a skipped one is not made. The maths of the matrices, the separation and the convergence is on the <a href="stereo.html">Stereo</a> page.</li>
   <li>At the end of the frame the images go to the frame channel.</li>
 </ol>
@@ -176,7 +176,7 @@
 <tr><td><em>Half of the pixels</em></td><td>Brought down by the square root of that in each direction.</td></tr>
 <tr><td><em>A quarter of the pixels</em></td><td>Likewise.</td></tr>
 </table>
-<p>Without a headset nothing is made larger. The analysis must see what the program asked for, not what was scaled, so the scaler restores the original values in the data the feeder sees (<code>CallFeeder::set_chunk_func</code>).</p>
+<p>Without a headset nothing is made larger. The analysis must see what the program asked for, not what was scaled, so the scaler restores the original values in the data the feeder sees (<code>LiveCallAnalyzer::set_chunk_func</code>).</p>
 
 <h2 id="pacing">Keeping the frames even</h2>
 <p>In a headset two things are felt: how <em>late</em> a picture is, and whether the motion is <em>even</em>. A frame that is shown twice with the one after it skipped is judder, and it is felt even when every frame is fast. The converter and the presenter therefore do three things:</p>
@@ -293,10 +293,10 @@
 </ul>
 
 <h2 id="d3d7">Vertices in pixels: Direct3D 7 and 8</h2>
-<p>A program of Direct3D 7 whose vertices are all in pixels is converted by the same pieces with a different renderer. The same <code>CallFeeder</code> follows its calls through the analysis, <code>StereoCore</code> decides each draw from the recipe, and what is done to the vertices is decided by <code>ScreenParallaxPlanner</code>, which the replay uses too, with the bytes moved by <code>Stereo::Core::ScreenParallax</code>.</p>
+<p>A program of Direct3D 7 whose vertices are all in pixels is converted by the same pieces with a different renderer. The same <code>LiveCallAnalyzer</code> follows its calls through the analysis, <code>RecipeStereoPlanner</code> decides each draw from the recipe, and what is done to the vertices is decided by <code>ScreenParallaxPlanner</code>, which the replay uses too, with the bytes moved by <code>Stereo::Core::ScreenSpaceVertexShifter</code>.</p>
 <table>
 <tr><th>Call</th><th>Used by</th></tr>
-<tr><td><code>StereoCore::make_screen_vertices()</code></td><td>Gives an adapter a copy of the vertices moved for the eye.</td></tr>
+<tr><td><code>RecipeStereoPlanner::make_screen_vertices()</code></td><td>Gives an adapter a copy of the vertices moved for the eye.</td></tr>
 <tr><td><code>D3D7EyeRenderer</code></td><td>Uses it for every draw of vertices in pixels.</td></tr>
 <tr><td><code>D3D8EyeRenderer::on_pre_draw()</code></td><td>Uses it for <code>DrawPrimitiveUP</code> and <code>DrawIndexedPrimitiveUP</code> draws whose vertex format is XYZRHW (<code>D3D8Frontend::is_pre_transformed_vertex_shader</code>) and makes those draws for both eyes itself. XYZRHW vertices from a vertex buffer end the application with a message (see <a href="stereo.html#screen">Stereo</a>).</td></tr>
 </table>
@@ -347,9 +347,9 @@
 
 <h3>Which calls draw</h3>
 <ul>
-  <li><code>CallFeeder</code> follows the OpenGL and WGL calls and both <code>SwapBuffers</code> (the one of GDI32 ends a frame like the one of WGL).</li>
+  <li><code>LiveCallAnalyzer</code> follows the OpenGL and WGL calls and both <code>SwapBuffers</code> (the one of GDI32 ends a frame like the one of WGL).</li>
   <li>It takes <code>glCallList</code>, <code>glDrawArrays</code>, <code>glDrawElements</code> and <code>glEnd</code> as the calls that draw.</li>
-  <li>A call can make several draws (a list), so the model builder keeps the cover key and the signature key of each draw that the last call made (<code>get_call_draw_key_vec</code>), and the converter asks <code>StereoCore</code> about each one.</li>
+  <li>A call can make several draws (a list), so the model builder keeps the cover key and the signature key of each draw that the last call made (<code>get_call_draw_key_vec</code>), and the converter asks <code>RecipeStereoPlanner</code> about each one.</li>
   <li>A call is made as affected if any of its draws is, otherwise as the class of its draws; a list that mixes interface and scene is counted and told in the log.</li>
 </ul>
 
@@ -364,14 +364,14 @@
 <p>A draw of <code>glDrawArrays</code>, <code>glDrawElements</code> or <code>glCallList</code> is made by the converter for both eyes, and the call of the application is not made.</p>
 <table>
 <tr><th>Class of the draw</th><th>What the converter does</th></tr>
-<tr><td>Affected</td><td>Each eye gets the matrix of the eye (<code>StereoCore::make_eye_shift_matrix()</code>: half the separation to the side and a shear by the depth, so that what is at the distance of convergence stays put) in front of the model-view matrix the draw has, which is read and put back.</td></tr>
+<tr><td>Affected</td><td>Each eye gets the matrix of the eye (<code>RecipeStereoPlanner::make_eye_shift_matrix()</code>: half the separation to the side and a shear by the depth, so that what is at the distance of convergence stays put) in front of the model-view matrix the draw has, which is read and put back.</td></tr>
 <tr><td>Unaffected</td><td>Made for both eyes as it is.</td></tr>
 <tr><td>Skipped</td><td>Not made.</td></tr>
-<tr><td>Pushed (see <a href="stereo.html#interface">Stereo</a>)</td><td>Moved by moving the origin of its viewport (<code>PushShiftPlanner::make_viewport</code>; a side-reaching overlay is widened by the shift on each side). For an affected pushed draw the renderer reads the projection and the model-view and adds the parallax of its depth (<code>StereoCore::get_eye_parallax()</code>, <code>plan_push_shift_with_layer()</code>); a projection that is not perspective (<code>DrawMeasurer::is_perspective_projection</code>) says nothing of depth.</td></tr>
+<tr><td>Pushed (see <a href="stereo.html#interface">Stereo</a>)</td><td>Moved by moving the origin of its viewport (<code>PushShiftPlanner::make_viewport</code>; a side-reaching overlay is widened by the shift on each side). For an affected pushed draw the renderer reads the projection and the model-view and adds the parallax of its depth (<code>RecipeStereoPlanner::get_eye_parallax()</code>, <code>plan_push_shift_with_layer()</code>); a projection that is not perspective (<code>DrawMeasurer::is_perspective_projection</code>) says nothing of depth.</td></tr>
 </table>
 <ul>
   <li>Any camera is a model-view matrix, so the anchor of the replay (the call that begins the camera) is not needed live.</li>
-  <li>The indices of <code>glDrawElements</code> are the chunk the feeder took out of the interceptor.</li>
+  <li>The indices of <code>glDrawElements</code> are the chunk the call analyzer took out of the interceptor.</li>
 </ul>
 
 <h3>A block of glBegin to glEnd</h3>
@@ -441,8 +441,8 @@
 <p>With <code>measure_depth</code> in the comfort of the recipe, <code>GLEyeRenderer</code> reads the depth buffer of the left eye before a pass is cleared and at the end of the frame.</p>
 
 <h4>Measuring</h4>
-<p>The read is of a copy of the depth buffer that the graphics card makes small. <code>DepthBufferStatistics</code> turns the depths into distances with the projection of the pass; the nearest and farthest surfaces are the edges of what was drawn, and what was not drawn is the sky, as far as the far plane.</p>
-<p><code>DepthMeasurer</code> gives the same numbers as <code>DepthBufferStatistics::measure()</code> to the last bit.</p>
+<p>The read is of a copy of the depth buffer that the graphics card makes small. <code>DepthRangeMeasurer</code> turns the depths into distances with the projection of the pass; the nearest and farthest surfaces are the edges of what was drawn, and what was not drawn is the sky, as far as the far plane.</p>
+<p><code>FastDepthRangeMeasurer</code> gives the same numbers as <code>DepthRangeMeasurer::measure()</code> to the last bit.</p>
 <ul>
   <li>On a processor with AVX2 (found out at its start; <code>DepthHistogramAvx2</code> in <code>libs/stereo/core</code>) it counts the distances in a histogram, the bins being the top bits of the distance as a float, with the pixels taken eight at a time, and picks the three distances among those of three bins only.</li>
   <li>Without AVX2 the scalar measure is used.</li>
@@ -455,7 +455,7 @@
   <rect class="box" x="20" y="30" width="420" height="44" rx="6"/><text x="230" y="49" text-anchor="middle">frame N: depth read to a buffer of the card</text><text class="small" x="230" y="65" text-anchor="middle">before each clear and at the end; not waited for</text>
   <rect class="box2" x="460" y="30" width="420" height="44" rx="6"/><text x="670" y="49" text-anchor="middle">frame N+1: the result is taken at its end</text><text class="small" x="670" y="65" text-anchor="middle">the depth given is that of frame N</text>
   <rect class="box3" x="20" y="120" width="420" height="56" rx="6"/><text x="230" y="142" text-anchor="middle">FrameDepthLedger</text><text class="small" x="230" y="159" text-anchor="middle">puts the passes together: the farthest, the nearest,</text><text class="small" x="230" y="172" text-anchor="middle">the median of their medians</text>
-  <rect class="box3" x="460" y="120" width="420" height="56" rx="6"/><text x="670" y="142" text-anchor="middle">StereoCore::on_frame_depth()</text><text class="small" x="670" y="159" text-anchor="middle">with the scene key of frame N;</text><text class="small" x="670" y="172" text-anchor="middle">get_depth_lag() says 1</text>
+  <rect class="box3" x="460" y="120" width="420" height="56" rx="6"/><text x="670" y="142" text-anchor="middle">RecipeStereoPlanner::on_frame_depth()</text><text class="small" x="670" y="159" text-anchor="middle">with the scene key of frame N;</text><text class="small" x="670" y="172" text-anchor="middle">get_depth_lag() says 1</text>
   <path class="arrow" d="M230 74V118"/><path class="arrow" d="M440 148H458"/>
 </svg>
 <figcaption>With no buffer of the graphics card to read to, the depth is read at once and the lag is 0.</figcaption>
@@ -468,13 +468,13 @@
 
 <h4>Convergence by time</h4>
 <ul>
-  <li>The nearest and farthest of the passes go to <code>StereoCore::on_frame_depth()</code>, which has the eyes converge and the separation limited as <code>RecipeApplier::get_comfort_limits()</code> says (the function that bakes the limits of a scene).</li>
+  <li>The nearest and farthest of the passes go to <code>RecipeStereoPlanner::on_frame_depth()</code>, which has the eyes converge and the separation limited as <code>RecipeApplier::get_comfort_limits()</code> says (the function that bakes the limits of a scene).</li>
   <li>The eyes follow that by the time that goes (<code>ConvergenceModel::get_fraction_of_the_way</code>: 5 percent of the way in the time of a frame at 72 Hz, a time constant of about 0.27 s, the same at any rate; the converter measures how long each frame took), so a run that is not held to a rate sees the same adaptation as the headset does.</li>
   <li>The scene dump counts frames, so a run that writes scenes is held to a rate (see <a href="#log">the switches</a>).</li>
 </ul>
 
 <h4>Attached draws</h4>
-<p>The decision is <code>StereoCore::is_last_draw_attached_to_camera()</code>. A draw whose origin is nearer the camera than <code>camera_attached_depth</code> of the convergence distance is made as it is for both eyes, unless one of these holds:</p>
+<p>The decision is <code>RecipeStereoPlanner::is_last_draw_attached_to_camera()</code>. A draw whose origin is nearer the camera than <code>camera_attached_depth</code> of the convergence distance is made as it is for both eyes, unless one of these holds:</p>
 <ul>
   <li>the recipe names it in <code>eye_space_cover_keys</code>;</li>
   <li>the recipe has <code>comfort.automatic_layers</code> and the baker found it to be in eye space (its model-view is the identity because the application put its vertices in the space of the eye, so the origin says nothing of where they are).</li>
@@ -548,7 +548,7 @@
 <tr><td><code>APISTEREO_TARGET_EYE_WIDTH</code>, <code>_HEIGHT</code></td><td>The target size of an eye; they also have the program render to the invisible window.</td></tr>
 <tr><td><code>APISTEREO_DUMP_FRAME</code>, <code>APISTEREO_DUMP_EVERY</code>, <code>APISTEREO_DUMP_FIRST_FRAME</code></td><td>A frame, both eyes, to <code>%TEMP%\apistereo_frame_N.bmp</code>.</td></tr>
 <tr><td><code>APISTEREO_DUMP_SCENES</code></td><td>OpenGL: up to sixty frames of each scene to <code>%TEMP%\apistereo_scene_&lt;key&gt;[_N].bmp</code>, the first when the scene has lasted a second and a half and the others half a second of the demo apart; the log has the key, the frame, where the eyes converged and how far apart they were (see <a href="recipes.html">Recipes</a>).</td></tr>
-<tr><td><code>APISTEREO_FRAME_RATE</code></td><td>When no screen keeps time, the application is held to that many frames a second, so that what the application does with the time of its music is what it would do when shown. Direct3D 7: held to 60 whatever the switch says, via <code>HostMemoryExporter::hold_to_frame_rate</code>. OpenGL: not held when unset.</td></tr>
+<tr><td><code>APISTEREO_FRAME_RATE</code></td><td>When no screen keeps time, the application is held to that many frames a second, so that what the application does with the time of its music is what it would do when shown. Direct3D 7: held to 60 whatever the switch says, via <code>HostMemoryExporterBase::hold_to_frame_rate</code>. OpenGL: not held when unset.</td></tr>
 <tr><td><code>APISTEREO_NO_RIGHT_EYE</code>, <code>APISTEREO_NO_FRAME_LIMIT</code></td><td>To measure with Direct3D 7.</td></tr>
 </table>
 <p>The launcher sets <code>APISTEREO_SESSION</code>, <code>APISTEREO_RECIPE</code> and <code>APISTEREO_LOG</code> for the application.</p>

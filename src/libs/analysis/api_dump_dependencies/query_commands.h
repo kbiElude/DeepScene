@@ -54,11 +54,11 @@ namespace Analysis
             /* Runs a command and writes the JSON result to the writer. If the status is not OK, the error is set and the content of the writer
              * must be discarded.
              */
-            static Analysis::APIDumpAnalysis::QueryStatus run(const std::string&        in_command,
-                                                              const DependencyAnalysis& in_analysis,
-                                                              const QueryArguments&     in_arguments,
-                                                              Utils::Json::JsonWriter*  inout_writer_ptr,
-                                                              std::string*              out_error_ptr);
+            static Analysis::APIDumpAnalysis::QueryStatus run(const std::string&           in_command,
+                                                              const DependencyFileContent& in_analysis,
+                                                              const QueryArguments&        in_arguments,
+                                                              Utils::Json::JsonWriter*     inout_writer_ptr,
+                                                              std::string*                 out_error_ptr);
 
         private:
             /* Returns the version whose content the frame uses: the latest version written before the frame, or the version without a writer.
@@ -77,35 +77,35 @@ namespace Analysis
             /* Returns the paging arguments (limit and offset) in the form that the other query files of the analysis use. */
             static Analysis::APIDumpAnalysis::QueryArguments get_paging(const QueryArguments& in_arguments);
 
-            static Analysis::APIDumpAnalysis::QueryStatus run_carries  (const DependencyAnalysis& in_analysis,
-                                                                        const QueryArguments&     in_arguments,
-                                                                        Utils::Json::JsonWriter*  inout_writer_ptr,
-                                                                        std::string*              out_error_ptr);
-            static Analysis::APIDumpAnalysis::QueryStatus run_frame    (const DependencyAnalysis& in_analysis,
-                                                                        const QueryArguments&     in_arguments,
-                                                                        const bool&               in_is_carries_only,
-                                                                        Utils::Json::JsonWriter*  inout_writer_ptr,
-                                                                        std::string*              out_error_ptr);
-            static Analysis::APIDumpAnalysis::QueryStatus run_info     (const DependencyAnalysis& in_analysis,
-                                                                        Utils::Json::JsonWriter*  inout_writer_ptr);
-            static Analysis::APIDumpAnalysis::QueryStatus run_per_eye  (const DependencyAnalysis& in_analysis,
-                                                                        Utils::Json::JsonWriter*  inout_writer_ptr);
-            static Analysis::APIDumpAnalysis::QueryStatus run_resource (const DependencyAnalysis& in_analysis,
-                                                                        const QueryArguments&     in_arguments,
-                                                                        Utils::Json::JsonWriter*  inout_writer_ptr,
-                                                                        std::string*              out_error_ptr);
-            static Analysis::APIDumpAnalysis::QueryStatus run_resources(const DependencyAnalysis& in_analysis,
-                                                                        const QueryArguments&     in_arguments,
-                                                                        Utils::Json::JsonWriter*  inout_writer_ptr);
-            static Analysis::APIDumpAnalysis::QueryStatus run_slice    (const DependencyAnalysis& in_analysis,
-                                                                        const QueryArguments&     in_arguments,
-                                                                        Utils::Json::JsonWriter*  inout_writer_ptr,
-                                                                        std::string*              out_error_ptr);
+            static Analysis::APIDumpAnalysis::QueryStatus run_carries  (const DependencyFileContent& in_analysis,
+                                                                        const QueryArguments&        in_arguments,
+                                                                        Utils::Json::JsonWriter*     inout_writer_ptr,
+                                                                        std::string*                 out_error_ptr);
+            static Analysis::APIDumpAnalysis::QueryStatus run_frame    (const DependencyFileContent& in_analysis,
+                                                                        const QueryArguments&        in_arguments,
+                                                                        const bool&                  in_is_carries_only,
+                                                                        Utils::Json::JsonWriter*     inout_writer_ptr,
+                                                                        std::string*                 out_error_ptr);
+            static Analysis::APIDumpAnalysis::QueryStatus run_info     (const DependencyFileContent& in_analysis,
+                                                                        Utils::Json::JsonWriter*     inout_writer_ptr);
+            static Analysis::APIDumpAnalysis::QueryStatus run_per_eye  (const DependencyFileContent& in_analysis,
+                                                                        Utils::Json::JsonWriter*     inout_writer_ptr);
+            static Analysis::APIDumpAnalysis::QueryStatus run_resource (const DependencyFileContent& in_analysis,
+                                                                        const QueryArguments&        in_arguments,
+                                                                        Utils::Json::JsonWriter*     inout_writer_ptr,
+                                                                        std::string*                 out_error_ptr);
+            static Analysis::APIDumpAnalysis::QueryStatus run_resources(const DependencyFileContent& in_analysis,
+                                                                        const QueryArguments&        in_arguments,
+                                                                        Utils::Json::JsonWriter*     inout_writer_ptr);
+            static Analysis::APIDumpAnalysis::QueryStatus run_slice    (const DependencyFileContent& in_analysis,
+                                                                        const QueryArguments&        in_arguments,
+                                                                        Utils::Json::JsonWriter*     inout_writer_ptr,
+                                                                        std::string*                 out_error_ptr);
 
             /* write_resource_head writes what the resource is, and write_summary writes its totals. */
-            static void write_resource_head(const DependencyAnalysis& in_analysis,
-                                            const size_t&             in_n_resource,
-                                            Utils::Json::JsonWriter*  inout_writer_ptr);
+            static void write_resource_head(const DependencyFileContent& in_analysis,
+                                            const size_t&                in_n_resource,
+                                            Utils::Json::JsonWriter*     inout_writer_ptr);
             static void write_summary      (const ResourceSummary&    in_summary,
                                             Utils::Json::JsonWriter*  inout_writer_ptr);
         };

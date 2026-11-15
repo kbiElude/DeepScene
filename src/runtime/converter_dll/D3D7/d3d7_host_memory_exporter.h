@@ -6,7 +6,7 @@
 #define STEREO_CONVERTERDLL_D3D7_HOST_MEMORY_EXPORTER_H
 
 #include "interception/hooks/D3D7/types.h"
-#include "host_memory_exporter.h"
+#include "host_memory_exporter_base.h"
 #include <array>
 #include <stdint.h>
 #include <string>
@@ -24,7 +24,7 @@ namespace Stereo
          * The source (see ExportSource) holds the eye surfaces. The left surface is required. Without a right surface the frame has one
          * eye and the channel holds a single image. With both surfaces the image is twice as wide.
          */
-        class D3D7HostMemoryExporter : public HostMemoryExporter
+        class D3D7HostMemoryExporter : public HostMemoryExporterBase
         {
         public:
             /* The channel must outlive the exporter. The exporter says on it what it offers. */
@@ -58,7 +58,7 @@ namespace Stereo
                 Interception::Hooks::D3D7::IDirectDrawSurface7* surface_ptr = nullptr;
             };
 
-            /* The Direct3D 8 format (see PixelConverter) that matches the pixel format of the surface; 0 if no converted format matches. */
+            /* The Direct3D 8 format (see D3DFormatBgra8Converter) that matches the pixel format of the surface; 0 if no converted format matches. */
             static uint32_t get_pixel_format(const Interception::Hooks::D3D7::DDPIXELFORMAT& in_pixel_format);
 
             static bool lock_surface(void*          in_surface_ptr,

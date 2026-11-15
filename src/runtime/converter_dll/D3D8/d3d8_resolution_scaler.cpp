@@ -11,11 +11,11 @@
 #include "common/vtable.h"
 #include <string.h>
 
-Stereo::ConverterDLL::D3D8ResolutionScaler::D3D8ResolutionScaler(const uint32_t&              in_target_width,
-                                                                 const uint32_t&              in_target_height,
-                                                                 Stereo::Core::StereoCore*    in_core_ptr,
-                                                                 const RenderTargetFunc&      in_render_target_func,
-                                                                 const Stereo::Core::LogFunc& in_log_func)
+Stereo::ConverterDLL::D3D8ResolutionScaler::D3D8ResolutionScaler(const uint32_t&                    in_target_width,
+                                                                 const uint32_t&                    in_target_height,
+                                                                 Stereo::Core::RecipeStereoPlanner* in_core_ptr,
+                                                                 const RenderTargetFunc&            in_render_target_func,
+                                                                 const Stereo::Core::LogFunc&       in_log_func)
     :m_asked_height      (0),
      m_asked_width       (0),
      m_core_ptr          (in_core_ptr),

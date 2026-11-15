@@ -6,9 +6,9 @@
 #include "analysis/api_dump_dependencies/rectangle_coverage.h"
 #include <algorithm>
 
-bool Stereo::Replay::Inspector::FrameRepeatability::is_repeatable(const Analysis::APIDumpDependencies::DependencyAnalysis& in_analysis,
-                                                                  const uint32_t&                                          in_frame_index,
-                                                                  std::string*                                             out_reason_ptr)
+bool Stereo::Replay::Inspector::FrameRepeatability::is_repeatable(const Analysis::APIDumpDependencies::DependencyFileContent& in_analysis,
+                                                                  const uint32_t&                                             in_frame_index,
+                                                                  std::string*                                                out_reason_ptr)
 {
     const auto& call_range_vec = in_analysis.frame_call_range_vec;
     const auto& resource_vec   = in_analysis.result.resource_vec;

@@ -23,17 +23,17 @@ namespace Analysis
         {
         public:
             static bool                 deserialize_dependencies(const std::vector<uint8_t>& in_byte_vec,
-                                                                 DependencyAnalysis*         inout_analysis_ptr);
+                                                                 DependencyFileContent*      inout_analysis_ptr);
             static bool                 deserialize_frames      (const std::vector<uint8_t>& in_byte_vec,
-                                                                 DependencyAnalysis*         inout_analysis_ptr);
+                                                                 DependencyFileContent*      inout_analysis_ptr);
             static bool                 deserialize_meta        (const std::vector<uint8_t>& in_byte_vec,
-                                                                 DependencyAnalysis*         out_analysis_ptr);
+                                                                 DependencyFileContent*      out_analysis_ptr);
             static bool                 deserialize_resources   (const std::vector<uint8_t>& in_byte_vec,
-                                                                 DependencyAnalysis*         out_analysis_ptr);
-            static std::vector<uint8_t> serialize_dependencies  (const DependencyAnalysis&   in_analysis);
-            static std::vector<uint8_t> serialize_frames        (const DependencyAnalysis&   in_analysis);
-            static std::vector<uint8_t> serialize_meta          (const DependencyAnalysis&   in_analysis);
-            static std::vector<uint8_t> serialize_resources     (const DependencyAnalysis&   in_analysis);
+                                                                 DependencyFileContent*      out_analysis_ptr);
+            static std::vector<uint8_t> serialize_dependencies  (const DependencyFileContent&   in_analysis);
+            static std::vector<uint8_t> serialize_frames        (const DependencyFileContent&   in_analysis);
+            static std::vector<uint8_t> serialize_meta          (const DependencyFileContent&   in_analysis);
+            static std::vector<uint8_t> serialize_resources     (const DependencyFileContent&   in_analysis);
 
         private:
             /* Reads an enumeration value in the range from 0 to in_last_value. A larger value makes the reader fail. */

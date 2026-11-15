@@ -353,7 +353,7 @@ std::vector<uint8_t> Tests::GLCallBuilder::make_snapshot(const std::vector<Clien
 {
     std::vector<uint8_t> result_u8vec;
 
-    /* The fields of an array, in the order in which the dumper writes them (see ClientArrayManager). */
+    /* The fields of an array, in the order in which the dumper writes them (see ClientVertexArrayTracker). */
     const auto add_u32_func = [&result_u8vec](const uint32_t& in_value)
     {
         const uint8_t* value_ptr = reinterpret_cast<const uint8_t*>(&in_value);

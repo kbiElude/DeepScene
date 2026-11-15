@@ -17,7 +17,7 @@ namespace Stereo
 {
     namespace Core
     {
-        /* How DepthMeasurer counts the distances of a depth buffer. first_distance_key is the first bin used for a distance. The bins before it
+        /* How FastDepthRangeMeasurer counts the distances of a depth buffer. first_distance_key is the first bin used for a distance. The bins before it
          * are for pixels without a distance, one bin for each of the 8 pixels that the pixel pass handles together, so that these pixels never
          * wait for each other. key_shift is the number of low bits of a distance that are dropped to get its bin. n_bins is the number of bins
          * in one histogram. n_sub_histograms is the number of histograms (a power of 2).
@@ -39,7 +39,7 @@ namespace Stereo
             uint32_t min_key = UINT32_MAX;
         };
 
-        /* The result of the pass over the pixels of a depth buffer (see DepthMeasurer): the range of histogram bins that were used and the
+        /* The result of the pass over the pixels of a depth buffer (see FastDepthRangeMeasurer): the range of histogram bins that were used and the
          * number of pixels that were not drawn to.
          */
         struct DepthPassResult
@@ -48,7 +48,7 @@ namespace Stereo
             size_t        n_sky = 0;
         };
 
-        /* What to look for among the distances of the pixels that were drawn to (see DepthBufferStatistics::get_selection). */
+        /* What to look for among the distances of the pixels that were drawn to (see DepthRangeMeasurer::get_selection). */
         struct DepthSelection
         {
             float  far_plane = 0.0f; /* the distance of the sky (the far plane) */

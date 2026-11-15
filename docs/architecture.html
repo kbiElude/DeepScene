@@ -88,7 +88,7 @@
 <ul>
   <li>A part is a folder and a namespace of its library: <code>src/libs/analysis/recipe</code> is <code>Analysis::Recipe</code>.</li>
   <li>Headers sit beside their sources.</li>
-  <li>An include names the library from <code>src/libs</code> (<code>#include "stereo/core/stereo_core.h"</code>).</li>
+  <li>An include names the library from <code>src/libs</code> (<code>#include "stereo/core/recipe_stereo_planner.h"</code>).</li>
 </ul>
 <figure>
 <svg viewBox="0 0 900 330" role="img" aria-label="The five libraries and their parts">
@@ -206,7 +206,7 @@
 <table>
 <tr><th>If you want to change…</th><th>Look in</th></tr>
 <tr><td>How far apart the eyes are, where they converge, the comfort limits</td><td><code>libs/stereo/core</code> (<code>ConvergenceModel</code>), the baker in <code>tools/analysis/recipe_bake</code>; see <a href="stereo.html">Stereo</a></td></tr>
-<tr><td>How a draw is classified live (scene, interface, skipped)</td><td><code>libs/stereo/core</code> (<code>StereoCore</code>), <code>libs/analysis/recipe</code> (<code>RecipeApplier</code>)</td></tr>
+<tr><td>How a draw is classified live (scene, interface, skipped)</td><td><code>libs/stereo/core</code> (<code>RecipeStereoPlanner</code>), <code>libs/analysis/recipe</code> (<code>RecipeApplier</code>)</td></tr>
 <tr><td>What the analysis understands of an API</td><td><code>libs/analysis/api_dump_analysis/frontends/&lt;api&gt;</code></td></tr>
 <tr><td>How the second eye is drawn in the running program</td><td><code>runtime/converter_dll/&lt;api&gt;</code></td></tr>
 <tr><td>What the analysis keeps of textures</td><td><code>libs/analysis/api_dump_textures</code>, <code>tools/analysis/api_dump_texture_extractor</code></td></tr>

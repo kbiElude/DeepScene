@@ -21,7 +21,7 @@ namespace
     /* An analysis of a small workload: a texture which is written and then sampled, and a target which is cleared and sampled, in four
      * frames of four calls each.
      */
-    DependencyAnalysis make_analysis()
+    DependencyFileContent make_analysis()
     {
         Tests::DependencyScene scene;
         const auto             texture = scene.create_resource(1,
@@ -55,7 +55,7 @@ namespace
             scene.end_frame  ();
         }
 
-        DependencyAnalysis result = scene.make_analysis();
+        DependencyFileContent result = scene.make_analysis();
 
         result.is_truncated                   = true;
         result.workload_reference.header_hash = 0x1111;
@@ -97,10 +97,10 @@ namespace
 
 TEST(DepsFile, WhatIsWrittenIsWhatIsRead)
 {
-    const DependencyAnalysis   analysis = make_analysis();
-    DependencyAnalysis         loaded;
-    std::string                error;
-    const std::vector<uint8_t> byte_vec = DepsFile::write_bytes(analysis);
+    const DependencyFileContent analysis = make_analysis();
+    DependencyFileContent       loaded;
+    std::string                 error;
+    const std::vector<uint8_t>  byte_vec = DepsFile::write_bytes(analysis);
 
     ASSERT_FALSE(byte_vec.empty() );
     ASSERT_TRUE (DepsFile::read_bytes(byte_vec,
@@ -200,9 +200,9 @@ TEST(DepsFile, WhatIsWrittenIsWhatIsRead)
 
 TEST(DepsFile, TheSameAnalysisGivesTheSameBytesAndAFileCanBeWrittenAndReadBack)
 {
-    const DependencyAnalysis analysis = make_analysis();
-    std::string              error;
-    DependencyAnalysis       loaded;
+    const DependencyFileContent analysis = make_analysis();
+    std::string                 error;
+    DependencyFileContent       loaded;
 
     EXPECT_EQ(DepsFile::write_bytes(analysis),
               DepsFile::write_bytes(analysis) );
@@ -229,7 +229,7 @@ TEST(DepsFile, TheSameAnalysisGivesTheSameBytesAndAFileCanBeWrittenAndReadBack)
 TEST(DepsFile, AFileWhichIsNotOneOrIsOfAnotherVersionIsRefused)
 {
     std::string                error;
-    DependencyAnalysis         loaded;
+    DependencyFileContent      loaded;
     std::vector<uint8_t>       byte_vec = DepsFile::write_bytes(make_analysis() );
 
     {
@@ -272,9 +272,9 @@ TEST(DepsFile, AFileWhichIsNotOneOrIsOfAnotherVersionIsRefused)
 
 TEST(DepsFile, ADamagedOrCutFileIsRefused)
 {
-    std::string          error;
-    DependencyAnalysis   loaded;
-    std::vector<uint8_t> byte_vec = DepsFile::write_bytes(make_analysis() );
+    std::string           error;
+    DependencyFileContent loaded;
+    std::vector<uint8_t>  byte_vec = DepsFile::write_bytes(make_analysis() );
 
     const auto section_vec = find_sections(byte_vec);
 
@@ -321,12 +321,12 @@ TEST(DepsFile, ADamagedOrCutFileIsRefused)
 
 TEST(DepsFile, DependenciesWhichDoNotFitTheFramesOrTheResourcesAreInvalid)
 {
-    std::string        error;
-    DependencyAnalysis loaded;
+    std::string           error;
+    DependencyFileContent loaded;
 
     /* A frame which the run of a resource is in is not one of the frames of the file. */
     {
-        DependencyAnalysis analysis = make_analysis();
+        DependencyFileContent analysis = make_analysis();
 
         analysis.result.resource_vec.at(0).use_run_vec.back().last_frame_index = 99;
 
@@ -339,7 +339,7 @@ TEST(DepsFile, DependenciesWhichDoNotFitTheFramesOrTheResourcesAreInvalid)
 
     /* The resources of the dependencies are not the resources of the file. */
     {
-        DependencyAnalysis analysis = make_analysis();
+        DependencyFileContent analysis = make_analysis();
 
         analysis.result.resource_vec.pop_back();
 
@@ -350,7 +350,7 @@ TEST(DepsFile, DependenciesWhichDoNotFitTheFramesOrTheResourcesAreInvalid)
 
     /* Frames whose calls overlap. */
     {
-        DependencyAnalysis analysis = make_analysis();
+        DependencyFileContent analysis = make_analysis();
 
         analysis.frame_call_range_vec.at(1).first_call_index = 0;
 
@@ -397,10 +397,10 @@ TEST(DepsFile, TheExtentTheRectanglesAndTheInputsOfWritesAreKept)
         scene.end_frame();
     }
 
-    const DependencyAnalysis analysis = scene.make_analysis();
-    const std::string        filename = ::testing::TempDir() + "deps_rectangles_test.deps";
-    std::string              error;
-    DependencyAnalysis       loaded;
+    const DependencyFileContent analysis = scene.make_analysis();
+    const std::string           filename = ::testing::TempDir() + "deps_rectangles_test.deps";
+    std::string                 error;
+    DependencyFileContent       loaded;
 
     ASSERT_TRUE(analysis.result.resource_vec.at(1).written_extent.is_known);
     ASSERT_TRUE(analysis.result.resource_vec.at(1).version_vec.at(1).has_inputs);

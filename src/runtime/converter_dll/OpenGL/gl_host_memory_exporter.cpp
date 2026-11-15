@@ -13,7 +13,7 @@ const uint32_t Stereo::ConverterDLL::GLHostMemoryExporter::BYTES_PER_PIXEL = 4;
 const uint32_t Stereo::ConverterDLL::GLHostMemoryExporter::N_EYES          = 2;
 
 Stereo::ConverterDLL::GLHostMemoryExporter::GLHostMemoryExporter(Stereo::Transport::FrameChannel* inout_channel_ptr)
-    :HostMemoryExporter   (inout_channel_ptr),
+    :HostMemoryExporterBase   (inout_channel_ptr),
      m_n_frames_per_second(0)
 {
     /* A debugging aid for a run without a program that shows the images. The application is held to a frame rate, as the Direct3D 7 path is,

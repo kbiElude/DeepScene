@@ -145,7 +145,7 @@ namespace Analysis
         };
 
         /* The content of a .deps file: the dependency result, plus what identifies it (the workload, the resources, the calls of each frame). */
-        struct DependencyAnalysis
+        struct DependencyFileContent
         {
             std::vector<FrameCallRange>                      frame_call_range_vec;       /* of the frames that ended                     */
             bool                                             is_truncated      = false;  /* the workload ends in the middle of a segment */

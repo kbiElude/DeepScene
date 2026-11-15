@@ -13,7 +13,7 @@ namespace Stereo
 {
     namespace Core
     {
-        /* The pixel pass of DepthMeasurer for a processor that has AVX2. It is a class of its own because its .cpp file is compiled with AVX2
+        /* The pixel pass of FastDepthRangeMeasurer for a processor that has AVX2. It is a class of its own because its .cpp file is compiled with AVX2
          * enabled, so no code that the rest of the program may call can live there.
          */
         class DepthHistogramAvx2

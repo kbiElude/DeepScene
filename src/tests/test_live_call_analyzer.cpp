@@ -2,11 +2,11 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Tests for what the feeder does with the data chunks of the calls it analyses: they come out of the interceptor with the bytes that were put in, whatever their sizes, in the
- * vectors that the feeder keeps for the next calls, and what a call leaves in a vector is not seen by the call after it.
+ * Tests for what the call analyzer does with the data chunks of the calls it analyses: they come out of the interceptor with the bytes that were put in, whatever their sizes, in the
+ * vectors that the call analyzer keeps for the next calls, and what a call leaves in a vector is not seen by the call after it.
  */
 #include <gtest/gtest.h>
-#include "call_feeder.h"
+#include "live_call_analyzer.h"
 #include "common/callbacks.h"
 #include <vector>
 
@@ -30,7 +30,7 @@ namespace
     }
 
     /* Registers the bytes as chunks, and makes the call that has them as its arguments. */
-    std::vector<uint32_t> make_call(Stereo::ConverterDLL::CallFeeder*           inout_feeder_ptr,
+    std::vector<uint32_t> make_call(Stereo::ConverterDLL::LiveCallAnalyzer*     inout_call_analyzer_ptr,
                                     const std::vector<std::vector<uint8_t> >&   in_bytes_vec)
     {
         std::vector<uint32_t>                          chunk_id_vec;
@@ -44,28 +44,28 @@ namespace
             argument_vec.push_back(APIInterceptor::APIFunctionArgument::create_data_chunk_id(chunk_id_vec.back() ) );
         }
 
-        inout_feeder_ptr->on_pre (CALL_FUNCTION,
-                                  static_cast<uint32_t>(argument_vec.size() ),
-                                  argument_vec.data() );
-        inout_feeder_ptr->on_post(CALL_FUNCTION,
-                                  0,
-                                  nullptr,
-                                  nullptr);
+        inout_call_analyzer_ptr->on_pre (CALL_FUNCTION,
+                                         static_cast<uint32_t>(argument_vec.size() ),
+                                         argument_vec.data() );
+        inout_call_analyzer_ptr->on_post(CALL_FUNCTION,
+                                         0,
+                                         nullptr,
+                                         nullptr);
 
         return chunk_id_vec;
     }
 
-    std::vector<uint8_t> read_chunk(const Stereo::ConverterDLL::CallFeeder& in_feeder,
-                                    const uint32_t&                         in_chunk_id,
-                                    bool*                                   out_is_there_ptr)
+    std::vector<uint8_t> read_chunk(const Stereo::ConverterDLL::LiveCallAnalyzer& in_call_analyzer,
+                                    const uint32_t&                               in_chunk_id,
+                                    bool*                                         out_is_there_ptr)
     {
         const void*          data_ptr = nullptr;
         uint32_t             n_bytes  = 0;
         std::vector<uint8_t> result_u8_vec;
 
-        *out_is_there_ptr = in_feeder.get_last_call_chunk(in_chunk_id,
-                                                         &data_ptr,
-                                                         &n_bytes);
+        *out_is_there_ptr = in_call_analyzer.get_last_call_chunk(in_chunk_id,
+                                                                &data_ptr,
+                                                                &n_bytes);
 
         if (*out_is_there_ptr)
         {
@@ -79,31 +79,31 @@ namespace
 
 TEST(CallFeederTest, TheChunkOfACallIsGivenWithItsBytesWhenTheCallIsDone)
 {
-    Stereo::ConverterDLL::CallFeeder feeder;
-    bool                             is_there = false;
+    Stereo::ConverterDLL::LiveCallAnalyzer call_analyzer;
+    bool                                   is_there = false;
 
     const std::vector<std::vector<uint8_t> > bytes_vec = {make_bytes(1,
                                                                      12)};
     const auto                               held_before = APIInterceptor::get_n_held_data_chunks();
-    const auto                               id_vec      = make_call(&feeder,
+    const auto                               id_vec      = make_call(&call_analyzer,
                                                                      bytes_vec);
 
-    EXPECT_EQ(read_chunk(feeder,
+    EXPECT_EQ(read_chunk(call_analyzer,
                          id_vec.at(0),
                         &is_there),
               bytes_vec.at(0) );
     EXPECT_TRUE(is_there);
 
-    /* The feeder took the chunk out of the interceptor: nothing of it is left there. */
+    /* The call analyzer took the chunk out of the interceptor: nothing of it is left there. */
     EXPECT_EQ(APIInterceptor::get_n_held_data_chunks(),
               held_before);
 }
 
 TEST(CallFeederTest, TheChunksOfManyCallsAreEachTheBytesOfItsOwnCallWhateverTheirSizes)
 {
-    Stereo::ConverterDLL::CallFeeder feeder;
-    const size_t                     size_array[] = {1, 3, 12, 64, 255, 256, 257, 1000, 12, 3};
-    const auto                       held_before  = APIInterceptor::get_n_held_data_chunks();
+    Stereo::ConverterDLL::LiveCallAnalyzer call_analyzer;
+    const size_t                           size_array[] = {1, 3, 12, 64, 255, 256, 257, 1000, 12, 3};
+    const auto                             held_before  = APIInterceptor::get_n_held_data_chunks();
 
     for (uint32_t n_call = 0;
                   n_call < 500;
@@ -114,10 +114,10 @@ TEST(CallFeederTest, TheChunksOfManyCallsAreEachTheBytesOfItsOwnCallWhateverThei
                                          size_array[n_call % (sizeof(size_array) / sizeof(size_array[0]) )]);
 
         const std::vector<std::vector<uint8_t> > bytes_vec = {bytes};
-        const auto                               id_vec    = make_call(&feeder,
+        const auto                               id_vec    = make_call(&call_analyzer,
                                                                        bytes_vec);
 
-        ASSERT_EQ(read_chunk(feeder,
+        ASSERT_EQ(read_chunk(call_analyzer,
                              id_vec.at(0),
                             &is_there),
                   bytes) << "call " << n_call;
@@ -130,8 +130,8 @@ TEST(CallFeederTest, TheChunksOfManyCallsAreEachTheBytesOfItsOwnCallWhateverThei
 
 TEST(CallFeederTest, ACallWithSeveralChunksGivesEachByItsNumber)
 {
-    Stereo::ConverterDLL::CallFeeder feeder;
-    bool                             is_there = false;
+    Stereo::ConverterDLL::LiveCallAnalyzer call_analyzer;
+    bool                                   is_there = false;
 
     const std::vector<std::vector<uint8_t> > bytes_vec = {make_bytes(10,
                                                                      5),
@@ -142,18 +142,18 @@ TEST(CallFeederTest, ACallWithSeveralChunksGivesEachByItsNumber)
                                                           make_bytes(40,
                                                                      64)};
 
-    /* The first call has the same shape, to fill the vectors that the feeder keeps with the bytes of other chunks. */
-    make_call(&feeder,
+    /* The first call has the same shape, to fill the vectors that the call analyzer keeps with the bytes of other chunks. */
+    make_call(&call_analyzer,
               bytes_vec);
 
-    const auto id_vec = make_call(&feeder,
+    const auto id_vec = make_call(&call_analyzer,
                                   bytes_vec);
 
     for (size_t n_chunk = 0;
                 n_chunk < bytes_vec.size();
               ++n_chunk)
     {
-        EXPECT_EQ(read_chunk(feeder,
+        EXPECT_EQ(read_chunk(call_analyzer,
                              id_vec.at(n_chunk),
                             &is_there),
                   bytes_vec.at(n_chunk) );
@@ -163,8 +163,8 @@ TEST(CallFeederTest, ACallWithSeveralChunksGivesEachByItsNumber)
 
 TEST(CallFeederTest, WhatAChunkFuncMakesOfAChunkIsNotSeenByTheCallsAfterIt)
 {
-    Stereo::ConverterDLL::CallFeeder feeder;
-    bool                             is_there = false;
+    Stereo::ConverterDLL::LiveCallAnalyzer call_analyzer;
+    bool                                   is_there = false;
 
     const auto change_func = [](const APIInterceptor::APIFunction& in_function,
                                 std::vector<uint8_t>*              inout_chunk_ptr)
@@ -175,28 +175,28 @@ TEST(CallFeederTest, WhatAChunkFuncMakesOfAChunkIsNotSeenByTheCallsAfterIt)
                                 0xAB);
     };
 
-    feeder.set_chunk_func(change_func);
+    call_analyzer.set_chunk_func(change_func);
 
     const std::vector<std::vector<uint8_t> > first_bytes_vec = {make_bytes(1,
                                                                            8)};
-    const auto                               first_id_vec    = make_call(&feeder,
+    const auto                               first_id_vec    = make_call(&call_analyzer,
                                                                          first_bytes_vec);
 
-    EXPECT_EQ(read_chunk(feeder,
+    EXPECT_EQ(read_chunk(call_analyzer,
                          first_id_vec.at(0),
                         &is_there),
               std::vector<uint8_t>(40,
                                    0xAB) );
 
     /* The vector that held the 40 bytes is the one that holds the next chunk, which has the bytes it was made of. */
-    feeder.set_chunk_func(Stereo::ConverterDLL::CallFeeder::ChunkFunc() );
+    call_analyzer.set_chunk_func(Stereo::ConverterDLL::LiveCallAnalyzer::ChunkFunc() );
 
     const std::vector<std::vector<uint8_t> > second_bytes_vec = {make_bytes(100,
                                                                             5)};
-    const auto                               second_id_vec    = make_call(&feeder,
+    const auto                               second_id_vec    = make_call(&call_analyzer,
                                                                           second_bytes_vec);
 
-    EXPECT_EQ(read_chunk(feeder,
+    EXPECT_EQ(read_chunk(call_analyzer,
                          second_id_vec.at(0),
                         &is_there),
               second_bytes_vec.at(0) );
@@ -205,22 +205,22 @@ TEST(CallFeederTest, WhatAChunkFuncMakesOfAChunkIsNotSeenByTheCallsAfterIt)
 
 TEST(CallFeederTest, AChunkThatIsNotInTheInterceptorIsNotGiven)
 {
-    Stereo::ConverterDLL::CallFeeder feeder;
-    bool                             is_there = true;
+    Stereo::ConverterDLL::LiveCallAnalyzer call_analyzer;
+    bool                                   is_there = true;
 
     constexpr uint32_t CHUNK_ID_NEVER_MADE = 0x7FFFFFF0u;
 
     const APIInterceptor::APIFunctionArgument argument = APIInterceptor::APIFunctionArgument::create_data_chunk_id(CHUNK_ID_NEVER_MADE);
 
-    feeder.on_pre (CALL_FUNCTION,
-                   1,
-                  &argument);
-    feeder.on_post(CALL_FUNCTION,
-                   0,
-                   nullptr,
-                   nullptr);
+    call_analyzer.on_pre (CALL_FUNCTION,
+                          1,
+                         &argument);
+    call_analyzer.on_post(CALL_FUNCTION,
+                          0,
+                          nullptr,
+                          nullptr);
 
-    read_chunk(feeder,
+    read_chunk(call_analyzer,
                CHUNK_ID_NEVER_MADE,
               &is_there);
 

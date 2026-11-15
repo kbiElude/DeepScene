@@ -99,7 +99,7 @@ namespace Stereo
                                             bool*           out_has_workload_ended_ptr);
 
                 /* Executes a draw. If the draw is in screen space and the recipe says how to shift it, its vertices are shifted for the
-                 * eye (see ScreenParallax). Otherwise the draw is executed as it is. in_pass_structure_id is the structure of the pass that
+                 * eye (see ScreenSpaceVertexShifter). Otherwise the draw is executed as it is. in_pass_structure_id is the structure of the pass that
                  * the draw is in.
                  */
                 bool execute_draw_call     (const Capture::APIDumpLoader::DumpedAPICall&   in_call,

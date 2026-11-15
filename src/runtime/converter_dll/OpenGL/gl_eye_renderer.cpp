@@ -12,10 +12,10 @@
 #include <algorithm>
 #include <cstring>
 
-Stereo::ConverterDLL::GLEyeRenderer::GLEyeRenderer(Stereo::Core::StereoCore* in_core_ptr,
-                                                   const bool&               in_is_shown_elsewhere,
-                                                   const uint32_t&           in_target_width,
-                                                   const uint32_t&           in_target_height)
+Stereo::ConverterDLL::GLEyeRenderer::GLEyeRenderer(Stereo::Core::RecipeStereoPlanner* in_core_ptr,
+                                                   const bool&                        in_is_shown_elsewhere,
+                                                   const uint32_t&                    in_target_width,
+                                                   const uint32_t&                    in_target_height)
     :m_bound_texture_array(),
      m_active_unit        (0),
      m_applied_height     (0),
@@ -28,7 +28,7 @@ Stereo::ConverterDLL::GLEyeRenderer::GLEyeRenderer(Stereo::Core::StereoCore* in_
      m_core_ptr           (in_core_ptr),
      m_depth_generation   (0),
      m_depth_lag          (0),
-     m_depth_measurer     (true),
+     m_fast_depth_range_measurer     (true),
      m_get_chunk_func     (),
      m_has_failed         (false),
      m_is_in_app_list     (false),
@@ -229,12 +229,12 @@ Stereo::Core::DepthRange Stereo::ConverterDLL::GLEyeRenderer::measure_depths(con
     const size_t step          = (in_n_depths > N_DEPTHS_LOOKED_AT_WHOLE) ? N_PIXELS_BETWEEN_SAMPLES
                                                                           : 1;
 
-    return m_depth_measurer.measure(in_depth_ptr,
-                                    in_n_depths,
-                                    step,
-                                    in_z_scale,
-                                    in_z_shift,
-                                    near_fraction);
+    return m_fast_depth_range_measurer.measure(in_depth_ptr,
+                                               in_n_depths,
+                                               step,
+                                               in_z_scale,
+                                               in_z_shift,
+                                               near_fraction);
 }
 
 void Stereo::ConverterDLL::GLEyeRenderer::measure_pass_depth()
@@ -1189,7 +1189,7 @@ const void* Stereo::ConverterDLL::GLEyeRenderer::resolve_pointer(const APIInterc
     {
         uint32_t n_bytes = 0;
 
-        /* The chunk belongs to the converter now: the feeder took it out of the interceptor when it analysed the call. */
+        /* The chunk belongs to the converter now: the call analyzer took it out of the interceptor when it analysed the call. */
         if (m_get_chunk_func                                          == nullptr ||
             m_get_chunk_func(in_argument.get_data_chunk_id(),
                             &result,

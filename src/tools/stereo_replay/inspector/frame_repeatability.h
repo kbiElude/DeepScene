@@ -25,9 +25,9 @@ namespace Stereo
             {
             public:
                 /* False if the frame cannot be played again from the state it leaves. The reason is then set for people (and for a test). */
-                static bool is_repeatable(const Analysis::APIDumpDependencies::DependencyAnalysis& in_analysis,
-                                          const uint32_t&                                          in_frame_index,
-                                          std::string*                                             out_reason_ptr);
+                static bool is_repeatable(const Analysis::APIDumpDependencies::DependencyFileContent& in_analysis,
+                                          const uint32_t&                                             in_frame_index,
+                                          std::string*                                                out_reason_ptr);
             };
         }
     }

@@ -13,7 +13,7 @@
 
 namespace
 {
-    using Analysis::APIDumpDependencies::DependencyAnalysis;
+    using Analysis::APIDumpDependencies::DependencyFileContent;
     using Analysis::APIDumpDependencies::FrameRange;
     using Analysis::APIDumpDependencies::FrameSlicePlanner;
     using Analysis::APIDumpDependencies::ResourceDependencies;
@@ -48,10 +48,10 @@ namespace
         return result;
     }
 
-    DependencyAnalysis make_analysis(const uint64_t&                   in_n_frames,
-                                     const std::vector<ResourceDependencies>& in_resource_vec)
+    DependencyFileContent make_analysis(const uint64_t&                in_n_frames,
+                                        const std::vector<ResourceDependencies>& in_resource_vec)
     {
-        DependencyAnalysis result;
+        DependencyFileContent result;
 
         result.result.n_frames      = in_n_frames;
         result.result.resource_vec = in_resource_vec;
@@ -295,7 +295,7 @@ namespace
     /* Three resources and what frame 2 does with them: it uses what frame 0 wrote of resource 3 and what frame 1 wrote of resource 2, and writes resource 1
      * (version 1), which frame 5 uses. What flows into version 1 is resource 2 only, if the version says so (has_inputs).
      */
-    DependencyAnalysis make_inputs_analysis(const bool& in_has_inputs)
+    DependencyFileContent make_inputs_analysis(const bool& in_has_inputs)
     {
         ResourceVersion written = make_version(true, 2, false, {make_range(5, 5)});
 
@@ -336,7 +336,7 @@ TEST(FrameSlicePlanner, AFrameThatDoesNotSayWhatFlowsIntoAVersionIsGivenAllThatI
 TEST(FrameSlicePlanner, AFrameThatIsMadeInPartIsMadeInFullIfAnotherVersionOfItIsNeededInFull)
 {
     /* Frame 2 also wrote version 1 of a fourth resource, which says nothing of what flows into it and which frame 6 uses. */
-    DependencyAnalysis analysis = make_inputs_analysis(true);
+    DependencyFileContent analysis = make_inputs_analysis(true);
 
     analysis.result.resource_vec.push_back(make_resource({make_version(false, 0, false, {}),
                                                           make_version(true,  2, false, {make_range(6, 6)})}));

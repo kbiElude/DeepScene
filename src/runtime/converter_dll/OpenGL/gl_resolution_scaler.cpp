@@ -12,10 +12,10 @@
 #include "resolution_hazard_gate.h"
 #include "eye_image_limits.h"
 
-Stereo::ConverterDLL::GLResolutionScaler::GLResolutionScaler(const uint32_t&              in_target_width,
-                                                             const uint32_t&              in_target_height,
-                                                             Stereo::Core::StereoCore*    in_core_ptr,
-                                                             const Stereo::Core::LogFunc& in_log_func)
+Stereo::ConverterDLL::GLResolutionScaler::GLResolutionScaler(const uint32_t&                    in_target_width,
+                                                             const uint32_t&                    in_target_height,
+                                                             Stereo::Core::RecipeStereoPlanner* in_core_ptr,
+                                                             const Stereo::Core::LogFunc&       in_log_func)
     :m_asked_height(0),
      m_asked_width (0),
      m_core_ptr    (in_core_ptr),

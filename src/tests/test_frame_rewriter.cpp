@@ -50,7 +50,7 @@ protected:
     void SetUp() override
     {
         Analysis::Recipe::ArgumentCondition condition;
-        Analysis::Recipe::Rule              rule;
+        Analysis::Recipe::MatrixRule        rule;
 
         condition.argument_index = 1;
         condition.value          = Interception::Hooks::D3D8::D3DTS_VIEW;

@@ -5,11 +5,11 @@
 #include "analysis/api_dump_analysis/frontends/D3D8/d3d8_frontend.h"
 #include "common/macros.h"
 #include "common/vtable.h"
-#include "call_feeder.h"
+#include "live_call_analyzer.h"
 #include "d3d8_eye_renderer.h"
-#include "stereo/core/screen_parallax.h"
+#include "stereo/core/screen_space_vertex_shifter.h"
 
-Stereo::ConverterDLL::D3D8EyeRenderer::D3D8EyeRenderer(Stereo::Core::StereoCore* in_core_ptr)
+Stereo::ConverterDLL::D3D8EyeRenderer::D3D8EyeRenderer(Stereo::Core::RecipeStereoPlanner* in_core_ptr)
     :m_core_ptr      (in_core_ptr),
      m_device_ptr    (nullptr),
      m_draw_class    (Analysis::Recipe::DrawClass::AFFECTED),
@@ -551,7 +551,7 @@ void Stereo::ConverterDLL::D3D8EyeRenderer::on_post(const APIInterceptor::APIFun
         default:
         {
             /* A skipped draw is not repeated for the right eye. */
-            const bool is_draw = CallFeeder::is_draw(in_function);
+            const bool is_draw = LiveCallAnalyzer::is_draw(in_function);
 
             if (is_draw)
             {

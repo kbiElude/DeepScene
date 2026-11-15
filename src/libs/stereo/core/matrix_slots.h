@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
  * The application's matrices that a recipe rule is about, and which version of each one the device holds. The application sets the
- * matrices, and a draw needs the versions for its eye. StereoCore owns it.
+ * matrices, and a draw needs the versions for its eye. RecipeStereoPlanner owns it.
  *
  * Not thread-safe.
  */
@@ -67,7 +67,7 @@ namespace Stereo
                 float                                            bound_separation           = 0.0f;
                 APIInterceptor::APIFunction                      function                   = APIInterceptor::APIFunction::APIFUNCTION_UNKNOWN;
                 std::array<float, 16>                            matrix_fp32vec16           = {}; /* as the application set it */
-                std::vector<const Analysis::Recipe::Rule*>       rule_ptr_vec;
+                std::vector<const Analysis::Recipe::MatrixRule*> rule_ptr_vec;
             };
 
 

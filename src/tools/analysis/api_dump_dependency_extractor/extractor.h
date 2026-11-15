@@ -14,7 +14,7 @@ namespace Analysis
 {
     namespace APIDumpDependencyExtractor
     {
-        void print_stats(const Analysis::APIDumpDependencies::DependencyAnalysis& in_analysis);
+        void print_stats(const Analysis::APIDumpDependencies::DependencyFileContent& in_analysis);
         void print_usage();
 
         /* Entry point of the tool (called by the global main). */

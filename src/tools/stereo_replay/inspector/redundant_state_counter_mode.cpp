@@ -16,8 +16,8 @@ bool Stereo::Replay::Inspector::take_redundant_state_count(const Stereo::Replay:
 {
     constexpr size_t N_FUNCTIONS_LISTED = 30;
 
-    Analysis::APIDumpDependencies::DependencyAnalysis analysis;
-    bool                                              result      = false;
+    Analysis::APIDumpDependencies::DependencyFileContent analysis;
+    bool                                                 result      = false;
     Stereo::Replay::Inspector::FrameHashSink sink(false); /* in_keeps_images */
     const bool                                        uses_recipe = (in_options.recipe_filename.empty() == false);
 

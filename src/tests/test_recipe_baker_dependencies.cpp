@@ -16,7 +16,7 @@ namespace
     const char* const RECIPE_TEXT = "{\"recipe_version\": 0, \"key_scheme_version\": 1, \"target\": {\"name\": \"test\", \"description\": \"a test\"}, \"rules\": []}";
 
     /* Two targets which are made in the same way, and which frames render to by turns, reading the one that the frame before rendered to. */
-    Analysis::APIDumpDependencies::DependencyAnalysis make_ping_pong_dependencies()
+    Analysis::APIDumpDependencies::DependencyFileContent make_ping_pong_dependencies()
     {
         Tests::DependencyScene scene;
         const auto             first  = scene.create_resource(1,

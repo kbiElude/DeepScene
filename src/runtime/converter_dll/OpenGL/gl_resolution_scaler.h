@@ -8,7 +8,7 @@
 #include "common/api_function_argument.h"
 #include "common/types.h"
 #include "stereo/core/resolution_policy.h"
-#include "stereo/core/stereo_core.h"
+#include "stereo/core/recipe_stereo_planner.h"
 #include "stereo/core/types.h"
 #include "types.h"
 #include <array>
@@ -37,10 +37,10 @@ namespace Stereo
              * as far as it fits the target (the size of one eye of the headset), keeping the proportions. It does nothing if there is no target or
              * the target is not larger than the window.
              */
-            GLResolutionScaler(const uint32_t&              in_target_width,
-                               const uint32_t&              in_target_height,
-                               Stereo::Core::StereoCore*    in_core_ptr,
-                               const Stereo::Core::LogFunc& in_log_func);
+            GLResolutionScaler(const uint32_t&                    in_target_width,
+                               const uint32_t&                    in_target_height,
+                               Stereo::Core::RecipeStereoPlanner* in_core_ptr,
+                               const Stereo::Core::LogFunc&       in_log_func);
 
             /* The window size of the application as given to plan(), or 0 before plan() is called. */
             uint32_t get_asked_height() const;
@@ -105,17 +105,17 @@ namespace Stereo
              */
             static bool is_null_pointer(const APIInterceptor::APIFunctionArgument& in_argument);
 
-            uint32_t                       m_asked_height;
-            uint32_t                       m_asked_width;
-            Stereo::Core::StereoCore*      m_core_ptr;
-            Stereo::Core::LogFunc          m_log_func;
-            uint32_t                       m_max_extent;
-            Stereo::Core::ResolutionPolicy m_policy;
-            uint32_t                       m_real_height;
-            uint32_t                       m_real_width;
-            std::set<uint32_t>             m_scaled_texture_set;
-            uint32_t                       m_target_height;
-            uint32_t                       m_target_width;
+            uint32_t                           m_asked_height;
+            uint32_t                           m_asked_width;
+            Stereo::Core::RecipeStereoPlanner* m_core_ptr;
+            Stereo::Core::LogFunc              m_log_func;
+            uint32_t                           m_max_extent;
+            Stereo::Core::ResolutionPolicy     m_policy;
+            uint32_t                           m_real_height;
+            uint32_t                           m_real_width;
+            std::set<uint32_t>                 m_scaled_texture_set;
+            uint32_t                           m_target_height;
+            uint32_t                           m_target_width;
         };
     }
 }

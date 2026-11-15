@@ -189,9 +189,9 @@ void Stereo::Replay::EngineDLL::StereoReplayEngine::reset()
 bool Stereo::Replay::EngineDLL::StereoReplayEngine::set_dependencies_file(const char*  in_filename_ptr,
                                                                           std::string* out_error_ptr)
 {
-    Analysis::APIDumpDependencies::DependencyAnalysis dependencies;
-    std::string                                       reason;
-    bool                                              result       = false;
+    Analysis::APIDumpDependencies::DependencyFileContent dependencies;
+    std::string                                          reason;
+    bool                                                 result       = false;
 
     if (Analysis::APIDumpDependencies::DepsFile::read(in_filename_ptr,
                                                      &dependencies,

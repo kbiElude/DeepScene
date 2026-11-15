@@ -2,8 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#ifndef STEREO_CORE_SCREEN_PARALLAX_H
-#define STEREO_CORE_SCREEN_PARALLAX_H
+#ifndef STEREO_CORE_SCREEN_SPACE_VERTEX_SHIFTER_H
+#define STEREO_CORE_SCREEN_SPACE_VERTEX_SHIFTER_H
 
 #include "analysis/recipe/types.h"
 #include "stereo/core/screen_parallax_planner.h"
@@ -16,10 +16,10 @@ namespace Stereo
     {
         /* Gives the vertices of a draw parallax for one eye, when the vertices are already in the space of the picture. In that space a
          * vertex position is in pixels and comes with the reciprocal of its depth. No matrix moves such a vertex, so the matrix of the eye
-         * cannot be used. See Analysis::Recipe::ScreenParallax for what is done to a vertex, and why. This class works on the bytes of the
+         * cannot be used. See Analysis::Recipe::ScreenParallaxSettings for what is done to a vertex, and why. This class works on the bytes of the
          * vertices, whoever holds them: a dump that is replayed, or an application that runs.
          */
-        class ScreenParallax
+        class ScreenSpaceVertexShifter
         {
         public:
             /* Everything that the shift of a vertex depends on. */
@@ -103,4 +103,4 @@ namespace Stereo
     }
 }
 
-#endif /* STEREO_CORE_SCREEN_PARALLAX_H */
+#endif /* STEREO_CORE_SCREEN_SPACE_VERTEX_SHIFTER_H */

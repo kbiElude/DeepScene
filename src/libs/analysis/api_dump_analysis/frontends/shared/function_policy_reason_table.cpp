@@ -2,13 +2,13 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/api_dump_analysis/frontends/shared/function_name_table.h"
+#include "analysis/api_dump_analysis/frontends/shared/function_policy_reason_table.h"
 #include "capture/api_dump_names/function_names.h"
 #include <string.h>
 
-const char* Analysis::APIDumpAnalysis::Frontends::FunctionNameTable::find_reason_ptr(const Entry*                       in_entry_ptr,
-                                                                                     const size_t&                      in_n_entries,
-                                                                                     const APIInterceptor::APIFunction& in_function)
+const char* Analysis::APIDumpAnalysis::Frontends::FunctionPolicyReasonTable::find_reason_ptr(const Entry*                       in_entry_ptr,
+                                                                                             const size_t&                      in_n_entries,
+                                                                                             const APIInterceptor::APIFunction& in_function)
 {
     const char* full_name_ptr   = Capture::APIDumpNames::get_function_name(in_function);
     const char* method_name_ptr = (full_name_ptr != nullptr) ? get_method_name_ptr(full_name_ptr)
@@ -39,7 +39,7 @@ const char* Analysis::APIDumpAnalysis::Frontends::FunctionNameTable::find_reason
     return result_ptr;
 }
 
-const char* Analysis::APIDumpAnalysis::Frontends::FunctionNameTable::get_method_name_ptr(const char* in_full_name_ptr)
+const char* Analysis::APIDumpAnalysis::Frontends::FunctionPolicyReasonTable::get_method_name_ptr(const char* in_full_name_ptr)
 {
     const char* separator_ptr = ::strstr(in_full_name_ptr,
                                          "::");
@@ -48,7 +48,7 @@ const char* Analysis::APIDumpAnalysis::Frontends::FunctionNameTable::get_method_
                                       : in_full_name_ptr;
 }
 
-bool Analysis::APIDumpAnalysis::Frontends::FunctionNameTable::is_query(const APIInterceptor::APIFunction& in_function)
+bool Analysis::APIDumpAnalysis::Frontends::FunctionPolicyReasonTable::is_query(const APIInterceptor::APIFunction& in_function)
 {
     const char* full_name_ptr = Capture::APIDumpNames::get_function_name(in_function);
     bool        result        = false;

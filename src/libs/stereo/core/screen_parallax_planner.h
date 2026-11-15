@@ -14,7 +14,7 @@ namespace Stereo
 {
     namespace Core
     {
-        /* What to do to the vertices of a draw that are already in the space of the picture (see ScreenParallax). */
+        /* What to do to the vertices of a draw that are already in the space of the picture (see ScreenSpaceVertexShifter). */
         struct ScreenShiftPlan
         {
             float                 convergence_distance  = 0.0f; /* used by PER_VERTEX, in the application's camera units         */

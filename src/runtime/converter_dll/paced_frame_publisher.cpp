@@ -2,12 +2,12 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "frame_passer.h"
+#include "paced_frame_publisher.h"
 #include "own_call_scope.h"
 #include <Windows.h>
 
-Stereo::ConverterDLL::FramePasser::FramePasser(std::unique_ptr<Stereo::Transport::IFrameExporter> in_exporter_ptr,
-                                               const SessionLog&                                  in_log)
+Stereo::ConverterDLL::PacedFramePublisher::PacedFramePublisher(std::unique_ptr<Stereo::Transport::IFrameExporter> in_exporter_ptr,
+                                                               const SessionLog&                                  in_log)
     :m_log(in_log)
 {
     LARGE_INTEGER start;
@@ -18,9 +18,9 @@ Stereo::ConverterDLL::FramePasser::FramePasser(std::unique_ptr<Stereo::Transport
     m_frame_state.start_qpc    = start.QuadPart;
 }
 
-void Stereo::ConverterDLL::FramePasser::on_present(void* in_device_ptr,
-                                                   void* in_left_surface_ptr,
-                                                   void* in_right_surface_ptr)
+void Stereo::ConverterDLL::PacedFramePublisher::on_present(void* in_device_ptr,
+                                                           void* in_left_surface_ptr,
+                                                           void* in_right_surface_ptr)
 {
     /* The viewer shows fewer than one image per MIN_COPY_INTERVAL_N_MILLISECONDS, so copying more often would only slow the application down. */
     constexpr int64_t MIN_COPY_INTERVAL_N_MILLISECONDS = 8;
@@ -122,7 +122,7 @@ void Stereo::ConverterDLL::FramePasser::on_present(void* in_device_ptr,
     }
 }
 
-void Stereo::ConverterDLL::FramePasser::wait_for_pace()
+void Stereo::ConverterDLL::PacedFramePublisher::wait_for_pace()
 {
     /* The state lock is not held here, because the wait can last a whole frame. */
     m_frame_state.exporter_ptr->wait_for_pace();

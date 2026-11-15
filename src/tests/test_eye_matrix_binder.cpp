@@ -37,7 +37,7 @@ protected:
         for (const auto state : {Interception::Hooks::D3D8::D3DTS_VIEW, Interception::Hooks::D3D8::D3DTS_PROJECTION})
         {
             Analysis::Recipe::ArgumentCondition condition;
-            Analysis::Recipe::Rule              rule;
+            Analysis::Recipe::MatrixRule        rule;
 
             condition.argument_index = 1;
             condition.value          = state;
@@ -310,7 +310,7 @@ TEST_F(EyeMatrixBinderTest, ACallWhichFailsFailsTheDraw)
 TEST_F(EyeMatrixBinderTest, AMatrixMadeForAnotherSeparationIsMadeAgainWhenTheSeparationChanges)
 {
     /* The view moves by half of the separation: the rule of the fixture is replaced by an eye offset. */
-    Analysis::Recipe::Rule rule = m_recipe.rule_vec.at(0);
+    Analysis::Recipe::MatrixRule rule = m_recipe.rule_vec.at(0);
 
     rule.action_kind = Analysis::Recipe::ActionKind::EYE_OFFSET;
     rule.offset_axis = Analysis::Recipe::Axis::X;

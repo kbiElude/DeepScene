@@ -32,8 +32,8 @@ namespace Analysis
             static bool is_live(const FrameSlice& in_slice,
                                 const uint64_t&   in_frame_index);
 
-            static FrameSlice plan(const DependencyAnalysis& in_analysis,
-                                   const uint64_t&           in_target_frame_index);
+            static FrameSlice plan(const DependencyFileContent& in_analysis,
+                                   const uint64_t&              in_target_frame_index);
 
         private:
             /* Computes, for each version of a resource, how far back a consumer of that version has to look.

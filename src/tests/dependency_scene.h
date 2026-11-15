@@ -127,9 +127,9 @@ namespace Tests
         }
 
         /* What a .deps file would hold of the workload that was made up. */
-        Analysis::APIDumpDependencies::DependencyAnalysis make_analysis(const uint32_t& in_n_threads = 1) const
+        Analysis::APIDumpDependencies::DependencyFileContent make_analysis(const uint32_t& in_n_threads = 1) const
         {
-            Analysis::APIDumpDependencies::DependencyAnalysis result;
+            Analysis::APIDumpDependencies::DependencyFileContent result;
 
             result.frame_call_range_vec        = m_log.get_frame_call_range_vec();
             result.n_calls                     = m_call_index;

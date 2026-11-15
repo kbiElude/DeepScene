@@ -3,12 +3,12 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
  * This file is compiled with AVX2 (see the CMakeLists.txt of the library), so nothing in it may run on a processor without AVX2.
- * DepthMeasurer calls it only after it has checked that the processor supports AVX2. The file holds only the pixel pass. It uses no
+ * FastDepthRangeMeasurer calls it only after it has checked that the processor supports AVX2. The file holds only the pixel pass. It uses no
  * standard library functions and no functions shared with other files: such a function would be compiled here with AVX2, and the linker
  * could pick this copy for callers that run on any processor.
  */
 #include "stereo/core/depth_histogram_avx2.h"
-#include "stereo/core/depth_buffer_statistics.h"
+#include "stereo/core/depth_range_measurer.h"
 #include <float.h>
 #include <immintrin.h>
 #include <intrin.h>
@@ -26,7 +26,7 @@ void Stereo::Core::DepthHistogramAvx2::fill(const float*                in_depth
     constexpr size_t   N_DEPTHS_PER_STEP  = 8;
     constexpr uint32_t QUIET_NAN_BITS     = 0x7FC00000;
 
-    /* The arithmetic matches DepthBufferStatistics::get_distance(), because the results must be identical: the multiplication and the
+    /* The arithmetic matches DepthRangeMeasurer::get_distance(), because the results must be identical: the multiplication and the
      * additions are not fused.
      */
     const __m256i all_ones_v  = _mm256_set1_epi32(-1);
@@ -44,7 +44,7 @@ void Stereo::Core::DepthHistogramAvx2::fill(const float*                in_depth
                                                   7);
     const __m256  max_float_v = _mm256_set1_ps(FLT_MAX);
     const __m256  minus_one_v = _mm256_set1_ps(-1.0f);
-    const __m256  not_drawn_v = _mm256_set1_ps(DepthBufferStatistics::NOT_DRAWN_DEPTH);
+    const __m256  not_drawn_v = _mm256_set1_ps(DepthRangeMeasurer::NOT_DRAWN_DEPTH);
     const __m256  scale_v     = _mm256_set1_ps(in_projection_z_scale);
     const __m256  shift_v     = _mm256_set1_ps(in_projection_z_shift);
     const __m256  two_v       = _mm256_set1_ps(2.0f);

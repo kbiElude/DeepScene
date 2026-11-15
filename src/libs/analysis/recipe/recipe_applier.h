@@ -63,8 +63,8 @@ namespace Analysis
             /* Returns the rules about the call, in the order they apply. The kind of matrix is checked later, by apply_rule(). The pointers stay
              * valid as long as the applier exists.
              */
-            std::vector<const Analysis::Recipe::Rule*> get_matching_rule_ptr_vec(const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                 const CallPlace&                             in_place) const;
+            std::vector<const Analysis::Recipe::MatrixRule*> get_matching_rule_ptr_vec(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                                       const CallPlace&                             in_place) const;
 
             /* Whether the recipe serves the single-pixel reads that the application makes in a run from one picture that is read once (see
              * Recipe::caches_pixel_reads).
@@ -114,10 +114,10 @@ namespace Analysis
             /* Returns how far apart the eyes may be in the frames of the shape (see Recipe::scene_separation_vec), or 0 if the recipe gives no limit. */
             float get_scene_max_separation(const uint64_t& in_shape_key) const;
 
-            /* Returns how vertices that no matrix moves get their parallax (see ScreenParallax). It is not enabled if the recipe does not have the
+            /* Returns how vertices that no matrix moves get their parallax (see ScreenParallaxSettings). It is not enabled if the recipe does not have the
              * section.
              */
-            const Analysis::Recipe::ScreenParallax& get_screen_parallax() const;
+            const Analysis::Recipe::ScreenParallaxSettings& get_screen_parallax() const;
 
             Analysis::Recipe::UnknownFramePolicy get_unknown_frame_policy() const;
 
@@ -199,21 +199,21 @@ namespace Analysis
              * eye convergence) and the matrix is a perspective matrix, the picture of the eye is moved sideways by the parallax, to the right for
              * the left eye. Returns false, and leaves the matrix unchanged, for any other rule or matrix.
              */
-            static bool apply_overlay_shift(const Analysis::Recipe::Rule& in_rule,
-                                            const Analysis::Recipe::Eye&  in_eye,
-                                            const float&                  in_overlay_parallax,
-                                            std::array<float, 16>*        inout_matrix_ptr);
+            static bool apply_overlay_shift(const Analysis::Recipe::MatrixRule& in_rule,
+                                            const Analysis::Recipe::Eye&        in_eye,
+                                            const float&                        in_overlay_parallax,
+                                            std::array<float, 16>*              inout_matrix_ptr);
 
             /* Applies the rule for the eye to the matrix (16 numbers, row by row). The eye separation is the distance between the eyes, in the
              * units of the matrix. An eye offset and an eye convergence use it. The convergence distance, in the same units, is where the eyes
              * converge. An eye convergence uses it and changes nothing if it is not greater than zero. Returns false, and leaves the matrix
              * unchanged, if the rule is about another kind of matrix.
              */
-            static bool apply_rule(const Analysis::Recipe::Rule& in_rule,
-                                   const Analysis::Recipe::Eye&  in_eye,
-                                   const float&                  in_eye_separation,
-                                   std::array<float, 16>*        inout_matrix_ptr,
-                                   const float&                  in_convergence_distance = 0.0f);
+            static bool apply_rule(const Analysis::Recipe::MatrixRule& in_rule,
+                                   const Analysis::Recipe::Eye&        in_eye,
+                                   const float&                        in_eye_separation,
+                                   std::array<float, 16>*              inout_matrix_ptr,
+                                   const float&                        in_convergence_distance = 0.0f);
 
         private:
             /* Maps a signature to the positions of its rules in the draw rules of the recipe. */
