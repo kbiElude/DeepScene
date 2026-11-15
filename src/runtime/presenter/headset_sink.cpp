@@ -13,22 +13,22 @@ Stereo::Presenter::HeadsetSink::HeadsetSink(Stereo::Transport::IFrameImporter*  
                                             const ExitFunc&                                     in_exit_func,
                                             const LogFunc&                                      in_log_func,
                                             const bool&                                         in_is_pacing)
-    :m_exit_func       (in_exit_func),
-     m_frame_period    (0.0),
-     m_frame_start     (0.0),
-     m_ipd_scale_sent  (0.0f),
-     m_is_pacing       (in_is_pacing),
-     m_pace_delay      (0.0),
-     m_has_frame       (false),
-     m_is_stopping     (false),
-     m_importer_ptr    (inout_importer_ptr),
-     m_last_frame_index(0),
-     m_has_shown_frame (false),
+    :m_exit_func        (in_exit_func),
+     m_frame_period     (0.0),
+     m_frame_start      (0.0),
+     m_ipd_scale_sent   (0.0f),
+     m_is_pacing        (in_is_pacing),
+     m_pace_delay       (0.0),
+     m_has_frame        (false),
+     m_is_stopping      (false),
+     m_importer_ptr     (inout_importer_ptr),
+     m_last_frame_index (0),
+     m_has_shown_frame  (false),
      m_shown_frame_index(0),
-     m_shown_timestamp (0.0),
-     m_log_func        (in_log_func),
-     m_session_ptr     (std::move(in_session_ptr) ),
-     m_uploader_ptr    (std::move(in_uploader_ptr) )
+     m_shown_timestamp  (0.0),
+     m_log_func         (in_log_func),
+     m_session_ptr      (std::move(in_session_ptr) ),
+     m_uploader_ptr     (std::move(in_uploader_ptr) )
 {
     const auto on_frame_func = [this](const double& in_period_n_milliseconds)
     {
