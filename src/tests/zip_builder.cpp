@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "zip_builder.h"
-#include "utils/files/file_system.h"
+#include "utils/files/windows_path_encoding.h"
 #include "miniz.h"
 #include <Windows.h>
 
@@ -113,7 +113,7 @@ bool Tests::ZipBuilder::write_file(const std::string& in_path) const
         goto end;
     }
 
-    file_handle = ::CreateFileW(Utils::Files::FileSystem::to_wide(in_path).c_str(),
+    file_handle = ::CreateFileW(Utils::Files::WindowsPathEncoding::to_wide(in_path).c_str(),
                                 GENERIC_WRITE,
                                 0, /* share mode */
                                 nullptr,

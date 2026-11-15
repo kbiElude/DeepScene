@@ -2,7 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "utils/files/file_system.h"
+#include "utils/files/directory_operations.h"
+#include "utils/files/windows_path_encoding.h"
 #include "utils/files/zip_extractor.h"
 #include "utils/strings/ascii_text.h"
 #include "miniz.h"
@@ -31,7 +32,7 @@ bool Utils::Files::ZipExtractor::extract(const std::string&       in_archive_pat
     mz_zip_zero_struct(&zip_archive);
 
     {
-        const std::wstring wide_archive_path = FileSystem::to_wide(in_archive_path);
+        const std::wstring wide_archive_path = WindowsPathEncoding::to_wide(in_archive_path);
 
         archive_file_ptr = ::_wfopen(wide_archive_path.c_str(),
                                      L"rb");
@@ -112,8 +113,8 @@ bool Utils::Files::ZipExtractor::extract(const std::string&       in_archive_pat
         }
     }
 
-    if (FileSystem::create_directories(in_directory,
-                                       out_error_ptr) == false)
+    if (DirectoryOperations::create_directories(in_directory,
+                                                out_error_ptr) == false)
     {
         goto end;
     }
@@ -138,8 +139,8 @@ bool Utils::Files::ZipExtractor::extract(const std::string&       in_archive_pat
 
         if (entry_stat.m_is_directory != 0)
         {
-            if (FileSystem::create_directories(entry_path,
-                                               out_error_ptr) == false)
+            if (DirectoryOperations::create_directories(entry_path,
+                                                        out_error_ptr) == false)
             {
                 goto end;
             }
@@ -155,15 +156,15 @@ bool Utils::Files::ZipExtractor::extract(const std::string&       in_archive_pat
                 const std::string entry_directory = entry_path.substr(0,
                                                                       n_last_separator_character);
 
-                if (FileSystem::create_directories(entry_directory,
-                                                   out_error_ptr) == false)
+                if (DirectoryOperations::create_directories(entry_directory,
+                                                            out_error_ptr) == false)
                 {
                     goto end;
                 }
             }
 
             {
-                const std::wstring wide_entry_path = FileSystem::to_wide(entry_path);
+                const std::wstring wide_entry_path = WindowsPathEncoding::to_wide(entry_path);
 
                 file_handle = ::CreateFileW(wide_entry_path.c_str(),
                                             GENERIC_WRITE,

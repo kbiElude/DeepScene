@@ -2,17 +2,17 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "utils/files/file_system.h"
+#include "utils/files/directory_operations.h"
+#include "utils/files/windows_path_encoding.h"
 #include <Windows.h>
-#include <algorithm>
 #include <vector>
 
-bool Utils::Files::FileSystem::create_directories(const std::string& in_path,
-                                                  std::string*       out_error_ptr)
+bool Utils::Files::DirectoryOperations::create_directories(const std::string& in_path,
+                                                           std::string*       out_error_ptr)
 {
     size_t       n_segment_start_character = 0;
     bool         result                    = false;
-    std::wstring wide_path                 = to_wide(in_path);
+    std::wstring wide_path                 = Utils::Files::WindowsPathEncoding::to_wide(in_path);
 
     /* Creates each missing directory from the top down. The long-path prefix is not treated as a directory. */
     n_segment_start_character = (wide_path.compare(0, 4, L"\\\\?\\") == 0) ? 4
@@ -57,18 +57,18 @@ end:
     return result;
 }
 
-bool Utils::Files::FileSystem::is_directory(const std::string& in_path)
+bool Utils::Files::DirectoryOperations::is_directory(const std::string& in_path)
 {
-    const DWORD file_attributes = ::GetFileAttributesW(to_wide(in_path).c_str() );
+    const DWORD file_attributes = ::GetFileAttributesW(Utils::Files::WindowsPathEncoding::to_wide(in_path).c_str() );
 
     return (file_attributes                              != INVALID_FILE_ATTRIBUTES &&
             (file_attributes & FILE_ATTRIBUTE_DIRECTORY) != 0);
 }
 
-bool Utils::Files::FileSystem::is_directory_empty(const std::string& in_path)
+bool Utils::Files::DirectoryOperations::is_directory_empty(const std::string& in_path)
 {
     WIN32_FIND_DATAW   find_data;
-    const std::wstring wide_pattern = to_wide(in_path) + L"\\*";
+    const std::wstring wide_pattern = Utils::Files::WindowsPathEncoding::to_wide(in_path) + L"\\*";
     const HANDLE       find_handle  = ::FindFirstFileW(wide_pattern.c_str(),
                                                        &find_data);
     bool               result       = true;
@@ -96,18 +96,18 @@ bool Utils::Files::FileSystem::is_directory_empty(const std::string& in_path)
     return result;
 }
 
-bool Utils::Files::FileSystem::is_file(const std::string& in_path)
+bool Utils::Files::DirectoryOperations::is_file(const std::string& in_path)
 {
-    const DWORD file_attributes = ::GetFileAttributesW(to_wide(in_path).c_str() );
+    const DWORD file_attributes = ::GetFileAttributesW(Utils::Files::WindowsPathEncoding::to_wide(in_path).c_str() );
 
     return (file_attributes != INVALID_FILE_ATTRIBUTES &&
             (file_attributes & FILE_ATTRIBUTE_DIRECTORY) == 0);
 }
 
-bool Utils::Files::FileSystem::remove_tree(const std::string& in_path)
+bool Utils::Files::DirectoryOperations::remove_tree(const std::string& in_path)
 {
     bool               result    = true;
-    const std::wstring wide_path = to_wide(in_path);
+    const std::wstring wide_path = Utils::Files::WindowsPathEncoding::to_wide(in_path);
 
     if (is_directory(in_path) )
     {
@@ -124,7 +124,7 @@ bool Utils::Files::FileSystem::remove_tree(const std::string& in_path)
                 if (entry_name != L"." &&
                     entry_name != L"..")
                 {
-                    const std::string child_path = in_path + "\\" + to_utf8(entry_name);
+                    const std::string child_path = in_path + "\\" + Utils::Files::WindowsPathEncoding::to_utf8(entry_name);
 
                     if ((find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
                     {
@@ -134,7 +134,7 @@ bool Utils::Files::FileSystem::remove_tree(const std::string& in_path)
                     }
                     else
                     {
-                        const std::wstring wide_child_path = to_wide(child_path);
+                        const std::wstring wide_child_path = Utils::Files::WindowsPathEncoding::to_wide(child_path);
 
                         ::SetFileAttributesW(wide_child_path.c_str(),
                                              FILE_ATTRIBUTE_NORMAL);
@@ -161,12 +161,12 @@ bool Utils::Files::FileSystem::remove_tree(const std::string& in_path)
     return result;
 }
 
-bool Utils::Files::FileSystem::test_write(const std::string& in_directory,
-                                          std::string*       out_error_ptr)
+bool Utils::Files::DirectoryOperations::test_write(const std::string& in_directory,
+                                                   std::string*       out_error_ptr)
 {
     bool               result           = false;
     HANDLE             test_file_handle = INVALID_HANDLE_VALUE;
-    const std::wstring test_file_path   = to_wide(in_directory + "\\write_test.tmp");
+    const std::wstring test_file_path   = Utils::Files::WindowsPathEncoding::to_wide(in_directory + "\\write_test.tmp");
 
     test_file_handle = ::CreateFileW(test_file_path.c_str(),
                                      GENERIC_WRITE,
@@ -188,78 +188,5 @@ bool Utils::Files::FileSystem::test_write(const std::string& in_directory,
     result = true;
 
 end:
-    return result;
-}
-
-std::string Utils::Files::FileSystem::to_utf8(const std::wstring& in_text)
-{
-    const int   n_utf8_bytes = ::WideCharToMultiByte(CP_UTF8,
-                                                     0, /* flags */
-                                                     in_text.c_str(),
-                                                     static_cast<int>(in_text.size() ),
-                                                     nullptr,
-                                                     0,
-                                                     nullptr,
-                                                     nullptr);
-    std::string result(static_cast<size_t>(n_utf8_bytes),
-                       '\0');
-
-    if (n_utf8_bytes > 0)
-    {
-        ::WideCharToMultiByte(CP_UTF8,
-                              0, /* flags */
-                              in_text.c_str(),
-                              static_cast<int>(in_text.size() ),
-                              &result.at(0),
-                              n_utf8_bytes,
-                              nullptr,
-                              nullptr);
-    }
-
-    return result;
-}
-
-std::wstring Utils::Files::FileSystem::to_wide(const std::string& in_text)
-{
-    std::wstring result = to_wide_text(in_text);
-
-    std::replace(result.begin(),
-                 result.end  (),
-                 L'/',
-                 L'\\');
-
-    /* A path on a drive gets the long-path prefix, which lifts the MAX_PATH length limit. */
-    if (result.size() >= 3                                       &&
-        result.at(1) == L':'                                     &&
-        result.at(2) == L'\\'                                    &&
-        result.size() > 240)
-    {
-        result = L"\\\\?\\" + result;
-    }
-
-    return result;
-}
-
-std::wstring Utils::Files::FileSystem::to_wide_text(const std::string& in_text)
-{
-    const int    n_wide_characters = ::MultiByteToWideChar(CP_UTF8,
-                                                           0, /* flags */
-                                                           in_text.c_str(),
-                                                           static_cast<int>(in_text.size() ),
-                                                           nullptr,
-                                                           0);
-    std::wstring result(static_cast<size_t>(n_wide_characters),
-                        L'\0');
-
-    if (n_wide_characters > 0)
-    {
-        ::MultiByteToWideChar(CP_UTF8,
-                              0, /* flags */
-                              in_text.c_str(),
-                              static_cast<int>(in_text.size() ),
-                              &result.at(0),
-                              n_wide_characters);
-    }
-
     return result;
 }

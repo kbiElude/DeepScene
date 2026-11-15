@@ -2,7 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "utils/files/file_system.h"
+#include "utils/files/directory_operations.h"
+#include "utils/files/windows_path_encoding.h"
 #include "utils/files/sha256.h"
 #include "utils/files/zip_extractor.h"
 #include "vr_player/app_installer/app_installer.h"
@@ -117,7 +118,7 @@ void VRPlayer::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spe
     }
 
     {
-        const std::wstring wide_lock_name = Utils::Files::FileSystem::to_wide(lock_name);
+        const std::wstring wide_lock_name = Utils::Files::WindowsPathEncoding::to_wide(lock_name);
 
         lock_handle = ::CreateMutexW(nullptr,
                                      FALSE,
@@ -134,10 +135,10 @@ void VRPlayer::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spe
         goto end;
     }
 
-    Utils::Files::FileSystem::remove_tree(staging_directory);
+    Utils::Files::DirectoryOperations::remove_tree(staging_directory);
 
-    if (Utils::Files::FileSystem::create_directories(staging_directory,
-                                                     &error) == false)
+    if (Utils::Files::DirectoryOperations::create_directories(staging_directory,
+                                                              &error) == false)
     {
         goto end;
     }
@@ -245,14 +246,14 @@ void VRPlayer::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spe
     }
 
     /* The install directory is created only now, complete. An installation that did not finish leaves nothing that looks like an installed application. */
-    if (Utils::Files::FileSystem::is_directory(in_spec.install_directory) )
+    if (Utils::Files::DirectoryOperations::is_directory(in_spec.install_directory) )
     {
-        ::RemoveDirectoryW(Utils::Files::FileSystem::to_wide(in_spec.install_directory).c_str() );
+        ::RemoveDirectoryW(Utils::Files::WindowsPathEncoding::to_wide(in_spec.install_directory).c_str() );
     }
 
     {
-        const std::wstring wide_install_directory  = Utils::Files::FileSystem::to_wide(in_spec.install_directory);
-        const std::wstring wide_unpacked_directory = Utils::Files::FileSystem::to_wide(unpacked_directory);
+        const std::wstring wide_install_directory  = Utils::Files::WindowsPathEncoding::to_wide(in_spec.install_directory);
+        const std::wstring wide_unpacked_directory = Utils::Files::WindowsPathEncoding::to_wide(unpacked_directory);
 
         if (::MoveFileExW(wide_unpacked_directory.c_str(),
                           wide_install_directory.c_str (),
@@ -271,7 +272,7 @@ void VRPlayer::AppInstaller::AppInstaller::run_install(const InstallSpec& in_spe
     is_installed = true;
 
 end:
-    Utils::Files::FileSystem::remove_tree(staging_directory);
+    Utils::Files::DirectoryOperations::remove_tree(staging_directory);
 
     if (lock_handle != nullptr)
     {
@@ -345,9 +346,9 @@ bool VRPlayer::AppInstaller::AppInstaller::start(const InstallSpec& in_spec,
         goto end;
     }
 
-    if (Utils::Files::FileSystem::is_directory(in_spec.install_directory) )
+    if (Utils::Files::DirectoryOperations::is_directory(in_spec.install_directory) )
     {
-        if (Utils::Files::FileSystem::is_directory_empty(in_spec.install_directory) == false)
+        if (Utils::Files::DirectoryOperations::is_directory_empty(in_spec.install_directory) == false)
         {
             *out_error_ptr = "The folder "                                                      +
                              in_spec.install_directory                                          +
@@ -368,8 +369,8 @@ bool VRPlayer::AppInstaller::AppInstaller::start(const InstallSpec& in_spec,
                                                             n_last_separator_char);
     }
 
-    if (Utils::Files::FileSystem::create_directories(parent_directory,
-                                                     out_error_ptr) == false)
+    if (Utils::Files::DirectoryOperations::create_directories(parent_directory,
+                                                              out_error_ptr) == false)
     {
         *out_error_ptr = "DeepScene cannot write to "                                          +
                          parent_directory                                                      +
@@ -379,8 +380,8 @@ bool VRPlayer::AppInstaller::AppInstaller::start(const InstallSpec& in_spec,
         goto end;
     }
 
-    if (Utils::Files::FileSystem::test_write(parent_directory,
-                                             out_error_ptr) == false)
+    if (Utils::Files::DirectoryOperations::test_write(parent_directory,
+                                                      out_error_ptr) == false)
     {
         *out_error_ptr = "DeepScene cannot write to "                                           +
                          parent_directory                                                       +

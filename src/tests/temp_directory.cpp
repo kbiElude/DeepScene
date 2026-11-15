@@ -3,7 +3,8 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "temp_directory.h"
-#include "utils/files/file_system.h"
+#include "utils/files/directory_operations.h"
+#include "utils/files/windows_path_encoding.h"
 #include <Windows.h>
 #include <atomic>
 
@@ -17,16 +18,16 @@ Tests::TempDirectory::TempDirectory()
     ::GetTempPathW(MAX_PATH,
                    temp_path_i16vec260);
 
-    m_path = Utils::Files::FileSystem::to_utf8(temp_path_i16vec260) + "DemoVRPlayerTests_" + std::to_string(::GetCurrentProcessId() ) + "_" +
+    m_path = Utils::Files::WindowsPathEncoding::to_utf8(temp_path_i16vec260) + "DemoVRPlayerTests_" + std::to_string(::GetCurrentProcessId() ) + "_" +
              std::to_string(n_directories_made++);
 
-    Utils::Files::FileSystem::create_directories(m_path,
-                                                 &error);
+    Utils::Files::DirectoryOperations::create_directories(m_path,
+                                                          &error);
 }
 
 Tests::TempDirectory::~TempDirectory()
 {
-    Utils::Files::FileSystem::remove_tree(m_path);
+    Utils::Files::DirectoryOperations::remove_tree(m_path);
 }
 
 const std::string& Tests::TempDirectory::get_path() const

@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "utils/files/file_system.h"
+#include "utils/files/windows_path_encoding.h"
 #include "utils/files/sha256.h"
 #include <Windows.h>
 #include <bcrypt.h>
@@ -119,7 +119,7 @@ bool Utils::Files::Sha256::hash_file(const std::string&       in_path,
     bool   result       = false;
 
     {
-        const std::wstring wide_path = FileSystem::to_wide(in_path);
+        const std::wstring wide_path = WindowsPathEncoding::to_wide(in_path);
 
         file_handle = ::CreateFileW(wide_path.c_str(),
                                     GENERIC_READ,

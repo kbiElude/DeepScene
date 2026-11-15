@@ -7,7 +7,7 @@
  * servers of scene.org do is not tested here.
  */
 #include <gtest/gtest.h>
-#include "utils/files/file_system.h"
+#include "utils/files/directory_operations.h"
 #include "utils/files/http_downloader.h"
 #include "local_http_server.h"
 #include "temp_directory.h"
@@ -157,7 +157,7 @@ TEST_F(HttpDownloaderTest, AnAddressWhichIsNotHttpsIsRefusedUnlessTheTestAllowsI
                                     &m_error) );
     EXPECT_NE   (m_error.find("https"),
                  std::string::npos) << m_error;
-    EXPECT_FALSE(Utils::Files::FileSystem::is_file(m_directory.get_path() + "\\file.bin") );
+    EXPECT_FALSE(Utils::Files::DirectoryOperations::is_file(m_directory.get_path() + "\\file.bin") );
 
     EXPECT_FALSE(downloader.download("not an address",
                                      m_directory.get_path() + "\\file.bin",

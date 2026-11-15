@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "utils/files/file_system.h"
+#include "utils/files/windows_path_encoding.h"
 #include "utils/files/http_downloader.h"
 #include <Windows.h>
 #include <winhttp.h>
@@ -47,7 +47,7 @@ bool Utils::Files::HttpDownloader::download(const std::string&       in_url,
     bool                 result                  = false;
     HINTERNET            session_handle          = nullptr;
     URL_COMPONENTSW      url_components;
-    const std::wstring   wide_url                = FileSystem::to_wide_text(in_url);
+    const std::wstring   wide_url                = WindowsPathEncoding::to_wide_text(in_url);
 
     ::ZeroMemory(&url_components,
                  sizeof(url_components) );
@@ -121,7 +121,7 @@ bool Utils::Files::HttpDownloader::download(const std::string&       in_url,
     if (connection_handle == nullptr)
     {
         *out_error_ptr = "Cannot reach "                   +
-                         FileSystem::to_utf8(host_name)    +
+                         WindowsPathEncoding::to_utf8(host_name)    +
                          " (error "                        +
                          std::to_string(::GetLastError() ) +
                          ")";
@@ -141,7 +141,7 @@ bool Utils::Files::HttpDownloader::download(const std::string&       in_url,
     if (request_handle == nullptr)
     {
         *out_error_ptr = "Cannot ask "                     +
-                         FileSystem::to_utf8(host_name)    +
+                         WindowsPathEncoding::to_utf8(host_name)    +
                          " (error "                        +
                          std::to_string(::GetLastError() ) +
                          ")";
@@ -158,7 +158,7 @@ bool Utils::Files::HttpDownloader::download(const std::string&       in_url,
                              0) == FALSE)
     {
         *out_error_ptr = "Cannot ask "                     +
-                         FileSystem::to_utf8(host_name)    +
+                         WindowsPathEncoding::to_utf8(host_name)    +
                          " (error "                        +
                          std::to_string(::GetLastError() ) +
                          ")";
@@ -170,7 +170,7 @@ bool Utils::Files::HttpDownloader::download(const std::string&       in_url,
                                  nullptr) == FALSE)
     {
         *out_error_ptr = "No answer from "                 +
-                         FileSystem::to_utf8(host_name)    +
+                         WindowsPathEncoding::to_utf8(host_name)    +
                          " (error "                        +
                          std::to_string(::GetLastError() ) +
                          ")";
@@ -187,7 +187,7 @@ bool Utils::Files::HttpDownloader::download(const std::string&       in_url,
 
     if (http_status_code != 200)
     {
-        *out_error_ptr = FileSystem::to_utf8(host_name) +
+        *out_error_ptr = WindowsPathEncoding::to_utf8(host_name) +
                          " answered "                   +
                          std::to_string(http_status_code);
 
@@ -207,7 +207,7 @@ bool Utils::Files::HttpDownloader::download(const std::string&       in_url,
     }
 
     {
-        const std::wstring wide_file_path = FileSystem::to_wide(in_file_path);
+        const std::wstring wide_file_path = WindowsPathEncoding::to_wide(in_file_path);
 
         file_handle = ::CreateFileW(wide_file_path.c_str(),
                                     GENERIC_WRITE,

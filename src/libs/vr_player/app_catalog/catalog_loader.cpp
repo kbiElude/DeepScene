@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/recipe/recipe_loader.h"
-#include "utils/files/file_system.h"
+#include "utils/files/directory_operations.h"
 #include "utils/strings/ascii_text.h"
 #include "vr_player/app_catalog/catalog_loader.h"
 #include <algorithm>
@@ -17,7 +17,7 @@ void VRPlayer::AppCatalog::CatalogLoader::check_availability(AppEntry*          
 
     inout_app_ptr->name = in_title;
 
-    if (Utils::Files::FileSystem::is_file(inout_app_ptr->recipe_path) == false)
+    if (Utils::Files::DirectoryOperations::is_file(inout_app_ptr->recipe_path) == false)
     {
         inout_app_ptr->unavailable_reason = "The recipe cannot be found: " +
                                             inout_app_ptr->recipe_path;
@@ -43,7 +43,7 @@ void VRPlayer::AppCatalog::CatalogLoader::check_availability(AppEntry*          
 
     if (inout_app_ptr->unavailable_reason.empty() )
     {
-        const bool is_executable_found = Utils::Files::FileSystem::is_file(inout_app_ptr->executable_path);
+        const bool is_executable_found = Utils::Files::DirectoryOperations::is_file(inout_app_ptr->executable_path);
 
         if (is_executable_found == false)
         {

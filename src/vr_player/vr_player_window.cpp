@@ -4,7 +4,7 @@
  */
 #include "vr_player_window.h"
 #include "stereo/core/resolution_policy.h"
-#include "utils/files/file_system.h"
+#include "utils/files/directory_operations.h"
 #include "imgui.h"
 #include <algorithm>
 #include <float.h>
@@ -949,7 +949,7 @@ void VRPlayer::VrPlayerWindow::update_install()
         {
             case VRPlayer::AppInstaller::InstallPhase::DONE:
             {
-                const bool is_program_there = Utils::Files::FileSystem::is_file(m_content.catalog.app_vec.at(n_app).executable_path);
+                const bool is_program_there = Utils::Files::DirectoryOperations::is_file(m_content.catalog.app_vec.at(n_app).executable_path);
 
                 m_installing_app = -1;
 

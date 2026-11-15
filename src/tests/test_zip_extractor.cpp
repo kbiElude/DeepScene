@@ -6,7 +6,7 @@
  * are too big or the same, a zip file which is damaged, an unpacking which is cancelled).
  */
 #include <gtest/gtest.h>
-#include "utils/files/file_system.h"
+#include "utils/files/directory_operations.h"
 #include "utils/files/zip_extractor.h"
 #include "temp_directory.h"
 #include "zip_builder.h"
@@ -69,7 +69,7 @@ TEST_F(ZipExtractorTest, TheEntriesAreUnpackedWithTheirDirectories)
     EXPECT_EQ(get_text(m_directory.get_path() + "\\out\\data\\deep\\file.bin"),
               std::string("a\0b",
                           3) );
-    EXPECT_TRUE(Utils::Files::FileSystem::is_directory(m_directory.get_path() + "\\out\\data") );
+    EXPECT_TRUE(Utils::Files::DirectoryOperations::is_directory(m_directory.get_path() + "\\out\\data") );
 }
 
 TEST_F(ZipExtractorTest, ANameWhichLeavesTheDirectoryIsRefusedAndNothingIsWritten)
@@ -89,8 +89,8 @@ TEST_F(ZipExtractorTest, ANameWhichLeavesTheDirectoryIsRefusedAndNothingIsWritte
         EXPECT_FALSE(extract(zip_builder) ) << entry_name;
         EXPECT_NE   (m_error.find("not allowed"),
                      std::string::npos) << entry_name << ": " << m_error;
-        EXPECT_FALSE(Utils::Files::FileSystem::is_file(m_directory.get_path() + "\\out\\fine.txt") ) << "what is before is not written either";
-        EXPECT_FALSE(Utils::Files::FileSystem::is_file(m_directory.get_path() + "\\evil.txt") );
+        EXPECT_FALSE(Utils::Files::DirectoryOperations::is_file(m_directory.get_path() + "\\out\\fine.txt") ) << "what is before is not written either";
+        EXPECT_FALSE(Utils::Files::DirectoryOperations::is_file(m_directory.get_path() + "\\evil.txt") );
     }
 }
 
@@ -119,7 +119,7 @@ TEST_F(ZipExtractorTest, MoreThanTheLimitIsRefusedBeforeAnythingIsWritten)
                          1000) );
     EXPECT_NE   (m_error.find("more than"),
                  std::string::npos) << m_error;
-    EXPECT_FALSE(Utils::Files::FileSystem::is_file(m_directory.get_path() + "\\out\\a.bin") );
+    EXPECT_FALSE(Utils::Files::DirectoryOperations::is_file(m_directory.get_path() + "\\out\\a.bin") );
 }
 
 TEST_F(ZipExtractorTest, TwoNamesWhichAreTheSameForTheSystemAreRefused)

@@ -8,7 +8,7 @@
  */
 #include <gtest/gtest.h>
 #include "vr_player/app_installer/app_installer.h"
-#include "utils/files/file_system.h"
+#include "utils/files/directory_operations.h"
 #include "utils/files/sha256.h"
 #include "temp_directory.h"
 #include "zip_builder.h"
@@ -151,7 +151,7 @@ TEST_F(AppInstallerTest, TheApplicationIsPutInItsDirectoryAndNothingIsLeftNextTo
               "program");
     EXPECT_EQ(get_text(m_spec.install_directory + "\\data\\readme.txt"),
               "read me");
-    EXPECT_FALSE(Utils::Files::FileSystem::is_directory(m_spec.install_directory + ".download") );
+    EXPECT_FALSE(Utils::Files::DirectoryOperations::is_directory(m_spec.install_directory + ".download") );
 }
 
 TEST_F(AppInstallerTest, AFileWhichIsNotTheExpectedOneIsNotUsed)
@@ -170,8 +170,8 @@ TEST_F(AppInstallerTest, AFileWhichIsNotTheExpectedOneIsNotUsed)
               VRPlayer::AppInstaller::InstallPhase::FAILED);
     EXPECT_NE(progress.message.find("not the file which was expected"),
               std::string::npos) << progress.message;
-    EXPECT_FALSE(Utils::Files::FileSystem::is_directory(m_spec.install_directory) );
-    EXPECT_FALSE(Utils::Files::FileSystem::is_directory(m_spec.install_directory + ".download") );
+    EXPECT_FALSE(Utils::Files::DirectoryOperations::is_directory(m_spec.install_directory) );
+    EXPECT_FALSE(Utils::Files::DirectoryOperations::is_directory(m_spec.install_directory + ".download") );
 }
 
 TEST_F(AppInstallerTest, TheNextAddressIsTriedWhenOneFailsAndAllFailingSaysSoWithThePage)
@@ -230,10 +230,10 @@ TEST_F(AppInstallerTest, AnArchiveWhichWritesOutsideItsDirectoryIsRefusedAndWrit
 
     EXPECT_EQ(progress.phase,
               VRPlayer::AppInstaller::InstallPhase::FAILED);
-    EXPECT_FALSE(Utils::Files::FileSystem::is_file(m_directory.get_path() + "\\escaped.txt") );
-    EXPECT_FALSE(Utils::Files::FileSystem::is_file(m_directory.get_path() + "\\apps\\escaped.txt") );
-    EXPECT_FALSE(Utils::Files::FileSystem::is_directory(m_spec.install_directory) );
-    EXPECT_FALSE(Utils::Files::FileSystem::is_directory(m_spec.install_directory + ".download") );
+    EXPECT_FALSE(Utils::Files::DirectoryOperations::is_file(m_directory.get_path() + "\\escaped.txt") );
+    EXPECT_FALSE(Utils::Files::DirectoryOperations::is_file(m_directory.get_path() + "\\apps\\escaped.txt") );
+    EXPECT_FALSE(Utils::Files::DirectoryOperations::is_directory(m_spec.install_directory) );
+    EXPECT_FALSE(Utils::Files::DirectoryOperations::is_directory(m_spec.install_directory + ".download") );
 }
 
 TEST_F(AppInstallerTest, ADirectoryWhichCannotBeWrittenToIsReportedAtTheStartAndNothingIsDone)
@@ -261,8 +261,8 @@ TEST_F(AppInstallerTest, AnApplicationWhoseDirectoryIsTakenOrWhichIsNotWellDescr
 {
     std::string error;
 
-    ASSERT_TRUE(Utils::Files::FileSystem::create_directories(m_spec.install_directory,
-                                                             &error) );
+    ASSERT_TRUE(Utils::Files::DirectoryOperations::create_directories(m_spec.install_directory,
+                                                                      &error) );
     EXPECT_TRUE(m_installer.start(m_spec,
                                  &error) ) << "an empty directory can be used";
     EXPECT_EQ  (wait_for_end_of_installation().phase,
@@ -302,8 +302,8 @@ TEST_F(AppInstallerTest, ACancelEndsTheInstallationAndLeavesNothing)
 
     EXPECT_EQ(wait_for_end_of_installation().phase,
               VRPlayer::AppInstaller::InstallPhase::CANCELLED);
-    EXPECT_FALSE(Utils::Files::FileSystem::is_directory(m_spec.install_directory) );
-    EXPECT_FALSE(Utils::Files::FileSystem::is_directory(m_spec.install_directory + ".download") );
+    EXPECT_FALSE(Utils::Files::DirectoryOperations::is_directory(m_spec.install_directory) );
+    EXPECT_FALSE(Utils::Files::DirectoryOperations::is_directory(m_spec.install_directory + ".download") );
 }
 
 TEST_F(AppInstallerTest, OneInstallationIsRunAtATime)
