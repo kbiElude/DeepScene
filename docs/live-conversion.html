@@ -444,7 +444,7 @@
 <p>The read is of a copy of the depth buffer that the graphics card makes small. <code>DepthBufferStatistics</code> turns the depths into distances with the projection of the pass; the nearest and farthest surfaces are the edges of what was drawn, and what was not drawn is the sky, as far as the far plane.</p>
 <p><code>DepthMeasurer</code> gives the same numbers as <code>DepthBufferStatistics::measure()</code> to the last bit.</p>
 <ul>
-  <li>On a processor with AVX2 (found out at its start; <code>depth_measurer_avx2.cpp</code> in <code>libs/stereo/core</code>) it counts the distances in a histogram, the bins being the top bits of the distance as a float, with the pixels taken eight at a time, and picks the three distances among those of three bins only.</li>
+  <li>On a processor with AVX2 (found out at its start; <code>DepthHistogramAvx2</code> in <code>libs/stereo/core</code>) it counts the distances in a histogram, the bins being the top bits of the distance as a float, with the pixels taken eight at a time, and picks the three distances among those of three bins only.</li>
   <li>Without AVX2 the scalar measure is used.</li>
 </ul>
 

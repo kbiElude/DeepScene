@@ -6,14 +6,14 @@
  * found out that the processor has AVX2. It is kept to what has to be here: the stripes of XXH64, with no function of the standard library and none that is shared with other
  * files (such a function is built here with AVX2, and the linker may pick this copy of it for the callers that are not).
  */
-#include "utils/hashing/hasher.h"
+#include "utils/hashing/hasher_avx2.h"
 #include <immintrin.h>
 
-void Utils::Hashing::Hasher::hash_stripes_avx2(const uint8_t*  in_data_ptr,
-                                               const size_t&   in_n_stripes,
-                                               const uint64_t& in_prime_1,
-                                               const uint64_t& in_prime_2,
-                                               uint64_t*       io_accumulator_u64vec4)
+void Utils::Hashing::HasherAvx2::hash_stripes(const uint8_t*  in_data_ptr,
+                                              const size_t&   in_n_stripes,
+                                              const uint64_t& in_prime_1,
+                                              const uint64_t& in_prime_2,
+                                              uint64_t*       io_accumulator_u64vec4)
 {
     constexpr int N_BITS_PER_HALF      = 32;
     constexpr int N_BITS_ROTATED       = 31;

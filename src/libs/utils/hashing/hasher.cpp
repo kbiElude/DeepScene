@@ -3,6 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "utils/hashing/hasher.h"
+#include "utils/hashing/hasher_avx2.h"
 #include "utils/cpu/cpu_features.h"
 #include <math.h>
 #include <string.h>
@@ -179,11 +180,11 @@ uint64_t Utils::Hashing::Hasher::hash_bytes_avx2(const void*   in_data_ptr,
     const uint8_t* data_u8_ptr            = static_cast<const uint8_t*>(in_data_ptr);
     const size_t   n_stripes              = in_n_bytes / N_BYTES_PER_STRIPE;
 
-    hash_stripes_avx2(data_u8_ptr,
-                      n_stripes,
-                      XXH_PRIME64_1,
-                      XXH_PRIME64_2,
-                      accumulator_u64vec4);
+    HasherAvx2::hash_stripes(data_u8_ptr,
+                             n_stripes,
+                             XXH_PRIME64_1,
+                             XXH_PRIME64_2,
+                             accumulator_u64vec4);
 
     uint64_t result = XXH_rotl64(accumulator_u64vec4[0],
                                  N_ROTATE_BITS_1) +

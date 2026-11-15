@@ -51,19 +51,6 @@ namespace Stereo
                                        const size_t&         in_n_drawn,
                                        const DepthKeyRange&  in_key_range) const;
 
-            /* The pixel pass of measure_avx2(), in its own file, since that is built for AVX2 (and so are not to be the home of anything that the rest of the program may call).
-             * It writes the distance of each pixel (0 for one that is not a distance) to out_distance_ptr, and counts the distances by bin in the histograms of in_layout, which
-             * follow each other in out_histogram_ptr (the pixels that are next to each other go to different ones, so that those that are in one bin do not wait for each other).
-             */
-            static void fill_histogram_avx2(const float*                in_depth_ptr,
-                                            const size_t&               in_n_depths,
-                                            const float&                in_projection_z_scale,
-                                            const float&                in_projection_z_shift,
-                                            const DepthHistogramLayout& in_layout,
-                                            float*                      out_distance_ptr,
-                                            uint32_t*                   out_histogram_ptr,
-                                            DepthPassResult*            out_result_ptr);
-
             static uint32_t get_key   (const float&        in_distance);
             static float    select_nth(std::vector<float>* io_distance_vec_ptr,
                                        const size_t&       in_index);

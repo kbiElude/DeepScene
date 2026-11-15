@@ -6,19 +6,20 @@
  * found out that the processor has AVX2. It is kept to what has to be here: the pixel pass, with no function of the standard library and none that is shared with other files
  * (such a function is built here with AVX2, and the linker may pick this copy of it for the callers that are not).
  */
-#include "stereo/core/depth_measurer.h"
+#include "stereo/core/depth_histogram_avx2.h"
+#include "stereo/core/depth_buffer_statistics.h"
 #include <float.h>
 #include <immintrin.h>
 #include <intrin.h>
 
-void Stereo::Core::DepthMeasurer::fill_histogram_avx2(const float*                in_depth_ptr,
-                                                      const size_t&               in_n_depths,
-                                                      const float&                in_projection_z_scale,
-                                                      const float&                in_projection_z_shift,
-                                                      const DepthHistogramLayout& in_layout,
-                                                      float*                      out_distance_ptr,
-                                                      uint32_t*                   out_histogram_ptr,
-                                                      DepthPassResult*            out_result_ptr)
+void Stereo::Core::DepthHistogramAvx2::fill(const float*                in_depth_ptr,
+                                            const size_t&               in_n_depths,
+                                            const float&                in_projection_z_scale,
+                                            const float&                in_projection_z_shift,
+                                            const DepthHistogramLayout& in_layout,
+                                            float*                      out_distance_ptr,
+                                            uint32_t*                   out_histogram_ptr,
+                                            DepthPassResult*            out_result_ptr)
 {
     constexpr int      ALL_LANES_MASK     = 0xFF;
     constexpr size_t   N_DEPTHS_PER_STEP  = 8;

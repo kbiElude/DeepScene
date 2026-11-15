@@ -7,7 +7,7 @@ file(GLOB_RECURSE Sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
 
 add_library(Utils STATIC ${Sources})
 
-# The stripes of XXH64 are done in hasher_avx2.cpp, which is built for AVX2 and nothing else is: Hasher calls it only on a processor that has it.
+# The stripes of XXH64 are done by HasherAvx2 (hasher_avx2.cpp), which is built for AVX2 and nothing else is: Hasher calls it only on a processor that has it.
 set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/hashing/hasher_avx2.cpp" PROPERTIES COMPILE_OPTIONS "/arch:AVX2")
 
 # hasher.cpp uses the xxHash that ships with Zstandard.

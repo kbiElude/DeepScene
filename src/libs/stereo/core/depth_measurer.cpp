@@ -3,6 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "stereo/core/depth_measurer.h"
+#include "stereo/core/depth_histogram_avx2.h"
 #include "utils/cpu/cpu_features.h"
 #include <algorithm>
 #include <string.h>
@@ -144,14 +145,14 @@ Stereo::Core::DepthRange Stereo::Core::DepthMeasurer::measure_avx2(const float* 
 
     m_distance_vec.resize(in_n_depths);
 
-    fill_histogram_avx2(in_depth_ptr,
-                        in_n_depths,
-                        in_projection_z_scale,
-                        in_projection_z_shift,
-                        layout,
-                        m_distance_vec.data(),
-                        m_histogram_vec.data(),
-                        &pass_result);
+    DepthHistogramAvx2::fill(in_depth_ptr,
+                             in_n_depths,
+                             in_projection_z_scale,
+                             in_projection_z_shift,
+                             layout,
+                             m_distance_vec.data(),
+                             m_histogram_vec.data(),
+                             &pass_result);
 
     const DepthKeyRange& key_range = pass_result.key_range;
     const size_t         n_drawn   = (key_range.min_key <= key_range.max_key) ? merge_histogram(key_range)

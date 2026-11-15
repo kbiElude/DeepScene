@@ -6,8 +6,8 @@ file(GLOB_RECURSE Sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
 
 add_library(Stereo STATIC ${Sources})
 
-# The pixel pass of DepthMeasurer is built for AVX2, and nothing else is: the measurer calls it only on a processor that has it.
-set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/core/depth_measurer_avx2.cpp" PROPERTIES COMPILE_OPTIONS "/arch:AVX2")
+# The pixel pass of DepthMeasurer (DepthHistogramAvx2) is built for AVX2, and nothing else is: the measurer calls it only on a processor that has it.
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/core/depth_histogram_avx2.cpp" PROPERTIES COMPILE_OPTIONS "/arch:AVX2")
 
 target_include_directories(Stereo PUBLIC "${DemoVRPlayer_SOURCE_DIR}/src/libs")
 target_link_libraries     (Stereo PUBLIC Analysis Utils)
