@@ -1,4 +1,4 @@
-# Plays a workload for both eyes in a window. The window is the one of UIHost, drawn with the Dear ImGui of the interceptor.
+# Plays a workload for both eyes in a window. The window is the one of UI, drawn with the Dear ImGui of the interceptor.
 file(GLOB Sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
                                     "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 

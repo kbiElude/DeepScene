@@ -67,7 +67,7 @@ int WINAPI WinMain(HINSTANCE in_instance,
         goto end;
     }
 
-    Utils::UIHost::ImGuiPlayerWindowBase::enable_dpi_awareness();
+    Utils::UI::ImGuiPlayerWindowBase::enable_dpi_awareness();
 
     /* The converters (Direct3D 7, Direct3D 8, OpenGL) pass their images through the memory of the channel, which the importer reads. */
     {

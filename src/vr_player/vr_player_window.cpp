@@ -257,7 +257,7 @@ void VRPlayer::VrPlayerWindow::draw_app_list()
     }
 }
 
-void VRPlayer::VrPlayerWindow::draw_contents(Utils::UIHost::ContentExtent* inout_extent_ptr)
+void VRPlayer::VrPlayerWindow::draw_contents(Utils::UI::ContentExtent* inout_extent_ptr)
 {
     const ImGuiStyle& style = ImGui::GetStyle();
 
@@ -751,12 +751,12 @@ std::string VRPlayer::VrPlayerWindow::get_size_text(const uint64_t& in_n_bytes)
     return size_text_i8vec32;
 }
 
-Utils::UIHost::WindowOptions VRPlayer::VrPlayerWindow::get_window_options()
+Utils::UI::WindowOptions VRPlayer::VrPlayerWindow::get_window_options()
 {
     constexpr int CLIENT_HEIGHT = 620;
     constexpr int CLIENT_WIDTH  = 980;
 
-    Utils::UIHost::WindowOptions result;
+    Utils::UI::WindowOptions result;
 
     result.class_name       = L"VRPlayerWindow";
     result.client_height    = CLIENT_HEIGHT;

@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "utils/ui_host/imgui_player_window_base.h"
+#include "utils/ui/imgui_player_window_base.h"
 #include "imgui.h"
 #include "imgui_impl_dx11.h"
 #include "imgui_impl_win32.h"
@@ -28,7 +28,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND   in_window,
                                                              WPARAM in_wparam,
                                                              LPARAM in_lparam);
 
-Utils::UIHost::ImGuiPlayerWindowBase::ImGuiPlayerWindowBase(const WindowOptions& in_options)
+Utils::UI::ImGuiPlayerWindowBase::ImGuiPlayerWindowBase(const WindowOptions& in_options)
     :m_content_height        (0),
      m_content_width         (0),
      m_device_context_ptr    (nullptr),
@@ -42,7 +42,7 @@ Utils::UIHost::ImGuiPlayerWindowBase::ImGuiPlayerWindowBase(const WindowOptions&
     /* Stub */
 }
 
-Utils::UIHost::ImGuiPlayerWindowBase::~ImGuiPlayerWindowBase()
+Utils::UI::ImGuiPlayerWindowBase::~ImGuiPlayerWindowBase()
 {
     if (m_is_imgui_ready)
     {
@@ -82,7 +82,7 @@ Utils::UIHost::ImGuiPlayerWindowBase::~ImGuiPlayerWindowBase()
     }
 }
 
-bool Utils::UIHost::ImGuiPlayerWindowBase::create(std::string* out_error_ptr)
+bool Utils::UI::ImGuiPlayerWindowBase::create(std::string* out_error_ptr)
 {
     constexpr POINT ORIGIN = {0, 0};
 
@@ -205,7 +205,7 @@ end:
     return result;
 }
 
-bool Utils::UIHost::ImGuiPlayerWindowBase::create_device()
+bool Utils::UI::ImGuiPlayerWindowBase::create_device()
 {
     constexpr UINT N_BUFFERS = 2;
 
@@ -238,7 +238,7 @@ bool Utils::UIHost::ImGuiPlayerWindowBase::create_device()
     return result;
 }
 
-void Utils::UIHost::ImGuiPlayerWindowBase::create_render_target()
+void Utils::UI::ImGuiPlayerWindowBase::create_render_target()
 {
     ID3D11Texture2D* back_buffer_ptr = nullptr;
 
@@ -253,7 +253,7 @@ void Utils::UIHost::ImGuiPlayerWindowBase::create_render_target()
     }
 }
 
-void Utils::UIHost::ImGuiPlayerWindowBase::destroy_render_target()
+void Utils::UI::ImGuiPlayerWindowBase::destroy_render_target()
 {
     if (m_render_target_view_ptr != nullptr)
     {
@@ -263,12 +263,12 @@ void Utils::UIHost::ImGuiPlayerWindowBase::destroy_render_target()
     }
 }
 
-void Utils::UIHost::ImGuiPlayerWindowBase::enable_dpi_awareness()
+void Utils::UI::ImGuiPlayerWindowBase::enable_dpi_awareness()
 {
     ImGui_ImplWin32_EnableDpiAwareness();
 }
 
-void Utils::UIHost::ImGuiPlayerWindowBase::extend_content(ContentExtent* inout_extent_ptr)
+void Utils::UI::ImGuiPlayerWindowBase::extend_content(ContentExtent* inout_extent_ptr)
 {
     inout_extent_ptr->bottom = std::max<float>(inout_extent_ptr->bottom,
                                                ImGui::GetItemRectMax().y);
@@ -276,7 +276,7 @@ void Utils::UIHost::ImGuiPlayerWindowBase::extend_content(ContentExtent* inout_e
                                                ImGui::GetItemRectMax().x);
 }
 
-void Utils::UIHost::ImGuiPlayerWindowBase::fit_to_content()
+void Utils::UI::ImGuiPlayerWindowBase::fit_to_content()
 {
     RECT client_rect = {};
     RECT outer_rect  = {};
@@ -316,17 +316,17 @@ void Utils::UIHost::ImGuiPlayerWindowBase::fit_to_content()
     }
 }
 
-ID3D11DeviceContext* Utils::UIHost::ImGuiPlayerWindowBase::get_device_context_ptr() const
+ID3D11DeviceContext* Utils::UI::ImGuiPlayerWindowBase::get_device_context_ptr() const
 {
     return m_device_context_ptr;
 }
 
-ID3D11Device* Utils::UIHost::ImGuiPlayerWindowBase::get_device_ptr() const
+ID3D11Device* Utils::UI::ImGuiPlayerWindowBase::get_device_ptr() const
 {
     return m_device_ptr;
 }
 
-std::string Utils::UIHost::ImGuiPlayerWindowBase::get_system_font_path()
+std::string Utils::UI::ImGuiPlayerWindowBase::get_system_font_path()
 {
     constexpr wchar_t FONT_FILE_NAME[] = L"\\segoeui.ttf";
 
@@ -375,16 +375,16 @@ std::string Utils::UIHost::ImGuiPlayerWindowBase::get_system_font_path()
     return result;
 }
 
-HWND Utils::UIHost::ImGuiPlayerWindowBase::get_window() const
+HWND Utils::UI::ImGuiPlayerWindowBase::get_window() const
 {
     return m_hwnd;
 }
 
-bool Utils::UIHost::ImGuiPlayerWindowBase::handle_message(const HWND&   in_window,
-                                                          const UINT&   in_message,
-                                                          const WPARAM& in_wparam,
-                                                          const LPARAM& in_lparam,
-                                                          LRESULT*      out_result_ptr)
+bool Utils::UI::ImGuiPlayerWindowBase::handle_message(const HWND&   in_window,
+                                                      const UINT&   in_message,
+                                                      const WPARAM& in_wparam,
+                                                      const LPARAM& in_lparam,
+                                                      LRESULT*      out_result_ptr)
 {
     (void) in_window;
     (void) in_message;
@@ -395,15 +395,15 @@ bool Utils::UIHost::ImGuiPlayerWindowBase::handle_message(const HWND&   in_windo
     return false;
 }
 
-void Utils::UIHost::ImGuiPlayerWindowBase::on_resized_to_content()
+void Utils::UI::ImGuiPlayerWindowBase::on_resized_to_content()
 {
     /* Stub */
 }
 
-LRESULT Utils::UIHost::ImGuiPlayerWindowBase::process_message(const HWND&   in_window,
-                                                              const UINT&   in_message,
-                                                              const WPARAM& in_wparam,
-                                                              const LPARAM& in_lparam)
+LRESULT Utils::UI::ImGuiPlayerWindowBase::process_message(const HWND&   in_window,
+                                                          const UINT&   in_message,
+                                                          const WPARAM& in_wparam,
+                                                          const LPARAM& in_lparam)
 {
     LRESULT result = 0;
 
@@ -477,7 +477,7 @@ end:
     return result;
 }
 
-void Utils::UIHost::ImGuiPlayerWindowBase::render_frame()
+void Utils::UI::ImGuiPlayerWindowBase::render_frame()
 {
     const float clear_color_fp32vec4[] = {0.1f, 0.1f, 0.12f, 1.0f};
 
@@ -530,7 +530,7 @@ void Utils::UIHost::ImGuiPlayerWindowBase::render_frame()
                               0); /* flags         */
 }
 
-void Utils::UIHost::ImGuiPlayerWindowBase::request_close()
+void Utils::UI::ImGuiPlayerWindowBase::request_close()
 {
     ::PostMessageW(m_hwnd,
                    WM_CLOSE,
@@ -538,8 +538,8 @@ void Utils::UIHost::ImGuiPlayerWindowBase::request_close()
                    0);
 }
 
-void Utils::UIHost::ImGuiPlayerWindowBase::resize(const UINT& in_width,
-                                                  const UINT& in_height)
+void Utils::UI::ImGuiPlayerWindowBase::resize(const UINT& in_width,
+                                              const UINT& in_height)
 {
     if (m_swap_chain_ptr != nullptr)
     {
@@ -555,7 +555,7 @@ void Utils::UIHost::ImGuiPlayerWindowBase::resize(const UINT& in_width,
     }
 }
 
-void Utils::UIHost::ImGuiPlayerWindowBase::run()
+void Utils::UI::ImGuiPlayerWindowBase::run()
 {
     constexpr DWORD MINIMIZED_SLEEP_MS = 20;
 
@@ -593,10 +593,10 @@ void Utils::UIHost::ImGuiPlayerWindowBase::run()
     }
 }
 
-LRESULT CALLBACK Utils::UIHost::ImGuiPlayerWindowBase::window_proc(HWND   in_window,
-                                                                   UINT   in_message,
-                                                                   WPARAM in_wparam,
-                                                                   LPARAM in_lparam)
+LRESULT CALLBACK Utils::UI::ImGuiPlayerWindowBase::window_proc(HWND   in_window,
+                                                               UINT   in_message,
+                                                               WPARAM in_wparam,
+                                                               LPARAM in_lparam)
 {
     ImGuiPlayerWindowBase* window_ptr = nullptr;
 

@@ -2,10 +2,10 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#ifndef UTILS_UIHOST_IMGUI_PLAYER_WINDOW_BASE_H
-#define UTILS_UIHOST_IMGUI_PLAYER_WINDOW_BASE_H
+#ifndef UTILS_UI_IMGUI_PLAYER_WINDOW_BASE_H
+#define UTILS_UI_IMGUI_PLAYER_WINDOW_BASE_H
 
-#include "utils/ui_host/types.h"
+#include "utils/ui/types.h"
 #include <string>
 #include <Windows.h>
 
@@ -16,7 +16,7 @@ struct IDXGISwapChain;
 
 namespace Utils
 {
-    namespace UIHost
+    namespace UI
     {
         /* A window drawn with ImGui on its own Direct3D 11 device. This class owns the device, the swap chain, the message loop and the monitor
          * scale. What the window shows is implemented by the derived class. The window lives on the thread that runs it.
@@ -98,4 +98,4 @@ namespace Utils
     }
 }
 
-#endif /* UTILS_UIHOST_IMGUI_PLAYER_WINDOW_BASE_H */
+#endif /* UTILS_UI_IMGUI_PLAYER_WINDOW_BASE_H */

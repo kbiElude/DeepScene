@@ -16,7 +16,7 @@ Stereo::Presenter::StereoPresenterWindow::StereoPresenterWindow(std::unique_ptr<
     /* Stub */
 }
 
-void Stereo::Presenter::StereoPresenterWindow::draw_contents(Utils::UIHost::ContentExtent* inout_extent_ptr)
+void Stereo::Presenter::StereoPresenterWindow::draw_contents(Utils::UI::ContentExtent* inout_extent_ptr)
 {
     const ImVec2                     available = ImGui::GetContentRegionAvail();
     Stereo::Transport::ImportedFrame frame;
@@ -156,12 +156,12 @@ Stereo::Transport::IFrameImporter* Stereo::Presenter::StereoPresenterWindow::get
     return m_importer_ptr.get();
 }
 
-Utils::UIHost::WindowOptions Stereo::Presenter::StereoPresenterWindow::get_window_options(const std::string& in_title)
+Utils::UI::WindowOptions Stereo::Presenter::StereoPresenterWindow::get_window_options(const std::string& in_title)
 {
     constexpr int CLIENT_HEIGHT = 600;
     constexpr int CLIENT_WIDTH  = 800;
 
-    Utils::UIHost::WindowOptions result;
+    Utils::UI::WindowOptions result;
 
     result.class_name    = L"StereoPresenterWindow";
     result.client_height = CLIENT_HEIGHT;

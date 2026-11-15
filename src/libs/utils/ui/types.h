@@ -2,14 +2,14 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#ifndef UTILS_UIHOST_TYPES_H
-#define UTILS_UIHOST_TYPES_H
+#ifndef UTILS_UI_TYPES_H
+#define UTILS_UI_TYPES_H
 
 #include <string>
 
 namespace Utils
 {
-    namespace UIHost
+    namespace UI
     {
         /* The bottom right corner of everything a window has drawn, in the pixels of the window. */
         struct ContentExtent
@@ -32,4 +32,4 @@ namespace Utils
     }
 }
 
-#endif /* UTILS_UIHOST_TYPES_H */
+#endif /* UTILS_UI_TYPES_H */

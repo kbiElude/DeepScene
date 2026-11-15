@@ -7,7 +7,7 @@
 
 #include "vr_player/app_installer/app_installer.h"
 #include "utils/files/http_downloader.h"
-#include "utils/ui_host/imgui_player_window_base.h"
+#include "utils/ui/imgui_player_window_base.h"
 #include "app_session.h"
 #include "types.h"
 #include <string>
@@ -18,13 +18,13 @@ namespace VRPlayer
      * application with the converter in it. The depth strength and the overlay setting are passed on while the application plays. The device
      * and the quality are chosen before it starts.
      */
-    class VrPlayerWindow : public Utils::UIHost::ImGuiPlayerWindowBase
+    class VrPlayerWindow : public Utils::UI::ImGuiPlayerWindowBase
     {
     public:
         explicit VrPlayerWindow(const WindowContent& in_content);
 
     protected:
-        void draw_contents(Utils::UIHost::ContentExtent* inout_extent_ptr) override;
+        void draw_contents(Utils::UI::ContentExtent* inout_extent_ptr) override;
 
     private:
         bool draw_app_card     (const size_t& in_n_app);
@@ -44,8 +44,8 @@ namespace VRPlayer
         void update_install    ();
         void update_session    ();
 
-        static std::string                  get_size_text     (const uint64_t& in_n_bytes);
-        static Utils::UIHost::WindowOptions get_window_options();
+        static std::string              get_size_text     (const uint64_t& in_n_bytes);
+        static Utils::UI::WindowOptions get_window_options();
 
         WindowContent                        m_content;
         int                                  m_depth_index;      /* index into the depth choices */

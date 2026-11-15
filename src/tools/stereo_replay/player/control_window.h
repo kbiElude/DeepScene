@@ -7,7 +7,7 @@
 
 #include "tools/stereo_replay/engine_dll/i_playback_controller.h"
 #include "tools/stereo_replay/engine_dll/i_replay_observer.h"
-#include "utils/ui_host/imgui_player_window_base.h"
+#include "utils/ui/imgui_player_window_base.h"
 #include <mutex>
 #include <string>
 #include <Windows.h>
@@ -21,7 +21,7 @@ namespace Stereo
             /* The window with the playback controls: play and pause, reset, and the progress of the replay. It is a separate window
              * from the replay windows, so it does not touch the API state of the replay.
              */
-            class ControlWindow : public Utils::UIHost::ImGuiPlayerWindowBase,
+            class ControlWindow : public Utils::UI::ImGuiPlayerWindowBase,
                                   public Stereo::Replay::EngineDLL::IReplayObserver
             {
             public:
@@ -48,13 +48,13 @@ namespace Stereo
                 void show_eye_separation();
 
             protected:
-                void draw_contents        (Utils::UIHost::ContentExtent* inout_extent_ptr) override;
-                bool handle_message       (const HWND&                   in_window,
-                                           const UINT&                   in_message,
-                                           const WPARAM&                 in_wparam,
-                                           const LPARAM&                 in_lparam,
-                                           LRESULT*                      out_result_ptr)   override;
-                void on_resized_to_content()                                               override;
+                void draw_contents        (Utils::UI::ContentExtent* inout_extent_ptr) override;
+                bool handle_message       (const HWND&               in_window,
+                                           const UINT&               in_message,
+                                           const WPARAM&             in_wparam,
+                                           const LPARAM&             in_lparam,
+                                           LRESULT*                  out_result_ptr) override;
+                void on_resized_to_content()                                           override;
 
             private:
                 /* The placement of the replay window. Lock order: no other lock is taken while the mutex is held. */
@@ -72,7 +72,7 @@ namespace Stereo
                 void request_seek(const uint32_t& in_n_frame,
                                   const uint32_t& in_current_frame);
 
-                static Utils::UIHost::WindowOptions get_window_options(const std::string& in_title);
+                static Utils::UI::WindowOptions get_window_options(const std::string& in_title);
 
 
                 Stereo::Replay::EngineDLL::IPlaybackController* m_controller_ptr;

@@ -6,7 +6,7 @@
  * program. The playback itself is done by other programs that this one starts.
  */
 #include "vr_player/app_catalog/catalog_loader.h"
-#include "utils/ui_host/imgui_player_window_base.h"
+#include "utils/ui/imgui_player_window_base.h"
 #include "headset/xr/openxr_vr_device_provider.h"
 #include "command_line.h"
 #include "vr_player_window.h"
@@ -182,7 +182,7 @@ int WINAPI WinMain(HINSTANCE in_instance,
     content.is_logging         = options.is_logging;
     content.launcher_directory = VRPlayer::find_runtime_directory();
 
-    Utils::UIHost::ImGuiPlayerWindowBase::enable_dpi_awareness();
+    Utils::UI::ImGuiPlayerWindowBase::enable_dpi_awareness();
 
     window_ptr.reset(new VRPlayer::VrPlayerWindow(content) );
 
