@@ -680,7 +680,9 @@ void VRPlayer::VrPlayerWindow::draw_vr_settings()
     ImGui::PopStyleColor ();
 
     ImGui::Spacing        ();
-    ImGui::TextUnformatted("Image quality");
+    /* The quality is a fraction of the resolution of the headset. The window of the preview has no such resolution. */
+    ImGui::BeginDisabled   (m_device_index < 0);
+    ImGui::TextUnformatted ("Image quality");
 
     ImGui::SetNextItemWidth(-FLT_MIN);
 
@@ -700,6 +702,8 @@ void VRPlayer::VrPlayerWindow::draw_vr_settings()
 
         ImGui::EndCombo();
     }
+
+    ImGui::EndDisabled();
 
     ImGui::PushStyleColor(ImGuiCol_Text,
                           DIM_TEXT_COLOR);
