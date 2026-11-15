@@ -6,7 +6,7 @@
 #define STEREO_REPLAY_ENGINEDLL_PACED_FRAME_EXECUTOR_H
 
 #include "i_frame_executor.h"
-#include "frame_hurry.h"
+#include "hurried_frame_selector.h"
 #include "frame_pacer.h"
 #include <memory>
 
@@ -26,7 +26,7 @@ namespace Stereo
             public:
                 /* Frames that in_hurry_ptr says are hurried through are not waited for. */
                 PacedFrameExecutor(::Replay::ReplayEngineDLL::IFrameExecutor* in_executor_ptr,
-                                   const FrameHurry*                          in_hurry_ptr);
+                                   const HurriedFrameSelector*                in_hurry_ptr);
                 ~PacedFrameExecutor();
 
                 bool execute_frame     (::Replay::ReplayEngineDLL::IFrameHost* in_host_ptr,
@@ -37,7 +37,7 @@ namespace Stereo
                 void set_speed         (const double&                          in_speed);
 
             private:
-                const FrameHurry*                          m_hurry_ptr;
+                const HurriedFrameSelector*                m_hurry_ptr;
                 ::Replay::ReplayEngineDLL::IFrameExecutor* m_executor_ptr;
                 ::Replay::ReplayEngineDLL::IFrameHost*     m_host_ptr; /* the host that the paced host forwards to */
                 std::unique_ptr<PacedFrameHost>            m_paced_host_ptr;

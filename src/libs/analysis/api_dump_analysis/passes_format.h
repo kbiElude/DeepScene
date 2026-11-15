@@ -27,7 +27,7 @@
  *
  * Workload data (textures, vertices) is not stored; chunk IDs point into the workload.
  *
- * key_scheme_version is the version of the match key algorithm (see KeyBuilder). Bump it whenever a key would change for the
+ * key_scheme_version is the version of the match key algorithm (see MatchKeyBuilder). Bump it whenever a key would change for the
  * same input; keys of files with different versions cannot be compared.
  */
 #ifndef APIDUMPANALYSIS_PASSES_FORMAT_H
@@ -45,7 +45,7 @@ namespace Analysis
             constexpr uint32_t FILE_VERSION       = 4;
             constexpr uint32_t KEY_SCHEME_VERSION = 1;
 
-            /* The version of the draw signature (see KeyBuilder::compute_draw_signature_key). A recipe for a converter that runs inside the
+            /* The version of the draw signature (see MatchKeyBuilder::compute_draw_signature_key). A recipe for a converter that runs inside the
              * application identifies draws by this signature. Increase it whenever a signature would change for the same input.
              */
             constexpr uint32_t SIGNATURE_SCHEME_VERSION = 1;

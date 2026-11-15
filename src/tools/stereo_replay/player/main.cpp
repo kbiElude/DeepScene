@@ -11,7 +11,7 @@
 #include "tools/stereo_replay/engine_dll/entrypoints.h"
 #include "command_line.h"
 #include "control_window.h"
-#include "frame_range_observer.h"
+#include "frame_range_player.h"
 #include "player_launcher.h"
 #include "preview_window.h"
 #include "quit_handler.h"
@@ -190,7 +190,7 @@ int Stereo::Replay::Player::run(int   in_argc,
     Options                                         options;
     std::unique_ptr<PreviewWindow>                  preview_ptr;
     std::shared_ptr<QuitHandler>                    quit_ptr(new QuitHandler());
-    std::unique_ptr<FrameRangeObserver>             range_ptr;
+    std::unique_ptr<FrameRangePlayer>               range_ptr;
     Analysis::Recipe::Recipe                        recipe;
     int                                             result             = EXIT_FAILURE;
 
@@ -321,9 +321,9 @@ int Stereo::Replay::Player::run(int   in_argc,
 
     if (options.has_frame_range)
     {
-        range_ptr.reset(new FrameRangeObserver(controller_ptr,
-                                               options.first_frame,
-                                               options.last_frame) );
+        range_ptr.reset(new FrameRangePlayer(controller_ptr,
+                                             options.first_frame,
+                                             options.last_frame) );
 
         engine_ptr->add_replay_observer(range_ptr.get() );
 

@@ -5,7 +5,7 @@
  * Tests for OverlayReport: which of the candidates for 2D overlays make pixels of the picture, with the frame replayed with and without each of them.
  */
 #include <gtest/gtest.h>
-#include "tools/stereo_replay/consistency_checker/overlay_report.h"
+#include "tools/stereo_replay/inspector/overlay_report.h"
 #include "temp_directory.h"
 #include <fstream>
 #include <iterator>
@@ -23,7 +23,7 @@ namespace
     constexpr const char* SCENE_TEXT      = "0x0000000000003333";
 
     /* No function that runs the parts of the report: it is done in the process. */
-    const Stereo::Replay::ConsistencyChecker::OverlayReport::RunShardsFunc NO_SHARDS;
+    const Stereo::Replay::Inspector::OverlayReport::RunShardsFunc NO_SHARDS;
 
     std::string read_text_file(const std::string& in_path)
     {
@@ -68,7 +68,7 @@ namespace
     /* A picture of 4 by 2 pixels, which is dark where nothing is drawn, and which has the HUD in its first pixel if the recipe does not skip it, and the scene in six
      * of them. The hidden draw makes nothing that can be seen.
      */
-    bool render(const Stereo::Replay::ConsistencyChecker::Options& in_options,
+    bool render(const Stereo::Replay::Inspector::Options& in_options,
                 const uint32_t&                                    in_frame_index,
                 Utils::Images::Image*                out_image_ptr,
                 std::string*                                       out_error_ptr)
@@ -124,7 +124,7 @@ namespace
 TEST(OverlayReport, ADrawWhichMakesPixelsIsWrittenWithAnImageAndOneWhichMakesNoneIsNot)
 {
     Tests::TempDirectory                        directory;
-    Stereo::Replay::ConsistencyChecker::Options options;
+    Stereo::Replay::Inspector::Options options;
     std::string                                 error;
 
     write_text_file(directory.get_path() + "\\candidates_in.json",
@@ -135,10 +135,10 @@ TEST(OverlayReport, ADrawWhichMakesPixelsIsWrittenWithAnImageAndOneWhichMakesNon
     options.dump_directory         = directory.get_path() + "\\out";
     options.overlay_report_filename = directory.get_path() + "\\candidates_in.json";
 
-    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayReport::run(options,
-                                                                      render,
-                                                                      NO_SHARDS,
-                                                                     &error) ) << error;
+    ASSERT_TRUE(Stereo::Replay::Inspector::OverlayReport::run(options,
+                                                             render,
+                                                             NO_SHARDS,
+                                                            &error) ) << error;
 
     const std::string list = read_text_file(options.dump_directory + "\\candidates.json");
     const std::string page = read_text_file(options.dump_directory + "\\index.html");
@@ -164,7 +164,7 @@ TEST(OverlayReport, ADrawWhichMakesPixelsIsWrittenWithAnImageAndOneWhichMakesNon
 TEST(OverlayReport, AListThatIsNotJsonFails)
 {
     Tests::TempDirectory                        directory;
-    Stereo::Replay::ConsistencyChecker::Options options;
+    Stereo::Replay::Inspector::Options options;
     std::string                                 error;
 
     write_text_file(directory.get_path() + "\\bad.json",
@@ -173,17 +173,17 @@ TEST(OverlayReport, AListThatIsNotJsonFails)
     options.dump_directory         = directory.get_path() + "\\out";
     options.overlay_report_filename = directory.get_path() + "\\bad.json";
 
-    EXPECT_FALSE(Stereo::Replay::ConsistencyChecker::OverlayReport::run(options,
-                                                                       render,
-                                                                       NO_SHARDS,
-                                                                      &error) );
+    EXPECT_FALSE(Stereo::Replay::Inspector::OverlayReport::run(options,
+                                                              render,
+                                                              NO_SHARDS,
+                                                             &error) );
     EXPECT_FALSE(error.empty() );
 }
 
 TEST(OverlayReport, ADrawThatTheRecipeLeavesAloneIsToBeLookedAtTwiceIfItsPassIsDeepOrItMakesMuchOfThePicture)
 {
     Tests::TempDirectory                        directory;
-    Stereo::Replay::ConsistencyChecker::Options options;
+    Stereo::Replay::Inspector::Options options;
     std::string                                 error;
 
     /* A flat HUD, a scene that is deep and makes most of the picture, and a flat draw that makes most of it (a fade): the last is for a person to see too. */
@@ -194,10 +194,10 @@ TEST(OverlayReport, ADrawThatTheRecipeLeavesAloneIsToBeLookedAtTwiceIfItsPassIsD
     options.dump_directory         = directory.get_path() + "\\out";
     options.overlay_report_filename = directory.get_path() + "\\candidates_in.json";
 
-    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayReport::run(options,
-                                                                      render,
-                                                                      NO_SHARDS,
-                                                                     &error) ) << error;
+    ASSERT_TRUE(Stereo::Replay::Inspector::OverlayReport::run(options,
+                                                             render,
+                                                             NO_SHARDS,
+                                                            &error) ) << error;
 
     const std::string list = read_text_file(options.dump_directory + "\\candidates.json");
     const std::string page = read_text_file(options.dump_directory + "\\index.html");
@@ -216,7 +216,7 @@ TEST(OverlayReport, ADrawThatTheRecipeLeavesAloneIsToBeLookedAtTwiceIfItsPassIsD
 TEST(OverlayReport, ADrawIsLeftOutInItsPassAndNotInThePassesWhichHaveADrawOfItsStructure)
 {
     Tests::TempDirectory                        directory;
-    Stereo::Replay::ConsistencyChecker::Options options;
+    Stereo::Replay::Inspector::Options options;
     std::string                                 error;
 
     /* One structure of draw in two passes: in the main pass it makes a pixel, in the other the picture has nothing of it (a scene may be drawn by a pass that shares it). */
@@ -227,10 +227,10 @@ TEST(OverlayReport, ADrawIsLeftOutInItsPassAndNotInThePassesWhichHaveADrawOfItsS
     options.dump_directory         = directory.get_path() + "\\out";
     options.overlay_report_filename = directory.get_path() + "\\candidates_in.json";
 
-    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayReport::run(options,
-                                                                      render,
-                                                                      NO_SHARDS,
-                                                                     &error) ) << error;
+    ASSERT_TRUE(Stereo::Replay::Inspector::OverlayReport::run(options,
+                                                             render,
+                                                             NO_SHARDS,
+                                                            &error) ) << error;
 
     const std::string list = read_text_file(options.dump_directory + "\\candidates.json");
 
@@ -243,7 +243,7 @@ TEST(OverlayReport, ADrawIsLeftOutInItsPassAndNotInThePassesWhichHaveADrawOfItsS
 TEST(OverlayReport, AListWhoseCandidatesDoNotSayWhichPassTheyAreOfFails)
 {
     Tests::TempDirectory                        directory;
-    Stereo::Replay::ConsistencyChecker::Options options;
+    Stereo::Replay::Inspector::Options options;
     std::string                                 error;
 
     write_text_file(directory.get_path() + "\\old.json",
@@ -253,10 +253,10 @@ TEST(OverlayReport, AListWhoseCandidatesDoNotSayWhichPassTheyAreOfFails)
     options.dump_directory         = directory.get_path() + "\\out";
     options.overlay_report_filename = directory.get_path() + "\\old.json";
 
-    EXPECT_FALSE(Stereo::Replay::ConsistencyChecker::OverlayReport::run(options,
-                                                                       render,
-                                                                       NO_SHARDS,
-                                                                      &error) );
+    EXPECT_FALSE(Stereo::Replay::Inspector::OverlayReport::run(options,
+                                                              render,
+                                                              NO_SHARDS,
+                                                             &error) );
     EXPECT_NE(error.find("pass_key"), std::string::npos) << error;
 }
 
@@ -269,9 +269,9 @@ namespace
     };
 
     /* The render function above, which also says that it was asked. */
-    Stereo::Replay::ConsistencyChecker::OverlayReport::RenderFunc make_recording_render_func(ReplayRecord* out_record_ptr)
+    Stereo::Replay::Inspector::OverlayReport::RenderFunc make_recording_render_func(ReplayRecord* out_record_ptr)
     {
-        return [out_record_ptr](const Stereo::Replay::ConsistencyChecker::Options& in_options,
+        return [out_record_ptr](const Stereo::Replay::Inspector::Options& in_options,
                                 const uint32_t&                                    in_frame_index,
                                 Utils::Images::Image*                out_image_ptr,
                                 std::string*                                       out_error_ptr)
@@ -290,7 +290,7 @@ namespace
 TEST(OverlayReport, TheFramesAreSharedBetweenThePartsAFrameAtATimeAndTheResultsAreOneListInTheOrderOfTheCandidates)
 {
     Tests::TempDirectory                        directory;
-    Stereo::Replay::ConsistencyChecker::Options options;
+    Stereo::Replay::Inspector::Options options;
     ReplayRecord                                record;
     std::string                                 error;
     uint32_t                                    n_shards_asked = 0;
@@ -318,26 +318,26 @@ TEST(OverlayReport, TheFramesAreSharedBetweenThePartsAFrameAtATimeAndTheResultsA
                       n_shard < in_n_shards;
                     ++n_shard)
         {
-            Stereo::Replay::ConsistencyChecker::Options part_options = options;
+            Stereo::Replay::Inspector::Options part_options = options;
 
             part_options.n_jobs                        = 1;
             part_options.overlay_report_result_filename = in_result_filename_vec.at(n_shard);
             part_options.overlay_report_shard_count     = in_n_shards;
             part_options.overlay_report_shard_index     = n_shard;
 
-            result = (Stereo::Replay::ConsistencyChecker::OverlayReport::run(part_options,
-                                                                            make_recording_render_func(&record),
-                                                                            NO_SHARDS,
-                                                                            out_part_error_ptr) && result);
+            result = (Stereo::Replay::Inspector::OverlayReport::run(part_options,
+                                                                   make_recording_render_func(&record),
+                                                                   NO_SHARDS,
+                                                                   out_part_error_ptr) && result);
         }
 
         return result;
     };
 
-    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayReport::run(options,
-                                                                      make_recording_render_func(&record),
-                                                                      run_shards_func,
-                                                                     &error) ) << error;
+    ASSERT_TRUE(Stereo::Replay::Inspector::OverlayReport::run(options,
+                                                             make_recording_render_func(&record),
+                                                             run_shards_func,
+                                                            &error) ) << error;
 
     EXPECT_EQ(n_shards_asked,
               2u);
@@ -382,7 +382,7 @@ TEST(OverlayReport, AListLongerThanTheLimitOfAProcessIsSplitIntoMorePartsThanThe
     Tests::TempDirectory                        directory;
     std::string                                 error;
     uint32_t                                    n_shards_asked = 0;
-    Stereo::Replay::ConsistencyChecker::Options options;
+    Stereo::Replay::Inspector::Options options;
     ReplayRecord                                record;
 
     /* Three frames of one draw each, one job, and no more than two candidates for a process: two parts. */
@@ -408,25 +408,25 @@ TEST(OverlayReport, AListLongerThanTheLimitOfAProcessIsSplitIntoMorePartsThanThe
                       n_shard < in_n_shards;
                     ++n_shard)
         {
-            Stereo::Replay::ConsistencyChecker::Options part_options = options;
+            Stereo::Replay::Inspector::Options part_options = options;
 
             part_options.overlay_report_result_filename = in_result_filename_vec.at(n_shard);
             part_options.overlay_report_shard_count     = in_n_shards;
             part_options.overlay_report_shard_index     = n_shard;
 
-            result = (Stereo::Replay::ConsistencyChecker::OverlayReport::run(part_options,
-                                                                            make_recording_render_func(&record),
-                                                                            NO_SHARDS,
-                                                                            out_part_error_ptr) && result);
+            result = (Stereo::Replay::Inspector::OverlayReport::run(part_options,
+                                                                   make_recording_render_func(&record),
+                                                                   NO_SHARDS,
+                                                                   out_part_error_ptr) && result);
         }
 
         return result;
     };
 
-    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayReport::run(options,
-                                                                      make_recording_render_func(&record),
-                                                                      run_shards_func,
-                                                                     &error) ) << error;
+    ASSERT_TRUE(Stereo::Replay::Inspector::OverlayReport::run(options,
+                                                             make_recording_render_func(&record),
+                                                             run_shards_func,
+                                                            &error) ) << error;
 
     EXPECT_EQ(n_shards_asked,
               2u);
@@ -435,10 +435,10 @@ TEST(OverlayReport, AListLongerThanTheLimitOfAProcessIsSplitIntoMorePartsThanThe
     n_shards_asked                       = 0;
     options.overlay_report_shard_entries = 0;
 
-    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayReport::run(options,
-                                                                      make_recording_render_func(&record),
-                                                                      run_shards_func,
-                                                                     &error) ) << error;
+    ASSERT_TRUE(Stereo::Replay::Inspector::OverlayReport::run(options,
+                                                             make_recording_render_func(&record),
+                                                             run_shards_func,
+                                                            &error) ) << error;
 
     EXPECT_EQ(n_shards_asked,
               0u);
@@ -447,7 +447,7 @@ TEST(OverlayReport, AListLongerThanTheLimitOfAProcessIsSplitIntoMorePartsThanThe
 TEST(OverlayReport, ThereAreNoMorePartsThanFramesAndOneFrameIsDoneWhereItIs)
 {
     Tests::TempDirectory                        directory;
-    Stereo::Replay::ConsistencyChecker::Options options;
+    Stereo::Replay::Inspector::Options options;
     ReplayRecord                                record;
     std::string                                 error;
     bool                                        was_asked = false;
@@ -460,17 +460,17 @@ TEST(OverlayReport, ThereAreNoMorePartsThanFramesAndOneFrameIsDoneWhereItIs)
     options.n_jobs                 = 4;
     options.overlay_report_filename = directory.get_path() + "\\candidates_in.json";
 
-    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayReport::run(options,
-                                                                      make_recording_render_func(&record),
-                                                                      [&](const uint32_t&,
-                                                                          const std::vector<std::string>&,
-                                                                          std::string*)
-                                                                      {
-                                                                          was_asked = true;
+    ASSERT_TRUE(Stereo::Replay::Inspector::OverlayReport::run(options,
+                                                             make_recording_render_func(&record),
+                                                             [&](const uint32_t&,
+                                                                 const std::vector<std::string>&,
+                                                                 std::string*)
+                                                             {
+                                                                 was_asked = true;
 
-                                                                          return false;
-                                                                      },
-                                                                     &error) ) << error;
+                                                                 return false;
+                                                             },
+                                                            &error) ) << error;
 
     EXPECT_FALSE(was_asked);
     EXPECT_FALSE(record.shard_frame_vec.empty() );
@@ -479,7 +479,7 @@ TEST(OverlayReport, ThereAreNoMorePartsThanFramesAndOneFrameIsDoneWhereItIs)
 TEST(OverlayReport, APassWhichMakesNoDifferenceLeftOutWholeIsLeftOutOnceForAllItsDraws)
 {
     Tests::TempDirectory                        directory;
-    Stereo::Replay::ConsistencyChecker::Options options;
+    Stereo::Replay::Inspector::Options options;
     ReplayRecord                                record;
     ReplayRecord                                visible_record;
     std::string                                 error;
@@ -493,10 +493,10 @@ TEST(OverlayReport, APassWhichMakesNoDifferenceLeftOutWholeIsLeftOutOnceForAllIt
     options.n_jobs                 = 1;
     options.overlay_report_filename = directory.get_path() + "\\candidates_in.json";
 
-    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayReport::run(options,
-                                                                      make_recording_render_func(&record),
-                                                                      NO_SHARDS,
-                                                                     &error) ) << error;
+    ASSERT_TRUE(Stereo::Replay::Inspector::OverlayReport::run(options,
+                                                             make_recording_render_func(&record),
+                                                             NO_SHARDS,
+                                                            &error) ) << error;
 
     /* The frame as it is, and the pass left out: no more, however many draws the pass has. */
     EXPECT_EQ(record.shard_frame_vec.size(),
@@ -513,10 +513,10 @@ TEST(OverlayReport, APassWhichMakesNoDifferenceLeftOutWholeIsLeftOutOnceForAllIt
                     "{\"candidates\":[" + make_candidate(HUD_TEXT,    true) + "," +
                                          make_candidate(HIDDEN_TEXT, true) + "]}");
 
-    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayReport::run(options,
-                                                                      make_recording_render_func(&visible_record),
-                                                                      NO_SHARDS,
-                                                                     &error) ) << error;
+    ASSERT_TRUE(Stereo::Replay::Inspector::OverlayReport::run(options,
+                                                             make_recording_render_func(&visible_record),
+                                                             NO_SHARDS,
+                                                            &error) ) << error;
 
     /* The frame as it is, the pass, and each of the two draws, and for the draw that changes nothing the two replays that say why (the frame cut after it, with it and
      * without it).
@@ -530,7 +530,7 @@ TEST(OverlayReport, APassWhichMakesNoDifferenceLeftOutWholeIsLeftOutOnceForAllIt
 TEST(OverlayReport, ThePassesOfOneFrameAreSharedBetweenThePartsTooAndTheDrawsOfOnePassAreNot)
 {
     Tests::TempDirectory                        directory;
-    Stereo::Replay::ConsistencyChecker::Options options;
+    Stereo::Replay::Inspector::Options options;
     ReplayRecord                                record;
     std::string                                 error;
 
@@ -559,26 +559,26 @@ TEST(OverlayReport, ThePassesOfOneFrameAreSharedBetweenThePartsTooAndTheDrawsOfO
                       n_shard < in_n_shards;
                     ++n_shard)
         {
-            Stereo::Replay::ConsistencyChecker::Options part_options = options;
+            Stereo::Replay::Inspector::Options part_options = options;
 
             part_options.n_jobs                        = 1;
             part_options.overlay_report_result_filename = in_result_filename_vec.at(n_shard);
             part_options.overlay_report_shard_count     = in_n_shards;
             part_options.overlay_report_shard_index     = n_shard;
 
-            result = (Stereo::Replay::ConsistencyChecker::OverlayReport::run(part_options,
-                                                                            make_recording_render_func(&record),
-                                                                            NO_SHARDS,
-                                                                            out_part_error_ptr) && result);
+            result = (Stereo::Replay::Inspector::OverlayReport::run(part_options,
+                                                                   make_recording_render_func(&record),
+                                                                   NO_SHARDS,
+                                                                   out_part_error_ptr) && result);
         }
 
         return result;
     };
 
-    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayReport::run(options,
-                                                                      make_recording_render_func(&record),
-                                                                      run_shards_func,
-                                                                     &error) ) << error;
+    ASSERT_TRUE(Stereo::Replay::Inspector::OverlayReport::run(options,
+                                                             make_recording_render_func(&record),
+                                                             run_shards_func,
+                                                            &error) ) << error;
 
     /* Both parts replayed the frame (each made it as it is for its own candidates). */
     size_t n_replays_of_part_0 = 0;
@@ -616,7 +616,7 @@ namespace
     /* A picture in which the hidden draw makes a pixel when the frame is cut after it, and the scene covers that pixel when the frame is whole; and the blank draw makes
      * nothing in either. The HUD makes its pixel in both.
      */
-    bool render_with_causes(const Stereo::Replay::ConsistencyChecker::Options& in_options,
+    bool render_with_causes(const Stereo::Replay::Inspector::Options& in_options,
                             const uint32_t&                                    in_frame_index,
                             Utils::Images::Image*                              out_image_ptr,
                             std::string*                                       out_error_ptr)
@@ -662,7 +662,7 @@ namespace
 TEST(OverlayReport, ADrawThatChangesNothingSaysWhetherItMakesPixelsAtAllOrWhatComesAfterCoversThem)
 {
     Tests::TempDirectory                        directory;
-    Stereo::Replay::ConsistencyChecker::Options options;
+    Stereo::Replay::Inspector::Options options;
     std::string                                 error;
 
     write_text_file(directory.get_path() + "\\candidates_in.json",
@@ -673,10 +673,10 @@ TEST(OverlayReport, ADrawThatChangesNothingSaysWhetherItMakesPixelsAtAllOrWhatCo
     options.dump_directory         = directory.get_path() + "\\out";
     options.overlay_report_filename = directory.get_path() + "\\candidates_in.json";
 
-    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayReport::run(options,
-                                                                      render_with_causes,
-                                                                      NO_SHARDS,
-                                                                     &error) ) << error;
+    ASSERT_TRUE(Stereo::Replay::Inspector::OverlayReport::run(options,
+                                                             render_with_causes,
+                                                             NO_SHARDS,
+                                                            &error) ) << error;
 
     const std::string list = read_text_file(options.dump_directory + "\\candidates.json");
     const std::string page = read_text_file(options.dump_directory + "\\index.html");
@@ -692,7 +692,7 @@ TEST(OverlayReport, ADrawThatChangesNothingSaysWhetherItMakesPixelsAtAllOrWhatCo
 TEST(OverlayReport, ADrawThatMakesPixelsHasNoCauseOfNone)
 {
     Tests::TempDirectory                        directory;
-    Stereo::Replay::ConsistencyChecker::Options options;
+    Stereo::Replay::Inspector::Options options;
     std::string                                 error;
 
     write_text_file(directory.get_path() + "\\candidates_in.json",
@@ -701,10 +701,10 @@ TEST(OverlayReport, ADrawThatMakesPixelsHasNoCauseOfNone)
     options.dump_directory         = directory.get_path() + "\\out";
     options.overlay_report_filename = directory.get_path() + "\\candidates_in.json";
 
-    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayReport::run(options,
-                                                                      render,
-                                                                      NO_SHARDS,
-                                                                     &error) ) << error;
+    ASSERT_TRUE(Stereo::Replay::Inspector::OverlayReport::run(options,
+                                                             render,
+                                                             NO_SHARDS,
+                                                            &error) ) << error;
 
     EXPECT_NE(read_text_file(options.dump_directory + "\\candidates.json").find("\"zero_cause\": \"\""),
               std::string::npos);
@@ -713,7 +713,7 @@ TEST(OverlayReport, ADrawThatMakesPixelsHasNoCauseOfNone)
 TEST(OverlayReport, ACandidateIsLookedAtInEachOfTheFramesThatTheListSays)
 {
     Tests::TempDirectory                        directory;
-    Stereo::Replay::ConsistencyChecker::Options options;
+    Stereo::Replay::Inspector::Options options;
     ReplayRecord                                record;
     std::string                                 error;
 
@@ -723,10 +723,10 @@ TEST(OverlayReport, ACandidateIsLookedAtInEachOfTheFramesThatTheListSays)
     options.dump_directory         = directory.get_path() + "\\out";
     options.overlay_report_filename = directory.get_path() + "\\candidates_in.json";
 
-    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayReport::run(options,
-                                                                      make_recording_render_func(&record),
-                                                                      NO_SHARDS,
-                                                                     &error) ) << error;
+    ASSERT_TRUE(Stereo::Replay::Inspector::OverlayReport::run(options,
+                                                             make_recording_render_func(&record),
+                                                             NO_SHARDS,
+                                                            &error) ) << error;
 
     const std::string list = read_text_file(options.dump_directory + "\\candidates.json");
 
@@ -740,7 +740,7 @@ TEST(OverlayReport, ACandidateIsLookedAtInEachOfTheFramesThatTheListSays)
 TEST(OverlayReport, TheFramesAfterTheLastOneThatTheOptionsSayAreNotLookedAt)
 {
     Tests::TempDirectory                        directory;
-    Stereo::Replay::ConsistencyChecker::Options options;
+    Stereo::Replay::Inspector::Options options;
     std::string                                 error;
 
     write_text_file(directory.get_path() + "\\candidates_in.json",
@@ -750,10 +750,10 @@ TEST(OverlayReport, TheFramesAfterTheLastOneThatTheOptionsSayAreNotLookedAt)
     options.overlay_report_filename   = directory.get_path() + "\\candidates_in.json";
     options.overlay_report_last_frame = 9;
 
-    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayReport::run(options,
-                                                                      render,
-                                                                      NO_SHARDS,
-                                                                     &error) ) << error;
+    ASSERT_TRUE(Stereo::Replay::Inspector::OverlayReport::run(options,
+                                                             render,
+                                                             NO_SHARDS,
+                                                            &error) ) << error;
 
     const std::string list = read_text_file(options.dump_directory + "\\candidates.json");
 
@@ -764,7 +764,7 @@ TEST(OverlayReport, TheFramesAfterTheLastOneThatTheOptionsSayAreNotLookedAt)
 TEST(OverlayReport, ThePageHasAListOfTheDrawsAndASectionForEachWithItsFramesOneAfterTheOther)
 {
     Tests::TempDirectory                        directory;
-    Stereo::Replay::ConsistencyChecker::Options options;
+    Stereo::Replay::Inspector::Options options;
     std::string                                 error;
 
     /* The scene is first seen after the HUD; each is looked at in three frames. */
@@ -775,10 +775,10 @@ TEST(OverlayReport, ThePageHasAListOfTheDrawsAndASectionForEachWithItsFramesOneA
     options.dump_directory         = directory.get_path() + "\\out";
     options.overlay_report_filename = directory.get_path() + "\\candidates_in.json";
 
-    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::OverlayReport::run(options,
-                                                                      render,
-                                                                      NO_SHARDS,
-                                                                     &error) ) << error;
+    ASSERT_TRUE(Stereo::Replay::Inspector::OverlayReport::run(options,
+                                                             render,
+                                                             NO_SHARDS,
+                                                            &error) ) << error;
 
     const std::string page = read_text_file(options.dump_directory + "\\index.html");
 

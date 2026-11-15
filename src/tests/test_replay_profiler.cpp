@@ -6,7 +6,7 @@
  * and it is summed by function and by frame.
  */
 #include <gtest/gtest.h>
-#include "tools/stereo_replay/consistency_checker/replay_profiler.h"
+#include "tools/stereo_replay/inspector/replay_profiler.h"
 
 namespace
 {
@@ -32,7 +32,7 @@ namespace
     };
 
     /* The engine's side of one call. */
-    void replay_call(Stereo::Replay::ConsistencyChecker::ReplayProfiler* inout_profiler_ptr,
+    void replay_call(Stereo::Replay::Inspector::ReplayProfiler* inout_profiler_ptr,
                      const APIInterceptor::APIFunction&                  in_function,
                      const uint32_t&                                     in_n_frame,
                      const bool&                                         in_is_executed)
@@ -52,10 +52,10 @@ namespace
 TEST(ReplayProfiler, TheTimeOfACallIsSummedByFunctionAndByFrame)
 {
     ScriptedClock                                       clock({0, 100, 100, 400, 400, 450});
-    Stereo::Replay::ConsistencyChecker::ReplayProfiler profiler([&clock]()
-                                                                {
-                                                                    return clock.read();
-                                                                });
+    Stereo::Replay::Inspector::ReplayProfiler profiler([&clock]()
+                                                       {
+                                                           return clock.read();
+                                                       });
 
     replay_call(&profiler,
                 APIInterceptor::APIFUNCTION_GL_GLACCUM,
@@ -113,10 +113,10 @@ TEST(ReplayProfiler, TheTimeOfACallIsSummedByFunctionAndByFrame)
 TEST(ReplayProfiler, OnlyTheAskedForNumberOfEntriesIsGivenAndASkippedCallHasNoTime)
 {
     ScriptedClock                                       clock({0, 100, 100, 400, 400, 450});
-    Stereo::Replay::ConsistencyChecker::ReplayProfiler profiler([&clock]()
-                                                                {
-                                                                    return clock.read();
-                                                                });
+    Stereo::Replay::Inspector::ReplayProfiler profiler([&clock]()
+                                                       {
+                                                           return clock.read();
+                                                       });
 
     replay_call(&profiler,
                 APIInterceptor::APIFUNCTION_GL_GLACCUM,

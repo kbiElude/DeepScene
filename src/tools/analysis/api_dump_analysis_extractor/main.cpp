@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/api_dump_analysis/extractor_tool.h"
+#include "analysis/api_dump_analysis/extractor_program_runner.h"
 #include "analysis/api_dump_analysis/frontends/analysis_session.h"
 #include "analysis/api_dump_analysis/passes_file.h"
 #include "analysis/api_dump_analysis/resource_access_tracker.h"
@@ -95,7 +95,7 @@ int Analysis::APIDumpAnalysisExtractor::run(int   in_argc,
     Analysis::APIDumpAnalysis::AnalysisResult             analysis;
     Analysis::APIDumpAnalysis::Frontends::AnalysisSession session;
 
-    Analysis::APIDumpAnalysis::ExtractorTool::Steps steps;
+    Analysis::APIDumpAnalysis::ExtractorProgramRunner::Steps steps;
 
     /* The result of this program: the shape of each frame and the structure of each pass found in the workload. */
     steps.extra_text_func = [](const Analysis::APIDumpAnalysis::Frontends::SessionProgress& in_progress)
@@ -166,10 +166,10 @@ end:
     steps.print_usage_func         = print_usage;
     steps.profile.output_extension = ".passes";
 
-    return static_cast<int>(Analysis::APIDumpAnalysis::ExtractorTool::run(in_argc,
-                                                                          in_argv,
-                                                                          steps,
-                                                                         &session) );
+    return static_cast<int>(Analysis::APIDumpAnalysis::ExtractorProgramRunner::run(in_argc,
+                                                                                   in_argv,
+                                                                                   steps,
+                                                                                  &session) );
 }
 
 int main(int   in_argc,

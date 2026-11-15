@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 #include "d3d8_scene.h"
 #include "data_fixtures.h"
-#include "utils/hashing/hasher.h"
+#include "utils/hashing/stable_hasher.h"
 
 TEST(D3D8FrontendTransfers, WhatIsWrittenToABufferIsAnUploadOfIt)
 {
@@ -41,8 +41,8 @@ TEST(D3D8FrontendTransfers, WhatIsWrittenToABufferIsAnUploadOfIt)
     EXPECT_EQ(transfer.data.n_bytes,
               4u);
     EXPECT_EQ(transfer.data.content_hash,
-              Utils::Hashing::Hasher::hash_bytes(data_u8_vec.data(),
-                                                 data_u8_vec.size() ));
+              Utils::Hashing::StableHasher::hash_bytes(data_u8_vec.data(),
+                                                       data_u8_vec.size() ));
 }
 
 TEST(D3D8FrontendTransfers, WhatIsWrittenToATextureLevelIsAnUploadOfThatLevel)

@@ -257,14 +257,14 @@ marked unclear, with the question that would settle it.</code></pre>
 <h2 id="check">6. Check it offline</h2>
 <p>The offline replay tools take a recipe, so a recipe can be checked on the capture before it meets the program. This is the step where a person looks.</p>
 <pre><code>tools\stereo_replay\StereoReplayPlayer_x86.exe --recipe my_demo.json --eye both --eye-separation 0.1 result_dump.workload
-tools\stereo_replay\StereoReplayConsistencyChecker_x86.exe result_dump.workload --recipe my_demo.json --from 0 --to 200 --dump-dir out</code></pre>
+tools\stereo_replay\StereoReplayInspector_x86.exe result_dump.workload --recipe my_demo.json --from 0 --to 200 --dump-dir out</code></pre>
 <p><strong>Result:</strong> images of both eyes for frames of every shape, and a verdict on what to change.</p>
 
 <h3>The two tools</h3>
 <table>
 <tr><th>Tool</th><th>What it does</th></tr>
 <tr><td><strong>StereoReplayPlayer</strong></td><td>Renders the frames for both eyes and shows the images side by side. Use <code>--eye left</code> and <code>--eye right</code> to see one at a time.</td></tr>
-<tr><td><strong>StereoReplayConsistencyChecker</strong></td><td>Replays the frames twice, the first time for the left eye and the second for the right, and compares the images with those of a replay without the recipe. With a recipe that changes nothing it must find no difference; with the real one, differences are expected, and the checker's job is to say where the replay itself is unstable (a frame that cannot be executed twice is not one that stereo conversion can handle).</td></tr>
+<tr><td><strong>StereoReplayInspector</strong></td><td>Replays the frames twice, the first time for the left eye and the second for the right, and compares the images with those of a replay without the recipe. With a recipe that changes nothing it must find no difference; with the real one, differences are expected, and the inspector's job is to say where the replay itself is unstable (a frame that cannot be executed twice is not one that stereo conversion can handle).</td></tr>
 </table>
 <p>Some frames of any program differ on a second execution; compare with the same run without the recipe before blaming the recipe.</p>
 
@@ -275,7 +275,7 @@ tools\stereo_replay\StereoReplayConsistencyChecker_x86.exe result_dump.workload 
 <tr><td><code>--contact-sheet K --out sheet.png</code></td><td>Puts K frames spread over the range on one picture.</td></tr>
 <tr><td><code>--overlay-report candidates.json</code></td><td>Takes the output of <code>RecipeBake --overlays</code> and makes an animation for each draw that may be an overlay, with and without it, to look at in <code>index.html</code> of <code>--dump-dir</code>.</td></tr>
 </table>
-<p>The player and the checker come as <code>_x86</code> (for the capture of a 32-bit program) and <code>_x64</code>.</p>
+<p>The player and the inspector come as <code>_x86</code> (for the capture of a 32-bit program) and <code>_x64</code>.</p>
 
 <h3>What you see, and where to go back to</h3>
 <table>

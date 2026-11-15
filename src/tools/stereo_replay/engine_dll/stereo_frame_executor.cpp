@@ -1437,7 +1437,7 @@ void Stereo::Replay::EngineDLL::StereoFrameExecutor::set_frame_execution(const F
     m_frame_execution = in_options;
 }
 
-void Stereo::Replay::EngineDLL::StereoFrameExecutor::set_hurry(const FrameHurry* in_hurry_ptr)
+void Stereo::Replay::EngineDLL::StereoFrameExecutor::set_hurry(const HurriedFrameSelector* in_hurry_ptr)
 {
     m_hurry_ptr = in_hurry_ptr;
 }

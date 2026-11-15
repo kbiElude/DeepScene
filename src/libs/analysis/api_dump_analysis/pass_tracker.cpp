@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_analysis/pass_tracker.h"
-#include "analysis/api_dump_analysis/key_builder.h"
+#include "analysis/api_dump_analysis/match_key_builder.h"
 #include <algorithm>
 #include <utility>
 #include <vector>
@@ -73,7 +73,7 @@ void Analysis::APIDumpAnalysis::PassTracker::complete(const uint64_t&         in
     const auto is_signature_key_less_func = [](const ConstantInEffect& in_a,
                                                const ConstantInEffect& in_b)
     {
-        return KeyBuilder::compute_constant_signature_key(in_a.first) < KeyBuilder::compute_constant_signature_key(in_b.first);
+        return MatchKeyBuilder::compute_constant_signature_key(in_a.first) < MatchKeyBuilder::compute_constant_signature_key(in_b.first);
     };
 
     std::sort(constant_vec.begin(),
@@ -85,7 +85,7 @@ void Analysis::APIDumpAnalysis::PassTracker::complete(const uint64_t&         in
         pass_structure.constant_signature_vec.push_back(constant.first);
     }
 
-    pass_structure.key = KeyBuilder::compute_pass_structure_key(pass_structure);
+    pass_structure.key = MatchKeyBuilder::compute_pass_structure_key(pass_structure);
 
     pass_id = inout_model_ptr->pass_structure_interner.intern(pass_structure,
                                                               pass_structure.key);

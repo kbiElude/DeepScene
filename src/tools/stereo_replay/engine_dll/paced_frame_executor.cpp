@@ -21,7 +21,7 @@ namespace Stereo
             public:
                 PacedFrameHost(::Replay::ReplayEngineDLL::IFrameHost* in_host_ptr,
                                FramePacer*                            in_pacer_ptr,
-                               const FrameHurry*                      in_hurry_ptr)
+                               const HurriedFrameSelector*            in_hurry_ptr)
                     :m_host_ptr (in_host_ptr),
                      m_hurry_ptr(in_hurry_ptr),
                      m_pacer_ptr(in_pacer_ptr)
@@ -95,7 +95,7 @@ namespace Stereo
 
             private:
                 ::Replay::ReplayEngineDLL::IFrameHost* m_host_ptr;
-                const FrameHurry*                      m_hurry_ptr;
+                const HurriedFrameSelector*            m_hurry_ptr;
                 FramePacer*                            m_pacer_ptr;
             };
         }
@@ -103,7 +103,7 @@ namespace Stereo
 }
 
 Stereo::Replay::EngineDLL::PacedFrameExecutor::PacedFrameExecutor(::Replay::ReplayEngineDLL::IFrameExecutor* in_executor_ptr,
-                                                                  const FrameHurry*                          in_hurry_ptr)
+                                                                  const HurriedFrameSelector*                in_hurry_ptr)
     :m_executor_ptr(in_executor_ptr),
      m_host_ptr    (nullptr),
      m_hurry_ptr   (in_hurry_ptr)

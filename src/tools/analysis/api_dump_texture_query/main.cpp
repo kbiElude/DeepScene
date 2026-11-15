@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_analysis/query_command_line.h"
-#include "analysis/api_dump_analysis/query_tool.h"
+#include "analysis/api_dump_analysis/query_program_runner.h"
 #include "analysis/api_dump_textures/textures_file.h"
 #include "query.h"
 #include "utils/command_line/number_parser.h"
@@ -180,12 +180,12 @@ int Analysis::APIDumpTextureQuery::run(int   in_argc,
             return timeline.workload_reference;
         };
 
-        exit_code = Analysis::APIDumpAnalysis::QueryTool::run(options.common,
-                                                              options.textures_filename,
-                                                              "file",
-                                                              read_func,
-                                                              reference_func,
-                                                              command_func);
+        exit_code = Analysis::APIDumpAnalysis::QueryProgramRunner::run(options.common,
+                                                                       options.textures_filename,
+                                                                       "file",
+                                                                       read_func,
+                                                                       reference_func,
+                                                                       command_func);
     }
 
 end:

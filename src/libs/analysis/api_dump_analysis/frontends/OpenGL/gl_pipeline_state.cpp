@@ -3,11 +3,11 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_pipeline_state.h"
-#include "utils/hashing/hasher.h"
+#include "utils/hashing/stable_hasher.h"
 
 uint64_t Analysis::APIDumpAnalysis::Frontends::GLPipelineState::compute_state_key() const
 {
-    Utils::Hashing::Hasher hasher;
+    Utils::Hashing::StableHasher hasher;
 
     /* The sets and the maps are ordered, so the same state always gives the same digest, whichever way it was reached. */
     for (const auto& capability : m_enabled_capability_set)

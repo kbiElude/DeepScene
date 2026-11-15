@@ -10,7 +10,7 @@
 #include "stereo/session/session_environment.h"
 #include "button_clicker.h"
 #include "command_line.h"
-#include "log_summary.h"
+#include "log_summarizer.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <fstream>

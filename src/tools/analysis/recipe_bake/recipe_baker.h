@@ -8,7 +8,7 @@
  * is written again in the formatting of this class.
  *
  * Such a converter does not know which pass a draw belongs to until the pass has ended. It knows only the signature of the draw (see
- * KeyBuilder::compute_draw_signature_key) and the view matrix. Most signatures are drawn by passes of one class only, so one rule per
+ * MatchKeyBuilder::compute_draw_signature_key) and the view matrix. Most signatures are drawn by passes of one class only, so one rule per
  * signature is enough. Some signatures are drawn by passes of different classes (an overlay drawn with the shaders of the scene, say).
  * The view matrix of the passes then tells the classes apart, provided the classes never share a matrix. If they do, or if a pass has no
  * matrix, baking fails: that application needs a converter that holds the draws of a pass back until it knows which pass it is, and this

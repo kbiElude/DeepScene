@@ -236,7 +236,7 @@
 <p>The replay engine runs the calls of a workload and has them executed for each eye through the executor interfaces of <code>tools/stereo_replay/engine_dll</code> (<code>IEyeExecutor</code> and the ones beside it).</p>
 <ul>
   <li>The API has an executor of its own there (<code>stereo_d3d7_call_executor.h</code>, <code>stereo_gl_call_executor.h</code>), and what only it needs is in a folder of its name (<code>D3D7/</code>).</li>
-  <li>The consistency checker is how it is verified: the images of the converted replay must equal the images of the original in the modes that must be equal (see <a href="replay.html#programs">Replay</a>).</li>
+  <li>The replay inspector is how it is verified: the images of the converted replay must equal the images of the original in the modes that must be equal (see <a href="replay.html#programs">Replay</a>).</li>
 </ul>
 
 <h3>4. A live adapter</h3>

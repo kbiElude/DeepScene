@@ -54,7 +54,7 @@ namespace Analysis
             /* The width of the picture for each pass of each kind of frame (see ProjectionScale), for the draws with a perspective projection. */
             std::map<DepthHistogramKey, ProjectionScale> projection_scale_map;
 
-            /* The keys of the draws that cover the whole view (a flash, a fade; see KeyBuilder::compute_draw_cover_key(): a signature and a size),
+            /* The keys of the draws that cover the whole view (a flash, a fade; see MatchKeyBuilder::compute_draw_cover_key(): a signature and a size),
              * per pass structure. A draw key counts as covering if, in at least one draw with that key, the vertices reach all four edges of the
              * picture through the projection of the pass (a quad that wipes in covers the whole picture only for a while). Moving such a draw
              * sideways would leave a strip of the picture bare, so it must not be moved.

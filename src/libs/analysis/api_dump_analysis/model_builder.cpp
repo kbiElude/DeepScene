@@ -4,8 +4,8 @@
  */
 #include "analysis/api_dump_analysis/model_builder.h"
 #include "analysis/api_dump_analysis/draw_measurer.h"
-#include "analysis/api_dump_analysis/key_builder.h"
-#include "utils/hashing/hasher.h"
+#include "analysis/api_dump_analysis/match_key_builder.h"
+#include "utils/hashing/stable_hasher.h"
 #include <algorithm>
 #include <array>
 #include <math.h>
@@ -83,11 +83,11 @@ uint64_t Analysis::APIDumpAnalysis::ModelBuilder::compute_draw_signature_key(con
         depth_stencil_view_key = m_key_table.get_unwritten_view_key(open_pass_ptr->attachments.depth_stencil_view);
     }
 
-    const uint64_t structure_key = KeyBuilder::compute_draw_structure_key(m_draw_signature_scratch);
+    const uint64_t structure_key = MatchKeyBuilder::compute_draw_structure_key(m_draw_signature_scratch);
 
-    return KeyBuilder::compute_draw_signature_key(structure_key,
-                                                  color_view_key_vec,
-                                                  depth_stencil_view_key);
+    return MatchKeyBuilder::compute_draw_signature_key(structure_key,
+                                                       color_view_key_vec,
+                                                       depth_stencil_view_key);
 }
 
 uint64_t Analysis::APIDumpAnalysis::ModelBuilder::compute_shape_key(const Model&    in_model,
@@ -101,7 +101,7 @@ uint64_t Analysis::APIDumpAnalysis::ModelBuilder::compute_shape_key(const Model&
         pass_key_vec.push_back(in_model.pass_structure_interner.get_structure(pass_id).key);
     }
 
-    return KeyBuilder::compute_key_set_key(pass_key_vec);
+    return MatchKeyBuilder::compute_key_set_key(pass_key_vec);
 }
 
 void Analysis::APIDumpAnalysis::ModelBuilder::emit_access(const ResourceId&       in_resource_id,
@@ -398,7 +398,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_copy(const ResourceView&    in_
                                                       const ResourceView&    in_destination,
                                                       const AccessRectangle& in_destination_rectangle)
 {
-    Utils::Hashing::Hasher hasher;
+    Utils::Hashing::StableHasher hasher;
     const SubresourceRange destination_range = get_subresource_range(in_destination);
     const SubresourceRange source_range      = get_subresource_range(in_source);
 
@@ -462,7 +462,7 @@ Analysis::APIDumpAnalysis::ResourceId Analysis::APIDumpAnalysis::ModelBuilder::o
     resource.debug_name            = in_debug_name;
     resource.description           = in_description;
     resource.id                    = make_resource_id(static_cast<uint32_t>(m_model.resource_vec.size() ) + 1);
-    resource.match_key             = KeyBuilder::compute_description_key(in_description);
+    resource.match_key             = MatchKeyBuilder::compute_description_key(in_description);
     resource.parent_view           = in_parent_view;
 
     m_model.resource_vec.push_back       (resource);
@@ -526,7 +526,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_draw(const DrawDescription& in_
                        &structure);
 
     {
-        const uint64_t key            = KeyBuilder::compute_draw_structure_key   (structure);
+        const uint64_t key            = MatchKeyBuilder::compute_draw_structure_key   (structure);
         const auto     known_entry    = m_model.draw_structure_map.find          (key);
         const uint64_t signature_key  = compute_draw_signature_key               (in_draw);
         const auto     signature_pair = open_pass_ptr->draw_signature_map.emplace(key,
@@ -549,9 +549,9 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_draw(const DrawDescription& in_
          * the quads of a text can share one dynamic buffer). A key that covered the view once stays covering, even if other draws with that key
          * do not: a flash that wipes in is a quad of one size that is not always the whole picture, and it must not be moved while it is.
          */
-        m_last_draw_cover_key = KeyBuilder::compute_draw_cover_key(signature_key,
-                                                                   in_draw.vertex_count,
-                                                                   in_draw.primitive_topology);
+        m_last_draw_cover_key = MatchKeyBuilder::compute_draw_cover_key(signature_key,
+                                                                        in_draw.vertex_count,
+                                                                        in_draw.primitive_topology);
 
         const DrawFactsKey draw_facts_key(key,
                                           m_last_draw_cover_key);
@@ -629,7 +629,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_frame_presented()
     frame_record.frame_index         = m_n_frames;
     frame_record.last_call_index     = m_call_index;
     frame_record.n_passes            = static_cast<uint32_t>              (m_frame.pass_instance_vec.size() );
-    shape_key                        = KeyBuilder::compute_key_set_key    (pass_key_vec);
+    shape_key                        = MatchKeyBuilder::compute_key_set_key    (pass_key_vec);
     frame_record.shape_id            = m_model.frame_shape_interner.intern(frame_shape,
                                                                            shape_key);
 
@@ -796,7 +796,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_upload(const ResourceView&    i
                                                         const AccessCoverage&  in_coverage,
                                                         const AccessRectangle& in_rectangle)
 {
-    Utils::Hashing::Hasher hasher;
+    Utils::Hashing::StableHasher hasher;
     const SubresourceRange destination_range = get_subresource_range(in_destination);
 
     m_access_tracker.on_write(in_destination.resource_id);

@@ -4,7 +4,7 @@
  */
 #include "analysis/api_dump_textures/texture_blob_codec.h"
 #include "common/macros.h"
-#include "utils/hashing/hasher.h"
+#include "utils/hashing/stable_hasher.h"
 #include "zstd.h"
 
 const size_t Analysis::APIDumpTextures::TextureBlobCodec::PLANE_STRIDE = 4;
@@ -52,10 +52,10 @@ void Analysis::APIDumpTextures::TextureBlobCodec::compute_hashes(const void*   i
                                                                  uint64_t*     out_content_hash_ptr,
                                                                  uint64_t*     out_length_hash_ptr)
 {
-    Utils::Hashing::Hasher length_hasher;
+    Utils::Hashing::StableHasher length_hasher;
 
-    *out_content_hash_ptr = Utils::Hashing::Hasher::hash_bytes(in_data_ptr,
-                                                               in_n_bytes);
+    *out_content_hash_ptr = Utils::Hashing::StableHasher::hash_bytes(in_data_ptr,
+                                                                     in_n_bytes);
 
     length_hasher.add_u64  (in_n_bytes);
     length_hasher.add_bytes(in_data_ptr,

@@ -5,7 +5,7 @@
 #include "analysis/api_dump_analysis/passes_file.h"
 #include "analysis/api_dump_analysis/query_command_line.h"
 #include "analysis/api_dump_analysis/query_commands.h"
-#include "analysis/api_dump_analysis/query_tool.h"
+#include "analysis/api_dump_analysis/query_program_runner.h"
 #include "query.h"
 #include "utils/command_line/number_parser.h"
 #include <stdio.h>
@@ -219,12 +219,12 @@ int Analysis::APIDumpAnalysisQuery::run(int   in_argc,
             return analysis.workload_reference;
         };
 
-        exit_code = Analysis::APIDumpAnalysis::QueryTool::run(options.common,
-                                                              options.passes_filename,
-                                                              "analysis",
-                                                              read_func,
-                                                              reference_func,
-                                                              command_func);
+        exit_code = Analysis::APIDumpAnalysis::QueryProgramRunner::run(options.common,
+                                                                       options.passes_filename,
+                                                                       "analysis",
+                                                                       read_func,
+                                                                       reference_func,
+                                                                       command_func);
     }
 
 end:

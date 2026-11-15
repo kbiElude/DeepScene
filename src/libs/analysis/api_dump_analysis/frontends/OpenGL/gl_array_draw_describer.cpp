@@ -7,7 +7,7 @@
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_geometry_sampler.h"
 #include "analysis/api_dump_analysis/frontends/shared/call_view.h"
 #include "common/argument_reader.h"
-#include "utils/hashing/hasher.h"
+#include "utils/hashing/stable_hasher.h"
 #include <string.h>
 
 Analysis::APIDumpAnalysis::Frontends::GLArrayDrawDescriber::GLArrayDrawDescriber(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr)
@@ -120,7 +120,7 @@ Analysis::APIDumpAnalysis::Frontends::GLArrayDrawResult Analysis::APIDumpAnalysi
 
             if (is_valid)
             {
-                Utils::Hashing::Hasher layout_hasher;
+                Utils::Hashing::StableHasher layout_hasher;
 
                 *out_description_ptr = in_pipeline_state.describe_draw(in_topology,
                                                                        static_cast<uint32_t>(count) );

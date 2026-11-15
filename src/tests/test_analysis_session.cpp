@@ -6,7 +6,7 @@
  */
 #include <gtest/gtest.h>
 #include "analysis/api_dump_analysis/frontends/analysis_session.h"
-#include "analysis/api_dump_analysis/key_builder.h"
+#include "analysis/api_dump_analysis/match_key_builder.h"
 #include "capture/api_dump_loader/workload_reader.h"
 #include "d3d8_call_builder.h"
 #include "data_fixtures.h"
@@ -288,7 +288,7 @@ static uint64_t get_shape_key_of_frame(const Analysis::APIDumpAnalysis::Model& i
         pass_key_vec.push_back(in_model.pass_structure_interner.get_structure(pass_id).key);
     }
 
-    return Analysis::APIDumpAnalysis::KeyBuilder::compute_key_set_key(pass_key_vec);
+    return Analysis::APIDumpAnalysis::MatchKeyBuilder::compute_key_set_key(pass_key_vec);
 }
 
 TEST(AnalysisSession, CallsAnalyzedOneByOneAreFramesOfTheSameKindsAsThoseOfAFile)

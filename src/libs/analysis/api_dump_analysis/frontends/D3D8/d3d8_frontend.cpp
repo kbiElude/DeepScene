@@ -9,7 +9,7 @@
 #include "analysis/api_dump_analysis/frontends/D3D8/d3d8_resolution_hazards.h"
 #include "analysis/api_dump_analysis/frontends/D3D8/d3d8_resource_describer.h"
 #include "analysis/api_dump_analysis/frontends/shared/unsupported_use.h"
-#include "utils/hashing/hasher.h"
+#include "utils/hashing/stable_hasher.h"
 #include "interception/hooks/D3D8/types.h"
 #include "interception/core/D3D8Utils/argument_info.h"
 #include "interception/core/D3D8Utils/methods.h"
@@ -414,8 +414,8 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_pixel_sha
         Analysis::APIDumpAnalysis::ResourceDescription description;
         const std::string                              shader_name = "PixelShader " + std::to_string(handle);
 
-        description.content_hash     = Utils::Hashing::Hasher::hash_bytes(function_ptr->data(),
-                                                                          function_ptr->size() );
+        description.content_hash     = Utils::Hashing::StableHasher::hash_bytes(function_ptr->data(),
+                                                                                function_ptr->size() );
         description.has_content_hash = true;
         description.kind             = Analysis::APIDumpAnalysis::ResourceKind::SHADER;
         description.shader_stage     = Analysis::APIDumpAnalysis::ShaderStage::FRAGMENT;
@@ -493,7 +493,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_vertex_sh
     }
     else
     {
-        Utils::Hashing::Hasher                         code_hasher;
+        Utils::Hashing::StableHasher                   code_hasher;
         Analysis::APIDumpAnalysis::ResourceDescription description;
         VertexShader                                   shader;
         const std::string                              shader_name = "VertexShader " + std::to_string(handle);
@@ -516,8 +516,8 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_create_vertex_sh
         description.kind             = Analysis::APIDumpAnalysis::ResourceKind::SHADER;
         description.shader_stage     = Analysis::APIDumpAnalysis::ShaderStage::VERTEX;
 
-        shader.declaration_hash = Utils::Hashing::Hasher::hash_bytes(declaration_ptr->data(),
-                                                                     declaration_ptr->size() );
+        shader.declaration_hash = Utils::Hashing::StableHasher::hash_bytes(declaration_ptr->data(),
+                                                                           declaration_ptr->size() );
         shader.id               = m_builder_ptr->on_create_resource            (description,
                                                                                 shader_name);
 

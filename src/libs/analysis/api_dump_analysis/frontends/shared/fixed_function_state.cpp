@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_analysis/frontends/shared/fixed_function_state.h"
-#include "utils/hashing/hasher.h"
+#include "utils/hashing/stable_hasher.h"
 
 Analysis::APIDumpAnalysis::Frontends::FixedFunctionState::FixedFunctionState(const Rules& in_rules)
     :m_is_state_key_valid(false),
@@ -15,7 +15,7 @@ Analysis::APIDumpAnalysis::Frontends::FixedFunctionState::FixedFunctionState(con
 
 uint64_t Analysis::APIDumpAnalysis::Frontends::FixedFunctionState::compute_state_key() const
 {
-    Utils::Hashing::Hasher hasher;
+    Utils::Hashing::StableHasher hasher;
 
     hasher.add_u64(static_cast<uint64_t>(m_render_state_map.size() ));
 

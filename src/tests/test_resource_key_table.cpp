@@ -6,7 +6,7 @@
  * addresses.
  */
 #include <gtest/gtest.h>
-#include "analysis/api_dump_analysis/key_builder.h"
+#include "analysis/api_dump_analysis/match_key_builder.h"
 #include "analysis/api_dump_analysis/resource_key_table.h"
 #include <algorithm>
 #include <vector>
@@ -134,7 +134,7 @@ TEST(ResourceKeyTable, PingPongGivesTheSameKeysWhicheverResourceStartsIt)
                       n_pass < N_PASSES;
                     ++n_pass)
         {
-            const uint64_t pass_key = Analysis::APIDumpAnalysis::KeyBuilder::compute_key_set_key({table.get_key(read_id), n_pass});
+            const uint64_t pass_key = Analysis::APIDumpAnalysis::MatchKeyBuilder::compute_key_set_key({table.get_key(read_id), n_pass});
 
             pass_key_vec.push_back(pass_key);
 

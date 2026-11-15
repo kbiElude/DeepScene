@@ -532,7 +532,7 @@ namespace Analysis
         };
 
         /* The key of the structure of a draw, and the key that tells apart the draws of one signature by their size
-         * (KeyBuilder::compute_draw_cover_key). The quads of a text and the quads of a backdrop have one structure but are different kinds of draw.
+         * (MatchKeyBuilder::compute_draw_cover_key). The quads of a text and the quads of a backdrop have one structure but are different kinds of draw.
          */
         typedef std::pair<uint64_t, uint64_t> DrawFactsKey;
 
@@ -560,7 +560,7 @@ namespace Analysis
         };
 
         /* A draw of a pass: the key of its structure, and the key by which the draw is recognized at the moment it is issued (see
-         * KeyBuilder::compute_draw_signature_key).
+         * MatchKeyBuilder::compute_draw_signature_key).
          */
         struct DrawSignature
         {
@@ -641,7 +641,7 @@ namespace Analysis
         struct DrawInstance
         {
             uint64_t call_index    = 0;
-            uint64_t cover_key     = 0; /* of the draw's signature and size (see KeyBuilder::compute_draw_cover_key) */
+            uint64_t cover_key     = 0; /* of the draw's signature and size (see MatchKeyBuilder::compute_draw_cover_key) */
             uint64_t first_call_index = 0; /* the first call of the draw: call_index, unless its calls form a block (glBegin to glEnd). A draw that is left out is left out as a whole block */
             uint32_t pass_index    = 0; /* a position in CompletedFrame::pass_instance_vec */
             uint64_t structure_key = 0;

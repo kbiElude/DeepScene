@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
  * A recipe says which calls to change, and how, to render each eye. It is a JSON file (see recipe_loader.h), and these are the types it loads
- * into. Frames and passes are referred to by match keys (see KeyBuilder). Match keys are the same in every run, unlike frame indices and
+ * into. Frames and passes are referred to by match keys (see MatchKeyBuilder). Match keys are the same in every run, unlike frame indices and
  * analysis IDs, which can differ between runs.
  */
 #ifndef RECIPE_TYPES_H
@@ -235,7 +235,7 @@ namespace Analysis
             std::array<float, 16> view_matrix          = {};    /* used if has_pass is false                                                            */
         };
 
-        /* A rule that classifies draws by the signature a draw has when it is issued (see KeyBuilder::compute_draw_signature_key). The signature
+        /* A rule that classifies draws by the signature a draw has when it is issued (see MatchKeyBuilder::compute_draw_signature_key). The signature
          * is all that a converter, which plays an application while it runs, knows about a draw, because the pass of the draw is not known until
          * the pass ends. RecipeBake builds the rules from the lists of passes and draws. Rules are tried in order, and a draw that no rule applies
          * to is affected.
@@ -258,10 +258,10 @@ namespace Analysis
             uint64_t pass_key = 0; /* of a pass structure */
         };
 
-        /* Names passes and draws by their match keys (see KeyBuilder), which are the same in every run. */
+        /* Names passes and draws by their match keys (see MatchKeyBuilder), which are the same in every run. */
         struct DrawSelector
         {
-            std::vector<uint64_t> cover_key_vec; /* keys of draws by signature and size (KeyBuilder::compute_draw_cover_key); only "pushed" has them.
+            std::vector<uint64_t> cover_key_vec; /* keys of draws by signature and size (MatchKeyBuilder::compute_draw_cover_key); only "pushed" has them.
                                                   * They tell apart the draws of one structure (the parts of one object, which are drawn alike).
                                                   * They are flat as well: drawn once for both eyes, like a draw that the rules leave alone                     */
             std::vector<uint64_t> draw_key_vec;  /* keys of draw structures                                                                                     */

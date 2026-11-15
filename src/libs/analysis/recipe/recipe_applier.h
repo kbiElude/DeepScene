@@ -142,7 +142,7 @@ namespace Analysis
             /* Whether the draw is pushed toward the viewer by its key (DrawSelector::cover_key_vec, or Recipe::overlay_draw_key_vec). */
             bool is_cover_pushed(const uint64_t& in_cover_key) const;
 
-            /* Whether a draw of the key (its signature and size; see KeyBuilder::compute_draw_cover_key()) covers the whole of the view, as a
+            /* Whether a draw of the key (its signature and size; see MatchKeyBuilder::compute_draw_cover_key()) covers the whole of the view, as a
              * flash does; see Recipe::covering_draw_key_vec.
              */
             bool is_draw_covering(const uint64_t& in_cover_key) const;
@@ -161,7 +161,7 @@ namespace Analysis
             /* True if the recipe was made for this frame: its shape is listed, or the recipe lists no shapes. */
             bool is_frame_known(const uint64_t& in_shape_key) const;
 
-            /* Whether a draw with this key (see KeyBuilder::compute_draw_cover_key()) is a part of an object that protrudes from it (see
+            /* Whether a draw with this key (see MatchKeyBuilder::compute_draw_cover_key()) is a part of an object that protrudes from it (see
              * DrawSelector::part_cover_key_vec).
              */
             bool is_part_cover(const uint64_t& in_cover_key) const;

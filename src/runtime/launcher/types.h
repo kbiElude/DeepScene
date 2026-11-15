@@ -5,6 +5,7 @@
 #ifndef STEREO_LAUNCHER_TYPES_H
 #define STEREO_LAUNCHER_TYPES_H
 
+#include <stdint.h>
 #include <string>
 
 namespace Stereo
@@ -18,6 +19,20 @@ namespace Stereo
             CONVERTER_FAILED = 3, /* the converter inside the application stopped it and wrote the reason to its log */
             LAUNCH_FAILED    = 2,
             SUCCESS          = 0
+        };
+
+        /* The numbers from the last statistics line of a log. A number is 0 if the line does not have it (some numbers appear only when Direct3D 7 is converted). */
+        struct LogSummary
+        {
+            bool     has_statistics       = false; /* the log has at least one statistics line */
+            uint64_t n_affected_draws     = 0;
+            uint64_t n_failed_twins       = 0;
+            uint64_t n_frames             = 0;
+            uint64_t n_skipped_draws      = 0;
+            uint64_t n_unaffected_draws   = 0;
+            uint64_t n_unknown_draws      = 0;
+            uint64_t n_unknown_frames     = 0;
+            uint64_t n_unmirrored_calls   = 0;
         };
 
         struct Options

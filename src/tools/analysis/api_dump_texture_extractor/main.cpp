@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/api_dump_analysis/extractor_tool.h"
+#include "analysis/api_dump_analysis/extractor_program_runner.h"
 #include "analysis/api_dump_analysis/frontends/analysis_session.h"
 #include "analysis/api_dump_textures/texture_blob_writer.h"
 #include "analysis/api_dump_textures/texture_collector.h"
@@ -130,7 +130,7 @@ int Analysis::APIDumpTextureExtractor::run(int   in_argc,
     /* Without history: the textures need only the frames that the model builder keeps anyway. */
     Analysis::APIDumpAnalysis::Frontends::AnalysisSession session(false);
 
-    Analysis::APIDumpAnalysis::ExtractorTool::Steps steps;
+    Analysis::APIDumpAnalysis::ExtractorProgramRunner::Steps steps;
 
     session.set_texture_sink(&collector);
 
@@ -295,10 +295,10 @@ end:
     steps.profile.default_skip_data_chunks_above_n_bytes = 0;
     steps.profile.output_extension                       = ".textures";
 
-    return static_cast<int>(Analysis::APIDumpAnalysis::ExtractorTool::run(in_argc,
-                                                                          in_argv,
-                                                                          steps,
-                                                                         &session) );
+    return static_cast<int>(Analysis::APIDumpAnalysis::ExtractorProgramRunner::run(in_argc,
+                                                                                   in_argv,
+                                                                                   steps,
+                                                                                  &session) );
 }
 
 int main(int   in_argc,

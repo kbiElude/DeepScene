@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_analysis/frontends/D3D8/d3d8_pipeline_state.h"
-#include "utils/hashing/hasher.h"
+#include "utils/hashing/stable_hasher.h"
 #include "interception/hooks/D3D8/types.h"
 
 /* The limits of a device. An index beyond them does not exist in D3D8. */
@@ -27,7 +27,7 @@ Analysis::APIDumpAnalysis::DrawDescription Analysis::APIDumpAnalysis::Frontends:
                                                                                                                   const uint32_t&                                     in_vertex_count,
                                                                                                                   const bool&                                         in_is_indexed)
 {
-    Utils::Hashing::Hasher                     layout_hasher;
+    Utils::Hashing::StableHasher               layout_hasher;
     Analysis::APIDumpAnalysis::DrawDescription result        = m_fixed_function_state.describe_draw(in_topology,
                                                                                                     in_vertex_count,
                                                                                                     in_is_indexed);
@@ -60,7 +60,7 @@ Analysis::APIDumpAnalysis::DrawDescription Analysis::APIDumpAnalysis::Frontends:
                                                                                                                                const bool&                                         in_is_indexed,
                                                                                                                                const uint32_t&                                     in_stride)
 {
-    Utils::Hashing::Hasher                     layout_hasher;
+    Utils::Hashing::StableHasher               layout_hasher;
     Analysis::APIDumpAnalysis::DrawDescription result        = m_fixed_function_state.describe_draw(in_topology,
                                                                                                     in_vertex_count,
                                                                                                     in_is_indexed);

@@ -13,7 +13,7 @@
 #   build_final\tools\api_dumper\       what captures a program: the dumper, its DLL and the printer (from the interceptor)
 #   build_final\tools\analysis\         the extractors and the query tools of the analysis (of the passes and of the dependencies), the slicer
 #                                       and the baker of the recipes
-#   build_final\tools\stereo_replay\    the replay player, the replay engine and the consistency checker
+#   build_final\tools\stereo_replay\    the replay player, the replay engine and the replay inspector
 include(${APIInterceptor_SOURCE_DIR}/cmake/install_helpers.cmake)
 
 install_with_suffix(APIDumper                 "tools/api_dumper")
@@ -21,7 +21,7 @@ install_with_suffix(APIDumperDLL              "tools/api_dumper")
 
 install_as_built(StereoConverterDLL             "runtime")
 install_as_built(StereoLauncher                 "runtime")
-install_as_built(StereoReplayConsistencyChecker "tools/stereo_replay")
+install_as_built(StereoReplayInspector "tools/stereo_replay")
 install_as_built(StereoReplayEngineDLL          "tools/stereo_replay")
 install_as_built(StereoReplayPlayer             "tools/stereo_replay")
 

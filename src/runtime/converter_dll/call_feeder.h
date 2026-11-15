@@ -20,7 +20,7 @@ namespace Stereo
     {
         /* Feeds the calls of the application to the analysis (see AnalysisSession, created without history) as they are made, in the form of a dump.
          * The API front end therefore tracks the device the same way the offline analysis did, and a draw gets the same signature
-         * (see KeyBuilder::compute_draw_signature_key) here as in the analysis the recipe was baked from.
+         * (see MatchKeyBuilder::compute_draw_signature_key) here as in the analysis the recipe was baked from.
          *
          * A call is analysed when it is done, because only then are its results known. A draw is the exception: its signature is needed
          * before the draw is made, so it is analysed at once. The data chunks of a call are moved out of the interceptor when the call is analysed.

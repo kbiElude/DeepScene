@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
  * What tells a resource apart from the others in every run of an application, and is known at the moment the application creates it: the key
- * of how it was created (see KeyBuilder::compute_description_key) and the number of resources with that key that were created before it. The
+ * of how it was created (see MatchKeyBuilder::compute_description_key) and the number of resources with that key that were created before it. The
  * key alone is not enough, because an application creates several textures in the same way. The resource number is not enough either,
  * because nothing guarantees that it is the same in another run. The order in which an application creates its resources is the same in every
  * run, for the programs that matter here.

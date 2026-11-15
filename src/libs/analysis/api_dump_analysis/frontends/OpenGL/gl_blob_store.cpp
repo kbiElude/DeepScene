@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_blob_store.h"
-#include "utils/hashing/hasher.h"
+#include "utils/hashing/stable_hasher.h"
 #include <string.h>
 
 Analysis::APIDumpAnalysis::Frontends::GLBlobStore::GLBlobStore(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr)
@@ -53,8 +53,8 @@ Analysis::APIDumpAnalysis::ResourceId Analysis::APIDumpAnalysis::Frontends::GLBl
                                                                                                          const void*                                    in_data_ptr,
                                                                                                          const size_t&                                  in_n_bytes)
 {
-    const uint64_t content_hash = Utils::Hashing::Hasher::hash_bytes(in_data_ptr,
-                                                                     in_n_bytes);
+    const uint64_t content_hash = Utils::Hashing::StableHasher::hash_bytes(in_data_ptr,
+                                                                           in_n_bytes);
     const BlobKey  key          = BlobKey(static_cast<uint32_t>(in_kind),
                                           content_hash,
                                           static_cast<uint64_t>(in_n_bytes) );

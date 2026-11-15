@@ -57,10 +57,10 @@ namespace Analysis
             /* The frame that the last on_frame_presented() completed; empty before the first one. */
             const CompletedFrame& get_completed_frame() const;
 
-            /* The key of the last draw, built from its signature and size (see KeyBuilder::compute_draw_cover_key()); 0 before the first draw. */
+            /* The key of the last draw, built from its signature and size (see MatchKeyBuilder::compute_draw_cover_key()); 0 before the first draw. */
             uint64_t get_last_draw_cover_key() const;
 
-            /* The signature of the last draw (see KeyBuilder::compute_draw_signature_key()); 0 before the first draw. */
+            /* The signature of the last draw (see MatchKeyBuilder::compute_draw_signature_key()); 0 before the first draw. */
             uint64_t get_last_draw_signature_key() const;
 
             const Model& get_model() const;
@@ -142,7 +142,7 @@ namespace Analysis
 
             void close_pass_if_rendered_to(const ResourceView& in_view);
 
-            /* The signature key of the draw in the open pass, as KeyBuilder::compute_draw_signature_key() defines it. */
+            /* The signature key of the draw in the open pass, as MatchKeyBuilder::compute_draw_signature_key() defines it. */
             uint64_t compute_draw_signature_key(const DrawDescription& in_draw);
 
             /* Tells the sink, if there is one, about an access to a resource at the current call. A resource that is NONE is not an access. */

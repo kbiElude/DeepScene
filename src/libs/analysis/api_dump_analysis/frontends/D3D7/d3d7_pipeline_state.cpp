@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_analysis/frontends/D3D7/d3d7_pipeline_state.h"
-#include "utils/hashing/hasher.h"
+#include "utils/hashing/stable_hasher.h"
 #include "interception/core/D3D7Utils/constants.h"
 
 /* The limits of a device. An index beyond them does not exist in D3D7. */
@@ -24,7 +24,7 @@ Analysis::APIDumpAnalysis::DrawDescription Analysis::APIDumpAnalysis::Frontends:
                                                                                                                   const uint32_t&                                     in_fvf,
                                                                                                                   const Analysis::APIDumpAnalysis::ResourceId&        in_vertex_buffer_id)
 {
-    Utils::Hashing::Hasher                     layout_hasher;
+    Utils::Hashing::StableHasher               layout_hasher;
     Analysis::APIDumpAnalysis::DrawDescription result        = m_fixed_function_state.describe_draw(in_topology,
                                                                                                     in_vertex_count,
                                                                                                     in_is_indexed);

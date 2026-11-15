@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_analysis/passes_serializer.h"
-#include "analysis/api_dump_analysis/key_builder.h"
+#include "analysis/api_dump_analysis/match_key_builder.h"
 
 bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_depths(const std::vector<uint8_t>&    in_byte_vec,
                                                                      const DepthHistogramMapMember& in_member_ptr,
@@ -656,7 +656,7 @@ bool Analysis::APIDumpAnalysis::PassesSerializer::deserialize_shapes(const std::
 
         if (is_ok)
         {
-            const uint64_t pass_key_set_key  = KeyBuilder::compute_key_set_key           (pass_key_vec);
+            const uint64_t pass_key_set_key  = MatchKeyBuilder::compute_key_set_key      (pass_key_vec);
             const auto     interned_shape_id = out_model_ptr->frame_shape_interner.intern(shape,
                                                                                           pass_key_set_key);
 

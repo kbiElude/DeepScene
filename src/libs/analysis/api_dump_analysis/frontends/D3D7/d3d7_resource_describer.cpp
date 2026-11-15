@@ -4,13 +4,13 @@
  */
 #include "analysis/api_dump_analysis/frontends/D3D7/d3d7_resource_describer.h"
 #include "analysis/api_dump_analysis/frontends/shared/mip_chain.h"
-#include "utils/hashing/hasher.h"
+#include "utils/hashing/stable_hasher.h"
 #include "interception/core/D3D7Utils/constants.h"
 #include "interception/core/D3D7Utils/vertex_format.h"
 
 Analysis::APIDumpAnalysis::Format Analysis::APIDumpAnalysis::Frontends::D3D7ResourceDescriber::convert_pixel_format(const Interception::Hooks::D3D7::DDPIXELFORMAT& in_format)
 {
-    Utils::Hashing::Hasher            hasher;
+    Utils::Hashing::StableHasher      hasher;
     Analysis::APIDumpAnalysis::Format result;
 
     if ( (in_format.dwFlags & Interception::Core::D3D7Utils::DDPF_ZBUFFER) != 0)

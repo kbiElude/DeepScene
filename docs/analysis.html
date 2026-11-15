@@ -275,8 +275,8 @@
 <div class="story">
 <p>Run the same demo twice and nothing about it is the same: the addresses of objects differ, so does the order threads create things in, and so do the times. Yet the analysis writes down identities that a <em>recipe</em> will carry into a later run of the program, and they have to match. So nothing is named by where or when it was made. It is named by what it is.</p>
 </div>
-<p>That name is a <em>key</em>: a 64-bit digest of the values that make the thing what it is, which comes out the same in another run. A <em>hash</em> is the digest of bytes (the contents of a resource, the code of a shader); a key is the identity of a structure, built from values by <code>KeyBuilder</code>, and may contain hashes.</p>
-<div class="note">The rule for what is hashed (<code>Hasher</code> in <code>libs/utils/hashing</code>: integers little-endian, floats by their bits, sizes with what has a variable size) <strong>must never change</strong>, since keys are written into <code>.passes</code> files and recipes. <code>Hasher::hash_bytes</code> takes an AVX2 path for big data on a processor that has it, and gives the same digest as the plain one.</div>
+<p>That name is a <em>key</em>: a 64-bit digest of the values that make the thing what it is, which comes out the same in another run. A <em>hash</em> is the digest of bytes (the contents of a resource, the code of a shader); a key is the identity of a structure, built from values by <code>MatchKeyBuilder</code>, and may contain hashes.</p>
+<div class="note">The rule for what is hashed (<code>StableHasher</code> in <code>libs/utils/hashing</code>: integers little-endian, floats by their bits, sizes with what has a variable size) <strong>must never change</strong>, since keys are written into <code>.passes</code> files and recipes. <code>StableHasher::hash_bytes</code> takes an AVX2 path for big data on a processor that has it, and gives the same digest as the plain one.</div>
 <figure>
 <svg viewBox="0 0 900 250" role="img" aria-label="How the keys are built from each other">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
@@ -518,13 +518,13 @@
 <p>The programs are 64-bit and carry the <code>_x64</code> suffix in their file names (<code>APIDumpAnalysisQuery_x64.exe</code>; see <a href="building.html">Building</a>).</p>
 <details>
 <summary>How the extractors and the queries behave</summary>
-<p><strong>The three extractors</strong> share one flow (<code>ExtractorTool::run</code>): read the arguments, read the workload with an <code>AnalysisSession</code> while the progress is printed, say <em>once</em> if the workload ends in the middle of a segment, then do the program's own step with what the session found.</p>
+<p><strong>The three extractors</strong> share one flow (<code>ExtractorProgramRunner::run</code>): read the arguments, read the workload with an <code>AnalysisSession</code> while the progress is printed, say <em>once</em> if the workload ends in the middle of a segment, then do the program's own step with what the session found.</p>
 <ul class="tight">
   <li>Options: <code>-o</code>, <code>--max-frames</code>, <code>--progress-interval</code>, <code>--stats</code> and <code>--threads</code>, and <code>--skip-chunks-above</code>, which the texture extractor refuses, since the pixels it needs are in the data chunks.</li>
   <li>Exit codes: 0 done, 1 bad arguments, 2 workload cannot be read, 3 output cannot be written, 4 (the texture extractor only) what the workload holds of the textures could not all be kept.</li>
   <li>The warning about a cut workload, and the <code>is_truncated</code> that <code>.passes</code> and <code>.deps</code> keep and <code>info</code> shows, are about the file ending early: a run that stops at <code>--max-frames</code> before the end is not truncated.</li>
 </ul>
-<p><strong>The three query programs</strong> share one flow too (<code>QueryTool::run</code>): read the file, check it against the workload it names, ask, print JSON.</p>
+<p><strong>The three query programs</strong> share one flow too (<code>QueryProgramRunner::run</code>): read the file, check it against the workload it names, ask, print JSON.</p>
 <ul class="tight">
   <li>Options: <code>--compact</code>, <code>--limit</code> (default 100, 0 is all) and <code>--offset</code>. <code>--no-verify</code> skips the check against the workload, and <code>--workload</code> says where the workload is; a workload that cannot be found is not an error.</li>
   <li>Exit codes: 0 done, 1 bad arguments, 2 file cannot be read, 3 nothing there by that id, 4 wrong workload.</li>

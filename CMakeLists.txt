@@ -64,7 +64,7 @@ add_subdirectory(src/tools/analysis/api_dump_texture_query)
 add_subdirectory(src/tools/analysis/recipe_bake)
 add_subdirectory(src/tools/stereo_replay/engine_dll)
 add_subdirectory(src/tools/stereo_replay/player)
-add_subdirectory(src/tools/stereo_replay/consistency_checker)
+add_subdirectory(src/tools/stereo_replay/inspector)
 
 if (CMAKE_SIZEOF_VOID_P EQUAL 8)
     add_subdirectory(src/runtime/presenter)

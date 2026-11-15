@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "analysis/api_dump_analysis/extractor_tool.h"
+#include "analysis/api_dump_analysis/extractor_program_runner.h"
 #include "analysis/api_dump_analysis/frontends/analysis_session.h"
 #include "analysis/api_dump_dependencies/access_log.h"
 #include "analysis/api_dump_dependencies/dependency_analyzer.h"
@@ -75,7 +75,7 @@ int Analysis::APIDumpDependencyExtractor::run(int   in_argc,
     /* Without history: the analysis keeps only as much of each frame as the dependencies need. */
     Analysis::APIDumpAnalysis::Frontends::AnalysisSession session(false);
 
-    Analysis::APIDumpAnalysis::ExtractorTool::Steps steps;
+    Analysis::APIDumpAnalysis::ExtractorProgramRunner::Steps steps;
 
     session.set_access_sink(&log);
 
@@ -153,10 +153,10 @@ end:
     steps.profile.default_skip_data_chunks_above_n_bytes = 64 * 1024;
     steps.profile.output_extension                       = ".deps";
 
-    return static_cast<int>(Analysis::APIDumpAnalysis::ExtractorTool::run(in_argc,
-                                                                          in_argv,
-                                                                          steps,
-                                                                         &session) );
+    return static_cast<int>(Analysis::APIDumpAnalysis::ExtractorProgramRunner::run(in_argc,
+                                                                                   in_argv,
+                                                                                   steps,
+                                                                                  &session) );
 }
 
 int main(int   in_argc,

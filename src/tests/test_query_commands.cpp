@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 #include "analysis/api_dump_analysis/depth_histogram.h"
 #include "analysis/api_dump_analysis/frontends/analysis_session.h"
-#include "analysis/api_dump_analysis/key_builder.h"
+#include "analysis/api_dump_analysis/match_key_builder.h"
 #include "analysis/api_dump_analysis/passes_format.h"
 #include "analysis/api_dump_analysis/query_commands.h"
 #include "analysis/api_dump_analysis/resource_access_tracker.h"
@@ -567,7 +567,7 @@ TEST_F(QueryCommandsTest, EveryShapeHasAKeyThatIsTheSameWherePassesAreTheSame)
         ::snprintf(expected_i8vec32,
                    sizeof(expected_i8vec32),
                    "0x%016llx",
-                   static_cast<unsigned long long>(Analysis::APIDumpAnalysis::KeyBuilder::compute_key_set_key(pass_key_vec) ));
+                   static_cast<unsigned long long>(Analysis::APIDumpAnalysis::MatchKeyBuilder::compute_key_set_key(pass_key_vec) ));
 
         EXPECT_EQ(shape.at("shape_key").string_value,
                   expected_i8vec32);

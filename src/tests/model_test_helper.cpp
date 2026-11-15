@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "model_test_helper.h"
-#include "analysis/api_dump_analysis/key_builder.h"
+#include "analysis/api_dump_analysis/match_key_builder.h"
 
 Tests::ModelTestHelper::ModelTestHelper(const bool& in_keeps_history)
     :m_builder        (in_keeps_history),
@@ -289,7 +289,7 @@ uint64_t Tests::ModelTestHelper::get_shape_key(const uint64_t& in_frame_index) c
         pass_key_vec.push_back(model.pass_structure_interner.get_structure(pass_structure_id).key);
     }
 
-    return Analysis::APIDumpAnalysis::KeyBuilder::compute_key_set_key(pass_key_vec);
+    return Analysis::APIDumpAnalysis::MatchKeyBuilder::compute_key_set_key(pass_key_vec);
 }
 
 void Tests::ModelTestHelper::set_matrix(const Analysis::APIDumpAnalysis::ConstantSemantic& in_semantic,

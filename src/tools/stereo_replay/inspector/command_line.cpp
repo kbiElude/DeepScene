@@ -1,0 +1,465 @@
+/* API Interceptor (c) 2025 Dominik Witczak
+ *
+ * This code is licensed under MIT license (see LICENSE.txt for details)
+ */
+#include "command_line.h"
+#include "utils/command_line/number_parser.h"
+#include <stdlib.h>
+#include <windows.h>
+
+bool Stereo::Replay::Inspector::CommandLine::are_image_options_valid(const Options& in_options)
+{
+    const bool has_image_filename  = (in_options.image_filename.empty () == false);
+    const bool has_recipe_filename = (in_options.recipe_filename.empty() == false);
+    const bool is_contact_sheet    = (in_options.contact_sheet_n_frames != 0);
+    const bool is_screenshot       = (in_options.screenshot_frame       != UINT32_MAX);
+    bool       result              = false;
+
+    if (is_contact_sheet &&
+        is_screenshot)
+    {
+        goto end;
+    }
+
+    if (is_contact_sheet ||
+        is_screenshot)
+    {
+        result = (has_image_filename                       &&
+                  (in_options.has_eye_view == false ||
+                   has_recipe_filename) );
+    }
+    else
+    {
+        result = (has_image_filename      == false &&
+                  in_options.has_eye_view == false);
+    }
+
+end:
+    return result;
+}
+
+const char* Stereo::Replay::Inspector::CommandLine::get_usage_ptr()
+{
+    return "Usage:\n"
+           "\n"
+           "StereoReplayInspector_x86 file.workload [--from A] [--to B] [--dump-dir DIR] [--recipe FILE [--eye-separation D]]\n"
+           "                                    [--ways again,twice,restore,recipe] [--parallel]\n"
+           "StereoReplayInspector_x86 file.workload --profile [--from A] [--to B] [--recipe FILE]\n"
+           "StereoReplayInspector_x86 file.workload --redundant-state --deps FILE [--from A] [--to B] [--recipe FILE]\n"
+           "StereoReplayInspector_x86 file.workload --same-frames-as other.workload [--from A] [--to B]\n"
+           "StereoReplayInspector_x86 file.workload --screenshot N --out FILE.png [--recipe FILE [--eye left|right|both|anaglyph]]\n"
+           "StereoReplayInspector_x86 file.workload --overlay-report candidates.json --recipe FILE --dump-dir DIR [--deps FILE] [--eye-separation D]\n"
+           "StereoReplayInspector_x86 file.workload --contact-sheet K --out FILE.png [--from A] [--to B] [--recipe FILE [--eye ...]]\n"
+           "\n"
+           "Replays frames A to B (default 0 to 999) of a workload in four ways: as they are, as they are again (to\n"
+           "see how much a replay differs from itself), executed twice, and executed twice with the state of the device put\n"
+           "back before the second execution. The back buffer after each execution is compared with that of the first replay.\n"
+           "\n"
+           "  --breadcrumb FILE  Write the call that the replay is making to FILE, as one line, for each call: if the replay crashes, the file says which call\n"
+           "                   it was (begun: the crash is in it; finished: it is the last one that was made). It stays in the file when the program dies.\n"
+           "  --deps FILE      The dependencies of the workload (a .deps file of it, see APIDumpDependencyExtractor): each way goes to the last\n"
+           "                   frame as a seek does, leaving out the draws and uploads of the frames which nothing after it reads. For checking\n"
+           "                   that it comes out as the replay of every frame does (take two screenshots, with and without, and compare them).\n"
+           "  --dump-dir DIR   Write the images of the first frame in which an execution differs, as PNG files\n"
+           "  --eye-separation D  The distance between the eyes for the recipe (0 by default)\n"
+           "  --recipe FILE    Replay the frames twice with the recipe instead of the last two ways: the first execution is for\n"
+           "                   the left eye, the second for the right one. A recipe that changes nothing gives the frames as they are.\n"
+           "  --ways LIST      Only these ways, besides the frames as they are (which are always replayed, to compare with): again (as\n"
+           "                   they are, again), twice, restore (twice, the state put back between) and recipe (needs --recipe). Each way\n"
+           "                   is a replay of the workload from its start, so fewer ways are less to wait for.\n"
+           "  --overlay-report FILE  Instead of the check: FILE is the list of draws that may be 2D overlays (RecipeBake --overlays). The frame in which each is first\n"
+           "                   drawn is replayed for the left eye with the draw and without it (the recipe skips it in its pass only); the images go to --dump-dir: an\n"
+           "                   animation (GIF) that flips between the frame and the frame with the pixels the draw makes in magenta, and a still, for each candidate that\n"
+           "                   makes any, candidates.json with the number of them, and index.html to look at them. A pass which makes no difference left out whole is\n"
+           "                   left out for all its draws at once.\n"
+           "  --jobs N         With --overlay-report: share the work between N processes of this program (1 by default: none). Each replay decodes the workload from\n"
+           "                   its start with threads of its own, and that is bound by the bandwidth of the memory: one process saturates 8 cores, and two or more\n"
+           "                   were no faster (0.9 to 1.0 times). A process takes about 1.5 GB. It may pay on a machine with more memory bandwidth to the cores.\n"
+           "  --overlay-report-last-frame N  With --overlay-report: look at the frames of the candidates up to the Nth only (all of them by default)\n"
+           "  --overlay-report-shard-entries N  With --overlay-report: a process of this program looks at N candidates at most (40 by default; 0: no limit), and the work is\n"
+           "                   split into more parts than --jobs if it is bigger, that run no more than --jobs at a time. A replay leaves some memory behind (about 1 to\n"
+           "                   5 MB, more in the later frames), and a 32-bit process that makes about 250 of them runs out of address space.\n"
+           "  --overlay-report-shard I N  With --overlay-report: this process is part I of N parts (counted from 0). The processes that --overlay-report starts are given it;\n"
+           "                   it is not for a person to use.\n"
+           "  --overlay-report-result FILE  With --overlay-report: this part writes what it found to FILE, for the process that started it (see --overlay-report-shard).\n"
+           "  --overlay-report-exact  With --overlay-report: replay each candidate on its own, from the start of the workload, instead of playing the candidates of\n"
+           "                   a frame in one run (which is what it does for a frame that can be played again from the state it leaves, when there is --deps).\n"
+           "                   Slower; each result then has one cause. Use it to check what the quick way says of a new application.\n"
+           "  --parallel       Replay the ways at the same time, each with an engine of its own: faster, and needs the memory of all.\n"
+           "\n"
+           "  --screenshot N   Instead of the check: replay once, up to frame N, and write the image of that frame to the PNG file of --out. With a\n"
+           "                   recipe it is both eyes side by side, or the one that --eye says (anaglyph: red-cyan); without one, the frame as it is.\n"
+           "  --profile        Instead of the check: replay frames A to B once (as they are, or for the eyes of the recipe) and say where the time of the calls went:\n"
+           "                   the functions whose calls took longest, and the frames that took longest.\n"
+           "  --redundant-state   Instead of the check: replay frames A to B once, the way a seek to B does it (--deps says which frames are not made), and say, of the\n"
+           "                   calls of OpenGL in the frames that are not made, how many give a piece of state the value it has, and how many are overwritten by another\n"
+           "                   call before a frame that is made looks at the state.\n"
+           "  --same-frames-as FILE  Instead of the check: replay frames A to B of this workload and of FILE as they are, and say whether the images are the\n"
+           "                   same (exit code 3 if not). For a slice of a workload (APIDumpSlicer): it has to replay to the images of the workload.\n"
+           "  --contact-sheet K  Instead of the check: one PNG with K frames spread evenly from A to B (or the end of the workload), each as a screenshot\n"
+           "                   is, and the numbers of the frames in the order they are shown.\n";
+}
+
+bool Stereo::Replay::Inspector::CommandLine::parse(const std::vector<std::string>& in_argument_vec,
+                                                   Options*                        out_options_ptr,
+                                                   std::string*                    out_error_ptr)
+{
+    /* The options that are a flag, a text or a whole number. Each entry gives the option name and the field of the options that it sets. */
+    struct FlagOption
+    {
+        const char*     name_ptr;
+        bool Options::* member_ptr;
+    };
+
+    struct NumberOption
+    {
+        const char*         name_ptr;
+        uint32_t Options::* member_ptr;
+        uint64_t            least;
+        uint64_t            most;
+    };
+
+    struct TextOption
+    {
+        const char*            name_ptr;
+        std::string Options::* member_ptr;
+    };
+
+    static constexpr int DECIMAL_BASE = 10;
+
+    static const FlagOption FLAG_OPTION_ARRAY[] =
+    {
+        {"--history",              &Options::has_history},
+        {"--overlay-report-exact", &Options::overlay_report_is_exact},
+        {"--parallel",             &Options::is_parallel},
+        {"--profile",              &Options::is_profiling},
+        {"--redundant-state",         &Options::is_redundant_state_count}
+    };
+
+    static const NumberOption NUMBER_OPTION_ARRAY[] =
+    {
+        {"--contact-sheet", &Options::contact_sheet_n_frames, 0, UINT32_MAX},
+        {"--from",          &Options::first_frame,            0, UINT32_MAX},
+        {"--jobs",          &Options::n_jobs,                 1, MAXIMUM_WAIT_OBJECTS - 1},
+        {"--overlay-report-last-frame", &Options::overlay_report_last_frame, 0, UINT32_MAX},
+        {"--overlay-report-shard-entries", &Options::overlay_report_shard_entries, 0, UINT32_MAX},
+        {"--screenshot",    &Options::screenshot_frame,       0, UINT32_MAX - 1},
+        {"--to",            &Options::last_frame,             0, UINT32_MAX}
+    };
+
+    static const TextOption TEXT_OPTION_ARRAY[] =
+    {
+        {"--breadcrumb",           &Options::breadcrumb_filename},
+        {"--deps",                 &Options::deps_filename},
+        {"--dump-dir",             &Options::dump_directory},
+        {"--out",                  &Options::image_filename},
+        {"--overlay-report",        &Options::overlay_report_filename},
+        {"--overlay-report-result", &Options::overlay_report_result_filename},
+        {"--recipe",               &Options::recipe_filename},
+        {"--same-frames-as",       &Options::same_frames_workload_filename}
+    };
+
+    bool result = false;
+
+    *out_options_ptr = Options();
+
+    for (size_t n_argument = 0;
+                n_argument < in_argument_vec.size();
+              ++n_argument)
+    {
+        const std::string&  argument              = in_argument_vec.at(n_argument);
+        const FlagOption*   flag_ptr              = nullptr;
+        const bool          has_next              = (n_argument + 1 < in_argument_vec.size() );
+        const bool          has_workload_filename = (out_options_ptr->workload_filename.empty() == false);
+        const bool          is_argument_empty     = argument.empty();
+        const char          first_character       = (is_argument_empty) ? '\0'
+                                                                        : argument.at(0);
+        const NumberOption* number_ptr            = nullptr;
+        const TextOption*   text_ptr              = nullptr;
+
+        for (const auto& option : FLAG_OPTION_ARRAY)
+        {
+            if (argument == option.name_ptr)
+            {
+                flag_ptr = &option;
+            }
+        }
+
+        for (const auto& option : NUMBER_OPTION_ARRAY)
+        {
+            if (argument == option.name_ptr)
+            {
+                number_ptr = &option;
+            }
+        }
+
+        for (const auto& option : TEXT_OPTION_ARRAY)
+        {
+            if (argument == option.name_ptr)
+            {
+                text_ptr = &option;
+            }
+        }
+
+        {
+            const bool needs_value = (number_ptr != nullptr            ||
+                                      text_ptr   != nullptr            ||
+                                      argument   == "--dump-frame"     ||
+                                      argument   == "--eye"            ||
+                                      argument   == "--eye-separation" ||
+                                      argument   == "--ways");
+
+            if (needs_value &&
+                has_next == false)
+            {
+                *out_error_ptr = argument + " needs a value";
+
+                goto end;
+            }
+        }
+
+        if (argument == "--overlay-report-shard")
+        {
+            const size_t n_arguments = in_argument_vec.size();
+
+            if (n_argument + 2 >= n_arguments)
+            {
+                *out_error_ptr = argument + " needs the number of the part and the number of the parts";
+
+                goto end;
+            }
+        }
+
+        if (flag_ptr != nullptr)
+        {
+            out_options_ptr->*(flag_ptr->member_ptr) = true;
+        }
+        else
+        if (number_ptr != nullptr)
+        {
+            const std::string& value_text = in_argument_vec.at(++n_argument);
+
+            if (parse_unsigned(value_text,
+                               number_ptr->least,
+                               number_ptr->most,
+                               &(out_options_ptr->*(number_ptr->member_ptr) ) ) == false)
+            {
+                *out_error_ptr = argument                          +
+                                 " needs a whole number from "     +
+                                 std::to_string(number_ptr->least) +
+                                 " to "                            +
+                                 std::to_string(number_ptr->most);
+
+                goto end;
+            }
+        }
+        else
+        if (text_ptr != nullptr)
+        {
+            out_options_ptr->*(text_ptr->member_ptr) = in_argument_vec.at(++n_argument);
+        }
+        else
+        if (argument == "--dump-frame")
+        {
+            const std::string& value_text = in_argument_vec.at(++n_argument);
+
+            out_options_ptr->dump_frame = static_cast<uint32_t>(::strtoul(value_text.c_str(),
+                                                                          nullptr,
+                                                                          DECIMAL_BASE) );
+        }
+        else
+        if (argument == "--eye")
+        {
+            const std::string& value_text = in_argument_vec.at(++n_argument);
+
+            if (parse_eye_view(value_text,
+                              &out_options_ptr->eye_view) == false)
+            {
+                *out_error_ptr = "--eye is left, right, both or anaglyph";
+
+                goto end;
+            }
+
+            out_options_ptr->has_eye_view = true;
+        }
+        else
+        if (argument == "--eye-separation")
+        {
+            double             separation = 0.0;
+            const std::string& value_text = in_argument_vec.at(++n_argument);
+
+            if (Utils::CommandLine::NumberParser::parse_double(value_text,
+                                                              &separation) == false)
+            {
+                *out_error_ptr = "--eye-separation needs a number";
+
+                goto end;
+            }
+
+            out_options_ptr->eye_separation = static_cast<float>(separation);
+        }
+        else
+        if (argument == "--overlay-report-shard")
+        {
+            const std::string& count_text = in_argument_vec.at(n_argument + 2);
+            const std::string& index_text = in_argument_vec.at(n_argument + 1);
+
+            bool is_shard_valid = false;
+
+            const bool has_index = parse_unsigned(index_text,
+                                                  0,
+                                                  MAXIMUM_WAIT_OBJECTS,
+                                                 &out_options_ptr->overlay_report_shard_index);
+
+            if (has_index)
+            {
+                const bool has_count = parse_unsigned(count_text,
+                                                      0,
+                                                      MAXIMUM_WAIT_OBJECTS,
+                                                     &out_options_ptr->overlay_report_shard_count);
+
+                if (has_count)
+                {
+                    is_shard_valid = (out_options_ptr->overlay_report_shard_index < out_options_ptr->overlay_report_shard_count);
+                }
+            }
+
+            if (is_shard_valid == false)
+            {
+                *out_error_ptr = argument + " needs the number of the part, and the number of the parts (which is higher)";
+
+                goto end;
+            }
+
+            n_argument += 2;
+        }
+        else
+        if (argument == "--ways")
+        {
+            const std::string&             value_text   = in_argument_vec.at(++n_argument);
+            const std::vector<std::string> way_name_vec = split_list        (value_text);
+
+            out_options_ptr->way_name_vec.insert(out_options_ptr->way_name_vec.end(),
+                                                 way_name_vec.begin               (),
+                                                 way_name_vec.end                 () );
+        }
+        else
+        if (is_argument_empty     == false &&
+            first_character       != '-'   &&
+            has_workload_filename == false)
+        {
+            out_options_ptr->workload_filename = argument;
+        }
+        else
+        {
+            *out_error_ptr = "Not an option, or a second workload: " + argument;
+
+            goto end;
+        }
+    }
+
+    if (out_options_ptr->workload_filename.empty() )
+    {
+        *out_error_ptr = "A workload file is needed";
+
+        goto end;
+    }
+
+    if (out_options_ptr->first_frame > out_options_ptr->last_frame)
+    {
+        *out_error_ptr = "--from is after --to";
+
+        goto end;
+    }
+
+    if (are_image_options_valid(*out_options_ptr) == false)
+    {
+        *out_error_ptr = "A screenshot or a contact sheet needs --out (and --eye needs a recipe); --out and --eye are only for one of them, and not for both at once";
+
+        goto end;
+    }
+
+    result = true;
+
+end:
+    return result;
+}
+
+bool Stereo::Replay::Inspector::CommandLine::parse_eye_view(const std::string&               in_name,
+                                                            Utils::Images::EyeView* out_view_ptr)
+{
+    struct NamedView
+    {
+        const char*            name_ptr;
+        Utils::Images::EyeView view;
+    };
+
+    static const NamedView NAMED_VIEW_ARRAY[] =
+    {
+        {"anaglyph", Utils::Images::EyeView::ANAGLYPH},
+        {"both",     Utils::Images::EyeView::BOTH},
+        {"left",     Utils::Images::EyeView::LEFT},
+        {"right",    Utils::Images::EyeView::RIGHT}
+    };
+
+    bool result = false;
+
+    for (const auto& named_view : NAMED_VIEW_ARRAY)
+    {
+        if (in_name == named_view.name_ptr)
+        {
+            *out_view_ptr = named_view.view;
+            result        = true;
+        }
+    }
+
+    return result;
+}
+
+bool Stereo::Replay::Inspector::CommandLine::parse_unsigned(const std::string& in_text,
+                                                            const uint64_t&    in_least,
+                                                            const uint64_t&    in_most,
+                                                            uint32_t*          out_value_ptr)
+{
+    bool     result = false;
+    uint64_t value  = 0;
+
+    if (Utils::CommandLine::NumberParser::parse_unsigned(in_text,
+                                                         in_most,
+                                                         &value) == false)
+    {
+        goto end;
+    }
+
+    if (value < in_least)
+    {
+        goto end;
+    }
+
+    *out_value_ptr = static_cast<uint32_t>(value);
+    result         = true;
+
+end:
+    return result;
+}
+
+std::vector<std::string> Stereo::Replay::Inspector::CommandLine::split_list(const std::string& in_list)
+{
+    size_t                   n_first_character = 0;
+    std::vector<std::string> result;
+
+    while (n_first_character <= in_list.size() )
+    {
+        const size_t n_comma = in_list.find(',',
+                                            n_first_character);
+
+        result.push_back(in_list.substr(n_first_character,
+                                        (n_comma == std::string::npos) ? std::string::npos
+                                                                       : n_comma - n_first_character) );
+
+        n_first_character = (n_comma == std::string::npos) ? in_list.size() + 1
+                                                           : n_comma        + 1;
+    }
+
+    return result;
+}

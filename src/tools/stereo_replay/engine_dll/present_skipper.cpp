@@ -5,7 +5,7 @@
 #include "capture/api_dump_loader/api_info.h"
 #include "present_skipper.h"
 
-Stereo::Replay::EngineDLL::PresentSkipper::PresentSkipper(const FrameHurry* in_hurry_ptr)
+Stereo::Replay::EngineDLL::PresentSkipper::PresentSkipper(const HurriedFrameSelector* in_hurry_ptr)
     :m_hurry_ptr(in_hurry_ptr)
 {
     /* Stub */

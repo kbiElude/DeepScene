@@ -15,7 +15,7 @@ Three graphics APIs are supported: Direct3D 8, Direct3D 7 (for programs whose ve
 | Part | What it is |
 | --- | --- |
 | `libs/analysis`, `tools/analysis` | The analysis of a capture (the `.passes` file, queries) and the recipes: reading, baking and applying them. |
-| `tools/stereo_replay` (`StereoReplayEngineDLL`, `StereoReplayPlayer`, `StereoReplayConsistencyChecker`) | Play a workload again for both eyes, to try a recipe offline and to check that a frame can be drawn twice. |
+| `tools/stereo_replay` (`StereoReplayEngineDLL`, `StereoReplayPlayer`, `StereoReplayInspector`) | Play a workload again for both eyes, to try a recipe offline and to check that a frame can be drawn twice. |
 | `runtime/converter_dll`, `runtime/launcher` | The converter that goes into the running program, and the launcher that puts it there. Built for 32 and 64 bits, to match the program. |
 | `libs/stereo` (Transport), `libs/headset`, `runtime/presenter` | Carry the images of the eyes to the screen: through shared memory, onto the GPU, into a headset or a preview window. |
 | `vr_player`, `libs/vr_player`, `libs/headset` (vr_devices) | The player: the list of programs, the list of devices, and the window. A program which is not on the computer is downloaded the first time it is launched. |

@@ -7,7 +7,7 @@
 
 #include "replay_engine.h"
 #include "i_replay_engine.h"
-#include "frame_hurry.h"
+#include "hurried_frame_selector.h"
 #include "gl_texture_parameter_cache.h"
 #include "paced_frame_executor.h"
 #include "present_skipper.h"
@@ -57,7 +57,7 @@ namespace Stereo
                  * before they are destroyed.
                  */
                 Analysis::APIDumpDependencies::DependencyAnalysis m_dependencies;
-                FrameHurry                                        m_hurry;
+                HurriedFrameSelector                              m_hurry;
                 bool                                              m_has_dependencies;
                 bool                                              m_has_seek_target;   /* a seek that uses the dependencies was requested; m_seek_target_frame is its target frame */
                 PresentSkipper                                    m_present_skipper;

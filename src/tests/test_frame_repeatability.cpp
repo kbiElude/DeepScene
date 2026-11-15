@@ -6,11 +6,11 @@
  */
 #include <gtest/gtest.h>
 #include "dependency_scene.h"
-#include "tools/stereo_replay/consistency_checker/frame_repeatability.h"
+#include "tools/stereo_replay/inspector/frame_repeatability.h"
 
 namespace
 {
-    using Stereo::Replay::ConsistencyChecker::FrameRepeatability;
+    using Stereo::Replay::Inspector::FrameRepeatability;
 
     bool is_repeatable(const Tests::DependencyScene& in_scene,
                        const uint32_t&               in_frame_index,

@@ -7,14 +7,14 @@
  */
 #include <gtest/gtest.h>
 #include "temp_directory.h"
-#include "tools/stereo_replay/consistency_checker/command_line.h"
-#include "tools/stereo_replay/consistency_checker/crash_breadcrumb.h"
+#include "tools/stereo_replay/inspector/command_line.h"
+#include "tools/stereo_replay/inspector/crash_breadcrumb.h"
 #include <fstream>
 #include <iterator>
 
 namespace
 {
-    typedef Stereo::Replay::ConsistencyChecker::CrashBreadcrumb CrashBreadcrumb;
+    typedef Stereo::Replay::Inspector::CrashBreadcrumb CrashBreadcrumb;
 
     /* glReadPixels(0, 0, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, pointer) as a call of thread 1. */
     Capture::APIDumpLoader::DumpedAPICall make_read_pixels_call()
@@ -180,11 +180,11 @@ TEST(CrashBreadcrumb, AFileThatCannotBeMadeIsNoHarm)
 TEST(CheckerCommandLineTest, TheBreadcrumbFileIsRead)
 {
     std::string                                 error;
-    Stereo::Replay::ConsistencyChecker::Options options;
+    Stereo::Replay::Inspector::Options options;
 
-    ASSERT_TRUE(Stereo::Replay::ConsistencyChecker::CommandLine::parse({"a.workload", "--breadcrumb", "last_call.txt"},
-                                                                       &options,
-                                                                       &error) ) << error;
+    ASSERT_TRUE(Stereo::Replay::Inspector::CommandLine::parse({"a.workload", "--breadcrumb", "last_call.txt"},
+                                                              &options,
+                                                              &error) ) << error;
 
     EXPECT_EQ(options.breadcrumb_filename,
               "last_call.txt");

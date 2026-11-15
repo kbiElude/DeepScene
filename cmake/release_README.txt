@@ -27,7 +27,7 @@ tools\analysis\              Studies a capture and makes the recipe of an applic
 tools\stereo_replay\         Plays a capture again, without the application.
     StereoReplayPlayer_x86.exe              the player; use this one for Direct3D 7 and 8 (StereoReplayPlayer_x64.exe is
                                             for the rest)
-    StereoReplayConsistencyChecker_x86.exe  replays and compares, takes screenshots, makes the overlay report
+    StereoReplayInspector_x86.exe  replays and compares, takes screenshots, makes the overlay report
                                             (also _x64)
     StereoReplayEngineDLL_x86.dll           the engine both of them load (also _x64)
 

@@ -10,7 +10,7 @@
 #include "types.h"
 #include "eye_matrix_binder.h"
 #include "frame_buffer.h"
-#include "frame_hurry.h"
+#include "hurried_frame_selector.h"
 #include "frame_rewriter.h"
 #include "slice_skipper.h"
 #include <array>
@@ -63,7 +63,7 @@ namespace Stereo
                 void  set_frame_execution(const FrameExecutionOptions&            in_options);
 
                 /* Sets the hurry. Frames that it says are hurried through are not read back for the image sink. Not owned; may be null. */
-                void set_hurry     (const FrameHurry* in_hurry_ptr);
+                void set_hurry     (const HurriedFrameSelector* in_hurry_ptr);
                 void set_image_sink(IFrameImageSink*  in_sink_ptr);
 
                 /* Frames that the skipper says are dead are played as they are, not rewritten for the eyes (see SliceSkipper). Not owned;
@@ -204,7 +204,7 @@ namespace Stereo
                 float                                                                  m_frame_eye_separation; /* the separation that the frame being played uses */
                 FrameExecution                                                         m_frame_mode; /* of the frame being played; with the VARIANTS option, VARIANTS for the last frame and TWICE for the frames before it */
                 ::Replay::ReplayEngineDLL::IFrameHost*                                 m_host_ptr; /* of the frame being played */
-                const FrameHurry*                                                      m_hurry_ptr;
+                const HurriedFrameSelector*                                            m_hurry_ptr;
                 IFrameImageSink*                                                       m_image_sink_ptr;
                 const SliceSkipper*                                                    m_slice_skipper_ptr;
                 std::unique_ptr<EyeMatrixBinder>                                       m_matrix_binder_ptr;

@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_analysis/workload_identity.h"
-#include "utils/hashing/hasher.h"
+#include "utils/hashing/stable_hasher.h"
 #include <fstream>
 #include <stdio.h>
 #include <vector>
@@ -83,8 +83,8 @@ bool Analysis::APIDumpAnalysis::WorkloadIdentity::hash_piece(const std::string& 
     /* A file shorter than a piece is hashed up to its end. Reaching the end is not an error. */
     piece_u8_vec.resize(static_cast<size_t>(file.gcount() ) );
 
-    *out_hash_ptr = Utils::Hashing::Hasher::hash_bytes(piece_u8_vec.data(),
-                                                       piece_u8_vec.size() );
+    *out_hash_ptr = Utils::Hashing::StableHasher::hash_bytes(piece_u8_vec.data(),
+                                                             piece_u8_vec.size() );
     result        = true;
 
 end:

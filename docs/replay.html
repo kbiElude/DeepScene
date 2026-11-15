@@ -45,7 +45,7 @@
     </ul>
   </li>
   <li><a href="#programs">The programs</a></li>
-  <li><a href="#checking">What the checker is for</a>
+  <li><a href="#checking">What the inspector is for</a>
     <ul>
       <li><a href="#checking-modes">The modes</a></li>
       <li><a href="#checking-overlay">The overlay report</a></li>
@@ -61,7 +61,7 @@
   <li>an <code>IFrameExecutor</code>, which plays the calls of a frame (the engine presents the frame and pauses between two);</li>
   <li>the executors of the calls, which a class can derive from.</li>
 </ul>
-<p>The result is <code>StereoReplayEngineDLL</code>. A program that wants to hear of frames and calls derives from <code>NullReplayObserver</code>, an observer that does nothing, and overrides what it cares about (the player's <code>FrameRangeObserver</code>, the checker's <code>StopObserver</code>).</p>
+<p>The result is <code>StereoReplayEngineDLL</code>. A program that wants to hear of frames and calls derives from <code>NullReplayObserver</code>, an observer that does nothing, and overrides what it cares about (the player's <code>FrameRangePlayer</code>, the inspector's <code>LastFramePauser</code>).</p>
 <figure>
 <svg viewBox="0 0 900 330" role="img" aria-label="The replay engine of the interceptor and what the project adds">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
@@ -77,7 +77,7 @@
   <rect class="box2" x="690" y="178" width="180" height="56" rx="6"/><text x="780" y="200" text-anchor="middle">IFrameImageSink</text><text class="small" x="780" y="218" text-anchor="middle">gets the images of both eyes</text>
   <path class="arrow" d="M570 178V106"/><path class="arrow" d="M350 178V106"/><path class="arrow" d="M230 206H248"/><path class="arrow" d="M670 206H688"/>
   <rect class="box4" x="250" y="276" width="200" height="40" rx="6"/><text x="350" y="301" text-anchor="middle">player (window)</text>
-  <rect class="box4" x="470" y="276" width="200" height="40" rx="6"/><text x="570" y="301" text-anchor="middle">consistency checker</text>
+  <rect class="box4" x="470" y="276" width="200" height="40" rx="6"/><text x="570" y="301" text-anchor="middle">replay inspector</text>
   <path class="arrow" d="M350 276V236"/><path class="arrow" d="M570 276V236"/>
 </svg>
 <figcaption>Each API has an executor of its own, registered by its API group, and a call it has no code for fails the replay instead of drawing something wrong. There is no translation of one API to another.</figcaption>
@@ -218,7 +218,7 @@
   <rect class="box3" x="20" y="90" width="220" height="50" rx="6"/><text x="130" y="112" text-anchor="middle">.index of the workload</text><text class="small" x="130" y="128" text-anchor="middle">APIDumpPrinter --index</text>
   <rect class="box" x="300" y="20" width="220" height="50" rx="6"/><text x="410" y="42" text-anchor="middle">FrameSlicePlanner</text><text class="small" x="410" y="58" text-anchor="middle">makes the plan (Analysis)</text>
   <rect class="box" x="300" y="90" width="220" height="50" rx="6"/><text x="410" y="112" text-anchor="middle">SliceSkipper</text><text class="small" x="410" y="128" text-anchor="middle">carries it out in the reader</text>
-  <rect class="box" x="300" y="160" width="220" height="50" rx="6"/><text x="410" y="182" text-anchor="middle">FrameHurry</text><text class="small" x="410" y="198" text-anchor="middle">runs the frames before T unpaced</text>
+  <rect class="box" x="300" y="160" width="220" height="50" rx="6"/><text x="410" y="182" text-anchor="middle">HurriedFrameSelector</text><text class="small" x="410" y="198" text-anchor="middle">runs the frames before T unpaced</text>
   <rect class="box2" x="620" y="90" width="260" height="50" rx="6"/><text x="750" y="112" text-anchor="middle">the target frame</text><text class="small" x="750" y="128" text-anchor="middle">same images as a replay without a seek</text>
   <path class="arrow" d="M240 45H298"/><path class="arrow" d="M240 115H298"/><path class="arrow" d="M410 70V88"/><path class="arrow" d="M520 115H618"/><path class="arrow" d="M520 185Q580 185 650 142"/>
   <text class="small" x="450" y="236" text-anchor="middle">without the index every chunk is read; without the deps no frame is dead</text>
@@ -231,10 +231,10 @@
 <tr><td><code>.index</code></td><td>Needed for the chunk skipping (<code>APIDumpPrinter --index</code>); without it every chunk is read.</td></tr>
 <tr><td><code>FrameSlicePlanner</code></td><td>In <code>Analysis</code>; makes the plan.</td></tr>
 <tr><td><code>SliceSkipper</code></td><td>Carries the plan out.</td></tr>
-<tr><td><code>FrameHurry</code></td><td>Runs the frames before the target unpaced.</td></tr>
+<tr><td><code>HurriedFrameSelector</code></td><td>Runs the frames before the target unpaced.</td></tr>
 </table>
 <ul>
-  <li><strong>Correctness</strong> is checked rather than assumed: with every rule below, the images of the target frame of a seek (both eyes with a recipe) are byte for byte those of a replay without it. The checker's screenshots, with <code>--deps</code> and without, are how to check it.</li>
+  <li><strong>Correctness</strong> is checked rather than assumed: with every rule below, the images of the target frame of a seek (both eyes with a recipe) are byte for byte those of a replay without it. The inspector's screenshots, with <code>--deps</code> and without, are how to check it.</li>
   <li>A capture where every frame reads what the previous one wrote gains nothing: no frame is dead.</li>
   <li>Frames are counted as the converter counts them live (the window of a running converter says <em>Frame N</em>), so a frame seen there can be typed here.</li>
 </ul>
@@ -286,14 +286,14 @@
 <ul>
   <li>A frame that is left out has to pop what it pushes: one that ends first ends the process with a message (<code>AI_ASSERT_ALWAYS</code>), as the state that it would have left is not made.</li>
   <li>A pair that begins in a segment and ends in the next leaves out what follows the push in the first one only.</li>
-  <li>Example: a program that pushes all of the attributes once in each frame, and every one of whose dead frames pops them. <code>--state-census</code> says how many calls of each kind a seek does not make.</li>
+  <li>Example: a program that pushes all of the attributes once in each frame, and every one of whose dead frames pops them. <code>--redundant-state</code> says how many calls of each kind a seek does not make.</li>
 </ul>
 
 <h2 id="programs">The programs</h2>
 <table>
 <tr><th>Program</th><th>What it is</th></tr>
 <tr><td><code>StereoReplayPlayer</code></td><td>A window (ImGui, through <code>UI</code> of <code>Utils</code>) around the engine: choose a workload and optionally a recipe, play and pause, see both eyes in a preview.</td></tr>
-<tr><td><code>StereoReplayConsistencyChecker</code></td><td>No window. Replays a workload several ways and compares the images; takes screenshots; profiles; makes the overlay report. Its modes are in the next section.</td></tr>
+<tr><td><code>StereoReplayInspector</code></td><td>No window. Replays a workload several ways and compares the images; takes screenshots; profiles; makes the overlay report. Its modes are in the next section.</td></tr>
 </table>
 <h3>The player's controls</h3>
 <table>
@@ -302,12 +302,12 @@
 <tr><td>Eye separation slider</td><td>Changes the distance for the frames from then on. When it is let go of while paused, the frame on show is played again.</td></tr>
 </table>
 <h3>Where they are</h3>
-<p>In the release (see <a href="contributing.html#build">Building</a>) the engine and the two programs are in <code>tools\stereo_replay\</code>, each as <code>_x64</code> and <code>_x86</code>. A 64-bit player starts the 32-bit one for a 32-bit workload, and the 32-bit ones replay the Direct3D 7, Direct3D 8 and OpenGL captures, which are of 32-bit programs. In the source they are in <code>src/tools/stereo_replay</code>, in <code>engine_dll</code>, <code>player</code> and <code>consistency_checker</code>.</p>
+<p>In the release (see <a href="contributing.html#build">Building</a>) the engine and the two programs are in <code>tools\stereo_replay\</code>, each as <code>_x64</code> and <code>_x86</code>. A 64-bit player starts the 32-bit one for a 32-bit workload, and the 32-bit ones replay the Direct3D 7, Direct3D 8 and OpenGL captures, which are of 32-bit programs. In the source they are in <code>src/tools/stereo_replay</code>, in <code>engine_dll</code>, <code>player</code> and <code>inspector</code>.</p>
 
-<h2 id="checking">What the checker is for</h2>
-<p>The checker is the test that the engine is fit for stereo: that a replay is repeatable, and that a frame executed twice draws the same as once. It is also where everything else about a recipe is tried without a window.</p>
+<h2 id="checking">What the inspector is for</h2>
+<p>The inspector is the test that the engine is fit for stereo: that a replay is repeatable, and that a frame executed twice draws the same as once. It is also where everything else about a recipe is tried without a window.</p>
 <figure>
-<svg viewBox="0 0 900 270" role="img" aria-label="The checker replays the workload several ways and compares the images of each frame">
+<svg viewBox="0 0 900 270" role="img" aria-label="The inspector replays the workload several ways and compares the images of each frame">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
   <rect class="box3" x="20" y="100" width="150" height="60" rx="6"/><text x="95" y="126" text-anchor="middle">workload</text><text class="small" x="95" y="144" text-anchor="middle">(and a recipe)</text>
   <rect class="box" x="230" y="20" width="230" height="40" rx="6"/><text x="345" y="45" text-anchor="middle">the frames as they are</text>
@@ -332,10 +332,10 @@
 <tr><td><code>--contact-sheet K --out f.png</code></td><td>One PNG of K frames spread evenly over a range, each as a screenshot is.</td></tr>
 <tr><td><code>--same-frames-as other.workload</code></td><td>Whether two workloads give the same images (exit code 3 if not): how a slice is checked against its workload.</td></tr>
 <tr><td><code>--profile</code></td><td>Where the time of the calls went: the functions and the frames that took longest.</td></tr>
-<tr><td><code>--state-census</code></td><td>What the calls of OpenGL in the frames that a seek to frame B does not make (<code>--deps</code> says which) do to the state of the context: per function, how many give a piece of state the value it has, and how many are overwritten by another call before a frame that is made, a push or a pop of attributes, a call of a list or another barrier looks at it; and whether each of those frames pushes and pops all that it changes.</td></tr>
+<tr><td><code>--redundant-state</code></td><td>What the calls of OpenGL in the frames that a seek to frame B does not make (<code>--deps</code> says which) do to the state of the context: per function, how many give a piece of state the value it has, and how many are overwritten by another call before a frame that is made, a push or a pop of attributes, a call of a list or another barrier looks at it; and whether each of those frames pushes and pops all that it changes.</td></tr>
 <tr><td><code>--overlay-report candidates.json</code></td><td>Of the draws that may be 2D overlays (<code>RecipeBake --overlays</code>), which ones really make pixels. See <a href="#checking-overlay">The overlay report</a>.</td></tr>
 </table>
-<p>Any mode takes <code>--breadcrumb FILE</code>: the call that the replay is about to make is written to the file, as one line, for each call. A line says whether the call was begun or finished, the frame, the number of the call, the thread, the function and its arguments. The file is mapped into the memory of the checker, so what is in it when the program crashes is the call that crashed it (or, finished, the last one that was made); nothing has to be flushed.</p>
+<p>Any mode takes <code>--breadcrumb FILE</code>: the call that the replay is about to make is written to the file, as one line, for each call. A line says whether the call was begun or finished, the frame, the number of the call, the thread, the function and its arguments. The file is mapped into the memory of the inspector, so what is in it when the program crashes is the call that crashed it (or, finished, the last one that was made); nothing has to be flushed.</p>
 
 <h3 id="checking-overlay">The overlay report</h3>
 <p><code>--overlay-report candidates.json</code> decides, for each draw that may be a 2D overlay, whether it really makes pixels. Some of the frames of each draw (the list says which: its first, middle and last frame) are replayed with the draw and without it (the recipe skips it), and the images are compared.</p>
@@ -378,7 +378,7 @@
 </table>
 <p>A draw that the recipe leaves out is left out whole: the calls that come before the call of the draw and belong to it (the <code>glBegin</code> and the vertices of a block that <code>glEnd</code> makes a draw of) are left out with it, as a primitive is drawn when its vertices are given. The draws of a list that is called share the call of the list, so they are left out together or not at all.</p>
 <p>The swap of the buffers of a window is made after the executions of a frame, as the present of Direct3D is, so that the image of a frame is read before it.</p>
-<p>The checker's source has a file for each of these ways of working (<code>replay_runner</code>, <code>comparison</code>, <code>screenshot_mode</code>, <code>profile_mode</code>, <code>state_census_mode</code>, <code>overlay_report_mode</code>), a <code>command_line</code> that has tests, and a <code>main.cpp</code> that loads the recipe and chooses.</p>
+<p>The inspector's source has a file for each of these ways of working (<code>replay_runner</code>, <code>comparison</code>, <code>screenshot_mode</code>, <code>profile_mode</code>, <code>redundant_state_counter_mode</code>, <code>overlay_report_mode</code>), a <code>command_line</code> that has tests, and a <code>main.cpp</code> that loads the recipe and chooses.</p>
 </main>
 </body>
 </html>
