@@ -334,17 +334,6 @@ void VRPlayer::VrPlayerWindow::draw_details()
             ImGui::PopStyleColor ();
         }
 
-        if (app.is_download_needed)
-        {
-            const std::string size_text = get_size_text(app.install_spec.n_archive_bytes);
-
-            ImGui::PushStyleColor(ImGuiCol_Text,
-                                  DIM_TEXT_COLOR);
-            ImGui::TextWrapped   ("It is not on this computer yet: it is downloaded (%s) the first time it is launched.",
-                                  size_text.c_str() );
-            ImGui::PopStyleColor ();
-        }
-
         ImGui::TextWrapped("%s",
                            (app.description.empty() ) ? "No description."
                                                       : app.description.c_str() );
@@ -514,6 +503,8 @@ void VRPlayer::VrPlayerWindow::draw_launch_area()
     const float       button_height = ImGui::GetFrameHeight() * 1.6f;
     const float       button_width  = LAUNCH_BUTTON_WIDTH     * style.FontScaleDpi;
     const bool        is_possible   = is_launch_possible();
+    const bool        is_download   = (m_selected_app >= 0 &&
+                                       m_content.catalog.app_vec.at(static_cast<size_t>(m_selected_app) ).is_download_needed);
     const bool        is_error_text = (m_installing_app < 0   &&
                                        m_status.empty() == false &&
                                        m_is_status_error);
@@ -622,7 +613,8 @@ void VRPlayer::VrPlayerWindow::draw_launch_area()
     {
         ImGui::BeginDisabled(is_possible == false);
 
-        if (ImGui::Button("Launch",
+        if (ImGui::Button((is_download) ? "Download & launch"
+                                        : "Launch",
                           ImVec2(button_width,
                                  button_height) ))
         {

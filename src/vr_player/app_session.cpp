@@ -316,15 +316,13 @@ bool VRPlayer::AppSession::start(const VRPlayer::AppCatalog::AppEntry& in_app,
         goto end;
     }
 
-    /* The application renders at the largest size that fits an eye of the headset. The size is limited to what the channel has room for. */
-    if (in_target_eye_width  > 0 &&
-        in_target_eye_height > 0)
-    {
-        channel_ptr->set_target_eye_size(std::min<uint32_t>(in_target_eye_width,
-                                                            Stereo::Transport::FrameChannel::get_max_width() / 2),
-                                         std::min<uint32_t>(in_target_eye_height,
-                                                            Stereo::Transport::FrameChannel::get_max_height() ));
-    }
+    /* The window of the presenter shows the images, so the application itself is not shown on the screen. With a headset it renders at the largest
+     * size that fits an eye of the headset, limited to what the channel has room for. Without one the size is 0 x 0: it renders at the size it asks for.
+     */
+    channel_ptr->set_target_eye_size(std::min<uint32_t>(in_target_eye_width,
+                                                        Stereo::Transport::FrameChannel::get_max_width() / 2),
+                                     std::min<uint32_t>(in_target_eye_height,
+                                                        Stereo::Transport::FrameChannel::get_max_height() ));
 
     /* Everything that is started belongs to a job, which ends all of it when the session ends. */
     job = ::CreateJobObjectW(nullptr,

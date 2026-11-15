@@ -162,8 +162,8 @@ Stereo::ConverterDLL::LiveStereoConverter::LiveStereoConverter(const Stereo::Ses
             }
         }
 
-        /* When a viewer reports the size of the eye images, the application is not shown on the screen and its window is made invisible. Without
-         * a viewer the application stays on the screen as it is and its window is left alone.
+        /* When a viewer reports the size of the eye images (0 x 0: the size the application asks for), the application is not shown on the screen
+         * and its window is made invisible. Without a viewer the application stays on the screen as it is and its window is left alone.
          */
         m_live_state.d3d7_windowed_mode.set_target_eye_size(target_width,
                                                             target_height);

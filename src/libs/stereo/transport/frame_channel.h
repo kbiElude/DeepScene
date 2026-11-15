@@ -87,9 +87,11 @@ namespace Stereo
             TransportKindMask get_offered_kinds() const;
 
             /* The largest size of the image of one eye that the producer is to render. The consumer sets it (it is the size the headset asks
-             * for). Returns false if it has not been set, in which case the producer renders at the size the application asks for. The
-             * producer enlarges what the application renders to the largest size that fits and keeps its proportions. Unlike the eye
-             * separation, this size is read once, when the application creates its device, so it must be set before the application starts.
+             * for). Returns false if the consumer has not set it: then the images are not shown by the consumer, and the application stays
+             * on the screen as it is. A size of 0 x 0 means the consumer shows the images (so the application is not shown on the screen)
+             * and the producer renders at the size the application asks for. Otherwise the producer enlarges what the application renders
+             * to the largest size that fits and keeps its proportions. Unlike the eye separation, this size is read once, when the
+             * application creates its device, so it must be set before the application starts.
              */
             bool get_target_eye_size(uint32_t* out_width_ptr,
                                      uint32_t* out_height_ptr) const;
