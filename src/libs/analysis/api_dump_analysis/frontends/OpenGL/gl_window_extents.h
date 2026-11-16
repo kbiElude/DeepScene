@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
  * The size of the windows of the program and of their device contexts, as the calls that make them say. A program need not call glViewport:
- * the viewport and the scissor box of a context start as the client area of the window that the context is first made current to, and
+ * the viewport and the scissor box of a context start as the size of the window that the context is first made current to, and
  * this is where that size comes from.
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_WINDOW_EXTENTS_H
@@ -25,8 +25,8 @@ namespace Analysis
                 /* True for the calls that say a size: CreateWindowEx, and GetDC, which tells the window that a device context belongs to. */
                 static bool follows_function(const APIInterceptor::APIFunction& in_function);
 
-                /* The size of the client area of the window that the device context belongs to. Returns false if it is not known: the window was
-                 * made with the default size, or by a call that was not followed.
+                /* The size that the window of the device context was made with. Returns false if it is not known: the window was made with the
+                 * default size, or by a call that was not followed.
                  */
                 bool get_client_size(const uint64_t& in_device_context_address,
                                      uint32_t*       out_width_ptr,
@@ -42,13 +42,12 @@ namespace Analysis
                     uint32_t width  = 0;
                 };
 
-                /* The client area of a window made with the size of its outer rectangle and these styles. Returns false if it cannot be told. */
-                static bool find_client_size(const uint32_t& in_style,
-                                             const uint32_t& in_ex_style,
-                                             const int32_t&  in_width,
-                                             const int32_t&  in_height,
-                                             const bool&     in_has_menu,
-                                             ClientSize*     out_client_size_ptr);
+                /* The size that the call asks for. It is taken as it is, without the frame of the window, which depends on the system. Returns false
+                 * for the default size.
+                 */
+                static bool find_client_size(const int32_t& in_width,
+                                             const int32_t& in_height,
+                                             ClientSize*    out_client_size_ptr);
 
                 void on_create_window(const Capture::APIDumpLoader::DumpedAPICall& in_call);
                 void on_get_dc       (const Capture::APIDumpLoader::DumpedAPICall& in_call);

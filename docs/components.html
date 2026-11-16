@@ -256,7 +256,7 @@
 <tr><td><code>GLStateHandler</code></td><td>The values a clear uses, the capabilities, the values of the pipeline, the viewport, the scissor box and the stack of attributes.</td></tr>
 <tr><td><code>GLDrawHandler</code></td><td>The draws of immediate mode and of arrays, and the clears.</td></tr>
 <tr><td><code>GLWindow</code></td><td>The default framebuffer, made when it is first needed.</td></tr>
-<tr><td><code>GLWindowExtents</code></td><td>The client size of the windows and of their device contexts, from the calls that make them: the viewport of a context starts as that size.</td></tr>
+<tr><td><code>GLWindowExtents</code></td><td>The size the windows were made with, and the windows of the device contexts, from the calls that make them: the viewport of a context starts as that size. The live converter follows these calls too, so that the live front end sees what the analysis saw.</td></tr>
 <tr><td><code>GLArgumentReader</code></td><td>How a call's arguments are read as numbers.</td></tr>
 <tr><td><code>GLContextState</code>, <code>GLPipelineState</code></td><td>The state kept for one context, and the fixed-function state that tells one draw from another (the attribute stack saves and restores it).</td></tr>
 <tr><td><code>GLTextureFormatMapper</code></td><td>OpenGL texel formats to <code>TextureFormat</code> of <code>Utils::Graphics</code>, and how the bytes of an upload are laid out.</td></tr>

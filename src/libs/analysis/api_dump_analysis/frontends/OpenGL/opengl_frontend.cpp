@@ -784,7 +784,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_make_current(c
             const auto emplace_result = m_context_map.emplace(context_address,
                                                               get_initial_context_state() );
 
-            /* The viewport and the scissor box of a context start as the client area of the window that it is first made current to; a program
+            /* The viewport and the scissor box of a context start as the size of the window that it is first made current to; a program
              * need not call glViewport.
              */
             if (emplace_result.second)

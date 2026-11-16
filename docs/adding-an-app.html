@@ -56,6 +56,7 @@
 <h2 id="capture">1. Capture the program</h2>
 <pre><code>tools\api_dumper\APIDumper_x86.exe --dump-n-frames 3000 --max-frame-rate 60 c:\path\to\app.exe [app arguments]</code></pre>
 <p><strong>Result:</strong> <code>result_dump.workload</code>, a recording of every API call and of the data they point to. Run it from the folder of the program (the working directory is where the file goes).</p>
+<p>Capture the program the way the catalog launches it, with the same choices in its start dialog (<code>untick_checkbox</code>, the video mode). A program that does not set a viewport draws to the whole of its window, and the size of the window is part of what identifies each draw: a recipe made from a capture of another mode matches nothing when the program is played.</p>
 
 <h3>The options</h3>
 <table>

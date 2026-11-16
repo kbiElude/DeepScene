@@ -3,7 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
  * Checks of the OpenGL front end taking the size of the viewport from the window when the program never calls glViewport: the viewport of a
- * context starts as the client area of the window that it is first made current to.
+ * context starts as the size the window was made with, as the call says it, whatever its frame.
  */
 #include <gtest/gtest.h>
 #include "gl_frontend_fixture.h"
@@ -18,7 +18,7 @@ namespace
             WINDOW_ADDRESS = 0x2102d0
         };
 
-        /* WS_POPUP | WS_VISIBLE: no frame, so the client area is the rectangle of the window. */
+        /* WS_POPUP | WS_VISIBLE. */
         static constexpr uint32_t POPUP_STYLE            = 0x90000000;
         static constexpr uint32_t USE_DEFAULT_SIZE_VALUE = 0x80000000;
 
@@ -137,4 +137,29 @@ TEST_F(GLFrontendWindows, OnlyTheFirstMakeCurrentOfAContextSetsItsViewport)
 
     EXPECT_EQ(m_harness.get_model().pass_structure_interner.get_structure(0).viewport.width,
               640.0f);
+}
+
+TEST_F(GLFrontendWindows, TheFrameOfAWindowIsNotTakenOffItsSize)
+{
+    constexpr uint32_t OVERLAPPED_STYLE = 0x96C80000; /* a caption and a system menu: a frame */
+    constexpr uint32_t EDGE_EX_STYLE    = 0x200;      /* WS_EX_CLIENTEDGE */
+
+    m_builder.create_window(WINDOW_ADDRESS,
+                            OVERLAPPED_STYLE,
+                            EDGE_EX_STYLE,
+                            1294,
+                            757.0f);
+    m_builder.get_dc       (WINDOW_ADDRESS,
+                            DEVICE_CONTEXT_ADDRESS);
+    m_builder.make_current (DEVICE_CONTEXT_ADDRESS,
+                            CONTEXT_ADDRESS);
+    m_builder.clear        (COLOR_BUFFER_BIT);
+    m_builder.swap_buffers (DEVICE_CONTEXT_ADDRESS);
+
+    feed();
+
+    EXPECT_EQ(m_harness.get_model().pass_structure_interner.get_structure(0).viewport.width,
+              1294.0f);
+    EXPECT_EQ(m_harness.get_model().pass_structure_interner.get_structure(0).viewport.height,
+              757.0f);
 }
