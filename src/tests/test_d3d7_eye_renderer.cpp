@@ -836,3 +836,88 @@ TEST(D3D7EyeRenderer, ALockToReadOrOfPartOfTheBackBufferChangesNothingAndIsCount
     EXPECT_EQ(fixture.renderer_ptr->get_n_pixel_calls(),
               2u);
 }
+
+TEST(D3D7EyeRenderer, AProgramThatDrawsVerticesInPixelsIsStoppedWhenBarsMoveThePicture)
+{
+    bool                                   has_failed = false;
+    std::string                            message;
+    Analysis::Recipe::Recipe               recipe;
+    Stereo::ConverterDLL::D3D7WindowedMode windowed_mode;
+    auto                                   direct_draw_ptr = Tests::make_direct_draw();
+    auto                                   device_ptr      = Tests::make_device();
+
+    recipe.is_baked                              = true;
+    recipe.screen_parallax.convergence_distance  = 5.0f;
+    recipe.screen_parallax.field_of_view_degrees = 90.0f;
+    recipe.screen_parallax.is_enabled            = true;
+
+    const auto fail_func = [&](const std::string& in_message)
+    {
+        has_failed = true;
+        message    = in_message;
+    };
+
+    Stereo::Core::RecipeStereoPlanner core(recipe,
+                                           fail_func);
+
+    core.set_convergence_distance(5.0f);
+    core.set_eye_separation(2.0f);
+    core.classify_draw(1, /* a signature */
+                       2);/* a cover key  */
+
+    /* A display mode of 640 x 480 in an eye of 1600 x 960: the picture is 1280 x 960, with bars of 160 pixels at the sides. */
+    windowed_mode.set_is_enabled(true);
+    windowed_mode.set_target_eye_size(1600,
+                                      960);
+
+    const APIInterceptor::APIFunctionArgument display_mode_vec6[6] = {APIInterceptor::APIFunctionArgument::create_void_ptr(direct_draw_ptr.get() ),
+                                                                      APIInterceptor::APIFunctionArgument::create_u32(640),
+                                                                      APIInterceptor::APIFunctionArgument::create_u32(480),
+                                                                      APIInterceptor::APIFunctionArgument::create_u32(32),
+                                                                      APIInterceptor::APIFunctionArgument::create_u32(0),
+                                                                      APIInterceptor::APIFunctionArgument::create_u32(0)};
+
+    windowed_mode.on_pre(APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAW7_SETDISPLAYMODE,
+                         6,
+                         display_mode_vec6);
+
+    Stereo::ConverterDLL::D3D7EyeRenderer renderer(&core,
+                                                   &windowed_mode);
+
+    Tests::FakeSurface* const primary_ptr     = Tests::make_surface(direct_draw_ptr.get(),
+                                                                    make_description(Caps::DDSCAPS_PRIMARYSURFACE,
+                                                                                     0,
+                                                                                     0) );
+    Tests::FakeSurface* const back_buffer_ptr = Tests::make_surface(direct_draw_ptr.get(),
+                                                                    make_description(Caps::DDSCAPS_3DDEVICE | Caps::DDSCAPS_OFFSCREENPLAIN,
+                                                                                     1600,
+                                                                                     960) );
+
+    post_create_surface(&renderer,
+                        direct_draw_ptr.get(),
+                        primary_ptr);
+
+    const APIInterceptor::APIFunctionArgument attached_argument_vec3[3] = {APIInterceptor::APIFunctionArgument::create_void_ptr(primary_ptr),
+                                                                           APIInterceptor::APIFunctionArgument::create_data_chunk_id(0),
+                                                                           APIInterceptor::APIFunctionArgument::create_void_ptr(back_buffer_ptr)};
+    const auto                                success                   = APIInterceptor::APIFunctionArgument::create_i32(0);
+
+    renderer.on_post(APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_GETATTACHEDSURFACE,
+                     3,
+                     attached_argument_vec3,
+                    &success);
+    post_create_device(&renderer,
+                       back_buffer_ptr,
+                       device_ptr.get() );
+
+    auto vertices = make_vertices();
+
+    pre_draw(&renderer,
+             device_ptr.get(),
+            &vertices,
+             640.0f);
+
+    EXPECT_TRUE(has_failed);
+    EXPECT_NE(message.find("positioned in pixels"),
+              std::string::npos) << message;
+}

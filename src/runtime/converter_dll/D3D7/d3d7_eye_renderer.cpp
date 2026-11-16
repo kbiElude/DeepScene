@@ -14,6 +14,7 @@
 #include "stereo/core/screen_space_vertex_shifter.h"
 #include "d3d7_eye_renderer.h"
 #include "environment_variable_reader.h"
+#include "resolution_hazard_gate.h"
 #include "own_call_scope.h"
 #include <string.h>
 
@@ -208,6 +209,16 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::Recipe:
         scale = get_render_scale();
         is_changed = is_render_layout_changed();
 
+        /* Pixel positions are not moved by the bars around the picture: the program is stopped. */
+        {
+            const Stereo::Core::PixelRect picture = get_render_picture();
+
+            ResolutionHazardGate::require_unaffected_by_change(m_core_ptr,
+                                                               (picture.x != 0 ||
+                                                                picture.y != 0),
+                                                               Analysis::APIDumpAnalysis::ResolutionHazard::SCREEN_SPACE_VERTICES);
+        }
+
         /* The application's vertices are not modified: the draw uses a copy. */
         const bool has_copy = m_core_ptr->make_screen_vertices(in_eye,
                                                                is_presented,
@@ -224,11 +235,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::Recipe:
         {
             if (is_changed)
             {
-                const Stereo::Core::PixelRect picture = get_render_picture();
-
                 Stereo::Core::ScreenSpaceVertexShifter::scale_vertices(scale,
-                                                                       static_cast<float>(picture.x),
-                                                                       static_cast<float>(picture.y),
                                                                        vertex_n_bytes,
                                                                        in_draw_arguments.n_vertices,
                                                                        m_vertex_vec.data() );

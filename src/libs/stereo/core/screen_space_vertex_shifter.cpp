@@ -168,8 +168,6 @@ bool Stereo::Core::ScreenSpaceVertexShifter::reaches_both_sides(const uint8_t*  
 }
 
 void Stereo::Core::ScreenSpaceVertexShifter::scale_vertices(const float&    in_scale,
-                                                            const float&    in_offset_x,
-                                                            const float&    in_offset_y,
                                                             const uint32_t& in_vertex_n_bytes,
                                                             const size_t&   in_n_vertices,
                                                             uint8_t*        inout_vertex_ptr)
@@ -192,7 +190,7 @@ void Stereo::Core::ScreenSpaceVertexShifter::scale_vertices(const float&    in_s
                      vertex_ptr + n_axis * sizeof(position),
                      sizeof(position) );
 
-            position = position * in_scale + ((n_axis == 0) ? in_offset_x : in_offset_y);
+            position *= in_scale;
 
             ::memcpy(vertex_ptr + n_axis * sizeof(position),
                      &position,

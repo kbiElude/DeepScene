@@ -222,7 +222,7 @@
 <table>
 <tr><th>Piece</th><th>What it does</th></tr>
 <tr><td><code>EyeLayout</code></td><td>The size of the image (the frame) and the rectangle of it that the program renders to (the picture).</td></tr>
-<tr><td>The adapters</td><td>The back buffer or framebuffers are the frame. Viewports, scissor boxes, clear rectangles, vertices in pixels, copies and pixel reads are moved by the corner of the picture after they are scaled; the picture is the only part that depth and pixel reads use. A program that does what cannot be moved to match is stopped (<code>ResolutionHazardGate::require_unaffected_by_change</code>).</td></tr>
+<tr><td>The adapters</td><td>The back buffer or framebuffers are the frame. Viewports, scissor boxes, clear rectangles, copies and pixel reads are moved by the corner of the picture after they are scaled; the picture is the only part that depth and pixel reads use. Vertices in pixels are scaled but not moved: a program that draws them while bars move the picture is stopped, and so is any program that does what cannot be moved to match (<code>ResolutionHazardGate::require_unaffected_by_change</code>).</td></tr>
 <tr><td><code>PixelRowWriter::blank_bars</code></td><td>Makes what is outside the picture black, in the one place that every exporter writes the images through.</td></tr>
 </table>
 
