@@ -211,7 +211,8 @@ bool Analysis::APIDumpSlicing::WorkloadWriter::write_segment(const Capture::APID
     }
 
     writer_ptr = Capture::APIDumperDLL::ZstdFileWriter::create(m_file_handle,
-                                                               COMPRESSION_LEVEL);
+                                                               COMPRESSION_LEVEL,
+                                                               0); /* in_n_workers */
 
     if (writer_ptr == nullptr)
     {
