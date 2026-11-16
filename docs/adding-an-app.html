@@ -335,9 +335,11 @@ tools\stereo_replay\StereoReplayInspector_x86.exe result_dump.workload --recipe 
 <tr><th>Option</th><th>Effect</th></tr>
 <tr><td><code>max_near_parallax</code></td><td>How far apart the pictures of the eyes may be at the nearest surface of a scene, as a part of the width of the picture (0.03 is three in a hundred). Lower it when something near has an extreme shift.</td></tr>
 <tr><td><code>near_fraction</code></td><td>Which part of the surfaces (by vertices) counts as the nearest: 0.001 by default. Make it larger to count more of them.</td></tr>
-<tr><td><code>overlay_parallax</code></td><td>How far toward the viewer the draws that the rules leave alone are pushed (0.04 is four in a hundred of the width). VR Player pushes them by it and has no control for it; 0 or leaving it out means the application wants none.</td></tr>
+<tr><td><code>overlay_parallax</code></td><td>How far toward the viewer the draws that the rules leave alone are pushed (0.04 is four in a hundred of the width). VR Player pushes them by it and has no control for it; 0 or leaving it out means the application wants none. Which draws are pushed is the <code>pushed</code> lists and, with <code>push_unaffected</code>, every draw the rules leave alone.</td></tr>
+<tr><td><code>push_unaffected</code>, <code>push_by_default</code></td><td>Both off by default. The first pushes every draw the rules leave alone, for an application whose left-alone draws are all an overlay. The second pushes what the recipe pushes when no VR player has said whether to (a run of the converter alone).</td></tr>
 <tr><td><code>ease_by_time</code>, <code>snap_at_cuts</code></td><td>Both off by default. The first eases the eyes toward a scene by the time that goes and not by frame; the second puts them at the new scene at once when the scene is cut to a very different one.</td></tr>
 </table>
+<p>One more field, outside <code>comfort</code>: <code>frame_pacing</code> says what the converter does when no screen keeps time. <code>hold_to_rate</code> (the default, 60 frames a second) suits a program that ties its music to the clock; <code>screen_only</code> leaves it free.</p>
 
 <h2 id="live">7. Try it live</h2>
 <p>Add the program to the catalog (step 8) and start it from <code>VRPlayer</code>. To try an entry without building again, run the release's player on the catalog of the repository, which also downloads the program into the repository's <code>apps\&lt;id&gt;\</code>:</p>

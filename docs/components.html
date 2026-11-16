@@ -263,7 +263,7 @@
 <tr><td><code>GLListClassifier</code></td><td>How the calls of a display list affect what differs for each eye, so that a list the driver compiled once can be called for both.</td></tr>
 <tr><td><code>GLArrayDrawDescriber</code>, <code>GLClientArraySnapshot</code>, <code>GLBlobStore</code></td><td>Draws whose vertices are in application memory: the snapshot of the arrays that the dumper took, the draw built from it, and the store that gives the same bytes the same buffer in every frame.</td></tr>
 <tr><td><code>GLVertexReader</code></td><td>The position that a <code>glVertex</code> call gives.</td></tr>
-<tr><td><code>GLGeometrySampler</code></td><td>Chooses the few vertices of a draw that stand for its geometry.</td></tr>
+<tr><td><code>GLGeometrySampler</code></td><td>Builds the sample of a draw from the positions OpenGL read; which vertices are sampled is <code>GeometrySampler</code>'s choice.</td></tr>
 <tr><td><code>GLFunctionPolicy</code>, <code>GLResolutionHazards</code></td><td>Which functions may be left out and why (any other ends the process), and the calls that depend on the pixel size of the render target.</td></tr>
 </table>
 <p>A handler keeps no address of the front end: what it needs of the others (the window, the texture handler, the counter of the hazards) is given with the call.</p>
@@ -276,7 +276,7 @@
 <tr><td><code>ClearOperationFactory</code></td><td>Builds the clear for the APIs whose clear call takes flags, an ARGB colour, a depth and a stencil.</td></tr>
 <tr><td><code>FixedFunctionVertexFormat</code></td><td>What a flexible vertex format says of the vertices: whether the positions are in pixels. Both Direct3D front ends, the converter and the replay engine use it.</td></tr>
 <tr><td><code>FunctionPolicyReasonTable</code></td><td>The lookup table of the Direct3D function policies: a function name and the reason it is listed.</td></tr>
-<tr><td><code>GeometrySampler</code></td><td>A few dozen vertices of a draw, in the space of the model, for the analysis of the geometry.</td></tr>
+<tr><td><code>GeometrySampler</code></td><td>A few dozen vertices of a draw, in the space of the model, for the analysis of the geometry. It chooses which vertices are sampled (<code>get_n_samples()</code>, <code>get_sample_vertex()</code>) for every API.</td></tr>
 <tr><td><code>IAPIFrontend</code></td><td>What every front end is: it follows the calls of one API, keeps its state, and tells the model builder what the calls amount to.</td></tr>
 <tr><td><code>MipChain</code></td><td>The number of mip levels of a texture.</td></tr>
 <tr><td><code>ObjectTracker</code></td><td>The live objects by address, and what each is in the model: a resource, or a part of one such as a mip level.</td></tr>
@@ -445,7 +445,7 @@
 <tr><td><code>GLDriverFunctions</code>, <code>GLExtensionFunctions</code></td><td>The functions that the converter calls straight from the driver, not through the hooks, and the ones that <code>opengl32.dll</code> does not export.</td></tr>
 <tr><td rowspan="11">Shared</td><td><code>PacedFramePublisher</code></td><td>Passes the frames that the application is about to present to the viewer, at the pace at which the viewer shows them.</td></tr>
 <tr><td><code>SessionLog</code></td><td>The log of the session, which the programs around the application read.</td></tr>
-<tr><td><code>HostMemoryExporterBase</code></td><td>The base of the exporters that pass the images through the host memory of the channel: the transport kind, and the wait for the viewer.</td></tr>
+<tr><td><code>HostMemoryExporterBase</code></td><td>The base of the exporters that pass the images through the host memory of the channel: the transport kind, and <code>pace()</code>, the wait for the viewer and, when no viewer keeps time, the hold to the rate of the recipe's <code>frame_pacing</code>.</td></tr>
 <tr><td><code>RenderScalePlanner</code></td><td>Decides how much larger than requested an application renders, and reports it.</td></tr>
 <tr><td><code>ResolutionHazardGate</code></td><td>Stops an application that would be shown wrongly when it renders larger than it asks.</td></tr>
 <tr><td><code>EyeImageLimits</code></td><td>The largest image that one eye can have, since both eyes go side by side in one frame of the channel.</td></tr>

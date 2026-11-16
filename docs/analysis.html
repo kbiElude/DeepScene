@@ -173,7 +173,7 @@
 <tr><td><code>FixedFunctionState</code></td><td>Direct3D</td><td>The pipeline state that the state key is made from.</td></tr>
 <tr><td><code>FixedFunctionFrontendBase</code></td><td>Direct3D</td><td>The base class that follows the objects and that state.</td></tr>
 <tr><td><code>FixedFunctionVertexFormat</code></td><td>Direct3D</td><td>What a flexible vertex format says of the vertices, such as whether the positions are in pixels (<code>D3DFVF_XYZRHW</code>). Both front ends and the converter use it.</td></tr>
-<tr><td><code>GeometrySampler</code></td><td>Direct3D</td><td>Picks a few dozen vertices of a draw, spread over it, for the surface depth. The OpenGL front end has a sampler of its own, <code>GLGeometrySampler</code>.</td></tr>
+<tr><td><code>GeometrySampler</code></td><td>Direct3D</td><td>Picks a few dozen vertices of a draw, spread over it, for the surface depth. The OpenGL front end reads positions its own way and builds the sample with <code>GLGeometrySampler</code>, but the vertices come from the choice of <code>GeometrySampler</code>.</td></tr>
 <tr><td><code>FunctionPolicyReasonTable</code></td><td>Direct3D</td><td>Looks up the reason a function is left out or unsupported (see <a href="#limits">What it does not do</a>).</td></tr>
 </table>
 <p>What differs is what a resource <em>is</em>. In Direct3D 8 it is a texture, vertex buffer or surface. In Direct3D 7 it is a DirectDraw surface, and its role (primary, back buffer, depth, texture) comes from its caps.</p>

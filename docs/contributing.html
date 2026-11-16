@@ -270,7 +270,7 @@
 <tr><th>Part</th><th>What it does</th></tr>
 <tr><td>Eye renderer</td><td>Draws what the program draws for the second eye, with the decisions of <code>RecipeStereoPlanner</code>.</td></tr>
 <tr><td>Off-screen rendering</td><td>A way to have the program render to something that is not shown, at the size of the headset's image (a windowed mode for Direct3D, the eye targets and the scaler for OpenGL).</td></tr>
-<tr><td>Exporter</td><td>Passes the finished frame to the frame channel. Derives from <code>HostMemoryExporterBase</code>, which waits for the headset to want the next frame.</td></tr>
+<tr><td>Exporter</td><td>Passes the finished frame to the frame channel. Derives from <code>HostMemoryExporterBase</code>, whose <code>pace()</code> waits for the headset to want the next frame and, if none keeps time, holds the application as the recipe's <code>frame_pacing</code> says; call it once per frame.</td></tr>
 </table>
 <p><code>LiveStereoConverter</code> holds the adapters and gives each call to the one of its API; <code>LiveCallAnalyzer</code> gives the front end of step 2 each call as a dump would. Anything the adapter cannot follow it must refuse at once and say so, not render something wrong (<a href="live-conversion.html#adapters">Decisions and adapters</a>).</p>
 

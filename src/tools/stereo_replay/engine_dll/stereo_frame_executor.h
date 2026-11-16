@@ -106,6 +106,7 @@ namespace Stereo
                                             const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
                                             const bool&                                    in_is_affected,
                                             const bool&                                    in_is_presented,
+                                            const bool&                                    in_is_pushed,
                                             const uint64_t&                                in_cover_key,
                                             const Analysis::Recipe::Eye&                   in_eye,
                                             const uint32_t&                                in_pass_structure_id);

@@ -103,8 +103,8 @@
 <table>
 <tr><th>Class</th><th>What it does</th></tr>
 <tr><td><code>RecipeApplier</code></td><td>Decides, for each draw, whether it is drawn once, for each eye, or not at all, and whether it is pushed (the next section).</td></tr>
-<tr><td><code>EyeMatrixBinder</code></td><td>Binds the matrices of the eye to the draws that are drawn per eye, by the rules of <a href="stereo.html#matrices">Stereo</a>.</td></tr>
-<tr><td><code>FrameRewriter</code></td><td>Rewrites the calls that set a matrix which a rule changes, before the frame is run.</td></tr>
+<tr><td><code>EyeMatrixBinder</code></td><td>Binds the matrices of the eye to the draws that are drawn per eye, by the rules of <a href="stereo.html#matrices">Stereo</a>. A kept matrix is made again when the eye separation or the convergence distance changes.</td></tr>
+<tr><td><code>FrameRewriter</code></td><td>Rewrites the calls that set a matrix which a rule changes, before the frame is run. An <code>eye_convergence</code> rule gets the convergence distance of the scene of the frame, as in the live converter.</td></tr>
 <tr><td><code>StereoFrameExecutor</code></td><td>Reads a frame, runs it once for each eye and gives the images to the sink.</td></tr>
 </table>
 <p>What a frame gets depends on what the recipe says of it:</p>
@@ -122,7 +122,7 @@
 <p>The replay and the live converter ask the same function, <code>RecipeApplier::decide_draw</code>, about each draw. The answer is a class (affected, unaffected or skipped) and whether the draw is pushed.</p>
 <table>
 <tr><th>Step</th><th>Rule</th></tr>
-<tr><td>Names</td><td>The lists of the recipe: <code>skipped</code> first, then the most specific name in <code>affected</code> and <code>unaffected</code> (<a href="recipes.html#format-draws">Naming draws</a>). A draw named nowhere is affected. <code>pushed</code> says whether it is pushed.</td></tr>
+<tr><td>Names</td><td>The lists of the recipe: <code>skipped</code> first, then the most specific name in <code>affected</code> and <code>unaffected</code> (<a href="recipes.html#format-draws">Naming draws</a>). A draw named nowhere is affected. <code>pushed</code> says whether it is pushed, and so does <code>comfort.push_unaffected</code> for every draw that is left alone.</td></tr>
 <tr><td>Baked flat layer</td><td>With <code>comfort.automatic_layers</code>, a draw whose cover key is in <code>flat_layer_draws</code> is unaffected, even if <code>affected</code> names it.</td></tr>
 <tr><td>Cover-key hold</td><td>A draw pushed by its cover key (<code>pushed.cover_keys</code>, <code>part_cover_keys</code>, and <code>overlay_draws</code> with the automatic layers) is pushed and unaffected: drawn once for both eyes.</td></tr>
 <tr><td>Waiver in the replay</td><td>The replay gives the shift of the eye to a camera, so every draw that shares the camera gets it (OpenGL, <a href="#two-eyes-anchor">below</a>). A draw pushed by its cover key that shares its camera with an affected draw is therefore not held: the rules apply to it. The live converter has no waiver.</td></tr>
@@ -222,7 +222,7 @@
   <li><strong>Side-reaching draws.</strong> One that the baker lists in <code>side_reaching_draws</code> is also widened by the shift on each side (<code>PushShiftPlanner::make_viewport</code>), so that no edge is bare.</li>
   <li><strong>Vertices in pixels.</strong> A program whose vertices no matrix moves has no matrix to give the eyes. The engine moves the x of each vertex of an affected Direct3D 7 draw before it is played (<code>D3D7DrawRewriter</code>, using <code>Stereo::Core::ScreenSpaceVertexShifter</code>), by the <a href="stereo.html#screen">screen-space formula</a>.</li>
   <li><strong>Textures and flat quads.</strong> A draw into a texture is moved like any other, so the texture is the picture of the eye; the quad that draws the texture to the screen is flat and stays.</li>
-  <li><strong>Pushed pre-transformed draws.</strong> An unaffected Direct3D 7 draw to what is presented, with <code>overlay_parallax</code> set, has every x moved by the same number of pixels (<code>D3D7DrawRewriter::rewrite_by</code>).</li>
+  <li><strong>Pushed pre-transformed draws.</strong> A pushed Direct3D 7 draw to what is presented, with <code>overlay_parallax</code> set, has every x moved by the same number of pixels (<code>D3D7DrawRewriter::rewrite_by</code>).</li>
 </ul>
 
 <h2 id="seek">Seeking</h2>

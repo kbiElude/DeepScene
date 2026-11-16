@@ -71,7 +71,7 @@
 <tr><td><code>LiveCallAnalyzer</code></td><td>Gives the analysis each call as a dump would, for Direct3D 7, Direct3D 8 and OpenGL alike; keeps the calls that wait for results in per-thread pools, which hand their vectors back to the next call.</td></tr>
 <tr><td><code>RecipeStereoPlanner</code></td><td>The decisions: the class of a draw from the recipe and the view matrix, unknown draws and frames. Owns <code>ConvergenceModel</code> (where the eyes converge and how far apart they are) and <code>MatrixSlots</code> (the matrices a rule is about, and which to put in before a draw).</td></tr>
 <tr><td>The adapter for an API</td><td>Renders the second eye, scales the resolution, shows the program in a window or hides it, and exports the frames. The classes are listed below.</td></tr>
-<tr><td><code>PacedFramePublisher</code>, <code>SessionLog</code></td><td>What the adapters share: pass the presented frame on to the channel (at most one in 8 ms) and wait for the headset to want the next (<code>HostMemoryExporterBase</code>, the base of the three exporters, does the waiting); one log line per event.</td></tr>
+<tr><td><code>PacedFramePublisher</code>, <code>SessionLog</code></td><td>What the adapters share: pass the presented frame on to the channel (at most one in 8 ms) and wait for the headset to want the next (<code>HostMemoryExporterBase::pace()</code>, in the base of the three exporters, does the waiting and the hold to a rate); one log line per event.</td></tr>
 <tr><td><code>InvisibleWindowManager</code>, <code>EnvironmentVariableReader</code></td><td>Also shared: make the windows of the program invisible and keep them so; read the <code>APISTEREO_*</code> switches (see <a href="#switches">the switches</a>).</td></tr>
 </table>
 
@@ -595,7 +595,7 @@
 </ul>
 <figure>
 <svg viewBox="0 0 900 190" role="img" aria-label="Layout of the frame channel memory">
-  <rect class="box3" x="10" y="40" width="200" height="60" rx="4"/><text x="110" y="66" text-anchor="middle">header (64 KB)</text><text class="small" x="110" y="84" text-anchor="middle">version 12, controls, flags</text>
+  <rect class="box3" x="10" y="40" width="200" height="60" rx="4"/><text x="110" y="66" text-anchor="middle">header (64 KB)</text><text class="small" x="110" y="84" text-anchor="middle">version 13, controls, flags</text>
   <rect class="box" x="210" y="40" width="210" height="60" rx="4"/><text x="315" y="66" text-anchor="middle">slot 0</text><text class="small" x="315" y="84" text-anchor="middle">up to 8192 × 4096 × 4</text>
   <rect class="box" x="420" y="40" width="210" height="60" rx="4"/><text x="525" y="66" text-anchor="middle">slot 1</text>
   <rect class="box" x="630" y="40" width="210" height="60" rx="4"/><text x="735" y="66" text-anchor="middle">slot 2</text>
@@ -657,7 +657,7 @@
 <tr><th>Variable</th><th>Meaning</th></tr>
 <tr><td><code>APISTEREO_EYE_SEPARATION</code></td><td>The separation of the eyes, in the units of the program's matrices.</td></tr>
 <tr><td><code>APISTEREO_DEPTH_STRENGTH</code></td><td>1 is natural, and follows the limit of each scene; 0 is none, 2 twice natural.</td></tr>
-<tr><td><code>APISTEREO_PUSH_OVERLAY</code></td><td>Whether the overlay is pushed (0: no). The setting of the VR player is then ignored.</td></tr>
+<tr><td><code>APISTEREO_PUSH_OVERLAY</code></td><td>Whether what the recipe pushes is pushed (0: no), for every API. The setting of the VR player is then ignored. Without it, and without a VR player to say, the recipe's <code>comfort.push_by_default</code> decides.</td></tr>
 <tr><td><code>APISTEREO_TARGET_EYE_WIDTH</code>, <code>_HEIGHT</code></td><td>The target size of an eye. Both are needed, and they are read only when the channel has no size (the VR player always sets one). They also have the program render to the invisible window.</td></tr>
 <tr><td><code>APISTEREO_DUMP_FRAME</code>, <code>APISTEREO_DUMP_EVERY</code>, <code>APISTEREO_DUMP_FIRST_FRAME</code></td><td>Direct3D 7 and OpenGL: a frame, both eyes, to <code>%TEMP%\apistereo_frame_N.bmp</code>. <code>_FRAME</code> names the one frame, <code>_EVERY</code> writes every that many frames, from <code>_FIRST_FRAME</code> on.</td></tr>
 <tr><td><code>APISTEREO_DUMP_SCENES</code></td><td>OpenGL: up to sixty frames of each scene to <code>%TEMP%\apistereo_scene_&lt;key&gt;[_N].bmp</code>. The first is written when the scene has lasted a second and a half, the others half a second apart. The log has the key, the frame, where the eyes converged and how far apart they were (see <a href="recipes.html">Recipes</a>).</td></tr>

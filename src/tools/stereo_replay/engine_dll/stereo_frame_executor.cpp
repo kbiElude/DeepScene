@@ -492,6 +492,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_draw_call(const Cap
                                                                        const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
                                                                        const bool&                                    in_is_affected,
                                                                        const bool&                                    in_is_presented,
+                                                                       const bool&                                    in_is_pushed,
                                                                        const uint64_t&                                in_cover_key,
                                                                        const Analysis::Recipe::Eye&                   in_eye,
                                                                        const uint32_t&                                in_pass_structure_id)
@@ -516,7 +517,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_draw_call(const Cap
                                                                                           picture_width,
                                                                                          &input.reaches_both_sides);
     input.is_affected          = in_is_affected;
-    input.is_overlay_pushed    = true;
+    input.is_overlay_pushed    = in_is_pushed;
     input.is_presented         = in_is_presented;
     input.picture_width        = picture_width;
     input.separation_limit     = m_recipe_applier_ptr->get_scene_max_separation(shape_key);
@@ -716,6 +717,7 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_rewritten_call(cons
                                            is_affected,
                                            (draw_iterator->pass_index < frame.pass_is_presented_vec.size() ) ? frame.pass_is_presented_vec.at(draw_iterator->pass_index)
                                                                                                              : false,
+                                           decision.is_pushed,
                                            draw_iterator->cover_key,
                                            eye,
                                            frame.pass_instance_vec.at(draw_iterator->pass_index).structure_id);
