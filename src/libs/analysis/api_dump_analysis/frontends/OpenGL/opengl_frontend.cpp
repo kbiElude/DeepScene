@@ -781,8 +781,29 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_make_current(c
         }
         else
         {
-            m_context_map.emplace(context_address,
-                                  get_initial_context_state() );
+            const auto emplace_result = m_context_map.emplace(context_address,
+                                                              get_initial_context_state() );
+
+            /* The viewport and the scissor box of a context start as the client area of the window that it is first made current to; a program
+             * need not call glViewport.
+             */
+            if (emplace_result.second)
+            {
+                GLBox    box;
+                uint32_t height = 0;
+                uint32_t width  = 0;
+
+                if (m_window_extents.get_client_size(in_call.arg_in_vec.at(0).get_ptr_as_u64(),
+                                                    &width,
+                                                    &height) )
+                {
+                    box.height = static_cast<int32_t>(height);
+                    box.width  = static_cast<int32_t>(width);
+
+                    emplace_result.first->second.attributes.scissor_box = box;
+                    emplace_result.first->second.attributes.viewport    = box;
+                }
+            }
 
             m_current_context_by_thread_map[in_call.thread_id] = context_address;
 
@@ -831,6 +852,11 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::on_call(const Capture
     if (in_call.func == APIInterceptor::APIFUNCTION_WGL_WGLMAKECURRENT)
     {
         handle_make_current(in_call);
+    }
+    else
+    if (GLWindowExtents::follows_function(in_call.func) )
+    {
+        m_window_extents.on_call(in_call);
     }
 
     /* SwapBuffers belongs to GDI32 and ends a frame of an OpenGL application. */

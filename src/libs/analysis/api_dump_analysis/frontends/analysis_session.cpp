@@ -212,10 +212,11 @@ bool Analysis::APIDumpAnalysis::Frontends::AnalysisSession::process_call(const C
     m_builder.begin_call(m_summary.n_calls,
                          in_call.timestamp_qpc);
 
-    /* SwapBuffers belongs to GDI32 and ends a frame of an OpenGL application. */
+    /* SwapBuffers belongs to GDI32 and ends a frame of an OpenGL application; the calls that make its window say how big the window is. */
     if (frontend_ptr == nullptr)
     {
-        if (in_call.func == APIInterceptor::APIFUNCTION_GDI32_SWAPBUFFERS)
+        if (in_call.func == APIInterceptor::APIFUNCTION_GDI32_SWAPBUFFERS ||
+            GLWindowExtents::follows_function(in_call.func) )
         {
             frontend_ptr = &m_opengl_frontend;
         }

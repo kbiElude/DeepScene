@@ -1850,8 +1850,9 @@ TEST_F(RecipeLoaderTest, TheRecipesOfTheRepositoryKeepTimeAsEachAppAlwaysDid)
         EXPECT_FLOAT_EQ(recipe.frame_pacing.frames_per_second,
                         expected.frames_per_second) << expected.filename;
 
-        /* Only the OpenGL app was pushed with no VR player to say so. */
+        /* Only the OpenGL apps are pushed with no VR player to say so. */
         EXPECT_EQ(recipe.comfort.pushes_by_default,
-                  std::string(expected.filename) == "gerbera.json") << expected.filename;
+                  (std::string(expected.filename) == "gerbera.json" ||
+                   std::string(expected.filename) == "tesla.json") ) << expected.filename;
     }
 }

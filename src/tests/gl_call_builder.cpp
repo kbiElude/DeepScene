@@ -189,6 +189,28 @@ void Tests::GLCallBuilder::copy_tex_sub_image_2d(const uint32_t& in_level,
               APIInterceptor::APIFunctionArgument::create_i32       (in_height)});
 }
 
+void Tests::GLCallBuilder::create_window(const uint64_t& in_window_address,
+                                         const uint32_t& in_style,
+                                         const uint32_t& in_ex_style,
+                                         const int32_t&  in_width,
+                                         const int32_t&  in_height)
+{
+    add_call(APIInterceptor::APIFUNCTION_USER32_CREATEWINDOWEXA,
+             {APIInterceptor::APIFunctionArgument::create_u32(in_ex_style),
+              make_pointer_argument(0),
+              make_pointer_argument(0),
+              APIInterceptor::APIFunctionArgument::create_u32(in_style),
+              APIInterceptor::APIFunctionArgument::create_u32(0),
+              APIInterceptor::APIFunctionArgument::create_u32(0),
+              APIInterceptor::APIFunctionArgument::create_u32(static_cast<uint32_t>(in_width) ),
+              APIInterceptor::APIFunctionArgument::create_u32(static_cast<uint32_t>(in_height) ),
+              make_pointer_argument(0),
+              make_pointer_argument(0),
+              make_pointer_argument(0),
+              make_pointer_argument(0)},
+             make_pointer_argument(in_window_address) );
+}
+
 void Tests::GLCallBuilder::delete_lists(const int32_t& in_first_list,
                                         const int32_t& in_range)
 {
@@ -300,6 +322,14 @@ void Tests::GLCallBuilder::generate_mipmap(const uint32_t& in_target)
 {
     add_call(APIInterceptor::APIFUNCTION_GL_GLGENERATEMIPMAP,
              {APIInterceptor::APIFunctionArgument::create_u32_glenum(in_target)});
+}
+
+void Tests::GLCallBuilder::get_dc(const uint64_t& in_window_address,
+                                  const uint64_t& in_device_context_address)
+{
+    add_call(APIInterceptor::APIFUNCTION_USER32_GETDC,
+             {make_pointer_argument(in_window_address)},
+             make_pointer_argument(in_device_context_address) );
 }
 
 const Capture::APIDumpLoader::Workload& Tests::GLCallBuilder::get_workload() const

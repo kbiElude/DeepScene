@@ -345,7 +345,7 @@ shift(right eye) = −shift(left eye)
 <table>
 <tr><th>A draw is pushed if</th><th>Note</th></tr>
 <tr><td>the recipe lists it in <code>pushed</code></td><td>Left alone or affected. An affected one is pushed too in OpenGL, so that text and a logo stand off the layer they are drawn on. A fade, or a blur or glow that works on a copy of the picture, is not listed and so stays where it is.</td></tr>
-<tr><td>the recipe sets <code>comfort.push_unaffected</code> and the rules leave it alone</td><td>For an application whose left-alone draws are all an overlay (an interface). Direct3D recipes set it; the OpenGL recipe lists draws instead.</td></tr>
+<tr><td>the recipe sets <code>comfort.push_unaffected</code> and the rules leave it alone</td><td>For an application whose left-alone draws are all an overlay (an interface). A recipe sets it when everything the rules leave alone is an overlay (the Direct3D recipes and one OpenGL recipe do); another lists the draws to push.</td></tr>
 </table>
 <p>The switch of the person (the VR player's, or <code>APISTEREO_PUSH_OVERLAY</code>) turns the push off for every API. Direct3D adds two limits: a draw into a texture is not pushed, because what it makes is used elsewhere, and neither is a draw that covers the view, which would leave a strip bare. In Direct3D a listed draw that the rules affect gets no push.</p>
 <p>The recipe can name draws in <code>pushed</code> and in the automatic layers in more ways:</p>

@@ -76,6 +76,13 @@ namespace Tests
                                    const int32_t&  in_width,
                                    const int32_t&  in_height);
 
+        /* CreateWindowExA of a window: the rectangle is the outer one, the class and the menu are none. */
+        void create_window(const uint64_t& in_window_address,
+                           const uint32_t& in_style,
+                           const uint32_t& in_ex_style,
+                           const int32_t&  in_width,
+                           const int32_t&  in_height);
+
         void delete_lists (const int32_t&  in_first_list,
                            const int32_t&  in_range);
         void delete_textures(const std::vector<uint32_t>& in_name_u32vec);
@@ -105,6 +112,10 @@ namespace Tests
 
         /* glGenerateMipmap. */
         void generate_mipmap(const uint32_t& in_target);
+
+        /* GetDC of a window. */
+        void get_dc(const uint64_t& in_window_address,
+                    const uint64_t& in_device_context_address);
 
         const Capture::APIDumpLoader::Workload& get_workload() const;
 

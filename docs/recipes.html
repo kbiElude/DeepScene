@@ -243,8 +243,8 @@
 <table>
 <tr><th>Field</th><th>Meaning</th></tr>
 <tr><td><code>overlay_parallax</code></td><td>How far toward the viewer the draws that are left alone (unaffected) can be pushed, if they are made to what is presented: the two pictures of them are that far apart, as a part of the width of the picture (0 to 0.5). This is what the application wants: VR Player pushes by it, with no control to turn it off. 0 or left out: the application wants none.</td></tr>
-<tr><td><code>push_by_default</code></td><td>Optional, off by default. Whether the draws the recipe pushes are pushed while nobody has said whether to push them: a run without the VR player, where nothing sets the switch of the person. Once the switch is set, it decides. The OpenGL recipe sets it.</td></tr>
-<tr><td><code>push_unaffected</code></td><td>Optional, off by default. Pushes every draw the rules leave alone by <code>overlay_parallax</code>, and not only the ones listed in <code>pushed</code>. For an application whose left-alone draws are all an overlay: the two Direct3D recipes set it.</td></tr>
+<tr><td><code>push_by_default</code></td><td>Optional, off by default. Whether the draws the recipe pushes are pushed while nobody has said whether to push them: a run without the VR player, where nothing sets the switch of the person. Once the switch is set, it decides. The OpenGL recipes set it.</td></tr>
+<tr><td><code>push_unaffected</code></td><td>Optional, off by default. Pushes every draw the rules leave alone by <code>overlay_parallax</code>, and not only the ones listed in <code>pushed</code>. For an application whose left-alone draws are all an overlay: the Direct3D recipes and the one of a 2D-overlay OpenGL demo set it.</td></tr>
 <tr><td><code>part_parallax</code></td><td>Optional. The same for the parts of an object that protrude from it and are named in <code>pushed.part_cover_keys</code> (the eyes of a robot): they are nearer than the rest of the object by little, so less. 0 or left out: as much as <code>overlay_parallax</code>.</td></tr>
 </table>
 <p>How a push is made depends on the draw:</p>

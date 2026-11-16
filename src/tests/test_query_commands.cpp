@@ -279,7 +279,7 @@ TEST_F(QueryCommandsTest, InfoSaysWhatTheAnalysisIsOf)
     EXPECT_EQ(value.at("summary").at("n_calls_by_api").at("d3d8").number_value,
               16777.0);
     EXPECT_EQ(value.at("summary").at("n_calls_ignored").number_value,
-              59.0);
+              31.0);
     EXPECT_FALSE(value.at("summary").at("is_truncated").bool_value);
     EXPECT_GT   (value.at("summary").at("duration_seconds").number_value,
                  0.0);

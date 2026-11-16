@@ -69,7 +69,7 @@ TEST(AnalysisSession, TheSliceOfTheCaptureIsAnalyzedAndDescribed)
     EXPECT_EQ(diagnostics.n_calls_by_group_map.at(Capture::APIDumpLoader::APIGroup::USER32),
               59u);
     EXPECT_EQ(diagnostics.n_calls_ignored,
-              59u);
+              31u);
     EXPECT_EQ(diagnostics.n_segments,
               1u);
     EXPECT_EQ(diagnostics.n_trailing_calls,

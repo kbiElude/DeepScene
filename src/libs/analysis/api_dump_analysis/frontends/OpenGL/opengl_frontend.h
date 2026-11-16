@@ -38,6 +38,7 @@
 
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_draw_handler.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_context_state.h"
+#include "analysis/api_dump_analysis/frontends/OpenGL/gl_window_extents.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_list_handler.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_matrix_handler.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_state_handler.h"
@@ -151,6 +152,7 @@ namespace Analysis
                 GLStateHandler                           m_state_handler;
                 GLTextureHandler                         m_texture_handler;
                 GLWindow                                 m_window;
+                GLWindowExtents                          m_window_extents;
             };
         }
     }
