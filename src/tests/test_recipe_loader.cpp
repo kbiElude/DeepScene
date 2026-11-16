@@ -1827,12 +1827,13 @@ TEST_F(RecipeLoaderTest, TheRecipesOfTheRepositoryKeepTimeAsEachAppAlwaysDid)
         Analysis::Recipe::FramePacingMode       mode;
     };
 
-    /* Direct3D 8 and OpenGL were never held; Direct3D 7 was held to 60 frames a second. */
+    /* Direct3D 8 and OpenGL were never held; Direct3D 7 was held to 60 frames a second. Tesla (OpenGL) is new: its music is tied to time. */
     const Expected expected_array[] =
     {
         {"fr08.json",     60.0f, Analysis::Recipe::FramePacingMode::SCREEN_ONLY  },
         {"gerbera.json",  60.0f, Analysis::Recipe::FramePacingMode::SCREEN_ONLY  },
-        {"kasparov.json", 60.0f, Analysis::Recipe::FramePacingMode::HOLD_TO_RATE }
+        {"kasparov.json", 60.0f, Analysis::Recipe::FramePacingMode::HOLD_TO_RATE },
+        {"tesla.json",    60.0f, Analysis::Recipe::FramePacingMode::HOLD_TO_RATE }
     };
 
     for (const auto& expected : expected_array)
