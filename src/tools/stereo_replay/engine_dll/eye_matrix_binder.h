@@ -42,7 +42,8 @@ namespace Stereo
                  */
                 bool before_draw(const bool&                  in_is_affected,
                                  const Analysis::Recipe::Eye& in_eye,
-                                 const float&                 in_eye_separation);
+                                 const float&                 in_eye_separation,
+                                 const float&                 in_convergence_distance = 0.0f);
 
                 /* Drops the kept calls. Use it after other calls have changed the matrices in the device. */
                 void forget();
@@ -54,7 +55,8 @@ namespace Stereo
                              const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
                              const Analysis::Recipe::CallPlace&             in_place,
                              const Analysis::Recipe::Eye&                   in_eye,
-                             const float&                                   in_eye_separation);
+                             const float&                                   in_eye_separation,
+                             const float&                                   in_convergence_distance = 0.0f);
 
             private:
                 /* Identifies a matrix by the function and the integer arguments of its call (for example the state D3DTS_VIEW). */
@@ -68,12 +70,14 @@ namespace Stereo
                     Slot();
 
                     EyeMatrixBinding                      bound;
+                    float                                 bound_convergence_distance; /* the convergence distance the matrix in the device was made for */
                     float                                 bound_separation;  /* the separation the matrix in the device was made for */
                     FrameBuffer                           buffer;            /* the call as the application made it, with its chunks */
                     std::unique_ptr<OverlayChunkSource>   overlay;           /* the buffer overlaid with the rewritten call's matrix */
                     Analysis::Recipe::CallPlace           place;
                     Capture::APIDumpLoader::DumpedAPICall rewritten_call;
                     Analysis::Recipe::Eye                 rewritten_eye;
+                    float                                 rewritten_convergence_distance;
                     float                                 rewritten_separation;
                     bool                                  has_rewritten_call;
                 };
@@ -81,6 +85,7 @@ namespace Stereo
                 /* Rewrites the call of the slot for the eye. Returns false if the recipe does not change the call. */
                 bool rewrite(const Analysis::Recipe::Eye& in_eye,
                              const float&                 in_eye_separation,
+                             const float&                 in_convergence_distance,
                              Slot*                        inout_slot_ptr) const;
 
                 static SlotKey get_slot_key(const Capture::APIDumpLoader::DumpedAPICall& in_call);

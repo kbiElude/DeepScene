@@ -5,11 +5,13 @@
 #include "eye_matrix_binder.h"
 
 Stereo::Replay::EngineDLL::EyeMatrixBinder::Slot::Slot()
-    :bound               (EyeMatrixBinding::NOTHING),
-     bound_separation    (0.0f),
-     has_rewritten_call  (false),
-     rewritten_eye       (Analysis::Recipe::Eye::LEFT),
-     rewritten_separation(0.0f)
+    :bound                         (EyeMatrixBinding::NOTHING),
+     bound_convergence_distance    (0.0f),
+     bound_separation              (0.0f),
+     has_rewritten_call            (false),
+     rewritten_convergence_distance(0.0f),
+     rewritten_eye                 (Analysis::Recipe::Eye::LEFT),
+     rewritten_separation          (0.0f)
 {
     /* Stub */
 }
@@ -24,7 +26,8 @@ Stereo::Replay::EngineDLL::EyeMatrixBinder::EyeMatrixBinder(const FrameRewriter&
 
 bool Stereo::Replay::EngineDLL::EyeMatrixBinder::before_draw(const bool&                  in_is_affected,
                                                              const Analysis::Recipe::Eye& in_eye,
-                                                             const float&                 in_eye_separation)
+                                                             const float&                 in_eye_separation,
+                                                             const float&                 in_convergence_distance)
 {
     bool                   result = true;
     const EyeMatrixBinding wanted = (in_is_affected == false)                       ? EyeMatrixBinding::MONO
@@ -35,24 +38,27 @@ bool Stereo::Replay::EngineDLL::EyeMatrixBinder::before_draw(const bool&        
     {
         Slot& slot = *slot_pair.second;
 
-        /* A matrix that was made for a different separation is stale, even if it is bound for the right eye. */
-        if (slot.bound             != wanted                 ||
-            (wanted                != EyeMatrixBinding::MONO &&
-             slot.bound_separation != in_eye_separation) )
+        /* A matrix that was made for a different separation or convergence distance is stale, even if it is bound for the right eye. */
+        if (slot.bound != wanted                 ||
+            (wanted    != EyeMatrixBinding::MONO &&
+             (slot.bound_separation           != in_eye_separation ||
+              slot.bound_convergence_distance != in_convergence_distance) ) )
         {
             bool is_for_eye = false;
 
             if (wanted != EyeMatrixBinding::MONO)
             {
-                /* The rewritten call is reused if it was made for this eye and separation; otherwise it is made again. */
-                is_for_eye = (slot.has_rewritten_call                              &&
-                              slot.rewritten_eye        == in_eye                  &&
-                              slot.rewritten_separation == in_eye_separation);
+                /* The rewritten call is reused if it was made for this eye, separation and convergence distance; otherwise it is made again. */
+                is_for_eye = (slot.has_rewritten_call                                          &&
+                              slot.rewritten_eye                  == in_eye                    &&
+                              slot.rewritten_separation           == in_eye_separation         &&
+                              slot.rewritten_convergence_distance == in_convergence_distance);
 
                 if (is_for_eye == false)
                 {
                     is_for_eye = rewrite(in_eye,
                                          in_eye_separation,
+                                         in_convergence_distance,
                                         &slot);
                 }
             }
@@ -68,9 +74,10 @@ bool Stereo::Replay::EngineDLL::EyeMatrixBinder::before_draw(const bool&        
                                         slot.buffer);
             }
 
-            slot.bound            = (is_for_eye) ? wanted
-                                                 : EyeMatrixBinding::MONO;
-            slot.bound_separation = in_eye_separation;
+            slot.bound                      = (is_for_eye) ? wanted
+                                                           : EyeMatrixBinding::MONO;
+            slot.bound_convergence_distance = in_convergence_distance;
+            slot.bound_separation           = in_eye_separation;
 
             if (result == false)
             {
@@ -108,7 +115,8 @@ bool Stereo::Replay::EngineDLL::EyeMatrixBinder::on_call(const Capture::APIDumpL
                                                          const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
                                                          const Analysis::Recipe::CallPlace&             in_place,
                                                          const Analysis::Recipe::Eye&                   in_eye,
-                                                         const float&                                   in_eye_separation)
+                                                         const float&                                   in_eye_separation,
+                                                         const float&                                   in_convergence_distance)
 {
     SlotKey key;
     bool    result = false;
@@ -139,6 +147,7 @@ bool Stereo::Replay::EngineDLL::EyeMatrixBinder::on_call(const Capture::APIDumpL
 
     result = rewrite(in_eye,
                      in_eye_separation,
+                     in_convergence_distance,
                      slot.get() );
 
     /* Drop the slot of the earlier call that this call replaces; the device must not use it. */
@@ -155,6 +164,7 @@ end:
 
 bool Stereo::Replay::EngineDLL::EyeMatrixBinder::rewrite(const Analysis::Recipe::Eye& in_eye,
                                                          const float&                 in_eye_separation,
+                                                         const float&                 in_convergence_distance,
                                                          Slot*                        inout_slot_ptr) const
 {
     inout_slot_ptr->has_rewritten_call = m_rewriter.rewrite(inout_slot_ptr->buffer.get_call_vec().front(),
@@ -162,9 +172,11 @@ bool Stereo::Replay::EngineDLL::EyeMatrixBinder::rewrite(const Analysis::Recipe:
                                                             in_eye,
                                                             in_eye_separation,
                                                             inout_slot_ptr->overlay.get(),
-                                                           &inout_slot_ptr->rewritten_call);
-    inout_slot_ptr->rewritten_eye       = in_eye;
-    inout_slot_ptr->rewritten_separation = in_eye_separation;
+                                                           &inout_slot_ptr->rewritten_call,
+                                                            in_convergence_distance);
+    inout_slot_ptr->rewritten_convergence_distance = in_convergence_distance;
+    inout_slot_ptr->rewritten_eye                  = in_eye;
+    inout_slot_ptr->rewritten_separation           = in_eye_separation;
 
     return inout_slot_ptr->has_rewritten_call;
 }

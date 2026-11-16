@@ -24,7 +24,8 @@ bool Stereo::Replay::EngineDLL::FrameRewriter::rewrite(const Capture::APIDumpLoa
                                                        const Analysis::Recipe::Eye&                 in_eye,
                                                        const float&                                 in_eye_separation,
                                                        OverlayChunkSource*                          inout_overlay_ptr,
-                                                       Capture::APIDumpLoader::DumpedAPICall*       out_call_ptr) const
+                                                       Capture::APIDumpLoader::DumpedAPICall*       out_call_ptr,
+                                                       const float&                                 in_convergence_distance) const
 {
     constexpr uint32_t NEW_MATRIX_CHUNK_ID = 0xfffffff0; /* no chunk of a workload has an ID this big */
 
@@ -66,7 +67,8 @@ bool Stereo::Replay::EngineDLL::FrameRewriter::rewrite(const Capture::APIDumpLoa
         result |= Analysis::Recipe::RecipeApplier::apply_rule(*rule_ptr,
                                                               in_eye,
                                                               in_eye_separation,
-                                                              &matrix);
+                                                              &matrix,
+                                                              in_convergence_distance);
     }
 
     if (result)

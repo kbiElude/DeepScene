@@ -200,6 +200,7 @@ namespace Stereo
                 EyeHistory                                                             m_eye_history;
                 std::atomic<float>                                                     m_eye_separation; /* set by any thread; read once per frame */
                 FrameBuffer                                                            m_frame_buffer; /* the frame being played (replay thread only) */
+                float                                                                  m_frame_convergence_distance; /* where the eyes converge in the frame being played: the distance of its scene; 0: nowhere */
                 FrameExecutionOptions                                                  m_frame_execution;
                 float                                                                  m_frame_eye_separation; /* the separation that the frame being played uses */
                 FrameExecution                                                         m_frame_mode; /* of the frame being played; with the VARIANTS option, VARIANTS for the last frame and TWICE for the frames before it */

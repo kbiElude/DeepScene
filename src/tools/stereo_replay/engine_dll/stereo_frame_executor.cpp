@@ -16,15 +16,16 @@
 #include <algorithm>
 
 Stereo::Replay::EngineDLL::StereoFrameExecutor::StereoFrameExecutor()
-    :m_eye_separation      (0.0f),
-     m_frame_eye_separation(0.0f),
-     m_frame_mode          (FrameExecution::DIRECT),
-     m_host_ptr            (nullptr),
-     m_hurry_ptr           (nullptr),
-     m_image_sink_ptr      (nullptr),
-     m_slice_skipper_ptr   (nullptr),
-     m_truncate_after_call (UINT64_MAX),
-     m_variant_ptr         (nullptr)
+    :m_eye_separation            (0.0f),
+     m_frame_convergence_distance(0.0f),
+     m_frame_eye_separation      (0.0f),
+     m_frame_mode                (FrameExecution::DIRECT),
+     m_host_ptr                  (nullptr),
+     m_hurry_ptr                 (nullptr),
+     m_image_sink_ptr            (nullptr),
+     m_slice_skipper_ptr         (nullptr),
+     m_truncate_after_call       (UINT64_MAX),
+     m_variant_ptr               (nullptr)
 {
     /* Stub */
 }
@@ -203,6 +204,11 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_buffered_frame(cons
      */
     m_frame_eye_separation = m_eye_separation;
 
+    /* The eyes converge at the distance of the scene of the frame, which is known when the frame is complete. A frame of a scene that has none
+     * is played with the eyes converging nowhere.
+     */
+    m_frame_convergence_distance = 0.0f;
+
     *out_has_workload_ended_ptr = false;
 
     while (has_boundary == false)
@@ -231,6 +237,8 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_buffered_frame(cons
         if (m_recipe_applier_ptr->is_frame_known(frame.shape_key) )
         {
             is_rewritten = true;
+
+            m_frame_convergence_distance = m_recipe_applier_ptr->get_scene_convergence_distance(frame.shape_key);
 
             if (m_frame_mode == FrameExecution::TWICE ||
                 m_frame_mode == FrameExecution::VARIANTS)
@@ -698,7 +706,8 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_rewritten_call(cons
             /* Put the matrices the draw needs on the device first. */
             result = m_matrix_binder_ptr->before_draw(is_affected,
                                                       eye,
-                                                      m_frame_eye_separation);
+                                                      m_frame_eye_separation,
+                                                      m_frame_convergence_distance);
 
             if (result)
             {
@@ -759,7 +768,8 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_rewritten_call(cons
                                          in_chunk_source,
                                          place,
                                          eye,
-                                         m_frame_eye_separation) == false)
+                                         m_frame_eye_separation,
+                                         m_frame_convergence_distance) == false)
         {
             result = m_host_ptr->execute_call(in_call,
                                               in_chunk_source);

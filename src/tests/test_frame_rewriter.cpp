@@ -292,3 +292,64 @@ TEST_F(FrameRewriterTest, RulesApplyOneAfterTheOtherToTheMatrixTheLastLeft)
     EXPECT_FLOAT_EQ(read_matrix(*overlay.get_data_chunk_ptr(rewritten.arg_in_vec.at(2).get_data_chunk_id() ) ).at(12),
                     12.0f);
 }
+
+TEST_F(FrameRewriterTest, AnEyeConvergenceRuleShearsTheProjectionOnlyIfTheEyesConvergeSomewhere)
+{
+    Analysis::Recipe::ArgumentCondition condition;
+    Analysis::Recipe::MatrixRule        rule;
+    Analysis::Recipe::Recipe            recipe;
+
+    condition.argument_index = 1;
+    condition.value          = Interception::Hooks::D3D8::D3DTS_PROJECTION;
+
+    rule.action_kind           = Analysis::Recipe::ActionKind::EYE_CONVERGENCE;
+    rule.argument_condition_vec.push_back(condition);
+    rule.function              = APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_SETTRANSFORM;
+    rule.matrix_argument_index = 2;
+    rule.matrix_kind           = Analysis::Recipe::MatrixKind::PERSPECTIVE;
+
+    recipe.rule_vec.push_back(rule);
+
+    m_call.arg_in_vec.at(1) = APIInterceptor::APIFunctionArgument::create_u32(Interception::Hooks::D3D8::D3DTS_PROJECTION);
+
+    /* A perspective projection: the width scale is 2, and the depth goes to w. */
+    const std::array<float, 16> projection = {2, 0, 0, 0,
+                                              0, 2, 0, 0,
+                                              0, 0, 1, 1,
+                                              0, 0, -1, 0};
+
+    m_source.chunk_map[MATRIX_CHUNK_ID] = make_chunk(projection);
+
+    const Analysis::Recipe::RecipeApplier          applier(recipe);
+    const Stereo::Replay::EngineDLL::FrameRewriter rewriter(applier);
+
+    const auto get_shear_func = [&](const Analysis::Recipe::Eye& in_eye,
+                                    const float&                 in_convergence_distance)
+    {
+        Stereo::Replay::EngineDLL::OverlayChunkSource overlay(m_source);
+        Capture::APIDumpLoader::DumpedAPICall         rewritten;
+
+        EXPECT_TRUE(rewriter.rewrite(m_call,
+                                     {},
+                                     in_eye,
+                                     0.2f, /* in_eye_separation */
+                                    &overlay,
+                                    &rewritten,
+                                     in_convergence_distance) );
+
+        const auto* chunk_ptr = overlay.get_data_chunk_ptr(rewritten.arg_in_vec.at(2).get_data_chunk_id() );
+
+        return (chunk_ptr != nullptr) ? read_matrix(*chunk_ptr).at(8)
+                                      : 0.0f;
+    };
+
+    /* Half the separation times the scale, over the distance: 0.5 * 0.2 * 2 / 10. The left eye shears one way, the right the other. */
+    EXPECT_FLOAT_EQ(get_shear_func(Analysis::Recipe::Eye::LEFT, 10.0f),
+                    -0.02f);
+    EXPECT_FLOAT_EQ(get_shear_func(Analysis::Recipe::Eye::RIGHT, 10.0f),
+                    0.02f);
+
+    /* With nowhere to converge the matrix is left as it is. */
+    EXPECT_FLOAT_EQ(get_shear_func(Analysis::Recipe::Eye::LEFT, 0.0f),
+                    0.0f);
+}

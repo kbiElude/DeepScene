@@ -369,3 +369,93 @@ TEST_F(EyeMatrixBinderTest, AMatrixMadeForAnotherSeparationIsMadeAgainWhenTheSep
     EXPECT_FLOAT_EQ(m_executed_vec.at(3).translation_x,
                     10.2f);
 }
+
+TEST_F(EyeMatrixBinderTest, AMatrixThatConvergesTheEyesIsMadeAgainWhenTheDistanceTheyConvergeAtChanges)
+{
+    Analysis::Recipe::ArgumentCondition condition;
+    Analysis::Recipe::MatrixRule        rule;
+    Analysis::Recipe::Recipe            recipe;
+    std::vector<float>                  shear_vec;
+    Tests::MapChunkSource               source;
+
+    condition.argument_index = 1;
+    condition.value          = Interception::Hooks::D3D8::D3DTS_PROJECTION;
+
+    rule.action_kind           = Analysis::Recipe::ActionKind::EYE_CONVERGENCE;
+    rule.argument_condition_vec.push_back(condition);
+    rule.function              = APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_SETTRANSFORM;
+    rule.matrix_argument_index = 2;
+    rule.matrix_kind           = Analysis::Recipe::MatrixKind::PERSPECTIVE;
+
+    recipe.rule_vec.push_back(rule);
+
+    const Analysis::Recipe::RecipeApplier          applier(recipe);
+    const Stereo::Replay::EngineDLL::FrameRewriter rewriter(applier);
+
+    Stereo::Replay::EngineDLL::EyeMatrixBinder binder(rewriter,
+                                                      [&shear_vec](const Capture::APIDumpLoader::DumpedAPICall&   in_call,
+                                                                   const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source)
+                                                      {
+                                                          float matrix[16];
+
+                                                          const auto* chunk_ptr = in_chunk_source.get_data_chunk_ptr(in_call.arg_in_vec.at(2).get_data_chunk_id() );
+
+                                                          ::memcpy(matrix,
+                                                                   chunk_ptr->data(),
+                                                                   sizeof(matrix) );
+
+                                                          shear_vec.push_back(matrix[8]);
+
+                                                          return true;
+                                                      });
+
+    /* A perspective projection: the width scale is 2, and the depth goes to w. */
+    const std::array<float, 16> projection = {2, 0, 0, 0,
+                                              0, 2, 0, 0,
+                                              0, 0, 1, 1,
+                                              0, 0, -1, 0};
+
+    Capture::APIDumpLoader::DataChunk     chunk(sizeof(projection) );
+    Capture::APIDumpLoader::DumpedAPICall call;
+
+    ::memcpy(chunk.data(),
+             projection.data(),
+             sizeof(projection) );
+
+    source.chunk_map[MATRIX_CHUNK_ID] = chunk;
+
+    call.func = APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_SETTRANSFORM;
+
+    call.arg_in_vec.push_back(APIInterceptor::APIFunctionArgument::create_void_ptr(nullptr) );
+    call.arg_in_vec.push_back(APIInterceptor::APIFunctionArgument::create_u32(Interception::Hooks::D3D8::D3DTS_PROJECTION) );
+    call.arg_in_vec.push_back(APIInterceptor::APIFunctionArgument::create_data_chunk_id(MATRIX_CHUNK_ID) );
+
+    ASSERT_TRUE(binder.on_call(call,
+                               source,
+                               {},
+                               Analysis::Recipe::Eye::LEFT,
+                               0.2f,   /* in_eye_separation */
+                               10.0f)); /* in_convergence_distance */
+
+    ASSERT_TRUE(binder.before_draw(true, /* in_is_affected */
+                                   Analysis::Recipe::Eye::LEFT,
+                                   0.2f,
+                                   10.0f) );
+    ASSERT_TRUE(binder.before_draw(true, /* in_is_affected */
+                                   Analysis::Recipe::Eye::LEFT,
+                                   0.2f,
+                                   10.0f) );
+    ASSERT_TRUE(binder.before_draw(true, /* in_is_affected */
+                                   Analysis::Recipe::Eye::LEFT,
+                                   0.2f,
+                                   20.0f) );
+
+    /* The matrix is made once for a distance, and again for another: half the distance shears twice as much. */
+    ASSERT_EQ(shear_vec.size(),
+              2u);
+
+    EXPECT_FLOAT_EQ(shear_vec.at(0),
+                    -0.02f);
+    EXPECT_FLOAT_EQ(shear_vec.at(1),
+                    -0.01f);
+}
