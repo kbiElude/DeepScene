@@ -1227,3 +1227,39 @@ TEST_F(RecipeApplierTest, WithNoDistanceTheViewAnchorMatrixIsTheTranslationAlone
                     0.0f);
     EXPECT_TRUE(applier.has_view_anchor_shift() );
 }
+
+TEST_F(RecipeApplierTest, WhatTheRulesLeaveAloneIsPushedOnlyIfTheRecipeSaysSoOrListsTheDraw)
+{
+    Analysis::Recipe::DrawQuery query;
+    Analysis::Recipe::Recipe    recipe;
+
+    query.signature_key = 7;
+
+    recipe.is_baked = true;
+
+    {
+        const Analysis::Recipe::RecipeApplier applier(recipe);
+
+        EXPECT_FALSE(applier.decide_draw(query).is_pushed);
+    }
+
+    recipe.comfort.pushes_unaffected = true;
+
+    {
+        /* A signature the baked recipe does not know is affected: not left alone, so not pushed. */
+        const Analysis::Recipe::RecipeApplier applier(recipe);
+
+        EXPECT_FALSE(applier.decide_draw(query).is_pushed);
+    }
+
+    Analysis::Recipe::DrawRule rule;
+
+    rule.draw_class    = Analysis::Recipe::DrawClass::UNAFFECTED;
+    rule.signature_key = 7;
+
+    recipe.draw_rule_vec.push_back(rule);
+
+    const Analysis::Recipe::RecipeApplier applier(recipe);
+
+    EXPECT_TRUE(applier.decide_draw(query).is_pushed);
+}

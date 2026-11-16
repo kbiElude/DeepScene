@@ -54,8 +54,8 @@ uint32_t Stereo::Core::RecipeStereoPlanner::bind_matrices(const Analysis::Recipe
                                m_convergence_model.get_effective_convergence_distance(),
                                m_convergence_model.get_effective_eye_separation      (),
                                (in_is_final_target && m_is_last_draw_covering == false),
-                               (m_is_overlay_pushed) ? m_applier.get_overlay_parallax()
-                                                     : 0.0f,
+                               (get_is_last_draw_pushed() ) ? m_applier.get_overlay_parallax()
+                                                            : 0.0f,
                                inout_change_vec_ptr);
 }
 
@@ -164,7 +164,8 @@ bool Stereo::Core::RecipeStereoPlanner::get_is_last_draw_part() const
 
 bool Stereo::Core::RecipeStereoPlanner::get_is_last_draw_pushed() const
 {
-    return m_is_last_draw_pushed;
+    return (m_is_last_draw_pushed &&
+            m_is_overlay_pushed);
 }
 
 bool Stereo::Core::RecipeStereoPlanner::get_is_last_draw_side_reaching() const
@@ -494,7 +495,7 @@ Stereo::Core::ScreenShiftPlan Stereo::Core::RecipeStereoPlanner::plan_screen_shi
     input.eye_separation       = m_convergence_model.get_effective_eye_separation();
     input.has_extent           = in_has_extent;
     input.is_affected          = (m_last_draw_class == Analysis::Recipe::DrawClass::AFFECTED);
-    input.is_overlay_pushed    = m_is_overlay_pushed;
+    input.is_overlay_pushed    = get_is_last_draw_pushed();
     input.is_presented         = in_is_presented;
     input.picture_width        = in_picture_width;
     input.reaches_both_sides   = in_reaches_both_sides;

@@ -7,7 +7,8 @@
   "comfort": {
     "max_near_parallax": 0.03,
     "near_fraction": 0.001,
-    "overlay_parallax": 0.04
+    "overlay_parallax": 0.04,
+    "push_unaffected": true
   },
   "unaffected": {
     "pass_keys": [

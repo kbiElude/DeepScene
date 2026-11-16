@@ -338,15 +338,16 @@ shift(right eye) = −shift(left eye)
   <text class="small" x="480" y="160">the dots are o apart (a part of</text><text class="small" x="480" y="173">the width): crossed, so the draw</text><text class="small" x="480" y="186">stands out of the screen</text>
   <path class="arrowline" d="M720 80V140"/>
 </svg>
-<figcaption>The same picture of the draw, for each eye, moved sideways by half of <code>o</code> in opposite directions. <code>o</code> is <code>comfort.overlay_parallax</code>. The VR player switches the push on for a recipe that gives an amount, and has no control to switch it off.</figcaption>
+<figcaption>The same picture of the draw, for each eye, moved sideways by half of <code>o</code> in opposite directions. <code>o</code> is <code>comfort.overlay_parallax</code>. The VR player switches the push on for a recipe that gives an amount.</figcaption>
 </figure>
 <h3>Which draws are pushed</h3>
-<p>The push is the same amount, <code>overlay_parallax</code>, as a part of the width of the picture (0.04 is four in a hundred). What differs between the APIs is which draws get it.</p>
+<p>The push is the same amount, <code>overlay_parallax</code>, as a part of the width of the picture (0.04 is four in a hundred). Which draws get it is one rule in <code>RecipeApplier::decide_draw()</code>, the same for every API and for the replay:</p>
 <table>
-<tr><th>API</th><th>Which draws</th></tr>
-<tr><td>Direct3D, matrices or pixels</td><td>Every draw the recipe leaves alone that goes to what the program presents, except one that covers the view (it would leave a strip bare). A draw into a texture is not pushed: what it makes is used elsewhere. The <code>pushed</code> list is not consulted.</td></tr>
-<tr><td>OpenGL</td><td>Only the draws the recipe lists in <code>pushed</code>, left alone or affected. An affected one is pushed too, so that text and a logo stand off the layer they are drawn on. A fade, or a blur or glow that works on a copy of the picture, is not listed and so stays where it is.</td></tr>
+<tr><th>A draw is pushed if</th><th>Note</th></tr>
+<tr><td>the recipe lists it in <code>pushed</code></td><td>Left alone or affected. An affected one is pushed too in OpenGL, so that text and a logo stand off the layer they are drawn on. A fade, or a blur or glow that works on a copy of the picture, is not listed and so stays where it is.</td></tr>
+<tr><td>the recipe sets <code>comfort.push_unaffected</code> and the rules leave it alone</td><td>For an application whose left-alone draws are all an overlay (an interface). Direct3D recipes set it; the OpenGL recipe lists draws instead.</td></tr>
 </table>
+<p>The switch of the person (the VR player's, or <code>APISTEREO_PUSH_OVERLAY</code>) turns the push off for every API. Direct3D adds two limits: a draw into a texture is not pushed, because what it makes is used elsewhere, and neither is a draw that covers the view, which would leave a strip bare. In Direct3D a listed draw that the rules affect gets no push.</p>
 <p>The recipe can name draws in <code>pushed</code> and in the automatic layers in more ways:</p>
 <table>
 <tr><th>Draw</th><th>What happens</th></tr>

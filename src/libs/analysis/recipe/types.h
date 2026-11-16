@@ -188,6 +188,12 @@ namespace Analysis
              */
             float part_parallax = 0.0f;
 
+            /* Whether the draws that the rules leave alone are pushed by overlay_parallax as well, and not only the draws the recipe lists
+             * (DrawSelector). It is for an application whose left-alone draws are all an overlay (an interface); where they include scenery,
+             * the recipe lists the draws to push instead.
+             */
+            bool pushes_unaffected = false;
+
             /* What the recipe says about single scenes, identified by their shape keys. */
             std::vector<SceneComfort> scene_override_vec;
 

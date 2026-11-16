@@ -242,6 +242,7 @@
 <table>
 <tr><th>Field</th><th>Meaning</th></tr>
 <tr><td><code>overlay_parallax</code></td><td>How far toward the viewer the draws that are left alone (unaffected) can be pushed, if they are made to what is presented: the two pictures of them are that far apart, as a part of the width of the picture (0 to 0.5). This is what the application wants: VR Player pushes by it, with no control to turn it off. 0 or left out: the application wants none.</td></tr>
+<tr><td><code>push_unaffected</code></td><td>Optional, off by default. Pushes every draw the rules leave alone by <code>overlay_parallax</code>, and not only the ones listed in <code>pushed</code>. For an application whose left-alone draws are all an overlay: the two Direct3D recipes set it.</td></tr>
 <tr><td><code>part_parallax</code></td><td>Optional. The same for the parts of an object that protrude from it and are named in <code>pushed.part_cover_keys</code> (the eyes of a robot): they are nearer than the rest of the object by little, so less. 0 or left out: as much as <code>overlay_parallax</code>.</td></tr>
 </table>
 <p>How a push is made depends on the draw:</p>
@@ -314,7 +315,7 @@
 <tr><td><code>eye_offset</code></td><td>Multiplies by a translation along <code>axis</code> (<code>x</code>, <code>y</code> or <code>z</code>; needed) of half the eye separation. <code>order</code> as for <code>multiply</code>. The separation is a setting of the replay (a command-line option, the depth choice), not a part of the recipe.</td></tr>
 <tr><td><code>eye_convergence</code></td><td>Takes nothing. For a rule about the perspective projection (<code>D3DTS_PROJECTION</code> with <code>"matrix": "perspective"</code>), shears the projection of each eye so that what is at the convergence distance is at the same place in both eyes: it seems to be at the screen. The rule for the view has to be <code>eye_offset</code>.</td></tr>
 </table>
-<p>The live converter gives <code>eye_convergence</code> the distance of the scene, or of the draw (<code>convergence</code>). With none, the rule changes nothing; the replay gives none.</p>
+<p>The live converter gives <code>eye_convergence</code> the distance of the scene, or of the draw (<code>convergence</code>). With none, the rule changes nothing. The replay gives it the distance of the scene of the frame, which is what the live converter gives it too.</p>
 
 <h3 id="format-baked">The baked section</h3>
 <p>Made from the sections above by <code>RecipeBake</code>; do not edit it. It has no API in it. <code>signature_scheme_version</code> and <code>draw_rules</code> are needed; the other entries are optional. A list of distances names a key once, and a draw rule after one without a <code>when</code> for the same signature is refused, since it is never reached.</p>

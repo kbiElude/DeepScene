@@ -1715,3 +1715,28 @@ TEST_F(RecipeLoaderTest, DrawsThatAreNamedPushedAreNotToldToBeLeftOutByTheLiveCo
     /* The live converter pushes them, by the signature that the baked rules say. */
     EXPECT_TRUE(Analysis::Recipe::RecipeLoader::describe_pass_selectors_live_ignores(recipe).empty() );
 }
+
+TEST_F(RecipeLoaderTest, TheComfortOfTheRecipeSaysWhetherWhatTheRulesLeaveAloneIsPushed)
+{
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"comfort\": {\"push_unaffected\": true},",
+                                                                       ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_TRUE(recipe.comfort.pushes_unaffected);
+
+    /* It is off unless the recipe says so. */
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"comfort\": {},",
+                                                                       ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_FALSE(recipe.comfort.pushes_unaffected);
+
+    expect_refused(get_recipe_text("\"comfort\": {\"push_unaffected\": 1},",
+                                   ""),
+                   "comfort.push_unaffected");
+}

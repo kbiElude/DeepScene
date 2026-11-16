@@ -299,6 +299,8 @@ TEST_F(StereoCoreTest, ADrawThatIsNamedBySizeAsPushedIsFlatAndPushed)
                                                        get_view_rule_text() ),
                                            Stereo::Core::FailFunc() );
 
+    core.set_is_overlay_pushed(true);
+
     /* The same signature: the draw of that size is flat, the others are as the recipe says. */
     EXPECT_EQ(core.classify_draw(1, 5),
               Analysis::Recipe::DrawClass::UNAFFECTED);
@@ -459,6 +461,8 @@ TEST_F(StereoCoreTest, TheLayersThatTheBakerFoundAreUsedOnlyForARecipeThatAsksFo
                                                            get_view_rule_text() ),
                                                Stereo::Core::FailFunc() );
 
+        core.set_is_overlay_pushed(true);
+
         EXPECT_EQ(core.classify_draw(1, 6),
                   Analysis::Recipe::DrawClass::UNAFFECTED);
         EXPECT_FALSE(core.get_is_last_draw_pushed() );
@@ -489,6 +493,7 @@ TEST_F(StereoCoreTest, ADrawThatIsMadeAsItIsGetsTheWholeOfThePushAndOneTheEyesMo
 
     core.set_convergence_distance(100.0f);
     core.set_depth_strength      (1.0f);
+    core.set_is_overlay_pushed   (true);
     core.classify_draw(1, 0);
 
     EXPECT_TRUE(core.get_is_last_draw_pushed() );
@@ -1087,7 +1092,7 @@ TEST_F(StereoCoreTest, TheStrengthOfThe3DMakesTheDistanceBetweenTheEyesAThirtiet
 TEST_F(StereoCoreTest, WhatTheRecipeLeavesAloneAndIsMadeToWhatIsPresentedIsPushedTowardTheViewer)
 {
     const auto                        projection_arguments = make_set_transform_arguments(STATE_PROJECTION);
-    Stereo::Core::RecipeStereoPlanner core(make_recipe("\"comfort\": {\"overlay_parallax\": 0.04}," + get_baked_text(""),
+    Stereo::Core::RecipeStereoPlanner core(make_recipe("\"comfort\": {\"overlay_parallax\": 0.04, \"push_unaffected\": true}," + get_baked_text("{\"signature\": \"0x0000000000000001\", \"class\": \"unaffected\"}"),
                                                        "{\"call\": \"IDirect3DDevice8::SetTransform\", \"when\": {\"state\": \"D3DTS_PROJECTION\","
                                                        " \"matrix\": \"perspective\"}, \"action\": {\"type\": \"eye_convergence\"}}"),
                                            [](const std::string& in_message)
@@ -1104,6 +1109,7 @@ TEST_F(StereoCoreTest, WhatTheRecipeLeavesAloneAndIsMadeToWhatIsPresentedIsPushe
                                     projection) );
 
     core.set_is_overlay_pushed(true);
+    core.classify_draw(1, 0);
 
     /* Pushed: the left picture toward the right, the right one toward the left, by the parallax in all. */
     auto left = bind_matrices(&core,
@@ -1250,7 +1256,7 @@ TEST_F(StereoCoreTest, ASceneTheRecipeDoesNotKnowKeepsTheLimitOfTheSceneBeforeAn
 TEST_F(StereoCoreTest, WhatTheRecipeSaysOfTheOverlayIsHowFarAndTheOverlayIsNotPushedUnlessThePersonAsks)
 {
     const auto                        projection_arguments = make_set_transform_arguments(STATE_PROJECTION);
-    Stereo::Core::RecipeStereoPlanner core(make_recipe("\"comfort\": {\"overlay_parallax\": 0.04}," + get_baked_text(""),
+    Stereo::Core::RecipeStereoPlanner core(make_recipe("\"comfort\": {\"overlay_parallax\": 0.04, \"push_unaffected\": true}," + get_baked_text("{\"signature\": \"0x0000000000000001\", \"class\": \"unaffected\"}"),
                                                        "{\"call\": \"IDirect3DDevice8::SetTransform\", \"when\": {\"state\": \"D3DTS_PROJECTION\","
                                                        " \"matrix\": \"perspective\"}, \"action\": {\"type\": \"eye_convergence\"}}"),
                                            [](const std::string& in_message)
@@ -1267,6 +1273,8 @@ TEST_F(StereoCoreTest, WhatTheRecipeSaysOfTheOverlayIsHowFarAndTheOverlayIsNotPu
                                     projection) );
 
     EXPECT_FALSE(core.get_is_overlay_pushed() );
+
+    core.classify_draw(1, 0);
 
     /* The recipe has an amount, and nobody has asked: nothing is moved. */
     const auto left = bind_matrices(&core,
@@ -1308,7 +1316,7 @@ TEST_F(StereoCoreTest, WhatTheRecipeSaysOfTheOverlayIsHowFarAndTheOverlayIsNotPu
 TEST_F(StereoCoreTest, ADrawThatCoversTheWholeOfTheViewIsNotPushedWhateverThePersonAsks)
 {
     const auto projection_arguments = make_set_transform_arguments(STATE_PROJECTION);
-    auto       recipe               = make_recipe("\"comfort\": {\"overlay_parallax\": 0.04}," + get_baked_text(""),
+    auto       recipe               = make_recipe("\"comfort\": {\"overlay_parallax\": 0.04, \"push_unaffected\": true}," + get_baked_text("{\"signature\": \"0x0000000000000001\", \"class\": \"unaffected\"}"),
                                                 "{\"call\": \"IDirect3DDevice8::SetTransform\", \"when\": {\"state\": \"D3DTS_PROJECTION\","
                                                 " \"matrix\": \"perspective\"}, \"action\": {\"type\": \"eye_convergence\"}}");
 

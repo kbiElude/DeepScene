@@ -252,6 +252,13 @@ Analysis::Recipe::DrawDecision Analysis::Recipe::RecipeApplier::decide_draw(cons
         result.is_pushed = true;
     }
 
+    /* A recipe for an application whose left-alone draws are all an overlay pushes them without listing them. */
+    if (m_recipe.comfort.pushes_unaffected &&
+        result.draw_class != DrawClass::AFFECTED)
+    {
+        result.is_pushed = true;
+    }
+
     return result;
 }
 
