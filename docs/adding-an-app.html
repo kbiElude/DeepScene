@@ -63,7 +63,7 @@
 <tr><td><code>APIDumper_x86.exe</code> / <code>APIDumper_x64.exe</code></td><td>The dumper for a 32-bit or a 64-bit program.</td></tr>
 <tr><td><code>--dump-n-frames N</code></td><td>The capture ends when N frames have been presented, or when the program exits. Without it, only the exit ends it.</td></tr>
 <tr><td><code>--dump-swapchain-on-present</code></td><td>Stores the back buffer of each frame (OpenGL, Direct3D 7 and 8), which is what lets anyone later see what a frame looked like.</td></tr>
-<tr><td><code>--spill-threshold-mb N</code></td><td>Writes the data waiting in memory to the file once it reaches N megabytes (128 by default), so that a 32-bit program does not run out of memory. A capture can be large: a few minutes of a demo are gigabytes.</td></tr>
+<tr><td><code>--spill-threshold-mb N</code></td><td>Writes the data waiting in memory to the file once it reaches N megabytes (128 by default), so that a 32-bit program does not run out of memory. The file is written, and compressed with up to eight threads, off the thread of the program, which waits only if the previous write is not done. The data of the calls that the dumper holds is bounded too (at four times N, counting what each piece costs besides its bytes): a frame that holds more ends the capture with a message. When a capture stops at <code>--dump-n-frames</code>, the program runs on and the dumper keeps nothing. A capture can be large: a few minutes of a demo are gigabytes.</td></tr>
 <tr><td><code>result_dump.workload</code></td><td>The output, written in the working directory of the program.</td></tr>
 </table>
 
