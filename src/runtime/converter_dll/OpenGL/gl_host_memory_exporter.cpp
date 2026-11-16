@@ -3,8 +3,6 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "gl_host_memory_exporter.h"
-#include "environment_variable_reader.h"
-#include <mmsystem.h>
 #include <stdio.h>
 #include <string.h>
 #include <vector>
@@ -12,27 +10,11 @@
 const uint32_t Stereo::ConverterDLL::GLHostMemoryExporter::BYTES_PER_PIXEL = 4;
 const uint32_t Stereo::ConverterDLL::GLHostMemoryExporter::N_EYES          = 2;
 
-Stereo::ConverterDLL::GLHostMemoryExporter::GLHostMemoryExporter(Stereo::Transport::FrameChannel* inout_channel_ptr)
-    :HostMemoryExporterBase   (inout_channel_ptr),
-     m_n_frames_per_second(0)
+Stereo::ConverterDLL::GLHostMemoryExporter::GLHostMemoryExporter(Stereo::Transport::FrameChannel*     inout_channel_ptr,
+                                                                 const Analysis::Recipe::FramePacing& in_frame_pacing)
+    :HostMemoryExporterBase(inout_channel_ptr,
+                            in_frame_pacing)
 {
-    /* A debugging aid for a run without a program that shows the images. The application is held to a frame rate, as the Direct3D 7 path is,
-     * so that anything it ties to time (its music, for example) behaves as it does when a screen shows the frames, not as in a run of a
-     * thousand frames a second.
-     */
-    float      n_frames_per_second = 0.0f;
-    const bool is_rate_set         = EnvironmentVariableReader::get_number("APISTEREO_FRAME_RATE",
-                                                                          &n_frames_per_second);
-
-    if (is_rate_set                      &&
-        n_frames_per_second >= 1.0f)
-    {
-        m_n_frames_per_second = static_cast<int64_t>(n_frames_per_second);
-
-        /* The wait for one frame is shorter than the default timer tick (about 15 ms), so the timer resolution is raised to 1 ms. */
-        ::timeBeginPeriod(1);
-    }
-
     const auto write_job_func = [this]()
     {
         write_job();
@@ -88,20 +70,7 @@ end:
 
 void Stereo::ConverterDLL::GLHostMemoryExporter::wait_for_pace()
 {
-    const bool is_paced_by_screen = wait_for_screen();
-
-    if (m_n_frames_per_second > 0)
-    {
-        if (is_paced_by_screen == false)
-        {
-            hold_to_frame_rate(m_n_frames_per_second);
-        }
-        else
-        {
-            /* If the screen stops keeping time, the limiter counts the next frame from this one. */
-            restart_frame_rate_clock();
-        }
-    }
+    pace();
 }
 
 bool Stereo::ConverterDLL::GLHostMemoryExporter::write_debug_image(const GLFrameImages& in_images,

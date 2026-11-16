@@ -8,22 +8,15 @@
 #include "d3d7_host_memory_exporter.h"
 #include "environment_variable_reader.h"
 #include "pixel_row_writer.h"
-#include <mmsystem.h>
 #include <stdio.h>
 #include <string.h>
 
-Stereo::ConverterDLL::D3D7HostMemoryExporter::D3D7HostMemoryExporter(Stereo::Transport::FrameChannel* inout_channel_ptr)
-    :HostMemoryExporterBase(inout_channel_ptr)
+Stereo::ConverterDLL::D3D7HostMemoryExporter::D3D7HostMemoryExporter(Stereo::Transport::FrameChannel*     inout_channel_ptr,
+                                                                     const Analysis::Recipe::FramePacing& in_frame_pacing)
+    :HostMemoryExporterBase(inout_channel_ptr,
+                            in_frame_pacing)
 {
-    /* The default timer tick is about 15 ms, which is longer than a frame, so a sleep of one frame would last a whole tick. Without a 1 ms timer period,
-     * the application can be held to about half its intended rate when no program that shows the images keeps time.
-     */
-    ::timeBeginPeriod(1);
-}
-
-Stereo::ConverterDLL::D3D7HostMemoryExporter::~D3D7HostMemoryExporter()
-{
-    ::timeEndPeriod(1);
+    /* Stub */
 }
 
 Stereo::Transport::ExportStatus Stereo::ConverterDLL::D3D7HostMemoryExporter::export_frame(const uint64_t&                        in_frame_index,
@@ -209,35 +202,7 @@ void Stereo::ConverterDLL::D3D7HostMemoryExporter::unlock_surface(LockedSurface*
 
 void Stereo::ConverterDLL::D3D7HostMemoryExporter::wait_for_pace()
 {
-    constexpr int64_t FALLBACK_N_FRAMES_PER_SECOND = 60;
-
-    /* If the program that shows the images keeps time, it says when the next frame is due. Otherwise there is nothing to keep time by: no
-     * program shows the images, or it does not say when (a window shows frames as they arrive), or the window is not flipped. The application
-     * is then held to the rate of a screen, because otherwise the timing of its music would differ from what is shown.
-     */
-    const bool is_negotiated      = is_host_memory_negotiated();
-    bool       is_paced_by_screen = false;
-
-    if (is_negotiated)
-    {
-        is_paced_by_screen = wait_for_screen();
-    }
-
-    if (is_paced_by_screen == false)
-    {
-        const bool is_limiter_disabled = EnvironmentVariableReader::is_set("APISTEREO_NO_FRAME_LIMIT"); /* a debugging aid: measures the cost of a frame without waiting
- */
-
-        if (is_limiter_disabled == false)
-        {
-            hold_to_frame_rate(FALLBACK_N_FRAMES_PER_SECOND);
-        }
-    }
-    else
-    {
-        /* If the screen stops keeping time, the limiter counts the next frame from this one. */
-        restart_frame_rate_clock();
-    }
+    pace();
 }
 
 bool Stereo::ConverterDLL::D3D7HostMemoryExporter::write_debug_image(void*              in_left_surface_ptr,

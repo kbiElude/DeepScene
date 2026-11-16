@@ -28,7 +28,8 @@ namespace Stereo
         {
         public:
             /* The channel must outlive the exporter. The exporter says on it what it offers. */
-            explicit GLHostMemoryExporter(Stereo::Transport::FrameChannel* inout_channel_ptr);
+            GLHostMemoryExporter(Stereo::Transport::FrameChannel*     inout_channel_ptr,
+                                 const Analysis::Recipe::FramePacing& in_frame_pacing);
 
             ~GLHostMemoryExporter() override;
 
@@ -76,7 +77,6 @@ namespace Stereo
 
             Job                                         m_job;
             std::unique_ptr<Utils::Parallel::JobThread> m_job_thread_ptr;
-            int64_t                                     m_n_frames_per_second; /* when no screen keeps time, the application is held to this many frames a second (APISTEREO_FRAME_RATE); 0: no limit */
         };
     }
 }

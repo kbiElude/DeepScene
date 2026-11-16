@@ -59,6 +59,13 @@ namespace Analysis
         /* Restricts a rule to a kind of matrix. Direct3D matrices are row-major and multiply row vectors. A perspective projection has the
          * last column (0, 0, 1, 0). An orthographic projection has the last column (0, 0, 0, 1).
          */
+        /* How a converter keeps time for an application when no program that shows the images does. */
+        enum class FramePacingMode
+        {
+            HOLD_TO_RATE, /* the application is held to a number of frames a second                     */
+            SCREEN_ONLY   /* only a program that shows the images keeps time; the application runs free */
+        };
+
         enum class MatrixKind
         {
             ANY,
@@ -361,6 +368,16 @@ namespace Analysis
          * refused. A draw named by `skipped`, or in a pass that it names, is not played at all, in either eye. The calls that set its state are
          * played.
          */
+        /* What an application ties to time (its music, for example) plays as it does on a screen only if it is shown at the rate of one. The
+         * pacing says what a converter does when no screen keeps time: no program shows the images, or it does not say when a frame is due.
+         * It is the same for every API.
+         */
+        struct FramePacing
+        {
+            float           frames_per_second = 60.0f; /* for HOLD_TO_RATE */
+            FramePacingMode mode              = FramePacingMode::HOLD_TO_RATE;
+        };
+
         struct Recipe
         {
             DrawSelector                  affected;
@@ -373,6 +390,7 @@ namespace Analysis
             std::vector<DrawRule>         draw_rule_vec;                   /* from "baked"; see DrawRule                 */
             std::vector<uint64_t>         eye_space_draw_key_vec;          /* from "baked": vertices in eye space (see Comfort::uses_automatic_layers) */
             std::vector<uint64_t>         flat_layer_draw_key_vec;         /* from "baked": draws in the space of the picture, never over a 3D scene: left as made */
+            FramePacing                   frame_pacing;                    /* what to do when no screen keeps time; see FramePacing */
             bool                          is_baked                = false; /* whether the file has a list of draw rules, even an empty one */
             std::vector<uint64_t>         known_shape_key_vec;             /* if empty, no frame is unknown              */
             std::vector<uint64_t>         covering_draw_key_vec;      /* from "baked"; keys (signature and size) of draws that cover the whole view: not moved sideways */

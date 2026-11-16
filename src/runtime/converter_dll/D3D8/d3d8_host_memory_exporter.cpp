@@ -8,8 +8,10 @@
 #include "pixel_row_writer.h"
 #include <string.h>
 
-Stereo::ConverterDLL::D3D8HostMemoryExporter::D3D8HostMemoryExporter(Stereo::Transport::FrameChannel* inout_channel_ptr)
-    :HostMemoryExporterBase(inout_channel_ptr),
+Stereo::ConverterDLL::D3D8HostMemoryExporter::D3D8HostMemoryExporter(Stereo::Transport::FrameChannel*     inout_channel_ptr,
+                                                                     const Analysis::Recipe::FramePacing& in_frame_pacing)
+    :HostMemoryExporterBase(inout_channel_ptr,
+                            in_frame_pacing),
      m_eye_destination_ptr(nullptr),
      m_eye_is_ok   (false),
      m_eye_pitch   (0),
@@ -342,7 +344,7 @@ void Stereo::ConverterDLL::D3D8HostMemoryExporter::wait_for_pace()
 {
     const double start_ms = Utils::Statistics::SeriesStats::get_now();
 
-    if (wait_for_screen() )
+    if (pace() )
     {
         std::lock_guard<std::mutex> lock(m_series_mutex);
 

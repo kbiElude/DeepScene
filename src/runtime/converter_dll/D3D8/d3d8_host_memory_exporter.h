@@ -39,7 +39,8 @@ namespace Stereo
         {
         public:
             /* The channel must outlive the exporter. The exporter says on it what it offers. */
-            explicit D3D8HostMemoryExporter(Stereo::Transport::FrameChannel* inout_channel_ptr);
+            D3D8HostMemoryExporter(Stereo::Transport::FrameChannel*     inout_channel_ptr,
+                                   const Analysis::Recipe::FramePacing& in_frame_pacing);
 
             ~D3D8HostMemoryExporter() override;
 

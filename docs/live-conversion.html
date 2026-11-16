@@ -566,7 +566,7 @@
 <tr><td><code>comfort.ease_by_time</code></td><td>5 percent of the way per frame.</td><td>They go by the time that passes: 5 percent of the way in the time of a frame at 72 Hz (a time constant of about 0.27 s), the same at any rate (<code>ConvergenceModel::get_fraction_of_the_way</code>). The converter measures how long each frame took, so a run that is not held to a rate sees the same adaptation as the headset does.</td></tr>
 <tr><td><code>comfort.snap_at_cuts</code></td><td>Eases across a cut.</td><td>At a cut (a target more than twice or less than half of the previous one) the scene distance and the limit jump to the target.</td></tr>
 </table>
-<p>The scene dump times a scene on the clock (a scene must last 1.5 s before it is written), so a run that writes scenes is best held to a frame rate (see <a href="#switches">the switches</a>).</p>
+<p>The scene dump times a scene on the clock (a scene must last 1.5 s before it is written), so a run that writes scenes is best held to a frame rate (the default of the recipe; see <a href="#switches">the switches</a>).</p>
 
 <h4>Attached draws</h4>
 <p>The decision is <code>RecipeStereoPlanner::is_last_draw_attached_to_camera()</code>. A draw whose origin is nearer the camera than <code>camera_attached_depth</code> of the convergence distance is made as it is for both eyes, unless one of these holds:</p>
@@ -661,10 +661,11 @@
 <tr><td><code>APISTEREO_TARGET_EYE_WIDTH</code>, <code>_HEIGHT</code></td><td>The target size of an eye. Both are needed, and they are read only when the channel has no size (the VR player always sets one). They also have the program render to the invisible window.</td></tr>
 <tr><td><code>APISTEREO_DUMP_FRAME</code>, <code>APISTEREO_DUMP_EVERY</code>, <code>APISTEREO_DUMP_FIRST_FRAME</code></td><td>Direct3D 7 and OpenGL: a frame, both eyes, to <code>%TEMP%\apistereo_frame_N.bmp</code>. <code>_FRAME</code> names the one frame, <code>_EVERY</code> writes every that many frames, from <code>_FIRST_FRAME</code> on.</td></tr>
 <tr><td><code>APISTEREO_DUMP_SCENES</code></td><td>OpenGL: up to sixty frames of each scene to <code>%TEMP%\apistereo_scene_&lt;key&gt;[_N].bmp</code>. The first is written when the scene has lasted a second and a half, the others half a second apart. The log has the key, the frame, where the eyes converged and how far apart they were (see <a href="recipes.html">Recipes</a>).</td></tr>
-<tr><td><code>APISTEREO_FRAME_RATE</code></td><td>OpenGL: when no screen keeps time, the application is held to that many frames a second (not held when unset). Direct3D 7 ignores it. Direct3D 8 is never held.</td></tr>
-<tr><td><code>APISTEREO_NO_RIGHT_EYE</code>, <code>APISTEREO_NO_FRAME_LIMIT</code></td><td>To measure with Direct3D 7: the right eye is not drawn; the application is not held to 60 frames a second.</td></tr>
+<tr><td><code>APISTEREO_FRAME_RATE</code></td><td>Overrides the <code>frame_pacing</code> of the recipe for a run, for every API: when no screen keeps time, the application is held to that many frames a second. 0 means it is not held.</td></tr>
+<tr><td><code>APISTEREO_NO_FRAME_LIMIT</code></td><td>The application is never held (the <code>screen_only</code> pacing), to measure the cost of a frame.</td></tr>
+<tr><td><code>APISTEREO_NO_RIGHT_EYE</code></td><td>To measure with Direct3D 7: the right eye is not drawn.</td></tr>
 </table>
-<p>Holding to a rate, in short: an application whose music runs on the clock should behave as it does when a screen shows its frames, not as in a run of a thousand frames a second. Direct3D 7 is held to 60 whatever the switch says (<code>HostMemoryExporterBase::hold_to_frame_rate</code>), unless a screen keeps time.</p>
+<p>Holding to a rate, in short: an application whose music runs on the clock should behave as it does when a screen shows its frames, not as in a run of a thousand frames a second. Every API is held the same way (<code>HostMemoryExporterBase::pace</code>): by the <code>frame_pacing</code> of the recipe, 60 frames a second unless it says otherwise, and never when a screen keeps time.</p>
 <p>The launcher sets <code>APISTEREO_SESSION</code>, <code>APISTEREO_RECIPE</code> and <code>APISTEREO_LOG</code> for the application.</p>
 <div class="note">A program that never exits by itself (one that loops its credits, say) must be ended by the user or the launcher; a test script that starts one must always clean up.</div>
 </main>

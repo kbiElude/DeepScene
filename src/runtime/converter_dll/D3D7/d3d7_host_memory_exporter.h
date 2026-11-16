@@ -28,9 +28,8 @@ namespace Stereo
         {
         public:
             /* The channel must outlive the exporter. The exporter says on it what it offers. */
-            explicit D3D7HostMemoryExporter(Stereo::Transport::FrameChannel* inout_channel_ptr);
-
-            ~D3D7HostMemoryExporter() override;
+            D3D7HostMemoryExporter(Stereo::Transport::FrameChannel*     inout_channel_ptr,
+                                   const Analysis::Recipe::FramePacing& in_frame_pacing);
 
             /* Returns EXPORTED when the frame is in the channel. Returns NOT_READY if the other side has not said that it takes the host memory
              * kind. Returns FAILED if a surface cannot be read, its format is not converted, or the eyes have different sizes.

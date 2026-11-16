@@ -113,13 +113,46 @@ Stereo::ConverterDLL::LiveStereoConverter::LiveStereoConverter(const Stereo::Ses
         m_live_state.is_scene_dump_enabled = EnvironmentVariableReader::is_set("APISTEREO_DUMP_SCENES");
     }
 
+    /* What to do when no screen keeps time comes from the recipe, and the person can override it for a run. It is the same for every API. */
+    Analysis::Recipe::FramePacing frame_pacing = in_recipe.frame_pacing;
+
+    {
+        float frames_per_second = 0.0f;
+
+        if (EnvironmentVariableReader::get_number("APISTEREO_FRAME_RATE",
+                                                  &frames_per_second) )
+        {
+            if (frames_per_second >= 1.0f)
+            {
+                frame_pacing.frames_per_second = frames_per_second;
+                frame_pacing.mode              = Analysis::Recipe::FramePacingMode::HOLD_TO_RATE;
+            }
+            else
+            {
+                frame_pacing.mode = Analysis::Recipe::FramePacingMode::SCREEN_ONLY;
+            }
+        }
+
+        if (EnvironmentVariableReader::is_set("APISTEREO_NO_FRAME_LIMIT") )
+        {
+            frame_pacing.mode = Analysis::Recipe::FramePacingMode::SCREEN_ONLY;
+        }
+
+        m_log.write( (frame_pacing.mode == Analysis::Recipe::FramePacingMode::HOLD_TO_RATE) ? "With no screen to keep time, the application is held to " +
+                                                                                              std::to_string(static_cast<int>(frame_pacing.frames_per_second) ) +
+                                                                                              " frames a second"
+                                                                                            : "With no screen to keep time, the application runs free");
+    }
+
     m_live_state.d3d7_renderer_ptr.reset(new D3D7EyeRenderer(m_live_state.core_ptr.get(),
                                                             &m_live_state.d3d7_windowed_mode) );
     m_live_state.d3d8_renderer_ptr.reset(new D3D8EyeRenderer(m_live_state.core_ptr.get() ));
 
     {
-        std::unique_ptr<Stereo::Transport::IFrameExporter> d3d7_exporter_ptr(new D3D7HostMemoryExporter(m_channel_ptr.get() ));
-        std::unique_ptr<Stereo::Transport::IFrameExporter> d3d8_exporter_ptr(new D3D8HostMemoryExporter(m_channel_ptr.get() ));
+        std::unique_ptr<Stereo::Transport::IFrameExporter> d3d7_exporter_ptr(new D3D7HostMemoryExporter(m_channel_ptr.get(),
+                                                                                                        frame_pacing) );
+        std::unique_ptr<Stereo::Transport::IFrameExporter> d3d8_exporter_ptr(new D3D8HostMemoryExporter(m_channel_ptr.get(),
+                                                                                                        frame_pacing) );
 
         m_paced_frame_publisher_ptr.reset     (new PacedFramePublisher(std::move(d3d8_exporter_ptr),
                                                                        m_log) );
@@ -186,7 +219,8 @@ Stereo::ConverterDLL::LiveStereoConverter::LiveStereoConverter(const Stereo::Ses
         m_live_state.gl_renderer_ptr->set_get_chunk_func(get_gl_chunk_func);
 
         {
-            std::unique_ptr<Stereo::Transport::IFrameExporter> gl_exporter_ptr(new GLHostMemoryExporter(m_channel_ptr.get() ));
+            std::unique_ptr<Stereo::Transport::IFrameExporter> gl_exporter_ptr(new GLHostMemoryExporter(m_channel_ptr.get(),
+                                                                                                        frame_pacing) );
 
             m_gl_paced_frame_publisher_ptr.reset(new PacedFramePublisher(std::move(gl_exporter_ptr),
                                                                          m_log) );

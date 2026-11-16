@@ -1755,3 +1755,48 @@ TEST_F(RecipeLoaderTest, TheComfortOfTheRecipeSaysWhetherWhatTheRulesLeaveAloneI
                                    ""),
                    "comfort.push_unaffected");
 }
+
+TEST_F(RecipeLoaderTest, TheFramePacingSaysHowToKeepTimeWhenNoScreenDoes)
+{
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
+
+    /* Without the field the application is held to 60 frames a second. */
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("",
+                                                                       ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_EQ(recipe.frame_pacing.mode,
+              Analysis::Recipe::FramePacingMode::HOLD_TO_RATE);
+    EXPECT_FLOAT_EQ(recipe.frame_pacing.frames_per_second,
+                    60.0f);
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"frame_pacing\": {\"mode\": \"hold_to_rate\", \"frames_per_second\": 30},",
+                                                                       ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_EQ(recipe.frame_pacing.mode,
+              Analysis::Recipe::FramePacingMode::HOLD_TO_RATE);
+    EXPECT_FLOAT_EQ(recipe.frame_pacing.frames_per_second,
+                    30.0f);
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"frame_pacing\": {\"mode\": \"screen_only\"},",
+                                                                       ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_EQ(recipe.frame_pacing.mode,
+              Analysis::Recipe::FramePacingMode::SCREEN_ONLY);
+
+    expect_refused(get_recipe_text("\"frame_pacing\": {\"mode\": \"fast\"},",
+                                   ""),
+                   "frame_pacing.mode");
+    expect_refused(get_recipe_text("\"frame_pacing\": {\"frames_per_second\": 0},",
+                                   ""),
+                   "frame_pacing.frames_per_second");
+    expect_refused(get_recipe_text("\"frame_pacing\": {\"rate\": 60},",
+                                   ""),
+                   "frame_pacing");
+}

@@ -190,7 +190,7 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
     }
 
     if (check_keys(root,
-                   {"affected", "baked", "cache_pixel_reads", "comfort", "key_scheme_version", "known_shape_keys", "on_unknown_frame", "pushed", "recipe_version", "rules", "screen_parallax", "skipped", "target", "unaffected", "view_anchor_shift"},
+                   {"affected", "baked", "cache_pixel_reads", "comfort", "frame_pacing", "key_scheme_version", "known_shape_keys", "on_unknown_frame", "pushed", "recipe_version", "rules", "screen_parallax", "skipped", "target", "unaffected", "view_anchor_shift"},
                    "",
                    out_error_ptr) == false)
     {
@@ -202,6 +202,7 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
         const auto* baked_ptr              = root.find_ptr("baked");
         const auto* cache_pixel_reads_ptr  = root.find_ptr("cache_pixel_reads");
         const auto* comfort_ptr            = root.find_ptr("comfort");
+        const auto* frame_pacing_ptr       = root.find_ptr("frame_pacing");
         const auto* key_scheme_version_ptr = root.find_ptr("key_scheme_version");
         const auto* known_shape_keys_ptr   = root.find_ptr("known_shape_keys");
         const auto* on_unknown_frame_ptr   = root.find_ptr("on_unknown_frame");
@@ -467,6 +468,58 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
             goto end;
         }
 
+
+        if (frame_pacing_ptr != nullptr)
+        {
+            if (check_keys(*frame_pacing_ptr,
+                           {"frames_per_second", "mode"},
+                           "frame_pacing",
+                           out_error_ptr) == false)
+            {
+                goto end;
+            }
+
+            const auto* mode_ptr = frame_pacing_ptr->find_ptr("mode");
+            const auto* rate_ptr = frame_pacing_ptr->find_ptr("frames_per_second");
+
+            if (mode_ptr != nullptr)
+            {
+                if (mode_ptr->type         == Utils::Json::JsonValueType::STRING &&
+                    mode_ptr->string_value == "hold_to_rate")
+                {
+                    out_recipe_ptr->frame_pacing.mode = FramePacingMode::HOLD_TO_RATE;
+                }
+                else
+                if (mode_ptr->type         == Utils::Json::JsonValueType::STRING &&
+                    mode_ptr->string_value == "screen_only")
+                {
+                    out_recipe_ptr->frame_pacing.mode = FramePacingMode::SCREEN_ONLY;
+                }
+                else
+                {
+                    *out_error_ptr = "frame_pacing.mode: expected \"hold_to_rate\" or \"screen_only\"";
+
+                    goto end;
+                }
+            }
+
+            if (rate_ptr != nullptr)
+            {
+                const bool is_finite = (::isfinite(rate_ptr->number_value) != 0);
+
+                if (rate_ptr->type         != Utils::Json::JsonValueType::NUMBER ||
+                    is_finite              == false                              ||
+                    rate_ptr->number_value <  1.0                                ||
+                    rate_ptr->number_value >  1000.0)
+                {
+                    *out_error_ptr = "frame_pacing.frames_per_second: expected a number from 1 to 1000";
+
+                    goto end;
+                }
+
+                out_recipe_ptr->frame_pacing.frames_per_second = static_cast<float>(rate_ptr->number_value);
+            }
+        }
 
         if (cache_pixel_reads_ptr != nullptr)
         {
