@@ -10,7 +10,7 @@
 #include "data_fixtures.h"
 #include <vector>
 
-TEST(Fr08Slice, HoldsTheChosenFramesWithTheirDraws)
+TEST(D3D8Slice, HoldsTheChosenFramesWithTheirDraws)
 {
     std::vector<uint32_t>   draws_per_frame_vec(1,
                                                 0);
@@ -19,7 +19,7 @@ TEST(Fr08Slice, HoldsTheChosenFramesWithTheirDraws)
     Capture::APIDumpLoader::Workload segment;
     std::string                      error;
 
-    auto reader_ptr = Capture::APIDumpLoader::WorkloadReader::create(Tests::DataFixtures::get_fr08_slice_filename().c_str(),
+    auto reader_ptr = Capture::APIDumpLoader::WorkloadReader::create(Tests::DataFixtures::get_d3d8_slice_filename().c_str(),
                                                                         &error);
 
     ASSERT_NE(reader_ptr,
@@ -70,13 +70,13 @@ TEST(Fr08Slice, HoldsTheChosenFramesWithTheirDraws)
               0u);
 }
 
-TEST(Fr08Slice, HasNoBigChunks)
+TEST(D3D8Slice, HasNoBigChunks)
 {
     constexpr size_t MAX_CHUNK_N_BYTES = 1024;
 
     Capture::APIDumpLoader::Workload segment;
 
-    auto reader_ptr = Capture::APIDumpLoader::WorkloadReader::create(Tests::DataFixtures::get_fr08_slice_filename().c_str() );
+    auto reader_ptr = Capture::APIDumpLoader::WorkloadReader::create(Tests::DataFixtures::get_d3d8_slice_filename().c_str() );
 
     ASSERT_NE(reader_ptr,
               nullptr);

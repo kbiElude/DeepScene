@@ -1,4 +1,4 @@
-fr08_slice.workload
+d3d8_slice.workload
 
 Frames 0, 1, 2, 3, 100, 101, 14364, 14365, 219679 and 219680 of a capture of fr08v101.exe (farbrausch, fr-08 .the
 .product), 5 minutes of its animation: 250771 frames, 1.77 GB. Frames 0-3 are the setup (the loader runs between the

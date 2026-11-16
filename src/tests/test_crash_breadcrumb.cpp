@@ -177,7 +177,7 @@ TEST(CrashBreadcrumb, AFileThatCannotBeMadeIsNoHarm)
                                 true);
 }
 
-TEST(CheckerCommandLineTest, TheBreadcrumbFileIsRead)
+TEST(InspectorCommandLineTest, TheBreadcrumbFileIsRead)
 {
     std::string                                 error;
     Stereo::Replay::Inspector::Options options;

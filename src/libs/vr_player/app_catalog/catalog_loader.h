@@ -8,12 +8,12 @@
  *     "catalog_version": 0,
  *     "apps": [
  *       {
- *         "id": "fr08",                              letters, digits, '-' and '_'; each id once
- *         "recipe": "recipes/fr08.json",             the recipe that converts the application to stereo
- *         "executable": "fr08/fr08v101.exe",         the program to start
+ *         "id": "example",                           letters, digits, '-' and '_'; each id once
+ *         "recipe": "recipes/example.json",          the recipe that converts the application to stereo
+ *         "executable": "example/example.exe",       the program to start
  *         "arguments": "-windowed",                  (optional) command line arguments of the application
- *         "working_directory": "fr08",               (optional) default: the directory of the executable
- *         "title": "Fr-08: .the .product"            (optional) default: the name of the recipe target
+ *         "working_directory": "example",            (optional) default: the directory of the executable
+ *         "title": "Example"                         (optional) default: the name of the recipe target
  *         "launch_button": "Launch",                 (optional) text of a button in the application's first dialog; the launcher presses it
  *         "untick_checkbox": "Fullscreen",           (optional) text of a checkbox in that dialog; the launcher unticks it just before it presses the button
  *         "unavailable_reason": "...",               (optional) why the player cannot start the application (see below)

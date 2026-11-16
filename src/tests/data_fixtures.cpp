@@ -6,14 +6,14 @@
 #include <Windows.h>
 #include "analysis/api_dump_analysis/frontends/analysis_session.h"
 
-const Analysis::APIDumpAnalysis::AnalysisResult& Tests::DataFixtures::get_fr08_slice_analysis()
+const Analysis::APIDumpAnalysis::AnalysisResult& Tests::DataFixtures::get_d3d8_slice_analysis()
 {
     static const Analysis::APIDumpAnalysis::AnalysisResult analysis = []
     {
         Analysis::APIDumpAnalysis::Frontends::AnalysisSession session;
         Analysis::APIDumpAnalysis::AnalysisResult                   result;
 
-        session.run(get_fr08_slice_filename().c_str(),
+        session.run(get_d3d8_slice_filename().c_str(),
                     nullptr,
                     nullptr);
 
@@ -27,9 +27,9 @@ const Analysis::APIDumpAnalysis::AnalysisResult& Tests::DataFixtures::get_fr08_s
     return analysis;
 }
 
-std::string Tests::DataFixtures::get_fr08_slice_filename()
+std::string Tests::DataFixtures::get_d3d8_slice_filename()
 {
-    return std::string(DEMOVRPLAYER_TESTS_DATA_DIR) + "/fr08_slice.workload";
+    return std::string(DEMOVRPLAYER_TESTS_DATA_DIR) + "/d3d8_slice.workload";
 }
 
 std::string Tests::DataFixtures::get_recipe_example_filename()

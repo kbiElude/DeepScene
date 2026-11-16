@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Replays a workload in the ways that the checker compares: the frames as they are, executed twice, and rendered for the eyes with a recipe.
+ * Replays a workload in the ways that the inspector compares: the frames as they are, executed twice, and rendered for the eyes with a recipe.
  */
 #ifndef STEREO_REPLAY_INSPECTOR_REPLAY_RUNNER_H
 #define STEREO_REPLAY_INSPECTOR_REPLAY_RUNNER_H

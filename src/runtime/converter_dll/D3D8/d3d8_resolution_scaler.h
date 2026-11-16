@@ -25,8 +25,8 @@ namespace Stereo
          * pixels. A render target of another size (one the application created itself) stays as it is, and so do the viewports set for it.
          *
          * If the application does something that exposes the larger sizes, or that does not scale with them, the scaler ends the application
-         * through the core instead of showing wrong images (see on_pre()). fr-08 does nothing of this kind. Every other production has to be
-         * checked separately.
+         * through the core instead of showing wrong images (see on_pre()). An application that does nothing of this kind is safe; every other one has to
+         * be checked separately.
          */
         class D3D8ResolutionScaler : public Interception::Hooks::D3D8::IArgumentModifier
         {

@@ -22,7 +22,7 @@ namespace Stereo
         {
             /* Leaves out glTexParameteri and glTexParameterf calls that set a texture parameter to the value it already has. A driver
              * takes the same time for such a call whether or not it changes anything, and workloads set the same few parameters again
-             * and again (Gerbera: 465,000 calls in the 7,000 frames that a seek to one of its later frames plays). Only parameters that
+             * and again (465,000 calls in the 7,000 frames that a seek to a late frame of one OpenGL demo plays). Only parameters that
              * the twin texture for the other eye also receives are tracked (see get_cached_parameters()), so a call that is left out is
              * one the twin would not have changed either.
              *

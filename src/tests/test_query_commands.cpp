@@ -47,7 +47,7 @@ protected:
 
     void SetUp() override
     {
-        m_analysis = Tests::DataFixtures::get_fr08_slice_analysis();
+        m_analysis = Tests::DataFixtures::get_d3d8_slice_analysis();
     }
 
     Analysis::APIDumpAnalysis::AnalysisResult m_analysis;

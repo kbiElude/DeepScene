@@ -322,7 +322,7 @@ TEST(D3D8FrontendPasses, Fr08FramesAreTheKindsOfPassesTheyWereRead)
 {
     Tests::D3D8FrontendHarness harness;
 
-    ASSERT_TRUE(harness.feed_file(Tests::DataFixtures::get_fr08_slice_filename().c_str() ));
+    ASSERT_TRUE(harness.feed_file(Tests::DataFixtures::get_d3d8_slice_filename().c_str() ));
 
     const auto& model = harness.get_model();
 
@@ -367,7 +367,7 @@ TEST(D3D8FrontendPasses, Fr08SceneRenderedToATextureIsFollowedByPostProcessingPa
 {
     Tests::D3D8FrontendHarness harness;
 
-    ASSERT_TRUE(harness.feed_file(Tests::DataFixtures::get_fr08_slice_filename().c_str() ));
+    ASSERT_TRUE(harness.feed_file(Tests::DataFixtures::get_d3d8_slice_filename().c_str() ));
 
     const auto& model     = harness.get_model();
     const auto  entry_ptr = model.representative_store.get_entry_ptr_vec(model.frame_record_vec.at(8).shape_id).at(0);

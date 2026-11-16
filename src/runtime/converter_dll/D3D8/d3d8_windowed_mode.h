@@ -20,7 +20,7 @@ namespace Stereo
          * The device parameters that the application passes when it creates the device are changed: a window, the desktop format for the back
          * buffer, one back buffer, and a swap effect that a window supports. The back buffer sizes stay the application's. The windows the
          * application names are made fully transparent and click-through. They are not hidden, because an application may pause while its
-         * window is hidden (fr-08 does), and may show or restyle its window after it creates the device.
+         * window is hidden, and may show or restyle its window after it creates the device.
          */
         class D3D8WindowedMode : public Interception::Hooks::D3D8::IArgumentModifier
         {

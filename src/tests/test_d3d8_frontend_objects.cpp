@@ -347,7 +347,7 @@ TEST(D3D8FrontendObjects, TheObjectsOfFr08AreAllFollowedAndNamedLikeThePrinterDo
 {
     Tests::D3D8FrontendHarness harness;
 
-    ASSERT_TRUE(harness.feed_file(Tests::DataFixtures::get_fr08_slice_filename().c_str() ));
+    ASSERT_TRUE(harness.feed_file(Tests::DataFixtures::get_d3d8_slice_filename().c_str() ));
 
     const auto& resource_vec = harness.get_model().resource_vec;
     uint32_t    n_textures   = 0;

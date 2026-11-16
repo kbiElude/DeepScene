@@ -2,12 +2,12 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Tests for the command line of the replay check tool.
+ * Tests for the command line of the replay inspector.
  */
 #include <gtest/gtest.h>
 #include "tools/stereo_replay/inspector/command_line.h"
 
-TEST(CheckerCommandLineTest, OnlyTheWorkloadIsNeeded)
+TEST(InspectorCommandLineTest, OnlyTheWorkloadIsNeeded)
 {
     std::string                                 error;
     Stereo::Replay::Inspector::Options options;
@@ -31,7 +31,7 @@ TEST(CheckerCommandLineTest, OnlyTheWorkloadIsNeeded)
     EXPECT_FALSE(options.is_profiling);
 }
 
-TEST(CheckerCommandLineTest, TheOptionsOfTheCheckAreRead)
+TEST(InspectorCommandLineTest, TheOptionsOfTheCheckAreRead)
 {
     std::string                                 error;
     Stereo::Replay::Inspector::Options options;
@@ -60,7 +60,7 @@ TEST(CheckerCommandLineTest, TheOptionsOfTheCheckAreRead)
     EXPECT_TRUE(options.is_parallel);
 }
 
-TEST(CheckerCommandLineTest, TheWaysAreListedAndTheListsAreAdded)
+TEST(InspectorCommandLineTest, TheWaysAreListedAndTheListsAreAdded)
 {
     std::string                                 error;
     Stereo::Replay::Inspector::Options options;
@@ -79,7 +79,7 @@ TEST(CheckerCommandLineTest, TheWaysAreListedAndTheListsAreAdded)
               "restore");
 }
 
-TEST(CheckerCommandLineTest, TheFirstFrameIsNotAfterTheLast)
+TEST(InspectorCommandLineTest, TheFirstFrameIsNotAfterTheLast)
 {
     std::string                                 error;
     Stereo::Replay::Inspector::Options options;
@@ -95,7 +95,7 @@ TEST(CheckerCommandLineTest, TheFirstFrameIsNotAfterTheLast)
                                                               &error) ) << error;
 }
 
-TEST(CheckerCommandLineTest, NumbersAreWholeAndInTheirRange)
+TEST(InspectorCommandLineTest, NumbersAreWholeAndInTheirRange)
 {
     const std::vector<std::vector<std::string> > refused_vec =
     {
@@ -132,7 +132,7 @@ TEST(CheckerCommandLineTest, NumbersAreWholeAndInTheirRange)
     }
 }
 
-TEST(CheckerCommandLineTest, AnOptionWithoutItsValueIsRefused)
+TEST(InspectorCommandLineTest, AnOptionWithoutItsValueIsRefused)
 {
     for (const char* option_ptr : {"--from", "--to", "--recipe", "--deps", "--dump-dir", "--dump-frame", "--eye", "--eye-separation", "--ways", "--out", "--screenshot",
                                    "--contact-sheet", "--jobs", "--same-frames-as", "--overlay-report", "--overlay-report-result"})
@@ -148,7 +148,7 @@ TEST(CheckerCommandLineTest, AnOptionWithoutItsValueIsRefused)
     }
 }
 
-TEST(CheckerCommandLineTest, AWorkloadIsNeededAndOnlyOneIsTaken)
+TEST(InspectorCommandLineTest, AWorkloadIsNeededAndOnlyOneIsTaken)
 {
     std::string                                 error;
     Stereo::Replay::Inspector::Options options;
@@ -169,7 +169,7 @@ TEST(CheckerCommandLineTest, AWorkloadIsNeededAndOnlyOneIsTaken)
                  std::string::npos) << error;
 }
 
-TEST(CheckerCommandLineTest, TheImageOptionsGoTogether)
+TEST(InspectorCommandLineTest, TheImageOptionsGoTogether)
 {
     std::string                                 error;
     Stereo::Replay::Inspector::Options options;
@@ -200,7 +200,7 @@ TEST(CheckerCommandLineTest, TheImageOptionsGoTogether)
                                                                &error) );
 }
 
-TEST(CheckerCommandLineTest, TheViewOfTheEyesIsOneOfFourAndNeedsARecipe)
+TEST(InspectorCommandLineTest, TheViewOfTheEyesIsOneOfFourAndNeedsARecipe)
 {
     const std::vector<std::pair<std::string, Utils::Images::EyeView> > view_vec =
     {
@@ -236,7 +236,7 @@ TEST(CheckerCommandLineTest, TheViewOfTheEyesIsOneOfFourAndNeedsARecipe)
     }
 }
 
-TEST(CheckerCommandLineTest, APartOfTheOverlayReportHasItsNumberBelowTheNumberOfTheParts)
+TEST(InspectorCommandLineTest, APartOfTheOverlayReportHasItsNumberBelowTheNumberOfTheParts)
 {
     std::string                                 error;
     Stereo::Replay::Inspector::Options options;
@@ -262,7 +262,7 @@ TEST(CheckerCommandLineTest, APartOfTheOverlayReportHasItsNumberBelowTheNumberOf
                                                                &error) );
 }
 
-TEST(CheckerCommandLineTest, TheUsageSaysWhatTheToolIs)
+TEST(InspectorCommandLineTest, TheUsageSaysWhatTheToolIs)
 {
     const std::string usage = Stereo::Replay::Inspector::CommandLine::get_usage_ptr();
 
@@ -274,7 +274,7 @@ TEST(CheckerCommandLineTest, TheUsageSaysWhatTheToolIs)
               std::string::npos);
 }
 
-TEST(CheckerCommandLineTest, TheLastFrameThatTheOverlayReportLooksAtIsRead)
+TEST(InspectorCommandLineTest, TheLastFrameThatTheOverlayReportLooksAtIsRead)
 {
     std::string                                 error;
     Stereo::Replay::Inspector::Options options;

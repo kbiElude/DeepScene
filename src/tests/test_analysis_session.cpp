@@ -15,11 +15,11 @@
 
 namespace
 {
-    /* The slice of fr08 with only the first in_n_tenths_kept tenths of its bytes: it ends in the middle of a segment. The file is Tests::WorkloadFileBuilder\x27s. */
-    void write_cut_fr08_workload(const size_t& in_n_tenths_kept)
+    /* The slice of the capture with only the first in_n_tenths_kept tenths of its bytes: it ends in the middle of a segment. The file is built by Tests::WorkloadFileBuilder. */
+    void write_cut_d3d8_workload(const size_t& in_n_tenths_kept)
     {
         std::vector<uint8_t> file_u8_vec;
-        FILE*                file_handle = ::fopen(Tests::DataFixtures::get_fr08_slice_filename().c_str(),
+        FILE*                file_handle = ::fopen(Tests::DataFixtures::get_d3d8_slice_filename().c_str(),
                                                    "rb");
 
         ASSERT_NE(file_handle,
@@ -45,12 +45,12 @@ namespace
     }
 }
 
-TEST(AnalysisSession, TheSliceOfFr08IsAnalyzedAndDescribed)
+TEST(AnalysisSession, TheSliceOfTheCaptureIsAnalyzedAndDescribed)
 {
     Analysis::APIDumpAnalysis::Frontends::AnalysisSession session;
     std::string                                           error;
 
-    ASSERT_TRUE(session.run(Tests::DataFixtures::get_fr08_slice_filename().c_str(),
+    ASSERT_TRUE(session.run(Tests::DataFixtures::get_d3d8_slice_filename().c_str(),
                                 nullptr,
                                &error) ) << error;
 
@@ -97,7 +97,7 @@ TEST(AnalysisSession, ProgressIsReportedWithWhatIsFoundSoFar)
         progress_vec.push_back(in_progress);
     };
 
-    ASSERT_TRUE(session.run(Tests::DataFixtures::get_fr08_slice_filename().c_str(),
+    ASSERT_TRUE(session.run(Tests::DataFixtures::get_d3d8_slice_filename().c_str(),
                                 progress_func,
                                 nullptr) );
 
@@ -132,7 +132,7 @@ TEST(AnalysisSession, ACutOffWorkloadIsAnalyzedAsFarAsItGoes)
     Analysis::APIDumpAnalysis::Frontends::AnalysisSession session;
 
     /* A tenth of the workload is there. */
-    write_cut_fr08_workload(1);
+    write_cut_d3d8_workload(1);
 
     ASSERT_TRUE(session.run(Tests::WorkloadFileBuilder::get_filename_ptr(),
                             nullptr,
@@ -152,7 +152,7 @@ TEST(AnalysisSession, AWorkloadThatIsCutOffBeyondTheFrameLimitIsNotSaidToBeCutOf
     Analysis::APIDumpAnalysis::Frontends::AnalysisSession session;
 
     /* Most of the workload is there, and the analysis stops at the second frame, long before the end where it is cut. */
-    write_cut_fr08_workload(7);
+    write_cut_d3d8_workload(7);
 
     session.set_max_frames(2);
 
@@ -250,7 +250,7 @@ TEST(AnalysisSession, AnalysisStopsAtTheFrameLimit)
 
     session.set_max_frames(3);
 
-    ASSERT_TRUE(session.run(Tests::DataFixtures::get_fr08_slice_filename().c_str(),
+    ASSERT_TRUE(session.run(Tests::DataFixtures::get_d3d8_slice_filename().c_str(),
                                 nullptr,
                                 nullptr) );
 
@@ -262,7 +262,7 @@ TEST(AnalysisSession, AnalysisStopsAtTheFrameLimit)
 TEST(AnalysisSession, TheWorkloadIsReferredToByItsNameAndSize)
 {
     Analysis::APIDumpAnalysis::Frontends::AnalysisSession session;
-    const std::string                                     filename = Tests::DataFixtures::get_fr08_slice_filename();
+    const std::string                                     filename = Tests::DataFixtures::get_d3d8_slice_filename();
 
     ASSERT_TRUE(session.run(filename.c_str(),
                             nullptr,
@@ -297,12 +297,12 @@ TEST(AnalysisSession, CallsAnalyzedOneByOneAreFramesOfTheSameKindsAsThoseOfAFile
     std::vector<Analysis::APIDumpAnalysis::CompletedFrame> live_frame_vec;
     Analysis::APIDumpAnalysis::Frontends::AnalysisSession  live_session(false); /* in_keeps_history */
     Capture::APIDumpLoader::Workload             segment;
-    auto                                         reader_ptr = Capture::APIDumpLoader::WorkloadReader::create(Tests::DataFixtures::get_fr08_slice_filename().c_str(),
+    auto                                         reader_ptr = Capture::APIDumpLoader::WorkloadReader::create(Tests::DataFixtures::get_d3d8_slice_filename().c_str(),
                                                                                                                  nullptr);
 
     ASSERT_NE(reader_ptr,
               nullptr);
-    ASSERT_TRUE(file_session.run(Tests::DataFixtures::get_fr08_slice_filename().c_str(),
+    ASSERT_TRUE(file_session.run(Tests::DataFixtures::get_d3d8_slice_filename().c_str(),
                                      nullptr,
                                      nullptr) );
 
@@ -354,7 +354,7 @@ TEST(AnalysisSession, CallsAnalyzedOneByOneAreFramesOfTheSameKindsAsThoseOfAFile
 TEST(AnalysisSession, TheCallsOfARealFrameBelongToThePassesInOrder)
 {
     size_t                                      n_frames_checked = 0;
-    auto                                        reader_ptr       = Capture::APIDumpLoader::WorkloadReader::create(Tests::DataFixtures::get_fr08_slice_filename().c_str(),
+    auto                                        reader_ptr       = Capture::APIDumpLoader::WorkloadReader::create(Tests::DataFixtures::get_d3d8_slice_filename().c_str(),
                                                                                                                       nullptr);
     Capture::APIDumpLoader::Workload                     segment;
     Analysis::APIDumpAnalysis::Frontends::AnalysisSession session(false); /* in_keeps_history */
@@ -425,7 +425,7 @@ TEST(AnalysisSession, TheModelCanBeTakenInsteadOfCopiedAndTheSummaryStaysAvailab
     Analysis::APIDumpAnalysis::Frontends::AnalysisSession session;
     std::string                                           error;
 
-    ASSERT_TRUE(session.run(Tests::DataFixtures::get_fr08_slice_filename().c_str(),
+    ASSERT_TRUE(session.run(Tests::DataFixtures::get_d3d8_slice_filename().c_str(),
                                 nullptr,
                                &error) ) << error;
 
@@ -444,7 +444,7 @@ TEST(AnalysisSession, TheModelCanBeTakenInsteadOfCopiedAndTheSummaryStaysAvailab
 
 TEST(AnalysisSession, TheDrawsOfEveryFrameMatchTheCallsAndThePassesOfTheFrame)
 {
-    const auto reader_ptr = Capture::APIDumpLoader::WorkloadReader::create(Tests::DataFixtures::get_fr08_slice_filename().c_str() );
+    const auto reader_ptr = Capture::APIDumpLoader::WorkloadReader::create(Tests::DataFixtures::get_d3d8_slice_filename().c_str() );
 
     Capture::APIDumpLoader::Workload                     segment;
     Analysis::APIDumpAnalysis::Frontends::AnalysisSession session(false); /* in_keeps_history */

@@ -27,9 +27,9 @@ namespace PassesFileHelpers
 
     Analysis::APIDumpAnalysis::AnalysisResult analyze_slice()
     {
-        Analysis::APIDumpAnalysis::AnalysisResult result = Tests::DataFixtures::get_fr08_slice_analysis();
+        Analysis::APIDumpAnalysis::AnalysisResult result = Tests::DataFixtures::get_d3d8_slice_analysis();
 
-        result.workload_reference.filename   = "fr08_slice.workload";
+        result.workload_reference.filename   = "d3d8_slice.workload";
         result.workload_reference.header_hash = 0x1122334455667788ull;
         result.workload_reference.n_bytes     = 123456;
 
@@ -403,7 +403,7 @@ TEST(PassesFile, TheAnalysisIsReadBackAsItWas)
     EXPECT_EQ(loaded.summary.n_calls_by_group_map,
               analysis.summary.n_calls_by_group_map);
     EXPECT_EQ(loaded.workload_reference.filename,
-              "fr08_slice.workload");
+              "d3d8_slice.workload");
     EXPECT_EQ(loaded.workload_reference.header_hash,
               0x1122334455667788ull);
 

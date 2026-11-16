@@ -16,13 +16,13 @@ namespace Tests
     {
     public:
         /* The analysis of the slice below, made once for all the tests: copy it to change it. */
-        static const Analysis::APIDumpAnalysis::AnalysisResult& get_fr08_slice_analysis();
+        static const Analysis::APIDumpAnalysis::AnalysisResult& get_d3d8_slice_analysis();
 
-        /* Frames 0-3 (the setup of fr08), 100, 101, 14364, 14365, 219679 and 219680 of a capture of fr08 (see
+        /* Frames 0-3 (the setup of the program), 100, 101, 14364, 14365, 219679 and 219680 of a capture of a Direct3D 8 demo (see
          * data/README.txt): one pass; three passes; a scene rendered to a texture and post-processed. The data chunks
          * bigger than 1 KB are empty.
          */
-        static std::string get_fr08_slice_filename();
+        static std::string get_d3d8_slice_filename();
 
         /* A recipe which uses every field (data/recipes/fr08_example.json). */
         static std::string get_recipe_example_filename();

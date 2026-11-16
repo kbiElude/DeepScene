@@ -16,7 +16,7 @@ std::vector<Analysis::RecipeBake::OverlayCandidate> Analysis::RecipeBake::Overla
                                                                                                        const Analysis::APIDumpAnalysis::AnalysisResult& in_analysis)
 {
     /* The fraction of the viewport that the bounding box of a draw must cover for the draw to count as covering the view. A full quad of a
-     * picture with bars above and below it (as in Gerbera) covers 0.79 of the viewport, so the threshold is 0.75.
+     * picture with bars above and below it (a letterboxed one) covers 0.79 of the viewport, so the threshold is 0.75.
      */
     constexpr float COVERS_VIEW_FRACTION = 0.75f;
 

@@ -926,7 +926,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::report_upload(const
 
         /* Either the call holds the pixels, or there are none and the level only gets a size. The dumper stores a data chunk for every pixel pointer that is
          * not an offset into a buffer. For a null pointer the chunk has no bytes (see MemoryChunk). A chunk without bytes therefore means a null pointer,
-         * that is, storage that is allocated but not filled (a texture that will be a copy target). Gerbera creates one such texture, of 1024 by 512 texels,
+         * that is, storage that is allocated but not filled (a texture that will be a copy target). A demo can create one such texture, of 1024 by 512 texels,
          * and a frame fills part of it with a copy.
          */
         if (chunk_ptr != nullptr &&
