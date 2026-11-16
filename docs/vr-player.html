@@ -73,6 +73,7 @@
 <tr><td>Device</td><td>The first headset that can be used; <em>2D preview only</em> when there is none.</td></tr>
 <tr><td>Depth</td><td>Natural.</td></tr>
 <tr><td>Image quality</td><td>Full.</td></tr>
+<tr><td>Resolution per eye</td><td>From the headset and the quality.</td></tr>
 </table>
 
 <h2 id="start">Starting it</h2>
@@ -144,7 +145,7 @@
 <tr><td>The window (presenter) comes before the launcher.</td><td>It is there when the first image arrives.</td></tr>
 <tr><td>The two helpers are suspended until they are in the job.</td><td>A process that starts another before that would leave one outside the job.</td></tr>
 <tr><td>The launcher's output goes to a pipe.</td><td>The pipe keeps what the launcher says, so the window can show why a program stopped (when the launcher exits with a code other than 0).</td></tr>
-<tr><td>The eye size is always written, 0 x 0 without a headset.</td><td>Any size says the window of the presenter shows the program, so the converter makes the program's own window invisible (Direct3D 7 and OpenGL as well as Direct3D 8). 0 x 0 keeps the size the program asks for. It is limited to 4096 x 4096 for an eye, the size of the channel.</td></tr>
+<tr><td>The eye size is always written: the one chosen as <em>Resolution per eye</em>, else the one from the headset and the quality, else 0 x 0.</td><td>Any size says the window of the presenter shows the program, so the converter makes the program's own window invisible (Direct3D 7 and OpenGL as well as Direct3D 8). 0 x 0 keeps the size the program asks for. It is limited to 4096 x 4096 for an eye, the size of the channel.</td></tr>
 </table>
 
 <h3>The command lines</h3>
@@ -205,7 +206,7 @@
 <tr><td><em>Device</em></td><td>The output: a headset found through OpenXR, or the preview window alone (<em>2D preview only</em>).</td></tr>
 <tr><td><em>Depth</em></td><td>Reduced, Natural or More: a strength of 0.65, 1.0 or 1.25 that scales the eye separation of each scene. The comfort limit of the recipe is a ceiling that no choice passes. It can be changed while the program runs.</td></tr>
 <tr><td><em>Resolution per eye</em></td><td>The size each eye is rendered at: one of 1280 x 720 to 3840 x 2160, or a size that is typed in (up to 4096 on a side). The program keeps its proportions, centered in the image, and what does not fill it is black. It works with or without a headset, for all three APIs, and is set when the program starts. While a size is chosen, <em>Image quality</em> is not used.</td></tr>
-<tr><td><em>Image quality</em></td><td>The size each eye is rendered at, taken from the headset's recommended size (from OpenXR, with the proportions of the program). Set when the program starts. The list is disabled when the output is the preview window, which has no resolution of its own to take a fraction of.</td></tr>
+<tr><td><em>Image quality</em></td><td>The size each eye is rendered at, taken from the headset's recommended size (from OpenXR, with the proportions of the program). Set when the program starts. The list is disabled when the output is the preview window, which has no resolution of its own to take a fraction of, and while a <em>Resolution per eye</em> is chosen.</td></tr>
 </table>
 <h3>The choices of Image quality</h3>
 <table>

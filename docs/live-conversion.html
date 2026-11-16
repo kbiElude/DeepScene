@@ -100,11 +100,11 @@
   <li>renders or draws to a surface the converter did not see being made, or renders to a cube or volume texture;</li>
   <li>lets its window decide the size of the back buffer (0 &times; 0);</li>
   <li>draws vertices positioned in pixels (<code>D3DFVF_XYZRHW</code>, as a HUD or text uses) from a vertex buffer. The ones the call carries (<code>DrawPrimitiveUP</code>, <code>DrawIndexedPrimitiveUP</code>) are drawn for both eyes by the renderer (see <a href="#d3d7">Vertices in pixels</a>);</li>
-  <li>does what depends on the size of what it renders to, while it is rendered larger (<code>ResolutionHazardGate</code>).</li>
+  <li>does what depends on the size of what it renders to, while it is rendered larger or in another place of the image (<code>ResolutionHazardGate</code>); a program that sets a vertex format in pixels is one of these, because its vertices are not scaled by the scaler of Direct3D 8.</li>
 </ul></td></tr>
-<tr><td>Direct3D 7</td><td>Never. A call it cannot repeat for the right eye is counted and told in the log, and the right eye shows wrong content there.</td></tr>
+<tr><td>Direct3D 7</td><td>Only when it draws vertices in pixels while bars move its picture (see <a href="#eyelayout">Resolution per eye</a>). A call it cannot repeat for the right eye is counted and told in the log, and the right eye shows wrong content there.</td></tr>
 <tr><td>OpenGL</td><td><ul class="tight" style="margin:0">
-  <li>does what depends on the size of what it renders to, while it is rendered larger (see <a href="#opengl">Refused calls</a>);</li>
+  <li>does what depends on the size of what it renders to, while it is rendered larger or in another place of the image (see <a href="#opengl">Refused calls</a>);</li>
   <li>would need a texture or framebuffer larger than the driver makes, or an eye image larger than the channel passes on.</li>
 </ul></td></tr>
 </table>
@@ -118,7 +118,7 @@
 <tr><td>OpenGL</td><td>When the channel has an eye size.</td><td>The program renders to the framebuffers of <code>GLEyeTargets</code> and never to its window.</td></tr>
 </table>
 <ul>
-  <li>The VR player always writes an eye size to the channel before the program starts (0 &times; 0 without a headset), so a Direct3D 7 or OpenGL program is hidden whenever the presenter shows it.</li>
+  <li>The VR player always writes an eye size to the channel before the program starts (0 &times; 0 without a headset and without a chosen resolution), so a Direct3D 7 or OpenGL program is hidden whenever the presenter shows it.</li>
   <li>A run without the VR player has no size in the channel. The program then stays on the screen as it is, unless <code>APISTEREO_TARGET_EYE_WIDTH</code> and <code>_HEIGHT</code> are both set.</li>
   <li><code>InvisibleWindowManager</code> makes a window fully transparent and click-through. It is not hidden, because some programs pause while their window is hidden. It also tells the program that its window is always active, because some pause while it is not, and an invisible window is never the foreground one.</li>
   <li>The manager makes the window invisible again after each frame, since a program may restyle its window.</li>
@@ -165,7 +165,7 @@
 
 <h3>Where the size comes from</h3>
 <ol>
-  <li>The headset library asks the OpenXR runtime for the recommended size of the image of an eye (<code>xrEnumerateViewConfigurationViews</code>); the VR player scales it by the Image quality.</li>
+  <li>The headset library asks the OpenXR runtime for the recommended size of the image of an eye (<code>xrEnumerateViewConfigurationViews</code>); the VR player scales it by the Image quality, unless the user chose a size per eye, which is used as it is (see <a href="#eyelayout">Resolution per eye</a>).</li>
   <li>The VR player puts the size in the frame channel before the program starts (<code>FrameChannel::set_target_eye_size()</code>), within what the channel holds.</li>
   <li>When the program makes its device or window, the adapter works out the scale from the size the program asked for (<code>ResolutionPolicy::get_fit_scale()</code>): the largest that fits the eye with the program's own proportions, so nothing is stretched.</li>
   <li>The back buffer, and what is rendered to at its size, is made that many times larger. What the program states in pixels is adjusted to match.</li>
@@ -217,7 +217,7 @@
 </table>
 <p>Without a headset (the preview window alone) nothing is made larger by the quality, and the list is disabled.</p>
 
-<h3>Resolution per eye</h3>
+<h3 id="eyelayout">Resolution per eye</h3>
 <p>The VR player can instead ask for a size per eye (<code>FrameChannel::set_target_eye_size()</code>; <code>StereoPresenter --eye-size</code> does the same), with or without a headset. The image of each eye has exactly that size. The program is rendered at its own proportions with the scale above, and <code>RenderScalePlanner::choose_layout</code> places that picture in the middle of the image. A program whose picture does not fit (it would have to be smaller than it asks, or the API cannot make the surface) is made as large as it asks, and the image is that size.</p>
 <table>
 <tr><th>Piece</th><th>What it does</th></tr>
@@ -384,7 +384,7 @@
 <p>When another program shows the images, <code>D3D7WindowedMode</code> has the program render to an invisible window (see <a href="#adapters">Hiding the program</a>).</p>
 <ul>
   <li>The cooperative level is that of a window, the display mode is not set, and the surface that is shown has no chain of buffers.</li>
-  <li>The back buffer the program gets is a surface of the converter's own, the size of the display mode times the render scale.</li>
+  <li>The back buffer the program gets is a surface of the converter's own, the size of the display mode times the render scale (or the size of the eye image, when one was asked for).</li>
   <li>A flip shows nothing.</li>
   <li>The hooks cannot change an argument of Direct3D 7 in place. The converter therefore does not make the program's call: it makes its own and writes the result where the program is to get it.</li>
 </ul>
@@ -392,7 +392,7 @@
 <h3>The resolution</h3>
 <ul>
   <li>The back buffer, its twin and the depth buffer are made as large as the images are shown (the same policy as Direct3D 8; surfaces are capped at 2048 on a side).</li>
-  <li>The viewport, the rectangles of a clear and the positions of the vertices are scaled to match.</li>
+  <li>The viewport, the rectangles of a clear and the positions of the vertices are scaled to match. With bars around the picture, the viewport and the rectangles are moved too, and vertices in pixels are not: such a program is stopped.</li>
   <li>A program that locks the whole back buffer, writes it and unlocks it (a title or an ending screen, say) has it stretched to the whole after the unlock and copied to the twin.</li>
   <li>A lock to read, or of part of the surface, is counted, and the log has it (<em>calls on the back buffer in pixels it no longer has</em>).</li>
 </ul>
@@ -504,7 +504,7 @@
 </ul>
 
 <h3>The size</h3>
-<p>The framebuffers are made as large as the render scale says (see <a href="#resolution">Resolution</a>). What the application states in pixels is made to match by <code>GLResolutionScaler</code>. The call of the application is not made, and the analysis still sees it as it was made.</p>
+<p>The framebuffers are made as large as the render scale says, or as the eye image when one was asked for (see <a href="#resolution">Resolution</a>). What the application states in pixels is made to match by <code>GLResolutionScaler</code>. The call of the application is not made, and the analysis still sees it as it was made.</p>
 <table>
 <tr><th>Case</th><th>What is done</th></tr>
 <tr><td><code>glViewport</code>, <code>glScissor</code>, <code>glLineWidth</code>, <code>glPointSize</code></td><td>Scaled, also in a display list that the application compiles. The scissor rectangle is kept inside the framebuffer.</td></tr>

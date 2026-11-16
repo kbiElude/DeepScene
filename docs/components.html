@@ -447,10 +447,10 @@
 <tr><td rowspan="11">Shared</td><td><code>PacedFramePublisher</code></td><td>Passes the frames that the application is about to present to the viewer, at the pace at which the viewer shows them.</td></tr>
 <tr><td><code>SessionLog</code></td><td>The log of the session, which the programs around the application read.</td></tr>
 <tr><td><code>HostMemoryExporterBase</code></td><td>The base of the exporters that pass the images through the host memory of the channel: the transport kind, and <code>pace()</code>, the wait for the viewer and, when no viewer keeps time, the hold to the rate of the recipe's <code>frame_pacing</code>.</td></tr>
-<tr><td><code>RenderScalePlanner</code></td><td>Decides how much larger than requested an application renders, and reports it.</td></tr>
-<tr><td><code>ResolutionHazardGate</code></td><td>Stops an application that would be shown wrongly when it renders larger than it asks.</td></tr>
+<tr><td><code>RenderScalePlanner</code></td><td>Decides how much larger than requested an application renders, and reports it. Also where the picture sits in an eye image of other proportions (<code>EyeLayout</code>).</td></tr>
+<tr><td><code>ResolutionHazardGate</code></td><td>Stops an application that would be shown wrongly when it renders larger than it asks, or in another place of the image.</td></tr>
 <tr><td><code>EyeImageLimits</code></td><td>The largest image that one eye can have, since both eyes go side by side in one frame of the channel.</td></tr>
-<tr><td><code>PixelRowWriter</code></td><td>Copies the rows of the image of an eye into an image that holds one or two eyes side by side.</td></tr>
+<tr><td><code>PixelRowWriter</code></td><td>Copies the rows of the image of an eye into an image that holds one or two eyes side by side, and makes black what is outside the picture.</td></tr>
 <tr><td><code>InvisibleWindowManager</code></td><td>Makes the windows of the application invisible, so that its images appear only where the converter shows them.</td></tr>
 <tr><td><code>OwnCallScope</code></td><td>Keeps the converter's own calls apart from the application's.</td></tr>
 <tr><td><code>EnvironmentVariableReader</code></td><td>Reads the environment variables that the converter uses as switches.</td></tr>
