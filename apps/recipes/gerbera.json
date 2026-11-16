@@ -82,6 +82,9 @@
     ],
     "snap_at_cuts": true
   },
+  "frame_pacing": {
+    "mode": "screen_only"
+  },
   "key_scheme_version": 1,
   "pushed": {
     "cover_keys": [

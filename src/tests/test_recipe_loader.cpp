@@ -1800,3 +1800,36 @@ TEST_F(RecipeLoaderTest, TheFramePacingSaysHowToKeepTimeWhenNoScreenDoes)
                                    ""),
                    "frame_pacing");
 }
+
+TEST_F(RecipeLoaderTest, TheRecipesOfTheRepositoryKeepTimeAsEachAppAlwaysDid)
+{
+    struct Expected
+    {
+        const char*                             filename;
+        float                                   frames_per_second;
+        Analysis::Recipe::FramePacingMode       mode;
+    };
+
+    /* Direct3D 8 and OpenGL were never held; Direct3D 7 was held to 60 frames a second. */
+    const Expected expected_array[] =
+    {
+        {"fr08.json",     60.0f, Analysis::Recipe::FramePacingMode::SCREEN_ONLY  },
+        {"gerbera.json",  60.0f, Analysis::Recipe::FramePacingMode::SCREEN_ONLY  },
+        {"kasparov.json", 60.0f, Analysis::Recipe::FramePacingMode::HOLD_TO_RATE }
+    };
+
+    for (const auto& expected : expected_array)
+    {
+        std::string              error;
+        Analysis::Recipe::Recipe recipe;
+
+        ASSERT_TRUE(Analysis::Recipe::RecipeLoader::load(std::string(DEMOVRPLAYER_APPS_DIR) + "/recipes/" + expected.filename,
+                                                         &recipe,
+                                                         &error) ) << expected.filename << ": " << error;
+
+        EXPECT_EQ(recipe.frame_pacing.mode,
+                  expected.mode) << expected.filename;
+        EXPECT_FLOAT_EQ(recipe.frame_pacing.frames_per_second,
+                        expected.frames_per_second) << expected.filename;
+    }
+}

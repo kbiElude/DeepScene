@@ -4,6 +4,10 @@
   "target": {
     "name": "Kasparov"
   },
+  "frame_pacing": {
+    "frames_per_second": 60,
+    "mode": "hold_to_rate"
+  },
   "comfort": {
     "max_near_parallax": 0.03,
     "overlay_parallax": 0.05,

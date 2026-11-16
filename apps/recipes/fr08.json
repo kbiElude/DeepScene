@@ -4,6 +4,9 @@
   "target": {
     "name": "fr08"
   },
+  "frame_pacing": {
+    "mode": "screen_only"
+  },
   "comfort": {
     "max_near_parallax": 0.03,
     "near_fraction": 0.001,
