@@ -1274,6 +1274,19 @@ TEST_F(StereoCoreTest, WhatTheRecipeSaysOfTheOverlayIsHowFarAndTheOverlayIsNotPu
 
     EXPECT_FALSE(core.get_is_overlay_pushed() );
 
+    /* A recipe that pushes by default does so until the person says otherwise. */
+    {
+        Stereo::Core::RecipeStereoPlanner default_core(make_recipe("\"comfort\": {\"push_by_default\": true}," + get_baked_text(""),
+                                                                   get_view_rule_text() ),
+                                                       Stereo::Core::FailFunc() );
+
+        EXPECT_TRUE(default_core.get_is_overlay_pushed() );
+
+        default_core.set_is_overlay_pushed(false);
+
+        EXPECT_FALSE(default_core.get_is_overlay_pushed() );
+    }
+
     core.classify_draw(1, 0);
 
     /* The recipe has an amount, and nobody has asked: nothing is moved. */

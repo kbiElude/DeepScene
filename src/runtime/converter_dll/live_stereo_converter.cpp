@@ -1161,7 +1161,9 @@ void Stereo::ConverterDLL::LiveStereoConverter::read_channel_settings(std::vecto
 
     const bool is_overlay_pushed = m_channel_ptr->get_is_overlay_pushed();
 
-    if (m_live_state.is_overlay_push_forced == false)
+    /* Until the person has said, the default of the recipe stands. */
+    if (m_live_state.is_overlay_push_forced == false &&
+        m_channel_ptr->get_has_overlay_push_setting() )
     {
         const bool was_overlay_pushed = m_live_state.core_ptr->get_is_overlay_pushed();
 

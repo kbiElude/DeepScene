@@ -17,7 +17,7 @@ Stereo::Core::RecipeStereoPlanner::RecipeStereoPlanner(const Analysis::Recipe::R
      m_is_last_draw_part         (false),
      m_is_last_draw_pushed       (false),
      m_is_last_draw_side_reaching(false),
-     m_is_overlay_pushed         (false),
+     m_is_overlay_pushed         (in_recipe.comfort.pushes_by_default),
      m_last_draw_class           (Analysis::Recipe::DrawClass::AFFECTED),
      m_last_draw_cover_key       (0),
      m_n_unknown_draws           (0),

@@ -1742,6 +1742,23 @@ TEST_F(RecipeLoaderTest, TheComfortOfTheRecipeSaysWhetherWhatTheRulesLeaveAloneI
                                                       &error) ) << error;
 
     EXPECT_TRUE(recipe.comfort.pushes_unaffected);
+    EXPECT_FALSE(recipe.comfort.pushes_by_default);
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"comfort\": {\"push_by_default\": true},",
+                                                                       ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_TRUE(recipe.comfort.pushes_by_default);
+
+    expect_refused(get_recipe_text("\"comfort\": {\"push_by_default\": 1},",
+                                   ""),
+                   "comfort.push_by_default");
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"comfort\": {\"push_unaffected\": true},",
+                                                                       ""),
+                                                      &recipe,
+                                                      &error) ) << error;
 
     /* It is off unless the recipe says so. */
     ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"comfort\": {},",
@@ -1831,5 +1848,9 @@ TEST_F(RecipeLoaderTest, TheRecipesOfTheRepositoryKeepTimeAsEachAppAlwaysDid)
                   expected.mode) << expected.filename;
         EXPECT_FLOAT_EQ(recipe.frame_pacing.frames_per_second,
                         expected.frames_per_second) << expected.filename;
+
+        /* Only the OpenGL app was pushed with no VR player to say so. */
+        EXPECT_EQ(recipe.comfort.pushes_by_default,
+                  std::string(expected.filename) == "gerbera.json") << expected.filename;
     }
 }

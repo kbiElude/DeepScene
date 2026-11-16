@@ -785,13 +785,17 @@ TEST(FrameChannelTest, TheOverlayIsNotPushedUntilTheConsumerSaysSoAndThenItIs)
     ASSERT_NE(producer_ptr,
               nullptr) << error;
 
+    /* Nobody has said yet: the producer follows the default of the recipe. */
+    EXPECT_FALSE(producer_ptr->get_has_overlay_push_setting() );
     EXPECT_FALSE(producer_ptr->get_is_overlay_pushed() );
 
     consumer_ptr->set_is_overlay_pushed(true);
 
+    EXPECT_TRUE(producer_ptr->get_has_overlay_push_setting() );
     EXPECT_TRUE(producer_ptr->get_is_overlay_pushed() );
 
     consumer_ptr->set_is_overlay_pushed(false);
 
+    EXPECT_TRUE (producer_ptr->get_has_overlay_push_setting() );
     EXPECT_FALSE(producer_ptr->get_is_overlay_pushed() );
 }

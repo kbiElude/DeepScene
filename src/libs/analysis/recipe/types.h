@@ -195,6 +195,11 @@ namespace Analysis
              */
             float part_parallax = 0.0f;
 
+            /* Whether the draws that the recipe pushes (see pushes_unaffected and DrawSelector) are pushed while nobody has said whether to push
+             * them: a run without the VR player, where nothing sets the switch of the person. Once the switch is set, it decides.
+             */
+            bool pushes_by_default = false;
+
             /* Whether the draws that the rules leave alone are pushed by overlay_parallax as well, and not only the draws the recipe lists
              * (DrawSelector). It is for an application whose left-alone draws are all an overlay (an interface); where they include scenery,
              * the recipe lists the draws to push instead.

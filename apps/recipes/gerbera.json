@@ -21,6 +21,7 @@
     "near_fraction": 0.002,
     "overlay_parallax": 0.019361413,
     "part_parallax": 0.00774456522,
+    "push_by_default": true,
     "scene_overrides": [
       {
         "max_far_parallax": 0.00951086956,

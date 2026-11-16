@@ -38,7 +38,7 @@ struct Stereo::Transport::FrameChannel::Header
     volatile LONG   latest_slot_plus_one;      /* 0: none yet                                            */
     volatile LONG   magic;
     volatile LONG   pace_delay_us;             /* how long the producer waits after a signal, in us      */
-    volatile LONG   overlay_is_pushed;         /* 0: no; set by the consumer when the person wants it    */
+    volatile LONG   overlay_is_pushed;         /* 0: not said; 1: yes; 2: no. Set by the consumer       */
     volatile LONG   producer_offered_kinds;    /* a mask of TransportKind; 0: not said yet               */
     volatile LONG   reading_slot_plus_one;     /* 0: none                                                */
     volatile LONG   target_eye_height;         /* valid if has_target_eye_size is not 0                  */
@@ -47,14 +47,17 @@ struct Stereo::Transport::FrameChannel::Header
     Slot            slot_array[3];
 };
 
-constexpr uint32_t BYTES_PER_PIXEL = 4;
-constexpr uint32_t HEADER_N_BYTES  = 65536;      /* the images start at a multiple of 64 KB, where a GPU places the buffers of a heap */
-constexpr LONG     MAGIC           = 0x52545341; /* "ASTR" */
-constexpr uint32_t MAX_HEIGHT      = 4096;       /* the largest texture height of Direct3D 8 hardware    */
-constexpr uint32_t MAX_WIDTH       = 8192;       /* two eyes of 4096 each                                */
-constexpr uint32_t N_SLOTS         = 3;
-constexpr uint32_t PITCH_ALIGNMENT = 256;        /* row alignment of a buffer that a GPU copies to a texture */
-constexpr LONG     VERSION         = 12;
+constexpr uint32_t BYTES_PER_PIXEL       = 4;
+constexpr uint32_t HEADER_N_BYTES        = 65536;      /* the images start at a multiple of 64 KB, where a GPU places the buffers of a heap */
+constexpr LONG     MAGIC                 = 0x52545341; /* "ASTR" */
+constexpr uint32_t MAX_HEIGHT            = 4096;       /* the largest texture height of Direct3D 8 hardware    */
+constexpr uint32_t MAX_WIDTH             = 8192;       /* two eyes of 4096 each                                */
+constexpr uint32_t N_SLOTS               = 3;
+constexpr LONG     OVERLAY_NOT_PUSHED    = 2;          /* the values of the header field overlay_is_pushed */
+constexpr LONG     OVERLAY_PUSHED        = 1;
+constexpr LONG     OVERLAY_PUSH_NOT_SAID = 0;
+constexpr uint32_t PITCH_ALIGNMENT       = 256;        /* row alignment of a buffer that a GPU copies to a texture */
+constexpr LONG     VERSION               = 13;
 
 /* A multiple of 64 KB, because the pitch of the widest image is a multiple of 256. */
 constexpr uint64_t SLOT_N_BYTES    = static_cast<uint64_t>(MAX_WIDTH) * BYTES_PER_PIXEL * MAX_HEIGHT;
@@ -222,6 +225,11 @@ bool Stereo::Transport::FrameChannel::get_eye_separation(float* out_eye_separati
                       out_eye_separation_ptr);
 }
 
+bool Stereo::Transport::FrameChannel::get_has_overlay_push_setting() const
+{
+    return (m_header_ptr->overlay_is_pushed != OVERLAY_PUSH_NOT_SAID);
+}
+
 bool Stereo::Transport::FrameChannel::get_ipd_scale(float* out_ipd_scale_ptr) const
 {
     return read_float(m_header_ptr->has_ipd_scale,
@@ -231,7 +239,7 @@ bool Stereo::Transport::FrameChannel::get_ipd_scale(float* out_ipd_scale_ptr) co
 
 bool Stereo::Transport::FrameChannel::get_is_overlay_pushed() const
 {
-    return (m_header_ptr->overlay_is_pushed != 0);
+    return (m_header_ptr->overlay_is_pushed == OVERLAY_PUSHED);
 }
 
 uint32_t Stereo::Transport::FrameChannel::get_max_height()
@@ -438,8 +446,8 @@ void Stereo::Transport::FrameChannel::set_ipd_scale(const float& in_ipd_scale)
 void Stereo::Transport::FrameChannel::set_is_overlay_pushed(const bool& in_is_pushed)
 {
     ::InterlockedExchange(&m_header_ptr->overlay_is_pushed,
-                          (in_is_pushed) ? 1
-                                         : 0);
+                          (in_is_pushed) ? OVERLAY_PUSHED
+                                         : OVERLAY_NOT_PUSHED);
 }
 
 void Stereo::Transport::FrameChannel::set_offered_kinds(const TransportKindMask& in_kinds)

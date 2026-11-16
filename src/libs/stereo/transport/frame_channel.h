@@ -63,6 +63,11 @@ namespace Stereo
              */
             bool get_eye_separation(float* out_eye_separation_ptr) const;
 
+            /* Returns true once the consumer has said whether the person wants the draws that the recipe pushes to be pushed (see
+             * get_is_overlay_pushed()). Until then the producer follows the default of the recipe (Comfort::pushes_by_default).
+             */
+            bool get_has_overlay_push_setting() const;
+
             /* Returns true if the person wants the draws that the recipe leaves alone to be pushed toward the viewer (the recipe says how far,
              * see Comfort::overlay_parallax). The consumer sets it while the images are shown. It is false until then. It can be set while
              * images are passed.

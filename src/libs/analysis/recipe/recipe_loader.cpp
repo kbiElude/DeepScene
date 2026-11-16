@@ -1162,7 +1162,7 @@ bool Analysis::Recipe::RecipeLoader::parse_comfort(const Utils::Json::JsonValue&
     }
 
     if (check_keys(in_value,
-                   {"automatic_layers", "balance_convergence", "camera_attached_depth", "ease_by_time", "eye_space_cover_keys", "max_far_parallax", "max_near_parallax", "measure_depth", "near_fraction", "overlay_parallax", "part_parallax", "push_unaffected", "scene_overrides", "snap_at_cuts"},
+                   {"automatic_layers", "balance_convergence", "camera_attached_depth", "ease_by_time", "eye_space_cover_keys", "max_far_parallax", "max_near_parallax", "measure_depth", "near_fraction", "overlay_parallax", "part_parallax", "push_by_default", "push_unaffected", "scene_overrides", "snap_at_cuts"},
                    in_path,
                    out_error_ptr) == false)
     {
@@ -1229,6 +1229,20 @@ bool Analysis::Recipe::RecipeLoader::parse_comfort(const Utils::Json::JsonValue&
             }
 
             out_comfort_ptr->eases_by_time = ease_ptr->bool_value;
+        }
+
+        const auto* push_default_ptr = in_value.find_ptr("push_by_default");
+
+        if (push_default_ptr != nullptr)
+        {
+            if (push_default_ptr->type != Utils::Json::JsonValueType::BOOL)
+            {
+                *out_error_ptr = in_path + ".push_by_default: expected true or false";
+
+                goto end;
+            }
+
+            out_comfort_ptr->pushes_by_default = push_default_ptr->bool_value;
         }
 
         const auto* push_ptr = in_value.find_ptr("push_unaffected");
