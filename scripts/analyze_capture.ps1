@@ -1,6 +1,6 @@
 <#
     Analyses a capture and bakes a recipe from it, into a folder of its own: the passes (APIDumpAnalysisExtractor), the dependencies between the
-    frames (APIDumpDependencyExtractor), the baked recipe (RecipeBake -o, never in place) and what RecipeBake --check says of it.
+    frames (APIDumpDependencyExtractor), the baked recipe (RecipeBake -o, never in place), what RecipeBake --check says of it, and what RecipeBake --parity says of it (the draws that the replay and the live converter decide differently; none is what it should say).
 
     Nothing that exists is changed or deleted: the recipe that is given is only read, and the output folder must not be the folder of the
     recipe. To put the baked recipe in use, copy it over by hand.
@@ -21,7 +21,7 @@ $ErrorActionPreference = 'Stop'
 
 function Invoke-Tool
 {
-    param ([string] $Name, [string[]] $Arguments, [string] $LogPath)
+    param ([string] $Name, [string[]] $Arguments, [string] $LogPath, [int[]] $OkExitCodes = @(0))
 
     $tool_path = Join-Path $ToolsDir ($Name + '_x64.exe')
 
@@ -34,7 +34,7 @@ function Invoke-Tool
 
     & $tool_path @Arguments *> $LogPath
 
-    if ($LASTEXITCODE -ne 0)
+    if ($OkExitCodes -notcontains $LASTEXITCODE)
     {
         Get-Content $LogPath -Tail 5
         throw "$Name failed with exit code $LASTEXITCODE (log: $LogPath)"
@@ -68,8 +68,13 @@ Invoke-Tool 'APIDumpAnalysisExtractor'   (@($workload_path, '-o', $passes_path, 
 Invoke-Tool 'APIDumpDependencyExtractor' (@($workload_path, '-o', $deps_path,   '--stats') + $frames) (Join-Path $out_path 'extract_deps.log')
 Invoke-Tool 'RecipeBake'                 @($recipe_path, $passes_path, '--deps', $deps_path, '-o', $baked_path)                     (Join-Path $out_path 'bake.log')
 Invoke-Tool 'RecipeBake'                 @('--check', $baked_path, $passes_path)                                                   (Join-Path $out_path 'check.log')
+# Exit 7 says that some draw is decided differently: it is a finding, which the log lists, and not a failure of the tool.
+Invoke-Tool 'RecipeBake'                 @('--parity', $baked_path, $passes_path)                                                  (Join-Path $out_path 'parity.log') @(0, 7)
 
 Write-Host ''
 Write-Host "Baked recipe: $baked_path"
 Write-Host "What the check says (first lines of $(Join-Path $out_path 'check.log')):"
 Get-Content (Join-Path $out_path 'check.log') -TotalCount 8
+Write-Host ''
+Write-Host "What the parity audit says (first lines of $(Join-Path $out_path 'parity.log')):"
+Get-Content (Join-Path $out_path 'parity.log') -TotalCount 8
