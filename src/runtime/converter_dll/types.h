@@ -2,15 +2,26 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * The enums of the converter.
+ * The enums and the plain data types of the converter.
  */
 #ifndef CONVERTERDLL_TYPES_H
 #define CONVERTERDLL_TYPES_H
+
+#include "stereo/core/types.h"
+#include <stdint.h>
 
 namespace Stereo
 {
     namespace ConverterDLL
     {
+        /* The eye image (frame) and the rectangle of it that the application renders to (picture). The rest is black bars. */
+        struct EyeLayout
+        {
+            uint32_t                frame_height = 0;
+            uint32_t                frame_width  = 0;
+            Stereo::Core::PixelRect picture;
+        };
+
         /* Where the vertices of a draw are stored. */
         enum class DrawKind
         {

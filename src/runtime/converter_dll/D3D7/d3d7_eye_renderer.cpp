@@ -188,6 +188,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::Recipe:
 {
     bool     result         = false;
     float    scale          = 1.0f;
+    bool     is_changed     = false;
     uint32_t vertex_n_bytes = 0;
 
     /* Only pre-transformed vertices (already in screen space) are moved. Vertices that the device transforms with a matrix are left as they are. */
@@ -205,6 +206,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::Recipe:
 
         /* The positions are in the application's pixels, which a larger back buffer does not use, so they are scaled. */
         scale = get_render_scale();
+        is_changed = is_render_layout_changed();
 
         /* The application's vertices are not modified: the draw uses a copy. */
         const bool has_copy = m_core_ptr->make_screen_vertices(in_eye,
@@ -215,14 +217,18 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::draw_for_eye(const Analysis::Recipe:
                                                                in_draw_arguments.n_vertices,
                                                                static_cast<const uint16_t*>(in_draw_arguments.indices_ptr),
                                                                in_draw_arguments.n_indices,
-                                                               (scale != 1.0f), /* in_must_copy */
+                                                               is_changed, /* in_must_copy */
                                                               &m_vertex_vec);
 
         if (has_copy)
         {
-            if (scale != 1.0f)
+            if (is_changed)
             {
+                const Stereo::Core::PixelRect picture = get_render_picture();
+
                 Stereo::Core::ScreenSpaceVertexShifter::scale_vertices(scale,
+                                                                       static_cast<float>(picture.x),
+                                                                       static_cast<float>(picture.y),
                                                                        vertex_n_bytes,
                                                                        in_draw_arguments.n_vertices,
                                                                        m_vertex_vec.data() );
@@ -346,6 +352,12 @@ uint64_t Stereo::ConverterDLL::D3D7EyeRenderer::get_n_unmirrored_calls() const
     return m_n_unmirrored_calls;
 }
 
+Stereo::Core::PixelRect Stereo::ConverterDLL::D3D7EyeRenderer::get_render_picture() const
+{
+    return (m_surface_twins.is_back_buffer(m_mirror.render_target_ptr) ) ? m_windowed_mode_ptr->get_picture()
+                                                                         : Stereo::Core::PixelRect();
+}
+
 Stereo::Core::ResolutionPolicy Stereo::ConverterDLL::D3D7EyeRenderer::get_render_policy() const
 {
     return (m_surface_twins.is_back_buffer(m_mirror.render_target_ptr) ) ? m_windowed_mode_ptr->get_policy()
@@ -361,6 +373,12 @@ float Stereo::ConverterDLL::D3D7EyeRenderer::get_render_scale() const
 void* Stereo::ConverterDLL::D3D7EyeRenderer::get_twin_ptr(void* in_surface_ptr) const
 {
     return m_surface_twins.get_twin_ptr(in_surface_ptr);
+}
+
+bool Stereo::ConverterDLL::D3D7EyeRenderer::is_render_layout_changed() const
+{
+    return (m_surface_twins.is_back_buffer(m_mirror.render_target_ptr) ) ? m_windowed_mode_ptr->is_layout_changed()
+                                                                         : false;
 }
 
 void Stereo::ConverterDLL::D3D7EyeRenderer::leave_right_eye(void*                inout_device_ptr,
@@ -649,7 +667,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre(const APIInterceptor::APIFunc
                          sizeof(m_mirror.viewport) );
 
                 /* With a larger back buffer, the converter sets the application's viewport scaled to the back buffer, and the application's own call is not made. */
-                if (get_render_scale() != 1.0f)
+                if (is_render_layout_changed() )
                 {
                     set_effective_viewport(const_cast<void*>(in_arguments_ptr[0].get_ptr() ));
 
@@ -685,9 +703,9 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre(const APIInterceptor::APIFunc
 
                 if (is_back_buffer)
                 {
-                    const float render_scale = m_windowed_mode_ptr->get_render_scale();
+                    const bool is_changed = m_windowed_mode_ptr->is_layout_changed();
 
-                    if (render_scale != 1.0f)
+                    if (is_changed)
                     {
                         m_n_pixel_calls++;
                     }
@@ -739,7 +757,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre(const APIInterceptor::APIFunc
 
                     if (m_has_pixel_write == false)
                     {
-                        if (m_windowed_mode_ptr->get_render_scale() != 1.0f)
+                        if (m_windowed_mode_ptr->is_layout_changed() )
                         {
                             m_n_pixel_calls++;
                         }
@@ -851,7 +869,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::play_clear(const uint32_t&          
     bool                                            result              = true;
     std::vector<Interception::Hooks::D3D7::D3DRECT> rect_vec;
     const Interception::Hooks::D3D7::D3DRECT*       rects_ptr           = nullptr;
-    const float                                     scale               = get_render_scale();
+    const bool                                      is_changed          = is_render_layout_changed();
     RightEyeScope                                   scope;
     uint32_t                                        stencil             = 0;
 
@@ -898,19 +916,20 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::play_clear(const uint32_t&          
         rects_ptr = static_cast<const Interception::Hooks::D3D7::D3DRECT*>(in_arguments_ptr[RECTS_ARGUMENT].get_ptr() );
 
         /* The rectangles are in the application's pixels. The larger back buffer has more pixels, so they are converted. */
-        if (scale != 1.0f)
+        if (is_changed)
         {
             rect_vec.assign(rects_ptr,
                             rects_ptr + count);
 
-            const auto policy = get_render_policy();
+            const auto                    policy  = get_render_policy();
+            const Stereo::Core::PixelRect picture = get_render_picture();
 
             for (auto& rect : rect_vec)
             {
-                rect.x1 = static_cast<LONG>(policy.scale_extent(static_cast<uint32_t>(rect.x1) ) );
-                rect.x2 = static_cast<LONG>(policy.scale_extent(static_cast<uint32_t>(rect.x2) ) );
-                rect.y1 = static_cast<LONG>(policy.scale_extent(static_cast<uint32_t>(rect.y1) ) );
-                rect.y2 = static_cast<LONG>(policy.scale_extent(static_cast<uint32_t>(rect.y2) ) );
+                rect.x1 = static_cast<LONG>(policy.scale_extent(static_cast<uint32_t>(rect.x1) ) + picture.x);
+                rect.x2 = static_cast<LONG>(policy.scale_extent(static_cast<uint32_t>(rect.x2) ) + picture.x);
+                rect.y1 = static_cast<LONG>(policy.scale_extent(static_cast<uint32_t>(rect.y1) ) + picture.y);
+                rect.y2 = static_cast<LONG>(policy.scale_extent(static_cast<uint32_t>(rect.y2) ) + picture.y);
             }
 
             rects_ptr = rect_vec.data();
@@ -1258,11 +1277,11 @@ end:
 void Stereo::ConverterDLL::D3D7EyeRenderer::set_effective_viewport(void* in_device_ptr) const
 {
     const OwnCallScope                      own_call_scope;
-    const float                             scale          = get_render_scale();
+    const bool                              is_changed     = is_render_layout_changed();
     Interception::Hooks::D3D7::D3DVIEWPORT7 viewport       = m_mirror.viewport;
     void** const                            vtable         = APIInterceptor::get_vtable_ptr(in_device_ptr);
 
-    if (scale != 1.0f)
+    if (is_changed)
     {
         Stereo::Core::PixelRect rect;
 
@@ -1272,6 +1291,9 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::set_effective_viewport(void* in_devi
         rect.y      = viewport.dwY;
 
         rect = get_render_policy().scale_rect(rect);
+
+        rect.x += get_render_picture().x;
+        rect.y += get_render_picture().y;
 
         viewport.dwHeight = rect.height;
         viewport.dwWidth  = rect.width;

@@ -7,6 +7,7 @@
 
 #include "analysis/recipe/types.h"
 #include "gl_extension_functions.h"
+#include "stereo/core/types.h"
 #include <array>
 #include <functional>
 #include <stdint.h>
@@ -44,13 +45,14 @@ namespace Stereo
             /* Copies the image of the left eye to the back buffer of the window if the framebuffer blit is available, then binds the left eye again. */
             void blit_left_to_window();
 
-            /* Makes the framebuffers for the context at the given size, unless they already exist for that context and size. Framebuffers of
-             * another size are deleted first. From then on the application renders to the left one. Returns false if they cannot be made, or if the
-             * context is not the first one (a second context is not converted).
+            /* Makes the framebuffers for the context at the given size, unless they already exist for that context, size and picture. Framebuffers
+             * of another size are deleted first. From then on the application renders to the left one. The picture is the rectangle that holds what
+             * the application renders; depth and picture reads use only it. Returns false if they cannot be made, or the context is not the first one.
              */
-            bool ensure(const void*     in_context_ptr,
-                        const uint32_t& in_width,
-                        const uint32_t& in_height);
+            bool ensure(const void*                    in_context_ptr,
+                        const uint32_t&                in_width,
+                        const uint32_t&                in_height,
+                        const Stereo::Core::PixelRect& in_picture);
 
             /* Passes the depths of the read in_slot to in_depth_func, waiting for the read if it is not finished, and then frees the buffer.
              * Returns false if in_slot has no read in progress (the targets were made again since the read began).
@@ -67,6 +69,9 @@ namespace Stereo
             uint32_t get_generation() const;
 
             uint32_t get_height() const;
+
+            /* Where the application's picture is in the framebuffers. */
+            const Stereo::Core::PixelRect& get_picture() const;
 
             uint32_t get_width() const;
 
@@ -106,13 +111,17 @@ namespace Stereo
                 uint32_t framebuffer        = 0;
             };
 
-            /* Copies the left eye (the colors, or the depth, as in_mask says) into the destination framebuffer, scaled to its size. The scissor
-             * test is turned off during the blit because it would clip it. The destination is bound for drawing and the left eye for reading.
+            /* Copies a rectangle of the left eye (colors or depth, as in_mask says) into the destination framebuffer, scaled to its size, with the
+             * scissor test off. The destination is bound for drawing and the left eye for reading.
              */
-            void blit_left_eye(const uint32_t&   in_destination_framebuffer,
-                               const uint32_t&   in_destination_width,
-                               const uint32_t&   in_destination_height,
-                               const GLbitfield& in_mask);
+            void blit_left_eye(const Stereo::Core::PixelRect& in_source,
+                               const uint32_t&                in_destination_framebuffer,
+                               const uint32_t&                in_destination_width,
+                               const uint32_t&                in_destination_height,
+                               const GLbitfield&              in_mask);
+
+            /* The whole left eye as a rectangle. */
+            Stereo::Core::PixelRect get_whole_eye() const;
 
             bool make_target(const uint32_t& in_width,
                              const uint32_t& in_height,
@@ -148,6 +157,7 @@ namespace Stereo
             std::array<bool, N_DEPTH_READ_SLOTS>     m_is_depth_buffer_busy_array; /* a read into the buffer is in progress and not finished */
             bool                                     m_is_ready;
             EyeTarget                                m_left;
+            Stereo::Core::PixelRect                  m_picture;                    /* where the application's picture is in the eyes */
             uint32_t                                 m_probe_height;
             uint32_t                                 m_probe_width;
             uint32_t                                 m_readback_height;

@@ -7,8 +7,10 @@
 #include <Windows.h>
 
 Stereo::ConverterDLL::PacedFramePublisher::PacedFramePublisher(std::unique_ptr<Stereo::Transport::IFrameExporter> in_exporter_ptr,
+                                                               const PictureFunc&                                  in_picture_func,
                                                                const SessionLog&                                  in_log)
-    :m_log(in_log)
+    :m_log         (in_log),
+     m_picture_func(in_picture_func)
 {
     LARGE_INTEGER start;
 
@@ -50,6 +52,8 @@ void Stereo::ConverterDLL::PacedFramePublisher::on_present(void* in_device_ptr,
 
             source.api_device_ptr    = in_device_ptr;
             source.left_surface_ptr  = in_left_surface_ptr;
+            source.picture           = (m_picture_func) ? m_picture_func()
+                                                        : Stereo::Core::PixelRect();
             source.right_surface_ptr = in_right_surface_ptr;
             source.timestamp_seconds = static_cast<double>(now.QuadPart - m_frame_state.start_qpc) / static_cast<double>(frequency.QuadPart);
 

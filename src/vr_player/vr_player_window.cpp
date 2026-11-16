@@ -79,6 +79,16 @@ static constexpr size_t N_QUALITIES                               = 3;
 static const char* const QUALITY_NAME_ARRAY[N_QUALITIES]          = {"Full (the resolution of the headset)", "Half of the pixels", "A quarter of the pixels"};
 static constexpr float   QUALITY_SIZE_FRACTION_ARRAY[N_QUALITIES] = {1.0f, 0.70710678f, 0.5f};
 
+/* The size per eye the user can ask for instead. The first choice takes it from the headset and the quality; the last is typed in. */
+static constexpr size_t  N_RESOLUTIONS                                = 6;
+static const char* const RESOLUTION_NAME_ARRAY[N_RESOLUTIONS]         = {"From the headset and the quality", "1280 x 720", "1920 x 1080", "2560 x 1440", "3840 x 2160", "Custom"};
+static constexpr int     RESOLUTION_WIDTH_ARRAY[N_RESOLUTIONS]        = {0, 1280, 1920, 2560, 3840, 0};
+static constexpr int     RESOLUTION_HEIGHT_ARRAY[N_RESOLUTIONS]       = {0, 720,  1080, 1440, 2160, 0};
+static constexpr int     RESOLUTION_CUSTOM_INDEX                      = 5;
+static constexpr int     DEFAULT_CUSTOM_HEIGHT                        = 1080;
+static constexpr int     DEFAULT_CUSTOM_WIDTH                         = 1920;
+static constexpr int     MAX_CUSTOM_EXTENT                            = 4096;
+
 static constexpr float LAUNCH_BUTTON_WIDTH = 200.0f;
 static constexpr float LIST_MIN_WIDTH      = 280.0f;
 static constexpr float LIST_WIDTH_FRACTION = 0.38f;
@@ -107,6 +117,9 @@ VRPlayer::VrPlayerWindow::VrPlayerWindow(const WindowContent& in_content)
      m_push_overlay             (false),
      m_write_log                (in_content.is_logging),
      m_quality_index            (0),
+     m_resolution_custom_height (DEFAULT_CUSTOM_HEIGHT),
+     m_resolution_custom_width  (DEFAULT_CUSTOM_WIDTH),
+     m_resolution_index         (0),
      m_selected_app             (-1),
      m_should_open_install_error(false)
 {
@@ -688,8 +701,54 @@ void VRPlayer::VrPlayerWindow::draw_vr_settings()
     ImGui::PopStyleColor ();
 
     ImGui::Spacing        ();
-    /* The quality is a fraction of the resolution of the headset. The window of the preview has no such resolution. */
-    ImGui::BeginDisabled   (m_device_index < 0);
+    ImGui::TextUnformatted ("Resolution per eye");
+
+    ImGui::SetNextItemWidth(-FLT_MIN);
+
+    if (ImGui::BeginCombo("##resolution",
+                          RESOLUTION_NAME_ARRAY[m_resolution_index]) )
+    {
+        for (int n_resolution = 0;
+                 n_resolution < static_cast<int>(N_RESOLUTIONS);
+               ++n_resolution)
+        {
+            if (ImGui::Selectable(RESOLUTION_NAME_ARRAY[n_resolution],
+                                  n_resolution == m_resolution_index) )
+            {
+                m_resolution_index = n_resolution;
+            }
+        }
+
+        ImGui::EndCombo();
+    }
+
+    if (m_resolution_index == RESOLUTION_CUSTOM_INDEX)
+    {
+        ImGui::SetNextItemWidth(120.0f);
+        ImGui::InputInt("width##custom",
+                       &m_resolution_custom_width,
+                        0);
+        ImGui::SetNextItemWidth(120.0f);
+        ImGui::InputInt("height##custom",
+                       &m_resolution_custom_height,
+                        0);
+
+        m_resolution_custom_height = (std::max)(1,
+                                                (std::min)(m_resolution_custom_height,
+                                                           MAX_CUSTOM_EXTENT) );
+        m_resolution_custom_width  = (std::max)(1,
+                                                (std::min)(m_resolution_custom_width,
+                                                           MAX_CUSTOM_EXTENT) );
+    }
+
+    ImGui::PushStyleColor(ImGuiCol_Text,
+                          DIM_TEXT_COLOR);
+    ImGui::TextWrapped   ("The program keeps its proportions; what does not fill the image is black. Set at start.");
+    ImGui::PopStyleColor ();
+
+    ImGui::Spacing        ();
+    /* The quality is a fraction of the resolution of the headset, so it counts only with a headset and no resolution given. */
+    ImGui::BeginDisabled   (m_device_index < 0 || m_resolution_index != 0);
     ImGui::TextUnformatted ("Image quality");
 
     ImGui::SetNextItemWidth(-FLT_MIN);
@@ -887,7 +946,17 @@ void VRPlayer::VrPlayerWindow::start_app(const size_t& in_n_app)
     uint32_t                              target_height = 0;
     uint32_t                              target_width  = 0;
 
-    /* The size of an eye of the headset, scaled by the chosen quality. It stays 0 without a headset. */
+    /* The size asked for, or else the size of an eye of the headset scaled by the quality (0 without a headset). */
+    if (m_resolution_index != 0)
+    {
+        const bool is_custom = (m_resolution_index == RESOLUTION_CUSTOM_INDEX);
+
+        target_height = static_cast<uint32_t>((is_custom) ? m_resolution_custom_height
+                                                          : RESOLUTION_HEIGHT_ARRAY[m_resolution_index]);
+        target_width  = static_cast<uint32_t>((is_custom) ? m_resolution_custom_width
+                                                          : RESOLUTION_WIDTH_ARRAY[m_resolution_index]);
+    }
+    else
     if (m_device_index >= 0)
     {
         const Headset::VRDevices::VrDevice& device   = m_content.device_vec.at(static_cast<size_t>(m_device_index) );

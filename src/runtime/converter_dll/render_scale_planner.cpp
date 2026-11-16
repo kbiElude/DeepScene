@@ -30,6 +30,34 @@ float Stereo::ConverterDLL::RenderScalePlanner::choose_scale(const uint32_t& in_
                                            : smaller_scale;
 }
 
+Stereo::ConverterDLL::EyeLayout Stereo::ConverterDLL::RenderScalePlanner::choose_layout(const uint32_t& in_target_width,
+                                                                                       const uint32_t& in_target_height,
+                                                                                       const uint32_t& in_picture_width,
+                                                                                       const uint32_t& in_picture_height,
+                                                                                       const uint32_t& in_max_surface_extent)
+{
+    const bool is_target_given = (in_target_width  > 0 &&
+                                  in_target_height > 0);
+    const bool is_target_fit   = (is_target_given                   &&
+                                  in_picture_width  <= in_target_width  &&
+                                  in_picture_height <= in_target_height &&
+                                  (in_max_surface_extent == 0 ||
+                                   (in_target_width  <= in_max_surface_extent &&
+                                    in_target_height <= in_max_surface_extent) ) );
+    EyeLayout  result;
+
+    result.frame_height   = (is_target_fit) ? in_target_height
+                                            : in_picture_height;
+    result.frame_width    = (is_target_fit) ? in_target_width
+                                            : in_picture_width;
+    result.picture.height = in_picture_height;
+    result.picture.width  = in_picture_width;
+    result.picture.x      = (result.frame_width  - in_picture_width)  / 2;
+    result.picture.y      = (result.frame_height - in_picture_height) / 2;
+
+    return result;
+}
+
 std::string Stereo::ConverterDLL::RenderScalePlanner::describe_resize(const std::string& in_what,
                                                                       const uint32_t&    in_asked_width,
                                                                       const uint32_t&    in_asked_height,

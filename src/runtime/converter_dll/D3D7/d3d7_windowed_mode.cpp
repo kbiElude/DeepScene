@@ -17,7 +17,10 @@ Stereo::ConverterDLL::D3D7WindowedMode::D3D7WindowedMode()
     :m_back_buffer_ptr(nullptr),
      m_display_height (0),
      m_display_width  (0),
+     m_frame_height   (0),
+     m_frame_width    (0),
      m_is_enabled     (false),
+     m_picture        (),
      m_policy         (1.0f),
      m_primary_ptr    (nullptr),
      m_target_height  (0),
@@ -41,6 +44,21 @@ void Stereo::ConverterDLL::D3D7WindowedMode::get_display_size(uint32_t* out_widt
 const Stereo::Core::ResolutionPolicy& Stereo::ConverterDLL::D3D7WindowedMode::get_policy() const
 {
     return m_policy;
+}
+
+uint32_t Stereo::ConverterDLL::D3D7WindowedMode::get_frame_height() const
+{
+    return m_frame_height;
+}
+
+uint32_t Stereo::ConverterDLL::D3D7WindowedMode::get_frame_width() const
+{
+    return m_frame_width;
+}
+
+const Stereo::Core::PixelRect& Stereo::ConverterDLL::D3D7WindowedMode::get_picture() const
+{
+    return m_picture;
 }
 
 float Stereo::ConverterDLL::D3D7WindowedMode::get_render_scale() const
@@ -129,9 +147,9 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_create_surface(const APIInte
         back_buffer_description.dwFlags        = Interception::Core::D3D7Utils::DDSD_CAPS   |
                                                  Interception::Core::D3D7Utils::DDSD_HEIGHT |
                                                  Interception::Core::D3D7Utils::DDSD_WIDTH;
-        back_buffer_description.dwHeight       = (m_display_height != 0) ? get_scaled_extent(m_display_height)
+        back_buffer_description.dwHeight       = (m_display_height != 0) ? m_frame_height
                                                                          : static_cast<uint32_t>(::GetSystemMetrics(SM_CYSCREEN) );
-        back_buffer_description.dwWidth        = (m_display_width  != 0) ? get_scaled_extent(m_display_width)
+        back_buffer_description.dwWidth        = (m_display_width  != 0) ? m_frame_width
                                                                          : static_cast<uint32_t>(::GetSystemMetrics(SM_CXSCREEN) );
         back_buffer_description.ddsCaps.dwCaps = Interception::Core::D3D7Utils::DDSCAPS_3DDEVICE |
                                                  Interception::Core::D3D7Utils::DDSCAPS_OFFSCREENPLAIN;
@@ -288,6 +306,18 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_set_display_mode(const APIIn
                                                                                            height,
                                                                                            MAX_RENDER_TARGET_EXTENT) );
             }
+
+            {
+                const EyeLayout layout = RenderScalePlanner::choose_layout(m_target_width,
+                                                                           m_target_height,
+                                                                           m_policy.scale_extent(width),
+                                                                           m_policy.scale_extent(height),
+                                                                           MAX_RENDER_TARGET_EXTENT);
+
+                m_frame_height = layout.frame_height;
+                m_frame_width  = layout.frame_width;
+                m_picture      = layout.picture;
+            }
         }
     }
 }
@@ -302,12 +332,12 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_sized_surface(const Intercep
     constexpr uint32_t FLAGS_OF_SIZE                = Interception::Core::D3D7Utils::DDSD_HEIGHT |
                                                       Interception::Core::D3D7Utils::DDSD_WIDTH;
 
-    const bool                                      is_policy_identity = m_policy.is_identity();
+    const bool                                      is_layout_unchanged = (is_layout_changed() == false);
     Interception::Hooks::D3D7::DDSURFACEDESC2       scaled_description = in_description;
     Interception::Hooks::D3D7::IDirectDrawSurface7* surface_ptr        = nullptr;
 
     /* Only a surface that is as large as the application's images is changed, and only if the images are enlarged. */
-    if (is_policy_identity                                                                 ||
+    if (is_layout_unchanged                                                                ||
         m_display_width                                                == 0                ||
         (in_description.ddsCaps.dwCaps & CAPS_OF_SURFACES_RENDERED_TO) == 0                ||
         (in_description.dwFlags & FLAGS_OF_SIZE)                       != FLAGS_OF_SIZE    ||
@@ -321,8 +351,8 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_sized_surface(const Intercep
         const OwnCallScope own_call_scope;
         void** const       vtable = APIInterceptor::get_vtable_ptr(in_direct_draw_ptr);
 
-        scaled_description.dwHeight = get_scaled_extent(in_description.dwHeight);
-        scaled_description.dwWidth  = get_scaled_extent(in_description.dwWidth);
+        scaled_description.dwHeight = m_frame_height;
+        scaled_description.dwWidth  = m_frame_width;
 
         if (SUCCEEDED(APIInterceptor::get_method_ptr<Interception::Hooks::D3D7::PFN_IDIRECTDRAW7_CREATESURFACE>(vtable,
                                                                                                                 Interception::Hooks::D3D7::VTABLE_INDEX_IDIRECTDRAW7_CREATESURFACE)(static_cast<Interception::Hooks::D3D7::IDirectDraw7*>(in_direct_draw_ptr),
@@ -337,6 +367,13 @@ void Stereo::ConverterDLL::D3D7WindowedMode::handle_sized_surface(const Intercep
 
 end:
     return;
+}
+
+bool Stereo::ConverterDLL::D3D7WindowedMode::is_layout_changed() const
+{
+    return (m_policy.is_identity() == false                                  ||
+            m_frame_height         != m_policy.scale_extent(m_display_height) ||
+            m_frame_width          != m_policy.scale_extent(m_display_width) );
 }
 
 void Stereo::ConverterDLL::D3D7WindowedMode::keep_windows_invisible()

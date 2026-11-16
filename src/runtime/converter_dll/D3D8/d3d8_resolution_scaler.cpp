@@ -19,7 +19,10 @@ Stereo::ConverterDLL::D3D8ResolutionScaler::D3D8ResolutionScaler(const uint32_t&
     :m_asked_height      (0),
      m_asked_width       (0),
      m_core_ptr          (in_core_ptr),
+     m_frame_height      (0),
+     m_frame_width       (0),
      m_log_func          (in_log_func),
+     m_picture           (),
      m_policy            (Stereo::Core::ResolutionPolicy::get_min_scale() ),
      m_real_height       (0),
      m_real_width        (0),
@@ -39,6 +42,11 @@ Stereo::ConverterDLL::D3D8ResolutionScaler::D3D8ResolutionScaler(const uint32_t&
 Stereo::ConverterDLL::D3D8ResolutionScaler::~D3D8ResolutionScaler()
 {
     Interception::Hooks::D3D8::remove_argument_modifier(this);
+}
+
+const Stereo::Core::PixelRect& Stereo::ConverterDLL::D3D8ResolutionScaler::get_picture() const
+{
+    return m_picture;
 }
 
 void Stereo::ConverterDLL::D3D8ResolutionScaler::on_create_device(Interception::Hooks::D3D8::IDirect3D8*            in_direct3d_ptr,
@@ -68,27 +76,39 @@ void Stereo::ConverterDLL::D3D8ResolutionScaler::on_create_device(Interception::
         m_real_height  = m_policy.scale_extent(inout_parameters_ptr->BackBufferHeight);
         m_real_width   = m_policy.scale_extent(inout_parameters_ptr->BackBufferWidth);
 
+        {
+            const EyeLayout layout = RenderScalePlanner::choose_layout(m_target_width,
+                                                                       m_target_height,
+                                                                       m_real_width,
+                                                                       m_real_height,
+                                                                       0); /* in_max_surface_extent: no limit of the API is known */
+
+            m_frame_height = layout.frame_height;
+            m_frame_width  = layout.frame_width;
+            m_picture      = layout.picture;
+        }
+
         m_log_func(RenderScalePlanner::describe_resize("back buffer",
                                                        inout_parameters_ptr->BackBufferWidth,
                                                        inout_parameters_ptr->BackBufferHeight,
-                                                       m_real_width,
-                                                       m_real_height,
+                                                       m_frame_width,
+                                                       m_frame_height,
                                                        m_policy.get_scale() ) );
 
         /* Both eyes are passed on side by side in one image, and the channel limits its size. An oversized image is reported here instead of showing no picture. */
         {
-            const bool        is_supported = EyeImageLimits::fits(m_real_width,
-                                                                  m_real_height);
-            const std::string reason       = RenderScalePlanner::describe_too_large(m_real_width,
-                                                                                    m_real_height,
+            const bool        is_supported = EyeImageLimits::fits(m_frame_width,
+                                                                  m_frame_height);
+            const std::string reason       = RenderScalePlanner::describe_too_large(m_frame_width,
+                                                                                    m_frame_height,
                                                                                     m_policy.get_scale() );
 
             m_core_ptr->require_supported(is_supported,
                                           reason);
         }
 
-        inout_parameters_ptr->BackBufferHeight = m_real_height;
-        inout_parameters_ptr->BackBufferWidth  = m_real_width;
+        inout_parameters_ptr->BackBufferHeight = m_frame_height;
+        inout_parameters_ptr->BackBufferWidth  = m_frame_width;
     }
 }
 
@@ -99,9 +119,11 @@ void Stereo::ConverterDLL::D3D8ResolutionScaler::on_pre(const APIInterceptor::AP
     Analysis::APIDumpAnalysis::ResolutionHazard hazard = Analysis::APIDumpAnalysis::ResolutionHazard::CLEARS_WITH_RECTANGLES;
 
     /* A call that exposes the larger sizes to the application, or that does not scale with them, ends the application. */
-    const bool is_identity = m_policy.is_identity();
+    const bool is_changed = (m_policy.is_identity() == false ||
+                             m_frame_height         != m_real_height ||
+                             m_frame_width          != m_real_width);
 
-    if (is_identity == false)
+    if (is_changed)
     {
         const bool is_hazard = Analysis::APIDumpAnalysis::Frontends::D3D8ResolutionHazards::classify(in_function,
                                                                                                      in_n_arguments,
@@ -110,8 +132,8 @@ void Stereo::ConverterDLL::D3D8ResolutionScaler::on_pre(const APIInterceptor::AP
 
         if (is_hazard)
         {
-            ResolutionHazardGate::require_unaffected_by_scale(m_core_ptr,
-                                                              m_policy,
+            ResolutionHazardGate::require_unaffected_by_change(m_core_ptr,
+                                                              is_changed,
                                                               hazard);
         }
     }
@@ -138,8 +160,8 @@ void Stereo::ConverterDLL::D3D8ResolutionScaler::on_set_viewport(Interception::H
 
         if (SUCCEEDED(description_result) )
         {
-            if (description.Width  == m_real_width &&
-                description.Height == m_real_height)
+            if (description.Width  == m_frame_width &&
+                description.Height == m_frame_height)
             {
                 Stereo::Core::PixelRect rect;
 
@@ -153,6 +175,10 @@ void Stereo::ConverterDLL::D3D8ResolutionScaler::on_set_viewport(Interception::H
                 rect = m_policy.scale_rect(rect,
                                            m_real_width,
                                            m_real_height);
+
+                /* The picture sits inside the eye image. */
+                rect.x += m_picture.x;
+                rect.y += m_picture.y;
 
                 m_viewport.Height = rect.height;
                 m_viewport.Width  = rect.width;

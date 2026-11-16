@@ -214,6 +214,7 @@ Stereo::Transport::ExportStatus Stereo::ConverterDLL::D3D8HostMemoryExporter::ex
     job.info.n_eyes            = n_eyes;
     job.info.timestamp_seconds = in_source.timestamp_seconds;
     job.info.width             = description_array.at(0).Width * n_eyes;
+    job.picture                = in_source.picture;
 
     /* The thread must have finished the previous frame, whose surfaces are in the other set, before it can be given this one. */
     wait_for_job();
@@ -358,15 +359,27 @@ bool Stereo::ConverterDLL::D3D8HostMemoryExporter::write_eye(const uint32_t& in_
 {
     const auto& description = m_job.description_array.at(in_eye);
 
-    return PixelRowWriter::write_eye(description.Format,
-                                     description.Width,
-                                     description.Height,
-                                     m_job.source_ptr_array.at  (in_eye),
-                                     m_job.source_pitch_array.at(in_eye),
-                                     in_eye,
-                                     out_destination_ptr,
-                                     in_pitch,
-                                    &m_converted_u8_vec_array.at(in_eye) );
+    const bool is_written = PixelRowWriter::write_eye(description.Format,
+                                                      description.Width,
+                                                      description.Height,
+                                                      m_job.source_ptr_array.at  (in_eye),
+                                                      m_job.source_pitch_array.at(in_eye),
+                                                      in_eye,
+                                                      out_destination_ptr,
+                                                      in_pitch,
+                                                     &m_converted_u8_vec_array.at(in_eye) );
+
+    if (is_written)
+    {
+        PixelRowWriter::blank_bars(m_job.picture,
+                                   description.Width,
+                                   description.Height,
+                                   in_eye,
+                                   out_destination_ptr,
+                                   in_pitch);
+    }
+
+    return is_written;
 }
 
 void Stereo::ConverterDLL::D3D8HostMemoryExporter::write_job()

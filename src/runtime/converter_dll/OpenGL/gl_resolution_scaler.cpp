@@ -19,8 +19,11 @@ Stereo::ConverterDLL::GLResolutionScaler::GLResolutionScaler(const uint32_t&    
     :m_asked_height(0),
      m_asked_width (0),
      m_core_ptr    (in_core_ptr),
+     m_frame_height(0),
+     m_frame_width (0),
      m_log_func    (in_log_func),
      m_max_extent  (0),
+     m_picture     (),
      m_policy      (Stereo::Core::ResolutionPolicy::get_min_scale() ),
      m_real_height (0),
      m_real_width  (0),
@@ -52,7 +55,11 @@ const Stereo::Core::ResolutionPolicy& Stereo::ConverterDLL::GLResolutionScaler::
 
 bool Stereo::ConverterDLL::GLResolutionScaler::is_identity() const
 {
-    return m_policy.is_identity();
+    return (m_policy.is_identity()           &&
+            m_picture.x       == 0           &&
+            m_picture.y       == 0           &&
+            m_frame_height    == m_real_height &&
+            m_frame_width     == m_real_width);
 }
 
 bool Stereo::ConverterDLL::GLResolutionScaler::is_null_pointer(const APIInterceptor::APIFunctionArgument& in_argument)
@@ -92,7 +99,7 @@ bool Stereo::ConverterDLL::GLResolutionScaler::make_scaled_read(const uint32_t& 
     constexpr GLsizei READ_EXTENT = 1;
 
     SinglePixelRead read;
-    const bool      is_identity = m_policy.is_identity();
+    const bool      is_identity = this->is_identity();
     const bool      is_read     = parse_single_pixel_read(in_n_arguments,
                                                           in_arguments_ptr,
                                                          &read);
@@ -113,11 +120,14 @@ bool Stereo::ConverterDLL::GLResolutionScaler::make_scaled_read(const uint32_t& 
                                                                 m_asked_height,
                                                                 m_real_height);
 
+        const uint32_t x_frame = m_picture.x + x_real;
+        const uint32_t y_frame = m_picture.y + y_real;
+
         const OwnCallScope own_call_scope;
 
         /* The framebuffer that is read is the one the application renders to. The pixel is written into the application's own buffer, using the pixel packing the application set. */
-        GLDriverFunctions::get().read_pixels_func_ptr(static_cast<GLint>(x_real),
-                                                      static_cast<GLint>(y_real),
+        GLDriverFunctions::get().read_pixels_func_ptr(static_cast<GLint>(x_frame),
+                                                      static_cast<GLint>(y_frame),
                                                       READ_EXTENT,
                                                       READ_EXTENT,
                                                       static_cast<GLenum>(read.format),
@@ -157,8 +167,8 @@ bool Stereo::ConverterDLL::GLResolutionScaler::on_pre(const APIInterceptor::APIF
 
         if (is_hazard)
         {
-            ResolutionHazardGate::require_unaffected_by_scale(m_core_ptr,
-                                                              m_policy,
+            ResolutionHazardGate::require_unaffected_by_change(m_core_ptr,
+                                                              is_identity() == false,
                                                               hazard);
         }
     }
@@ -227,6 +237,10 @@ bool Stereo::ConverterDLL::GLResolutionScaler::on_pre(const APIInterceptor::APIF
                                                                                                        m_real_height)
                                                                                  : m_policy.scale_rect(rect);
 
+                /* The picture sits inside the eye image. */
+                rect.x += m_picture.x;
+                rect.y += m_picture.y;
+
                 if (in_function == APIInterceptor::APIFUNCTION_GL_GLSCISSOR)
                 {
                     GLDriverFunctions::get().scissor_func_ptr(static_cast<GLint>(rect.x),
@@ -261,8 +275,8 @@ bool Stereo::ConverterDLL::GLResolutionScaler::on_pre(const APIInterceptor::APIF
             {
                 if (is_scaled_destination)
                 {
-                    ResolutionHazardGate::require_unaffected_by_scale(m_core_ptr,
-                                                                      m_policy,
+                    ResolutionHazardGate::require_unaffected_by_change(m_core_ptr,
+                                                                      is_identity() == false,
                                                                       Analysis::APIDumpAnalysis::ResolutionHazard::TEXTURE_UPLOADS_TO_RENDER_TARGETS);
                 }
             }
@@ -331,8 +345,8 @@ bool Stereo::ConverterDLL::GLResolutionScaler::on_pre(const APIInterceptor::APIF
                     else
                     if (is_scaled_destination)
                     {
-                        ResolutionHazardGate::require_unaffected_by_scale(m_core_ptr,
-                                                                          m_policy,
+                        ResolutionHazardGate::require_unaffected_by_change(m_core_ptr,
+                                                                          is_identity() == false,
                                                                           Analysis::APIDumpAnalysis::ResolutionHazard::TEXTURE_UPLOADS_TO_RENDER_TARGETS);
                     }
                 }
@@ -425,11 +439,12 @@ end:
     return result;
 }
 
-void Stereo::ConverterDLL::GLResolutionScaler::plan(const uint32_t& in_asked_width,
-                                                    const uint32_t& in_asked_height,
-                                                    const uint32_t& in_max_extent,
-                                                    uint32_t*       out_real_width_ptr,
-                                                    uint32_t*       out_real_height_ptr)
+void Stereo::ConverterDLL::GLResolutionScaler::plan(const uint32_t&          in_asked_width,
+                                                    const uint32_t&          in_asked_height,
+                                                    const uint32_t&          in_max_extent,
+                                                    uint32_t*                out_frame_width_ptr,
+                                                    uint32_t*                out_frame_height_ptr,
+                                                    Stereo::Core::PixelRect* out_picture_ptr)
 {
     const Stereo::Core::ResolutionPolicy policy(RenderScalePlanner::choose_scale(m_target_width,
                                                                                  m_target_height,
@@ -438,9 +453,11 @@ void Stereo::ConverterDLL::GLResolutionScaler::plan(const uint32_t& in_asked_wid
                                                                                  in_max_extent) );
 
     /* A window that changes size gets the scale for its new size. The application states its pixel values again for the new size, and those are scaled. */
-    if (policy.get_scale() != m_policy.get_scale() ||
-        in_asked_height    != m_asked_height       ||
-        in_asked_width     != m_asked_width)
+    const bool is_new_size = (policy.get_scale() != m_policy.get_scale() ||
+                              in_asked_height    != m_asked_height       ||
+                              in_asked_width     != m_asked_width);
+
+    if (is_new_size)
     {
         m_log_func(RenderScalePlanner::describe_resize("framebuffer",
                                                        in_asked_width,
@@ -457,14 +474,34 @@ void Stereo::ConverterDLL::GLResolutionScaler::plan(const uint32_t& in_asked_wid
     m_real_height = policy.scale_extent(in_asked_height);
     m_real_width  = policy.scale_extent(in_asked_width);
 
-    m_core_ptr->require_supported(EyeImageLimits::fits(m_real_width,
-                                                       m_real_height),
-                                  RenderScalePlanner::describe_too_large(m_real_width,
-                                                                         m_real_height,
+    {
+        const EyeLayout layout = RenderScalePlanner::choose_layout(m_target_width,
+                                                                   m_target_height,
+                                                                   m_real_width,
+                                                                   m_real_height,
+                                                                   in_max_extent);
+
+        m_frame_height = layout.frame_height;
+        m_frame_width  = layout.frame_width;
+        m_picture      = layout.picture;
+    }
+
+    if (is_new_size                      &&
+        (m_frame_height != m_real_height ||
+         m_frame_width  != m_real_width) )
+    {
+        m_log_func("The picture is placed in the eye image of " + std::to_string(m_frame_width) + " x " + std::to_string(m_frame_height) + ", at " + std::to_string(m_picture.x) + ", " + std::to_string(m_picture.y) );
+    }
+
+    m_core_ptr->require_supported(EyeImageLimits::fits(m_frame_width,
+                                                       m_frame_height),
+                                  RenderScalePlanner::describe_too_large(m_frame_width,
+                                                                         m_frame_height,
                                                                          m_policy.get_scale() ) );
 
-    *out_real_height_ptr = m_real_height;
-    *out_real_width_ptr  = m_real_width;
+    *out_frame_height_ptr = m_frame_height;
+    *out_frame_width_ptr  = m_frame_width;
+    *out_picture_ptr      = m_picture;
 }
 
 void Stereo::ConverterDLL::GLResolutionScaler::scale_copy(const bool&             in_is_sub_image,
@@ -506,8 +543,8 @@ void Stereo::ConverterDLL::GLResolutionScaler::scale_copy(const bool&           
                                    m_real_width,
                                    m_real_height);
 
-        value_array.at(corner_x_index)       = static_cast<int32_t>(rect.x);
-        value_array.at(corner_x_index + 1)   = static_cast<int32_t>(rect.y);
+        value_array.at(corner_x_index)       = static_cast<int32_t>(rect.x + m_picture.x);
+        value_array.at(corner_x_index + 1)   = static_cast<int32_t>(rect.y + m_picture.y);
         value_array.at(size_width_index)     = static_cast<int32_t>(rect.width);
         value_array.at(size_width_index + 1) = static_cast<int32_t>(rect.height);
 

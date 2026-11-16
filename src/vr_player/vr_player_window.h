@@ -62,8 +62,11 @@ namespace VRPlayer
         bool                                 m_push_overlay;     /* the draws that the recipe leaves alone are pushed toward the viewer */
         bool                                 m_write_log;        /* no control in the window: off unless the program was started with --log */
         int                                  m_quality_index;    /* index into the quality choices: the fraction of the headset pixels that is rendered */
+        int                                  m_resolution_custom_height; /* the size per eye of the custom choice */
+        int                                  m_resolution_custom_width;
+        int                                  m_resolution_index; /* index into the resolution choices; 0: the size comes from the headset and the quality */
         std::string                          m_running_app_name;
-        int                                  m_selected_app;     /* index into the catalog; -1 if the catalog is empty    */
+        int                                  m_selected_app;    /* index into the catalog; -1 if the catalog is empty    */
         AppSession                           m_session;
         bool                                 m_should_open_install_error;
         std::string                          m_status;

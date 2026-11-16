@@ -5,6 +5,7 @@
 #ifndef STEREO_TRANSPORT_TYPES_H
 #define STEREO_TRANSPORT_TYPES_H
 
+#include "stereo/core/types.h"
 #include <stdint.h>
 
 namespace Stereo
@@ -66,10 +67,11 @@ namespace Stereo
          */
         struct ExportSource
         {
-            void*  api_device_ptr     = nullptr;
-            void*  left_surface_ptr   = nullptr;
-            void*  right_surface_ptr  = nullptr;
-            double timestamp_seconds  = 0.0; /* time of the present call, counted from the producer's start */
+            void*                   api_device_ptr    = nullptr;
+            void*                   left_surface_ptr  = nullptr;
+            Stereo::Core::PixelRect picture;                      /* the picture in each eye image; the rest is bars. Empty: all */
+            void*                   right_surface_ptr = nullptr;
+            double                  timestamp_seconds = 0.0;      /* time of the present call, counted from the producer's start */
         };
     }
 }

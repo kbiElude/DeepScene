@@ -23,6 +23,12 @@ namespace Stereo
             /* Returns the text that says what the application does. It is the first part of the reason shown to the user when the application is stopped. */
             static const char* get_reason(const Analysis::APIDumpAnalysis::ResolutionHazard& in_hazard);
 
+
+            /* The same when in_is_changed says the pixels are scaled or moved (the picture sits in an eye image with bars). */
+            static void require_unaffected_by_change(Stereo::Core::RecipeStereoPlanner*                     in_core_ptr,
+                                                     const bool&                                            in_is_changed,
+                                                     const Analysis::APIDumpAnalysis::ResolutionHazard&     in_hazard);
+
             /* Ends the application through the core, with the reason for in_hazard, if the application renders larger than it asks (the policy is not the
              * identity). The hazard is a call that the adapter cannot make match the size. Does nothing at scale 1, where nothing depends on the size.
              */

@@ -61,15 +61,15 @@ namespace Stereo
                         const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
                         const uint32_t&                            in_bound_texture);
 
-            /* Takes the window size of the application and the largest size that a framebuffer or texture can have (0: unknown). Chooses the scale
-             * and returns the size of the framebuffers. The log says what was enlarged. Ends the application if its images cannot be passed on, even
-             * at the smallest scale.
+            /* Takes the window size and the largest framebuffer or texture size (0: unknown). Chooses the scale and the layout, and returns the
+             * framebuffer size and the picture rectangle in it. Ends the application if its images cannot be passed on, even at the smallest scale.
              */
-            void plan(const uint32_t& in_asked_width,
-                      const uint32_t& in_asked_height,
-                      const uint32_t& in_max_extent,
-                      uint32_t*       out_real_width_ptr,
-                      uint32_t*       out_real_height_ptr);
+            void plan(const uint32_t&          in_asked_width,
+                      const uint32_t&          in_asked_height,
+                      const uint32_t&          in_max_extent,
+                      uint32_t*                out_frame_width_ptr,
+                      uint32_t*                out_frame_height_ptr,
+                      Stereo::Core::PixelRect* out_picture_ptr);
 
             /* Scales the numbers of a copy from the framebuffer to a texture (the arguments of glCopyTexSubImage2D or glCopyTexImage2D). The array
              * holds the target and the level, then for a sub image the offset in the texture, or for glCopyTexImage2D the format, then the corner
@@ -108,8 +108,11 @@ namespace Stereo
             uint32_t                           m_asked_height;
             uint32_t                           m_asked_width;
             Stereo::Core::RecipeStereoPlanner* m_core_ptr;
+            uint32_t                           m_frame_height;   /* the framebuffers: the picture, or the eye image with bars */
+            uint32_t                           m_frame_width;
             Stereo::Core::LogFunc              m_log_func;
             uint32_t                           m_max_extent;
+            Stereo::Core::PixelRect            m_picture;        /* where the application renders to in the framebuffers */
             Stereo::Core::ResolutionPolicy     m_policy;
             uint32_t                           m_real_height;
             uint32_t                           m_real_width;

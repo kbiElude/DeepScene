@@ -153,10 +153,16 @@ namespace Stereo
             bool enter_right_eye(void*          in_device_ptr,
                                  RightEyeScope* out_scope_ptr) const;
 
+            /* Where the application's pixels are in the surface it renders to (empty: all of it). */
+            Stereo::Core::PixelRect get_render_picture() const;
+
             /* How much larger the surface the application renders to is than the application knows: 1, except for the back buffer, which is made larger. */
             Stereo::Core::ResolutionPolicy get_render_policy() const;
 
             float get_render_scale() const;
+
+            /* True if the application's pixels are scaled or moved in the surface (only the back buffer is). */
+            bool is_render_layout_changed() const;
 
             /* Sets the state that the application set in the device again. */
             void leave_right_eye(void*                inout_device_ptr,

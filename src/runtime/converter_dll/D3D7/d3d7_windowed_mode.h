@@ -44,6 +44,13 @@ namespace Stereo
             void get_display_size(uint32_t* out_width_ptr,
                                   uint32_t* out_height_ptr) const;
 
+            /* The size of the back buffer (see RenderScalePlanner::choose_layout). 0 until the display mode is known. */
+            uint32_t get_frame_height() const;
+            uint32_t get_frame_width () const;
+
+            /* Where the application's picture is in the back buffer. */
+            const Stereo::Core::PixelRect& get_picture() const;
+
             /* How the back buffer is enlarged relative to what the application asks, to fit the images that are shown. It is the identity
              * until the size of the display mode is known, and when nothing is enlarged.
              */
@@ -56,6 +63,9 @@ namespace Stereo
 
             /* Returns the size in pixels that the back buffer gets for an extent that the application asks for. */
             uint32_t get_scaled_extent(const uint32_t& in_extent) const;
+
+            /* True if the application's pixels are scaled or moved in the back buffer. */
+            bool is_layout_changed() const;
 
             /* Makes the windows invisible again if the application changed their styles. */
             void keep_windows_invisible();
@@ -97,8 +107,11 @@ namespace Stereo
             void*                          m_back_buffer_ptr;
             uint32_t                       m_display_height;
             uint32_t                       m_display_width;
+            uint32_t                       m_frame_height;
+            uint32_t                       m_frame_width;
             InvisibleWindowManager         m_invisible_window_manager;
             bool                           m_is_enabled;
+            Stereo::Core::PixelRect        m_picture;
             Stereo::Core::ResolutionPolicy m_policy;
             void*                          m_primary_ptr;
             uint32_t                       m_target_height;

@@ -93,3 +93,31 @@ TEST(StereoPresenterCommandLineTest, TheLogIsWrittenOnlyIfAskedFor)
 
     EXPECT_TRUE(options.use_log);
 }
+
+TEST(StereoPresenterCommandLineTest, TheEyeSizeIsRead)
+{
+    std::string                error;
+    Stereo::Presenter::Options options;
+
+    ASSERT_TRUE(Stereo::Presenter::CommandLine::parse({"--session", "s", "--eye-size", "1920x1080"},
+                                                   &options,
+                                                   &error) ) << error;
+
+    EXPECT_EQ(options.eye_width,
+              1920u);
+    EXPECT_EQ(options.eye_height,
+              1080u);
+}
+
+TEST(StereoPresenterCommandLineTest, AnEyeSizeThatIsNotASizeIsRefused)
+{
+    for (const char* const size_ptr : {"1920", "0x1080", "1920x", "1920x1080x2", "wide"})
+    {
+        std::string                error;
+        Stereo::Presenter::Options options;
+
+        EXPECT_FALSE(Stereo::Presenter::CommandLine::parse({"--session", "s", "--eye-size", size_ptr},
+                                                        &options,
+                                                        &error) ) << size_ptr;
+    }
+}

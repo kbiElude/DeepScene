@@ -7,6 +7,7 @@
 
 #include "interception/hooks/D3D7/types.h"
 #include "host_memory_exporter_base.h"
+#include "stereo/core/types.h"
 #include <array>
 #include <stdint.h>
 #include <string>
@@ -65,11 +66,12 @@ namespace Stereo
 
             static void unlock_surface(LockedSurface* inout_locked_ptr);
 
-            /* Copies the rows of an eye's surface to the memory of the channel as 8-bit B, G, R and A pixels. */
-            bool write_eye(const LockedSurface& in_locked,
-                           const uint32_t&      in_eye,
-                           uint8_t*             out_destination_ptr,
-                           const uint32_t&      in_pitch);
+            /* Copies the rows of an eye's surface to the memory of the channel as 8-bit B, G, R and A pixels; what is outside the picture is made black. */
+            bool write_eye(const LockedSurface&           in_locked,
+                           const Stereo::Core::PixelRect& in_picture,
+                           const uint32_t&                in_eye,
+                           uint8_t*                       out_destination_ptr,
+                           const uint32_t&                in_pitch);
 
 
             std::array<std::vector<uint8_t>, N_EYES> m_converted_u8_vec_array; /* per eye: conversion buffers for formats that are not 8-bit BGRA

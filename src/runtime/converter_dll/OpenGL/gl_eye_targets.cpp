@@ -114,7 +114,8 @@ bool Stereo::ConverterDLL::GLEyeTargets::begin_depth_read(uint32_t* out_slot_ptr
             }
 
             /* The depth buffer is copied to the small copy, and from there to the buffer of the slot. The graphics card does both without the CPU waiting. */
-            blit_left_eye(m_depth_probe.framebuffer,
+            blit_left_eye(m_picture,
+                          m_depth_probe.framebuffer,
                           m_probe_width,
                           m_probe_height,
                           DEPTH_BUFFER_BIT);
@@ -169,10 +170,11 @@ bool Stereo::ConverterDLL::GLEyeTargets::bind_eye(const Analysis::Recipe::Eye& i
     return m_is_ready;
 }
 
-void Stereo::ConverterDLL::GLEyeTargets::blit_left_eye(const uint32_t&   in_destination_framebuffer,
-                                                       const uint32_t&   in_destination_width,
-                                                       const uint32_t&   in_destination_height,
-                                                       const GLbitfield& in_mask)
+void Stereo::ConverterDLL::GLEyeTargets::blit_left_eye(const Stereo::Core::PixelRect& in_source,
+                                                       const uint32_t&                in_destination_framebuffer,
+                                                       const uint32_t&                in_destination_width,
+                                                       const uint32_t&                in_destination_height,
+                                                       const GLbitfield&              in_mask)
 {
     constexpr GLenum DRAW_FRAMEBUFFER = 0x8CA9;
     constexpr GLenum READ_FRAMEBUFFER = 0x8CA8;
@@ -190,10 +192,10 @@ void Stereo::ConverterDLL::GLEyeTargets::blit_left_eye(const uint32_t&   in_dest
                                           m_left.framebuffer);
     m_functions.bind_framebuffer_func_ptr(DRAW_FRAMEBUFFER,
                                           in_destination_framebuffer);
-    m_functions.blit_framebuffer_func_ptr(0,
-                                          0,
-                                          static_cast<GLint>(m_width),
-                                          static_cast<GLint>(m_height),
+    m_functions.blit_framebuffer_func_ptr(static_cast<GLint>(in_source.x),
+                                          static_cast<GLint>(in_source.y),
+                                          static_cast<GLint>(in_source.x + in_source.width),
+                                          static_cast<GLint>(in_source.y + in_source.height),
                                           0,
                                           0,
                                           static_cast<GLint>(in_destination_width),
@@ -214,7 +216,8 @@ void Stereo::ConverterDLL::GLEyeTargets::blit_left_to_window()
     if (m_is_ready                                         &&
         m_functions.blit_framebuffer_func_ptr != nullptr)
     {
-        blit_left_eye(0,
+        blit_left_eye(get_whole_eye(),
+                      0,
                       m_width,
                       m_height,
                       COLOR_BUFFER_BIT);
@@ -224,19 +227,24 @@ void Stereo::ConverterDLL::GLEyeTargets::blit_left_to_window()
     }
 }
 
-bool Stereo::ConverterDLL::GLEyeTargets::ensure(const void*     in_context_ptr,
-                                                const uint32_t& in_width,
-                                                const uint32_t& in_height)
+bool Stereo::ConverterDLL::GLEyeTargets::ensure(const void*                    in_context_ptr,
+                                                const uint32_t&                in_width,
+                                                const uint32_t&                in_height,
+                                                const Stereo::Core::PixelRect& in_picture)
 {
     /* The depth is read to measure how deep the scene is, and a copy of this width is enough for that. */
     constexpr uint32_t DEPTH_PROBE_WIDTH = 320;
 
     const OwnCallScope own_call_scope;
 
-    if (m_is_ready                      &&
-        m_context_ptr == in_context_ptr &&
-        m_width       == in_width       &&
-        m_height      == in_height)
+    if (m_is_ready                              &&
+        m_context_ptr     == in_context_ptr     &&
+        m_width           == in_width           &&
+        m_height          == in_height          &&
+        m_picture.height  == in_picture.height  &&
+        m_picture.width   == in_picture.width   &&
+        m_picture.x       == in_picture.x       &&
+        m_picture.y       == in_picture.y)
     {
         goto end;
     }
@@ -257,15 +265,20 @@ bool Stereo::ConverterDLL::GLEyeTargets::ensure(const void*     in_context_ptr,
         m_has_functions = m_functions.load();
     }
 
-    if (m_has_functions == false ||
-        in_width        == 0     ||
-        in_height       == 0)
+    if (m_has_functions                      == false ||
+        in_width                             == 0     ||
+        in_height                            == 0     ||
+        in_picture.height                    == 0     ||
+        in_picture.width                     == 0     ||
+        in_picture.x + in_picture.width      >  in_width ||
+        in_picture.y + in_picture.height     >  in_height)
     {
         goto end;
     }
 
     m_context_ptr = in_context_ptr;
     m_height      = in_height;
+    m_picture     = in_picture;
     m_width       = in_width;
 
     if (make_target(m_width,
@@ -283,10 +296,10 @@ bool Stereo::ConverterDLL::GLEyeTargets::ensure(const void*     in_context_ptr,
     /* The small depth copy is not needed for rendering. If it cannot be made, the depth is read from the full buffer. */
     if (m_functions.blit_framebuffer_func_ptr != nullptr)
     {
-        m_probe_width     = (std::min)(m_width,
+        m_probe_width     = (std::min)(m_picture.width,
                                      DEPTH_PROBE_WIDTH);
         m_probe_height    = (std::max<uint32_t>)(1,
-                                               static_cast<uint32_t>(static_cast<uint64_t>(m_height) * m_probe_width / m_width) );
+                                               static_cast<uint32_t>(static_cast<uint64_t>(m_picture.height) * m_probe_width / m_picture.width) );
         m_has_depth_probe = make_target(m_probe_width,
                                         m_probe_height,
                                        &m_depth_probe);
@@ -371,6 +384,21 @@ uint32_t Stereo::ConverterDLL::GLEyeTargets::get_height() const
     return m_height;
 }
 
+const Stereo::Core::PixelRect& Stereo::ConverterDLL::GLEyeTargets::get_picture() const
+{
+    return m_picture;
+}
+
+Stereo::Core::PixelRect Stereo::ConverterDLL::GLEyeTargets::get_whole_eye() const
+{
+    Stereo::Core::PixelRect result;
+
+    result.height = m_height;
+    result.width  = m_width;
+
+    return result;
+}
+
 uint32_t Stereo::ConverterDLL::GLEyeTargets::get_width() const
 {
     return m_width;
@@ -450,9 +478,13 @@ bool Stereo::ConverterDLL::GLEyeTargets::read_depth(std::vector<float>* out_dept
     if (m_is_ready)
     {
         const uint32_t width  = (m_has_depth_probe) ? m_probe_width
-                                                    : m_width;
+                                                    : m_picture.width;
         const uint32_t height = (m_has_depth_probe) ? m_probe_height
-                                                    : m_height;
+                                                    : m_picture.height;
+        const GLint    x      = (m_has_depth_probe) ? 0
+                                                    : static_cast<GLint>(m_picture.x);
+        const GLint    y      = (m_has_depth_probe) ? 0
+                                                    : static_cast<GLint>(m_picture.y);
 
         out_depth_f32_vec_ptr->resize(static_cast<size_t>(width) * height);
 
@@ -462,7 +494,8 @@ bool Stereo::ConverterDLL::GLEyeTargets::read_depth(std::vector<float>* out_dept
         if (m_has_depth_probe)
         {
             /* The graphics card scales the whole depth buffer down to the small copy. */
-            blit_left_eye(m_depth_probe.framebuffer,
+            blit_left_eye(m_picture,
+                          m_depth_probe.framebuffer,
                           m_probe_width,
                           m_probe_height,
                           DEPTH_BUFFER_BIT);
@@ -480,8 +513,8 @@ bool Stereo::ConverterDLL::GLEyeTargets::read_depth(std::vector<float>* out_dept
         GLDriverFunctions::get().pixel_storei_func_ptr(PACK_ALIGNMENT,
                                                        1);
 
-        GLDriverFunctions::get().read_pixels_func_ptr(0,
-                                                      0,
+        GLDriverFunctions::get().read_pixels_func_ptr(x,
+                                                      y,
                                                       static_cast<GLsizei>(width),
                                                       static_cast<GLsizei>(height),
                                                       GL_DEPTH_COMPONENT,
@@ -575,7 +608,8 @@ bool Stereo::ConverterDLL::GLEyeTargets::read_picture(const uint32_t&       in_w
             {
                 out_rgba_u8_vec_ptr->resize(static_cast<size_t>(in_width) * in_height * N_CHANNELS);
 
-                blit_left_eye(m_readback_target.framebuffer,
+                blit_left_eye(m_picture,
+                              m_readback_target.framebuffer,
                               in_width,
                               in_height,
                               COLOR_BUFFER_BIT);

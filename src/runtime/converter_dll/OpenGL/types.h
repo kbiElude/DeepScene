@@ -5,6 +5,7 @@
 #ifndef STEREO_CONVERTERDLL_OPENGL_TYPES_H
 #define STEREO_CONVERTERDLL_OPENGL_TYPES_H
 
+#include "stereo/core/types.h"
 #include <memory>
 #include <stdint.h>
 
@@ -21,6 +22,7 @@ namespace Stereo
             std::shared_ptr<const void> consumer_token;
             uint32_t                    height          = 0;
             const uint8_t*              left_bgra_ptr   = nullptr;
+            Stereo::Core::PixelRect     picture;        /* the picture in each eye image */
             const uint8_t*              right_bgra_ptr  = nullptr;
             uint32_t                    width           = 0;
         };

@@ -7,6 +7,7 @@
 
 #include "interception/hooks/D3D8/types.h"
 #include "host_memory_exporter_base.h"
+#include "stereo/core/types.h"
 #include "types.h"
 #include "utils/parallel/job_thread.h"
 #include "utils/statistics/series_stats.h"
@@ -74,6 +75,7 @@ namespace Stereo
             {
                 std::array<Interception::Hooks::D3D8::D3DSURFACE_DESC, N_EYES> description_array;
                 Stereo::Transport::FrameInfo                                   info;
+                Stereo::Core::PixelRect                                        picture;
                 std::array<const uint8_t*, N_EYES>                             source_ptr_array   = {};
                 std::array<uint32_t, N_EYES>                                   source_pitch_array = {};
             };

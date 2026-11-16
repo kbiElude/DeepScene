@@ -252,6 +252,8 @@ TEST(D3D7ScreenParallax, ScalingMovesTheXAndTheYAndLeavesTheDepthAndWhatIsAfterI
                                   {0.5f,  0.25f});
 
     Stereo::Core::ScreenSpaceVertexShifter::scale_vertices(2.0f,
+                                                           0.0f,
+                                                           0.0f,
                                                            VERTEX_N_BYTES,
                                                            2,
                                                            vertices.data() );

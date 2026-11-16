@@ -53,6 +53,9 @@ namespace Stereo
                                   HWND                                              in_focus_window,
                                   Interception::Hooks::D3D8::D3DPRESENT_PARAMETERS* inout_parameters_ptr) override;
 
+            /* Where the application's picture is in the back buffer. Empty before the device is created. */
+            const Stereo::Core::PixelRect& get_picture() const;
+
             /* A call of the application is about to be made. */
             void on_pre(const APIInterceptor::APIFunction&         in_function,
                         const uint32_t&                            in_n_arguments,
@@ -71,7 +74,10 @@ namespace Stereo
             uint32_t                                m_asked_height; /* the height the application asked for for the back buffer; 0 until the device is created */
             uint32_t                                m_asked_width;
             Stereo::Core::RecipeStereoPlanner*      m_core_ptr;
+            uint32_t                                m_frame_height; /* the back buffer: the picture, or the eye image with bars */
+            uint32_t                                m_frame_width;
             Stereo::Core::LogFunc                   m_log_func;
+            Stereo::Core::PixelRect                 m_picture;      /* where the application renders to in the back buffer */
             Stereo::Core::ResolutionPolicy          m_policy; /* set when the application states how large its image is */
             uint32_t                                m_target_height;
             uint32_t                                m_target_width;

@@ -67,6 +67,12 @@ int WINAPI WinMain(HINSTANCE in_instance,
         goto end;
     }
 
+    if (options.eye_width != 0)
+    {
+        channel_ptr->set_target_eye_size(options.eye_width,
+                                         options.eye_height);
+    }
+
     Utils::UI::ImGuiPlayerWindowBase::enable_dpi_awareness();
 
     /* The converters (Direct3D 7, Direct3D 8, OpenGL) pass their images through the memory of the channel, which the importer reads. */

@@ -139,3 +139,71 @@ TEST(ResolutionHazardGateTest, NothingStopsAnApplicationThatIsNotRenderedLarger)
     EXPECT_NE(message.find("rendered larger than it asks"),
               std::string::npos) << message;
 }
+
+TEST(RenderScalePlannerTest, ThePictureIsCenteredInATargetOfOtherProportions)
+{
+    /* The picture fits: the frame is the target, with bars at the sides. */
+    const Stereo::ConverterDLL::EyeLayout layout = Stereo::ConverterDLL::RenderScalePlanner::choose_layout(2064,
+                                                                                                           1161,
+                                                                                                           1548,
+                                                                                                           1161,
+                                                                                                           0);
+
+    EXPECT_EQ(layout.frame_width,
+              2064u);
+    EXPECT_EQ(layout.frame_height,
+              1161u);
+    EXPECT_EQ(layout.picture.width,
+              1548u);
+    EXPECT_EQ(layout.picture.height,
+              1161u);
+    EXPECT_EQ(layout.picture.x,
+              258u);
+    EXPECT_EQ(layout.picture.y,
+              0u);
+}
+
+TEST(RenderScalePlannerTest, WithoutATargetTheFrameIsThePicture)
+{
+    const Stereo::ConverterDLL::EyeLayout layout = Stereo::ConverterDLL::RenderScalePlanner::choose_layout(0,
+                                                                                                           0,
+                                                                                                           640,
+                                                                                                           480,
+                                                                                                           0);
+
+    EXPECT_EQ(layout.frame_width,
+              640u);
+    EXPECT_EQ(layout.frame_height,
+              480u);
+    EXPECT_EQ(layout.picture.x,
+              0u);
+    EXPECT_EQ(layout.picture.y,
+              0u);
+}
+
+TEST(RenderScalePlannerTest, APictureLargerThanTheTargetOrATargetBeyondTheLimitMakesTheFrameThePicture)
+{
+    /* Not smaller than asked. */
+    const Stereo::ConverterDLL::EyeLayout larger = Stereo::ConverterDLL::RenderScalePlanner::choose_layout(800,
+                                                                                                           600,
+                                                                                                           1280,
+                                                                                                           720,
+                                                                                                           0);
+
+    EXPECT_EQ(larger.frame_width,
+              1280u);
+    EXPECT_EQ(larger.frame_height,
+              720u);
+
+    /* The API cannot make surfaces of 4096. */
+    const Stereo::ConverterDLL::EyeLayout beyond = Stereo::ConverterDLL::RenderScalePlanner::choose_layout(4096,
+                                                                                                           2048,
+                                                                                                           2048,
+                                                                                                           1152,
+                                                                                                           2048);
+
+    EXPECT_EQ(beyond.frame_width,
+              2048u);
+    EXPECT_EQ(beyond.frame_height,
+              1152u);
+}

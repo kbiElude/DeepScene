@@ -154,9 +154,22 @@ Stereo::ConverterDLL::LiveStereoConverter::LiveStereoConverter(const Stereo::Ses
         std::unique_ptr<Stereo::Transport::IFrameExporter> d3d8_exporter_ptr(new D3D8HostMemoryExporter(m_channel_ptr.get(),
                                                                                                         frame_pacing) );
 
+        /* The picture inside the eye images. The Direct3D 8 scaler exists only with an eye size. */
+        const auto get_d3d7_picture_func = [this]()
+        {
+            return m_live_state.d3d7_windowed_mode.get_picture();
+        };
+        const auto get_d3d8_picture_func = [this]()
+        {
+            return (m_live_state.scaler_ptr != nullptr) ? m_live_state.scaler_ptr->get_picture()
+                                                        : Stereo::Core::PixelRect();
+        };
+
         m_paced_frame_publisher_ptr.reset     (new PacedFramePublisher(std::move(d3d8_exporter_ptr),
+                                                                       get_d3d8_picture_func,
                                                                        m_log) );
         m_d3d7_paced_frame_publisher_ptr.reset(new PacedFramePublisher(std::move(d3d7_exporter_ptr),
+                                                                       get_d3d7_picture_func,
                                                                        m_log) );
     }
 
@@ -223,6 +236,7 @@ Stereo::ConverterDLL::LiveStereoConverter::LiveStereoConverter(const Stereo::Ses
                                                                                                         frame_pacing) );
 
             m_gl_paced_frame_publisher_ptr.reset(new PacedFramePublisher(std::move(gl_exporter_ptr),
+                                                                         PacedFramePublisher::PictureFunc(), /* the images of OpenGL carry their picture */
                                                                          m_log) );
         }
 

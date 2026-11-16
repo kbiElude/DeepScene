@@ -100,18 +100,25 @@ const char* Stereo::ConverterDLL::ResolutionHazardGate::get_reason(const Analysi
     return result_ptr;
 }
 
-void Stereo::ConverterDLL::ResolutionHazardGate::require_unaffected_by_scale(Stereo::Core::RecipeStereoPlanner*                 in_core_ptr,
-                                                                             const Stereo::Core::ResolutionPolicy&              in_policy,
-                                                                             const Analysis::APIDumpAnalysis::ResolutionHazard& in_hazard)
+void Stereo::ConverterDLL::ResolutionHazardGate::require_unaffected_by_change(Stereo::Core::RecipeStereoPlanner*                 in_core_ptr,
+                                                                              const bool&                                        in_is_changed,
+                                                                              const Analysis::APIDumpAnalysis::ResolutionHazard& in_hazard)
 {
-    const bool is_identity = in_policy.is_identity();
-
-    if (is_identity == false)
+    if (in_is_changed)
     {
         const std::string reason = std::string(get_reason(in_hazard) ) +
-                                   ", while it is rendered larger than it asks";
+                                   ", while it is rendered larger than it asks or in another place of the image";
 
         in_core_ptr->require_fast_path(false, /* in_is_ok */
                                        reason);
     }
+}
+
+void Stereo::ConverterDLL::ResolutionHazardGate::require_unaffected_by_scale(Stereo::Core::RecipeStereoPlanner*                 in_core_ptr,
+                                                                             const Stereo::Core::ResolutionPolicy&              in_policy,
+                                                                             const Analysis::APIDumpAnalysis::ResolutionHazard& in_hazard)
+{
+    require_unaffected_by_change(in_core_ptr,
+                                 (in_policy.is_identity() == false),
+                                 in_hazard);
 }

@@ -5,6 +5,7 @@
 #ifndef STEREO_CONVERTERDLL_RENDER_SCALE_PLANNER_H
 #define STEREO_CONVERTERDLL_RENDER_SCALE_PLANNER_H
 
+#include "types.h"
 #include <stdint.h>
 #include <string>
 
@@ -29,6 +30,13 @@ namespace Stereo
                                       const uint32_t& in_asked_width,
                                       const uint32_t& in_asked_height,
                                       const uint32_t& in_max_surface_extent);
+
+            /* The frame is the target if the (scaled) picture fits in it and in in_max_surface_extent (0: no limit), with the picture centered. Otherwise it is the picture. */
+            static EyeLayout choose_layout(const uint32_t& in_target_width,
+                                           const uint32_t& in_target_height,
+                                           const uint32_t& in_picture_width,
+                                           const uint32_t& in_picture_height,
+                                           const uint32_t& in_max_surface_extent);
 
             /* Returns the log line that reports a resize: "The <what> is made 2064 x 1548 instead of 640 x 480 (scale 3.225)". */
             static std::string describe_resize(const std::string& in_what,

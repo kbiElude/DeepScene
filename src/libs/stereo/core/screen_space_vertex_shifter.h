@@ -73,10 +73,10 @@ namespace Stereo
                                            const size_t&   in_n_indices,
                                            const float&    in_picture_width);
 
-            /* Multiplies the position of every vertex of the array (x and y, in pixels) by in_scale. The depth and its reciprocal are not
-             * changed. It is used for a draw to a surface that is rendered larger than the application asks.
-             */
+            /* Multiplies the position of every vertex (x and y, in pixels) by in_scale, then adds the offsets. The depth is not changed. */
             static void scale_vertices(const float&    in_scale,
+                                       const float&    in_offset_x,
+                                       const float&    in_offset_y,
                                        const uint32_t& in_vertex_n_bytes,
                                        const size_t&   in_n_vertices,
                                        uint8_t*        inout_vertex_ptr);

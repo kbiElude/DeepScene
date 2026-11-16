@@ -91,6 +91,7 @@ Stereo::Transport::ExportStatus Stereo::ConverterDLL::D3D7HostMemoryExporter::ex
                 ++n_eye)
     {
         if (write_eye(locked_array.at(n_eye),
+                      in_source.picture,
                       n_eye,
                       destination_ptr,
                       pitch) == false)
@@ -331,10 +332,11 @@ end:
     return result;
 }
 
-bool Stereo::ConverterDLL::D3D7HostMemoryExporter::write_eye(const LockedSurface& in_locked,
-                                                             const uint32_t&      in_eye,
-                                                             uint8_t*             out_destination_ptr,
-                                                             const uint32_t&      in_pitch)
+bool Stereo::ConverterDLL::D3D7HostMemoryExporter::write_eye(const LockedSurface&           in_locked,
+                                                             const Stereo::Core::PixelRect& in_picture,
+                                                             const uint32_t&                in_eye,
+                                                             uint8_t*                       out_destination_ptr,
+                                                             const uint32_t&                in_pitch)
 {
     const auto&    description = in_locked.description;
     const uint32_t format      = get_pixel_format(description.ddpfPixelFormat);
@@ -354,6 +356,16 @@ bool Stereo::ConverterDLL::D3D7HostMemoryExporter::write_eye(const LockedSurface
                                            out_destination_ptr,
                                            in_pitch,
                                            scratch_ptr);
+
+        if (result)
+        {
+            PixelRowWriter::blank_bars(in_picture,
+                                       description.dwWidth,
+                                       description.dwHeight,
+                                       in_eye,
+                                       out_destination_ptr,
+                                       in_pitch);
+        }
     }
 
     return result;

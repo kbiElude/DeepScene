@@ -5,6 +5,7 @@
 #ifndef STEREO_PRESENTER_TYPES_H
 #define STEREO_PRESENTER_TYPES_H
 
+#include <stdint.h>
 #include <string>
 
 namespace Stereo
@@ -13,6 +14,8 @@ namespace Stereo
     {
         struct Options
         {
+            uint32_t    eye_height  = 0;     /* the size per eye that the application is asked to render at (see FrameChannel); 0: none */
+            uint32_t    eye_width   = 0;
             std::string session_id;
             bool        use_log     = false; /* the presenter writes what it does to the log of the session; otherwise nothing is written */
             std::string title;       /* of the window; a default if empty */

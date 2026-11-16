@@ -3,6 +3,7 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "gl_host_memory_exporter.h"
+#include "pixel_row_writer.h"
 #include <stdio.h>
 #include <string.h>
 #include <vector>
@@ -202,6 +203,19 @@ void Stereo::ConverterDLL::GLHostMemoryExporter::write_job()
                            true,
                            destination_ptr,
                            pitch);
+
+            PixelRowWriter::blank_bars(job.images.picture,
+                                       job.images.width,
+                                       job.images.height,
+                                       0, /* in_eye */
+                                       destination_ptr,
+                                       pitch);
+            PixelRowWriter::blank_bars(job.images.picture,
+                                       job.images.width,
+                                       job.images.height,
+                                       1, /* in_eye */
+                                       destination_ptr,
+                                       pitch);
 
             get_channel_ptr()->end_write();
         }

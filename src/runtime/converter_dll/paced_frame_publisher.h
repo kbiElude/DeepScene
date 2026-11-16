@@ -8,6 +8,8 @@
 #include "stereo/transport/i_frame_exporter.h"
 #include "utils/statistics/series_stats.h"
 #include "session_log.h"
+#include "stereo/core/types.h"
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <stdint.h>
@@ -22,7 +24,11 @@ namespace Stereo
         class PacedFramePublisher
         {
         public:
+            /* Where the application's picture is in the eye images. Empty (or no size): all of it. */
+            typedef std::function<Stereo::Core::PixelRect()> PictureFunc;
+
             PacedFramePublisher(std::unique_ptr<Stereo::Transport::IFrameExporter> in_exporter_ptr,
+                                const PictureFunc&                                  in_picture_func,
                                 const SessionLog&                                  in_log);
 
             /* Passes one frame on. If in_left_surface_ptr is nullptr, the left image is the back buffer of the device. in_right_surface_ptr is the
@@ -56,6 +62,7 @@ namespace Stereo
  */
             };
 
+            PictureFunc       m_picture_func;
             const SessionLog& m_log;
             FrameState        m_frame_state;
         };

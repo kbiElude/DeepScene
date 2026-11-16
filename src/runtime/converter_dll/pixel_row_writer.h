@@ -5,6 +5,7 @@
 #ifndef STEREO_CONVERTERDLL_PIXEL_ROW_WRITER_H
 #define STEREO_CONVERTERDLL_PIXEL_ROW_WRITER_H
 
+#include "stereo/core/types.h"
 #include <stdint.h>
 #include <vector>
 
@@ -19,6 +20,14 @@ namespace Stereo
         class PixelRowWriter
         {
         public:
+            /* Makes black what is outside the picture in a written eye image. Does nothing for a picture that is the whole image or empty. */
+            static void blank_bars(const Stereo::Core::PixelRect& in_picture,
+                                   const uint32_t&                in_width,
+                                   const uint32_t&                in_height,
+                                   const uint32_t&                in_eye,
+                                   uint8_t*                       inout_destination_ptr,
+                                   const uint32_t&                in_destination_pitch);
+
             /* in_format is a Direct3D 8 format (D3DFORMAT). The formats of the other APIs are converted to it (see D3DFormatBgra8Converter). A 32-bit format
              * that already has the wanted layout is copied as it is. Any other format is converted first, into inout_scratch_ptr. The caller keeps that
              * vector so that its memory is reused. in_eye is the index of the eye in the destination image. The rows of the eye start at the pixel

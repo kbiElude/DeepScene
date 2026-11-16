@@ -482,6 +482,8 @@ bool Stereo::ConverterDLL::GLEyeRenderer::on_frame_ending(GLFrameImages* out_ima
         result = m_frame_reader.read(&m_targets,
                                      out_images_ptr);
 
+        out_images_ptr->picture = m_targets.get_picture();
+
         /* A program that shows the images elsewhere does not need the window. Otherwise the window shows the left eye. */
         if (m_is_shown_elsewhere == false)
         {
@@ -1360,6 +1362,10 @@ void Stereo::ConverterDLL::GLEyeRenderer::try_to_prepare()
         const uint32_t asked_height  = static_cast<uint32_t>(client.bottom - client.top);
         uint32_t       real_height   = asked_height;
         uint32_t       real_width    = asked_width;
+        Stereo::Core::PixelRect picture;
+
+        picture.height = asked_height;
+        picture.width  = asked_width;
 
         /* The framebuffers are as large as the eye of the headset allows, with the proportions of the window. */
         if (asked_width  > 0 &&
@@ -1376,27 +1382,29 @@ void Stereo::ConverterDLL::GLEyeRenderer::try_to_prepare()
                           asked_height,
                           static_cast<uint32_t>(max_extent),
                          &real_width,
-                         &real_height);
+                         &real_height,
+                         &picture);
         }
 
         const bool is_ready = m_targets.ensure(context,
                                                real_width,
-                                               real_height);
+                                               real_height,
+                                               picture);
 
-        /* When the framebuffers are larger than the window, the viewport and the scissor box are set to the framebuffer size until the application sets its own. */
+        /* Until the application sets its own, the viewport and scissor box are the picture. */
         if (is_ready                           &&
             m_scaler.is_identity() == false    &&
             (real_width  != m_applied_width    ||
              real_height != m_applied_height) )
         {
-            GLDriverFunctions::get().viewport_func_ptr(0,
-                                                       0,
-                                                       static_cast<GLsizei>(real_width),
-                                                       static_cast<GLsizei>(real_height) );
-            GLDriverFunctions::get().scissor_func_ptr (0,
-                                                       0,
-                                                       static_cast<GLsizei>(real_width),
-                                                       static_cast<GLsizei>(real_height) );
+            GLDriverFunctions::get().viewport_func_ptr(static_cast<GLint>(picture.x),
+                                                       static_cast<GLint>(picture.y),
+                                                       static_cast<GLsizei>(picture.width),
+                                                       static_cast<GLsizei>(picture.height) );
+            GLDriverFunctions::get().scissor_func_ptr (static_cast<GLint>(picture.x),
+                                                       static_cast<GLint>(picture.y),
+                                                       static_cast<GLsizei>(picture.width),
+                                                       static_cast<GLsizei>(picture.height) );
 
             m_applied_height = real_height;
             m_applied_width  = real_width;
