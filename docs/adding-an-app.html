@@ -29,7 +29,7 @@
 
 <div class="note">The converter handles Direct3D 8 programs whose camera is set with <code>SetTransform</code>, Direct3D 7 programs whose vertices are already in pixels, and OpenGL programs of the fixed function (see <a href="#limits">What this does not cover</a>). The steps are the same for each of them; only what the rules can name changes (<a href="#draft">step 4</a>). For another API they are the same once it has its front end and its converter adapter (<a href="contributing.html#new-api">Adding an API</a>). The catalog has one program of each of the three APIs.</div>
 
-<div class="note">The commands are written from the folder of a release (<code>build_final</code>): the programs are in <code>tools\api_dumper</code>, <code>tools\analysis</code> and <code>tools\stereo_replay</code> (see <a href="building.html#release">The collected build</a>). <code>my_demo</code> and <code>app.exe</code> stand for the program being added.</div>
+<div class="note">The commands are written from the folder of a release (<code>build_final</code>): the programs are in <code>tools\api_dumper</code>, <code>tools\analysis</code>, <code>tools\stereo_replay</code> and <code>runtime</code> (see <a href="building.html#release">The collected build</a>). <code>my_demo</code> and <code>app.exe</code> stand for the program being added.</div>
 
 <h2 id="steps">The steps</h2>
 <p>Eight steps, each ending in a file or a decision that the next step reads.</p>
@@ -41,7 +41,7 @@
   <rect class="box2" x="470" y="10" width="190" height="90" rx="6"/><text x="565" y="36" text-anchor="middle">3 Investigate</text><text class="small" x="565" y="56" text-anchor="middle">Query + LLM</text><text class="small" x="565" y="82" text-anchor="middle">scene or interface, per pass</text>
   <rect class="box2" x="700" y="10" width="190" height="90" rx="6"/><text x="795" y="36" text-anchor="middle">4 Draft rules</text><text class="small" x="795" y="56" text-anchor="middle">LLM, you review</text><text class="small" x="795" y="82" text-anchor="middle">recipe.json (no baked part)</text>
   <rect class="box"  x="10"  y="160" width="190" height="90" rx="6"/><text x="105" y="186" text-anchor="middle">5 Bake</text><text class="small" x="105" y="206" text-anchor="middle">RecipeBake</text><text class="small" x="105" y="232" text-anchor="middle">my_demo.json (baked)</text>
-  <rect class="box4" x="240" y="160" width="190" height="90" rx="6"/><text x="335" y="186" text-anchor="middle">6 Check offline</text><text class="small" x="335" y="206" text-anchor="middle">Player, Checker</text><text class="small" x="335" y="232" text-anchor="middle">images of both eyes</text>
+  <rect class="box4" x="240" y="160" width="190" height="90" rx="6"/><text x="335" y="186" text-anchor="middle">6 Check offline</text><text class="small" x="335" y="206" text-anchor="middle">Player, Inspector</text><text class="small" x="335" y="232" text-anchor="middle">images of both eyes</text>
   <rect class="box4" x="470" y="160" width="190" height="90" rx="6"/><text x="565" y="186" text-anchor="middle">7 Try live</text><text class="small" x="565" y="206" text-anchor="middle">VRPlayer or StereoLauncher</text><text class="small" x="565" y="232" text-anchor="middle">session log, the window</text>
   <rect class="box3" x="700" y="160" width="190" height="90" rx="6"/><text x="795" y="186" text-anchor="middle">8 Catalog</text><text class="small" x="795" y="206" text-anchor="middle">apps/apps.json</text><text class="small" x="795" y="232" text-anchor="middle">an entry + the recipe</text>
   <path class="arrow" d="M200 55H238"/><path class="arrow" d="M430 55H468"/><path class="arrow" d="M660 55H698"/>
@@ -55,15 +55,15 @@
 
 <h2 id="capture">1. Capture the program</h2>
 <pre><code>tools\api_dumper\APIDumper_x86.exe --dump-n-frames 3000 --dump-swapchain-on-present c:\path\to\app.exe [app arguments]</code></pre>
-<p><strong>Result:</strong> <code>result_dump.workload</code>, a recording of every API call and of the back buffer of each frame.</p>
+<p><strong>Result:</strong> <code>result_dump.workload</code>, a recording of every API call and of the back buffer of each frame. Run it from the folder of the program (the working directory is where the file goes).</p>
 
 <h3>The options</h3>
 <table>
 <tr><th>Option or file</th><th>Effect</th></tr>
 <tr><td><code>APIDumper_x86.exe</code> / <code>APIDumper_x64.exe</code></td><td>The dumper for a 32-bit or a 64-bit program.</td></tr>
-<tr><td><code>--dump-n-frames N</code></td><td>The workload is written when N frames are reached, or when the program exits.</td></tr>
-<tr><td><code>--dump-swapchain-on-present</code></td><td>Stores the back buffer of each frame, which is what lets anyone later see what a frame looked like.</td></tr>
-<tr><td><code>--spill-threshold-mb</code></td><td>Keeps a 32-bit program from running out of memory while the workload is written. A capture can be large: a few minutes of a demo are gigabytes.</td></tr>
+<tr><td><code>--dump-n-frames N</code></td><td>The capture ends when N frames have been presented, or when the program exits. Without it, only the exit ends it.</td></tr>
+<tr><td><code>--dump-swapchain-on-present</code></td><td>Stores the back buffer of each frame (OpenGL, Direct3D 7 and 8), which is what lets anyone later see what a frame looked like.</td></tr>
+<tr><td><code>--spill-threshold-mb N</code></td><td>Writes the data waiting in memory to the file once it reaches N megabytes (128 by default), so that a 32-bit program does not run out of memory. A capture can be large: a few minutes of a demo are gigabytes.</td></tr>
 <tr><td><code>result_dump.workload</code></td><td>The output, written in the working directory of the program.</td></tr>
 </table>
 
@@ -79,16 +79,35 @@ tools\analysis\APIDumpDependencyExtractor_x64 result_dump.workload -o app.deps -
 <h3>What the two files are for</h3>
 <table>
 <tr><th>File</th><th>Used by</th></tr>
-<tr><td><code>app.passes</code></td><td>The query tool (step 3) and the baker (step 5). A file whose section version is not the reader's is refused: analyse the workload again.</td></tr>
-<tr><td><code>app.deps</code></td><td>The baker (<code>--deps</code>), to know which textures need a copy for the second eye; the replay tools, to seek faster.</td></tr>
+<tr><td><code>app.passes</code></td><td>The query tool (step 3) and the baker (step 5). A file made by another version of the analysis (file, section or key scheme) is refused: extract again.</td></tr>
+<tr><td><code>app.deps</code></td><td>The baker (<code>--deps</code>), to know which textures need a copy for the second eye; the replay player (<code>--deps</code>), to seek faster.</td></tr>
 </table>
-<p>Both extractors read the workload with several threads (<code>--threads</code>), and <code>--max-frames</code> stops at a frame.</p>
 
-<h3>One script for steps 2, 5 and a check</h3>
-<p><code>scripts\analyze_capture.ps1 -Workload result_dump.workload -Recipe recipe.json -OutDir folder [-MaxFrames N] [-ToolsDir dir]</code> runs this step, the bake of step 5 and <code>RecipeBake --check</code> on the result. It writes <code>&lt;name&gt;.passes</code>, <code>&lt;name&gt;.deps</code>, <code>&lt;name&gt;.baked.json</code> and a log of each tool into <code>folder</code>, which must not be the folder of the recipe; the recipe is only read. To use the baked recipe, copy it over by hand.</p>
+<h3>The options both extractors share</h3>
+<table>
+<tr><th>Option</th><th>Effect</th></tr>
+<tr><td><code>-o file</code></td><td>The file to write; by default the name of the workload with <code>.passes</code> or <code>.deps</code>.</td></tr>
+<tr><td><code>--max-frames N</code></td><td>Stops after the Nth frame.</td></tr>
+<tr><td><code>--threads N</code></td><td>Threads that read the workload ahead of the analysis (the cores of the machine, up to 8, by default; 0: none).</td></tr>
+<tr><td><code>--stats</code></td><td>Prints what was found when done.</td></tr>
+<tr><td>Exit code</td><td>0 done, 1 bad arguments, 2 the workload cannot be read, 3 the output cannot be written.</td></tr>
+</table>
+
+<h3>One script for steps 2 and 5, and the checks</h3>
+<pre><code>scripts\analyze_capture.ps1 -Workload result_dump.workload -Recipe recipe.json -OutDir folder [-MaxFrames N] [-ToolsDir dir]</code></pre>
+<p>It runs the two extractors, the bake of step 5, and then two checks of the baked recipe. The names come from the workload (<code>result_dump</code> here). <code>folder</code> must not be the folder of the recipe: the recipe is only read, and to use the baked one you copy it over by hand.</p>
+<table>
+<tr><th>Written into <code>folder</code></th><th>What it is</th></tr>
+<tr><td><code>result_dump.passes</code>, <code>result_dump.deps</code></td><td>The two files above.</td></tr>
+<tr><td><code>result_dump.baked.json</code></td><td>The baked recipe (<code>RecipeBake -o</code>, never in place).</td></tr>
+<tr><td><code>check.log</code></td><td><code>RecipeBake --check</code> on the baked recipe; the script prints its first lines.</td></tr>
+<tr><td><code>parity.log</code></td><td><code>RecipeBake --parity</code>: the draws on which the replay and the live converter decide differently; exit 7 is a finding the script accepts, and it prints the first lines.</td></tr>
+<tr><td><code>extract_passes.log</code>, <code>extract_deps.log</code>, <code>bake.log</code></td><td>What each of the other tools printed.</td></tr>
+</table>
+<p><code>-ToolsDir</code> defaults to <code>build_final\tools\analysis</code>; the script runs the <code>_x64</code> tools.</p>
 
 <h3>Is the capture good?</h3>
-<p>Before going on, look at the summary the extractor prints, or at <code>APIDumpAnalysisQuery app.passes info</code>.</p>
+<p>Before going on, look at <code>APIDumpAnalysisQuery app.passes info</code>. The extractor's <code>--stats</code> prints the same numbers as lines (<code>unfollowed</code>, <code>unsupported</code>, <code>Key collisions</code>).</p>
 <table>
 <tr><th>Field</th><th>Good value</th><th>If it is not</th></tr>
 <tr><td><code>n_unfollowed_calls</code></td><td><strong>0</strong></td><td>The analysis could not make sense of a call (its arguments were not as expected). The passes found may be wrong; the cause is a bug or a gap in the front end, not something a recipe can fix.</td></tr>
@@ -129,7 +148,12 @@ tools\analysis\APIDumpDependencyExtractor_x64 result_dump.workload -o app.deps -
 </svg>
 <figcaption>The first row narrows the program to one kind of pass; the second row answers a question about it.</figcaption>
 </figure>
-<p><code>overlays</code> lists passes whose camera never changes, and the draws that were drawn with an orthographic projection even in a pass of a 3D scene. <code>pass &lt;id&gt;</code> shows the constants of the camera and their values over time. <code>depth</code> lists only a pass with a perspective camera and draws in front of it.</p>
+<table>
+<tr><th>Command</th><th>What it adds</th></tr>
+<tr><td><code>overlays</code></td><td>The passes whose camera never changes, and the draws drawn with an orthographic projection even in a pass of a 3D scene. It ends with an <code>unaffected</code> list that can be pasted into a recipe, and it is a hint.</td></tr>
+<tr><td><code>pass &lt;id&gt;</code></td><td>The constants of the camera and their values over time.</td></tr>
+<tr><td><code>depth</code></td><td>For each pass with vertices in front of the camera, in each kind of frame: the depth of its draws, and of its vertices where the analysis could read them.</td></tr>
+</table>
 
 <h3>Facts that tell a scene from an interface</h3>
 <table>
@@ -172,7 +196,7 @@ marked unclear, with the question that would settle it.</code></pre>
   <li><strong>Ask for the unclear list.</strong> A model that has to say what it does not know checks more than one that has to decide everything.</li>
   <li><strong>Read the evidence, not the verdict.</strong> The facts are fields of the JSON that you can run again yourself, and a verdict that rests on none of them is a guess.</li>
 </ol>
-<p>Where the facts are not enough, a multimodal model can be given the back buffers of the frames (<code>APIDumpPrinter</code> writes the surface dumps of a workload to its working directory), and a person can always look.</p>
+<p>Where the facts are not enough, a multimodal model can be given pictures of frames: <code>StereoReplayInspector --screenshot</code> and <code>--contact-sheet</code> (step 6) write them as PNG files. <code>APIDumpPrinter</code> writes the back buffers as raw RGBA files, one for each frame, which is a lot of data. A person can always look.</p>
 
 <h2 id="draft">4. Draft the rules</h2>
 <p>The input of the baker is a recipe <em>without</em> the <code>baked</code> section: what the person knows, and what the analysis cannot.</p>
@@ -203,8 +227,10 @@ marked unclear, with the question that would settle it.</code></pre>
 <tr><td><code>unaffected</code></td><td>The answer of step 3. Everything not listed is a scene draw, so a missed interface pass shows as an interface that is doubled; a pass wrongly listed shows as a scene that does not move between the eyes.</td></tr>
 <tr><td><code>eye_offset</code> rule</td><td>Moves each eye along an axis by half of the separation, which is a setting of the VR player (the depth choice), not of the recipe.</td></tr>
 <tr><td><code>eye_convergence</code> rule</td><td>Shears the projection so that what is at the convergence distance is at the screen; the distance is measured and baked in step 5. See <a href="recipes.html#format">Recipe format</a> for every action.</td></tr>
-<tr><td><code>known_shape_keys</code></td><td>Should be the shapes of the capture.</td></tr>
-<tr><td><code>on_unknown_frame</code></td><td>Leave at <code>mono</code> unless a program has screens that must not appear at all (<code>skip</code>) or that should never occur (<code>fail</code>, which stops the converter with a message, useful while testing).</td></tr>
+<tr><td><code>known_shape_keys</code></td><td>Should be the shapes of the capture. Left out, every frame is known; an empty list is refused.</td></tr>
+<tr><td><code>on_unknown_frame</code></td><td><code>mono</code> when left out. <code>skip</code> for screens that must not appear at all; <code>fail</code> for screens that should never occur (it stops the converter with a message, useful while testing).</td></tr>
+<tr><td><code>target</code></td><td>Optional. <code>name</code> is the title in the catalog when the entry has none; <code>description</code> is optional and is shown under the title in the VR player.</td></tr>
+<tr><td><code>rules</code></td><td>Required; <code>[]</code> for a program with no matrix call to follow (below).</td></tr>
 </table>
 
 <h3>Direct3D 7 with vertices in pixels, and OpenGL</h3>
@@ -233,50 +259,63 @@ marked unclear, with the question that would settle it.</code></pre>
 <table>
 <tr><th>Baked</th><th>What it is</th></tr>
 <tr><td><code>draw_rules</code></td><td>For every draw signature the analysis saw: an interface or a scene, with the view matrix where one signature is both.</td></tr>
-<tr><td>convergence distances</td><td>For each signature and for each shape: the median depth by vertices of what it draws.</td></tr>
-<tr><td>known signatures</td><td>The list of signatures it knew.</td></tr>
+<tr><td><code>convergence</code>, <code>scene_convergence</code></td><td>For each signature and for each shape: the median depth by vertices of what it draws.</td></tr>
+<tr><td><code>scene_max_separation</code></td><td>For each shape with depth: how far apart the eyes may be, from its nearest (and farthest) surfaces and the <code>comfort</code> of the recipe.</td></tr>
+<tr><td><code>per_eye_textures</code></td><td>The textures that each eye has its own copy of (told by <code>--deps</code>; without it, by what each frame reads and writes).</td></tr>
+<tr><td><code>known_signatures</code></td><td>The list of signatures it knew.</td></tr>
 <tr><td><code>flat_layer_draws</code>, <code>overlay_draws</code>, <code>eye_space_draws</code></td><td>The keys of the draws that are flat layers, overlays over a 3D scene, or in eye space (see <a href="analysis.html#depth">How far away is it?</a>). Only with <code>comfort.automatic_layers</code> in the recipe; without it the baked section has none of the three.</td></tr>
 </table>
-<p>It prints a summary: the number of signatures, of rules, of signatures that only the view matrix tells apart, and how many have a distance.</p>
+<h3>What the summary says</h3>
+<table>
+<tr><th>Line</th><th>Read it as</th></tr>
+<tr><td>signatures, rules</td><td>How many draw signatures there are, how many rules they got, and how many of those are for signatures that only the view matrix tells apart.</td></tr>
+<tr><td>distances</td><td>How many signatures have a distance where the eyes converge, and how many have none.</td></tr>
+<tr><td>kinds of frames</td><td>How many scenes have a distance of their own, none, or a limit on how far apart the eyes may be.</td></tr>
+<tr><td>textures</td><td>How many textures have a copy for each eye.</td></tr>
+<tr><td>resolution</td><td>Calls whose meaning depends on the size of the target (the hazards of step 2), when there are any.</td></tr>
+</table>
 
 <h3>What the result can mean</h3>
-<ul>
-  <li><strong>Exit 3</strong> means the recipe cannot be baked, and says why. The usual one: a signature that is drawn as an interface in one pass and as a scene in another, with the same view matrix, so that nothing known when it is issued tells the two apart. The message names the signature; the remedy is in the rules (<code>draw_keys</code> say which draws of an affected pass are an interface).</li>
-  <li>Signatures with <em>no</em> distance are draws that were never in front of the camera in the capture; they use the distance of their frame's shape.</li>
-  <li>Bake again whenever the capture changes. The baked part is generated; do not edit it. Without <code>-o</code> the recipe is written over itself, so keep the unbaked one apart.</li>
-</ul>
+<table>
+<tr><th>Result</th><th>Meaning</th></tr>
+<tr><td>Exit 3</td><td>The recipe cannot be baked, and the message says why. The usual cause: a signature drawn as an interface in one pass and as a scene in another, with the same view matrix (or a pass with no matrix), so that nothing known when a draw is issued tells the two apart. The message names the signature; the remedy is in the rules (<code>draw_keys</code> say which draws of an affected pass are an interface).</td></tr>
+<tr><td>Signatures with <em>no</em> distance</td><td>Draws that were never in front of the camera in the capture; they use the distance of their frame's shape.</td></tr>
+<tr><td>Baking again</td><td>Do it whenever the capture changes. The baked part is generated: do not edit it. Without <code>-o</code> the recipe is written over itself, so keep the unbaked one apart.</td></tr>
+</table>
+<p>Other exit codes: 1 bad arguments, 2 a file cannot be read, 4 the file cannot be written.</p>
 
-<h3>Three modes that write nothing</h3>
+<h3>Four modes that write nothing</h3>
 <table>
 <tr><th>Mode</th><th>What it prints</th></tr>
-<tr><td><code>--check</code></td><td>Which kinds of frames and which draw signatures of the capture the recipe does not know (exit 5), and which passes it leaves alone look like 3D scenes (exit 6). It also lists the draw keys whose draws disagree (some in the space of the picture and some not, some over a 3D scene and some not, or some in eye space and some not: no one rule can class such a key); those change no exit code.</td></tr>
+<tr><td><code>--check</code></td><td>Which kinds of frames and which draw signatures of the capture the recipe does not know (exit 5). Which passes it leaves alone look like 3D scenes, or are left alone by the replay and not by the live converter (exit 6). It also lists the draw keys whose draws disagree (some in the space of the picture and some not, some over a 3D scene and some not, or some in eye space and some not: no one rule can class such a key); those change no exit code.</td></tr>
 <tr><td><code>--overlays</code></td><td>As JSON, the draws that may be 2D overlays.</td></tr>
-<tr><td><code>--parity</code></td><td>The draws on which the replay and the live converter decide differently (class or push). Run it after baking: it must list none.</td></tr>
-<tr><td><code>--scenes</code></td><td>Each scene with where its frames are, where the eyes converge, how far apart they may be and what that makes of the parallax of its nearest and farthest surfaces (<code>--screen-degrees</code> says how wide the screen is). It is what the <code>comfort</code> numbers are tuned with (<a href="recipes.html">Recipes</a>).</td></tr>
+<tr><td><code>--parity</code></td><td>The draws on which the replay and the live converter decide differently (class or push). Run it after baking: it must list none, and exit 7 says it listed some.</td></tr>
+<tr><td><code>--scenes</code></td><td>As JSON, each scene with where its frames are, where the eyes converge, how far apart they may be and what that makes of the parallax of its nearest and farthest surfaces (<code>--screen-degrees</code> says how wide the screen is, 90 by default). It is what the <code>comfort</code> numbers are tuned with (<a href="recipes.html">Recipes</a>).</td></tr>
 </table>
+<p>The modes cannot be combined.</p>
 
 <h2 id="check">6. Check it offline</h2>
 <p>The offline replay tools take a recipe, so a recipe can be checked on the capture before it meets the program. This is the step where a person looks.</p>
-<pre><code>tools\stereo_replay\StereoReplayPlayer_x86.exe --recipe my_demo.json --eye both --eye-separation 0.1 result_dump.workload
-tools\stereo_replay\StereoReplayInspector_x86.exe result_dump.workload --recipe my_demo.json --from 0 --to 200 --dump-dir out</code></pre>
+<pre><code>tools\stereo_replay\StereoReplayPlayer_x86.exe --recipe my_demo.json --eye both --eye-separation 0.1 --deps app.deps result_dump.workload
+tools\stereo_replay\StereoReplayInspector_x86.exe result_dump.workload --recipe my_demo.json --eye-separation 0.1 --from 0 --to 200 --dump-dir out</code></pre>
 <p><strong>Result:</strong> images of both eyes for frames of every shape, and a verdict on what to change.</p>
 
 <h3>The two tools</h3>
 <table>
 <tr><th>Tool</th><th>What it does</th></tr>
-<tr><td><strong>StereoReplayPlayer</strong></td><td>Renders the frames for both eyes and shows the images side by side. Use <code>--eye left</code> and <code>--eye right</code> to see one at a time.</td></tr>
-<tr><td><strong>StereoReplayInspector</strong></td><td>Replays the frames twice, the first time for the left eye and the second for the right, and compares the images with those of a replay without the recipe. With a recipe that changes nothing it must find no difference; with the real one, differences are expected, and the inspector's job is to say where the replay itself is unstable (a frame that cannot be executed twice is not one that stereo conversion can handle).</td></tr>
+<tr><td><strong>StereoReplayPlayer</strong></td><td>Renders the frames for both eyes and shows the images side by side. <code>--eye left</code> and <code>--eye right</code> show one at a time. <code>--eye-separation</code> is 0.1 when left out, in the units of the camera of the program; the window has a slider for it. <code>--frames A-B</code> plays only those frames, and <code>--deps</code> makes a seek quicker (the file with the name of the workload and <code>.deps</code> is used when there is one).</td></tr>
+<tr><td><strong>StereoReplayInspector</strong></td><td>Replays frames <code>--from</code> to <code>--to</code> (0 to 999 by default). With a recipe it executes each frame twice, the first time for the left eye and the second for the right, and compares the images with those of a replay without the recipe. <code>--eye-separation</code> is 0 when left out, which changes nothing: give it a value. <code>--dump-dir</code> receives the images of the first frame in which an execution differs.</td></tr>
 </table>
-<p>Some frames of any program differ on a second execution; compare with the same run without the recipe before blaming the recipe.</p>
+<p>With a recipe that changes nothing the inspector must find no difference; with the real one, differences are expected. Its other job is to say where the replay itself is unstable: a frame that cannot be executed twice is not one that stereo conversion can handle. Some frames of any program differ on a second execution; compare with the same run without the recipe before blaming the recipe.</p>
 
 <h3>Looking without a window</h3>
 <table>
-<tr><th>Checker option</th><th>Effect</th></tr>
-<tr><td><code>--screenshot N --out file.png --recipe my_demo.json</code></td><td>Writes frame N, both eyes side by side, or <code>--eye anaglyph</code>.</td></tr>
-<tr><td><code>--contact-sheet K --out sheet.png</code></td><td>Puts K frames spread over the range on one picture.</td></tr>
-<tr><td><code>--overlay-report candidates.json</code></td><td>Takes the output of <code>RecipeBake --overlays</code> and makes an animation for each draw that may be an overlay, with and without it, to look at in <code>index.html</code> of <code>--dump-dir</code>.</td></tr>
+<tr><th>Inspector option</th><th>Effect</th></tr>
+<tr><td><code>--screenshot N --out file.png --recipe my_demo.json</code></td><td>Writes frame N, both eyes side by side; <code>--eye left</code>, <code>right</code> or <code>anaglyph</code> (red-cyan) says otherwise. Without <code>--recipe</code> it is the frame as it is.</td></tr>
+<tr><td><code>--contact-sheet K --out sheet.png</code></td><td>Puts K frames spread evenly from <code>--from</code> to <code>--to</code> on one picture, and prints their numbers in the order shown.</td></tr>
+<tr><td><code>--overlay-report candidates.json --recipe my_demo.json --dump-dir out</code></td><td>Takes the output of <code>RecipeBake --overlays</code> and makes, for each draw that may be an overlay, an animation of its frame with and without the draw, to look at in <code>index.html</code> of <code>--dump-dir</code>. <code>--deps</code> makes it quicker.</td></tr>
 </table>
-<p>The player and the inspector come as <code>_x86</code> (for the capture of a 32-bit program) and <code>_x64</code>.</p>
+<p>The player and the inspector come as <code>_x86</code> (for the capture of a 32-bit program, which is the one to use for Direct3D 7 and 8) and <code>_x64</code>.</p>
 
 <h3>What you see, and where to go back to</h3>
 <table>
@@ -285,36 +324,66 @@ tools\stereo_replay\StereoReplayInspector_x86.exe result_dump.workload --recipe 
 <tr><td>The scene is flat: no depth between the eyes</td><td>a scene pass is listed as unaffected, or the eye separation is 0</td><td>step 3; the separation (the depth choice or <code>--eye-separation</code>)</td></tr>
 <tr><td>The world is right but a post-processed result or a reflection is off by an eye</td><td>a pass that reads a target was not drawn for the eye that made it</td><td>step 3: <code>resources</code> and <code>pass</code> for the pass that reads it</td></tr>
 <tr><td>Everything appears behind the screen, or far in front of it</td><td>the convergence distance does not suit the scene</td><td>step 5: the <code>convergence</code> of the signatures; <code>pass</code> shows the depth of what it draws</td></tr>
-<tr><td>Something near (a wall at arm's length, an object that fills the view) has an extreme shift between the eyes</td><td>the limit of the eye separation of the scene is too generous, or the scene has none</td><td>the <code>comfort</code> of the recipe: lower <code>max_near_parallax</code> (0.03 is three in a hundred of the width of the picture), or make <code>near_fraction</code> larger to count more of the surfaces as near; bake again. <code>depth</code> shows <code>surface_depth_nearest</code> for the pass</td></tr>
-<tr><td>An interface or text appears inside the scene, at the depth of the screen, though things in the scene are nearer</td><td>the draws that the rules leave alone have no parallax of their own</td><td>the <code>comfort</code> of the recipe: <code>overlay_parallax</code> says how far they can be pushed toward the viewer (0.04 is four in a hundred of the width of the picture), and VR Player pushes them by it (there is no control for it); 0 or leaving it out means the application wants none</td></tr>
+<tr><td>Something near (a wall at arm's length, an object that fills the view) has an extreme shift between the eyes</td><td>the limit of the eye separation of the scene is too generous, or the scene has none</td><td>the <code>comfort</code> of the recipe (below); bake again. <code>depth</code> shows <code>surface_depth_nearest</code> for the pass</td></tr>
+<tr><td>An interface or text appears inside the scene, at the depth of the screen, though things in the scene are nearer</td><td>the draws that the rules leave alone have no parallax of their own</td><td>the <code>comfort</code> of the recipe (below): <code>overlay_parallax</code></td></tr>
 <tr><td>A screen of the program is mono</td><td>its frame shape is not in <code>known_shape_keys</code></td><td>step 1: capture it, and 2 to 5 again</td></tr>
 </table>
 
-<h2 id="live">7. Try it live</h2>
-<p>Add the program to the catalog (step 8) and start it from <code>VRPlayer</code>, or start <code>StereoLauncher</code> yourself:</p>
-<pre><code>runtime\StereoLauncher_x86.exe --recipe my_demo.json --session test --log --wait c:\path\to\app.exe</code></pre>
-<p><strong>Result:</strong> the program running in stereo, and a session log to read.</p>
-
-<h3>Launcher options and the log</h3>
+<h3>Tuning the comfort</h3>
+<p>The <code>comfort</code> section of the recipe holds the numbers that step 6 changes. <code>RecipeBake --scenes</code> shows what they make of each scene. The recipe is baked again after each change.</p>
 <table>
 <tr><th>Option</th><th>Effect</th></tr>
-<tr><td><code>--session</code></td><td>Names the playback.</td></tr>
-<tr><td><code>--working-directory</code></td><td>Says where the application runs.</td></tr>
-<tr><td><code>--log</code></td><td>On StereoLauncher, or on <code>VRPlayer</code> (which has no control for it in the window, and passes the switch on): the converter writes a session log, <code>%TEMP%\apistereo_&lt;session&gt;.log</code>. <code>&lt;session&gt;</code> is the <code>--session</code> value; <code>VRPlayer</code> uses its process ID and a tick count, <code>&lt;pid&gt;-&lt;ticks&gt;</code>. Lines ending in &ldquo;(presenter)&rdquo; come from the headset path.</td></tr>
+<tr><td><code>max_near_parallax</code></td><td>How far apart the pictures of the eyes may be at the nearest surface of a scene, as a part of the width of the picture (0.03 is three in a hundred). Lower it when something near has an extreme shift.</td></tr>
+<tr><td><code>near_fraction</code></td><td>Which part of the surfaces (by vertices) counts as the nearest: 0.001 by default. Make it larger to count more of them.</td></tr>
+<tr><td><code>overlay_parallax</code></td><td>How far toward the viewer the draws that the rules leave alone are pushed (0.04 is four in a hundred of the width). VR Player pushes them by it and has no control for it; 0 or leaving it out means the application wants none.</td></tr>
+<tr><td><code>ease_by_time</code>, <code>snap_at_cuts</code></td><td>Both off by default. The first eases the eyes toward a scene by the time that goes and not by frame; the second puts them at the new scene at once when the scene is cut to a very different one.</td></tr>
+</table>
+
+<h2 id="live">7. Try it live</h2>
+<p>Add the program to the catalog (step 8) and start it from <code>VRPlayer</code>. To try an entry without building again, run the release's player on the catalog of the repository, which also downloads the program into the repository's <code>apps\&lt;id&gt;\</code>:</p>
+<pre><code>VRPlayer.exe --catalog c:\path\to\repository\apps\apps.json --log</code></pre>
+<p><strong>Result:</strong> the program running in stereo in the window of the presenter (or in the headset), and a session log to read.</p>
+
+<h3>Without VRPlayer</h3>
+<p>The launcher starts the program with the converter in it. Start the presenter first with the same session name when you want to see the images:</p>
+<pre><code>runtime\StereoPresenter_x64.exe --session test --log
+runtime\StereoLauncher_x86.exe --recipe my_demo.json --session test --log --wait c:\path\to\app.exe</code></pre>
+<p><strong>Result:</strong> the log, a short summary printed by the launcher when the program exits, and its exit code. Without the presenter nothing shows the second eye, and the program stays on screen as it is.</p>
+
+<h3>Launcher options</h3>
+<table>
+<tr><th>Option</th><th>Effect</th></tr>
+<tr><td><code>--recipe</code>, <code>--session</code></td><td>Both required. The session names the playback, so that the programs that take part in it find each other.</td></tr>
+<tr><td><code>--arguments "text"</code></td><td>The command line of the application, as it is. Arguments after the application's path are an error.</td></tr>
+<tr><td><code>--working-directory</code></td><td>Where the application runs; the current directory by default.</td></tr>
+<tr><td><code>--click-button "text"</code>, <code>--untick-checkbox "text"</code></td><td>For the dialog that a program shows before it starts: untick the checkbox, press the button (not looking at case or at <code>&amp;</code>); given up after a minute. The checkbox needs the button. The catalog's <code>launch_button</code> and <code>untick_checkbox</code> are these.</td></tr>
+<tr><td><code>--log</code></td><td>The converter writes a session log; without it, only why it stops the application is written.</td></tr>
+<tr><td><code>--wait</code></td><td>Does not return until the application exits, and then prints its exit code (and, with <code>--log</code>, the summary).</td></tr>
+<tr><td>Exit code</td><td>0 done, 1 bad arguments, 2 the program or the converter or the recipe cannot be used, 3 (with <code>--wait</code>) the converter stopped the application and the log says why. The launcher has to be of the architecture of the application.</td></tr>
+</table>
+
+<h3>The log</h3>
+<table>
+<tr><th>Item</th><th>Detail</th></tr>
+<tr><td>Where</td><td><code>%TEMP%\apistereo_&lt;session&gt;.log</code>. <code>&lt;session&gt;</code> is the <code>--session</code> value; <code>VRPlayer</code> uses its process ID and a tick count, <code>&lt;pid&gt;-&lt;ticks&gt;</code>.</td></tr>
+<tr><td><code>--log</code> on VRPlayer</td><td>The window has no control for it; the switch is passed on to the launcher and the presenter. Lines ending in &ldquo;(presenter)&rdquo; come from the headset path.</td></tr>
+<tr><td>Statistics</td><td>One line every 600 frames. A program that ends sooner has none.</td></tr>
 </table>
 
 <h3>What to look for in the log</h3>
 <table>
 <tr><th>In the log</th><th>Meaning</th></tr>
 <tr><td>Frames of a scene the recipe has no distance for (<code>scene_convergence</code>); the statistics line counts them</td><td>A program that is mostly in such frames is in screens that were not in the capture (step 1).</td></tr>
-<tr><td>A refusal</td><td>A rule that depends on a pass or a frame shape (<code>pass_keys</code> or <code>shape_keys</code> in the <code>when</code> of a rule) cannot be followed live, since neither is known when a draw is issued, and the converter then stops with a message instead of drawing wrong images. The interface passes of <code>unaffected</code> are not of this kind: the baker turns them into rules by signature.</td></tr>
-<tr><td>The statistics line at the end</td><td>The numbers of affected, unaffected and skipped draws, of draws of a signature the recipe does not know, of frames of a scene it has no distance for, and of matrices kept, then the twins and the unmirrored calls (Direct3D 7, OpenGL), the counts of the OpenGL draws, and what the callbacks cost per frame. A large count of unknown draws means that the program draws things in play that were not in the capture.</td></tr>
+<tr><td>A refusal (&ldquo;The application cannot be converted:&rdquo;)</td><td>A rule that depends on a pass or a frame shape (<code>pass_keys</code> or <code>shape_keys</code> in the <code>when</code> of a rule) cannot be followed live, since neither is known when a draw is issued, and the converter then stops the application with a message instead of drawing wrong images.</td></tr>
+<tr><td>A &ldquo;Warning:&rdquo; that <code>unaffected.pass_keys</code> names passes</td><td>The live converter does not know passes: it follows the draw rules that the baker made from them. <code>RecipeBake --parity</code> says whether the two agree.</td></tr>
+<tr><td>The statistics line</td><td>The numbers of affected, unaffected and skipped draws, of draws of a signature the recipe does not know, of frames of a scene it has no distance for, and of matrices kept, then the twins and the unmirrored calls (Direct3D 7, OpenGL), the counts of the OpenGL draws, and what the callbacks cost per frame. A large count of unknown draws means that the program draws things in play that were not in the capture.</td></tr>
 </table>
 <p>Judge what you see in the window first and in the headset second: the window shows the same images, and it is where a fault is easiest to tell from discomfort.</p>
 
 <h2 id="catalog">8. Put it in the catalog</h2>
-<p>The catalog is <code>apps/apps.json</code>, and the recipes it names are in <code>apps/recipes/</code>. <code>build.bat</code> copies both to <code>build_final\apps\</code>, so a release has them. <code>VRPlayer</code> lists the programs alphabetically by name, ignoring case, and by id when names are equal.</p>
+<p>The catalog is <code>apps/apps.json</code>, and the recipes it names are in <code>apps/recipes/</code>. <code>build.bat</code> installs both into <code>build_final\apps\</code>, so a release has them. <code>VRPlayer</code> lists the programs alphabetically by name, ignoring case, and by id when names are equal.</p>
 <p><strong>Result:</strong> the program appears in the list of <code>VRPlayer</code>.</p>
+<div class="note"><code>build.bat</code> empties <code>build_final</code> first, which removes the programs that were downloaded into <code>build_final\apps\</code>, and it must not run while <code>VRPlayer</code> is open.</div>
 
 <h3>How an entry is used</h3>
 <p>The program itself is not kept in the repository: the entry says where it can be downloaded, and <code>VRPlayer</code> gets it the first time it is launched, into <code>apps/&lt;id&gt;/</code> (see <a href="vr-player.html#download">VR player</a>).</p>
@@ -326,7 +395,7 @@ tools\stereo_replay\StereoReplayInspector_x86.exe result_dump.workload --recipe 
   <rect class="box"  x="370" y="20" width="160" height="70" rx="6"/><text x="450" y="46" text-anchor="middle">executable there?</text><text class="small" x="450" y="66" text-anchor="middle">in apps/&lt;id&gt;/</text>
   <rect class="box4" x="550" y="20" width="160" height="70" rx="6"/><text x="630" y="46" text-anchor="middle">launch</text><text class="small" x="630" y="66" text-anchor="middle">launcher + recipe</text>
   <rect class="box2" x="370" y="130" width="160" height="70" rx="6"/><text x="450" y="156" text-anchor="middle">download</text><text class="small" x="450" y="176" text-anchor="middle">urls in order, https only</text>
-  <rect class="box2" x="550" y="130" width="160" height="70" rx="6"/><text x="630" y="156" text-anchor="middle">verify</text><text class="small" x="630" y="176" text-anchor="middle">sha256, size</text>
+  <rect class="box2" x="550" y="130" width="160" height="70" rx="6"/><text x="630" y="156" text-anchor="middle">verify</text><text class="small" x="630" y="176" text-anchor="middle">sha256 of the zip file</text>
   <rect class="box2" x="730" y="130" width="160" height="70" rx="6"/><text x="810" y="156" text-anchor="middle">unpack</text><text class="small" x="810" y="176" text-anchor="middle">into apps/&lt;id&gt;/</text>
   <path class="arrow" d="M170 55H188"/><path class="arrow" d="M350 55H368"/><path class="arrow" d="M530 55H548"/>
   <path class="arrow" d="M450 90V128"/><text class="small" x="458" y="112">no, entry has download</text>
@@ -344,36 +413,55 @@ tools\stereo_replay\StereoReplayInspector_x86.exe result_dump.workload --recipe 
   "catalog_version": 0,
   "apps": [
     {
-      "id": "my_demo",                          letters, digits, '-' and '_'
-      "recipe": "recipes/my_demo.json",         relative to the catalog
-      "executable": "my_demo/my_demo.exe",      where it is once it is downloaded: in apps/&lt;id&gt;/
-      "arguments": "-fullscreen=0",             (optional) the command line of the application
-      "working_directory": "my_demo",          (optional) relative to the catalog; the directory of the executable by default
-      "launch_button": "Launch",              (optional) the text of a button of the dialog that the program shows first; the launcher presses it for the user (waited for up to 60 s)
-      "untick_checkbox": "Fullscreen",        (optional) the text of a checkbox of that dialog; the launcher unticks it just before it presses the button (a program that asks to run full screen would otherwise change the screen resolution and cover the window that shows the images)
-      "title": "My demo",                      (optional) the title in the list, written "name by group (year)" in this repository: otherwise, the name of the recipe's target
-      "unavailable_reason": "...",             (optional) why the player cannot start it although the recipe is there (a program that the converter cannot run); the entry is listed with the reason
-      "download": {                             (optional) where the program comes from, if it is not there
-        "urls": ["https://mirror.example/my_demo.zip"],   https only; one after the other until one works
-        "sha256": "...",                       of the zip file, in hex: what is not that is not used
-        "size": 12345,                        bytes of the zip file
-        "unpacked_size": 23456,               the most that the files may take together
-        "page": "https://example/my_demo"      (optional) where it can be got by hand
+      "id": "my_demo",
+      "title": "My demo by my group (2001)",
+      "recipe": "recipes/my_demo.json",
+      "executable": "my_demo/my_demo.exe",
+      "download": {
+        "urls": [ "https://mirror.example/my_demo.zip" ],
+        "sha256": "&lt;64 hex digits&gt;",
+        "size": 12345,
+        "unpacked_size": 23456
       }
     }
   ]
 }</code></pre>
+
+<h3>The fields of an entry</h3>
+<table>
+<tr><th>Field</th><th>Needed</th><th>Meaning</th></tr>
+<tr><td><code>id</code></td><td>yes</td><td>Letters, digits, <code>-</code> and <code>_</code>. Unique in the catalog; it names the folder <code>apps/&lt;id&gt;/</code> that the program is downloaded into.</td></tr>
+<tr><td><code>recipe</code></td><td>yes</td><td>The baked recipe, relative to the catalog.</td></tr>
+<tr><td><code>executable</code></td><td>yes</td><td>Relative to the catalog. With a <code>download</code> it has to be inside <code>apps/&lt;id&gt;/</code>.</td></tr>
+<tr><td><code>title</code></td><td>no</td><td>The title in the list. Written <em>name by group (year)</em> in this repository. Without it: the name of the recipe's target, then the id.</td></tr>
+<tr><td><code>arguments</code></td><td>no</td><td>The command line of the application, as <code>--arguments</code> of the launcher.</td></tr>
+<tr><td><code>working_directory</code></td><td>no</td><td>Relative to the catalog. The directory of the executable by default.</td></tr>
+<tr><td><code>launch_button</code></td><td>no</td><td>The text of a button in the dialog that the program shows first. The launcher presses it for the user, and waits up to a minute for it.</td></tr>
+<tr><td><code>untick_checkbox</code></td><td>no</td><td>The text of a checkbox in that dialog, which the launcher unticks just before it presses the button. Needs <code>launch_button</code>. A program that asks to run full screen would otherwise change the screen resolution and cover the window that shows the images.</td></tr>
+<tr><td><code>unavailable_reason</code></td><td>no</td><td>Why the player cannot start the program although the recipe is there. The entry is listed with this reason.</td></tr>
+<tr><td><code>download</code></td><td>no</td><td>Where the program comes from when it is not there (below).</td></tr>
+</table>
+
+<h3>The fields of <code>download</code></h3>
+<table>
+<tr><th>Field</th><th>Needed</th><th>Meaning</th></tr>
+<tr><td><code>urls</code></td><td>yes</td><td>A list of addresses, at least one, all <code>https://</code>. They are tried one after the other until one works.</td></tr>
+<tr><td><code>sha256</code></td><td>yes</td><td>Of the zip file, 64 hex digits. A file that does not hash to it is not used.</td></tr>
+<tr><td><code>size</code></td><td>yes</td><td>Bytes of the zip file (a whole number, 1 to 4294967296). It is the total of the progress bar, and the hash decides what is used.</td></tr>
+<tr><td><code>unpacked_size</code></td><td>yes</td><td>The most that the unpacked files may take together (same range). A zip file that holds more is not unpacked.</td></tr>
+<tr><td><code>page</code></td><td>no</td><td>Where the program can be got by hand. It is named in the message when no address works.</td></tr>
+</table>
+<p>The contents of the zip file are unpacked into <code>apps/&lt;id&gt;/</code>, so <code>executable</code> is <code>&lt;id&gt;/</code> followed by the path of the program inside the zip file. Get its <code>sha256</code> from a copy you trust (<code>certutil -hashfile my_demo.zip SHA256</code>), and check that the program may be downloaded by whoever uses the catalog. The recipe's <code>target.description</code>, when there is one, is shown under the title.</p>
 
 <h3>What makes an entry or the catalog unusable</h3>
 <table>
 <tr><th>Fault</th><th>Result</th></tr>
 <tr><td>The recipe cannot be found or is not valid</td><td>The entry is listed as unavailable, with the reason.</td></tr>
 <tr><td>The executable cannot be found and the entry has no <code>download</code></td><td>The entry is listed as unavailable, with the reason.</td></tr>
-<tr><td>A field the loader does not know</td><td>The whole catalog is unreadable (the window says why).</td></tr>
-<tr><td>A <code>download</code> without <code>urls</code>, <code>sha256</code>, <code>size</code> or <code>unpacked_size</code></td><td>The whole catalog is unreadable.</td></tr>
+<tr><td>A field the loader does not know, a missing <code>id</code>, <code>recipe</code> or <code>executable</code>, an <code>id</code> with other characters or one that another entry has, a <code>catalog_version</code> that is not 0</td><td>The whole catalog is unreadable (the window says why).</td></tr>
+<tr><td>A <code>download</code> without <code>urls</code>, <code>sha256</code>, <code>size</code> or <code>unpacked_size</code>, an address that is not <code>https</code>, a hash that is not 64 hex digits</td><td>The whole catalog is unreadable.</td></tr>
 <tr><td>An <code>executable</code> outside <code>apps/&lt;id&gt;/</code> in an entry with a <code>download</code></td><td>The whole catalog is unreadable.</td></tr>
 </table>
-<p>The zip file has to hold the program with the paths of <code>executable</code> under <code>apps/&lt;id&gt;/</code>. Get its <code>sha256</code> from a copy you trust (<code>certutil -hashfile my_demo.zip SHA256</code>), and check that the program may be downloaded by whoever uses the catalog.</p>
 
 <h2 id="loop">Doing it again</h2>
 <p>A recipe is made for one version of a program.</p>
@@ -385,7 +473,7 @@ tools\stereo_replay\StereoReplayInspector_x86.exe result_dump.workload --recipe 
 <h2 id="limits">What this does not cover</h2>
 <table>
 <tr><th>Limit</th><th>Detail</th></tr>
-<tr><td><strong>A Direct3D camera has to be set with <code>SetTransform</code></strong></td><td>The calls a rule can apply to are <code>IDirect3DDevice8::SetTransform</code> and <code>IDirect3DDevice7::SetTransform</code> (which has transform states named <code>D3DTRANSFORMSTATE_VIEW</code> and so on). A program that passes its matrices to a vertex shader as constants (<code>SetVertexShaderConstant</code>) has a camera that the converter cannot move: the analysis follows such constants, but a rule that changes them is new work in the loader, the baker and the converter, not a recipe.</td></tr>
+<tr><td><strong>A Direct3D 8 camera has to be set with <code>SetTransform</code></strong></td><td>The live converter acts on <code>IDirect3DDevice8::SetTransform</code>. The loader accepts a rule on <code>IDirect3DDevice7::SetTransform</code> too (transform states <code>D3DTRANSFORMSTATE_VIEW</code> and so on), but a Direct3D 7 program is converted live only with vertices in pixels (next row). A program that passes its matrices to a vertex shader as constants (<code>SetVertexShaderConstant</code>) has a camera that the converter cannot move: the analysis follows such constants, but a rule that changes them is new work in the loader, the baker and the converter, not a recipe.</td></tr>
 <tr><td><strong>Direct3D 7 for vertices in pixels only</strong></td><td>A Direct3D 7 program whose vertices a matrix moves has no adapter (see <a href="live-conversion.html#d3d7">Direct3D 7</a>).</td></tr>
 <tr><td><strong>Direct3D 8 draws with vertices in pixels</strong></td><td>They are moved for each eye when the vertices come with the call (<code>DrawPrimitiveUP</code>, <code>DrawIndexedPrimitiveUP</code>); those from a vertex buffer end the application.</td></tr>
 <tr><td><strong>OpenGL of the fixed function</strong></td><td>A camera that is the model-view matrix is converted (see <a href="live-conversion.html#opengl">OpenGL</a>). A program that loads its cameras inside display lists, or has more than one context, is not tried. See <a href="index.html#api">What is supported</a>.</td></tr>
@@ -399,9 +487,10 @@ tools\stereo_replay\StereoReplayInspector_x86.exe result_dump.workload --recipe 
   <li>Every pass has a decision with evidence; the unclear ones are settled by a person.</li>
   <li>The recipe's keys are all from the query output; <code>known_shape_keys</code> are the shapes of the capture.</li>
   <li>Baked without error; the signatures without a distance are understood.</li>
+  <li><code>RecipeBake --check</code> knows every shape and signature, and <code>--parity</code> lists no draw.</li>
   <li>StereoReplayPlayer shows no doubled interface and a scene with depth, in both eyes, on frames of every shape.</li>
   <li>The live session log shows no refusal and few unknown frames or draws.</li>
-  <li>The recipe is in <code>apps/recipes/</code>, the entry (with where the program is downloaded from, and its hash) in <code>apps/apps.json</code>, and <code>build.bat</code> was run.</li>
+  <li>The recipe is in <code>apps/recipes/</code>, the entry (with where the program is downloaded from, and its hash) in <code>apps/apps.json</code>, and <code>VRPlayer</code> lists the program as available.</li>
 </ul>
 </main>
 </body>

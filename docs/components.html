@@ -71,7 +71,7 @@
 </table>
 
 <h3>Naming</h3>
-<p>The source tree is the release. A program has a folder in the folder its file is in, named after the file in <code>snake_case</code> without the prefix of its group. The libraries are in one folder, <code>src/libs</code>, with the headers beside the sources. Every folder of the source is lower-case, with underscores; the namespaces are the same words in PascalCase.</p>
+<p>The folders of the source are the folders of the release. A program has a folder in the folder of its group (<code>runtime</code>, <code>tools/analysis</code>, <code>tools/stereo_replay</code>), named after the program in <code>snake_case</code> without the prefix of its group. The libraries are in <code>src/libs</code>, with the headers beside the sources. Folders are lower-case with underscores, except the ones named after an API (<code>D3D7</code>, <code>D3D8</code>, <code>OpenGL</code>); the namespaces are the same words in PascalCase.</p>
 <figure>
 <svg viewBox="0 0 900 230" role="img" aria-label="How a folder name gives the file, the namespace and the include">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
@@ -96,11 +96,13 @@
 <tr><td><code>vr_player</code></td><td><code>VRPlayer.exe</code></td><td>the program to start</td></tr>
 <tr><td><code>runtime/converter_dll</code>, <code>runtime/launcher</code>, <code>runtime/presenter</code></td><td><code>runtime\</code></td><td>what the VR player starts</td></tr>
 <tr><td><code>tools/analysis/&lt;program&gt;</code></td><td><code>tools\analysis\&lt;program&gt;_x64.exe</code></td><td>the tools of the analysis</td></tr>
-<tr><td><code>tools/stereo_replay/&lt;program&gt;</code></td><td><code>tools\stereo_replay\&lt;program&gt;_x64.exe</code> and <code>_x86.exe</code></td><td>the replay: the player, the checker and the engine they load</td></tr>
+<tr><td><code>tools/stereo_replay/&lt;program&gt;</code></td><td><code>tools\stereo_replay\&lt;program&gt;_x64</code> and <code>_x86</code> (<code>.exe</code>; the engine is a <code>.dll</code>)</td><td>the replay: the player, the inspector and the engine they load</td></tr>
 <tr><td><code>libs/utils</code>, <code>libs/analysis</code>, <code>libs/stereo</code>, <code>libs/headset</code>, <code>libs/vr_player</code></td><td>(linked into the programs)</td><td>the five libraries</td></tr>
+<tr><td><code>apps/</code> (beside <code>src/</code>)</td><td><code>apps\</code></td><td>the catalog and the recipes</td></tr>
+<tr><td><code>deps/APIInterceptor</code> (not in <code>src/</code>)</td><td><code>tools\api_dumper\</code></td><td>the tools that capture a program: <code>APIDumper</code>, <code>APIDumperDLL</code>, <code>APIDumpPrinter</code></td></tr>
 <tr><td><code>tests</code></td><td>(not in the release)</td><td>the tests</td></tr>
 </table>
-<p>Each folder of a program or a library has its own <code>CMakeLists.txt</code>, which says what it is made of and links. <code>cmake/install.cmake</code> says where each program is installed, and a test (<code>Layout</code>) checks that this and the folders say the same. <code>tools\api_dumper\</code> of the release is made of API Interceptor.</p>
+<p>Each program and each library has its own <code>CMakeLists.txt</code>, which says what it is made of and links. <code>cmake/install.cmake</code> says where each program is installed, and a test (<code>Layout</code>) checks that this and the folders say the same.</p>
 
 <h3>Includes and namespaces</h3>
 <table>
@@ -115,30 +117,53 @@
 <p>Five, by what they are for. Each is a folder of parts, and a part is a namespace of the library.</p>
 
 <h3>Utils</h3>
-<p><em>Library.</em> What knows nothing of this project and any of the others may use: it uses third-party code and the system only, and a test (<code>Layout</code>) checks that it includes nothing of the other libraries.</p>
+<p><em>Library.</em> What knows nothing of the rest of the project, so that any other library may use it: it uses third-party code and the system only, and a test (<code>Layout</code>) checks that it includes nothing of the other libraries.</p>
 <table>
-<tr><th>Part</th><th>What it is for</th><th>Main classes</th></tr>
+<tr><th>Part</th><th>What it is for</th><th>Classes</th></tr>
 <tr><td>BinaryIO</td><td>Bytes read and written as numbers, strings and blocks, for the files of the analysis.</td><td><code>ByteReader</code>, <code>ByteWriter</code></td></tr>
-<tr><td>CommandLine</td><td>What the command lines of the programs share. The launcher, the presenter, the extractors, the query programs and the rest all use it.</td><td><code>ArgumentWalker</code> loops over the arguments and hands each to the options of the program (<code>ArgumentCursor</code> is the position in them, <code>ProgramOptionFunc</code> a function for one option); <code>NumberParser</code> reads the numbers</td></tr>
+<tr><td>CommandLine</td><td>What the command lines of the programs share.</td><td><code>ArgumentWalker</code>, <code>ArgumentCursor</code>, <code>ProgramOptionFunc</code>, <code>NumberParser</code></td></tr>
 <tr><td>Cpu</td><td>What the processor can do: whether it has AVX2 and the system saves its registers. The code that has a faster path for it (<code>StableHasher</code>, <code>FastDepthRangeMeasurer</code>) asks once.</td><td><code>CpuFeatures</code></td></tr>
-<tr><td>D3D12</td><td>A list of Direct3D 12 commands recorded, run by a queue and waited for, and a texture filled with one colour.</td><td><code>D3D12CommandRunner</code> (the allocator, the list and the fence), <code>D3D12TextureClearer</code></td></tr>
-<tr><td>Files</td><td>A file from the network, checked and unpacked, and the file system under it. The downloader is behind an interface so that what installs needs no network to be tested.</td><td><code>HttpDownloader</code> gets a file over https (WinHTTP, so the proxy and the certificates of the system); <code>Sha256</code> hashes it with the cryptography of the system; <code>ZipExtractor</code> unpacks it with miniz (and refuses a name which would put a file outside the directory); <code>DirectoryOperations</code> has what they share (names in UTF-8, directories); <code>IDownloader</code></td></tr>
-<tr><td>Graphics</td><td>What the texels of a texture are, in the words of no API: a named format for each layout the programs follow. The front end of each API turns its own formats into these, and the files of the analysis store them.</td><td><code>TextureFormat</code></td></tr>
-<tr><td>Hashing</td><td>64-bit digests of bytes and of values (xxHash, of the Zstandard that the interceptor has). It has an AVX2 path for larger blocks of bytes, which gives the same digests.</td><td><code>StableHasher</code></td></tr>
-<tr><td>Images</td><td>Images as plain data: written as PNG files (compressed by miniz) or as a GIF, compared (how many pixels differ, where, by how much, and an image that shows it), and put together (two images as a red-cyan anaglyph or side by side, many as a contact sheet). The tools that look at frames use it, so that none has a writer of its own.</td><td></td></tr>
+<tr><td>D3D12</td><td>A list of Direct3D 12 commands recorded, run by a queue and waited for, and the images of a swap chain filled with black.</td><td><code>D3D12CommandRunner</code>, <code>D3D12TextureClearer</code></td></tr>
+<tr><td>Files</td><td>A file from the network, checked and unpacked, and the file system under it. The downloader is behind an interface so that what installs needs no network to be tested.</td><td><code>HttpDownloader</code>, <code>IDownloader</code>, <code>Sha256</code>, <code>ZipExtractor</code>, <code>DirectoryOperations</code>, <code>WindowsPathEncoding</code></td></tr>
+<tr><td>Graphics</td><td>What the texels of a texture are, in the words of no API: a named format for each layout the programs follow. The front end of each API turns its own formats into these, and the files of the analysis store them.</td><td><code>TextureFormat</code>, <code>TextureFormats</code></td></tr>
+<tr><td>Hashing</td><td>64-bit digests of bytes and of values, the same on every machine and in every run.</td><td><code>StableHasher</code>, <code>StableHasherAvx2</code></td></tr>
+<tr><td>Images</td><td>Images as plain data: written, compared and put together. The tools that look at frames use it, so that none has a writer of its own.</td><td><code>PngWriter</code>, <code>GifWriter</code>, <code>ImageComparer</code>, <code>ImageComposer</code></td></tr>
 <tr><td>Json</td><td>A JSON reader and writer, used by the recipes, the catalog and the query tools.</td><td><code>JsonReader</code>, <code>JsonWriter</code>, <code>JsonValue</code></td></tr>
 <tr><td>Parallel</td><td>Threads and locks (below).</td><td><code>ParallelFor</code>, <code>JobThread</code>, <code>JobState</code>, <code>SrwMutex</code></td></tr>
-<tr><td>Statistics</td><td>Count, mean and worst of a series of timings, as the presenter and the converter log them.</td><td><code>SeriesStats</code></td></tr>
-<tr><td>Strings</td><td><code>Utils::Strings::AsciiText</code> (<code>libs/utils/strings</code>): <code>to_lower</code> gives the ASCII letters in lower case and keeps the other bytes. The zip extractor and the catalog loader use it.</td><td><code>AsciiText</code></td></tr>
-<tr><td>UI</td><td>A window drawn with ImGui over a Direct3D 11 device of its own: the device, the swap chain and the message loop. The control window of the replay player, the VR player and the presenter use it, so none of them repeats it.</td><td></td></tr>
+<tr><td>Statistics</td><td>Count, mean, worst and late count of a series of timings, as the presenter and the converter log them.</td><td><code>SeriesStats</code></td></tr>
+<tr><td>Strings</td><td>Helpers for ASCII text: <code>AsciiText::to_lower</code> lower-cases the ASCII letters and keeps the other bytes. The zip extractor and the catalog loader use it.</td><td><code>AsciiText</code></td></tr>
+<tr><td>UI</td><td>A window drawn with ImGui over a Direct3D 11 device of its own. The control window of the replay player, the VR player and the presenter use it, so none of them repeats it.</td><td><code>ImGuiPlayerWindowBase</code></td></tr>
+</table>
+
+<h4>CommandLine, Files, Hashing, Images and UI in detail</h4>
+<table>
+<tr><th>Class</th><th>Part</th><th>What it does</th></tr>
+<tr><td><code>ArgumentWalker</code></td><td>CommandLine</td><td>Loops over the arguments and hands each to the options of the program. The launcher, the presenter, the extractors and the query programs use it.</td></tr>
+<tr><td><code>ArgumentCursor</code></td><td>CommandLine</td><td>One argument and the one after it, which an option may take as its value.</td></tr>
+<tr><td><code>ProgramOptionFunc</code></td><td>CommandLine</td><td>The function type that a program gives for the options of its own.</td></tr>
+<tr><td><code>NumberParser</code></td><td>CommandLine</td><td>Reads the numbers of an option strictly: the whole text must be the number.</td></tr>
+<tr><td><code>HttpDownloader</code></td><td>Files</td><td>Gets a file over https with WinHTTP, so the proxy and the certificates of the system apply.</td></tr>
+<tr><td><code>IDownloader</code></td><td>Files</td><td>The interface of a downloader, so that the installer is tested without a network.</td></tr>
+<tr><td><code>Sha256</code></td><td>Files</td><td>Hashes a download with the cryptography of the system.</td></tr>
+<tr><td><code>ZipExtractor</code></td><td>Files</td><td>Unpacks a zip file with miniz. It refuses a name that would put a file outside the directory.</td></tr>
+<tr><td><code>DirectoryOperations</code></td><td>Files</td><td>File operations with UTF-8 names and paths longer than <code>MAX_PATH</code>: directories and what they share.</td></tr>
+<tr><td><code>WindowsPathEncoding</code></td><td>Files</td><td>Converts the UTF-8 names to the UTF-16 that Windows takes, with backslashes and the prefix for a long path.</td></tr>
+<tr><td><code>StableHasher</code></td><td>Hashing</td><td>xxHash (the one of Zstandard), with integers little-endian and floats by their bits. The match keys of the analysis are built with it, so what it gives for a value never changes.</td></tr>
+<tr><td><code>StableHasherAvx2</code></td><td>Hashing</td><td>The loop over 32-byte stripes for larger blocks of bytes, in a file built with AVX2; it gives the same digests.</td></tr>
+<tr><td><code>PngWriter</code></td><td>Images</td><td>Writes an image as a PNG, compressed by miniz.</td></tr>
+<tr><td><code>GifWriter</code></td><td>Images</td><td>Writes images as an animated GIF, with a palette for each frame.</td></tr>
+<tr><td><code>ImageComparer</code></td><td>Images</td><td>Says how many pixels of two images differ, where and by how much, and makes an image that shows it.</td></tr>
+<tr><td><code>ImageComposer</code></td><td>Images</td><td>Puts two images together as a red-cyan anaglyph, or many as a contact sheet.</td></tr>
+<tr><td><code>ImGuiPlayerWindowBase</code></td><td>UI (<code>Utils::UI</code>)</td><td>Owns the Direct3D 11 device, the swap chain, the message loop and the monitor scale; the derived class says what the window shows.</td></tr>
 </table>
 
 <h4>Parallel in detail</h4>
 <table>
 <tr><th>Class</th><th>What it does</th></tr>
 <tr><td><code>ParallelFor</code></td><td>Splits a range of items over several threads.</td></tr>
-<tr><td><code>JobThread</code></td><td>A thread that does one queued job at a time. The owner queues a job (with a step that puts what the job needs in place, run with the lock taken), goes on, and waits for the job when it needs it (with a step that takes what the job made). <code>try_queue</code> hands a job over only if the thread is free, for an owner that leaves a frame out instead of waiting; the host memory exporters of Direct3D 8 (with two of them) and of OpenGL are built on it.</td></tr>
-<tr><td><code>JobState</code></td><td>Says where the job is.</td></tr>
+<tr><td><code>JobThread</code></td><td>A thread that does one queued job at a time. The owner queues a job, goes on, and waits for it when it needs the result. A step run with the lock taken puts what the job needs in place when it is queued, and another takes what it made when it is waited for. The host memory exporters of Direct3D 8 (two threads) and of OpenGL (one) are built on it.</td></tr>
+<tr><td><code>JobThread::try_queue()</code></td><td>Hands a job over only if the thread is free, for an owner that leaves a frame out instead of waiting. The OpenGL exporter uses it.</td></tr>
+<tr><td><code>JobState</code></td><td>Says where the job of a <code>JobThread</code> is.</td></tr>
 <tr><td><code>SrwMutex</code></td><td>A mutex that works like <code>std::mutex</code> to the code that takes it and costs one atomic operation when nobody else has it, for the locks of callbacks that are taken very many times.</td></tr>
 </table>
 
@@ -157,20 +182,35 @@
 <h4 id="analysis-core">APIDumpAnalysis</h4>
 <p>The analysis itself and nothing that is of one API. It is where an API is added to the analysis, by giving it a front end. The reading and writing of bytes and of JSON and the hasher which it uses are in <code>Utils</code>.</p>
 <table>
-<tr><th>What</th><th>Classes and files</th></tr>
-<tr><td>The session that routes calls</td><td><code>AnalysisSession</code> (see the front ends)</td></tr>
-<tr><td>The model builder</td><td><code>PassTracker</code> keeps the open pass and completes it; <code>DrawMeasurer</code> measures what a draw looks like through its camera: its depth, how much of the picture it covers, whether it blends, and whether the projection is perspective (<code>is_perspective_projection</code>)</td></tr>
-<tr><td>Keys and hashes, resource use, camera, depth</td><td>the keys and hashes, the tracking of how resources are used, the time series of the camera, the depth histograms</td></tr>
-<tr><td>The <code>.passes</code> file</td><td>reader and writer</td></tr>
-<tr><td>The queries</td><td><code>QueryCommands</code>, one class in five files: the choice of the command with the small ones, and the frame, the pass, the resources and the overlays with the depth</td></tr>
-<tr><td>The flow of the extractors</td><td><code>ExtractorProgramRunner</code> is what the three extractors do the same way: read the arguments with <code>ExtractorCommandLine</code>, read the workload with a session while the progress is told, say that the workload ends in the middle of a segment if it does, then run the step that is the program's own</td></tr>
-<tr><td>The flow of the query programs</td><td><code>QueryProgramRunner</code> and <code>QueryCommandLine</code> are the same for the three query programs: read the file, check the workload it is of, ask, print the answer or the error</td></tr>
+<tr><th>Group</th><th>Class</th><th>What it does</th></tr>
+<tr><td rowspan="7">Session and model builder</td><td><code>AnalysisSession</code></td><td>Reads a workload a segment at a time and hands each call to the front end of its API (see the front ends).</td></tr>
+<tr><td><code>ModelBuilder</code></td><td>Builds the model from what the front ends report: a draw arrives with the resources it uses, not with the calls that bound them. It decides where a pass ends.</td></tr>
+<tr><td><code>PassTracker</code></td><td>Keeps the open pass and completes it.</td></tr>
+<tr><td><code>DrawMeasurer</code></td><td>Measures what a draw looks like through its camera: its depth, how much of the picture it covers, whether it blends, and whether the projection is perspective (<code>is_perspective_projection</code>).</td></tr>
+<tr><td><code>StructureInterner</code></td><td>Keeps one copy of each structure that a capture repeats, and numbers the copies.</td></tr>
+<tr><td><code>RepresentativeStore</code></td><td>Keeps the detail of a few frames of each shape, so that what is kept does not grow with the length of the capture.</td></tr>
+<tr><td><code>TimelineBuilder</code></td><td>Puts the frames in time order: runs of frames of one shape, how often each shape occurs, and the setup frames.</td></tr>
+<tr><td rowspan="4">Keys and identity</td><td><code>MatchKeyBuilder</code></td><td>Builds the match keys: 64-bit digests that say what a pass, a draw or a resource is, whatever the run.</td></tr>
+<tr><td><code>ResourceIdentities</code></td><td>What tells a resource apart in every run: the key of how it was created and its number among the resources with that key.</td></tr>
+<tr><td><code>ResourceKeyTable</code></td><td>The keys of the resources of a frame, with the key of the pass that wrote each.</td></tr>
+<tr><td><code>WorkloadIdentity</code></td><td>Tells which workload a file is of, by its size and the hashes of three pieces of it.</td></tr>
+<tr><td rowspan="3">Resource use, camera, depth</td><td><code>ResourceAccessTracker</code></td><td>What each frame reads and writes in each resource, and whether a frame can be played twice in a row.</td></tr>
+<tr><td><code>ValueTimeSeries</code></td><td>The values that a constant (a camera matrix, for example) took over the capture, and when.</td></tr>
+<tr><td><code>DepthHistogram</code></td><td>The depths of the draws of a pass, weighted by vertex count, in ranges that are spaced logarithmically.</td></tr>
+<tr><td rowspan="3">The files</td><td><code>SectionedFile</code></td><td>The container of <code>.passes</code>, <code>.deps</code> and <code>.textures</code> files: a header, then sections that are Zstandard frames with a tag, a version and a hash.</td></tr>
+<tr><td><code>PassesFile</code></td><td>Reads and writes the <code>.passes</code> file.</td></tr>
+<tr><td><code>PassesSerializer</code></td><td>Converts the parts of an analysis to and from the sections, and checks them on reading.</td></tr>
+<tr><td rowspan="5">Queries and the flow of the programs</td><td><code>QueryCommands</code></td><td>The commands of <code>APIDumpAnalysisQuery</code>, one class in one <code>.cpp</code>. Each writes its JSON answer and does no I/O.</td></tr>
+<tr><td><code>QueryProgramRunner</code>, <code>QueryCommandLine</code></td><td>The same for the three query programs: read the file, check the workload it is of, ask, print the answer or the error.</td></tr>
+<tr><td><code>ExtractorProgramRunner</code></td><td>What the three extractors do the same way: read the arguments, read the workload with a session while the progress is told, say that the workload ends in the middle of a segment if it does, then run the step that is the program's own.</td></tr>
+<tr><td><code>ExtractorCommandLine</code></td><td>The options that every extractor has (see <a href="#t-analysis-extractor">APIDumpAnalysisExtractor</a>).</td></tr>
+<tr><td><code>ExtractorProgress</code></td><td>One progress line each interval: segments, calls and frames read so far.</td></tr>
 </table>
 
 <h4 id="analysis-frontends">APIDumpAnalysis/frontends</h4>
 <p>For each API, what follows its state and says what its calls mean to the model. Direct3D 8, Direct3D 7 and OpenGL have one; all three are an <code>IAPIFrontend</code>.</p>
 <figure>
-<svg viewBox="0 0 900 408" role="img" aria-label="The front ends and what they share">
+<svg viewBox="0 0 900 424" role="img" aria-label="The front ends and what they share">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
   <rect class="box" x="330" y="10" width="240" height="46" rx="6"/><text x="450" y="31" text-anchor="middle">AnalysisSession</text><text class="small" x="450" y="47" text-anchor="middle">routes each call to its front end</text>
   <rect class="box3" x="330" y="86" width="240" height="46" rx="6"/><text x="450" y="107" text-anchor="middle">IAPIFrontend</text><text class="small" x="450" y="123" text-anchor="middle">what all three are</text>
@@ -178,9 +218,9 @@
   <rect class="box" x="40" y="252" width="115" height="46" rx="6"/><text x="97" y="273" text-anchor="middle">Direct3D 7</text><text class="small" x="97" y="289" text-anchor="middle">D3D7/</text>
   <rect class="box" x="175" y="252" width="115" height="46" rx="6"/><text x="232" y="273" text-anchor="middle">Direct3D 8</text><text class="small" x="232" y="289" text-anchor="middle">D3D8/</text>
   <rect class="box" x="330" y="162" width="240" height="62" rx="6"/><text x="450" y="183" text-anchor="middle">OpenGL front end</text><text class="small" x="450" y="201" text-anchor="middle">contexts, threads that have them</text><text class="small" x="450" y="215" text-anchor="middle">current, dispatch of the calls</text>
-  <rect class="group" x="620" y="150" width="270" height="200" rx="8"/><text class="small" x="755" y="170" text-anchor="middle">classes of OpenGL/</text>
+  <rect class="group" x="620" y="150" width="270" height="200" rx="8"/><text class="small" x="755" y="170" text-anchor="middle">main classes of OpenGL/</text>
   <text class="small" x="636" y="192">GLTextureHandler, GLMatrixHandler,</text><text class="small" x="636" y="212">GLListHandler, GLStateHandler,</text><text class="small" x="636" y="232">GLDrawHandler, GLWindow,</text><text class="small" x="636" y="252">GLArgumentReader</text><text class="small" x="636" y="282">A handler keeps no address of the</text><text class="small" x="636" y="298">front end: what it needs of the</text><text class="small" x="636" y="314">others is given with the call.</text>
-  <rect class="box2" x="40" y="330" width="530" height="66" rx="6"/><text x="305" y="352" text-anchor="middle">shared/: used by every front end</text><text class="small" x="305" y="370" text-anchor="middle">ObjectTracker, MipChain, GeometrySampler, FixedFunctionVertexFormat,</text><text class="small" x="305" y="386" text-anchor="middle">ClearOperationFactory, ResolutionHazardCounter</text>
+  <rect class="box2" x="40" y="330" width="530" height="82" rx="6"/><text x="305" y="352" text-anchor="middle">shared/: used by every front end</text><text class="small" x="305" y="370" text-anchor="middle">ObjectTracker, MipChain, GeometrySampler, ClearOperationFactory, CallView,</text><text class="small" x="305" y="386" text-anchor="middle">FixedFunctionState, FixedFunctionVertexFormat, ResolutionHazardCounter,</text><text class="small" x="305" y="402" text-anchor="middle">FunctionPolicyReasonTable, UnsupportedUse</text>
   <path class="arrow" d="M450 56V84"/><path class="arrow" d="M400 132L220 160"/><path class="arrow" d="M450 132V160"/><path class="arrow" d="M97 224V250"/><path class="arrow" d="M232 224V250"/><path class="arrow" d="M572 193H618"/><path class="arrow" d="M165 328V300"/><path class="arrow" d="M450 328V226"/>
 </svg>
 <figcaption>The two Direct3D front ends derive from <code>FixedFunctionFrontendBase</code>; the OpenGL one derives from <code>IAPIFrontend</code> and uses classes of its own.</figcaption>
@@ -191,18 +231,23 @@
 <tr><td><code>shared/</code></td><td>What they share. It is not named <code>common/</code>, which a compiler on a case-insensitive disk takes for the <code>common/</code> of API Interceptor in an include.</td></tr>
 <tr><td><code>AnalysisSession</code></td><td>Routes the calls to the front end of the API, and so is above all three.</td></tr>
 </table>
-<p>The namespace is <code>Frontends</code> for all of them: the folders sort the files, and the class names (<code>D3D8Frontend</code>) say the API. <code>D3D8Frontend</code> also has what an adapter needs without an instance: <code>get_vertex_count()</code> and <code>is_pre_transformed_vertex_shader()</code>. They need <code>D3D8Utils</code> and <code>D3D7Utils</code> of the interceptor. The extractor, the replay engine and the live converter all use the front ends.</p>
+<p>The namespace is <code>Frontends</code> for all of them: the folders sort the files, and the class names (<code>D3D8Frontend</code>) say the API. The extractor, the replay engine and the live converter all use the front ends. They use <code>D3D8Utils</code> and <code>D3D7Utils</code> of the interceptor.</p>
 
 <h4>The two Direct3D front ends</h4>
 <table>
 <tr><th>Class</th><th>What it does</th></tr>
-<tr><td><code>FixedFunctionFrontendBase</code></td><td>Follows the objects the program makes and the state of the fixed-function pipeline that does not depend on the API: transforms, lights, render states, textures, a release.</td></tr>
-<tr><td><code>FixedFunctionState</code></td><td>Keeps that state.</td></tr>
-<tr><td>each API's own front end</td><td>Has the resources, the draws and the vertices.</td></tr>
+<tr><td><code>FixedFunctionFrontendBase</code> (<code>shared/</code>)</td><td>Follows the objects the program makes and the state of the fixed-function pipeline that does not depend on the API: transforms, lights, render states, textures, a release. Counts the calls it cannot follow.</td></tr>
+<tr><td><code>FixedFunctionState</code> (<code>shared/</code>)</td><td>Keeps that state and builds the state key of a draw, by the rules that each API gives it.</td></tr>
+<tr><td><code>D3D7Frontend</code>, <code>D3D8Frontend</code></td><td>Have the resources, the draws and the vertices. <code>D3D8Frontend</code> also has what an adapter needs without an instance: <code>get_vertex_count()</code> and <code>is_pre_transformed_vertex_shader()</code>.</td></tr>
+<tr><td><code>D3D7PipelineState</code>, <code>D3D8PipelineState</code></td><td>What a draw depends on in the device: buffers, textures, shaders or the vertex format, render states, texture stage states, lights.</td></tr>
+<tr><td><code>D3D7GeometryTracker</code>, <code>D3D8GeometryTracker</code></td><td>The contents of the vertex and index buffers, to find the vertices of a draw. It is for analysing a workload; a live converter keeps no buffer contents.</td></tr>
+<tr><td><code>D3D7ResourceDescriber</code>, <code>D3D8ResourceDescriber</code></td><td>Describe a resource in the terms of the model, from the call that creates it.</td></tr>
+<tr><td><code>D3D7FunctionPolicy</code>, <code>D3D8FunctionPolicy</code></td><td>Which functions the front end may leave out, and why. Any other function ends the process.</td></tr>
+<tr><td><code>D3D8ResolutionHazards</code></td><td>The calls that depend on the pixel size of the render target.</td></tr>
 </table>
 
 <h4>The OpenGL front end</h4>
-<p>The front end of OpenGL keeps the contexts, the threads that have them current and the dispatch of the calls, and has the rest in classes of its own in <code>OpenGL/</code>.</p>
+<p>The front end of OpenGL (<code>OpenGLFrontend</code>) keeps the contexts, the threads that have them current and the dispatch of the calls, and has the rest in classes of its own in <code>OpenGL/</code>.</p>
 <table>
 <tr><th>Class</th><th>What it keeps or does</th></tr>
 <tr><td><code>GLTextureHandler</code></td><td>The textures of the program and the calls about them.</td></tr>
@@ -212,6 +257,14 @@
 <tr><td><code>GLDrawHandler</code></td><td>The draws of immediate mode and of arrays, and the clears.</td></tr>
 <tr><td><code>GLWindow</code></td><td>The default framebuffer, made when it is first needed.</td></tr>
 <tr><td><code>GLArgumentReader</code></td><td>How a call's arguments are read as numbers.</td></tr>
+<tr><td><code>GLContextState</code>, <code>GLPipelineState</code></td><td>The state kept for one context, and the fixed-function state that tells one draw from another (the attribute stack saves and restores it).</td></tr>
+<tr><td><code>GLTextureFormatMapper</code></td><td>OpenGL texel formats to <code>TextureFormat</code> of <code>Utils::Graphics</code>, and how the bytes of an upload are laid out.</td></tr>
+<tr><td><code>GLMatrixMath</code></td><td>The matrices that the calls produce, as the specification defines them.</td></tr>
+<tr><td><code>GLListClassifier</code></td><td>How the calls of a display list affect what differs for each eye, so that a list the driver compiled once can be called for both.</td></tr>
+<tr><td><code>GLArrayDrawDescriber</code>, <code>GLClientArraySnapshot</code>, <code>GLBlobStore</code></td><td>Draws whose vertices are in application memory: the snapshot of the arrays that the dumper took, the draw built from it, and the store that gives the same bytes the same buffer in every frame.</td></tr>
+<tr><td><code>GLVertexReader</code></td><td>The position that a <code>glVertex</code> call gives.</td></tr>
+<tr><td><code>GLGeometrySampler</code></td><td>Chooses the few vertices of a draw that stand for its geometry.</td></tr>
+<tr><td><code>GLFunctionPolicy</code>, <code>GLResolutionHazards</code></td><td>Which functions may be left out and why (any other ends the process), and the calls that depend on the pixel size of the render target.</td></tr>
 </table>
 <p>A handler keeps no address of the front end: what it needs of the others (the window, the texture handler, the counter of the hazards) is given with the call.</p>
 
@@ -219,10 +272,16 @@
 <p>What every API does the same way.</p>
 <table>
 <tr><th>Class</th><th>What it does</th></tr>
+<tr><td><code>CallView</code></td><td>A call as the dumper stored it, read by argument number. A missing or wrongly typed argument reads as 0, so a damaged call does not stop the analysis.</td></tr>
+<tr><td><code>ClearOperationFactory</code></td><td>Builds the clear for the APIs whose clear call takes flags, an ARGB colour, a depth and a stencil.</td></tr>
 <tr><td><code>FixedFunctionVertexFormat</code></td><td>What a flexible vertex format says of the vertices: whether the positions are in pixels. Both Direct3D front ends, the converter and the replay engine use it.</td></tr>
+<tr><td><code>FunctionPolicyReasonTable</code></td><td>The lookup table of the Direct3D function policies: a function name and the reason it is listed.</td></tr>
 <tr><td><code>GeometrySampler</code></td><td>A few dozen vertices of a draw, in the space of the model, for the analysis of the geometry.</td></tr>
-<tr><td><code>ObjectTracker</code>, <code>MipChain</code>, <code>ClearOperationFactory</code></td><td>Among the others.</td></tr>
+<tr><td><code>IAPIFrontend</code></td><td>What every front end is: it follows the calls of one API, keeps its state, and tells the model builder what the calls amount to.</td></tr>
+<tr><td><code>MipChain</code></td><td>The number of mip levels of a texture.</td></tr>
+<tr><td><code>ObjectTracker</code></td><td>The live objects by address, and what each is in the model: a resource, or a part of one such as a mip level.</td></tr>
 <tr><td><code>ResolutionHazardCounter</code></td><td>The calls that depend on the size of what is rendered to, counted by kind.</td></tr>
+<tr><td><code>UnsupportedUse</code></td><td>What a front end does with a call that it neither follows nor may ignore: it ends the process with a message that names the function and the reason.</td></tr>
 </table>
 
 <h4 id="analysis-deps">APIDumpDependencies</h4>
@@ -230,10 +289,11 @@
 <table>
 <tr><th>Class</th><th>What it does</th></tr>
 <tr><td><code>AccessLog</code></td><td>Keeps the accesses that the model builder tells (<code>IAccessSink</code>).</td></tr>
-<tr><td><code>DependencyAnalyzer</code></td><td>Works out the dependencies (one thread for each of several resources at a time).</td></tr>
-<tr><td><code>DepsFile</code></td><td>The <code>.deps</code> file that keeps them, on the same sections as a <code>.passes</code> file; the query commands answer about it.</td></tr>
+<tr><td><code>DependencyAnalyzer</code></td><td>Works out, for each frame and resource, whether the frame uses what earlier frames left in the resource and which frame wrote it. The resources are independent, so several threads work on them.</td></tr>
+<tr><td><code>DepsFile</code>, <code>DepsSerializer</code></td><td>Read and write the <code>.deps</code> file that keeps them, in the same container as a <code>.passes</code> file; the query commands answer about it.</td></tr>
 <tr><td><code>PerEyeCandidates</code></td><td>The one rule that says which resources each eye is to have a copy of.</td></tr>
 <tr><td><code>FrameSlicePlanner</code></td><td>Works out which frames a seek to a frame has to play, and how much of each (see <a href="replay.html#seek">Replay</a>).</td></tr>
+<tr><td><code>RectangleCoverage</code></td><td>Says whether a set of rectangles leaves a part of another rectangle uncovered. The planner uses it to tell that the last writes to a resource cover what was written.</td></tr>
 </table>
 
 <h4 id="analysis-slicing">APIDumpSlicing</h4>
@@ -248,8 +308,8 @@
 <p>What a workload does to the textures, and where their pixels are (<a href="analysis.html#textures">Analysis</a>). The model builder tells the events to an <code>ITextureSink</code>: an upload, a copy that rendering made, levels that the driver generates.</p>
 <table>
 <tr><th>Class</th><th>What it does</th></tr>
-<tr><td><code>TextureCollector</code></td><td>Keeps the events in order.</td></tr>
-<tr><td><code>TexturesFile</code></td><td>Reads and writes the timeline as a <code>.textures</code> file.</td></tr>
+<tr><td><code>TextureCollector</code></td><td>The <code>ITextureSink</code> of the extractor: keeps the events in order.</td></tr>
+<tr><td><code>TexturesFile</code>, <code>TexturesSerializer</code></td><td>Read and write the timeline as a <code>.textures</code> file; the serializer converts the sections and checks them.</td></tr>
 <tr><td><code>TextureBlobWriter</code>, <code>TextureBlobReader</code>, <code>TextureBlobCodec</code></td><td>The contents that are not left in the workload go into a file of blobs beside it: the writer writes it (each content once), the reader reads it, the codec filters and compresses.</td></tr>
 <tr><td><code>TextureLevelContent</code></td><td>Lays the writes to one level over each other and says which pieces are still visible.</td></tr>
 </table>
@@ -259,53 +319,83 @@
 <p>What a recipe is, and the two things done with it that are not baking.</p>
 <table>
 <tr><th>Part</th><th>What it does</th><th>Used by</th></tr>
-<tr><td><code>types.h</code></td><td>The recipe as data: rules, draw selectors, convergence, the policy for unknown frames.</td><td>everything below</td></tr>
-<tr><td><code>RecipeLoader</code></td><td>Reads a recipe and checks it.</td><td>everything that only wants to read a recipe: the replay player, the replay inspector, the launcher and the catalog</td></tr>
-<tr><td><code>RecipeApplier</code></td><td>Applies it. <code>decide_draw()</code> says whether a draw is rendered once, per eye, or not at all, and whether it is pushed. The replay gives it the pass and the structure of the draw, and the converter gives it the signature and the view matrix; both get one answer. The applier also gives the convergence distance of a draw. It also answers which draws are layers by key (<code>is_cover_pushed</code>, <code>is_cover_flat_layer</code>, <code>is_side_reaching</code>), which the baked lists give with <code>comfort.automatic_layers</code>.</td><td>the replay engine and the converter; neither needs to bake</td></tr>
+<tr><td><code>types.h</code></td><td>The recipe as data: <code>MatrixRule</code>, <code>DrawSelector</code>, the convergence of scenes and draws, <code>ScreenParallaxSettings</code>, the policy for unknown frames, and <code>Comfort</code> (the parallax limits, <code>ease_by_time</code>, <code>snap_at_cuts</code>, <code>automatic_layers</code>).</td><td>everything below</td></tr>
+<tr><td><code>RecipeLoader</code></td><td>Reads a recipe and checks it.</td><td>everything that reads a recipe: the replay player and inspector, the launcher, the converter, <code>RecipeBake</code> and the catalog loader</td></tr>
+<tr><td><code>RecipeApplier</code></td><td>Applies a recipe (below).</td><td>the replay engine and the converter; neither needs to bake</td></tr>
+</table>
+<table>
+<tr><th>Question to <code>RecipeApplier</code></th><th>What it answers</th></tr>
+<tr><td><code>decide_draw()</code></td><td>Whether a draw is rendered once, per eye, or not at all, and whether it is pushed. The replay gives it the pass and the structure of the draw, and the converter gives it the signature and the view matrix; both get one answer.</td></tr>
+<tr><td><code>get_convergence_distance()</code></td><td>The convergence distance of a draw.</td></tr>
+<tr><td><code>is_cover_pushed()</code>, <code>is_cover_flat_layer()</code>, <code>is_side_reaching()</code></td><td>Which draws are layers, by key. The baked lists give them with <code>comfort.automatic_layers</code>.</td></tr>
 </table>
 <p>The applier uses the types and not the loader, so a program which only reads a recipe does not need the applier's headers.</p>
 
 <h3>Stereo</h3>
 <p><em>Library.</em> The decisions of the conversion and the images it makes. See <a href="live-conversion.html">Live conversion</a>.</p>
 <table>
-<tr><th>Part</th><th>What it is for</th></tr>
-<tr><td>Core</td><td>The decisions of the conversion, without an API.</td></tr>
-<tr><td>Session</td><td>How the launcher hands a playback over to the converter in the application: through environment variables of the launcher, which the application inherits. Each playback has its own, so that several can run (<code>SessionEnvironment</code>, <code>SessionInfo</code>). It also says where the converter writes its log.</td></tr>
-<tr><td>Transport</td><td>The channel between the converter and the presenter: a frame channel in shared memory, with a producer that writes the eyes of a frame and a consumer that takes the newest. The consumer also says what it accepts, how far to converge and how strong the 3D is. The exporter and importer are interfaces, so that the converter does not know what is on the other end.</td></tr>
+<tr><th>Part</th><th>What it is for</th><th>Classes</th></tr>
+<tr><td>Core</td><td>The decisions of the conversion, without an API (below).</td><td></td></tr>
+<tr><td>Session</td><td>How the launcher hands a playback over to the converter in the application.</td><td><code>SessionEnvironment</code>, <code>SessionInfo</code></td></tr>
+<tr><td>Transport</td><td>The channel between the converter and the presenter, in shared memory.</td><td><code>FrameChannel</code>, <code>IFrameExporter</code>, <code>IFrameImporter</code>, <code>HostMemoryImporter</code></td></tr>
 </table>
+
+<h4>Session and Transport in detail</h4>
+<table>
+<tr><th>Class</th><th>Part</th><th>What it does</th></tr>
+<tr><td><code>SessionEnvironment</code></td><td>Session</td><td>Hands a playback to the converter through environment variables of the launcher, which the application inherits. Each playback has its own, so several can run. It also says where the converter writes its log.</td></tr>
+<tr><td><code>SessionInfo</code></td><td>Session</td><td>What the converter reads of it: the recipe, the id of the session, and whether it logs everything or only why it stops.</td></tr>
+<tr><td><code>FrameChannel</code></td><td>Transport</td><td>Passes images from the application to the program that shows them, through memory that both share (a 32-bit application can feed a 64-bit program). It has room for three images: the producer never waits, and the consumer never sees an image that is being written.</td></tr>
+<tr><td><code>FrameChannel</code> settings</td><td>Transport</td><td>The two sides say which kinds of transport they offer and accept. The consumer also gives how far to converge, how far apart the eyes are and how strong the 3D is.</td></tr>
+<tr><td><code>IFrameExporter</code></td><td>Transport</td><td>The producer's end, for one graphics API: takes the eye images that the application drew and gets them to the program that shows them.</td></tr>
+<tr><td><code>IFrameImporter</code></td><td>Transport</td><td>The consumer's end: makes the newest frame available until it is released.</td></tr>
+<tr><td><code>HostMemoryImporter</code></td><td>Transport</td><td>The importer for frames that the producer wrote in the memory of the channel.</td></tr>
+</table>
+<p>The converter does not know what is on the other end of the interfaces.</p>
 
 <h4>Core</h4>
 <table>
 <tr><th>Group</th><th>Class</th><th>What it does</th></tr>
-<tr><td rowspan="3">Classes of draws</td><td><code>RecipeStereoPlanner</code></td><td>Decides the class of a draw from the recipe, the view matrix, and what to do with draws and frames the recipe does not know. <code>is_last_draw_attached_to_camera()</code> says whether a draw is made as it is for both eyes, <code>get_eye_parallax()</code> how far apart the eyes move a point of a given depth, and <code>plan_push_shift_with_layer()</code> how far a pushed draw that the eyes also move is shifted.</td></tr>
-<tr><td><code>ConvergenceModel</code></td><td>Says where the eyes converge and how far apart they are.</td></tr>
-<tr><td><code>MatrixSlots</code></td><td>Which matrices a rule is about and which to put in before a draw. The resolution policy says how much larger than the application asks to render.</td></tr>
+<tr><td rowspan="5">Classes of draws</td><td><code>RecipeStereoPlanner</code></td><td>Decides the class of a draw from the recipe and the view matrix, and what to do with draws and frames the recipe does not know. An adapter tells it what the application does and carries out its answers.</td></tr>
+<tr><td><code>RecipeStereoPlanner</code> questions</td><td><code>is_last_draw_attached_to_camera()</code> says whether a draw is made as it is for both eyes, <code>get_eye_parallax()</code> how far apart the eyes move a point of a given depth, and <code>plan_push_shift_with_layer()</code> how far a pushed draw that the eyes also move is shifted.</td></tr>
+<tr><td><code>ConvergenceModel</code></td><td>Says where the eyes converge and how far apart they are. It eases toward the values of a scene, by the frame or, with <code>ease_by_time</code>, by the time, and with <code>snap_at_cuts</code> jumps at a cut.</td></tr>
+<tr><td><code>MatrixSlots</code></td><td>Which matrices a rule is about and which to put in before a draw.</td></tr>
+<tr><td><code>ResolutionPolicy</code></td><td>How much larger than the application asks the converter renders, in each direction.</td></tr>
 <tr><td rowspan="4">Vertices already in the space of the picture</td><td><code>ScreenParallaxPlanner</code></td><td>Decides what is done to the vertices of a draw that are already in the space of the picture (moved by their depth, pushed as a whole, or left alone), for the replay engine and the live converter alike. An API adapter asks it what to do and does it.</td></tr>
 <tr><td><code>ScreenSpaceVertexShifter</code></td><td>Moves the bytes of such vertices (<code>make_parameters()</code> and <code>apply_plan()</code> turn a plan into the move). It works on the bytes, so the replay engine, with a dumped draw, and the live converter, with the application's draw, share it.</td></tr>
 <tr><td><code>RecipeStereoPlanner::make_screen_vertices()</code></td><td>Gives an adapter the moved copy of a draw's vertices.</td></tr>
 <tr><td><code>PushShiftPlanner</code></td><td>Says how far a draw that the recipe names as pushed moves sideways for an eye.</td></tr>
 <tr><td rowspan="4">How deep a scene is (from the depth buffer)</td><td><code>DepthRangeMeasurer</code></td><td>Measures the nearest, median and farthest distance of what a frame drew.</td></tr>
-<tr><td><code>FastDepthRangeMeasurer</code></td><td>The same, with the same numbers, much faster on a processor with AVX2.</td></tr>
+<tr><td><code>FastDepthRangeMeasurer</code></td><td>The same, with the same numbers, in a fraction of the time on a processor with AVX2.</td></tr>
+<tr><td><code>DepthHistogramAvx2</code></td><td>The pixel pass of <code>FastDepthRangeMeasurer</code> for AVX2, in a class of its own because its file is built with AVX2 enabled.</td></tr>
 <tr><td><code>FrameDepthLedger</code></td><td>Keeps the results of reads that are not waited for until the frame they belong to has ended.</td></tr>
-<tr><td><code>PictureReadbackCache</code></td><td>Answers the one-pixel reads that an application makes of its picture from one read of the whole picture.</td></tr>
+<tr><td>Reads of the picture</td><td><code>PictureReadbackCache</code></td><td>Answers the one-pixel reads that an application makes of its picture from one read of the whole picture.</td></tr>
 </table>
 
 <h3>Headset</h3>
 <p><em>Library.</em> What shows the images in a headset. The OpenXR session is of the 64-bit programs.</p>
 <table>
-<tr><th>Part</th><th>What it is for</th></tr>
-<tr><td>D3D12</td><td>Puts the eyes of a frame from the memory of the channel into Direct3D 12 textures without a copy by the CPU (<code>D3D12FrameUploader</code>), on the commands of a <code>D3D12CommandRunner</code> of Utils, which also fills the textures of a swap chain with black. The presenter and the headset use it.</td></tr>
-<tr><td>XR</td><td>The headset: a session of an OpenXR runtime that shows the eyes on a screen in the room, which can be flat or curved, sized to the view of the headset (<code>screen_geometry</code>); and the provider that lists the headsets of the machine.</td></tr>
-<tr><td>VRDevices</td><td>Where the list of devices comes from, behind an interface: a stub of made-up devices, and the provider of OpenXR runtimes in <code>XR</code>.</td></tr>
+<tr><th>Part</th><th>What it is for</th><th>Classes</th></tr>
+<tr><td>D3D12</td><td>Puts the eyes of a frame from the memory of the channel into Direct3D 12 textures without a copy by the CPU, on the commands of a <code>D3D12CommandRunner</code> of Utils. The presenter and the headset use it.</td><td><code>D3D12FrameUploader</code></td></tr>
+<tr><td>XR</td><td>The headset: a session of an OpenXR runtime that shows the eyes on a screen in the room, which can be flat or curved, sized to the view of the headset; and the provider that lists the headsets of the machine.</td><td><code>HeadsetSession</code>, <code>ScreenGeometry</code>, <code>OpenXrVrDeviceProvider</code></td></tr>
+<tr><td>VRDevices</td><td>Where the list of devices comes from, behind an interface: a stub of made-up devices, and the provider of OpenXR runtimes in <code>XR</code>.</td><td><code>IVrDeviceProvider</code>, <code>StubVrDeviceProvider</code></td></tr>
 </table>
 
 <h3>VRPlayer (<code>libs/vr_player</code>)</h3>
 <p><em>Library</em> (the target is <code>VRPlayerBackend</code>, since <code>VRPlayer</code> is the program). What the VR player is made of, besides the headset and the window: the part of the player which does not draw. The namespace is <code>VRPlayer</code>, the same as the program's. See <a href="vr-player.html">VR player</a>.</p>
 <table>
-<tr><th>Part</th><th>What it is for</th></tr>
-<tr><td>AppCatalog</td><td>The list of applications that can be launched: for each, its executable, arguments, working directory and recipe, where it is downloaded from if it is not there, and the reason it is unavailable if it is. The name and description come from the recipe if the catalog does not give them.</td></tr>
-<tr><td>AppInstaller</td><td>Puts an application where it is played. <code>AppInstaller</code> gets the zip file over https, checks it against the hash of the catalog and unpacks it (with what <code>Utils::Files</code> has for the three) in a thread of its own, reports the progress, and moves the result into place whole, so that a cancel or a failure leaves nothing behind. It writes under the directory of the applications only.</td></tr>
+<tr><th>Part</th><th>What it is for</th><th>Classes</th></tr>
+<tr><td>AppCatalog</td><td>The list of applications that can be launched, read from the catalog file, which is strict: an unknown field is refused and an error says where it is.</td><td><code>CatalogLoader</code></td></tr>
+<tr><td>AppInstaller</td><td>Puts an application where it is played: downloads the zip file over https, checks it against the hash of the catalog and unpacks it (with what <code>Utils::Files</code> has for the three), on a thread of its own, and reports the progress.</td><td><code>AppInstaller</code></td></tr>
 </table>
+<table>
+<tr><th>What an entry of the catalog has</th><th>Fields</th></tr>
+<tr><td>What to start, and where</td><td>the executable, <code>arguments</code>, the working directory</td></tr>
+<tr><td>How to convert it</td><td>the recipe; the name and the description come from the recipe if the catalog does not give them (<code>title</code>)</td></tr>
+<tr><td>The dialog that the application shows first</td><td><code>launch_button</code>, the button that the launcher presses; <code>untick_checkbox</code>, the checkbox it unticks first</td></tr>
+<tr><td>If it is not there</td><td><code>download</code>, where to get it from; <code>unavailable_reason</code>, why it cannot be launched</td></tr>
+</table>
+<p>The installer writes under the directory of the applications only: it unpacks into a directory beside the application's own and moves the result into place whole, so that a cancel or a failure leaves nothing behind.</p>
 
 <h2 id="runtime">runtime</h2>
 <p>What the VR player starts: the live converter, and what carries its images to a screen. See <a href="live-conversion.html">Live conversion</a>. The converter and the launcher are built for x86 and for x64 (see <code>build.bat</code>); the converter is injected into the application and the launcher injects it, so both are of the architecture of the application.</p>
@@ -317,46 +407,95 @@
 </table>
 
 <h3 id="converter">StereoConverterDLL</h3>
-<p><em>DLL, built for 32 and 64 bits, to match the application.</em> The converter, injected into the program.</p>
+<p><em>DLL, built for 32 and 64 bits, to match the application.</em> The converter, injected into the program. Namespace <code>Stereo::ConverterDLL</code>.</p>
 <figure>
-<svg viewBox="0 0 900 370" role="img" aria-label="Parts of the converter DLL">
+<svg viewBox="0 0 900 404" role="img" aria-label="Parts of the converter DLL">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
   <rect class="box3" x="330" y="10" width="240" height="50" rx="6"/><text x="450" y="32" text-anchor="middle">LiveStereoConverter</text><text class="small" x="450" y="48" text-anchor="middle">orders the work of each call</text>
   <rect class="box" x="10" y="10" width="250" height="50" rx="6"/><text x="135" y="32" text-anchor="middle">LiveCallAnalyzer</text><text class="small" x="135" y="48" text-anchor="middle">gives the analysis the calls as a dump would</text>
   <rect class="box4" x="640" y="10" width="250" height="50" rx="6"/><text x="765" y="32" text-anchor="middle">PacedFramePublisher, SessionLog</text><text class="small" x="765" y="48" text-anchor="middle">pass frames on, log the session</text>
-  <rect class="box4" x="10" y="100" width="280" height="160" rx="8"/><text class="title" x="150" y="122" text-anchor="middle">D3D8/</text>
-  <text class="small" x="24" y="146">D3D8EyeRenderer: second eye, draws of</text><text class="small" x="24" y="162">vertices in pixels for both eyes</text><text class="small" x="24" y="182">D3D8ResolutionScaler</text><text class="small" x="24" y="202">forces windowed mode</text><text class="small" x="24" y="222">D3D8HostMemoryExporter: frame and right</text><text class="small" x="24" y="238">eye copied on two JobThreads</text>
-  <rect class="box4" x="310" y="100" width="280" height="160" rx="8"/><text class="title" x="450" y="122" text-anchor="middle">D3D7/</text>
-  <text class="small" x="324" y="146">D3D7EyeRenderer</text><text class="small" x="324" y="166">D3D7SurfaceTwins</text><text class="small" x="324" y="186">D3D7WindowedMode</text><text class="small" x="324" y="206">D3D7HostMemoryExporter</text><text class="small" x="324" y="236">the same jobs, with the surfaces</text><text class="small" x="324" y="252">and the draws of its API</text>
-  <rect class="box4" x="610" y="100" width="280" height="160" rx="8"/><text class="title" x="750" y="122" text-anchor="middle">OpenGL/</text>
-  <text class="small" x="624" y="146">GLEyeRenderer, GLEyeTargets: both eyes</text><text class="small" x="624" y="162">rendered into targets of its own</text><text class="small" x="624" y="182">GLFrameReader: reads the frame</text><text class="small" x="624" y="202">scales the resolution</text><text class="small" x="624" y="222">finds the functions of the driver</text>
-  <rect class="box2" x="10" y="290" width="880" height="70" rx="8"/><text class="title" x="450" y="312" text-anchor="middle">Helpers the adapters share</text><text class="small" x="450" y="334" text-anchor="middle">RenderScalePlanner, ResolutionHazardGate (decide the scale) · EyeImageLimits · PixelRowWriter</text><text class="small" x="450" y="350" text-anchor="middle">InvisibleWindowManager (hides the application's windows) · OwnCallScope (keeps the converter's own calls apart)</text>
-  <path class="arrow" d="M330 35H262"/><path class="arrow" d="M400 60L200 98"/><path class="arrow" d="M450 60V98"/><path class="arrow" d="M500 60L700 98"/><path class="arrow" d="M570 35H638"/><path class="arrow" d="M450 260V288"/>
+  <rect class="box4" x="10" y="100" width="280" height="176" rx="8"/><text class="title" x="150" y="122" text-anchor="middle">D3D8/</text>
+  <text class="small" x="24" y="146">D3D8EyeRenderer: second eye, draws of</text><text class="small" x="24" y="162">vertices in pixels for both eyes</text><text class="small" x="24" y="182">D3D8ResolutionScaler</text><text class="small" x="24" y="200">D3D8WindowedMode: forces windowed mode</text><text class="small" x="24" y="220">D3D8HostMemoryExporter: frame and right</text><text class="small" x="24" y="236">eye copied on two JobThreads</text>
+  <rect class="box4" x="310" y="100" width="280" height="176" rx="8"/><text class="title" x="450" y="122" text-anchor="middle">D3D7/</text>
+  <text class="small" x="324" y="146">D3D7EyeRenderer</text><text class="small" x="324" y="166">D3D7SurfaceTwins</text><text class="small" x="324" y="186">D3D7WindowedMode</text><text class="small" x="324" y="206">D3D7HostMemoryExporter</text><text class="small" x="324" y="236">the right eye on twin surfaces;</text><text class="small" x="324" y="252">no resolution scaler</text>
+  <rect class="box4" x="610" y="100" width="280" height="176" rx="8"/><text class="title" x="750" y="122" text-anchor="middle">OpenGL/</text>
+  <text class="small" x="624" y="146">GLEyeRenderer, GLEyeTargets: both eyes</text><text class="small" x="624" y="162">rendered into targets of its own</text><text class="small" x="624" y="182">GLFrameReader: reads the frame</text><text class="small" x="624" y="202">GLResolutionScaler: scales resolution</text><text class="small" x="624" y="222">GLHostMemoryExporter: frame to channel</text><text class="small" x="624" y="242">GLDriverFunctions, GLExtensionFunctions</text><text class="small" x="624" y="258">the functions of the driver</text>
+  <rect class="box2" x="10" y="298" width="880" height="90" rx="8"/><text class="title" x="450" y="320" text-anchor="middle">Helpers the adapters share</text><text class="small" x="450" y="342" text-anchor="middle">RenderScalePlanner, ResolutionHazardGate (decide the scale) · EyeImageLimits · PixelRowWriter</text><text class="small" x="450" y="358" text-anchor="middle">InvisibleWindowManager (hides the application's windows) · OwnCallScope (keeps the converter's own calls apart)</text><text class="small" x="450" y="374" text-anchor="middle">HostMemoryExporterBase (what the exporters share) · EnvironmentVariableReader · ScopedTickAdder</text>
+  <path class="arrow" d="M330 35H262"/><path class="arrow" d="M400 60L200 98"/><path class="arrow" d="M450 60V98"/><path class="arrow" d="M500 60L700 98"/><path class="arrow" d="M570 35H638"/><path class="arrow" d="M450 276V296"/>
 </svg>
 <figcaption><code>LiveStereoConverter</code> gives each call to the adapter of its API; the adapters use the shared helpers.</figcaption>
 </figure>
 <table>
 <tr><th>Group</th><th>Class</th><th>What it does</th></tr>
-<tr><td rowspan="2">Core</td><td><code>LiveStereoConverter</code></td><td>Orders the work of each call.</td></tr>
+<tr><td rowspan="2">Core</td><td><code>LiveStereoConverter</code></td><td>Orders the work of each call: follows the calls as the analysis of a dump does, asks the recipe what each draw is, and passes the frames on to the viewer.</td></tr>
 <tr><td><code>LiveCallAnalyzer</code></td><td>Gives the analysis the calls as a dump would.</td></tr>
 <tr><td rowspan="4">Direct3D 8 adapter (<code>D3D8/</code>)</td><td><code>D3D8EyeRenderer</code></td><td>Renders the second eye; also makes the draws of vertices in pixels that the call carries for both eyes.</td></tr>
 <tr><td><code>D3D8ResolutionScaler</code></td><td>Scales the resolution.</td></tr>
-<tr><td>(windowed mode)</td><td>Forces windowed mode.</td></tr>
+<tr><td><code>D3D8WindowedMode</code></td><td>Forces windowed mode and makes the window invisible.</td></tr>
 <tr><td><code>D3D8HostMemoryExporter</code></td><td>Exports the frame into the channel's memory: copies the frame to the channel and the right eye of it on two <code>JobThread</code>s.</td></tr>
-<tr><td>Direct3D 7 adapter (<code>D3D7/</code>)</td><td><code>D3D7EyeRenderer</code>, <code>D3D7SurfaceTwins</code>, <code>D3D7WindowedMode</code>, <code>D3D7HostMemoryExporter</code></td><td>The same jobs with the surfaces and the draws of its API.</td></tr>
-<tr><td>OpenGL adapter (<code>OpenGL/</code>)</td><td><code>GLEyeRenderer</code>, <code>GLEyeTargets</code>, <code>GLFrameReader</code></td><td>Renders both eyes into targets of its own, reads the frame, scales the resolution and finds the functions of the driver.</td></tr>
-<tr><td rowspan="2">Shared</td><td><code>PacedFramePublisher</code>, <code>SessionLog</code></td><td>Pass frames on; log the session.</td></tr>
-<tr><td><code>RenderScalePlanner</code>, <code>ResolutionHazardGate</code>, <code>EyeImageLimits</code>, <code>PixelRowWriter</code>, <code>InvisibleWindowManager</code>, <code>OwnCallScope</code></td><td>Decide the scale, hide the windows of the application and keep the converter's own calls apart from the application's.</td></tr>
+<tr><td rowspan="4">Direct3D 7 adapter (<code>D3D7/</code>)</td><td><code>D3D7EyeRenderer</code></td><td>Renders the right eye, and the draws of vertices in picture space, which the core's plan moves for each eye.</td></tr>
+<tr><td><code>D3D7SurfaceTwins</code></td><td>Holds the right eye's copies of the surfaces that the application renders to.</td></tr>
+<tr><td><code>D3D7WindowedMode</code></td><td>Makes the application render to a window and makes it invisible.</td></tr>
+<tr><td><code>D3D7HostMemoryExporter</code></td><td>Exports the eye images into the channel's memory by locking the surfaces.</td></tr>
+<tr><td rowspan="6">OpenGL adapter (<code>OpenGL/</code>)</td><td><code>GLEyeRenderer</code></td><td>Renders the second eye while the application runs.</td></tr>
+<tr><td><code>GLEyeTargets</code></td><td>One framebuffer per eye, and a small one for reading the depth.</td></tr>
+<tr><td><code>GLFrameReader</code></td><td>Reads the eye images without making the application wait for the graphics card; a frame is handed out one frame later.</td></tr>
+<tr><td><code>GLResolutionScaler</code></td><td>Scales the resolution.</td></tr>
+<tr><td><code>GLHostMemoryExporter</code></td><td>Exports the frame into the channel's memory on a <code>JobThread</code>.</td></tr>
+<tr><td><code>GLDriverFunctions</code>, <code>GLExtensionFunctions</code></td><td>The functions that the converter calls straight from the driver, not through the hooks, and the ones that <code>opengl32.dll</code> does not export.</td></tr>
+<tr><td rowspan="11">Shared</td><td><code>PacedFramePublisher</code></td><td>Passes the frames that the application is about to present to the viewer, at the pace at which the viewer shows them.</td></tr>
+<tr><td><code>SessionLog</code></td><td>The log of the session, which the programs around the application read.</td></tr>
+<tr><td><code>HostMemoryExporterBase</code></td><td>The base of the exporters that pass the images through the host memory of the channel: the transport kind, and the wait for the viewer.</td></tr>
+<tr><td><code>RenderScalePlanner</code></td><td>Decides how much larger than requested an application renders, and reports it.</td></tr>
+<tr><td><code>ResolutionHazardGate</code></td><td>Stops an application that would be shown wrongly when it renders larger than it asks.</td></tr>
+<tr><td><code>EyeImageLimits</code></td><td>The largest image that one eye can have, since both eyes go side by side in one frame of the channel.</td></tr>
+<tr><td><code>PixelRowWriter</code></td><td>Copies the rows of the image of an eye into an image that holds one or two eyes side by side.</td></tr>
+<tr><td><code>InvisibleWindowManager</code></td><td>Makes the windows of the application invisible, so that its images appear only where the converter shows them.</td></tr>
+<tr><td><code>OwnCallScope</code></td><td>Keeps the converter's own calls apart from the application's.</td></tr>
+<tr><td><code>EnvironmentVariableReader</code></td><td>Reads the environment variables that the converter uses as switches.</td></tr>
+<tr><td><code>ScopedTickAdder</code></td><td>Adds the performance-counter ticks of its lifetime to a total.</td></tr>
 </table>
 
 <h3 id="launcher">StereoLauncher</h3>
-<p><em>Program.</em> Starts a program with <code>StereoConverterDLL</code> injected, given a recipe, and reads the session log the converter writes. With <code>--click-button</code> it also presses a button of a window of the program (<code>ButtonClicker</code>), for the dialog that a program shows before it starts, and with <code>--untick-checkbox</code> it first unticks a checkbox of that dialog (the option to run full screen, which would change the screen resolution and cover the window that shows the images).</p>
+<p><em>Program.</em> Starts a program with <code>StereoConverterDLL</code> injected, given a recipe and the id of a session. It has the architecture of the application. Namespace <code>Stereo::Launcher</code>.</p>
+<table>
+<tr><th>Option</th><th>What it does</th></tr>
+<tr><td><code>--recipe</code>, <code>--session</code></td><td>The recipe that converts the application, and the id of the playback, so that the programs of it find each other. Both are required.</td></tr>
+<tr><td><code>--arguments</code>, <code>--working-directory</code></td><td>The command line of the application, and where it runs.</td></tr>
+<tr><td><code>--click-button</code></td><td>Presses the button of that text in a window of the program, for the dialog that a program shows before it starts (<code>ButtonClicker</code>).</td></tr>
+<tr><td><code>--untick-checkbox</code></td><td>Unticks the checkbox of that text in the same dialog just before the button is pressed: the option to run full screen, which would change the screen resolution and cover the window that shows the images. It is of use only with <code>--click-button</code>.</td></tr>
+<tr><td><code>--log</code></td><td>The converter logs what it does. Without it, only why it stops the application is written.</td></tr>
+<tr><td><code>--wait</code></td><td>Waits until the application exits. With <code>--log</code> it then prints a summary of the run from the log.</td></tr>
+</table>
+<table>
+<tr><th>Class</th><th>What it does</th></tr>
+<tr><td><code>ButtonClicker</code></td><td>Searches the windows of the process for the button until it exits or a minute passes, unticks the checkbox if one is named, and presses the button.</td></tr>
+<tr><td><code>CheckboxOutcome</code></td><td>What became of the checkbox: already unticked, not asked, not found, still ticked after the click, or unticked. The launcher says it.</td></tr>
+<tr><td><code>LogSummarizer</code></td><td>The summary of a run, from the last statistics line of the converter's log: the frames converted, and what the converter could not do.</td></tr>
+</table>
+<p>Exit codes: 0 done, 1 bad arguments, 2 the application could not be started, 3 the converter stopped the application.</p>
 
 <h3 id="presenter">StereoPresenter</h3>
-<p><em>Program, 64-bit.</em> Takes the frames from the channel, whatever the bitness of the application, and shows them in a preview window or, with <code>--headset</code>, in a headset. It is started with the id of a session, which the VR player makes and also gives to the launcher; the VR player starts both.</p>
+<p><em>Program, 64-bit.</em> Takes the frames from the channel, whatever the bitness of the application, and shows them in a window. It is started with the id of a session, which the VR player makes and also gives to the launcher; the VR player starts both. Namespace <code>Stereo::Presenter</code>.</p>
+<table>
+<tr><th>Option</th><th>What it does</th></tr>
+<tr><td><code>--session</code></td><td>The session whose frames to show. Required.</td></tr>
+<tr><td><code>--title</code></td><td>The title of the window.</td></tr>
+<tr><td><code>--headset</code></td><td>Shows the frames in the headset of the OpenXR runtime, if it has one. The window then no longer previews them.</td></tr>
+<tr><td><code>--no-pacing</code></td><td>With <code>--headset</code>: does not make the application produce a frame for each frame of the headset.</td></tr>
+<tr><td><code>--log</code></td><td>Writes what the presenter does to the log of the session.</td></tr>
+</table>
+<table>
+<tr><th>Class</th><th>What it does</th></tr>
+<tr><td><code>StereoPresenterWindow</code></td><td>The window that shows the newest image, as large as it allows, with the eyes side by side. A <code>Utils::UI::ImGuiPlayerWindowBase</code>.</td></tr>
+<tr><td><code>IEyeSink</code></td><td>What shows the eye images that an importer provides.</td></tr>
+<tr><td><code>PreviewSink</code></td><td>Keeps the newest frame in a Direct3D 11 texture for the window to draw.</td></tr>
+<tr><td><code>HeadsetSink</code></td><td>Shows the eyes in the headset (<code>HeadsetSession</code>); the GPU copies them from the memory of the channel to the swap chains.</td></tr>
+<tr><td><code>PresenterLog</code></td><td>Writes the presenter's messages to the log of the session, the one the converter writes to.</td></tr>
+</table>
 
 <h2 id="analysis">tools/analysis</h2>
-<p>Turning a workload into a model and the model into a recipe. See <a href="analysis.html">Analysis</a>. The library is <code>Analysis</code>. <code>scripts\analyze_capture.ps1</code> runs <code>APIDumpAnalysisExtractor</code>, <code>APIDumpDependencyExtractor</code> and <code>RecipeBake -o</code>, then <code>RecipeBake --check</code>, into a folder of its own, and never changes the recipe it is given (see <a href="adding-an-app.html">Adding an app</a>).</p>
+<p>Turning a workload into a model and the model into a recipe. See <a href="analysis.html">Analysis</a>. The library is <code>Analysis</code>. <code>scripts\analyze_capture.ps1</code> runs <code>APIDumpAnalysisExtractor</code>, <code>APIDumpDependencyExtractor</code> and <code>RecipeBake -o</code>, then <code>RecipeBake --check</code> and <code>RecipeBake --parity</code> on the baked recipe, into a folder of its own, and never changes the recipe it is given (see <a href="adding-an-app.html">Adding an app</a>).</p>
 <table>
 <tr><th>Program</th><th>Reads</th><th>Writes or prints</th></tr>
 <tr><td><a href="#t-analysis-extractor">APIDumpAnalysisExtractor</a></td><td>workload</td><td><code>.passes</code></td></tr>
@@ -371,22 +510,32 @@
 
 <h3 id="t-analysis-extractor">APIDumpAnalysisExtractor</h3>
 <p><em>Program.</em> Reads a workload and writes a <code>.passes</code> file. The three extractors are each a <code>main.cpp</code> and an <code>extractor.h</code> with the step that is the program's own; the rest is <code>ExtractorProgramRunner</code> of <code>Analysis</code>, and the three query programs are the same on <code>QueryProgramRunner</code>.</p>
+<table>
+<tr><th>Option of every extractor</th><th>What it does</th></tr>
+<tr><td><code>-o</code></td><td>The file to write. The default is the name of the workload with the extension of the file.</td></tr>
+<tr><td><code>--max-frames N</code></td><td>Stops after the Nth frame.</td></tr>
+<tr><td><code>--progress-interval SECONDS</code></td><td>Seconds between progress lines (0: after every segment).</td></tr>
+<tr><td><code>--skip-chunks-above BYTES</code></td><td>Data chunks of more bytes are not read. The default is 0 (all are read) for the passes and 65536 for the dependencies; the texture extractor refuses the option.</td></tr>
+<tr><td><code>--stats</code></td><td>Prints what was found when done.</td></tr>
+<tr><td><code>--threads N</code></td><td>The threads that read the workload ahead of the analysis.</td></tr>
+</table>
 
 <h3 id="t-analysis-query">APIDumpAnalysisQuery</h3>
 <p><em>Program.</em> Asks a <code>.passes</code> file questions (<code>info</code>, <code>timeline</code> and the others) and prints the answers as JSON. It checks that the workload is the one the file is of (<code>--workload</code> says where it is, <code>--no-verify</code> skips the check).</p>
 
 <h3 id="t-deps-extractor">APIDumpDependencyExtractor</h3>
-<p><em>Program.</em> Reads a workload and writes a <code>.deps</code> file. It reads on several threads, and leaves out the data chunks above 64 KiB (vertices and pixels, which it does not look at).</p>
+<p><em>Program.</em> Reads a workload and writes a <code>.deps</code> file. It reads on several threads, and by default leaves out the data chunks above 64 KiB (vertices and pixels, which it does not look at; <code>--skip-chunks-above 0</code> reads them all).</p>
 
 <h3 id="t-deps-query">APIDumpDependencyQuery</h3>
 <p><em>Program.</em> Asks a <code>.deps</code> file questions (<code>info</code>, <code>resources</code>, <code>resource</code>, <code>frame</code>, <code>carries</code>, <code>per-eye</code>, <code>slice</code>) and prints the answers as JSON. It checks that the workload is the one the file is of, as the query tool of the <code>.passes</code> file does.</p>
 
 <h3 id="t-slicer">APIDumpSlicer</h3>
-<p><em>Program.</em> Writes the first frames of a workload, frames 0 to B, as a workload of its own: <code>APIDumpSlicer in.workload slice.workload --frames B</code>.</p>
+<p><em>Program.</em> Writes the first frames of a workload, frames 0 to B, as a workload of its own: <code>APIDumpSlicer in.workload slice.workload --frames B [--strip-chunks-above N] [--threads N]</code>. <code>--frames 0-B</code> means the same.</p>
 <ul>
   <li>The segments of the file which are wholly in the slice are copied as they are (they are Zstandard frames of their own, found by the index).</li>
   <li>Only the segment that frame B ends in is decoded, cut after the call that ends the frame, and written again. A slice therefore replays to the same images as the workload up to that frame; <code>StereoReplayInspector --same-frames-as</code> checks it.</li>
   <li><code>--strip-chunks-above N</code> writes the big data chunks empty (they keep their numbers) for a slice that is only to be analysed.</li>
+  <li><code>--threads N</code> is the number of threads that read the workload ahead (2 by default).</li>
 </ul>
 
 <h3 id="t-texture-extractor">APIDumpTextureExtractor</h3>
@@ -405,41 +554,47 @@
 <tr><td><code>resources</code>, <code>resource &lt;id&gt;</code></td><td>The levels of a texture and its events in the order of the calls.</td></tr>
 <tr><td><code>at &lt;frame&gt; &lt;resource&gt; &lt;level&gt;</code></td><td>Lays the writes to a level over each other up to the end of that frame (or <code>--call</code>) and prints the pieces that no later write covered, each with the event that made it and where its bytes are (a chunk of the workload, or the file of blobs; none for what rendering made), and the last snapshot point of the level. A level that was given a size and no pixels has no piece.</td></tr>
 </table>
-<p>The options that every query program has (<code>--compact</code>, <code>--limit</code>, <code>--offset</code>, <code>--no-verify</code>, <code>--workload</code>) are read by <code>QueryCommandLine</code>, which the other two query programs use too; the loop over the arguments is <code>ArgumentWalker</code> in <code>utils/command_line</code>, which the extractors use as well.</p>
+<p>The options that every query program has (<code>--compact</code>, <code>--limit</code>, <code>--offset</code>, <code>--no-verify</code>, <code>--workload</code>) are read by <code>QueryCommandLine</code>, which all three query programs use; the loop over the arguments is <code>ArgumentWalker</code> in <code>utils/command_line</code>, which the extractors use as well. The texture query adds <code>--call</code> to <code>at</code>.</p>
 
 <h3 id="recipebake">RecipeBake</h3>
-<p><em>Program.</em> Four modes; <code>-o</code> writes the baked recipe to another file instead of replacing the recipe.</p>
+<p><em>Program.</em> Five modes: baking, and four reports. <code>-o</code> writes the baked recipe to another file instead of replacing the recipe.</p>
 <figure>
-<svg viewBox="0 0 900 330" role="img" aria-label="The four modes of RecipeBake and what each produces">
+<svg viewBox="0 0 900 414" role="img" aria-label="The five modes of RecipeBake and what each produces">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
-  <rect class="box3" x="10" y="40" width="170" height="44" rx="6"/><text x="95" y="67" text-anchor="middle">.passes file</text>
-  <rect class="box3" x="10" y="130" width="170" height="44" rx="6"/><text x="95" y="150" text-anchor="middle">.deps file</text><text class="small" x="95" y="166" text-anchor="middle">(with --deps)</text>
-  <rect class="box3" x="10" y="220" width="170" height="44" rx="6"/><text x="95" y="247" text-anchor="middle">hand-written rules</text>
-  <rect class="box4" x="260" y="110" width="170" height="84" rx="8"/><text class="title" x="345" y="148" text-anchor="middle">RecipeBake</text><text class="small" x="345" y="168" text-anchor="middle">four modes</text>
+  <rect class="box3" x="10" y="70" width="170" height="44" rx="6"/><text x="95" y="97" text-anchor="middle">.passes file</text>
+  <rect class="box3" x="10" y="160" width="170" height="44" rx="6"/><text x="95" y="180" text-anchor="middle">.deps file</text><text class="small" x="95" y="196" text-anchor="middle">(with --deps)</text>
+  <rect class="box3" x="10" y="250" width="170" height="44" rx="6"/><text x="95" y="277" text-anchor="middle">hand-written rules</text>
+  <rect class="box4" x="260" y="150" width="170" height="84" rx="8"/><text class="title" x="345" y="188" text-anchor="middle">RecipeBake</text><text class="small" x="345" y="208" text-anchor="middle">five modes</text>
   <rect class="box2" x="520" y="10" width="370" height="64" rx="6"/><text x="705" y="32" text-anchor="middle">baking: the recipe (-o: to another file)</text><text class="small" x="705" y="50" text-anchor="middle">convergence distances, eye separation limits</text><text class="small" x="705" y="64" text-anchor="middle">of each scene</text>
   <rect class="box2" x="520" y="94" width="370" height="64" rx="6"/><text x="705" y="116" text-anchor="middle">--check: report, exit code 5 or 6</text><text class="small" x="705" y="134" text-anchor="middle">shapes and signatures the recipe does not know;</text><text class="small" x="705" y="148" text-anchor="middle">scenes the recipe leaves alone</text>
   <rect class="box2" x="520" y="178" width="370" height="64" rx="6"/><text x="705" y="200" text-anchor="middle">--overlays: JSON</text><text class="small" x="705" y="218" text-anchor="middle">draws that may be 2D overlays, and where the</text><text class="small" x="705" y="232" text-anchor="middle">opinions disagree</text>
-  <rect class="box2" x="520" y="262" width="370" height="58" rx="6"/><text x="705" y="284" text-anchor="middle">--scenes: JSON</text><text class="small" x="705" y="302" text-anchor="middle">each scene with depth: convergence, separation, parallax</text>
-  <path class="arrow" d="M180 62L258 135"/><path class="arrow" d="M180 152H258"/><path class="arrow" d="M180 242L258 170"/>
-  <path class="arrow" d="M430 130L518 52"/><path class="arrow" d="M430 145L518 126"/><path class="arrow" d="M430 160L518 205"/><path class="arrow" d="M430 175L518 285"/>
+  <rect class="box2" x="520" y="262" width="370" height="64" rx="6"/><text x="705" y="284" text-anchor="middle">--parity: report, exit code 7</text><text class="small" x="705" y="302" text-anchor="middle">draws that the replay and the live converter</text><text class="small" x="705" y="316" text-anchor="middle">decide differently</text>
+  <rect class="box2" x="520" y="346" width="370" height="58" rx="6"/><text x="705" y="368" text-anchor="middle">--scenes: JSON</text><text class="small" x="705" y="386" text-anchor="middle">each scene with depth: convergence, separation, parallax</text>
+  <path class="arrow" d="M180 92L258 168"/><path class="arrow" d="M180 182H258"/><path class="arrow" d="M180 272L258 216"/>
+  <path class="arrow" d="M430 160L518 50"/><path class="arrow" d="M430 172L518 126"/><path class="arrow" d="M430 192L518 210"/><path class="arrow" d="M430 212L518 294"/><path class="arrow" d="M430 224L518 375"/>
 </svg>
-<figcaption>Baking writes a recipe; the other three modes write nothing and only report.</figcaption>
+<figcaption>Baking writes a recipe; the other four modes write nothing and only report.</figcaption>
 </figure>
 <table>
 <tr><th>Mode</th><th>Class</th><th>What it does</th></tr>
-<tr><td><strong>Baking</strong></td><td><code>RecipeBaker</code></td><td>Reads a <code>.passes</code> file (and, with <code>--deps</code>, the <code>.deps</code> file of the same workload, which says which textures each eye is to have a copy of) and the hand-written rules, and makes the recipe, including the convergence distances (the median depth by vertices) and the limits of the eye separation of each scene (from how near its surfaces are, and the <code>comfort</code> of the recipe).</td></tr>
-<tr><td style="white-space:nowrap"><strong><code>--check</code></strong></td><td><code>RecipeChecker</code></td><td>Writes nothing. Says which kinds of frames (shapes) and which draw signatures of a workload the baked recipe does not know, with how many frames and where the first is, so that a recipe of another capture, or of a shorter one, is found out before a replay leaves those frames to the unknown-frame policy (exit code 5 if there are any). It also says which passes the recipe leaves alone look like 3D scenes, and which draws a replay and the converter treat differently (exit code 6).</td></tr>
-<tr><td style="white-space:nowrap"><strong><code>--overlays</code></strong></td><td><code>OverlayCandidateFinder</code>, <code>DrawFacts</code></td><td>Writes nothing either. Prints as JSON the draws that may be 2D overlays, with where the opinions disagree (below).</td></tr>
-<tr><td style="white-space:nowrap"><strong><code>--parity</code></strong></td><td><code>ParityAuditor</code>, <code>PassCameraReader</code></td><td>Writes nothing. Compares what the replay and the live converter decide for each draw of the capture, by asking <code>RecipeApplier::decide_draw()</code> both ways (by pass and draw key, and by signature over each camera of the pass), and lists the draws on which they differ.</td></tr>
+<tr><td rowspan="2"><strong>Baking</strong></td><td rowspan="2"><code>RecipeBaker</code></td><td>Reads a <code>.passes</code> file (and, with <code>--deps</code>, the <code>.deps</code> file of the same workload, which says which textures each eye is to have a copy of) and the hand-written rules, and makes the recipe.</td></tr>
+<tr><td>It includes the convergence distances (the median depth by vertices) and the limits of the eye separation of each scene (from how near its surfaces are, and the <code>comfort</code> of the recipe).</td></tr>
+<tr><td rowspan="2" style="white-space:nowrap"><strong><code>--check</code></strong></td><td rowspan="2"><code>RecipeChecker</code></td><td>Writes nothing. Says which kinds of frames (shapes) and which draw signatures of a workload the baked recipe does not know, with how many frames and where the first is, so that a recipe of another capture, or of a shorter one, is found out before a replay leaves those frames to the unknown-frame policy (exit code 5 if there are any).</td></tr>
+<tr><td>It also says which passes the recipe leaves alone look like 3D scenes, and which draws a replay and the converter treat differently (exit code 6).</td></tr>
+<tr><td style="white-space:nowrap"><strong><code>--overlays</code></strong></td><td><code>OverlayCandidateFinder</code></td><td>Writes nothing either. Prints as JSON the draws that may be 2D overlays, with where the opinions disagree (below).</td></tr>
+<tr><td style="white-space:nowrap"><strong><code>--parity</code></strong></td><td><code>ParityAuditor</code></td><td>Writes nothing. Compares what the replay and the live converter decide for each draw of the capture, by asking <code>RecipeApplier::decide_draw()</code> both ways (by pass and draw key, and by signature over each camera of the pass), for each size the draw was seen with, and lists the draws on which they differ (exit code 7).</td></tr>
 <tr><td style="white-space:nowrap"><strong><code>--scenes</code></strong></td><td><code>SceneReporter</code></td><td>Writes nothing. Prints as JSON each scene (kind of frame) that has depth: where its frames are, where the eyes converge and how far apart they may be with the recipe as it is, and the parallax of its nearest and farthest surfaces as a part of the picture width and as an angle on a screen that is <code>--screen-degrees</code> wide, at the strength 1.</td></tr>
+<tr><td>(shared)</td><td><code>PassCameraReader</code></td><td>Reads the cameras that a pass was drawn with. <code>--overlays</code> and <code>--parity</code> use it.</td></tr>
 </table>
+<p>Exit codes: 0 done, 1 bad arguments, 2 a file cannot be read, 3 the recipe cannot be baked, 4 the file cannot be written, 5 and 6 from <code>--check</code>, 7 from <code>--parity</code>.</p>
 
 <h4>The overlay report</h4>
-<p>A draw is a candidate by two kinds of opinion, and the report says where they disagree.</p>
+<p>A draw is a candidate by the opinion of the recipe or by a hint of the analysis, and the report says where they disagree.</p>
 <table>
 <tr><th>Opinion</th><th>What it is</th></tr>
 <tr><td>By the recipe</td><td>A draw it leaves alone, as a replay asks by the keys of the draw and of its pass, and as a converter that plays the application as it runs asks by the signature over the cameras of its pass.</td></tr>
-<tr><td>By the hints of the analysis</td><td>The camera of the pass never changes, or the draw was drawn with an orthographic projection (the last column of the matrix is 0, 0, 0 and something, and the matrix is not the identity, which is what a program that sets none has). This is a part of what a draw structure is, so that the panels of a screen in the pass of a 3D scene are other draws than the scene is made of, whatever the state they share.</td></tr>
+<tr><td>By the camera of the pass</td><td>The camera of the pass never changes.</td></tr>
+<tr><td>By the projection of the draw</td><td>The draw was drawn with an orthographic projection: the last column of the matrix is 0, 0, 0 and something, and the matrix is not the identity, which is what a program that sets none has. This is part of what a draw structure is, so that the panels of a screen in the pass of a 3D scene are other draws than the scene is made of, whatever the state they share.</td></tr>
 </table>
 <p>Each candidate also carries the facts the analysis kept of the draws of its structure in all their passes (<code>DrawFacts</code>, the <code>FACT</code> section of the <code>.passes</code> file, version 2):</p>
 <ul>
@@ -451,62 +606,92 @@
 <p>The baking is the class <code>RecipeBaker</code>, which is in the program because the program is its only user (the tests compile it too); the command line is <code>CommandLine</code>.</p>
 
 <h2 id="replay">tools/stereo_replay</h2>
-<p>Executing a workload's calls again, without the program. See <a href="replay.html">Replay</a>. Each program has <code>_x64</code> or <code>_x86</code> in the name of its file, so that the 64-bit player finds the 32-bit one next to itself.</p>
+<p>Executing a workload's calls again, without the program. See <a href="replay.html">Replay</a>. Each program has <code>_x64</code> or <code>_x86</code> in the name of its file, so that the 64-bit player finds the 32-bit one next to itself. The namespaces are <code>Stereo::Replay::EngineDLL</code>, <code>Stereo::Replay::Player</code> and <code>Stereo::Replay::Inspector</code>.</p>
 
 <h3>StereoReplayEngineDLL</h3>
-<p><em>DLL, built for 32 and 64 bits.</em> The replay engine. It is the replay engine of the interceptor with what stereo needs added.</p>
+<p><em>DLL, built for 32 and 64 bits.</em> The replay engine. It is the replay engine of the interceptor with what stereo needs added. It exports <code>aiCreateReplayEngine</code> and <code>aiDestroyReplayEngine</code>.</p>
 <figure>
-<svg viewBox="0 0 900 330" role="img" aria-label="The replay engine of the interceptor and what stereo adds">
+<svg viewBox="0 0 900 396" role="img" aria-label="The replay engine of the interceptor and what stereo adds">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
-  <rect class="group" x="10" y="8" width="300" height="314" rx="10"/><text class="title" x="24" y="30">From the interceptor</text>
+  <rect class="group" x="10" y="8" width="300" height="380" rx="10"/><text class="title" x="24" y="30">From the interceptor</text>
   <rect class="box3" x="26" y="48" width="268" height="60" rx="6"/><text x="160" y="72" text-anchor="middle">executors</text><text class="small" x="160" y="88" text-anchor="middle">DirectDraw 7 and Direct3D 7, Direct3D 8,</text><text class="small" x="160" y="102" text-anchor="middle">OpenGL, Win32 windows</text>
   <rect class="box3" x="26" y="124" width="268" height="44" rx="6"/><text x="160" y="150" text-anchor="middle">remapping of objects</text>
   <rect class="box3" x="26" y="184" width="268" height="44" rx="6"/><text x="160" y="210" text-anchor="middle">locks and client arrays</text>
-  <rect class="group" x="340" y="8" width="550" height="314" rx="10"/><text class="title" x="354" y="30">Added for stereo</text>
-  <rect class="box" x="356" y="44" width="518" height="56" rx="6"/><text x="615" y="66" text-anchor="middle">StereoFrameExecutor: plays a frame twice</text><text class="small" x="615" y="84" text-anchor="middle">FrameRewriter and EyeMatrixBinder bind the matrix of each eye</text>
-  <rect class="box" x="356" y="110" width="250" height="44" rx="6"/><text x="481" y="136" text-anchor="middle">PacedFrameExecutor: paces frames</text>
-  <rect class="box" x="624" y="110" width="250" height="44" rx="6"/><text x="749" y="130" text-anchor="middle">StereoD3D7CallExecutor</text><text class="small" x="749" y="146" text-anchor="middle">a copy of some objects per eye</text>
-  <rect class="box" x="356" y="164" width="250" height="44" rx="6"/><text x="481" y="184" text-anchor="middle">StereoGLCallExecutor</text><text class="small" x="481" y="200" text-anchor="middle">a copy of the textures per eye</text>
-  <rect class="box2" x="624" y="164" width="250" height="44" rx="6"/><text x="749" y="184" text-anchor="middle">D3D7/: D3D7DrawRewriter</text><text class="small" x="749" y="200" text-anchor="middle">vertices of a draw for an eye</text>
-  <rect class="box2" x="356" y="218" width="518" height="58" rx="6"/><text x="615" y="238" text-anchor="middle">seeking: HurriedFrameSelector, SliceSkipper, PresentSkipper</text><text class="small" x="615" y="254" text-anchor="middle">OpenGL helpers that a skipped frame needs:</text><text class="small" x="615" y="268" text-anchor="middle">GLDisplayListTracker, GLAttributeCoverage, GLTextureParameterCache</text>
-  <rect class="box4" x="356" y="284" width="518" height="30" rx="6"/><text x="615" y="304" text-anchor="middle">NullReplayObserver: an observer that does nothing, to derive from</text>
+  <rect class="group" x="340" y="8" width="550" height="380" rx="10"/><text class="title" x="354" y="30">Added for stereo</text>
+  <rect class="box4" x="356" y="44" width="518" height="56" rx="6"/><text x="615" y="66" text-anchor="middle">StereoReplayEngine: wraps the engine of the interceptor</text><text class="small" x="615" y="84" text-anchor="middle">FrameBuffer and FrameRunner hold and run a frame; OverlayChunkSource</text>
+  <rect class="box" x="356" y="108" width="518" height="56" rx="6"/><text x="615" y="130" text-anchor="middle">StereoFrameExecutor: plays a frame twice</text><text class="small" x="615" y="148" text-anchor="middle">FrameRewriter and EyeMatrixBinder bind the matrix of each eye</text>
+  <rect class="box" x="356" y="174" width="250" height="44" rx="6"/><text x="481" y="200" text-anchor="middle">PacedFrameExecutor: paces frames</text>
+  <rect class="box" x="624" y="174" width="250" height="44" rx="6"/><text x="749" y="194" text-anchor="middle">StereoD3D7CallExecutor</text><text class="small" x="749" y="210" text-anchor="middle">a copy of some objects per eye</text>
+  <rect class="box" x="356" y="228" width="250" height="44" rx="6"/><text x="481" y="248" text-anchor="middle">StereoGLCallExecutor</text><text class="small" x="481" y="264" text-anchor="middle">a copy of the textures per eye</text>
+  <rect class="box2" x="624" y="228" width="250" height="44" rx="6"/><text x="749" y="248" text-anchor="middle">D3D7/: D3D7DrawRewriter</text><text class="small" x="749" y="264" text-anchor="middle">vertices of a draw for an eye</text>
+  <rect class="box2" x="356" y="282" width="518" height="58" rx="6"/><text x="615" y="302" text-anchor="middle">seeking: HurriedFrameSelector, SliceSkipper, PresentSkipper</text><text class="small" x="615" y="318" text-anchor="middle">OpenGL helpers that a skipped frame needs:</text><text class="small" x="615" y="332" text-anchor="middle">GLDisplayListTracker, GLAttributeCoverage, GLTextureParameterCache</text>
+  <rect class="box4" x="356" y="348" width="518" height="30" rx="6"/><text x="615" y="368" text-anchor="middle">NullReplayObserver: an observer that does nothing, to derive from</text>
   <path class="arrow" d="M294 78H354"/>
 </svg>
 <figcaption>The engine reuses the executors of the interceptor and adds the classes that play a frame once for each eye.</figcaption>
 </figure>
 <table>
 <tr><th>Job</th><th>Classes</th></tr>
+<tr><td>The engine</td><td><code>StereoReplayEngine</code> wraps the base engine: it plays the frames for the eyes of a recipe at the pace of the dumped process, and executes the Direct3D 7 and OpenGL calls for two eyes. It implements <code>IReplayEngine</code> and <code>IPlaybackController</code>.</td></tr>
+<tr><td>Hold and run a frame</td><td><code>FrameBuffer</code> keeps the calls of a frame and their data chunks, copied out of the segments they were read from; <code>FrameRunner</code> executes them once or more (twice for the two eyes, or once per variant)</td></tr>
 <tr><td>Play a frame twice</td><td><code>StereoFrameExecutor</code>, with <code>FrameRewriter</code> and <code>EyeMatrixBinder</code> to bind the matrix of each eye</td></tr>
-<tr><td>Pace the frames</td><td><code>PacedFrameExecutor</code></td></tr>
-<tr><td>Keep a copy of some objects for each eye</td><td><code>StereoD3D7CallExecutor</code> (Direct3D 7); <code>StereoGLCallExecutor</code> does so for the textures (OpenGL)</td></tr>
+<tr><td>Pace the frames</td><td><code>PacedFrameExecutor</code>, with <code>FramePacer</code></td></tr>
+<tr><td>Keep a copy of some objects for each eye</td><td><code>IEyeExecutor</code> is the interface of such an executor; <code>StereoD3D7CallExecutor</code> (Direct3D 7) and <code>StereoGLCallExecutor</code> (OpenGL, for the textures) implement it</td></tr>
 <tr><td>Seek</td><td><code>HurriedFrameSelector</code>, <code>SliceSkipper</code> and <code>PresentSkipper</code>, with the OpenGL helpers that a skipped frame needs (<code>GLDisplayListTracker</code>, <code>GLAttributeCoverage</code>, <code>GLTextureParameterCache</code>)</td></tr>
+<tr><td>Put chunks of its own over the workload's</td><td><code>OverlayChunkSource</code> holds chunks that hide the ones of the same ID in the chunk source under it, for a draw that is played with other vertices</td></tr>
+<tr><td>Hand out the images</td><td><code>IFrameImageSink</code> gets the back buffer after each execution of a frame, before it is presented</td></tr>
 <tr><td>Observe</td><td><code>NullReplayObserver</code> is an observer that does nothing, for a program to derive from and override what it cares about (the player's <code>FrameRangePlayer</code>, the inspector's <code>LastFramePauser</code>)</td></tr>
 <tr><td>Direct3D 7 only</td><td>The rewriting of the vertices of a draw for an eye, <code>D3D7DrawRewriter</code>, in <code>D3D7/</code></td></tr>
 </table>
 <p>The engine's public headers (<code>i_playback_controller.h</code>, <code>types.h</code> and the others) are in its folder, beside its sources.</p>
 
 <h3>StereoReplayPlayer</h3>
-<p><em>Program.</em> A control window (ImGui, through <code>UI</code> of <code>Utils</code>) around the replay engine: choose a workload and optionally a recipe, play, pause and seek. A 64-bit player starts the 32-bit one for a 32-bit workload.</p>
+<p><em>Program.</em> A control window around the replay engine: choose a workload and optionally a recipe, play, pause and seek. A 64-bit player starts the 32-bit one for a 32-bit workload.</p>
+<table>
+<tr><th>Option</th><th>What it does</th></tr>
+<tr><td><code>file.workload</code></td><td>The workload. Without it, a window asks for one.</td></tr>
+<tr><td><code>--recipe</code>, <code>--eye</code>, <code>--eye-separation</code></td><td>Renders the frames for the eyes of the recipe: <code>left</code>, <code>right</code> or <code>both</code> (the default), and the distance between the eyes (0.1 by default).</td></tr>
+<tr><td><code>--frames A-B</code></td><td>Runs unpaced up to frame A, plays A to B at the recorded pace, and pauses after B.</td></tr>
+<tr><td><code>--deps</code></td><td>The dependencies of the workload, for a quicker seek. By default, the <code>.deps</code> file next to the workload if there is one.</td></tr>
+<tr><td><code>--console</code></td><td>Commands are typed instead of the window.</td></tr>
+</table>
+<table>
+<tr><th>Class</th><th>What it does</th></tr>
+<tr><td><code>ControlWindow</code></td><td>The window with the play, pause and reset controls and the progress of the replay, apart from the replay windows. A <code>Utils::UI::ImGuiPlayerWindowBase</code>.</td></tr>
+<tr><td><code>PreviewWindow</code></td><td>The images of the eyes side by side, on a Direct3D 11 device of its own and a thread of its own.</td></tr>
+<tr><td><code>EyeImageBuffer</code></td><td>Hands both eyes of a frame from the replay thread to the thread that shows them, never the left image of one frame with the right image of the previous.</td></tr>
+<tr><td><code>FrameRangePlayer</code></td><td>The observer behind <code>--frames</code>.</td></tr>
+<tr><td><code>QuitHandler</code></td><td>Ends the player when any thread asks for it.</td></tr>
+</table>
 
 <h3>StereoReplayInspector</h3>
-<p><em>Program, without a window.</em> Replays a workload several ways, hashes the images of each frame and compares the ways: that a replay is repeatable, and that a frame executed twice draws the same as once. It is the test that the replay engine is fit for stereo conversion, and it can write the images of a frame that differs. There is a file for each way of working:</p>
+<p><em>Program, without a window.</em> Replays a workload several ways, hashes the images of each frame and compares the ways: that a replay is repeatable, and that a frame executed twice draws the same as once. It is the test that the replay engine is fit for stereo conversion, and it can write the images of a frame that differs. The other modes replay once and report or write something.</p>
 <table>
-<tr><th>File</th><th>What it does</th></tr>
-<tr><td><code>replay_runner</code></td><td>Replays a workload the ways it compares.</td></tr>
-<tr><td><code>comparison</code></td><td>Compares the ways (and one workload with another).</td></tr>
-<tr><td><code>screenshot_mode</code></td><td>Writes the image of a frame or a sheet of frames.</td></tr>
-<tr><td><code>profile_mode</code></td><td>Says where the time of a replay goes.</td></tr>
-<tr><td><code>redundant_state_counter_mode</code></td><td>Counts what the calls of the frames that a seek leaves out do to the state.</td></tr>
-<tr><td><code>overlay_report_mode</code></td><td>Makes the overlay report.</td></tr>
-<tr><td><code>command_line</code></td><td>Reads and checks the options (it says what is wrong with them, and has tests, like the other programs).</td></tr>
-<tr><td><code>main.cpp</code></td><td>Loads the recipe and chooses the way of working.</td></tr>
+<tr><th>Mode</th><th>Files and classes</th><th>What it does</th></tr>
+<tr><td>the check (no mode option)</td><td><code>replay_runner</code>, <code>comparison</code>, <code>FrameHashSink</code></td><td>Replays frames A to B in the ways (<code>again</code>, <code>twice</code>, <code>restore</code>, <code>recipe</code>; one <code>ReplayWay</code> each) and compares the hash of the back buffer after each execution with the first replay. <code>--dump-dir</code> writes the first frame that differs.</td></tr>
+<tr><td><code>--same-frames-as</code></td><td><code>comparison</code></td><td>Compares the frames of a workload with those of another, such as a slice of it (exit code 3 if they differ).</td></tr>
+<tr><td><code>--screenshot N</code>, <code>--contact-sheet K</code></td><td><code>screenshot_mode</code>, <code>ContactSheetFramePicker</code></td><td>Writes the image of a frame as a PNG, or a sheet of K frames spread evenly from A to B.</td></tr>
+<tr><td><code>--profile</code></td><td><code>profile_mode</code>, <code>ReplayProfiler</code></td><td>Says where the time of a replay goes: the time of the calls, summed by function and by frame.</td></tr>
+<tr><td><code>--redundant-state</code></td><td><code>redundant_state_counter_mode</code>, <code>RedundantStateCounter</code></td><td>Counts what the OpenGL calls of the frames that a seek leaves out do to the state: how many give it the value it has, and how many are overwritten before anything reads them.</td></tr>
+<tr><td><code>--overlay-report</code></td><td><code>overlay_report_mode</code>, <code>OverlayReport</code>, <code>OverlayReportPage</code>, <code>FrameRepeatability</code></td><td>Makes the overlay report: replays the frame of each candidate with the draw and without it, and writes the images and a page to look at them. <code>FrameRepeatability</code> says whether a frame can be played again from the state it leaves. <code>--jobs</code> shares the work between processes.</td></tr>
+<tr><td>(all)</td><td><code>command_line</code>, <code>main.cpp</code>, <code>LastFramePauser</code>, <code>CrashBreadcrumb</code></td><td><code>command_line</code> reads and checks the options and says what is wrong with them; <code>main.cpp</code> loads the recipe and chooses the mode; <code>LastFramePauser</code> pauses the replay after the last frame; <code>CrashBreadcrumb</code> (<code>--breadcrumb</code>) records the call being made when a replay crashes.</td></tr>
 </table>
 
 <h2 id="vrplayer">VRPlayer</h2>
 <p>The front end that chooses what to run and where to see it. See <a href="vr-player.html">VR player</a>.</p>
 
 <h3>VRPlayer</h3>
-<p><em>Program, 64-bit.</em> A window that lists the applications of the catalog and the devices, starts the chosen application through the launcher and the presenter, and lets the user change the settings of a running session.</p>
+<p><em>Program, 64-bit.</em> A window that lists the applications of the catalog and the devices, starts the chosen application through the launcher and the presenter, and lets the user change the settings of a running session. Namespace <code>VRPlayer</code>.</p>
+<table>
+<tr><th>Option</th><th>What it does</th></tr>
+<tr><td><code>--catalog file.json</code></td><td>The catalog. Without it, <code>apps.json</code> is looked for next to the program, in its <code>apps</code> folder, and in the <code>apps</code> folder above it.</td></tr>
+<tr><td><code>--log</code></td><td>The converter and the presenter write a log of each session to <code>%TEMP%\apistereo_&lt;session&gt;.log</code>.</td></tr>
+</table>
+<table>
+<tr><th>Class</th><th>What it does</th></tr>
+<tr><td><code>VrPlayerWindow</code></td><td>The window: the applications, the device to play them on, the quality, and the button that starts the application. The depth strength and the overlay setting are passed on while it plays. A <code>Utils::UI::ImGuiPlayerWindowBase</code>.</td></tr>
+<tr><td><code>AppSession</code></td><td>One application played in VR: starts the presenter and the launcher of the architecture of the application, and watches both. Everything belongs to one job, so ending the session ends all of it.</td></tr>
+</table>
 
 <h2 id="support">Tests and third-party code</h2>
 

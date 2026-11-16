@@ -36,7 +36,7 @@
 </ol>
 
 <h2 id="build">Build and test</h2>
-<p>The project is built twice, 32-bit and 64-bit, by <code>build.bat</code>; see <a href="building.html">Building &amp; testing</a> for that, the tests and the release.</p>
+<p>The project is built twice, 32-bit and 64-bit, by <code>build.bat</code>; see <a href="building.html">Building &amp; testing</a> for that and for the release. The tests are one program, <code>DemoVRPlayerTests</code>, built when a tree is configured with <code>-DDEMOVRPLAYER_BUILD_TESTS=ON</code> (<a href="building.html#tests">how</a>); run both the 64-bit and the 32-bit one before a commit.</p>
 <div class="note">Close <code>VRPlayer</code> before running <code>build.bat</code>: it empties <code>build_final\</code>, and the downloaded applications go with it.</div>
 
 <h2 id="layout">Where things go</h2>
@@ -106,11 +106,25 @@
 <h3>Names and layout of the tree</h3>
 <table>
 <tr><th>Rule</th><th>Example</th><th>Checked by</th></tr>
-<tr><td>Folders and files lower-case <code>snake_case</code>, except the folders named after a graphics API or one of its entrypoints (<code>D3D7</code>, <code>D3D8</code>, <code>OpenGL</code>, and the <code>GL&lt;version&gt;</code> folders of API Interceptor), which keep the names the API gives them. Namespaces PascalCase. Executables PascalCase with <code>_x64</code> or <code>_x86</code> (<code>VRPlayer.exe</code> excepted).</td><td><code>tools/analysis/recipe_bake</code> gives <code>RecipeBake_x64.exe</code></td><td><code>cmake/architecture.cmake</code> and <code>cmake/install.cmake</code> (the suffix, the install folder), the <code>Layout</code> test (program folders), review (the rest)</td></tr>
-<tr><td>Everything in a named namespace, definitions qualified, no anonymous namespaces, no <code>using</code> directives (in <code>src/libs</code>, <code>src/runtime</code>, <code>src/tools</code> and <code>src/vr_player</code>; tests excepted).</td><td><code>Ret NS::f()</code></td><td>review</td></tr>
-<tr><td>A header defines one class (a template which only helps one class, such as a trait, stays in the header of that class); a data type shared by a module is in its <code>types.h</code>.</td><td></td><td>review</td></tr>
+<tr><td>Folders and files are lower-case <code>snake_case</code>. The folders named after a graphics API or one of its entrypoints (<code>D3D7</code>, <code>D3D8</code>, <code>OpenGL</code>, and the <code>GL&lt;version&gt;</code> folders of API Interceptor) keep the names the API gives them.</td><td><code>libs/utils/binary_io</code>, <code>converter_dll/D3D7</code></td><td>review</td></tr>
+<tr><td>A program is in a folder of the name of its file, in the folder its file installs to; every program folder is installed.</td><td><code>tools/analysis/recipe_bake</code></td><td>the <code>Layout</code> test</td></tr>
+<tr><td>Executables are PascalCase and carry their architecture, <code>_x64</code> or <code>_x86</code> (<code>VRPlayer.exe</code> excepted).</td><td><code>RecipeBake_x64.exe</code></td><td><code>cmake/architecture.cmake</code> and <code>cmake/install.cmake</code></td></tr>
+<tr><td><code>utils</code> includes nothing of another library or of a program.</td><td></td><td>the <code>Layout</code> test</td></tr>
+<tr><td>Namespaces are PascalCase. A part of a library is a namespace of it.</td><td><code>libs/analysis/recipe</code> is <code>Analysis::Recipe</code></td><td>review</td></tr>
+<tr><td>Everything is in a named namespace, definitions are qualified, there are no anonymous namespaces and no <code>using</code> directives (in <code>src/libs</code>, <code>src/runtime</code>, <code>src/tools</code> and <code>src/vr_player</code>; tests excepted).</td><td><code>Ret NS::f()</code></td><td>review</td></tr>
 <tr><td>A test file is named after what it tests; a class that is new has tests.</td><td><code>test_job_thread.cpp</code></td><td>review</td></tr>
 <tr><td>Code is not written twice: a shared type or helper goes where both users can reach it.</td><td></td><td><code>DuplicateCode</code> test (exceptions in <code>src/tests/data/known_duplicates.txt</code>; see below)</td></tr>
+</table>
+
+<h3>Classes and files</h3>
+<table>
+<tr><th>Rule</th><th>Example</th><th>Checked by</th></tr>
+<tr><td>A class is implemented in one <code>.h</code>/<code>.cpp</code> pair named after it, and all its functions are in that <code>.cpp</code>. A template which only helps one class, such as a trait, stays in the header of that class.</td><td><code>stable_hasher.h</code>, <code>stable_hasher.cpp</code></td><td>review</td></tr>
+<tr><td>A pure interface is <code>IName</code>, in <code>i_name.h</code>.</td><td><code>IEyeExecutor</code> in <code>i_eye_executor.h</code></td><td>review</td></tr>
+<tr><td>An abstract base that has an implementation is <code>NameBase</code>, in <code>name_base.h</code>.</td><td><code>FixedFunctionFrontendBase</code>, <code>HostMemoryExporterBase</code></td><td>review</td></tr>
+<tr><td>Data types that several classes of a module use, and its enums, are in the <code>types.h</code> of the module.</td><td><code>libs/stereo/core/types.h</code></td><td>review</td></tr>
+<tr><td>A class is named for what it does, not for what kind of thing it is. API prefixes keep their capitals.</td><td><code>RecipeStereoPlanner</code>, <code>LiveCallAnalyzer</code>, <code>GLGeometrySampler</code></td><td>review</td></tr>
+<tr><td>A static factory is <code>create_ptr()</code>, the first function of the class in the header.</td><td><code>LiveStereoConverter::create_ptr()</code></td><td>review</td></tr>
 </table>
 
 <h3>Shape of the code</h3>
@@ -135,7 +149,9 @@
 <table>
 <tr><th>Rule</th><th>Example</th><th>Checked by</th></tr>
 <tr><td>Members, functions, variables and enumerators in alphabetical order (an enum whose values are stored, or mirror an API, keeps its order and says why). Runs of declarations and statements aligned in columns.</td><td></td><td>review</td></tr>
-<tr><td>Names say what and in which unit; no shortened words. Suffixes: <code>_ptr</code> (pointer, and what returns one), <code>_func</code> (lambda), <code>_vec</code>, <code>_set</code>, <code>_map</code>.</td><td><code>in_interface</code>, not <code>in_iface</code></td><td>review</td></tr>
+<tr><td>Names say what and in which unit; no shortened words.</td><td><code>in_interface</code>, not <code>in_iface</code></td><td>review</td></tr>
+<tr><td>Suffixes: <code>_ptr</code> (a pointer, and a function that returns one), <code>_func</code> (a lambda or <code>std::function</code>), <code>_func_ptr</code> (a raw function pointer), <code>_vec</code>, <code>_set</code>, <code>_map</code> (containers).</td><td><code>get_data_chunk_ptr()</code>, <code>after_read_func</code></td><td>review</td></tr>
+<tr><td>Matrices and fixed arrays say their element type and size: <code>_f32mat</code>, <code>_u8vecN</code>, <code>_i32vecN</code>, <code>_fp32vecN</code>.</td><td><code>identity_f32mat</code>, <code>clear_color_fp32vec4</code></td><td>review</td></tr>
 <tr><td>Constants are <code>constexpr UPPER_CASE</code>, function-local unless two functions share them; no magic numbers.</td><td></td><td>review</td></tr>
 <tr><td>Comments are short, and say why or state a contract.</td><td></td><td>review</td></tr>
 </table>
@@ -151,12 +167,12 @@
 <svg viewBox="0 0 900 230" role="img" aria-label="How the DuplicateCode test works">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
   <rect class="box" x="10" y="50" width="190" height="80" rx="6"/><text x="105" y="76" text-anchor="middle">sources</text><text class="small" x="105" y="94" text-anchor="middle">src, and API Interceptor</text><text class="small" x="105" y="110" text-anchor="middle">(src and include)</text>
-  <rect class="box4" x="240" y="50" width="200" height="80" rx="6"/><text x="340" y="70" text-anchor="middle">left out</text><text class="small" x="340" y="88" text-anchor="middle">test files, entrypoints folders,</text><text class="small" x="340" y="104" text-anchor="middle">hooks/OpenGL; blank lines, lone</text><text class="small" x="340" y="120" text-anchor="middle">braces, comments, includes</text>
+  <rect class="box4" x="240" y="50" width="200" height="80" rx="6"/><text x="340" y="70" text-anchor="middle">left out</text><text class="small" x="340" y="88" text-anchor="middle">test files, entrypoints folders,</text><text class="small" x="340" y="104" text-anchor="middle">hooks/OpenGL; blank lines, lone</text><text class="small" x="340" y="120" text-anchor="middle">braces, comments, # lines</text>
   <rect class="box3" x="480" y="50" width="200" height="80" rx="6"/><text x="580" y="76" text-anchor="middle">a run of 8 lines</text><text class="small" x="580" y="94" text-anchor="middle">(250 bytes at least)</text><text class="small" x="580" y="110" text-anchor="middle">the same in two files</text>
   <rect class="box2" x="720" y="50" width="170" height="80" rx="6"/><text x="805" y="76" text-anchor="middle">known_duplicates.txt</text><text class="small" x="805" y="94" text-anchor="middle">a group listed with at</text><text class="small" x="805" y="110" text-anchor="middle">least as many runs passes</text>
   <path class="arrow" d="M200 90H238"/><path class="arrow" d="M440 90H478"/><path class="arrow" d="M680 90H718"/>
   <text class="small" x="450" y="170" text-anchor="middle">A group that is not listed, or has more runs than listed, fails the test.</text>
-  <text class="small" x="450" y="190" text-anchor="middle">A group that has fewer passes; its line is then lowered or removed by hand.</text>
+  <text class="small" x="450" y="190" text-anchor="middle">A group that has fewer runs passes too; its line is then lowered or removed by hand.</text>
 </svg>
 <figcaption>The test fails when a run of eight comparable lines is the same in two files.</figcaption>
 </figure>
@@ -190,6 +206,15 @@
 </svg>
 <figcaption>The work, in order: capture it, analyse it, decide with evidence what each pass is, write and bake the recipe, check it, and add it to the catalog.</figcaption>
 </figure>
+<table>
+<tr><th>Step</th><th>Tool</th><th>Result</th></tr>
+<tr><td>1 Capture</td><td><code>APIDumper</code></td><td>a <code>.workload</code> file</td></tr>
+<tr><td>2 Analyse</td><td><code>APIDumpAnalysisExtractor</code>, <code>APIDumpDependencyExtractor</code>, the query tools</td><td><code>.passes</code> and <code>.deps</code> files, and what they say</td></tr>
+<tr><td>3 Decide</td><td>the query tools, <code>StereoReplayInspector</code> screenshots</td><td>what each pass is, with evidence</td></tr>
+<tr><td>4 Bake</td><td><code>RecipeBake</code></td><td>the recipe, with the rules written by hand</td></tr>
+<tr><td>5 Check, add</td><td><code>RecipeBake --check</code> and <code>--parity</code>, the replay</td><td>a recipe that knows the workload, and a row in <code>apps/apps.json</code> (it can name an <code>untick_checkbox</code> for a dialog of the program)</td></tr>
+</table>
+<p><code>scripts/analyze_capture.ps1</code> runs the extractors (step 2), the bake (step 4) and <code>--check</code> and <code>--parity</code> (step 5) in one command.</p>
 <p><a href="adding-an-app.html">Adding an application</a> has every step, the commands and a prompt that works for the part an LLM does well.</p>
 <table>
 <tr><th>Background</th><th>What it tells you</th></tr>
@@ -222,12 +247,12 @@
 <table>
 <tr><th>If the API</th><th>Then</th></tr>
 <tr><td>has a fixed-function pipeline</td><td>Derive from <code>FixedFunctionFrontendBase</code> in <code>frontends/shared</code>, which already follows the objects and the fixed-function state (the Direct3D 7 and 8 front ends do).</td></tr>
-<tr><td>does not use the shared fixed-function front end</td><td>Derive from <code>IAPIFrontend</code> directly and use the other helpers of <code>shared</code> (<code>ObjectTracker</code>, <code>GeometrySampler</code>, <code>MipChain</code>), as the OpenGL front end does.</td></tr>
+<tr><td>does not use the shared fixed-function front end</td><td>Derive from <code>IAPIFrontend</code> directly and use the helpers of <code>shared</code> that fit (<code>CallView</code>, <code>ResolutionHazardCounter</code>, <code>UnsupportedUse</code>), as the OpenGL front end does. It keeps its own state and geometry sampling (<code>GLGeometrySampler</code>).</td></tr>
 </table>
 <ul>
   <li>What you write is what a resource is in your API, how its roles are told, and what the draw calls mean.</li>
   <li>Anything the shared vocabulary cannot say is a hint to extend it in an API-neutral way, not to put the API's words in the model.</li>
-  <li>Register the front end in <code>AnalysisSession</code>.</li>
+  <li>Register the front end in <code>AnalysisSession</code>: it holds one front end of each API as a member, and picks it by the <code>APIGroup</code> of a call (<code>get_frontend_ptr</code>) and in <code>find_resource_view</code>; the new API gets a member and a <code>case</code> in both.</li>
   <li>Test it on a captured slice. The Direct3D 7 tests use a call builder and a harness over it (<code>d3d7_call_builder.h</code> and <code>d3d7_frontend_harness.h</code>); the OpenGL ones have <code>gl_call_builder.h</code> and <code>gl_frontend_fixture.h</code>.</li>
 </ul>
 <p>From here the extractor, the query tools, the recipe rules and the baker work for the API.</p>
@@ -236,7 +261,7 @@
 <p>The replay engine runs the calls of a workload and has them executed for each eye through the executor interfaces of <code>tools/stereo_replay/engine_dll</code> (<code>IEyeExecutor</code> and the ones beside it).</p>
 <ul>
   <li>The API has an executor of its own there (<code>stereo_d3d7_call_executor.h</code>, <code>stereo_gl_call_executor.h</code>), and what only it needs is in a folder of its name (<code>D3D7/</code>).</li>
-  <li>The replay inspector is how it is verified: the images of the converted replay must equal the images of the original in the modes that must be equal (see <a href="replay.html#programs">Replay</a>).</li>
+  <li><code>StereoReplayInspector</code> is how it is verified: the images of the converted replay must equal the images of the original in the modes that must be equal (see <a href="replay.html#checking">What the inspector is for</a>).</li>
 </ul>
 
 <h3>4. A live adapter</h3>
@@ -245,9 +270,9 @@
 <tr><th>Part</th><th>What it does</th></tr>
 <tr><td>Eye renderer</td><td>Draws what the program draws for the second eye, with the decisions of <code>RecipeStereoPlanner</code>.</td></tr>
 <tr><td>Off-screen rendering</td><td>A way to have the program render to something that is not shown, at the size of the headset's image (a windowed mode for Direct3D, the eye targets and the scaler for OpenGL).</td></tr>
-<tr><td>Exporter</td><td>Passes the finished frame to the frame channel.</td></tr>
+<tr><td>Exporter</td><td>Passes the finished frame to the frame channel. Derives from <code>HostMemoryExporterBase</code>, which waits for the headset to want the next frame.</td></tr>
 </table>
-<p><code>LiveStereoConverter</code> holds the adapters and gives each call to the one of its API. Anything the adapter cannot follow it must refuse at once and say so, not render something wrong (<a href="live-conversion.html#adapters">Decisions and adapters</a>).</p>
+<p><code>LiveStereoConverter</code> holds the adapters and gives each call to the one of its API; <code>LiveCallAnalyzer</code> gives the front end of step 2 each call as a dump would. Anything the adapter cannot follow it must refuse at once and say so, not render something wrong (<a href="live-conversion.html#adapters">Decisions and adapters</a>).</p>
 
 <h3>5. The edges</h3>
 <p>Add the API to the table of <a href="index.html#api">What is supported</a>, and its limits to the pages whose limits it changes. Check that both builds and both test programs are green.</p>

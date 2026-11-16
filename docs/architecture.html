@@ -41,7 +41,7 @@
   <rect class="group" x="10" y="8" width="880" height="104" rx="10"/><text class="title" x="24" y="30">Programs (src/vr_player, src/runtime, src/tools)</text>
   <rect class="box4" x="30" y="44" width="120" height="50" rx="6"/><text x="90" y="66" text-anchor="middle">VRPlayer</text><text class="small" x="90" y="82" text-anchor="middle">the front end</text>
   <rect class="box4" x="170" y="44" width="150" height="50" rx="6"/><text x="245" y="66" text-anchor="middle">launcher, converter,</text><text x="245" y="82" text-anchor="middle">presenter</text>
-  <rect class="box4" x="340" y="44" width="170" height="50" rx="6"/><text x="425" y="66" text-anchor="middle">replay engine, player,</text><text x="425" y="82" text-anchor="middle">checker</text>
+  <rect class="box4" x="340" y="44" width="170" height="50" rx="6"/><text x="425" y="66" text-anchor="middle">replay engine, player,</text><text x="425" y="82" text-anchor="middle">inspector</text>
   <rect class="box4" x="530" y="44" width="170" height="50" rx="6"/><text x="615" y="66" text-anchor="middle">extractors, queries,</text><text x="615" y="82" text-anchor="middle">slicer, RecipeBake</text>
   <rect class="group" x="10" y="124" width="880" height="104" rx="10"/><text class="title" x="24" y="146">Libraries (src/libs): what the programs share</text>
   <rect class="box" x="30" y="158" width="150" height="50" rx="6"/><text x="105" y="187" text-anchor="middle">analysis</text>
@@ -54,7 +54,7 @@
   <path class="arrow" d="M245 94V156"/><path class="arrow" d="M425 94V156"/><path class="arrow" d="M615 94V156"/><path class="arrow" d="M90 94V156"/>
   <path class="arrow" d="M105 208V272"/>
 </svg>
-<figcaption>Arrows point at what a layer builds on. The project outside the submodule never captures or hooks anything by itself: it uses what the submodule records, loads, replays and injects.</figcaption>
+<figcaption>Arrows point at what a layer builds on. Some programs also link the submodule directly (the launcher, the converter, the replay engine); <a href="#programs-link">What the programs link</a> lists them. The project outside the submodule never captures or hooks anything by itself: it uses what the submodule records, loads, replays and injects.</figcaption>
 </figure>
 
 <h2 id="libraries">The libraries and one rule</h2>
@@ -73,16 +73,16 @@
   <path class="arrow" d="M190 74V108"/><path class="arrow" d="M240 160L360 196"/><path class="arrow" d="M660 160L540 196"/><path class="arrow" d="M450 246V276"/><path class="arrow" d="M555 221L668 245"/>
   <path class="dashed" d="M290 60H330V300H343"/><text class="small" x="326" y="272" text-anchor="end">every library may use utils</text>
 </svg>
-<figcaption>The rule: a library uses only the ones below it, and <code>utils</code> uses none of them. A test fails if a file of <code>utils</code> includes anything from another library or a program.</figcaption>
+<figcaption>The rule: a library uses only the ones below it, and <code>utils</code> uses none of them. The arrows are what each <code>CMakeLists.txt</code> links (<code>target_link_libraries</code>). A test fails if a file of <code>utils</code> includes anything from another library or a program.</figcaption>
 </figure>
 <h3>What each library is for</h3>
 <table>
-<tr><th>Library</th><th>What it is for</th><th>Its parts</th></tr>
-<tr><td><code>utils</code></td><td>What no other library owns and any may use.</td><td><code>images</code>, <code>binary_io</code>, <code>json</code>, <code>command_line</code>, <code>cpu</code>, <code>hashing</code>, <code>parallel</code>, <code>statistics</code>, <code>strings</code>, <code>files</code>, <code>graphics</code>, <code>ui</code>, <code>d3d12</code></td></tr>
-<tr><td><code>analysis</code></td><td>Turns a workload into a model and the model into a recipe; also reads and applies recipes.</td><td><code>api_dump_analysis</code> (with the front ends), <code>api_dump_dependencies</code>, <code>api_dump_slicing</code>, <code>api_dump_textures</code>, <code>recipe</code></td></tr>
-<tr><td><code>stereo</code></td><td>What the converter decides and what it hands on, whatever the API is.</td><td><code>core</code>, <code>session</code>, <code>transport</code></td></tr>
-<tr><td><code>headset</code></td><td>Shows the images in a headset.</td><td><code>d3d12</code>, <code>xr</code>, <code>vr_devices</code></td></tr>
-<tr><td><code>vr_player</code></td><td>What the VR player is made of besides the window and the headset.</td><td><code>app_catalog</code>, <code>app_installer</code></td></tr>
+<tr><th>Library</th><th>CMake target</th><th>What it is for</th><th>Its parts</th></tr>
+<tr><td><code>utils</code></td><td><code>Utils</code></td><td>What no other library owns and any may use. It links third-party code (Dear ImGui from the submodule, miniz) and the system, nothing of the project.</td><td><code>images</code>, <code>binary_io</code>, <code>json</code>, <code>command_line</code>, <code>cpu</code>, <code>hashing</code>, <code>parallel</code>, <code>statistics</code>, <code>strings</code>, <code>files</code>, <code>graphics</code>, <code>ui</code>, <code>d3d12</code></td></tr>
+<tr><td><code>analysis</code></td><td><code>Analysis</code></td><td>Turns a workload into a model and the model into a recipe; also reads and applies recipes.</td><td><code>api_dump_analysis</code> (with the front ends), <code>api_dump_dependencies</code>, <code>api_dump_slicing</code>, <code>api_dump_textures</code>, <code>recipe</code></td></tr>
+<tr><td><code>stereo</code></td><td><code>Stereo</code></td><td>What the converter decides and what it hands on, whatever the API is.</td><td><code>core</code>, <code>session</code>, <code>transport</code></td></tr>
+<tr><td><code>headset</code></td><td><code>Headset</code></td><td>Shows the images in a headset. Its <code>xr</code> part is built in the 64-bit tree only.</td><td><code>d3d12</code>, <code>xr</code>, <code>vr_devices</code></td></tr>
+<tr><td><code>vr_player</code></td><td><code>VRPlayerBackend</code></td><td>What the VR player is made of besides the window and the headset.</td><td><code>app_catalog</code>, <code>app_installer</code></td></tr>
 </table>
 <h3>Parts, folders and includes</h3>
 <ul>
@@ -106,22 +106,46 @@
 <figcaption>Each column is a library under <code>src/libs</code>; each line is a part, a folder and a namespace.</figcaption>
 </figure>
 
+<h3 id="programs-link">What the programs link</h3>
+<p>A program links the libraries it needs and, where it needs them, parts of the submodule. Whatever a library links comes along.</p>
+<table>
+<tr><th>Program</th><th>Libraries of the project</th><th>From the submodule</th></tr>
+<tr><td><code>VRPlayer</code></td><td><code>Headset</code>, <code>Stereo</code>, <code>Utils</code>, <code>VRPlayerBackend</code></td><td><code>InjectionLauncher</code></td></tr>
+<tr><td><code>StereoPresenter</code></td><td><code>Headset</code>, <code>Stereo</code>, <code>Utils</code></td><td></td></tr>
+<tr><td><code>StereoLauncher</code></td><td><code>Stereo</code></td><td><code>InjectionLauncher</code></td></tr>
+<tr><td><code>StereoConverterDLL</code></td><td><code>Stereo</code></td><td><code>APIInterceptor</code>, <code>D3D7Utils</code>, <code>D3D8Utils</code></td></tr>
+<tr><td><code>APIDump*Extractor</code>, <code>APIDump*Query</code>, <code>APIDumpSlicer</code></td><td><code>Analysis</code></td><td></td></tr>
+<tr><td><code>RecipeBake</code></td><td><code>Analysis</code>, <code>Stereo</code></td><td></td></tr>
+<tr><td><code>StereoReplayEngineDLL</code></td><td><code>Analysis</code>, <code>Stereo</code></td><td><code>ReplayEngineCore</code>, <code>APIDumpLoader</code></td></tr>
+<tr><td><code>StereoReplayPlayer</code></td><td><code>Analysis</code>, <code>Utils</code>, <code>StereoReplayEngineDLL</code></td><td><code>ReplayPlayerSupport</code>, <code>ImGui</code>, <code>APIDumpLoader</code></td></tr>
+<tr><td><code>StereoReplayInspector</code></td><td><code>Analysis</code>, <code>Stereo</code>, <code>StereoReplayEngineDLL</code></td><td><code>APIDumpNames</code></td></tr>
+</table>
+
 <h2 id="tree">Source tree and release</h2>
-<p>The tree of the source is the tree of the release. Three rules, and a test checks them:</p>
+<p>The tree of the source is the tree of the release. Three rules:</p>
 <ul>
-  <li>A program is in a folder of the name of its file.</li>
+  <li>A program is in a folder of the name of its file, in <code>snake_case</code>, without the prefix its group gives (<code>Stereo</code> in <code>runtime</code>, <code>StereoReplay</code> in <code>tools/stereo_replay</code>).</li>
   <li>That folder is in the folder its file installs to.</li>
-  <li>Folders are lower-case with underscores; executables keep their product names and carry their architecture (<code>_x86</code> or <code>_x64</code>).</li>
+  <li>Folders are lower-case with underscores (the ones named after a graphics API, such as <code>D3D7</code>, keep the API's name); executables keep their product names and carry their architecture (<code>_x86</code> or <code>_x64</code>), except <code>VRPlayer.exe</code>.</li>
 </ul>
+<p>The <code>Layout</code> test checks the first two: every program that <code>cmake/install.cmake</code> installs has its folder, and every program folder is installed. The suffix comes from <code>cmake/architecture.cmake</code>.</p>
+<table>
+<tr><th>File</th><th>Folder</th></tr>
+<tr><td><code>VRPlayer.exe</code></td><td><code>src/vr_player</code></td></tr>
+<tr><td><code>runtime\StereoLauncher_x86.exe</code></td><td><code>src/runtime/launcher</code></td></tr>
+<tr><td><code>tools\analysis\RecipeBake_x64.exe</code></td><td><code>src/tools/analysis/recipe_bake</code></td></tr>
+<tr><td><code>tools\stereo_replay\StereoReplayInspector_x86.exe</code></td><td><code>src/tools/stereo_replay/inspector</code></td></tr>
+</table>
 <table>
 <tr><th>Source (<code>src/</code>)</th><th>Release (<code>build_final\</code>)</th><th>What it is</th></tr>
 <tr><td><code>vr_player</code></td><td><code>VRPlayer.exe</code></td><td>The program a person starts.</td></tr>
-<tr><td><code>runtime/launcher</code>, <code>converter_dll</code>, <code>presenter</code></td><td><code>runtime\StereoLauncher_x86.exe</code>, <code>StereoConverterDLL_x86.dll</code>, <code>StereoPresenter_x64.exe</code> (and the <code>_x64</code> ones)</td><td>What VRPlayer starts.</td></tr>
-<tr><td><code>tools/analysis/*</code></td><td><code>tools\analysis\*_x64.exe</code></td><td>Extractors and query tools, the slicer, <code>RecipeBake</code>.</td></tr>
-<tr><td><code>tools/stereo_replay/*</code></td><td><code>tools\stereo_replay\StereoReplay*_x86.exe</code> (and <code>_x64</code>)</td><td>The replay engine, player and checker.</td></tr>
-<tr><td><code>scripts/</code> (repository root)</td><td>not released</td><td><code>analyze_capture.ps1</code> analyses a capture and bakes a recipe into a folder of its own, with the tools of <code>build_final\tools\analysis</code>.</td></tr>
-<tr><td>(from the submodule)</td><td><code>tools\api_dumper\</code></td><td>The dumper and the printer.</td></tr>
+<tr><td><code>runtime/launcher</code>, <code>converter_dll</code>, <code>presenter</code></td><td><code>runtime\StereoLauncher_x86.exe</code>, <code>StereoConverterDLL_x86.dll</code> (each also as <code>_x64</code>), <code>StereoPresenter_x64.exe</code></td><td>What VRPlayer starts.</td></tr>
+<tr><td><code>tools/analysis/*</code></td><td><code>tools\analysis\*_x64.exe</code></td><td>Extractors and query tools, the slicer, <code>RecipeBake</code>. Installed from the 64-bit build only.</td></tr>
+<tr><td><code>tools/stereo_replay/*</code></td><td><code>tools\stereo_replay\StereoReplayEngineDLL_x86.dll</code>, <code>StereoReplayPlayer_x86.exe</code>, <code>StereoReplayInspector_x86.exe</code> (each also as <code>_x64</code>)</td><td>The replay engine, player and inspector.</td></tr>
+<tr><td><code>scripts/</code> (repository root)</td><td>not released</td><td><code>analyze_capture.ps1</code> analyses a capture, bakes a recipe into a folder of its own and runs <code>RecipeBake --check</code> and <code>--parity</code> on it, with the tools of <code>build_final\tools\analysis</code>.</td></tr>
+<tr><td>(from the submodule)</td><td><code>tools\api_dumper\</code></td><td>The dumper and its DLL (both architectures) and the printer (64-bit).</td></tr>
 <tr><td><code>apps/</code> in the repository</td><td><code>apps\</code></td><td>The catalog and the recipes; applications are downloaded into it on first launch.</td></tr>
+<tr><td><code>cmake/release_README.txt</code></td><td><code>README.txt</code></td><td>What each folder of the release is.</td></tr>
 </table>
 
 <h2 id="processes">The processes of a live session</h2>
@@ -145,14 +169,19 @@
 </figure>
 <h3>Who does what</h3>
 <ol>
-  <li>VRPlayer makes a session id and starts the launcher and the presenter with it.</li>
+  <li>VRPlayer makes a session id, opens the frame channel that the id names, and starts the presenter and the launcher with it.</li>
   <li>The launcher puts the converter in the application.</li>
   <li>The converter writes the two images into the frame channel (shared memory).</li>
   <li>The presenter, which is always 64-bit, takes them from it.</li>
   <li>The controls of the player travel the other way through the same channel.</li>
 </ol>
 <h3>32-bit and 64-bit</h3>
-<p>The launcher and the converter match the bitness of the application (the supported applications are 32-bit); everything that touches the headset is 64-bit. That is why most projects are built for both and the release has an <code>_x86</code> and an <code>_x64</code> file of each. See <a href="live-conversion.html">Live conversion</a>.</p>
+<p>The launcher and the converter match the bitness of the application (the supported applications are 32-bit); everything that touches the headset is 64-bit.</p>
+<ul>
+  <li>Built for both, with an <code>_x86</code> and an <code>_x64</code> file in the release: the launcher, the converter, the replay engine, player and inspector, the dumper.</li>
+  <li>64-bit only in the release: <code>VRPlayer</code>, the presenter, the analysis tools and the printer (only the 64-bit tree installs them).</li>
+</ul>
+<p>See <a href="live-conversion.html">Live conversion</a>.</p>
 <figure>
 <svg viewBox="0 0 900 250" role="img" aria-label="The 32-bit side and the 64-bit side, joined by the frame channel">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
@@ -169,7 +198,7 @@
   <rect class="box" x="550" y="184" width="320" height="44" rx="6"/><text x="710" y="205" text-anchor="middle">analysis tools, queries, RecipeBake</text><text class="small" x="710" y="220" text-anchor="middle">(only read files)</text>
   <path class="arrow" d="M350 75H398"/><path class="arrow" d="M502 75H548"/><path class="arrow" d="M700 75H718"/>
 </svg>
-<figcaption>The only thing that crosses from the 32-bit side to the 64-bit side is the frame channel.</figcaption>
+<figcaption>In a live session the only thing that crosses from the 32-bit side to the 64-bit side is the frame channel.</figcaption>
 </figure>
 
 <h2 id="data">The files that flow between them</h2>
@@ -199,21 +228,28 @@
   <li>Everything that needs to know about a program reads the recipe.</li>
   <li>The live converter reads no workload: it runs the front ends of the analysis on the calls as they come.</li>
   <li>The replay tools read the workload, and the <code>.deps</code> file to seek.</li>
+  <li><code>RecipeBake</code> reads a recipe and a <code>.passes</code> file (and a <code>.deps</code> file when it bakes). Its modes <code>--check</code>, <code>--overlays</code>, <code>--parity</code> and <code>--scenes</code> write nothing and report.</li>
   <li>The query programs read the <code>.passes</code>, <code>.deps</code> and <code>.textures</code> files and print what they say.</li>
 </ul>
 
 <h2 id="where">Where to look</h2>
 <table>
 <tr><th>If you want to change…</th><th>Look in</th></tr>
-<tr><td>How far apart the eyes are, where they converge, the comfort limits</td><td><code>libs/stereo/core</code> (<code>ConvergenceModel</code>), the baker in <code>tools/analysis/recipe_bake</code>; see <a href="stereo.html">Stereo</a></td></tr>
+<tr><td>How far apart the eyes are, where they converge, the comfort limits (<code>ease_by_time</code>, <code>snap_at_cuts</code>)</td><td><code>libs/stereo/core</code> (<code>ConvergenceModel</code>), the baker in <code>tools/analysis/recipe_bake</code>; see <a href="stereo.html">Stereo</a></td></tr>
 <tr><td>How a draw is classified live (scene, interface, skipped)</td><td><code>libs/stereo/core</code> (<code>RecipeStereoPlanner</code>), <code>libs/analysis/recipe</code> (<code>RecipeApplier</code>)</td></tr>
 <tr><td>What the analysis understands of an API</td><td><code>libs/analysis/api_dump_analysis/frontends/&lt;api&gt;</code></td></tr>
-<tr><td>How the second eye is drawn in the running program</td><td><code>runtime/converter_dll/&lt;api&gt;</code></td></tr>
+<tr><td>How the second eye is drawn in the running program</td><td><code>runtime/converter_dll/&lt;api&gt;</code> (the eye renderer of the API)</td></tr>
+<tr><td>How the converter follows the calls of the program, and passes the frames on</td><td><code>runtime/converter_dll</code> (<code>LiveStereoConverter</code>, <code>LiveCallAnalyzer</code>, <code>PacedFramePublisher</code>)</td></tr>
+<tr><td>How a frame and the settings travel between the processes</td><td><code>libs/stereo/transport</code> (<code>FrameChannel</code>), <code>libs/stereo/session</code></td></tr>
+<tr><td>How the converter gets into the program</td><td><code>runtime/launcher</code></td></tr>
 <tr><td>What the analysis keeps of textures</td><td><code>libs/analysis/api_dump_textures</code>, <code>tools/analysis/api_dump_texture_extractor</code></td></tr>
-<tr><td>What a recipe can say</td><td><code>libs/analysis/recipe</code> (types, loader, applier) and <code>tools/analysis/recipe_bake</code></td></tr>
+<tr><td>What a recipe can say</td><td><code>libs/analysis/recipe</code> (types, loader, applier)</td></tr>
+<tr><td>How a recipe is baked and checked (<code>--check</code>, <code>--overlays</code>, <code>--parity</code>, <code>--scenes</code>)</td><td><code>tools/analysis/recipe_bake</code></td></tr>
 <tr><td>How a capture is replayed for two eyes</td><td><code>tools/stereo_replay/engine_dll</code></td></tr>
+<tr><td>How a replay is compared, profiled and reported on</td><td><code>tools/stereo_replay/inspector</code></td></tr>
 <tr><td>How an image reaches a headset</td><td><code>libs/headset/xr</code>, <code>runtime/presenter</code></td></tr>
 <tr><td>The catalog and the downloading of programs</td><td><code>libs/vr_player</code>, <code>apps/</code></td></tr>
+<tr><td>The window of the VR player, how a session is started</td><td><code>vr_player</code></td></tr>
 <tr><td>Analysing a capture and baking its recipe in one command</td><td><code>scripts/analyze_capture.ps1</code></td></tr>
 <tr><td>A helper that is not about any of these</td><td><code>libs/utils</code> (and nothing in it may use another library)</td></tr>
 </table>

@@ -158,17 +158,24 @@
 <ul>
   <li>a <em>binding point</em> says where a resource is bound, in three numbers;</li>
   <li>a <em>constant location</em> is a range of bytes in a block of one of four kinds: a buffer, loose shader constants, fixed-function state, push constants;</li>
-  <li>a <em>resource</em> has a <em>format class</em>: colour, compressed, depth, depth-stencil;</li>
+  <li>a <em>resource</em> has a <em>format class</em>: color, compressed, depth, depth-stencil;</li>
   <li>shader stages include compute and tessellation;</li>
   <li>a <em>resolution hazard</em> is a call whose meaning depends on the size of the target in pixels. It says whether the program can be rendered larger without noticing.</li>
 </ul>
 
 <h3>The three that exist</h3>
 <p>Direct3D 8, Direct3D 7 and OpenGL have front ends, in <code>api_dump_analysis/frontends/D3D8</code>, <code>.../D3D7</code> and <code>.../OpenGL</code>. Their common ground is <code>frontends/shared</code>:</p>
-<ul>
-  <li>for all three: the <em>call view</em> and the report of a call that cannot be followed;</li>
-  <li>for the two Direct3D ones: the <em>object tracker</em> (what is alive at which address, and what it is in the model; an address is forgotten when its object is released), <code>FixedFunctionState</code> (the pipeline state the state key is made from), <code>FixedFunctionFrontendBase</code> (the base class that follows the objects and that state), <code>FixedFunctionVertexFormat</code> (what a flexible vertex format says of the vertices, such as whether the positions are in pixels, <code>D3DFVF_XYZRHW</code>; both front ends and the converter use it) and <code>GeometrySampler</code>, which picks a few dozen vertices of a draw, spread over it, for the surface depth (the OpenGL front end has a sampler of its own, <code>GLGeometrySampler</code>).</li>
-</ul>
+<table>
+<tr><th>Class</th><th>Used by</th><th>What it does</th></tr>
+<tr><td><code>CallView</code></td><td>all three</td><td>Reads the arguments of a call.</td></tr>
+<tr><td><code>UnsupportedUse</code></td><td>all three</td><td>Reports a call that cannot be followed and ends the process.</td></tr>
+<tr><td><code>ObjectTracker</code></td><td>Direct3D</td><td>What is alive at which address, and what it is in the model. An address is forgotten when its object is released.</td></tr>
+<tr><td><code>FixedFunctionState</code></td><td>Direct3D</td><td>The pipeline state that the state key is made from.</td></tr>
+<tr><td><code>FixedFunctionFrontendBase</code></td><td>Direct3D</td><td>The base class that follows the objects and that state.</td></tr>
+<tr><td><code>FixedFunctionVertexFormat</code></td><td>Direct3D</td><td>What a flexible vertex format says of the vertices, such as whether the positions are in pixels (<code>D3DFVF_XYZRHW</code>). Both front ends and the converter use it.</td></tr>
+<tr><td><code>GeometrySampler</code></td><td>Direct3D</td><td>Picks a few dozen vertices of a draw, spread over it, for the surface depth. The OpenGL front end has a sampler of its own, <code>GLGeometrySampler</code>.</td></tr>
+<tr><td><code>FunctionPolicyReasonTable</code></td><td>Direct3D</td><td>Looks up the reason a function is left out or unsupported (see <a href="#limits">What it does not do</a>).</td></tr>
+</table>
 <p>What differs is what a resource <em>is</em>. In Direct3D 8 it is a texture, vertex buffer or surface. In Direct3D 7 it is a DirectDraw surface, and its role (primary, back buffer, depth, texture) comes from its caps.</p>
 
 <h3>OpenGL, the one with the most to remember</h3>
@@ -189,7 +196,7 @@
   <rect class="box3" x="330" y="215" width="240" height="36" rx="6"/><text x="450" y="238" text-anchor="middle">ModelBuilder: the neutral events</text>
   <path class="arrow" d="M75 196L340 224"/><path class="arrow" d="M365 196V213"/><path class="arrow" d="M660 196L560 224"/>
 </svg>
-<figcaption>No handler keeps the address of the front end; each reports to the model builder through it. The argument reading they all need is <code>GLArgumentReader</code>.</figcaption>
+<figcaption>No handler keeps the address of the front end. The state, matrix, draw and texture handlers and the window each hold the model builder and report to it directly (arrows for three of them); the list handler stores calls and the front end runs them. The argument reading they all need is <code>GLArgumentReader</code>.</figcaption>
 </figure>
 <p>Here is what that team follows, one slice at a time.</p>
 <details open>
@@ -199,16 +206,21 @@
   <li><strong>The window.</strong> The screen is not a resource in the workload, so the front end makes one: the window is the default framebuffer, made at the first clear with the size of the viewport by then.</li>
   <li><strong>Viewport, scissor, clears.</strong> The viewport, the scissor box and test, and the values a clear uses.</li>
   <li><strong>Attributes.</strong> The stack of attributes: <code>glPopAttrib</code> puts back what the program set after the <code>glPushAttrib</code>, as far as the mask says.</li>
-  <li><strong>Matrices.</strong> A stack each for the model-view and the projection matrix, and for the texture and color ones (those are only kept right). OpenGL has one matrix for model and view together, so the front end tells the model builder the two as they are, each when it changes: <code>MODEL_VIEW_MATRIX</code> and <code>PROJECTION_MATRIX</code>. It does not tell a model from a view, and a draw is of a right-handed camera: its depth is the distance in front of the eye.</li>
+  <li><strong>Matrices.</strong> A stack each for the model-view and the projection matrix, and for the texture and color ones (those are only kept right).</li>
+  <li><strong>Model and view.</strong> OpenGL has one matrix for model and view together, so the front end tells the model builder the two as they are, each when it changes: <code>MODEL_VIEW_MATRIX</code> and <code>PROJECTION_MATRIX</code>. It does not tell a model from a view.</li>
+  <li><strong>Handedness.</strong> A draw is of a right-handed camera: its depth is the distance in front of the eye.</li>
   <li><strong>The end of a frame.</strong> <code>SwapBuffers</code>, which is a GDI32 function.</li>
 </ul>
 </details>
 <details open>
 <summary>Draws</summary>
 <ul>
-  <li><strong>Immediate mode.</strong> One draw for each <code>glBegin</code> and <code>glEnd</code> with vertices in them, of the topology its mode makes, and of the pipeline state set when it ended: the enabled capabilities, the depth, alpha and blend functions, the masks, the culling and polygon modes and the shade model.</li>
-  <li><strong>Arrays.</strong> <code>glDrawArrays</code> and <code>glDrawElements</code>. The dumper stores the part of each array the draw reads. The front end makes a buffer resource of each array and of the indices, once for each different bytes, so the same data is the same resource in any draw or frame, and it keeps the bytes of each.</li>
-  <li><strong>How long the bytes live.</strong> The bytes of a piece are kept for the frame it is seen in (each eye of a stereo frame draws it), and kept on if the piece is seen in a second frame, which is reuse across frames. Such a buffer is told apart in the match key by its kind alone (<code>is_application_memory</code>), so a draw is told apart by its layout, topology and state and not by the bytes it reads.</li>
+  <li><strong>Immediate mode.</strong> One draw for each <code>glBegin</code> and <code>glEnd</code> with vertices in them, of the topology its mode makes.</li>
+  <li><strong>Its state.</strong> The pipeline state set when the draw ended: the enabled capabilities, the depth, alpha and blend functions, the masks, the culling and polygon modes and the shade model.</li>
+  <li><strong>Arrays.</strong> <code>glDrawArrays</code> and <code>glDrawElements</code>. The dumper stores the part of each array the draw reads.</li>
+  <li><strong>Array buffers.</strong> The front end makes a buffer resource of each array and of the indices, once for each different bytes, so the same data is the same resource in any draw or frame, and it keeps the bytes of each.</li>
+  <li><strong>How long the bytes live.</strong> The bytes of a piece are kept for the frame it is seen in (each eye of a stereo frame draws it), and kept on if the piece is seen in a second frame, which is reuse across frames.</li>
+  <li><strong>What the key sees.</strong> Such a buffer is told apart in the match key by its kind alone (<code>is_application_memory</code>), so a draw is told apart by its layout, topology and state and not by the bytes it reads.</li>
 </ul>
 </details>
 <details open>
@@ -216,8 +228,15 @@
 <ul>
   <li><strong>Kept and replayed.</strong> The calls made between <code>glNewList</code> and <code>glEndList</code> are kept in the list, with the data they refer to (the workload they were made in is let go of before the list is called). They are made again at each <code>glCallList</code>, whatever the state is then, and at once too for <code>GL_COMPILE_AND_EXECUTE</code>.</li>
   <li><strong>Shared and bounded.</strong> The lists of the contexts are shared, as <code>wglShareLists</code> makes them. A list that calls itself is stopped at a depth of 64.</li>
-  <li><strong>Eye dependence.</strong> Each list is told what it does to what an eye has of its own (<code>GLListEyeDependence</code>). A list that only draws and sets state, or moves the matrices relative to the current ones, is the same for both eyes of a stereo frame. One that loads a matrix, sets a projection, a viewport or a scissor box has values of its own, so a replay has to make it for each eye. A list that calls another is what the other is, and one that calls a list that is not defined is taken for the worst.</li>
+  <li><strong>Eye dependence.</strong> Each list is told what it does to what an eye has of its own (<code>GLListEyeDependence</code>), as the table says.</li>
 </ul>
+<table>
+<tr><th>The list</th><th>Class</th><th>For a stereo frame</th></tr>
+<tr><td>Only draws and sets state.</td><td><code>INDEPENDENT</code></td><td>The same for both eyes.</td></tr>
+<tr><td>Moves the matrices relative to the current ones, or stores something relative to the model-view matrix (a light, a clip plane, the raster position).</td><td><code>RELATIVE_MATRIX_ONLY</code></td><td>The same for both eyes if it is called once for each eye: each gets the result of its own matrix.</td></tr>
+<tr><td>Loads a matrix, sets a projection, a viewport or a scissor box.</td><td><code>EYE_DEPENDENT</code></td><td>Has values of its own, so a replay makes it for each eye.</td></tr>
+<tr><td>Calls another list.</td><td>that of the other list</td><td>One that calls a list that is not defined is taken for the worst.</td></tr>
+</table>
 </details>
 <details open>
 <summary>Textures, and what depends on the size of the window</summary>
@@ -294,10 +313,11 @@
   <path class="arrow" d="M665 58V30H275V58"/>
   <text class="small" x="470" y="22" text-anchor="middle">a pass that ends is recorded as the writer of its targets</text>
 </svg>
-<figcaption>A resource's key includes the key of the pass that wrote to it earlier in this frame, so a texture read by post-processing is told by what drew it. The table of keys is reset every frame.</figcaption>
+<figcaption>A resource's key includes the key of the pass that wrote to it earlier in this frame, so a texture read by post-processing is told by what drew it. At each frame the table forgets which passes wrote to which resource.</figcaption>
 </figure>
 <h3>The key that matters most</h3>
-<p>The <strong>draw signature key</strong> is the one the whole project leans on. The pass a draw belongs to is not known until the pass ends, so the signature uses the <em>unwritten</em> keys of the structure and the targets: it is made as if nothing had been rendered yet. That is exactly what a live converter can know when the draw is issued. The same code makes the keys offline and in the running program, so a rule baked from a capture matches a draw of the program as it runs.</p>
+<p>The <strong>draw signature key</strong> is the one the whole project leans on. The pass a draw belongs to is not known until the pass ends, so the signature uses the <em>unwritten</em> keys of the structure and the targets: it is made as if nothing had been rendered yet.</p>
+<p>That is exactly what a live converter can know when the draw is issued. The same code makes the keys offline and in the running program, so a rule baked from a capture matches a draw of the program as it runs.</p>
 <p>Two different structures with the same key are possible in principle. They are counted and compared when interned, so a collision does no harm beyond the count.</p>
 
 <h2 id="depth"><span class="no">7</span>How far away is it?</h2>
@@ -323,7 +343,7 @@
 </figure>
 <h3>The depth of the origin</h3>
 <ul>
-  <li><strong>What it is.</strong> The translation of the model matrix (the identity if none was set), carried through the view matrix. It is only worked out for a pass with a view matrix and a <em>perspective</em> projection: an orthographic one has nothing to converge at.</li>
+  <li><strong>What it is.</strong> The translation of the model matrix (the identity if none was set), carried through the view matrix. It is only worked out for a pass with a view matrix and a projection that is not orthographic: an orthographic one (or the identity) has nothing to converge at.</li>
   <li><strong>Weight.</strong> The vertex count, so a large object counts for more than a particle.</li>
   <li><strong>The picture's width.</strong> The x scale of a perspective projection, weighted by vertices, goes into a mean for the pass: how wide the picture is. It lives in the PROJ section of the file, and the comfort of a recipe needs it.</li>
 </ul>
@@ -347,12 +367,13 @@
   <li><strong>Where the positions come from.</strong> The Direct3D 8 and Direct3D 7 front ends read the position of each vertex by its <code>FixedFunctionVertexFormat</code>: in model space (the first three floats), or pre-transformed (x and y in pixels, and the reciprocal of the depth). A pre-transformed vertex takes its depth from that reciprocal and is measured against the viewport instead of a projection.</li>
   <li><strong>Where the bytes come from.</strong> Direct3D 8 reads them from the buffers of a draw, and from the memory of the application that a <code>DrawPrimitiveUP</code> or <code>DrawIndexedPrimitiveUP</code> call brings with it. Direct3D 7 reads the vertices that come with its draw calls. Vertex-shader inputs are not read.</li>
   <li><strong>Offline only.</strong> This is done only by the offline analysis, which has the time. The converter inside a program keeps no buffers and reads no vertex.</li>
-  <li><strong>Who measures.</strong> The depth of the origin and of the surfaces, the width of the picture, whether a draw reaches the edges of the view, and the facts of a draw structure are measured by <code>DrawMeasurer</code> (<code>api_dump_analysis/draw_measurer.h</code>). It keeps nothing: the model builder says what the draw is made with (the constants, the viewport) and where the results go.</li>
+  <li><strong>Who measures.</strong> <code>DrawMeasurer</code> (<code>api_dump_analysis/draw_measurer.h</code>) measures the depth of the origin and of the surfaces, the width of the picture, whether a draw reaches the edges of the view, and the draw facts (below).</li>
+  <li><strong>What it keeps.</strong> Nothing: the model builder says what the draw is made with (the constants, the viewport) and where the results go.</li>
 </ul>
 
 <h3>Not everything is in the world</h3>
 <div class="story">
-<p>Depth makes sense for a tunnel. It makes no sense for a fade-to-black, a scrolling bar or the dials of a control panel. Those need to be recognised and left alone, or placed by their own rules. The analysis counts, for every kind of draw, what it has seen it do, and the baker turns the counts into lists.</p>
+<p>Depth makes sense for a tunnel. It makes no sense for a fade-to-black, a scrolling bar or the dials of a control panel. Those need to be recognized and left alone, or placed by their own rules. The analysis counts, for every kind of draw, what it has seen it do, and the baker turns the counts into lists.</p>
 </div>
 <figure>
 <svg viewBox="0 0 900 250" role="img" aria-label="Four kinds of draws that are not ordinary scene geometry">
@@ -366,14 +387,19 @@
   <rect class="group" x="700" y="20" width="190" height="130" rx="4"/><rect class="box4" x="712" y="100" width="40" height="26" rx="4"/><text class="small" x="732" y="116" text-anchor="middle">camera</text><rect class="box2" x="790" y="60" width="26" height="26"/><path class="arrowline" d="M752 113L790 80" stroke-dasharray="3 3"/>
   <text class="title" x="795" y="176" text-anchor="middle">in eye space</text><text class="small" x="795" y="194" text-anchor="middle">the object is at the camera,</text><text class="small" x="795" y="210" text-anchor="middle">its vertices are in front of it</text>
 </svg>
-<figcaption>Four things the facts can tell apart. The first two are always listed; the last two only for a recipe with <code>comfort.automatic_layers</code>.</figcaption>
+<figcaption>Four things the facts can tell apart. The baker lists the first two for any recipe and the last two only for a recipe with <code>comfort.automatic_layers</code>; the table says how each is found.</figcaption>
 </figure>
+<table>
+<tr><th>Kind</th><th>What the facts say</th><th>Baked as</th><th>Listed</th></tr>
+<tr><td>Covering the view</td><td>The sampled vertices reach all four edges of the picture (within half a percent): a flash or a fade. For vertices already in pixels, both sides and either both ends or one depth. The key is the signature <em>and</em> the size of the draw, kept if any draw with it covered the view, because a signature does not tell a fade from text (one dynamic buffer, one state). A key is not proof, so the converter also looks at the vertices the draw uses.</td><td><code>covering_draws</code></td><td>For the passes the recipe leaves <code>unaffected</code>, and for all passes of a recipe with screen parallax.</td></tr>
+<tr><td>Reaching both sides</td><td>Flat (at one depth), with a footprint that reaches the left and the right edge: the bars and scrollers of a 2D pass, which a push moves with the picture made wider by it.</td><td><code>side_reaching_draws</code></td><td>Any recipe.</td></tr>
+<tr><td>Flat layer</td><td>Drawn in the space of the picture (pre-transformed vertices, or an orthographic projection), and either not always over a 3D scene or working on a copy of the picture.</td><td><code>flat_layer_draws</code></td><td rowspan="3">Only with <code>comfort.automatic_layers</code>; without it the baker lists none of the three.</td></tr>
+<tr><td>Overlay</td><td>Drawn in the space of the picture, always after a draw with a perspective projection and a camera in the same frame.</td><td><code>overlay_draws</code></td></tr>
+<tr><td>Eye space</td><td>The object is at the camera (the origin of the model-view is at the depth of 0, so it looks attached to it) while all the sampled vertices are in front of the camera at a real depth.</td><td><code>eye_space_draws</code></td></tr>
+</table>
 <ul>
-  <li><strong>Covering the view.</strong> A draw whose vertices reach all four edges of the picture (within half a percent) is a flash or a fade, and must not be pushed or moved sideways. A signature does not tell it from text (both go through one dynamic buffer with one state), so the key used is the signature <em>and</em> the size of the draw, kept if any draw with it covered the view and baked as <code>covering_draws</code>. A key is not proof, so the converter also looks at the vertices the draw uses.</li>
-  <li><strong>Reaching both sides.</strong> The baker also lists the draws that are flat (at one depth) and whose footprint reaches both the left and the right edge, as <code>side_reaching_draws</code>: the bars and scrollers of a 2D pass, which a push moves with the picture made wider by it.</li>
-  <li><strong>Layers, overlays and eye space.</strong> The facts also count, for each key, the draws made in the space of the picture (pre-transformed vertices, or an orthographic projection), the draws that come after a draw with a perspective projection and a camera in the same frame, and the draws whose object is at the camera (the origin of the model-view is at the depth of 0, so it looks attached to it) while all the sampled vertices are in front of the camera at a real depth.</li>
+  <li><strong>All must agree.</strong> A key is listed in the last three rows only if all of its draws agree.</li>
   <li><strong>No API in the rule.</strong> What the facts say comes from the matrices and the vertices as the front end gives them, never from a call of an API, so one rule serves Direct3D and OpenGL alike.</li>
-  <li><strong>The lists.</strong> For a recipe with <code>comfort.automatic_layers</code> the baker lists the keys it finds: <code>flat_layer_draws</code> (in the space of the picture, and not always over a 3D scene, or working on a copy of the picture), <code>overlay_draws</code> (in the space of the picture, always over a 3D scene) and <code>eye_space_draws</code>. A key counts only if all of its draws agree. Without <code>comfort.automatic_layers</code> the baker lists none of the three.</li>
   <li><strong>The file.</strong> The facts are the FACT section, version 2, of the <code>.passes</code> file; a file with another version of it is refused.</li>
 </ul>
 
@@ -398,10 +424,18 @@
 </figure>
 <p>On the way, the builder adds the depth histogram of each pass to the one of the same pass structure in the same shape, and closes the books on resource access. Three more things are recorded alongside:</p>
 <ul>
-  <li><strong>Resource access</strong> (<code>ResourceAccessTracker</code>). For each resource: its first read and first and last write, and in how many frames it was read, written and <em>loop carried</em> (read before it was written in the frame, and written in it: what feedback effects do). It is classed <em>loop carried</em>, <em>unused</em>, <em>unread</em>, <em>static</em> (made once and read afterwards) or <em>frame local</em>. This tells a replay what it must carry from one frame to the next.</li>
+  <li><strong>Resource access</strong> (<code>ResourceAccessTracker</code>). For each resource: its first read and first and last write, and in how many frames it was read, written and <em>loop carried</em> (read before it was written in the frame, and written in it: what feedback effects do). A resource counts as a whole, so a level or a rectangle is the entire resource; that can only over-report loop carried ones. The class tells a replay what it must carry from one frame to the next (table below).</li>
   <li><strong>Camera constants.</strong> Tracked only when the front end gave them a meaning. The camera ones are recorded as a time series per pass structure, a sample only when the value changes.</li>
   <li><strong>The timeline</strong> (built when a query asks). Frames in time order as runs of one shape, how often each shape and pass occurs, and the <em>setup frames</em>, which are much longer than a typical frame.</li>
 </ul>
+<table>
+<tr><th>Resource class</th><th>Meaning</th></tr>
+<tr><td><em>loop carried</em></td><td>Read before it is written, in a frame that also writes it: it holds the result of the previous frame.</td></tr>
+<tr><td><em>frame local</em></td><td>Written before each read, in every frame: a frame can be played twice.</td></tr>
+<tr><td><em>static</em></td><td>Made once and read afterwards: written only up to the first frame that reads it.</td></tr>
+<tr><td><em>unread</em></td><td>Written, never read (the back buffer, say).</td></tr>
+<tr><td><em>unused</em></td><td>No frame touches it.</td></tr>
+</table>
 
 <h2 id="dependencies"><span class="no">9</span>What a frame leaves behind</h2>
 <div class="story">
@@ -436,7 +470,8 @@
 </details>
 <h3>What it is used for</h3>
 <ul>
-  <li><strong>Per-eye textures.</strong> A resource needs a copy for each eye when it is rendered to and some frame uses what an earlier frame left in it, <em>whether that frame writes it too or not</em>. <code>RecipeBake --deps</code> puts them in the recipe. Targets that frames write by turns (a double buffer, a swap chain's images) are a <em>rotation group</em> and are listed together, so an eye never finds what another eye's frame rendered.</li>
+  <li><strong>Per-eye textures.</strong> A resource needs a copy for each eye when it is rendered to and some frame uses what an earlier frame left in it, <em>whether that frame writes it too or not</em>. <code>RecipeBake --deps</code> puts them in the recipe. Targets that frames write by turns (a double buffer the program makes itself) are a <em>rotation group</em> and are listed together, so an eye never finds what another eye's frame rendered.</li>
+  <li><strong>Swap chain images.</strong> They are left out of the list: the player keeps what a frame carries over in the back buffer apart for each eye, by its pixels.</li>
   <li><strong>Dead frames.</strong> A frame is <em>dead</em> for a seek if nothing the target frame or any later frame reads comes of it. The replay uses this to leave out most of the work when it jumps to a frame (<a href="replay.html#seek">Replay</a>).</li>
 </ul>
 
@@ -460,15 +495,26 @@
 <p>The front end of an API tells the model builder each event (<code>ITextureSink</code>), with the call and the frame it is in, and <code>TextureCollector</code> keeps them in the order of the calls. A region's <code>x</code>, <code>y</code>, <code>width</code> and <code>height</code> are in <em>texels</em>, whatever the format; a region of a compressed texture starts on a block and ends on one or at the edge of the level.</p>
 <h3>The four kinds of event</h3>
 <ul class="tight">
-  <li><strong>Upload.</strong> The pixels of a call are the content of a region. They are in the workload already, so the file keeps no copy: the table of contents has the data chunk, with the size and two hashes of the bytes, and a reader that takes the chunk from the workload can tell that it is the one. An upload with a null pointer gives the level a size and no content: the dumper makes a data chunk of every pointer to pixels, and of a null pointer one that has no bytes, so a chunk with no bytes is that (a texture that is to be copied to, such as one of 1024 by 512 texels).</li>
+  <li><strong>Upload.</strong> The pixels of a call are the content of a region. They are in the workload already, so the file keeps no copy: the table of contents has the data chunk, with the size and two hashes of the bytes, and a reader that takes the chunk from the workload can tell that it is the one. A null pointer gives the level a size and no content (see below).</li>
   <li><strong>Render write.</strong> A copy from the window. The window (the swapchain) is never stored.</li>
   <li><strong>Generated levels.</strong> <code>glGenerateMipmap</code> and <code>GL_GENERATE_MIPMAP</code> make the levels below the first, each told as an event, and to the dependencies as a copy of the level above.</li>
-  <li><strong>Snapshot.</strong> The first time that something reads a level whose content is not in the workload (rendering made it, or the driver did) after it changed, its content at that call is to be kept: a snapshot point. A change of such a level, by a copy, a part laid over it or the making of levels, makes it be read again the next time it is read. A snapshot covers the smallest rectangle that holds what rendering has made of the level since it was given (a level that is given a size and no pixels, then filled in a part by copies, is snapshot in that part, not whole), and the whole level for the levels that the driver makes. The analysis only says where the points are; the content of rendered levels is not kept. <code>APIDumpTextureExtractor --include-render-content</code> ends with a message instead of writing a file that lacks it (<code>APIDumpTextureQuery info</code> shows <code>includes_render_content</code>, which is false).</li>
+  <li><strong>Snapshot.</strong> The first time that something reads a level whose content is not in the workload (rendering made it, or the driver did) after it changed, its content at that call is to be kept: a snapshot point. A change of such a level, by a copy, a part laid over it or the making of levels, makes it be read again the next time it is read.</li>
+</ul>
+<h3>Uploads without pixels, and snapshots</h3>
+<ul class="tight">
+  <li><strong>A null pointer.</strong> An upload with a null pointer gives the level a size and no content. The dumper makes a data chunk of every pointer to pixels, and of a null pointer one that has no bytes, so a chunk with no bytes is that (a texture that is to be copied to, such as one of 1024 by 512 texels).</li>
+  <li><strong>What a snapshot covers.</strong> The smallest rectangle that holds what rendering has made of the level since it was given (a level that is given a size and no pixels, then filled in a part by copies, is snapshot in that part, not whole), and the whole level for the levels that the driver makes.</li>
+  <li><strong>What is not kept.</strong> The analysis only says where the points are; the content of rendered levels is not kept. <code>APIDumpTextureExtractor --include-render-content</code> ends with a message instead of writing a file that lacks it (<code>APIDumpTextureQuery info</code> shows <code>includes_render_content</code>, which is false).</li>
 </ul>
 <h3>Formats and blobs</h3>
 <p>The formats are named in the words of no API (<code>Utils::Graphics::TextureFormat</code>, with the block, the bytes and whether it is compressed, has depth or stencil, or is sRGB). The front end of each API turns its own values into them, and keeps the value of the API beside a format it does not know. What a stored content is made of is kept in the file of blobs, the name of the <code>.textures</code> file with <code>.data</code> after it: each content a Zstandard frame with a checksum, after a filter that loses nothing, once for each content.</p>
 <h3>Who tells</h3>
-<p>The front end of OpenGL follows <code>GL_TEXTURE_2D</code> textures: their levels, the pixels given to them (with the rows laid out as <code>glPixelStorei</code> says), the parts of levels, what is copied to them, and the levels the driver makes. The textures it does not follow are listed in <a href="#limits">What it does not do</a>. Only the OpenGL front end tells the textures; the Direct3D ones send no texture events, so their <code>.textures</code> files are empty of events. The calls about textures are followed by <code>GLTextureHandler</code> (<code>frontends/OpenGL/gl_texture_handler.h</code>), which keeps the textures and their parameters; the front end keeps the window, so it makes the copies of the window to a texture, with the parts of the handler that make a level.</p>
+<p>Only the OpenGL front end tells the textures. The Direct3D ones send no texture events, so their <code>.textures</code> files are empty of events.</p>
+<ul class="tight">
+  <li><strong>What it follows.</strong> <code>GL_TEXTURE_2D</code> textures: their levels, the pixels given to them (with the rows laid out as <code>glPixelStorei</code> says), the parts of levels, what is copied to them, and the levels the driver makes. The textures it does not follow are listed in <a href="#limits">What it does not do</a>.</li>
+  <li><strong>The texture handler.</strong> <code>GLTextureHandler</code> (<code>frontends/OpenGL/gl_texture_handler.h</code>) follows the calls about textures and keeps the textures and their parameters.</li>
+  <li><strong>Copies of the window.</strong> The front end keeps the window, so it makes the copies of the window to a texture, with the parts of the handler that make a level.</li>
+</ul>
 
 <h2 id="output"><span class="no">11</span>The files, the tools, and the live twin</h2>
 <div class="story">
@@ -500,9 +546,15 @@
   <li><strong>Sections.</strong> Each section is serialized in its own thread and compressed with Zstandard; its header carries the size, the tag, the version and an XXH64 of the raw bytes. The sections of <code>.passes</code> are listed in <code>passes_format.h</code>.</li>
   <li><strong>Safe to write.</strong> The file is written beside the real one and takes its place when complete, so a failure leaves the old file as it was.</li>
   <li><strong>Safe to read.</strong> A reader skips sections it does not know and refuses a known section of another version. It also checks what a file this code wrote must satisfy (sizes that fit, resource IDs consecutive, structures in order); one that fails is refused.</li>
-  <li><strong>One container.</strong> <code>SectionedFile</code> (<code>sectioned_file.h</code>) packs and reads the sections of <code>.passes</code>, <code>.deps</code> and <code>.textures</code>, and writes the file beside the real one. <code>.passes</code> starts with a header of its own (a magic, the file version and the key scheme version, which a reader must find equal to its own). <code>.deps</code> and <code>.textures</code> start with the <code>AnalysisFileHeader</code> (a magic, the file version and the analysis version), which <code>SectionedFile::check_analysis_header</code> checks against the <code>AnalysisFileKind</code> of the reader. Their sections are listed in <code>deps_format.h</code> and <code>textures_format.h</code>.</li>
+  <li><strong>One container.</strong> <code>SectionedFile</code> (<code>sectioned_file.h</code>) packs and reads the sections of <code>.passes</code>, <code>.deps</code> and <code>.textures</code>, and writes the file beside the real one.</li>
   <li><strong>Which capture.</strong> Each file remembers which workload it is of (its size and hashes of 4 KiB from its start, middle and end), and the query tools refuse the wrong capture.</li>
 </ul>
+<table>
+<tr><th>File</th><th>Starts with</th><th>A reader must find equal</th><th>Sections listed in</th></tr>
+<tr><td><code>.passes</code></td><td>A header of its own: a magic, the file version and the key scheme version.</td><td>The file version and the key scheme version of its own.</td><td><code>passes_format.h</code></td></tr>
+<tr><td><code>.deps</code></td><td rowspan="2">The <code>AnalysisFileHeader</code>: a magic, the file version and the analysis version.</td><td rowspan="2"><code>SectionedFile::check_analysis_header</code> checks it against the <code>AnalysisFileKind</code> of the reader.</td><td><code>deps_format.h</code></td></tr>
+<tr><td><code>.textures</code></td><td><code>textures_format.h</code></td></tr>
+</table>
 <h3>The programs</h3>
 <table>
 <tr><th>Tool</th><th>Use</th></tr>
@@ -513,7 +565,7 @@
 <tr><td><code>APIDumpSlicer</code></td><td>The first frames of a workload as a workload of their own: <code>APIDumpSlicer in.workload slice.workload --frames B</code> writes frames 0 to B (<code>--strip-chunks-above</code> writes big data chunks empty, for analysing and not for a replay).</td></tr>
 <tr><td><code>APIDumpTextureExtractor</code></td><td>Workload to <code>.textures</code> and the file of blobs beside it (see <a href="#textures">The life of a texture</a>).</td></tr>
 <tr><td><code>APIDumpTextureQuery</code></td><td>Asks questions of a <code>.textures</code> file as JSON: <code>info</code>, <code>resources</code>, <code>resource &lt;id&gt;</code>, and <code>at &lt;frame&gt; &lt;resource&gt; &lt;level&gt;</code> (what a level holds at the end of a frame, which event made each part of it, and where the bytes are).</td></tr>
-<tr><td><code>RecipeBake</code></td><td>Hand-written rules plus <code>.passes</code> (and <code>.deps</code>) to a baked recipe (<a href="recipes.html">Recipes</a>).</td></tr>
+<tr><td><code>RecipeBake</code></td><td>Hand-written rules plus <code>.passes</code> (and <code>.deps</code>) to a baked recipe (<a href="recipes.html">Recipes</a>). Four modes write nothing and report instead: <code>--check</code>, <code>--overlays</code>, <code>--scenes</code> and <code>--parity</code> (asks the recipe about every draw of the capture as the replay does and as the live converter does, and lists the draws where the answers differ).</td></tr>
 </table>
 <p>The programs are 64-bit and carry the <code>_x64</code> suffix in their file names (<code>APIDumpAnalysisQuery_x64.exe</code>; see <a href="building.html">Building</a>).</p>
 <details>
@@ -539,24 +591,34 @@
 <p>An analysis that quietly guesses is worse than one that stops. So when the front end meets something it does not follow, the rule is: either it was left out on purpose, with a reason written down, or the process ends with a message that names the function. The one thing it does not do is pass over a call it was never told about.</p>
 </div>
 <h3>OpenGL</h3>
-<ul class="tight">
-  <li><strong>What it follows.</strong> The contexts, the matrices, the clears, the frames, the draws of immediate mode and of arrays, the display lists, and the textures that are <code>GL_TEXTURE_2D</code> (their levels, the pixels given to them, what is copied to them, the levels the driver makes). It follows no more than that.</li>
-  <li><strong>What ends the process.</strong> A function it neither follows nor knows to be of no matter (a shader, a buffer object, an evaluator, the selection, an accumulation buffer, a rectangle, what changes how pixels are converted, <code>glCallLists</code>, <code>glBitmap</code>, <code>glDrawPixels</code>, <code>glCopyPixels</code>); a texture of another target or a kind it does not follow (cube maps, volumes, arrays, multisampled and compressed ones, fixed storage, a texture that is a part of a framebuffer); and pixels that go to a buffer or come from one. The message says the function (<code>AI_ASSERT_ALWAYS</code>). A parameter that decides the levels is followed only for <code>GL_TEXTURE_2D</code>; <code>GL_TEXTURE_BASE_LEVEL</code> other than 0 ends the process too.</li>
-  <li><strong>Draw-writing state.</strong> The state that decides what a draw writes, or how its pixels are combined with what is there (the stencil test and what it does, the logic op, the blend equation, the winding of faces), is not followed and ends the process too (<code>GLFunctionPolicy::changes_what_a_draw_writes</code>): a frame that has only such a draw could be taken for one that writes nothing.</li>
-  <li><strong>What is left out on purpose.</strong> Each has a reason in <code>GLFunctionPolicy</code>: the values for the vertices that follow, the state of the arrays that a draw reads (the draw comes with a snapshot of them), names, the state of the rendering that only changes how a draw looks (lighting, fog, texture environment, polygon offset and the like), and the queries.</li>
-  <li><strong>Let through.</strong> What is made relative to the model-view matrix of the moment (the position of a light, a clip plane, the raster position) is let through, and told as such to the lists (<code>GLFunctionPolicy::bakes_current_matrix</code>).</li>
-  <li><strong>Counted.</strong> Reads of pixels into the memory of the program are counted: what the program makes of them is in the calls that follow. Calls of an API that has no front end are counted and skipped.</li>
-</ul>
+<table>
+<tr><th>Group</th><th>What is in it</th><th>What the front end does</th></tr>
+<tr><td>Followed</td><td>The contexts, the matrices, the clears, the frames, the draws of immediate mode and of arrays, the display lists, and the textures that are <code>GL_TEXTURE_2D</code> (their levels, the pixels given to them, what is copied to them, the levels the driver makes).</td><td>Follows it, and nothing more.</td></tr>
+<tr><td>Unknown functions</td><td>A function it neither follows nor knows to be of no matter: a shader, a buffer object, an evaluator, the selection, an accumulation buffer, a rectangle, what changes how pixels are converted, <code>glCallLists</code>, <code>glBitmap</code>, <code>glDrawPixels</code>, <code>glCopyPixels</code>.</td><td rowspan="4">Ends the process with a message that says the function (<code>AI_ASSERT_ALWAYS</code>).</td></tr>
+<tr><td>Other textures</td><td>A texture of another target or a kind it does not follow: cube maps, volumes, arrays, multisampled and compressed ones, fixed storage, a texture that is a part of a framebuffer. A parameter that decides the levels is followed only for <code>GL_TEXTURE_2D</code>; <code>GL_TEXTURE_BASE_LEVEL</code> other than 0 ends the process too.</td></tr>
+<tr><td>Pixels in buffers</td><td>Pixels that go to a buffer or come from one.</td></tr>
+<tr><td>Draw-writing state</td><td>The state that decides what a draw writes, or how its pixels are combined with what is there: the stencil test and what it does, the logic op, the blend equation and the separate blend factors, the blend constant color, the winding of faces (<code>GLFunctionPolicy::changes_what_a_draw_writes</code>). A frame that has only such a draw could be taken for one that writes nothing.</td></tr>
+<tr><td>Left out on purpose</td><td>The values for the vertices that follow, the state of the arrays that a draw reads (the draw comes with a snapshot of them), names, the state of the rendering that only changes how a draw looks (lighting, fog, texture environment, polygon offset and the like), and the queries.</td><td>Passes over them; each has a reason in <code>GLFunctionPolicy</code>.</td></tr>
+<tr><td>Relative to the model-view matrix</td><td>What is made relative to the model-view matrix of the moment: the position of a light, a clip plane, the raster position.</td><td>Lets it through, and tells the lists that it depends on the matrix (<code>GLFunctionPolicy::bakes_current_matrix</code>).</td></tr>
+<tr><td>Reads of pixels</td><td>Reads of pixels into the memory of the program (<code>glReadPixels</code>). What the program makes of them is in the calls that follow.</td><td>Counts them as a resolution hazard.</td></tr>
+<tr><td>An API with no front end</td><td>Every call of it.</td><td>Counts and skips them.</td></tr>
+</table>
 <h3>Direct3D 8 and Direct3D 7</h3>
-<p>Both follow every function except those below, and neither passes over a call either. Each function is followed, or left out on purpose with a reason in <code>D3D8FunctionPolicy</code> or <code>D3D7FunctionPolicy</code> (the queries, the hints about where the driver keeps a resource, the state that only changes how a draw looks such as materials and clip planes, the display-only calls such as gamma and the cursor, and the locks, whose data is stored with the unlock), or it ends the process with a message that says the function and why (<code>AI_ASSERT_ALWAYS</code>).</p>
+<p>Both follow every function except those below, and neither passes over a call. Each function falls in one of three groups, decided in <code>D3D8FunctionPolicy</code> and <code>D3D7FunctionPolicy</code>:</p>
 <ul class="tight">
-  <li><strong>Both:</strong> state blocks, <code>MultiplyTransform</code>, <code>ProcessVertices</code>, palettes.</li>
-  <li><strong>Direct3D 8 also:</strong> patches, additional swap chains, <code>GetFrontBuffer</code>, volume unlocks and the vertex and pixel shader constants (which can be the matrices that a replay for the other eye has to change).</li>
-  <li><strong>Direct3D 7 also:</strong> overlays, GDI contexts of surfaces, color keys, <code>DeleteAttachedSurface</code>, <code>BltBatch</code>, <code>SetSurfaceDesc</code>, and the calls that restore surfaces or try or change the display mode.</li>
+  <li><strong>Followed.</strong> The front end handles it by name.</li>
+  <li><strong>Left out on purpose</strong>, with a reason written beside it: the queries, the hints about where the driver keeps a resource, the state that only changes how a draw looks (materials, clip planes), the display-only calls (gamma, the cursor), and the locks, whose data is stored with the unlock.</li>
+  <li><strong>Ends the process</strong> with a message that says the function and why (<code>AI_ASSERT_ALWAYS</code>). These are the functions below.</li>
+</ul>
+<p>The functions that end the process:</p>
+<ul class="tight">
+  <li><strong>Both:</strong> state blocks, <code>MultiplyTransform</code>, <code>ProcessVertices</code> (and <code>ProcessVerticesStrided</code> in Direct3D 7), palettes.</li>
+  <li><strong>Direct3D 8 also:</strong> patches, additional swap chains, <code>GetFrontBuffer</code>, <code>RegisterSoftwareDevice</code>, volume unlocks and the vertex and pixel shader constants (which can be the matrices that a replay for the other eye has to change).</li>
+  <li><strong>Direct3D 7 also:</strong> overlays, GDI contexts of surfaces, color keys, <code>DeleteAttachedSurface</code>, <code>BltBatch</code>, <code>FlipToGDISurface</code>, <code>SetSurfaceDesc</code>, and the calls that restore surfaces or try or change the display mode.</li>
 </ul>
 <p>A call that failed changed nothing and is passed over. The tests keep the list of the functions that are followed against the two tables, so a function that nobody decided on is found.</p>
 <h3>Everywhere</h3>
-<p>The analysis never reads pixels: contents appear only as the hash in a resource's description key. Vertices are read, while the file is made, for the surface depth (a sample of each draw), and only histograms are kept.</p>
+<p>The analysis never reads pixels: contents appear only as the hash in a resource's description key. Vertices are read, while the file is made, for the surface depth and the draw facts (a sample of each draw), and only histograms and the extents of draws are kept.</p>
 </main>
 </body>
 </html>

@@ -25,7 +25,7 @@
 </nav></header>
 <main>
 <h1>Building &amp; testing</h1>
-<p class="lead">CMake, MSVC, C++14. Two builds (32-bit and 64-bit) are needed because the injected parts are 32-bit and the presenter and the player 64-bit.</p>
+<p class="lead">CMake, MSVC, C++14 (the compiler's default: CMake sets no standard). Two builds (32-bit and 64-bit) are needed because the injected parts are 32-bit and the presenter and the player 64-bit.</p>
 <ol class="toc">
   <li><a href="#get">Get the code</a></li>
   <li><a href="#build">Build</a></li>
@@ -38,6 +38,14 @@
 </ol>
 
 <h2 id="get">Get the code</h2>
+<h3>What you need</h3>
+<table>
+<tr><th>Tool</th><th>Why</th></tr>
+<tr><td>Windows, Visual Studio 2026 (MSVC and the Windows SDK)</td><td>The generator is <code>Visual Studio 18 2026</code>, set in <code>deps\APIInterceptor\build.bat</code>. The Direct3D 12, DXGI and OpenGL libraries the project links come with the SDK.</td></tr>
+<tr><td>CMake that knows that generator</td><td>The project asks for 3.10; the OpenXR SDK in <code>deps/</code> asks for 3.16.</td></tr>
+<tr><td>git</td><td>API Interceptor, OpenXR and miniz are submodules.</td></tr>
+</table>
+<h3>Clone</h3>
 <pre><code>git clone --recurse-submodules &lt;this repository&gt;</code></pre>
 <p>Three submodules are in <code>deps/</code>:</p>
 <table>
@@ -61,6 +69,7 @@ build.bat --clean            :: wipe the two build trees, build nothing</code></
 <tr><td><code>build.bat --clean</code></td><td>Empties the two build trees and builds nothing.</td></tr>
 <tr><td><code>--source-dir &lt;dir&gt;</code></td><td>Builds the CMake project in that folder (the root <code>build.bat</code> passes its own folder); the build trees and <code>build_final\</code> are made there.</td></tr>
 </table>
+<p>The options combine (<code>build.bat --from-scratch --debug</code>); an argument the script does not know stops it.</p>
 
 <h3>What the script does</h3>
 <figure>
@@ -112,6 +121,7 @@ build.bat --clean            :: wipe the two build trees, build nothing</code></
 <tr><td>Neighbours</td><td>A program looks for the ones it starts or loads next to itself (the launcher for the converter), which is why a group is installed as a whole.</td></tr>
 <tr><td><code>VRPlayer</code></td><td>Looks for the launchers and the presenter in <code>runtime\</code> beside itself, and next to itself when there is none (a build folder).</td></tr>
 <tr><td>What goes where</td><td>Written in <code>cmake/install.cmake</code>, as an install rule for each program, with the helpers of API Interceptor (<code>install_helpers.cmake</code>).</td></tr>
+<tr><td><code>README.txt</code></td><td>At the root of <code>build_final\</code>: says what each folder is (<code>cmake/release_README.txt</code>).</td></tr>
 <tr><td>Only named programs</td><td>A program that has no target cannot end up in <code>build_final</code>, and a program that is missing makes the install fail instead of leaving a hole.</td></tr>
 </table>
 
@@ -132,7 +142,7 @@ build.bat --clean            :: wipe the two build trees, build nothing</code></
 <tr><td>Libraries</td><td><code>src/libs</code> (see <a href="architecture.html#libraries">The libraries and one rule</a>).</td></tr>
 <tr><td>Headers</td><td>Beside the sources they belong to; there is no <code>include/</code> folder.</td></tr>
 <tr><td>Tests</td><td><code>src/tests</code>.</td></tr>
-<tr><td>Helper scripts</td><td><code>scripts/</code>: <code>analyze_capture.ps1</code> uses the tools of <code>build_final\tools\analysis</code> (<code>-ToolsDir</code> names another folder).</td></tr>
+<tr><td>Helper scripts</td><td><code>scripts/</code>: <code>analyze_capture.ps1</code> uses the 64-bit tools of <code>build_final\tools\analysis</code> (<code>-ToolsDir</code> names another folder, <code>-MaxFrames</code> limits the frames read).</td></tr>
 <tr><td>What is what</td><td><code>docs/components.html</code> has the table of what is where and what each project is for.</td></tr>
 </table>
 
@@ -149,41 +159,63 @@ build.bat --clean            :: wipe the two build trees, build nothing</code></
 <h2 id="cmake">CMake layout</h2>
 <p>The root <code>CMakeLists.txt</code> does these things, in this order:</p>
 <ol>
-  <li>Holds the settings every project shares.</li>
-  <li>Adds API Interceptor as a subproject (<code>add_subdirectory</code> with <code>EXCLUDE_FROM_ALL</code>).</li>
+  <li>Holds the settings every project shares: the <code>DEMOVRPLAYER_BUILD_TESTS</code> option, <code>/MP</code>, and <code>bin</code> in the build tree as the output folder.</li>
+  <li>Adds API Interceptor as a subproject (<code>add_subdirectory</code> with <code>EXCLUDE_FROM_ALL</code>), and a target, <code>CaptureTools</code>, that is part of the default build and depends on the dumper, its DLL and the printer, so that they are built for the release.</li>
   <li>Adds the third-party code which the libraries use (miniz, and the OpenXR loader in the 64-bit build).</li>
   <li>Includes <code>cmake/architecture.cmake</code>, which has the function that gives a program the architecture in its name.</li>
-  <li>Adds a folder for each library, then for each program, then the 64-bit ones.</li>
+  <li>Adds a folder for each library, then for each program, then the programs of the 64-bit tree only (the presenter and the VR player).</li>
   <li>Includes three more files of <code>cmake/</code>: <code>tests.cmake</code>, <code>install.cmake</code> (what the release holds) and <code>folders.cmake</code> (the folders of the solution).</li>
 </ol>
 <p>The order matters: a target must exist before it is given a folder. Each library and program folder has a <code>CMakeLists.txt</code> of its own, with what the project is for, its sources (globbed with <code>CONFIGURE_DEPENDS</code>, so a new file is picked up by the next build) and what it links.</p>
 
 <h2 id="solution">Solution layout</h2>
-<p>The generated Visual Studio solution groups projects in folders which are the folders of the source: libs, runtime, tools/analysis, tools/stereo_replay, vr_player and tests, and the folders of API Interceptor and of the third party code.</p>
+<p>The generated Visual Studio solution groups projects in folders. Those of this project are the folders of the source; <code>cmake/folders.cmake</code> says which target goes where.</p>
+<table>
+<tr><th>Solution folder</th><th>Projects</th></tr>
+<tr><td><code>libs</code></td><td><code>Analysis</code>, <code>Headset</code>, <code>Stereo</code>, <code>Utils</code>, <code>VRPlayerBackend</code></td></tr>
+<tr><td><code>runtime</code></td><td><code>StereoConverterDLL</code>, <code>StereoLauncher</code>, <code>StereoPresenter</code></td></tr>
+<tr><td><code>tools/analysis</code></td><td>the extractors and queries, <code>APIDumpSlicer</code>, <code>RecipeBake</code></td></tr>
+<tr><td><code>tools/stereo_replay</code></td><td><code>StereoReplayEngineDLL</code>, <code>StereoReplayInspector</code>, <code>StereoReplayPlayer</code></td></tr>
+<tr><td><code>vr_player</code></td><td><code>VRPlayer</code></td></tr>
+<tr><td><code>tests</code></td><td><code>DemoVRPlayerTests</code>, and from API Interceptor <code>APIInterceptorTests</code>, <code>APIInterceptorTestSupport</code> and <code>D3D7DrawKinds</code></td></tr>
+<tr><td><code>Interception/Hooks</code>, <code>Interception/Core</code>, <code>Capture</code>, <code>Replay</code></td><td>API Interceptor, by what its projects are for (<code>APIDumpNames</code> is in <code>Capture</code>)</td></tr>
+<tr><td><code>Third party</code></td><td><code>miniz</code>, <code>ImGui</code>, <code>Zstd</code>, Detours, googletest, and the OpenXR loader under <code>Third party/OpenXR</code></td></tr>
+</table>
 
 <h2 id="tests">Tests</h2>
-<p>One test program, <code>DemoVRPlayerTests</code>, with googletest. It is built when a tree is configured with <code>-DDEMOVRPLAYER_BUILD_TESTS=ON</code>, in the 64-bit build and in the 32-bit one (which leaves out the tests of the headset, since the headset is of the 64-bit programs). <code>build.bat</code> does not set the option; a tree that is not wiped keeps it.</p>
+<p>One test program, <code>DemoVRPlayerTests</code>, with googletest.</p>
+<table>
+<tr><th>Topic</th><th>Detail</th></tr>
+<tr><td>Switch</td><td>Built when a tree is configured with <code>-DDEMOVRPLAYER_BUILD_TESTS=ON</code> (off by default). <code>build.bat</code> does not set it; a tree that is not wiped keeps it.</td></tr>
+<tr><td>Both trees</td><td>The 64-bit and the 32-bit build each make one. The 32-bit one leaves out the tests of the headset (<code>test_headset_session.cpp</code>, <code>test_openxr_vr_device_provider.cpp</code>, <code>test_screen_geometry.cpp</code>), since the headset is of the 64-bit programs.</td></tr>
+<tr><td>Running</td><td>Nothing runs them: <code>build.bat</code> builds them and the executables are run by hand.</td></tr>
+</table>
 
 <h3>Build and run</h3>
-<pre><code>cmake -B build_x64 -DDEMOVRPLAYER_BUILD_TESTS=ON .
-cmake -B build_x86 -DDEMOVRPLAYER_BUILD_TESTS=ON .
+<pre><code>cmake -B build_x64 -G "Visual Studio 18 2026" -A x64 -DDEMOVRPLAYER_BUILD_TESTS=ON .
+cmake -B build_x86 -G "Visual Studio 18 2026" -A Win32 -DDEMOVRPLAYER_BUILD_TESTS=ON .
 build.bat
 build_x64\bin\Release\DemoVRPlayerTests.exe
 build_x86\bin\Release\DemoVRPlayerTests.exe</code></pre>
-<p>A part of the tests can be run with googletest's own switch, <code>--gtest_filter=DuplicateCode.*</code>.</p>
+<ul>
+  <li>The generator and the platform are given so that the command also configures a tree that does not exist yet, the way <code>build.bat</code> would.</li>
+  <li>With <code>build.bat --debug</code> the executables are in <code>bin\Debug</code>.</li>
+  <li>A part of the tests runs with googletest's own switch, <code>--gtest_filter=DuplicateCode.*</code> or <code>--gtest_filter=Layout.*</code>.</li>
+</ul>
 
 <h3>Writing tests</h3>
 <table>
 <tr><th>Topic</th><th>Detail</th></tr>
 <tr><td>File names</td><td>A test file is named after what it tests (<code>test_job_thread.cpp</code> for <code>JobThread</code>).</td></tr>
 <tr><td>New files</td><td>All of <code>src/tests/*.cpp</code> is globbed, with <code>CONFIGURE_DEPENDS</code>, so a new one is picked up by the next build.</td></tr>
-<tr><td>Repository access</td><td>Tests that read the repository (<code>Layout</code>, <code>DuplicateCode</code>) find it through <code>DEMOVRPLAYER_REPOSITORY_ROOT</code>.</td></tr>
+<tr><td>Classes of programs</td><td>A library is linked. The classes of a program are not in a library, so a test of one needs the <code>.cpp</code> of the class listed in <code>cmake/tests.cmake</code>.</td></tr>
+<tr><td>Repository access</td><td>Tests that read the repository (<code>Layout</code>, <code>DuplicateCode</code>) find it through <code>DEMOVRPLAYER_REPOSITORY_ROOT</code>; <code>DEMOVRPLAYER_APPS_DIR</code> and <code>DEMOVRPLAYER_TESTS_DATA_DIR</code> name <code>apps/</code> and <code>src/tests/data</code>.</td></tr>
 <tr><td>Data files</td><td>In <code>src/tests/data</code> (a slice of a capture of a Direct3D 8 program, and recipes), reached through <code>Tests::DataFixtures</code>.</td></tr>
 <tr><td>API Interceptor</td><td>Its test support (<code>APIInterceptorTestSupport</code>) and its googletest are used, which is why API Interceptor builds its tests target (not run, and not part of <code>ALL</code>) when the tests of this project are asked for.</td></tr>
 </table>
 
 <h2 id="conventions">Code conventions</h2>
-<p>The conventions of API Interceptor apply (see its <a href="../deps/APIInterceptor/docs/building.html#conventions">Building &amp; testing</a>):</p>
+<p>The conventions of API Interceptor apply (see its <a href="../deps/APIInterceptor/docs/building.html#conventions">Building &amp; testing</a>). The ones that matter most, and the tests that check what can be checked, are in <a href="contributing.html#conventions">Contributing</a>:</p>
 <ul>
   <li>named namespaces and qualified definitions;</li>
   <li>no anonymous namespaces and no <code>using</code> directives (in <code>src/libs</code>, <code>src/runtime</code>, <code>src/tools</code> and <code>src/vr_player</code>; tests excepted);</li>
