@@ -8,6 +8,12 @@
 #include <math.h>
 #include <string.h>
 
+size_t Analysis::APIDumpAnalysis::Frontends::GeometrySampler::get_n_samples(const size_t& in_n_vertices)
+{
+    return (in_n_vertices < MAX_N_SAMPLES) ? in_n_vertices
+                                           : MAX_N_SAMPLES;
+}
+
 size_t Analysis::APIDumpAnalysis::Frontends::GeometrySampler::get_position_n_bytes(const bool& in_is_pre_transformed)
 {
     constexpr size_t N_POSITION_FLOATS        = 3;
@@ -15,6 +21,14 @@ size_t Analysis::APIDumpAnalysis::Frontends::GeometrySampler::get_position_n_byt
 
     return ((in_is_pre_transformed) ? N_PRE_TRANSFORMED_FLOATS
                                     : N_POSITION_FLOATS) * sizeof(float);
+}
+
+size_t Analysis::APIDumpAnalysis::Frontends::GeometrySampler::get_sample_vertex(const size_t& in_n_sample,
+                                                                                const size_t& in_n_vertices)
+{
+    const size_t n_samples = get_n_samples(in_n_vertices);
+
+    return in_n_sample * in_n_vertices / n_samples;
 }
 
 bool Analysis::APIDumpAnalysis::Frontends::GeometrySampler::is_finite(const std::array<float, 3>& in_position)
@@ -30,8 +44,6 @@ bool Analysis::APIDumpAnalysis::Frontends::GeometrySampler::is_finite(const std:
 
 std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDumpAnalysis::Frontends::GeometrySampler::sample(const GeometrySamplingRange& in_range)
 {
-    /* A few dozen vertices show where a mesh is. The analysis uses a percentile of their depth. */
-    constexpr size_t MAX_N_POINTS           = 64;
     constexpr size_t RECIPROCAL_DEPTH_FLOAT = 3;
 
     const size_t n_position_bytes = get_position_n_bytes(in_range.is_pre_transformed);
@@ -45,8 +57,7 @@ std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDu
     if (has_vertices)
     {
         auto         sample_ptr = std::make_shared<Analysis::APIDumpAnalysis::GeometrySample>();
-        const size_t n_points   = std::min<size_t>(in_range.vertex_count,
-                                                   MAX_N_POINTS);
+        const size_t n_points   = get_n_samples(in_range.vertex_count);
 
         sample_ptr->is_pre_transformed = in_range.is_pre_transformed;
 
@@ -54,8 +65,8 @@ std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDu
                     n_point < n_points;
                   ++n_point)
         {
-            /* The samples are spread over the draw, so that a mesh whose parts lie in different places is represented by all of them. */
-            const uint64_t slot         = static_cast<uint64_t>(n_point) * in_range.vertex_count / n_points;
+            const uint64_t slot         = get_sample_vertex(n_point,
+                                                            in_range.vertex_count);
             uint64_t       vertex_index = in_range.first + slot;
             bool           is_valid     = true;
 

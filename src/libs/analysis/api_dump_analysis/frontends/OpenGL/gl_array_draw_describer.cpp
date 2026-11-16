@@ -6,6 +6,7 @@
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_client_array_snapshot.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_geometry_sampler.h"
 #include "analysis/api_dump_analysis/frontends/shared/call_view.h"
+#include "analysis/api_dump_analysis/frontends/shared/geometry_sampler.h"
 #include "common/argument_reader.h"
 #include "utils/hashing/stable_hasher.h"
 #include <string.h>
@@ -203,7 +204,7 @@ std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDu
     if (position_array_ptr != nullptr)
     {
         const size_t n_vertices = static_cast<size_t>(in_count);
-        const size_t n_samples  = GLGeometrySampler::get_n_samples(n_vertices);
+        const size_t n_samples  = GeometrySampler::get_n_samples(n_vertices);
 
         result_ptr = std::make_shared<Analysis::APIDumpAnalysis::GeometrySample>();
 
@@ -211,8 +212,8 @@ std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDu
                     n_sample < n_samples;
                   ++n_sample)
         {
-            const size_t         place    = GLGeometrySampler::get_sample_vertex(n_sample,
-                                                                                 n_vertices);
+            const size_t         place    = GeometrySampler::get_sample_vertex(n_sample,
+                                                                               n_vertices);
             uint32_t             element  = static_cast<uint32_t>(in_first) + static_cast<uint32_t>(place);
             std::array<float, 3> position = {};
 
