@@ -54,15 +54,15 @@
 </figure>
 
 <h2 id="capture">1. Capture the program</h2>
-<pre><code>tools\api_dumper\APIDumper_x86.exe --dump-n-frames 3000 --dump-swapchain-on-present c:\path\to\app.exe [app arguments]</code></pre>
-<p><strong>Result:</strong> <code>result_dump.workload</code>, a recording of every API call and of the back buffer of each frame. Run it from the folder of the program (the working directory is where the file goes).</p>
+<pre><code>tools\api_dumper\APIDumper_x86.exe --dump-n-frames 3000 c:\path\to\app.exe [app arguments]</code></pre>
+<p><strong>Result:</strong> <code>result_dump.workload</code>, a recording of every API call and of the data they point to. Run it from the folder of the program (the working directory is where the file goes).</p>
 
 <h3>The options</h3>
 <table>
 <tr><th>Option or file</th><th>Effect</th></tr>
 <tr><td><code>APIDumper_x86.exe</code> / <code>APIDumper_x64.exe</code></td><td>The dumper for a 32-bit or a 64-bit program.</td></tr>
 <tr><td><code>--dump-n-frames N</code></td><td>The capture ends when N frames have been presented, or when the program exits. Without it, only the exit ends it.</td></tr>
-<tr><td><code>--dump-swapchain-on-present</code></td><td>Stores the back buffer of each frame (OpenGL, Direct3D 7 and 8), which is what lets anyone later see what a frame looked like.</td></tr>
+<tr><td><code>--dump-swapchain-on-present</code></td><td>Optional, and not needed by the analysis or the replay. Stores the back buffer of each frame (OpenGL, Direct3D 7 and 8) so that anyone can see what the frame looked like without replaying it. It is large: at 1280 by 720, 3.7 MB for every frame, which can be half of the file. <code>StereoReplayInspector --screenshot</code> shows a frame without it.</td></tr>
 <tr><td><code>--spill-threshold-mb N</code></td><td>Writes the data waiting in memory to the file once it reaches N megabytes (128 by default), so that a 32-bit program does not run out of memory. The file is written, and compressed with up to eight threads, off the thread of the program, which waits only if the previous write is not done. The data of the calls that the dumper holds is bounded too (at four times N, counting what each piece costs besides its bytes): a frame that holds more ends the capture with a message. When a capture stops at <code>--dump-n-frames</code>, the program runs on and the dumper keeps nothing. A capture can be large: a few minutes of a demo are gigabytes.</td></tr>
 <tr><td><code>result_dump.workload</code></td><td>The output, written in the working directory of the program.</td></tr>
 </table>
@@ -196,7 +196,7 @@ marked unclear, with the question that would settle it.</code></pre>
   <li><strong>Ask for the unclear list.</strong> A model that has to say what it does not know checks more than one that has to decide everything.</li>
   <li><strong>Read the evidence, not the verdict.</strong> The facts are fields of the JSON that you can run again yourself, and a verdict that rests on none of them is a guess.</li>
 </ol>
-<p>Where the facts are not enough, a multimodal model can be given pictures of frames: <code>StereoReplayInspector --screenshot</code> and <code>--contact-sheet</code> (step 6) write them as PNG files. <code>APIDumpPrinter</code> writes the back buffers as raw RGBA files, one for each frame, which is a lot of data. A person can always look.</p>
+<p>Where the facts are not enough, a multimodal model can be given pictures of frames: <code>StereoReplayInspector --screenshot</code> and <code>--contact-sheet</code> (step 6) write them as PNG files. A capture made with <code>--dump-swapchain-on-present</code> also has the back buffers, which <code>APIDumpPrinter</code> writes as raw RGBA files, one for each frame, which is a lot of data. A person can always look.</p>
 
 <h2 id="draft">4. Draft the rules</h2>
 <p>The input of the baker is a recipe <em>without</em> the <code>baked</code> section: what the person knows, and what the analysis cannot.</p>
@@ -484,7 +484,7 @@ runtime\StereoLauncher_x86.exe --recipe my_demo.json --session test --log --wait
 
 <h2 id="checklist">Checklist</h2>
 <ul>
-  <li>Captured every screen of the program, with <code>--dump-swapchain-on-present</code>.</li>
+  <li>Captured every screen of the program.</li>
   <li><code>info</code>: no unfollowed or unsupported calls, no key collisions, hazards understood, a small number of shapes.</li>
   <li>Every pass has a decision with evidence; the unclear ones are settled by a person.</li>
   <li>The recipe's keys are all from the query output; <code>known_shape_keys</code> are the shapes of the capture.</li>
