@@ -2,6 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
+#include "analysis/api_dump_analysis/frontends/OpenGL/gl_window_extents.h"
 #include "capture/api_dump_loader/api_info.h"
 #include "live_call_analyzer.h"
 #include <algorithm>
@@ -251,12 +252,15 @@ bool Stereo::ConverterDLL::LiveCallAnalyzer::is_followed(const APIInterceptor::A
 {
     const auto api_group = Capture::APIDumpLoader::get_api_group(in_function);
 
-    /* SwapBuffers is a GDI32 function that ends an OpenGL frame. The rest of GDI32 is not followed. */
+    /* SwapBuffers is a GDI32 function that ends an OpenGL frame. The calls that make the window of an OpenGL program tell its default viewport.
+     * The rest of GDI32 and USER32 is not followed.
+     */
     return (api_group == Capture::APIDumpLoader::APIGroup::D3D7 ||
             api_group == Capture::APIDumpLoader::APIGroup::D3D8 ||
             api_group == Capture::APIDumpLoader::APIGroup::GL   ||
             api_group == Capture::APIDumpLoader::APIGroup::WGL  ||
-            in_function == APIInterceptor::APIFUNCTION_GDI32_SWAPBUFFERS);
+            in_function == APIInterceptor::APIFUNCTION_GDI32_SWAPBUFFERS ||
+            Analysis::APIDumpAnalysis::Frontends::GLWindowExtents::follows_function(in_function) );
 }
 
 void Stereo::ConverterDLL::LiveCallAnalyzer::on_post(const APIInterceptor::APIFunction&         in_function,

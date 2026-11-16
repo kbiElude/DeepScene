@@ -226,3 +226,12 @@ TEST(CallFeederTest, AChunkThatIsNotInTheInterceptorIsNotGiven)
 
     EXPECT_FALSE(is_there);
 }
+
+TEST(LiveCallAnalyzerTest, TheCallsThatMakeTheWindowOfAnOpenGLProgramAreFollowedAndTheRestOfUSER32IsNot)
+{
+    EXPECT_TRUE(Stereo::ConverterDLL::LiveCallAnalyzer::is_followed(APIInterceptor::APIFUNCTION_USER32_CREATEWINDOWEXA) );
+    EXPECT_TRUE(Stereo::ConverterDLL::LiveCallAnalyzer::is_followed(APIInterceptor::APIFUNCTION_USER32_CREATEWINDOWEXW) );
+    EXPECT_TRUE(Stereo::ConverterDLL::LiveCallAnalyzer::is_followed(APIInterceptor::APIFUNCTION_USER32_GETDC) );
+    EXPECT_FALSE(Stereo::ConverterDLL::LiveCallAnalyzer::is_followed(APIInterceptor::APIFUNCTION_USER32_RELEASEDC) );
+    EXPECT_FALSE(Stereo::ConverterDLL::LiveCallAnalyzer::is_followed(APIInterceptor::APIFUNCTION_USER32_ADJUSTWINDOWRECTEX) );
+}
