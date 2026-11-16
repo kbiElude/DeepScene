@@ -109,8 +109,9 @@ bool Analysis::APIDumpAnalysis::DrawMeasurer::find_draw_matrices(const ConstantS
         }
     }
 
-    /* The identity is the projection of a program that sets none, or that draws in the space of the picture. It carries no information, so it is
-     * never reported as orthographic.
+    /* The identity is the projection of a program that sets none, or that draws in the space of the picture. It carries no information, so
+     * DrawMatrices::is_orthographic is false for it. The value this function returns does treat it as orthographic: a draw with a projection
+     * of w = 1 has no depth to measure.
      */
     const std::array<float, N_MATRIX_ELEMENTS> identity_f32mat = {1.0f, 0.0f, 0.0f, 0.0f,
                                                                   0.0f, 1.0f, 0.0f, 0.0f,

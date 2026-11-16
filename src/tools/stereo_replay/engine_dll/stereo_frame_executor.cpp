@@ -997,8 +997,8 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::find_view_anchor_calls(cons
     m_view_anchor_call_index_set.clear();
 
     /* The replay applies the shift of an eye at the beginning of a camera, so every draw that shares that camera gets the shift.
-     * A flat draw that shares the camera of a draw that is not flat therefore keeps the rules (the live converter has no such
-     * limit).
+     * A draw that the recipe holds flat only because it pushes it by its cover key therefore keeps the rules when it shares the
+     * camera of an affected draw (the live converter has no such limit). A baked flat layer is never released this way.
      */
     {
         std::set<uint64_t> shared_anchor_set;

@@ -128,7 +128,8 @@ namespace Stereo
             /* Reports how deep the frame that the application has just presented was, measured from its depth buffer (see
              * DepthRangeMeasurer), together with the x scale of its projection. The eyes follow the convergence distance and the maximum
              * separation that the comfort settings of the recipe give for that depth (see RecipeApplier::get_comfort_limits()). If the recipe
-             * has comfort settings for the shape of the frame, they win over the values baked for the shape (see on_frame_completed()).
+             * has comfort settings for the shape of the frame, they win over the values baked for the shape (see on_frame_completed()). The
+             * eyes ease toward them as on_frame_completed() describes, including the snap at a cut.
              * Returns false and does nothing if the range has no depth.
              */
             bool on_frame_depth(const uint64_t&   in_shape_key,
@@ -137,8 +138,9 @@ namespace Stereo
 
             /* Reports that the frame the application has just presented had the shape in_shape_key (see CompletedFrame::shape_key). If the
              * recipe has a convergence distance for that shape (see Recipe::scene_convergence_vec), the draws that follow converge there. The
-             * convergence eases toward the distance over several frames, which keeps a scene made of frames with slightly different shapes
-             * from pulsing. The first distance is taken at once. If the recipe does not know the shape, the convergence distance and the
+             * convergence eases toward the distance over several frames (by time with comfort.ease_by_time), which keeps a scene made of frames
+             * with slightly different shapes from pulsing. The first distance is taken at once, and so is one far from the one before when the
+             * recipe sets comfort.snap_at_cuts. If the recipe does not know the shape, the convergence distance and the
              * limit on the eye separation stay as they are.
              */
             void on_frame_completed(const uint64_t& in_shape_key);
@@ -264,8 +266,8 @@ namespace Stereo
             void set_ipd_scale(const float& in_ipd_scale);
 
             /* Sets whether the draws that the recipe leaves alone and that go to what is presented are pushed toward the viewer, by the amount
-             * the recipe gives (Comfort::overlay_parallax; no push if it is 0). It is off until it is set: the recipe says how far, the person
-             * says whether.
+             * the recipe gives (Comfort::overlay_parallax; no push if it is 0). It is off until it is set: the recipe says how far and which
+             * draws (RecipeApplier::decide_draw()), the person says whether.
              */
             void set_is_overlay_pushed(const bool& in_is_pushed);
 
