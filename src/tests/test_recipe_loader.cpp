@@ -1703,6 +1703,21 @@ TEST_F(RecipeLoaderTest, PassSelectorsThatTheLiveConverterIgnoresAreDescribed)
               std::string::npos);
 }
 
+TEST_F(RecipeLoaderTest, ABakedRecipeIsNotToldThatTheLiveConverterIgnoresItsPassLists)
+{
+    Analysis::Recipe::Recipe recipe;
+    std::string              error;
+
+    /* The baked draw rules say by signature what the lists say by pass. */
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"unaffected\": {\"pass_keys\": [\"0x0000000000000001\"]}, "
+                                                                      "\"baked\": {\"signature_scheme_version\": 1, \"draw_rules\": []},",
+                                                                      ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_TRUE(Analysis::Recipe::RecipeLoader::describe_pass_selectors_live_ignores(recipe).empty() );
+}
+
 TEST_F(RecipeLoaderTest, DrawsThatAreNamedPushedAreNotToldToBeLeftOutByTheLiveConverter)
 {
     Analysis::Recipe::Recipe recipe;

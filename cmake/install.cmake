@@ -21,7 +21,7 @@ install_with_suffix(APIDumperDLL              "tools/api_dumper")
 
 install_as_built(StereoConverterDLL             "runtime")
 install_as_built(StereoLauncher                 "runtime")
-install_as_built(StereoReplayInspector "tools/stereo_replay")
+install_as_built(StereoReplayInspector         "tools/stereo_replay")
 install_as_built(StereoReplayEngineDLL          "tools/stereo_replay")
 install_as_built(StereoReplayPlayer             "tools/stereo_replay")
 

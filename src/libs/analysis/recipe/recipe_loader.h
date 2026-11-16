@@ -21,7 +21,8 @@ namespace Analysis
         {
         public:
             /* Returns one line for each list of pass keys or of draws in a pass. A replay knows which pass a draw is in. A converter that plays
-             * the application while it runs does not, so it ignores these lists.
+             * the application while it runs does not, so it ignores these lists. A baked recipe has none to report: its draw rules say by the
+             * signature of a draw what the lists say by pass, and the converter reads those.
              */
             static std::vector<std::string> describe_pass_selectors_live_ignores(const Recipe& in_recipe);
 

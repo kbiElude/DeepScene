@@ -47,6 +47,11 @@ std::vector<std::string> Analysis::Recipe::RecipeLoader::describe_pass_selectors
     };
     std::vector<std::string> result;
 
+    if (in_recipe.is_baked)
+    {
+        goto end;
+    }
+
     for (const auto& named : named_array)
     {
         if (named.selector_ptr->pass_key_vec.empty() == false)
@@ -68,6 +73,7 @@ std::vector<std::string> Analysis::Recipe::RecipeLoader::describe_pass_selectors
         }
     }
 
+end:
     return result;
 }
 
