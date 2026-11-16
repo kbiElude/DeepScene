@@ -260,7 +260,7 @@ TEST_F(CatalogLoaderTest, TheCatalogWhichComesWithTheRepositoryListsTheAppsOfThe
                                                           &m_catalog,
                                                           &m_error) ) << m_error;
     ASSERT_EQ  (m_catalog.app_vec.size(),
-                3u);
+                4u);
 
     EXPECT_EQ(m_catalog.app_vec.at(0).id,
               "fr08");
@@ -312,6 +312,22 @@ TEST_F(CatalogLoaderTest, TheCatalogWhichComesWithTheRepositoryListsTheAppsOfThe
     EXPECT_EQ(m_catalog.app_vec.at(2).install_spec.n_archive_bytes,
               4389733u);
     EXPECT_NE(m_catalog.app_vec.at(2).install_spec.install_directory.find("\\apps\\kasparov"),
+              std::string::npos);
+
+    /* Tesla (OpenGL): the archive is listed; there is no recipe yet, so the entry says so and cannot be started. */
+    EXPECT_EQ(m_catalog.app_vec.at(3).id,
+              "tesla");
+    EXPECT_EQ(m_catalog.app_vec.at(3).name,
+              "Tesla by Sunflower (2000)");
+    EXPECT_NE(m_catalog.app_vec.at(3).unavailable_reason.find("recipe"),
+              std::string::npos) << m_catalog.app_vec.at(3).unavailable_reason;
+    EXPECT_GE(m_catalog.app_vec.at(3).install_spec.url_vec.size(),
+              2u);
+    EXPECT_EQ(m_catalog.app_vec.at(3).install_spec.sha256_hex.size(),
+              64u);
+    EXPECT_EQ(m_catalog.app_vec.at(3).install_spec.n_archive_bytes,
+              7367658u);
+    EXPECT_NE(m_catalog.app_vec.at(3).install_spec.install_directory.find("\\apps\\tesla"),
               std::string::npos);
 }
 

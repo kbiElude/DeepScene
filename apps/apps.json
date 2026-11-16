@@ -56,6 +56,26 @@
         "unpacked_size": 8106918,
         "page": "https://files.scene.org/view/parties/2001/assembly01/demo/gerbera_final_by_moppi_productions.zip"
       }
+    },
+    {
+      "id": "tesla",
+      "title": "Tesla by Sunflower (2000)",
+      "launch_button": "OK",
+      "untick_checkbox": "full screen",
+      "recipe": "recipes/tesla.json",
+      "executable": "tesla/tesla.exe",
+      "download": {
+        "urls": [
+          "https://archive.scene.org/pub/demos/groups/sunflower/tesla_sunflower.zip",
+          "https://mirror.netcologne.de/scene.org/demos/groups/sunflower/tesla_sunflower.zip",
+          "https://mirror.scenesat.com/scene.org/demos/groups/sunflower/tesla_sunflower.zip",
+          "https://http.jp.scene.org/demos/groups/sunflower/tesla_sunflower.zip"
+        ],
+        "sha256": "6a354dd5e91045b738071fd6ec7e894de3ea1959c53bb160cb570821912b3dee",
+        "size": 7367658,
+        "unpacked_size": 8057353,
+        "page": "https://files.scene.org/view/demos/groups/sunflower/tesla_sunflower.zip"
+      }
     }
   ]
 }
