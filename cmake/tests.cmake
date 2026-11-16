@@ -12,6 +12,8 @@ if (DEMOVRPLAYER_BUILD_TESTS)
                                      "${DemoVRPlayer_SOURCE_DIR}/src/tools/analysis/api_dump_slicer/command_line.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/tools/analysis/recipe_bake/command_line.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/tools/analysis/recipe_bake/overlay_candidate_finder.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/tools/analysis/recipe_bake/parity_auditor.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/tools/analysis/recipe_bake/pass_camera_reader.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/tools/analysis/recipe_bake/recipe_baker.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/tools/analysis/recipe_bake/recipe_checker.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/runtime/converter_dll/D3D7/d3d7_eye_renderer.cpp"

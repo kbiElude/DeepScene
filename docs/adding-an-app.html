@@ -251,6 +251,7 @@ marked unclear, with the question that would settle it.</code></pre>
 <tr><th>Mode</th><th>What it prints</th></tr>
 <tr><td><code>--check</code></td><td>Which kinds of frames and which draw signatures of the capture the recipe does not know (exit 5), and which passes it leaves alone look like 3D scenes (exit 6). It also lists the draw keys whose draws disagree (some in the space of the picture and some not, some over a 3D scene and some not, or some in eye space and some not: no one rule can class such a key); those change no exit code.</td></tr>
 <tr><td><code>--overlays</code></td><td>As JSON, the draws that may be 2D overlays.</td></tr>
+<tr><td><code>--parity</code></td><td>The draws on which the replay and the live converter decide differently (class or push). Run it after baking: it must list none.</td></tr>
 <tr><td><code>--scenes</code></td><td>Each scene with where its frames are, where the eyes converge, how far apart they may be and what that makes of the parallax of its nearest and farthest surfaces (<code>--screen-degrees</code> says how wide the screen is). It is what the <code>comfort</code> numbers are tuned with (<a href="recipes.html">Recipes</a>).</td></tr>
 </table>
 

@@ -11,6 +11,7 @@
 #include "analysis/api_dump_dependencies/deps_file.h"
 #include "command_line.h"
 #include "overlay_candidate_finder.h"
+#include "parity_auditor.h"
 #include "recipe_baker.h"
 #include "recipe_checker.h"
 #include "scene_reporter.h"
@@ -28,6 +29,7 @@ int main(int   in_argc,
     constexpr int EXIT_CANNOT_BAKE        = 3;
     constexpr int EXIT_CANNOT_WRITE       = 4;
     constexpr int EXIT_NOT_COVERED        = 5;
+    constexpr int EXIT_PARITY_DIFFERS     = 7;
     constexpr int EXIT_SUSPECT_UNAFFECTED = 6;
 
     Analysis::APIDumpAnalysis::AnalysisResult            analysis;
@@ -89,7 +91,8 @@ int main(int   in_argc,
         goto end;
     }
 
-    if (options.checks_only    ||
+    if (options.audits_parity  ||
+        options.checks_only    ||
         options.lists_overlays ||
         options.shows_scenes)
     {
@@ -105,6 +108,22 @@ int main(int   in_argc,
                       error.c_str() );
 
             result = EXIT_BAD_INPUT;
+
+            goto end;
+        }
+
+        if (options.audits_parity)
+        {
+            const auto parity_report = Analysis::RecipeBake::ParityAuditor::audit(recipe,
+                                                                                   analysis);
+
+            Analysis::RecipeBake::ParityAuditor::print_report(stdout,
+                                                              parity_report);
+
+            if (parity_report.difference_vec.empty() == false)
+            {
+                result = EXIT_PARITY_DIFFERS;
+            }
 
             goto end;
         }

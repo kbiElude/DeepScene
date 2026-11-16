@@ -9,6 +9,7 @@ const char* Analysis::RecipeBake::CommandLine::get_usage_ptr()
     return "Usage: RecipeBake drive:\\path\\to\\recipe.json drive:\\path\\to\\file.passes [--deps file.deps] [-o baked.json]\n"
            "       RecipeBake --check drive:\\path\\to\\recipe.json drive:\\path\\to\\file.passes\n"
            "       RecipeBake --overlays drive:\\path\\to\\recipe.json drive:\\path\\to\\file.passes\n"
+           "       RecipeBake --parity drive:\\path\\to\\recipe.json drive:\\path\\to\\file.passes\n"
            "       RecipeBake --scenes drive:\\path\\to\\recipe.json drive:\\path\\to\\file.passes [--screen-degrees 90]\n"
            "Bakes a recipe: writes into it what a converter which plays the application as it runs can know of each draw when the draw\n"
            "is issued, worked out from the analysis of the application (see APIDumpAnalysisExtractor). The recipe is written again in\n"
@@ -27,12 +28,15 @@ const char* Analysis::RecipeBake::CommandLine::get_usage_ptr()
            "keys of the draw and of its pass, and as a converter which plays the application as it runs asks it, by the signature of the draw over the cameras of its pass)\n"
            "or if the camera of its pass never changes (the hint of APIDumpAnalysisQuery overlays); \"agreement\" says which of the two think so. \"depth\" says how deep the\n"
            "vertices of its pass are: a flat one is an overlay, and one of many depths is a 3D scene seen from one place.\n"
+           "--parity writes nothing: it asks the recipe about each draw of the analysis the way the replay does (by the keys of the pass and of the draw) and the way the converter that plays the\n"
+           "application as it runs does (by the signature of the draw, over each camera of its pass), with each size the draw was seen with, and lists the draws on which the answers differ (class or push).\n"
            "--scenes writes nothing: it prints, as JSON, each scene (kind of frame) that has depth: where its frames are (the runs of frames that follow one another, the cuts), where the eyes converge\n"
            "and how far apart they may be with the recipe as it is (its comfort, and what it says of the scene), and what that makes of the parallax of the nearest and of the farthest surfaces as a part of\n"
            "the width of the picture and as an angle on a screen that is --screen-degrees wide (the log of the headset says it), at the strength 1 that the player starts with.\n"
            "\n"
            "Exit codes: 0 done, 1 bad arguments, 2 a file cannot be read, 3 the recipe cannot be baked, 4 the file cannot be written, 5 (--check) the recipe\n"
-           "does not know all of the workload, 6 (--check) it knows it but leaves alone what looks like a 3D scene, or what a replay and the converter treat differently.\n";
+           "does not know all of the workload, 6 (--check) it knows it but leaves alone what looks like a 3D scene, or what a replay and the converter treat differently, 7 (--parity) the replay\n"
+           "and the converter decide differently for some draw.\n";
 
 }
 
@@ -54,6 +58,11 @@ bool Analysis::RecipeBake::CommandLine::parse(const std::vector<std::string>& in
         if (argument == "--check")
         {
             out_options_ptr->checks_only = true;
+        }
+        else
+        if (argument == "--parity")
+        {
+            out_options_ptr->audits_parity = true;
         }
         else
         if (argument == "--overlays")
@@ -158,6 +167,14 @@ bool Analysis::RecipeBake::CommandLine::parse(const std::vector<std::string>& in
         (out_options_ptr->checks_only || out_options_ptr->lists_overlays))
     {
         *out_error_ptr = "--scenes cannot be given with --check or --overlays";
+
+        goto end;
+    }
+
+    if (out_options_ptr->audits_parity                                                                              &&
+        (out_options_ptr->checks_only || out_options_ptr->lists_overlays || out_options_ptr->shows_scenes) )
+    {
+        *out_error_ptr = "--parity cannot be given with --check, --overlays or --scenes";
 
         goto end;
     }

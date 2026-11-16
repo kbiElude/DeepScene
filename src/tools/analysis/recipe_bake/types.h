@@ -6,6 +6,7 @@
 #define RECIPEBAKE_TYPES_H
 
 #include "analysis/api_dump_analysis/types.h"
+#include "analysis/recipe/types.h"
 #include <map>
 #include <stdint.h>
 #include <string>
@@ -112,6 +113,31 @@ namespace Analysis
             uint64_t                                   structure_key        = 0;
         };
 
+        /* A draw that the replay and the converter that plays the application as it runs decide differently. The replay asks the recipe by the key
+         * of the pass and of the draw; the converter asks it by the signature of the draw and the camera of the pass (see RecipeApplier::decide_draw).
+         * Both then apply what the recipe says of the size of the draw (its cover key).
+         */
+        struct ParityDifference
+        {
+            uint64_t                       cover_key           = 0;
+            Analysis::Recipe::DrawDecision live_decision;            /* for the first camera of the pass for which it differs */
+            uint32_t                       n_cameras           = 0;  /* of the pass                                           */
+            uint32_t                       n_cameras_differing = 0;
+            uint32_t                       pass_id             = 0;
+            uint64_t                       pass_key            = 0;
+            Analysis::Recipe::DrawDecision replay_decision;
+            uint64_t                       signature_key       = 0;
+            uint64_t                       structure_key       = 0;
+        };
+
+        /* What the comparison of the two decisions found. */
+        struct ParityReport
+        {
+            std::vector<ParityDifference> difference_vec;
+            uint64_t                      n_decisions = 0; /* the converter's decisions compared: one for each camera of a pass, for each draw and size of the draw */
+            uint64_t                      n_draws     = 0; /* draws of passes, with each size they were seen with                                                    */
+        };
+
         /* What the checker finds wrong with a pass that the recipe leaves alone. */
         enum class UnaffectedWarningKind
         {
@@ -160,6 +186,7 @@ namespace Analysis
 
         struct Options
         {
+            bool        audits_parity   = false; /* the decisions of the replay and of the converter are compared for each draw, and nothing is written */
             bool        checks_only     = false; /* the recipe is checked against the workload, and not written */
             std::string deps_filename;   /* the dependencies of the workload (a .deps file); none if empty */
             bool        lists_overlays  = false; /* the draws that may be 2D overlays are listed (JSON), and nothing is written */
