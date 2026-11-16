@@ -176,7 +176,7 @@
 <tr><td><em>Half of the pixels</em></td><td>Brought down by the square root of that in each direction.</td></tr>
 <tr><td><em>A quarter of the pixels</em></td><td>Likewise.</td></tr>
 </table>
-<p>Without a headset nothing is made larger. The analysis must see what the program asked for, not what was scaled, so the scaler restores the original values in the data the feeder sees (<code>LiveCallAnalyzer::set_chunk_func</code>).</p>
+<p>Without a headset (the preview window alone) nothing is made larger, and the list is disabled. The analysis must see what the program asked for, not what was scaled, so the scaler restores the original values in the data the call analyzer sees (<code>LiveCallAnalyzer::set_chunk_func</code>).</p>
 
 <h2 id="pacing">Keeping the frames even</h2>
 <p>In a headset two things are felt: how <em>late</em> a picture is, and whether the motion is <em>even</em>. A frame that is shown twice with the one after it skipped is judder, and it is felt even when every frame is fast. The converter and the presenter therefore do three things:</p>

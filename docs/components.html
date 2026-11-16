@@ -350,7 +350,7 @@
 </table>
 
 <h3 id="launcher">StereoLauncher</h3>
-<p><em>Program.</em> Starts a program with <code>StereoConverterDLL</code> injected, given a recipe, and reads the session log the converter writes. With <code>--click-button</code> it also presses a button of a window of the program (<code>ButtonClicker</code>), for the dialog that a program shows before it starts.</p>
+<p><em>Program.</em> Starts a program with <code>StereoConverterDLL</code> injected, given a recipe, and reads the session log the converter writes. With <code>--click-button</code> it also presses a button of a window of the program (<code>ButtonClicker</code>), for the dialog that a program shows before it starts, and with <code>--untick-checkbox</code> it first unticks a checkbox of that dialog (the option to run full screen, which would change the screen resolution and cover the window that shows the images).</p>
 
 <h3 id="presenter">StereoPresenter</h3>
 <p><em>Program, 64-bit.</em> Takes the frames from the channel, whatever the bitness of the application, and shows them in a preview window or, with <code>--headset</code>, in a headset. It is started with the id of a session, which the VR player makes and also gives to the launcher; the VR player starts both.</p>

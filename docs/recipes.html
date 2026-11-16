@@ -133,7 +133,7 @@
 <tr><th>Field</th><th>Meaning</th></tr>
 <tr><td><code>recipe_version</code></td><td>0. Required.</td></tr>
 <tr><td><code>key_scheme_version</code></td><td>Must equal that of the build that reads the file, or the keys would not match. Required.</td></tr>
-<tr><td><code>target</code></td><td>Optional. <code>name</code> and <code>description</code>, text for people.</td></tr>
+<tr><td><code>target</code></td><td>Optional. <code>name</code> and <code>description</code>, text for people. The VR player shows the description under the title of the program, and nothing if there is none.</td></tr>
 <tr><td><code>known_shape_keys</code></td><td>Optional. The frame shapes the recipe was made for. Left out: no frame is unknown.</td></tr>
 <tr><td><code>on_unknown_frame</code></td><td>What to do with a frame that is not in <code>known_shape_keys</code>: <code>mono</code> (default), <code>skip</code> or <code>fail</code>.</td></tr>
 <tr><td><code>cache_pixel_reads</code></td><td>Optional, off by default. OpenGL: the reads of one pixel that the program makes in a row (a grid of them, a thousand in a frame, each a wait for the graphics card) are given from a picture of the left eye that is read once.</td></tr>
