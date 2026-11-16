@@ -23,6 +23,7 @@
   },
   "unaffected": {
     "draw_keys": [
+      "0x04f89252c2bec48c",
       "0x40708a8e8104396c",
       "0x44f90c457b7a7efe",
       "0x4fc8ed724eded8bf",
@@ -38,12 +39,14 @@
     "signature_scheme_version": 1,
     "known_signatures": [
       "0x0ddca9a740f783b3",
+      "0x10993cf59936de7c",
       "0x3acbf29dad7d3dd4",
       "0x4b5a407427452bca",
       "0x4d5b3006b6b5b070",
       "0x541d26670ba77ca8",
       "0x5e4e5321b0bb1c84",
       "0x72969be1c9cdbabb",
+      "0x72a4fed1477cfe95",
       "0x80442b10e394ef4f",
       "0x862b87f54436829a",
       "0x9b7cb4887a584b79",
@@ -60,53 +63,98 @@
     "per_eye_textures": [],
     "covering_draws": [],
     "side_reaching_draws": [
+      "0x085d23bd77a36191",
+      "0x09e3b541027ad9f3",
       "0x0c66584e13f4d05d",
       "0x0da99258570809ea",
       "0x0f1bf5514688cbc4",
+      "0x11d292677ab4fbf3",
+      "0x1328943841455026",
       "0x152663a2e3a8aa07",
+      "0x23cde5d3f7b08450",
+      "0x249fc433103d0d91",
       "0x24b9e4ab4358d444",
       "0x26b4341eb9bdfa2a",
       "0x2c94583a2bca6f24",
+      "0x35f963648fa59a9b",
+      "0x38650e5641bcb4fa",
       "0x39372bea628497f5",
+      "0x3d3381f52189d3ac",
       "0x3dd32a87cd295958",
       "0x3df319fa1f4f0976",
+      "0x41c73106dd515478",
+      "0x42ebebfc8f52d09c",
+      "0x4670352e7834811f",
       "0x5150ed8931ec06cd",
+      "0x559172feda5cf7c2",
+      "0x5679140d5d2525c7",
+      "0x58c756da678e1340",
       "0x5c80f0ee8ed68df2",
       "0x60c6325a654b3771",
+      "0x647b246490f71125",
+      "0x6a001c9faebb6f02",
       "0x6b7138586d7510b3",
+      "0x6d818bcb06a6c92a",
+      "0x712c463a55dbcc38",
       "0x78be3a39afddf120",
       "0x7d219ede03d12532",
+      "0x7f394c5683367002",
+      "0x80eecd379e0c31fb",
       "0x81d0b40b81ae4032",
       "0x82c52ba405b65a49",
       "0x8a992fe848f8a938",
       "0x8d5e94cfa90ffdcc",
       "0x8dd854a0e23e063a",
+      "0x8fa4012eccfb64d0",
+      "0x9150d69672ba4ba0",
+      "0x97e055c44a02c3d8",
       "0x9a1ada266a3a2eab",
+      "0x9de8fbce02eed91e",
+      "0x9f8840481b25f48f",
       "0x9fb6d2a810cea898",
       "0xa1d33c4524a77a93",
       "0xa4f76823d39e962c",
       "0xa569f124b730e88d",
       "0xaa07f131e16cca35",
       "0xaac01c972218957a",
+      "0xabb5c1f925ecfbb6",
       "0xace9ec38ea6605a2",
+      "0xacfc44199b1de807",
+      "0xb3188fcaa39993fd",
       "0xb7fef8d8fe1f10b5",
+      "0xb8747d4952da5fdf",
+      "0xb9eb273f9608ba66",
+      "0xbb58851c5230dc0c",
       "0xbde1d0b40b163eb3",
+      "0xbf57d30c7ec1cc40",
+      "0xc42a27712eb0cbac",
+      "0xc44d75ec4133d753",
       "0xc5093704dc34e9ea",
       "0xca0868a1bee43fb0",
+      "0xcf1722883a5826cf",
+      "0xd0b660fc67c8da81",
       "0xd5d14349dd55a9a9",
+      "0xd7be23d7c7d2ad1a",
       "0xd7eb3ea84640826b",
       "0xd812e58fe7493181",
       "0xdb042a8bec21d796",
+      "0xdbd5206459ca651b",
       "0xdd175eee0aa2773c",
       "0xdf2d3932b426cfeb",
+      "0xe4d0b280e5780f05",
+      "0xe831ebd746783ef4",
+      "0xea1aefde80b28129",
       "0xeab66e6bbaa14063",
       "0xebf478a08bf8da31",
-      "0xf11e9ce5c23cc137"
+      "0xf11e9ce5c23cc137",
+      "0xf310e41d6581b84f",
+      "0xfc05fb48afc2563e",
+      "0xff927e801cd7a4f8"
     ],
     "convergence": [
       {
         "signature": "0x0ddca9a740f783b3",
-        "distance": 2.08854747
+        "distance": 490.292877
       },
       {
         "signature": "0x3acbf29dad7d3dd4",
@@ -122,6 +170,10 @@
       },
       {
         "signature": "0x72969be1c9cdbabb",
+        "distance": 490.292877
+      },
+      {
+        "signature": "0x72a4fed1477cfe95",
         "distance": 490.292877
       },
       {
@@ -163,20 +215,28 @@
         "distance": 1.85294175
       },
       {
+        "shape": "0xc7b4c32ec2f62e1b",
+        "distance": 5.20324039
+      },
+      {
+        "shape": "0x7fd9f65397ceff38",
+        "distance": 5.20324039
+      },
+      {
         "shape": "0xdf0884fc2fa8de8e",
         "distance": 314.104858
       },
       {
         "shape": "0x31409f2b9f2dde88",
-        "distance": 403.250244
+        "distance": 433.984833
       },
       {
         "shape": "0xffac8e9f2f364207",
-        "distance": 34.3212471
+        "distance": 32.4598694
       },
       {
         "shape": "0xfa9fb9ed11cfd763",
-        "distance": 4.55516768
+        "distance": 4.94567728
       },
       {
         "shape": "0xbf014353b65f3b9e",
@@ -184,7 +244,7 @@
       },
       {
         "shape": "0x77dae6d0fff6883f",
-        "distance": 147.524612
+        "distance": 159.190109
       },
       {
         "shape": "0x50d3c5c1fbae13c6",
@@ -192,7 +252,7 @@
       },
       {
         "shape": "0x933b6b6ea5f974c2",
-        "distance": 11.2668123
+        "distance": 10.6201448
       },
       {
         "shape": "0x6a190cbe9a03d05b",
@@ -213,20 +273,28 @@
         "separation": 0.0585194938
       },
       {
+        "shape": "0xc7b4c32ec2f62e1b",
+        "separation": 0.0853291973
+      },
+      {
+        "shape": "0x7fd9f65397ceff38",
+        "separation": 0.0853291973
+      },
+      {
         "shape": "0xdf0884fc2fa8de8e",
         "separation": 7.87059546
       },
       {
         "shape": "0x31409f2b9f2dde88",
-        "separation": 12.2593708
+        "separation": 13.5274487
       },
       {
         "shape": "0xffac8e9f2f364207",
-        "separation": 1.43740582
+        "separation": 1.25286007
       },
       {
         "shape": "0xfa9fb9ed11cfd763",
-        "separation": 0.0750231594
+        "separation": 0.0823065713
       },
       {
         "shape": "0xbf014353b65f3b9e",
@@ -234,7 +302,7 @@
       },
       {
         "shape": "0x77dae6d0fff6883f",
-        "separation": 2.9883256
+        "separation": 3.28764272
       },
       {
         "shape": "0x50d3c5c1fbae13c6",
@@ -242,7 +310,7 @@
       },
       {
         "shape": "0x933b6b6ea5f974c2",
-        "separation": 0.187011808
+        "separation": 0.195073426
       },
       {
         "shape": "0x6a190cbe9a03d05b",
@@ -250,6 +318,10 @@
       }
     ],
     "draw_rules": [
+      {
+        "signature": "0x10993cf59936de7c",
+        "class": "unaffected"
+      },
       {
         "signature": "0x4b5a407427452bca",
         "class": "unaffected"
