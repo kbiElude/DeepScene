@@ -34,17 +34,21 @@ void Stereo::Replay::EngineDLL::StereoGLCallExecutor::apply_eye()
     /* Only the first MAX_N_UNITS texture units are checked, because programs written for fixed-function GL do not use more. */
     constexpr int MAX_N_UNITS = 8;
 
-    const auto active_texture_func_ptr = reinterpret_cast<PFNACTIVETEXTUREPROC>(get_proc_ptr("glActiveTexture") );
-    const auto bind_func_ptr           = reinterpret_cast<PFNBINDTEXTUREPROC>   (get_proc_ptr("glBindTexture") );
-    const auto get_integerv_func_ptr   = reinterpret_cast<PFNGETINTEGERVPROC>   (get_proc_ptr("glGetIntegerv") );
+    PFNACTIVETEXTUREPROC active_texture_func_ptr = nullptr;
+    PFNBINDTEXTUREPROC   bind_func_ptr           = nullptr;
+    PFNGETINTEGERVPROC   get_integerv_func_ptr   = nullptr;
+    int                  active_unit             = 0;
+    int                  n_units                 = 1;
 
-    int active_unit = 0;
-    int n_units     = 1;
-
+    /* Nothing has a copy per eye (every program that is not OpenGL, and many that are): nothing is looked up. */
     if (m_twin_map.empty() )
     {
         goto end;
     }
+
+    active_texture_func_ptr = reinterpret_cast<PFNACTIVETEXTUREPROC>(get_proc_ptr("glActiveTexture") );
+    bind_func_ptr           = reinterpret_cast<PFNBINDTEXTUREPROC>   (get_proc_ptr("glBindTexture") );
+    get_integerv_func_ptr   = reinterpret_cast<PFNGETINTEGERVPROC>   (get_proc_ptr("glGetIntegerv") );
 
     /* Map the program's texture names to the copies of the current eye. */
     for (const auto& twin_pair : m_twin_map)

@@ -278,7 +278,7 @@
 <tr><td><code>.deps</code></td><td>The dependencies of the workload (<code>APIDumpDependencyExtractor</code>).</td></tr>
 <tr><td><code>.index</code></td><td>Where the segments are, and a state frame of each (below). Made by <code>APIDumpPrinter --index</code>; without it every segment is read in full.</td></tr>
 <tr><td><code>FrameSlicePlanner</code></td><td>In <code>Analysis</code>; makes the plan.</td></tr>
-<tr><td><code>SliceSkipper</code></td><td>Carries the plan out.</td></tr>
+<tr><td><code>SliceSkipper</code></td><td>Carries the plan out. It hands each call to the handler of its API (<code>ISliceCallHandler</code>): <code>ContentSliceCallHandler</code> for Direct3D 7 and 8, <code>GLSliceCallHandler</code> for OpenGL.</td></tr>
 <tr><td><code>HurriedFrameSelector</code></td><td>Runs the frames before the target unpaced.</td></tr>
 </table>
 <ul>
@@ -322,7 +322,7 @@
 <table>
 <tr><th>Rule</th><th>What it does</th></tr>
 <tr><td>Readbacks</td><td>The replay does not make <code>glGetFloatv</code>, nor <code>glReadPixels</code> when no pixel pack buffer is bound. They only write into the memory of the application; what the application computed of them is in the calls that follow, as dumped. A second eye needs them as little.</td></tr>
-<tr><td>Texture parameters</td><td>A <code>glTexParameteri</code> or <code>glTexParameterf</code> that gives a parameter of a texture the value it has is not made (<code>GLTextureParameterCache</code>, an interceptor of the engine). A driver takes as long for it as for a call that changes something, and a workload sets the same few parameters again and again.</td></tr>
+<tr><td>Texture parameters</td><td>A <code>glTexParameteri</code> or <code>glTexParameterf</code> that gives a parameter of a texture the value it has is not made (<code>GLTextureParameterCache</code>, an interceptor of the engine). A driver takes as long for it as for a call that changes something, and a workload sets the same few parameters again and again. It is given the calls of OpenGL and WGL only.</td></tr>
 <tr><td>Textures filled a part at a time</td><td>The way back of a frame that uses such a texture ends earlier (see below).</td></tr>
 <tr><td>State that a pop undoes</td><td>The reader leaves out the calls that only set state a pop undoes (see below).</td></tr>
 </table>

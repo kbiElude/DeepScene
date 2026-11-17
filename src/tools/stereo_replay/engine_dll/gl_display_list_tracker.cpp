@@ -5,7 +5,7 @@
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_list_classifier.h"
 #include "common/argument_reader.h"
 #include "gl_display_list_tracker.h"
-#include "slice_skipper.h"
+#include "capture/api_dump_loader/gl_call_describer.h"
 
 Stereo::Replay::EngineDLL::GLDisplayListTracker::GLDisplayListTracker()
     :m_is_recording  (false),
@@ -158,7 +158,7 @@ void Stereo::Replay::EngineDLL::GLDisplayListTracker::on_call(const Capture::API
                 /* Every call that is not content counts as setting state: a state value, a texture coordinate that later vertices
                  * inherit, or an object.
                  */
-                if (SliceSkipper::is_content_call(in_call.func) == false)
+                if (Capture::APIDumpLoader::GLCallDescriber::get_function_class(in_call.func) == Capture::APIDumpLoader::CallClass::STATE)
                 {
                     m_recording_effects.sets_state = true;
                 }

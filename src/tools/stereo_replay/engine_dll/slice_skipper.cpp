@@ -5,16 +5,23 @@
 #include "analysis/api_dump_dependencies/frame_slice_planner.h"
 #include "capture/api_dump_loader/api_info.h"
 #include "capture/api_dump_loader/call_describer_set.h"
-#include "common/argument_reader.h"
-#include "common/macros.h"
-#include "gl_attribute_coverage.h"
+#include "content_slice_call_handler.h"
+#include "gl_slice_call_handler.h"
 #include "slice_skipper.h"
-#include <vector>
 
 Stereo::Replay::EngineDLL::SliceSkipper::SliceSkipper()
     :m_slice_ptr(nullptr)
 {
-    /* Stub */
+    m_handler_ptr_vec.emplace_back(new ContentSliceCallHandler(Capture::APIDumpLoader::APIGroup::D3D7) );
+    m_handler_ptr_vec.emplace_back(new ContentSliceCallHandler(Capture::APIDumpLoader::APIGroup::D3D8) );
+    m_handler_ptr_vec.emplace_back(new GLSliceCallHandler() );
+
+    m_handler_by_group_ptr_arr.fill(nullptr);
+
+    for (const auto& handler_ptr : m_handler_ptr_vec)
+    {
+        m_handler_by_group_ptr_arr.at(static_cast<size_t>(handler_ptr->get_group() ) ) = handler_ptr.get();
+    }
 }
 
 void Stereo::Replay::EngineDLL::SliceSkipper::clear_slice()
@@ -22,119 +29,75 @@ void Stereo::Replay::EngineDLL::SliceSkipper::clear_slice()
     m_slice_ptr = nullptr;
 }
 
+Stereo::Replay::EngineDLL::ISliceCallHandler* Stereo::Replay::EngineDLL::SliceSkipper::find_handler_ptr(const Capture::APIDumpLoader::APIGroup& in_group) const
+{
+    return m_handler_by_group_ptr_arr.at(static_cast<size_t>(in_group) );
+}
+
+std::vector<Capture::APIDumpLoader::APIGroup> Stereo::Replay::EngineDLL::SliceSkipper::get_api_groups() const
+{
+    std::vector<Capture::APIDumpLoader::APIGroup> result_vec;
+
+    for (const auto& handler_ptr : m_handler_ptr_vec)
+    {
+        result_vec.push_back(handler_ptr->get_group() );
+    }
+
+    return result_vec;
+}
+
 Capture::APIDumpLoader::CallKeptFuncFactory Stereo::Replay::EngineDLL::SliceSkipper::get_call_kept_func_factory() const
 {
     Capture::APIDumpLoader::CallKeptFuncFactory      result;
     const Analysis::APIDumpDependencies::FrameSlice* const slice_ptr = m_slice_ptr;
 
-    /* A slice is never freed (see get_chunk_wanted_func()), so the lambda can keep a pointer to it. Each function the factory
-     * creates tracks only the lists and the attribute pushes of its own segment, because the threads that read segments work
-     * independently of each other.
-     */
+    /* A slice is never freed (see get_chunk_wanted_func()), so the lambda can keep a pointer to it. The handlers live as long as the skipper. */
     if (slice_ptr != nullptr)
     {
-        result = [slice_ptr]()
+        std::vector<ISliceCallHandler*> handler_ptr_vec;
+
+        for (const auto& handler_ptr : m_handler_ptr_vec)
+        {
+            handler_ptr_vec.push_back(handler_ptr.get() );
+        }
+
+        result = [slice_ptr,
+                  handler_ptr_vec]()
                  {
-                     bool                  is_recording     = false;
-                     uint64_t              last_frame_index = UINT64_MAX;
-                     std::vector<uint32_t> push_mask_vec; /* masks of the glPushAttrib calls of the frame that are not popped yet, the most recent last */
+                     typedef std::pair<Capture::APIDumpLoader::APIGroup, Capture::APIDumpLoader::CallKeptFunc> GroupFunc;
 
-                     return Capture::APIDumpLoader::CallKeptFunc([slice_ptr,
-                                                                  is_recording,
-                                                                  last_frame_index,
-                                                                  push_mask_vec](const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                                                                                 const uint64_t&                              in_frame_index) mutable
+                     const FrameLiveFunc is_live_func = [slice_ptr](const uint64_t& in_frame_index)
+                     {
+                         return Analysis::APIDumpDependencies::FrameSlicePlanner::is_live(*slice_ptr,
+                                                                                          in_frame_index);
+                     };
+
+                     std::vector<GroupFunc> group_func_vec;
+
+                     /* Each function of a segment keeps its own state, because the threads that read segments work independently of each other. */
+                     for (const auto handler_ptr : handler_ptr_vec)
+                     {
+                         auto func = handler_ptr->create_call_kept_func(is_live_func);
+
+                         if (func)
+                         {
+                             group_func_vec.emplace_back(handler_ptr->get_group(),
+                                                         func);
+                         }
+                     }
+
+                     return Capture::APIDumpLoader::CallKeptFunc([group_func_vec](const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                                  const uint64_t&                              in_frame_index) mutable
                                                                  {
-                                                                     bool is_kept = true;
+                                                                     const auto group   = Capture::APIDumpLoader::get_api_group(in_call.func);
+                                                                     bool       is_kept = true;
 
-                                                                     switch (in_call.func)
+                                                                     for (auto& group_func : group_func_vec)
                                                                      {
-                                                                         case APIInterceptor::APIFUNCTION_GL_GLENDLIST:
+                                                                         if (group_func.first == group)
                                                                          {
-                                                                             /* A list that began in the previous segment has its first calls there. Calls left out of those are left out of the
-                                                                              * list itself, so this case is not supported.
-                                                                              */
-                                                                             AI_ASSERT_ALWAYS(is_recording,
-                                                                                              "A display list is made across two segments of the workload, so that the calls of its first part are not known when its last part is read. Seeking over it is not implemented.");
-
-                                                                             is_recording = false;
-
-                                                                             break;
-                                                                         }
-
-                                                                         case APIInterceptor::APIFUNCTION_GL_GLNEWLIST:
-                                                                         {
-                                                                             is_recording = true;
-
-                                                                             break;
-                                                                         }
-
-                                                                         default:
-                                                                         {
-                                                                             const auto group = Capture::APIDumpLoader::get_api_group(in_call.func);
-
-                                                                             /* Calls of a list that is being recorded are kept: leaving one out would remove it from the list. A call of a list is
-                                                                              * decided by should_execute_call(), which knows the list.
-                                                                              */
-                                                                             if (is_recording == false                                  &&
-                                                                                 group        == Capture::APIDumpLoader::APIGroup::GL   &&
-                                                                                 in_call.func != APIInterceptor::APIFUNCTION_GL_GLCALLLIST)
-                                                                             {
-                                                                                 const bool is_content = is_content_call(in_call.func);
-                                                                                 const bool is_live    = Analysis::APIDumpDependencies::FrameSlicePlanner::is_live(*slice_ptr,
-                                                                                                                                                                   in_frame_index);
-
-                                                                                 is_kept = (is_content == false ||
-                                                                                            is_live);
-
-                                                                                 /* In a frame that is left out, the calls between a push of attributes and its pop that the pop undoes need not be kept,
-                                                                                  * because nothing that is executed reads them before the pop discards them (see GLAttributeCoverage). The push, the pop and
-                                                                                  * the calls that the pop does not undo are kept. A frame that is left out must pop everything it pushes, because the state its
-                                                                                  * skipped calls would have left is never created.
-                                                                                  */
-                                                                                 if (in_frame_index != last_frame_index)
-                                                                                 {
-                                                                                     AI_ASSERT_ALWAYS(push_mask_vec.empty(),
-                                                                                                      "A frame that a seek leaves out pushes attributes and ends before it pops them, so that the calls that set state in between, which are left out, would have left it as the frame left it. Seeking over it is not implemented.");
-
-                                                                                     last_frame_index = in_frame_index;
-                                                                                 }
-
-                                                                                 if (is_live == false)
-                                                                                 {
-                                                                                     if (in_call.func == APIInterceptor::APIFUNCTION_GL_GLPUSHATTRIB)
-                                                                                     {
-                                                                                         uint32_t mask = 0;
-
-                                                                                         if (in_call.arg_in_vec.empty() == false)
-                                                                                         {
-                                                                                             APIInterceptor::read_number(in_call.arg_in_vec.at(0),
-                                                                                                                        &mask);
-                                                                                         }
-
-                                                                                         push_mask_vec.push_back(mask);
-                                                                                     }
-                                                                                     else
-                                                                                     if (in_call.func == APIInterceptor::APIFUNCTION_GL_GLPOPATTRIB)
-                                                                                     {
-                                                                                         if (push_mask_vec.empty() == false)
-                                                                                         {
-                                                                                             push_mask_vec.pop_back();
-                                                                                         }
-                                                                                     }
-                                                                                     else
-                                                                                     if (push_mask_vec.empty() == false)
-                                                                                     {
-                                                                                         const bool is_undone = GLAttributeCoverage::is_undone_by_pop(push_mask_vec.back(),
-                                                                                                                                                       in_call.func);
-
-                                                                                         if (is_undone)
-                                                                                         {
-                                                                                             is_kept = false;
-                                                                                         }
-                                                                                     }
-                                                                                 }
-                                                                             }
+                                                                             is_kept = group_func.second(in_call,
+                                                                                                         in_frame_index);
 
                                                                              break;
                                                                          }
@@ -153,11 +116,21 @@ Capture::APIDumpLoader::ChunkWantedFunc Stereo::Replay::EngineDLL::SliceSkipper:
     Capture::APIDumpLoader::ChunkWantedFunc                result;
     const Analysis::APIDumpDependencies::FrameSlice* const slice_ptr = m_slice_ptr;
 
-    /* A slice is never freed, so the function can outlive this call. It decides like should_execute_call(), except for the GL calls (see below). */
+    /* A slice is never freed, so the function can outlive this call. It decides like should_execute_call(), except for what a handler says
+     * it needs the chunks of.
+     */
     if (slice_ptr != nullptr)
     {
-        result = [slice_ptr](const Capture::APIDumpLoader::DumpedAPICall& in_call,
-                             const uint64_t&                              in_frame_index)
+        std::vector<ISliceCallHandler*> handler_ptr_vec;
+
+        for (const auto& handler_ptr : m_handler_ptr_vec)
+        {
+            handler_ptr_vec.push_back(handler_ptr.get() );
+        }
+
+        result = [slice_ptr,
+                  handler_ptr_vec](const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                   const uint64_t&                              in_frame_index)
                  {
                      const bool is_slice_live = Analysis::APIDumpDependencies::FrameSlicePlanner::is_live(*slice_ptr,
                                                                                                           in_frame_index);
@@ -165,14 +138,17 @@ Capture::APIDumpLoader::ChunkWantedFunc Stereo::Replay::EngineDLL::SliceSkipper:
 
                      if (is_slice_live == false)
                      {
-                         const bool is_content = is_content_call(in_call.func);
-                         const auto group      = Capture::APIDumpLoader::get_api_group(in_call.func);
+                         const auto group = Capture::APIDumpLoader::get_api_group(in_call.func);
 
-                         /* The chunks of all GL calls are wanted. The calls of a display list that is being recorded must keep their
-                          * chunks, and this function cannot tell which calls those are. Only the calls themselves are left out.
-                          */
-                         is_wanted = (is_content == false ||
-                                      group      == Capture::APIDumpLoader::APIGroup::GL);
+                         for (const auto handler_ptr : handler_ptr_vec)
+                         {
+                             if (handler_ptr->get_group() == group)
+                             {
+                                 is_wanted = handler_ptr->is_chunk_wanted_in_dead_frame(in_call);
+
+                                 break;
+                             }
+                         }
                      }
 
                      return is_wanted;
@@ -233,47 +209,6 @@ bool Stereo::Replay::EngineDLL::SliceSkipper::is_dead_frame(const uint32_t& in_n
     return result;
 }
 
-bool Stereo::Replay::EngineDLL::SliceSkipper::is_list_call_skippable(const Capture::APIDumpLoader::DumpedAPICall& in_call) const
-{
-    Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence dependence = Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence::EYE_DEPENDENT;
-
-    uint32_t list     = 0;
-    bool     is_found = false;
-
-    if (in_call.arg_in_vec.empty() == false)
-    {
-        is_found = APIInterceptor::read_number(in_call.arg_in_vec.at(0),
-                                               &list);
-    }
-
-    if (is_found)
-    {
-        is_found = m_list_tracker.find_eye_dependence(list,
-                                                      &dependence);
-    }
-
-    const bool is_independent = (dependence == Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence::INDEPENDENT);
-
-    /* A list that changes the matrices, the projection, the viewport or the scissor box (or calls such a list, or is not defined)
-     * changes state that is specific to an eye. If its call is left out, that change does not happen, and later frames would
-     * continue from a state the capture never had. Such a list is not supported, so stop with an error instead of showing a
-     * wrong picture.
-     */
-    AI_ASSERT_ALWAYS(is_found && is_independent,
-                     "A display list that is related to the location of the eye (it loads or moves a matrix, makes something relative to it, sets a projection, a viewport or a scissor box, calls such a list, or is not defined) is called in a frame that the slice leaves out. Seeking over it is not implemented.");
-
-    /* A list that does more than draw (it sets state, or the color or texture coordinate that later vertices inherit) is executed.
-     * Frames that are not left out continue from what it leaves, and leaving it out would remove that.
-     */
-    bool sets_state = true;
-
-    m_list_tracker.find_sets_state(list,
-                                   &sets_state);
-
-    return (is_independent &&
-            sets_state == false);
-}
-
 void Stereo::Replay::EngineDLL::SliceSkipper::on_call_replayed(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                const uint32_t&                              in_n_frame,
                                                                const bool&                                  in_was_executed)
@@ -295,33 +230,16 @@ void Stereo::Replay::EngineDLL::SliceSkipper::set_slice(const Analysis::APIDumpD
 bool Stereo::Replay::EngineDLL::SliceSkipper::should_execute_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                   const uint32_t&                              in_n_frame)
 {
-    const Analysis::APIDumpDependencies::FrameSlice* const slice_ptr = m_slice_ptr;
+    const auto               group       = Capture::APIDumpLoader::get_api_group(in_call.func);
+    ISliceCallHandler* const handler_ptr = find_handler_ptr(group);
+    bool                     result      = true;
 
-    bool result = true;
-
-    /* Track the lists in every frame, because a list that a live frame calls may have been recorded in a dead frame. */
-    const bool was_recording = m_list_tracker.is_recording();
-
-    m_list_tracker.on_call(in_call);
-
-    if (slice_ptr != nullptr)
+    if (handler_ptr != nullptr)
     {
-        const bool is_slice_live = Analysis::APIDumpDependencies::FrameSlicePlanner::is_live(*slice_ptr,
-                                                                                             in_n_frame);
+        const bool is_dead = is_dead_frame(in_n_frame);
 
-        /* Calls of a list that is being recorded are kept: leaving one out would remove it from every call of the list. */
-        if (is_slice_live == false &&
-            was_recording == false)
-        {
-            const bool is_content = is_content_call(in_call.func);
-
-            result = (is_content == false);
-
-            if (in_call.func == APIInterceptor::APIFUNCTION_GL_GLCALLLIST)
-            {
-                result = (is_list_call_skippable(in_call) == false);
-            }
-        }
+        result = handler_ptr->should_execute_call(in_call,
+                                                  is_dead);
     }
 
     return result;

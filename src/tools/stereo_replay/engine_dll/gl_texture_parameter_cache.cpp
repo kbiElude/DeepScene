@@ -19,6 +19,12 @@ Stereo::Replay::EngineDLL::GLTextureParameterCache::GLTextureParameterCache()
     /* Stub */
 }
 
+std::vector<Capture::APIDumpLoader::APIGroup> Stereo::Replay::EngineDLL::GLTextureParameterCache::get_api_groups() const
+{
+    return std::vector<Capture::APIDumpLoader::APIGroup>({Capture::APIDumpLoader::APIGroup::GL,
+                                                          Capture::APIDumpLoader::APIGroup::WGL});
+}
+
 uint64_t Stereo::Replay::EngineDLL::GLTextureParameterCache::get_n_skipped_calls() const
 {
     return m_n_skipped_calls;

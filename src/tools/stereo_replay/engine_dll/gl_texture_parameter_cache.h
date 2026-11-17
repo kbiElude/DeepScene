@@ -36,6 +36,9 @@ namespace Stereo
             public:
                 GLTextureParameterCache();
 
+                /* OpenGL, and WGL for the contexts. */
+                std::vector<Capture::APIDumpLoader::APIGroup> get_api_groups() const override;
+
                 /* The number of calls left out since the cache was created. */
                 uint64_t get_n_skipped_calls() const;
 

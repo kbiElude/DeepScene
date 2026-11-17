@@ -7,6 +7,7 @@
 
 #include "analysis/recipe/types.h"
 #include "replay/replay_engine_dll/types.h"
+#include <functional>
 #include <stdint.h>
 #include <string>
 #include <vector>
@@ -48,6 +49,7 @@ namespace Stereo
             };
 
             typedef ::Replay::ReplayEngineDLL::FrameImage      FrameImage;
+            typedef std::function<bool(const uint64_t&)>        FrameLiveFunc; /* whether the frame is live: the slice needs its content */
             typedef ::Replay::ReplayEngineDLL::PlaybackState   PlaybackState;
             typedef ::Replay::ReplayEngineDLL::PlaybackStatus  PlaybackStatus;
             typedef ::Replay::ReplayEngineDLL::WindowPlacement WindowPlacement;

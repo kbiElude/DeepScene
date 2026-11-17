@@ -31,7 +31,7 @@ namespace Stereo
                 bool find_eye_dependence(const uint32_t&                                            in_list,
                                          Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence* out_dependence_ptr) const;
 
-                /* Returns whether the list does anything that is not content (see SliceSkipper::is_content_call()). A list does so if it
+                /* Returns whether the list does anything that is not content (see CallClass). A list does so if it
                  * sets state, including the values the next vertices take (such as the current color), if it calls a list that does, or if
                  * it calls an undefined list. A call to such a list cannot be left out of a dead frame, because later frames continue from
                  * the state it leaves. Returns false if the list is not defined (it was never created, or it was deleted).
