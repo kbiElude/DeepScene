@@ -5,28 +5,16 @@
  * Tests for RedundantStateCounter: what the calls of the dead frames do to the state, as the calls come.
  */
 #include <gtest/gtest.h>
+#include "dumped_call_factory.h"
 #include "tools/stereo_replay/inspector/redundant_state_counter.h"
 
 namespace
 {
+    using Tests::make_call;
+
     constexpr uint32_t CAPABILITY_A = 0x0B50;
     constexpr uint32_t TEXTURE0     = 0x84C0;
     constexpr uint32_t TEXTURE1     = 0x84C1;
-
-    Capture::APIDumpLoader::DumpedAPICall make_call(const APIInterceptor::APIFunction& in_function,
-                                                    const std::vector<uint32_t>&       in_number_vec = {})
-    {
-        Capture::APIDumpLoader::DumpedAPICall result;
-
-        result.func = in_function;
-
-        for (const auto number : in_number_vec)
-        {
-            result.arg_in_vec.push_back(APIInterceptor::APIFunctionArgument::create_u32(number) );
-        }
-
-        return result;
-    }
 
     void replay(Stereo::Replay::Inspector::RedundantStateCounter* inout_census_ptr,
                 const Capture::APIDumpLoader::DumpedAPICall&     in_call,

@@ -5,6 +5,7 @@
  * Tests that what is only for one API is done for that API only: the handlers of SliceSkipper, and the APIs that interceptors ask for.
  */
 #include <gtest/gtest.h>
+#include "dumped_call_factory.h"
 #include "content_slice_call_handler.h"
 #include "gl_slice_call_handler.h"
 #include "capture/api_dump_loader/api_info.h"
@@ -16,15 +17,7 @@
 namespace
 {
     using Capture::APIDumpLoader::APIGroup;
-
-    Capture::APIDumpLoader::DumpedAPICall make_call(const APIInterceptor::APIFunction& in_function)
-    {
-        Capture::APIDumpLoader::DumpedAPICall result;
-
-        result.func = in_function;
-
-        return result;
-    }
+    using Tests::make_call;
 
     bool has_group(const std::vector<APIGroup>& in_group_vec,
                    const APIGroup&              in_group)

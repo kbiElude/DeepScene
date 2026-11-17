@@ -5,11 +5,14 @@
  * Tests for GLTextureParameterCache: which glTexParameter calls of a replay it leaves out, and when it forgets what it knows.
  */
 #include <gtest/gtest.h>
+#include "dumped_call_factory.h"
 #include "gl_texture_parameter_cache.h"
 #include <algorithm>
 
 namespace
 {
+    using Tests::make_call;
+
     constexpr uint32_t BORDER_COLOR = 0x1004; /* GL_TEXTURE_BORDER_COLOR: not one that the cache looks at */
     constexpr uint32_t LINEAR       = 0x2601;
     constexpr uint32_t MAG_FILTER   = 0x2800;
@@ -18,21 +21,6 @@ namespace
     constexpr uint32_t TEXTURE0     = 0x84C0;
     constexpr uint32_t TEXTURE1     = 0x84C1;
     constexpr uint32_t TEXTURE_2D   = 0x0DE1;
-
-    Capture::APIDumpLoader::DumpedAPICall make_call(const APIInterceptor::APIFunction& in_function,
-                                                    const std::vector<uint32_t>&       in_number_vec = {})
-    {
-        Capture::APIDumpLoader::DumpedAPICall result;
-
-        result.func = in_function;
-
-        for (const auto number : in_number_vec)
-        {
-            result.arg_in_vec.push_back(APIInterceptor::APIFunctionArgument::create_u32(number) );
-        }
-
-        return result;
-    }
 
     /* What the engine does with a call: asks, and says what came of it. Returns whether the call was made. */
     bool play(Stereo::Replay::EngineDLL::GLTextureParameterCache*  inout_cache_ptr,

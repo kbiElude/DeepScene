@@ -5,20 +5,11 @@
  * Tests for HurriedFrameSelector and PresentSkipper: which frames a seek goes through quickly, and that it presents none of them.
  */
 #include <gtest/gtest.h>
+#include "dumped_call_factory.h"
 #include "hurried_frame_selector.h"
 #include "present_skipper.h"
 
-namespace
-{
-    Capture::APIDumpLoader::DumpedAPICall make_call(const APIInterceptor::APIFunction& in_function)
-    {
-        Capture::APIDumpLoader::DumpedAPICall result;
-
-        result.func = in_function;
-
-        return result;
-    }
-}
+using Tests::make_call;
 
 TEST(HurriedFrameSelector, NoFrameIsHurriedThroughUnlessOneIsAskedFor)
 {
