@@ -165,7 +165,7 @@
 
 <h3>Where the size comes from</h3>
 <ol>
-  <li>The headset library asks the OpenXR runtime for the recommended size of the image of an eye (<code>xrEnumerateViewConfigurationViews</code>); the VR player scales it by the Image quality, unless the user chose a size per eye, which is used as it is (see <a href="#eyelayout">Resolution per eye</a>).</li>
+  <li>The headset library asks the OpenXR runtime for the recommended size of the image of an eye (<code>xrEnumerateViewConfigurationViews</code>); the VR player scales it by the fraction the user chose (<em>Headset: full</em> is 1), unless the user chose a size per eye, which is used as it is (see <a href="#eyelayout">Resolution per eye</a>).</li>
   <li>The VR player puts the size in the frame channel before the program starts (<code>FrameChannel::set_target_eye_size()</code>), within what the channel holds.</li>
   <li>When the program makes its device or window, the adapter works out the scale from the size the program asked for (<code>ResolutionPolicy::get_fit_scale()</code>): the largest that fits the eye with the program's own proportions, so nothing is stretched.</li>
   <li>The back buffer, and what is rendered to at its size, is made that many times larger. What the program states in pixels is adjusted to match.</li>
@@ -207,17 +207,17 @@
 <tr><td>OpenGL</td><td>The framebuffers of the eyes, the textures the program renders to, and what the program states in pixels (<code>GLResolutionScaler</code>).</td><td>The driver's maximum renderbuffer size.</td></tr>
 </table>
 
-<h3>Image quality</h3>
-<p>The only setting is <em>Image quality</em> in the VR player, for a card that is hard pressed. It is read when the program starts.</p>
+<h3>The headset choices</h3>
+<p>The <em>Resolution per eye</em> list of the VR player starts with fractions of the headset size, for a card that is hard pressed. It is read when the program starts.</p>
 <table>
 <tr><th>Choice</th><th>Target size, in each direction</th></tr>
 <tr><td><em>Full</em></td><td>The headset's resolution.</td></tr>
 <tr><td><em>Half of the pixels</em></td><td>0.707 of it (the square root of one half).</td></tr>
 <tr><td><em>A quarter of the pixels</em></td><td>0.5 of it.</td></tr>
 </table>
-<p>Without a headset (the preview window alone) nothing is made larger by the quality, and the list is disabled.</p>
+<p>Without a headset (the preview window alone) these choices are disabled, and the list starts at 1920 x 1080.</p>
 
-<h3 id="eyelayout">Resolution per eye</h3>
+<h3 id="eyelayout">A size per eye</h3>
 <p>The VR player can instead ask for a size per eye (<code>FrameChannel::set_target_eye_size()</code>; <code>StereoPresenter --eye-size</code> does the same), with or without a headset. The image of each eye has exactly that size. The program is rendered at its own proportions with the scale above, and <code>RenderScalePlanner::choose_layout</code> places that picture in the middle of the image. A program whose picture does not fit (it would have to be smaller than it asks, or the API cannot make the surface) is made as large as it asks, and the image is that size.</p>
 <table>
 <tr><th>Piece</th><th>What it does</th></tr>
