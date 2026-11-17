@@ -46,16 +46,6 @@ const Stereo::Core::ResolutionPolicy& Stereo::ConverterDLL::D3D7WindowedMode::ge
     return m_policy;
 }
 
-uint32_t Stereo::ConverterDLL::D3D7WindowedMode::get_frame_height() const
-{
-    return m_frame_height;
-}
-
-uint32_t Stereo::ConverterDLL::D3D7WindowedMode::get_frame_width() const
-{
-    return m_frame_width;
-}
-
 const Stereo::Core::PixelRect& Stereo::ConverterDLL::D3D7WindowedMode::get_picture() const
 {
     return m_picture;
@@ -64,11 +54,6 @@ const Stereo::Core::PixelRect& Stereo::ConverterDLL::D3D7WindowedMode::get_pictu
 float Stereo::ConverterDLL::D3D7WindowedMode::get_render_scale() const
 {
     return m_policy.get_scale();
-}
-
-uint32_t Stereo::ConverterDLL::D3D7WindowedMode::get_scaled_extent(const uint32_t& in_extent) const
-{
-    return m_policy.scale_extent(in_extent);
 }
 
 void Stereo::ConverterDLL::D3D7WindowedMode::handle_create_surface(const APIInterceptor::APIFunctionArgument* in_arguments_ptr,

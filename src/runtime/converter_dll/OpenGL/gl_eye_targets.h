@@ -51,8 +51,6 @@ namespace Stereo
             bool finish_depth_read(const uint32_t&  in_slot,
                                    const DepthFunc& in_depth_func);
 
-            const void* get_context_ptr() const;
-
             /* Framebuffer and buffer extension functions found for the context (not exported by the OpenGL library). */
             const GLExtensionFunctions& get_functions() const;
 

@@ -364,11 +364,6 @@ bool Stereo::ConverterDLL::GLEyeTargets::finish_depth_read(const uint32_t&  in_s
     return result;
 }
 
-const void* Stereo::ConverterDLL::GLEyeTargets::get_context_ptr() const
-{
-    return m_context_ptr;
-}
-
 const Stereo::ConverterDLL::GLExtensionFunctions& Stereo::ConverterDLL::GLEyeTargets::get_functions() const
 {
     return m_functions;

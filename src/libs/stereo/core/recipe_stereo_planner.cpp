@@ -199,11 +199,6 @@ float Stereo::Core::RecipeStereoPlanner::get_near_fraction() const
     return m_applier.get_comfort().near_fraction;
 }
 
-const std::array<float, 16>& Stereo::Core::RecipeStereoPlanner::get_view_matrix() const
-{
-    return m_view_matrix_fp32vec16;
-}
-
 bool Stereo::Core::RecipeStereoPlanner::is_last_draw_attached_to_camera(const float& in_origin_depth) const
 {
     const float attached_depth = get_camera_attached_depth() * get_effective_convergence_distance();

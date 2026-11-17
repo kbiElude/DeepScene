@@ -32,10 +32,6 @@ namespace Stereo
             void get_display_size(uint32_t* out_width_ptr,
                                   uint32_t* out_height_ptr) const;
 
-            /* The size of the back buffer (see RenderScalePlanner::choose_layout). 0 until the display mode is known. */
-            uint32_t get_frame_height() const;
-            uint32_t get_frame_width () const;
-
             /* Where the application's picture is in the back buffer. */
             const Stereo::Core::PixelRect& get_picture() const;
 
@@ -44,9 +40,6 @@ namespace Stereo
 
             /* Factor by which the back buffer exceeds the request; 1 until the display mode size is known or if not enlarged. */
             float get_render_scale() const;
-
-            /* Returns the back buffer size in pixels for a requested extent. */
-            uint32_t get_scaled_extent(const uint32_t& in_extent) const;
 
             /* True if the application's pixels are scaled or moved in the back buffer. */
             bool is_layout_changed() const;

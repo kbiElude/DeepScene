@@ -65,7 +65,6 @@ namespace Stereo
             bool                         get_is_overlay_pushed             () const;
             uint64_t                     get_n_unknown_draws               () const;
             uint64_t                     get_n_unknown_frames              () const;
-            const std::array<float, 16>& get_view_matrix                   () const;
 
             /* Returns the matrix put in front of a draw's camera for the eye, in OpenGL (column-major) layout: half the eye separation
              * sideways plus a depth shear that keeps the convergence distance fixed. Uses the effective separation and distance (see
